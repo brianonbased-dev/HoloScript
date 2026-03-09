@@ -1,0 +1,62 @@
+{
+  "name": "@holoscript/snn-poc",
+  "version": "1.0.0",
+  "description": "Standalone WebGPU compute shader proof-of-concept for LIF spiking neural network simulation with CPU reference validation",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "validate": "tsx src/validate.ts"
+  },
+  "keywords": [
+    "holoscript",
+    "webgpu",
+    "snn",
+    "spiking-neural-network",
+    "lif-neuron",
+    "wgsl",
+    "compute-shader",
+    "neuromorphic",
+    "proof-of-concept"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/snn-poc"
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.40",
+    "@vitest/coverage-v8": "^4.0.18",
+    "tsup": "^8.0.1",
+    "tsx": "^4.0.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "@webgpu/types": ">=0.1.40"
+  },
+  "peerDependenciesMeta": {
+    "@webgpu/types": {
+      "optional": true
+    }
+  }
+}

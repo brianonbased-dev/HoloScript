@@ -49,6 +49,10 @@ import {
   narrativeToUnity,
   compilePaymentBlock,
   paymentToUnity,
+  compileHealthcareBlock,
+  healthcareToUnity,
+  compileRoboticsBlock,
+  roboticsToUnity,
 } from './DomainBlockCompilerMixin';
 
 export interface UnityCompilerOptions {
@@ -262,6 +266,14 @@ export class UnityCompiler extends CompilerBase {
         payment: (block) => {
           const pay = compilePaymentBlock(block);
           return paymentToUnity(pay);
+        },
+        healthcare: (block) => {
+          const h = compileHealthcareBlock(block);
+          return healthcareToUnity(h);
+        },
+        robotics: (block) => {
+          const r = compileRoboticsBlock(block);
+          return roboticsToUnity(r);
         },
       },
       (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`

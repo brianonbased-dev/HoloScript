@@ -851,6 +851,10 @@ function generatePlaneGeometry(scale: [number, number, number]): GeometryData {
 // GLTF PIPELINE
 // =============================================================================
 
+// Zero-allocation shared compilation buffer (starts at 10MB, grows as needed).
+// Reused across all synchronous compilation runs to prevent OOM memory pressure.
+let SHARED_COMPILE_BUFFER = new Uint8Array(1024 * 1024 * 10);
+
 export class GLTFPipeline extends CompilerBase {
   protected readonly compilerName = 'GLTFPipeline';
 
@@ -860,7 +864,9 @@ export class GLTFPipeline extends CompilerBase {
 
   private options: Required<GLTFPipelineOptions>;
   private compositor: TraitCompositor;
-  private bufferData: Uint8Array = new Uint8Array(1024 * 1024 * 10); // Start with 10MB
+  
+  private get bufferData() { return SHARED_COMPILE_BUFFER; }
+  private set bufferData(v: Uint8Array) { SHARED_COMPILE_BUFFER = v as any; }
   private bufferByteLength: number = 0;
 
   private ensureBufferCapacity(needed: number): void {

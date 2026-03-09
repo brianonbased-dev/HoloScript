@@ -1,0 +1,68 @@
+{
+  "name": "@holoscript/crdt-spatial",
+  "version": "1.0.0",
+  "description": "Loro CRDT-based spatial transform synchronization with Strategy C hybrid rotation handling (base quaternion LWW + delta Euler counters + 30s checkpoint)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "holoscript",
+    "crdt",
+    "loro",
+    "spatial",
+    "quaternion",
+    "rotation",
+    "synchronization",
+    "webrtc",
+    "websocket",
+    "react-three-fiber"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/crdt-spatial"
+  },
+  "dependencies": {
+    "loro-crdt": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "@react-three/fiber": ">=8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "@react-three/fiber": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

@@ -364,6 +364,7 @@ export interface NodeInstance {
 
 export class HoloScriptTypeChecker {
   check(ast: any): any;
+  getType(node: any): any;
 }
 
 export interface ValidationError {
@@ -401,6 +402,22 @@ export function getErrorCodeDocumentation(code: string): string;
 
 export class HoloScriptDebugger {
   debug(ast: any): any;
+  on(event: string, callback: any): void;
+  start(): void;
+  stop(): void;
+  loadSource(source: string, path?: string): { success: boolean; errors?: string[] };
+  clearBreakpoints(): void;
+  setBreakpoint(line: number, options?: Partial<Breakpoint>): any;
+  continue(): void;
+  stepOver(): void;
+  stepInto(): void;
+  stepOut(): void;
+  pause(): void;
+  getCallStack(): any[];
+  getState(): any;
+  getRuntime(): any;
+  evaluate(expression: string, frameId?: number): any;
+  getVariables(frameId?: number): any;
 }
 
 // ============================================================================
@@ -426,6 +443,58 @@ export type XRPlatformCategory = string;
 
 export interface XRPlatformCapabilities {
   [key: string]: any;
+}
+
+// ============================================================================
+// LSP & SAFETY TYPES
+// ============================================================================
+
+export interface StackFrame {
+  id: number;
+  name: string;
+  file?: string;
+  line: number;
+  column: number;
+  variables: Map<string, unknown>;
+  node: any;
+}
+
+export interface Breakpoint {
+  id: string;
+  line: number;
+  column?: number;
+  condition?: string;
+  hitCount: number;
+  enabled: boolean;
+  file?: string;
+}
+
+export interface SafetyPassConfig { [key: string]: any; }
+export interface SafetyPassResult { [key: string]: any; }
+export interface EffectViolation { [key: string]: any; }
+export interface BudgetDiagnostic { [key: string]: any; }
+export interface CapabilityRequirement { [key: string]: any; }
+export interface LinearViolation { [key: string]: any; }
+export interface ASTProgram { [key: string]: any; }
+export interface HSPlusASTNode { [key: string]: any; }
+export interface HSPlusCompileResult { [key: string]: any; }
+
+export function runSafetyPass(ast: any, config?: SafetyPassConfig): SafetyPassResult;
+
+export class HoloScriptValidator {
+  validate(ast: any): ValidationError[];
+}
+
+export function createTypeChecker(): HoloScriptTypeChecker;
+
+export interface AIAdapter { [key: string]: any; }
+export function getDefaultAIAdapter(): AIAdapter;
+export function useGemini(config?: any): AIAdapter;
+export function useOllama(config?: any): AIAdapter;
+export class SemanticSearchService<T = any> { 
+  constructor(adapter: AIAdapter, items: T[]);
+  initialize(): Promise<void>;
+  search(query: string, limit?: number): Promise<any[]>;
 }
 
 // ============================================================================
@@ -481,11 +550,28 @@ const runtimeDTS = `export class HoloScriptRuntime {
 
 const typeCheckerDTS = `export class HoloScriptTypeChecker {
   check(ast: any): any;
+  getType(node: any): any;
 }
 `;
 
 const debuggerDTS = `export class HoloScriptDebugger {
   debug(ast: any): any;
+  on(event: string, callback: any): void;
+  start(): void;
+  stop(): void;
+  loadSource(source: string, path?: string): { success: boolean; errors?: string[] };
+  clearBreakpoints(): void;
+  setBreakpoint(line: number, options?: Partial<Breakpoint>): any; // Return type Breakpoint but any is fine for mock
+  continue(): void;
+  stepOver(): void;
+  stepInto(): void;
+  stepOut(): void;
+  pause(): void;
+  getCallStack(): any[];
+  getState(): any;
+  getRuntime(): any;
+  evaluate(expression: string, frameId?: number): any;
+  getVariables(frameId?: number): any;
 }
 `;
 

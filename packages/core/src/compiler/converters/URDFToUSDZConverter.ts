@@ -224,6 +224,7 @@ export class URDFToUSDZConverter extends CompilerBase {
    * @returns USDA text content
    * @throws Error if URDF is malformed or missing required elements
    */
+  // @ts-expect-error - URDF converter treats XML string as input rather than a standard HoloComposition AST
   compile(urdfXml: string, agentToken?: string): string {
     if (agentToken) {
       this.validateCompilerAccess(agentToken);
@@ -261,6 +262,13 @@ export class URDFToUSDZConverter extends CompilerBase {
     this.emit(`)`);
     this.emit(`{`);
     this.indentLevel++;
+
+    if (this.options.applyCoordinateTransform && this.options.upAxis === 'Y') {
+      this.emitBlank();
+      this.emit(`# Apply URDF Z-up to USD Y-up base transform`);
+      this.emit(`float3 xformOp:rotateXYZ = (-90.0, 0.0, 0.0)`);
+      this.emit(`uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]`);
+    }
 
     // Emit materials scope
     if (this.materialRegistry.size > 0) {
@@ -805,13 +813,6 @@ export class URDFToUSDZConverter extends CompilerBase {
       if (joint.origin) {
         jointNode.translation = joint.origin.xyz;
         jointNode.rotationEuler = this.rpyToDegrees(joint.origin.rpy);
-      }
-
-      // Apply coordinate transform (URDF Z-up -> USD Y-up) at root level only
-      if (this.options.applyCoordinateTransform && this.options.upAxis === 'Y') {
-        if (joint.origin) {
-          jointNode.translation = this.transformZUpToYUp(joint.origin.xyz);
-        }
       }
 
       // Build child link node under the joint

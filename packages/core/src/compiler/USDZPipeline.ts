@@ -33,6 +33,10 @@ import {
   narrativeToUSDA,
   compilePaymentBlock,
   paymentToUSDA,
+  compileHealthcareBlock,
+  healthcareToUSDA,
+  compileRoboticsBlock,
+  roboticsToUSDA,
 } from './DomainBlockCompilerMixin';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 
@@ -1086,6 +1090,14 @@ export class USDZPipeline {
         payment: (block) => {
           const pay = compilePaymentBlock(block);
           return paymentToUSDA(pay);
+        },
+        healthcare: (block) => {
+          const h = compileHealthcareBlock(block);
+          return healthcareToUSDA(h);
+        },
+        robotics: (block) => {
+          const r = compileRoboticsBlock(block);
+          return roboticsToUSDA(r);
         },
       },
       (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`

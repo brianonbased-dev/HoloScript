@@ -5,7 +5,8 @@
   "description": "HoloScript - The open platform for spatial worlds",
   "license": "MIT",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "services/*"
   ],
   "scripts": {
     "build": "pnpm --filter core build && pnpm --filter !core build",

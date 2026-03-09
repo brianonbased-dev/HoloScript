@@ -1079,72 +1079,7 @@ export interface HoloParserOptions {
   filename?: string;
 }
 
-// =============================================================================
-// ASSET PIPELINE — @import / @export DIRECTIVE TYPES
-// =============================================================================
 
-/**
- * Parsed @import directive AST node.
- *
- * Covers all three import forms:
- * ```holoscript
- * @import "./foo.hs"                     → path, alias (stem), no namedImports
- * @import "./foo.hs" as F                → path, alias = 'F'
- * @import { Button } from "./foo.hs"     → path, namedImports = ['Button']
- * @import * as NS from "./foo.hs"        → path, alias = 'NS', isWildcard = true
- * ```
- */
-export interface ImportDirective {
-  readonly type: 'import';
-  /** Raw import path as written in source, e.g. `"./shared/ui.hs"` */
-  path: string;
-  /**
-   * Resolved namespace alias.
-   * - Defaults to the file stem (last path segment without extension)
-   * - Overridden by the `as Alias` clause
-   * - Used as the prefix for wildcard/namespace imports: `alias.ExportName`
-   */
-  alias: string;
-  /**
-   * List of explicitly imported names (`{ A, B }`).
-   * `undefined` for namespace / wildcard imports.
-   */
-  namedImports?: string[];
-  /**
-   * `true` for wildcard imports (`* as NS from "..."`)
-   * All exports are injected under `alias.ExportName`.
-   */
-  isWildcard?: boolean;
-  /** Source location (line/col of the `@import` token) */
-  loc?: { start: { line: number; column: number } };
-}
-
-/**
- * Parsed @export directive AST node.
- *
- * Marks the immediately following node as publicly importable:
- * ```holoscript
- * @export template "GlowingOrb"    → exportKind = 'template'
- * @export object   "Panel"         → exportKind = 'object'
- * @export          "Thing"         → exportKind = 'any'
- * ```
- */
-export interface ExportDirective {
-  readonly type: 'export';
-  /**
-   * Category of the exported item.
-   * Inferred from the keyword following `@export`.
-   * Falls back to `'any'` when no kind keyword is present.
-   */
-  exportKind: 'template' | 'object' | 'composition' | 'logic' | 'any';
-  /**
-   * Name of the exported item.
-   * The consumer (e.g., `@import { Button }`) uses this name to look it up.
-   */
-  exportName?: string;
-  /** Source location (line/col of the `@export` token) */
-  loc?: { start: { line: number; column: number } };
-}
 
 /**
  * Compact import record stored in `ASTProgram.imports`.
@@ -1306,6 +1241,62 @@ export interface CompiledPaywall {
   type: 'one_time' | 'subscription' | 'tip' | 'per_use';
   gatedContent?: string[];
   revenueSplit?: { creator: number; platform: number; agent: number };
+}
+
+// =============================================================================
+// COMPILED HEALTHCARE IR (Medical Domain v4.7)
+// =============================================================================
+
+export interface CompiledHealthcare {
+  name: string;
+  keyword: string;
+  /** Medical modality: xray, mri, ct, ultrasound, ecg */
+  modality?: string;
+  /** Body system targeted: cardiovascular, nervous, skeletal, etc. */
+  bodySystem?: string;
+  /** DICOM window/level for imaging */
+  dicomWindow?: { center: number; width: number };
+  /** Vital signs to monitor */
+  vitalSigns?: string[];
+  /** Alert thresholds for vital monitoring */
+  alertThresholds?: Record<string, { min: number; max: number }>;
+  /** Procedure steps */
+  procedureSteps?: string[];
+  /** Patient data display fields */
+  displayFields?: string[];
+  /** Traits applied */
+  traits: string[];
+  /** Extra properties */
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED ROBOTICS IR (Robotics Domain v4.7)
+// =============================================================================
+
+export interface CompiledRobotics {
+  name: string;
+  keyword: string;
+  /** Joint type: revolute, prismatic, continuous, fixed, floating, planar */
+  jointType?: string;
+  /** Joint limits (radians for revolute, meters for prismatic) */
+  jointLimits?: { lower: number; upper: number; effort: number; velocity: number };
+  /** Drive/controller type: position, velocity, effort */
+  driveType?: string;
+  /** Controller algorithm: pid, mpc, lqr, impedance */
+  controllerType?: string;
+  /** End effector type: parallel_gripper, suction_gripper, welding_torch, etc. */
+  effectorType?: string;
+  /** Sensor type: camera, imu, lidar, force_torque, contact */
+  sensorType?: string;
+  /** ROS 2 compatibility flags */
+  ros2?: { packageName?: string; nodeType?: string; topicName?: string };
+  /** Safety rating (ISO 10218, TS 15066) */
+  safetyRating?: string;
+  /** Traits applied */
+  traits: string[];
+  /** Extra properties */
+  properties: Record<string, unknown>;
 }
 
 // =============================================================================

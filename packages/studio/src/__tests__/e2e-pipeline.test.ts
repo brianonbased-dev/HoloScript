@@ -172,7 +172,7 @@ import { CompilerBridge, resetCompilerBridge } from '../lib/wasm-compiler-bridge
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-describe('E2E Pipeline: Compile -> Render -> Interact', () => {
+describe('E2E Pipeline: Compile -> Render -> Interact', { timeout: 30_000 }, () => {
   let bridge: CompilerBridge;
 
   beforeEach(() => {

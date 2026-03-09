@@ -1339,8 +1339,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Apply Networking Sync
     if (instance.node.traits?.has('networked' as any)) {
       const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as any;
+      const body = this.physicsWorld.getBody(instance.node.id || '');
+
       if (interpolated && instance.node.properties) {
-        // ... (existing logic) ...
         // Mark dirty if changed?
         // Let's assume network sync updates properties directly.
         // We should mark dirty.
@@ -1359,6 +1360,36 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             interpolated.rotation.y,
             interpolated.rotation.z,
           ];
+        }
+
+        // --- PHYSICS NETWORK DESYNC FIX ---
+        // If we receive network interpolation, the physics body must yield to the network.
+        // Force to kinematic to prevent local physics from overriding networked movement.
+        if (body) {
+          if (body.type !== 'kinematic') {
+            if (!(instance.node as any).__originalPhysicsType) {
+               (instance.node as any).__originalPhysicsType = body.type;
+            }
+            body.type = 'kinematic';
+          }
+          if (interpolated.position) {
+            body.position = { x: interpolated.position.x, y: interpolated.position.y, z: interpolated.position.z };
+            body.velocity = { x: 0, y: 0, z: 0 };
+          }
+          if (interpolated.rotation) {
+            body.rotation = { 
+              x: interpolated.rotation.x, 
+              y: interpolated.rotation.y, 
+              z: interpolated.rotation.z, 
+              w: interpolated.rotation.w || 1 
+            };
+            body.angularVelocity = { x: 0, y: 0, z: 0 };
+          }
+        }
+      } else if (!interpolated && body && (instance.node as any).__originalPhysicsType) {
+        // We are locally predicting / owning this node now, restore its original physics type!
+        if (body.type === 'kinematic' && (instance.node as any).__originalPhysicsType !== 'kinematic') {
+           body.type = (instance.node as any).__originalPhysicsType;
         }
       }
     }

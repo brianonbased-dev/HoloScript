@@ -2866,6 +2866,449 @@ export function paymentToUSDA(paywall: CompiledPaywall): string {
 }
 
 // =============================================================================
+// Healthcare / Medical Domain Compilation
+// =============================================================================
+
+import type { CompiledHealthcare, CompiledRobotics } from '../parser/HoloCompositionTypes';
+
+export function compileHealthcareBlock(block: HoloDomainBlock): CompiledHealthcare {
+  const props = block.properties || {};
+
+  // Extract DICOM window/level
+  let dicomWindow: CompiledHealthcare['dicomWindow'];
+  if (props.window_center != null || props.window_width != null) {
+    dicomWindow = {
+      center: (props.window_center as number) ?? 40,
+      width: (props.window_width as number) ?? 400,
+    };
+  }
+
+  // Extract vital signs
+  let vitalSigns: string[] | undefined;
+  if (Array.isArray(props.vital_signs)) {
+    vitalSigns = props.vital_signs as string[];
+  } else if (typeof props.vital_signs === 'string') {
+    vitalSigns = [props.vital_signs as string];
+  }
+
+  // Extract alert thresholds
+  let alertThresholds: CompiledHealthcare['alertThresholds'];
+  if (props.alert_thresholds && typeof props.alert_thresholds === 'object') {
+    alertThresholds = props.alert_thresholds as Record<string, { min: number; max: number }>;
+  }
+
+  // Extract procedure steps from children or property
+  const procedureSteps: string[] = [];
+  if (Array.isArray(props.steps)) {
+    procedureSteps.push(...(props.steps as string[]));
+  }
+  for (const child of block.children || []) {
+    const c = child as any;
+    if (c.keyword === 'step' && c.name) procedureSteps.push(c.name);
+  }
+
+  // Display fields
+  let displayFields: string[] | undefined;
+  if (Array.isArray(props.display_fields)) {
+    displayFields = props.display_fields as string[];
+  }
+
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    modality: props.modality as string | undefined,
+    bodySystem: (props.body_system || props.bodySystem) as string | undefined,
+    dicomWindow,
+    vitalSigns,
+    alertThresholds,
+    procedureSteps: procedureSteps.length > 0 ? procedureSteps : undefined,
+    displayFields,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+/** React Three Fiber medical visualization component */
+export function healthcareToR3F(healthcare: CompiledHealthcare): string {
+  const safeName = healthcare.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`// Medical: ${healthcare.name} (${healthcare.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${healthcare.name}",`);
+  lines.push(`  type: "${healthcare.keyword}",`);
+  if (healthcare.modality) {
+    lines.push(`  modality: "${healthcare.modality}",`);
+  }
+  if (healthcare.bodySystem) {
+    lines.push(`  bodySystem: "${healthcare.bodySystem}",`);
+  }
+  if (healthcare.dicomWindow) {
+    lines.push(`  dicomWindow: { center: ${healthcare.dicomWindow.center}, width: ${healthcare.dicomWindow.width} },`);
+  }
+  if (healthcare.vitalSigns) {
+    lines.push(`  vitalSigns: [${healthcare.vitalSigns.map((v) => `"${v}"`).join(', ')}],`);
+  }
+  if (healthcare.alertThresholds) {
+    lines.push(`  alertThresholds: ${JSON.stringify(healthcare.alertThresholds)},`);
+  }
+  if (healthcare.procedureSteps) {
+    lines.push(`  steps: [${healthcare.procedureSteps.map((s) => `"${s}"`).join(', ')}],`);
+  }
+  lines.push('};');
+
+  return lines.join('\n');
+}
+
+/** Unity C# medical component */
+export function healthcareToUnity(healthcare: CompiledHealthcare): string {
+  const safeName = healthcare.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`// Medical: ${healthcare.name}`);
+  lines.push(`public class ${safeName}Medical : MonoBehaviour {`);
+  lines.push(`    public string medicalType = "${healthcare.keyword}";`);
+  if (healthcare.modality) {
+    lines.push(`    public string modality = "${healthcare.modality}";`);
+  }
+  if (healthcare.bodySystem) {
+    lines.push(`    public string bodySystem = "${healthcare.bodySystem}";`);
+  }
+  if (healthcare.dicomWindow) {
+    lines.push(`    public float windowCenter = ${healthcare.dicomWindow.center}f;`);
+    lines.push(`    public float windowWidth = ${healthcare.dicomWindow.width}f;`);
+  }
+  if (healthcare.vitalSigns) {
+    lines.push(`    public string[] vitalSigns = new string[] { ${healthcare.vitalSigns.map((v) => `"${v}"`).join(', ')} };`);
+  }
+  if (healthcare.procedureSteps) {
+    lines.push(`    public string[] procedureSteps = new string[] { ${healthcare.procedureSteps.map((s) => `"${s}"`).join(', ')} };`);
+  }
+  lines.push('');
+  if (healthcare.dicomWindow) {
+    lines.push('    // DICOM window-leveling shader uniforms');
+    lines.push('    void Start() {');
+    lines.push('        var renderer = GetComponent<Renderer>();');
+    lines.push('        if (renderer != null) {');
+    lines.push(`            renderer.material.SetFloat("_WindowCenter", ${healthcare.dicomWindow.center}f);`);
+    lines.push(`            renderer.material.SetFloat("_WindowWidth", ${healthcare.dicomWindow.width}f);`);
+    lines.push('        }');
+    lines.push('    }');
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/** Godot GDScript medical node */
+export function healthcareToGodot(healthcare: CompiledHealthcare): string {
+  const lines: string[] = [];
+
+  lines.push(`# Medical: ${healthcare.name}`);
+  lines.push('extends Node3D');
+  lines.push('');
+  lines.push(`@export var medical_type: String = "${healthcare.keyword}"`);
+  if (healthcare.modality) {
+    lines.push(`@export var modality: String = "${healthcare.modality}"`);
+  }
+  if (healthcare.bodySystem) {
+    lines.push(`@export var body_system: String = "${healthcare.bodySystem}"`);
+  }
+  if (healthcare.dicomWindow) {
+    lines.push(`@export var window_center: float = ${healthcare.dicomWindow.center}`);
+    lines.push(`@export var window_width: float = ${healthcare.dicomWindow.width}`);
+  }
+  if (healthcare.vitalSigns) {
+    lines.push(`@export var vital_signs: PackedStringArray = [${healthcare.vitalSigns.map((v) => `"${v}"`).join(', ')}]`);
+  }
+  if (healthcare.dicomWindow) {
+    lines.push('');
+    lines.push('signal window_level_changed(center: float, width: float)');
+    lines.push('');
+    lines.push('func set_window_level(center: float, width: float) -> void:');
+    lines.push('    window_center = center');
+    lines.push('    window_width = width');
+    lines.push('    var mat = get_node("MeshInstance3D").get_surface_override_material(0)');
+    lines.push('    if mat:');
+    lines.push('        mat.set_shader_parameter("window_center", center)');
+    lines.push('        mat.set_shader_parameter("window_width", width)');
+    lines.push('    window_level_changed.emit(center, width)');
+  }
+
+  return lines.join('\n');
+}
+
+/** VRChat UdonSharp medical display */
+export function healthcareToVRChat(healthcare: CompiledHealthcare): string {
+  const safeName = healthcare.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`// Medical: ${healthcare.name}`);
+  lines.push(`[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]`);
+  lines.push(`public class ${safeName}Medical : UdonSharpBehaviour {`);
+  lines.push(`    public string medicalType = "${healthcare.keyword}";`);
+  if (healthcare.vitalSigns) {
+    lines.push(`    [UdonSynced] public string vitalData = "";`);
+  }
+  if (healthcare.dicomWindow) {
+    lines.push(`    [UdonSynced] public float windowCenter = ${healthcare.dicomWindow.center}f;`);
+    lines.push(`    [UdonSynced] public float windowWidth = ${healthcare.dicomWindow.width}f;`);
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/** USD medical annotations */
+export function healthcareToUSDA(healthcare: CompiledHealthcare): string {
+  const safeName = healthcare.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`def Scope "Medical_${safeName}" {`);
+  lines.push(`    custom string holoscript:medicalType = "${healthcare.keyword}"`);
+  if (healthcare.modality) {
+    lines.push(`    custom string holoscript:modality = "${healthcare.modality}"`);
+  }
+  if (healthcare.bodySystem) {
+    lines.push(`    custom string holoscript:bodySystem = "${healthcare.bodySystem}"`);
+  }
+  if (healthcare.dicomWindow) {
+    lines.push(`    custom float holoscript:dicomWindowCenter = ${healthcare.dicomWindow.center}`);
+    lines.push(`    custom float holoscript:dicomWindowWidth = ${healthcare.dicomWindow.width}`);
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Robotics Domain Compilation
+// =============================================================================
+
+export function compileRoboticsBlock(block: HoloDomainBlock): CompiledRobotics {
+  const props = block.properties || {};
+
+  // Extract joint limits
+  let jointLimits: CompiledRobotics['jointLimits'];
+  if (props.lower != null || props.upper != null || props.effort != null || props.velocity != null) {
+    jointLimits = {
+      lower: (props.lower as number) ?? -3.14159,
+      upper: (props.upper as number) ?? 3.14159,
+      effort: (props.effort as number) ?? 100,
+      velocity: (props.velocity as number) ?? 1.0,
+    };
+  } else if (props.limits && typeof props.limits === 'object') {
+    const lim = props.limits as Record<string, any>;
+    jointLimits = {
+      lower: (lim.lower as number) ?? -3.14159,
+      upper: (lim.upper as number) ?? 3.14159,
+      effort: (lim.effort as number) ?? 100,
+      velocity: (lim.velocity as number) ?? 1.0,
+    };
+  }
+
+  // ROS 2 configuration
+  let ros2: CompiledRobotics['ros2'];
+  if (props.ros2_package || props.ros2_node || props.ros2_topic) {
+    ros2 = {
+      packageName: props.ros2_package as string | undefined,
+      nodeType: props.ros2_node as string | undefined,
+      topicName: props.ros2_topic as string | undefined,
+    };
+  }
+
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    jointType: (props.joint_type || props.type) as string | undefined,
+    jointLimits,
+    driveType: (props.drive_type || props.drive) as string | undefined,
+    controllerType: (props.controller_type || props.controller) as string | undefined,
+    effectorType: (props.effector_type || props.effector) as string | undefined,
+    sensorType: (props.sensor_type || props.sensor) as string | undefined,
+    ros2,
+    safetyRating: (props.safety_rating || props.safety) as string | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+/** React Three Fiber robot component config */
+export function roboticsToR3F(robotics: CompiledRobotics): string {
+  const safeName = robotics.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`// Robotics: ${robotics.name} (${robotics.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${robotics.name}",`);
+  lines.push(`  type: "${robotics.keyword}",`);
+  if (robotics.jointType) {
+    lines.push(`  jointType: "${robotics.jointType}",`);
+  }
+  if (robotics.jointLimits) {
+    lines.push(`  jointLimits: { lower: ${robotics.jointLimits.lower}, upper: ${robotics.jointLimits.upper}, effort: ${robotics.jointLimits.effort}, velocity: ${robotics.jointLimits.velocity} },`);
+  }
+  if (robotics.driveType) {
+    lines.push(`  driveType: "${robotics.driveType}",`);
+  }
+  if (robotics.controllerType) {
+    lines.push(`  controllerType: "${robotics.controllerType}",`);
+  }
+  if (robotics.effectorType) {
+    lines.push(`  effectorType: "${robotics.effectorType}",`);
+  }
+  if (robotics.sensorType) {
+    lines.push(`  sensorType: "${robotics.sensorType}",`);
+  }
+  if (robotics.safetyRating) {
+    lines.push(`  safetyRating: "${robotics.safetyRating}",`);
+  }
+  lines.push('};');
+
+  return lines.join('\n');
+}
+
+/** Unity C# robotics component */
+export function roboticsToUnity(robotics: CompiledRobotics): string {
+  const safeName = robotics.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`// Robotics: ${robotics.name}`);
+  lines.push(`public class ${safeName}Robotics : MonoBehaviour {`);
+  lines.push(`    public string roboticsType = "${robotics.keyword}";`);
+  if (robotics.jointType) {
+    lines.push(`    public ArticulationJointType jointType = ArticulationJointType.${capitalizeFirst(robotics.jointType)};`);
+  }
+  if (robotics.jointLimits) {
+    lines.push(`    public float lowerLimit = ${robotics.jointLimits.lower}f;`);
+    lines.push(`    public float upperLimit = ${robotics.jointLimits.upper}f;`);
+    lines.push(`    public float effortLimit = ${robotics.jointLimits.effort}f;`);
+    lines.push(`    public float velocityLimit = ${robotics.jointLimits.velocity}f;`);
+  }
+  if (robotics.driveType) {
+    lines.push(`    public string driveType = "${robotics.driveType}";`);
+  }
+  if (robotics.controllerType) {
+    lines.push(`    public string controllerType = "${robotics.controllerType}";`);
+  }
+  if (robotics.safetyRating) {
+    lines.push(`    public string safetyRating = "${robotics.safetyRating}";`);
+  }
+  lines.push('');
+  if (robotics.jointLimits) {
+    lines.push('    void Start() {');
+    lines.push('        var body = GetComponent<ArticulationBody>();');
+    lines.push('        if (body != null) {');
+    lines.push('            var drive = body.xDrive;');
+    lines.push(`            drive.lowerLimit = ${robotics.jointLimits.lower}f * Mathf.Rad2Deg;`);
+    lines.push(`            drive.upperLimit = ${robotics.jointLimits.upper}f * Mathf.Rad2Deg;`);
+    lines.push(`            drive.forceLimit = ${robotics.jointLimits.effort}f;`);
+    lines.push('            body.xDrive = drive;');
+    lines.push('        }');
+    lines.push('    }');
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/** Godot GDScript robotics node */
+export function roboticsToGodot(robotics: CompiledRobotics): string {
+  const lines: string[] = [];
+
+  lines.push(`# Robotics: ${robotics.name}`);
+  lines.push('extends Node3D');
+  lines.push('');
+  lines.push(`@export var robotics_type: String = "${robotics.keyword}"`);
+  if (robotics.jointType) {
+    lines.push(`@export var joint_type: String = "${robotics.jointType}"`);
+  }
+  if (robotics.jointLimits) {
+    lines.push(`@export var lower_limit: float = ${robotics.jointLimits.lower}`);
+    lines.push(`@export var upper_limit: float = ${robotics.jointLimits.upper}`);
+    lines.push(`@export var effort_limit: float = ${robotics.jointLimits.effort}`);
+    lines.push(`@export var velocity_limit: float = ${robotics.jointLimits.velocity}`);
+  }
+  if (robotics.driveType) {
+    lines.push(`@export var drive_type: String = "${robotics.driveType}"`);
+  }
+  if (robotics.controllerType) {
+    lines.push(`@export var controller_type: String = "${robotics.controllerType}"`);
+  }
+  if (robotics.safetyRating) {
+    lines.push(`@export var safety_rating: String = "${robotics.safetyRating}"`);
+  }
+  if (robotics.jointType === 'revolute' || robotics.jointType === 'continuous') {
+    lines.push('');
+    lines.push('signal joint_position_changed(angle_rad: float)');
+    lines.push('');
+    lines.push('var current_angle: float = 0.0');
+    lines.push('');
+    lines.push('func set_joint_angle(angle: float) -> void:');
+    if (robotics.jointLimits) {
+      lines.push(`    angle = clampf(angle, ${robotics.jointLimits.lower}, ${robotics.jointLimits.upper})`);
+    }
+    lines.push('    current_angle = angle');
+    lines.push('    rotation.x = angle');
+    lines.push('    joint_position_changed.emit(angle)');
+  }
+
+  return lines.join('\n');
+}
+
+/** VRChat UdonSharp robotics component */
+export function roboticsToVRChat(robotics: CompiledRobotics): string {
+  const safeName = robotics.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`// Robotics: ${robotics.name}`);
+  lines.push(`[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]`);
+  lines.push(`public class ${safeName}Robotics : UdonSharpBehaviour {`);
+  lines.push(`    public string roboticsType = "${robotics.keyword}";`);
+  if (robotics.jointType) {
+    lines.push(`    public string jointType = "${robotics.jointType}";`);
+  }
+  if (robotics.jointLimits) {
+    lines.push(`    [UdonSynced] public float jointAngle = 0f;`);
+    lines.push(`    public float lowerLimit = ${robotics.jointLimits.lower}f;`);
+    lines.push(`    public float upperLimit = ${robotics.jointLimits.upper}f;`);
+  }
+  if (robotics.safetyRating) {
+    lines.push(`    public string safetyRating = "${robotics.safetyRating}";`);
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/** USD robotics annotations */
+export function roboticsToUSDA(robotics: CompiledRobotics): string {
+  const safeName = robotics.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+
+  lines.push(`def Scope "Robotics_${safeName}" {`);
+  lines.push(`    custom string holoscript:roboticsType = "${robotics.keyword}"`);
+  if (robotics.jointType) {
+    lines.push(`    custom string holoscript:jointType = "${robotics.jointType}"`);
+  }
+  if (robotics.jointLimits) {
+    lines.push(`    custom float holoscript:jointLower = ${robotics.jointLimits.lower}`);
+    lines.push(`    custom float holoscript:jointUpper = ${robotics.jointLimits.upper}`);
+    lines.push(`    custom float holoscript:jointEffort = ${robotics.jointLimits.effort}`);
+    lines.push(`    custom float holoscript:jointVelocity = ${robotics.jointLimits.velocity}`);
+  }
+  if (robotics.driveType) {
+    lines.push(`    custom string holoscript:driveType = "${robotics.driveType}"`);
+  }
+  if (robotics.safetyRating) {
+    lines.push(`    custom string holoscript:safetyRating = "${robotics.safetyRating}"`);
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// =============================================================================
 // Domain Block Router
 // =============================================================================
 

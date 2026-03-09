@@ -17,16 +17,38 @@ export interface DiffLine {
   lineB?: number;
 }
 
-/** Naive LCS-based line diff */
+const MAX_LINES_FOR_DIFF = 500;
+
+// Global zero-allocation buffer for hot-path diffing
+// Enough for 501 x 501, reusing memory to prevent GC stutter
+const SHARED_DP_BUFFER = new Int32Array((MAX_LINES_FOR_DIFF + 1) * (MAX_LINES_FOR_DIFF + 1));
+
+/** Naive LCS-based line diff optimized with zero-allocation flat buffer */
 function diffLines(aLines: string[], bLines: string[]): DiffLine[] {
-  // Build LCS table
-  const m = aLines.length,
-    n = bLines.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  const m = aLines.length;
+  const n = bLines.length;
+  const cols = n + 1;
+
+  const getDP = (i: number, j: number) => SHARED_DP_BUFFER[i * cols + j];
+  const setDP = (i: number, j: number, val: number) => {
+    SHARED_DP_BUFFER[i * cols + j] = val;
+  };
+
+  // Clear the used portion of the DP table
+  for (let i = 0; i <= m; i++) {
+    for (let j = 0; j <= n; j++) {
+      setDP(i, j, 0);
+    }
+  }
+
+  // Build LCS table backwards
   for (let i = m - 1; i >= 0; i--) {
     for (let j = n - 1; j >= 0; j--) {
-      dp[i][j] =
-        aLines[i] === bLines[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      if (aLines[i] === bLines[j]) {
+        setDP(i, j, getDP(i + 1, j + 1) + 1);
+      } else {
+        setDP(i, j, Math.max(getDP(i + 1, j), getDP(i, j + 1)));
+      }
     }
   }
 
@@ -35,12 +57,13 @@ function diffLines(aLines: string[], bLines: string[]): DiffLine[] {
     j = 0,
     lineA = 1,
     lineB = 1;
+
   while (i < m || j < n) {
     if (i < m && j < n && aLines[i] === bLines[j]) {
       result.push({ type: 'same', text: aLines[i], lineA: lineA++, lineB: lineB++ });
       i++;
       j++;
-    } else if (j < n && (i >= m || dp[i + 1]?.[j] <= dp[i]?.[j + 1])) {
+    } else if (j < n && (i >= m || getDP(i + 1, j) <= getDP(i, j + 1))) {
       result.push({ type: 'added', text: bLines[j], lineB: lineB++ });
       j++;
     } else {
@@ -50,8 +73,6 @@ function diffLines(aLines: string[], bLines: string[]): DiffLine[] {
   }
   return result;
 }
-
-const MAX_LINES_FOR_DIFF = 500;
 
 export function useSnapshotDiff() {
   const temporal = useTemporalStore((s) => s) as unknown as {

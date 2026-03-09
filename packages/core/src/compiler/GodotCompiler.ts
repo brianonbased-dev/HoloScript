@@ -49,6 +49,10 @@ import {
   narrativeToGodot,
   compilePaymentBlock,
   paymentToGodot,
+  compileHealthcareBlock,
+  healthcareToGodot,
+  compileRoboticsBlock,
+  roboticsToGodot,
 } from './DomainBlockCompilerMixin';
 
 export interface GodotCompilerOptions {
@@ -236,6 +240,14 @@ export class GodotCompiler extends CompilerBase {
         payment: (block) => {
           const pay = compilePaymentBlock(block);
           return paymentToGodot(pay);
+        },
+        healthcare: (block) => {
+          const h = compileHealthcareBlock(block);
+          return healthcareToGodot(h);
+        },
+        robotics: (block) => {
+          const r = compileRoboticsBlock(block);
+          return roboticsToGodot(r);
         },
       },
       (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`

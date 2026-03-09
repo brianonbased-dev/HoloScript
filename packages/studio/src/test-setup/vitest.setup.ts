@@ -176,6 +176,19 @@ vi.mock('idb', () => ({
   ),
 }));
 
+// ── @coinbase/agentkit mock ────────────────────────────────────────────────────
+// @holoscript/core barrel exports AgentKitIntegration → AgentWalletService →
+// @coinbase/agentkit → @privy-io/server-auth which throws
+// "cannot be used in a browser environment" in jsdom/node test environments.
+// We mock the entire module to prevent this transitive import error.
+vi.mock('@coinbase/agentkit', () => ({
+  AgentKit: vi.fn(),
+  wethActionProvider: vi.fn(),
+  walletActionProvider: vi.fn(),
+  cdpApiActionProvider: vi.fn(),
+  ActionProvider: vi.fn(),
+}));
+
 // ── localStorage mock ──────────────────────────────────────────────────────────
 // Some stores (EditorStore, CharacterStore) reference localStorage.
 // In Node there's no window, so we provide a Map-backed stub.

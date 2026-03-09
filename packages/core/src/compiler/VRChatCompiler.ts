@@ -42,6 +42,10 @@ import {
   narrativeToVRChat,
   compilePaymentBlock,
   paymentToVRChat,
+  compileHealthcareBlock,
+  healthcareToVRChat,
+  compileRoboticsBlock,
+  roboticsToVRChat,
 } from './DomainBlockCompilerMixin';
 
 export interface VRChatCompilerOptions {
@@ -286,6 +290,14 @@ export class VRChatCompiler extends CompilerBase {
         payment: (block) => {
           const pay = compilePaymentBlock(block);
           return paymentToVRChat(pay);
+        },
+        healthcare: (block) => {
+          const h = compileHealthcareBlock(block);
+          return healthcareToVRChat(h);
+        },
+        robotics: (block) => {
+          const r = compileRoboticsBlock(block);
+          return roboticsToVRChat(r);
         },
       },
       (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`

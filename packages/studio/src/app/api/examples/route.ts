@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
+import { extractTraits } from '@holoscript/std';
 
 /**
  * GET /api/examples
@@ -66,14 +67,6 @@ function extractDescription(code: string): string {
   return '';
 }
 
-function extractTraits(code: string): string[] {
-  const traitSet = new Set<string>();
-  const matches = code.matchAll(/@(\w+)/g);
-  for (const m of matches) {
-    traitSet.add(`@${m[1]}`);
-  }
-  return [...traitSet].slice(0, 12);
-}
 
 function prettifyName(filename: string): string {
   return filename
@@ -121,7 +114,7 @@ function scanExamples(): { examples: ExampleFile[]; categories: string[] } {
             description: extractDescription(code) || `${prettifyName(entry.name)} example`,
             sizeBytes: Buffer.byteLength(code, 'utf-8'),
             code,
-            traits: extractTraits(code),
+            traits: extractTraits(code).slice(0, 12),
           });
         } catch {
           // Skip unreadable files

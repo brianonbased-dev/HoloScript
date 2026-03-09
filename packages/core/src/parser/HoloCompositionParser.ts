@@ -527,7 +527,6 @@ const KEYWORDS: Record<string, TokenType> = {
   particles: 'PARTICLES',
   emitter: 'EMITTER',
   vfx: 'VFX',
-  particle_system: 'PARTICLES',
   post_processing: 'POST_PROCESSING',
   post_fx: 'POST_FX',
   render_pipeline: 'POST_PROCESSING',
@@ -5192,11 +5191,6 @@ export class HoloCompositionParser {
   /** Check if current token is a domain block token */
   private isDomainBlockToken(): boolean {
     return HoloCompositionParser.DOMAIN_TOKENS.has(this.current().type);
-  }
-
-  /** Check if value is a light primitive shorthand */
-  private isLightPrimitive(value: string): boolean {
-    return LIGHT_PRIMITIVES.has(value);
   }
 
   // ===========================================================================

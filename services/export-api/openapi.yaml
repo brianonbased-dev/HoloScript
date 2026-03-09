@@ -1,0 +1,485 @@
+openapi: '3.1.0'
+info:
+  title: HoloScript Export API
+  version: 1.0.0
+  description: |
+    REST API for HoloScript compilation and export with SOC 2 compliance foundations.
+    All compilations are async (ADR-002). API keys are hashed (ADR-003).
+    Audit logs are append-only with integrity chains (ADR-004).
+  contact:
+    name: Brian X Base Team
+    url: https://github.com/brianonbased-dev/Holoscript
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3100
+    description: Local development
+  - url: https://api.holoscript.dev
+    description: Production
+
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+
+tags:
+  - name: Compile
+    description: HoloScript compilation and export jobs
+  - name: Validate
+    description: HoloScript source validation
+  - name: Targets
+    description: Export target discovery
+  - name: Admin
+    description: Administrative operations (admin role required)
+  - name: Health
+    description: Health and readiness checks
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Basic health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  service:
+                    type: string
+                    example: '@holoscript/export-api'
+                  version:
+                    type: string
+                    example: '1.0.0'
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+
+  /api/v1/compile:
+    post:
+      tags: [Compile]
+      summary: Submit a compilation job
+      description: |
+        Submits HoloScript source for async compilation to the specified target.
+        Returns 202 Accepted with a job ID for polling (ADR-002).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompileRequest'
+      responses:
+        '202':
+          description: Compilation job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompileJobCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api/v1/compile/{jobId}:
+    get:
+      tags: [Compile]
+      summary: Get compilation job status
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompileJobStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/compile/{jobId}/output:
+    get:
+      tags: [Compile]
+      summary: Download compilation output
+      description: Returns a signed download URL for the compiled output (ADR-005).
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Download information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompileOutput'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Job not completed
+
+  /api/v1/validate:
+    post:
+      tags: [Validate]
+      summary: Validate HoloScript source
+      description: Validates source without compiling. Faster than compile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateRequest'
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/targets:
+    get:
+      tags: [Targets]
+      summary: List export targets
+      responses:
+        '200':
+          description: Available export targets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetList'
+
+  /api/v1/admin/keys:
+    post:
+      tags: [Admin]
+      summary: Create API key
+      description: |
+        Creates a new API key. The raw key is returned ONCE in this response
+        and never stored (ADR-003). Only the SHA-256 hash is persisted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key created (raw key shown once)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreated'
+    get:
+      tags: [Admin]
+      summary: List API keys (metadata only)
+      responses:
+        '200':
+          description: API key listing
+
+  /api/v1/admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: Query audit logs
+      description: Read-only access to append-only audit logs (ADR-004).
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 1000
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: identity
+          in: query
+          schema:
+            type: string
+        - name: method
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit log entries
+
+  /api/v1/admin/usage:
+    get:
+      tags: [Admin]
+      summary: API usage statistics
+      responses:
+        '200':
+          description: Usage metrics
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    CompileRequest:
+      type: object
+      required: [source, target]
+      properties:
+        source:
+          type: string
+          minLength: 1
+          maxLength: 1000000
+          description: HoloScript source code
+        target:
+          type: string
+          description: Export target (e.g., unity, r3f, usd)
+        options:
+          type: object
+          description: Compilation options
+        idempotencyKey:
+          type: string
+          maxLength: 128
+          description: Idempotency key to prevent duplicate submissions
+
+    CompileJobCreated:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending]
+        target:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        pollUrl:
+          type: string
+        message:
+          type: string
+
+    CompileJobStatus:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, cancelled]
+        target:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        outputUrl:
+          type: string
+        outputSizeBytes:
+          type: integer
+        durationMs:
+          type: integer
+        error:
+          type: string
+
+    CompileOutput:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        downloadUrl:
+          type: string
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+        expiresIn:
+          type: integer
+          description: URL validity in seconds
+
+    ValidateRequest:
+      type: object
+      required: [source]
+      properties:
+        source:
+          type: string
+          minLength: 1
+          maxLength: 1000000
+        target:
+          type: string
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        issues:
+          type: array
+          items:
+            type: object
+            properties:
+              severity:
+                type: string
+                enum: [error, warning, info]
+              message:
+                type: string
+              line:
+                type: integer
+              column:
+                type: integer
+        summary:
+          type: object
+          properties:
+            errors:
+              type: integer
+            warnings:
+              type: integer
+            infos:
+              type: integer
+        durationMs:
+          type: number
+
+    TargetList:
+      type: object
+      properties:
+        targets:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              category:
+                type: string
+              description:
+                type: string
+              outputFormat:
+                type: string
+              status:
+                type: string
+                enum: [stable, beta, experimental]
+        count:
+          type: integer
+        categories:
+          type: array
+          items:
+            type: string
+
+    CreateApiKeyRequest:
+      type: object
+      required: [name, role]
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [developer, viewer, service]
+        expiresAt:
+          type: string
+          format: date-time
+
+    ApiKeyCreated:
+      type: object
+      properties:
+        message:
+          type: string
+        apiKey:
+          type: string
+          description: Raw API key (shown once, ADR-003)
+        keyId:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        warning:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+
+    NotFound:
+      description: Resource not found (ADR-006)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Not found
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+              retryAfterMs:
+                type: integer

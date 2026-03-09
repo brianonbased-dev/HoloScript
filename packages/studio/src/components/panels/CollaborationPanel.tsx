@@ -1,7 +1,7 @@
 'use client';
 /** CollaborationPanel — Multi-peer session manager */
 import React from 'react';
-import { useCollaboration } from '../../hooks/useCollaboration';
+import { useCollaborationSession } from '../../hooks/useCollaboration';
 
 const PLATFORM_ICONS: Record<string, string> = { vr: '🥽', ide: '💻', web: '🌐', mobile: '📱' };
 
@@ -16,7 +16,7 @@ export function CollaborationPanel() {
     closeDocument,
     buildDemoSession,
     reset,
-  } = useCollaboration();
+  } = useCollaborationSession();
 
   return (
     <div className="p-3 space-y-3 text-xs">

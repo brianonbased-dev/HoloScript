@@ -12,36 +12,59 @@
 
 import React, { Component, ErrorInfo } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { extractASTPathFromStack } from '@/lib/unified-error-schemas';
+import { extractASTPathFromStack, UnifiedError, UnifiedErrorSchema } from '@/lib/unified-error-schemas';
 
 // ─── Error Classification ─────────────────────────────────────────────────────
 
-export type ErrorCategory = 'render' | 'webgl' | 'network' | 'compiler' | 'unknown';
-
-export interface ClassifiedError {
-  error: Error;
-  category: ErrorCategory;
-  recoverable: boolean;
-  suggestion: string;
-}
-
-function classifyError(error: Error): ClassifiedError {
-  const msg = error.message.toLowerCase();
-  const stack = (error.stack || '').toLowerCase();
+function classifyError(error: any, componentStack?: string): UnifiedError {
+  const msg = (error?.message || String(error)).toLowerCase();
+  const stack = (error?.stack || '').toLowerCase();
+  
+  let category: UnifiedError['category'] = 'unknown';
+  let suggestion = 'An unexpected error occurred. Check the console for details.';
+  let recoverable = true;
 
   if (msg.includes('webgl') || msg.includes('context lost') || msg.includes('gl_')) {
-    return { error, category: 'webgl', recoverable: true, suggestion: 'Try reloading the 3D viewport.' };
+    category = 'webgl';
+    suggestion = 'Try reloading the 3D viewport or checking your shader code.';
+  } else if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to load')) {
+    category = 'network';
+    suggestion = 'Check your network connection and API endpoints.';
+  } else if (msg.includes('compile') || msg.includes('parse') || stack.includes('compiler') || error?.line !== undefined) {
+    category = 'compiler';
+    suggestion = 'Check your HoloScript source for syntax and type errors.';
+  } else if (stack.includes('react') || stack.includes('render') || msg.includes('hydration')) {
+    category = 'render';
+    suggestion = 'A UI component failed to render. Try reloading the panel.';
   }
-  if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to load')) {
-    return { error, category: 'network', recoverable: true, suggestion: 'Check your network connection and retry.' };
+
+  let astPath = error?.astPath || 'Unknown Node';
+  if (astPath === 'Unknown Node' && componentStack) {
+     astPath = extractASTPathFromStack(componentStack);
   }
-  if (msg.includes('compile') || msg.includes('parse') || stack.includes('compiler')) {
-    return { error, category: 'compiler', recoverable: true, suggestion: 'Check your HoloScript source for syntax errors.' };
+  
+  // Format line column if present from compiler
+  if (error?.line !== undefined && error?.column !== undefined) {
+     astPath = `${astPath} (Line ${error.line}:${error.column})`;
   }
-  if (stack.includes('react') || stack.includes('render') || msg.includes('hydration')) {
-    return { error, category: 'render', recoverable: true, suggestion: 'A component failed to render. Try clicking Retry.' };
-  }
-  return { error, category: 'unknown', recoverable: true, suggestion: 'An unexpected error occurred.' };
+
+  // Allow predefined UnifiedErrors to pass through directly
+  if (error?.category) category = error.category as UnifiedError['category'];
+  if (error?.suggestion) suggestion = error.suggestion;
+  if (error?.recoverable !== undefined) recoverable = !!error.recoverable;
+
+  const unified: UnifiedError = {
+    category,
+    message: error?.message || String(error),
+    astPath,
+    recoverable,
+    suggestion,
+    rawStack: error?.stack || stack,
+  };
+
+  // Safe parse to ensure exact match to schema
+  const parsed = UnifiedErrorSchema.safeParse(unified);
+  return parsed.success ? parsed.data : unified;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -58,43 +81,41 @@ interface Props {
 
 interface State {
   error: Error | null;
-  classified: ClassifiedError | null;
-  astPath: string | null;
+  unified: UnifiedError | null;
 }
 
 export class StudioErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { error: null, classified: null, astPath: null };
+    this.state = { error: null, unified: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { error, classified: classifyError(error), astPath: null };
+    return { error, unified: classifyError(error) };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    const classified = classifyError(error);
-    const astPath = extractASTPathFromStack(info.componentStack || '');
+    const unified = classifyError(error, info.componentStack || '');
     
-    this.setState({ astPath });
-    console.error(`[StudioErrorBoundary][${classified.category}] AST Path: ${astPath}`, error, info.componentStack);
+    this.setState({ unified });
+    console.error(`[StudioErrorBoundary][${unified.category}] AST Path: ${unified.astPath}`, error, info.componentStack);
     
     this.props.onError?.(error, info);
   }
 
   private handleReset = () => {
-    this.setState({ error: null, classified: null, astPath: null });
+    this.setState({ error: null, unified: null });
   };
 
   render() {
-    const { error, classified } = this.state;
+    const { error, unified } = this.state;
     const { children, label, fallback } = this.props;
 
-    if (!error || !classified) return <>{children}</>;
+    if (!error || !unified) return <>{children}</>;
 
     if (fallback) return <>{fallback}</>;
 
-    const CATEGORY_LABELS: Record<ErrorCategory, string> = {
+    const CATEGORY_LABELS: Record<UnifiedError['category'], string> = {
       render: 'Render Error',
       webgl: 'WebGL Error',
       network: 'Network Error',
@@ -115,15 +136,17 @@ export class StudioErrorBoundary extends Component<Props, State> {
             {label ? `${label} crashed` : 'Panel crashed'}
           </p>
           <span className="mt-1 inline-block rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] text-red-400">
-            {CATEGORY_LABELS[classified.category]}
+            {CATEGORY_LABELS[unified.category]}
           </span>
-          <p className="mt-1 max-w-xs text-xs text-red-400/80">{error.message}</p>
-          {this.state.astPath && (
-            <p className="mt-1.5 max-w-xs text-[10.5px] font-mono text-red-400">
-              AST Path: {this.state.astPath}
-            </p>
+          <p className="mt-1 max-w-xs text-xs text-red-400/80">{unified.message}</p>
+          {unified.astPath !== 'Unknown Node' && (
+            <div className="mt-2 text-left rounded bg-red-950/40 p-2 border border-red-500/20">
+              <p className="text-[10.5px] font-mono text-red-300 break-words flex items-start gap-1">
+                <span className="text-red-500 mt-0.5">↳</span> {unified.astPath}
+              </p>
+            </div>
           )}
-          <p className="mt-1 max-w-xs text-[10px] text-red-400/60">{classified.suggestion}</p>
+          <p className="mt-2 max-w-xs text-[10px] text-red-400/60 font-medium">{unified.suggestion}</p>
         </div>
         <button
           onClick={this.handleReset}

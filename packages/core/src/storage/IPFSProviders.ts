@@ -39,7 +39,7 @@ export class PinataProvider implements IIPFSProvider {
 
     // Add files to form data
     for (const file of files) {
-      const blob = new Blob([file.content]);
+      const blob = new Blob([file.content as any]);
       formData.append('file', blob, file.path);
     }
 
