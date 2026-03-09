@@ -43,23 +43,32 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
       buffer,
       '',
       (gltf) => {
-        // Pre-warm materials for PBR and shadows before returning the group
+        // Pre-warm materials for PBR, shadows, and post-processing compatibility
         gltf.scene.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
-            
+
+            const warmMaterial = (mat: THREE.Material) => {
+              if (mat instanceof THREE.MeshStandardMaterial) {
+                mat.envMapIntensity = 1.0;
+              }
+              // Ensure tone mapping is applied (required for post-processing pipeline)
+              mat.toneMapped = true;
+
+              // Auto-enable transparency for transmission materials
+              if ('transmission' in mat && (mat as any).transmission > 0) {
+                mat.transparent = true;
+              }
+
+              mat.needsUpdate = true;
+            };
+
             if (child.material) {
-              // Ensure material is treated as Standard/Physical for envMap
-              child.material.envMapIntensity = 1.0;
-              child.material.needsUpdate = true;
-              
-              // If it's an array of materials
               if (Array.isArray(child.material)) {
-                child.material.forEach((mat) => {
-                  mat.envMapIntensity = 1.0;
-                  mat.needsUpdate = true;
-                });
+                child.material.forEach(warmMaterial);
+              } else {
+                warmMaterial(child.material);
               }
             }
           }

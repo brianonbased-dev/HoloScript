@@ -2,10 +2,14 @@
 
 /**
  * TransformPanel — Position, rotation, scale with snap, copy, and reset.
+ *
+ * Reads/writes the selected node's transform directly from the scene graph
+ * store, eliminating the 1-frame desync that occurred when using local state.
  */
 
-import { useState, useCallback } from 'react';
-import { Move, RotateCcw, Maximize, Copy, Grid3X3, Magnet, Link, Unlink } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { Move, RotateCcw, Maximize, Copy, Magnet, Link, Unlink } from 'lucide-react';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 export interface TransformData {
   position: [number, number, number];
@@ -43,18 +47,36 @@ export function TransformPanel({
   transform?: TransformData;
   onChange?: (t: TransformData) => void;
 }) {
-  const [t, setT] = useState<TransformData>(transform ?? DEFAULT_TRANSFORM);
+  // Read selected node transform directly from the store (single source of truth)
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const nodes = useSceneGraphStore((s) => s.nodes);
+  const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
+
+  const selectedNode = useMemo(
+    () => (selectedId ? nodes.find((n) => n.id === selectedId) : null),
+    [selectedId, nodes]
+  );
+
+  // Use store data if a node is selected, otherwise fall back to prop/default
+  const t: TransformData = selectedNode
+    ? {
+        position: selectedNode.position,
+        rotation: selectedNode.rotation,
+        scale: selectedNode.scale,
+      }
+    : transform ?? DEFAULT_TRANSFORM;
+
   const [settings, setSettings] = useState<TransformSettings>(DEFAULT_SETTINGS);
 
   const update = useCallback(
     (partial: Partial<TransformData>) => {
-      setT((prev) => {
-        const n = { ...prev, ...partial };
-        onChange?.(n);
-        return n;
-      });
+      if (selectedId) {
+        // Write directly to the scene graph store — no local state lag
+        updateNodeTransform(selectedId, partial);
+      }
+      onChange?.({ ...t, ...partial });
     },
-    [onChange]
+    [selectedId, updateNodeTransform, onChange, t]
   );
 
   const snap = useCallback(
