@@ -54,6 +54,13 @@ export class HoloCompositionParser {
   parse(source: string): any;
 }
 
+export class HoloScriptCodeParser {
+  parse(source: string): ParseResult;
+  parseExpression(source: string): any;
+  parseBlock(source: string): any[];
+  getErrors(): any[];
+}
+
 export function parse(source: string, options?: any): ParseResult;
 export function parseHolo(source: string, options?: any): any;
 export function parseHoloStrict(source: string): any;
@@ -189,6 +196,67 @@ export interface PBRMaterial {
 
 export type MaterialType = string;
 export type TextureChannel = string;
+
+export type HoloMaterialType = 'material' | 'pbr_material' | 'unlit_material' | 'shader' | 'toon_material' | 'glass_material' | 'subsurface_material' | string;
+
+export interface TextureMapDef {
+  channel: TextureChannel;
+  source: string;
+  tiling?: [number, number];
+  filtering?: 'nearest' | 'linear' | 'trilinear';
+  strength?: number;
+  intensity?: number;
+  scale?: number;
+  format?: string;
+  channelSelect?: 'r' | 'g' | 'b' | 'a';
+}
+
+export interface ShaderPassDef {
+  name?: string;
+  vertex?: string;
+  fragment?: string;
+  blend?: string;
+  properties?: Record<string, unknown>;
+}
+
+export interface MaterialDefinition {
+  type: HoloMaterialType;
+  name: string;
+  traits: string[];
+  baseColor?: string | number[];
+  roughness?: number;
+  metallic?: number;
+  emissive?: string;
+  emissiveIntensity?: number;
+  opacity?: number;
+  IOR?: number;
+  transmission?: number;
+  thickness?: number;
+  doubleSided?: boolean;
+  textureMaps: TextureMapDef[];
+  shaderPasses: ShaderPassDef[];
+  shaderConnections: Array<{ output: string; input: string }>;
+  properties: Record<string, unknown>;
+  [key: string]: any;
+}
+
+export interface CompositionMaterialNode {
+  type: string;
+  name: string;
+  traits?: Array<{ name: string; arguments?: unknown[] }>;
+  properties?: Record<string, unknown>;
+  textureMaps?: Array<{ channel: string; source?: string; properties?: Record<string, unknown> }>;
+  shaderPasses?: Array<{ name?: string; properties?: Record<string, unknown> }>;
+  shaderConnections?: Array<{ output: string; input: string }>;
+  children?: CompositionMaterialNode[];
+}
+
+export class HoloScriptMaterialParser {
+  static parseAll(rootNode: ASTNode): MaterialDefinition[];
+  static parseFromComposition(nodes: CompositionMaterialNode[]): MaterialDefinition[];
+  static parse(node: ASTNode): MaterialDefinition;
+  static parseJSON(json: Record<string, unknown>): MaterialDefinition;
+}
 
 export interface TextureMap {
   [key: string]: any;
@@ -338,6 +406,26 @@ export class R3FCompiler {
   [key: string]: any;
 }
 
+export interface CompilationResult {
+  success: boolean;
+  r3fCode?: string;
+  error?: string;
+  metadata?: {
+    zones: number;
+    entities: number;
+    handlers: number;
+    duration: number;
+  };
+}
+
+export class CompilerBridge {
+  compile(holoScript: string): Promise<CompilationResult>;
+  validate(holoScript: string): Promise<{ valid: boolean; errors: string[] }>;
+  getMetrics(holoScript: string): { lines: number; characters: number; estimatedZones: number; estimatedComplexity: 'simple' | 'moderate' | 'complex' };
+}
+
+export function getCompilerBridge(): CompilerBridge;
+
 // ============================================================================
 // RUNTIME & EXECUTION
 // ============================================================================
@@ -357,6 +445,48 @@ export interface Renderer {
 export interface NodeInstance {
   [key: string]: any;
 }
+
+export type HoloScriptValue = string | number | boolean | null | HoloScriptValue[] | { [key: string]: HoloScriptValue };
+
+export interface ExecutionResult {
+  success: boolean;
+  result?: any;
+  error?: string;
+  duration?: number;
+  memoryUsed?: number;
+}
+
+export interface SpatialPosition {
+  x: number;
+  y: number;
+  z: number;
+  rotation?: { x: number; y: number; z: number; w?: number };
+  scale?: { x: number; y: number; z: number };
+}
+
+export interface HSPlusAST {
+  type: string;
+  nodes: HSPlusASTNode[];
+  metadata?: Record<string, any>;
+}
+
+export interface OrbNode extends ASTNode {
+  type: 'Orb';
+  name: string;
+  properties: Record<string, any>;
+  traits?: string[];
+}
+
+export class HoloScriptPlusRuntimeImpl {
+  constructor(options?: RuntimeOptions);
+  execute(ast: any, context?: any): Promise<ExecutionResult>;
+  createRenderer(config?: any): Renderer;
+  getState(): Record<string, any>;
+  setState(updates: Record<string, any>): void;
+  dispose(): void;
+}
+
+export function createRuntime(options?: RuntimeOptions): HoloScriptPlusRuntimeImpl;
 
 // ============================================================================
 // TYPE CHECKING
@@ -498,6 +628,738 @@ export class SemanticSearchService<T = any> {
 }
 
 // ============================================================================
+// VR TRAIT SYSTEM TYPES
+// ============================================================================
+
+export interface Vector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface VRHand {
+  position: Vector3;
+  rotation: Vector3;
+  joints: Map<string, { position: Vector3; rotation: Vector3 }>;
+  pinchStrength: number;
+  gripStrength: number;
+}
+
+export interface VRContext {
+  hands: { left: VRHand | null; right: VRHand | null };
+  headset: { position: Vector3; rotation: Vector3 };
+  getPointerRay(hand: 'left' | 'right'): { origin: Vector3; direction: Vector3 } | null;
+  getDominantHand(): VRHand | null;
+}
+
+export interface PhysicsContext {
+  applyVelocity(node: HSPlusNode, velocity: Vector3): void;
+  applyAngularVelocity(node: HSPlusNode, angularVelocity: Vector3): void;
+  setKinematic(node: HSPlusNode, kinematic: boolean): void;
+  raycast(origin: Vector3, direction: Vector3, maxDistance: number): { point: Vector3; normal: Vector3; distance: number; nodeId: string } | null;
+}
+
+export interface AudioContext {
+  playSound(source: string, options?: { position?: Vector3; volume?: number; spatial?: boolean }): void;
+  updateSpatialSource?(nodeId: string, options: Record<string, any>): void;
+  registerAmbisonicSource?(nodeId: string, order: number): void;
+  setAudioPortal?(portalId: string, targetZone: string, openingSize: number): void;
+  updateAudioMaterial?(nodeId: string, absorption: number, reflection: number): void;
+}
+
+export interface HapticsContext {
+  pulse(hand: 'left' | 'right', intensity: number, duration?: number): void;
+  rumble(hand: 'left' | 'right', intensity: number): void;
+}
+
+export interface AccessibilityContext {
+  announce(text: string): void;
+  setScreenReaderFocus(nodeId: string): void;
+  setAltText(nodeId: string, text: string): void;
+  setHighContrast(enabled: boolean): void;
+}
+
+export interface TraitContext {
+  vr: VRContext;
+  physics: PhysicsContext;
+  audio: AudioContext;
+  haptics: HapticsContext;
+  accessibility?: AccessibilityContext;
+  emit(event: string, payload?: unknown): void;
+  getState(): Record<string, unknown>;
+  setState(updates: Record<string, unknown>): void;
+  getScaleMultiplier(): number;
+  setScaleContext(magnitude: string): void;
+}
+
+export type TraitEvent =
+  | { type: 'xr:grab'; hand: 'left' | 'right'; [key: string]: any }
+  | { type: 'xr:release'; hand: 'left' | 'right'; [key: string]: any }
+  | { type: 'collision'; other: string; [key: string]: any }
+  | { type: string; [key: string]: any };
+
+export interface HSPlusNode extends ASTNode {
+  id?: string;
+  traits?: Map<string, unknown>;
+  children?: HSPlusNode[];
+  [key: string]: any;
+}
+
+export type VRTraitName = string;
+
+export class VRTraitRegistry {
+  attachTrait(node: HSPlusNode, traitName: VRTraitName, config: unknown, context: TraitContext): void;
+  detachTrait(node: HSPlusNode, traitName: VRTraitName, context: TraitContext): void;
+  updateAllTraits(node: HSPlusNode, context: TraitContext, delta: number): void;
+  handleEventForAllTraits(node: HSPlusNode, context: TraitContext, event: TraitEvent): void;
+}
+
+export declare const vrTraitRegistry: VRTraitRegistry;
+
+// ============================================================================
+// TRAIT CONTEXT FACTORY (migrated from Hololand)
+// ============================================================================
+
+export interface PhysicsProvider {
+  applyVelocity(nodeId: string, velocity: Vector3): void;
+  applyAngularVelocity(nodeId: string, angularVelocity: Vector3): void;
+  setKinematic(nodeId: string, kinematic: boolean): void;
+  raycast(origin: Vector3, direction: Vector3, maxDistance: number): { point: Vector3; normal: Vector3; distance: number; nodeId: string } | null;
+}
+
+export interface AudioProvider {
+  playSound(source: string, options?: { position?: Vector3; volume?: number; spatial?: boolean }): void;
+  updateSpatialSource?(nodeId: string, options: Record<string, any>): void;
+  registerAmbisonicSource?(nodeId: string, order: number): void;
+  setAudioPortal?(portalId: string, targetZone: string, openingSize: number): void;
+  updateAudioMaterial?(nodeId: string, absorption: number, reflection: number): void;
+}
+
+export interface HapticsProvider {
+  pulse(hand: 'left' | 'right', intensity: number, duration?: number): void;
+  rumble(hand: 'left' | 'right', intensity: number): void;
+}
+
+export interface AccessibilityProvider {
+  announce(text: string): void;
+  setScreenReaderFocus(nodeId: string): void;
+  setAltText(nodeId: string, text: string): void;
+  setHighContrast(enabled: boolean): void;
+}
+
+export interface VRProvider {
+  getLeftHand(): VRHand | null;
+  getRightHand(): VRHand | null;
+  getHeadsetPosition(): Vector3;
+  getHeadsetRotation(): Vector3;
+  getPointerRay(hand: 'left' | 'right'): { origin: Vector3; direction: Vector3 } | null;
+  getDominantHand(): VRHand | null;
+}
+
+export interface NetworkProvider {
+  broadcastState(nodeId: string, state: Record<string, unknown>): void;
+  requestAuthority(nodeId: string): boolean;
+  onRemoteUpdate(nodeId: string, callback: (state: Record<string, unknown>) => void): void;
+}
+
+export interface RendererProvider {
+  createGaussianSplat(nodeId: string, config: Record<string, unknown>): void;
+  createPointCloud(nodeId: string, config: Record<string, unknown>): void;
+  dispatchCompute(nodeId: string, shader: string, workgroups: number[]): void;
+  destroyRenderable(nodeId: string): void;
+}
+
+export interface TraitContextFactoryConfig {
+  physics?: PhysicsProvider;
+  audio?: AudioProvider;
+  haptics?: HapticsProvider;
+  accessibility?: AccessibilityProvider;
+  vr?: VRProvider;
+  network?: NetworkProvider;
+  renderer?: RendererProvider;
+}
+
+export class TraitContextFactory {
+  constructor(config?: TraitContextFactoryConfig);
+  createContext(): TraitContext;
+  setPhysicsProvider(provider: PhysicsProvider): void;
+  setAudioProvider(provider: AudioProvider): void;
+  setHapticsProvider(provider: HapticsProvider): void;
+  setAccessibilityProvider(provider: AccessibilityProvider): void;
+  setVRProvider(provider: VRProvider): void;
+  setNetworkProvider(provider: NetworkProvider): void;
+  setRendererProvider(provider: RendererProvider): void;
+  getNetworkProvider(): NetworkProvider | undefined;
+  getRendererProvider(): RendererProvider | undefined;
+  on(event: string, handler: (payload: unknown) => void): void;
+  off(event: string, handler: (payload: unknown) => void): void;
+  dispose(): void;
+}
+
+export function createTraitContextFactory(config?: TraitContextFactoryConfig): TraitContextFactory;
+
+// ============================================================================
+// TRAIT RUNTIME INTEGRATION (migrated from Hololand)
+// ============================================================================
+
+export interface TrackedNode {
+  node: HSPlusNode;
+  traitNames: VRTraitName[];
+}
+
+export interface TraitRuntimeStats {
+  trackedNodes: number;
+  totalTraits: number;
+  updatesPerSecond: number;
+  lastUpdateMs: number;
+}
+
+export class TraitRuntimeIntegration {
+  constructor(contextFactory: TraitContextFactory);
+  registerNode(node: HSPlusNode): void;
+  attachTraitsFromAST(nodes: HSPlusNode[]): void;
+  attachTrait(nodeId: string, traitName: VRTraitName, config?: unknown): void;
+  detachTrait(nodeId: string, traitName: VRTraitName): void;
+  unregisterNode(nodeId: string): void;
+  update(delta: number): void;
+  dispatchEvent(nodeId: string, event: TraitEvent): void;
+  broadcastEvent(event: TraitEvent): void;
+  pause(): void;
+  resume(): void;
+  isPaused(): boolean;
+  refreshContext(): void;
+  getNode(nodeId: string): HSPlusNode | undefined;
+  getNodeTraits(nodeId: string): VRTraitName[];
+  getAllNodeIds(): string[];
+  getStats(): TraitRuntimeStats;
+  getRegistry(): VRTraitRegistry;
+  getContext(): TraitContext;
+  reset(): void;
+  dispose(): void;
+}
+
+export function createTraitRuntime(contextFactory: TraitContextFactory): TraitRuntimeIntegration;
+
+// ============================================================================
+// HSPLUS VALIDATOR (migrated from Hololand)
+// ============================================================================
+
+export interface ParserValidationError {
+  type: 'syntax' | 'semantic' | 'runtime' | 'device';
+  message: string;
+  line?: number;
+  column?: number;
+  suggestion?: string;
+  recoverable: boolean;
+}
+
+export interface DeviceOptimizationContext {
+  deviceId: string;
+  gpuCapability: 'low' | 'medium' | 'high' | 'extreme';
+  cpuCapability: 'low' | 'medium' | 'high' | 'extreme';
+  targetFPS: number;
+  maxGPUMemory: number;
+  supportedShaderLevel: 'es2' | 'es3' | 'es31' | 'core';
+}
+
+export interface CodeGenerationOptions {
+  includeMetadata?: boolean;
+  optimizeForDevice?: DeviceOptimizationContext;
+  generateImports?: boolean;
+  strictMode?: boolean;
+  validateDependencies?: boolean;
+}
+
+export interface ParserRegistrationResult {
+  success: boolean;
+  traitId?: string;
+  error?: string;
+  warnings?: string[];
+  metadata?: {
+    deviceOptimizations?: string[];
+    estimatedMemory?: number;
+    performanceImpact?: 'low' | 'medium' | 'high';
+  };
+}
+
+export interface HSPlusValidationResult {
+  valid: boolean;
+  errors: ParserValidationError[];
+  warnings: ParserValidationError[];
+}
+
+export function validateHSPlus(code: string): HSPlusValidationResult;
+
+// ============================================================================
+// HS KNOWLEDGE PARSER (migrated from Hololand)
+// ============================================================================
+
+export interface HSMeta {
+  name: string;
+  version: string;
+  domain?: string;
+  [key: string]: string | undefined;
+}
+
+export interface HSKnowledgeChunk {
+  id: string;
+  category: string;
+  content: string;
+  tags?: string[];
+  [key: string]: any;
+}
+
+export interface HSPrompt {
+  id: string;
+  template: string;
+  variables?: string[];
+  [key: string]: any;
+}
+
+export interface HSRoute {
+  method: string;
+  path: string;
+  handler: string;
+  [key: string]: any;
+}
+
+export interface HSProvider {
+  name: string;
+  type: string;
+  config?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface HSParsedFile {
+  meta: HSMeta;
+  raw: string;
+}
+
+export interface HSKnowledgeFile extends HSParsedFile {
+  chunks: HSKnowledgeChunk[];
+}
+
+export interface HSPromptFile extends HSParsedFile {
+  prompts: HSPrompt[];
+}
+
+export interface HSServerFile extends HSParsedFile {
+  routes: HSRoute[];
+  providers: HSProvider[];
+}
+
+export function parseMeta(content: string): HSMeta;
+export function parseKnowledge(raw: string): HSKnowledgeFile;
+export function parsePrompts(raw: string): HSPromptFile;
+export function parseServerRoutes(raw: string): HSServerFile;
+
+// ============================================================================
+// HOLOSCRIPT I/O (migrated from Hololand)
+// ============================================================================
+
+export interface CoreParseResult {
+  success: boolean;
+  program?: CoreProgram;
+  errors: any[];
+}
+
+export interface CoreProgram {
+  declarations: CoreDeclaration[];
+  statements: CoreStatement[];
+}
+
+export interface CoreDeclaration { [key: string]: any; }
+export interface CoreStatement { [key: string]: any; }
+
+export interface CoreWorldDeclaration {
+  type: 'WorldDeclaration';
+  name: string;
+  [key: string]: any;
+}
+
+export interface CoreOrbDeclaration {
+  type: 'OrbDeclaration';
+  name: string;
+  properties: CoreOrbProperty[];
+  [key: string]: any;
+}
+
+export interface CoreOrbProperty {
+  key: string;
+  value: CoreExpression;
+}
+
+export interface CoreExpression { [key: string]: any; }
+
+export interface HoloScriptAST { nodes: HoloScriptASTNode[]; }
+export interface HoloScriptASTNode { [key: string]: any; }
+export interface HoloScriptASTLogic { [key: string]: any; }
+export interface HoloScriptExportOptions { [key: string]: any; }
+export interface HoloScriptImportOptions { [key: string]: any; }
+export interface HoloScriptParseResult { success: boolean; [key: string]: any; }
+export interface HoloScriptError { message: string; line?: number; [key: string]: any; }
+
+export function initHoloScriptParser(): void;
+export function parseWithCoreParser(source: string): CoreParseResult;
+export function expressionToValue(expr: CoreExpression): any;
+export function programToInternalAST(program: CoreProgram): HoloScriptAST;
+export function extractWorldSettings(program: CoreProgram): Record<string, any>;
+export function orbToASTNode(orb: CoreOrbDeclaration): HoloScriptASTNode;
+export function parseHoloScriptSimplified(source: string): HoloScriptAST;
+export function parseProperties(source: string): Record<string, any>;
+export function parseValue(value: string): any;
+export function escapeHoloString(str: string): string;
+export function formatHoloValue(value: any): string;
+
+// ============================================================================
+// SMART ASSET SYSTEM
+// ============================================================================
+
+export interface AssetMetadata {
+  id: string;
+  name: string;
+  type: string;
+  format: string;
+  size: number;
+  hash?: string;
+  tags?: string[];
+  created?: string;
+  modified?: string;
+  [key: string]: any;
+}
+
+export interface AssetManifest {
+  version: string;
+  assets: AssetMetadata[];
+  totalSize: number;
+  [key: string]: any;
+}
+
+export interface SmartAssetLoader {
+  load(id: string, options?: any): Promise<any>;
+  preload(ids: string[]): Promise<void>;
+  resolve(alias: string): string;
+  getManifest(): AssetManifest;
+  [key: string]: any;
+}
+
+export function getSmartAssetLoader(): SmartAssetLoader;
+export function getAssetRegistry(): AssetRegistry;
+export function createSmartAssetLoader(config?: any): SmartAssetLoader;
+export function resolveAssetAlias(alias: string): string;
+export declare const DEFAULT_ASSET_ALIASES: Record<string, string>;
+
+// ============================================================================
+// OPTIMIZATION
+// ============================================================================
+
+export interface OptimizationReport {
+  passes: string[];
+  savings: number;
+  duration: number;
+  before: { size: number; nodes: number };
+  after: { size: number; nodes: number };
+  [key: string]: any;
+}
+
+export interface OptimizationOptions {
+  level?: 'none' | 'basic' | 'aggressive';
+  passes?: string[];
+  target?: string;
+  [key: string]: any;
+}
+
+// ============================================================================
+// GAUSSIAN CODEC
+// ============================================================================
+
+export interface GaussianSplatData {
+  positions: Float32Array;
+  colors: Float32Array;
+  opacities: Float32Array;
+  scales: Float32Array;
+  rotations: Float32Array;
+  count: number;
+  [key: string]: any;
+}
+
+export interface CodecRegistry {
+  register(name: string, codec: any): void;
+  get(name: string): any;
+  list(): string[];
+  [key: string]: any;
+}
+
+export function getGlobalCodecRegistry(): CodecRegistry;
+
+// ============================================================================
+// AVATAR / NPC TRAIT SYSTEM
+// ============================================================================
+
+export interface LipSyncConfig {
+  model?: string;
+  sampleRate?: number;
+  visemeMap?: Record<string, string>;
+  smoothing?: number;
+  [key: string]: any;
+}
+
+export type LipSyncEventType = 'viseme' | 'phoneme' | 'silence' | 'start' | 'end';
+
+export interface LipSyncEvent {
+  type: LipSyncEventType;
+  viseme?: string;
+  timestamp: number;
+  duration?: number;
+  weight?: number;
+}
+
+export interface VisemeTimestamp {
+  viseme: string;
+  start: number;
+  end: number;
+  weight: number;
+}
+
+export declare class LipSyncTrait {
+  constructor(config?: LipSyncConfig);
+  processAudio(audioData: any): LipSyncEvent[];
+  getCurrentViseme(): string | null;
+  getVisemeTimestamps(): VisemeTimestamp[];
+  update(delta: number): void;
+  reset(): void;
+  [key: string]: any;
+}
+
+export interface EmotionDirectiveConfig {
+  emotions?: string[];
+  blendDuration?: number;
+  intensityScale?: number;
+  [key: string]: any;
+}
+
+export type EmotionDirectiveEventType = 'emotion_start' | 'emotion_end' | 'emotion_blend' | 'emotion_peak';
+
+export interface EmotionDirectiveEvent {
+  type: EmotionDirectiveEventType;
+  emotion: string;
+  intensity: number;
+  timestamp: number;
+  [key: string]: any;
+}
+
+export interface EmotionTaggedSegment {
+  text: string;
+  emotion: string;
+  intensity: number;
+  start: number;
+  end: number;
+}
+
+export interface EmotionTaggedResponse {
+  segments: EmotionTaggedSegment[];
+  dominantEmotion: string;
+  overallIntensity: number;
+  [key: string]: any;
+}
+
+export interface TriggeringDirective {
+  condition: string;
+  emotion: string;
+  intensity: number;
+  [key: string]: any;
+}
+
+export interface ConditionalDirective {
+  if: string;
+  then: string;
+  else?: string;
+  [key: string]: any;
+}
+
+export declare class EmotionDirectiveTrait {
+  constructor(config?: EmotionDirectiveConfig);
+  processText(text: string): EmotionTaggedResponse;
+  setEmotion(emotion: string, intensity?: number): void;
+  getCurrentEmotion(): { emotion: string; intensity: number } | null;
+  blendTo(emotion: string, intensity: number, duration?: number): void;
+  update(delta: number): void;
+  reset(): void;
+  [key: string]: any;
+}
+
+export interface AvatarEmbodimentConfig {
+  skeleton?: string;
+  blendShapes?: string[];
+  pipeline?: PipelineStage[];
+  [key: string]: any;
+}
+
+export interface PipelineStage {
+  name: string;
+  type: string;
+  config?: Record<string, any>;
+  order?: number;
+  enabled?: boolean;
+  [key: string]: any;
+}
+
+export interface AIDriverConfig {
+  model?: string;
+  behaviorTree?: string;
+  perception?: { range: number; fov: number; [key: string]: any };
+  navigation?: { speed: number; avoidance: boolean; [key: string]: any };
+  [key: string]: any;
+}
+
+export interface NPCContext {
+  id: string;
+  position: SpatialPosition;
+  state: Record<string, any>;
+  memory?: any[];
+  currentGoal?: string;
+  [key: string]: any;
+}
+
+export declare class AIDriverTrait {
+  constructor(config?: AIDriverConfig);
+  initialize(context: NPCContext): void;
+  update(delta: number, context: NPCContext): void;
+  setGoal(goal: string): void;
+  getState(): Record<string, any>;
+  perceive(entities: any[]): any[];
+  decide(context: NPCContext): string;
+  [key: string]: any;
+}
+
+// ============================================================================
+// CROSS-PLATFORM COMPILERS (re-exported from compiler subpaths)
+// ============================================================================
+
+export class UnityCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
+export class GodotCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
+export class VisionOSCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
+export class VRChatCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
+export class UnrealCompiler { compile(ast: any, options?: any): any; [key: string]: any; }
+
+// ============================================================================
+// REACTIVE STATE SYSTEM
+// ============================================================================
+
+export function reactive<T extends object>(target: T): T;
+export function effect(fn: () => void): () => void;
+export function computed<T>(getter: () => T): { readonly value: T };
+export function bind(target: any, key: string, source: any, sourceKey?: string): void;
+export function createState(initial?: Record<string, any>): ReactiveState;
+
+// ============================================================================
+// PARSER FACTORIES & VARIANTS
+// ============================================================================
+
+export class HoloScriptParser { parse(source: string): ParseResult; [key: string]: any; }
+export class HoloScript2DParser { parse(source: string): ParseResult; [key: string]: any; }
+export function createParser(options?: any): HoloScriptPlusParser;
+export function createDebugger(options?: any): HoloScriptDebugger;
+export function createHoloScriptEnvironment(options?: any): any;
+
+// ============================================================================
+// RUNTIME CONTEXT & ENVIRONMENT
+// ============================================================================
+
+export interface RuntimeContext {
+  runtime: HoloScriptRuntime;
+  renderer?: Renderer;
+  state?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface HoloImport {
+  source: string;
+  specifiers: string[];
+  [key: string]: any;
+}
+
+export interface HoloParseError {
+  message: string;
+  line?: number;
+  column?: number;
+  source?: string;
+  [key: string]: any;
+}
+
+export interface HologramProperties {
+  position?: SpatialPosition;
+  scale?: { x: number; y: number; z: number };
+  rotation?: { x: number; y: number; z: number };
+  visible?: boolean;
+  [key: string]: any;
+}
+
+export interface DebugEvent {
+  type: string;
+  data?: any;
+  timestamp?: number;
+  [key: string]: any;
+}
+
+export interface DebugState {
+  paused: boolean;
+  currentLine?: number;
+  breakpoints: number[];
+  callStack: any[];
+  [key: string]: any;
+}
+
+export type StepMode = 'into' | 'over' | 'out';
+
+// ============================================================================
+// AST NODE VARIANTS
+// ============================================================================
+
+export interface ConnectionNode extends ASTNode { type: 'Connection'; from: string; to: string; [key: string]: any; }
+export interface GateNode extends ASTNode { type: 'Gate'; condition: string; [key: string]: any; }
+export interface StreamNode extends ASTNode { type: 'Stream'; name: string; [key: string]: any; }
+export interface TransformationNode extends ASTNode { type: 'Transformation'; [key: string]: any; }
+export interface MethodNode extends ASTNode { type: 'Method'; name: string; parameters: ParameterNode[]; [key: string]: any; }
+export interface ParameterNode extends ASTNode { type: 'Parameter'; name: string; paramType?: string; [key: string]: any; }
+
+// ============================================================================
+// 2D UI TYPES
+// ============================================================================
+
+export interface Position2D { x: number; y: number; }
+export interface Size2D { width: number; height: number; }
+export type UIElementType = 'button' | 'text' | 'panel' | 'image' | 'input' | 'slider' | 'toggle' | string;
+export interface UIStyle { [key: string]: any; }
+export interface UI2DNode extends ASTNode { type: 'UI2D'; elementType: UIElementType; style?: UIStyle; children?: UI2DNode[]; [key: string]: any; }
+
+// ============================================================================
+// VOICE & GESTURE
+// ============================================================================
+
+export interface VoiceCommand { phrase: string; action: string; confidence?: number; [key: string]: any; }
+export interface GestureData { type: string; confidence: number; hand?: 'left' | 'right'; [key: string]: any; }
+
+// ============================================================================
+// CONSTANTS & LOGGING
+// ============================================================================
+
+export declare const HOLOSCRIPT_VERSION: string;
+export declare const HOLOSCRIPT_DEMO_SCRIPTS: Record<string, string>;
+export declare const HOLOSCRIPT_GESTURES: string[];
+export declare const HOLOSCRIPT_SUPPORTED_PLATFORMS: string[];
+export declare const HOLOSCRIPT_VOICE_COMMANDS: VoiceCommand[];
+
+export interface Logger { info(...args: any[]): void; warn(...args: any[]): void; error(...args: any[]): void; debug(...args: any[]): void; }
+export class ConsoleLogger implements Logger { info(...args: any[]): void; warn(...args: any[]): void; error(...args: any[]): void; debug(...args: any[]): void; }
+export class NoOpLogger implements Logger { info(...args: any[]): void; warn(...args: any[]): void; error(...args: any[]): void; debug(...args: any[]): void; }
+export type HoloScriptLogger = Logger;
+export function setHoloScriptLogger(logger: Logger): void;
+export function resetLogger(): void;
+export function enableConsoleLogging(): void;
+export function isHoloScriptSupported(): boolean;
+
+// ============================================================================
 // CULTURE TYPES
 // ============================================================================
 
@@ -527,14 +1389,468 @@ declare const _default: {
   parseHoloScriptPlus: typeof parseHoloScriptPlus;
   HoloScriptPlusParser: typeof HoloScriptPlusParser;
   HoloCompositionParser: typeof HoloCompositionParser;
+  HoloScriptCodeParser: typeof HoloScriptCodeParser;
   HoloScriptCompiler: typeof HoloScriptCompiler;
   HoloScriptRuntime: typeof HoloScriptRuntime;
+  HoloScriptPlusRuntimeImpl: typeof HoloScriptPlusRuntimeImpl;
   HoloScriptTypeChecker: typeof HoloScriptTypeChecker;
   HoloScriptDebugger: typeof HoloScriptDebugger;
   TraitCompositor: typeof TraitCompositor;
+  createRuntime: typeof createRuntime;
   MATERIAL_PRESETS: typeof MATERIAL_PRESETS;
 };
 export default _default;
+
+// ============================================================================
+// ANIMATION ENGINE
+// ============================================================================
+
+export type EasingFn = (t: number) => number;
+export declare const Easing: {
+  readonly linear: (t: number) => number;
+  readonly easeInQuad: (t: number) => number;
+  readonly easeOutQuad: (t: number) => number;
+  readonly easeInOutQuad: (t: number) => number;
+  readonly easeInCubic: (t: number) => number;
+  readonly easeOutCubic: (t: number) => number;
+  readonly easeInOutCubic: (t: number) => number;
+  readonly easeInExpo: (t: number) => number;
+  readonly easeOutExpo: (t: number) => number;
+  readonly easeInOutExpo: (t: number) => number;
+  readonly easeOutBack: (t: number) => number;
+  readonly easeOutElastic: (t: number) => number;
+  readonly easeOutBounce: (t: number) => number;
+};
+export interface Keyframe<T = number> { time: number; value: T; easing?: EasingFn; }
+export interface AnimationClip { id: string; property: string; keyframes: Keyframe[]; duration: number; loop: boolean; pingPong: boolean; delay: number; onComplete?: () => void; }
+export interface ActiveAnimation { clip: AnimationClip; elapsed: number; isPlaying: boolean; isPaused: boolean; direction: 1 | -1; loopCount: number; }
+export declare class AnimationEngine {
+  play(clip: AnimationClip, setter: (value: any) => void): void;
+  stop(clipId: string): void;
+  pause(clipId: string): void;
+  resume(clipId: string): void;
+  isActive(clipId: string): boolean;
+  getActiveIds(): string[];
+  update(delta: number): void;
+  clear(): void;
+}
+
+// ============================================================================
+// AUDIO ENGINE
+// ============================================================================
+
+export type DistanceModel = 'linear' | 'inverse' | 'exponential';
+export interface AudioSourceConfig { id: string; position: { x: number; y: number; z: number }; volume: number; pitch: number; loop: boolean; maxDistance: number; refDistance: number; rolloffFactor: number; distanceModel: DistanceModel; channel: string; spatialize: boolean; }
+export interface AudioSource { config: AudioSourceConfig; isPlaying: boolean; currentTime: number; computedVolume: number; computedPan: number; soundId: string; }
+export declare class AudioEngine {
+  setListenerPosition(pos: { x: number; y: number; z: number }): void;
+  setListenerOrientation(forward: { x: number; y: number; z: number }, up: { x: number; y: number; z: number }): void;
+  getListener(): any;
+  play(soundId: string, config?: Partial<AudioSourceConfig>): string;
+  stop(sourceId: string): void;
+  setSourcePosition(sourceId: string, pos: { x: number; y: number; z: number }): void;
+  update(delta: number): void;
+  getSource(sourceId: string): AudioSource | undefined;
+  getActiveSources(): AudioSource[];
+  setMasterVolume(vol: number): void;
+  getMasterVolume(): number;
+  setMuted(muted: boolean): void;
+  isMuted(): boolean;
+  getActiveCount(): number;
+  stopAll(): void;
+}
+
+// ============================================================================
+// PARTICLE SYSTEM
+// ============================================================================
+
+export interface EmitterConfig { [key: string]: any; }
+export interface Particle { [key: string]: any; }
+export interface Color4 { r: number; g: number; b: number; a: number; }
+export declare class ParticleSystem {
+  constructor(config: EmitterConfig);
+  update(delta: number): void;
+  emit(count?: number): void;
+  clear(): void;
+  getParticles(): Particle[];
+  getActiveCount(): number;
+  setConfig(config: Partial<EmitterConfig>): void;
+  getConfig(): EmitterConfig;
+  [key: string]: any;
+}
+
+// ============================================================================
+// SHADER GRAPH
+// ============================================================================
+
+export declare class ShaderGraph {
+  readonly id: string;
+  nodes: Map<string, any>;
+  connections: any[];
+  constructor(id?: string);
+  addNode(node: any): void;
+  removeNode(nodeId: string): void;
+  connect(fromId: string, fromPort: string, toId: string, toPort: string): void;
+  disconnect(connectionId: string): void;
+  compile(target?: string): string;
+  toJSON(): any;
+  static fromJSON(data: any): ShaderGraph;
+  [key: string]: any;
+}
+
+// ============================================================================
+// RUNTIME ENGINES
+// ============================================================================
+
+export declare class CameraController { constructor(config?: any); setMode(mode: string): void; getMode(): string; update(delta: number, input?: any): void; setTarget(target: any): void; getTransform(): any; [key: string]: any; }
+export declare class AStarPathfinder { constructor(grid?: any); findPath(start: any, end: any): any[]; setGrid(grid: any): void; [key: string]: any; }
+export type LightType = 'directional' | 'point' | 'spot' | 'area' | 'probe';
+export declare class LightingModel { addLight(type: 'directional' | 'point' | 'spot', config?: any): string; removeLight(id: string): void; updateLight(id: string, config: any): void; getLights(): any[]; update(delta: number): void; [key: string]: any; }
+export declare class CinematicDirector { play(sequence: any): void; stop(): void; pause(): void; resume(): void; update(delta: number): void; [key: string]: any; }
+export declare class SaveManager { constructor(config?: any); save(key: string, data: any): Promise<void>; load(key: string): Promise<any>; delete(key: string): Promise<void>; list(): Promise<string[]>; [key: string]: any; }
+export declare class Profiler { begin(label: string): void; end(label: string): number; getStats(): Record<string, any>; reset(): void; [key: string]: any; }
+
+// ============================================================================
+// SANDBOX
+// ============================================================================
+
+export interface Sandbox { [key: string]: any; }
+export interface SandboxExecutionResult { success: boolean; result?: any; error?: string; memoryUsed: number; cpuTimeUsed: number; }
+export declare function createSandbox(policy: any): Sandbox;
+export declare function executeSandbox(code: string, sandbox: Sandbox): Promise<SandboxExecutionResult>;
+export declare function destroySandbox(sandbox: Sandbox): void;
+export declare class SandboxExecutor { constructor(config?: any); execute(code: string): Promise<SandboxExecutionResult>; [key: string]: any; }
+export declare function quickSafetyCheck(traits: string[], builtins: string[], options?: { trustLevel?: string; targetPlatform?: string }): { passed: boolean; verdict: string; reasons: string[] };
+export declare function buildSafetyReport(result: any): SafetyReport;
+export declare function formatReport(report: SafetyReport): string;
+export declare function generateCertificate(report: SafetyReport): string;
+
+// ============================================================================
+// LOD / TILEMAP
+// ============================================================================
+
+export interface LODLevel { level: number; distance: number; polygonRatio: number; textureScale: number; disabledFeatures: string[]; [key: string]: any; }
+export interface LODConfig { id: string; levels: LODLevel[]; [key: string]: any; }
+export declare class LODManager { register(id: string, config: LODConfig): void; unregister(id: string): void; update(cameraPosition: any): void; getActiveLevel(id: string): LODLevel | null; [key: string]: any; }
+export interface TileData { id: number; flags: number; [key: string]: any; }
+export declare const TileFlags: { readonly NONE: 0; readonly SOLID: 1; readonly WALKABLE: 2; readonly WATER: 4; [key: string]: number; };
+export declare class TileMap { constructor(width: number, height: number, tileSize?: number); addLayer(name: string): void; removeLayer(name: string): void; setTile(layer: string, x: number, y: number, tile: TileData): void; getTile(layer: string, x: number, y: number): TileData | undefined; removeTile(layer: string, x: number, y: number): void; getTileSize(): number; getLayerCount(): number; [key: string]: any; }
+
+// ============================================================================
+// STATE / NETWORK
+// ============================================================================
+
+export interface StateDeclaration { name: string; type: string; [key: string]: any; }
+export declare class ReactiveState<T extends StateDeclaration = StateDeclaration> { constructor(initial: Record<string, any>); set(key: keyof T, value: any): void; get(key: keyof T): any; getSnapshot(): Record<string, any>; undo(): void; redo(): void; subscribe(listener: (state: Record<string, any>) => void): () => void; [key: string]: any; }
+export type MessageType = 'state_sync' | 'event' | 'rpc' | 'handshake' | 'heartbeat' | 'agent_state';
+export declare class NetworkManager { constructor(config?: any); connect(url: string): Promise<void>; disconnect(): void; send(type: MessageType, payload: any): void; on(type: MessageType, handler: (payload: any) => void): void; off(type: MessageType, handler: (payload: any) => void): void; isConnected(): boolean; [key: string]: any; }
+export declare class MultiplayerSession { constructor(config?: any); join(roomId: string): Promise<void>; leave(): Promise<void>; broadcast(event: string, data: any): void; on(event: string, handler: (data: any) => void): void; getConnectedPeers(): string[]; [key: string]: any; }
+
+// ============================================================================
+// ASSET REGISTRY
+// ============================================================================
+
+export interface AssetEntry { id: string; type: string; url: string; name: string; [key: string]: any; }
+export declare class AssetRegistry {
+  constructor(config?: any);
+  register(entry: AssetEntry): void;
+  unregister(id: string): void;
+  get(id: string): AssetEntry | undefined;
+  getByType(type: string): AssetEntry[];
+  getAll(): AssetEntry[];
+  load(id: string): Promise<any>;
+  preload(ids: string[]): Promise<void>;
+  [key: string]: any;
+}
+
+// ============================================================================
+// TERRAIN SYSTEM
+// ============================================================================
+
+export interface TerrainLayer { [key: string]: any; }
+export interface TerrainConfig { width: number; depth: number; heightScale?: number; layers?: TerrainLayer[]; [key: string]: any; }
+export declare class TerrainSystem {
+  constructor(config?: TerrainConfig);
+  generate(config?: Partial<TerrainConfig>): void;
+  getHeight(x: number, z: number): number;
+  getNormal(x: number, z: number): any;
+  update(delta: number): void;
+  getConfig(): TerrainConfig;
+  [key: string]: any;
+}
+
+// ============================================================================
+// STATE MACHINE
+// ============================================================================
+
+export interface StateMachineState { name: string; onEnter?: () => void; onExit?: () => void; onUpdate?: (delta: number) => void; [key: string]: any; }
+export interface StateMachineTransition { from: string; to: string; condition: () => boolean; [key: string]: any; }
+export declare class StateMachine {
+  constructor(states?: StateMachineState[], transitions?: StateMachineTransition[]);
+  addState(state: StateMachineState): void;
+  addTransition(transition: StateMachineTransition): void;
+  start(initialState: string): void;
+  stop(): void;
+  update(delta: number): void;
+  getCurrentState(): string | null;
+  transition(to: string): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// TIMELINE
+// ============================================================================
+
+export type TimelineMode = 'once' | 'loop' | 'pingpong';
+export interface TimelineEntry { time: number; action: () => void; }
+export interface TimelineConfig { duration: number; mode?: TimelineMode; entries?: TimelineEntry[]; }
+export declare class Timeline {
+  constructor(config?: TimelineConfig);
+  addEntry(entry: TimelineEntry): void;
+  play(): void;
+  pause(): void;
+  stop(): void;
+  update(delta: number): void;
+  seek(time: number): void;
+  getDuration(): number;
+  getCurrentTime(): number;
+  [key: string]: any;
+}
+
+// ============================================================================
+// SCENE MANAGER
+// ============================================================================
+
+export interface SceneListEntry { id: string; name: string; description?: string; thumbnail?: string; [key: string]: any; }
+export declare class SceneManager {
+  constructor(config?: any);
+  getScenes(): SceneListEntry[];
+  getScene(id: string): SceneListEntry | undefined;
+  addScene(scene: SceneListEntry): void;
+  removeScene(id: string): void;
+  loadScene(id: string): Promise<any>;
+  saveScene(id: string, data: any): Promise<void>;
+  [key: string]: any;
+}
+
+// ============================================================================
+// SAVE SLOT (used by useSaveLoad)
+// ============================================================================
+
+export interface SaveSlot { id: string; name: string; data: any; timestamp: number; [key: string]: any; }
+
+// ============================================================================
+// NAV MESH / PATHFINDING
+// ============================================================================
+
+export interface NavPoint { x: number; y: number; z: number; [key: string]: any; }
+export interface PathResult { path: NavPoint[]; cost: number; success: boolean; }
+export declare class NavMesh {
+  constructor(config?: any);
+  build(geometry: any): void;
+  findPath(start: NavPoint, end: NavPoint): PathResult;
+  isWalkable(point: NavPoint): boolean;
+  [key: string]: any;
+}
+
+// ============================================================================
+// ECS WORLD
+// ============================================================================
+
+export interface TransformComponent { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number; w: number }; scale: { x: number; y: number; z: number }; }
+export declare class ECSWorld {
+  constructor();
+  createEntity(): number;
+  destroyEntity(entity: number): void;
+  addComponent<T>(entity: number, componentType: number, data: T): void;
+  removeComponent(entity: number, componentType: number): void;
+  getComponent<T>(entity: number, componentType: number): T | undefined;
+  query(...componentTypes: number[]): number[];
+  update(delta: number): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// INPUT MANAGER
+// ============================================================================
+
+export declare class InputManager {
+  constructor(config?: any);
+  isKeyDown(key: string): boolean;
+  isKeyPressed(key: string): boolean;
+  isMouseDown(button: number): boolean;
+  getMousePosition(): { x: number; y: number };
+  getMouseDelta(): { x: number; y: number };
+  bindAction(name: string, keys: string[]): void;
+  isActionPressed(name: string): boolean;
+  update(): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// CULTURE RUNTIME
+// ============================================================================
+
+export interface CultureEvent { type: string; data: any; [key: string]: any; }
+export declare class CultureRuntime {
+  constructor(config?: any);
+  loadNorms(norms: any[]): void;
+  evaluate(context: any): { violations: any[]; score: number };
+  on(event: string, handler: (e: CultureEvent) => void): void;
+  emit(event: CultureEvent): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// COMBAT MANAGER
+// ============================================================================
+
+export interface HitBox { x: number; y: number; z: number; width: number; height: number; depth: number; [key: string]: any; }
+export interface HurtBox { x: number; y: number; z: number; width: number; height: number; depth: number; [key: string]: any; }
+export interface ComboChain { id: string; attacks: string[]; window: number; [key: string]: any; }
+export declare class CombatManager {
+  constructor(config?: any);
+  registerHitBox(entityId: string, hitBox: HitBox): void;
+  registerHurtBox(entityId: string, hurtBox: HurtBox): void;
+  registerCombo(chain: ComboChain): void;
+  checkCollisions(): Array<{ attacker: string; defender: string; damage: number }>;
+  update(delta: number): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// COLLABORATION SESSION
+// ============================================================================
+
+export interface SessionPeer { id: string; name: string; color: string; [key: string]: any; }
+export interface SessionStats { peerCount: number; latency: number; uptime: number; [key: string]: any; }
+export declare class CollaborationSession {
+  constructor(config?: any);
+  join(sessionId: string, peer: SessionPeer): Promise<void>;
+  leave(): Promise<void>;
+  getPeers(): SessionPeer[];
+  getStats(): SessionStats;
+  broadcast(event: string, data: any): void;
+  on(event: string, handler: (data: any) => void): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// CINEMATIC TYPES
+// ============================================================================
+
+export interface CinematicScene { id: string; duration: number; cues: CuePoint[]; [key: string]: any; }
+export interface CuePoint { time: number; action: string; params?: any; [key: string]: any; }
+
+// ============================================================================
+// BEHAVIOR TREE
+// ============================================================================
+
+export type BehaviorStatus = 'success' | 'failure' | 'running';
+export interface BehaviorNode { tick(agent: any): BehaviorStatus; [key: string]: any; }
+export declare class BehaviorTree {
+  constructor(root: BehaviorNode);
+  tick(agent: any): BehaviorStatus;
+  setRoot(node: BehaviorNode): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// DIALOGUE SYSTEM
+// ============================================================================
+
+export interface DialogueNode { id: string; text: string; speaker?: string; choices?: DialogueChoice[]; [key: string]: any; }
+export interface DialogueChoice { id: string; text: string; nextId: string; condition?: string; [key: string]: any; }
+export interface DialogueTree { id: string; nodes: DialogueNode[]; startId: string; [key: string]: any; }
+export declare class DialogueManager {
+  constructor(config?: any);
+  loadTree(tree: DialogueTree): void;
+  startDialogue(treeId: string): DialogueNode | null;
+  selectChoice(choiceId: string): DialogueNode | null;
+  getCurrentNode(): DialogueNode | null;
+  isActive(): boolean;
+  [key: string]: any;
+}
+
+// ============================================================================
+// INVENTORY SYSTEM
+// ============================================================================
+
+export interface InventoryItem { id: string; name: string; type: string; quantity: number; [key: string]: any; }
+export interface Inventory { id: string; slots: number; items: InventoryItem[]; [key: string]: any; }
+export declare class InventoryManager {
+  constructor(config?: any);
+  createInventory(id: string, slots: number): Inventory;
+  addItem(inventoryId: string, item: InventoryItem): boolean;
+  removeItem(inventoryId: string, itemId: string, quantity?: number): boolean;
+  getItems(inventoryId: string): InventoryItem[];
+  [key: string]: any;
+}
+
+// ============================================================================
+// LIGHTING TYPES
+// ============================================================================
+
+export interface Light { id: string; type: LightType; color: string; intensity: number; [key: string]: any; }
+export interface AmbientConfig { color: string; intensity: number; [key: string]: any; }
+
+// ============================================================================
+// COMPILER TYPES  
+// ============================================================================
+
+export interface CompilerTarget { [key: string]: any; }
+export interface TraitDefinition { name: string; properties?: Record<string, any>; [key: string]: any; }
+export interface CompilerPlugin { [key: string]: any; }
+export interface CompilerOptions { target?: string; optimize?: boolean; [key: string]: any; }
+export interface CompilerDiagnostic { severity: 'error' | 'warning' | 'info'; message: string; line?: number; column?: number; [key: string]: any; }
+export interface IncrementalBuildResult { success: boolean; diagnostics: CompilerDiagnostic[]; artifacts: any[]; [key: string]: any; }
+export declare class IncrementalCompiler {
+  constructor(config?: any);
+  addSource(id: string, source: string): void;
+  compile(targets?: string[]): IncrementalBuildResult;
+  invalidate(id: string): void;
+  [key: string]: any;
+}
+
+// ============================================================================
+// ECS INSPECTOR TYPES
+// ============================================================================
+
+export interface ComponentInfo { type: number; data: any; name: string; }
+export interface EntityStats { id: number; components: ComponentInfo[]; active: boolean; }
+export declare class ECSInspector {
+  constructor(world: ECSWorld);
+  getEntityStats(entityId: number): EntityStats;
+  getAllEntities(): EntityStats[];
+  [key: string]: any;
+}
+
+// ============================================================================
+// PHYSICS PREVIEW TYPES
+// ============================================================================
+
+export interface PhysicsBody { id: string; position: { x: number; y: number; z: number }; velocity: { x: number; y: number; z: number }; mass: number; [key: string]: any; }
+export declare class PhysicsWorld {
+  constructor(config?: any);
+  addBody(body: PhysicsBody): void;
+  removeBody(id: string): void;
+  step(delta: number): void;
+  raycast(from: any, to: any): any;
+  [key: string]: any;
+}
+
+// ============================================================================
+// MARKETPLACE TYPES
+// ============================================================================
+
+export type MarketplaceSubmissionStatus = 'draft' | 'pending' | 'verified' | 'published' | 'rejected';
+export interface MarketplaceSubmission { id: string; title: string; description: string; category: string; price: number; status: MarketplaceSubmissionStatus; [key: string]: any; }
+
+// ============================================================================
+// PLATFORM TARGET TYPES
+// ============================================================================
+
+export interface PlatformTarget { id: string; name: string; category: string; capabilities: string[]; [key: string]: any; }
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {
@@ -546,6 +1862,21 @@ export function parse(source: string): any;
 const runtimeDTS = `export class HoloScriptRuntime {
   execute(ast: any, context?: any): Promise<any>;
 }
+
+export interface RuntimeOptions { [key: string]: any; }
+export interface Renderer { [key: string]: any; }
+export interface ExecutionResult { success: boolean; result?: any; error?: string; duration?: number; memoryUsed?: number; }
+
+export class HoloScriptPlusRuntimeImpl {
+  constructor(options?: RuntimeOptions);
+  execute(ast: any, context?: any): Promise<ExecutionResult>;
+  createRenderer(config?: any): Renderer;
+  getState(): Record<string, any>;
+  setState(updates: Record<string, any>): void;
+  dispose(): void;
+}
+
+export function createRuntime(options?: RuntimeOptions): HoloScriptPlusRuntimeImpl;
 `;
 
 const typeCheckerDTS = `export class HoloScriptTypeChecker {
