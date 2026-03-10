@@ -9,8 +9,8 @@ import {
   Bug,
   Play,
   StepForward,
-  StepInto,
-  StepOut,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Square,
   Plus,
   Trash2,
@@ -122,14 +122,14 @@ export function ScriptDebugger() {
                 className="rounded bg-blue-500/20 p-1 text-blue-400"
                 title="Step Into"
               >
-                <StepInto className="h-3.5 w-3.5" />
+                <ArrowDownToLine className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => setState('stepping')}
                 className="rounded bg-blue-500/20 p-1 text-blue-400"
                 title="Step Out"
               >
-                <StepOut className="h-3.5 w-3.5" />
+                <ArrowUpFromLine className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => {

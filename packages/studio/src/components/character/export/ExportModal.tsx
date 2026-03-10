@@ -82,18 +82,18 @@ export function ExportModal({
     if (!result) return;
 
     const a = document.createElement('a');
-    a.href = result.url;
+    a.href = result.downloadUrl;
     a.download = `meme-character-${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
-  const stageLabels: Record<ExportProgress['stage'], string> = {
-    preparing: 'Preparing canvas...',
-    rendering: 'Rendering frames...',
+  const stageLabels: Record<ExportProgress['phase'], string> = {
+    capturing: 'Capturing frames...',
     encoding: 'Encoding video...',
-    complete: 'Export complete!',
+    done: 'Export complete!',
+    error: 'Export failed!',
   };
 
   return (
@@ -255,7 +255,7 @@ export function ExportModal({
             <div className="flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
               <span className="text-sm font-semibold text-white">
-                {stageLabels[progress.stage]}
+                {stageLabels[progress.phase]}
               </span>
             </div>
 
@@ -263,17 +263,17 @@ export function ExportModal({
             <div className="h-3 overflow-hidden rounded-full bg-gray-800">
               <div
                 className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
-                style={{ width: `${progress.progress * 100}%` }}
+                style={{ width: `${progress.percent}%` }}
               />
             </div>
 
             {/* Stats */}
             <div className="flex items-center justify-between text-xs text-studio-muted">
               <span>
-                Frame {progress.currentFrame} / {progress.totalFrames}
+                Frame {progress.framesCaputred} / {progress.totalFrames}
               </span>
-              <span>{(progress.progress * 100).toFixed(0)}%</span>
-              <span>{(progress.timeElapsed / 1000).toFixed(1)}s elapsed</span>
+              <span>{progress.percent.toFixed(0)}%</span>
+              <span>{(progress.estimatedSizeBytes / 1024 / 1024).toFixed(1)}MB estimated</span>
             </div>
           </div>
         )}
@@ -286,8 +286,7 @@ export function ExportModal({
               <div className="flex-1">
                 <p className="text-sm font-semibold text-green-300">Export successful!</p>
                 <p className="text-xs text-green-400/60">
-                  {(result.size / 1024 / 1024).toFixed(2)} MB • {result.resolution.width}x
-                  {result.resolution.height} • {result.format}
+                  {(result.sizeBytes / 1024 / 1024).toFixed(2)} MB • {result.frames} frames • {result.format}
                 </p>
               </div>
             </div>

@@ -182,11 +182,38 @@ export class DeadReckoningPredictor {
     const maxDt = this.config.maxExtrapolation / 1000;
     const clampedDt = Math.min(dt, maxDt);
 
+    let nextRotation = { ...latest.rotation };
+    if (this.config.predictRotation) {
+      const wx = latest.angularVelocity.x * clampedDt;
+      const wy = latest.angularVelocity.y * clampedDt;
+      const wz = latest.angularVelocity.z * clampedDt;
+      const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
+      if (len > 0.0001) {
+        const halfLen = len * 0.5;
+        const sinHalf = Math.sin(halfLen);
+        const dqw = Math.cos(halfLen);
+        const dqx = (wx / len) * sinHalf;
+        const dqy = (wy / len) * sinHalf;
+        const dqz = (wz / len) * sinHalf;
+        
+        const qx = nextRotation.x, qy = nextRotation.y, qz = nextRotation.z, qw = nextRotation.w;
+        // Quaternion multiply nextRotation = dq * rotation
+        const nx = dqw * qx + dqx * qw + dqy * qz - dqz * qy;
+        const ny = dqw * qy - dqx * qz + dqy * qw + dqz * qx;
+        const nz = dqw * qz + dqx * qy - dqy * qx + dqz * qw;
+        const nw = dqw * qw - dqx * qx - dqy * qy - dqz * qz;
+        
+        const norm = Math.sqrt(nx * nx + ny * ny + nz * nz + nw * nw) || 1;
+        nextRotation = { x: nx / norm, y: ny / norm, z: nz / norm, w: nw / norm };
+      }
+    }
+
     if (latest.isKinematic) {
       // Kinematic bodies: simple linear extrapolation (no physics forces)
       return {
         ...latest,
         timestamp: currentTime,
+        rotation: nextRotation,
         position: {
           x: latest.position.x + latest.velocity.x * clampedDt,
           y: latest.position.y + latest.velocity.y * clampedDt,
@@ -222,6 +249,7 @@ export class DeadReckoningPredictor {
       timestamp: currentTime,
       position: { x: px, y: py, z: pz },
       velocity: { x: vx, y: vy, z: vz },
+      rotation: nextRotation,
     };
   }
 
@@ -240,7 +268,7 @@ export class DeadReckoningPredictor {
       return { error, strategy: 'none', offset: { x: 0, y: 0, z: 0 } };
     }
 
-    const offset: IVector3 = {
+    let offset: IVector3 = {
       x: authoritative.position.x - predicted.position.x,
       y: authoritative.position.y - predicted.position.y,
       z: authoritative.position.z - predicted.position.z,
@@ -248,6 +276,13 @@ export class DeadReckoningPredictor {
 
     if (error < thresholds.smooth) {
       return { error, strategy: 'exponential', offset };
+    }
+
+    // Clamp huge rubber-banding offsets (>5m) to prevent catastrophic flinging
+    const HARD_SNAP_THRESHOLD = 5.0;
+    if (error > HARD_SNAP_THRESHOLD) {
+      // We will perform a true snap, completely clearing offset error history
+      return { error, strategy: 'snap', offset: { x: 0, y: 0, z: 0 } };
     }
 
     return { error, strategy: 'snap', offset };

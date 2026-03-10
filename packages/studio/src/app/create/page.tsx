@@ -21,6 +21,8 @@ import { decodeSceneFromURL } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import { HistoryPanel } from '@/components/HistoryPanel';
+import { GovernancePanel } from '@/components/history/GovernancePanel';
+import { ConformanceSuitePanel } from '@/components/validation/ConformanceSuitePanel';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
 import { useProjectStore } from '@/lib/projectStore';
@@ -184,7 +186,7 @@ const SharePanel = dynamic(
 // CollabCursors V1 removed — consolidated into CollabCursorsV2
 // CollabStatusDot is still exported from the V1 file (not deprecated)
 const CollabStatusDot = dynamic(
-  () => import('@/components/collab/CollabCursors').then((m) => ({ default: m.CollabStatusDot })),
+  () => import('@/components/collaboration/CollabCursors').then((m) => ({ default: m.CollabStatusDot })),
   { ssr: false }
 );
 
@@ -201,7 +203,7 @@ const AssetPackPanel = dynamic(
 
 const SceneVersionPanel = dynamic(
   () =>
-    import('@/components/versions/SceneVersionPanel').then((m) => ({
+    import('@/components/versionControl/SceneVersionPanel').then((m) => ({
       default: m.SceneVersionPanel,
     })),
   { ssr: false }
@@ -269,12 +271,6 @@ const ProfilerOverlay = dynamic(
   { ssr: false }
 );
 
-const MultiplayerPanel = dynamic(
-  () =>
-    import('@/components/collab/MultiplayerPanel').then((m) => ({ default: m.MultiplayerPanel })),
-  { ssr: false }
-);
-
 const DebuggerPanel = dynamic(
   () => import('@/components/debugger/DebuggerPanel').then((m) => ({ default: m.DebuggerPanel })),
   { ssr: false }
@@ -336,23 +332,8 @@ const SceneSearchOverlay = dynamic(
   { ssr: false }
 );
 
-const CollabCursorsV2 = dynamic(
-  () => import('@/components/collab/CollabCursorsV2').then((m) => ({ default: m.CollabCursorsV2 })),
-  { ssr: false }
-);
-
 const ParticlePanel = dynamic(
   () => import('@/components/particles/ParticlePanel').then((m) => ({ default: m.ParticlePanel })),
-  { ssr: false }
-);
-
-const LodPanel = dynamic(
-  () => import('@/components/lod/LodPanel').then((m) => ({ default: m.LodPanel })),
-  { ssr: false }
-);
-
-const ScriptConsole = dynamic(
-  () => import('@/components/console/ScriptConsole').then((m) => ({ default: m.ScriptConsole })),
   { ssr: false }
 );
 
@@ -428,23 +409,7 @@ const ProfilerPanel2 = dynamic(
   { ssr: false }
 );
 
-const VersionHistoryPanel = dynamic(
-  () =>
-    import('@/components/versions/VersionHistoryPanel').then((m) => ({
-      default: m.VersionHistoryPanel,
-    })),
-  { ssr: false }
-);
-
 const TraitRegistryPanel = dynamic(
-  () =>
-    import('@/components/registry/TraitRegistryPanel').then((m) => ({
-      default: m.TraitRegistryPanel,
-    })),
-  { ssr: false }
-);
-
-const RemotePreviewPanel = dynamic(
   () =>
     import('@/components/remote/RemotePreviewPanel').then((m) => ({
       default: m.RemotePreviewPanel,
@@ -489,6 +454,28 @@ const SandboxedPluginsPanel = dynamic(
     })),
   { ssr: false }
 );
+
+const MultiplayerPanel = dynamic(
+  () => import('@/components/collaboration/MultiplayerPanel').then((m) => ({ default: m.MultiplayerPanel })),
+  { ssr: false }
+);
+
+const LodPanel = dynamic(
+  () => import('@/components/lod/LodPanel').then((m) => ({ default: m.LodPanel })),
+  { ssr: false }
+);
+
+const RemotePreviewPanel = dynamic(
+  () => import('@/components/remote/RemotePreviewPanel').then((m) => ({ default: m.RemotePreviewPanel })),
+  { ssr: false }
+);
+
+const ScriptConsole = dynamic(
+  () => import('@/components/console/ScriptConsole').then((m) => ({ default: m.ScriptConsole })),
+  { ssr: false }
+);
+
+
 
 function ViewportSkeleton() {
   return (
@@ -842,6 +829,9 @@ export default function CreatePage() {
 
   // Non-panel state (kept local — layout dimensions, left tab)
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
+  const [showGovernancePanel, setShowGovernancePanel] = useState(false);
+  const [showConformancePanel, setShowConformancePanel] = useState(false);
+  const [spatialBlameTooltip, setSpatialBlameTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -1381,7 +1371,7 @@ export default function CreatePage() {
           {/* RIGHT RAIL: Scene Outliner */}
           {outlinerOpen && (
             <div className="flex w-64 shrink-0 flex-col border-l border-studio-border">
-              <SceneOutliner onClose={() => setOutlinerOpen(false)} />
+              <SceneOutliner />
             </div>
           )}
 
@@ -1454,10 +1444,17 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* RIGHT RAIL: Version History */}
-          {versionsOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <VersionHistoryPanel onClose={() => setVersionsOpen(false)} />
+          {/* RIGHT RAIL: Governance & Spatial Blame */}
+          {showGovernancePanel && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
+              <GovernancePanel />
+            </div>
+          )}
+
+          {/* RIGHT RAIL: Conformance Suite Validator */}
+          {showConformancePanel && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
+              <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} />
             </div>
           )}
 
@@ -1481,6 +1478,9 @@ export default function CreatePage() {
               <DebuggerPanel onClose={() => setDebuggerOpen(false)} />
             </div>
           )}
+
+          {/* RIGHT RAIL: Governance (fallback toggle via custom action) */}
+          {/* Note: In Sprint 2, governance is its own panel. */}
 
           {/* RIGHT RAIL: Scene Generator */}
           {generatorOpen && (
@@ -1969,19 +1969,21 @@ export default function CreatePage() {
       {/* Sprint T: Script Console (fixed bottom panel, taller on mobile) */}
       {consoleOpen && (
         <div className="studio-bottom-console fixed bottom-0 left-0 right-0 z-30 h-[280px] border-t border-studio-border shadow-2xl">
-          <ScriptConsole onClose={() => setConsoleOpen(false)} />
+          <ScriptConsole />
         </div>
       )}
 
-      {/* Collaboration cursors — consolidated to V2 (named, deterministic colors, smooth transitions) */}
-      <CollabCursorsV2
-        roomId="default-room"
-        userName={
-          typeof window !== 'undefined'
-            ? (window.localStorage.getItem('holoscript-name') ?? 'Guest')
-            : 'Guest'
-        }
-      />
+
+
+      {/* OVERLAY: Spatial Blame Tooltip (Git for 3D) */}
+      {spatialBlameTooltip.visible && (
+        <div 
+          className="fixed pointer-events-none z-50 bg-slate-900/95 border border-indigo-500/30 rounded-lg p-3 shadow-xl backdrop-blur-md"
+          style={{ left: spatialBlameTooltip.x, top: spatialBlameTooltip.y, transform: 'translate(-50%, -100%)' }}
+        >
+          {spatialBlameTooltip.content}
+        </div>
+      )}
     </>
   );
 }

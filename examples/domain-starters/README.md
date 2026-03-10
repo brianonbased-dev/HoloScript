@@ -4,11 +4,21 @@ Minimal working HoloScript templates for vertical industry domains. Each starter
 
 ## Available Starters
 
-| Domain             | File                                         | Key Features                                                                  | Primary Targets           |
-| ------------------ | -------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------- |
-| **Healthcare**     | `healthcare/healthcare-starter.holo`         | Patient vitals dashboard, AR anatomy viewer, guided procedures, hand tracking | iOS, Android, OpenXR      |
-| **Industrial IoT** | `industrial-iot/industrial-iot-starter.holo` | Digital twin sync, sensor telemetry, predictive maintenance, SCADA dashboard  | DTDL, OpenXR, WebGPU      |
-| **Robotics**       | `robotics/robotics-starter.holo`             | 3-DOF arm, joint kinematics, safety zones, ROS 2 bridge                       | URDF, SDF, OpenXR, WebGPU |
+| Domain             | File                                         | Key Features                                                                   | Primary Targets           |
+| ------------------ | -------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------- |
+| **Healthcare**     | `healthcare/healthcare-starter.holo`         | Patient vitals dashboard, AR anatomy viewer, guided procedures, hand tracking  | iOS, Android, OpenXR      |
+| **Industrial IoT** | `industrial-iot/industrial-iot-starter.holo` | Digital twin sync, sensor telemetry, predictive maintenance, SCADA dashboard   | DTDL, OpenXR, WebGPU      |
+| **Robotics**       | `robotics/robotics-starter.holo`             | 3-DOF arm, joint kinematics, safety zones, ROS 2 bridge                        | URDF, SDF, OpenXR, WebGPU |
+| **IoT (Smart Home)** | `iot/iot-starter.holo`                    | Thermostat, smart lights, door sensors, energy meter, MQTT telemetry           | R3F, Unity, OpenXR        |
+| **Music**          | `music/music-starter.holo`                   | Spatial audio, MIDI instruments, frequency visualizer, mixing console          | R3F, Unity, Godot         |
+| **Navigation**     | `navigation/navigation-starter.holo`         | Waypoints, route planning, compass HUD, POI markers, turn-by-turn guidance     | iOS, Android, OpenXR      |
+| **Web3**           | `web3/web3-starter.holo`                     | NFT gallery, wallet connection, token-gated zones, x402 payments               | R3F, Unity, OpenXR        |
+| **DataViz**        | `dataviz/dataviz-starter.holo`               | 3D bar charts, scatter plots, heatmaps, data binding, interactive filtering    | R3F, Unity, OpenXR        |
+| **Education**      | `education/education-starter.holo`           | Lesson boards, quizzes, 3D annotations, progress tracking, LMS integration    | R3F, Unity, OpenXR        |
+| **Architecture**   | `architecture/architecture-starter.holo`     | BIM walkthrough, floor plan overlay, sun path analysis, material sampler       | Unity, OpenXR, R3F        |
+| **Input**          | `input/input-starter.holo`                   | Hand tracking, eye gaze, voice commands, gesture recognition, haptic feedback  | OpenXR, Unity, R3F        |
+| **Rendering**      | `rendering/rendering-starter.holo`           | PBR material gallery, custom shaders, volumetric fog, post-processing stack    | R3F, Unity, Godot         |
+| **Procedural**     | `procedural/procedural-starter.holo`         | Terrain generation, L-system trees, noise fields, vegetation, cloud layers     | R3F, Unity, Godot         |
 
 ## Quick Start
 

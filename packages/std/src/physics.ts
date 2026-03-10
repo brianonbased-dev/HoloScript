@@ -8,7 +8,7 @@
  * @module @holoscript/std/physics
  */
 
-import { Vec3 } from './spatial';
+import type { Vec3 } from './spatial.js';
 
 // =============================================================================
 // Collider Shapes

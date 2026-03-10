@@ -4417,19 +4417,19 @@ export function inputToUSDA(input: CompiledInput): string {
 // Domain Block Router
 // =============================================================================
 
-export type DomainCompileFn = (block: HoloDomainBlock) => string;
+export type DomainCompileFn<T = string> = (block: HoloDomainBlock) => T;
 
 /** Route domain blocks to appropriate compilation function */
-export function compileDomainBlocks(
+export function compileDomainBlocks<T = string>(
   blocks: HoloDomainBlock[],
-  handlers: Partial<Record<HoloDomainType, DomainCompileFn>>,
-  fallback?: DomainCompileFn
-): string[] {
+  handlers: Partial<Record<HoloDomainType, DomainCompileFn<T>>>,
+  fallback?: DomainCompileFn<T>
+): T[] {
   return blocks.map((block) => {
     const handler = handlers[block.domain];
     if (handler) return handler(block);
     if (fallback) return fallback(block);
-    return `/* Unhandled domain block: ${block.domain}/${block.keyword} "${block.name}" */`;
+    return `/* Unhandled domain block: ${block.domain}/${block.keyword} "${block.name}" */` as unknown as T;
   });
 }
 

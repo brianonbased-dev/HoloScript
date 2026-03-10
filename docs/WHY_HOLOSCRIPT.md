@@ -93,6 +93,20 @@ DSLs die when their host framework dies. jQuery plugins died with jQuery. Coffee
 - **If WebGPU replaces WebGL, the language adapts at the compiler level, not the user level.**
 - **If a new VR platform emerges, you add a compilation target.** Zero migration cost for users.
 
+### 8. Solving Known Impossibilities
+
+Research mapping HoloScript against 28 known impossibilities across CS/engineering and human domains found that the three-format architecture (`.hs` + `.hsplus` + `.holo`) genuinely solves three problems no other spatial computing tool addresses:
+
+| Problem                    | Why It Was "Impossible"                                       | How HoloScript Solves It                                                                                       |
+| -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Version Control for 3D** | Git can't diff/merge binary FBX/GLB                           | All three formats are plain text -- `git blame` shows who changed what                                         |
+| **Digital Preservation**   | 3D content dies with dead engines (87% of games already lost) | Human-readable text survives format extinction -- the LaTeX of spatial computing                               |
+| **Symbol Grounding**       | AI symbols lack physical meaning (Harnad 1990)                | Traits compile to physics at three levels: declarative (`.holo`), behavioral (`.hsplus`), procedural (`.hs`)   |
+
+Additionally, 12 more impossibilities become partially tractable -- including cross-platform behavioral conformance (`.hsplus` state machines enable conformance testing like Vulkan CTS), 4D dance notation (all three formats combine to capture dimensions Labanotation cannot), and executable therapeutic protocols (`.hsplus` state machines as clinical protocol specifications).
+
+See the [Three-Format Impossibility Map](strategy/research/2026-03-09_holoscript-three-format-impossibility-map.md) for the full analysis.
+
 ## The Competitive Moat
 
 | Feature                  | HoloScript (Full Language) | DSLs/Wrappers (A-Frame, R3F) | Engines (Unity, Unreal) | Formats (glTF, USD) |

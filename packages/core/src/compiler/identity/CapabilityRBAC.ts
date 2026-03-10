@@ -87,6 +87,9 @@ export interface CapabilityAccessDecision extends AccessDecision {
 
   /** Verification result (when mode === 'capability') */
   capabilityVerification?: CapabilityVerificationResult;
+
+  /** Optional detailed error code */
+  errorCode?: string;
 }
 
 // ---------------------------------------------------------------------------

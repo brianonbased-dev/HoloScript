@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import type { LoadProgress } from '@/lib/glbOptimizer';
+import type { LoadProgress } from '@/lib/export/glbOptimizer';
 
 interface LoadingProgressProps {
   progress: LoadProgress | null;

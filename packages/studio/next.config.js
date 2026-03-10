@@ -5,7 +5,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
-  transpilePackages: ['@holoscript/core', '@holoscript/studio-plugin-sdk', 'three'],
+  transpilePackages: ['@holoscript/core', '@holoscript/std', '@holoscript/studio-plugin-sdk', 'three'],
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,
@@ -27,6 +27,8 @@ const nextConfig = {
         cluster: false,
         http2: false,
         crypto: false,
+        stream: false,
+        buffer: false,
       };
     }
 
@@ -45,6 +47,10 @@ const nextConfig = {
       '@x402/paywall': false,
       '@x402/core': false,
       '@x402/fetch': false,
+      'node:stream': false,
+      'node:buffer': false,
+      'memfs': false,
+      'isomorphic-git': false,
     };
 
     return config;

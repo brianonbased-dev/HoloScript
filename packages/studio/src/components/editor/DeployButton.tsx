@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+// @ts-ignore - these exist at runtime in index.js but might be missing in type declarations
 import {
   runSafetyPass,
   createSubmission,

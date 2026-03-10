@@ -163,7 +163,7 @@ export interface DestructuringPattern {
   properties: Array<{ key: string; pattern: MatchPattern }>;
 }
 
-export { VRHand } from './types/HoloScriptPlus';
+export type { VRHand } from './types/HoloScriptPlus';
 
 export interface TraitConstraint {
   type: 'requires' | 'conflicts' | 'oneof';

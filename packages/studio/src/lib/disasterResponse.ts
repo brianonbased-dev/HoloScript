@@ -344,3 +344,63 @@ export function droneDeploymentGrid(
   }
   return waypoints;
 }
+
+export interface Disaster {
+  id: string;
+  type: DisasterType;
+  name: string;
+  severity: 'moderate' | 'major' | 'critical';
+  location: { lat: number; lng: number };
+  radiusKm: number;
+  estimatedAffected: number;
+  timestamp: number;
+}
+
+export interface ResourcePool {
+  medical: { total: number; deployed: number; available: number };
+  rescue: { total: number; deployed: number; available: number };
+  logistics: { total: number; deployed: number; available: number };
+}
+
+export interface TriagePatient {
+  id: string;
+  name: string;
+  age: number;
+  injury: string;
+  vitals: {
+    heartRate: number;
+    bloodPressure: string;
+    respRate: number;
+    oxygenSat: number;
+    conscious: boolean;
+  };
+  canWalk: boolean;
+  breathing: boolean;
+}
+
+export function triagePriority(patient: TriagePatient): TriageCategory {
+  return startTriageClassify(
+    patient.breathing,
+    patient.vitals.respRate,
+    patient.vitals.heartRate > 100 ? 3 : 1, // rough proxy for perfusion
+    patient.vitals.conscious
+  );
+}
+
+export function resourceUtilization(resource: { total: number; deployed: number }): number {
+  if (resource.total === 0) return 0;
+  return resource.deployed / resource.total;
+}
+
+export function safeDistance(magnitude: number): number {
+  return magnitude * 1.5;
+}
+
+export function evacuationTimeMinutes(popDensity: number, lanes: number): number {
+  return (popDensity / lanes) * 0.1;
+}
+
+export function affectedPopulation(popDensity: number, radiusKm: number): number {
+  const area = Math.PI * radiusKm * radiusKm;
+  return Math.round(area * popDensity);
+}

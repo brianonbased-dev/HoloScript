@@ -1,0 +1,290 @@
+// Navigation Domain Starter - HoloScript
+//
+// Minimal working template for indoor/outdoor wayfinding and navigation.
+// Demonstrates: Waypoints, route planning, AR compass, POI markers,
+//               turn-by-turn guidance, and minimap overlay.
+//
+// Compile targets:
+//   holoscript compile navigation-starter.holo --target ios        (ARKit)
+//   holoscript compile navigation-starter.holo --target android    (ARCore)
+//   holoscript compile navigation-starter.holo --target openxr     (HoloLens)
+//
+// Extend by:
+//   - Integrating real GPS/beacon positioning (BLE, UWB)
+//   - Adding indoor floor plan overlays (IFC / CAD)
+//   - Connecting to mapping APIs (Mapbox, Google Maps)
+//   - Adding accessibility routes (wheelchair, visual impairment)
+
+composition "Navigation Starter" {
+
+  metadata {
+    name: 'Navigation Domain Starter'
+    description: 'Minimal template for AR wayfinding: route markers, compass HUD, POI pins, turn-by-turn guidance, and minimap overlay.'
+    version: '1.0.0'
+    author: 'HoloScript Navigation Team'
+    category: 'navigation'
+    tags: ['navigation', 'wayfinding', 'ar', 'gps', 'indoor-navigation', 'poi']
+    platforms: ['ios', 'android', 'openxr']
+    minPlayers: 1
+    maxPlayers: 1
+  }
+
+  // -- Environment ---------------------------------------------------------------
+
+  environment {
+    plane_detection: true
+    light_estimation: true
+    world_tracking: true
+    geospatial: {
+      enabled: true
+      provider: "arcore-geospatial"
+    }
+  }
+
+  // -- Application State ---------------------------------------------------------
+
+  state NavState {
+    currentRoute: null
+    destination: "none"
+    navigationMode: "walking"        // "walking" | "driving" | "transit"
+    distanceRemaining: 0
+    nextTurnDirection: "straight"     // "left" | "right" | "straight" | "uturn"
+    nextTurnDistance: 0
+    selectedPOI: null
+    compassHeading: 0
+    floorLevel: 0
+    routeActive: false
+  }
+
+  // -- Reusable Templates --------------------------------------------------------
+
+  template "WaypointMarker" {
+    @waypoint {
+      snapToGround: true
+      visible: true
+    }
+    @billboard
+    @anchor
+
+    geometry: "sphere"
+    radius: 0.15
+    material: {
+      color: "#4488ff"
+      emissive: "#4488ff"
+      emissiveIntensity: 0.6
+      transparent: true
+      opacity: 0.8
+    }
+  }
+
+  template "POIPin" {
+    @billboard
+    @anchor
+    @interactable {
+      action: "tap"
+    }
+
+    geometry: "cone"
+    scale: [0.1, 0.25, 0.1]
+    material: {
+      color: "#ff4444"
+      emissive: "#ff2222"
+      emissiveIntensity: 0.4
+    }
+  }
+
+  template "RouteSegment" {
+    @nav_mesh
+    @path_follower {
+      speed: 1.5
+      smoothing: 0.8
+    }
+
+    geometry: "tube"
+    radius: 0.03
+    material: {
+      color: "#00aaff"
+      emissive: "#00aaff"
+      emissiveIntensity: 1.0
+      transparent: true
+      opacity: 0.6
+    }
+  }
+
+  template "DirectionArrow" {
+    @billboard
+
+    geometry: "cone"
+    scale: [0.12, 0.2, 0.08]
+    rotation: { x: 90, y: 0, z: 0 }
+    material: {
+      color: "#00ff66"
+      emissive: "#00ff66"
+      emissiveIntensity: 0.8
+    }
+  }
+
+  // -- HUD: Compass + Distance ---------------------------------------------------
+
+  object "CompassHUD" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.25, 0.25, 1]
+    position: { x: 0, y: 0.4, z: -0.8 }
+    material: {
+      color: "#0a0a1a"
+      transparent: true
+      opacity: 0.85
+    }
+
+    behavior {
+      on "frame" {
+        action: "updateCompass"
+        bind: NavState.compassHeading
+      }
+    }
+  }
+
+  object "DistancePanel" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.3, 0.08, 1]
+    position: { x: 0, y: 0.25, z: -0.8 }
+    material: {
+      color: "#1a1a2e"
+      transparent: true
+      opacity: 0.9
+    }
+
+    behavior {
+      on "frame" {
+        bind: NavState.distanceRemaining
+        format: "{value}m remaining"
+      }
+    }
+  }
+
+  // -- Turn-by-Turn Indicator ----------------------------------------------------
+
+  object "TurnIndicator" using "DirectionArrow" {
+    position: { x: 0, y: 0.15, z: -0.8 }
+
+    behavior {
+      on "frame" {
+        bind: NavState.nextTurnDirection
+        action: "rotateTurnArrow"
+      }
+    }
+  }
+
+  // -- Minimap Overlay -----------------------------------------------------------
+
+  object "Minimap" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.2, 0.2, 1]
+    position: { x: 0.35, y: 0.35, z: -0.8 }
+    material: {
+      color: "#0d1117"
+      transparent: true
+      opacity: 0.9
+    }
+
+    behavior {
+      on "tap" {
+        action: "toggleMinimapSize"
+      }
+    }
+  }
+
+  // -- Sample POI Markers --------------------------------------------------------
+
+  group "POIMarkers" {
+    object "CafePOI" using "POIPin" {
+      position: { x: 5, y: 0.5, z: -10 }
+      properties: {
+        label: "Central Cafe"
+        category: "food"
+        distance: 120
+      }
+    }
+
+    object "ParkingPOI" using "POIPin" {
+      position: { x: -8, y: 0.5, z: 3 }
+      material: { color: "#4488ff" }
+      properties: {
+        label: "Parking Garage B"
+        category: "parking"
+        distance: 85
+      }
+    }
+
+    object "EntrancePOI" using "POIPin" {
+      position: { x: 0, y: 0.5, z: -15 }
+      material: { color: "#44ff44" }
+      properties: {
+        label: "Main Entrance"
+        category: "entrance"
+        distance: 200
+      }
+    }
+  }
+
+  // -- Systems -------------------------------------------------------------------
+
+  system "GPSProvider" {
+    type: "geolocation"
+    provider: "device"
+    updateInterval: 1000
+    accuracy: "high"
+    output: NavState.compassHeading
+  }
+
+  system "PathPlanner" {
+    type: "pathfinding"
+    algorithm: "a-star"
+    graphSource: "nav-mesh"
+    recalculateOnDeviation: true
+    deviationThreshold: 5
+  }
+
+  // -- Actions -------------------------------------------------------------------
+
+  action startNavigation(destination) {
+    NavState.destination = destination
+    NavState.routeActive = true
+    emit("nav:plan_route", {
+      from: "current_position",
+      to: destination,
+      mode: NavState.navigationMode
+    })
+  }
+
+  action updateCompass(heading) {
+    NavState.compassHeading = heading
+  }
+
+  action selectPOI(poiId) {
+    NavState.selectedPOI = poiId
+    emit("nav:show_poi_detail", { id: poiId })
+  }
+
+  action cancelNavigation() {
+    NavState.routeActive = false
+    NavState.destination = "none"
+    emit("nav:clear_route")
+  }
+
+  action setNavigationMode(mode) {
+    NavState.navigationMode = mode
+    if (NavState.routeActive) {
+      emit("nav:recalculate", { mode: mode })
+    }
+  }
+}

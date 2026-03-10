@@ -71,7 +71,7 @@ importers:
         version: 14.0.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
@@ -173,7 +173,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -188,7 +188,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -213,7 +213,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -225,7 +225,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -247,7 +247,7 @@ importers:
         version: 22.19.12
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -321,7 +321,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -371,7 +371,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -393,7 +393,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -499,7 +499,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
@@ -536,7 +536,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -564,7 +564,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -592,7 +592,7 @@ importers:
         version: 8.18.1
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -717,7 +717,7 @@ importers:
         version: 22.19.12
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -736,7 +736,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -755,7 +755,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -786,7 +786,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -827,7 +827,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1099,7 +1099,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1139,7 +1139,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1222,7 +1222,7 @@ importers:
         version: 0.170.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1295,7 +1295,7 @@ importers:
         version: 7.6.23
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1372,7 +1372,7 @@ importers:
         version: 0.170.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1397,7 +1397,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1436,7 +1436,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1451,7 +1451,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1479,6 +1479,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../core
+      '@holoscript/std':
+        specifier: workspace:*
+        version: link:../std
       '@holoscript/studio-plugin-sdk':
         specifier: workspace:*
         version: link:../studio-plugin-sdk
@@ -1515,9 +1518,15 @@ importers:
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.2
+      isomorphic-git:
+        specifier: ^1.37.2
+        version: 1.37.2
       lucide-react:
         specifier: ^0.314.0
         version: 0.314.0(react@19.2.4)
+      memfs:
+        specifier: ^4.56.11
+        version: 4.56.11(tslib@2.8.1)
       next:
         specifier: ^15.5.10
         version: 15.5.12(@playwright/test@1.58.2)(react-dom@19.2.4)(react@19.2.4)
@@ -1608,7 +1617,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1689,7 +1698,7 @@ importers:
         version: 23.11.1(typescript@5.9.3)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1705,7 +1714,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1742,7 +1751,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1916,7 +1925,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -6690,6 +6699,233 @@ packages:
       reprism: 0.0.11
       spark-md5: 3.0.2
     dev: true
+
+  /@jsonjoy.com/base64@1.1.2(tslib@2.8.1):
+    resolution: {integrity: sha512-q6XAnWQDIMA3+FTiOYajoYqySkO+JSat0ytXGSuRdq9uXE7o92gzuQwQM14xaCRlBLGq3v5miDGC4vkVTn54xA==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/base64@17.67.0(tslib@2.8.1):
+    resolution: {integrity: sha512-5SEsJGsm15aP8TQGkDfJvz9axgPwAEm98S5DxOuYe8e1EbfajcDmgeXXzccEjh+mLnjqEKrkBdjHWS5vFNwDdw==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/buffers@1.2.1(tslib@2.8.1):
+    resolution: {integrity: sha512-12cdlDwX4RUM3QxmUbVJWqZ/mrK6dFQH4Zxq6+r1YXKXYBNgZXndx2qbCJwh3+WWkCSn67IjnlG3XYTvmvYtgA==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/buffers@17.67.0(tslib@2.8.1):
+    resolution: {integrity: sha512-tfExRpYxBvi32vPs9ZHaTjSP4fHAfzSmcahOfNxtvGHcyJel+aibkPlGeBB+7AoC6hL7lXIE++8okecBxx7lcw==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/codegen@1.0.0(tslib@2.8.1):
+    resolution: {integrity: sha512-E8Oy+08cmCf0EK/NMxpaJZmOxPqM+6iSe2S4nlSBrPZOORoDJILxtbSUEDKQyTamm/BVAhIGllOBNU79/dwf0g==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/codegen@17.67.0(tslib@2.8.1):
+    resolution: {integrity: sha512-idnkUplROpdBOV0HMcwhsCUS5TRUi9poagdGs70A6S4ux9+/aPuKbh8+UYRTLYQHtXvAdNfQWXDqZEx5k4Dj2Q==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-core@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-wThHjzUp01ImIjfCwhs+UnFkeGPFAymwLEkOtenHewaKe2pTP12p6r1UuwikA9NEvNf9Vlck92r8fb8n/MWM5w==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-node-builtins': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      thingies: 2.5.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-fsa@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-ZYlF3XbMayyp97xEN8ZvYutU99PCHjM64mMZvnCseXkCJXJDVLAwlF8Q/7q/xiWQRsv3pQBj1WXHd9eEyYcaCQ==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-core': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-builtins': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      thingies: 2.5.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-node-builtins@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-CNmt3a0zMCIhniFLXtzPWuUxXFU+U+2VyQiIrgt/rRVeEJNrMQUABaRbVxR0Ouw1LyR9RjaEkPM6nYpED+y43A==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-node-to-fsa@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-5OzGdvJDgZVo+xXWEYo72u81zpOWlxlbG4d4nL+hSiW+LKlua/dldNgPrpWxtvhgyntmdFQad2UTxFyGjJAGhA==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-fsa': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-builtins': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-node-utils@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-JADOZFDA3wRfsuxkT0+MYc4F9hJO2PYDaY66kRTG6NqGX3+bqmKu66YFYAbII/tEmQWPZeHoClUB23rtQM9UPg==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-node-builtins': 4.56.11(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-node@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-D65YrnP6wRuZyEWoSFnBJSr5zARVpVBGctnhie4rCsMuGXNzX7IHKaOt85/Aj7SSoG1N2+/xlNjWmkLvZ2H3Tg==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-core': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-builtins': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-print': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-snapshot': 4.56.11(tslib@2.8.1)
+      glob-to-regex.js: 1.2.0(tslib@2.8.1)
+      thingies: 2.5.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-print@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-rnaKRgCRIn8JGTjxhS0JPE38YM3Pj/H7SW4/tglhIPbfKEkky7dpPayNKV2qy25SZSL15oFVgH/62dMZ/z7cyA==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      tree-dump: 1.1.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/fs-snapshot@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-IIldPX+cIRQuUol9fQzSS3hqyECxVpYMJQMqdU3dCKZFRzEl1rkIkw4P6y7Oh493sI7YdxZlKr/yWdzEWZ1wGQ==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/buffers': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/json-pack': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/util': 17.67.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/json-pack@1.21.0(tslib@2.8.1):
+    resolution: {integrity: sha512-+AKG+R2cfZMShzrF2uQw34v3zbeDYUqnQ+jg7ORic3BGtfw9p/+N6RJbq/kkV8JmYZaINknaEQ2m0/f693ZPpg==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/base64': 1.1.2(tslib@2.8.1)
+      '@jsonjoy.com/buffers': 1.2.1(tslib@2.8.1)
+      '@jsonjoy.com/codegen': 1.0.0(tslib@2.8.1)
+      '@jsonjoy.com/json-pointer': 1.0.2(tslib@2.8.1)
+      '@jsonjoy.com/util': 1.9.0(tslib@2.8.1)
+      hyperdyperid: 1.2.0
+      thingies: 2.5.0(tslib@2.8.1)
+      tree-dump: 1.1.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/json-pack@17.67.0(tslib@2.8.1):
+    resolution: {integrity: sha512-t0ejURcGaZsn1ClbJ/3kFqSOjlryd92eQY465IYrezsXmPcfHPE/av4twRSxf6WE+TkZgLY+71vCZbiIiFKA/w==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/base64': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/buffers': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/codegen': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/json-pointer': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/util': 17.67.0(tslib@2.8.1)
+      hyperdyperid: 1.2.0
+      thingies: 2.5.0(tslib@2.8.1)
+      tree-dump: 1.1.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/json-pointer@1.0.2(tslib@2.8.1):
+    resolution: {integrity: sha512-Fsn6wM2zlDzY1U+v4Nc8bo3bVqgfNTGcn6dMgs6FjrEnt4ZCe60o6ByKRjOGlI2gow0aE/Q41QOigdTqkyK5fg==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/codegen': 1.0.0(tslib@2.8.1)
+      '@jsonjoy.com/util': 1.9.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/json-pointer@17.67.0(tslib@2.8.1):
+    resolution: {integrity: sha512-+iqOFInH+QZGmSuaybBUNdh7yvNrXvqR+h3wjXm0N/3JK1EyyFAeGJvqnmQL61d1ARLlk/wJdFKSL+LHJ1eaUA==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/util': 17.67.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/util@1.9.0(tslib@2.8.1):
+    resolution: {integrity: sha512-pLuQo+VPRnN8hfPqUTLTHk126wuYdXVxE6aDmjSeV4NCAgyxWbiOIeNJVtID3h1Vzpoi9m4jXezf73I6LgabgQ==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/buffers': 1.2.1(tslib@2.8.1)
+      '@jsonjoy.com/codegen': 1.0.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@jsonjoy.com/util@17.67.0(tslib@2.8.1):
+    resolution: {integrity: sha512-6+8xBaz1rLSohlGh68D1pdw3AwDi9xydm8QNlAFkvnavCJYSze+pxoW2VKP8p308jtlMRLs5NTHfPlZLd4w7ew==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/buffers': 17.67.0(tslib@2.8.1)
+      '@jsonjoy.com/codegen': 17.67.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
 
   /@juggle/resize-observer@3.4.0:
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
@@ -13918,7 +14154,7 @@ packages:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.13)(tsx@4.21.0)
+      vitest: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
     dev: true
 
   /@vitest/expect@1.6.1:
@@ -15869,6 +16105,10 @@ packages:
     resolution: {integrity: sha512-csOlWGAcRFJaI6m+F2WKdnMKr4HhdhFVBk0H/QbJFMCr+uO2kwohwXQPxw/9OCxp05r5ghVBFSyioixx3gfkNQ==}
     requiresBuild: true
 
+  /async-lock@1.4.1:
+    resolution: {integrity: sha512-Az2ZTpuytrtqENulXwO3GGv1Bztugx6TT37NIo7imr/Qo0gsYiGtSdBa2B6fsXhTpVZDNfu1Qn3pk531e3q+nQ==}
+    dev: false
+
   /async-mutex@0.2.6:
     resolution: {integrity: sha512-Hs4R+4SPgamu6rSGW8C7cV9gaWUKEHykfzCCvIRuaVv636Ju10ZdeUbvb4TBEW0INuq2DHZqXbK4Nd3yG4RaRw==}
     dependencies:
@@ -16788,6 +17028,10 @@ packages:
 
   /classcat@5.0.5:
     resolution: {integrity: sha512-JhZUT7JFcQy/EzW605k/ktHtncoo9vnyW/2GspNYwFlN1C/WmjuV/xtS04e9SOkL2sTdw0VAZ2UGCcQ9lR6p6w==}
+    dev: false
+
+  /clean-git-ref@2.0.1:
+    resolution: {integrity: sha512-bLSptAy2P0s6hU4PzuIMKmMJJSE6gLXGH1cntDu7bWJUksvuM+7ReOK61mozULErYvP6a15rnYl0zFDef+pyPw==}
     dev: false
 
   /clean-stack@2.2.0:
@@ -17943,6 +18187,10 @@ packages:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dev: true
+
+  /diff3@0.0.3:
+    resolution: {integrity: sha512-iSq8ngPOt0K53A6eVr4d5Kn6GNrM2nQZtC740pzIriHtn4pOQ2lyzEXQMBeVcWERN0ye7fhBsk9PbLLQOnUx/g==}
+    dev: false
 
   /diff@4.0.4:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
@@ -20111,6 +20359,15 @@ packages:
       glob: 7.2.3
     dev: true
 
+  /glob-to-regex.js@1.2.0(tslib@2.8.1):
+    resolution: {integrity: sha512-QMwlOQKU/IzqMUOAZWubUOT8Qft+Y0KQWnX9nK3ch0CJg0tTp4TvGZsTfudYKv2NzoQSyPcnA6TYeIQ3jGichQ==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
   /glob-to-regexp@0.4.1:
     resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
 
@@ -20612,6 +20869,11 @@ packages:
       ms: 2.1.3
     dev: false
 
+  /hyperdyperid@1.2.0:
+    resolution: {integrity: sha512-Y93lCzHYgGWdrJ66yIktxiaGULYc6oGiABxhcO5AufBeOyoIdZF7bIfLaOrbM0iGIOXQQgxxRrFEnb+Y6w1n4A==}
+    engines: {node: '>=10.18'}
+    dev: false
+
   /iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
     engines: {node: '>=0.10.0'}
@@ -20658,7 +20920,6 @@ packages:
   /ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
-    dev: true
 
   /ignore@7.0.5:
     resolution: {integrity: sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==}
@@ -21314,6 +21575,24 @@ packages:
     resolution: {integrity: sha512-WhB9zCku7EGTj/HQQRz5aUQEUeoQZH2bWcltRErOpymJ4boYE6wL9Tbr23krRPSZ+C5zqNSrSw+Cc7sZZ4b7vg==}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /isomorphic-git@1.37.2:
+    resolution: {integrity: sha512-HCQBBKmXIMPdHgYGstSBNp6MNmVcMQBbUqJF8xfywFmlpNseO4KKex59YlXqNxhRxmv3fUZwvNWvMyOdc1VvhA==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dependencies:
+      async-lock: 1.4.1
+      clean-git-ref: 2.0.1
+      crc-32: 1.2.2
+      diff3: 0.0.3
+      ignore: 5.3.2
+      minimisted: 2.0.1
+      pako: 1.0.11
+      pify: 4.0.1
+      readable-stream: 4.7.0
+      sha.js: 2.4.12
+      simple-get: 4.0.1
+    dev: false
 
   /isomorphic-ws@4.0.1(ws@7.5.10):
     resolution: {integrity: sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==}
@@ -22578,6 +22857,27 @@ packages:
       fs-monkey: 1.0.3
     dev: false
 
+  /memfs@4.56.11(tslib@2.8.1):
+    resolution: {integrity: sha512-/GodtwVeKVIHZKLUSr2ZdOxKBC5hHki4JNCU22DoCGPEHr5o2PD5U721zvESKyWwCfTfavFl9WZYgA13OAYK0g==}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      '@jsonjoy.com/fs-core': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-fsa': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-builtins': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-to-fsa': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-node-utils': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-print': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/fs-snapshot': 4.56.11(tslib@2.8.1)
+      '@jsonjoy.com/json-pack': 1.21.0(tslib@2.8.1)
+      '@jsonjoy.com/util': 1.9.0(tslib@2.8.1)
+      glob-to-regex.js: 1.2.0(tslib@2.8.1)
+      thingies: 2.5.0(tslib@2.8.1)
+      tree-dump: 1.1.0(tslib@2.8.1)
+      tslib: 2.8.1
+    dev: false
+
   /memoizerific@1.11.3:
     resolution: {integrity: sha512-/EuHYwAPdLtXwAwSZkh/Gutery6pD2KYd44oQLhAvQp/50mpyduZh8Q7PYHXTCJ+wuXxt7oij2LXyIJOOYFPog==}
     dependencies:
@@ -22781,6 +23081,12 @@ packages:
   /minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
     requiresBuild: true
+
+  /minimisted@2.0.1:
+    resolution: {integrity: sha512-1oPjfuLQa2caorJUM8HV8lGgWCc0qqAO1MNv/k05G4qslmsndV/5WdNZrqCiyqiz3wohia2Ij2B7w2Dr7/IyrA==}
+    dependencies:
+      minimist: 1.2.8
+    dev: false
 
   /minipass@3.3.6:
     resolution: {integrity: sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw==}
@@ -23928,6 +24234,10 @@ packages:
     resolution: {integrity: sha512-NUcwaKxUxWrZLpDG+z/xZaCgQITkA/Dv4V/T6bw7VON6l1Xz/VnrBqrYjZQ12TamKHzITTfOEIYUj48y2KXImA==}
     dev: true
 
+  /pako@1.0.11:
+    resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
+    dev: false
+
   /parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
@@ -24164,7 +24474,6 @@ packages:
   /pify@4.0.1:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
-    dev: true
 
   /pify@5.0.0:
     resolution: {integrity: sha512-eW/gHNMlxdSP6dmG6uJip6FXN0EQBwm2clYYd8Wul42Cwu/DK8HEftzsapcNdYe2MfLiIwZqsDk2RDEsTE79hA==}
@@ -27278,6 +27587,15 @@ packages:
     dependencies:
       any-promise: 1.3.0
 
+  /thingies@2.5.0(tslib@2.8.1):
+    resolution: {integrity: sha512-s+2Bwztg6PhWUD7XMfeYm5qliDdSiZm7M7n8KjTkIsm3l/2lgVRc2/Gx/v+ZX8lT4FMA+i8aQvhcWylldc+ZNw==}
+    engines: {node: '>=10.18'}
+    peerDependencies:
+      tslib: ^2
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
   /thread-stream@0.15.2:
     resolution: {integrity: sha512-UkEhKIg2pD+fjkHQKyJO3yoIvAP3N6RlNFt2dUhcS1FGvCD1cQa1M/PGknCLFIyZdtJOWQjejp7bdNqmN7zwdA==}
     dependencies:
@@ -27465,6 +27783,15 @@ packages:
     dependencies:
       punycode: 2.3.1
     dev: true
+
+  /tree-dump@1.1.0(tslib@2.8.1):
+    resolution: {integrity: sha512-rMuvhU4MCDbcbnleZTFezWsaZXRFemSqAM+7jPnzUl1fo9w3YEKOxAeui0fz3OI4EU4hf23iyA7uQRVko+UaBA==}
+    engines: {node: '>=10.0'}
+    peerDependencies:
+      tslib: '2'
+    dependencies:
+      tslib: 2.8.1
+    dev: false
 
   /tree-kill@1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
@@ -27774,51 +28101,6 @@ packages:
       picocolors: 1.1.1
       postcss: 8.5.6
       postcss-load-config: 6.0.1(postcss@8.5.6)(tsx@4.21.0)
-      resolve-from: 5.0.0
-      rollup: 4.55.1
-      source-map: 0.7.6
-      sucrase: 3.35.1
-      tinyexec: 0.3.2
-      tinyglobby: 0.2.15
-      tree-kill: 1.2.2
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - jiti
-      - supports-color
-      - tsx
-      - yaml
-    dev: true
-
-  /tsup@8.5.1(postcss@8.5.6)(typescript@5.9.3):
-    resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}
-    engines: {node: '>=18'}
-    hasBin: true
-    peerDependencies:
-      '@microsoft/api-extractor': ^7.36.0
-      '@swc/core': ^1
-      postcss: ^8.4.12
-      typescript: '>=4.5.0'
-    peerDependenciesMeta:
-      '@microsoft/api-extractor':
-        optional: true
-      '@swc/core':
-        optional: true
-      postcss:
-        optional: true
-      typescript:
-        optional: true
-    dependencies:
-      bundle-require: 5.1.0(esbuild@0.27.3)
-      cac: 6.7.14
-      chokidar: 4.0.3
-      consola: 3.4.2
-      debug: 4.4.3
-      esbuild: 0.27.3
-      fix-dts-default-cjs-exports: 1.0.1
-      joycon: 3.1.1
-      picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)
       resolve-from: 5.0.0
       rollup: 4.55.1
       source-map: 0.7.6

@@ -135,9 +135,11 @@ function generateTraitDefinition(): string {
 
     let valueStr: string;
     switch (template.type) {
-      case 'number':
-        valueStr = randomFloat(template.range[0], template.range[1]).toFixed(3);
+      case 'number': {
+        const range = template.range || [0, 1];
+        valueStr = randomFloat(range[0], range[1]).toFixed(3);
         break;
+      }
       case 'boolean':
         valueStr = Math.random() > 0.5 ? 'true' : 'false';
         break;
@@ -506,7 +508,7 @@ class ProofOfPlayEngine {
     const url =
       orchestratorUrl ||
       (typeof window !== 'undefined'
-        ? (window as Record<string, string>).__MCP_ORCHESTRATOR_URL__
+        ? ((window as unknown) as Record<string, string>).__MCP_ORCHESTRATOR_URL__
         : undefined);
 
     if (!url) {

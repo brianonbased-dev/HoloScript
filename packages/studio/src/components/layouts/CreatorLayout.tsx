@@ -8,7 +8,6 @@ import {
   CharacterCreationModal,
   type CharacterMetadata,
 } from '@/components/character/creation/CharacterCreationModal';
-import { PlaytestBar } from '@/components/playtest/PlaytestBar';
 import { ContextMenu } from '@/components/ui/ContextMenu';
 import { SimplePropertyInspector } from '@/components/ui/SimplePropertyInspector';
 import {
@@ -377,9 +376,6 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
 
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
 
-  // Playtest
-  const [playtesting, setPlaytesting] = useState(false);
-
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: string } | null>(
     null
@@ -538,13 +534,6 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
           </div>
         )}
       </div>
-
-      {/* Playtest bar */}
-      <PlaytestBar
-        open={playtesting}
-        onOpen={() => setPlaytesting(true)}
-        onClose={() => setPlaytesting(false)}
-      />
 
       {/* Brittney prompt bar */}
       <BrittneyPromptBar />

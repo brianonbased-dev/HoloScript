@@ -139,3 +139,10 @@ export function createSyncBinding(
     smoothing: 0.3,
   };
 }
+
+export interface TimelineMarker {
+  id: string;
+  time: number;
+  label: string;
+  color?: string;
+}

@@ -1490,7 +1490,7 @@ function GardenPlant({
 
     // Withering: far from water
     if (waterDist > WATER_RADIUS) {
-      if (stage !== 'withering' && stage !== 'dead') {
+      if (stage !== 'withering') {
         onUpdate(seed.id, { stage: 'withering', stageTime: 0 });
         return;
       }
@@ -1508,10 +1508,8 @@ function GardenPlant({
 
     // Too close: wash away
     if (waterDist < WASH_RADIUS) {
-      if (stage !== 'washing' && stage !== 'dead') {
-        onUpdate(seed.id, { stage: 'washing', stageTime: 0 });
-        return;
-      }
+      onUpdate(seed.id, { stage: 'washing', stageTime: 0 });
+      return;
     }
 
     // Healthy growth
@@ -1976,17 +1974,11 @@ function SceneContent({
             position={[-8, 12, -10]}
             speed={0.2}
             opacity={0.4}
-            width={10}
-            depth={1.5}
-            segments={15}
           />
           <Cloud
             position={[6, 14, -15]}
             speed={0.15}
             opacity={0.3}
-            width={8}
-            depth={1}
-            segments={12}
           />
         </>
       )}

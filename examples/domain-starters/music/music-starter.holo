@@ -1,0 +1,301 @@
+// Music Domain Starter - HoloScript
+//
+// Minimal working template for music production and performance spaces.
+// Demonstrates: Spatial audio, MIDI instruments, frequency visualization,
+//               mixing console, and beat-synced effects.
+//
+// Compile targets:
+//   holoscript compile music-starter.holo --target r3f         (React Three Fiber)
+//   holoscript compile music-starter.holo --target unity       (Unity)
+//   holoscript compile music-starter.holo --target godot       (Godot)
+//
+// Extend by:
+//   - Adding more instrument models (USDZ / glTF)
+//   - Connecting real MIDI controllers via WebMIDI
+//   - Adding multi-track recording and looping
+//   - Integrating Spotify / SoundCloud APIs for streaming
+
+composition "Music Starter" {
+
+  metadata {
+    name: 'Music Domain Starter'
+    description: 'Minimal template for spatial music production: virtual instruments, frequency visualizer, mixing console, and spatial speaker array.'
+    version: '1.0.0'
+    author: 'HoloScript Audio Team'
+    category: 'music'
+    tags: ['music', 'audio', 'midi', 'spatial-audio', 'visualizer', 'instruments']
+    platforms: ['r3f', 'unity', 'godot', 'openxr']
+    minPlayers: 1
+    maxPlayers: 8
+  }
+
+  // -- Environment ---------------------------------------------------------------
+
+  environment {
+    backgroundColor: "#0a0a1a"
+    ambient: 0.3
+    shadows: true
+    fog: {
+      enabled: true
+      color: "#0a0a2e"
+      density: 0.02
+    }
+  }
+
+  // -- Application State ---------------------------------------------------------
+
+  state MusicState {
+    tempo: 120
+    currentTrack: "none"
+    masterVolume: 0.8
+    isPlaying: false
+    activeInstrument: "synth"
+    beatCount: 0
+    visualizerMode: "bars"          // "bars" | "waveform" | "circular"
+  }
+
+  // -- Reusable Templates --------------------------------------------------------
+
+  template "SpeakerUnit" {
+    @spatial_audio {
+      rolloff: "logarithmic"
+      maxDistance: 50
+      refDistance: 1
+    }
+    @collidable
+
+    geometry: "cylinder"
+    scale: [0.3, 0.5, 0.3]
+    material: {
+      color: "#1a1a1a"
+      metalness: 0.8
+      roughness: 0.3
+    }
+  }
+
+  template "InstrumentPad" {
+    @interactable {
+      action: "press"
+      haptic: true
+    }
+    @audio_source {
+      loop: false
+      spatialize: true
+    }
+
+    geometry: "box"
+    scale: [0.15, 0.02, 0.15]
+    material: {
+      emissive: "#4444ff"
+      emissiveIntensity: 0.5
+    }
+  }
+
+  template "FrequencyBar" {
+    @billboard
+
+    geometry: "box"
+    scale: [0.05, 0.5, 0.05]
+    material: {
+      color: "#00ff88"
+      emissive: "#00ff88"
+      emissiveIntensity: 0.8
+      transparent: true
+      opacity: 0.9
+    }
+  }
+
+  // -- Stage Floor ---------------------------------------------------------------
+
+  object "StageFloor" {
+    geometry: "plane"
+    width: 15
+    height: 15
+    position: { x: 0, y: 0, z: 0 }
+    material: {
+      color: "#111122"
+      metalness: 0.6
+      roughness: 0.4
+    }
+  }
+
+  // -- Speaker Array (spatial audio) ---------------------------------------------
+
+  group "SpeakerArray" {
+    position: { x: 0, y: 0, z: 0 }
+
+    object "SpeakerFrontLeft" using "SpeakerUnit" {
+      position: { x: -4, y: 1.5, z: -5 }
+      rotation: { x: 0, y: 30, z: 0 }
+    }
+
+    object "SpeakerFrontRight" using "SpeakerUnit" {
+      position: { x: 4, y: 1.5, z: -5 }
+      rotation: { x: 0, y: -30, z: 0 }
+    }
+
+    object "SpeakerRearLeft" using "SpeakerUnit" {
+      position: { x: -3, y: 1.5, z: 4 }
+      rotation: { x: 0, y: 150, z: 0 }
+    }
+
+    object "SpeakerRearRight" using "SpeakerUnit" {
+      position: { x: 3, y: 1.5, z: 4 }
+      rotation: { x: 0, y: -150, z: 0 }
+    }
+  }
+
+  // -- Virtual Drum Pad Grid -----------------------------------------------------
+
+  group "DrumPads" {
+    position: { x: -2, y: 0.9, z: -1 }
+
+    object "Kick" using "InstrumentPad" {
+      position: { x: 0, y: 0, z: 0 }
+      material: { emissive: "#ff2222" }
+      audio: { src: "samples/kick.wav" }
+    }
+
+    object "Snare" using "InstrumentPad" {
+      position: { x: 0.2, y: 0, z: 0 }
+      material: { emissive: "#ffaa22" }
+      audio: { src: "samples/snare.wav" }
+    }
+
+    object "HiHat" using "InstrumentPad" {
+      position: { x: 0.4, y: 0, z: 0 }
+      material: { emissive: "#22ffaa" }
+      audio: { src: "samples/hihat.wav" }
+    }
+
+    object "Clap" using "InstrumentPad" {
+      position: { x: 0.6, y: 0, z: 0 }
+      material: { emissive: "#aa22ff" }
+      audio: { src: "samples/clap.wav" }
+    }
+  }
+
+  // -- Frequency Visualizer ------------------------------------------------------
+
+  group "FrequencyVisualizer" {
+    position: { x: 0, y: 1, z: -4 }
+    @frequency_analyzer {
+      fftSize: 256
+      smoothing: 0.8
+      source: "master"
+    }
+
+    // 16 bars representing frequency bins (replicated at runtime)
+    object "Bar_0" using "FrequencyBar" { position: { x: -1.2, y: 0, z: 0 } }
+    object "Bar_1" using "FrequencyBar" { position: { x: -1.04, y: 0, z: 0 } }
+    object "Bar_2" using "FrequencyBar" { position: { x: -0.88, y: 0, z: 0 } }
+    object "Bar_3" using "FrequencyBar" { position: { x: -0.72, y: 0, z: 0 } }
+    object "Bar_4" using "FrequencyBar" { position: { x: -0.56, y: 0, z: 0 } }
+    object "Bar_5" using "FrequencyBar" { position: { x: -0.40, y: 0, z: 0 } }
+    object "Bar_6" using "FrequencyBar" { position: { x: -0.24, y: 0, z: 0 } }
+    object "Bar_7" using "FrequencyBar" { position: { x: -0.08, y: 0, z: 0 } }
+    object "Bar_8" using "FrequencyBar" { position: { x: 0.08, y: 0, z: 0 } }
+    object "Bar_9" using "FrequencyBar" { position: { x: 0.24, y: 0, z: 0 } }
+    object "Bar_10" using "FrequencyBar" { position: { x: 0.40, y: 0, z: 0 } }
+    object "Bar_11" using "FrequencyBar" { position: { x: 0.56, y: 0, z: 0 } }
+    object "Bar_12" using "FrequencyBar" { position: { x: 0.72, y: 0, z: 0 } }
+    object "Bar_13" using "FrequencyBar" { position: { x: 0.88, y: 0, z: 0 } }
+    object "Bar_14" using "FrequencyBar" { position: { x: 1.04, y: 0, z: 0 } }
+    object "Bar_15" using "FrequencyBar" { position: { x: 1.20, y: 0, z: 0 } }
+  }
+
+  // -- Mixing Console Panel ------------------------------------------------------
+
+  object "MixingConsole" {
+    @billboard
+    @anchor
+    @interactable
+
+    geometry: "plane"
+    scale: [0.8, 0.5, 1]
+    position: { x: 2, y: 1.2, z: -1 }
+    material: {
+      color: "#1a1a2e"
+      emissive: "#222244"
+      emissiveIntensity: 0.3
+    }
+
+    behavior {
+      on "slider_change" {
+        action: "adjustVolume"
+        target: MusicState.masterVolume
+      }
+    }
+  }
+
+  // -- Transport Controls (Play/Stop/Tempo) --------------------------------------
+
+  object "TransportBar" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.6, 0.1, 1]
+    position: { x: 0, y: 2.5, z: -4 }
+    material: {
+      color: "#0d0d1a"
+      emissive: "#111133"
+      emissiveIntensity: 0.4
+    }
+
+    behavior {
+      on "tap" {
+        action: "togglePlayback"
+      }
+    }
+  }
+
+  // -- Systems -------------------------------------------------------------------
+
+  system "MIDIBridge" {
+    type: "midi"
+    protocol: "webmidi"
+    channels: [1, 2, 10]
+    mapping: {
+      noteOn: "triggerInstrument"
+      controlChange: "adjustParameter"
+    }
+  }
+
+  system "AudioAnalysis" {
+    type: "audio-analysis"
+    fftSize: 2048
+    updateRate: 60
+    output: "FrequencyVisualizer"
+  }
+
+  // -- Actions -------------------------------------------------------------------
+
+  action togglePlayback() {
+    MusicState.isPlaying = !MusicState.isPlaying
+    if (MusicState.isPlaying) {
+      emit("transport:play", { tempo: MusicState.tempo })
+    } else {
+      emit("transport:stop")
+    }
+  }
+
+  action adjustVolume(channel, value) {
+    MusicState.masterVolume = clamp(value, 0.0, 1.0)
+    emit("audio:volume", { channel: channel, volume: value })
+  }
+
+  action triggerInstrument(note, velocity) {
+    emit("instrument:trigger", {
+      instrument: MusicState.activeInstrument,
+      note: note,
+      velocity: velocity
+    })
+    MusicState.beatCount = MusicState.beatCount + 1
+  }
+
+  action setTempo(bpm) {
+    MusicState.tempo = clamp(bpm, 40, 300)
+    emit("transport:tempo", { bpm: MusicState.tempo })
+  }
+}

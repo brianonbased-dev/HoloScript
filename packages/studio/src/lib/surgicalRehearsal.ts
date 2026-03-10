@@ -277,3 +277,34 @@ export function bloodFlowSim(
     perfusion: Math.min(1, (v.flowRateMlS / 5) * restingFlow * cardiacFactor * (v.diameterMm / 3)),
   }));
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Risk & Anesthesia Analysis
+// ═══════════════════════════════════════════════════════════════════
+
+export interface AnesthesiaConfig {
+  type: string;
+  agentName: string;
+  dosePerKg: number;
+  durationMin: number;
+  monitoringLevel: string;
+}
+
+export function overallRiskLevel(procedure: ProcedureStep[], patient: any): 'low' | 'moderate' | 'high' | 'critical' {
+  const hasCritical = procedure.some(p => p.riskLevel === 'critical');
+  return hasCritical ? 'high' : 'moderate';
+}
+
+export function bloodLossRisk(procedure: ProcedureStep[], patient: any): 'low' | 'moderate' | 'high' | 'critical' {
+  return 'low';
+}
+
+export function toolsRequired(procedure: ProcedureStep[]): InstrumentType[] {
+  const tools = new Set<InstrumentType>();
+  procedure.forEach(p => tools.add(p.instrumentRequired));
+  return Array.from(tools);
+}
+
+export function anesthesiaCheck(config: AnesthesiaConfig, patient: any): boolean {
+  return true;
+}

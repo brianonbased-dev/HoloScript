@@ -99,6 +99,15 @@ export class StudioErrorBoundary extends Component<Props, State> {
     
     this.setState({ unified });
     console.error(`[StudioErrorBoundary][${unified.category}] AST Path: ${unified.astPath}`, error, info.componentStack);
+
+    // FDA 21 CFR Part 11: Export Electronic Audit Trail of specific crashes
+    fetch('/api/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(unified),
+    }).catch((err) => {
+      console.warn('[StudioErrorBoundary] Failed to securely log crash to Audit API', err);
+    });
     
     this.props.onError?.(error, info);
   }

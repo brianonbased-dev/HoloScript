@@ -12,6 +12,7 @@ import {
   Sparkles,
   Server,
   Workflow,
+  GitCommit,
   GitBranch,
   Users,
   Activity,
@@ -19,6 +20,7 @@ import {
   Package,
   Cloud,
   MoreHorizontal,
+  CheckCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -113,6 +115,11 @@ export function StudioHeader() {
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
   const setShowBenchmark = useEditorStore((s) => s.setShowBenchmark);
   const togglePerfOverlay = useEditorStore((s) => s.togglePerfOverlay);
+  
+  const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
+  const setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
+  const showConformancePanel = useEditorStore((s) => s.showConformancePanel);
+  const setShowConformancePanel = useEditorStore((s) => s.setShowConformancePanel);
 
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
@@ -298,6 +305,19 @@ export function StudioHeader() {
           {/* ── Orchestration tools (visible on xl+, overflow menu on smaller) ── */}
           <div className="hidden xl:contents">
             <button
+              onClick={() => setShowGovernancePanel(!showGovernancePanel)}
+              title="Git & Governance"
+              className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                showGovernancePanel
+                  ? 'border-indigo-500/40 bg-indigo-500/20 text-indigo-300'
+                  : 'border-studio-border bg-studio-surface text-studio-muted hover:border-indigo-500/40 hover:text-indigo-400'
+              }`}
+            >
+              <GitCommit className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Governance</span>
+            </button>
+
+            <button
               onClick={() => setMcpConfigOpen(!mcpConfigOpen)}
               title="MCP Servers"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
@@ -430,6 +450,16 @@ export function StudioHeader() {
                           setOverflowOpen(false);
                         },
                         color: 'blue',
+                      },
+                      {
+                        label: 'Governance',
+                        icon: GitCommit,
+                        active: showGovernancePanel,
+                        onClick: () => {
+                          setShowGovernancePanel(!showGovernancePanel);
+                          setOverflowOpen(false);
+                        },
+                        color: 'indigo',
                       },
                       {
                         label: 'Workflow',
@@ -569,6 +599,19 @@ export function StudioHeader() {
 
           {/* Collaboration */}
           <CollabBar />
+
+          {/* Conformance Check Button (Replaces Play) */}
+          <button
+            onClick={() => setShowConformancePanel(!showConformancePanel)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+              showConformancePanel
+                ? 'bg-emerald-500 text-white border-emerald-400'
+                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
+            }`}
+          >
+            <CheckCircle className="h-3.5 w-3.5" />
+            Validate
+          </button>
 
           {/* Publish button */}
           <button

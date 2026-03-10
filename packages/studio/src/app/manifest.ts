@@ -21,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
         src: '/screenshot-wide.png',
         sizes: '1280x720',
         type: 'image/png',
-        // @ts-expect-error -- Next.js types don't include form_factor yet
+        // Next.js types may now include form_factor
         form_factor: 'wide',
         label: 'HoloScript Studio editor workspace',
       },

@@ -4,14 +4,17 @@
  */
 import React, { useState, useMemo } from 'react';
 import {
-  starBrightness,
-  starsInConstellation,
-  constellationsByMonth,
-  constellationBySeason,
-  brightnessToColor,
   type Star,
-  type Constellation,
+  type ConstellationDef as Constellation,
 } from '@/lib/constellationStory';
+
+export function constellationsByMonth(constellations: any[], month: number) {
+  // Simple logic: visible if bestMonth is within +/- 2 months
+  return constellations.filter((c) => {
+    const diff = Math.abs(c.bestMonth - month);
+    return diff <= 2 || diff >= 10;
+  });
+}
 
 const DEMO_CONSTELLATIONS: Constellation[] = [
   {

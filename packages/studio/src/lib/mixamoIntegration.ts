@@ -194,3 +194,10 @@ export const MIXAMO_CATALOG: MixamoAnimation[] = [
 export function animationsByCategory(category: MixamoCategory): MixamoAnimation[] {
   return MIXAMO_CATALOG.filter((a) => a.category === category);
 }
+
+/**
+ * Get all Mixamo characters (placeholder for actual implementation).
+ */
+export function getMixamoCharacters(): any[] {
+  return [];
+}

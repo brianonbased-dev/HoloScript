@@ -1,0 +1,337 @@
+// Input Domain Starter - HoloScript
+//
+// Minimal working template for multi-modal input (hand, eye, voice, controller).
+// Demonstrates: Hand tracking visualization, eye gaze cursors, voice commands,
+//               controller mapping, gesture recognition, and haptic feedback.
+//
+// Compile targets:
+//   holoscript compile input-starter.holo --target openxr      (Quest / HoloLens)
+//   holoscript compile input-starter.holo --target unity       (Unity XR)
+//   holoscript compile input-starter.holo --target r3f         (React Three Fiber)
+//
+// Extend by:
+//   - Training custom gesture classifiers
+//   - Adding body tracking (full skeleton)
+//   - Integrating brain-computer interfaces (BCI)
+//   - Adding multi-user input fusion
+
+composition "Input Starter" {
+
+  metadata {
+    name: 'Input Domain Starter'
+    description: 'Minimal template for multi-modal XR input: hand tracking, eye gaze, voice commands, controller mapping, and haptic feedback zones.'
+    version: '1.0.0'
+    author: 'HoloScript Input Team'
+    category: 'input'
+    tags: ['input', 'hand-tracking', 'eye-tracking', 'voice', 'controller', 'gesture', 'haptics']
+    platforms: ['openxr', 'unity', 'r3f']
+    minPlayers: 1
+    maxPlayers: 1
+  }
+
+  // -- Environment ---------------------------------------------------------------
+
+  environment {
+    backgroundColor: "#0d1117"
+    ambient: 0.5
+    shadows: true
+    hand_tracking: true
+    eye_tracking: true
+  }
+
+  // -- Application State ---------------------------------------------------------
+
+  state InputState {
+    activeInputMode: "hand"          // "hand" | "controller" | "gaze" | "voice"
+    lastGesture: "none"              // "pinch" | "grab" | "point" | "thumbsup" | "none"
+    voiceBuffer: ""
+    gazeTarget: null
+    leftHandConfidence: 0.0
+    rightHandConfidence: 0.0
+    hapticIntensity: 0.5
+    voiceListening: false
+  }
+
+  // -- Reusable Templates --------------------------------------------------------
+
+  template "HandJoint" {
+    geometry: "sphere"
+    radius: 0.008
+    material: {
+      color: "#00ff88"
+      emissive: "#00ff88"
+      emissiveIntensity: 0.6
+    }
+  }
+
+  template "InputTarget" {
+    @interactable {
+      action: "tap"
+      haptic: true
+    }
+    @collidable
+
+    geometry: "box"
+    scale: [0.2, 0.2, 0.2]
+    material: {
+      color: "#334455"
+      metalness: 0.4
+      roughness: 0.5
+    }
+  }
+
+  template "HapticZone" {
+    @collidable
+
+    geometry: "cylinder"
+    scale: [0.5, 0.02, 0.5]
+    material: {
+      color: "#4444ff"
+      emissive: "#2222ff"
+      emissiveIntensity: 0.3
+      transparent: true
+      opacity: 0.4
+    }
+  }
+
+  // -- Room Floor ----------------------------------------------------------------
+
+  object "Floor" {
+    geometry: "plane"
+    width: 8
+    height: 8
+    position: { x: 0, y: 0, z: 0 }
+    material: {
+      color: "#1a1a2e"
+      metalness: 0.3
+      roughness: 0.7
+    }
+  }
+
+  // -- Hand Tracking Visualizer --------------------------------------------------
+
+  group "HandVisualizer" {
+    position: { x: 0, y: 1, z: -1 }
+
+    @hand_tracking {
+      hands: "both"
+      skeleton: true
+      gestures: ["pinch", "grab", "point", "thumbsup", "fist", "open"]
+      confidence_threshold: 0.7
+    }
+
+    // Skeleton joints are generated at runtime from hand tracking data
+    // These placeholder joints show the visualization style
+    object "LeftWrist" using "HandJoint" { position: { x: -0.2, y: 0, z: 0 } }
+    object "RightWrist" using "HandJoint" {
+      position: { x: 0.2, y: 0, z: 0 }
+      material: { color: "#ff8844", emissive: "#ff6622" }
+    }
+  }
+
+  // -- Gesture Status Display ----------------------------------------------------
+
+  object "GestureDisplay" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.4, 0.12, 1]
+    position: { x: 0, y: 2, z: -2 }
+    material: {
+      color: "#111827"
+      transparent: true
+      opacity: 0.9
+    }
+
+    behavior {
+      on "gesture_detected" {
+        bind: InputState.lastGesture
+        format: "Gesture: {value}"
+      }
+    }
+  }
+
+  // -- Eye Gaze Cursor -----------------------------------------------------------
+
+  object "GazeCursor" {
+    @eye_gaze {
+      smoothing: 0.85
+      dwellTime: 800
+      dwellAction: "select"
+    }
+
+    geometry: "ring"
+    scale: [0.02, 0.02, 0.001]
+    material: {
+      color: "#ffffff"
+      emissive: "#ffffff"
+      emissiveIntensity: 1.0
+      transparent: true
+      opacity: 0.8
+    }
+
+    behavior {
+      on "gaze_dwell" {
+        action: "onGazeDwell"
+        target: InputState.gazeTarget
+      }
+    }
+  }
+
+  // -- Voice Command Palette -----------------------------------------------------
+
+  object "VoiceCommandPanel" {
+    @billboard
+    @anchor
+    @voice_command {
+      language: "en-US"
+      commands: ["select", "delete", "undo", "zoom in", "zoom out", "rotate", "next", "back"]
+      wakeWord: "hey holo"
+      continuous: false
+    }
+
+    geometry: "plane"
+    scale: [0.5, 0.4, 1]
+    position: { x: -2, y: 1.5, z: -1.5 }
+    material: {
+      color: "#0d1117"
+      emissive: "#111827"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.9
+    }
+
+    behavior {
+      on "voice_recognized" {
+        bind: InputState.voiceBuffer
+        action: "executeVoiceCommand"
+      }
+    }
+  }
+
+  // -- Interactive Targets (things to interact with) -----------------------------
+
+  group "InteractionTargets" {
+    position: { x: 0, y: 1, z: -2 }
+
+    object "Target_Red" using "InputTarget" {
+      position: { x: -0.5, y: 0, z: 0 }
+      material: { color: "#ff4444" }
+      behavior {
+        on "tap" { action: "onTargetHit" args: { id: "red" } }
+        on "gaze_enter" { action: "highlightTarget" args: { id: "red" } }
+        on "gaze_exit" { action: "unhighlightTarget" args: { id: "red" } }
+      }
+    }
+
+    object "Target_Green" using "InputTarget" {
+      position: { x: 0, y: 0, z: 0 }
+      material: { color: "#44ff44" }
+      behavior {
+        on "tap" { action: "onTargetHit" args: { id: "green" } }
+        on "grab" { action: "onTargetGrab" args: { id: "green" } }
+      }
+    }
+
+    object "Target_Blue" using "InputTarget" {
+      position: { x: 0.5, y: 0, z: 0 }
+      material: { color: "#4444ff" }
+      behavior {
+        on "tap" { action: "onTargetHit" args: { id: "blue" } }
+        on "pinch" { action: "onTargetPinch" args: { id: "blue" } }
+      }
+    }
+  }
+
+  // -- Haptic Feedback Zones -----------------------------------------------------
+
+  group "HapticZones" {
+    object "Zone_Light" using "HapticZone" {
+      position: { x: -1.5, y: 0.01, z: -1.5 }
+      properties: { intensity: 0.3, pattern: "pulse" }
+    }
+
+    object "Zone_Medium" using "HapticZone" {
+      position: { x: 0, y: 0.01, z: -1.5 }
+      material: { color: "#ff8800", emissive: "#ff6600" }
+      properties: { intensity: 0.6, pattern: "buzz" }
+    }
+
+    object "Zone_Strong" using "HapticZone" {
+      position: { x: 1.5, y: 0.01, z: -1.5 }
+      material: { color: "#ff2222", emissive: "#ff0000" }
+      properties: { intensity: 1.0, pattern: "impact" }
+    }
+  }
+
+  // -- Input Mode Selector -------------------------------------------------------
+
+  object "ModeSelector" {
+    @billboard
+    @anchor
+    @interactable
+
+    geometry: "plane"
+    scale: [0.4, 0.1, 1]
+    position: { x: 2, y: 1.8, z: -1.5 }
+    material: {
+      color: "#1a2233"
+      transparent: true
+      opacity: 0.9
+    }
+
+    behavior {
+      on "tap" {
+        action: "cycleInputMode"
+      }
+    }
+  }
+
+  // -- Systems -------------------------------------------------------------------
+
+  system "GestureClassifier" {
+    type: "gesture-recognition"
+    model: "mediapipe-hands"
+    gestures: ["pinch", "grab", "point", "thumbsup", "fist", "open"]
+    updateRate: 30
+  }
+
+  system "SpeechRecognition" {
+    type: "speech-to-text"
+    provider: "web-speech-api"
+    language: "en-US"
+    continuous: false
+  }
+
+  // -- Actions -------------------------------------------------------------------
+
+  action cycleInputMode() {
+    const modes = ["hand", "controller", "gaze", "voice"]
+    const idx = modes.indexOf(InputState.activeInputMode)
+    InputState.activeInputMode = modes[(idx + 1) % modes.length]
+    emit("input:mode_change", { mode: InputState.activeInputMode })
+  }
+
+  action onTargetHit(id) {
+    emit("input:target_hit", { id: id, mode: InputState.activeInputMode })
+  }
+
+  action executeVoiceCommand(command) {
+    InputState.voiceBuffer = command
+    emit("voice:execute", { command: command })
+  }
+
+  action onGazeDwell(target) {
+    InputState.gazeTarget = target
+    emit("gaze:dwell_select", { target: target })
+  }
+
+  action highlightTarget(id) {
+    emit("input:highlight", { id: id, active: true })
+  }
+
+  action unhighlightTarget(id) {
+    emit("input:highlight", { id: id, active: false })
+  }
+}

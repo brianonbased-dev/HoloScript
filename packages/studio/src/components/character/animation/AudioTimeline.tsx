@@ -8,7 +8,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { Play, Pause, Square, Upload, Volume2 } from 'lucide-react';
-import type { AudioAnalysis, TimelineMarker } from '@/lib/audioSync';
+import type { AudioAnalysis, TimelineMarker } from '@/lib/animation/audioSync';
 
 interface AudioTimelineProps {
   analysis: AudioAnalysis | null;

@@ -13,6 +13,15 @@ export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'charac
 interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
+  showGovernancePanel: boolean;
+  showConformancePanel: boolean;
+  diffModeHash: string | null;
+  spatialBlameTooltip: {
+    visible: boolean;
+    x: number;
+    y: number;
+    content: React.ReactNode | null;
+  };
   selectedObjectId: string | null;
   selectedObjectName: string | null;
   gizmoMode: GizmoMode;
@@ -27,6 +36,10 @@ interface EditorState {
   setGizmoMode: (mode: GizmoMode) => void;
   setArtMode: (mode: ArtMode) => void;
   setStudioMode: (mode: StudioMode) => void;
+  setShowGovernancePanel: (v: boolean) => void;
+  setShowConformancePanel: (v: boolean) => void;
+  setDiffModeHash: (hash: string | null) => void;
+  setSpatialBlameTooltip: (visible: boolean, x?: number, y?: number, content?: React.ReactNode) => void;
   setShowBenchmark: (v: boolean) => void;
   togglePerfOverlay: () => void;
 }
@@ -45,6 +58,10 @@ export const useEditorStore = create<EditorState>()(
     (set) => ({
       activePanel: 'prompt',
       sidebarOpen: true,
+      showGovernancePanel: false,
+      showConformancePanel: false,
+      diffModeHash: null,
+      spatialBlameTooltip: { visible: false, x: 0, y: 0, content: null },
       selectedObjectId: null,
       selectedObjectName: null,
       gizmoMode: 'translate',
@@ -59,6 +76,11 @@ export const useEditorStore = create<EditorState>()(
         set({ selectedObjectId, selectedObjectName }),
       setGizmoMode: (gizmoMode) => set({ gizmoMode }),
       setArtMode: (artMode) => set({ artMode }),
+      setShowGovernancePanel: (showGovernancePanel) => set({ showGovernancePanel }),
+      setShowConformancePanel: (showConformancePanel) => set({ showConformancePanel }),
+      setDiffModeHash: (diffModeHash) => set({ diffModeHash }),
+      setSpatialBlameTooltip: (visible, x = 0, y = 0, content = null) => 
+        set({ spatialBlameTooltip: { visible, x, y, content } }),
       setStudioMode: (studioMode) => {
         if (typeof window !== 'undefined') window.localStorage.setItem('studio-mode', studioMode);
         set({ studioMode });

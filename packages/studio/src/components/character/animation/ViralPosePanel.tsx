@@ -21,7 +21,7 @@ import {
   getAllPoses,
   getPosesByCategory,
   getTrendingPoses,
-} from '@/lib/poseLibrary';
+} from '@/lib/character/poseLibrary';
 
 interface ViralPosePanelProps {
   currentPose: ViralPose | null;

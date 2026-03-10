@@ -1,0 +1,296 @@
+// Cross-Domain Composition: Concert Venue
+// Domains combined: Music + Input + Rendering + Procedural
+//
+// A virtual concert hall with live audio visualization, gesture-based instrument
+// control, procedural particle effects synced to music, and advanced rendering.
+//
+// Compile targets:
+//   holoscript compile concert-venue.holo --target r3f         (React Three Fiber)
+//   holoscript compile concert-venue.holo --target unity       (Unity HDRP)
+//   holoscript compile concert-venue.holo --target godot       (Godot)
+
+composition "ConcertVenue" {
+
+  metadata {
+    name: 'Concert Venue — Cross-Domain Example'
+    description: 'Virtual concert hall combining spatial audio, hand-tracked instruments, procedural particle effects, and advanced rendering with volumetric lighting.'
+    version: '1.0.0'
+    author: 'HoloScript Examples Team'
+    category: 'cross-domain'
+    tags: ['cross-domain', 'concert', 'music', 'input', 'rendering', 'procedural', 'vfx']
+    platforms: ['r3f', 'unity', 'godot']
+    minPlayers: 1
+    maxPlayers: 64
+  }
+
+  environment {
+    backgroundColor: "#050508"
+    ambient: 0.1
+    shadows: true
+    toneMapping: "aces"
+    exposure: 0.8
+  }
+
+  // -- State (spans all four domains) --------------------------------------------
+
+  state ConcertState {
+    // Music
+    tempo: 128
+    isPlaying: true
+    masterVolume: 0.85
+    beatCount: 0
+    currentBPM: 128
+    frequencyBands: [0, 0, 0, 0, 0, 0, 0, 0]
+    // Input
+    activeInstrument: "synth"
+    lastGesture: "none"
+    handTracking: true
+    // Rendering
+    bloomIntensity: 0.8
+    fogDensity: 0.03
+    laserEnabled: true
+    // Procedural
+    particleDensity: 500
+    particleSeed: 42
+    beatReactive: true
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MUSIC DOMAIN — Audio sources, frequency analysis, spatial speakers
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  template "SpeakerStack" {
+    @spatial_audio { rolloff: "logarithmic", maxDistance: 80, refDistance: 2 }
+    geometry: "box"
+    scale: [0.8, 1.2, 0.5]
+    material: { color: "#111111", metalness: 0.5, roughness: 0.4 }
+  }
+
+  // Stage speakers
+  object "SpeakerLeft" using "SpeakerStack" { position: { x: -6, y: 2, z: -8 } }
+  object "SpeakerRight" using "SpeakerStack" { position: { x: 6, y: 2, z: -8 } }
+
+  // Frequency visualizer behind stage
+  group "FrequencyVisualizer" {
+    position: { x: 0, y: 3, z: -9 }
+    @frequency_analyzer { fftSize: 256, smoothing: 0.85, source: "master" }
+
+    object "Band_0" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: -2.1, y: 0, z: 0 } material: { color: "#ff0044", emissive: "#ff0044", emissiveIntensity: 1.0 } }
+    object "Band_1" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: -1.5, y: 0, z: 0 } material: { color: "#ff4400", emissive: "#ff4400", emissiveIntensity: 1.0 } }
+    object "Band_2" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: -0.9, y: 0, z: 0 } material: { color: "#ffaa00", emissive: "#ffaa00", emissiveIntensity: 1.0 } }
+    object "Band_3" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: -0.3, y: 0, z: 0 } material: { color: "#44ff00", emissive: "#44ff00", emissiveIntensity: 1.0 } }
+    object "Band_4" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: 0.3, y: 0, z: 0 } material: { color: "#00ff88", emissive: "#00ff88", emissiveIntensity: 1.0 } }
+    object "Band_5" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: 0.9, y: 0, z: 0 } material: { color: "#0088ff", emissive: "#0088ff", emissiveIntensity: 1.0 } }
+    object "Band_6" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: 1.5, y: 0, z: 0 } material: { color: "#4400ff", emissive: "#4400ff", emissiveIntensity: 1.0 } }
+    object "Band_7" { geometry: "box" scale: [0.3, 1, 0.1] position: { x: 2.1, y: 0, z: 0 } material: { color: "#aa00ff", emissive: "#aa00ff", emissiveIntensity: 1.0 } }
+  }
+
+  // DJ booth
+  object "DJBooth" {
+    @audio_source { spatialize: true }
+    geometry: "box"
+    scale: [2, 1, 0.8]
+    position: { x: 0, y: 0.5, z: -7 }
+    material: { color: "#1a1a2e", metalness: 0.6, roughness: 0.3 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // INPUT DOMAIN — Hand tracking for gesture instruments
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  group "GestureInstruments" {
+    position: { x: 0, y: 1, z: -5 }
+
+    @hand_tracking {
+      hands: "both"
+      skeleton: true
+      gestures: ["pinch", "grab", "open", "point", "fist"]
+      confidence_threshold: 0.7
+    }
+
+    // Gesture zones that trigger different instruments
+    object "SynthZone" {
+      @interactable { action: "pinch" }
+      geometry: "cylinder"
+      scale: [0.6, 0.02, 0.6]
+      position: { x: -1, y: 0, z: 0 }
+      material: { color: "#4400ff", emissive: "#4400ff", emissiveIntensity: 0.4, transparent: true, opacity: 0.5 }
+      behavior { on "pinch" { action: "triggerNote" args: { instrument: "synth" } } }
+    }
+
+    object "DrumZone" {
+      @interactable { action: "grab" }
+      geometry: "cylinder"
+      scale: [0.6, 0.02, 0.6]
+      position: { x: 1, y: 0, z: 0 }
+      material: { color: "#ff4400", emissive: "#ff4400", emissiveIntensity: 0.4, transparent: true, opacity: 0.5 }
+      behavior { on "fist" { action: "triggerNote" args: { instrument: "drum" } } }
+    }
+  }
+
+  // Gesture feedback display
+  object "GestureDisplay" {
+    @billboard
+    geometry: "plane"
+    scale: [0.3, 0.08, 1]
+    position: { x: 0, y: 2.5, z: -5 }
+    material: { color: "#0d1117", transparent: true, opacity: 0.85 }
+    behavior { on "gesture_detected" { bind: ConcertState.lastGesture } }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RENDERING DOMAIN — Volumetric lights, post-processing, bloom
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Volumetric fog for atmosphere
+  object "StageFog" {
+    @volumetric { density: 0.03, color: "#112244", scattering: 0.6 }
+    geometry: "box"
+    scale: [20, 6, 15]
+    position: { x: 0, y: 3, z: -3 }
+    material: { transparent: true, opacity: 0.0 }
+  }
+
+  // Laser beams (beat-reactive)
+  group "LaserArray" {
+    object "Laser_L" {
+      @shader { language: "glsl", autoTime: true }
+      geometry: "tube"
+      radius: 0.02
+      scale: [1, 8, 1]
+      position: { x: -4, y: 6, z: -8 }
+      rotation: { x: 30, y: 20, z: 0 }
+      material: { color: "#00ff44", emissive: "#00ff44", emissiveIntensity: 5.0 }
+    }
+
+    object "Laser_R" {
+      @shader { language: "glsl", autoTime: true }
+      geometry: "tube"
+      radius: 0.02
+      scale: [1, 8, 1]
+      position: { x: 4, y: 6, z: -8 }
+      rotation: { x: 30, y: -20, z: 0 }
+      material: { color: "#ff0044", emissive: "#ff0044", emissiveIntensity: 5.0 }
+    }
+  }
+
+  // Post-processing stack
+  object "PostProcessController" {
+    @post_process {
+      bloom: { intensity: 0.8, threshold: 0.6, radius: 0.4 }
+      vignette: { intensity: 0.4 }
+      chromaticAberration: { offset: 0.003 }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PROCEDURAL DOMAIN — Beat-reactive particles and effects
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Beat-synced particle emitter
+  object "BeatParticles" {
+    @noise_field { type: "simplex", scale: 2.0, speed: 0.5, influence: "emission" }
+    geometry: "sphere"
+    radius: 0.02
+    position: { x: 0, y: 4, z: -7 }
+    material: { color: "#ffffff", emissive: "#ffffff", emissiveIntensity: 2.0 }
+    properties: {
+      particleCount: 500
+      lifetime: 3.0
+      spread: 5.0
+      gravity: -0.5
+    }
+    behavior {
+      on "beat" {
+        action: "emitParticleBurst"
+        bind: ConcertState.beatCount
+      }
+    }
+  }
+
+  // Procedural light tendrils
+  object "LightTendrils" {
+    @noise_field { type: "perlin", scale: 4.0, speed: 1.2, influence: "path" }
+    geometry: "tube"
+    radius: 0.01
+    position: { x: 0, y: 5, z: -8 }
+    material: { color: "#8844ff", emissive: "#8844ff", emissiveIntensity: 3.0, transparent: true, opacity: 0.7 }
+  }
+
+  // Stage floor
+  object "StageFloor" {
+    geometry: "plane"
+    width: 20
+    height: 15
+    position: { x: 0, y: 0, z: -2 }
+    material: { color: "#0a0a12", metalness: 0.7, roughness: 0.2 }
+  }
+
+  // Audience area
+  object "AudienceFloor" {
+    geometry: "plane"
+    width: 20
+    height: 10
+    position: { x: 0, y: 0, z: 5 }
+    material: { color: "#050508" }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // SYSTEMS — Cross-domain integrations
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  system "MIDIBridge" {
+    type: "midi"
+    protocol: "webmidi"
+    channels: [1, 2, 10]
+  }
+
+  system "GestureClassifier" {
+    type: "gesture-recognition"
+    model: "mediapipe-hands"
+    updateRate: 30
+  }
+
+  system "ShaderEngine" {
+    type: "shader-compiler"
+    hotReload: true
+    targets: ["glsl", "wgsl"]
+  }
+
+  system "AudioAnalysis" {
+    type: "audio-analysis"
+    fftSize: 2048
+    updateRate: 60
+    beatDetection: true
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ACTIONS — Cross-domain orchestration
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  action triggerNote(instrument) {
+    ConcertState.activeInstrument = instrument
+    ConcertState.beatCount = ConcertState.beatCount + 1
+    emit("midi:note_on", { instrument: instrument, velocity: 100 })
+    // Cross-domain: trigger particle burst on note
+    emit("procedural:burst", { density: ConcertState.particleDensity })
+  }
+
+  action emitParticleBurst(intensity) {
+    emit("procedural:emit", { count: intensity * 50, spread: 3.0 })
+    // Cross-domain: flash bloom on beat
+    emit("render:bloom_pulse", { intensity: 1.5, duration: 100 })
+  }
+
+  action onBeatDetected(bpm) {
+    ConcertState.currentBPM = bpm
+    ConcertState.beatCount = ConcertState.beatCount + 1
+    // Cross-domain: beat drives particles AND laser rotation
+    emit("procedural:beat_sync", { bpm: bpm })
+    emit("render:laser_pulse")
+  }
+
+  action setParticleDensity(density) {
+    ConcertState.particleDensity = clamp(density, 100, 2000)
+  }
+}

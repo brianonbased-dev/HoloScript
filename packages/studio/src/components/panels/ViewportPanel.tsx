@@ -21,13 +21,68 @@ import {
   type ViewportLight,
   type ViewportMode,
 } from '../../hooks/useViewport';
+import { useEditorStore } from '../../lib/stores/editorStore';
 import * as THREE from 'three';
+
+// ─── Historic Ghost Mesh (Diff Mode) ──────────────────────────────────────────
+
+function HistoricGhostMesh({ entity }: { entity: ViewportEntity }) {
+  // In production, an alternate historic AST is fetched via GitService
+  // For Sprint 2 Phase 1 UI mockup, we render the current entity with an offset
+  // and a translucent green/red "diff overlay" material to mimic an old state.
+  
+  const ghostPosition = useMemo(() => {
+    return new THREE.Vector3(
+      entity.position[0] - 1.5, // Translate historic object left
+      entity.position[1],
+      entity.position[2]
+    );
+  }, [entity.position]);
+
+  const geometry = useMemo(() => {
+    switch (entity.type) {
+      case 'box': return <boxGeometry args={[1, 1, 1]} />;
+      case 'sphere': return <sphereGeometry args={[0.5, 32, 32]} />;
+      case 'plane': return <planeGeometry args={[1, 1]} />;
+      case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
+      case 'cone': return <coneGeometry args={[0.5, 1, 32]} />;
+      case 'torus': return <torusGeometry args={[0.5, 0.2, 16, 32]} />;
+      default: return <boxGeometry args={[1, 1, 1]} />;
+    }
+  }, [entity.type]);
+
+  return (
+    <>
+      <mesh position={ghostPosition} rotation={entity.rotation} scale={entity.scale}>
+        {geometry}
+        <meshStandardMaterial color="#fca5a5" wireframe transparent opacity={0.3} metalness={0} roughness={1} emissive="#ef4444" emissiveIntensity={0.2} />
+      </mesh>
+      
+      {/* Diff mapping line linking current mesh to historic mesh */}
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([
+              entity.position[0], entity.position[1], entity.position[2],
+              ghostPosition.x, ghostPosition.y, ghostPosition.z
+            ])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineDashedMaterial color="#818cf8" dashSize={0.2} gapSize={0.1} opacity={0.5} transparent />
+      </line>
+    </>
+  );
+}
 
 // ─── Entity Mesh ───────────────────────────────────────────────────────────────
 
 function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMode }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const isWireframe = mode === 'wireframe';
+  const { setSpatialBlameTooltip } = useEditorStore();
 
   // Gentle hover animation for selected entities
   useFrame((_, delta) => {
@@ -35,6 +90,60 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
       meshRef.current.rotation.y += delta * 0.5;
     }
   });
+
+  const handleClick = async (e: any) => {
+    e.stopPropagation(); // Prevent canvas background click
+    
+    // Show loading state
+    setSpatialBlameTooltip(
+      true, 
+      e.clientX, 
+      e.clientY - 40,
+      <div className="flex items-center gap-2 p-1 text-slate-300 text-xs">
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-500"></div>
+        Tracking origin...
+      </div>
+    );
+
+    try {
+      const { GitService } = await import('../../services/GitService');
+      // In a real environment, this would be the actual path of the loaded composition
+      const service = new GitService(process.cwd()); 
+      const blame = await service.getBlameForNode('example.holo', entity.id);
+
+      if (blame) {
+        setSpatialBlameTooltip(
+          true,
+          e.clientX,
+          e.clientY - 40,
+          <div className="flex flex-col gap-1">
+            <span className="font-bold text-indigo-300">@{blame.author}</span>
+            <span>Added {entity.name || entity.type} geometry</span>
+            <span className="text-[9px] text-slate-400 font-mono mt-1">commit: {blame.oid.substring(0, 7)}</span>
+            <span className="text-[9px] text-slate-500 mt-1 max-w-[150px] truncate">{blame.message}</span>
+          </div>
+        );
+      } else {
+        setSpatialBlameTooltip(
+          true,
+          e.clientX,
+          e.clientY - 40,
+          <div className="flex flex-col gap-1">
+            <span className="text-slate-400 text-xs italic">No spatial history found.</span>
+          </div>
+        );
+      }
+    } catch(err) {
+      setSpatialBlameTooltip(
+        true,
+        e.clientX,
+        e.clientY - 40,
+        <div className="flex flex-col gap-1">
+          <span className="text-red-400 text-xs">Error tracking history</span>
+        </div>
+      );
+    }
+  };
 
   const geometry = useMemo(() => {
     switch (entity.type) {
@@ -70,7 +179,14 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
   }, [entity.color, entity.selected, mode, isWireframe]);
 
   return (
-    <mesh ref={meshRef} position={entity.position} rotation={entity.rotation} scale={entity.scale}>
+    <mesh 
+      ref={meshRef} 
+      position={entity.position} 
+      rotation={entity.rotation} 
+      scale={entity.scale}
+      onClick={handleClick}
+      onPointerMissed={() => setSpatialBlameTooltip(false)}
+    >
       {geometry}
       {material}
       {entity.selected && (
@@ -130,6 +246,7 @@ function SceneLight({ light }: { light: ViewportLight }) {
 export function ViewportPanel() {
   const { state, selectEntity, setMode, toggleGrid, toggleAxes, addEntity, buildDemo, clear } =
     useViewport();
+  const { diffModeHash } = useEditorStore();
 
   const modes: ViewportMode[] = ['scene', 'wireframe', 'normals'];
   const entityTypes = [
@@ -185,7 +302,10 @@ export function ViewportPanel() {
           <Suspense fallback={null}>
             {/* Entities */}
             {state.entities.map((entity) => (
-              <EntityMesh key={entity.id} entity={entity} mode={state.mode} />
+              <React.Fragment key={entity.id}>
+                <EntityMesh entity={entity} mode={state.mode} />
+                {diffModeHash && <HistoricGhostMesh entity={entity} />}
+              </React.Fragment>
             ))}
 
             {/* Lights */}

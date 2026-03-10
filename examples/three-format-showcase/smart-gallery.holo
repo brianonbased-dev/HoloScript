@@ -1,0 +1,413 @@
+// Cross-Format Comparison: Smart Gallery (.holo format)
+// Same functionality in three formats: .hs, .hsplus, .holo
+// This is the FULL WORLD (.holo) version — adds metadata, systems, platform targets,
+// complex state, and multi-system orchestration
+
+composition "SmartGallery" {
+
+  metadata {
+    name: 'Smart Gallery — Three-Format Showcase'
+    description: 'Interactive art gallery with paintings, sculptures, ambient lighting, visitor analytics, and spatial audio. Demonstrates the full .holo world definition.'
+    version: '1.0.0'
+    author: 'HoloScript Examples Team'
+    category: 'general'
+    tags: ['gallery', 'art', 'interactive', 'spatial-audio', 'showcase']
+    platforms: ['r3f', 'unity', 'godot', 'openxr']
+    minPlayers: 1
+    maxPlayers: 16
+    license: 'MIT'
+  }
+
+  // -- Environment ---------------------------------------------------------------
+
+  environment {
+    backgroundColor: "#1a1a2e"
+    ambient: 0.4
+    shadows: true
+    hdri: "environments/gallery_warm.hdr"
+    toneMapping: "aces"
+    exposure: 1.1
+    shadowMapSize: 2048
+  }
+
+  // -- Application State ---------------------------------------------------------
+
+  state GalleryState {
+    visitorCount: 0
+    selectedArtwork: null
+    artworkInfoVisible: false
+    timeOfDay: 12.0                  // Controls ambient light warmth
+    musicPlaying: true
+    musicVolume: 0.5
+    tourActive: false
+    tourStep: 0
+    lightingPreset: "daylight"       // "daylight" | "evening" | "spotlight"
+  }
+
+  // -- Reusable Templates --------------------------------------------------------
+
+  // Painting with interaction, info popup, and spotlight
+  template "PaintingFrame" {
+    @interactable {
+      action: "tap"
+      highlight: true
+      haptic: true
+    }
+    @billboard
+
+    geometry: "plane"
+    scale: [1.5, 1.0, 1]
+    material: {
+      roughness: 0.9
+    }
+  }
+
+  // Sculpture that can be grabbed and rotated
+  template "InteractiveSculpture" {
+    @grabbable {
+      hand: "both"
+      haptic: true
+    }
+    @throwable {
+      velocity: 2.0
+    }
+    @physics {
+      mass: 3.0
+      friction: 0.6
+      restitution: 0.3
+    }
+    @collidable
+  }
+
+  // Spotlight for artwork
+  template "ArtSpotlight" {
+    geometry: "sphere"
+    radius: 0.05
+    material: {
+      color: "#ffffee"
+      emissive: "#ffffee"
+      emissiveIntensity: 2.0
+    }
+  }
+
+  // Info card that appears on artwork selection
+  template "InfoCard" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.4, 0.25, 1]
+    material: {
+      color: "#0d0d1a"
+      emissive: "#111133"
+      emissiveIntensity: 0.2
+      transparent: true
+      opacity: 0.92
+    }
+  }
+
+  // -- Gallery Structure ---------------------------------------------------------
+
+  object "Floor" {
+    geometry: "plane"
+    width: 15
+    height: 10
+    position: { x: 0, y: 0, z: 0 }
+    material: {
+      color: "#2a2a3a"
+      metalness: 0.6
+      roughness: 0.3
+    }
+  }
+
+  // Walls
+  object "WallNorth" {
+    geometry: "box"
+    scale: [15, 4, 0.2]
+    position: { x: 0, y: 2, z: -5 }
+    material: { color: "#e8e0d8", roughness: 0.9 }
+  }
+
+  object "WallSouth" {
+    geometry: "box"
+    scale: [15, 4, 0.2]
+    position: { x: 0, y: 2, z: 5 }
+    material: { color: "#e8e0d8", roughness: 0.9 }
+  }
+
+  object "WallEast" {
+    geometry: "box"
+    scale: [0.2, 4, 10]
+    position: { x: 7.5, y: 2, z: 0 }
+    material: { color: "#e8e0d8", roughness: 0.9 }
+  }
+
+  object "WallWest" {
+    geometry: "box"
+    scale: [0.2, 4, 10]
+    position: { x: -7.5, y: 2, z: 0 }
+    material: { color: "#e8e0d8", roughness: 0.9 }
+  }
+
+  // -- Paintings -----------------------------------------------------------------
+
+  group "Paintings" {
+    object "Painting_Sunset" using "PaintingFrame" {
+      position: { x: -3, y: 2.2, z: -4.85 }
+      material: { color: "#ff6633" }
+      properties: {
+        title: "Golden Sunset"
+        artist: "A. Rivera"
+        year: 2024
+        medium: "Oil on canvas"
+      }
+      behavior { on "tap" { action: "selectArtwork" args: { id: "sunset" } } }
+    }
+
+    object "Painting_Ocean" using "PaintingFrame" {
+      position: { x: 0, y: 2.2, z: -4.85 }
+      material: { color: "#2266aa" }
+      properties: {
+        title: "Deep Ocean"
+        artist: "M. Chen"
+        year: 2023
+        medium: "Digital print"
+      }
+      behavior { on "tap" { action: "selectArtwork" args: { id: "ocean" } } }
+    }
+
+    object "Painting_Forest" using "PaintingFrame" {
+      position: { x: 3, y: 2.2, z: -4.85 }
+      material: { color: "#228844" }
+      properties: {
+        title: "Ancient Forest"
+        artist: "K. Tanaka"
+        year: 2025
+        medium: "Watercolor"
+      }
+      behavior { on "tap" { action: "selectArtwork" args: { id: "forest" } } }
+    }
+
+    object "Painting_Abstract" using "PaintingFrame" {
+      position: { x: -7.35, y: 2.2, z: -1 }
+      rotation: { x: 0, y: 90, z: 0 }
+      scale: [1.2, 1.6, 1]
+      material: { color: "#aa22ff" }
+      properties: {
+        title: "Chromatic Shift"
+        artist: "J. Park"
+        year: 2024
+        medium: "Acrylic on panel"
+      }
+      behavior { on "tap" { action: "selectArtwork" args: { id: "abstract" } } }
+    }
+  }
+
+  // -- Spotlights for Paintings --------------------------------------------------
+
+  group "Spotlights" {
+    object "Spot_1" using "ArtSpotlight" { position: { x: -3, y: 3.8, z: -4 } }
+    object "Spot_2" using "ArtSpotlight" { position: { x: 0, y: 3.8, z: -4 } }
+    object "Spot_3" using "ArtSpotlight" { position: { x: 3, y: 3.8, z: -4 } }
+    object "Spot_4" using "ArtSpotlight" { position: { x: -7, y: 3.8, z: -1 } }
+  }
+
+  // -- Sculptures ----------------------------------------------------------------
+
+  group "Sculptures" {
+    object "Sculpture_Sphere" using "InteractiveSculpture" {
+      geometry: "sphere"
+      radius: 0.4
+      position: { x: -2, y: 1.0, z: 0 }
+      material: { color: "#ccaa44", metalness: 0.9, roughness: 0.1 }
+    }
+
+    object "Sculpture_Cube" using "InteractiveSculpture" {
+      geometry: "box"
+      scale: [0.5, 0.5, 0.5]
+      position: { x: 0, y: 1.0, z: 1 }
+      material: { color: "#44aacc", metalness: 0.7, roughness: 0.3 }
+    }
+
+    object "Sculpture_Torus" using "InteractiveSculpture" {
+      geometry: "torus"
+      scale: [0.4, 0.4, 0.15]
+      position: { x: 2, y: 1.2, z: 0 }
+      material: { color: "#cc4488", metalness: 0.8, roughness: 0.2 }
+    }
+  }
+
+  // -- Artwork Info Panel (appears on selection) ---------------------------------
+
+  object "ArtworkInfoPanel" using "InfoCard" {
+    position: { x: 0, y: 2.8, z: -4 }
+    scale: [0.5, 0.3, 1]
+    visible: false
+
+    behavior {
+      on "artwork_selected" {
+        bind: GalleryState.selectedArtwork
+        set: visible = true
+        action: "showArtworkInfo"
+      }
+    }
+  }
+
+  // -- Visitor Counter Panel -----------------------------------------------------
+
+  object "VisitorCounter" {
+    @billboard
+    @anchor
+
+    geometry: "plane"
+    scale: [0.3, 0.12, 1]
+    position: { x: 6, y: 1.5, z: -4.85 }
+    material: { color: "#111111", transparent: true, opacity: 0.9 }
+
+    behavior {
+      on "frame" {
+        bind: GalleryState.visitorCount
+        format: "Visitors: {value}"
+      }
+    }
+  }
+
+  // -- Background Music ----------------------------------------------------------
+
+  object "AmbientMusic" {
+    @spatial_audio {
+      rolloff: "linear"
+      maxDistance: 20
+      refDistance: 1
+    }
+
+    geometry: "sphere"
+    radius: 0.01
+    position: { x: 0, y: 3, z: 0 }
+    visible: false
+    audio: {
+      src: "audio/gallery-ambient.mp3"
+      loop: true
+      volume: 0.5
+    }
+  }
+
+  // -- Lighting Preset Controls --------------------------------------------------
+
+  object "LightingControl" {
+    @billboard
+    @anchor
+    @interactable
+
+    geometry: "plane"
+    scale: [0.35, 0.1, 1]
+    position: { x: 7, y: 2.5, z: -4.85 }
+    material: { color: "#1a2233", transparent: true, opacity: 0.9 }
+
+    behavior {
+      on "tap" { action: "cycleLightingPreset" }
+    }
+  }
+
+  // -- Tour Guide Waypoints ------------------------------------------------------
+
+  group "TourWaypoints" {
+    object "TourStart" {
+      @waypoint { order: 1 }
+      geometry: "sphere"
+      radius: 0.1
+      position: { x: 0, y: 0.1, z: 3 }
+      material: { color: "#44ff44", emissive: "#44ff44", emissiveIntensity: 0.5, transparent: true, opacity: 0.6 }
+    }
+
+    object "TourStop_Paintings" {
+      @waypoint { order: 2 }
+      geometry: "sphere"
+      radius: 0.1
+      position: { x: 0, y: 0.1, z: -3 }
+      material: { color: "#44ff44", emissive: "#44ff44", emissiveIntensity: 0.5, transparent: true, opacity: 0.6 }
+    }
+
+    object "TourStop_Sculptures" {
+      @waypoint { order: 3 }
+      geometry: "sphere"
+      radius: 0.1
+      position: { x: 0, y: 0.1, z: 0.5 }
+      material: { color: "#44ff44", emissive: "#44ff44", emissiveIntensity: 0.5, transparent: true, opacity: 0.6 }
+    }
+  }
+
+  // -- Systems -------------------------------------------------------------------
+
+  system "VisitorAnalytics" {
+    type: "analytics"
+    provider: "posthog"
+    events: ["artwork_viewed", "sculpture_grabbed", "tour_started", "tour_completed"]
+    sessionTracking: true
+  }
+
+  system "LightingController" {
+    type: "lighting"
+    presets: {
+      daylight: { ambient: 0.6, spotIntensity: 1.5, warmth: 5500 }
+      evening: { ambient: 0.3, spotIntensity: 2.5, warmth: 3200 }
+      spotlight: { ambient: 0.15, spotIntensity: 3.0, warmth: 4000 }
+    }
+    transitions: "smooth"
+    transitionDuration: 2000
+  }
+
+  system "AudioEngine" {
+    type: "spatial-audio"
+    reverb: "hall-medium"
+    maxSources: 8
+  }
+
+  // -- Actions -------------------------------------------------------------------
+
+  action selectArtwork(id) {
+    GalleryState.selectedArtwork = id
+    GalleryState.artworkInfoVisible = true
+    emit("gallery:artwork_selected", { id: id })
+    emit("analytics:track", { event: "artwork_viewed", artwork: id })
+  }
+
+  action showArtworkInfo(artworkId) {
+    emit("gallery:show_info", { id: artworkId })
+  }
+
+  action incrementVisitors() {
+    GalleryState.visitorCount = GalleryState.visitorCount + 1
+    emit("analytics:track", { event: "visitor_entered" })
+  }
+
+  action toggleMusic() {
+    GalleryState.musicPlaying = !GalleryState.musicPlaying
+    emit("audio:toggle", { playing: GalleryState.musicPlaying })
+  }
+
+  action cycleLightingPreset() {
+    const presets = ["daylight", "evening", "spotlight"]
+    const idx = presets.indexOf(GalleryState.lightingPreset)
+    GalleryState.lightingPreset = presets[(idx + 1) % presets.length]
+    emit("lighting:set_preset", { preset: GalleryState.lightingPreset })
+  }
+
+  action startTour() {
+    GalleryState.tourActive = true
+    GalleryState.tourStep = 1
+    emit("tour:start")
+    emit("analytics:track", { event: "tour_started" })
+  }
+
+  action advanceTour() {
+    GalleryState.tourStep = GalleryState.tourStep + 1
+    if (GalleryState.tourStep > 3) {
+      GalleryState.tourActive = false
+      emit("tour:complete")
+      emit("analytics:track", { event: "tour_completed" })
+    } else {
+      emit("tour:next", { step: GalleryState.tourStep })
+    }
+  }
+}

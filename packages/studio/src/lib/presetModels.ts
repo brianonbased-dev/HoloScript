@@ -186,3 +186,10 @@ export function modelCategories(): ModelCategory[] {
 export function getPreset(id: string): ModelPreset | undefined {
   return MODEL_PRESETS.find((p) => p.id === id);
 }
+
+/**
+ * Get all preset models.
+ */
+export function getAllPresetModels(): ModelPreset[] {
+  return [...MODEL_PRESETS];
+}

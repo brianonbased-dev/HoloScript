@@ -25,6 +25,7 @@
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
     "@holoscript/core": "workspace:*",
+    "@holoscript/std": "workspace:*",
     "@holoscript/studio-plugin-sdk": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
     "@react-three/drei": "^10.7.7",
@@ -37,7 +38,9 @@
     "clsx": "^2.1.0",
     "idb": "^8.0.0",
     "idb-keyval": "^6.2.1",
+    "isomorphic-git": "^1.37.2",
     "lucide-react": "^0.314.0",
+    "memfs": "^4.56.11",
     "next": "^15.5.10",
     "prismjs": "^1.29.0",
     "react": "^19.2.0",

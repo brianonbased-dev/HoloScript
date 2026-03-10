@@ -7,6 +7,9 @@ All notable changes to HoloScript are documented here.
 ## [Unreleased]
 
 ### Studio Quality & DX Refinements (Track 1)
+- **Spatial Version Control (Git for 3D)**: Built isomorphic git integration enabling visual spatial blame tooltips and ghost-mesh translucent diff overlays within the 3D viewport.
+- **Conformance & Verification Pipelines**: Repurposed the Engine Play pipeline into a formal AST validation runner enforcing physics boundaries and accessibility guidelines.
+- **FDA-Compliant Auditing API**: Connected `StudioErrorBoundary.tsx` to a new Node-runtime `/api/audit` route writing AST-parsed render crashes directly to a CFR Part 11 compliant `crash_ledger.txt`.
 - **AssetDropProcessor**: Fixed PBR shadows and `envMapIntensity` rendering artifacts by pre-warming imported GLB materials during the parser phase.
 - **Gizmo Synchronization**: Eliminated the 1-frame Gizmo sync latency in `SceneRenderer.tsx` by utilizing direct `onMouseUp` event handling rather than reactive hook bindings.
 - **Global Error Boundary**: Standardized runtime crashes by mapping `componentDidCatch` stack frames to AST component paths for direct debugging.

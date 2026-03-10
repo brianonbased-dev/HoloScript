@@ -1,0 +1,658 @@
+/**
+ * Dungeon Crawler State Machine — .hsplus Behavior Example
+ *
+ * Demonstrates WHY .hsplus exists: reactive state machines with event-driven
+ * transitions that neither .holo (too declarative) nor .hs (too sequential)
+ * can express cleanly.
+ *
+ * This is a complete dungeon crawler game with:
+ * - Game state machine (menu → exploring → combat → inventory → victory → game_over)
+ * - Wave spawner with timer-based enemy waves
+ * - Inventory system with @stackable items and capacity limits
+ * - Combat system with turn-based state transitions
+ * - Score tracking with @observable state changes
+ * - Multiplayer-ready with @networked state sync
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+
+composition "DungeonCrawler" {
+  environment {
+    backgroundColor: "#0d0d1a"
+    ambient: 0.2
+    shadows: true
+    fog: { color: "#0d0d1a", near: 10, far: 30 }
+  }
+
+  // ========================================================================
+  // GAME STATE MACHINE — the core of .hsplus
+  // ========================================================================
+  // State machines are .hsplus's killer feature. Each state defines
+  // what events are valid and what transitions are allowed.
+  // The compiler verifies all transitions at compile time.
+
+  module GameController {
+    @state_machine {
+      initial: "main_menu"
+
+      states: {
+        main_menu: {
+          on_start_game: -> "exploring"
+          on_load_save: -> "exploring"
+        }
+
+        exploring: {
+          on_enemy_encounter: -> "combat"
+          on_open_inventory: -> "inventory"
+          on_find_exit: -> "victory" guard(state.has_key)
+          on_player_death: -> "game_over"
+          on_pause: -> "paused"
+        }
+
+        combat: {
+          on_enemy_defeated: -> "exploring" action(award_xp)
+          on_player_death: -> "game_over"
+          on_flee: -> "exploring" guard(state.can_flee)
+          on_use_item: -> "combat"  // stay in combat, consume item
+        }
+
+        inventory: {
+          on_close_inventory: -> "exploring"
+          on_use_item: -> "inventory"
+          on_drop_item: -> "inventory"
+          on_equip_item: -> "inventory"
+        }
+
+        paused: {
+          on_resume: -> "exploring"
+          on_quit: -> "main_menu"
+        }
+
+        victory: {
+          on_next_level: -> "exploring" action(advance_level)
+          on_quit: -> "main_menu"
+        }
+
+        game_over: {
+          on_retry: -> "exploring" action(reset_game)
+          on_quit: -> "main_menu"
+        }
+      }
+
+      // Actions triggered by transitions
+      actions: {
+        award_xp: () => {
+          state.xp += state.current_enemy.xp_value;
+          if (state.xp >= state.xp_to_level) {
+            state.level += 1;
+            state.xp_to_level = Math.floor(state.xp_to_level * 1.5);
+            state.max_hp += 10;
+            state.hp = state.max_hp;
+            emit("level_up", state.level);
+          }
+        }
+
+        advance_level: () => {
+          state.dungeon_level += 1;
+          state.has_key = false;
+          state.enemies_remaining = 3 + state.dungeon_level * 2;
+          emit("level_changed", state.dungeon_level);
+        }
+
+        reset_game: () => {
+          state.hp = 100;
+          state.max_hp = 100;
+          state.xp = 0;
+          state.level = 1;
+          state.dungeon_level = 1;
+          state.gold = 0;
+          state.score = 0;
+          state.has_key = false;
+          state.inventory = [];
+          emit("game_reset");
+        }
+      }
+    }
+
+    @networked {
+      sync: ["hp", "level", "dungeon_level", "score", "position"]
+      authority: "host"
+      interpolation: true
+    }
+
+    state {
+      hp: 100
+      max_hp: 100
+      attack: 15
+      defense: 5
+      xp: 0
+      xp_to_level: 100
+      level: 1
+      dungeon_level: 1
+      gold: 0
+      score: 0
+      has_key: false
+      can_flee: true
+      enemies_remaining: 5
+      current_enemy: null
+      position: [0, 1, 0]
+    }
+  }
+
+  // ========================================================================
+  // WAVE SPAWNER — timer-based enemy generation
+  // ========================================================================
+
+  module WaveSpawner {
+    state {
+      wave: 0
+      enemies_in_wave: 0
+      spawn_timer: 0
+      spawn_interval: 8      // seconds between waves
+      active: false
+    }
+
+    @on_event("level_changed"): (level) => {
+      this.state.wave = 0;
+      this.state.spawn_interval = Math.max(3, 8 - level * 0.5);
+      this.state.active = true;
+    }
+
+    @on_update: (dt) => {
+      if (!this.state.active) return;
+      if (GameController.current_state !== "exploring") return;
+
+      this.state.spawn_timer += dt;
+      if (this.state.spawn_timer >= this.state.spawn_interval) {
+        this.state.spawn_timer = 0;
+        this.state.wave += 1;
+        this.spawn_wave();
+      }
+    }
+
+    action spawn_wave() {
+      const count = 2 + this.state.wave;
+      const enemy_types = ["skeleton", "slime", "goblin", "wraith"];
+
+      for (let i = 0; i < count; i++) {
+        const type = enemy_types[Math.floor(random(0, enemy_types.length))];
+        const angle = (i / count) * Math.PI * 2;
+        const radius = 8 + random(0, 4);
+
+        emit("spawn_enemy", {
+          type: type,
+          position: [
+            Math.cos(angle) * radius,
+            1,
+            Math.sin(angle) * radius
+          ],
+          level: GameController.state.dungeon_level + Math.floor(this.state.wave / 3)
+        });
+      }
+
+      this.state.enemies_in_wave += count;
+      emit("wave_started", { wave: this.state.wave, count: count });
+    }
+  }
+
+  // ========================================================================
+  // INVENTORY SYSTEM — .hsplus reactive state with capacity management
+  // ========================================================================
+
+  module Inventory {
+    state {
+      items: []
+      max_slots: 12
+      equipped_weapon: null
+      equipped_armor: null
+    }
+
+    action add_item(item) {
+      // Stack check — find existing stack
+      if (item.stackable) {
+        const existing = this.state.items.find(
+          i => i.id === item.id && i.count < i.max_stack
+        );
+        if (existing) {
+          existing.count = Math.min(existing.count + item.count, existing.max_stack);
+          emit("item_stacked", { item: existing });
+          return true;
+        }
+      }
+
+      // Capacity check
+      if (this.state.items.length >= this.state.max_slots) {
+        emit("inventory_full", { rejected: item });
+        return false;
+      }
+
+      this.state.items.push(item);
+      emit("item_added", { item: item });
+      return true;
+    }
+
+    action use_item(slot_index) {
+      const item = this.state.items[slot_index];
+      if (!item) return;
+
+      switch (item.type) {
+        case "potion":
+          GameController.state.hp = Math.min(
+            GameController.state.hp + item.heal_amount,
+            GameController.state.max_hp
+          );
+          emit("item_used", { item: item, effect: "heal", amount: item.heal_amount });
+          break;
+
+        case "key":
+          GameController.state.has_key = true;
+          emit("item_used", { item: item, effect: "unlock" });
+          break;
+
+        case "scroll":
+          emit("item_used", { item: item, effect: item.spell });
+          break;
+      }
+
+      // Consume stackable items
+      if (item.stackable && item.count > 1) {
+        item.count -= 1;
+      } else {
+        this.state.items.splice(slot_index, 1);
+      }
+    }
+
+    action equip_item(slot_index) {
+      const item = this.state.items[slot_index];
+      if (!item) return;
+
+      if (item.type === "weapon") {
+        if (this.state.equipped_weapon) {
+          this.state.items.push(this.state.equipped_weapon);
+        }
+        this.state.equipped_weapon = item;
+        this.state.items.splice(slot_index, 1);
+        GameController.state.attack = 15 + item.damage_bonus;
+        emit("item_equipped", { slot: "weapon", item: item });
+      }
+
+      if (item.type === "armor") {
+        if (this.state.equipped_armor) {
+          this.state.items.push(this.state.equipped_armor);
+        }
+        this.state.equipped_armor = item;
+        this.state.items.splice(slot_index, 1);
+        GameController.state.defense = 5 + item.defense_bonus;
+        emit("item_equipped", { slot: "armor", item: item });
+      }
+    }
+  }
+
+  // ========================================================================
+  // COMBAT SYSTEM — turn-based state transitions
+  // ========================================================================
+
+  module CombatSystem {
+    state {
+      turn: "player"       // "player" | "enemy"
+      combo_count: 0
+      combat_log: []
+    }
+
+    @on_event("on_enemy_encounter"): (enemy) => {
+      GameController.state.current_enemy = enemy;
+      this.state.turn = "player";
+      this.state.combo_count = 0;
+      this.state.combat_log = [];
+      emit("combat_started", { enemy: enemy });
+    }
+
+    action player_attack() {
+      if (this.state.turn !== "player") return;
+
+      const enemy = GameController.state.current_enemy;
+      const damage = Math.max(1, GameController.state.attack - enemy.defense + Math.floor(random(-3, 3)));
+
+      enemy.hp -= damage;
+      this.state.combo_count += 1;
+      this.log("Player deals " + damage + " damage!");
+
+      if (enemy.hp <= 0) {
+        GameController.state.score += enemy.score_value;
+        GameController.state.gold += enemy.gold_drop;
+        this.log(enemy.name + " defeated!");
+
+        // Random loot drop
+        if (random(0, 1) > 0.6) {
+          const loot = generate_loot(enemy.level);
+          Inventory.add_item(loot);
+          this.log("Found: " + loot.name);
+        }
+
+        emit("on_enemy_defeated");
+        return;
+      }
+
+      // Enemy turn
+      this.state.turn = "enemy";
+      this.enemy_turn();
+    }
+
+    action enemy_turn() {
+      const enemy = GameController.state.current_enemy;
+      const damage = Math.max(1, enemy.attack - GameController.state.defense + Math.floor(random(-2, 2)));
+
+      GameController.state.hp -= damage;
+      this.log(enemy.name + " deals " + damage + " damage!");
+
+      if (GameController.state.hp <= 0) {
+        this.log("You have fallen...");
+        emit("on_player_death");
+        return;
+      }
+
+      this.state.turn = "player";
+    }
+
+    action log(message) {
+      this.state.combat_log.push({
+        message: message,
+        turn: this.state.turn,
+        timestamp: current_time()
+      });
+      emit("combat_log_updated", this.state.combat_log);
+    }
+  }
+
+  // ========================================================================
+  // ITEM DEFINITIONS — loot table templates
+  // ========================================================================
+
+  template "HealthPotion" {
+    @stackable {
+      max_stack: 5
+    }
+
+    state {
+      id: "health_potion"
+      name: "Health Potion"
+      type: "potion"
+      heal_amount: 30
+      stackable: true
+      count: 1
+      max_stack: 5
+      rarity: "common"
+    }
+  }
+
+  template "DungeonKey" {
+    state {
+      id: "dungeon_key"
+      name: "Dungeon Key"
+      type: "key"
+      stackable: false
+      rarity: "rare"
+      description: "Opens the dungeon exit"
+    }
+  }
+
+  template "IronSword" {
+    state {
+      id: "iron_sword"
+      name: "Iron Sword"
+      type: "weapon"
+      damage_bonus: 8
+      stackable: false
+      rarity: "uncommon"
+    }
+  }
+
+  template "ChainArmor" {
+    state {
+      id: "chain_armor"
+      name: "Chain Armor"
+      type: "armor"
+      defense_bonus: 6
+      stackable: false
+      rarity: "uncommon"
+    }
+  }
+
+  // ========================================================================
+  // ENEMY TEMPLATES — entities spawned by WaveSpawner
+  // ========================================================================
+
+  template "Skeleton" {
+    @collidable
+    @animated
+
+    geometry: "capsule"
+    color: "#d4c5a9"
+    animate: "idle"
+
+    state {
+      name: "Skeleton"
+      hp: 30
+      attack: 8
+      defense: 2
+      xp_value: 25
+      gold_drop: 10
+      score_value: 100
+      level: 1
+    }
+  }
+
+  template "Slime" {
+    @collidable
+    @animated
+    @physics
+
+    geometry: "sphere"
+    color: "#44dd44"
+    animate: "bounce"
+    mass: 2.0
+
+    state {
+      name: "Slime"
+      hp: 20
+      attack: 5
+      defense: 1
+      xp_value: 15
+      gold_drop: 5
+      score_value: 50
+      level: 1
+    }
+  }
+
+  template "Wraith" {
+    @collidable
+    @animated
+    @glowing
+
+    geometry: "capsule"
+    color: "#6633aa"
+    emissive: "#6633aa"
+    emissiveIntensity: 0.5
+    animate: "float"
+
+    state {
+      name: "Wraith"
+      hp: 40
+      attack: 12
+      defense: 0
+      xp_value: 50
+      gold_drop: 25
+      score_value: 200
+      level: 2
+    }
+  }
+
+  // ========================================================================
+  // SCENE OBJECTS
+  // ========================================================================
+
+  // Dungeon floor
+  object "Floor" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0, 0]
+    scale: [20, 0.2, 20]
+    color: "#1a1a2e"
+    material: "stone"
+  }
+
+  // Dungeon walls
+  object "WallNorth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2, -10]
+    scale: [20, 4, 0.5]
+    color: "#2a2a3e"
+  }
+
+  object "WallSouth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2, 10]
+    scale: [20, 4, 0.5]
+    color: "#2a2a3e"
+  }
+
+  object "WallEast" {
+    @collidable
+    geometry: "cube"
+    position: [10, 2, 0]
+    scale: [0.5, 4, 20]
+    color: "#2a2a3e"
+  }
+
+  object "WallWest" {
+    @collidable
+    geometry: "cube"
+    position: [-10, 2, 0]
+    scale: [0.5, 4, 20]
+    color: "#2a2a3e"
+  }
+
+  // Torch lights (atmospheric)
+  object "Torch1" {
+    @glowing
+    @animated
+    geometry: "sphere"
+    position: [-9, 3, -5]
+    scale: [0.15, 0.15, 0.15]
+    color: "#ff6600"
+    emissive: "#ff6600"
+    emissiveIntensity: 2
+    animate: "flicker"
+  }
+
+  object "Torch2" {
+    @glowing
+    @animated
+    geometry: "sphere"
+    position: [9, 3, 0]
+    scale: [0.15, 0.15, 0.15]
+    color: "#ff6600"
+    emissive: "#ff6600"
+    emissiveIntensity: 2
+    animate: "flicker"
+  }
+
+  object "Torch3" {
+    @glowing
+    @animated
+    geometry: "sphere"
+    position: [-9, 3, 5]
+    scale: [0.15, 0.15, 0.15]
+    color: "#ff6600"
+    emissive: "#ff6600"
+    emissiveIntensity: 2
+    animate: "flicker"
+  }
+
+  // Exit door — requires key
+  object "ExitDoor" {
+    @collidable
+    @glowing
+    geometry: "cube"
+    position: [0, 2, -9.8]
+    scale: [2, 3.5, 0.3]
+    color: "#8b4513"
+    emissive: "#332200"
+    emissiveIntensity: 0.3
+
+    state {
+      locked: true
+    }
+
+    @on_collision: (player) => {
+      if (GameController.state.has_key) {
+        this.state.locked = false;
+        this.emissive = "#00ff00";
+        this.emissiveIntensity = 1;
+        emit("on_find_exit");
+      } else {
+        emit("door_locked", { message: "You need a key to open this door." });
+      }
+    }
+  }
+
+  // ========================================================================
+  // HUD — reactive UI panels bound to game state
+  // ========================================================================
+
+  panel "GameHUD" {
+    position: "top-left"
+
+    text "HP" {
+      bind: GameController.state.hp + " / " + GameController.state.max_hp
+      style: "health"
+    }
+    text "Level" {
+      bind: "Lv." + GameController.state.level + " (" + GameController.state.xp + "/" + GameController.state.xp_to_level + " XP)"
+      style: "info"
+    }
+    text "Floor" {
+      bind: "Dungeon B" + GameController.state.dungeon_level
+      style: "info"
+    }
+    text "Gold" {
+      bind: GameController.state.gold + "g"
+      style: "gold"
+    }
+    text "Score" {
+      bind: GameController.state.score
+      style: "score"
+    }
+  }
+
+  panel "CombatLog" {
+    position: "bottom-left"
+    visible: GameController.current_state === "combat"
+
+    text "Turn" {
+      bind: CombatSystem.state.turn === "player" ? ">> YOUR TURN <<" : "Enemy attacking..."
+      style: "combat"
+    }
+    text "EnemyHP" {
+      bind: GameController.state.current_enemy ? GameController.state.current_enemy.name + ": " + GameController.state.current_enemy.hp + " HP" : ""
+      style: "enemy"
+    }
+  }
+
+  panel "WaveInfo" {
+    position: "top-right"
+    visible: GameController.current_state === "exploring"
+
+    text "Wave" {
+      bind: "Wave " + WaveSpawner.state.wave
+      style: "info"
+    }
+    text "NextWave" {
+      bind: "Next in " + Math.ceil(WaveSpawner.state.spawn_interval - WaveSpawner.state.spawn_timer) + "s"
+      style: "timer"
+    }
+  }
+}

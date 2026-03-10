@@ -3,7 +3,7 @@
 > Master index of all frontier research cycles conducted via uAA2++ 8-Phase Protocol.
 > Each cycle produces W/P/G knowledge atoms stored in `AI_Workspace/uAA2++_Protocol/`.
 
-## Research Cycles (2026-03-03 — 2026-03-04)
+## Research Cycles (2026-03-03 — 2026-03-09)
 
 | #   | Topic                                                             | Key Finding                                             | W      | P      | G      | Total   |
 | --- | ----------------------------------------------------------------- | ------------------------------------------------------- | ------ | ------ | ------ | ------- |
@@ -13,7 +13,11 @@
 | 4   | [Neural Rendering at 90fps](#4-neural-rendering-at-90fps)         | Impossible Triangle: pick 2 of 3                        | 6      | 10     | 6      | 22      |
 | 5   | [Self-Regulating Economies](#5-self-regulating-virtual-economies) | 9-layer defense-in-depth architecture                   | 11     | 6      | 5      | 22      |
 | 6   | [Procedural Infinite Worlds](#6-procedural-infinite-worlds)       | Compositions = symbolic intermediary for LLM generation | 13     | 10     | 9      | 32      |
-|     | **Totals**                                                        |                                                         | **59** | **47** | **38** | **144** |
+| 7   | [14 CS/Engineering Impossibilities](#7-cs-engineering-impossibilities) | 3 SOLVES: Symbol Grounding, VCS, Preservation       | 14     | 6      | 3      | 23      |
+| 8   | [Behavioral Determinism Reframing](#8-behavioral-determinism)     | Category error: behavioral conformance IS achievable    | 1      | 0      | 0      | 1       |
+| 9   | [14 Human-Domain Impossibilities](#9-human-domain-impossibilities) | 9 PARTIALLY ADDRESSED with genuine novelty             | 9      | 6      | 5      | 20      |
+| 10  | [Three-Format Impossibility Map](#10-three-format-impossibility-map) | 28 impossibilities mapped across .hs/.hsplus/.holo   | 1      | 2      | 0      | 3       |
+|     | **Totals**                                                        |                                                         | **84** | **61** | **46** | **191** |
 
 ---
 
@@ -107,6 +111,66 @@
 
 ---
 
+## 7. CS/Engineering Impossibilities
+
+**Question:** Which known impossibilities in CS/engineering does HoloScript's architecture crack?
+
+**Answer:** 3 genuine SOLVES (Symbol Grounding, Version Control for 3D, Digital Preservation), 9 PARTIALLY ADDRESSES, 2 MERELY REFRAMES. The strongest finding is symbol grounding: HoloScript provides three levels of Harnad grounding (declarative, behavioral, procedural) — possibly the first language where notation inherently includes its own physical interpretation.
+
+**Novel contributions:** Three-level symbol grounding (publishable). Behavioral conformance framework for spatial computing. "LaTeX of spatial computing" preservation model.
+
+**Files:**
+
+- `docs/strategy/research/2026-03-09_holoscript-14-impossibilities-outside-the-box.md`
+- `.ai-ecosystem/research/2026-03-09_holoscript-14-impossibilities-outside-the-box.md`
+
+---
+
+## 8. Behavioral Determinism
+
+**Question:** Is cross-platform determinism truly impossible for HoloScript's 25+ compile targets?
+
+**Answer:** The original "DOESN'T HELP" rating committed a category error. Bit-exact numerical determinism is impossible, but behavioral conformance (same observable outcomes given same specification) IS achievable — and is how every major standard (HTTP, SQL, Vulkan CTS, CSS) achieved interoperability. `.hsplus` state machines provide the strongest mechanism: finite enumerable states enable cross-platform conformance testing.
+
+**Novel contributions:** Category correction from bit-exact to behavioral determinism. Conformance pyramid (5 levels). Design by Contract mapping for traits.
+
+**Files:**
+
+- `docs/strategy/research/2026-03-09_holoscript-behavioral-determinism-reframing.md`
+- `.ai-ecosystem/research/2026-03-09_holoscript-behavioral-determinism-reframing.md`
+
+---
+
+## 9. Human-Domain Impossibilities
+
+**Question:** What impossible problems OUTSIDE CS/engineering does HoloScript's architecture address?
+
+**Answer:** 14 non-technical domains explored (qualia, tacit knowledge, indigenous knowledge, disability, therapy, dance notation, spatial music, forensics, etc.). 0 SOLVES, 9 PARTIALLY ADDRESSED with genuine novelty, 5 MERELY REFRAMED. Core discovery: the Annotated Experience Paradigm — self-documenting spatial experiences carrying metadata, governance, and limitations as inherent properties.
+
+**Novel contributions:** Governed Experience Documents. 4D dance notation (`.hs` + `.hsplus` + `.holo`). Spatial music composition language. Executable therapeutic protocols via `.hsplus` state machines.
+
+**Files:**
+
+- `docs/strategy/research/2026-03-09_holoscript-human-domain-impossible-problems.md`
+- `.ai-ecosystem/research/2026-03-09_holoscript-human-domain-impossible-problems.md`
+
+---
+
+## 10. Three-Format Impossibility Map
+
+**Question:** How do all 28 impossibilities map across the three file formats (`.hs`, `.hsplus`, `.holo`)?
+
+**Answer:** The three-format architecture provides coverage across the full problem spectrum. `.hs` is strongest for procedural/tacit knowledge. `.hsplus` is strongest for behavioral determinism and therapeutic protocols. `.holo` is strongest for governed worlds and AI reasoning. All three combine for dance notation (4D). Meta-pattern: the three formats mirror human cognition (procedural → reactive → declarative).
+
+**Novel contributions:** MP.002 cognitive progression pattern. Full 28-problem assessment grid. Design by Contract mapping across all three formats.
+
+**Files:**
+
+- `docs/strategy/research/2026-03-09_holoscript-three-format-impossibility-map.md`
+- `.ai-ecosystem/research/2026-03-09_holoscript-three-format-impossibility-map.md`
+
+---
+
 ## Cross-Cutting Themes
 
 1. **11.1ms frame budget** — Every research cycle independently rediscovers this constraint
@@ -114,7 +178,10 @@
 3. **Hybrid architectures** — No single approach works; layered/tiered solutions dominate
 4. **First-mover opportunities** — Agent Passport, Multiview Foveated GS, Economic primitives, SemanticExpander
 5. **Two-layer semantic/physical split** — Convergent across procgen, rendering, trust, and economies
+6. **Three-format progression** — `.hs` (process) + `.hsplus` (behavior) + `.holo` (worlds) attacks different problem classes
+7. **Behavioral conformance > bit-exact** — Every successful cross-platform standard uses behavioral contracts, not numerical identity
+8. **Text-based representation compounds** — VCS, preservation, compliance, legal discovery, AI training — all free from one decision
 
 ---
 
-_Generated by uAA2++ Protocol v4.0 | 6 cycles | 144 knowledge atoms | ~25 min each_
+_Generated by uAA2++ Protocol v4.0 | 10 cycles | 191 knowledge atoms_

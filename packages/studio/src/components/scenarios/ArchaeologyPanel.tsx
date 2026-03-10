@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Pickaxe, Layers, MapPin, Camera, Filter, Plus, Eye } from 'lucide-react';
+import { Compass, Layers, MapPin, Camera, Filter, Plus, Eye } from 'lucide-react';
 
 export type ArtifactCondition = 'intact' | 'fragmented' | 'damaged' | 'trace';
 export type StratLayer = { id: number; name: string; depth: number; color: string; period: string };
@@ -119,7 +119,7 @@ export function ArchaeologyPanel() {
   return (
     <div className="flex flex-col overflow-auto">
       <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
-        <Pickaxe className="h-4 w-4 text-amber-600" />
+        <Compass className="h-4 w-4 text-amber-600" />
         <span className="text-sm font-semibold text-studio-text">Excavation</span>
         <span className="text-[10px] text-studio-muted">{artifacts.length} finds</span>
       </div>

@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { useCharacterStore } from '@/lib/stores';
 import { buildClipFromFrames, extractBuiltinAnimations } from '@/lib/animationBuilder';
 import type { BoneFrame } from '@/lib/animationBuilder';
-import { OptimizedGLBLoader, type LoadProgress } from '@/lib/glbOptimizer';
+import { OptimizedGLBLoader, type LoadProgress } from '@/lib/export/glbOptimizer';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { LoadingProgress } from './LoadingProgress';
 

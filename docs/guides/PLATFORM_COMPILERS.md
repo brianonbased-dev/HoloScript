@@ -2,6 +2,12 @@
 
 HoloScript compiles to **18 different platforms** from a single `.holo` source file. This guide covers the new platform compilers added in v3.4.
 
+## Memory Optimizations (v3.4+)
+
+The HoloScript core compilers (`GLTFPipeline` and `R3FCompiler`) now utilize an **AST Node Object Pool** architecture. This avoids excessive instantiation and garbage collection when navigating large procedural compositions. Memory-intensive ArrayBuffers for geometry are also mapped directly out to WASM bindings instead of being serialized to Base64 via Node's string heap.
+
+These changes allow processing 100MB+ `.holo` assets under a strict 512MB RAM constraint, preventing `v8::internal::V8::FatalProcessOutOfMemory` node crashes.
+
 ## Quick Reference
 
 | Target        | Command                                            | Output             |

@@ -4,7 +4,7 @@
  */
 import React, { useState, useMemo } from 'react';
 import {
-  procedureDuration,
+  estimateProcedureDuration,
   bloodLossRisk,
   toolsRequired,
   anesthesiaCheck,
@@ -130,7 +130,7 @@ export function SurgicalRehearsalPanel() {
     monitoringLevel: 'standard',
   };
 
-  const duration = useMemo(() => procedureDuration(procedure), []);
+  const duration = useMemo(() => estimateProcedureDuration(procedure), []);
   const risk = useMemo(() => overallRiskLevel(procedure, patient), []);
   const bloodRisk = useMemo(() => bloodLossRisk(procedure, patient), []);
   const tools = useMemo(() => toolsRequired(procedure), []);

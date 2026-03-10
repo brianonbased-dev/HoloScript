@@ -23,7 +23,7 @@ export interface ExportProgress {
   estimatedSizeBytes: number;
 }
 
-export interface VideoExportResult {
+export interface ExportResult {
   format: VideoExportConfig['format'];
   blob: Blob | null;
   sizeBytes: number;

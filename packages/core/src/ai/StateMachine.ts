@@ -55,8 +55,11 @@ export class StateMachine {
 
   setInitialState(id: string): void {
     this.currentStateId = id;
-    const state = this.states.get(id);
-    if (state?.onEnter) state.onEnter(this.context);
+    const chain = this.getStateChain(id);
+    for (const stateId of chain) {
+      const state = this.states.get(stateId);
+      if (state?.onEnter) state.onEnter(this.context);
+    }
     this.history.push(id);
   }
 
@@ -81,14 +84,33 @@ export class StateMachine {
     for (const transition of candidates) {
       if (transition.guard && !transition.guard(this.context)) continue;
 
-      // Exit current state (and parent chain)
-      this.exitState(this.currentStateId);
+      const fromChain = this.getStateChain(this.currentStateId);
+      const toChain = this.getStateChain(transition.to);
+
+      let lcaIndex = 0;
+      while (
+        lcaIndex < fromChain.length && 
+        lcaIndex < toChain.length && 
+        fromChain[lcaIndex] === toChain[lcaIndex]
+      ) {
+        lcaIndex++;
+      }
+
+      // Exit states up to Lowest Common Ancestor
+      for (let i = fromChain.length - 1; i >= lcaIndex; i--) {
+        const state = this.states.get(fromChain[i]);
+        if (state?.onExit) state.onExit(this.context);
+      }
 
       // Run transition action
       if (transition.action) transition.action(this.context);
 
-      // Enter new state
-      this.enterState(transition.to);
+      // Enter new states from LCA down to target
+      for (let i = lcaIndex; i < toChain.length; i++) {
+        const state = this.states.get(toChain[i]);
+        if (state?.onEnter) state.onEnter(this.context);
+      }
+
       this.currentStateId = transition.to;
 
       this.history.push(transition.to);
@@ -116,28 +138,17 @@ export class StateMachine {
   }
 
   // ---------------------------------------------------------------------------
-  // Enter/Exit with Hierarchy
+  // Enter/Exit with Hierarchy (Chained)
   // ---------------------------------------------------------------------------
 
-  private enterState(id: string): void {
-    const state = this.states.get(id);
-    if (!state) return;
-    // Enter parent first
-    if (state.parent) {
-      const parentState = this.states.get(state.parent);
-      if (parentState?.onEnter) parentState.onEnter(this.context);
+  private getStateChain(id: string): string[] {
+    const chain: string[] = [];
+    let currentId: string | undefined = id;
+    while (currentId) {
+      chain.unshift(currentId);
+      currentId = this.states.get(currentId)?.parent;
     }
-    if (state.onEnter) state.onEnter(this.context);
-  }
-
-  private exitState(id: string): void {
-    const state = this.states.get(id);
-    if (!state) return;
-    if (state.onExit) state.onExit(this.context);
-    if (state.parent) {
-      const parentState = this.states.get(state.parent);
-      if (parentState?.onExit) parentState.onExit(this.context);
-    }
+    return chain;
   }
 
   // ---------------------------------------------------------------------------

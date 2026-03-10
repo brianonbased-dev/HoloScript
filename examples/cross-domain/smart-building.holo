@@ -1,0 +1,281 @@
+// Cross-Domain Composition: Smart Building
+// Domains combined: IoT + Architecture + DataViz
+//
+// A BIM building model with embedded IoT sensors and real-time data visualization.
+// Demonstrates how multiple domain handlers work together in a single scene.
+//
+// Compile targets:
+//   holoscript compile smart-building.holo --target r3f         (React Three Fiber)
+//   holoscript compile smart-building.holo --target unity       (Unity)
+//   holoscript compile smart-building.holo --target openxr      (HoloLens)
+
+composition "SmartBuilding" {
+
+  metadata {
+    name: 'Smart Building — Cross-Domain Example'
+    description: 'BIM visualization with embedded IoT sensors and real-time data dashboards. Combines architecture, IoT, and dataviz domains.'
+    version: '1.0.0'
+    author: 'HoloScript Examples Team'
+    category: 'cross-domain'
+    tags: ['cross-domain', 'smart-building', 'bim', 'iot', 'dataviz', 'digital-twin']
+    platforms: ['r3f', 'unity', 'openxr']
+  }
+
+  environment {
+    backgroundColor: "#c0d0e0"
+    ambient: 0.6
+    shadows: true
+    directionalLight: { intensity: 1.0, castShadow: true }
+  }
+
+  // -- State (spans all three domains) -------------------------------------------
+
+  state BuildingState {
+    // Architecture
+    currentFloor: 1
+    totalFloors: 3
+    showFloorPlan: true
+    // IoT
+    temperature: { floor1: 22.1, floor2: 23.4, floor3: 21.8 }
+    humidity: { floor1: 45, floor2: 42, floor3: 48 }
+    occupancy: { floor1: 34, floor2: 28, floor3: 12 }
+    energyUsage: 156.4
+    hvacStatus: "cooling"
+    // DataViz
+    selectedMetric: "temperature"
+    timeRange: "24h"
+    heatmapVisible: true
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ARCHITECTURE DOMAIN — Building structure and BIM
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  template "FloorSlab" {
+    @bim_model { ifcType: "IfcSlab", layer: "structural" }
+    geometry: "box"
+    material: { color: "#d4ccc0", roughness: 0.9 }
+  }
+
+  template "Wall" {
+    @bim_model { ifcType: "IfcWall", layer: "architectural" }
+    geometry: "box"
+    material: { color: "#e8e0d8", roughness: 0.85 }
+  }
+
+  object "SiteGround" {
+    geometry: "plane"
+    width: 30
+    height: 30
+    position: { x: 0, y: 0, z: 0 }
+    material: { color: "#7a9a6a" }
+  }
+
+  group "BuildingStructure" {
+    position: { x: 0, y: 0, z: 0 }
+
+    object "Floor_1" using "FloorSlab" { position: { x: 0, y: 0.1, z: 0 } scale: [10, 0.2, 8] }
+    object "Floor_2" using "FloorSlab" { position: { x: 0, y: 3.2, z: 0 } scale: [10, 0.2, 8] }
+    object "Floor_3" using "FloorSlab" { position: { x: 0, y: 6.2, z: 0 } scale: [10, 0.2, 8] }
+    object "Roof" using "FloorSlab" { position: { x: 0, y: 9.2, z: 0 } scale: [10, 0.2, 8] }
+
+    object "Wall_North" using "Wall" { position: { x: 0, y: 4.7, z: -4 } scale: [10, 9, 0.2] }
+    object "Wall_South" using "Wall" { position: { x: 0, y: 4.7, z: 4 } scale: [10, 9, 0.2] }
+    object "Wall_East" using "Wall" { position: { x: 5, y: 4.7, z: 0 } scale: [0.2, 9, 8] }
+    object "Wall_West" using "Wall" { position: { x: -5, y: 4.7, z: 0 } scale: [0.2, 9, 8] }
+  }
+
+  object "FloorPlanOverlay" {
+    @floor_plan { floor: 1, source: "plans/level-1.svg" }
+    @billboard
+    geometry: "plane"
+    scale: [2.5, 2.0, 1]
+    position: { x: -8, y: 1.5, z: 0 }
+    material: { color: "#ffffff", transparent: true, opacity: 0.85 }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // IoT DOMAIN — Sensors, actuators, telemetry
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  template "SensorNode" {
+    @sensor { protocol: "mqtt", qos: 1 }
+    @telemetry_stream { interval: 5000, buffer: 60 }
+    @billboard
+
+    geometry: "sphere"
+    radius: 0.12
+    material: { emissive: "#44ff44", emissiveIntensity: 0.6 }
+  }
+
+  // Floor 1 sensors
+  group "Floor1_Sensors" {
+    object "Temp_F1_A" using "SensorNode" {
+      position: { x: -2, y: 1.5, z: -2 }
+      @sensor { topic: "building/floor1/temp/a", unit: "celsius" }
+    }
+    object "Temp_F1_B" using "SensorNode" {
+      position: { x: 2, y: 1.5, z: 2 }
+      @sensor { topic: "building/floor1/temp/b", unit: "celsius" }
+    }
+    object "Occupancy_F1" using "SensorNode" {
+      position: { x: 0, y: 1.5, z: 0 }
+      material: { emissive: "#ff8844" }
+      @sensor { topic: "building/floor1/occupancy", type: "pir" }
+    }
+  }
+
+  // Floor 2 sensors
+  group "Floor2_Sensors" {
+    object "Temp_F2" using "SensorNode" {
+      position: { x: 0, y: 4.5, z: 0 }
+      @sensor { topic: "building/floor2/temp", unit: "celsius" }
+    }
+    object "Humidity_F2" using "SensorNode" {
+      position: { x: 3, y: 4.5, z: -1 }
+      material: { emissive: "#4488ff" }
+      @sensor { topic: "building/floor2/humidity", unit: "percent" }
+    }
+  }
+
+  // HVAC actuator
+  object "HVAC_Control" {
+    @actuator { protocol: "mqtt", topic: "building/hvac/mode" }
+    @interactable { action: "tap" }
+    geometry: "box"
+    scale: [0.3, 0.3, 0.15]
+    position: { x: -4.8, y: 1.5, z: -3 }
+    material: { color: "#2244aa", metalness: 0.6, roughness: 0.3 }
+    behavior { on "tap" { action: "cycleHVAC" } }
+  }
+
+  // Energy meter
+  object "EnergyMeter" {
+    @sensor { topic: "building/energy/total", unit: "kWh" }
+    @telemetry_stream { interval: 10000, buffer: 144 }
+    @billboard
+    geometry: "plane"
+    scale: [0.35, 0.2, 1]
+    position: { x: -8, y: 3, z: 0 }
+    material: { color: "#1a2233", transparent: true, opacity: 0.9 }
+    behavior { on "data" { bind: BuildingState.energyUsage format: "{value} kWh" } }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // DATAVIZ DOMAIN — Charts, heatmaps, analytics dashboards
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  // Temperature heatmap overlaid on building cross-section
+  object "TemperatureHeatmap" {
+    @heatmap {
+      rows: 3
+      cols: 5
+      colorScale: "thermal"
+      interpolation: "bilinear"
+    }
+    @data_binding { field: "temperature_grid" }
+    geometry: "plane"
+    scale: [3, 2.5, 1]
+    position: { x: 8, y: 3, z: 0 }
+    material: { color: "#1a1a2e" }
+  }
+
+  // Occupancy bar chart
+  group "OccupancyChart" {
+    position: { x: 8, y: 1, z: -3 }
+
+    @chart_3d { type: "bar", animate: true }
+
+    object "Bar_F1" {
+      geometry: "box"
+      scale: [0.2, 0.7, 0.2]
+      position: { x: -0.3, y: 0.35, z: 0 }
+      material: { color: "#4488ff" }
+      @data_binding { field: "occupancy.floor1" }
+    }
+
+    object "Bar_F2" {
+      geometry: "box"
+      scale: [0.2, 0.56, 0.2]
+      position: { x: 0, y: 0.28, z: 0 }
+      material: { color: "#44aaff" }
+      @data_binding { field: "occupancy.floor2" }
+    }
+
+    object "Bar_F3" {
+      geometry: "box"
+      scale: [0.2, 0.24, 0.2]
+      position: { x: 0.3, y: 0.12, z: 0 }
+      material: { color: "#44ccff" }
+      @data_binding { field: "occupancy.floor3" }
+    }
+  }
+
+  // Energy usage trend line (time series display)
+  object "EnergyTrend" {
+    @chart_3d { type: "line", animate: true }
+    @data_binding { field: "energy_24h" }
+    @billboard
+    geometry: "plane"
+    scale: [2, 1, 1]
+    position: { x: 8, y: 3, z: 3 }
+    material: { color: "#0d1117", transparent: true, opacity: 0.9 }
+  }
+
+  // Metric selector
+  object "MetricSelector" {
+    @billboard
+    @interactable
+    geometry: "plane"
+    scale: [0.4, 0.08, 1]
+    position: { x: 8, y: 5, z: 0 }
+    material: { color: "#1a2233", transparent: true, opacity: 0.85 }
+    behavior { on "tap" { action: "cycleMetric" } }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // SYSTEMS — Cross-domain integrations
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  system "MQTTBroker" {
+    type: "mqtt"
+    broker: "mqtt://building-iot.local:1883"
+    topics: ["building/#"]
+  }
+
+  system "BIMViewer" {
+    type: "bim-import"
+    formats: ["ifc", "gltf"]
+    lodLevels: 3
+  }
+
+  system "AnalyticsDashboard" {
+    type: "analytics"
+    metrics: ["mean", "max", "min", "trend"]
+    refreshInterval: 5000
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ACTIONS — Cross-domain orchestration
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  action cycleFloor() {
+    BuildingState.currentFloor = (BuildingState.currentFloor % BuildingState.totalFloors) + 1
+    emit("arch:floor_change", { floor: BuildingState.currentFloor })
+    emit("viz:filter", { floor: BuildingState.currentFloor })
+  }
+
+  action cycleHVAC() {
+    const modes = ["heating", "cooling", "auto", "off"]
+    const idx = modes.indexOf(BuildingState.hvacStatus)
+    BuildingState.hvacStatus = modes[(idx + 1) % modes.length]
+    emit("mqtt:publish", { topic: "building/hvac/mode", payload: BuildingState.hvacStatus })
+  }
+
+  action cycleMetric() {
+    const metrics = ["temperature", "humidity", "occupancy", "energy"]
+    const idx = metrics.indexOf(BuildingState.selectedMetric)
+    BuildingState.selectedMetric = metrics[(idx + 1) % metrics.length]
+    emit("viz:switch_metric", { metric: BuildingState.selectedMetric })
+  }
+}

@@ -1,0 +1,316 @@
+// Procedural Domain Starter - HoloScript
+//
+// Minimal working template for procedural content generation.
+// Demonstrates: Terrain generation, vegetation placement, noise fields,
+//               L-systems, erosion simulation, and runtime seeding.
+//
+// Compile targets:
+//   holoscript compile procedural-starter.holo --target r3f         (React Three Fiber)
+//   holoscript compile procedural-starter.holo --target unity       (Unity)
+//   holoscript compile procedural-starter.holo --target godot       (Godot)
+//
+// Extend by:
+//   - Adding GPU-accelerated noise (WebGPU compute shaders)
+//   - Implementing hydraulic erosion with sediment transport
+//   - Adding biome blending (desert-to-forest transitions)
+//   - Connecting to world-building tools (World Machine, Gaea)
+
+composition "Procedural Starter" {
+
+  metadata {
+    name: 'Procedural Domain Starter'
+    description: 'Minimal template for procedural generation: terrain mesh, vegetation, noise fields, L-system trees, cloud layers, and runtime seed control.'
+    version: '1.0.0'
+    author: 'HoloScript Procedural Team'
+    category: 'procedural'
+    tags: ['procedural', 'terrain', 'noise', 'lsystem', 'vegetation', 'generation']
+    platforms: ['r3f', 'unity', 'godot']
+    minPlayers: 1
+    maxPlayers: 4
+  }
+
+  // -- Environment ---------------------------------------------------------------
+
+  environment {
+    backgroundColor: "#87ceeb"
+    ambient: 0.5
+    shadows: true
+    fog: {
+      enabled: true
+      color: "#b8d0e8"
+      near: 50
+      far: 200
+    }
+    directionalLight: {
+      intensity: 1.0
+      direction: { x: -0.5, y: -1.0, z: -0.3 }
+      castShadow: true
+    }
+  }
+
+  // -- Application State ---------------------------------------------------------
+
+  state ProceduralState {
+    seed: 42
+    terrainScale: 1.0
+    vegetationDensity: 0.6
+    erosionIterations: 50
+    noiseOctaves: 6
+    lacunarity: 2.0
+    persistence: 0.5
+    seaLevel: 0.3
+    showWireframe: false
+  }
+
+  // -- Reusable Templates --------------------------------------------------------
+
+  template "TerrainChunk" {
+    @terrain_generator {
+      algorithm: "fractal-brownian-motion"
+      resolution: 128
+      heightScale: 15
+    }
+
+    geometry: "plane"
+    scale: [50, 1, 50]
+    material: {
+      color: "#5a8a3c"
+      roughness: 0.9
+      metalness: 0.0
+    }
+  }
+
+  template "ProceduralTree" {
+    @lsystem {
+      axiom: "F"
+      rules: {
+        F: "FF+[+F-F-F]-[-F+F+F]"
+      }
+      iterations: 4
+      angle: 25
+      length: 0.5
+      lengthDecay: 0.7
+    }
+    @vegetation {
+      type: "tree"
+      swayAmount: 0.02
+      swaySpeed: 1.0
+    }
+
+    geometry: "cylinder"
+    scale: [0.1, 2, 0.1]
+    material: {
+      color: "#5a3a1a"
+      roughness: 0.95
+    }
+  }
+
+  template "GrassPatch" {
+    @vegetation {
+      type: "grass"
+      density: 100
+      windResponse: 0.8
+    }
+    @noise_field {
+      type: "perlin"
+      scale: 5.0
+      influence: "density"
+    }
+
+    geometry: "plane"
+    scale: [5, 1, 5]
+    material: {
+      color: "#4a7a2c"
+      transparent: true
+      alphaTest: 0.5
+    }
+  }
+
+  // -- Terrain Mesh --------------------------------------------------------------
+
+  object "MainTerrain" using "TerrainChunk" {
+    position: { x: 0, y: 0, z: 0 }
+
+    @terrain_generator {
+      seed: 42
+      octaves: 6
+      lacunarity: 2.0
+      persistence: 0.5
+      heightScale: 15
+    }
+
+    behavior {
+      on "seed_change" {
+        bind: ProceduralState.seed
+        action: "regenerateTerrain"
+      }
+    }
+  }
+
+  // -- Water Plane (sea level) ---------------------------------------------------
+
+  object "WaterSurface" {
+    geometry: "plane"
+    scale: [60, 1, 60]
+    position: { x: 0, y: 4.5, z: 0 }
+    material: {
+      color: "#2266aa"
+      metalness: 0.1
+      roughness: 0.05
+      transparent: true
+      opacity: 0.7
+    }
+  }
+
+  // -- Vegetation Instances ------------------------------------------------------
+
+  group "Forest" {
+    position: { x: 0, y: 0, z: 0 }
+
+    object "Tree_1" using "ProceduralTree" {
+      position: { x: -8, y: 6, z: -5 }
+      scale: [1.0, 1.2, 1.0]
+    }
+
+    object "Tree_2" using "ProceduralTree" {
+      position: { x: -5, y: 7, z: -8 }
+      scale: [0.8, 0.9, 0.8]
+    }
+
+    object "Tree_3" using "ProceduralTree" {
+      position: { x: 3, y: 5, z: -10 }
+      scale: [1.1, 1.4, 1.1]
+    }
+
+    object "Tree_4" using "ProceduralTree" {
+      position: { x: 10, y: 6.5, z: -3 }
+      scale: [0.9, 1.0, 0.9]
+    }
+
+    object "Tree_5" using "ProceduralTree" {
+      position: { x: -12, y: 5.5, z: 4 }
+      scale: [1.2, 1.3, 1.2]
+    }
+  }
+
+  // -- Grass Fields --------------------------------------------------------------
+
+  group "GrassFields" {
+    object "Grass_1" using "GrassPatch" { position: { x: -6, y: 6, z: -3 } }
+    object "Grass_2" using "GrassPatch" { position: { x: 2, y: 5, z: -6 } }
+    object "Grass_3" using "GrassPatch" { position: { x: 8, y: 5.5, z: 2 } }
+    object "Grass_4" using "GrassPatch" { position: { x: -3, y: 7, z: 5 } }
+  }
+
+  // -- Cloud Layer ---------------------------------------------------------------
+
+  object "CloudLayer" {
+    @noise_field {
+      type: "worley"
+      scale: 20.0
+      speed: 0.3
+      influence: "opacity"
+    }
+
+    geometry: "plane"
+    scale: [100, 1, 100]
+    position: { x: 0, y: 25, z: 0 }
+    material: {
+      color: "#ffffff"
+      transparent: true
+      opacity: 0.4
+    }
+  }
+
+  // -- River Path (noise-driven) -------------------------------------------------
+
+  object "RiverPath" {
+    @noise_field {
+      type: "simplex"
+      scale: 3.0
+      influence: "path"
+    }
+
+    geometry: "tube"
+    radius: 0.8
+    material: {
+      color: "#3388bb"
+      metalness: 0.1
+      roughness: 0.1
+      transparent: true
+      opacity: 0.8
+    }
+  }
+
+  // -- Control Panel -------------------------------------------------------------
+
+  object "SeedControl" {
+    @billboard
+    @anchor
+    @interactable
+
+    geometry: "plane"
+    scale: [0.5, 0.4, 1]
+    position: { x: -5, y: 3, z: 5 }
+    material: {
+      color: "#1a2233"
+      transparent: true
+      opacity: 0.85
+    }
+
+    behavior {
+      on "slider_change" {
+        action: "updateSeed"
+      }
+    }
+  }
+
+  // -- Systems -------------------------------------------------------------------
+
+  system "NoiseEngine" {
+    type: "noise-generator"
+    algorithms: ["perlin", "simplex", "worley", "fbm"]
+    gpu_accelerated: true
+    cacheSize: "64MB"
+  }
+
+  system "LSystemProcessor" {
+    type: "lsystem"
+    maxIterations: 7
+    meshGeneration: true
+    lodLevels: 3
+  }
+
+  // -- Actions -------------------------------------------------------------------
+
+  action regenerateTerrain() {
+    emit("procedural:regenerate", {
+      seed: ProceduralState.seed,
+      octaves: ProceduralState.noiseOctaves,
+      scale: ProceduralState.terrainScale
+    })
+  }
+
+  action updateSeed(newSeed) {
+    ProceduralState.seed = newSeed
+    emit("procedural:seed_change", { seed: newSeed })
+  }
+
+  action setVegetationDensity(density) {
+    ProceduralState.vegetationDensity = clamp(density, 0.0, 1.0)
+    emit("procedural:vegetation", { density: density })
+  }
+
+  action runErosion(iterations) {
+    ProceduralState.erosionIterations = iterations
+    emit("procedural:erode", {
+      iterations: iterations,
+      seed: ProceduralState.seed
+    })
+  }
+
+  action randomizeSeed() {
+    ProceduralState.seed = floor(random() * 99999)
+    emit("procedural:seed_change", { seed: ProceduralState.seed })
+  }
+}

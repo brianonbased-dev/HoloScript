@@ -342,8 +342,8 @@ describe('SimulationLab Traits', () => {
 
   it('should require hypothesis and metrics params', () => {
     const trait = SimulationLabTraits.simulation_lab;
-    expect(trait.params.hypothesis.required).toBe(true);
-    expect(trait.params.metrics.required).toBe(true);
+    expect(trait.params!.hypothesis.required).toBe(true);
+    expect(trait.params!.metrics.required).toBe(true);
   });
 
   it('should validate correct params', () => {

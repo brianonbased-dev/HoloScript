@@ -95,7 +95,13 @@ const DEFAULT_CLIP: AnimationClip = {
   ],
 };
 
-export function KeyframeEditor({ onClipChange }: { onClipChange?: (c: AnimationClip) => void }) {
+export function KeyframeEditor({
+  onClipChange,
+  onClose,
+}: {
+  onClipChange?: (c: AnimationClip) => void;
+  onClose?: () => void;
+}) {
   const [clip, setClip] = useState<AnimationClip>(DEFAULT_CLIP);
   const [selTrack, setSelTrack] = useState(0);
   const [selKf, setSelKf] = useState<number | null>(null);

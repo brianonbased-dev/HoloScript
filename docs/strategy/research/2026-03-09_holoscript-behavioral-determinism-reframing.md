@@ -19,6 +19,42 @@ Every major cross-platform standard historically solved interoperability through
 
 HoloScript does for spatial computing physics what these standards did for their respective domains. **Each trait is a behavioral contract, which acts as a conformance test.** The research should properly identify HoloScript as "a behavioral specification standard for spatial computing with a conformance test suite."
 
+## Three Levels of Behavioral Contract
+The determinism isn't just one flavor. Because HoloScript operates across THREE file formats, it provides three distinct levels of behavioral contract:
+
+| Format | Determinism Mechanism | Example Contract |
+| :--- | :--- | :--- |
+| **`.hs`** (Classic) | Procedural Execution | `execute sequence` guarantees order of operations |
+| **`.hsplus`** (Production) | Reactive State / Traits | `@state_machine` constraints + `networked_object` sync |
+| **`.holo`** (Compositions)| Scene-level Conformance | Environment rules and compliance gating |
+
+### 1. `.hs` (Procedural Constraints)
+In classic `.hs` prototyping, the contract is step-by-step procedural certainty:
+```holoscript
+function throw_sequence {
+  execute mold_clay
+  connect pressure_sensor to wheel
+}
+```
+
+### 2. `.hsplus` (Behavioral Dynamics & Strong Determinism)
+This is where the strongest determinism mechanisms live. Combining reactive state machines with network sync targets:
+```holoscript
+@networked_object(sync_rate: "20hz", authority: "server")
+@state_machine(states: ["idle", "active"], transitions: ["idle -> active"])
+object Defibrillator { ... }
+```
+The `@state_machine` makes the frame problem tractable by explicitly enumerating what CAN change. The `networked_object` with an explicit sync rate provides a built-in real-time comparison mechanism for behavioral conformance.
+
+### 3. `.holo` (Scene-Level Conformance)
+Compositions act as governed experience documents enforcing macro-level compliance:
+```holoscript
+template OperatingRoom {
+  environment { gravity: 9.8, physics_substeps: 4 }
+  logic { enforce_sterile_field() }
+}
+```
+
 ## The Honest Limits & Solutions
 The research identified five real constraints to behavioral determinism, along with their practical solutions within the HoloScript paradigm:
 

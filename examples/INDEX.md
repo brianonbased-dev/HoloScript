@@ -18,8 +18,80 @@ Complete catalog of all HoloScript examples organized by category, platform, and
 | 7   | [Multiplayer VR](specialized/multiplayer/)                              | Specialized | Advanced     | `.holo`                     | Photon, Mirror, WebRTC      | Voice chat, networking, shared objects |
 | 8   | [Unity Quest](specialized/unity-quest/)                                 | Specialized | Advanced     | `.holo`                     | Unity (Quest 2/3, PCVR)     | Mobile optimization, XR Toolkit        |
 | 9   | [VRChat World](specialized/vrchat/)                                     | Specialized | Advanced     | `.holo`                     | VRChat SDK3, Udon#          | Mirrors, video, portals, networking    |
+| 10  | [**Three-Format Showcase**](three-format-showcase/)                     | Tutorial    | Beginner     | `.holo` + `.hs` + `.hsplus` | R3F, Unity, Godot, OpenXR   | **Same scene in all three formats**    |
+| 11  | [Music Starter](domain-starters/music/)                                 | Domain      | Intermediate | `.holo`                     | R3F, Unity, Godot           | Spatial audio, MIDI, visualizer        |
+| 12  | [Navigation Starter](domain-starters/navigation/)                       | Domain      | Intermediate | `.holo`                     | iOS, Android, OpenXR        | Waypoints, compass, POI, pathfinding   |
+| 13  | [Web3 Starter](domain-starters/web3/)                                   | Domain      | Intermediate | `.holo`                     | R3F, Unity, OpenXR          | NFT gallery, wallet, x402 payments     |
+| 14  | [DataViz Starter](domain-starters/dataviz/)                             | Domain      | Intermediate | `.holo`                     | R3F, Unity, OpenXR          | Bar charts, scatter plots, heatmaps    |
+| 15  | [Education Starter](domain-starters/education/)                         | Domain      | Intermediate | `.holo`                     | R3F, Unity, OpenXR          | Quizzes, lessons, progress, LMS        |
+| 16  | [Architecture Starter](domain-starters/architecture/)                   | Domain      | Intermediate | `.holo`                     | Unity, OpenXR, R3F          | BIM, floor plans, sun path, materials  |
+| 17  | [Input Starter](domain-starters/input/)                                 | Domain      | Intermediate | `.holo`                     | OpenXR, Unity, R3F          | Hand/eye/voice tracking, haptics       |
+| 18  | [Rendering Starter](domain-starters/rendering/)                         | Domain      | Intermediate | `.holo`                     | R3F, Unity, Godot           | PBR gallery, shaders, post-processing  |
+| 19  | [Procedural Starter](domain-starters/procedural/)                       | Domain      | Intermediate | `.holo`                     | R3F, Unity, Godot           | Terrain, L-systems, noise, vegetation  |
+| 20  | [IoT Starter (Smart Home)](domain-starters/iot/)                        | Domain      | Intermediate | `.holo`                     | R3F, Unity, OpenXR          | Thermostat, lights, sensors, MQTT      |
+| 21  | [Smart Building](cross-domain/smart-building.holo)                      | Cross-Domain| Advanced     | `.holo`                     | R3F, Unity, OpenXR          | IoT + Architecture + DataViz           |
+| 22  | [Concert Venue](cross-domain/concert-venue.holo)                        | Cross-Domain| Advanced     | `.holo`                     | R3F, Unity, Godot           | Music + Input + Rendering + Procedural |
+| 23  | [Immersive Classroom](cross-domain/immersive-classroom.holo)            | Cross-Domain| Advanced     | `.holo`                     | R3F, Unity, OpenXR          | Education + DataViz + Nav + Web3       |
 
-**Note**: Most general examples use `.holo` (composition layer). Robotics examples use `.hsplus` (advanced features). The integration demo shows all three file types working together.
+**Note**: Most general examples use `.holo` (composition layer). Robotics examples use `.hsplus` (advanced features). The integration demo and three-format showcase show all three file types working together. Domain starters are minimal templates for specific verticals. Cross-domain examples combine multiple domain handlers.
+
+## v5.0 Features — Three-Format Coverage
+
+v5.0 features are documented across all three formats to demonstrate the right tool for each paradigm.
+
+### Autonomous Ecosystems
+
+| Feature | .holo (Composition) | .hsplus (Behavior) | .hs (Process) |
+|---------|---------------------|-------------------|---------------|
+| **Agent Portal** | [01-agent-portal-messaging.holo](autonomous-ecosystems/01-agent-portal-messaging.holo) | [agent-portal-federation.hsplus](autonomous-ecosystems/agent-portal-federation.hsplus) | [agent-migration-pipeline.hs](autonomous-ecosystems/agent-migration-pipeline.hs) |
+| **Economy** | [02-economy-primitives.holo](autonomous-ecosystems/02-economy-primitives.holo) | [economy-marketplace.hsplus](autonomous-ecosystems/economy-marketplace.hsplus) | [economy-settlement.hs](autonomous-ecosystems/economy-settlement.hs) |
+| **Feedback Loop** | [03-feedback-loop-optimization.holo](autonomous-ecosystems/03-feedback-loop-optimization.holo) | [feedback-driven-npc.hsplus](autonomous-ecosystems/feedback-driven-npc.hsplus) | [feedback-optimization-cycle.hs](autonomous-ecosystems/feedback-optimization-cycle.hs) |
+| **Cultural Traits** | [04-cultural-ecosystem.holo](autonomous-ecosystems/04-cultural-ecosystem.holo) | [cultural-evolution.hsplus](autonomous-ecosystems/cultural-evolution.hsplus) | [cultural-norm-enforcement.hs](autonomous-ecosystems/cultural-norm-enforcement.hs) |
+
+### Enterprise
+
+| Feature | .holo (Composition) | .hsplus (Behavior) | .hs (Process) |
+|---------|---------------------|-------------------|---------------|
+| **Tenant Isolation** | [01-tenant-isolation.holo](enterprise/01-tenant-isolation.holo) | [enterprise-lifecycle.hsplus](enterprise/enterprise-lifecycle.hsplus) | [tenant-provisioning.hs](enterprise/tenant-provisioning.hs) |
+| **RBAC Permissions** | [02-rbac-permissions.holo](enterprise/02-rbac-permissions.holo) | [enterprise-lifecycle.hsplus](enterprise/enterprise-lifecycle.hsplus) | [tenant-provisioning.hs](enterprise/tenant-provisioning.hs) |
+| **SSO Integration** | [03-sso-integration.holo](enterprise/03-sso-integration.holo) | — | — |
+| **Quota Enforcement** | [04-quota-enforcement.holo](enterprise/04-quota-enforcement.holo) | — | — |
+| **Audit Logging** | [05-audit-logging.holo](enterprise/05-audit-logging.holo) | [enterprise-lifecycle.hsplus](enterprise/enterprise-lifecycle.hsplus) | — |
+| **Analytics Dashboard** | [06-analytics-dashboard.holo](enterprise/06-analytics-dashboard.holo) | — | — |
+| **A/B Testing** | [07-ab-testing.holo](enterprise/07-ab-testing.holo) | — | — |
+
+### Traits & Physics
+
+| Feature | .holo (Composition) | .hsplus (Behavior) | .hs (Process) |
+|---------|---------------------|-------------------|---------------|
+| **@throwable/@breakable/@stackable** | [throwable-breakable-stackable.holo](traits/throwable-breakable-stackable.holo) | [physics-object-lifecycle.hsplus](traits/physics-object-lifecycle.hsplus) | — |
+| **@state_machine** | Multiple `.holo` files | [game-state-machine.hsplus](game-state-machine.hsplus) | — |
+
+### Cryptography
+
+| Feature | .holo (Composition) | .hsplus (Behavior) | .hs (Process) |
+|---------|---------------------|-------------------|---------------|
+| **Post-Quantum Crypto** | [01-hybrid-crypto-signing.holo](cryptography/01-hybrid-crypto-signing.holo) | [secure-agent-handshake.hsplus](cryptography/secure-agent-handshake.hsplus) | [secure-channel-setup.hs](cryptography/secure-channel-setup.hs) |
+| **CBAC Permissions** | [02-cbac-permissions.holo](cryptography/02-cbac-permissions.holo) | — | — |
+| **Agent Token Auth** | [03-agent-token-auth.holo](cryptography/03-agent-token-auth.holo) | — | — |
+
+### Agent Process Examples (.hs)
+
+| Example | Key Features |
+|---------|-------------|
+| [Guard Patrol](agents/guard-patrol.hs) | Waypoint patrol loop, investigate/alarm procedures, `connect`/`execute` |
+| [IoT Sensor Pipeline](agents/iot-sensor-pipeline.hs) | 4-stage data pipeline, `connect` wiring, `execute every Nms` |
+
+### Format Selection Guide
+
+| Use Case | Best Format | Why |
+|----------|------------|-----|
+| Scene descriptions, world building | `.holo` | Declarative — describes WHAT things are |
+| State machines, reactive behavior, modules | `.hsplus` | Behavioral — describes HOW things react |
+| Sequential pipelines, data flow, processes | `.hs` | Procedural — describes WHAT to do step by step |
+| Agent patrol routes, sensor pipelines | `.hs` | Sequential process with `connect`/`execute` |
+| Game logic, NPC behavior, UI reactivity | `.hsplus` | Event-driven with `@state_machine` and `@on_event` |
+| Multi-tenant setup, physics playgrounds | `.holo` | Configuration-heavy composition with traits |
 
 ## By Platform
 
@@ -340,4 +412,4 @@ Complete catalog of all HoloScript examples organized by category, platform, and
 
 ---
 
-**Updated**: 2025-02-20 | **Total Examples**: 9 | **Total Platforms**: 18+
+**Updated**: 2026-03-09 | **Total Examples**: 38+ | **Total Platforms**: 18+ | **v5.0 Coverage**: 3-format parity

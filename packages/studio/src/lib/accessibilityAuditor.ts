@@ -16,6 +16,7 @@ export interface Vec3 {
 }
 
 export type ComplianceLevel = 'pass' | 'warning' | 'fail';
+export type WCAGLevel = 'A' | 'AA' | 'AAA';
 export type MobilityDevice =
   | 'manual-wheelchair'
   | 'power-wheelchair'
@@ -23,6 +24,39 @@ export type MobilityDevice =
   | 'walker'
   | 'crutches'
   | 'cane';
+
+function hexToRgb(hex: string) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+}
+
+function luminance(r: number, g: number, b: number) {
+  const a = [r, g, b].map((v) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+}
+
+export function contrastRatio(fg: string, bg: string): number {
+  const c1 = hexToRgb(fg);
+  const c2 = hexToRgb(bg);
+  const l1 = luminance(c1.r, c1.g, c1.b);
+  const l2 = luminance(c2.r, c2.g, c2.b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+export function rampCompliant(slope: number): boolean {
+  return slope <= 1 / 12;
+}
+
+export function doorWidthCompliant(widthCm: number): boolean {
+  return widthCm >= 81.3;
+}
 
 export interface Doorway {
   id: string;
@@ -469,4 +503,11 @@ export function findAccessibleRoute(
   }
 
   return null; // No accessible route found
+}
+
+export function meetsWCAG(contrast: number, level: 'A' | 'AA' | 'AAA'): boolean {
+  if (level === 'A') return contrast >= 3.0; // Basic text
+  if (level === 'AA') return contrast >= 4.5;
+  if (level === 'AAA') return contrast >= 7.0;
+  return false;
 }

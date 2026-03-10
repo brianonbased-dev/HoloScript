@@ -1051,7 +1051,7 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
   const [dragging, setDragging] = useState(false);
   const [vrmFile, setVrmFile] = useState<File | null>(null);
   const [vrmMetadata, setVrmMetadata] = useState<any>(null);
-  const [vrmThumbnail, setVrmThumbnail] = useState<string>('');
+  const [vrmThumbnail, setVrmThumbnail] = useState<string | undefined>(undefined);
 
   const handleVRMFile = async (file: File) => {
     if (!file.name.match(/\.vrm$/i)) {
@@ -1069,15 +1069,15 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
 
       setVrmFile(file);
       setVrmMetadata(avatar.metadata);
-      setVrmThumbnail(avatar.thumbnail);
+      setVrmThumbnail(avatar.thumbnail || undefined);
 
       // Check license compatibility
       if (avatar.metadata) {
-        const licenseCheck = isLicenseCompatible(avatar.metadata);
-        if (!licenseCheck.compatible) {
-          console.warn('[VRoidImport] License warnings:', licenseCheck.warnings);
+        const isCompatible = isLicenseCompatible(avatar.metadata);
+        if (!isCompatible) {
+          console.warn('[VRoidImport] License is not compatible for commercial use.');
           const proceed = confirm(
-            `License warnings:\n${licenseCheck.warnings.join('\n')}\n\nProceed anyway?`
+            `This VRM avatar license is not compatible with commercial use. Proceed anyway?`
           );
           if (!proceed) {
             setIsLoading(false);
@@ -1329,7 +1329,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
         maxFaceCount: 100000, // Limit to 100K tris for performance
       });
 
-      setSearchResults(results.models);
+      setSearchResults(results.results);
       console.log('[Sketchfab] Found', results.totalCount, 'models');
     } catch (error) {
       console.error('[Sketchfab] Search failed:', error);
@@ -1369,8 +1369,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
       }
 
       console.log('[Sketchfab] Downloading model:', selectedModel.name);
-      const blob = await downloadModel(selectedModel.uid);
-      const url = URL.createObjectURL(blob);
+      const url = await downloadModel(selectedModel.uid);
 
       onCharacterCreated(url, {
         name: selectedModel.name,
