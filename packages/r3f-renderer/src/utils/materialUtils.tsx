@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Shared material and geometry utilities for MeshNode, AnimatedMeshNode,
  * and StaticChildMesh — single source of truth for material property
@@ -8,7 +6,7 @@
 
 import type { R3FNode } from '@holoscript/core';
 import { MATERIAL_PRESETS } from '@holoscript/core';
-import { ProceduralGeometryComponent } from './ProceduralMesh';
+import { ProceduralGeometryComponent } from '../components/ProceduralMesh';
 
 // =============================================================================
 // Geometry Factory

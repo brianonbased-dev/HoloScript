@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * useHoloTextures — Hook that extracts texture URLs from HoloScript material
  * props and loads them as Three.js textures for live R3F rendering.

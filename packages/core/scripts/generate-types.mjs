@@ -171,6 +171,12 @@ export interface R3FMaterialProps {
 }
 
 export interface R3FNode {
+  type: string;
+  id?: string;
+  props: Record<string, any>;
+  children?: R3FNode[];
+  traits?: Map<string, any>;
+  directives?: any[];
   [key: string]: any;
 }
 

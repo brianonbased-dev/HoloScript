@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * useProceduralTexture — Hook that generates procedural textures using
  * the core generators from GLTFPipeline and converts them to THREE.DataTexture.

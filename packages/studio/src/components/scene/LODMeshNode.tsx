@@ -8,9 +8,7 @@
 import { Suspense } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Detailed } from '@react-three/drei';
-import { getGeometry, getMaterialProps, isScaledBody, type LODDetail } from './materialUtils';
-import { useHoloTextures, hasTextures } from '@/hooks/useHoloTextures';
-import { useProceduralTexture } from '@/hooks/useProceduralTexture';
+import { getGeometry, getMaterialProps, isScaledBody, type LODDetail, useHoloTextures, hasTextures, useProceduralTexture } from '@holoscript/r3f-renderer';
 
 interface LODMeshNodeProps {
   node: R3FNode;

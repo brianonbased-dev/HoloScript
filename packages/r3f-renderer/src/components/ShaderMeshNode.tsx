@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * ShaderMeshNode — Renders a mesh with a custom GLSL shader.
  *
@@ -17,13 +15,13 @@
 import { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
-import { ShaderTrait, SHADER_PRESETS, createShaderTrait } from '@holoscript/core';
-import { useEditorStore } from '@/lib/stores';
+import { SHADER_PRESETS, createShaderTrait } from '@holoscript/core';
 import * as THREE from 'three';
-import { getGeometry } from './materialUtils';
+import { getGeometry } from '../utils/materialUtils';
 
-interface ShaderMeshNodeProps {
+export interface ShaderMeshNodeProps {
   node: R3FNode;
+  onSelect?: (id: string | null) => void;
 }
 
 /**
@@ -72,10 +70,8 @@ function resolveShaderConfig(shaderProp: any): Record<string, unknown> | null {
   return null;
 }
 
-export function ShaderMeshNode({ node }: ShaderMeshNodeProps) {
+export function ShaderMeshNode({ node, onSelect }: ShaderMeshNodeProps) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
-  const selectedId = useEditorStore((s) => s.selectedObjectId);
-  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
   const { size: viewportSize } = useThree();
 
   const { props } = node;
@@ -84,7 +80,6 @@ export function ShaderMeshNode({ node }: ShaderMeshNodeProps) {
   const position = props.position || [0, 0, 0];
   const rotation = props.rotation || [0, 0, 0];
   const scale = props.scale || [1, 1, 1];
-  const isSelected = node.id === selectedId;
 
   // Resolve shader config from trait
   const shaderConfig = useMemo(() => resolveShaderConfig(props.shader), [props.shader]);
@@ -128,7 +123,7 @@ export function ShaderMeshNode({ node }: ShaderMeshNodeProps) {
         userData={{ nodeId: node.id }}
         onClick={(e: any) => {
           e.stopPropagation();
-          setSelectedId(node.id || null);
+          onSelect?.(node.id || null);
         }}
       >
         {getGeometry(hsType, size, props)}
@@ -142,12 +137,6 @@ export function ShaderMeshNode({ node }: ShaderMeshNodeProps) {
           depthWrite={(shaderConfig.depthWrite as boolean) ?? true}
           side={(shaderConfig.side as THREE.Side) ?? THREE.FrontSide}
         />
-        {isSelected && (
-          <mesh>
-            {getGeometry(hsType, size * 1.05, props)}
-            <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
-          </mesh>
-        )}
       </mesh>
     </group>
   );

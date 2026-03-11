@@ -2,12 +2,39 @@
 
 import type { R3FNode } from '@holoscript/core';
 import { Text, Sparkles, Environment } from '@react-three/drei';
-import { MeshNode } from './MeshNode';
+import { MeshNode, ShaderMeshNode, hasShaderTrait } from '@holoscript/r3f-renderer';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
+import { useBuilderStore } from '@/lib/stores/builderStore';
 import { AnimatedMeshNode } from './AnimatedMeshNode';
-import { ShaderMeshNode, hasShaderTrait } from './ShaderMeshNode';
 import { LODMeshNode, hasLOD } from './LODMeshNode';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
+
+/** Thin wrapper: bridges Studio stores → shared MeshNode callback props */
+function StudioMeshNode({ node }: { node: R3FNode }) {
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const setNodeRef = useSceneGraphStore((s) => s.setNodeRef);
+  const builderMode = useBuilderStore((s) => s.builderMode);
+
+  return (
+    <MeshNode
+      node={node}
+      onSelect={setSelectedId}
+      onRemove={removeNode}
+      onRef={setNodeRef}
+      isSelected={node.id === selectedId}
+      isBreakMode={builderMode === 'break'}
+    />
+  );
+}
+
+/** Thin wrapper: bridges Studio stores → shared ShaderMeshNode callback props */
+function StudioShaderMeshNode({ node }: { node: R3FNode }) {
+  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  return <ShaderMeshNode node={node} onSelect={setSelectedId} />;
+}
 
 interface R3FNodeRendererProps {
   node: R3FNode;
@@ -38,14 +65,14 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
       let meshComponent;
       if (isShaderMesh) {
-        meshComponent = <ShaderMeshNode node={node} />;
+        meshComponent = <StudioShaderMeshNode node={node} />;
       } else if (isLODMesh) {
         const distances = props.lodDistances || [0, 25, 50];
         meshComponent = <LODMeshNode node={node} distances={distances} />;
       } else if (hasKeyframes) {
         meshComponent = <AnimatedMeshNode node={node} />;
       } else {
-        meshComponent = <MeshNode node={node} />;
+        meshComponent = <StudioMeshNode node={node} />;
       }
 
       return (
@@ -147,8 +174,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       return <PostProcessingNode node={node} />;
 
     case 'gltfModel': {
-      const animTrait = node.traits.find((t: any) => t.name === 'animation');
-      const action = animTrait ? (animTrait.properties.state as string) : 'idle';
+      const animTrait = node.traits?.get('animation' as any);
+      const action = animTrait ? (animTrait.properties?.state as string ?? 'idle') : 'idle';
       return (
         <GLTFModelNode
           node={node}

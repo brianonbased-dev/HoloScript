@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * ProceduralMesh — R3F component that renders procedural geometry
  * (hull/metaball, spline tube, lofted membrane) using the shared
@@ -38,7 +36,7 @@ interface ProceduralMeshProps {
   bulge?: number;
 }
 
-function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
+function toBufferGeometry(data: any): THREE.BufferGeometry {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3));
@@ -60,13 +58,12 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         );
         break;
       case 'spline':
-        data = generateSplineGeometry(props.points || [], props.radii || [0.1], 32, 12);
+        data = generateSplineGeometry((props.points as any) || [], (props.radii as any) || [0.1], 32, 12);
         break;
       case 'membrane':
         data = generateMembraneGeometry(
-          props.anchors || [],
-          props.subdivisions || 8,
-          props.bulge || 0.15
+          props.anchors as any || [],
+          props.subdivisions || 8
         );
         break;
       default:
@@ -246,11 +243,6 @@ export function FireEmbers({ position }: FireEmbersProps) {
 // KeyframeAnimator — simple pulsing animation from keyframe data
 // =============================================================================
 
-interface KeyframeAnimatorProps {
-  meshRef: React.RefObject<THREE.Mesh>;
-  keyframes?: Record<string, any>;
-}
-
 export function useKeyframeAnimation(
   meshRef: React.RefObject<THREE.Mesh | THREE.Group | null>,
   keyframes?: Record<string, any>
@@ -269,6 +261,7 @@ export function useKeyframeAnimation(
     // Simple sine-based interpolation for "breathe" effect
     if (firstKey.includes('breathe') || firstKey.includes('pulse') || firstKey.includes('Pulse')) {
       const breathe = 1 + Math.sin(t * Math.PI * 2) * 0.05;
+      meshRef.current.scale.setScalar(breathe);
     }
   });
 }
