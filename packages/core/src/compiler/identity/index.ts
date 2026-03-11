@@ -62,11 +62,35 @@ export {
 export {
   type ResourceType,
   type AccessDecision,
+  type AccessDecisionWithConfabulation,
   type ResourceAccessRequest,
   AgentRBAC,
   getRBAC,
   resetRBAC,
 } from './AgentRBAC';
+
+// Confabulation Risk Layer (schema validation gate)
+export {
+  // Types
+  type TraitPropertyType,
+  type TraitPropertySchema,
+  type TraitSchema,
+  type ConfabulationValidationResult,
+  type ConfabulationError,
+  type ConfabulationWarning,
+  type ConfabulationValidatorConfig,
+
+  // Enum
+  ConfabulationErrorCode,
+
+  // Class
+  ConfabulationValidator,
+  ConfabulationDetectedError,
+
+  // Singleton
+  getConfabulationValidator,
+  resetConfabulationValidator,
+} from './ConfabulationValidator';
 
 // Proof-of-Possession (PoP) HTTP Message Signatures
 export {

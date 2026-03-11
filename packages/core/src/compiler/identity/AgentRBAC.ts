@@ -6,8 +6,9 @@
  * - File path scopes (package-level restrictions)
  * - Operation permissions (read/write/execute)
  * - Workflow step validation
+ * - Confabulation risk detection (schema validation gate, v1.1.0)
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import path from 'path';
@@ -24,6 +25,13 @@ import {
   type AgentCulturalEntry,
   type CulturalCompatibilityResult,
 } from '../CulturalCompatibilityChecker';
+import {
+  ConfabulationValidator,
+  getConfabulationValidator,
+  type ConfabulationValidationResult,
+  type ConfabulationValidatorConfig,
+} from './ConfabulationValidator';
+import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 /**
  * Resource types in the compiler pipeline
@@ -45,6 +53,18 @@ export interface AccessDecision {
   reason?: string;
   requiredPermission?: AgentPermission;
   agentRole?: AgentRole;
+}
+
+/**
+ * Extended access decision that includes confabulation validation results.
+ *
+ * Returned by `checkAccessWithConfabulationGate()` which chains:
+ * 1. RBAC permission check ("are you allowed?")
+ * 2. Confabulation schema validation ("is what you generated valid?")
+ */
+export interface AccessDecisionWithConfabulation extends AccessDecision {
+  /** Confabulation validation result (only present when composition was validated) */
+  confabulation?: ConfabulationValidationResult;
 }
 
 /**
@@ -323,6 +343,84 @@ export class AgentRBAC {
   getWorkflowStep(token: string): WorkflowStep | null {
     const result = this.tokenIssuer.verifyToken(token);
     return result.valid && result.payload ? result.payload.intent.workflow_step : null;
+  }
+
+  // ===========================================================================
+  // CONFABULATION RISK LAYER (v1.1.0)
+  // ===========================================================================
+
+  /**
+   * Check access with confabulation gate.
+   *
+   * This is the primary enforcement point for AI-generated content. It chains:
+   * 1. Standard RBAC permission check (token, role, scope, workflow)
+   * 2. Confabulation schema validation (trait properties against 1,800+ schemas)
+   *
+   * If the RBAC check fails, the confabulation check is skipped (no point
+   * validating content from an unauthorized agent).
+   *
+   * @param request - Standard resource access request
+   * @param composition - The HoloComposition to validate for confabulation
+   * @param confabConfig - Optional confabulation validator configuration
+   * @returns Extended access decision with confabulation validation results
+   */
+  checkAccessWithConfabulationGate(
+    request: ResourceAccessRequest,
+    composition: HoloComposition,
+    confabConfig?: ConfabulationValidatorConfig,
+  ): AccessDecisionWithConfabulation {
+    // Step 1: Standard RBAC check
+    const rbacDecision = this.checkAccess(request);
+
+    if (!rbacDecision.allowed) {
+      return rbacDecision;
+    }
+
+    // Step 2: Confabulation schema validation
+    const validator = confabConfig
+      ? new ConfabulationValidator(confabConfig)
+      : getConfabulationValidator();
+
+    const confabResult = validator.validateComposition(composition);
+
+    if (!confabResult.valid) {
+      return {
+        allowed: false,
+        reason: `Confabulation detected (risk score: ${confabResult.riskScore}/100, ` +
+          `${confabResult.errors.length} error(s)): ` +
+          confabResult.errors.map(e => e.message).join('; '),
+        agentRole: rbacDecision.agentRole,
+        confabulation: confabResult,
+      };
+    }
+
+    // Both checks passed
+    return {
+      ...rbacDecision,
+      confabulation: confabResult,
+    };
+  }
+
+  /**
+   * Validate a composition for confabulation risk WITHOUT requiring an RBAC token.
+   *
+   * This is useful for the validate_holoscript MCP tool and the ai-validator
+   * package which may not have an agent token but still need to check for
+   * confabulated trait properties.
+   *
+   * @param composition - The HoloComposition to validate
+   * @param confabConfig - Optional confabulation validator configuration
+   * @returns Confabulation validation result
+   */
+  validateConfabulation(
+    composition: HoloComposition,
+    confabConfig?: ConfabulationValidatorConfig,
+  ): ConfabulationValidationResult {
+    const validator = confabConfig
+      ? new ConfabulationValidator(confabConfig)
+      : getConfabulationValidator();
+
+    return validator.validateComposition(composition);
   }
 
   // ===========================================================================
