@@ -167,7 +167,7 @@ jobs:
           path: ./current-results
 
       - name: Download baseline (main branch)
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v16
         with:
           workflow: benchmarks.yml
           branch: main
