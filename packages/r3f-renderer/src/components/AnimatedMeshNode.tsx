@@ -1,20 +1,21 @@
-'use client';
-
 /**
  * AnimatedMeshNode — Renders a mesh with real-time keyframe animation.
  *
  * Uses Three.js useFrame to interpolate position/rotation/scale/color/opacity
  * between keyframe stops at 60fps. Handles multiple named keyframe sequences
  * and supports easing functions.
+ *
+ * Platform-agnostic: accepts callback props instead of depending on any
+ * specific store (Studio, Hololand, etc.).
  */
 
 import { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
-import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
-import { useBuilderStore } from '@/lib/stores/builderStore';
 import * as THREE from 'three';
-import { getGeometry, getMaterialProps, isScaledBody, useHoloTextures, hasTextures, useProceduralTexture } from '@holoscript/r3f-renderer';
+import { getGeometry, getMaterialProps, isScaledBody } from '../utils/materialUtils';
+import { useHoloTextures, hasTextures } from '../hooks/useHoloTextures';
+import { useProceduralTexture } from '../hooks/useProceduralTexture';
 
 // ── Easing Functions ─────────────────────────────────────────────────────────
 
@@ -172,17 +173,27 @@ function TexturedAnimatedMaterial({
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-interface AnimatedMeshNodeProps {
+export interface AnimatedMeshNodeProps {
   node: R3FNode;
+  /** Called when the mesh is clicked with the node id */
+  onSelect?: (id: string | null) => void;
+  /** Called to remove a node (e.g. break mode) */
+  onRemove?: (id: string) => void;
+  /** Whether this node is currently selected */
+  isSelected?: boolean;
+  /** Whether the editor is in break/delete mode */
+  isBreakMode?: boolean;
 }
 
-export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
+export function AnimatedMeshNode({
+  node,
+  onSelect,
+  onRemove,
+  isSelected = false,
+  isBreakMode = false,
+}: AnimatedMeshNodeProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.MeshPhysicalMaterial>(null);
-  const selectedId = useEditorStore((s) => s.selectedObjectId);
-  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
-  const removeNode = useSceneGraphStore((s) => s.removeNode);
-  const builderMode = useBuilderStore((s) => s.builderMode);
 
   const { props } = node;
   const hsType = props.hsType || 'box';
@@ -190,8 +201,6 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
   const basePosition = props.position || [0, 0, 0];
   const baseRotation = props.rotation || [0, 0, 0];
   const baseScale = props.scale || [1, 1, 1];
-  const isSelected = node.id === selectedId;
-  const isBreakMode = builderMode === 'break';
 
   const matProps = getMaterialProps(node);
 
@@ -289,9 +298,20 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
       const childHasKeyframes =
         child.props?.keyframes && (child.props.keyframes as any[]).length > 0;
       return childHasKeyframes ? (
-        <AnimatedMeshNode key={child.id || `child-${i}`} node={child} />
+        <AnimatedMeshNode
+          key={child.id || `child-${i}`}
+          node={child}
+          onSelect={onSelect}
+          onRemove={onRemove}
+          isBreakMode={isBreakMode}
+        />
       ) : (
-        <StaticChildMesh key={child.id || `child-${i}`} node={child} />
+        <StaticChildMesh
+          key={child.id || `child-${i}`}
+          node={child}
+          onSelect={onSelect}
+          isSelected={false}
+        />
       );
     });
 
@@ -306,9 +326,9 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
         onClick={(e: any) => {
           e.stopPropagation();
           if (isBreakMode && node.id) {
-            removeNode(node.id);
+            onRemove?.(node.id);
           } else {
-            setSelectedId(node.id || null);
+            onSelect?.(node.id || null);
           }
         }}
       >
@@ -352,18 +372,23 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
   );
 }
 
-// ── Static child (no keyframes) — avoids importing MeshNode (circular) ───────
+// ── Static child (no keyframes) ───────────────────────────────────────────
 
-function StaticChildMesh({ node }: { node: R3FNode }) {
-  const selectedId = useEditorStore((s) => s.selectedObjectId);
-  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+function StaticChildMesh({
+  node,
+  onSelect,
+  isSelected = false,
+}: {
+  node: R3FNode;
+  onSelect?: (id: string | null) => void;
+  isSelected?: boolean;
+}) {
   const { props } = node;
   const hsType = props.hsType || 'box';
   const size = props.size || 1;
   const position = props.position || [0, 0, 0];
   const rotation = props.rotation || [0, 0, 0];
   const scale = props.scale || [1, 1, 1];
-  const isSelected = node.id === selectedId;
   const matProps = getMaterialProps(node);
   const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
     size: 512,
@@ -388,7 +413,7 @@ function StaticChildMesh({ node }: { node: R3FNode }) {
       userData={{ nodeId: node.id }}
       onClick={(e: any) => {
         e.stopPropagation();
-        setSelectedId(node.id || null);
+        onSelect?.(node.id || null);
       }}
     >
       {getGeometry(hsType, size, props)}

@@ -2,11 +2,16 @@
 
 import type { R3FNode } from '@holoscript/core';
 import { Text, Sparkles, Environment } from '@react-three/drei';
-import { MeshNode, ShaderMeshNode, hasShaderTrait } from '@holoscript/r3f-renderer';
+import {
+  MeshNode,
+  ShaderMeshNode,
+  hasShaderTrait,
+  AnimatedMeshNode,
+  LODMeshNode,
+  hasLOD,
+} from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
-import { AnimatedMeshNode } from './AnimatedMeshNode';
-import { LODMeshNode, hasLOD } from './LODMeshNode';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 
@@ -34,6 +39,24 @@ function StudioMeshNode({ node }: { node: R3FNode }) {
 function StudioShaderMeshNode({ node }: { node: R3FNode }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
   return <ShaderMeshNode node={node} onSelect={setSelectedId} />;
+}
+
+/** Thin wrapper: bridges Studio stores → shared AnimatedMeshNode callback props */
+function StudioAnimatedMeshNode({ node }: { node: R3FNode }) {
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const builderMode = useBuilderStore((s) => s.builderMode);
+
+  return (
+    <AnimatedMeshNode
+      node={node}
+      onSelect={setSelectedId}
+      onRemove={removeNode}
+      isSelected={node.id === selectedId}
+      isBreakMode={builderMode === 'break'}
+    />
+  );
 }
 
 interface R3FNodeRendererProps {
@@ -70,7 +93,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         const distances = props.lodDistances || [0, 25, 50];
         meshComponent = <LODMeshNode node={node} distances={distances} />;
       } else if (hasKeyframes) {
-        meshComponent = <AnimatedMeshNode node={node} />;
+        meshComponent = <StudioAnimatedMeshNode node={node} />;
       } else {
         meshComponent = <StudioMeshNode node={node} />;
       }

@@ -4,16 +4,16 @@
   "description": "Shared React Three Fiber renderer components for HoloScript",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
   },
   "files": ["dist", "src"],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch"
   },
   "dependencies": {

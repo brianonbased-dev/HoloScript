@@ -1,18 +1,20 @@
-'use client';
-
 /**
  * LODMeshNode — Level-of-detail mesh rendering using drei's Detailed component.
  * Renders 3 detail levels (high/medium/low) and switches based on camera distance.
+ *
+ * Platform-agnostic: no store dependencies.
  */
 
 import { Suspense } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Detailed } from '@react-three/drei';
-import { getGeometry, getMaterialProps, isScaledBody, type LODDetail, useHoloTextures, hasTextures, useProceduralTexture } from '@holoscript/r3f-renderer';
+import { getGeometry, getMaterialProps, isScaledBody, type LODDetail } from '../utils/materialUtils';
+import { useHoloTextures, hasTextures } from '../hooks/useHoloTextures';
+import { useProceduralTexture } from '../hooks/useProceduralTexture';
 
-interface LODMeshNodeProps {
+export interface LODMeshNodeProps {
   node: R3FNode;
-  /** LOD distance thresholds in world units [medium, low] */
+  /** LOD distance thresholds in world units [close, medium, far] */
   distances?: [number, number, number];
 }
 

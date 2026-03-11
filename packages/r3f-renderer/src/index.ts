@@ -3,6 +3,10 @@ export { MeshNode } from './components/MeshNode';
 export type { MeshNodeProps } from './components/MeshNode';
 export { ShaderMeshNode, hasShaderTrait } from './components/ShaderMeshNode';
 export type { ShaderMeshNodeProps } from './components/ShaderMeshNode';
+export { AnimatedMeshNode } from './components/AnimatedMeshNode';
+export type { AnimatedMeshNodeProps } from './components/AnimatedMeshNode';
+export { LODMeshNode, hasLOD } from './components/LODMeshNode';
+export type { LODMeshNodeProps } from './components/LODMeshNode';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,
