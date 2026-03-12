@@ -671,7 +671,7 @@ culture "EmergentVillage" {
 ### 10.2 Migration Path
 
 1. **Phase 1 (v4.4):** Grammar + parser support. Culture blocks are parsed but only validated, not compiled.
-2. **Phase 2 (v4.5):** Compiler support. Culture blocks generate runtime initialization for all 18+ targets.
+2. **Phase 2 (v4.5):** Compiler support. Culture blocks generate runtime initialization for all 25+ targets.
 3. **Phase 3 (v4.6):** LSP intelligence. Full completions, hover, diagnostics.
 4. **Phase 4 (v5.0):** Emergent culture. Runtime evolution with compile-time safety bounds.
 

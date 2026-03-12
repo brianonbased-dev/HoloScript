@@ -17,7 +17,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterAll } from 'vitest';
 
 // Mock @holoscript/core for fallback
 vi.mock('@holoscript/core', () => ({
@@ -46,6 +46,17 @@ vi.mock('@holoscript/core', () => ({
     }
   },
 }));
+
+// Mock Worker (no real WASM in test env — jsdom lacks Worker support)
+vi.stubGlobal(
+  'Worker',
+  vi.fn().mockImplementation(() => ({
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+  }))
+);
 
 import { runBenchmark, type BenchmarkComparison } from '../lib/benchmark-harness';
 
@@ -149,6 +160,12 @@ const TEST_CASES = {
 };
 
 describe('WASM Performance Benchmarks', () => {
+  // Clean up global Worker stub after all tests to prevent leaking
+  // to other test files that share this vitest worker pool
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
   describe('Simple Scene Benchmark', () => {
     it('should compare WASM vs TypeScript for simple composition', async () => {
       const result = await runBenchmark({

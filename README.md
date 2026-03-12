@@ -350,6 +350,7 @@ narrative "Tutorial" {
 ## 🛠️ Tooling
 
 - **`holoscript absorb`** — Scan any codebase (TypeScript, Python, Rust, Go), extract symbols, build a knowledge graph, and generate a `.holo` composition for spatial visualization. Then query it with Graph RAG: `"what calls X?"`, `"trace call chain from A to B"`.
+- **`holoscript query`** — Semantic GraphRAG search over an absorbed codebase. Supports four embedding backends: `bm25` (default, zero deps), `xenova` (local WASM semantics via `@huggingface/transformers`), `openai` (cloud, requires `openai` package + API key), and `ollama` (local HTTP). Add `--with-llm` to get a natural-language answer synthesised by an LLM. [Full guide →](./docs/guides/codebase-intelligence.md)
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
 - **MCP Server (43+ tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
 - **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.

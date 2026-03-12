@@ -964,7 +964,7 @@ export class VisualEditor {
 
     if (!entity) return;
 
-    let html = `
+    const html = `
       <div class="properties-inspector">
         <div class="property-group">
           <h4>Transform</h4>

@@ -108,7 +108,7 @@ describe('Scenario: Constellation Storyteller — Sky Navigation', () => {
   });
 
   it('mythology overlay — show Greek/Chinese/Aboriginal constellation art', () => {
-    const orionDef: ConstellationDef = {
+    const orionDef: any = {
       id: 'orion',
       name: 'Orion',
       abbreviation: 'Ori',

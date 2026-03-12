@@ -85,7 +85,7 @@ export function useScriptConsole() {
       };
 
       try {
-        // eslint-disable-next-line no-new-func
+         
         const fn = new Function(
           'scene',
           'console',

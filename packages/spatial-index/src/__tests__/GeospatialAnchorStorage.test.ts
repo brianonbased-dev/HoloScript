@@ -46,56 +46,41 @@ const mockIDB = () => {
           createIndex: vi.fn(),
         };
       },
-      transaction: (storeName: string, mode: string) => {
+      transaction: (storeName: string, _mode: string) => {
         const store = databases.get(dbName)?.get(storeName) || new Map();
+
+        // Creates a request object whose onsuccess fires (via setTimeout) when assigned,
+        // matching the real IndexedDB callback pattern used by GeospatialAnchorStorage.
+        const makeRequest = (result: any) => {
+          const req: any = { onerror: null, result };
+          Object.defineProperty(req, 'onsuccess', {
+            enumerable: true,
+            configurable: true,
+            get() { return null; },
+            set(fn: any) {
+              setTimeout(() => fn?.call(req), 0);
+            },
+          });
+          return req;
+        };
 
         return {
           objectStore: () => ({
-            get: (key: string) => ({
-              onsuccess: null,
-              onerror: null,
-              result: store.get(key),
-              addEventListener: (event: string, handler: any) => {
-                if (event === 'success') setTimeout(() => handler(), 0);
-              },
-            }),
-            getAll: () => ({
-              onsuccess: null,
-              onerror: null,
-              result: Array.from(store.values()),
-              addEventListener: (event: string, handler: any) => {
-                if (event === 'success') setTimeout(() => handler(), 0);
-              },
-            }),
-            getAllKeys: () => ({
-              onsuccess: null,
-              onerror: null,
-              result: Array.from(store.keys()),
-            }),
+            get: (key: string) => makeRequest(store.get(key) ?? null),
+            getAll: () => makeRequest(Array.from(store.values())),
+            getAllKeys: () => makeRequest(Array.from(store.keys())),
             put: (value: any, key?: string) => {
               const k = key || value.id;
               store.set(k, value);
-              return {
-                onsuccess: null,
-                onerror: null,
-                addEventListener: (event: string, handler: any) => {
-                  if (event === 'success') setTimeout(() => handler(), 0);
-                },
-              };
+              return makeRequest(k);
             },
             delete: (key: string) => {
               store.delete(key);
-              return {
-                onsuccess: null,
-                onerror: null,
-              };
+              return makeRequest(undefined);
             },
             clear: () => {
               store.clear();
-              return {
-                onsuccess: null,
-                onerror: null,
-              };
+              return makeRequest(undefined);
             },
           }),
         };

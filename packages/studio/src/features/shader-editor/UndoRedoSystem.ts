@@ -153,7 +153,7 @@ export class ConnectCommand implements ICommand {
   execute(graph: ShaderGraph): void {
     // Check for existing connection to this input
     const existing = graph.connections.find(
-      (c) => c.toNode === this.toNodeId && c.toPort === this.toPortId
+      (c: any) => c.toNode === this.toNodeId && c.toPort === this.toPortId
     );
 
     if (existing) {
@@ -204,7 +204,7 @@ export class DisconnectCommand implements ICommand {
   execute(graph: ShaderGraph): void {
     // Find and store the connection
     const conn = graph.connections.find(
-      (c) =>
+      (c: any) =>
         (c.toNode === this.nodeId && c.toPort === this.portId) ||
         (c.fromNode === this.nodeId && c.fromPort === this.portId)
     );

@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import { PluginPanelContainer } from './PluginPanelContainer';
 import { Puzzle, X, Shield, Activity, ChevronDown, Plus } from 'lucide-react';
-import type { SandboxState } from '@holoscript/studio-plugin-sdk/sandbox';
+type SandboxState = 'creating' | 'loading' | 'initializing' | 'ready' | 'running' | 'suspended' | 'error' | 'terminated';
 
 interface SandboxedPluginsPanelProps {
   onClose: () => void;
@@ -22,7 +22,7 @@ interface SandboxedPluginsPanelProps {
   onOpenMarketplace?: () => void;
 }
 
-const STATE_DOT: Record<SandboxState, string> = {
+const STATE_DOT: Record<string, string> = {
   creating: 'bg-gray-400',
   loading: 'bg-amber-400 animate-pulse',
   initializing: 'bg-amber-400 animate-pulse',

@@ -17,7 +17,7 @@ HoloScript provides **three specialized file formats**, each designed for a dist
 
 | Extension     | Domain            | Parser                  | Primary Use Case                                                    | Compilation Entry Point        |
 | ------------- | ----------------- | ----------------------- | ------------------------------------------------------------------- | ------------------------------ |
-| **`.holo`**   | Scene Graph       | `HoloCompositionParser` | Immersive worlds, environments, NPC dialogs, quests, networking     | Yes - All 18+ platforms        |
+| **`.holo`**   | Scene Graph       | `HoloCompositionParser` | Immersive worlds, environments, NPC dialogs, quests, networking     | Yes - All 25+ platforms        |
 | **`.hsplus`** | TypeScript for XR | `HoloScriptPlusParser`  | Full applications: modules, types, physics, state machines, async   | Yes - All platforms            |
 | **`.hs`**     | Core Language     | `HoloScriptPlusParser`  | Templates, agents, logic, IoT streams, spatial awareness, utilities | Yes - Importable or standalone |
 | **`.ts`**     | Infrastructure    | TypeScript/Node         | Parser implementations, CLI tools, build scripts                    | N/A - Tooling                  |
@@ -36,7 +36,7 @@ HoloScript's format system provides **three specialized languages** that can wor
 │   Declarative world compositions and immersive environments  │
 │   NPC dialog trees, quest systems, multiplayer networking    │
 │   Environment settings, spatial groups, portals, audio zones │
-│   Compiles to 18+ targets (Unity, Unreal, WebXR, VRChat)    │
+│   Compiles to 25+ targets (Unity, Unreal, WebXR, VRChat)    │
 │   80+ examples: escape rooms, medical sims, art galleries    │
 └───────────────┬──────────────────────────┬───────────────────┘
     imports     │                          │    imports
@@ -80,7 +80,7 @@ HoloScript provides **two parser implementations** that produce identical output
 
 ### What Are They?
 
-`.holo` files define **immersive world compositions** using a declarative scene graph syntax. They handle world layout, environments, NPC dialogs, quest systems, multiplayer networking, portals, and audio zones. The primary entry point for compilation to 18+ targets.
+`.holo` files define **immersive world compositions** using a declarative scene graph syntax. They handle world layout, environments, NPC dialogs, quest systems, multiplayer networking, portals, and audio zones. The primary entry point for compilation to 25+ targets.
 
 ### Key Characteristics
 
@@ -89,7 +89,7 @@ HoloScript provides **two parser implementations** that produce identical output
 - **Multiplayer primitives**: Networking, player sync, voice chat built-in
 - **Portals and zones**: Audio zones, spatial triggers, portal systems for world linking
 - **AI-optimized**: LLMs can easily generate and understand `.holo` syntax
-- **Compilation entry point**: Compiles to 18+ targets; imports `.hs` agents and `.hsplus` components
+- **Compilation entry point**: Compiles to 25+ targets; imports `.hs` agents and `.hsplus` components
 
 ### Syntax Overview
 
@@ -712,7 +712,7 @@ composition "Scene" {
 - Declarative scene graph syntax
 - NPC dialogs, quests, spatial groups
 - AI-friendly for generation
-- Broadest compilation support (18+ targets)
+- Broadest compilation support (25+ targets)
 
 **For templates, agents, and logic -> Use `.hs`**
 

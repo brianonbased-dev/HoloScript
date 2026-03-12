@@ -14,11 +14,12 @@
  */
 
 import { useRef, useState, useCallback } from 'react';
-import { Loader2, CheckCircle, UploadCloud } from 'lucide-react';
+import { Loader2, CheckCircle, UploadCloud, Grid3x3 } from 'lucide-react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { useSceneGraphStore } from '@/lib/stores';
 import { useAssetStore } from '@/components/assets/useAssetStore';
+import { useDragSnap } from '@/hooks/useDragSnap';
 import type { SceneNode } from '@/lib/stores';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,6 +29,9 @@ interface ProcessingStatus {
   fileName?: string;
   message?: string;
   meshCount?: number;
+  /** Set when grid snap was applied on drop */
+  gridSnapped?: boolean;
+  gridSize?: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -96,6 +100,7 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
 export function useAssetDropProcessor() {
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addAsset = useAssetStore((s) => s.addAsset);
+  const { snapDrop } = useDragSnap();
   const [status, setStatus] = useState<ProcessingStatus>({ state: 'idle' });
 
   const processFile = useCallback(
@@ -147,10 +152,12 @@ export function useAssetDropProcessor() {
 
         // 4) Extract meshes → scene nodes
         let meshCount = 0;
-        
-        // Compute the overall bounding box of the parsed group to snap it to the floor
+
+        // Compute the overall bounding box then snap using useDragSnap
+        // snapDrop handles both floor-snap (Y via bounding box) + grid-snap (X/Z)
         const box = new THREE.Box3().setFromObject(group);
-        const yOffset = box.min.y < 0 ? Math.abs(box.min.y) : -box.min.y;
+        const snapResult = snapDrop(box);
+        const [snapX, snapY, snapZ] = snapResult.position;
 
         // Auto-detect characters (if it has animations or 'rig'/'armature'/'mixamorig' in name, or if there is a SkinnedMesh)
         let isCharacter = false;
@@ -175,7 +182,7 @@ export function useAssetDropProcessor() {
             name: asset.name.replace(/\.[^/.]+$/, ''),
             type: 'gltfModel',
             parentId: null,
-            position: [0, yOffset, 0],
+            position: [snapX, snapY, snapZ],
             rotation: [0, 0, 0],
             scale: [1, 1, 1],
             traits: [
@@ -199,7 +206,8 @@ export function useAssetDropProcessor() {
               name: obj.name || `Mesh_${meshCount}`,
               type: 'mesh',
               parentId: null,
-              position: [p.x, p.y + yOffset, p.z],
+              // X/Z get grid-snapped; Y = floor-snap from snapDrop
+              position: [p.x + snapX, p.y + snapY, p.z + snapZ],
               rotation: [r.x, r.y, r.z],
               scale: [s.x, s.y, s.z],
               traits: [
@@ -212,7 +220,13 @@ export function useAssetDropProcessor() {
           });
         }
 
-        setStatus({ state: 'done', fileName: file.name, meshCount });
+        setStatus({
+          state: 'done',
+          fileName: file.name,
+          meshCount,
+          gridSnapped: snapResult.gridSnapped,
+          gridSize: snapResult.gridSize ?? undefined,
+        });
         setTimeout(() => setStatus({ state: 'idle' }), 3000);
       } catch (e) {
         setStatus({
@@ -223,7 +237,7 @@ export function useAssetDropProcessor() {
         setTimeout(() => setStatus({ state: 'idle' }), 4000);
       }
     },
-    [addNode, addAsset]
+    [addNode, addAsset, snapDrop]
   );
 
   return { processFile, status };
@@ -257,6 +271,13 @@ export function AssetDropOverlay() {
       <span className="text-sm text-studio-text">
         {messages[status.state as keyof typeof messages]}
       </span>
+      {/* Grid snap badge — shown on successful done state */}
+      {status.state === 'done' && status.gridSnapped && (
+        <span className="flex items-center gap-1 rounded-md bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 text-[11px] text-indigo-300">
+          <Grid3x3 className="h-3 w-3" />
+          Grid {status.gridSize}m
+        </span>
+      )}
     </div>
   );
 }

@@ -268,7 +268,7 @@ export class DeadReckoningPredictor {
       return { error, strategy: 'none', offset: { x: 0, y: 0, z: 0 } };
     }
 
-    let offset: IVector3 = {
+    const offset: IVector3 = {
       x: authoritative.position.x - predicted.position.x,
       y: authoritative.position.y - predicted.position.y,
       z: authoritative.position.z - predicted.position.z,

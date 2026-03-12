@@ -3,9 +3,7 @@
 import React, { useCallback } from 'react';
 import { useLighting } from '../../hooks/useLighting';
 import { useStudioBus } from '../../hooks/useStudioBus';
-import type { LightType } from '@holoscript/core';
-
-const LIGHT_ICONS: Record<LightType, string> = { directional: '☀️', point: '💡', spot: '🔦' };
+const LIGHT_ICONS: Record<string, string> = { directional: '☀️', point: '💡', spot: '🔦' };
 
 export function LightingPanel() {
   const { lights, ambient, addLight, removeLight, toggleLight, setAmbient, buildDemoScene, reset } =
@@ -73,7 +71,7 @@ export function LightingPanel() {
           <div
             className="w-4 h-4 rounded"
             style={{
-              backgroundColor: `rgb(${ambient.color.map((c) => Math.round(c * 255)).join(',')})`,
+              backgroundColor: Array.isArray(ambient.color) ? `rgb(${(ambient.color as number[]).map((c: number) => Math.round(c * 255)).join(',')})` : String(ambient.color),
             }}
           />
           <span className="text-studio-muted">Intensity: {ambient.intensity.toFixed(1)}</span>
@@ -94,7 +92,7 @@ export function LightingPanel() {
               <div
                 className="w-3 h-3 rounded-full"
                 style={{
-                  backgroundColor: `rgb(${l.color.map((c) => Math.round(c * 255)).join(',')})`,
+                  backgroundColor: Array.isArray(l.color) ? `rgb(${(l.color as number[]).map((c: number) => Math.round(c * 255)).join(',')})` : String(l.color),
                 }}
               />
             </div>

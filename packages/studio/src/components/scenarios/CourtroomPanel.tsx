@@ -211,3 +211,6 @@ export function CourtroomPanel() {
     </div>
   );
 }
+
+export default CourtroomPanel;
+

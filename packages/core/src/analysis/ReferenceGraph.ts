@@ -620,6 +620,18 @@ export class ReferenceGraph {
       import: 0,
       export: 0,
       composition: 0,
+      class: 0,
+      interface: 0,
+      enum: 0,
+      struct: 0,
+      trait: 0,
+      method: 0,
+      field: 0,
+      constant: 0,
+      type_alias: 0,
+      module: 0,
+      namespace: 0,
+      package: 0,
     };
 
     for (const node of this.nodes.values()) {

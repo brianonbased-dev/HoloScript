@@ -113,9 +113,9 @@ CLI / parser / adapter / tooling → .ts (TypeScript only)
 ## ∞ KNOWLEDGE PACK
 
 ```
-TRAITS     1,525+ in 13 categories — ALL inside @holoscript/core
-COMPILERS  18+ targets — ALL inside @holoscript/core (no separate package)
-MCP        packages/mcp-server/ — 34 tools
+TRAITS     1,800+ in 13 categories — ALL inside @holoscript/core
+COMPILERS  25+ targets — ALL inside @holoscript/core (no separate package)
+MCP        packages/mcp-server/ — 72+ tools
 BRITTNEY   ../Hololand/packages/brittney/mcp-server/ — runtime AI (optional)
 TEST       pnpm test | pnpm test --filter @holoscript/core | createComposition()
 BUILD      pnpm build | pre-commit: ESLint + tsc + tests (auto-fires)
@@ -126,8 +126,8 @@ SIDEBAR    docs/.vitepress/config.ts — ALL nav wired here
 ### Packages (no phantom packages)
 
 ```
-@holoscript/core          Parser · AST · 1,525+ traits · 18+ compilers
-@holoscript/mcp-server    34 AI tools (parse/validate/generate/compile)
+@holoscript/core          Parser · AST · 1,800+ traits · 25+ compilers
+@holoscript/mcp-server    72+ AI tools (parse/validate/generate/compile)
 @holoscript/cli           holo build · holo compile · holo validate
 @holoscript/runtime       Scene execution
 @holoscript/lsp           Language Server (VS Code, Neovim, IntelliJ)

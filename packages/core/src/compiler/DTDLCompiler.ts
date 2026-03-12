@@ -112,7 +112,7 @@ export interface DTDLComponent {
   description?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+ 
 export type DTDLSchema =
   | string
   | DTDLMapSchema

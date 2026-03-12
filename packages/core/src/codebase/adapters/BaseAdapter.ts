@@ -82,6 +82,46 @@ export function extractDocComment(node: SyntaxNode): string | undefined {
 }
 
 /**
+ * Extract the file-level module doc comment from a tree's root node.
+ * Looks for the first comment child of the root that starts at line 0 or 1.
+ * Handles JSDoc (/** ... *\/), line comments (// or ///), hash comments (#),
+ * and Python module docstrings.
+ */
+export function extractFileDocComment(rootNode: SyntaxNode): string | undefined {
+  for (const child of rootNode.children) {
+    // Only look at the very top of the file
+    if (child.startPosition.row > 3) break;
+
+    if (child.type === 'comment') {
+      const text = child.text.trim();
+      if (text.startsWith('/**')) {
+        return text
+          .replace(/^\/\*\*\s*/, '')
+          .replace(/\s*\*\/$/, '')
+          .replace(/^\s*\* ?/gm, '')
+          .trim();
+      }
+      if (text.startsWith('//')) {
+        return text.replace(/^\/\/\/?\s?/, '').trim();
+      }
+      if (text.startsWith('#')) {
+        return text.replace(/^#\s?/, '').trim();
+      }
+      return text;
+    }
+
+    // Python: module docstring is the first expression_statement with a string
+    if (child.type === 'expression_statement') {
+      const expr = child.children[0];
+      if (expr && expr.type === 'string') {
+        return expr.text.replace(/^['"`]{1,3}|['"`]{1,3}$/g, '').trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
  * Get the previous named sibling of a node.
  */
 function getPreviousSibling(node: SyntaxNode): SyntaxNode | null {

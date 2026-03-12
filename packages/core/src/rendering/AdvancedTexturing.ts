@@ -189,7 +189,7 @@ export function computePOM(
   };
 
   let currentDepth = 0;
-  let currentUV = { ...uv };
+  const currentUV = { ...uv };
   let mapValue = sampleTexture(heightMap, currentUV.x, currentUV.y)[0];
 
   // Step until height map depth < current layer depth

@@ -13,7 +13,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import { Puzzle, X, RefreshCw, AlertTriangle, Shield, Activity, Loader2 } from 'lucide-react';
-import type { SandboxCreateOptions, SandboxState } from '@holoscript/studio-plugin-sdk/sandbox';
+type SandboxState = 'creating' | 'loading' | 'initializing' | 'ready' | 'running' | 'suspended' | 'error' | 'terminated';
+type SandboxCreateOptions = any;
 
 export interface PluginPanelContainerProps {
   /** Unique plugin ID */

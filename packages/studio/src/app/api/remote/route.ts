@@ -27,7 +27,7 @@ interface RemoteSession {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __remoteSessionStore__: Map<string, RemoteSession> | undefined;
 }
 const sessions: Map<string, RemoteSession> =

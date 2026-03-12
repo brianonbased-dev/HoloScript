@@ -124,7 +124,7 @@ function analyseTraits(lines: string[]): Diagnostic[] {
   const seenTraitsInObj: string[] = [];
 
   let inObject = false;
-  let objDepth = 0;
+  const objDepth = 0;
   let baseDepth = 0;
 
   for (let i = 0; i < lines.length; i++) {

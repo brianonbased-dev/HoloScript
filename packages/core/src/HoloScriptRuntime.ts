@@ -1228,7 +1228,7 @@ export class HoloScriptRuntime {
     // If it's an LLM agent, initialize its specialized runtime
     if (this.isAgent(node)) {
       if (!isUpdate || !this.agentRuntimes.has(node.name)) {
-        let agentRuntime = this.agentPool.acquire();
+        const agentRuntime = this.agentPool.acquire();
         agentRuntime.reset(node, this);
         this.agentRuntimes.set(node.name, agentRuntime);
         (orbData as any).state = agentRuntime.getState();

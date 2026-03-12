@@ -369,3 +369,6 @@ export function RobotDeployPanel() {
     </div>
   );
 }
+
+export default RobotDeployPanel;
+

@@ -77,7 +77,7 @@ holoscript compile hello.holo --target vrchat
 # Compile to URDF (ROS 2 robotics)
 holoscript compile hello.holo --target urdf
 
-# 18+ targets available: unity, unreal, godot, vrchat, threejs,
+# 25+ targets available: unity, unreal, godot, vrchat, threejs,
 # babylon, webgpu, visionos, androidxr, urdf, sdf, dtdl, wot, usda...
 ```
 

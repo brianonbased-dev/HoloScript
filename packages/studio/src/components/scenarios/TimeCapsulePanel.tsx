@@ -228,3 +228,6 @@ export function TimeCapsulePanel() {
     </div>
   );
 }
+
+export default TimeCapsulePanel;
+

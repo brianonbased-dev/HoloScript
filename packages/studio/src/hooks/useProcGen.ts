@@ -51,7 +51,7 @@ export function useProcGen(initWidth = 16, initHeight = 16, initTileSize = 32): 
   }, [dims]);
 
   const setTile = useCallback(
-    (x: number, y: number, id: number, flags = TileFlags.NONE) => {
+    (x: number, y: number, id: number, flags: number = TileFlags.NONE) => {
       tmRef.current.setTile('ground', x, y, { id, flags });
       sync();
     },
@@ -67,7 +67,7 @@ export function useProcGen(initWidth = 16, initHeight = 16, initTileSize = 32): 
   );
 
   const fill = useCallback(
-    (id: number, flags = TileFlags.NONE) => {
+    (id: number, flags: number = TileFlags.NONE) => {
       for (let y = 0; y < dims.h; y++)
         for (let x = 0; x < dims.w; x++) tmRef.current.setTile('ground', x, y, { id, flags });
       sync();

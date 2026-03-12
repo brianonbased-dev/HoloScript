@@ -3,15 +3,24 @@
  *
  * Model Context Protocol server for HoloScript language tooling.
  * Enables AI agents (Grok, Claude, Copilot, etc.) to parse, validate,
- * generate, and COMPILE HoloScript code to 18+ platforms.
+ * generate, and COMPILE HoloScript code to 25+ platforms.
  *
- * 45+ tools across 6 categories:
- * - Core (15): Parse, validate, generate, render, share
- * - Compiler (9): Compile to Unity, Unreal, URDF, SDF, WebGPU, WASM, R3F, etc.
- * - GLTF (2): Import glTF/GLB to .holo, compile .holo to glTF/GLB
- * - Graph (6): Parse-to-graph, visualize, design, diff, connections
+ * 72+ tools across 14 categories:
+ * - Core (15): Parse, validate, generate, render, share, explain, analyze
+ * - Graph (13): Parse-to-graph, visualize, design, diff, connections, node query
  * - IDE (9): Scan, diagnostics, autocomplete, refactor, docs, hover
  * - Brittney-Lite AI (4): Explain errors, fix code, review, scaffold
+ * - Codebase (5): Absorb repo, query, impact analysis, change detection
+ * - Graph RAG (2): Semantic search, natural language Q&A
+ * - Self-Improve (2): Diagnose, validate quality
+ * - GLTF (2): Import glTF/GLB to .holo, compile .holo to glTF/GLB
+ * - EditHolo (1): In-place .holo file editing for agents
+ * - Compiler (8): Compile to Unity, Unreal, URDF, WebGPU, R3F, etc.
+ * - Networking (2): Multiplayer RPC layer
+ * - Snapshot (3): Temporal scene snapshots
+ * - Monitoring (1): Telemetry and health
+ * - HoloTest (1): Spatial scene testing
+ * - Browser control (3), Training data (1) [included in Core tools above]
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -29,6 +38,7 @@ import { handleCodebaseTool } from './codebase-tools';
 import { handleGraphRagTool } from './graph-rag-tools';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
+import { holotestTools, handleHolotestTool } from './holotest-tools';
 
 // Create MCP server
 const server = new Server(
@@ -47,14 +57,12 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      ...tools,
-      ...compilerTools,
-      ...networkingTools,
-      ...snapshotTools,
-      ...monitoringTools,
-      ...selfImproveTools,
-      ...gltfImportTools,
-      ...PluginManager.getTools(),
+      ...tools,           // All core/graph/IDE/AI/codebase/graphRAG/selfImprove/plugins (from tools.ts)
+      ...compilerTools,   // 8 compiler tools (Unity, Unreal, URDF, WebGPU, R3F, etc.)
+      ...networkingTools, // 2 networking RPC tools
+      ...snapshotTools,   // 3 temporal snapshot tools
+      ...monitoringTools, // 1 telemetry tool
+      ...holotestTools,   // 1 spatial testing tool (execute_holotest)
     ],
   };
 });
@@ -133,6 +141,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (gltfResult !== null) {
       return {
         content: [{ type: 'text', text: JSON.stringify(gltfResult, null, 2) }],
+      };
+    }
+
+    // Check HoloTest spatial testing tool (execute_holotest)
+    const holotestResult = await handleHolotestTool(name, args || {});
+    if (holotestResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(holotestResult, null, 2) }],
       };
     }
 

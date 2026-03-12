@@ -14,7 +14,7 @@ import {
   type ShaderNode,
   type ShaderConnection,
   type CompiledShader,
-} from '@holoscript/core';
+} from '@/lib/shader/shaderGraph';
 
 // Re-export ShaderGraph for consumers
 export { ShaderGraph };

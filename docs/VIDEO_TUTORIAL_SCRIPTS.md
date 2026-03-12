@@ -643,7 +643,7 @@ Next: Publishing to the HoloScript Trait Registry for community discovery."
 
 ### INTRO (0:00 - 0:30)
 
-"HoloScript is designed for AI collaboration. The MCP server gives any AI agent — Claude, GPT, Gemini — full access to HoloScript's 34 tools.
+"HoloScript is designed for AI collaboration. The MCP server gives any AI agent — Claude, GPT, Gemini — full access to HoloScript's 72+ tools.
 
 In this tutorial, we'll connect Claude to HoloScript and generate, validate, and execute AI-created scenes safely."
 

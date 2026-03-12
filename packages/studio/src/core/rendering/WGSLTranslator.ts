@@ -9,8 +9,8 @@
  * are resolved from connected upstream nodes via topological edge traversal.
  */
 
-import type { GNode, GEdge } from '../../../lib/nodeGraphStore';
-import { NODE_TEMPLATES } from '../../../lib/shaderGraph';
+import type { GNode, GEdge } from '../../lib/nodeGraphStore';
+import { NODE_TEMPLATES } from '../../lib/shaderGraph';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

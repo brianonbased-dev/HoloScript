@@ -222,7 +222,7 @@ export function createCachePlugin(
  * Clear the cache (useful for testing or when data changes)
  * Export this for external use if needed
  */
-let cacheInstance: ResponseCache | null = null;
+const cacheInstance: ResponseCache | null = null;
 
 export function getCacheInstance(): ResponseCache | null {
   return cacheInstance;

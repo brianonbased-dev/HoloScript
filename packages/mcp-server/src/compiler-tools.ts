@@ -159,10 +159,11 @@ async function compileToTarget(
   options: Record<string, unknown> = {}
 ): Promise<{ output: string; usedFallback: boolean }> {
   const exportManager = getExportManager();
-  const result = await exportManager.exportComposition(composition, target, options as any);
+  // ExportManager.export(target, composition, options) — target is first arg
+  const result = await exportManager.export(target, composition, options as any);
 
   if (!result.success) {
-    throw new Error(result.error || 'Compilation failed');
+    throw new Error(result.error?.message || 'Compilation failed');
   }
 
   return {
@@ -196,12 +197,12 @@ export async function handleCompileToTarget(
     // Parse composition
     trackJob(jobId, 'in_progress', 30);
     const parseResult = parseHolo(code);
-    if (!parseResult.success || !parseResult.composition) {
+    if (!parseResult.success || !parseResult.ast) {
       const errors = parseResult.errors?.map((e) => e.message).join(', ') || 'Unknown parse error';
       throw new Error(`Failed to parse composition: ${errors}`);
     }
 
-    const composition = parseResult.composition;
+    const composition = parseResult.ast;
 
     // Compile to target
     trackJob(jobId, 'in_progress', 60);
@@ -211,12 +212,9 @@ export async function handleCompileToTarget(
       options as Record<string, unknown>
     );
 
-    // Get circuit breaker state
-    const circuitRegistry = CircuitBreakerRegistry.getInstance();
-    const circuitBreaker = circuitRegistry.getBreaker(target);
-    const circuitMetrics = circuitBreaker.getMetrics();
-
     const compilationTimeMs = Date.now() - startTime;
+    // Use ExportManager.getMetrics() — no static getInstance on CircuitBreakerRegistry
+    const circuitMetrics = getExportManager().getMetrics(target);
     trackJob(jobId, 'in_progress', 100);
 
     const result: CompilationResult = {
@@ -328,9 +326,8 @@ export async function handleGetCircuitBreakerStatus(
     throw new Error('target is required');
   }
 
-  const circuitRegistry = CircuitBreakerRegistry.getInstance();
-  const circuitBreaker = circuitRegistry.getBreaker(target);
-  const metrics = circuitBreaker.getMetrics();
+  // Use ExportManager.getMetrics() — no static getInstance on CircuitBreakerRegistry
+  const metrics = getExportManager().getMetrics(target);
 
   return {
     target,

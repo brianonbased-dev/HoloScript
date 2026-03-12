@@ -8,7 +8,7 @@ import { NextResponse, NextRequest } from 'next/server';
 
 // Share store with parent route via global
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __registryStore__:
     | Array<{
         packId: string;

@@ -8,11 +8,18 @@ import {
   meetsWCAG,
   rampCompliant,
   doorWidthCompliant,
-  auditScore,
-  type AccessibilityIssue,
   type WCAGLevel,
-  type SpaceAudit,
 } from '@/lib/accessibilityAuditor';
+
+interface AccessibilityIssue {
+  id: string;
+  type: string;
+  description: string;
+  severity: string;
+  wcagCriteria: string;
+  location: string;
+  recommendation: string;
+}
 
 const LEVEL_COLORS: Record<WCAGLevel, string> = { A: '#f59e0b', AA: '#22c55e', AAA: '#06b6d4' };
 
@@ -101,7 +108,7 @@ export function AccessibilityPanel() {
     },
   ];
 
-  const SEV_COLORS = { critical: '#ef4444', major: '#f59e0b', minor: '#22c55e' };
+  const SEV_COLORS: Record<string, string> = { critical: '#ef4444', major: '#f59e0b', minor: '#22c55e' };
 
   return (
     <div style={s.panel}>

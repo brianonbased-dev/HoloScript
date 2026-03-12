@@ -29,7 +29,7 @@ export function useSkeletalAnimation(
     const actions = actionsRef.current;
     if (Object.keys(actions).length === 0) return;
     
-    let target = activeAction || 'idle';
+    const target = activeAction || 'idle';
     let action = actions[target];
     
     if (!action) {

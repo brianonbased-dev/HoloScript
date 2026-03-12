@@ -7,15 +7,18 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "holoscript-mcp": "dist/cli.js"
+    "holoscript-mcp": "start.js",
+    "holoscript-mcp-cli": "dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "start.js"
   ],
   "scripts": {
+    "prepare": "tsup",
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node start.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },

@@ -144,7 +144,7 @@ describe('ALL_TRAITS data integrity', () => {
 
 describe('HoloScriptCompletionItemProvider', () => {
   let provider: HoloScriptCompletionItemProvider;
-  let token: ReturnType<typeof new CancellationTokenSource>['token'];
+  let token: InstanceType<typeof CancellationTokenSource>['token'];
 
   beforeEach(() => {
     provider = new HoloScriptCompletionItemProvider();

@@ -130,7 +130,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 **By Component**:
 
 - Core Parser: ~10,000 lines
-- Compilers: ~50,000 lines (15 targets)
+- Compilers: ~50,000 lines (25+ targets)
 - Runtimes: ~10,000 lines (demos + registry)
 - Rendering: ~1,000 lines (renderer + Three.js)
 - Tests: ~30,000 lines
@@ -173,7 +173,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 ✅ **Validate** types and traits
 ✅ **Execute** runtime platform (physics simulation)
 ✅ **Render** real-time 3D with PBR materials
-✅ **Export** code to 18+ targets (Unity, Unreal, WebXR, etc.)
+✅ **Export** code to 25+ targets (Unity, Unreal, WebXR, etc.)
 ✅ **Test** 800+ automated tests
 ✅ **Benchmark** performance vs Unity/glTF
 ✅ **Secure** sandboxing and validation

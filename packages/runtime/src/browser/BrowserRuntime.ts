@@ -1861,7 +1861,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     // Dynamic import of Monaco - use string variable to prevent TypeScript module resolution
     try {
       const monacoPath = 'monaco-editor';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const monaco = await import(/* webpackIgnore: true */ monacoPath);
 
       const editor = monaco.editor.create(container, {

@@ -75,7 +75,7 @@ export class PhysicsDebugDrawer {
     const shape = body.shape || 'box';
     const params = body.shapeParams || [1, 1, 1];
 
-    let meshParams: any = { wireframe: true, color: '#00ff00' };
+    const meshParams: any = { wireframe: true, color: '#00ff00' };
 
     if (shape === 'box') {
       meshParams.geometry = 'box';

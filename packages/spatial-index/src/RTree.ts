@@ -294,17 +294,18 @@ export class RTree {
     node.items!.push(anchor);
     this.updateBBox(node);
 
-    // Split if necessary and propagate changes up
-    while (level >= 0) {
-      const parent = insertPath[level];
+    // Split if necessary and propagate changes up the path
+    // insertPath has indices 0..insertPath.length-1 (root to leaf)
+    // Iterate from leaf back to root
+    for (let i = insertPath.length - 1; i >= 0; i--) {
+      const parent = insertPath[i];
       if (
         (parent.leaf ? parent.items!.length : parent.children!.length) > this.options.maxEntries
       ) {
-        this.split(insertPath, level);
+        this.split(insertPath, i);
       } else {
         this.updateBBox(parent);
       }
-      level--;
     }
   }
 

@@ -1691,7 +1691,7 @@ export class HoloCompositionParser {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
 
-      if (this.check('PARTICLES')) {
+      if (this.check('PARTICLES') || this.check('PARTICLE_SYSTEM')) {
         const ps = this.parseParticleSystem();
         properties.push({
           type: 'EnvironmentProperty',
@@ -1712,7 +1712,11 @@ export class HoloCompositionParser {
   }
 
   private parseParticleSystem(): HoloParticleSystem {
-    this.expect('PARTICLES');
+    if (this.check('PARTICLE_SYSTEM')) {
+      this.advance();
+    } else {
+      this.expect('PARTICLES');
+    }
     const name = this.expectString();
     this.expect('LBRACE');
     this.skipNewlines();

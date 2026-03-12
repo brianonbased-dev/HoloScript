@@ -188,6 +188,12 @@ export default defineConfig({
             { text: 'AI Agents', link: '/guides/ai-agents' },
           ],
         },
+        {
+          text: 'Codebase Intelligence',
+          items: [
+            { text: 'absorb & query', link: '/guides/codebase-intelligence' },
+          ],
+        },
       ],
 
       '/academy/': [

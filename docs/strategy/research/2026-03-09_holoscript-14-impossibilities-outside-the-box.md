@@ -3,7 +3,7 @@
 ## Executive Summary: The Three-Format Architecture
 HoloScript provides THREE file formats, not one. This architecture fundamentally changes the impossibility landscape:
 - **`.hs`** (Classic): object-centric prototyping with `function`, `execute`, `connect`. Captures **process** (procedural recipes, step-by-step embodied knowledge).
-- **`.hsplus`** (Production): 55+ VR traits, `@state {}`, `networked_object`, state machines, haptic feedback. Captures **behavior** (dynamic behavioral contracts, reactive state).
+- **`.hsplus`** (Production): 1,800+ VR traits, `@state {}`, `networked_object`, state machines, haptic feedback. Captures **behavior** (dynamic behavioral contracts, reactive state).
 - **`.holo`** (Compositions): AI-generated full worlds with `template`, `environment`, `spatial_group`, `logic {}`, NPCs, quests. Captures **worlds** (governed experiences, indigenous knowledge, full choreography).
 
 Together they capture the full spectrum from individual gesture to governed universe. All three are plain text, all three compile through the same 25+ target pipeline.

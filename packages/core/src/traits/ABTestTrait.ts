@@ -356,7 +356,7 @@ function regularizedGammaP(a: number, x: number): number {
  * Uses Lentz's continued fraction algorithm
  */
 function regularizedGammaQ(a: number, x: number): number {
-  let f = 1e-30;
+  const f = 1e-30;
   let c = 1e-30;
   let d = 1 / (x + 1 - a);
   let h = d;

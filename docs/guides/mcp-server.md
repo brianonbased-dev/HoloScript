@@ -73,6 +73,8 @@ Add to Cursor settings or `.cursor/mcp.json`:
 
 ## Available Tools
 
+The MCP server exposes **65 tools** organized in categories.
+
 ### generate_object
 
 Generate a HoloScript object from a natural language description.
@@ -301,7 +303,167 @@ Parse `.holo` composition code and return the AST.
 
 ---
 
-## Usage Examples
+## Codebase Intelligence Tools
+
+These tools let AI agents understand the TypeScript codebase structure before editing it. They use a **cache-first** strategy — the first absorb builds `~/.holoscript/graph-cache.json` (24h TTL), and subsequent calls return in ~21ms.
+
+### holo_graph_status
+
+Check the current cache state before absorbing.
+
+**Input:** `{}` (no parameters)
+
+**Output:**
+
+```json
+{
+  "fresh": true,
+  "cacheAgeMs": 45000,
+  "cacheAgeFriendly": "45 seconds",
+  "rootDir": "packages/core",
+  "hint": "Cache is fresh. Use holo_absorb_repo without force to reuse (~21ms).",
+  "sessionProvenance": "disk-cache"
+}
+```
+
+---
+
+### holo_absorb_repo
+
+Scan a codebase package and build the knowledge graph. Uses disk cache by default.
+
+**Input:**
+
+```json
+{
+  "rootDir": "packages/core",
+  "force": false
+}
+```
+
+- `force: false` (default) — returns in ~21ms from cache if < 24h old and rootDir matches
+- `force: true` — fresh scan (~3-10s) — only use when `holo_graph_status` says stale
+
+**Output:**
+
+```json
+{
+  "cached": true,
+  "cacheAge": "2 minutes",
+  "message": "Returned cached graph for packages/core (2 minutes old). Use force: true to rescan.",
+  "stats": { "files": 847, "symbols": 12432 }
+}
+```
+
+---
+
+### holo_query_codebase
+
+Query the absorbed codebase graph with a natural language question. Auto-loads disk cache if needed.
+
+**Input:**
+
+```json
+{
+  "query": "What classes implement the Compiler interface?"
+}
+```
+
+**Output:** Relevant symbols, their relationships, and file locations. Includes `cacheNote` field showing cache source.
+
+---
+
+### holo_impact_analysis
+
+Find the blast radius — everything that would break if you change a symbol.
+
+**Input:**
+
+```json
+{
+  "symbol": "R3FCompiler"
+}
+```
+
+**Output:**
+
+```json
+{
+  "symbol": "R3FCompiler",
+  "directDependents": ["CompilerRegistry", "compile_holoscript"],
+  "transitiveDependents": [...],
+  "riskLevel": "HIGH",
+  "cacheNote": "[auto-loaded from disk cache, 5m old, rootDir: packages/core]"
+}
+```
+
+---
+
+### holo_detect_changes
+
+Compare two git references to see what changed structurally. Always performs a fresh analysis.
+
+**Input:**
+
+```json
+{
+  "before": "HEAD~1",
+  "after": "HEAD",
+  "rootDir": "packages/core"
+}
+```
+
+---
+
+### holo_semantic_search
+
+Semantic similarity search over the absorbed graph. Requires Ollama running locally.
+
+**Input:**
+
+```json
+{
+  "query": "material shader compilation pipeline",
+  "topK": 5
+}
+```
+
+---
+
+### holo_ask_codebase
+
+Ask a natural language question about the codebase. Requires Ollama running locally.
+
+**Input:**
+
+```json
+{
+  "question": "How does the WebGPU compiler handle material properties?"
+}
+```
+
+---
+
+## Recommended Agent Workflow for TypeScript Refactoring
+
+```
+1. holo_graph_status({})
+   → If fresh: skip to step 3
+
+2. holo_absorb_repo({ rootDir: "packages/core" })
+   → Uses cache if < 24h old (~21ms)
+   → Pass force: true only if graph_status said stale
+
+3. holo_impact_analysis({ symbol: "ClassToChange" })
+   → Understand what breaks before editing
+
+4. Edit code → pnpm test
+
+5. holo_detect_changes({ before: "HEAD~1", after: "HEAD" })
+   → Verify only intended changes occurred
+```
+
+---
 
 ### Generate a Complete VR Game Level
 

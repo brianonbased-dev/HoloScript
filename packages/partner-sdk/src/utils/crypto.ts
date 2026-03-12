@@ -5,7 +5,7 @@
  * Falls back to Node.js crypto module for older Node.js versions.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 /**
  * Convert string to Uint8Array

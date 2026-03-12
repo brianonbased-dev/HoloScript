@@ -183,7 +183,7 @@ export function NodePalette() {
           <NodeSection
             key={category}
             title={CATEGORY_LABELS[category as NodeCategory]}
-            nodes={nodes}
+            nodes={nodes || []}
             onNodeClick={handleNodeClick}
             onNodeDragStart={handleDragStart}
             onToggleFavorite={toggleFavorite}

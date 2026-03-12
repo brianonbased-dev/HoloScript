@@ -9,17 +9,15 @@
 import React, { memo, useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
-import type { IShaderNode, ShaderDataType } from '../../hooks/useShaderGraph';
+import type { ShaderNode } from '../../hooks/useShaderGraph';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useNodeSelection } from '../../hooks/useNodeSelection';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
-interface NodeData extends IShaderNode {
-  collapsed?: boolean;
-}
+type NodeData = any;
 
 // Type color mapping
-const TYPE_COLORS: Record<ShaderDataType, string> = {
+const TYPE_COLORS: Record<string, string> = {
   float: '#22c55e',
   vec2: '#3b82f6',
   vec3: '#8b5cf6',
@@ -37,7 +35,7 @@ const TYPE_COLORS: Record<ShaderDataType, string> = {
 };
 
 // Color-blind accessible shape markers (shape + color = double signal)
-const TYPE_SHAPES: Record<ShaderDataType, string> = {
+const TYPE_SHAPES: Record<string, string> = {
   float: '●', // filled circle
   vec2: '▲', // triangle up
   vec3: '■', // filled square
@@ -106,7 +104,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
       {!collapsed && (
         <div className="node-body p-3 space-y-2">
           {/* Input Ports */}
-          {data.inputs.map((input, index) => (
+          {data.inputs.map((input: any, index: number) => (
             <div key={input.id} className="flex items-center gap-2 relative">
               <Handle
                 type="target"
@@ -143,7 +141,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
           {/* Custom Properties */}
           {data.properties && Object.keys(data.properties).length > 0 && (
             <div className="border-t border-gray-700 pt-2 mt-2 space-y-2">
-              {Object.entries(data.properties).map(([key, value]) => (
+              {Object.entries(data.properties).map(([key, value]: [string, any]) => (
                 <div key={key}>
                   <label className="text-xs text-gray-400 block mb-1">{key}</label>
                   <PropertyEditor
@@ -157,7 +155,7 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
           )}
 
           {/* Output Ports */}
-          {data.outputs.map((output, index) => (
+          {data.outputs.map((output: any, index: number) => (
             <div key={output.id} className="flex items-center gap-2 justify-end relative">
               <span className="text-xs text-gray-400 truncate">{output.name}</span>
               <Handle
@@ -202,7 +200,7 @@ function InlinePropertyEditor({
   value,
   onChange,
 }: {
-  type: ShaderDataType;
+  type: string;
   value?: number | number[];
   onChange: (value: number | number[]) => void;
 }) {

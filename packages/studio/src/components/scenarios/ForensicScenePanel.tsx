@@ -199,3 +199,4 @@ export function ForensicScenePanel() {
     </div>
   );
 }
+export default ForensicScenePanel;

@@ -57,7 +57,7 @@ export async function browserLaunch(args: z.infer<typeof BrowserLaunchSchema>) {
     // Resolve relative to HoloScript root (up 2 dirs from packages/mcp-server)
     const previewUrl = args.holoscriptFile.startsWith('http')
       ? args.holoscriptFile
-      : `file://${path.resolve(__dirname, '../../../examples/browser-preview.html')}?file=${encodeURIComponent(args.holoscriptFile)}`;
+      : `file://${path.resolve(__dirname, '../../../../examples/browser-preview.html')}?file=${encodeURIComponent(args.holoscriptFile)}`;
 
     // Navigate to preview
     await session.page.goto(previewUrl, {

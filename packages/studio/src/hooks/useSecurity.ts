@@ -44,13 +44,24 @@ export function useSecurity(): UseSecurityReturn {
   const createNewSandbox = useCallback(() => {
     if (sandboxRef.current) destroySandbox(sandboxRef.current);
     const sb = createSandbox({
-      maxMemoryBytes: 10 * 1024 * 1024,
-      maxCpuTimeMs: 3000,
-      allowedModules: [],
-      blockedGlobals: ['process', 'require', '__dirname', '__filename', 'eval'],
-      allowFileSystem: false,
-      allowNetwork: false,
-      allowChildProcess: false,
+      sandbox: {
+        enabled: true,
+        memoryLimit: 10, // 10 MB
+        cpuTimeLimit: 3,  // 3 seconds
+        syscallAllowlist: [],
+        fileSystemAccess: 'none',
+      },
+      network: {
+        allowedHosts: [],
+        maxConnections: 0,
+        rateLimitPerSecond: 0,
+      },
+      code: {
+        maxObjectCount: 100,
+        maxTraitDepth: 8,
+        disallowedTraits: [],
+        requireSignedPackages: false,
+      },
     });
     sandboxRef.current = sb;
     setSandbox(sb);

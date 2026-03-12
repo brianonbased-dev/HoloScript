@@ -1,13 +1,47 @@
 /**
- * Test setup: Mock WebGPU APIs for Node.js environment.
+ * Test setup: Prefer live Dawn GPU, fall back to mocks.
  *
- * WebGPU is a browser API, so we provide comprehensive mocks that simulate
- * the GPU pipeline creation, buffer management, and compute dispatch cycle.
+ * When the `webgpu` (Dawn) npm package is installed, this setup will
+ * initialise a real GPUAdapter/GPUDevice backed by your local GPU.
+ * If Dawn is not available (CI, no GPU), it installs comprehensive
+ * mocks that simulate the pipeline.
+ *
+ * Set SNN_FORCE_MOCK=1 to force mock mode even when Dawn is present.
  */
 
 import { vi } from 'vitest';
 
-// --- Mock GPU Buffer ---
+// ── Global state ───────────────────────────────────────────────────────────
+
+/** True when tests are running against real GPU hardware. */
+export let GPU_LIVE = false;
+
+// ── Attempt Dawn initialisation ────────────────────────────────────────────
+
+async function tryDawnGPU(): Promise<boolean> {
+  if (process.env.SNN_FORCE_MOCK === '1') return false;
+
+  try {
+    // The `webgpu` npm package registers navigator.gpu globally on import
+    await import('webgpu');
+
+    if (typeof navigator !== 'undefined' && navigator.gpu) {
+      // Smoke-test: can we actually get an adapter?
+      const adapter = await navigator.gpu.requestAdapter();
+      if (adapter) {
+        console.log('[snn-webgpu] ✅ Live GPU detected via Dawn');
+        const info = (adapter as any).info ?? { vendor: 'unknown', architecture: 'unknown' };
+        console.log(`[snn-webgpu]    Vendor: ${info.vendor}, Arch: ${info.architecture}`);
+        return true;
+      }
+    }
+  } catch {
+    // Dawn not installed or failed — fall through to mocks
+  }
+  return false;
+}
+
+// ── Mock classes (only used when no real GPU) ──────────────────────────────
 
 class MockGPUBuffer {
   label: string;
@@ -58,8 +92,6 @@ class MockGPUBuffer {
   }
 }
 
-// --- Mock Compute Pass Encoder ---
-
 class MockComputePassEncoder {
   private pipeline: any = null;
   private bindGroups: Map<number, any> = new Map();
@@ -80,8 +112,6 @@ class MockComputePassEncoder {
     // No-op
   }
 }
-
-// --- Mock Command Encoder ---
 
 class MockCommandEncoder {
   label: string;
@@ -111,16 +141,12 @@ class MockCommandEncoder {
   }
 }
 
-// --- Mock Bind Group Layout ---
-
 class MockBindGroupLayout {
   label: string;
   constructor(label?: string) {
     this.label = label ?? '';
   }
 }
-
-// --- Mock Compute Pipeline ---
 
 class MockComputePipeline {
   label: string;
@@ -136,8 +162,6 @@ class MockComputePipeline {
   }
 }
 
-// --- Mock Bind Group ---
-
 class MockBindGroup {
   label: string;
   constructor(descriptor: any) {
@@ -145,16 +169,12 @@ class MockBindGroup {
   }
 }
 
-// --- Mock Shader Module ---
-
 class MockShaderModule {
   label: string;
   constructor(descriptor: GPUShaderModuleDescriptor) {
     this.label = descriptor.label ?? '';
   }
 }
-
-// --- Mock GPU Device ---
 
 class MockGPUDevice {
   label: string = 'mock-device';
@@ -204,8 +224,6 @@ class MockGPUDevice {
   }
 }
 
-// --- Mock GPU Adapter ---
-
 class MockGPUAdapter {
   features = new Set<string>();
   limits = {
@@ -231,42 +249,62 @@ class MockGPUAdapter {
   }
 }
 
-// --- Mock navigator.gpu ---
+// ── Install mocks ──────────────────────────────────────────────────────────
 
-const mockGPU = {
-  requestAdapter: vi.fn().mockResolvedValue(new MockGPUAdapter()),
-};
+function installMocks(): void {
+  console.log('[snn-webgpu] 🔶 No Dawn GPU — using mock WebGPU layer');
 
-// Install mock
-if (typeof globalThis.navigator === 'undefined') {
-  (globalThis as any).navigator = {};
-}
-(globalThis.navigator as any).gpu = mockGPU;
-
-// Mock GPUBufferUsage and GPUMapMode constants
-(globalThis as any).GPUBufferUsage = {
-  MAP_READ: 0x0001,
-  MAP_WRITE: 0x0002,
-  COPY_SRC: 0x0004,
-  COPY_DST: 0x0008,
-  INDEX: 0x0010,
-  VERTEX: 0x0020,
-  UNIFORM: 0x0040,
-  STORAGE: 0x0080,
-  INDIRECT: 0x0100,
-  QUERY_RESOLVE: 0x0200,
-};
-
-(globalThis as any).GPUMapMode = {
-  READ: 0x0001,
-  WRITE: 0x0002,
-};
-
-// Mock performance.now if not available
-if (typeof performance === 'undefined') {
-  (globalThis as any).performance = {
-    now: () => Date.now(),
+  const mockGPU = {
+    requestAdapter: vi.fn().mockResolvedValue(new MockGPUAdapter()),
   };
+
+  if (typeof globalThis.navigator === 'undefined') {
+    (globalThis as any).navigator = {};
+  }
+  (globalThis.navigator as any).gpu = mockGPU;
 }
+
+// ── Ensure GPU constants exist ─────────────────────────────────────────────
+
+function ensureGPUConstants(): void {
+  if (typeof (globalThis as any).GPUBufferUsage === 'undefined') {
+    (globalThis as any).GPUBufferUsage = {
+      MAP_READ: 0x0001,
+      MAP_WRITE: 0x0002,
+      COPY_SRC: 0x0004,
+      COPY_DST: 0x0008,
+      INDEX: 0x0010,
+      VERTEX: 0x0020,
+      UNIFORM: 0x0040,
+      STORAGE: 0x0080,
+      INDIRECT: 0x0100,
+      QUERY_RESOLVE: 0x0200,
+    };
+  }
+
+  if (typeof (globalThis as any).GPUMapMode === 'undefined') {
+    (globalThis as any).GPUMapMode = {
+      READ: 0x0001,
+      WRITE: 0x0002,
+    };
+  }
+
+  if (typeof performance === 'undefined') {
+    (globalThis as any).performance = {
+      now: () => Date.now(),
+    };
+  }
+}
+
+// ── Bootstrap ──────────────────────────────────────────────────────────────
+
+const isLive = await tryDawnGPU();
+GPU_LIVE = isLive;
+
+if (!isLive) {
+  installMocks();
+}
+
+ensureGPUConstants();
 
 export { MockGPUBuffer, MockGPUDevice, MockGPUAdapter, MockCommandEncoder };

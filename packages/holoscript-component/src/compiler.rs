@@ -6,6 +6,7 @@ use crate::holoscript::core::types::{
 };
 
 /// Compile to Unity C#
+#[allow(dead_code)]
 pub fn compile_unity(ast: &CompositionNode) -> Result<String, Diagnostic> {
     let mut code = String::new();
     
@@ -35,6 +36,7 @@ pub fn compile_unity(ast: &CompositionNode) -> Result<String, Diagnostic> {
     Ok(code)
 }
 
+#[allow(dead_code)]
 fn generate_unity_object(obj: &ObjectNode, indent: &str) -> String {
     let mut code = String::new();
     let var_name = sanitize_name(&obj.name);
@@ -97,6 +99,7 @@ fn generate_unity_object(obj: &ObjectNode, indent: &str) -> String {
 }
 
 /// Compile to Godot GDScript
+#[allow(dead_code)]
 pub fn compile_godot(ast: &CompositionNode) -> Result<String, Diagnostic> {
     let mut code = String::new();
     
@@ -116,6 +119,7 @@ pub fn compile_godot(ast: &CompositionNode) -> Result<String, Diagnostic> {
     Ok(code)
 }
 
+#[allow(dead_code)]
 fn generate_godot_object(obj: &ObjectNode, indent: &str) -> String {
     let mut code = String::new();
     let var_name = sanitize_name(&obj.name).to_lowercase();
@@ -208,7 +212,7 @@ pub fn compile_aframe(ast: &CompositionNode) -> Result<String, Diagnostic> {
     
     // Lights
     for light in &ast.lights {
-        let (light_type, color, intensity) = get_light_props(&light.properties);
+        let (_light_type, color, intensity) = get_light_props(&light.properties);
         code.push_str(&format!(
             "    <a-light type=\"{}\" color=\"{}\" intensity=\"{}\"></a-light>\n",
             light.light_type, color, intensity

@@ -205,7 +205,7 @@ export class SSSMaterial {
    * r: distance between light entry and exit point on the surface.
    */
   evaluate(r: number): RGB {
-    let result: RGB = [0, 0, 0];
+    const result: RGB = [0, 0, 0];
     for (const layer of this.config.layers) {
       let channelResult: RGB;
       if (this.config.model === 'christensen') {

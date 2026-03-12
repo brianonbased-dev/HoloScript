@@ -54,7 +54,7 @@ export function useAnimation(): UseAnimationReturn {
     const ids = engineRef.current.getActiveIds();
     // access internal state through active IDs
     setAnimations(
-      ids.map((id) => ({
+      ids.map((id: string) => ({
         id,
         elapsed: 0,
         isPlaying: true,
@@ -111,7 +111,7 @@ export function useAnimation(): UseAnimationReturn {
 
   const playDemo = useCallback(
     (easingName = 'easeOutBounce') => {
-      const fn = EASING_NAMES.find(([n]) => n === easingName)?.[1] || Easing.easeOutBounce;
+      const fn = EASING_NAMES.find(([n]) => n === easingName)?.[1] || Easing['easeOutBounce'];
       const clip: AnimationClip = {
         id: `demo-${Date.now()}`,
         property: 'position.y',

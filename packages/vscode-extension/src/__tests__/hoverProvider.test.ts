@@ -46,7 +46,7 @@ function createMockDocument(
 
 describe('HoloScriptHoverProvider', () => {
   let provider: HoloScriptHoverProvider;
-  let token: ReturnType<typeof new CancellationTokenSource>['token'];
+  let token: InstanceType<typeof CancellationTokenSource>['token'];
 
   beforeEach(() => {
     provider = new HoloScriptHoverProvider();

@@ -5,12 +5,14 @@
 import { useState, useCallback, useRef } from 'react';
 import {
   ECSWorld,
-  ComponentType,
   type TransformComponent,
   type VelocityComponent,
   type ColliderComponent,
   type SystemStats,
 } from '@holoscript/core';
+
+// Local numeric constant matching ComponentType const enum (cannot cross isolatedModules boundary)
+const CT_Transform = 0b00001; // ComponentType.Transform
 
 export interface PhysicsEntity {
   id: number;
@@ -48,7 +50,7 @@ export function usePhysicsPreview(): UsePhysicsPreviewReturn {
 
   const syncEntities = useCallback(() => {
     const w = worldRef.current;
-    const mask = ComponentType.Transform;
+    const mask = CT_Transform;
     const ids = w.query(mask);
     const ents: PhysicsEntity[] = ids.map((id) => ({
       id,

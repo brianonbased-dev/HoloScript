@@ -61,6 +61,7 @@ function HistoricGhostMesh({ entity }: { entity: ViewportEntity }) {
       {/* Diff mapping line linking current mesh to historic mesh */}
       <line>
         <bufferGeometry>
+          {/* @ts-ignore */}
           <bufferAttribute
             attach="attributes-position"
             count={2}
@@ -117,7 +118,7 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
           e.clientX,
           e.clientY - 40,
           <div className="flex flex-col gap-1">
-            <span className="font-bold text-indigo-300">@{blame.author}</span>
+            <span className="font-bold text-indigo-300">@{blame.author.name}</span>
             <span>Added {entity.name || entity.type} geometry</span>
             <span className="text-[9px] text-slate-400 font-mono mt-1">commit: {blame.oid.substring(0, 7)}</span>
             <span className="text-[9px] text-slate-500 mt-1 max-w-[150px] truncate">{blame.message}</span>

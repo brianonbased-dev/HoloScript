@@ -15,7 +15,7 @@
 import { ShaderGraph } from '@/lib/shaderGraph';
 import type { ICompiledShader } from '@/lib/shaderGraph';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type compileShaderGraph = (
   graph: ShaderGraph,
   opts: { target: string; optimize: boolean; debug: boolean }
@@ -40,7 +40,8 @@ type compileShaderGraph = (
 // updatedAt !== createdAt (i.e. has been modified after initial creation).
 const compileShaderGraph: compileShaderGraph = (graph, _opts) => {
   const nodes = Array.from(graph.nodes.values());
-  const hasOutput = nodes.some((n) => n.type === 'output_surface');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasOutput = nodes.some((n: any) => n.type === 'output_surface');
 
   // A graph with multiple nodes but no output node is "broken"
   // A single node graph after the graph was edited (updatedAt changed) is also "broken"
@@ -100,7 +101,7 @@ export interface PerformanceMetrics {
 /**
  * Material instance for preview
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export interface MaterialInstance {
   shaderModule?: any; // GPUShaderModule
   pipeline?: any; // GPURenderPipeline
@@ -146,17 +147,17 @@ export class LivePreviewService {
   /**
    * Initialize WebGPU device
    */
-  async initialize(device?: GPUDevice): Promise<void> {
+  async initialize(device?: any): Promise<void> {
     if (device) {
       this.device = device;
       return;
     }
 
-    if (!navigator.gpu) {
+    if (!(navigator as any).gpu) {
       throw new Error('WebGPU is not supported in this browser');
     }
 
-    const adapter = await navigator.gpu.requestAdapter();
+    const adapter = await (navigator as any).gpu.requestAdapter();
     if (!adapter) {
       throw new Error('Failed to get WebGPU adapter');
     }
@@ -319,8 +320,8 @@ export class LivePreviewService {
       const fragmentInfo = await fragmentModule.getCompilationInfo();
 
       const hasErrors =
-        vertexInfo.messages.some((m: GPUCompilationMessage) => m.type === 'error') ||
-        fragmentInfo.messages.some((m: GPUCompilationMessage) => m.type === 'error');
+        vertexInfo.messages.some((m: any) => m.type === 'error') ||
+        fragmentInfo.messages.some((m: any) => m.type === 'error');
 
       if (hasErrors) {
         console.error('Shader compilation errors:', {
@@ -392,7 +393,7 @@ export class LivePreviewService {
   private computeCacheKey(graph: ShaderGraph): string {
     const serialized = graph.toJSON();
     return JSON.stringify({
-      nodes: serialized.nodes.map((n) => ({
+      nodes: serialized.nodes.map((n: any) => ({
         type: n.type,
         props: n.properties,
       })),

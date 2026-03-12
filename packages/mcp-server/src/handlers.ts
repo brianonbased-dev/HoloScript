@@ -5,11 +5,12 @@
  * Dispatches to specialized handlers for graph, IDE, and Brittney-Lite tools.
  */
 
-import { HoloScriptPlusParser, parseHolo, parseHoloStrict } from '@holoscript/core';
+import { HoloScriptPlusParser, parseHolo, parseHoloStrict, VR_TRAITS } from '@holoscript/core';
 
 import { generateObject, generateScene, suggestTraits } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
+import { handleEditHoloTool } from './edit-holo-tools';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
@@ -24,50 +25,66 @@ import {
   BrowserScreenshotSchema,
 } from './browser/browser-tools';
 
-// Trait categories mapping
+// Trait categories mapping — representative samples per category.
+// Full 1,800+ trait list is available via the 'all' category (sourced from @holoscript/core).
 const TRAIT_CATEGORIES: Record<string, string[]> = {
   interaction: [
-    '@grabbable',
-    '@throwable',
-    '@holdable',
-    '@clickable',
-    '@hoverable',
-    '@draggable',
-    '@pointable',
-    '@scalable',
-    '@rotatable',
-    '@snappable',
+    '@grabbable', '@throwable', '@holdable', '@clickable', '@hoverable',
+    '@draggable', '@pointable', '@scalable', '@rotatable', '@snappable',
   ],
-  physics: ['@collidable', '@physics', '@rigid', '@kinematic', '@trigger', '@gravity'],
-  visual: ['@glowing', '@emissive', '@transparent', '@reflective', '@animated', '@billboard'],
-  networking: ['@networked', '@synced', '@persistent', '@owned', '@host_only'],
+  physics: [
+    '@collidable', '@physics', '@rigid', '@kinematic', '@trigger', '@gravity',
+    '@soft_body', '@fluid', '@magnetic', '@buoyant',
+  ],
+  visual: [
+    '@glowing', '@emissive', '@transparent', '@reflective', '@animated',
+    '@billboard', '@particle', '@holographic', '@volumetric', '@shader_custom',
+  ],
+  networking: [
+    '@networked', '@synced', '@persistent', '@owned', '@host_only',
+    '@replicated', '@authority', '@interpolated',
+  ],
   behavior: [
-    '@stackable',
-    '@attachable',
-    '@equippable',
-    '@consumable',
-    '@destructible',
-    '@breakable',
-    '@character',
+    '@stackable', '@attachable', '@equippable', '@consumable', '@destructible',
+    '@breakable', '@character', '@npc', '@pathfinding', '@state_machine',
   ],
-  spatial: ['@anchor', '@tracked', '@world_locked', '@hand_tracked', '@eye_tracked'],
-  audio: ['@spatial_audio', '@ambient', '@voice_activated'],
-  state: ['@state', '@reactive', '@observable', '@computed'],
+  spatial: [
+    '@anchor', '@tracked', '@world_locked', '@hand_tracked', '@eye_tracked',
+    '@plane_detected', '@image_tracked', '@face_tracked',
+  ],
+  audio: [
+    '@spatial_audio', '@ambient', '@voice_activated', '@reverb', '@doppler',
+    '@music', '@procedural_audio',
+  ],
+  state: [
+    '@state', '@reactive', '@observable', '@computed', '@event_driven',
+    '@persistent_state', '@replicated_state',
+  ],
+  ai: [
+    '@llm_agent', '@npc', '@crowd', '@reactive', '@pathfinding',
+    '@emotion', '@dialogue', '@decision_tree',
+  ],
+  accessibility: [
+    '@high_contrast', '@screen_reader', '@reduced_motion', '@voice_nav',
+    '@colorblind_safe', '@haptic_feedback',
+  ],
+  iot: [
+    '@iot_sensor', '@digital_twin', '@mqtt_bridge', '@telemetry',
+    '@actuator', '@stream_data',
+  ],
+  web3: [
+    '@nft_asset', '@token_gated', '@wallet_connected', '@on_chain',
+    '@dao_governed', '@smart_contract',
+  ],
   advanced: [
-    '@teleport',
-    '@ui_panel',
-    '@particle_system',
-    '@weather',
-    '@day_night',
-    '@lod',
-    '@hand_tracking',
-    '@haptic',
-    '@portal',
-    '@mirror',
+    '@teleport', '@ui_panel', '@particle_system', '@weather', '@day_night',
+    '@lod', '@hand_tracking', '@haptic', '@portal', '@mirror',
+    '@ray_traced', '@compute_shader', '@lod_managed',
   ],
 };
 
-const ALL_TRAITS = Object.values(TRAIT_CATEGORIES).flat();
+// All 1,800+ traits from @holoscript/core
+const ALL_TRAITS: readonly string[] = VR_TRAITS;
 
 /**
  * Main handler dispatcher for all tools
@@ -105,6 +122,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return handleCreateShareLink(args);
     case 'convert_format':
       return handleConvertFormat(args);
+    case 'edit_holo': {
+      const result = await handleEditHoloTool(name, args);
+      if (result !== null) return result;
+      throw new Error('edit_holo handler returned null');
+    }
 
     // Browser control tools
     case 'browser_launch':
@@ -257,7 +279,9 @@ async function handleListTraits(args: Record<string, unknown>) {
   if (category === 'all') {
     return {
       total: ALL_TRAITS.length,
-      categories: TRAIT_CATEGORIES,
+      categories: Object.fromEntries(
+        Object.entries(TRAIT_CATEGORIES).map(([k, v]) => [k, v.length])
+      ),
       list: ALL_TRAITS,
     };
   }
@@ -888,7 +912,7 @@ async function handleGenerate3DObject(args: Record<string, unknown>) {
   try {
     // Dynamic import to avoid loading heavy deps when not needed
     const { MeshyProvider, TripoProvider, textTo3DToHolo } = await import(
-      '../../../cli/src/importers/text-to-3d-importer' as string
+      '../../cli/src/importers/text-to-3d-importer' as string
     );
 
     let provider;

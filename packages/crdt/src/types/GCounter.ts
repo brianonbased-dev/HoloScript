@@ -147,7 +147,7 @@ export class GCounter {
     operationId: string,
     timestamp: number
   ): boolean {
-    let actorCount = this.counters.get(actorDid);
+    const actorCount = this.counters.get(actorDid);
 
     if (!actorCount) {
       // First time seeing this actor

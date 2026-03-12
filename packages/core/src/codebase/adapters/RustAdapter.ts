@@ -264,7 +264,7 @@ export class RustAdapter implements LanguageAdapter {
         const path = n.childForFieldName('path');
         const name = n.childForFieldName('name');
         const list = n.childForFieldName('list');
-        let prefix = path ? collectPath(path) : '';
+        const prefix = path ? collectPath(path) : '';
 
         if (name) return prefix ? `${prefix}::${name.text}` : name.text;
         if (list) {

@@ -228,3 +228,6 @@ export function FilmStudioPanel() {
     </div>
   );
 }
+
+export default FilmStudioPanel;
+

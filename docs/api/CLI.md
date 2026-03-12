@@ -170,6 +170,7 @@ The CLI includes 32+ commands for package management, registry, deployment, and 
 
 Key commands not covered above:
 
+- **Codebase Intelligence:** `absorb`, `query` — scan any codebase and query it with GraphRAG ([full guide →](/guides/codebase-intelligence))
 - **Package Management:** `add`, `remove`, `list`, `pack`, `unpack`
 - **Registry:** `publish`, `login`, `logout`, `whoami`, `access`, `org`, `token`
 - **Code Tools:** `traits`, `suggest`, `generate`, `templates`, `inspect`, `diff`

@@ -32,7 +32,7 @@ HoloScript v3.43.0 includes extensive performance optimizations across parsing, 
 
 ### 3. Multi-Target Compiler Pipeline
 
-**Problem:** Sequential compilation to 20+ targets was slow.
+**Problem:** Sequential compilation to 25+ targets was slow.
 
 **Solution:** Shared AST with target-specific code generation passes. Common optimizations (dead code elimination, constant folding) run once.
 
@@ -72,7 +72,7 @@ HoloScript v3.43.0 includes extensive performance optimizations across parsing, 
 | Type check (simple)            | < 10ms  | Cached inference            |
 | Type check (complex, nested)   | < 30ms  | WeakMap cache hits          |
 | Compile to single target       | < 100ms | From cached AST             |
-| Compile to all 20+ targets     | < 500ms | Shared AST, parallel passes |
+| Compile to all 25+ targets     | < 500ms | Shared AST, parallel passes |
 
 ### Trait Application
 
@@ -118,4 +118,4 @@ HoloScript v3.43.0 includes extensive performance optimizations across parsing, 
 
 ## Conclusion
 
-v3.43.0 delivers production-grade performance with 1,800+ traits, 20+ compilation targets, and 1,200+ passing tests. The modularized trait system, cached type inference, and shared AST pipeline ensure fast iteration during development and efficient deployment in production.
+v3.43.0 delivers production-grade performance with 1,800+ traits, 25+ compilation targets, and 1,200+ passing tests. The modularized trait system, cached type inference, and shared AST pipeline ensure fast iteration during development and efficient deployment in production.

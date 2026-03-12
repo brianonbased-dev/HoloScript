@@ -254,3 +254,6 @@ export function EscapeRoomPanel() {
     </div>
   );
 }
+
+export default EscapeRoomPanel;
+

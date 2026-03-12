@@ -33,7 +33,8 @@ interface SafetyPanelProps {
 
 // ═══════════════════════════════════════════════════════════════════
 
-const VERDICT_STYLES: Record<SafetyVerdict, { icon: string; color: string; bg: string }> = {
+const VERDICT_STYLES: Record<
+  string, { icon: string; color: string; bg: string }> = {
   safe: { icon: '✅', color: '#10b981', bg: '#10b98115' },
   warnings: { icon: '⚠️', color: '#f59e0b', bg: '#f59e0b15' },
   unsafe: { icon: '🛑', color: '#ef4444', bg: '#ef444415' },
@@ -94,7 +95,7 @@ export function SafetyPanel({
       <div style={styles.section}>
         <div style={styles.sectionTitle}>Effects ({report.effects.totalEffects})</div>
         <div style={styles.tagList}>
-          {report.effects.categories.map((cat) => (
+          {report.effects.categories.map((cat: string) => (
             <span key={cat} style={styles.tag}>
               {cat}
             </span>
@@ -102,7 +103,7 @@ export function SafetyPanel({
         </div>
         {report.effects.violations.length > 0 && (
           <div style={styles.violations}>
-            {report.effects.violations.map((v, i) => (
+            {report.effects.violations.map((v: any, i: number) => (
               <div
                 key={i}
                 style={{
@@ -121,7 +122,7 @@ export function SafetyPanel({
       {report.budget.diagnostics.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Budget</div>
-          {report.budget.diagnostics.map((d, i) => (
+          {report.budget.diagnostics.map((d: any, i: number) => (
             <div key={i} style={styles.budgetRow}>
               <span style={styles.budgetLabel}>{d.category}</span>
               <div style={styles.budgetBar}>
@@ -148,7 +149,7 @@ export function SafetyPanel({
       {report.capabilities.missing.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Missing Capabilities</div>
-          {report.capabilities.missing.map((cap, i) => (
+          {report.capabilities.missing.map((cap: any, i: number) => (
             <div key={i} style={styles.capMissing}>
               🔒 {cap.scope} — required by {cap.requiredBy}
             </div>
@@ -157,10 +158,10 @@ export function SafetyPanel({
       )}
 
       {/* Certificate */}
-      {report.certificate && (
+      {report.verdict !== 'unsafe' && (
         <div style={{ ...styles.section, background: '#10b98110' }}>
           <div style={styles.sectionTitle}>📜 Safety Certificate</div>
-          <div style={styles.certHash}>ID: {report.certificate.id}</div>
+          <div style={styles.certHash}>Module: {report.moduleId}</div>
         </div>
       )}
     </div>

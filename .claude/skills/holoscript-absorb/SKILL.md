@@ -11,6 +11,39 @@ argument-hint: "[package-path or query] e.g. 'packages/core' or 'what depends on
 
 # HoloScript Absorb — Codebase Intelligence Extraction
 
+## ⚡ MCP-First: Cache-First Workflow (Default)
+
+**When the MCP server is running, use these tools — they are faster and more efficient than CLI.**
+
+```
+Step 1: holo_graph_status({})
+        → Returns: { fresh, stale, cacheAgeMs, hint }
+        → If hint says "cache is fresh" → skip to Step 3
+
+Step 2: holo_absorb_repo({ rootDir: "packages/core" })
+        → Omit `force` (default false) → returns in ~21ms from disk cache if < 24h old
+        → force: true ONLY if holo_graph_status says stale
+
+Step 3: holo_query_codebase({ query: "what does X call?" })
+        holo_impact_analysis({ symbol: "TargetClass" })
+        → Both auto-load disk cache — no manual pre-load needed
+        → Response includes `cacheNote` field showing cache age
+
+Step 4: holo_detect_changes({ before: "HEAD~1", after: "HEAD" })
+        → Always fresh — compares two git states
+```
+
+**NEVER call `holo_absorb_repo` with `force: true`** unless `holo_graph_status` shows stale cache.
+Query tools auto-load from `~/.holoscript/graph-cache.json` (24h TTL) without a prior absorb call.
+
+**CLI fallback** (when MCP unavailable):
+```bash
+npx tsx packages/cli/src/cli.ts absorb packages/core --json
+npx tsx packages/cli/src/cli.ts query "what calls getMaterialProps?"
+```
+
+---
+
 ## When to Use
 
 - **Before refactoring**: "Absorb core before touching the compiler"
@@ -56,13 +89,21 @@ Output formats:
 
 ### Pre-Refactor Protocol (MANDATORY per CLAUDE.md)
 
+**MCP-first (preferred):**
 ```
-1. npx holoscript absorb <package-path> -o knowledge.holo    → Snapshot BEFORE changes
-2. Analyze symbol relationships and communities
-3. Identify affected consumers of target code
+1. holo_graph_status({})                              → Check if cache is current
+2. holo_absorb_repo({ rootDir: "<package-path>" })    → Load cache (~21ms) or scan fresh
+3. holo_impact_analysis({ symbol: "<TargetClass>" })  → Blast radius: what will break?
 4. Make refactoring changes
-5. npx holoscript absorb <package-path> -o knowledge-after.holo → Snapshot AFTER
-6. Compare before/after to verify no unintended structural changes
+5. holo_absorb_repo({ rootDir: "<pkg>", force: true }) → Fresh scan AFTER to verify
+6. holo_query_codebase({ query: "what changed in <X>?" }) → Confirm no unintended shifts
+```
+
+**CLI fallback:**
+```bash
+npx tsx packages/cli/src/cli.ts absorb <package-path> --json   # Before
+# ...make changes...
+npx tsx packages/cli/src/cli.ts absorb <package-path> --json   # After comparison
 ```
 
 ## Commands
@@ -171,17 +212,20 @@ npx holoscript absorb packages/studio/src/components/scene
 5. Plan changes with full dependency awareness
 ```
 
-## MCP Tools (When Available)
+## MCP Tools (Preferred Interface)
 
-If the HoloScript MCP server is running (`npx tsx packages/mcp-server/src/index.ts`):
+Start MCP server: `npx tsx packages/mcp-server/src/index.ts`
 
-| Tool | Purpose |
-|------|---------|
-| `holo_absorb_repo` | Absorb via MCP (same as CLI) |
-| `holo_semantic_search` | Search absorbed graph semantically |
-| `holo_ask_codebase` | Natural language queries on graph |
-| `holo_self_diagnose` | Auto-diagnose issues from graph |
-| `holo_validate_quality` | Quality metrics from graph analysis |
+| Tool | Cache Behavior | Purpose |
+|------|---------------|---------|
+| `holo_graph_status` | reads cache metadata | Check freshness — always call first |
+| `holo_absorb_repo` | `force=false` → ~21ms from cache; `force=true` → fresh scan | Primary absorb tool |
+| `holo_query_codebase` | auto-loads disk cache | Architectural questions |
+| `holo_impact_analysis` | auto-loads disk cache | Blast radius for a symbol |
+| `holo_detect_changes` | always fresh | Compare two git refs |
+| `holo_semantic_search` | auto-loads cache | Semantic search (needs Ollama) |
+| `holo_ask_codebase` | auto-loads cache | Natural language Q&A (needs Ollama) |
+| `holo_self_diagnose` | auto-loads cache | Auto-diagnose quality issues |
 
 ## Examples
 

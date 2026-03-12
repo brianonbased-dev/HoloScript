@@ -382,7 +382,6 @@ export function AgentOrchestrationGraphEditor({
       updateWorkflow(workflow.id, {
         nodes: revertedWorkflow.nodes,
         edges: revertedWorkflow.edges,
-        metadata: revertedWorkflow.metadata,
       });
     }
   };

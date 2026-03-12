@@ -589,7 +589,7 @@ export class NetworkedTrait {
       if (dtMs > 0 && dtMs <= maxExtrapolationMs) {
         const dtSec = dtMs / 1000;
         const props = latest.properties;
-        let position = [...latest.position] as [number, number, number];
+        const position = [...latest.position] as [number, number, number];
         let rotation = [...latest.rotation] as [number, number, number, number];
         
         // Extrapolate Position using linear velocity

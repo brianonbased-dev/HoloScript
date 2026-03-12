@@ -393,11 +393,11 @@ export class CodebaseGraph {
    * Deserialize a graph from JSON.
    */
   static deserialize(json: string): CodebaseGraph {
-    const data: SerializedGraph = JSON.parse(json);
+    const data: Partial<SerializedGraph> = JSON.parse(json);
     const graph = new CodebaseGraph();
-    graph.rootDir = data.rootDir;
+    graph.rootDir = data.rootDir ?? '';
 
-    for (const file of data.files) {
+    for (const file of (data.files ?? [])) {
       graph.addFile(file);
     }
     graph.buildIndexes();

@@ -57,7 +57,7 @@ export function PropertyPanel() {
       {/* Header */}
       <div className="p-4 border-b border-gray-700 flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-white truncate">{node.name}</h3>
+          <h3 className="text-lg font-semibold text-white truncate">{node.type}</h3>
           <p className="text-xs text-gray-400">{node.type}</p>
         </div>
         <button onClick={clearSelection} className="text-gray-400 hover:text-white ml-2">
@@ -86,11 +86,11 @@ export function PropertyPanel() {
         )}
 
         {/* Input Ports */}
-        {node.inputs.length > 0 && (
+        {node.inputs && node.inputs.length > 0 && (
           <div>
             <h4 className="text-sm font-medium text-white mb-3">Inputs</h4>
             <div className="space-y-2">
-              {node.inputs.map((input) => (
+              {node.inputs.map((input: any) => (
                 <div key={input.id} className="text-xs">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-gray-300">{input.name}</span>
@@ -108,11 +108,11 @@ export function PropertyPanel() {
         )}
 
         {/* Output Ports */}
-        {node.outputs.length > 0 && (
+        {node.outputs && node.outputs.length > 0 && (
           <div>
             <h4 className="text-sm font-medium text-white mb-3">Outputs</h4>
             <div className="space-y-2">
-              {node.outputs.map((output) => (
+              {node.outputs.map((output: any) => (
                 <div key={output.id} className="text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-300">{output.name}</span>

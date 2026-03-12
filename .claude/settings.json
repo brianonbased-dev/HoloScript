@@ -42,9 +42,9 @@
     "suggest_traits → generate_object/generate_scene → validate_holoscript → return",
     "",
     "KNOWLEDGE PACK:",
-    "TRAITS: 1,525+ in 13 categories — ALL in @holoscript/core (no separate package)",
-    "COMPILERS: 18+ targets — ALL in @holoscript/core (no separate package)",
-    "MCP: packages/mcp-server/ — 34 tools",
+    "TRAITS: 1,800+ in 13 categories — ALL in @holoscript/core (no separate package)",
+    "COMPILERS: 25+ targets — ALL in @holoscript/core (no separate package)",
+    "MCP: packages/mcp-server/ — 65+ tools",
     "FORMATS: .hs=classic | .hsplus=traits | .holo=AI/cross-platform | .ts=tooling-only",
     "TEST: pnpm test | createComposition() pattern",
     "DOCS: docs/academy/ (newcomers) | docs/traits/ | docs/compilers/ | docs/_archive/ (dev notes only)"

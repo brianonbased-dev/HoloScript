@@ -9,18 +9,27 @@
 
 import type { ExternalSymbolDefinition } from './types';
 import type { CodebaseGraph } from './CodebaseGraph';
+import type { EmbeddingProvider } from './providers/EmbeddingProvider';
+import { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 export interface EmbeddingIndexOptions {
-  /** Ollama base URL (default: 'http://localhost:11434') */
-  ollamaUrl?: string;
-  /** Embedding model (default: 'nomic-embed-text') */
-  model?: string;
+  /**
+   * Embedding provider instance.
+   * Defaults to BM25EmbeddingProvider (zero dependencies, always works).
+   * Use createEmbeddingProvider() from './providers' to build from config options.
+   */
+  provider?: EmbeddingProvider;
   /** Batch size for embedding requests (default: 32) */
   batchSize?: number;
+  /**
+   * @deprecated Kept only for backward-compatible deserialize() calls.
+   * The provider's own name (provider.name) is now stored in serialised indexes.
+   */
+  model?: string;
 }
 
 export interface IndexedSymbol {
@@ -59,13 +68,11 @@ interface SerializedIndex {
 
 export class EmbeddingIndex {
   private entries: IndexedSymbol[] = [];
-  private ollamaUrl: string;
-  private model: string;
+  private provider: EmbeddingProvider;
   private batchSize: number;
 
   constructor(options: EmbeddingIndexOptions = {}) {
-    this.ollamaUrl = options.ollamaUrl ?? 'http://localhost:11434';
-    this.model = options.model ?? 'nomic-embed-text';
+    this.provider = options.provider ?? new BM25EmbeddingProvider();
     this.batchSize = options.batchSize ?? 32;
   }
 
@@ -202,7 +209,7 @@ export class EmbeddingIndex {
   serialize(): string {
     const data: SerializedIndex = {
       version: 1,
-      model: this.model,
+      model: this.provider.name,
       entries: this.entries.map((e) => ({
         symbol: e.symbol,
         text: e.text,
@@ -217,10 +224,7 @@ export class EmbeddingIndex {
    */
   static deserialize(json: string, options?: EmbeddingIndexOptions): EmbeddingIndex {
     const data: SerializedIndex = JSON.parse(json);
-    const index = new EmbeddingIndex({
-      ...options,
-      model: options?.model ?? data.model,
-    });
+    const index = new EmbeddingIndex(options);
 
     index.entries = data.entries.map((e) => ({
       symbol: e.symbol,
@@ -263,32 +267,9 @@ export class EmbeddingIndex {
     return parts.join(' ');
   }
 
-  /**
-   * Call Ollama embeddings API.
-   * Processes one at a time since Ollama /api/embeddings takes single prompt.
-   */
-  private async getEmbeddings(texts: string[]): Promise<number[][]> {
-    const results: number[][] = [];
-
-    for (const text of texts) {
-      const response = await fetch(this.ollamaUrl + '/api/embeddings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.model,
-          prompt: text,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ollama Embeddings API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      results.push(data.embedding);
-    }
-
-    return results;
+  /** Delegate embedding to the configured provider. */
+  private getEmbeddings(texts: string[]): Promise<number[][]> {
+    return this.provider.getEmbeddings(texts);
   }
 
   /**

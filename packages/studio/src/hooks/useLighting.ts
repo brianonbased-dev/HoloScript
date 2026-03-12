@@ -51,10 +51,12 @@ export function useLighting(): UseLightingReturn {
         directional: [1, 0.95, 0.8],
         point: [1, 0.8, 0.4],
         spot: [0.6, 0.8, 1],
+        area: [0.9, 0.9, 1.0],
+        probe: [0.5, 0.7, 1.0],
       };
       const light = modelRef.current.addLight({
         id,
-        type,
+        type: type as 'directional' | 'point' | 'spot',
         position: pos,
         color: colors[type],
         intensity: type === 'directional' ? 1.2 : 2.0,

@@ -29,7 +29,7 @@ Both servers can be used by Brittney or any cloud AI agent (Copilot, Claude, Cur
 
 HoloScript is not another framework—it's a paradigm shift:
 
-- **One source → 18+ platforms** (Unity, Unreal, Godot, VRChat, WebGPU, visionOS, iOS, Android, OpenXR, URDF, SDF, DTDL, Babylon, PlayCanvas, WASM, and more)
+- **One source → 25+ platforms** (Unity, Unreal, Godot, VRChat, WebGPU, visionOS, iOS, Android, OpenXR, URDF, SDF, DTDL, Babylon, PlayCanvas, WASM, and more)
 - **50,000 lines → 500 lines** through declarative composition
 - **Made for AI**: Agents generate `.holo` files, not JSX components
 
@@ -87,6 +87,50 @@ When asked to build features:
 | `brittney_suggest_fix`   | Get fix suggestions       |
 | `brittney_auto_fix`      | Auto-fix browser errors   |
 | `brittney_ask_question`  | Ask about running app     |
+
+### Codebase Intelligence (Cache-First)
+
+> **Use these before editing TypeScript. Cache-first: `force=false` returns in ~21ms if cache is < 24h old.**
+
+| Tool                    | When to Use                                            |
+| ----------------------- | ------------------------------------------------------ |
+| `holo_graph_status`     | **First**: check cache freshness before absorbing      |
+| `holo_absorb_repo`      | Scan codebase — omit `force` to use cache (~21ms)      |
+| `holo_query_codebase`   | Query codebase graph (auto-loads cache if needed)      |
+| `holo_impact_analysis`  | Blast radius for a symbol (auto-loads cache)           |
+| `holo_detect_changes`   | Compare two git refs — always fresh                    |
+| `holo_semantic_search`  | Semantic search (requires Ollama)                      |
+| `holo_ask_codebase`     | Natural language questions (requires Ollama)           |
+
+**Workflow for TypeScript refactoring:**
+```
+1. holo_graph_status({})                          → Check cache age
+2. holo_absorb_repo({ rootDir: "packages/core" }) → Use cache if fresh
+3. holo_impact_analysis({ symbol: "TargetClass" }) → Find blast radius
+4. Edit code → run pnpm test
+```
+
+**NEVER call `holo_absorb_repo` with `force: true`** unless `holo_graph_status` reports stale cache.
+
+**CLI fallback** (one-shot): `npx tsx packages/cli/src/cli.ts absorb <dir> --json`
+
+### MCP Recovery Protocol
+
+If any MCP tool call fails or returns an error:
+
+1. **Diagnose** — `npx tsx packages/mcp-server/src/index.ts --help` (exit 0 = binary is OK)
+2. **Start** — `npx tsx packages/mcp-server/src/index.ts` (background)
+3. **Verify** — retry `holo_graph_status({})` or `list_traits({})` (lightest calls)
+4. **CLI fallbacks** if server won't start:
+
+| Failed Tool | CLI Equivalent |
+| ----------- | -------------- |
+| `holo_absorb_repo` | `npx tsx packages/cli/src/cli.ts absorb <dir> --json` |
+| `holo_query_codebase` | `npx tsx packages/cli/src/cli.ts query "<question>"` |
+| `validate_holoscript` | `npx tsx packages/cli/src/cli.ts parse <file>` |
+| `suggest_traits`, `generate_*` | No CLI equivalent — LLM-based only |
+
+5. **Notify user**: `"MCP server is down. Start it: npx tsx packages/mcp-server/src/index.ts"`
 
 ---
 
@@ -406,8 +450,8 @@ object Portal @collidable {
 
 | Package                    | Purpose                                   |
 | -------------------------- | ----------------------------------------- |
-| `@holoscript/core`         | Parser, AST, 1,800+ traits, 20+ compilers |
-| `@holoscript/mcp-server`   | 34 MCP tools for AI agents                |
+| `@holoscript/core`         | Parser, AST, 1,800+ traits, 25+ compile targets |
+| `@holoscript/mcp-server`   | 65 MCP tools for AI agents                |
 | `@holoscript/cli`          | holo build · holo compile · holo validate |
 | `@holoscript/runtime`      | Scene execution runtime                   |
 | `@holoscript/lsp`          | Language Server Protocol                  |

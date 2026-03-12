@@ -64,7 +64,7 @@ export class AgentWalletService {
         actionProviders: [
           wethActionProvider(),
           walletActionProvider(),
-          cdpApiActionProvider({}), // args removed for AgentKit SDK compatibility
+          cdpApiActionProvider(), // args removed for AgentKit SDK compatibility
         ] as ActionProvider<any>[],
       });
 

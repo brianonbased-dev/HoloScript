@@ -210,3 +210,6 @@ export function EpidemicPanel() {
     </div>
   );
 }
+
+export default EpidemicPanel;
+

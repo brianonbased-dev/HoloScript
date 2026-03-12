@@ -169,7 +169,7 @@ holoscript compile my-world.holo --target=r3f --output=./web-export
 │         HOLOSCRIPT (Meta-Framework)               │
 │  ├─ Parser, Compiler, Runtime                    │
 │  ├─ 1,800+ Traits (@grabbable, @physics, etc.)   │
-│  └─ Multi-target compilation (18+ platforms)     │
+│  └─ Multi-target compilation (25+ platforms)     │
 └───────────────────────────────────────────────────┘
 ```
 

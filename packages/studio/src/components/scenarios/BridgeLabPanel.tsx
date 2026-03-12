@@ -211,3 +211,6 @@ export function BridgeLabPanel() {
     </div>
   );
 }
+
+export default BridgeLabPanel;
+

@@ -5,8 +5,8 @@
       "name": "HoloScript Language",
       "description": "Parsing, validation, code generation for .hs/.hsplus/.holo",
       "type": "stdio",
-      "command": "npx",
-      "args": ["tsx", "packages/mcp-server/src/index.ts"],
+      "command": "node",
+      "args": ["packages/mcp-server/start.js"],
       "cwd": "${workspaceFolder}",
       "capabilities": {
         "tools": true,
@@ -18,8 +18,8 @@
       "name": "Hololand Platform",
       "description": "VR worlds, Brittney AI, browser debugging (optional)",
       "type": "stdio",
-      "command": "npx",
-      "args": ["tsx", "../Hololand/packages/brittney/mcp-server/src/index.ts"],
+      "command": "node",
+      "args": ["../Hololand/packages/brittney/mcp-server/dist/index.js"],
       "cwd": "${workspaceFolder}/../Hololand",
       "env": {
         "HOLOLAND_API_URL": "http://localhost:3000",
@@ -52,7 +52,8 @@
     "traits": {
       "name": "VR Traits",
       "description": "49 VR trait documentation",
-      "tools": ["list_traits", "explain_trait", "suggest_traits"]
+      "tools": ["list_traits", "explain_trait", "suggest_traits"],
+      "description": "1,800+ VR traits"
     },
     "documentation": {
       "name": "Documentation",

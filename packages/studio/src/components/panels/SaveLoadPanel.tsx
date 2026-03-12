@@ -76,7 +76,7 @@ export function SaveLoadPanel() {
                     key={k}
                     className="text-[9px] bg-studio-panel/40 px-1 rounded text-studio-muted"
                   >
-                    {k}: {v}
+                    {k}: {String(v)}
                   </span>
                 ))}
               </div>

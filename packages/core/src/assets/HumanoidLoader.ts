@@ -362,15 +362,15 @@ export class HumanoidLoader {
     // This allows the loader to work without Three.js being bundled
     try {
       // Dynamic import pattern for Three.js GLTFLoader
-      // @ts-expect-error - three.js is an optional peer dependency
+      // @ts-ignore - three.js is an optional peer dependency
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
       this.gltfLoader = new GLTFLoader();
 
       // Try to import VRM loader plugin
       try {
-        // @ts-expect-error - VRM plugin is optional
+        // @ts-ignore - VRM plugin is optional
         const { VRMLoaderPlugin } = await import('@pixiv/three-vrm');
-        (this.gltfLoader as any).register((parser: unknown) => new VRMLoaderPlugin(parser));
+        (this.gltfLoader as any).register((parser: unknown) => new VRMLoaderPlugin(parser as any));
         this.vrmLoaderPlugin = VRMLoaderPlugin;
         console.log('[HumanoidLoader] VRM support enabled');
       } catch {
@@ -379,7 +379,7 @@ export class HumanoidLoader {
 
       // Try to add Draco support
       try {
-        // @ts-expect-error - Draco loader is optional
+        // @ts-ignore - Draco loader is optional
         const { DRACOLoader } = await import('three/examples/jsm/loaders/DRACOLoader.js');
         const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');

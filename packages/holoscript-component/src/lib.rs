@@ -40,8 +40,8 @@ use exports::holoscript::core::{
 };
 
 use holoscript::core::types::{
-    CompileResult, CompileTarget, CompositionNode, Diagnostic, HoloType,
-    ParseResult, Severity, Span, Position, TraitDef, TraitFull, TypeInfo,
+    CompileResult, CompileTarget, CompositionNode, Diagnostic,
+    ParseResult, Severity, TraitDef, TraitFull, TypeInfo,
     ValidationResult,
 };
 

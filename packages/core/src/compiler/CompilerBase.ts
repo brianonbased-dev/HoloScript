@@ -287,6 +287,14 @@ export abstract class CompilerBase implements ICompiler {
     if (ansName && isValidCompilerName(ansName)) {
       return COMPILER_ANS_MAP[ansName];
     }
+    // Warn when a compiler subclass is missing from the ANS map — UCAN capability
+    // checks will be skipped silently for this compiler until it is registered.
+    if (process.env['NODE_ENV'] !== 'test') {
+      console.warn(
+        `[CompilerBase] Compiler '${this.compilerName}' has no ANS namespace entry. ` +
+          `Add it to COMPILER_CLASS_TO_ANS_NAME to enable UCAN capability enforcement.`
+      );
+    }
     return undefined;
   }
 
@@ -296,13 +304,23 @@ export abstract class CompilerBase implements ICompiler {
 
   /**
    * Validate agent can read AST
-   * Skips validation when no token is provided (backwards compatibility / testing)
+   * Skips validation when no token is provided.
+   * In production (`NODE_ENV=production`) a warning is emitted when no token is
+   * supplied — callers should always authenticate compiler access in production.
    *
    * @param agentToken - Agent JWT token (optional)
    * @throws UnauthorizedCompilerAccessError if token is provided but invalid
    */
   protected validateASTAccess(agentToken?: string): void {
-    if (!agentToken) return; // Skip validation when no token provided
+    if (!agentToken) {
+      if (process.env['NODE_ENV'] === 'production') {
+        console.warn(
+          `[${this.compilerName}] validateASTAccess called without a token in production. ` +
+            'All compiler calls should be authenticated. Pass an agent token to enforce RBAC.'
+        );
+      }
+      return;
+    }
 
     const decision = this.rbac.checkAccess({
       token: agentToken,
@@ -318,13 +336,23 @@ export abstract class CompilerBase implements ICompiler {
 
   /**
    * Validate agent can generate code
-   * Skips validation when no token is provided (backwards compatibility / testing)
+   * Skips validation when no token is provided.
+   * In production (`NODE_ENV=production`) a warning is emitted when no token is
+   * supplied — callers should always authenticate compiler access in production.
    *
    * @param agentToken - Agent JWT token (optional)
    * @throws UnauthorizedCompilerAccessError if token is provided but invalid
    */
   protected validateCodeGeneration(agentToken?: string): void {
-    if (!agentToken) return; // Skip validation when no token provided
+    if (!agentToken) {
+      if (process.env['NODE_ENV'] === 'production') {
+        console.warn(
+          `[${this.compilerName}] validateCodeGeneration called without a token in production. ` +
+            'All compiler calls should be authenticated. Pass an agent token to enforce RBAC.'
+        );
+      }
+      return;
+    }
 
     const decision = this.rbac.checkAccess({
       token: agentToken,
@@ -340,14 +368,24 @@ export abstract class CompilerBase implements ICompiler {
 
   /**
    * Validate agent can write to output path
-   * Skips validation when no token is provided (backwards compatibility / testing)
+   * Skips validation when no token is provided.
+   * In production (`NODE_ENV=production`) a warning is emitted when no token is
+   * supplied — callers should always authenticate compiler access in production.
    *
    * @param agentToken - Agent JWT token (optional)
    * @param outputPath - Target output file path
    * @throws UnauthorizedCompilerAccessError if token is provided but invalid
    */
   protected validateOutputPath(agentToken?: string, outputPath?: string): void {
-    if (!agentToken) return; // Skip validation when no token provided
+    if (!agentToken) {
+      if (process.env['NODE_ENV'] === 'production') {
+        console.warn(
+          `[${this.compilerName}] validateOutputPath called without a token in production. ` +
+            'All compiler calls should be authenticated. Pass an agent token to enforce RBAC.'
+        );
+      }
+      return;
+    }
 
     const decision = this.rbac.checkAccess({
       token: agentToken,

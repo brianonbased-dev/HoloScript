@@ -86,10 +86,27 @@ describe('CompilerBridge', () => {
   let bridge: CompilerBridge;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    // Restore default mock return values after clearAllMocks wipes them
+    mockParseHolo.mockReturnValue({ type: 'composition', body: [] });
+    mockValidate.mockReturnValue([]);
+    mockR3FCompile.mockReturnValue({ type: 'group', children: [] });
+    mockR3FCompileComposition.mockReturnValue({ type: 'group', children: [] });
+    // Re-stub Worker to ensure isolation from other test files' Worker mocks
+    vi.stubGlobal(
+      'Worker',
+      vi.fn().mockImplementation(() => new MockWorker())
+    );
     resetCompilerBridge();
     bridge = new CompilerBridge();
-    MockWorker.responseHandler = null;
-    vi.clearAllMocks();
+    // Default response handler: WASM init always "fails" so bridge uses TS fallback
+    // Other requests get a generic result to prevent timeouts
+    MockWorker.responseHandler = (type, _payload, _id) => {
+      if (type === 'init') {
+        return { type: 'error', payload: { message: 'WASM not available in test env' } };
+      }
+      return { type: 'result', payload: {} };
+    };
   });
 
   afterEach(() => {

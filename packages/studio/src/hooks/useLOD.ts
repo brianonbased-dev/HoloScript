@@ -62,12 +62,12 @@ export function useLOD(): UseLODReturn {
         obj.id,
         {
           levels: [
-            { distance: 0, triangleCount: 10000 },
-            { distance: 20, triangleCount: 5000 },
-            { distance: 50, triangleCount: 1000 },
-            { distance: 100, triangleCount: 200 },
+            { level: 0, distance: 0,   triangleCount: 10000, polygonRatio: 1.0,  textureScale: 1.0,  disabledFeatures: [] },
+            { level: 1, distance: 20,  triangleCount: 5000,  polygonRatio: 0.5,  textureScale: 0.75, disabledFeatures: [] },
+            { level: 2, distance: 50,  triangleCount: 1000,  polygonRatio: 0.1,  textureScale: 0.5,  disabledFeatures: [] },
+            { level: 3, distance: 100, triangleCount: 200,   polygonRatio: 0.02, textureScale: 0.25, disabledFeatures: [] },
           ],
-        },
+        } as any,
         obj.pos
       );
     }

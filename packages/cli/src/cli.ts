@@ -2357,7 +2357,7 @@ async function main(): Promise<void> {
       if (!options.input) {
         console.error('\x1b[31mError: No input directory specified.\x1b[0m');
         console.log(
-          'Usage: holoscript absorb <directory> [-o output.holo] [--layout force|layered] [--json]'
+          'Usage: holoscript absorb <directory> [-o output.holo] [--layout force|layered] [--json] [--for-agent] [--depth shallow|medium|deep] [--since <git-ref>] [--impact <file1,file2>]'
         );
         process.exit(1);
       }
@@ -2379,7 +2379,19 @@ async function main(): Promise<void> {
         // Scan
         const scanner = new CodebaseScanner();
         const scanStart = Date.now();
-        const scanResult = await scanner.scan({ rootDir });
+        let lastProgressLen = 0;
+        const scanResult = await scanner.scan({
+          rootDir,
+          onProgress(parsed, total, file) {
+            const pct = Math.round((parsed / total) * 100);
+            const msg = `  \x1b[36m  Parsing files... ${parsed}/${total} (${pct}%) — ${file}\x1b[0m`;
+            process.stdout.write('\r' + msg.padEnd(lastProgressLen));
+            lastProgressLen = msg.length;
+          },
+        });
+        if (lastProgressLen > 0) {
+          process.stdout.write('\r' + ' '.repeat(lastProgressLen + 4) + '\r');
+        }
 
         console.log(
           `  \x1b[32m✓\x1b[0m Scanned ${scanResult.stats.totalFiles} files in ${Date.now() - scanStart}ms`
@@ -2406,6 +2418,48 @@ async function main(): Promise<void> {
         const communities = graph.detectCommunities();
         console.log(`  \x1b[32m✓\x1b[0m Detected ${communities.size} module communities`);
 
+        // ── Quick blast-radius query (--impact flag) ──────────────────────
+        if (options.impactFiles) {
+          const inputFiles = options.impactFiles
+            .split(',')
+            .map((f) => path.resolve(rootDir, f.trim()))
+            .filter((f) => fs.existsSync(f));
+          if (inputFiles.length === 0) {
+            console.error(
+              '\x1b[31mNo valid files found for --impact. Paths are relative to the scan directory.\x1b[0m'
+            );
+            process.exit(1);
+          }
+          const impactSet = graph.getImpactSet(inputFiles);
+          const indirect = Array.from(impactSet)
+            .filter((f) => !inputFiles.includes(f))
+            .sort();
+          console.log(
+            `\n  \x1b[36m→\x1b[0m Blast radius: ${inputFiles.length} input → ${impactSet.size} total affected (${indirect.length} indirect)\n`
+          );
+          if (options.json) {
+            const out = JSON.stringify(
+              { input: inputFiles, blast_radius: Array.from(impactSet).sort(), indirect, total: impactSet.size },
+              null,
+              2
+            );
+            if (options.output) {
+              fs.writeFileSync(path.resolve(options.output), out);
+              console.log(`  \x1b[32m✓\x1b[0m Saved to ${options.output}`);
+            } else {
+              console.log(out);
+            }
+          } else {
+            for (const f of indirect.slice(0, 30)) {
+              console.log(`    ${path.relative(rootDir, f)}`);
+            }
+            if (indirect.length > 30) {
+              console.log(`    \x1b[2m... ${indirect.length - 30} more files\x1b[0m`);
+            }
+          }
+          process.exit(0);
+        }
+
         if (options.json) {
           // JSON output: serialized graph
           const output = graph.serialize();
@@ -2415,8 +2469,107 @@ async function main(): Promise<void> {
           } else {
             console.log(output);
           }
+        } else if (options.forAgent) {
+          // Agent-optimized manifest output
+          const emitter = new HoloEmitter();
+
+          // Read package.json metadata
+          let packageMeta: Record<string, any> | undefined;
+          try {
+            const pkgPath = path.join(rootDir, 'package.json');
+            if (fs.existsSync(pkgPath)) {
+              const pkgRaw = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+              packageMeta = {
+                name: pkgRaw.name,
+                version: pkgRaw.version,
+                description: pkgRaw.description,
+                scripts: pkgRaw.scripts,
+              };
+            }
+          } catch {
+            /* non-fatal */
+          }
+
+          // Read git info
+          let gitInfo: string | undefined;
+          try {
+            const { execSync } = await import('child_process');
+            const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+              cwd: rootDir,
+              timeout: 2000,
+            })
+              .toString()
+              .trim();
+            const head = execSync('git rev-parse --short HEAD', {
+              cwd: rootDir,
+              timeout: 2000,
+            })
+              .toString()
+              .trim();
+            gitInfo = `${branch}@${head}`;
+          } catch {
+            /* non-fatal — not a git repo or git unavailable */
+          }
+
+          const depth = options.absorbDepth ?? 'deep';
+
+          // Compute change impact when --since is provided
+          let changedFiles: string[] | undefined;
+          let changeImpact: string[] | undefined;
+          const sinceRef = options.absorbSince;
+          if (sinceRef) {
+            try {
+              const { execSync: execSyncSince } = await import('child_process');
+              const raw = execSyncSince(`git diff --name-only ${sinceRef}`, {
+                cwd: rootDir,
+                timeout: 5000,
+              })
+                .toString()
+                .trim();
+              changedFiles = raw
+                .split('\n')
+                .filter(Boolean)
+                .map((f) => path.join(rootDir, f))
+                .filter((f) => fs.existsSync(f));
+              if (changedFiles.length > 0) {
+                const impactSet = graph.getImpactSet(changedFiles);
+                changeImpact = Array.from(impactSet).filter((f) => !changedFiles!.includes(f));
+                console.log(
+                  `  \x1b[36m→\x1b[0m Since ${sinceRef}: ${changedFiles.length} changed, ${changeImpact.length} transitively affected`
+                );
+              }
+            } catch {
+              /* non-fatal: git unavailable or ref not found */
+            }
+          }
+
+          console.log(
+            `  \x1b[36m→\x1b[0m Agent mode: depth=${depth}${gitInfo ? ` | git=${gitInfo}` : ''}${sinceRef ? ` | since=${sinceRef}` : ''}`
+          );
+
+          const holoSource = emitter.emit(graph, {
+            name: path.basename(rootDir),
+            forAgent: true,
+            depth,
+            packageMeta,
+            absorbedAt: new Date().toISOString(),
+            gitInfo,
+            changedFiles,
+            changeImpact,
+            sinceRef,
+          });
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            fs.writeFileSync(outputPath, holoSource);
+            console.log(
+              `\n  \x1b[32m✓\x1b[0m Agent manifest saved to ${outputPath} (${holoSource.length.toLocaleString()} chars)`
+            );
+          } else {
+            console.log('\n' + holoSource);
+          }
         } else {
-          // .holo output
+          // .holo output (3D spatial)
           const emitter = new HoloEmitter();
           const layout = (options as any).layout === 'layered' ? 'layered' : 'force';
           const holoSource = emitter.emit(graph, {
@@ -2439,6 +2592,146 @@ async function main(): Promise<void> {
       } catch (err: any) {
         console.error(`\x1b[31mAbsorb error: ${err.message}\x1b[0m`);
         if (err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'query': {
+      if (!options.input) {
+        console.error('\x1b[31mError: No question specified.\x1b[0m');
+        console.log(
+          'Usage: holoscript query "<question>" [--provider bm25|xenova|openai|ollama] [--with-llm] [--llm openai|anthropic|gemini] [--model <name>] [--top-k <n>] [--json]'
+        );
+        process.exit(1);
+      }
+
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const pkg = '@holoscript/core';
+        const { CodebaseScanner, CodebaseGraph, EmbeddingIndex, GraphRAGEngine, createEmbeddingProvider } =
+          await import(pkg + '/codebase');
+
+        const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
+        const question = options.input;
+        const providerName = options.queryProvider ?? 'bm25';
+
+        console.log(`\n\x1b[36m🔍 Query: ${question}\x1b[0m`);
+        console.log(`   Provider: ${providerName} | Dir: ${rootDir}\n`);
+
+        // ── 1. Scan ─────────────────────────────────────────────────────────
+        const scanner = new CodebaseScanner();
+        const scanStart = Date.now();
+        let qLastProgressLen = 0;
+        const scanResult = await scanner.scan({
+          rootDir,
+          onProgress(parsed, total, file) {
+            const pct = Math.round((parsed / total) * 100);
+            const msg = `  \x1b[36m  Parsing files... ${parsed}/${total} (${pct}%) — ${file}\x1b[0m`;
+            process.stdout.write('\r' + msg.padEnd(qLastProgressLen));
+            qLastProgressLen = msg.length;
+          },
+        });
+        if (qLastProgressLen > 0) {
+          process.stdout.write('\r' + ' '.repeat(qLastProgressLen + 4) + '\r');
+        }
+        console.log(
+          `  \x1b[32m✓\x1b[0m Scanned ${scanResult.stats.totalFiles} files, ${scanResult.stats.totalSymbols} symbols (${Date.now() - scanStart}ms)`
+        );
+
+        // ── 2. Graph ─────────────────────────────────────────────────────────
+        const graph = new CodebaseGraph();
+        graph.buildFromScanResult(scanResult);
+        graph.detectCommunities();
+
+        // ── 3. Embedding index ────────────────────────────────────────────────
+        const embedStart = Date.now();
+        const provider = await createEmbeddingProvider({
+          provider: providerName,
+          ollamaUrl: undefined, // will use OllamaEmbeddingProvider default
+          openaiApiKey: options.queryLlmKey,
+        });
+        const index = new EmbeddingIndex({ provider });
+        await index.buildIndex(graph);
+        console.log(
+          `  \x1b[32m✓\x1b[0m Indexed ${index.size} symbols with \x1b[33m${providerName}\x1b[0m (${Date.now() - embedStart}ms)`
+        );
+
+        // ── 4. LLM provider (optional) ───────────────────────────────────────
+        let llmProvider: any = undefined;
+        if (options.queryWithLlm && options.queryLlm) {
+          try {
+            const llmPkg = await import('@holoscript/llm-provider');
+            const key = options.queryLlmKey ?? '';
+            switch (options.queryLlm) {
+              case 'openai':
+                llmProvider = new llmPkg.OpenAIAdapter({ apiKey: key || process.env['OPENAI_API_KEY'] || '', defaultModel: options.queryModel ?? 'gpt-4o-mini' });
+                break;
+              case 'anthropic':
+                llmProvider = new llmPkg.AnthropicAdapter({ apiKey: key || process.env['ANTHROPIC_API_KEY'] || '', defaultModel: options.queryModel ?? 'claude-3-haiku-20240307' });
+                break;
+              case 'gemini':
+                llmProvider = new llmPkg.GeminiAdapter({ apiKey: key || process.env['GEMINI_API_KEY'] || '', defaultModel: options.queryModel ?? 'gemini-1.5-flash' });
+                break;
+              default:
+                console.warn(`\x1b[33m⚠ Unknown LLM provider: ${options.queryLlm}. Skipping LLM answer.\x1b[0m`);
+            }
+          } catch {
+            console.warn('\x1b[33m⚠ @holoscript/llm-provider not available. Skipping LLM answer.\x1b[0m');
+          }
+        }
+
+        // ── 5. Run query ─────────────────────────────────────────────────────
+        const engine = new GraphRAGEngine(graph, index, { llmProvider });
+        const topK = options.queryTopK ?? 10;
+
+        if (options.queryWithLlm && llmProvider) {
+          const answer = await engine.queryWithLLM(question, { topK });
+
+          if (options.json) {
+            console.log(JSON.stringify(answer, null, 2));
+          } else {
+            console.log(`\n\x1b[1mAnswer:\x1b[0m\n${answer.answer}\n`);
+            if (answer.citations.length > 0) {
+              console.log('\x1b[1mCitations:\x1b[0m');
+              for (const c of answer.citations) {
+                console.log(`  \x1b[36m${c.name}\x1b[0m  ${c.file}:${c.line}`);
+              }
+            }
+          }
+        } else {
+          if (options.queryWithLlm && !llmProvider) {
+            console.log(
+              '\x1b[33m⚠ --with-llm requires --llm <provider>. Falling back to ranked results.\x1b[0m'
+            );
+          }
+          const result = await engine.query(question, { topK });
+
+          if (options.json) {
+            console.log(JSON.stringify(result, null, 2));
+          } else {
+            console.log(
+              `\n\x1b[1mTop ${result.results.length} results\x1b[0m (of ${result.totalMatches} total):\n`
+            );
+            for (const r of result.results) {
+              const loc = `${path.relative(rootDir, r.file)}:${r.symbol.line}`;
+              const score = `\x1b[2m${(r.score * 100).toFixed(1)}%\x1b[0m`;
+              console.log(`  ${score}  \x1b[36m${r.symbol.type}\x1b[0m \x1b[1m${r.symbol.owner ? r.symbol.owner + '.' : ''}${r.symbol.name}\x1b[0m`);
+              console.log(`         ${loc}`);
+              if (r.symbol.signature) console.log(`         \x1b[2m${r.symbol.signature}\x1b[0m`);
+              if (r.callers.length > 0) console.log(`         \x1b[2mCalled by: ${r.callers.slice(0, 3).join(', ')}\x1b[0m`);
+            }
+            if (result.communities.length > 0) {
+              console.log(`\n  \x1b[2mModules touched: ${result.communities.join(', ')}\x1b[0m`);
+            }
+          }
+        }
+
+        process.exit(0);
+      } catch (err: any) {
+        console.error(`\x1b[31mQuery error: ${err.message}\x1b[0m`);
+        if (options.verbose && err.stack) console.error(err.stack);
         process.exit(1);
       }
       break;

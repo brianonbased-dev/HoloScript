@@ -9,7 +9,7 @@
 
 ## Abstract
 
-Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through *executable semantics*. By utilizing a robust library of over 55 VR traits and 25 compile targets, HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
+Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through *executable semantics*. By utilizing a robust library of over 1,800 VR traits organized into 13 semantic categories and 25+ compile targets, HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
 
 ---
 
@@ -75,7 +75,7 @@ composition "PhysicsDemoScene" {
 
 #### `.hsplus` — Behavioral Contract Layer
 
-The `.hsplus` format extends `.hs` with a trait system — a library of 55+ semantic decorators that encode spatial, physical, interaction, networking, and AI behaviors as first-class language primitives:
+The `.hsplus` format extends `.hs` with a trait system — a library of 1,800+ semantic decorators that encode spatial, physical, interaction, networking, and AI behaviors as first-class language primitives:
 
 ```hsplus
 composition "InteractiveScene" {
@@ -141,17 +141,23 @@ composition "Marketplace" {
 
 ### 2.2 The Trait System as Semantic Vocabulary
 
-The 55+ trait library is organized into 13 semantic categories:
+The 1,800+ trait library is organized into 13 semantic categories:
 
 | Category | Representative Traits |
 |---|---|
-| Interaction | `@grabbable`, `@throwable`, `@clickable`, `@draggable` |
-| Physics | `@physics`, `@collidable`, `@kinematic`, `@trigger` |
-| Networking | `@networked`, `@synced`, `@persistent`, `@replicated` |
-| AI/Behavior | `@npc`, `@pathfinding`, `@llm_agent`, `@state_machine` |
-| Spatial/AR | `@anchor`, `@tracked`, `@world_locked`, `@plane_detected` |
-| Audio | `@spatial_audio`, `@ambient`, `@voice_activated` |
-| IoT | `@iot_sensor`, `@digital_twin`, `@mqtt_bridge` |
+| Interaction | `@grabbable`, `@throwable`, `@holdable`, `@clickable`, `@draggable`, `@pointable` |
+| Physics | `@physics`, `@collidable`, `@kinematic`, `@trigger`, `@gravity`, `@soft_body` |
+| Visual | `@glowing`, `@emissive`, `@transparent`, `@reflective`, `@animated`, `@particle` |
+| Networking | `@networked`, `@synced`, `@persistent`, `@owned`, `@replicated` |
+| AI/Behavior | `@npc`, `@pathfinding`, `@llm_agent`, `@reactive`, `@state_machine`, `@crowd` |
+| Object/Affordance | `@stackable`, `@attachable`, `@equippable`, `@consumable`, `@destructible` |
+| Spatial/AR | `@anchor`, `@tracked`, `@world_locked`, `@hand_tracked`, `@eye_tracked`, `@plane_detected` |
+| Audio | `@spatial_audio`, `@ambient`, `@voice_activated`, `@reverb`, `@doppler` |
+| State | `@state`, `@reactive`, `@observable`, `@computed` |
+| IoT/Digital Twins | `@iot_sensor`, `@digital_twin`, `@mqtt_bridge`, `@telemetry` |
+| Social | `@avatar`, `@presence`, `@voice_chat`, `@emote`, `@proximity_chat` |
+| Advanced/Graphics | `@shader_custom`, `@compute_shader`, `@ray_traced`, `@lod_managed` |
+| Accessibility | `@high_contrast`, `@screen_reader`, `@reduced_motion`, `@voice_nav` |
 
 Each trait is a *closed-world declaration*: it specifies exactly what physical and behavioral properties the runtime system must provide for an object decorated with that trait. This mirrors the role of frame axioms in classical AI planning — with a critical difference. Frame axioms in STRIPS-style planners are stated separately from object definitions. In HoloScript, the frame axioms *are* the object definitions.
 

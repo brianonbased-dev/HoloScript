@@ -36,13 +36,10 @@ export class ReactiveState implements IReactiveState {
   }
 
   get(key: string): HoloScriptValue {
-    const val = this.proxy[key];
-    console.log(`[ReactiveState DEBUG] get ${key} = ${val}`);
-    return val;
+    return this.proxy[key];
   }
 
   set(key: string, value: HoloScriptValue): void {
-    console.log(`[ReactiveState DEBUG] set ${key} = ${value}`);
     this.proxy[key] = value;
   }
 
@@ -82,24 +79,33 @@ export class ExpressionEvaluator {
   evaluate(expression: string): any {
     if (typeof expression !== 'string') return expression;
 
-    // Security: Block dangerous keywords
+    // Security: Block dangerous patterns including prototype-chain escape vectors.
+    // This blocklist is defense-in-depth — for AI-generated expressions always use
+    // @holoscript/security-sandbox instead of evaluating inline.
     const dangerousPatterns = [
       /\beval\s*\(/,
       /\brequire\s*\(/,
       /\bimport\s*\(/,
-      /\bprocess\s*\./,
-      /\bglobal\s*\./,
+      /\bprocess\b/,
+      /\bglobalThis?\b/,
       /\b__dirname\b/,
       /\b__filename\b/,
-      /\bfs\s*\./,
-      /\bchild_process\s*\./,
-      /\bfs\.writeFileSync/,
-      /\bfs\.readFileSync/,
+      /\bfs\b/,
+      /\bchild_process\b/,
+      // Prototype chain / constructor escape
+      /\bconstructor\b/,
+      /\b__proto__\b/,
+      /\bprototype\b/,
+      /\bObject\s*\.\s*(create|definePropert|getProto|assign|setProto)/,
+      /\bReflect\b/,
+      /\bProxy\b/,
+      /\bFunction\b/,
+      /\barguments\b/,
     ];
 
     for (const pattern of dangerousPatterns) {
       if (pattern.test(expression)) {
-        console.warn(`Security: Blocked suspicious expression: ${expression}`);
+        console.warn(`[ExpressionEvaluator] Security: blocked expression: ${expression}`);
         return undefined;
       }
     }
@@ -120,10 +126,12 @@ export class ExpressionEvaluator {
     const values = Object.values(this.context);
 
     try {
-      const fn = new Function(...keys, `return (${expression})`);
-      return fn(...values);
+      // "use strict" prevents `this` from resolving to the global object.
+      // .call(null, ...) binds an explicit null `this` to eliminate the global scope.
+      const fn = new Function(...keys, `"use strict"; return (${expression});`);
+      return fn.call(null, ...values);
     } catch (_e) {
-      // If it's just a string not an expression, return as is
+      // Not an expression — return as a plain string value
       return expression;
     }
   }

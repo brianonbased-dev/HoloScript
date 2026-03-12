@@ -97,7 +97,9 @@ export function useMarketplace(worldId: string = 'default'): UseMarketplaceRetur
       verifySubmission(sub);
       if (sub.status === 'verified') {
         publishSubmission(sub);
-        if (sub.status === 'published') {
+        // publishSubmission mutates sub.status to 'published'; re-check after mutation
+        const published = sub as typeof sub & { status: string };
+        if (published.status === 'published') {
           registryRef.current.publish(sub);
           refresh();
         }

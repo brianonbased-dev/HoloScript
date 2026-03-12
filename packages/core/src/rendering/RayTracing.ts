@@ -351,8 +351,8 @@ export function pathTrace(
   maxBounces: number,
   seed: number
 ): [number, number, number] {
-  let throughput: [number, number, number] = [1, 1, 1];
-  let radiance: [number, number, number] = [0, 0, 0];
+  const throughput: [number, number, number] = [1, 1, 1];
+  const radiance: [number, number, number] = [0, 0, 0];
   let currentRay = { ...ray };
 
   for (let bounce = 0; bounce <= maxBounces; bounce++) {

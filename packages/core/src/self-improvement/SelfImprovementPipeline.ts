@@ -289,8 +289,14 @@ export class SelfImprovementPipeline {
       failure.correctedCode = this.attemptAutoCorrection(failure);
     }
 
-    // Convert immediately if we have a correction
-    if (failure.correctedCode) {
+    // Convert immediately if we have a non-trivial correction.
+    // Guard: skip if correctedCode is empty or identical to generatedCode —
+    // training on uncorrected examples would poison the model.
+    if (
+      failure.correctedCode &&
+      failure.correctedCode.trim().length > 0 &&
+      failure.correctedCode !== failure.generatedCode
+    ) {
       const examples = this.convertToExamples(failure);
       this.examples.push(...examples);
       this.stats.totalExamples += examples.length;

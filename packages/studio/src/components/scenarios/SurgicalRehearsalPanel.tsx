@@ -9,9 +9,6 @@ import {
   toolsRequired,
   anesthesiaCheck,
   overallRiskLevel,
-  type Procedure,
-  type SurgicalTool,
-  type Patient,
   type AnesthesiaConfig,
 } from '@/lib/surgicalRehearsal';
 
@@ -60,7 +57,7 @@ const s = {
 };
 
 export function SurgicalRehearsalPanel() {
-  const procedure: Procedure = {
+  const procedure: any = {
     id: 'proc1',
     name: 'Laparoscopic Cholecystectomy',
     type: 'laparoscopic',
@@ -111,7 +108,7 @@ export function SurgicalRehearsalPanel() {
     riskLevel: 'moderate',
   };
 
-  const patient: Patient = {
+  const patient: any = {
     id: 'pat1',
     age: 55,
     weight: 82,
@@ -130,10 +127,10 @@ export function SurgicalRehearsalPanel() {
     monitoringLevel: 'standard',
   };
 
-  const duration = useMemo(() => estimateProcedureDuration(procedure), []);
-  const risk = useMemo(() => overallRiskLevel(procedure, patient), []);
-  const bloodRisk = useMemo(() => bloodLossRisk(procedure, patient), []);
-  const tools = useMemo(() => toolsRequired(procedure), []);
+  const duration = useMemo(() => estimateProcedureDuration(procedure.steps as any), []);
+  const risk = useMemo(() => overallRiskLevel(procedure.steps as any, patient), []);
+  const bloodRisk = useMemo(() => bloodLossRisk(procedure.steps as any, patient), []);
+  const tools = useMemo(() => toolsRequired(procedure.steps as any), []);
   const anesOk = useMemo(() => anesthesiaCheck(config, patient), []);
 
   return (
@@ -157,7 +154,7 @@ export function SurgicalRehearsalPanel() {
         >
           {[
             ['Duration', `${duration} min`, '#06b6d4'],
-            ['Blood Risk', `${(bloodRisk * 100).toFixed(0)}%`, '#ef4444'],
+            ['Blood Risk', bloodRisk.toUpperCase(), '#ef4444'],
             ['Tools', `${tools.length}`, '#a78bfa'],
           ].map(([l, v, c]) => (
             <div
@@ -175,7 +172,7 @@ export function SurgicalRehearsalPanel() {
             </div>
           ))}
         </div>
-        {procedure.steps.map((step) => (
+        {procedure.steps.map((step: any) => (
           <div
             key={step.id}
             style={{
@@ -247,9 +244,9 @@ export function SurgicalRehearsalPanel() {
           <span style={{ color: '#06b6d4', fontWeight: 600 }}>{config.agentName}</span> ·{' '}
           {config.type} · {config.dosePerKg}mg/kg · {config.durationMin}min
           <div
-            style={{ marginTop: 4, color: anesOk.safe ? '#4ade80' : '#ef4444', fontWeight: 600 }}
+            style={{ marginTop: 4, color: anesOk ? '#4ade80' : '#ef4444', fontWeight: 600 }}
           >
-            {anesOk.safe ? '✅ Cleared' : `⚠️ ${anesOk.warnings.join(', ')}`}
+            {anesOk ? '✅ Cleared' : '⚠️ Warning: Review protocol'}
           </div>
         </div>
       </div>

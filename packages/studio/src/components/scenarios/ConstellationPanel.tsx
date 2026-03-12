@@ -16,7 +16,7 @@ export function constellationsByMonth(constellations: any[], month: number) {
   });
 }
 
-const DEMO_CONSTELLATIONS: Constellation[] = [
+const DEMO_CONSTELLATIONS: any[] = [
   {
     id: 'ori',
     name: 'Orion',
@@ -220,7 +220,7 @@ export function ConstellationPanel() {
 
       <div style={s.section}>
         <div style={s.sectionTitle}>✨ Stars in {constellation.name}</div>
-        {constellation.stars.map((star) => (
+        {constellation.stars.map((star: any) => (
           <div
             key={star.id}
             style={{

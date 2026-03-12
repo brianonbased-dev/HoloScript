@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useSceneGraphStore } from '../../lib/stores';
-import { R3FNode } from '@holoscript/core';
+import type { SceneNode } from '../../lib/stores';
 
 export interface ConformanceRule {
   id: string;
   name: string;
   description: string;
   severity: 'error' | 'warning' | 'info';
-  status: 'pending' | 'running' | 'passed' | 'failed';
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'warning';
   message?: string;
 }
 
@@ -30,29 +30,24 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
     let physicsFail = false;
 
     // A simple AST traversal for validation
-    const traverse = (nodeList: R3FNode[]) => {
+    const traverse = (nodeList: SceneNode[]) => {
       for (const node of nodeList) {
-        if (node.type === 'directionalLight' && node.props.castShadow !== false) {
+        if (node.type === 'light' && (node as any).castShadow !== false) {
           dlCount++;
         }
-        if (node.type === 'Text') {
-          // just a mock check for contrast
-          if (node.props.color === '#ffffff' || node.props.color === 'white') {
-            // Assume background could be white
+        if (node.type === 'mesh' && (node as any).textColor) {
+          const color = (node as any).textColor;
+          if (color === '#ffffff' || color === 'white') {
             badTextFound = true;
           }
         }
         
         // checking traits for physics
-        if (node.traits) {
-          const hasPhysics = node.traits.some((t: any) => t.name === 'physics');
-          const hasCollision = node.traits.some((t: any) => t.name === 'collision');
-          if (hasPhysics && !hasCollision) {
-            physicsFail = true;
-          }
+        const hasPhysics = node.traits.some((t) => t.name === 'physics');
+        const hasCollision = node.traits.some((t) => t.name === 'collision');
+        if (hasPhysics && !hasCollision) {
+          physicsFail = true;
         }
-
-        if (node.children) traverse(node.children);
       }
     };
 
@@ -146,7 +141,7 @@ End of Ledger.`;
             {isRunning ? (
               <><span className="animate-spin text-sm">↻</span> Verifying Scene...</>
             ) : (
-              '▶ Run Full Suite'
+              'Run Conformance Suite'
             )}
           </button>
           

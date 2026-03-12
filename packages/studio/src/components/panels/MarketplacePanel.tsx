@@ -94,7 +94,7 @@ export function MarketplacePanel({ worldId = 'default', category }: MarketplaceP
 
           {/* Results */}
           <div style={styles.results}>
-            {results?.listings.map((listing) => {
+            {results?.listings.map((listing: any) => {
               const isInstalled = installed.some((m) => m.packageId === listing.metadata.id);
               return (
                 <div
@@ -119,7 +119,7 @@ export function MarketplacePanel({ worldId = 'default', category }: MarketplaceP
                     <span>⭐ {listing.rating.toFixed(1)}</span>
                   </div>
                   <div style={styles.cardTags}>
-                    {listing.metadata.tags.slice(0, 3).map((t) => (
+                    {listing.metadata.tags.slice(0, 3).map((t: string) => (
                       <span key={t} style={styles.cardTag}>
                         {t}
                       </span>

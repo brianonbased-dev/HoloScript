@@ -499,7 +499,7 @@ export function WebXRViewer({
   autoEnterXR = false,
   referenceSpace = 'local-floor',
 }: WebXRViewerProps) {
-  const { r3fTree, errors, isCompiling } = useScenePipeline(code);
+  const { r3fTree, errors } = useScenePipeline(code);
   const xrCaps = useXRCapabilities();
   const [xrActive, setXrActive] = useState(false);
 
@@ -618,7 +618,7 @@ export function WebXRViewer({
           alpha: isARMode, // Enable alpha for AR passthrough
         }}
       >
-        <XR store={xrStore} referenceSpace={referenceSpace}>
+        <XR store={xrStore}>
           <Suspense fallback={null}>
             {r3fTree ? (
               <SceneContent
@@ -679,25 +679,6 @@ export function WebXRViewer({
         onEnterAR={enterAR}
         onExit={exitXR}
       />
-
-      {/* Compilation status indicator */}
-      {isCompiling && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            background: 'rgba(13,13,20,0.8)',
-            color: '#818cf8',
-            fontSize: 11,
-            padding: '4px 10px',
-            borderRadius: 6,
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          Compiling...
-        </div>
-      )}
 
       {/* Object count overlay */}
       {showObjectCount && r3fTree?.children && (

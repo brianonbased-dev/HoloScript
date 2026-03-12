@@ -137,7 +137,8 @@ export type {
   CompiledRobotics,
 } from './parser/HoloCompositionTypes';
 
-// HoloScript+ Enhanced Parser with Trait Annotations (NEW - Phase 3)
+// HoloScript+ Enhanced Parser with Trait Annotations (Phase 3 alias)
+// @deprecated Use `HoloScriptPlusParser` from './parser/HoloScriptPlusParser' directly.
 export {
   HoloScriptPlusParser as HoloScriptTraitAnnotationParser,
   type MaterialTraitAnnotation,
@@ -3002,3 +3003,133 @@ export type {
   CacheEntry,
   RegistryConfig,
 } from './assets/AssetRegistry';
+
+// =============================================================================
+// Material Parser (migrated from Hololand renderer)
+// =============================================================================
+
+export { HoloScriptMaterialParser } from './parser/HoloScriptMaterialParser';
+export type {
+  ASTNode as MaterialASTNode,
+  CompositionMaterialNode,
+} from './parser/HoloScriptMaterialParser';
+
+export type {
+  MaterialDefinition,
+  HoloMaterialType,
+  TextureMapDef,
+  TextureChannel,
+  ShaderPassDef,
+} from './parser/MaterialTypes';
+
+// =============================================================================
+// Compiler Bridge (migrated from Hololand ai-bridge)
+// =============================================================================
+
+export {
+  CompilerBridge,
+  getCompilerBridge,
+  type CompilationResult,
+} from './compiler/CompilerBridge';
+
+// =============================================================================
+// HoloScript I/O — Core Language Serialization (migrated from Hololand builder)
+// =============================================================================
+
+export {
+  initHoloScriptParser,
+  parseWithCoreParser,
+  expressionToValue,
+  programToInternalAST,
+  extractWorldSettings,
+  orbToASTNode,
+  parseHoloScriptSimplified,
+  parseProperties,
+  parseValue,
+  escapeHoloString,
+  formatHoloValue,
+} from './io/HoloScriptIO';
+
+export type {
+  CoreParseResult,
+  CoreProgram,
+  CoreDeclaration,
+  CoreStatement,
+  CoreWorldDeclaration,
+  CoreOrbDeclaration,
+  CoreOrbProperty,
+  CoreExpression,
+  HoloScriptAST,
+  HoloScriptASTNode,
+  HoloScriptASTLogic,
+  HoloScriptExportOptions,
+  HoloScriptImportOptions,
+  HoloScriptParseResult,
+  HoloScriptError,
+} from './io/HoloScriptIO';
+
+// =============================================================================
+// HSPlus Validator (migrated from Hololand creator-tools)
+// =============================================================================
+
+export { validateHSPlus } from './validation/HSPlusValidator';
+export type {
+  ParserValidationError,
+  DeviceOptimizationContext,
+  CodeGenerationOptions,
+  ParserRegistrationResult,
+  HSPlusValidationResult,
+} from './validation/HSPlusValidator';
+
+// =============================================================================
+// HS Knowledge Parser (migrated from Hololand brittney-service)
+// =============================================================================
+
+export {
+  parseMeta,
+  parseKnowledge,
+  parsePrompts,
+  parseServerRoutes,
+} from './parser/HSKnowledgeParser';
+
+export type {
+  HSMeta,
+  HSKnowledgeChunk,
+  HSPrompt,
+  HSRoute,
+  HSProvider,
+  HSParsedFile,
+  HSKnowledgeFile,
+  HSPromptFile,
+  HSServerFile,
+} from './parser/HSKnowledgeParser';
+
+// =============================================================================
+// Trait Runtime Integration (migrated from Hololand platform-core)
+// =============================================================================
+
+export {
+  TraitContextFactory,
+  createTraitContextFactory,
+} from './runtime/TraitContextFactory';
+
+export type {
+  PhysicsProvider,
+  AudioProvider,
+  HapticsProvider,
+  AccessibilityProvider,
+  VRProvider,
+  NetworkProvider,
+  RendererProvider,
+  TraitContextFactoryConfig,
+} from './runtime/TraitContextFactory';
+
+export {
+  TraitRuntimeIntegration,
+  createTraitRuntime,
+} from './runtime/TraitRuntimeIntegration';
+
+export type {
+  TrackedNode,
+  TraitRuntimeStats,
+} from './runtime/TraitRuntimeIntegration';

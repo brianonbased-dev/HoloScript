@@ -13,7 +13,7 @@ import {
   runSafetyPass,
   quickSafetyCheck,
   type SafetyPassResult,
-  type SafetyPassOptions,
+  type SafetyPassConfig as SafetyPassOptions,
   type EffectASTNode,
   type SafetyReport,
   type SafetyVerdict,
@@ -27,7 +27,7 @@ export interface UseSafetyPassReturn {
   isAnalyzing: boolean;
   verdict: SafetyVerdict | null;
   dangerScore: number;
-  quickCheck: (traits: string[], builtins: string[], trustLevel?: string) => boolean;
+  quickCheck: (traits: string[], builtins: string[], trustLevel?: string) => { passed: boolean; verdict: string; reasons: string[] };
   analyze: (nodes: EffectASTNode[], options?: Partial<SafetyPassOptions>) => SafetyPassResult;
   clear: () => void;
 }
@@ -57,7 +57,7 @@ export function useSafetyPass(): UseSafetyPassReturn {
 
   const quickCheck = useCallback(
     (traits: string[], builtins: string[], trustLevel: string = 'basic') => {
-      return quickSafetyCheck(traits, builtins, trustLevel);
+      return quickSafetyCheck(traits, builtins, { trustLevel });
     },
     []
   );

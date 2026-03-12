@@ -54,7 +54,7 @@ holoscript validate scene.holo
 # Preview locally
 holoscript preview scene.holo
 
-# Compile to target (18+ targets available)
+# Compile to target (25+ targets available)
 holoscript compile scene.holo --target threejs
 holoscript compile scene.holo --target unity
 holoscript compile scene.holo --target unreal
@@ -110,7 +110,7 @@ Add to Claude Desktop config (`~/.claude/settings.json`):
 | `validate_holoscript` | Check code for errors            |
 | `suggest_traits`      | Get trait recommendations        |
 | `explain_code`        | Get plain English explanation    |
-| `compile_scene`       | Compile to any of 18+ targets    |
+| `compile_scene`       | Compile to any of 25+ targets    |
 | `list_traits`         | Browse all 1,800+ traits         |
 | `query_scene_graph`   | Inspect scene structure          |
 | `parse_holoscript`    | Parse to AST                     |

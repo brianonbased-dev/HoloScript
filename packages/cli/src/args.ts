@@ -50,6 +50,7 @@ export interface CLIOptions {
     | 'prerender'
     | 'pdf'
     | 'absorb'
+    | 'query'
     | 'self-improve'
     | 'help'
     | 'version';
@@ -155,6 +156,29 @@ export interface CLIOptions {
   pageFormat?: 'A4' | 'Letter' | 'Legal' | 'Tabloid' | 'A3' | 'A5';
   /** PDF landscape mode */
   landscape?: boolean;
+  /** Emit agent-optimized absorb output instead of 3D spatial .holo */
+  forAgent?: boolean;
+  /** Absorb detail depth: shallow=manifest+index only, medium=+public API, deep=full (default) */
+  absorbDepth?: 'shallow' | 'medium' | 'deep';
+  /** Git ref for scoped change impact in agent mode (e.g. "HEAD~1", "main") */
+  absorbSince?: string;
+  /** Comma-separated files for quick blast-radius query (relative to scan dir) */
+  impactFiles?: string;
+  // ── query command ────────────────────────────────────────────────────────
+  /** Embedding provider for holoscript query (default: 'bm25') */
+  queryProvider?: 'bm25' | 'xenova' | 'openai' | 'ollama';
+  /** LLM provider name for queryWithLLM (e.g. 'openai', 'anthropic', 'gemini') */
+  queryLlm?: string;
+  /** Model name for the query LLM (e.g. 'gpt-4o-mini') */
+  queryModel?: string;
+  /** API key for query LLM (falls back to OPENAI_API_KEY / ANTHROPIC_API_KEY env vars) */
+  queryLlmKey?: string;
+  /** Number of top-K results to return from GraphRAG (default: 10) */
+  queryTopK?: number;
+  /** Use LLM to synthesise a natural language answer (default: false = ranked list only) */
+  queryWithLlm?: boolean;
+  /** Directory to scan for the query command (default: process.cwd()) */
+  queryDir?: string;
 }
 
 const DEFAULT_OPTIONS: CLIOptions = {
@@ -219,6 +243,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'import',
           'visualize',
           'absorb',
+          'query',
           'self-improve',
           'screenshot',
           'pdf',
@@ -420,6 +445,40 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--max-failures':
         options.maxFailures = parseInt(args[++i], 10) || 3;
         break;
+      case '--for-agent':
+        options.forAgent = true;
+        break;
+      case '--depth':
+        options.absorbDepth = args[++i] as 'shallow' | 'medium' | 'deep';
+        break;
+      case '--since':
+        options.absorbSince = args[++i];
+        break;
+      case '--impact':
+        options.impactFiles = args[++i];
+        break;
+      // ── query flags ──────────────────────────────────────────────────────
+      case '--provider':
+        options.queryProvider = args[++i] as CLIOptions['queryProvider'];
+        break;
+      case '--llm':
+        options.queryLlm = args[++i];
+        break;
+      case '--model':
+        options.queryModel = args[++i];
+        break;
+      case '--llm-key':
+        options.queryLlmKey = args[++i];
+        break;
+      case '--top-k':
+        options.queryTopK = parseInt(args[++i], 10) || 10;
+        break;
+      case '--with-llm':
+        options.queryWithLlm = true;
+        break;
+      case '--dir':
+        options.queryDir = args[++i];
+        break;
     }
     i++;
   }
@@ -500,6 +559,20 @@ Usage: holoscript <command> [options] [input]
   prerender <file>  Pre-render HTML for SEO/social sharing
                     Outputs fully rendered HTML with meta tags
 
+  \x1b[33mCodebase Intelligence:\x1b[0m
+  absorb <dir>      Scan a codebase and emit a spatial .holo knowledge graph
+                    Use --for-agent for agent-optimized manifest output
+                    Use --depth shallow|medium|deep to control detail
+                    Use --since <ref> for git-scoped change analysis
+                    Use --impact <files> for blast-radius queries
+  query <question>  Semantic GraphRAG search over an absorbed codebase
+                    Use --provider bm25|xenova|openai|ollama (default: bm25)
+                    Use --with-llm to get an LLM-synthesised answer
+                    Use --llm openai|anthropic|gemini to select LLM backend
+                    Use --model <name> to override default model
+                    Use --top-k <n> to control result count (default: 10)
+                    Use --json for machine-readable output
+
   \x1b[33mSelf-Improvement:\x1b[0m
   self-improve      Run autonomous self-improvement pipeline
                     Absorbs codebase, finds untested code via GraphRAG,
@@ -572,6 +645,19 @@ Usage: holoscript <command> [options] [input]
   --commit            Auto-commit passing tests to git
   --daemon            Continuous improvement mode (runs until converged)
   --max-failures <n>  Max consecutive failures before aborting (default: 3)
+
+  \x1b[2m# Codebase Intelligence Options (absorb / query)\x1b[0m
+  --for-agent         Emit agent-optimized manifest instead of spatial .holo
+  --depth <level>     Absorb detail: shallow | medium | deep (default: deep)
+  --since <ref>       Limit absorb to files changed since git ref/date
+  --impact <files>    Comma-separated files to compute blast-radius for
+  --provider <b>      Embedding backend: bm25 | xenova | openai | ollama (default: bm25)
+  --dir <path>        Directory to scan for query (default: cwd)
+  --with-llm          Synthesise a natural-language answer from GraphRAG context
+  --llm <adapter>     LLM backend for --with-llm: openai | anthropic | gemini
+  --llm-key <key>     API key for the LLM backend (overrides env vars)
+  --model <name>      Model name override for embedding or LLM backend
+  --top-k <n>         Number of GraphRAG results to return (default: 10)
 
 \x1b[1mExamples:\x1b[0m
   holoscript parse world.hs
@@ -654,6 +740,20 @@ Usage: holoscript <command> [options] [input]
   holoscript self-improve --daemon            # Continuous mode until convergence
   holoscript self-improve --daemon --verbose  # Continuous with detailed output
   holoscript self-improve --max-failures 5    # Allow more retries
+
+  \x1b[2m# Codebase Intelligence\x1b[0m
+  holoscript absorb .                           # Scan current directory
+  holoscript absorb packages/core --json        # Emit JSON graph
+  holoscript absorb . --for-agent               # Agent-optimized manifest
+  holoscript absorb . --depth shallow           # Fast manifest-only scan
+  holoscript absorb . --since HEAD~5            # Only files changed in last 5 commits
+  holoscript query "what calls buildIndex"                         # BM25 keyword search (default)
+  holoscript query "how does the parser work" --dir packages/core  # Scan specific directory
+  holoscript query "find auth handlers" --provider xenova --dir .  # Semantic WASM search
+  holoscript query "find all auth handlers" --provider openai      # Cloud embeddings
+  holoscript query "explain the compiler pipeline" --with-llm --llm openai
+  holoscript query "trace call chain from absorb" --with-llm --llm anthropic
+  holoscript query "list error handlers" --top-k 20 --json         # Machine-readable output
 
 \x1b[1mAliases:\x1b[0m
   hs              Short alias for holoscript

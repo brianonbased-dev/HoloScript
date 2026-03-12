@@ -13,11 +13,8 @@ import { PluginManager } from './PluginManager';
 import { codebaseTools } from './codebase-tools';
 import { graphRagTools } from './graph-rag-tools';
 import { selfImproveTools } from './self-improve-tools';
-import {
-  BrowserLaunchSchema,
-  BrowserExecuteSchema,
-  BrowserScreenshotSchema,
-} from './browser/browser-tools';
+import { gltfImportTools } from './gltf-import-tools';
+import { editHoloTools } from './edit-holo-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -103,7 +100,7 @@ export const coreTools: Tool[] = [
   // === TRAITS ===
   {
     name: 'list_traits',
-    description: 'List all 56 VR traits available in HoloScript with their categories.',
+    description: 'List all 1,800+ VR traits available in HoloScript with their categories.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -118,6 +115,10 @@ export const coreTools: Tool[] = [
             'spatial',
             'audio',
             'state',
+            'ai',
+            'accessibility',
+            'iot',
+            'web3',
             'advanced',
             'all',
           ],
@@ -302,11 +303,11 @@ export const coreTools: Tool[] = [
     },
   },
 
-  // === RENDERING (NEW - for X/Grok integration) ===
+  // === RENDERING (requires HOLOSCRIPT_RENDER_URL; falls back to playground link) ===
   {
     name: 'render_preview',
     description:
-      'Generate a static preview image or animated GIF of a HoloScript scene. Returns a URL that can be shared on X.',
+      'Generate a preview of a HoloScript scene. When HOLOSCRIPT_RENDER_URL is configured returns a real image URL (png/gif/mp4/webp). Without it, returns a playground link you can open in a browser — no static image is produced locally.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -352,10 +353,11 @@ export const coreTools: Tool[] = [
     },
   },
 
-  // === SHARING (NEW - for X/Grok integration) ===
+  // === SHARING (requires HOLOSCRIPT_RENDER_URL for rich previews; always produces playground link) ===
   {
     name: 'create_share_link',
-    description: 'Create a shareable playground link for HoloScript code. Perfect for X posts.',
+    description:
+      'Create a shareable link for HoloScript code. When HOLOSCRIPT_RENDER_URL is configured, returns full social preview metadata (QR code, Twitter card). Without it, returns a playground URL with the code embedded. Useful for X posts.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -455,21 +457,81 @@ export const browserControlTools: Tool[] = [
     description:
       'Launch HoloScript file in browser preview with AI control. ' +
       'Opens a browser window showing the 3D scene and returns a session ID for further control.',
-    inputSchema: BrowserLaunchSchema.shape as any,
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        holoscriptFile: {
+          type: 'string',
+          description: 'Path to HoloScript file to preview, or an http/https URL',
+        },
+        width: { type: 'number', description: 'Browser viewport width (default: 1280)' },
+        height: { type: 'number', description: 'Browser viewport height (default: 720)' },
+        headless: {
+          type: 'boolean',
+          description: 'Run in headless mode without visible window (default: false)',
+        },
+      },
+      required: ['holoscriptFile'],
+    },
   },
   {
     name: 'browser_execute',
     description:
       'Execute JavaScript in the browser to inspect or validate HoloScript scenes. ' +
       'Use for trait validation, performance checking, and scene manipulation.',
-    inputSchema: BrowserExecuteSchema.shape as any,
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'Browser session ID returned by browser_launch',
+        },
+        script: {
+          type: 'string',
+          description: 'JavaScript code to execute in the browser context',
+        },
+        captureConsole: {
+          type: 'boolean',
+          description: 'Capture console.log output (default: true)',
+        },
+      },
+      required: ['sessionId', 'script'],
+    },
   },
   {
     name: 'browser_screenshot',
     description:
       'Take screenshot of HoloScript preview for visual validation and regression testing. ' +
       'Returns base64-encoded image or saves to file.',
-    inputSchema: BrowserScreenshotSchema.shape as any,
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'Browser session ID returned by browser_launch',
+        },
+        outputPath: {
+          type: 'string',
+          description: 'Optional file path to save screenshot to disk',
+        },
+        type: {
+          type: 'string',
+          enum: ['png', 'jpeg'],
+          description: 'Image format (default: png)',
+        },
+        quality: {
+          type: 'number',
+          description: 'JPEG quality 0-100 (default: 90)',
+          minimum: 0,
+          maximum: 100,
+        },
+        fullPage: {
+          type: 'boolean',
+          description: 'Capture full scrollable page (default: false)',
+        },
+      },
+      required: ['sessionId'],
+    },
   },
 ];
 
@@ -519,7 +581,10 @@ export const hololandTrainingTools: Tool[] = [
 ];
 
 /**
- * All tools combined: core + graph + IDE + Brittney-Lite + text-to-3D + browser + hololand training
+ * All tools combined:
+ * Core (19) + Graph (13) + IDE (9) + Brittney-Lite (4) + Codebase (5) + GraphRAG (2)
+ * + Self-Improve (2) + GLTF (2) + EditHolo (1) = 57 language tools
+ * (+ dynamic plugins; compiler/networking/snapshot/monitoring/holotest added separately in index.ts)
  */
 export const tools: Tool[] = [
   ...coreTools,
@@ -532,6 +597,8 @@ export const tools: Tool[] = [
   ...codebaseTools,
   ...graphRagTools,
   ...selfImproveTools,
+  ...gltfImportTools,
+  ...editHoloTools,
   ...PluginManager.getTools(),
 ];
 

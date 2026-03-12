@@ -42,6 +42,12 @@ export interface GraphRAGOptions {
   ollamaUrl?: string;
   /** LLM model for answer generation (default: 'brittney-qwen-v23') */
   llmModel?: string;
+  /**
+   * LLM provider for answer generation.
+   * When set, takes precedence over ollamaUrl/llmModel.
+   * Any @holoscript/llm-provider adapter satisfies this interface.
+   */
+  llmProvider?: LLMProvider;
 }
 
 export interface GraphRAGResult {
@@ -78,6 +84,27 @@ export interface EnrichedResult {
   impactRadius: number;
 }
 
+/**
+ * Minimal LLM provider interface for query answering.
+ * Structurally compatible with ILLMProvider from @holoscript/llm-provider,
+ * so any adapter from that package can be passed directly.
+ */
+export interface LLMProvider {
+  /**
+   * Generate a completion for the given message thread.
+   *
+   * @param request - Chat messages in OpenAI-style format. Typically a single
+   *                  `user` message containing the enriched graph context + question.
+   * @param model   - Optional model override. If omitted the engine uses the
+   *                  model configured in `GraphRAGOptions.llmModel`.
+   * @returns The model’s reply as `{ content: string }`.
+   */
+  complete(
+    request: { messages: Array<{ role: string; content: string }> },
+    model?: string
+  ): Promise<{ content: string }>;
+}
+
 export interface LLMAnswer {
   /** Natural language answer */
   answer: string;
@@ -96,16 +123,18 @@ export class GraphRAGEngine {
   private index: EmbeddingIndex;
   private ollamaUrl: string;
   private llmModel: string;
+  private llmProvider?: LLMProvider;
 
   constructor(
     graph: CodebaseGraph,
     index: EmbeddingIndex,
-    options?: Pick<GraphRAGOptions, 'ollamaUrl' | 'llmModel'>
+    options?: Pick<GraphRAGOptions, 'ollamaUrl' | 'llmModel' | 'llmProvider'>
   ) {
     this.graph = graph;
     this.index = index;
     this.ollamaUrl = options?.ollamaUrl ?? 'http://localhost:11434';
     this.llmModel = options?.llmModel ?? 'brittney-qwen-v23';
+    this.llmProvider = options?.llmProvider;
   }
 
   /**
@@ -196,7 +225,15 @@ export class GraphRAGEngine {
 
   /**
    * Query with LLM-generated natural language answer.
-   * Feeds enriched graph context into the LLM for answer generation.
+   *
+   * Executes a Graph RAG query, condenses the top-10 enriched results into a
+   * structured prompt, and feeds it to the configured LLM.  The LLM output is
+   * returned alongside extracted symbol citations.
+   *
+   * @param question - Natural-language question about the codebase.
+   * @param options  - Graph RAG options (topK, weights, filters, etc.).
+   * @returns `LLMAnswer` with `answer` text, `citations` array, and raw `context`.
+   * @throws If no LLM provider is configured and Ollama is unreachable.
    */
   async queryWithLLM(question: string, options: GraphRAGOptions = {}): Promise<LLMAnswer> {
     const ragResult = await this.query(question, options);
@@ -295,6 +332,15 @@ export class GraphRAGEngine {
   // ── Private ────────────────────────────────────────────────────────────
 
   private async queryLLM(prompt: string): Promise<string> {
+    // Prefer injected LLM provider (OpenAI, Anthropic, Gemini, etc.)
+    if (this.llmProvider) {
+      const resp = await this.llmProvider.complete({
+        messages: [{ role: 'user', content: prompt }],
+      });
+      return resp.content;
+    }
+
+    // Fall back to direct Ollama API call (original behaviour)
     const response = await fetch(this.ollamaUrl + '/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -295,7 +295,6 @@ export class MaterialLibrary {
 
   private createPBRStandard(): MaterialPreset {
     const graph = new ShaderGraph('PBR Standard');
-    graph.description = 'Standard PBR material with base color, metallic, and roughness';
 
     // Input nodes
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
@@ -343,7 +342,6 @@ export class MaterialLibrary {
 
   private createUnlit(): MaterialPreset {
     const graph = new ShaderGraph('Unlit');
-    graph.description = 'Simple unlit color output';
 
     const colorNode = graph.createNode('constant_color', { x: 0, y: 0 });
     const outputNode = graph.createNode('output_unlit', { x: 300, y: 0 });
@@ -371,7 +369,6 @@ export class MaterialLibrary {
 
   private createWater(): MaterialPreset {
     const graph = new ShaderGraph('Water');
-    graph.description = 'Animated water surface with waves, foam, and caustics';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
@@ -425,7 +422,6 @@ export class MaterialLibrary {
 
   private createFire(): MaterialPreset {
     const graph = new ShaderGraph('Fire');
-    graph.description = 'Volumetric fire with turbulence and emission';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
@@ -479,7 +475,6 @@ export class MaterialLibrary {
 
   private createGlass(): MaterialPreset {
     const graph = new ShaderGraph('Glass');
-    graph.description = 'Transparent glass with refraction and fresnel';
 
     const normalNode = graph.createNode('input_normal', { x: 0, y: 0 });
     const viewDirNode = graph.createNode('input_view_direction', { x: 0, y: 100 });
@@ -519,7 +514,6 @@ export class MaterialLibrary {
 
   private createHologram(): MaterialPreset {
     const graph = new ShaderGraph('Hologram');
-    graph.description = 'Sci-fi hologram with scan lines and fresnel glow';
 
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
     const normalNode = graph.createNode('input_normal', { x: 0, y: 100 });
@@ -577,7 +571,6 @@ export class MaterialLibrary {
 
   private createToon(): MaterialPreset {
     const graph = new ShaderGraph('Toon');
-    graph.description = 'Cel-shaded toon material with quantized lighting';
 
     const colorNode = graph.createNode('constant_color', { x: 0, y: 0 });
     const normalNode = graph.createNode('input_normal', { x: 0, y: 100 });

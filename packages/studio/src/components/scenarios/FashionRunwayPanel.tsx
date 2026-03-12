@@ -263,3 +263,6 @@ export function FashionRunwayPanel() {
     </div>
   );
 }
+
+export default FashionRunwayPanel;
+

@@ -128,6 +128,11 @@ export const codebaseTools: Tool[] = [
           description:
             'When true, generates an interactive 3D scene with hover, click, selection, and edge highlighting. Only applies when outputFormat is "holo". Defaults to false.',
         },
+        force: {
+          type: 'boolean',
+          description:
+            'When false (default), skips re-scanning if a disk cache already exists and is younger than 24 hours. Set to true to force a fresh scan regardless of cache age.',
+        },
       },
       required: ['rootDir'],
     },
@@ -238,6 +243,57 @@ export const codebaseTools: Tool[] = [
 let cachedGraph: any = null;
 let cachedRootDir = '';
 let cacheAutoLoaded = false;
+let cacheProvenance: 'fresh-scan' | 'disk-cache' | null = null;
+let cacheTimestamp = 0;
+
+/**
+ * Ensure graph is loaded. Returns { loaded: boolean; source: string; ageMs?: number }.
+ * Order of preference:
+ *   1. Already in memory (cachedGraph set)
+ *   2. Disk cache (if younger than 24 h)
+ *   3. Nothing available → returns loaded=false
+ */
+async function ensureCachedGraph(): Promise<{
+  loaded: boolean;
+  source: 'memory' | 'disk-cache' | 'none';
+  ageMs?: number;
+  rootDir?: string;
+  stale?: boolean;
+}> {
+  if (cachedGraph) {
+    return {
+      loaded: true,
+      source: cacheProvenance === 'disk-cache' ? 'disk-cache' : 'memory',
+      ageMs: cacheTimestamp ? Date.now() - cacheTimestamp : undefined,
+      rootDir: cachedRootDir,
+      stale: cacheTimestamp ? Date.now() - cacheTimestamp > CACHE_MAX_AGE_MS : false,
+    };
+  }
+  // Try disk
+  const envelope = loadGraphCache();
+  if (envelope) {
+    try {
+      const mod = await loadCodebaseModule();
+      const { CodebaseGraph } = mod;
+      cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+      cachedRootDir = envelope.rootDir;
+      cacheProvenance = 'disk-cache';
+      cacheTimestamp = envelope.timestamp;
+      // Rebuild GraphRAG (best-effort)
+      try {
+        const { EmbeddingIndex, GraphRAGEngine } = mod;
+        const idx = new EmbeddingIndex();
+        await idx.buildIndex(cachedGraph);
+        setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
+      } catch { /* Ollama may not be running */ }
+      const ageMs = Date.now() - envelope.timestamp;
+      return { loaded: true, source: 'disk-cache', ageMs, rootDir: envelope.rootDir, stale: false };
+    } catch {
+      /* Deserialization failed */
+    }
+  }
+  return { loaded: false, source: 'none' };
+}
 
 /**
  * Lazy-load the codebase module.
@@ -255,29 +311,12 @@ export async function handleCodebaseTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
-  // Auto-load cached graph from disk on first tool call (if no graph in memory)
-  if (!cachedGraph && !cacheAutoLoaded) {
+  // cacheAutoLoaded guard prevents repeated disk I/O within a session;
+  // ensureCachedGraph handles the actual lazy-load logic.
+  if (!cacheAutoLoaded) {
     cacheAutoLoaded = true;
-    const envelope = loadGraphCache();
-    if (envelope) {
-      try {
-        const mod = await loadCodebaseModule();
-        const { CodebaseGraph } = mod;
-        cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
-        cachedRootDir = envelope.rootDir;
-        // Rebuild GraphRAG from cached graph (best-effort)
-        try {
-          const { EmbeddingIndex, GraphRAGEngine } = mod;
-          const idx = new EmbeddingIndex();
-          await idx.buildIndex(cachedGraph);
-          setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-        } catch {
-          /* Ollama may not be running */
-        }
-      } catch {
-        /* Deserialization failed — stale cache */
-      }
-    }
+    // Pre-warm: load from disk if available (errors intentionally swallowed)
+    await ensureCachedGraph().catch(() => {});
   }
 
   switch (name) {
@@ -308,7 +347,54 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const languages = args.languages as string[] | undefined;
   const maxFiles = args.maxFiles as number | undefined;
   const interactive = (args.interactive as boolean) ?? false;
+  const force = (args.force as boolean) ?? false;
 
+  // -------------------------------------------------------------------
+  // Cache-first: if force=false and a fresh disk cache exists for this
+  // rootDir, skip re-scanning and return the cached result.
+  // -------------------------------------------------------------------
+  if (!force) {
+    const envelope = loadGraphCache();
+    const ageMs = envelope ? Date.now() - envelope.timestamp : undefined;
+    const isFresh = envelope && ageMs !== undefined && ageMs < CACHE_MAX_AGE_MS;
+    const sameRoot = envelope && envelope.rootDir === rootDir;
+
+    if (isFresh && sameRoot) {
+      // Ensure it's in session memory too
+      if (!cachedGraph) {
+        try {
+          cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+          cachedRootDir = rootDir;
+          cacheProvenance = 'disk-cache';
+          cacheTimestamp = envelope.timestamp;
+          try {
+            const { EmbeddingIndex, GraphRAGEngine } = mod;
+            const idx = new EmbeddingIndex();
+            await idx.buildIndex(cachedGraph);
+            setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
+          } catch { /* Ollama may not be running */ }
+        } catch { /* corrupt cache — fall through to fresh scan */ }
+      }
+
+      if (cachedGraph) {
+        const ageHuman = ageMs! < 3600000
+          ? `${Math.round(ageMs! / 60000)}m`
+          : `${(ageMs! / 3600000).toFixed(1)}h`;
+        return {
+          cached: true,
+          cacheAge: ageHuman,
+          cacheAgeMs: ageMs,
+          rootDir,
+          stats: envelope!.stats,
+          message: `Returned from disk cache (${ageHuman} old, rootDir matches). Pass force=true to re-scan.`,
+        };
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // Fresh scan
+  // -------------------------------------------------------------------
   const scanner = new CodebaseScanner();
   const scanResult = await scanner.scan({
     rootDir,
@@ -322,6 +408,8 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // Cache for subsequent queries
   cachedGraph = graph;
   cachedRootDir = rootDir;
+  cacheProvenance = 'fresh-scan';
+  cacheTimestamp = Date.now();
 
   // Persist graph to disk for cross-session reuse
   const graphStats = graph.getStats();
@@ -399,11 +487,20 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 }
 
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
-  if (!cachedGraph) {
+  const graphState = await ensureCachedGraph();
+  if (!graphState.loaded) {
     return {
-      error: 'No codebase loaded. Call holo_absorb_repo first.',
+      error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.',
     };
   }
+  const fromCache = graphState.source === 'disk-cache';
+  const cacheNote = fromCache
+    ? `[auto-loaded from disk cache, ${
+        graphState.ageMs! < 3600000
+          ? `${Math.round(graphState.ageMs! / 60000)}m old`
+          : `${(graphState.ageMs! / 3600000).toFixed(1)}h old`
+      }, rootDir: ${graphState.rootDir}]`
+    : undefined;
 
   const queryType = args.queryType as string | undefined;
   const symbolName = args.symbolName as string | undefined;
@@ -422,6 +519,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `callers of ${symbolOwner ? `${symbolOwner}.` : ''}${name}`,
         results: callers,
         count: callers.length,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
@@ -432,6 +530,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `callees of ${name}`,
         results: callees,
         count: callees.length,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
@@ -442,6 +541,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `imports of ${file}`,
         results: imports,
         count: imports.length,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
@@ -452,6 +552,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `files that import ${file}`,
         results: importedBy,
         count: importedBy.length,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
@@ -462,6 +563,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `symbols in ${file}`,
         results: symbols,
         count: symbols.length,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
@@ -472,6 +574,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `find ${name}`,
         results: found,
         count: found.length,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
@@ -483,6 +586,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
           query: `trace ${parts[1]} -> ${parts[2]}`,
           result: chain,
           found: chain !== null,
+          ...(cacheNote && { cacheNote }),
         };
       }
       return { error: 'Trace requires format: "trace SymbolA to SymbolB"' };
@@ -498,11 +602,16 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
           fileCount: files.length,
         })),
         count: communities.size,
+        ...(cacheNote && { cacheNote }),
       };
     }
 
     case 'stats':
-      return { query: 'stats', result: cachedGraph.getStats() };
+      return {
+        query: 'stats',
+        result: cachedGraph.getStats(),
+        ...(cacheNote && { cacheNote }),
+      };
 
     default:
       return {
@@ -512,9 +621,17 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 }
 
 async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
-  if (!cachedGraph) {
-    return { error: 'No codebase loaded. Call holo_absorb_repo first.' };
+  const graphState = await ensureCachedGraph();
+  if (!graphState.loaded) {
+    return { error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.' };
   }
+  const cacheNote = graphState.source === 'disk-cache'
+    ? `auto-loaded from disk cache (${
+        graphState.ageMs! < 3600000
+          ? `${Math.round(graphState.ageMs! / 60000)}m old`
+          : `${(graphState.ageMs! / 3600000).toFixed(1)}h old`
+      })`
+    : undefined;
 
   const changedFiles = args.changedFiles as string[] | undefined;
   const changedSymbol = args.changedSymbol as string | undefined;
@@ -527,6 +644,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
       affectedFiles: Array.from(affected),
       affectedCount: affected.size,
       blastRadius: `${affected.size} files affected by changes to ${changedFiles.length} files`,
+      ...(cacheNote && { cacheNote }),
     };
   }
 
@@ -537,6 +655,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
       affectedFiles: Array.from(affected),
       affectedCount: affected.size,
       blastRadius: `${affected.size} files affected by changes to ${changedSymbol}`,
+      ...(cacheNote && { cacheNote }),
     };
   }
 
@@ -608,21 +727,32 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 async function handleGraphStatus(): Promise<unknown> {
   const cache = getCacheAge();
   const { isGraphRAGReady } = await import('./graph-rag-tools');
+  const cacheAgeMs = cache.ageMs;
+  const isFresh = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   return {
     inMemory: cachedGraph !== null,
     rootDir: cachedRootDir || null,
     graphRAGReady: isGraphRAGReady(),
+    sessionProvenance: cacheProvenance ?? null,
     diskCache: cache.exists
       ? {
-          ageMs: cache.ageMs,
+          ageMs: cacheAgeMs,
           ageHuman:
-            cache.ageMs! < 3600000
-              ? `${Math.round(cache.ageMs! / 60000)}m ago`
-              : `${Math.round(cache.ageMs! / 3600000)}h ago`,
+            cacheAgeMs! < 3600000
+              ? `${Math.round(cacheAgeMs! / 60000)}m ago`
+              : `${(cacheAgeMs! / 3600000).toFixed(1)}h ago`,
+          fresh: isFresh,
+          stale: !isFresh,
           rootDir: cache.rootDir,
           stats: cache.stats,
+          hint: isFresh
+            ? 'Cache is fresh — query tools will auto-load it without re-scanning.'
+            : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
-      : null,
+      : {
+          exists: false,
+          hint: 'No disk cache found. Call holo_absorb_repo to create one.',
+        },
   };
 }
 

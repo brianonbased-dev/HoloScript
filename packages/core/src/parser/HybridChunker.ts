@@ -414,7 +414,7 @@ class FixedSizeChunker {
    * Calculate overlap lines based on token count
    */
   private calculateOverlapLines(lines: string[]): string[] {
-    let overlapLines: string[] = [];
+    const overlapLines: string[] = [];
     let overlapTokens = 0;
 
     // Work backwards from end

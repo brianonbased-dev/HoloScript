@@ -6,6 +6,40 @@ All notable changes to HoloScript are documented here.
 
 ## [Unreleased]
 
+### Codebase Intelligence — EmbeddingProvider abstraction + `query` CLI command
+
+**`holoscript absorb` / `holoscript query`** now form a complete, provider-agnostic codebase intelligence pipeline.
+
+#### New: EmbeddingProvider abstraction (`packages/core`)
+
+- **`EmbeddingProvider` interface + `createEmbeddingProvider()` factory** — decouples `EmbeddingIndex` from any particular embedding backend
+- **`BM25EmbeddingProvider`** — zero-dependency default using FNV-1a feature hashing + log-TF weighting (1024-dim, cosine-compatible)
+- **`XenovaEmbeddingProvider`** — local WASM semantic embeddings via `@huggingface/transformers` (`Xenova/all-MiniLM-L6-v2`, 384-dim); installed as an `optionalDependency`
+- **`OllamaEmbeddingProvider`** — backward-compatible extraction of the original `EmbeddingIndex` Ollama logic
+- **`OpenAIEmbeddingProvider`** — batched `text-embedding-3-small` via lazy `import('openai')`; requires `openai` package and `OPENAI_API_KEY`
+- All four providers exported from `@holoscript/core` via `codebase/providers/index.ts`
+
+#### New: LLM provider abstraction in `GraphRAGEngine`
+
+- Added `LLMProvider` minimal interface — structurally compatible with `ILLMProvider` from `@holoscript/llm-provider`
+- `GraphRAGEngine` constructor now accepts `llmProvider?: LLMProvider`; falls back to direct Ollama HTTP for backward compatibility
+- `queryWithLLM()` uses the injected provider when set
+
+#### New: `holoscript query` CLI command (`packages/cli`)
+
+- `holoscript query <question>` — semantic GraphRAG search with provider selection
+- Flags: `--provider bm25|xenova|openai|ollama`, `--top-k <n>`, `--with-llm`, `--llm openai|anthropic|gemini`, `--model <name>`, `--llm-key <key>`, `--json`
+
+#### Documentation
+
+- New guide: [`docs/guides/codebase-intelligence.md`](./docs/guides/codebase-intelligence.md)
+- VitePress sidebar updated with "Codebase Intelligence" section
+- `docs/api/CLI.md` — `absorb` and `query` added to Additional Commands
+- README — `holoscript query` command, provider system, and optional deps documented
+- CLI `--help` — new "Codebase Intelligence Options" block in Options; new "Codebase Intelligence" examples block
+
+---
+
 ### Studio Quality & DX Refinements (Track 1)
 - **Spatial Version Control (Git for 3D)**: Built isomorphic git integration enabling visual spatial blame tooltips and ghost-mesh translucent diff overlays within the 3D viewport.
 - **Conformance & Verification Pipelines**: Repurposed the Engine Play pipeline into a formal AST validation runner enforcing physics boundaries and accessibility guidelines.

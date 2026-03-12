@@ -905,7 +905,7 @@ export function generateMembraneGeometry(
   center[2] /= anchors.length;
 
   // Compute membrane normal (average of edge cross products)
-  let memNormal = [0, 0, 0];
+  const memNormal = [0, 0, 0];
   for (let i = 0; i < anchors.length; i++) {
     const a = anchors[i];
     const b = anchors[(i + 1) % anchors.length];

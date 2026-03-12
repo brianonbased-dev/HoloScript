@@ -42,7 +42,7 @@ HoloScript is a **full programming language** for VR, AR, robotics, IoT, and dig
 
 ### For Computing
 
-- **One source → 18+ targets** - Unity, Unreal, Godot, VRChat, Babylon.js, WebGPU, visionOS, Android XR, URDF, SDF, DTDL, WoT, OpenUSD, Three.js, GLTF, OpenXR, iOS, WASM
+- **One source → 25+ targets** - Unity, Unreal, Godot, VRChat, Babylon.js, WebGPU, visionOS, Android XR, URDF, SDF, DTDL, WoT, OpenUSD, Three.js, GLTF, OpenXR, iOS, WASM
 - **50,000 → 500 lines** - Declarative syntax eliminates boilerplate
 - **Cross-domain** - VR, AR, robotics, IoT, and digital twins from one source
 - **Dual parser** - TypeScript + Rust/WASM with full LSP, linter, and formatter

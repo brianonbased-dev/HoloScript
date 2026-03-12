@@ -3,6 +3,9 @@ const path = require('path');
 
 const nextConfig = {
   reactStrictMode: true,
+  // Suppress ESLint during builds — eslint-config-next@14 crashes inside Next.js 15.
+  // Type-checking still runs via `tsc --noEmit` or TypeScript error reporting.
+  eslint: { ignoreDuringBuilds: true },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
   transpilePackages: ['@holoscript/core', '@holoscript/std', '@holoscript/studio-plugin-sdk', 'three'],

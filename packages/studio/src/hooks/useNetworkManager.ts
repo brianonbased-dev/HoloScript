@@ -65,7 +65,7 @@ export function useNetworkManager(): UseNetworkManagerReturn {
   );
   const broadcast = useCallback(
     (payload: string) => {
-      mgr.current.broadcast('state_update', { data: payload });
+      mgr.current.broadcast('state_sync', { data: payload });
       msgCount.current++;
       sync();
     },

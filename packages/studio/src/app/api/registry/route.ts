@@ -21,7 +21,7 @@ export interface RegistryPack {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __registryStore__: RegistryPack[] | undefined;
 }
 

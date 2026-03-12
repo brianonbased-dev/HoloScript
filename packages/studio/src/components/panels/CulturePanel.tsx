@@ -93,9 +93,9 @@ export function CulturePanel() {
         {events.map((e, i) => (
           <div
             key={i}
-            className={`flex items-start gap-1.5 rounded px-1.5 py-0.5 text-[10px] bg-studio-panel/20 ${SEVERITY_COLORS[e.severity]}`}
+            className={`flex items-start gap-1.5 rounded px-1.5 py-0.5 text-[10px] bg-studio-panel/20 ${SEVERITY_COLORS[e.severity as keyof typeof SEVERITY_COLORS]}`}
           >
-            <span>{TYPE_ICONS[e.type] || '📋'}</span>
+            <span>{TYPE_ICONS[e.type as keyof typeof TYPE_ICONS] || '💬'}</span>
             <div className="flex-1 truncate">
               <span className="font-mono">{e.agentId}</span>: {e.details}
             </div>

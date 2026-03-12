@@ -92,7 +92,7 @@ export class ModuleResolver {
     this.loader =
       options?.loader ??
       ((p: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+         
         const fs = require('fs') as typeof import('fs');
         if (!fs.existsSync(p)) throw new ModuleNotFoundError(p, '');
         return fs.readFileSync(p, 'utf8');

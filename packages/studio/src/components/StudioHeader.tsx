@@ -21,10 +21,12 @@ import {
   Cloud,
   MoreHorizontal,
   CheckCircle,
+  Palette,
+  Bot,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAIStore, useSceneStore, useEditorStore } from '@/lib/stores';
+import { useAIStore, useSceneStore, useEditorStore, usePanelVisibilityStore } from '@/lib/stores';
 import { SaveBar } from '@/components/SaveBar';
 import { CollabBar } from '@/components/collaboration/CollabBar';
 import { xrStore } from '@/components/vr/VREditSession';
@@ -104,6 +106,33 @@ const CloudDeployPanel = dynamic(
   { ssr: false }
 );
 
+// Conformance / Validation
+const ConformanceSuitePanel = dynamic(
+  () =>
+    import('@/components/validation/ConformanceSuitePanel').then((m) => ({
+      default: m.ConformanceSuitePanel,
+    })),
+  { ssr: false }
+);
+
+// Agent Monitor — uAA2++ cycle telemetry
+const AgentMonitorPanel = dynamic(
+  () =>
+    import('@/components/ai/AgentMonitorPanel').then((m) => ({
+      default: m.AgentMonitorPanel,
+    })),
+  { ssr: false }
+);
+
+// Material editor — quick surface properties
+const SimpleMaterialPanel = dynamic(
+  () =>
+    import('@/components/materials/SimpleMaterialPanel').then((m) => ({
+      default: m.SimpleMaterialPanel,
+    })),
+  { ssr: false }
+);
+
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
@@ -120,6 +149,11 @@ export function StudioHeader() {
   const setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
   const showConformancePanel = useEditorStore((s) => s.showConformancePanel);
   const setShowConformancePanel = useEditorStore((s) => s.setShowConformancePanel);
+
+  const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
+  const toggleAgentMonitorOpen = usePanelVisibilityStore((s) => s.toggleAgentMonitorOpen);
+  const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
+  const toggleMaterialOpen = usePanelVisibilityStore((s) => s.toggleMaterialOpen);
 
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
@@ -315,6 +349,36 @@ export function StudioHeader() {
             >
               <GitCommit className="h-3.5 w-3.5" />
               <span className="hidden lg:inline">Governance</span>
+            </button>
+
+            {/* Agent Monitor — uAA2++ cycle telemetry */}
+            <button
+              id="studio-header-agent-monitor"
+              onClick={toggleAgentMonitorOpen}
+              title="Agent Monitor (uAA2++ cycle)"
+              className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                agentMonitorOpen
+                  ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                  : 'border-studio-border bg-studio-surface text-studio-muted hover:border-emerald-500/40 hover:text-emerald-400'
+              }`}
+            >
+              <Bot className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Agent</span>
+            </button>
+
+            {/* Material editor — quick surface properties */}
+            <button
+              id="studio-header-material"
+              onClick={toggleMaterialOpen}
+              title="Material Editor"
+              className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                materialOpen
+                  ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
+                  : 'border-studio-border bg-studio-surface text-studio-muted hover:border-orange-500/40 hover:text-orange-400'
+              }`}
+            >
+              <Palette className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Material</span>
             </button>
 
             <button
@@ -732,6 +796,27 @@ export function StudioHeader() {
 
       {/* Cloud Deployment (full-screen modal) */}
       {cloudDeployOpen && <CloudDeployPanel onClose={() => setCloudDeployOpen(false)} />}
+
+      {/* Conformance Suite (right sidebar) */}
+      {showConformancePanel && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} />
+        </div>
+      )}
+
+      {/* Agent Monitor (right sidebar — uAA2++ telemetry) */}
+      {agentMonitorOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <AgentMonitorPanel onClose={toggleAgentMonitorOpen} />
+        </div>
+      )}
+
+      {/* Material Editor (right sidebar — quick PBR controls) */}
+      {materialOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <SimpleMaterialPanel onClose={toggleMaterialOpen} />
+        </div>
+      )}
     </>
   );
 }

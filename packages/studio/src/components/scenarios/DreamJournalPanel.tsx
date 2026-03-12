@@ -220,3 +220,6 @@ export function DreamJournalPanel() {
     </div>
   );
 }
+
+export default DreamJournalPanel;
+

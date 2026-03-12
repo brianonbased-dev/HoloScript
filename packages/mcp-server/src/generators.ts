@@ -3,7 +3,9 @@
  *
  * AI-powered generation of HoloScript code from natural language.
  */
-import { capitalize } from '@holoscript/std';
+
+// Inline utility — avoids an @holoscript/std peer dependency
+const capitalize = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 // Trait suggestions based on keywords
 const TRAIT_KEYWORDS: Record<string, string[]> = {

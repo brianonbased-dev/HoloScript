@@ -19,6 +19,7 @@ import type {
 } from './types';
 import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
+import { extractFileDocComment } from './adapters/BaseAdapter';
 
 const DEFAULT_EXCLUDE = [
   'node_modules',
@@ -73,6 +74,7 @@ export class CodebaseScanner {
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
     const exclude = this.buildExcludeSet(options.exclude);
     const readFile = options.readFile ?? ((p: string) => fs.promises.readFile(p, 'utf-8'));
+    const onProgress = options.onProgress;
 
     // 1. Collect files
     const filePaths = this.collectFiles(rootDir, exclude, maxFiles, options.languages);
@@ -134,8 +136,9 @@ export class CodebaseScanner {
         const imports = adapter.extractImports(tree, relPath);
         const calls = adapter.extractCalls(tree, relPath);
         const loc = content.split('\n').length;
+        const docComment = extractFileDocComment(tree.rootNode);
 
-        files.push({ path: relPath, language, symbols, imports, calls, loc, sizeBytes });
+        files.push({ path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment });
 
         // Accumulate stats
         filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
@@ -147,6 +150,8 @@ export class CodebaseScanner {
         for (const sym of symbols) {
           symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
         }
+
+        onProgress?.(files.length, filePaths.length, relPath);
       } catch (e: any) {
         errors.push({ file: filePath, error: e.message, phase: 'extract' });
       }

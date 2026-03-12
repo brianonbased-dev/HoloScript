@@ -171,9 +171,9 @@ export class ShaderGraph {
   updatedAt: number;
   private nodeDefs: Map<string, ShaderNodeDef> = new Map();
 
-  constructor(name?: string, id?: string) {
-    this.name = name ?? '';
+  constructor(id?: string, name?: string) {
     this.id = id ?? `shader_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    this.name = name ?? id ?? '';
     this.createdAt = Date.now();
     this.updatedAt = Date.now();
     for (const [type, def] of Object.entries(SHADER_NODES)) {

@@ -60,7 +60,7 @@ export class BusinessQuestTools {
     injectNarrative = false
   ): Promise<{ success: boolean; url: string }> {
     try {
-      let finalConfig = { ...config };
+      const finalConfig = { ...config };
 
       if (injectNarrative) {
         const narrativeSvc = getNarrativeQuestService();

@@ -188,6 +188,8 @@ export interface ScanOptions {
   languages?: SupportedLanguage[];
   /** Injectable file reader (for testing / browser) */
   readFile?: (path: string) => Promise<string>;
+  /** Progress callback, called after each file is parsed */
+  onProgress?: (parsed: number, total: number, file: string) => void;
 }
 
 // =============================================================================
@@ -202,6 +204,8 @@ export interface ScannedFile {
   calls: CallEdge[];
   loc: number;
   sizeBytes: number;
+  /** File-level module doc comment (e.g. the top-of-file /** ... *\/ block) */
+  docComment?: string;
 }
 
 export interface ScanStats {

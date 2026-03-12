@@ -230,7 +230,7 @@ export class SpreadOperatorValidator {
 /**
  * Helper to check if a node contains spread operations
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function hasSpreads(node: unknown): boolean {
   if (!node) return false;
 

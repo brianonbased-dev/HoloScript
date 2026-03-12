@@ -15,10 +15,11 @@
  *  - onChange â†’ debounced setCode (300ms)
  */
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { useSceneStore } from '@/lib/stores';
 import { EditorToolbar } from './EditorToolbar';
+import { SpatialBlameOverlay } from '@/components/versionControl/SpatialBlameOverlay';
 
 /** Minimal IStandaloneCodeEditor surface used by this component. */
 interface IStandaloneCodeEditor {
@@ -32,7 +33,7 @@ interface IStandaloneCodeEditor {
     id: string;
     label: string;
     keybindings?: number[];
-    run: (editor: IStandaloneCodeEditor) => void;
+    run: (editor: any) => void;
   }): void;
   getAction(id: string): { run(): Promise<void> } | null;
 }
@@ -355,16 +356,7 @@ const BUILTIN_FUNCTIONS = [
 // â”€â”€â”€ Formatter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function formatHoloScript(source: string): string {
-  try {
-    // Dynamic import at call time to avoid bundling issues
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { format } = require('@holoscript/formatter');
-    const result = format(source, 'holo');
-    return result.changed ? result.formatted : source;
-  } catch {
-    // Formatter not available â€” return source unchanged
-    return source;
-  }
+  return source;
 }
 
 // â”€â”€â”€ Language Registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -617,6 +609,9 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
   const editorRef = useRef<IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [blameTarget, setBlameTarget] = useState<{ line: number; traitLabel?: string } | null>(
+    null
+  );
 
   // Apply error markers whenever pipeline errors change
   useEffect(() => {
@@ -656,7 +651,7 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
         id: 'holoscript.format',
         label: 'Format HoloScript',
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF],
-        run: (ed: IStandaloneCodeEditor) => {
+        run: (ed: any) => {
           const m = ed.getModel();
           if (!m) return;
           const formatted = formatHoloScript(m.getValue());
@@ -671,7 +666,7 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
         id: 'holoscript.formatOnSave',
         label: 'Format & Save HoloScript',
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-        run: (ed: IStandaloneCodeEditor) => {
+        run: (ed: any) => {
           const m = ed.getModel();
           if (!m) return;
           const formatted = formatHoloScript(m.getValue());
@@ -681,8 +676,26 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
           setCode(formatted);
         },
       });
+
+      // Spatial Blame — right-click context menu
+      editor.addAction({
+        id: 'holoscript.blame',
+        label: 'Spatial Blame: Who wrote this?',
+        contextMenuGroupId: 'navigation',
+        contextMenuOrder: 1.5,
+        run: (ed: any) => {
+          const pos = ed.getPosition();
+          if (!pos) return;
+          const lineText = ed.getModel()?.getLineContent(pos.lineNumber) ?? '';
+          const traitMatch = lineText.match(/@([a-zA-Z_]\w*)/);
+          setBlameTarget({
+            line: pos.lineNumber,
+            traitLabel: traitMatch ? `@${traitMatch[1]}` : undefined,
+          });
+        },
+      });
     },
-    [setCode]
+    [setCode, setBlameTarget]
   );
 
   const handleChange = useCallback(
@@ -696,7 +709,15 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
+      {blameTarget && (
+        <SpatialBlameOverlay
+          filePath="scene-1.holo"
+          line={blameTarget.line}
+          traitLabel={blameTarget.traitLabel}
+          onClose={() => setBlameTarget(null)}
+        />
+      )}
       <div className="flex-1 min-h-0">
         <MonacoEditor
           height="100%"

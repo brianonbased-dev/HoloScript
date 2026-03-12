@@ -1087,7 +1087,9 @@ export class LoroSpatialAdapter {
 
   private incrementClock(): void {
     this.localClock++;
-    this.versionVector.set(this.config.peerId, this.localClock);
+    // Store wall-clock time so the version vector is comparable with transform timestamps
+    // (remote peers already use Date.now() via applyRemoteTransform/applyRemoteNodeCreate)
+    this.versionVector.set(this.config.peerId, Date.now());
   }
 
   /** Check if `descendantId` is a descendant of `ancestorId` */

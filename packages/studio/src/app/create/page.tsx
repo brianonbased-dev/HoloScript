@@ -455,6 +455,22 @@ const SandboxedPluginsPanel = dynamic(
   { ssr: false }
 );
 
+const AgentMonitorPanel = dynamic(
+  () =>
+    import('@/components/ai/AgentMonitorPanel').then((m) => ({
+      default: m.AgentMonitorPanel,
+    })),
+  { ssr: false }
+);
+
+const SimpleMaterialPanel = dynamic(
+  () =>
+    import('@/components/materials/SimpleMaterialPanel').then((m) => ({
+      default: m.SimpleMaterialPanel,
+    })),
+  { ssr: false }
+);
+
 const MultiplayerPanel = dynamic(
   () => import('@/components/collaboration/MultiplayerPanel').then((m) => ({ default: m.MultiplayerPanel })),
   { ssr: false }
@@ -826,12 +842,20 @@ export default function CreatePage() {
   const splatWizardOpen = usePanelVisibilityStore((s) => s.splatWizardOpen);
   const setSplatWizardOpen = usePanelVisibilityStore((s) => s.setSplatWizardOpen);
   const toggleExclusive = usePanelVisibilityStore((s) => s.toggleExclusive);
+  const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
+  const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
+  const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
+  const setMaterialOpen = usePanelVisibilityStore((s) => s.setMaterialOpen);
 
   // Non-panel state (kept local — layout dimensions, left tab)
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
-  const [showGovernancePanel, setShowGovernancePanel] = useState(false);
-  const [showConformancePanel, setShowConformancePanel] = useState(false);
   const [spatialBlameTooltip, setSpatialBlameTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
+
+  // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
+  const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
+  const setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
+  const showConformancePanel = useEditorStore((s) => s.showConformancePanel);
+  const setShowConformancePanel = useEditorStore((s) => s.setShowConformancePanel);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -1451,10 +1475,24 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* RIGHT RAIL: Conformance Suite Validator */}
+          {/* RIGHT RAIL: Conformance Suite Validator — toggled by StudioHeader Validate button */}
           {showConformancePanel && (
             <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
               <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} />
+            </div>
+          )}
+
+          {/* RIGHT RAIL: Agent Monitor Panel */}
+          {agentMonitorOpen && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
+              <AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} />
+            </div>
+          )}
+
+          {/* RIGHT RAIL: Simple Material Editor */}
+          {materialOpen && (
+            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border bg-slate-900 z-20">
+              <SimpleMaterialPanel onClose={() => setMaterialOpen(false)} />
             </div>
           )}
 

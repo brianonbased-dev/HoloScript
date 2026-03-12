@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { useHistoryStore } from '../lib/historyStore';
 
-export function useGlobalHotkeys() {
+interface GlobalHotkeyOptions {
+  onOpenHelp?: () => void;
+}
+
+export function useGlobalHotkeys(options?: GlobalHotkeyOptions) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Avoid triggering hotkeys inside inputs or textareas

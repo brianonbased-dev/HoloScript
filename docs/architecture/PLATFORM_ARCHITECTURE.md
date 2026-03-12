@@ -34,7 +34,7 @@
                     │                              │
          ┌──────────▼──────────┐        ┌─────────▼──────────┐
          │  Compiler Registry  │        │  Runtime Registry  │
-         │  18+ Targets        │        │  Runtimes + Render │
+         │  25+ targets        │        │  Runtimes + Render │
          └──────────┬──────────┘        └─────────┬──────────┘
                     │                              │
                     │                              │
@@ -141,7 +141,7 @@
 
 #### 3. Compiler Registry (`packages/core/src/compiler/`)
 
-- **Purpose**: Code generation for 18+ targets
+- **Purpose**: Code generation for 25+ targets
 - **Size**: 15 compilers, ~50,000 lines
 - **Knowledge Base**: Material presets, type mappings, platform APIs
 - **Status**: ✅ Complete
@@ -237,7 +237,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 
 - **Total Project**: ~100,000+ lines
 - **Core Parser**: ~10,000 lines
-- **Compilers**: ~50,000 lines (15 targets)
+- **Compilers**: ~50,000 lines (25+ targets)
 - **Runtimes**: ~10,000 lines (demos + registry)
 - **Rendering**: ~1,000 lines (renderer interface + Three.js)
 - **Tests**: ~30,000 lines
@@ -271,7 +271,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 ✅ **Execute** - Runtime platform execution
 ✅ **Render** - Real-time 3D rendering with PBR
 ✅ **Simulate** - Physics, particles, structural mechanics
-✅ **Export** - Code generation for 18+ targets
+✅ **Export** - Code generation for 25+ targets
 ✅ **Test** - 800+ automated tests
 ✅ **Secure** - Security sandbox, hallucination detection
 ✅ **Benchmark** - Performance comparisons vs Unity/glTF
@@ -286,7 +286,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 | **Visual Editor**        | ✅ Unity Editor    | 🚧 Hololand (planned) |
 | **Physics**              | ✅ PhysX           | ✅ Custom physics     |
 | **Rendering**            | ✅ Built-in RP     | ✅ Three.js/WebGL     |
-| **Export Targets**       | ❌ Unity only      | ✅ 18+ targets        |
+| **Export Targets**       | ❌ Unity only      | ✅ 25+ targets        |
 | **Web Native**           | ❌ WebGL export    | ✅ Native web         |
 | **Material Library**     | ✅ Standard Assets | ✅ 80+ PBR presets    |
 | **Particle Systems**     | ✅ Shuriken        | ✅ 120K particles     |

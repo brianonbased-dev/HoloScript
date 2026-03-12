@@ -79,7 +79,15 @@ export type { RenderedEdge, EdgeRenderOptions } from './visualization/EdgeRender
 export { EmbeddingIndex } from './EmbeddingIndex';
 export type { EmbeddingIndexOptions, IndexedSymbol, SearchResult } from './EmbeddingIndex';
 export { GraphRAGEngine } from './GraphRAGEngine';
-export type { GraphRAGOptions, GraphRAGResult, EnrichedResult, LLMAnswer } from './GraphRAGEngine';
+export type { GraphRAGOptions, GraphRAGResult, EnrichedResult, LLMAnswer, LLMProvider } from './GraphRAGEngine';
+
+// Embedding Providers
+export type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions } from './providers/EmbeddingProvider';
+export { createEmbeddingProvider } from './providers/EmbeddingProvider';
+export { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
+export { XenovaEmbeddingProvider } from './providers/XenovaEmbeddingProvider';
+export { OllamaEmbeddingProvider } from './providers/OllamaEmbeddingProvider';
+export { OpenAIEmbeddingProvider } from './providers/OpenAIEmbeddingProvider';
 
 // Interactive Visualization
 export { InteractiveSceneEnricher } from './visualization/InteractiveSceneEnricher';

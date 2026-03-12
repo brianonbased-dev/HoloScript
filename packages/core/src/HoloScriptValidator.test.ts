@@ -46,29 +46,29 @@ describe('HoloScriptValidator', () => {
       expect(errors.filter((e) => e.severity === 'error')).toEqual([]);
     });
 
-    it('warns on unknown directives', () => {
+    it('does not warn on unknown directives (deferred to HoloScriptPlusParser)', () => {
+      // HoloScript has 1800+ traits; directive whitelist validation was removed from
+      // this legacy validator to prevent false positives on all valid VR traits.
       const code = '@foobar';
       const errors = validator.validate(code);
       const warnings = errors.filter((e) => e.severity === 'warning');
-      expect(warnings.length).toBeGreaterThan(0);
-      expect(warnings[0].message).toContain('foobar');
+      expect(warnings.length).toBe(0);
     });
 
-    it('warns on multiple unknown directives', () => {
+    it('does not warn on multiple directives regardless of name', () => {
       const code = `@unknown1
 @unknown2`;
       const errors = validator.validate(code);
       const warnings = errors.filter((e) => e.severity === 'warning');
-      expect(warnings.length).toBe(2);
+      expect(warnings.length).toBe(0);
     });
 
-    it('reports correct line numbers', () => {
+    it('returns empty errors for directive-only code', () => {
       const code = `// comment
 // comment 2
 @invalid_directive`;
       const errors = validator.validate(code);
-      const warnings = errors.filter((e) => e.severity === 'warning');
-      expect(warnings[0]?.line).toBe(3);
+      expect(errors.filter((e) => e.severity === 'error')).toEqual([]);
     });
   });
 });

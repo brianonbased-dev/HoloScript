@@ -19,6 +19,7 @@ import {
   parseCharacterIntent,
   executeCharacterIntent,
   type CharacterIntent,
+  type CharacterStoreActions,
 } from '@/lib/brittney/CharacterIntentParser';
 import { BUILTIN_ITEMS } from '@/components/character/wardrobe/WardrobePanel';
 
@@ -65,7 +66,7 @@ export function useBrittneyCustomizer(): BrittneyCustomizerReturn {
       return response;
     }
 
-    const response = executeCharacterIntent(intent, store);
+    const response = executeCharacterIntent(intent, store as unknown as CharacterStoreActions);
     setLastResponse(response);
     return response;
   }, []);

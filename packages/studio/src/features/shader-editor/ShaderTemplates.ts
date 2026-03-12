@@ -95,9 +95,8 @@ export class ShaderTemplateLibrary {
     const template = this.templates.get(templateId);
     if (!template) return null;
 
-    const graph = ShaderGraph.fromJSON(template.graph);
-    // Generate new IDs to avoid conflicts
-    graph.id = `graph_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const newId = `graph_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const graph = ShaderGraph.fromJSON({ ...template.graph, id: newId });
 
     return graph;
   }
@@ -121,7 +120,6 @@ export class ShaderTemplateLibrary {
 
   private createFresnelRimLight(): ShaderTemplate {
     const graph = new ShaderGraph('Fresnel Rim Light');
-    graph.description = 'Rim lighting effect using fresnel';
 
     // Input nodes
     const normalNode = graph.createNode('input_normal', { x: 0, y: 0 });
@@ -167,7 +165,6 @@ export class ShaderTemplateLibrary {
 
   private createNormalMapping(): ShaderTemplate {
     const graph = new ShaderGraph('Normal Mapping');
-    graph.description = 'Tangent-space normal mapping for surface detail';
 
     // UV input
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
@@ -203,7 +200,6 @@ export class ShaderTemplateLibrary {
 
   private createParallaxOcclusion(): ShaderTemplate {
     const graph = new ShaderGraph('Parallax Occlusion Mapping');
-    graph.description = 'Depth illusion using parallax occlusion mapping';
 
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
     const viewDirNode = graph.createNode('input_view_direction', { x: 0, y: 100 });
@@ -237,7 +233,6 @@ export class ShaderTemplateLibrary {
 
   private createTriplanarProjection(): ShaderTemplate {
     const graph = new ShaderGraph('Triplanar Projection');
-    graph.description = 'World-space triplanar texture projection';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const normalNode = graph.createNode('input_normal', { x: 0, y: 100 });
@@ -263,7 +258,6 @@ export class ShaderTemplateLibrary {
 
   private createVertexWind(): ShaderTemplate {
     const graph = new ShaderGraph('Vertex Wind Animation');
-    graph.description = 'Procedural wind animation for foliage';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
@@ -310,7 +304,6 @@ export class ShaderTemplateLibrary {
 
   private createWaterWaves(): ShaderTemplate {
     const graph = new ShaderGraph('Water Waves');
-    graph.description = 'Gerstner wave animation for water surfaces';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
@@ -348,7 +341,6 @@ export class ShaderTemplateLibrary {
 
   private createDissolveEffect(): ShaderTemplate {
     const graph = new ShaderGraph('Dissolve Effect');
-    graph.description = 'Noise-based dissolve with edge glow';
 
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
     const noiseNode = graph.createNode('utility_gradient_noise', { x: 200, y: 0 });
@@ -397,7 +389,6 @@ export class ShaderTemplateLibrary {
 
   private createHolographicScanLines(): ShaderTemplate {
     const graph = new ShaderGraph('Holographic Scan Lines');
-    graph.description = 'Sci-fi hologram with animated scan lines';
 
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
     const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
@@ -466,7 +457,6 @@ export class ShaderTemplateLibrary {
 
   private createProceduralMarble(): ShaderTemplate {
     const graph = new ShaderGraph('Procedural Marble');
-    graph.description = 'Marble pattern using layered noise';
 
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
 
@@ -518,7 +508,6 @@ export class ShaderTemplateLibrary {
 
   private createCaustics(): ShaderTemplate {
     const graph = new ShaderGraph('Caustics');
-    graph.description = 'Underwater caustic light patterns';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const timeNode = graph.createNode('input_time', { x: 0, y: 100 });
@@ -562,7 +551,6 @@ export class ShaderTemplateLibrary {
 
   private createScreenSpaceReflection(): ShaderTemplate {
     const graph = new ShaderGraph('Screen Space Reflection');
-    graph.description = 'SSR for reflective surfaces';
 
     const uvNode = graph.createNode('input_uv', { x: 0, y: 0 });
     const normalNode = graph.createNode('input_normal', { x: 0, y: 100 });
@@ -599,7 +587,6 @@ export class ShaderTemplateLibrary {
 
   private createVolumetricFog(): ShaderTemplate {
     const graph = new ShaderGraph('Volumetric Fog');
-    graph.description = 'Height-based volumetric fog';
 
     const posNode = graph.createNode('input_position', { x: 0, y: 0 });
     const groundNode = graph.createNode('constant_float', { x: 0, y: 100 });

@@ -443,7 +443,7 @@ Every example includes:
 
 ## 🌍 Deployment Targets
 
-### General Examples (18+ platforms total)
+### General Examples (25+ platforms total)
 
 - **Unity**: Quest, PCVR, Mobile, Desktop
 - **Unreal**: PCVR, Console, High-end desktop

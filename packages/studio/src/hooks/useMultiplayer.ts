@@ -7,7 +7,11 @@
  * for the Studio panel.
  */
 import { useState, useCallback, useRef } from 'react';
-import { ECSWorld, ComponentType, type TransformComponent } from '@holoscript/core';
+import { ECSWorld, type TransformComponent } from '@holoscript/core';
+
+// Local numeric constants matching ComponentType const enum (cannot cross isolatedModules boundary)
+const CT_Transform = 0b00001; // ComponentType.Transform
+const CT_Velocity  = 0b00010; // ComponentType.Velocity
 
 export interface NetworkedEntity {
   id: number;
@@ -46,7 +50,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
 
   const sync = useCallback(() => {
     const w = worldRef.current;
-    const ids = w.query(ComponentType.Transform);
+    const ids = w.query(CT_Transform);
     const ents: NetworkedEntity[] = ids.map((id) => ({
       id,
       owner: ownerMap.current.get(id) || 'server',
@@ -131,7 +135,7 @@ export function useMultiplayer(): UseMultiplayerReturn {
     worldRef.current.tick(1 / 20); // 20Hz tick rate
     // Simulate position updates
     const w = worldRef.current;
-    for (const id of w.query(ComponentType.Transform | ComponentType.Velocity)) {
+    for (const id of w.query(CT_Transform | CT_Velocity)) {
       const t = w.getTransform(id);
       const v = w.getVelocity(id);
       if (t && v) {

@@ -226,3 +226,6 @@ export function MolecularLabPanel() {
     </div>
   );
 }
+
+export default MolecularLabPanel;
+

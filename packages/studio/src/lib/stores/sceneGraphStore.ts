@@ -50,7 +50,12 @@ export const useSceneGraphStore = create<SceneGraphState>()(
     (set) => ({
       nodes: [],
       addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
-      removeNode: (id) => set((s) => ({ nodes: s.nodes.filter((n) => n.id !== id) })),
+      removeNode: (id) =>
+        set((s) => {
+          const nodeRefs = { ...s.nodeRefs };
+          delete nodeRefs[id]; // prevent Three.js ref leak when node is deleted
+          return { nodes: s.nodes.filter((n) => n.id !== id), nodeRefs };
+        }),
       moveNode: (id, parentId) =>
         set((s) => ({
           nodes: s.nodes.map((n) => (n.id === id ? { ...n, parentId } : n)),

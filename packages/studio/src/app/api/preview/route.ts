@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server';
  */
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __previewBus__: EventTarget | undefined;
 }
 const bus: EventTarget =

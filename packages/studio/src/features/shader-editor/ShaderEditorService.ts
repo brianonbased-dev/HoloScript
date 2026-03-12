@@ -151,8 +151,7 @@ export class ShaderEditorService {
   async create(name: string, description?: string, tags: string[] = []): Promise<ShaderGraph> {
     await this.ensureDB();
 
-    const graph = new ShaderGraph(name);
-    graph.description = description ?? '';
+    const graph = new ShaderGraph(name, description ?? '');
 
     const metadata: ShaderGraphMetadata = {
       id: graph.id,
@@ -456,17 +455,17 @@ export class ShaderEditorService {
     oldGraph: ISerializedShaderGraph,
     newGraph: ISerializedShaderGraph
   ): ShaderGraphDiff {
-    const oldNodeIds = new Set(oldGraph.nodes.map((n) => n.id));
-    const newNodeIds = new Set(newGraph.nodes.map((n) => n.id));
+    const oldNodeIds = new Set(oldGraph.nodes.map((n: any) => n.id));
+    const newNodeIds = new Set(newGraph.nodes.map((n: any) => n.id));
 
-    const nodesAdded = newGraph.nodes.filter((n) => !oldNodeIds.has(n.id)).map((n) => n.id);
-    const nodesRemoved = oldGraph.nodes.filter((n) => !newNodeIds.has(n.id)).map((n) => n.id);
+    const nodesAdded = newGraph.nodes.filter((n: any) => !oldNodeIds.has(n.id)).map((n: any) => n.id);
+    const nodesRemoved = oldGraph.nodes.filter((n: any) => !newNodeIds.has(n.id)).map((n: any) => n.id);
 
     const nodesModified: string[] = [];
     const propertiesChanged: Record<string, { old: unknown; new: unknown }> = {};
 
     for (const newNode of newGraph.nodes) {
-      const oldNode = oldGraph.nodes.find((n) => n.id === newNode.id);
+      const oldNode = oldGraph.nodes.find((n: any) => n.id === newNode.id);
       if (!oldNode) continue;
 
       if (JSON.stringify(oldNode) !== JSON.stringify(newNode)) {
@@ -480,15 +479,15 @@ export class ShaderEditorService {
       }
     }
 
-    const oldConnIds = new Set((oldGraph.connections ?? []).map((c) => c.id));
-    const newConnIds = new Set((newGraph.connections ?? []).map((c) => c.id));
+    const oldConnIds = new Set((oldGraph.connections ?? []).map((c: any) => c.id));
+    const newConnIds = new Set((newGraph.connections ?? []).map((c: any) => c.id));
 
     const connectionsAdded = (newGraph.connections ?? [])
-      .filter((c) => !oldConnIds.has(c.id))
-      .map((c) => c.id);
+      .filter((c: any) => !oldConnIds.has(c.id))
+      .map((c: any) => c.id);
     const connectionsRemoved = (oldGraph.connections ?? [])
-      .filter((c) => !newConnIds.has(c.id))
-      .map((c) => c.id);
+      .filter((c: any) => !newConnIds.has(c.id))
+      .map((c: any) => c.id);
 
     return {
       nodesAdded,
@@ -517,15 +516,13 @@ export class ShaderEditorService {
    */
   async importJSON(json: string): Promise<ShaderGraph> {
     const parsed = JSON.parse(json) as ISerializedShaderGraph;
-    const graph = ShaderGraph.fromJSON(parsed);
-
-    // Generate new ID to avoid conflicts
-    graph.id = `graph_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const newId = `graph_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const graph = ShaderGraph.fromJSON({ ...parsed, id: newId });
 
     const metadata: ShaderGraphMetadata = {
       id: graph.id,
       name: graph.name,
-      description: graph.description,
+      description: undefined,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       version: String(graph.version),

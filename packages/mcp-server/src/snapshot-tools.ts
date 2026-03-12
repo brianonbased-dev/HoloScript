@@ -1,3 +1,10 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+const HOLO_DIR = path.join(os.homedir(), '.holoscript');
+const SNAPSHOTS_FILE = path.join(HOLO_DIR, 'snapshots.json');
+
 export interface TemporalSnapshot {
   snapshotId: string;
   timestamp: number;
@@ -5,8 +12,36 @@ export interface TemporalSnapshot {
   forwardDeltas: any[]; // Chain to rapidly seek O(1) forward in time
 }
 
-// In-memory keyframe storage simulating the persistent backend
-const snapshotStore: Map<string, TemporalSnapshot> = new Map();
+// Persistent snapshot store backed by disk
+const snapshotStore: Map<string, TemporalSnapshot> = loadSnapshotsFromDisk();
+
+function loadSnapshotsFromDisk(): Map<string, TemporalSnapshot> {
+  try {
+    if (fs.existsSync(SNAPSHOTS_FILE)) {
+      const raw = fs.readFileSync(SNAPSHOTS_FILE, 'utf-8');
+      const obj: Record<string, TemporalSnapshot> = JSON.parse(raw);
+      return new Map(Object.entries(obj));
+    }
+  } catch {
+    // If file is corrupt, start fresh
+  }
+  return new Map();
+}
+
+function saveSnapshotsToDisk(): void {
+  try {
+    if (!fs.existsSync(HOLO_DIR)) {
+      fs.mkdirSync(HOLO_DIR, { recursive: true });
+    }
+    const obj: Record<string, TemporalSnapshot> = {};
+    for (const [k, v] of snapshotStore) {
+      obj[k] = v;
+    }
+    fs.writeFileSync(SNAPSHOTS_FILE, JSON.stringify(obj), 'utf-8');
+  } catch {
+    // Best-effort — don't fail the tool call if disk write fails
+  }
+}
 
 /**
  * MCP Tools for Temporal Keyframing and State Rewinds
@@ -71,6 +106,8 @@ export async function handleSnapshotTool(name: string, args: any): Promise<any> 
         forwardDeltas: [],
       });
 
+      saveSnapshotsToDisk();
+
       return {
         status: 'success',
         snapshotId,
@@ -82,12 +119,16 @@ export async function handleSnapshotTool(name: string, args: any): Promise<any> 
       const snapshot = snapshotStore.get(snapshotId);
 
       if (!snapshot)
-        return { status: 'error', message: `Snapshot ${snapshotId} isolated or missing.` };
+        return {
+          status: 'error',
+          message: `Snapshot ${snapshotId} isolated or missing. Known snapshots: ${snapshotStore.size}`,
+        };
 
       return {
         status: 'success',
         timestamp: snapshot.timestamp,
         deltaChainLength: snapshot.forwardDeltas.length,
+        entityCount: Object.keys(snapshot.keyframe).length,
       };
     }
     case 'rewind_world_state': {

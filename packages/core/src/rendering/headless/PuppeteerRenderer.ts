@@ -216,7 +216,7 @@ export class PuppeteerRenderer {
 
     try {
       // Dynamic import to avoid bundling puppeteer with core
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+       
       const puppeteer = await import(/* webpackIgnore: true */ 'puppeteer' as string);
 
       const launchOptions: PuppeteerLaunchOptions = {

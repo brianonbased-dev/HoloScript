@@ -34,6 +34,7 @@ ALWAYS → Stage git files explicitly: git add path/to/file.ts
 ALWAYS → Run pnpm test before committing
 ALWAYS → Call validate_holoscript after generating any HoloScript code
 ALWAYS → Add new packages to typedoc.json entryPoints
+ALWAYS → Attempt MCP recovery (diagnose → start → retry) before falling back to CLI
 ```
 
 ---
@@ -58,12 +59,25 @@ User is new to HoloScript?
   → NO  ↓
 
 User is modifying TypeScript (packages/*)?
-  → YES → PRE-REFACTOR: run `npx tsx packages/cli/src/cli.ts absorb <package-path> > knowledge.holo`
-  → THEN → pnpm test first → edit → pnpm test again → explicit git add
+  → YES → PRE-REFACTOR: call holo_graph_status (check cache) → holo_absorb_repo (force=false uses cache)
+  → THEN  → call holo_impact_analysis to find blast radius → pnpm test first → edit → pnpm test again → explicit git add
+  → CLI fallback: npx tsx packages/cli/src/cli.ts absorb <package-path> --json
   → NO  ↓
 
 User is writing docs?
   → YES → lowercase filenames → add to docs/.vitepress/config.ts sidebar → NO UPPERCASE
+
+MCP tools unavailable / tool call errors?
+  → Step 1: DETECT   → any tool call returns error or tool not in schema
+  → Step 2: DIAGNOSE → npx tsx packages/mcp-server/src/index.ts --help (exit 0 = binary OK)
+  → Step 3: START    → npx tsx packages/mcp-server/src/index.ts (background process)
+  → Step 4: VERIFY   → retry: holo_graph_status({}) or list_traits({})
+  → Step 5: FALLBACK → if server still won't start, use CLI equivalents:
+       holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
+       holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>"
+       validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
+       suggest_traits / generate_* → no CLI equivalent; skip or notify user
+  → Step 6: NOTIFY   → "Start MCP server: npx tsx packages/mcp-server/src/index.ts"
 ```
 
 ---
@@ -101,6 +115,39 @@ Step 1: list_traits({ category: "<interaction|physics|visual|networking|ai|spati
 Step 2: explain_trait({ name: "<trait name>" })
 ```
 
+### Analyze Codebase (Cache-First — Most Efficient)
+
+```
+Step 1: holo_graph_status({})                               → Check cache freshness (<24h = use it)
+Step 2: holo_absorb_repo({ rootDir: "<pkg-path>" })        → Omit force; reads cache if fresh (~21ms)
+         holo_absorb_repo({ rootDir: ".", force: true })   → Only if cache is stale or rootDir changed
+Step 3: holo_query_codebase({ query: "<question>" })       → Auto-loads disk cache if needed
+         holo_impact_analysis({ symbol: "<name>" })        → Blast radius (auto-loads cache)
+         holo_detect_changes({ before: "ref", after: "ref" }) → Always fresh, compares two states
+Step 4: holo_semantic_search / holo_ask_codebase           → Require Ollama (graceful error without it)
+```
+
+**Rules:**
+- NEVER call `holo_absorb_repo` with `force: true` unless `holo_graph_status` says cache is stale
+- Query tools (`holo_query_codebase`, `holo_impact_analysis`) auto-load the disk cache — no manual pre-load needed
+- Results include `cacheNote` field showing cache age and source
+
+### MCP Tool Recovery
+
+```
+If any MCP tool call fails:
+  1. Check server: npx tsx packages/mcp-server/src/index.ts --help
+  2. Start it:     npx tsx packages/mcp-server/src/index.ts
+  3. Retry:        holo_graph_status({})  ← lightest possible call
+  4. CLI fallback map:
+     holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
+     holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>"
+     validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
+     suggest_traits      → no CLI equivalent (LLM-based)
+     generate_object     → no CLI equivalent (LLM-based)
+  5. Notify user: "MCP server is down. Run: npx tsx packages/mcp-server/src/index.ts"
+```
+
 ---
 
 ## ∞ KNOWLEDGE PACK — Compressed Facts
@@ -108,8 +155,9 @@ Step 2: explain_trait({ name: "<trait name>" })
 ```
 REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
 TRAITS      1,800+ traits in 13 categories — ALL in @holoscript/core (no separate package)
-COMPILERS   18+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
-MCP         packages/mcp-server/ — 34 tools — start with: npx tsx packages/mcp-server/src/index.ts
+COMPILERS   25+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
+MCP         packages/mcp-server/ — 65 tools — start with: npx tsx packages/mcp-server/src/index.ts
+CACHE       ~/.holoscript/graph-cache.json — 24h TTL — holo_absorb_repo force=false reads from cache (~21ms)
 BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
 TEST        pnpm test | pnpm test --filter @holoscript/core | createComposition() pattern
 BUILD       pnpm build | pre-commit: ESLint + tsc + tests (auto-runs)
@@ -122,7 +170,7 @@ ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 
 ```
 @holoscript/core             Parser · AST · 1,800+ traits · 18+ compilers
-@holoscript/mcp-server       34 AI tools (parse, validate, generate, compile)
+@holoscript/mcp-server       65 AI tools (parse, validate, generate, compile, codebase intelligence)
 @holoscript/cli              holo build · holo compile · holo validate
 @holoscript/runtime          Scene execution runtime
 @holoscript/lsp              Language Server Protocol (VS Code, Neovim)
@@ -169,7 +217,7 @@ advanced      @shader_custom @compute_shader @ray_traced @lod_managed
 
 ```
 docs/academy/          25 lessons, 3 levels (newcomer entry point)
-docs/compilers/        18+ targets: unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
+docs/compilers/        25+ targets: unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
                        android/ android-xr/ openxr/ robotics/urdf robotics/sdf iot/dtdl iot/wot
 docs/traits/           13 category pages + index + extending guide
 docs/guides/           Core concepts, mcp-server, installation, best-practices
@@ -188,7 +236,8 @@ docs/_archive/         Dev notes, phase guides, session notes (NOT user-facing)
 ```
 □ Did I call validate_holoscript on all generated HoloScript code?
 □ Did I run pnpm test if I modified any TypeScript?
-□ Did I run `holoscript absorb` BEFORE refactoring ANY TypeScript package?
+□ Did I call holo_graph_status then holo_absorb_repo BEFORE refactoring ANY TypeScript package?
+□ If any MCP tool failed, did I attempt recovery (diagnose → start → retry) before falling back to CLI?
 □ Did I use explicit git add (never git add -A)?
 □ Did I update docs/.vitepress/config.ts if I created a new doc page?
 □ Does the output match what the user actually asked for?

@@ -296,3 +296,6 @@ export function MolecularViewerPanel() {
     </div>
   );
 }
+
+export default MolecularViewerPanel;
+

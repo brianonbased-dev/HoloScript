@@ -227,3 +227,6 @@ export function ArchaeologyPanel() {
     </div>
   );
 }
+
+export default ArchaeologyPanel;
+

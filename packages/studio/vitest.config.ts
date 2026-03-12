@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.scenario.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.scenario.ts', 'src/**/*.scenario.tsx'],
     globals: true,
     pool: 'forks',
     setupFiles: ['./src/test-setup/vitest.setup.ts'],
@@ -17,6 +17,7 @@ export default defineConfig({
         'src/**/*.test.tsx',
         'src/**/*.spec.ts',
         'src/**/*.scenario.ts',
+        'src/**/*.scenario.tsx',
         'src/__tests__/**',
         'src/__mocks__/**',
         'src/test-setup/**',

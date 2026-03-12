@@ -280,7 +280,7 @@ export class NetworkInterpolation {
     b: { x: number; y: number; z: number; w: number },
     t: number
   ): { x: number; y: number; z: number; w: number } {
-    let dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    const dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     let bx = b.x,
       by = b.y,
       bz = b.z,

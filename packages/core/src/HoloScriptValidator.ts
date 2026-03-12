@@ -15,8 +15,11 @@ export interface ValidationError {
 export class HoloScriptValidator {
   private parser: HoloScriptCodeParser;
 
-  // Whitelists
-  private static VALID_DIRECTIVES = [
+  /**
+   * Known safe directives that do NOT produce unknown-directive warnings.
+   * These are HoloScript lifecycle/system keywords, not VR trait names.
+   */
+  private static KNOWN_DIRECTIVES = new Set([
     'trait',
     'state',
     'on_enter',
@@ -26,7 +29,7 @@ export class HoloScriptValidator {
     'on_create',
     'bot_config',
     'lifecycle',
-  ];
+  ]);
 
   private static VALID_KEYWORDS = [
     'world',
@@ -80,19 +83,19 @@ export class HoloScriptValidator {
 
       if (!trimmed || trimmed.startsWith('//')) return;
 
-      // Check Directives
-      if (trimmed.startsWith('@')) {
-        const match = trimmed.match(/^@(\w+)/);
-        if (match) {
-          const directive = match[1];
-          if (!HoloScriptValidator.VALID_DIRECTIVES.includes(directive)) {
-            errors.push({
-              line: lineNum,
-              column: line.indexOf('@') + 1,
-              message: `Unknown directive '@${directive}'. Allowed: ${HoloScriptValidator.VALID_DIRECTIVES.join(', ')}`,
-              severity: 'warning', // directives might be custom, so warning for now
-            });
-          }
+      // Check for unknown @directive tokens
+      // Scan for @word patterns on each line and warn if not in KNOWN_DIRECTIVES
+      const directiveMatches = trimmed.matchAll(/@([a-zA-Z_][a-zA-Z0-9_]*)/g);
+      for (const match of directiveMatches) {
+        const directiveName = match[1];
+        if (!HoloScriptValidator.KNOWN_DIRECTIVES.has(directiveName)) {
+          const col = (line.indexOf('@' + directiveName) ?? 0) + 1;
+          errors.push({
+            line: lineNum,
+            column: col,
+            message: `Unknown directive '@${directiveName}'. If this is a VR trait, ensure it is registered in the trait registry.`,
+            severity: 'warning',
+          });
         }
       }
 

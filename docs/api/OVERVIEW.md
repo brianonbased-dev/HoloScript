@@ -4,7 +4,7 @@
 
 ---
 
-HoloScript is an AI-native, declarative spatial computing language that compiles to 18+ platforms. This API reference covers the TypeScript runtime, trait system, security, AI validation, and tooling packages.
+HoloScript is an AI-native, declarative spatial computing language that compiles to 25+ platforms. This API reference covers the TypeScript runtime, trait system, security, AI validation, and tooling packages.
 
 ## Quick Navigation
 
@@ -245,7 +245,7 @@ console.log(report);
 
 ## MCP Server (`@holoscript/mcp-server`) {#mcp-server}
 
-Model Context Protocol server for AI agent integration (34 tools).
+Model Context Protocol server for AI agent integration (72+ tools).
 
 ```typescript
 // MCP tools available:
@@ -275,7 +275,7 @@ Model Context Protocol server for AI agent integration (34 tools).
 
 ## Export Targets
 
-HoloScript compiles to **18+ platforms**:
+HoloScript compiles to **25+ platforms**:
 
 | Platform   | Package                         | Use Case       |
 | ---------- | ------------------------------- | -------------- |

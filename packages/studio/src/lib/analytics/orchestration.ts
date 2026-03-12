@@ -259,7 +259,7 @@ export function trackOrchestrationError(
 // ── Session Metrics ───────────────────────────────────────────────────────────
 
 let sessionStartTime = Date.now();
-let panelOpenTimes: Record<string, number> = {};
+const panelOpenTimes: Record<string, number> = {};
 
 export function trackSessionStart() {
   sessionStartTime = Date.now();

@@ -39,6 +39,12 @@ export interface ShaderGraphData {
   outputNodeId: string;
 }
 
+/** Monotonic counter for unique ID generation within the same millisecond */
+let _idCounter = 0;
+function uniqueId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${(_idCounter++).toString(36)}`;
+}
+
 export type ShaderNodeType =
   | 'output'
   | 'color'
@@ -79,7 +85,7 @@ export function createShaderGraph(name: string): ShaderGraphData {
   };
 
   return {
-    id: `graph-${Date.now().toString(36)}`,
+    id: uniqueId('graph'),
     name,
     nodes: [outputNode],
     edges: [],
@@ -105,7 +111,7 @@ export function connectPorts(
   toPort: string
 ): ShaderGraphData {
   const edge: ShaderEdge = {
-    id: `edge-${Date.now().toString(36)}`,
+    id: uniqueId('edge'),
     from: { nodeId: fromNodeId, port: fromPort },
     to: { nodeId: toNodeId, port: toPort },
   };

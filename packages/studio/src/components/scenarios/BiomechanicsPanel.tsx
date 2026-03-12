@@ -151,3 +151,6 @@ export function BiomechanicsPanel() {
     </div>
   );
 }
+
+export default BiomechanicsPanel;
+

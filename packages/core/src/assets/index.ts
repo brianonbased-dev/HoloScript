@@ -5,7 +5,7 @@
  */
 
 // Asset Metadata
-export {
+export type {
   AssetMetadata,
   AssetFormat,
   AssetType,
@@ -14,6 +14,8 @@ export {
   LODLevel,
   AssetDependency,
   PlatformCompatibility,
+} from './AssetMetadata';
+export {
   createAssetMetadata,
   getMimeType,
   inferAssetType,
@@ -21,24 +23,28 @@ export {
 } from './AssetMetadata';
 
 // Asset Manifest
-export {
-  AssetManifest,
+export type {
   AssetManifestData,
   ManifestConfig,
   ManifestStats,
   AssetGroup,
+} from './AssetManifest';
+export {
+  AssetManifest,
   createManifest,
   loadManifest,
 } from './AssetManifest';
 
 // Asset Registry
-export {
-  AssetRegistry,
+export type {
   AssetEventType,
   AssetEvent,
   AssetEventListener,
   CacheEntry,
   RegistryConfig,
+} from './AssetRegistry';
+export {
+  AssetRegistry,
   getAssetRegistry,
   registerManifest,
   loadAsset,
@@ -46,19 +52,20 @@ export {
 } from './AssetRegistry';
 
 // Asset Validator
-export {
-  AssetValidator,
+export type {
   ValidationRule,
   ValidationResult,
   ValidationSeverity,
+} from './AssetValidator';
+export {
+  AssetValidator,
   createAssetValidator,
   validateAsset,
   isAssetValid,
 } from './AssetValidator';
 
 // Smart Asset Loader
-export {
-  SmartAssetLoader,
+export type {
   LoaderConfig,
   LoadRequest,
   LoadProgress,
@@ -66,6 +73,9 @@ export {
   Platform,
   Quality,
   LoadPriority,
+} from './SmartAssetLoader';
+export {
+  SmartAssetLoader,
   getSmartAssetLoader,
   createSmartAssetLoader,
   smartLoad,
@@ -75,18 +85,19 @@ export {
 export { DEFAULT_ASSET_ALIASES, resolveAssetAlias } from './AssetAliases';
 
 // Asset Dependency Graph
-export {
-  AssetDependencyGraph,
+export type {
   DependencyNode,
   ResolutionResult,
+} from './AssetDependencyGraph';
+export {
+  AssetDependencyGraph,
   createDependencyGraph,
   buildDependencyGraph,
   getOptimalLoadOrder,
 } from './AssetDependencyGraph';
 
 // Humanoid Avatar Loader (VRM & Ready Player Me)
-export {
-  HumanoidLoader,
+export type {
   HumanoidConfig,
   HumanoidState,
   HumanoidLoadResult,
@@ -99,6 +110,9 @@ export {
   RPMMetadata,
   SkeletonPose,
   BoneTransform,
+} from './HumanoidLoader';
+export {
+  HumanoidLoader,
   getHumanoidLoader,
   createHumanoidLoader,
   loadHumanoid,

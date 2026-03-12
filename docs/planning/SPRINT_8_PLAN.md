@@ -12,7 +12,7 @@ Sprint 8 delivers **Language Interoperability Expansion**, extending HoloScript'
 
 ### Research Context
 
-HoloScript currently compiles to 18+ targets spanning:
+HoloScript currently compiles to 25+ targets spanning:
 
 - **VR/Gaming**: Unity, Unreal, Godot, VRChat
 - **Web**: Babylon.js, WebGPU, Three.js runtime

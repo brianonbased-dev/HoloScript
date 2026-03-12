@@ -76,7 +76,7 @@ export function PathfindingPanel() {
                 Waypoints ({lastResult.path.length})
               </h4>
               <div className="flex flex-wrap gap-1">
-                {lastResult.path.map((p, i) => (
+                {lastResult.path.map((p: any, i: number) => (
                   <span
                     key={i}
                     className="bg-studio-accent/10 text-studio-accent px-1 py-0.5 rounded text-[10px] font-mono"

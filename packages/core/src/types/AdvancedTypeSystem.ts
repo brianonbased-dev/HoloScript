@@ -90,7 +90,7 @@ export interface FunctionType {
  */
 export class TypeInferenceEngine {
   // Reserved for future type environment tracking
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   // private typeEnvironment: Map<string, HoloScriptType> = new Map();
   // private genericTypeVars: Map<string, HoloScriptType> = new Map();
 

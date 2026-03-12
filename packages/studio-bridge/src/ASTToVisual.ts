@@ -626,7 +626,7 @@ export class ASTToVisual {
     const logicNodes = this.nodes.filter((n) => n.data.category === 'logic');
     const dataNodes = this.nodes.filter((n) => n.data.category === 'data');
 
-    let currentY = this.options.startY;
+    const currentY = this.options.startY;
 
     // Events on the left
     this.layoutColumn(eventNodes, this.options.startX, currentY);

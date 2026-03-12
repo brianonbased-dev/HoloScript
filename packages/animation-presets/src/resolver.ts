@@ -107,7 +107,7 @@ export function resolvePreset(
   let preset: AnimationPreset;
 
   if (typeof presetOrName === 'string') {
-    const reg = registry ?? defaultRegistry;
+    const reg = registry ?? getDefaultRegistry();
     const found = reg.get(presetOrName);
     if (!found) {
       throw new Error(
@@ -236,7 +236,7 @@ export function resolveMultiple(
     return '';
   }
 
-  const reg = registry ?? defaultRegistry;
+  const reg = registry ?? getDefaultRegistry();
   const resolvedList = presetNames.map((name) =>
     resolvePreset(name, overridesMap?.[name], reg),
   );

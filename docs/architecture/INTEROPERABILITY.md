@@ -157,7 +157,7 @@ HoloComposition   JSON AST
          │
     ┌────┼────┬────┬────┬────┐
     │    │    │    │    │    │
-  Unity Unreal WebGPU URDF DTDL ... (18+ targets)
+  Unity Unreal WebGPU URDF DTDL ... (25+ targets)
 ```
 
 **Key Implementation Details:**

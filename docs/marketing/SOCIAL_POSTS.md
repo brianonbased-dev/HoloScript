@@ -15,15 +15,15 @@ Ready-to-post content for X/Twitter. Generated with Grok AI assistance.
 
 ### Post 1
 
-Hey creators! Meet HoloScript — an open-source language for building VR/AR/XR experiences as easily as writing HTML. With 56 traits like @grabbable & @teleport, it compiles to WebXR and runs in any browser. Start building now! #VRdev #WebXR
+Hey creators! Meet HoloScript — an open-source language for building VR/AR/XR experiences as easily as writing HTML. With 1,800+ traits like @grabbable & @teleport, it compiles to WebXR and runs in any browser. Start building now! #VRdev #WebXR
 
 ### Post 2
 
-VR dev just got easier with HoloScript. It's free, open-source, and turns simple code into immersive WebXR experiences. Ideal for indie devs & hobbyists. 56 traits to explore! Find it on GitHub and start building. #VRdev
+VR dev just got easier with HoloScript. It's free, open-source, and turns simple code into immersive WebXR experiences. Ideal for indie devs & hobbyists. 1,800+ traits to explore! Find it on GitHub and start building. #VRdev
 
 ### Post 3
 
-Introducing HoloScript — an open-source, declarative way to craft VR/AR experiences. 56 traits to play with, from @physics to @portal. Perfect for educators & creators. Compiles to WebXR, runs anywhere. Dive in on GitHub! #WebXR
+Introducing HoloScript — an open-source, declarative way to craft VR/AR experiences. 1,800+ traits to play with, from @physics to @portal. Perfect for educators & creators. Compiles to WebXR, runs anywhere. Dive in on GitHub! #WebXR
 
 ### Post 4
 
@@ -79,7 +79,7 @@ VR educators! How could HoloScript help in classrooms? It's free, open-source, a
 
 ### Post 13
 
-Indie devs, what's your biggest VR dev struggle? HoloScript is open-source and aims to simplify with 56 traits like @teleport. Tell us how we can make it better! #WebXR
+Indie devs, what's your biggest VR dev struggle? HoloScript is open-source and aims to simplify with 1,800+ traits like @teleport. Tell us how we can make it better! #WebXR
 
 ### Post 14
 
@@ -130,7 +130,7 @@ Just dropped a VR scene with HoloScript. What's the coolest XR project you've ma
 
 3/ Compare that to Unity or Three.js. Dozens of lines to init a scene, create a mesh, set materials. HoloScript cuts the cruft. Want a VR world? Describe it, done.
 
-4/ HoloScript has 56 built-in traits. @grabbable makes stuff pickable. @physics adds gravity. @teleport lets you jump around. Mix and match to build wild experiences in minutes. [ATTACH: demo video]
+4/ HoloScript has 1,800+ built-in traits. @grabbable makes stuff pickable. @physics adds gravity. @teleport lets you jump around. Mix and match to build wild experiences in minutes. [ATTACH: demo video]
 
 5/ I've poured my heart into this to make VR accessible for builders like me. It's open-source — try a demo, star the repo, and let's make VR dev suck less together. #VRDev #WebXR
 

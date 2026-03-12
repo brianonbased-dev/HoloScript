@@ -84,20 +84,7 @@ export default defineConfig({
       'packages/animation-presets/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
-      {
-        test: {
-          name: '@holoscript/test',
-          root: './packages/test',
-          include: ['src/**/*.test.ts'],
-          exclude: [
-            '**/dist/**',
-            '**/node_modules/**',
-            'src/__tests__/scenes.test.ts',
-            'src/__tests__/visual.test.ts',
-          ],
-          environment: 'node',
-        },
-      },
+      'packages/test/vitest.config.ts',
       {
         test: {
           name: '@holoscript/benchmark',

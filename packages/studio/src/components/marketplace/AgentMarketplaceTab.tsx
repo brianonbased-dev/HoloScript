@@ -359,10 +359,9 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
                           {agent.name}
                         </h3>
                         {agent.official && (
-                          <CheckCircle2
-                            className="h-3.5 w-3.5 shrink-0 text-blue-400"
-                            title="Official"
-                          />
+                          <span title="Official">
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                          </span>
                         )}
                       </div>
                       <p className="text-[10px] text-studio-muted">by {agent.author}</p>

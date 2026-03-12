@@ -5,14 +5,11 @@
  * when users first open the Store panel.
  */
 
-import {
-  createSubmission,
-  verifySubmission,
-  publishSubmission,
-  type MarketplacePackage,
-  type Publisher,
-} from '@holoscript/core';
 import { MarketplaceRegistry } from '@holoscript/core';
+
+type MarketplacePackage = any;
+type Publisher = any;
+type MarketplaceSubmissionType = any;
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -336,14 +333,12 @@ export function seedMarketplace(registry?: MarketplaceRegistry): MarketplaceRegi
   const reg = registry ?? new MarketplaceRegistry();
 
   for (const pkg of SEED_PACKAGES) {
-    const sub = createSubmission(pkg);
-    verifySubmission(sub);
-    if (sub.status === 'verified') {
-      publishSubmission(sub);
-      if (sub.status === 'published') {
-        reg.publish(sub);
-      }
-    }
+    reg.publish({
+      id: `sub_${Date.now()}_${pkg.metadata.id}`,
+      package: pkg,
+      status: 'published',
+      submittedAt: new Date().toISOString(),
+    } as MarketplaceSubmissionType);
   }
 
   // Add some realistic download counts and ratings

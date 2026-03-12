@@ -42,7 +42,7 @@ Use MCP server (34+ tools) for AI-generated content.
 
 ### [Multi-Platform Export](/examples/export)
 
-Compile to 18+ targets: Unity, Unreal, Godot, VRChat, Babylon, WebGPU, visionOS, Android XR, and more.
+Compile to 25+ targets: Unity, Unreal, Godot, VRChat, Babylon, WebGPU, visionOS, Android XR, and more.
 
 ## Cross-Domain Examples
 

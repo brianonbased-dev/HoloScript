@@ -59,7 +59,8 @@ export type PanelKey =
   | 'hotkey'
   | 'plugins'
   | 'sandboxedPlugins'
-  | 'splatWizard';
+  | 'splatWizard'
+  | 'agentMonitor';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -131,6 +132,7 @@ const PANEL_KEYS: PanelKey[] = [
   'plugins',
   'sandboxedPlugins',
   'splatWizard',
+  'agentMonitor',
 ];
 
 /** Panels that default to *open*. */

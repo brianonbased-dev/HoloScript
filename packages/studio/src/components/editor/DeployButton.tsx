@@ -12,17 +12,18 @@
  */
 
 import React, { useState, useCallback } from 'react';
-// @ts-ignore - these exist at runtime in index.js but might be missing in type declarations
-import {
+import * as CoreModule from '@holoscript/core';
+import { extractTraits } from '@holoscript/std';
+
+const {
   runSafetyPass,
   createSubmission,
   verifySubmission,
   publishSubmission,
   MarketplaceRegistry,
   gateCheck,
-  type MarketplacePackage,
-} from '@holoscript/core';
-import { extractTraits } from '@holoscript/std';
+} = CoreModule as any;
+type MarketplacePackage = any;
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -34,7 +35,7 @@ interface DeployButtonProps {
   /** Package name for deployment */
   packageName?: string;
   /** MarketplaceRegistry instance to install into (optional) */
-  registry?: MarketplaceRegistry;
+  registry?: any;
 }
 
 type DeployStatus = 'idle' | 'deploying' | 'success' | 'blocked' | 'error';

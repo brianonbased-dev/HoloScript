@@ -13,3 +13,7 @@ export { useBuilderStore, snapToGrid, snapPosition } from './builderStore';
 export type { BuilderMode, GeometryType, HotbarSlot } from './builderStore';
 export { usePanelVisibilityStore } from './panelVisibilityStore';
 export type { PanelKey, PanelVisibilityState } from './panelVisibilityStore';
+export { usePlayMode } from './playModeStore';
+export type { PlayState, GameState, PlayModeState } from './playModeStore';
+export { useAgentStore } from './agentStore';
+export type { AgentPhase, AgentCycleEntry } from './agentStore';
