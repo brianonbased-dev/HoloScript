@@ -525,13 +525,61 @@ export default defineConfig({
       '/packages/': [
         {
           text: 'Package Reference',
+          collapsed: false,
           items: [
             { text: 'Overview', link: '/packages/' },
+          ],
+        },
+        {
+          text: 'Core Execution',
+          collapsed: false,
+          items: [
+            { text: 'Core', link: '/packages/core' },
+            { text: 'Runtime', link: '/packages/runtime' },
+            { text: 'Compiler', link: '/packages/compiler' },
+            { text: 'Traits (2,000+)', link: '/packages/traits' },
+          ],
+        },
+        {
+          text: 'Developer Tools',
+          collapsed: true,
+          items: [
+            { text: 'CLI', link: '/packages/cli' },
+            { text: 'Language Server', link: '/packages/lsp' },
+            { text: 'Formatter', link: '/packages/formatter' },
+            { text: 'Linter', link: '/packages/linter' },
+          ],
+        },
+        {
+          text: 'Editor Integrations',
+          collapsed: true,
+          items: [
+            { text: 'VS Code', link: '/packages/vscode-extension' },
+            { text: 'Neovim', link: '/packages/neovim' },
+            { text: 'IntelliJ', link: '/packages/intellij' },
+            { text: 'Visual Editor', link: '/packages/visual-editor' },
+          ],
+        },
+        {
+          text: 'Platforms & SDKs',
+          collapsed: true,
+          items: [
+            { text: 'MCP Server (AI)', link: '/packages/mcp-server' },
+            { text: 'Unity SDK', link: '/packages/unity-sdk' },
+            { text: 'Unreal SDK', link: '/packages/unreal-sdk' },
+            { text: 'JavaScript SDK', link: '/packages/sdk' },
+          ],
+        },
+        {
+          text: 'Spatial & Infrastructure',
+          collapsed: true,
+          items: [
+            { text: 'Spatial Engine', link: '/packages/spatial-engine' },
+            { text: 'Spatial Index', link: '/packages/spatial-index' },
+            { text: 'CRDT Spatial', link: '/packages/crdt-spatial' },
             { text: 'Agent SDK', link: '/packages/agent-sdk' },
             { text: 'Studio Bridge', link: '/packages/studio-bridge' },
             { text: 'Holo VM', link: '/packages/holo-vm' },
-            { text: 'CRDT Spatial', link: '/packages/crdt-spatial' },
-            { text: 'Spatial Index', link: '/packages/spatial-index' },
           ],
         },
       ],
