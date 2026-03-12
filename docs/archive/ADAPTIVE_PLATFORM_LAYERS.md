@@ -445,7 +445,7 @@ _\*\* Shared via Tauri WebView_
 
 ## Appendix B: WIT Interface Quick Reference
 
-```wit
+```txt
 // Parse HoloScript → AST
 parser.parse(source: string) -> parse-result;
 

@@ -154,7 +154,7 @@ ExportResult { target: "unity", success: true, output: "..." }
 
 ### 3.1 Updated `holoscript.wit` Additions
 
-```wit
+```txt
 // Add to existing holoscript.wit
 
 // =============================================================================

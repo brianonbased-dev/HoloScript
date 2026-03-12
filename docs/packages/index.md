@@ -110,3 +110,4 @@ Those directories are documented separately in [Support Directories](./support-d
 3. Start with [Agent Protocol](./agent-protocol.md), [LLM Provider](./llm-provider.md), and [UAAL](./uaal.md) if you want autonomous systems.
 4. Start with [Studio](./studio.md), [Studio Plugin SDK](./studio-plugin-sdk.md), and [Visual](./visual.md) if you want authoring workflows.
 5. Read [Support Directories](./support-directories.md) if you are navigating repo-only surfaces under `packages/`.
+6. Read [Governance Matrix](./governance.md) for per-package support levels and owners.

@@ -211,7 +211,7 @@ case '.k': {
 
 ## Environment Configuration
 
-```env
+```bash
 # .env
 KNOWLEDGE_HUB_URL=http://localhost:3001  # Development
 # KNOWLEDGE_HUB_URL=https://knowledge.ai-workspace.app  # Production

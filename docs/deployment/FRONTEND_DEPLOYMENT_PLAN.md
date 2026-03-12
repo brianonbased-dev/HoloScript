@@ -274,7 +274,7 @@ MARKETPLACE_API_URL=${{MARKETPLACE_API.RAILWAY_PRIVATE_DOMAIN}}
 
 #### HoloScript Studio
 
-```env
+```bash
 NODE_ENV=production
 PORT=3000
 
@@ -297,7 +297,7 @@ ANALYTICS_ID=<google-analytics-id>
 
 #### Marketplace Web
 
-```env
+```bash
 NODE_ENV=production
 PORT=3000
 
@@ -312,7 +312,7 @@ NEXT_PUBLIC_AUTH_DOMAIN=<auth0-domain>
 
 #### Marketplace API
 
-```env
+```bash
 NODE_ENV=production
 PORT=4000
 
@@ -329,7 +329,7 @@ AUTH0_DOMAIN=<auth0-domain>
 
 #### Render Service
 
-```env
+```bash
 NODE_ENV=production
 PORT=5000
 
@@ -346,7 +346,7 @@ AWS_REGION=us-east-1
 
 #### LLM Service
 
-```env
+```bash
 NODE_ENV=production
 PORT=6000
 
@@ -672,7 +672,7 @@ app.listen(PORT, '0.0.0.0'); // Important: bind to 0.0.0.0
 
 **Fix**:
 
-```env
+```bash
 # In Marketplace Web:
 MARKETPLACE_API_URL=${{MARKETPLACE_API.RAILWAY_PRIVATE_DOMAIN}}
 # Not: https://marketplace-api-production.up.railway.app

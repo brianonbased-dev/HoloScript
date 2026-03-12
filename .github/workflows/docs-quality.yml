@@ -1,0 +1,55 @@
+name: Docs Quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'DOCS_AUDIT_COMPLETE.md'
+      - '.github/workflows/docs-quality.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'DOCS_AUDIT_COMPLETE.md'
+      - '.github/workflows/docs-quality.yml'
+
+jobs:
+  docs-build:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install docs dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Build docs
+        run: npx vitepress build docs
+
+  docs-markdown:
+    name: Markdown Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Lint key docs surfaces
+        run: |
+          npx markdownlint-cli2 \
+            "docs/packages/**/*.md" \
+            "docs/guides/**/*.md" \
+            "DOCS_AUDIT_COMPLETE.md" \
+            --config .markdownlint-docs.json

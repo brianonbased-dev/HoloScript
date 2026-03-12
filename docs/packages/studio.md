@@ -21,7 +21,7 @@ open -a HoloScriptStudio
 
 ### Browser
 
-```url
+```txt
 https://studio.holoscript.dev/  # No installation needed
 ```
 

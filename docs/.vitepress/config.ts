@@ -11,6 +11,9 @@ export default defineConfig({
       holo: 'ts',
       hsplus: 'ts',
       holoscript: 'ts',
+      wit: 'txt',
+      env: 'bash',
+      url: 'txt',
     },
   },
 
@@ -191,6 +194,8 @@ export default defineConfig({
             { text: 'Best Practices', link: '/guides/best-practices' },
             { text: 'Troubleshooting', link: '/guides/troubleshooting' },
             { text: 'Python Bindings', link: '/guides/python-bindings' },
+            { text: 'Working Tree Triage', link: '/guides/working-tree-triage' },
+            { text: 'Release Slice (v5.0.1)', link: '/guides/release-slice-v5-0-1' },
           ],
         },
         {
@@ -199,6 +204,7 @@ export default defineConfig({
             { text: 'VS Code', link: '/guides/vscode' },
             { text: 'MCP Server', link: '/guides/mcp-server' },
             { text: 'AI Agents', link: '/guides/ai-agents' },
+            { text: 'MCP Mesh Operations', link: '/guides/mcp-mesh-operations' },
           ],
         },
         {
@@ -538,6 +544,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/packages/' },
             { text: 'Support Directories', link: '/packages/support-directories' },
+            { text: 'Governance Matrix', link: '/packages/governance' },
           ],
         },
         {

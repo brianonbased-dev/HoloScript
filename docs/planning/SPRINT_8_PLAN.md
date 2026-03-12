@@ -389,7 +389,7 @@ The current WASM compiler (`@holoscript/compiler-wasm`) emits WAT text format an
 
 ### Design
 
-```wit
+```txt
 // packages/holoscript-component/wit/holoscript.wit
 package holoscript:core@0.1.0;
 
