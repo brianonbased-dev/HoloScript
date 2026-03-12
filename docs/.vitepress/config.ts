@@ -548,6 +548,7 @@ export default defineConfig({
             { text: 'Language Server', link: '/packages/lsp' },
             { text: 'Formatter', link: '/packages/formatter' },
             { text: 'Linter', link: '/packages/linter' },
+            { text: 'WASM Parser', link: '/packages/wasm' },
           ],
         },
         {
@@ -555,6 +556,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { text: 'VS Code', link: '/packages/vscode-extension' },
+            { text: 'Studio (Visual IDE)', link: '/packages/studio' },
             { text: 'Neovim', link: '/packages/neovim' },
             { text: 'IntelliJ', link: '/packages/intellij' },
             { text: 'Visual Editor', link: '/packages/visual-editor' },
@@ -564,10 +566,29 @@ export default defineConfig({
           text: 'Platforms & SDKs',
           collapsed: true,
           items: [
-            { text: 'MCP Server (AI)', link: '/packages/mcp-server' },
+            { text: 'MCP Server (AI Tools)', link: '/packages/mcp-server' },
+            { text: 'JavaScript SDK', link: '/packages/sdk' },
             { text: 'Unity SDK', link: '/packages/unity-sdk' },
             { text: 'Unreal SDK', link: '/packages/unreal-sdk' },
-            { text: 'JavaScript SDK', link: '/packages/sdk' },
+            { text: 'Agent Protocol (uAA2++)', link: '/packages/agent-protocol' },
+          ],
+        },
+        {
+          text: 'AI & Intelligence',
+          collapsed: true,
+          items: [
+            { text: 'LLM Provider', link: '/packages/llm-provider' },
+            { text: 'AI Validator', link: '/packages/ai-validator' },
+            { text: 'Agent SDK', link: '/packages/agent-sdk' },
+          ],
+        },
+        {
+          text: 'Security & Commerce',
+          collapsed: true,
+          items: [
+            { text: 'Authentication', link: '/packages/auth' },
+            { text: 'Security Sandbox', link: '/packages/security-sandbox' },
+            { text: 'Partner SDK', link: '/packages/partner-sdk' },
           ],
         },
         {
@@ -577,7 +598,6 @@ export default defineConfig({
             { text: 'Spatial Engine', link: '/packages/spatial-engine' },
             { text: 'Spatial Index', link: '/packages/spatial-index' },
             { text: 'CRDT Spatial', link: '/packages/crdt-spatial' },
-            { text: 'Agent SDK', link: '/packages/agent-sdk' },
             { text: 'Studio Bridge', link: '/packages/studio-bridge' },
             { text: 'Holo VM', link: '/packages/holo-vm' },
           ],
