@@ -1,6 +1,6 @@
 # HoloScript Compiled Samples
 
-This directory contains verified compilation outputs for all 25+ export targets supported by HoloScript.
+This directory contains verified compilation outputs for all 30+ export targets supported by HoloScript.
 
 ## Purpose
 

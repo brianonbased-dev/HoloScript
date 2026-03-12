@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HoloScript',
   description:
-    'Open spatial computing platform — 3 languages, 25+ compile targets, AI agent runtime, visual studio, and 48 packages',
+    'Open spatial computing platform — 3 languages, 30+ compile targets, AI agent runtime, visual studio, and 58+ packages',
 
   // Ignore dead links in excluded dev notes and cross-repo references
   ignoreDeadLinks: true,
@@ -125,8 +125,9 @@ export default defineConfig({
         text: 'Reference',
         items: [
           { text: 'Language Reference', link: '/language/reference' },
-          { text: 'Traits (1,800+)', link: '/traits/' },
-          { text: 'Compilers (25+ targets)', link: '/compilers/' },
+          { text: 'Traits (2,000+)', link: '/traits/' },
+          { text: 'Compilers (30+ targets)', link: '/compilers/' },
+          { text: 'Agents', link: '/agents/' },
           { text: 'API Reference', link: '/api/' },
           { text: 'Language Spec', link: '/language/holoscript-language-spec' },
         ],
@@ -327,12 +328,28 @@ export default defineConfig({
           text: 'Advanced',
           items: [{ text: 'Advanced Traits', link: '/traits/advanced' }],
         },
+        {
+          text: 'Economics & Web3',
+          items: [{ text: 'Economics / Web3', link: '/traits/economics' }],
+        },
+        {
+          text: 'Security',
+          items: [{ text: 'Security / ZK', link: '/traits/security' }],
+        },
+        {
+          text: 'AI Generation',
+          items: [{ text: 'AI Generation', link: '/traits/ai-generation' }],
+        },
+        {
+          text: 'Human-in-the-Loop',
+          items: [{ text: 'HITL', link: '/traits/hitl' }],
+        },
       ],
 
       '/compilers/': [
         {
           text: 'Overview',
-          items: [{ text: 'All 25+ Targets', link: '/compilers/' }],
+          items: [{ text: 'All 30+ Targets', link: '/compilers/' }],
         },
         {
           text: 'Game Engines',
@@ -345,7 +362,14 @@ export default defineConfig({
         },
         {
           text: 'Web & Browser',
-          items: [{ text: 'WebGPU', link: '/compilers/webgpu' }],
+          items: [
+            { text: 'WebGPU', link: '/compilers/webgpu' },
+            { text: 'Babylon.js', link: '/compilers/babylon' },
+            { text: 'Three.js', link: '/compilers/three-js' },
+            { text: 'PlayCanvas', link: '/compilers/playcanvas' },
+            { text: 'WebAssembly', link: '/compilers/wasm' },
+            { text: 'AR (WebXR)', link: '/compilers/ar' },
+          ],
         },
         {
           text: 'Mobile & XR',
@@ -355,6 +379,10 @@ export default defineConfig({
             { text: 'Android (ARCore)', link: '/compilers/android' },
             { text: 'Android XR', link: '/compilers/android-xr' },
             { text: 'OpenXR', link: '/compilers/openxr' },
+            { text: 'OpenXR Spatial Entities', link: '/compilers/openxr-spatial' },
+            { text: 'USD Physics', link: '/compilers/usd-physics' },
+            { text: 'AI Glasses', link: '/compilers/ai-glasses' },
+            { text: 'VR Reality (Digital Twins)', link: '/compilers/vr-reality' },
           ],
         },
         {
@@ -372,10 +400,41 @@ export default defineConfig({
           ],
         },
         {
+          text: 'GPU & Shaders',
+          items: [
+            { text: 'Trait Shader Language (TSL)', link: '/compilers/tsl' },
+          ],
+        },
+        {
+          text: 'AI & Agents',
+          items: [
+            { text: 'A2A Agent Cards', link: '/compilers/a2a' },
+            { text: 'Structural Causal Models', link: '/compilers/scm' },
+            { text: 'Neuromorphic (NIR)', link: '/compilers/neuromorphic' },
+          ],
+        },
+        {
+          text: 'Web3',
+          items: [
+            { text: 'NFT Marketplace', link: '/compilers/nft-marketplace' },
+          ],
+        },
+        {
           text: 'Guides',
           items: [
             { text: 'VRChat + Unity Workflow', link: '/compilers/vrchat-unity-workflow' },
             { text: 'VRChat Optimization', link: '/compilers/vrchat-optimization' },
+          ],
+        },
+      ],
+
+      '/agents/': [
+        {
+          text: 'Agent Framework',
+          items: [
+            { text: 'Overview', link: '/agents/' },
+            { text: 'uAA2++ Protocol', link: '/agents/uaa2-protocol' },
+            { text: 'UAAL VM', link: '/agents/uaal-vm' },
           ],
         },
       ],

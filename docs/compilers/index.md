@@ -1,6 +1,6 @@
 # Compiler Targets
 
-HoloScript compiles a single `.holo` source file to **18+ platform targets**. Choose your platform:
+HoloScript compiles a single `.holo` source file to **30+ platform targets**. Choose your platform:
 
 ## Quick Reference
 
@@ -24,6 +24,17 @@ HoloScript compiles a single `.holo` source file to **18+ platform targets**. Ch
 | `--target sdf`       | [robotics/sdf.md](/compilers/robotics/sdf)   | SDF XML            | Gazebo              |
 | `--target dtdl`      | [iot/dtdl.md](/compilers/iot/dtdl)           | DTDL JSON          | Azure Digital Twins |
 | `--target wot`       | [iot/wot.md](/compilers/iot/wot)             | WoT TD JSON        | W3C Web of Things   |
+| `--target playcanvas`| [playcanvas.md](/compilers/playcanvas)       | JavaScript         | PlayCanvas Engine   |
+| `--target ar`        | [ar.md](/compilers/ar)                       | TypeScript         | Browser WebXR AR    |
+| `--target tsl`       | [tsl.md](/compilers/tsl)                     | WGSL               | Trait Shader Language|
+| `--target neuromorphic`| [neuromorphic.md](/compilers/neuromorphic) | NIR bytecode       | Loihi2 / SpiNNaker  |
+| `--target a2a`       | [a2a.md](/compilers/a2a)                     | JSON Agent Card    | Google A2A Protocol |
+| `--target scm`       | [scm.md](/compilers/scm)                     | Python + dowhy     | Causal AI           |
+| `--target usd-physics`| [usd-physics.md](/compilers/usd-physics)   | USD Physics JSON   | visionOS / Omniverse|
+| `--target openxr-spatial`| [openxr-spatial.md](/compilers/openxr-spatial)| OpenXR JSON  | AR/VR Anchoring     |
+| `--target ai-glasses`| [ai-glasses.md](/compilers/ai-glasses)       | Platform SDK       | Meta / Snap / Apple Glasses|
+| `--target vr-reality`| [vr-reality.md](/compilers/vr-reality)       | Phoenix WebXR      | VRR Digital Twins   |
+| `--target nft-marketplace`| [nft-marketplace.md](/compilers/nft-marketplace)| Solidity + JS | NFT / Web3        |
 
 ## Common Compiler Options
 

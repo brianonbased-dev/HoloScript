@@ -43,6 +43,6 @@ Progressive examples to learn HoloScript from basics to advanced.
 
 After completing these examples:
 
-- Explore [traits.md](../../docs/guides/traits.md) for all 1,800+ VR traits
+- Explore [traits.md](../../docs/guides/traits.md) for all 2,000+ VR traits
 - Check [compositions.md](../../docs/guides/compositions.md) for scene organization
 - Try the [MCP server guide](../../docs/guides/mcp-server.md) for AI integration

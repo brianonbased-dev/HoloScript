@@ -8,7 +8,7 @@ GraphQL API layer for HoloScript v3.42.0 compiler with TypeGraphQL and Apollo Se
 
 - ✅ **Parse HoloScript code** - `parseHoloScript` query returns AST as JSON
 - ✅ **Compile to targets** - `compile` mutation supports Unity, Babylon.js, R3F
-- ✅ **List targets** - `listTargets` query returns all 25+ available targets
+- ✅ **List targets** - `listTargets` query returns all 30+ available targets
 - ✅ **Target information** - `getTargetInfo` query provides detailed target metadata
 
 ## Installation
@@ -156,7 +156,7 @@ query GetUnityInfo {
 ### Week 2: Core Mutations
 
 - [ ] Batch compilation with DataLoader
-- [ ] All 25+ compiler targets
+- [ ] All 30+ compiler targets
 - [ ] Performance optimizations
 
 ### Week 3: Subscriptions

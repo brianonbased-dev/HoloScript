@@ -98,7 +98,7 @@ export const PACKAGE_PERMISSION_MANIFEST: PackagePermission[] = [
     allowsFsWrites: true,
     accessesNetwork: false,
     handlesSecrets: false,
-    notes: 'Parser, AST, 1800+ traits, 18+ compilers, identity framework',
+    notes: 'Parser, AST, 2000+ traits, 30+ compilers, identity framework',
   },
   {
     name: 'security-sandbox',

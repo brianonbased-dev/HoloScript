@@ -5,7 +5,7 @@ Language support for HoloScript+ - a declarative language for spatial computing 
 ## Features
 
 - **Syntax Highlighting** for `.holo`, `.hs`, and `.hsplus` files
-- **1,800+ VR Traits** - Built-in traits for XR interactions across 68 categories
+- **2,000+ VR Traits** - Built-in traits for XR interactions across 68 categories
 - **IntelliSense** - Autocomplete for traits, objects, and properties
 - **Hover Documentation** - Trait and keyword documentation on hover
 - **Semantic Tokens** - Rich syntax coloring (15 token types, 6 modifiers)
@@ -23,7 +23,7 @@ Language support for HoloScript+ - a declarative language for spatial computing 
 
 `orb`, `sphere`, `cube`, `box`, `cylinder`, `cone`, `plane`, `mesh`, `avatar`, `light`, `camera`, `scene`, `group`, `text`, `panel`, `button`, `slider`, `zone`
 
-### VR Traits (1,800+ across 68 categories, highlights below)
+### VR Traits (2,000+ across 68 categories, highlights below)
 
 **Interaction:** `@grabbable`, `@throwable`, `@hoverable`, `@clickable`, `@draggable`, `@pointable`, `@collidable`, `@physics`, `@gravity`, `@trigger`, `@teleport`
 

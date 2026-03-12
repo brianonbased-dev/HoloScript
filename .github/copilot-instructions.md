@@ -29,7 +29,7 @@ Both servers can be used by Brittney or any cloud AI agent (Copilot, Claude, Cur
 
 HoloScript is not another framework—it's a paradigm shift:
 
-- **One source → 25+ platforms** (Unity, Unreal, Godot, VRChat, WebGPU, visionOS, iOS, Android, OpenXR, URDF, SDF, DTDL, Babylon, PlayCanvas, WASM, and more)
+- **One source → 30+ platforms** (Unity, Unreal, Godot, VRChat, WebGPU, visionOS, iOS, Android, OpenXR, URDF, SDF, DTDL, Babylon, PlayCanvas, WASM, VRR digital twins, AI glasses, neuromorphic chips, A2A agents, and more)
 - **50,000 lines → 500 lines** through declarative composition
 - **Made for AI**: Agents generate `.holo` files, not JSX components
 
@@ -325,9 +325,9 @@ onTriggerEnter: {
 
 ---
 
-## 1,800+ Traits — Key Categories
+## 2,000+ Traits — Key Categories
 
-Full reference: [docs/traits/index.md](../docs/traits/index.md) (13 categories)
+Full reference: [docs/traits/index.md](../docs/traits/index.md) (13+ categories, 2,037 named trait identifiers across 73 semantic domains)
 
 ### Interaction
 
@@ -366,6 +366,22 @@ Full reference: [docs/traits/index.md](../docs/traits/index.md) (13 categories)
 ### IoT / Digital Twins
 
 `@iot_sensor` `@digital_twin` `@mqtt_bridge` `@telemetry`
+
+### Economics / Web3
+
+`@wallet` `@nft_asset` `@token_gated` `@marketplace` `@zora_coins` `@economy_primitive`
+
+### Security / ZK
+
+`@zero_knowledge_proof` `@zk_private` `@rsa_encrypt` `@vulnerability_scanner` `@audit_log`
+
+### AI Generation
+
+`@stable_diffusion` `@ai_inpainting` `@ai_texture_gen` `@neural_forge` `@diffusion_realtime` `@ai_upscaling`
+
+### Human-in-the-Loop
+
+`@hitl` `@feedback_loop` `@biofeedback`
 
 ---
 
@@ -450,17 +466,24 @@ object Portal @collidable {
 
 | Package                    | Purpose                                   |
 | -------------------------- | ----------------------------------------- |
-| `@holoscript/core`         | Parser, AST, 1,800+ traits, 25+ compile targets |
-| `@holoscript/mcp-server`   | 65 MCP tools for AI agents                |
-| `@holoscript/cli`          | holo build · holo compile · holo validate |
-| `@holoscript/runtime`      | Scene execution runtime                   |
-| `@holoscript/lsp`          | Language Server Protocol                  |
-| `@holoscript/llm-provider` | OpenAI / Anthropic / Gemini SDK           |
-| `@holoscript/partner-sdk`  | Webhooks and analytics                    |
-| `holoscript` (PyPI)        | Python bindings + robotics module         |
+| `@holoscript/core`           | Parser, AST, 2,000+ traits, 30+ compile targets |
+| `@holoscript/mcp-server`     | 65 MCP tools for AI agents                |
+| `@holoscript/cli`            | holo build · holo compile · holo validate |
+| `@holoscript/runtime`        | Scene execution runtime                   |
+| `@holoscript/lsp`            | Language Server Protocol                  |
+| `@holoscript/llm-provider`   | OpenAI / Anthropic / Gemini SDK           |
+| `@holoscript/partner-sdk`    | Webhooks and analytics                    |
+| `@holoscript/agent-protocol` | uAA2++ 7-phase agent lifecycle framework  |
+| `@holoscript/uaal`           | Universal Autonomous Agent Language VM    |
+| `@holoscript/studio`         | Visual IDE (desktop + browser)            |
+| `@holoscript/snn-poc`        | Spiking Neural Network / neuromorphic POC |
+| `@holoscript/crdt`           | Conflict-free replicated spatial state    |
+| `@holoscript/std`            | HoloScript standard library               |
+| `holoscript` (PyPI)          | Python bindings + robotics module         |
 
-> **Note**: There is no separate `@holoscript/traits` or `@holoscript/compiler` package.
-> All traits and compiler targets live inside `@holoscript/core`.
+> **Note**: `@holoscript/traits` is a separate package (named trait constants).
+> Core trait implementations and all 30+ compiler targets live inside `@holoscript/core`.
+> A separate `@holoscript/compiler` package exists alongside core.
 
 ---
 

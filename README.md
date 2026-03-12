@@ -2,7 +2,7 @@
 
 ## The Open Platform for Spatial Computing
 
-> **3 languages. 25+ compile targets. 48 packages. AI agent runtime. Visual studio.**
+> **3 languages. 30+ compile targets. 58+ packages. AI agent runtime. Visual studio.**
 > Describe a dragon in 200 primitives. Compile it to Unity, Unreal, VRChat, WebGPU, ROS 2, or visionOS — from the same source.
 
 HoloScript is a complete spatial computing stack: **three specialized file formats** (`.holo` scene graph, `.hs` agent logic, `.hsplus` typed modules) + **runtime execution** + **multi-target compiler** + **AI studio** + **autonomous agent ecosystem**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) to prove it works — now you can build your own.
@@ -13,7 +13,7 @@ Perfect for VR/AR platforms, corporate training, robotics, games, digital twins,
 
 ![version-badge](https://img.shields.io/badge/version-v5.0.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
-![Traits Badge](https://img.shields.io/badge/traits-1800+-orange?style=for-the-badge)
+![Traits Badge](https://img.shields.io/badge/traits-2000+-orange?style=for-the-badge)
 [![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
 [![Known Vulnerabilities](https://snyk.io/test/github/brianonbased-dev/HoloScript/badge.svg?style=for-the-badge)](https://snyk.io/test/github/brianonbased-dev/HoloScript)
 [![Security Rating](https://img.shields.io/badge/Security-A+-brightgreen?style=for-the-badge)](https://github.com/brianonbased-dev/HoloScript/security)
@@ -224,10 +224,10 @@ my-vr-game/
 
 | vs                      | HoloScript Advantage                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------ |
-| **C# (Unity)**          | Built-in spatial primitives, 25+ targets vs 1, agent SDK with spatial awareness            |
+| **C# (Unity)**          | Built-in spatial primitives, 30+ targets vs 1, agent SDK with spatial awareness            |
 | **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
 | **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                  |
-| **Swift (visionOS)**    | Not locked to Apple, 25+ targets, agent choreography, IoT/robotics export                  |
+| **Swift (visionOS)**    | Not locked to Apple, 30+ targets, agent choreography, IoT/robotics export                  |
 
 ---
 
@@ -241,7 +241,7 @@ HoloScript provides **three specialized languages** that work together:
 - **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
 - **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
 
-**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 25+ platforms.
+**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 30+ platforms.
 
 **Workflow**: Prototype in HoloScript runtime → compile to production platform
 
@@ -270,17 +270,17 @@ Write **one** HoloScript file. Compile to:
 
 ### 4. Feature-Rich
 
-- ✅ **1,800+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
+- ✅ **2,000+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
 - ✅ **AI-Native** — 43+ MCP tools, Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
-- ✅ **Production-Ready** — WebGPU rendering, CRDT state, resilience patterns, 48 packages
+- ✅ **Production-Ready** — WebGPU rendering, CRDT state, resilience patterns, 58+ packages
 
 ---
 
-## 🏗️ 25+ Compile Targets
+## 🏗️ 30+ Compile Targets
 
 | Platform         | Target                                                         | Support   |
 | ---------------- | -------------------------------------------------------------- | --------- |
@@ -308,9 +308,9 @@ Write **one** HoloScript file. Compile to:
 
 ### Reference & Advanced
 
-- 📘 **[Traits Reference](./docs/TRAITS_REFERENCE.md)** - Explore the massive library of 1,800+ VR traits.
+- 📘 **[Traits Reference](./docs/TRAITS_REFERENCE.md)** - Explore the massive library of 2,000+ VR traits.
 - 📙 **[Academy](./docs/academy/README.md)** - Master HoloScript through interactive lessons.
-- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 25+ compile targets.
+- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 30+ compile targets.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.
 
