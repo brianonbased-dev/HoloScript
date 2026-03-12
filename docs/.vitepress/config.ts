@@ -5,6 +5,15 @@ export default defineConfig({
   description:
     'Open spatial computing platform — 3 languages, 30+ compile targets, AI agent runtime, visual studio, and 60+ packages',
 
+  markdown: {
+    // Keep custom HoloScript fence names while routing them through a loaded lexer.
+    languageAlias: {
+      holo: 'ts',
+      hsplus: 'ts',
+      holoscript: 'ts',
+    },
+  },
+
   // Ignore dead links in excluded dev notes and cross-repo references
   ignoreDeadLinks: true,
 
