@@ -68,7 +68,7 @@
     "@holoscript/crdt": "workspace:*",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "cbor-x": "^1.6.0",
+    "cbor-x": "^1.6.4",
     "zod": "^3.24.0"
   },
   "devDependencies": {
