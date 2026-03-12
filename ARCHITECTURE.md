@@ -44,7 +44,7 @@ HoloScript/                     # This repo - complete language system
 │   │       ├── runtime/        # Scene runner, WebXR, keyboard, network predictor
 │   │       ├── scene/          # Scene graph and management
 │   │       ├── terrain/        # Terrain, foliage, world streaming
-│   │       ├── traits/         # 1,800+ trait definitions (68 modules) + implementations
+│   │       ├── traits/         # 2,000+ trait definitions (73 modules) + implementations
 │   │       ├── ui/             # Spatial UI components
 │   │       └── world/          # World streaming and management
 │   ├── runtime/                # Browser runtime, traits, physics, events
@@ -121,12 +121,14 @@ But HoloScript works without Hololand.
 
 ## Package Relationships
 
+> **Note:** All packages are versioned consistently and released together. See [package.json](./package.json) or individual package manifests for current versions.
+
 ### Core Language
 
 | Package               | Purpose                                                   | Version |
 | --------------------- | --------------------------------------------------------- | ------- |
 | `@holoscript/core`    | Parser, AST, validator, 18 compilers, 50+ runtime modules | v3.4.0  |
-| `@holoscript/runtime` | Browser runtime, 1,800+ traits, physics                   | v3.4.0  |
+| `@holoscript/runtime` | Browser runtime, 2,000+ traits, physics                   | v3.4.0  |
 | `@holoscript/std`     | Standard library (types, math, collections)               | v3.0.0  |
 | `@holoscript/fs`      | Filesystem utilities & file watching                      | v3.0.0  |
 | `@holoscript/cli`     | Command-line tools (32+ commands)                         | v3.0.0  |

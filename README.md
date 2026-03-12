@@ -1,11 +1,13 @@
 # HoloScript v5.0.0
 
-## The Open Platform for Spatial Computing
+## The Universal Semantic Platform
 
-> **3 languages. 30+ compile targets. 60+ packages. AI agent runtime. Visual studio.**
-> Describe a dragon in 200 primitives. Compile it to Unity, Unreal, VRChat, WebGPU, ROS 2, or visionOS — from the same source.
+> **Traits describe everything. The compiler makes it real. From 3D worlds to backend services — one language, one stack.**
+> Write a dragon, an AI agent, or a REST endpoint in the same notation. Compile to Unity, Node.js, VRChat, ROS 2, or visionOS.
 
-HoloScript is a complete spatial computing stack: **three specialized file formats** (`.holo` scene graph, `.hs` agent logic, `.hsplus` typed modules) + **runtime execution** + **multi-target compiler** + **AI studio** + **autonomous agent ecosystem**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) to prove it works — now you can build your own.
+HoloScript is a **semantic specification language**: **2,000+ traits** across 13 categories + **30+ compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
+
+Spatial computing is one application. HoloScript v6 extends executable semantics to service contracts, agent protocols, data schemas, and any domain expressible as declarative traits.
 
 **Even playing field**: Hololand uses the same public APIs as everyone else. No privileged access, no lock-in.
 
@@ -233,7 +235,19 @@ my-vr-game/
 
 ## 🔥 Why HoloScript?
 
-### 1. Three-Format Architecture
+### 1. Universal Semantic Traits
+
+HoloScript's 1,525+ traits describe **any domain entity** — not just 3D:
+
+- **Spatial**: `@physics`, `@grabbable`, `@anchor`, `@spatial_audio`
+- **AI/Agents**: `@protocol`, `@lifecycle`, `@knowledge`, `@llm_agent`
+- **Services**: `@http`, `@circuit_breaker`, `@auth`, `@rate_limit`
+- **IoT**: `@iot_sensor`, `@digital_twin`, `@mqtt_bridge`
+- **Economy**: `@credit`, `@marketplace`, `@escrow`
+
+The trait system is a **semantic vocabulary**. The compiler translates it to platform-specific code.
+
+### 2. Three-Format Architecture
 
 HoloScript provides **three specialized languages** that work together:
 
@@ -241,11 +255,9 @@ HoloScript provides **three specialized languages** that work together:
 - **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
 - **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
 
-**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 30+ platforms.
+**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 18+ platforms.
 
-**Workflow**: Prototype in HoloScript runtime → compile to production platform
-
-### 2. Even Playing Field (Commons-Based)
+### 3. Even Playing Field (Commons-Based)
 
 We built [Hololand](https://github.com/brianonbased-dev/Hololand)—a full VR social platform—using **only public HoloScript APIs**.
 
