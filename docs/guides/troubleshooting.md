@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues and solutions when working with HoloScript v3.3.0.
+Common issues and solutions when working with HoloScript.
 
 ## Installation Issues
 

@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HoloScript',
   description:
-    'Open spatial computing platform — 3 languages, 30+ compile targets, AI agent runtime, visual studio, and 58+ packages',
+    'Open spatial computing platform — 3 languages, 30+ compile targets, AI agent runtime, visual studio, and 60+ packages',
 
   // Ignore dead links in excluded dev notes and cross-repo references
   ignoreDeadLinks: true,
@@ -51,6 +51,8 @@ export default defineConfig({
     'academy/README.md',
     // Docs root README (legacy dev notes, homepage is index.md)
     'README.md',
+    // Historical audits with legacy package names
+    'DOCS_AUDIT.md',
   ],
 
   head: [
@@ -125,6 +127,7 @@ export default defineConfig({
         text: 'Reference',
         items: [
           { text: 'Language Reference', link: '/language/reference' },
+          { text: 'Packages', link: '/packages/' },
           { text: 'Traits (2,000+)', link: '/traits/' },
           { text: 'Compilers (30+ targets)', link: '/compilers/' },
           { text: 'Agents', link: '/agents/' },
@@ -515,6 +518,20 @@ export default defineConfig({
             { text: 'Traits', link: '/api/traits' },
             { text: 'Functions', link: '/api/functions' },
             { text: 'Limits', link: '/api/limits' },
+          ],
+        },
+      ],
+
+      '/packages/': [
+        {
+          text: 'Package Reference',
+          items: [
+            { text: 'Overview', link: '/packages/' },
+            { text: 'Agent SDK', link: '/packages/agent-sdk' },
+            { text: 'Studio Bridge', link: '/packages/studio-bridge' },
+            { text: 'Holo VM', link: '/packages/holo-vm' },
+            { text: 'CRDT Spatial', link: '/packages/crdt-spatial' },
+            { text: 'Spatial Index', link: '/packages/spatial-index' },
           ],
         },
       ],

@@ -1,6 +1,6 @@
 # HoloScript Deployment Guide
 
-**Complete multi-channel deployment strategy for HoloScript v3.0+**
+## Complete multi-channel deployment strategy for HoloScript v3.0+
 
 This guide documents the 15-channel deployment architecture based on the comprehensive uAA2++ research protocol findings.
 
@@ -18,7 +18,7 @@ HoloScript uses a **5-tier, 15-channel hybrid distribution model**:
 | **End-User Tier**    | Homebrew, Chocolatey, Standalone | 🚧 In Progress | ~1M potential    |
 | **Cloud Tier**       | Railway API, Docker, CDN         | 🚧 Planned     | Unlimited        |
 
-**Current Version**: 3.0.0
+**Current Version**: See root package metadata
 **Deployment Status**: Production-ready for Tier 1-2, Testing for Tier 3-5
 
 ---
@@ -60,7 +60,8 @@ packages:
 - `@holoscript/core` - Core compiler (TypeScript)
 - `@holoscript/lsp` - Language Server Protocol
 - `@holoscript/cli` - Command-line interface
-- `@holoscript/wasm-parser` - WASM parser bindings
+- `@holoscript/compiler` - Multi-target compiler package
+- `@holoscript/wasm` - WASM compiler/runtime bindings
 
 ---
 
@@ -179,8 +180,8 @@ choco install holoscript
 
 **Submit to Chocolatey**:
 
-1. Create account: https://community.chocolatey.org/account/register
-2. Upload package: https://community.chocolatey.org/packages/upload
+1. Create account: [Chocolatey account registration](https://community.chocolatey.org/account/register)
+2. Upload package: [Chocolatey package upload](https://community.chocolatey.org/packages/upload)
 3. Automated publishing via GitHub Actions (future)
 
 ---
@@ -214,7 +215,7 @@ choco install holoscript
    ```
 
 2. Submit to Asset Store:
-   https://publisher.assetstore.unity3d.com/
+  [Unity Asset Store Publisher Portal](https://publisher.assetstore.unity3d.com/)
 
 3. Manual review: 4-6 weeks (Pattern G.005.01)
 
@@ -318,7 +319,7 @@ pnpm run version:major   # 3.0.0 → 4.0.0
 
 **Publish Order** (Critical - Pattern G.003.01):
 
-```
+```text
 1. Cargo → crates.io (FIRST - slowest indexing)
 2. Wait 30 seconds for crates.io indexing
 3. npm → npmjs.org
@@ -561,12 +562,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for deployment contribution guidelines.
 
 ## 📧 Support
 
-- **Deployment Issues**: https://github.com/brianonbased-dev/HoloScript/issues
-- **Discord**: https://discord.gg/holoscript
-- **Email**: deploy@holoscript.net
+- **Deployment Issues**: [GitHub Issues](https://github.com/brianonbased-dev/HoloScript/issues)
+- **Discord**: [HoloScript Discord](https://discord.gg/holoscript)
+- **Email**: [deploy@holoscript.net](mailto:deploy@holoscript.net)
 
 ---
 
 **Last Updated**: 2026-02-12
-**Version**: 3.0.0
+**Version**: See root package metadata
 **Status**: Production (Tier 1-2), Beta (Tier 3-5)

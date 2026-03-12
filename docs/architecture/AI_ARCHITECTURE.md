@@ -70,9 +70,9 @@ const response = await LLM.infer('What is this object?', {
 });
 ```
 
-### `@holoscript/vrchat-export` (Transpiler)
+### `@holoscript/compiler` (VRChat/Unity Targets)
 
-_AI-assisted transpilation to Udon/Unity._
+_AI-assisted target compilation to Udon/Unity outputs._
 
 - Uses AST transformation to map HoloScript logic to Udon Graph interactables.
 

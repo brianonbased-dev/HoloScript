@@ -16,7 +16,7 @@ HoloScript's dual-language architecture (Rust compiler + TypeScript tooling) req
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ HoloScript Monorepo                                         │
 ├─────────────────────────────────────────────────────────────┤
@@ -141,7 +141,7 @@ export type Value = string | number | boolean | Value[] | { [key: string]: Value
 ```typescript
 // packages/core/src/parser.ts
 import { ASTNode, NodeType, Position } from './types/generated';
-import init, { parse as wasmParse } from '@holoscript/wasm-parser';
+import init, { parse as wasmParse } from '@holoscript/wasm';
 
 export class Parser {
   async parse(source: string): Promise<ASTNode> {
@@ -185,7 +185,7 @@ pub fn parse(source: &str) -> Result<String, JsValue> {
 
 ```typescript
 // packages/core/src/compiler.ts
-import { parse } from '@holoscript/wasm-parser';
+import { parse } from '@holoscript/wasm';
 import type { ASTNode } from './types/generated';
 
 export async function compile(source: string): Promise<ASTNode> {
@@ -258,7 +258,7 @@ pub fn validate_trait(trait_name: &str, geometry: &str) -> bool {
 
 ```typescript
 // packages/core/src/validation.ts
-import { validate_trait } from '@holoscript/wasm-parser';
+import { validate_trait } from '@holoscript/wasm';
 
 // Use Rust validation from TypeScript
 export function isTraitCompatible(trait: string, geometry: string): boolean {
@@ -328,7 +328,7 @@ tasks:
 
 ### Dependency Graph
 
-```
+```text
 generate-types → compiler-wasm:build → core:build → lsp:build
                                     ↘
                                       vscode-extension:build
@@ -408,7 +408,7 @@ pnpm build
 
 ### Issue: WASM Module Not Found
 
-**Symptom**: `Cannot find module '@holoscript/wasm-parser'`
+**Symptom**: `Cannot find module '@holoscript/wasm'`
 
 **Cause**: Rust package not built or not linked
 
@@ -446,7 +446,7 @@ let wasmInitialized = false;
 export async function ensureWasmInit(): Promise<void> {
   if (wasmInitialized) return;
 
-  await init(); // From @holoscript/wasm-parser
+  await init(); // From @holoscript/wasm
   wasmInitialized = true;
 }
 ```

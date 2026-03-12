@@ -2,7 +2,7 @@
 
 ## The Open Platform for Spatial Computing
 
-> **3 languages. 30+ compile targets. 58+ packages. AI agent runtime. Visual studio.**
+> **3 languages. 30+ compile targets. 60+ packages. AI agent runtime. Visual studio.**
 > Describe a dragon in 200 primitives. Compile it to Unity, Unreal, VRChat, WebGPU, ROS 2, or visionOS — from the same source.
 
 HoloScript is a complete spatial computing stack: **three specialized file formats** (`.holo` scene graph, `.hs` agent logic, `.hsplus` typed modules) + **runtime execution** + **multi-target compiler** + **AI studio** + **autonomous agent ecosystem**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) to prove it works — now you can build your own.

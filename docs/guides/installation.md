@@ -39,7 +39,7 @@ npm install -g @holoscript/cli
 
 ```bash
 holoscript --version
-# HoloScript CLI v3.3.0
+# HoloScript CLI x.y.z
 ```
 
 ### Basic Commands
@@ -110,8 +110,8 @@ Add to Claude Desktop config (`~/.claude/settings.json`):
 | `validate_holoscript` | Check code for errors            |
 | `suggest_traits`      | Get trait recommendations        |
 | `explain_code`        | Get plain English explanation    |
-| `compile_scene`       | Compile to any of 25+ targets    |
-| `list_traits`         | Browse all 1,800+ traits         |
+| `compile_scene`       | Compile to any of 30+ targets    |
+| `list_traits`         | Browse all 2,000+ traits         |
 | `query_scene_graph`   | Inspect scene structure          |
 | `parse_holoscript`    | Parse to AST                     |
 

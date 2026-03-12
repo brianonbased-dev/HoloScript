@@ -16,7 +16,7 @@ Deploy HoloScript compiler as a **serverless API** on Railway with comprehensive
 
 ## Architecture
 
-```
+```text
 User Request
     ↓
 Cloudflare (CDN + Rate Limiting Layer 1)
@@ -140,7 +140,7 @@ const TIER_LIMITS = {
 
 ```typescript
 // services/compiler-api/src/compiler.ts
-import init, { compile } from '@holoscript/wasm-parser';
+import init, { compile } from '@holoscript/wasm';
 
 // Initialize WASM module once
 await init();

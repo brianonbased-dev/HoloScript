@@ -1,5 +1,7 @@
 # Documentation & Implementation Audit Report (2026-02-07)
 
+> Historical audit snapshot: package names and status notes reflect repository state at audit time and are preserved for traceability.
+
 ## 1. Executive Summary
 
 A comprehensive audit of HoloScript v3.3.0 documentation against actual implementation. This audit identifies what's working, what's documented but unimplemented, and what needs attention.
@@ -75,8 +77,9 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 ### All 38 Non-Trivial Traits Fully Implemented ✅
 
 **Interaction Traits** - Complete with event handling:
+
 | Trait | Handler Status |
-|-------|---------------|
+| ----- | -------------- |
 | `@grabbable` | ✅ Full grab/release lifecycle |
 | `@throwable` | ✅ Velocity tracking, physics integration |
 | `@clickable` | ✅ Click event dispatching |
@@ -85,8 +88,9 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 | `@scalable` | ✅ Scale gestures and limits |
 
 **AI/Behavior Traits** - Complete implementations:
+
 | Trait | Handler Status |
-|-------|---------------|
+| ----- | -------------- |
 | `@behavior_tree` | ✅ Full tree traversal, node execution |
 | `@goal_oriented` | ✅ Goal planning, action execution |
 | `@llm_agent` | ✅ LLM integration with message handling |
@@ -94,16 +98,18 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 | `@emotion` | ✅ Emotional state machine, expressions |
 
 **Physics Traits** - Complete simulations:
+
 | Trait | Handler Status |
-|-------|---------------|
+| ----- | -------------- |
 | `@cloth` | ✅ Cloth simulation, vertex pinning |
 | `@fluid` | ✅ Particle-based fluid, emitters |
 | `@soft_body` | ✅ Soft body deformation |
 | `@rope` | ✅ Segment-based rope physics |
 
 **Web3 Traits** - Complete blockchain integration:
+
 | Trait | Handler Status |
-|-------|---------------|
+| ----- | -------------- |
 | `@token_gated` | ✅ Balance verification, access control |
 | `@wallet` | ✅ Wallet connection, transaction signing |
 
@@ -176,14 +182,14 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 
 ### Medium Priority
 
-4. **Platform Exports**: Wire VRChat/Unity export to parser output
-5. **Three.js Rendering**: Complete the rendering pipeline
-6. **Parallel Execution**: Implement `@parallel`/`@spawn`
+1. **Platform Exports**: Wire VRChat/Unity export to parser output
+2. **Three.js Rendering**: Complete the rendering pipeline
+3. **Parallel Execution**: Implement `@parallel`/`@spawn`
 
 ### Low Priority
 
-7. **Exception Handling**: Add try/catch runtime execution
-8. **Update Legacy Docs**: Convert remaining `orb` examples to composition pattern
+1. **Exception Handling**: Add try/catch runtime execution
+2. **Update Legacy Docs**: Convert remaining `orb` examples to composition pattern
 
 ---
 

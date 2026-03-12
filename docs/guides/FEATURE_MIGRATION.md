@@ -1,5 +1,7 @@
 # HoloScript Feature Migration Guide
 
+> Historical migration reference: this page intentionally includes legacy package names to document old-to-new mappings during the HoloScript/Hololand split.
+
 ## Overview
 
 Starting in January 2026, HoloScript underwent an architectural refactoring to separate **language concerns** from **runtime/platform concerns**. This document explains what moved, why, and how to update your projects.
@@ -286,7 +288,7 @@ Update your package.json and imports accordingly.
 
 ## Architecture Diagram
 
-```
+```text
 ┌─────────────────────┐
 │     Your App        │
 └──────────┬──────────┘
