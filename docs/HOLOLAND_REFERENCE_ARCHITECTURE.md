@@ -215,7 +215,7 @@ Hololand uses **ONLY** these public HoloScript APIs:
 | `@holoscript/runtime` | `RuntimeExecutor`     | Execution interface          | ✅ Yes                    |
 | `@holoscript/core`    | `getStreamProtocol()` | Multiplayer protocol         | ✅ Yes                    |
 | `@holoscript/core`    | `getHololandClient()` | Connection management        | ✅ Yes (for any platform) |
-| `@holoscript/traits`  | All 1,800+ traits     | Composable behaviors         | ✅ Yes                    |
+| `@holoscript/traits`  | All 2,000+ traits     | Composable behaviors         | ✅ Yes                    |
 
 **Verification**: Check `@holoscript/core/package.json` - all exports are public.
 

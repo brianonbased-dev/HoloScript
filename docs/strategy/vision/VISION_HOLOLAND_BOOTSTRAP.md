@@ -34,9 +34,9 @@ You (in VR) → Voice/Gesture → Brittney (spatial AI agent)
 | ------------------- | --------------- | ------------------------------------------------------------------------ |
 | HoloScript Parser   | ✅ v3.4.0       | Lexer, parser, AST — handles `composition`, `template`, `object`, traits |
 | 18 Compiler Targets | ✅              | R3F, Three.js, Unity, Unreal, WebGPU, USD, URDF, etc.                    |
-| 1,800+ Traits       | ✅              | 68 module files, scientific computing, robotics, VR interaction          |
+| 2,000+ Traits       | ✅              | 73+ module files, scientific computing, robotics, VR interaction          |
 | Runtime Engine      | ✅              | 50+ subsystems: physics, navigation, WebXR, voice, hot-reload            |
-| MCP Server          | ✅ 35+ tools    | Parse, validate, generate, graph, IDE features, browser control          |
+| MCP Server          | ✅ 65+ tools    | Parse, validate, generate, graph, IDE features, browser control          |
 | Studio              | ✅ v0.1.0       | Next.js scene builder with 5 templates, AI generation                    |
 | Plugin System       | ✅              | PluginAPI (sandboxed), PluginLoader, ModRegistry                         |
 | Brittney Model      | ✅ v4           | Fine-tuned on ~50K HoloScript examples, Ollama inference                 |

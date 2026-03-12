@@ -798,7 +798,7 @@ experiment.logMetric('phases_succeeded', results.successCount);
 ### Documentation
 
 - [Agent API Reference](./AGENT_API_REFERENCE.md) - Full API docs
-- [Traits Reference](./TRAITS_REFERENCE.md) - All 1,800+ traits
+- [Traits Reference](./TRAITS_REFERENCE.md) - All 2,000+ traits
 - [MCP Server Guide](./MCP_SERVER_GUIDE.md) - AI agent integration
 
 ### Examples

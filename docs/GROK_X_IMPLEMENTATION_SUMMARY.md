@@ -24,7 +24,7 @@ Full Model Context Protocol server for AI agent integration.
 - `src/tools.ts` - 16 MCP tool definitions
 - `src/handlers.ts` - Tool implementation logic
 - `src/generators.ts` - Natural language → HoloScript code
-- `src/documentation.ts` - Comprehensive trait/syntax docs (1,800+ traits)
+- `src/documentation.ts` - Comprehensive trait/syntax docs (2,000+ traits)
 - `src/renderer.ts` - Preview rendering and share link generation
 - `tsconfig.json`, `tsup.config.ts` - Build configuration
 

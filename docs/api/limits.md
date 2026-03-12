@@ -66,7 +66,7 @@ When using all formats together:
 ### The Power Formula
 
 ```
-COMBINED = .holo(∞ scene) × .hsplus(1,800+ traits + 80 hooks) × .ts(logic)
+COMBINED = .holo(∞ scene) × .hsplus(2,000+ traits + 80 hooks) × .ts(logic)
 PRACTICAL_CAP = 1,000 nodes OR 5 seconds (whichever hits first)
 ```
 

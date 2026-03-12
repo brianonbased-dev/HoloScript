@@ -168,8 +168,8 @@ holoscript compile my-world.holo --target=r3f --output=./web-export
 ├───────────────────────────────────────────────────┤
 │         HOLOSCRIPT (Meta-Framework)               │
 │  ├─ Parser, Compiler, Runtime                    │
-│  ├─ 1,800+ Traits (@grabbable, @physics, etc.)   │
-│  └─ Multi-target compilation (25+ platforms)     │
+│  ├─ 2,000+ Traits (@grabbable, @physics, etc.)   │
+│  └─ Multi-target compilation (30+ platforms)     │
 └───────────────────────────────────────────────────┘
 ```
 
@@ -630,7 +630,7 @@ holoscript compile robot-arm.holo --target=urdf --output=robot.urdf
 ### Documentation
 
 - [HoloScript Docs](https://holoscript.net/docs)
-- [Trait Reference](../TRAITS_REFERENCE.md) (1,800+ traits)
+- [Trait Reference](../TRAITS_REFERENCE.md) (2,000+ traits)
 - [API Reference](https://holoscript.net/api)
 - [Hololand Architecture](./HOLOLAND_REFERENCE_ARCHITECTURE.md) (how we built it)
 

@@ -125,7 +125,7 @@ interface AgentMetrics {
 
 📖 [AI Traits Reference](./AI_TRAITS_REFERENCE.md) - Complete guide
 📖 [Agent API Reference](./AGENT_API_REFERENCE.md) - All APIs
-📖 [Traits Reference](./TRAITS_REFERENCE.md) - All 1,800+ traits
+📖 [Traits Reference](./TRAITS_REFERENCE.md) - All 2,000+ traits
 
 ---
 

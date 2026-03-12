@@ -26,7 +26,7 @@ Unlike proprietary platforms (Unity, Unreal), HoloScript is **neutral infrastruc
 2. **Core Infrastructure**
    - Runtime execution layer (ThreeJSRenderer, physics engine)
    - Parser and AST improvements
-   - Trait system expansion (1,800+ traits → 3,000+)
+   - Trait system expansion (2,000+ traits → 3,000+)
 
 3. **Developer Experience**
    - VS Code extension enhancements

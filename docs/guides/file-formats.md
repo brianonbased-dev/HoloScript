@@ -342,7 +342,7 @@ When using all three formats together:
 ### The Power Formula
 
 ```
-COMBINED = .holo(∞ scene) × .hsplus(1,800+ traits + 80 hooks) × .ts(logic)
+COMBINED = .holo(∞ scene) × .hsplus(2,000+ traits + 80 hooks) × .ts(logic)
 ```
 
 ### Nesting Capabilities
