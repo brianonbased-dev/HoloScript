@@ -31,7 +31,7 @@ This benchmark suite validates:
 
 ## Compilation Targets
 
-18+ platform targets tested (per vertical applicability):
+30+ platform targets tested (per vertical applicability):
 
 **Game Engines:**
 

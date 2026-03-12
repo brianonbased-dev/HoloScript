@@ -1,8 +1,8 @@
 # Traits Reference
 
-HoloScript v3.42.0 includes **1,800+ traits** organized into **74 specialized categories** across **13 top-level domains**. Traits are declarative annotations that add behavior to objects without writing code.
+HoloScript v5.0.0 includes **2,000+ traits** organized into **73 specialized categories** across **13+ top-level domains**. Traits are declarative annotations that add behavior to objects without writing code.
 
-> **How Traits Work**: The 1,800+ count represents semantic trait tags recognized by the HoloScript parser across domains including VR interaction (13), robotics (213), AI/XR (23), scientific computing (28), and 60+ specialized semantic categories. Core traits have full runtime implementations, while domain-specific traits provide semantic richness for compiler target generation.
+> **How Traits Work**: The 2,000+ count represents semantic trait tags recognized by the HoloScript parser across domains including VR interaction (13), robotics (213), AI/XR (23), scientific computing (28), economics, security/ZK, AI generation, and 60+ specialized semantic categories. Core traits have full runtime implementations, while domain-specific traits provide semantic richness for compiler target generation.
 
 ## How Traits Work
 
@@ -46,8 +46,10 @@ interface TraitHandler<TConfig> {
 | [Social/Multiplayer](/traits/social)     | @networked, @voice_chat, @presence, @avatar                           | Social and multiplayer                             |
 | [IoT/Integration](/traits/iot)           | @sensor, @actuator, @mqtt, @rest_api                                  | IoT and external integrations                      |
 | [Visual](/traits/visual)                 | @material, @lighting, @shader, @particle, @lod                        | Graphics and rendering                             |
-| [Advanced](/traits/advanced)             | @animation, @ik, @ragdoll, @procedural, @hitl                         | Advanced animation, generation, and HITL gates     |
-
+| [Advanced](/traits/advanced)             | @animation, @ik, @ragdoll, @procedural, @hitl                         | Advanced animation, generation, and HITL gates     || [Economics / Web3](/traits/economics)    | @wallet, @nft_asset, @token_gated, @marketplace, @zora_coins         | On-chain economies, NFT minting, token gating      |
+| [Security / ZK](/traits/security)        | @zero_knowledge_proof, @zk_private, @rsa_encrypt, @audit_log         | Cryptographic privacy, ZK proofs, tamper logs      |
+| [AI Generation](/traits/ai-generation)   | @stable_diffusion, @neural_forge, @ai_texture_gen, @diffusion_realtime| Generative AI: textures, meshes, shaders           |
+| [Human-in-the-Loop](/traits/hitl)        | @hitl, @feedback_loop, @biofeedback                                  | Human oversight, biometric feedback, RLHF gates    |
 ## Extending Traits
 
 Build your own custom traits using the [Trait Extension Guide](/traits/extending).

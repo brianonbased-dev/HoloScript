@@ -35,7 +35,7 @@ As spatial computing expands across VR, AR, robotics, and mixed reality platform
 
 This paper demonstrates that HoloScript's three-format spatial compiler architecture constitutes the first production implementation of *executable semantics* for spatial computing. Our central claim is:
 
-> **When an AI agent writes HoloScript, each semantic declaration is simultaneously a physical contract. The compiler enforces that contract deterministically across 25+ runtime targets. Symbol and ground truth are unified at the language level.**
+> **When an AI agent writes HoloScript, each semantic declaration is simultaneously a physical contract. The compiler enforces that contract deterministically across 30+ runtime targets. Symbol and ground truth are unified at the language level.**
 
 This is not a partial address of the Symbol Grounding Problem in the sense that neural networks provide perceptual grounding. It is a structural resolution: the gap between symbol and referent is closed by a compiler with definite semantics, not probabilistic approximation.
 
@@ -313,7 +313,7 @@ This bidirectionality is the formal closure of the grounding loop:
                     └──────┬─────────┬──────────┬─────────────────┘
                            │         │          │
                     ┌──────▼──┐ ┌────▼────┐ ┌───▼──────┐
-HoloScript ──parse──►  Unity  │ │ VRChat  │ │  URDF    │  ... 25+ targets
+HoloScript ──parse──►  Unity  │ │ VRChat  │ │  URDF    │  ... 30+ targets
 Declaration         │  C# .cs │ │  Udon   │ │  XML     │
                     └────┬────┘ └─────────┘ └──────────┘
                          │
