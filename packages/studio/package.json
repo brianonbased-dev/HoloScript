@@ -42,7 +42,7 @@
     "isomorphic-git": "^1.37.2",
     "lucide-react": "^0.314.0",
     "memfs": "^4.56.11",
-    "next": "^15.5.10",
+    "next": "^16.1.6",
     "prismjs": "^1.29.0",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.2.0",
