@@ -267,6 +267,42 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 
 ---
 
+## PR Review Cadence
+
+This repo is AI-first — most features and fixes arrive via agent-authored commits. Human review follows a regular cadence:
+
+| Type | Cadence | SLA |
+|------|---------|-----|
+| Security patches (CVE) | Immediate | < 24 h |
+| Dependabot patch / minor | Weekly (Mondays) | < 7 days |
+| Dependabot major version | Monthly review | > 7 days (deliberate) |
+| Human feature PR | Rolling — review within 3 business days | — |
+| Human bug fix | Rolling — review within 1 business day | — |
+
+### Dependabot Merge Policy
+
+| Category | Policy |
+|----------|--------|
+| Security CVE (any level) | Merge immediately after CI passes |
+| Patch bumps (`z` in `x.y.z`) | Merge on weekly sweep if CI is green |
+| Minor bumps | Merge on weekly sweep; skim changelog first |
+| `next` major version | Require an explicit tracking issue and migration plan |
+| `uuid` major (CJS→ESM) | Verify all import sites use ESM syntax first, then merge |
+| `storybook` major | Run `npx storybook@latest upgrade` — do **not** merge fragmented Dependabot PRs individually; they must be coordinated (all `@storybook/*` at the same version) |
+
+### Pre-commit Hook Notes
+
+The pre-commit hook runs a fast subset of tests (`pnpm vitest run src/__tests__/HoloScriptValidator`) rather than the full 44K-test suite to avoid OOM. Full suite validation happens in CI.
+
+If you need to bypass the hook for an emergency fix:
+
+```bash
+# Only use --no-verify for truly unblocking scenarios; CI must still pass
+git commit --no-verify -m "fix: ..."
+```
+
+---
+
 ## Questions?
 
 - Open an [issue](https://github.com/brianonbased-dev/holoscript/issues)

@@ -11,6 +11,20 @@ updates:
     commit-message:
       prefix: 'chore'
       include: 'scope'
+    groups:
+      # All Storybook packages must move together to avoid version skew
+      storybook:
+        patterns:
+          - 'storybook'
+          - '@storybook/*'
+    ignore:
+      # next: 14 → 16 requires deliberate migration (App Router changes, etc.)
+      - dependency-name: 'next'
+        update-types: ['version-update:semver-major']
+      # uuid: v12+ drops CJS; audit all usages before merging the v13 bump
+      # Remove this ignore once uuid@13 PR (#70) is merged
+      # - dependency-name: 'uuid'
+      #   update-types: ['version-update:semver-major']
 
   # Check for GitHub Actions updates
   - package-ecosystem: 'github-actions'
