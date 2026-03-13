@@ -17,6 +17,16 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['junit', { outputFile: 'playwright-results.xml' }],
   ],
+  // Auto-start dev server when not using an external PLAYWRIGHT_BASE_URL.
+  // Skipped if the env var is already set (e.g. CI pointing at a deployed preview).
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'pnpm dev',
+        url: 'http://127.0.0.1:3100',
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3100',
     trace: 'on-first-retry',
