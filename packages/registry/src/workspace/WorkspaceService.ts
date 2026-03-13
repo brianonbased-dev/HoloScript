@@ -323,6 +323,15 @@ export class WorkspaceService {
   }
 
   // Simple encryption (in production, use proper key management)
+  // SECURITY [HIGH] HARDCODED FALLBACK KEY: If HOLOSCRIPT_SECRET_KEY is unset in production,
+  // all workspace secrets are encrypted with a known plaintext key anyone can read in this file.
+  // Before deploying: (1) set HOLOSCRIPT_SECRET_KEY to a cryptographically random 32-byte value
+  // from a secrets manager (e.g. AWS Secrets Manager, Vault); (2) replace the fallback below
+  // with a startup assertion (throw new Error('HOLOSCRIPT_SECRET_KEY is required')) so the
+  // service fails fast rather than silently degrading to the insecure default.
+  // SECURITY [MEDIUM] WEAK KEY DERIVATION: Buffer.from(key.padEnd(32).slice(0,32)) derives an
+  // AES key by padding with ASCII spaces — not a KDF. Replace with crypto.scryptSync or
+  // pbkdf2Sync before using user-supplied or short keys.
   private encryptSecret(value: string): string {
     const key = process.env.HOLOSCRIPT_SECRET_KEY || 'default-dev-key-32chars!';
     const iv = crypto.randomBytes(16);
@@ -337,6 +346,7 @@ export class WorkspaceService {
   }
 
   private decryptSecret(encryptedValue: string): string {
+    // SECURITY: same key concerns as encryptSecret above.
     const key = process.env.HOLOSCRIPT_SECRET_KEY || 'default-dev-key-32chars!';
     const [ivHex, encrypted] = encryptedValue.split(':');
     const iv = Buffer.from(ivHex, 'hex');

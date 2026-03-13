@@ -18,6 +18,9 @@ export class x402PaymentService {
    * @param recipientWallet The marketplace or creator receiving the funds
    */
   static requirePayment(costInWei: bigint, recipientWallet: string) {
+    // SECURITY [MEDIUM] NO RATE LIMITING: This middleware performs an async cryptographic
+    // operation per request. Apply express-rate-limit (or equivalent) on routes that use
+    // requirePayment to prevent signature-verification DoS. See docs/security/x402-threat-model.md §4.
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         const paymentReceipt = req.headers['x-payment-receipt'];
@@ -40,12 +43,34 @@ export class x402PaymentService {
 
         // 2. Receipt provided -> Verify the Agent's signature & transaction
         // (In a real production environment, we would ping the RPC to confirm the txHash)
-        const receipt = JSON.parse(paymentReceipt as string);
+        // SECURITY [HIGH] REPLAY ATTACK: A valid signature+txHash can be reused for any number
+        // of subsequent requests. Add a nonce or store processed txHashes in Redis/DB and reject
+        // duplicates. See docs/security/x402-threat-model.md §3.
+        let receipt: { txHash?: unknown; signature?: unknown; agentWallet?: unknown };
+        try {
+          // SECURITY [MEDIUM] UNTRUSTED INPUT: parse+validate before destructuring.
+          const parsed = JSON.parse(paymentReceipt as string);
+          if (typeof parsed !== 'object' || parsed === null) throw new Error('Receipt must be a JSON object');
+          receipt = parsed;
+        } catch {
+          res.status(400).json({ error: 'Malformed payment receipt' });
+          return;
+        }
         const { txHash, signature, agentWallet } = receipt;
 
         if (!txHash || !signature || !agentWallet) {
           throw new Error("Invalid receipt format");
         }
+
+        // SECURITY [CRITICAL] MISSING ON-CHAIN VERIFICATION: txHash is accepted but never
+        // verified against the blockchain. An attacker can present a valid signature with a
+        // fabricated or zero-value txHash. Before calling verifyMessage, confirm the tx exists,
+        // targets `recipientWallet`, and transfers >= costInWei on the expected network.
+        // See docs/security/x402-threat-model.md §2.
+
+        // SECURITY [LOW] SIGNED MESSAGE INCLUDES req.path: the signed message contains the
+        // request path which is user-controlled. Ensure routes are canonical (no path traversal)
+        // before constructing the signed message string.
 
         // Verify the signature came from this Agent's stated wallet
         const isValid = await verifyMessage({
@@ -64,7 +89,10 @@ export class x402PaymentService {
         next();
 
       } catch (err) {
-        res.status(500).json({ error: "Payment verification failed", details: String(err) });
+        // SECURITY [LOW] ERROR DETAIL LEAK: Do not expose internal error strings to callers.
+        // Log the full error server-side; return a generic message over the wire.
+        console.error('[x402] Payment verification error:', err);
+        res.status(500).json({ error: "Payment verification failed" });
       }
     };
   }

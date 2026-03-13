@@ -72,6 +72,12 @@
     "vitest": "^4.0.18"
   },
   "packageManager": "pnpm@8.12.0",
+  "pnpm": {
+    "overrides": {
+      "hono": ">=4.12.7",
+      "@hono/node-server": ">=1.14.1"
+    }
+  },
   "engines": {
     "node": ">=18.0.0"
   },
