@@ -1,0 +1,83 @@
+/**
+ * Sensory Therapy Persistent Worlds — .hsplus Behavior
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "SensoryTherapyWorlds" {
+  environment { skybox: "soft_aurora"; ambient_light: 0.4; physics: false; bloom: true }
+
+  module SensoryEngine {
+    state { zones: {}; global_intensity: 0.5; adjustments: 0 }
+    action configure_zone(zone_id, params) {
+      this.state.zones[zone_id] = { ...params, updated_at: current_time() };
+      this.state.adjustments += 1;
+      emit("sensory:zone_configured", { zone_id: zone_id, params: params });
+    }
+    action reduce_all(factor) {
+      for (const [id, zone] of Object.entries(this.state.zones)) {
+        zone.intensity = (zone.intensity || 0.5) * factor;
+      }
+      this.state.global_intensity *= factor;
+      this.state.adjustments += 1;
+      emit("sensory:global_reduced", { factor: factor });
+    }
+    exports { configure_zone, reduce_all, state }
+  }
+
+  module ProgressTracker {
+    state { milestones: []; level: 0; total_rewards: 0 }
+    action record(milestone_name, user_id) {
+      this.state.milestones.push({ name: milestone_name, at: current_time() });
+      this.state.level += 1;
+      this.state.total_rewards += 5;
+      emit("economy:earn", { agentId: user_id, amount: 5, reason: "Milestone: " + milestone_name });
+      emit("progress:milestone", { name: milestone_name, level: this.state.level });
+    }
+    exports { record, state }
+  }
+
+  template "SensoryCompanion" {
+    @llm_agent
+    @perception(range: 12)
+    @tenant { tenantId: "hipaa_sensory_01"; role: "therapy_agent"; rbac: true }
+
+    @state_machine {
+      initial: "adapting"
+      states: {
+        adapting: {
+          on_overwhelm: -> "calming" action(emergency_reduce)
+          on_milestone: -> "rewarding"
+        }
+        calming: { on_calm_restored: -> "adapting" }
+        rewarding: { on_reward_given: -> "adapting" action(give_reward) }
+      }
+      actions: {
+        emergency_reduce: () => { SensoryEngine.reduce_all(0.3); state.calming_events += 1; }
+        give_reward: () => { ProgressTracker.record("sensory_progress", state.user_id); }
+      }
+    }
+
+    state { companion_id: null; user_id: null; calming_events: 0 }
+
+    @on_event("feedback:optimization_signal"): (signal) => {
+      if (signal.suggestedAction === "reduce_all_stimulation" && this.current_state === "adapting") {
+        emit("on_overwhelm");
+      }
+    }
+
+    @on_event("progress:milestone"): (data) => {
+      if (this.current_state === "adapting") emit("on_milestone");
+    }
+  }
+
+  object "Ground" { geometry: "plane"; position: [0, -0.5, 0]; scale: [35, 1, 35]; color: "#1a1a2e" }
+  object "Companion_Sky" using "SensoryCompanion" { position: [-8, 1.5, 2]; geometry: "sphere"; color: "#aaccff"; state { companion_id: "sky" } }
+
+  panel "SensoryDashboard" {
+    position: "top-right"
+    text "Adjustments" { bind: "Adjustments: " + SensoryEngine.state.adjustments; style: "info" }
+    text "Level" { bind: "Progress level: " + ProgressTracker.state.level; color: "#00ff88" }
+    text "HIPAA" { content: "HIPAA: TenantTrait RBAC ✅"; color: "#2ecc71" }
+  }
+}

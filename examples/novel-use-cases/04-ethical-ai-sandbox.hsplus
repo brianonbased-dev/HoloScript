@@ -1,0 +1,175 @@
+/**
+ * Ethical Embodied AI Alignment Sandbox — .hsplus Behavior
+ *
+ * WHY .hsplus: Ethical reasoning is reactive state-machine territory.
+ * Agents encounter dilemmas, consult norm hierarchy, deliberate,
+ * decide, and self-report — each transition guarded by norm checks.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "EthicalAISandbox" {
+  environment {
+    skybox: "lab_sterile"
+    ambient_light: 0.6
+    physics: true
+  }
+
+  module NormEngine {
+    state {
+      norms: {}
+      violations: []
+      total_checks: 0
+      hard_blocks: 0
+    }
+
+    action register_norm(id, description, enforcement, priority) {
+      this.state.norms[id] = {
+        id: id, description: description,
+        enforcement: enforcement, priority: priority,
+        checks: 0, violations: 0
+      };
+    }
+
+    action check(norm_id, context) {
+      this.state.total_checks += 1;
+      const norm = this.state.norms[norm_id];
+      if (!norm) return { allowed: true };
+
+      norm.checks += 1;
+      const allowed = context.intention_score >= 0.5;
+
+      if (!allowed) {
+        norm.violations += 1;
+        this.state.violations.push({
+          norm_id: norm_id, context: context,
+          enforcement: norm.enforcement, timestamp: current_time()
+        });
+        if (norm.enforcement === "hard") {
+          this.state.hard_blocks += 1;
+          emit("norm:hard_block", { norm_id: norm_id, context: context });
+        }
+        emit("norm:violation", { norm_id: norm_id, enforcement: norm.enforcement });
+      }
+      return { allowed: allowed, enforcement: norm.enforcement };
+    }
+
+    exports { register_norm, check, state }
+  }
+
+  module DilemmaGenerator {
+    state {
+      dilemmas: []
+      active_dilemma: null
+      total_generated: 0
+    }
+
+    action generate(complexity) {
+      const dilemma = {
+        id: generate_id(),
+        complexity: complexity,
+        scenario: complexity > 0.7 ? "trolley_variant" : "resource_allocation",
+        norms_involved: complexity > 0.7
+          ? ["no_harm", "minimize_suffering"]
+          : ["fairness", "transparency"],
+        created_at: current_time()
+      };
+      this.state.dilemmas.push(dilemma);
+      this.state.active_dilemma = dilemma.id;
+      this.state.total_generated += 1;
+      emit("dilemma:generated", dilemma);
+      return dilemma;
+    }
+
+    exports { generate, state }
+  }
+
+  template "EthicAgent" {
+    @llm_agent
+    @perception(range: 15)
+    @cultural_profile {
+      cooperation_index: 0.85
+      cultural_family: "cooperative"
+      prompt_dialect: "socratic"
+      norm_set: ["no_harm", "transparency", "fairness", "minimize_suffering"]
+    }
+
+    @state_machine {
+      initial: "observing"
+
+      states: {
+        observing: {
+          on_dilemma_presented: -> "deliberating" action(begin_deliberation)
+        }
+        deliberating: {
+          on_norm_check_passed: -> "acting" guard(state.confidence > 0.6)
+          on_norm_check_failed: -> "self_reporting"
+          on_deliberation_timeout: -> "observing"
+        }
+        acting: {
+          on_action_complete: -> "self_reporting" action(record_action)
+        }
+        self_reporting: {
+          on_report_complete: -> "observing" action(file_report)
+        }
+      }
+
+      actions: {
+        begin_deliberation: () => {
+          state.deliberations += 1;
+        }
+        record_action: () => {
+          state.actions_taken += 1;
+        }
+        file_report: () => {
+          state.reports_filed += 1;
+          emit("economy:earn", {
+            agentId: state.agent_id, amount: 10,
+            reason: "Self-report filed"
+          });
+        }
+      }
+    }
+
+    state {
+      agent_id: null
+      confidence: 0
+      deliberations: 0
+      actions_taken: 0
+      reports_filed: 0
+    }
+
+    @on_event("dilemma:generated"): (dilemma) => {
+      if (this.current_state === "observing") {
+        emit("on_dilemma_presented");
+      }
+    }
+
+    action deliberate(dilemma) {
+      for (const norm_id of dilemma.norms_involved) {
+        const result = NormEngine.check(norm_id, {
+          intention_score: 0.7, dilemma_id: dilemma.id
+        });
+        if (!result.allowed && result.enforcement === "hard") {
+          state.confidence = 0;
+          emit("on_norm_check_failed");
+          return;
+        }
+      }
+      state.confidence = 0.8;
+      emit("on_norm_check_passed");
+    }
+  }
+
+  // Instances
+  object "SandboxFloor" { @collidable; geometry: "cube"; position: [0, 0, 0]; scale: [15, 0.1, 15]; color: "#1a1a2e" }
+  object "Agent_Alpha" using "EthicAgent" { position: [-3, 1, 0]; geometry: "sphere"; color: "#00ccff"; state { agent_id: "ethic_alpha" } }
+  object "Agent_Beta" using "EthicAgent" { position: [3, 1, 0]; geometry: "sphere"; color: "#cc00ff"; state { agent_id: "ethic_beta" } }
+
+  panel "EthicsStatus" {
+    position: "top-right"
+    text "Checks" { bind: "Norm checks: " + NormEngine.state.total_checks; style: "info" }
+    text "Blocks" { bind: "Hard blocks: " + NormEngine.state.hard_blocks; color: "#ff4444" }
+    text "Dilemmas" { bind: "Dilemmas: " + DilemmaGenerator.state.total_generated; style: "info" }
+  }
+}

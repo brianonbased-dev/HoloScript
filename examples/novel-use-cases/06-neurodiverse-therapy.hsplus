@@ -1,0 +1,223 @@
+/**
+ * Neurodiverse Adaptive Therapy Worlds — .hsplus Behavior
+ *
+ * WHY .hsplus: Sensory adaptation is a reactive loop — biometric
+ * input → threshold check → environment adjustment → feedback.
+ * Module-encapsulated sensory profiles and state-machine therapy
+ * session lifecycle.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "NeurodiverseTherapy" {
+  environment {
+    skybox: "gentle_clouds"
+    ambient_light: 0.4
+    physics: false
+    bloom: true
+  }
+
+  module SensoryProfileManager {
+    state {
+      profiles: {}
+      active_profile: null
+      adaptations_made: 0
+    }
+
+    action create_profile(user_id, preferences) {
+      this.state.profiles[user_id] = {
+        id: user_id,
+        light_tolerance: preferences.light_tolerance || 0.5,
+        sound_tolerance: preferences.sound_tolerance || 0.5,
+        particle_tolerance: preferences.particle_tolerance || 0.5,
+        haptic_tolerance: preferences.haptic_tolerance || 0.5,
+        color_warmth: preferences.color_warmth || 0.5,
+        updated_at: current_time()
+      };
+      emit("profile:created", { user_id: user_id });
+    }
+
+    action adapt(user_id, biometric_data) {
+      const profile = this.state.profiles[user_id];
+      if (!profile) return;
+
+      // Reduce stimulation if overwhelm detected
+      if (biometric_data.overwhelm_score > 0.7) {
+        profile.light_tolerance = Math.max(0.1, profile.light_tolerance - 0.1);
+        profile.sound_tolerance = Math.max(0.1, profile.sound_tolerance - 0.1);
+        profile.particle_tolerance = Math.max(0.1, profile.particle_tolerance - 0.1);
+      }
+      // Increase if user is calm and focused
+      if (biometric_data.calm_score > 0.8 && biometric_data.focus_score > 0.7) {
+        profile.light_tolerance = Math.min(1.0, profile.light_tolerance + 0.05);
+        profile.sound_tolerance = Math.min(1.0, profile.sound_tolerance + 0.05);
+      }
+
+      profile.updated_at = current_time();
+      this.state.adaptations_made += 1;
+      this.state.active_profile = user_id;
+
+      emit("profile:adapted", {
+        user_id: user_id,
+        light: profile.light_tolerance,
+        sound: profile.sound_tolerance,
+        particle: profile.particle_tolerance
+      });
+    }
+
+    exports { create_profile, adapt, state }
+  }
+
+  module SessionTracker {
+    state {
+      sessions: []
+      active_session: null
+      milestones_reached: 0
+    }
+
+    action start_session(user_id, companion_id) {
+      const session = {
+        id: generate_id(),
+        user_id: user_id,
+        companion_id: companion_id,
+        started_at: current_time(),
+        events: [],
+        comfort_samples: [],
+        status: "active"
+      };
+      this.state.sessions.push(session);
+      this.state.active_session = session.id;
+      emit("session:started", { id: session.id, user_id: user_id });
+    }
+
+    action record_event(event_type, data) {
+      const session = this.state.sessions.find(s => s.id === this.state.active_session);
+      if (session) {
+        session.events.push({ type: event_type, data: data, at: current_time() });
+      }
+    }
+
+    action record_comfort(score) {
+      const session = this.state.sessions.find(s => s.id === this.state.active_session);
+      if (session) {
+        session.comfort_samples.push({ score: score, at: current_time() });
+        emit("feedback:update_metric", { name: "sensory_comfort", value: score });
+      }
+    }
+
+    action end_session() {
+      const session = this.state.sessions.find(s => s.id === this.state.active_session);
+      if (session) {
+        session.status = "completed";
+        session.ended_at = current_time();
+
+        const avg_comfort = session.comfort_samples.length > 0
+          ? session.comfort_samples.reduce((s, c) => s + c.score, 0) / session.comfort_samples.length
+          : 0;
+
+        if (avg_comfort > 0.7) {
+          this.state.milestones_reached += 1;
+          emit("session:milestone", { session_id: session.id, avg_comfort: avg_comfort });
+        }
+      }
+      this.state.active_session = null;
+      emit("session:ended", { session_id: session.id });
+    }
+
+    exports { start_session, record_event, record_comfort, end_session, state }
+  }
+
+  template "TherapyCompanion" {
+    @llm_agent
+    @perception(range: 10)
+    @cultural_profile {
+      cooperation_index: 0.98
+      cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["sensory_safety", "user_autonomy", "gentleness"]
+    }
+
+    @state_machine {
+      initial: "greeting"
+
+      states: {
+        greeting: {
+          on_session_started: -> "monitoring"
+        }
+        monitoring: {
+          on_overwhelm_detected: -> "calming" action(reduce_stimulation)
+          on_milestone_reached: -> "celebrating" action(reward_progress)
+          on_session_end: -> "greeting" action(wrap_up)
+        }
+        calming: {
+          on_calm_restored: -> "monitoring"
+          on_emergency: -> "emergency_pause" action(halt_all_stimulation)
+        }
+        celebrating: {
+          on_celebration_done: -> "monitoring"
+        }
+        emergency_pause: {
+          on_resume: -> "monitoring"
+        }
+      }
+
+      actions: {
+        reduce_stimulation: () => {
+          state.calming_interventions += 1;
+          SensoryProfileManager.adapt(state.user_id, {
+            overwhelm_score: 0.9, calm_score: 0.1, focus_score: 0.2
+          });
+        }
+        reward_progress: () => {
+          state.milestones_celebrated += 1;
+          emit("economy:earn", {
+            agentId: state.user_id, amount: 5,
+            reason: "Therapy milestone reached"
+          });
+        }
+        halt_all_stimulation: () => {
+          emit("companion:emergency", { companion_id: state.companion_id });
+        }
+        wrap_up: () => {
+          SessionTracker.end_session();
+        }
+      }
+    }
+
+    state {
+      companion_id: null
+      user_id: null
+      calming_interventions: 0
+      milestones_celebrated: 0
+    }
+
+    @on_event("session:started"): (data) => {
+      state.user_id = data.user_id;
+      emit("on_session_started");
+    }
+
+    @on_event("session:milestone"): (data) => {
+      if (this.current_state === "monitoring") {
+        emit("on_milestone_reached");
+      }
+    }
+
+    @on_update: (delta) => {
+      if (this.current_state !== "monitoring") return;
+      // Periodically sample comfort
+      SessionTracker.record_comfort(0.5 + Math.random() * 0.4);
+    }
+  }
+
+  // Instances
+  object "Ground" { geometry: "plane"; position: [0, -0.5, 0]; scale: [30, 1, 30]; color: "#1a1a2e" }
+  object "Companion_Sky" using "TherapyCompanion" { position: [-5, 1.5, 0]; geometry: "sphere"; color: "#aaccff"; state { companion_id: "sky_001" } }
+  object "Companion_Sun" using "TherapyCompanion" { position: [5, 1.5, 0]; geometry: "sphere"; color: "#ffddaa"; state { companion_id: "sun_001" } }
+
+  panel "TherapyStatus" {
+    position: "top-right"
+    text "Sessions" { bind: "Sessions: " + SessionTracker.state.sessions.length; style: "info" }
+    text "Adaptations" { bind: "Adaptations: " + SensoryProfileManager.state.adaptations_made; style: "info" }
+    text "Milestones" { bind: "Milestones: " + SessionTracker.state.milestones_reached; color: "#00ff88" }
+  }
+}

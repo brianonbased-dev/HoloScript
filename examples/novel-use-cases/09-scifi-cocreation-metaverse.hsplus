@@ -1,0 +1,99 @@
+/**
+ * Sci-Fi Co-Creation Metaverse — .hsplus Behavior
+ *
+ * WHY .hsplus: Multi-faction lore collaboration needs reactive voting,
+ * @cultural_memory consolidation handlers, and module-driven plot
+ * branch management with faction-balance feedback loops.
+ *
+ * @version 5.0.0
+ * @format .hsplus (behavior)
+ */
+composition "SciFiCoCreation" {
+  environment { skybox: "nebula_city"; ambient_light: 0.5; physics: true; bloom: true }
+
+  module LoreGraph {
+    state { entries: {}; total: 0; coherence: 1.0 }
+    action add(text, faction, author_id) {
+      const id = generate_id();
+      this.state.entries[id] = { text: text, faction: faction, author: author_id, votes: 0, canonical: false, at: current_time() };
+      this.state.total += 1;
+      emit("lore:added", { id: id, faction: faction });
+      return id;
+    }
+    action canonize(lore_id) {
+      if (this.state.entries[lore_id]) { this.state.entries[lore_id].canonical = true; }
+      const canon = Object.values(this.state.entries).filter(e => e.canonical).length;
+      this.state.coherence = this.state.total > 0 ? canon / this.state.total : 1.0;
+    }
+    exports { add, canonize, state }
+  }
+
+  module FactionBalancer {
+    state { contributions: {}; imbalance: 0 }
+    action record(faction) {
+      this.state.contributions[faction] = (this.state.contributions[faction] || 0) + 1;
+      const values = Object.values(this.state.contributions);
+      const max = Math.max(...values); const min = Math.min(...values);
+      this.state.imbalance = max > 0 ? (max - min) / max : 0;
+      emit("feedback:update_metric", { name: "faction_balance", value: 1 - this.state.imbalance });
+      if (this.state.imbalance > 0.4) {
+        emit("balancer:imbalance_alert", { imbalance: this.state.imbalance, contributions: this.state.contributions });
+      }
+    }
+    exports { record, state }
+  }
+
+  template "FactionCitizen" {
+    @llm_agent
+    @perception(range: 25)
+    @cultural_memory { capacity: 300; episodicDecayRate: 0.003; traceLifetime: 800; consolidation: true; consolidationThreshold: 5 }
+
+    @state_machine {
+      initial: "idle"
+      states: {
+        idle: { on_inspiration: -> "authoring" }
+        authoring: { on_lore_submitted: -> "idle" action(on_authored) }
+      }
+      actions: {
+        on_authored: () => {
+          state.stories_authored += 1;
+          FactionBalancer.record(state.faction);
+          emit("economy:earn", { agentId: state.agent_id, amount: 10, reason: "Lore contribution" });
+        }
+      }
+    }
+
+    state { agent_id: null; faction: null; stories_authored: 0; sops_formed: 0 }
+
+    @on_event("balancer:imbalance_alert"): (data) => {
+      // Underrepresented factions get inspiration boost
+      const my_count = data.contributions[state.faction] || 0;
+      const max_count = Math.max(...Object.values(data.contributions));
+      if (my_count < max_count * 0.6 && this.current_state === "idle") {
+        emit("on_inspiration");
+      }
+    }
+
+    on_memory_consolidation(data) {
+      state.sops_formed += 1;
+      emit("sop_formed", { agent_id: state.agent_id, type: data.pattern_type });
+    }
+
+    action propose_lore(text) {
+      LoreGraph.add(text, state.faction, state.agent_id);
+      emit("on_lore_submitted");
+    }
+  }
+
+  object "CityPlatform" { geometry: "cylinder"; position: [0, 0, 0]; scale: [30, 0.3, 30]; color: "#0d0d1a" }
+  object "Solaris_A" using "FactionCitizen" { position: [-6, 1, 4]; geometry: "humanoid"; color: "#ffd700"; state { agent_id: "sol_001"; faction: "Solaris" } }
+  object "Guild_A" using "FactionCitizen" { position: [6, 1, 4]; geometry: "humanoid"; color: "#0088ff"; state { agent_id: "guild_001"; faction: "Guild" } }
+  object "Terra_A" using "FactionCitizen" { position: [0, 1, -6]; geometry: "humanoid"; color: "#00cc66"; state { agent_id: "terra_001"; faction: "Terraform" } }
+
+  panel "CoCreation" {
+    position: "top-right"
+    text "Lore" { bind: "Lore: " + LoreGraph.state.total; style: "info" }
+    text "Coherence" { bind: "Coherence: " + LoreGraph.state.coherence; color: "#00ff88" }
+    text "Imbalance" { bind: "Faction imbalance: " + FactionBalancer.state.imbalance; style: "info" }
+  }
+}
