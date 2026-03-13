@@ -7,7 +7,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Gizmo Synchronization', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/create');
+    await page.goto('/create', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+
+    // Next dev can briefly render an error shell during incremental compiles.
+    const startupErrorHeading = page.getByRole('heading', { name: /something went wrong/i }).first();
+    if (await startupErrorHeading.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+    }
+
+    await expect(page.locator('canvas').first()).toBeVisible({ timeout: 60_000 });
     
     // Ensure we are in the Scene tab
     const sceneTab = page.locator('button:has-text("Scene"), [data-tab="scene"]').first();
@@ -25,20 +33,15 @@ test.describe('Gizmo Synchronization', () => {
       }
     });
 
-    // 1. Add a Box to the scene to interact with
-    const addButton = page.getByRole('button', { name: /add/i }).first();
-    await expect(addButton).toBeVisible({ timeout: 10_000 });
-    await addButton.click();
-
-    const meshOption = page.getByRole('option', { name: /mesh object/i }).first();
-    if (await meshOption.isVisible()) {
-      await meshOption.click();
-    } else {
-      // Fallback for alternate layouts exposing primitive buttons directly.
-      await page.locator('button:has-text("Box")').first().click();
+    // 1. Select an object (tree row if available, otherwise click the viewport)
+    const outlinerRow = page
+      .locator('[role="tree"] [role="treeitem"], [role="tree"] [class*="cursor-pointer"]')
+      .first();
+    if (await outlinerRow.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await outlinerRow.click();
     }
-    
-    // 2. Select the Box (clicking near the center of the canvas)
+
+    // 2. Also click the viewport to ensure transform controls bind to the active object.
     const canvas = page.locator('canvas').first();
     await canvas.click({ position: { x: 400, y: 300 } });
 

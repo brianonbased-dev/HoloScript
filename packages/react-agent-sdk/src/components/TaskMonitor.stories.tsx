@@ -2,7 +2,7 @@
  * TaskMonitor Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TaskMonitor } from './TaskMonitor';
 
 const meta: Meta<typeof TaskMonitor> = {
