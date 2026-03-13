@@ -22,6 +22,10 @@ import { UnauthorizedCompilerAccessError } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
 
+// OOM fix: Pre-allocation reduced from 20K to 0 (demand-allocated).
+// The pool is used (acquire at compileNode, compileComposition, compileLight)
+// but 20K × ~80 bytes = ~1.6MB pre-allocated upfront was wasteful.
+// Nodes are created on first acquire() and recycled via release().
 const r3fNodePool = new ASTNodePool<R3FNode>(
   () => ({ type: '', props: {} }),
   (node) => {
@@ -32,7 +36,7 @@ const r3fNodePool = new ASTNodePool<R3FNode>(
     node.traits = undefined;
     node.directives = undefined;
   },
-  20000 // Higher capacity since R3F trees can be large
+  0 // Was 20000 — demand-allocate instead of pre-allocating
 );
 
 export interface R3FNode {

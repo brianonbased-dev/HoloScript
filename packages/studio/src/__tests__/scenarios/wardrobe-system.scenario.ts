@@ -10,16 +10,18 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-const { useCharacterStore } = await import('@/lib/stores');
+const { useCharacterStore, useWardrobeStore } = await import('@/lib/stores');
 const { BUILTIN_ITEMS } = await import('@/data/wardrobeItems');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resetStore() {
-  useCharacterStore.setState({
-    glbUrl: null,
+  useWardrobeStore.setState({
     equippedItems: {},
     wardrobeItems: [],
+  });
+  useCharacterStore.setState({
+    glbUrl: null,
     panelMode: 'skeleton',
     customizeMode: false,
     morphTargets: {},
@@ -33,30 +35,30 @@ describe('Scenario: Wardrobe System — Store', () => {
   beforeEach(resetStore);
 
   it('equippedItems starts empty', () => {
-    expect(useCharacterStore.getState().equippedItems).toEqual({});
+    expect(useWardrobeStore.getState().equippedItems).toEqual({});
   });
 
   it('equipItem() equips a hair item', () => {
     const item = BUILTIN_ITEMS.find((i) => i.slot === 'hair')!;
-    useCharacterStore.getState().equipItem(item);
-    expect(useCharacterStore.getState().equippedItems.hair).toEqual(item);
+    useWardrobeStore.getState().equipItem(item);
+    expect(useWardrobeStore.getState().equippedItems.hair).toEqual(item);
   });
 
   it('equipItem() replaces existing item in same slot', () => {
     const items = BUILTIN_ITEMS.filter((i) => i.slot === 'hair');
-    useCharacterStore.getState().equipItem(items[0]);
-    useCharacterStore.getState().equipItem(items[1]);
-    expect(useCharacterStore.getState().equippedItems.hair?.id).toBe(items[1].id);
+    useWardrobeStore.getState().equipItem(items[0]);
+    useWardrobeStore.getState().equipItem(items[1]);
+    expect(useWardrobeStore.getState().equippedItems.hair?.id).toBe(items[1].id);
   });
 
   it('equipping different slots preserves all', () => {
     const hair = BUILTIN_ITEMS.find((i) => i.slot === 'hair')!;
     const top = BUILTIN_ITEMS.find((i) => i.slot === 'top')!;
     const shoes = BUILTIN_ITEMS.find((i) => i.slot === 'shoes')!;
-    useCharacterStore.getState().equipItem(hair);
-    useCharacterStore.getState().equipItem(top);
-    useCharacterStore.getState().equipItem(shoes);
-    const eq = useCharacterStore.getState().equippedItems;
+    useWardrobeStore.getState().equipItem(hair);
+    useWardrobeStore.getState().equipItem(top);
+    useWardrobeStore.getState().equipItem(shoes);
+    const eq = useWardrobeStore.getState().equippedItems;
     expect(eq.hair?.id).toBe(hair.id);
     expect(eq.top?.id).toBe(top.id);
     expect(eq.shoes?.id).toBe(shoes.id);
@@ -64,27 +66,27 @@ describe('Scenario: Wardrobe System — Store', () => {
 
   it('unequipSlot() removes item from specific slot', () => {
     const item = BUILTIN_ITEMS.find((i) => i.slot === 'top')!;
-    useCharacterStore.getState().equipItem(item);
-    useCharacterStore.getState().unequipSlot('top');
-    expect(useCharacterStore.getState().equippedItems.top).toBeUndefined();
+    useWardrobeStore.getState().equipItem(item);
+    useWardrobeStore.getState().unequipSlot('top');
+    expect(useWardrobeStore.getState().equippedItems.top).toBeUndefined();
   });
 
   it('unequipSlot() preserves other slots', () => {
     const hair = BUILTIN_ITEMS.find((i) => i.slot === 'hair')!;
     const top = BUILTIN_ITEMS.find((i) => i.slot === 'top')!;
-    useCharacterStore.getState().equipItem(hair);
-    useCharacterStore.getState().equipItem(top);
-    useCharacterStore.getState().unequipSlot('top');
-    expect(useCharacterStore.getState().equippedItems.hair?.id).toBe(hair.id);
+    useWardrobeStore.getState().equipItem(hair);
+    useWardrobeStore.getState().equipItem(top);
+    useWardrobeStore.getState().unequipSlot('top');
+    expect(useWardrobeStore.getState().equippedItems.hair?.id).toBe(hair.id);
   });
 
   it('clearWardrobe() removes all equipped items', () => {
     const hair = BUILTIN_ITEMS.find((i) => i.slot === 'hair')!;
     const top = BUILTIN_ITEMS.find((i) => i.slot === 'top')!;
-    useCharacterStore.getState().equipItem(hair);
-    useCharacterStore.getState().equipItem(top);
-    useCharacterStore.getState().clearWardrobe();
-    expect(useCharacterStore.getState().equippedItems).toEqual({});
+    useWardrobeStore.getState().equipItem(hair);
+    useWardrobeStore.getState().equipItem(top);
+    useWardrobeStore.getState().clearWardrobe();
+    expect(useWardrobeStore.getState().equippedItems).toEqual({});
   });
 });
 

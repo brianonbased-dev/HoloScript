@@ -1,0 +1,70 @@
+// Scenario 4: Multiplayer VR Social
+// Purpose: Real-world usage pattern stress test
+// Complexity: High — networked avatars, spatial audio, interactables
+
+composition "MultiplayerVRSocial" {
+  metadata {
+    title: "Multiplayer VR Social Benchmark"
+    version: "1.0"
+    tags: ["benchmark", "multiplayer", "vr", "social"]
+  }
+  scene {
+    environment { skybox: "sunset"; lighting: "warm"; ambient_intensity: 0.3 }
+
+    object "Plaza" {
+      @physics(type: "static")
+      @collidable
+      geometry: "plane"
+      scale: [50, 1, 50]
+      color: "#8B7355"
+      material: "wood_floor"
+    }
+    object "LocalPlayer" {
+      @networked(mode: "owner", syncProperties: ["position", "rotation", "health", "animationState"], syncRate: 20, interpolation: true)
+      @skeleton(type: "humanoid", height: 1.8)
+      @locomotion(mode: "teleport", speed: 3.0)
+      @spatial_audio(source: "voice", range: 10, falloff: "inverse")
+      position: [0, 0, 0]
+    }
+    object "RemotePlayerTemplate" {
+      @networked(mode: "shared", syncProperties: ["position", "rotation", "animationState"], syncRate: 20, interpolation: true)
+      @skeleton(type: "humanoid", height: 1.8)
+      @spatial_audio(source: "voice", range: 10)
+      visible: false
+    }
+    object "GrabbableMug" {
+      @networked(mode: "shared", syncRate: 10)
+      @grabbable
+      @physics(mass: 0.3)
+      geometry: "cylinder"
+      position: [2, 1.1, 0]
+      scale: [0.08, 0.12, 0.08]
+      color: "#cc8844"
+    }
+    object "Whiteboard" {
+      @networked(mode: "shared", syncRate: 5)
+      @clickable
+      @interactive
+      geometry: "box"
+      position: [0, 2, -5]
+      scale: [3, 2, 0.05]
+      color: "#ffffff"
+    }
+    object "Table" { @physics(type: "static"); geometry: "box"; position: [2, 0.5, 0]; scale: [1.2, 1.0, 0.8]; color: "#5a3a1a" }
+    object "Couch" { @physics(type: "static"); @sittable; geometry: "box"; position: [-3, 0.4, 2]; scale: [2.0, 0.8, 0.8]; color: "#4444aa" }
+    object "AmbientMusic" {
+      @spatial_audio(source: "music", file: "ambient.ogg", range: 25, volume: 0.3, loop: true)
+      @ambient
+      position: [0, 3, 0]
+    }
+    object "Fountain" {
+      @spatial_audio(source: "sfx", file: "water.ogg", range: 8, loop: true)
+      @physics(type: "static")
+      geometry: "cylinder"
+      position: [0, 0.5, -2]
+      color: "#aaaacc"
+    }
+    object "WarmSpot1" { type: "spot_light"; position: [3, 5, 0]; intensity: 0.8; color: "#ffcc88"; cast_shadows: true }
+    object "MainLight" { type: "directional_light"; position: [5, 10, 5]; intensity: 0.5; color: "#ffeedd"; cast_shadows: true }
+  }
+}

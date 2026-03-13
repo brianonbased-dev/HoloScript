@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import { useCharacterStore, type WardrobeSlot, type WardrobeItem } from '@/lib/stores';
+import { useCharacterStore, useWardrobeStore, type WardrobeSlot, type WardrobeItem } from '@/lib/stores';
 import { Shirt, Scissors, Footprints, Sparkles, X } from 'lucide-react';
 import { BUILTIN_ITEMS } from '@/data/wardrobeItems';
 
@@ -26,8 +26,8 @@ const SLOT_TABS: { slot: WardrobeSlot | 'all'; label: string; icon: React.ReactN
 // ── Item card ───────────────────────────────────────────────────────────────
 
 function ItemCard({ item, isEquipped }: { item: WardrobeItem; isEquipped: boolean }) {
-  const equipItem = useCharacterStore((s) => s.equipItem);
-  const unequipSlot = useCharacterStore((s) => s.unequipSlot);
+  const equipItem = useWardrobeStore((s) => s.equipItem);
+  const unequipSlot = useWardrobeStore((s) => s.unequipSlot);
 
   return (
     <button
@@ -54,8 +54,8 @@ function ItemCard({ item, isEquipped }: { item: WardrobeItem; isEquipped: boolea
 
 export function WardrobePanel() {
   const [activeSlot, setActiveSlot] = useState<WardrobeSlot | 'all'>('hair');
-  const equippedItems = useCharacterStore((s) => s.equippedItems);
-  const clearWardrobe = useCharacterStore((s) => s.clearWardrobe);
+  const equippedItems = useWardrobeStore((s) => s.equippedItems);
+  const clearWardrobe = useWardrobeStore((s) => s.clearWardrobe);
   const glbUrl = useCharacterStore((s) => s.glbUrl);
 
   const filteredItems =

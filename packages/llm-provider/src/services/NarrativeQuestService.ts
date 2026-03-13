@@ -1,6 +1,3 @@
-import { llmConfig } from '../config';
-import { z } from 'zod';
-
 export interface QuestParams {
   locationName: string;
   theme: 'cyberpunk' | 'fantasy' | 'historical' | 'mystery';

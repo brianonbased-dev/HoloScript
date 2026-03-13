@@ -4,6 +4,8 @@ _The declarative language for the spatial and autonomous web._
 
 > 🎯 **Current version: v5.0.0** — see [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > 📝 **Refinement Master Plan:** The active sprint blueprint for stabilizing V1-V5 is located at [docs/planning/V1_V5_REFINEMENT_MASTER_PLAN.md](../planning/V1_V5_REFINEMENT_MASTER_PLAN.md).
+> 📊 **Weekly execution lanes:** Use the live Now/Next/Blocked template in [docs/planning/V1_V5_REFINEMENT_MASTER_PLAN.md](../planning/V1_V5_REFINEMENT_MASTER_PLAN.md).
+> 🔭 **V6 vision document:** The canonical v6 strategy is [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md).
 > 📦 Historical milestones (from v3.x to v5.0) are maintained in [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 
 ---
@@ -42,6 +44,8 @@ Refining the 1,800+ existing traits for seamless interoperability.
 
 ## 🔮 Mid-term Goals (v6.0 - H2 2026)
 
+This phase is measured by execution evidence from the refinement lanes: v6 is considered on-track only when weekly lane outputs show merged hardening milestones across Studio DX, core reliability, MCP correction loops, and test/benchmark stability.
+
 ### Maturing Autonomous Systems (v5 Realization)
 
 Pushing the v5 agentic mesh to enterprise-grade reliability.
@@ -70,4 +74,4 @@ The ultimate realization of the v6.0 core. A perfected foundation allows a `.hol
 
 ---
 
-_For detailed specifications, see the [Vision Documents](./vision/)._
+_For detailed specifications, see [Vision Documents](./vision/) and the v6 anchor at [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md)._

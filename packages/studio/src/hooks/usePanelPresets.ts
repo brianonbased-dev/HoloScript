@@ -6,7 +6,7 @@
  * Named presets: "Default", "World Builder", "Debug", "Custom 1-3"
  */
 import { useState, useCallback } from 'react';
-import type { PanelTab } from '../components/panels/RightPanelSidebar';
+import type { PanelTab } from '../types/panels';
 
 const STORAGE_KEY = 'holoscript-studio-presets';
 

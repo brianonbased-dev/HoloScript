@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
+  X,
 } from 'lucide-react';
 
 export type BrushType = 'round' | 'square' | 'scatter' | 'airbrush' | 'stamp' | 'eraser';
@@ -59,7 +60,7 @@ const BRUSH_PRESETS: Array<{ name: string; config: Partial<BrushConfig> }> = [
 
 let layerId = 2;
 
-export function TexturePaintPanel({ onBrushChange }: { onBrushChange?: (b: BrushConfig) => void }) {
+export function TexturePaintPanel({ onBrushChange, onClose }: { onBrushChange?: (b: BrushConfig) => void; onClose?: () => void }) {
   const [brush, setBrush] = useState<BrushConfig>(DEFAULT_BRUSH);
   const [color, setColor] = useState('#ffffff');
   const [layers, setLayers] = useState<PaintLayer[]>([
@@ -150,6 +151,11 @@ export function TexturePaintPanel({ onBrushChange }: { onBrushChange?: (b: Brush
           <span className="text-sm font-semibold text-studio-text">Texture Paint</span>
         </div>
         <div className="flex gap-1">
+          {onClose && (
+            <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-red-400" title="Close">
+              <X className="h-3 w-3" />
+            </button>
+          )}
           <button className="rounded p-1 text-studio-muted hover:text-studio-text">
             <Undo2 className="h-3 w-3" />
           </button>

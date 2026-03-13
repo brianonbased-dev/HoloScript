@@ -60,7 +60,22 @@ export type PanelKey =
   | 'plugins'
   | 'sandboxedPlugins'
   | 'splatWizard'
-  | 'agentMonitor';
+  | 'agentMonitor'
+  | 'texturePaint'
+  | 'mcpConfig'
+  | 'agentWorkflow'
+  | 'behaviorTree'
+  | 'agentEnsemble'
+  | 'eventMonitor'
+  | 'toolCallGraph'
+  | 'marketplace'
+  | 'pluginManager'
+  | 'cloudDeploy'
+  | 'publish'
+  | 'examples'
+  | 'tutorial'
+  | 'hotkeyOverlay'
+  | 'prompts';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -133,6 +148,21 @@ const PANEL_KEYS: PanelKey[] = [
   'sandboxedPlugins',
   'splatWizard',
   'agentMonitor',
+  'texturePaint',
+  'mcpConfig',
+  'agentWorkflow',
+  'behaviorTree',
+  'agentEnsemble',
+  'eventMonitor',
+  'toolCallGraph',
+  'marketplace',
+  'pluginManager',
+  'cloudDeploy',
+  'publish',
+  'examples',
+  'tutorial',
+  'hotkeyOverlay',
+  'prompts',
 ];
 
 /** Panels that default to *open*. */
@@ -172,7 +202,7 @@ export const usePanelVisibilityStore = create<PanelVisibilityState>()(
         togglers[togglerName] = () =>
           set(
             (s) =>
-              ({ [field]: !(s as Record<string, boolean>)[field] }) as Partial<PanelVisibilityState>
+              ({ [field]: !(s as unknown as Record<string, boolean>)[field] }) as Partial<PanelVisibilityState>
           );
       }
 
@@ -208,7 +238,7 @@ export const usePanelVisibilityStore = create<PanelVisibilityState>()(
               patch[openFieldName(k)] = false;
             }
             const field = openFieldName(key);
-            patch[field] = !(s as Record<string, boolean>)[field];
+            patch[field] = !(s as unknown as Record<string, boolean>)[field];
             return patch as Partial<PanelVisibilityState>;
           });
         },

@@ -1,0 +1,136 @@
+// NPC AI Framework — 8 Agent/AI Traits
+// Demonstrates: @agent, @behavior_tree, @nav_mesh, @perception,
+//   @dialogue, @emotion, @memory, @goal_oriented
+
+composition "NPCAIFramework" {
+  metadata {
+    title: "NPC AI Framework"
+    version: "1.0"
+    tags: ["ai", "npc", "behavior", "agents"]
+  }
+  scene {
+    environment { skybox: "medieval_town"; lighting: "day"; ambient_intensity: 0.5 }
+
+    object "TownSquare" {
+      @physics(type: "static")
+      @collidable
+      @nav_mesh(
+        walkable_radius: 0.3,
+        step_height: 0.4,
+        slope_angle: 45,
+        auto_generate: true,
+        areas: ["road", "grass", "building_interior"]
+      )
+      geometry: "plane"
+      scale: [40, 1, 40]
+      color: "#9B8B6E"
+    }
+
+    // Merchant NPC with full AI stack
+    object "MerchantNPC" {
+      @agent(
+        role: "merchant",
+        faction: "townfolk",
+        autonomy: 0.8
+      )
+      @behavior_tree(
+        root: "merchant_daily_routine",
+        subtrees: ["greet_customer", "negotiate_price", "restock_inventory", "patrol_shop"],
+        tick_rate: 10
+      )
+      @perception(
+        sight_range: 15,
+        sight_angle: 120,
+        hearing_range: 10,
+        detection_layers: ["player", "npc", "threat"],
+        memory_duration: 60
+      )
+      @dialogue(
+        personality: "friendly_merchant",
+        knowledge: ["prices", "town_gossip", "quest_hooks"],
+        max_conversation_depth: 5,
+        voice: "male_middle_aged"
+      )
+      @emotion(
+        base_mood: "content",
+        reactivity: 0.6,
+        decay_rate: 0.1,
+        influences: ["trade_success", "threat_nearby", "time_of_day"]
+      )
+      @memory(
+        capacity: 100,
+        types: ["player_interactions", "trade_history", "threat_encounters"],
+        persistence: "session",
+        decay_rate: 0.01
+      )
+      @goal_oriented(
+        goals: [
+          { name: "earn_gold", priority: 0.8, target: 100 },
+          { name: "stay_safe", priority: 1.0, threshold: 0.3 },
+          { name: "maintain_stock", priority: 0.6, threshold: 5 }
+        ]
+      )
+      @skeleton(type: "humanoid", height: 1.75)
+      position: [5, 0, 3]
+    }
+
+    // Guard NPC with patrol behavior
+    object "GuardNPC" {
+      @agent(role: "guard", faction: "townfolk", autonomy: 0.5)
+      @behavior_tree(
+        root: "guard_patrol",
+        subtrees: ["patrol_route", "investigate_noise", "engage_threat", "return_to_post"],
+        tick_rate: 15
+      )
+      @perception(
+        sight_range: 25,
+        sight_angle: 90,
+        hearing_range: 20,
+        detection_layers: ["player", "npc", "threat", "contraband"]
+      )
+      @emotion(
+        base_mood: "alert",
+        reactivity: 0.8,
+        influences: ["threat_level", "fatigue", "duty_hours"]
+      )
+      @nav_mesh(agent_radius: 0.35, speed: 2.5, acceleration: 8)
+      @skeleton(type: "humanoid", height: 1.85)
+      position: [-8, 0, 0]
+    }
+
+    // Ambient townfolk with simple routines
+    object "TownfolkA" {
+      @agent(role: "civilian", faction: "townfolk", autonomy: 0.3)
+      @behavior_tree(
+        root: "daily_routine",
+        subtrees: ["go_to_work", "eat_lunch", "socialize", "go_home"],
+        tick_rate: 5
+      )
+      @perception(sight_range: 8, hearing_range: 5)
+      @emotion(base_mood: "neutral", reactivity: 0.4)
+      @dialogue(personality: "shy_villager", knowledge: ["weather", "local_events"])
+      @skeleton(type: "humanoid", height: 1.65)
+      position: [2, 0, -4]
+    }
+
+    // Quest-giving NPC with memory of player
+    object "ElderNPC" {
+      @agent(role: "quest_giver", faction: "townfolk", autonomy: 0.2)
+      @dialogue(
+        personality: "wise_elder",
+        knowledge: ["ancient_lore", "quest_dragon_slayer", "quest_lost_artifact", "town_history"],
+        max_conversation_depth: 8,
+        voice: "male_elderly"
+      )
+      @memory(
+        capacity: 200,
+        types: ["player_quests", "player_reputation", "world_events"],
+        persistence: "permanent"
+      )
+      @perception(sight_range: 10, hearing_range: 12)
+      @emotion(base_mood: "contemplative", reactivity: 0.3)
+      @skeleton(type: "humanoid", height: 1.70)
+      position: [0, 0, 8]
+    }
+  }
+}

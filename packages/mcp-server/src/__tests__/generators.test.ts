@@ -1,5 +1,36 @@
-import { describe, it, expect } from 'vitest';
-import { suggestTraits, generateObject, generateScene } from '../generators';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  suggestTraits,
+  generateObject,
+  generateScene,
+} from '../generators';
+
+vi.mock('@holoscript/llm-provider', () => ({
+  createProviderManager: vi.fn(() => ({
+    getRegisteredProviders: () => ['bitnet'],
+    getProvider: () => ({
+      generateHoloScript: vi.fn(async (request: { prompt: string }) => {
+        if (request.prompt.includes('single')) {
+          return {
+            code: 'composition "AICubeScene" {\n  template "CubeTemplate" {\n    @grabbable\n    geometry: "cube"\n    color: "#ff0000"\n  }\n\n  object "Cube" using "CubeTemplate" {\n    position: [0, 1, 0]\n  }\n}',
+            provider: 'bitnet',
+            detectedTraits: ['@grabbable'],
+          };
+        }
+
+        return {
+          code: 'composition "AIScene" {\n  environment {\n    skybox: "gradient"\n  }\n\n  object "Cube" {\n    position: [0, 1, 0]\n  }\n}',
+          provider: 'bitnet',
+          detectedTraits: [],
+        };
+      }),
+    }),
+  })),
+}));
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('suggestTraits', () => {
   describe('interaction keywords', () => {
@@ -276,3 +307,4 @@ describe('generateScene', () => {
     expect(result.code).toBeDefined();
   });
 });
+

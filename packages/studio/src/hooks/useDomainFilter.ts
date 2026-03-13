@@ -58,6 +58,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'character',
     'models',
     'templates',
+    'diagnostics',
   ]),
   game: new Set<PanelTab>([
     'safety',
@@ -88,6 +89,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'character',
     'models',
     'templates',
+    'diagnostics',
   ]),
   vr: new Set<PanelTab>([
     'safety',
@@ -111,6 +113,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'saveload',
     'models',
     'templates',
+    'diagnostics',
   ]),
   iot: new Set<PanelTab>([
     'safety',
@@ -130,6 +133,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'bus',
     'agent',
     'templates',
+    'diagnostics',
   ]),
   film: new Set<PanelTab>([
     'safety',
@@ -151,6 +155,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'character',
     'models',
     'templates',
+    'diagnostics',
   ]),
 };
 

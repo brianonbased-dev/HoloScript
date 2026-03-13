@@ -42,12 +42,14 @@ describe('HoloScriptValidator — Production', () => {
   });
 
   // ─── Directive Warnings ────────────────────────────────────────────
-  it('unknown directive produces warning', () => {
+  it('unknown directive does not produce warning (deferred to HoloScriptPlusParser)', () => {
+    // HoloScript has 2,000+ valid VR trait names — the basic validator does not
+    // whitelist-check directives to avoid false positives. Validation is deferred
+    // to HoloScriptPlusParser which has the full trait registry.
     const code = `@foobar\nworld main {\n}\n`;
     const errors = validator.validate(code);
     const warnings = errors.filter((e) => e.severity === 'warning');
-    expect(warnings.length).toBeGreaterThanOrEqual(1);
-    expect(warnings[0].message).toContain('foobar');
+    expect(warnings.length).toBe(0);
   });
 
   it('known directives do not produce warnings', () => {
@@ -98,10 +100,10 @@ world testWorld {
     expect(criticalErrors.length).toBe(0);
   });
 
-  it('multiple unknown directives produce multiple warnings', () => {
+  it('multiple unknown directives produce no warnings (deferred to HoloScriptPlusParser)', () => {
     const code = `@foo\n@bar\nworld main {\n}\n`;
     const errors = validator.validate(code);
     const warnings = errors.filter((e) => e.severity === 'warning');
-    expect(warnings.length).toBe(2);
+    expect(warnings.length).toBe(0);
   });
 });

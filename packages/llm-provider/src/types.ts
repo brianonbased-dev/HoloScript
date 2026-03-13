@@ -134,7 +134,7 @@ export interface HoloScriptGenerationResponse {
 // Provider Configuration
 // =============================================================================
 
-export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock';
+export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm';
 
 export interface LLMProviderConfig {
   /** API key for authentication */
@@ -169,6 +169,43 @@ export interface GeminiProviderConfig extends LLMProviderConfig {
 
   /** Google Cloud location (for Vertex AI). Default: 'us-central1' */
   location?: string;
+}
+
+/**
+ * Config for the real bitnet.cpp inference server.
+ * No API key required — the server runs locally.
+ */
+export interface BitNetProviderConfig extends Omit<LLMProviderConfig, 'apiKey'> {
+  /** API key — unused for local servers, defaults to empty string */
+  apiKey?: string;
+
+  /**
+   * Base URL of the bitnet.cpp server.
+   * Default: http://localhost:8080
+   */
+  baseURL?: string;
+
+  /** BitNet model ID (HuggingFace format). Default: 'microsoft/bitnet-b1.58-2B-4T' */
+  model?: string;
+}
+
+/**
+ * Config for a generic local OpenAI-compatible inference server.
+ * Works with llama.cpp, Ollama, LM Studio, or any compatible server.
+ * No API key required — the server runs locally.
+ */
+export interface LocalLLMProviderConfig extends Omit<LLMProviderConfig, 'apiKey'> {
+  /** API key — unused for local servers, defaults to empty string */
+  apiKey?: string;
+
+  /**
+   * Base URL of the local LLM server.
+   * Default: http://localhost:8080
+   */
+  baseURL?: string;
+
+  /** Model name to send in requests. Default: 'mistral-7b-instruct' */
+  model?: string;
 }
 
 // =============================================================================
@@ -213,6 +250,8 @@ export interface LLMProviderRegistry {
   openai?: ILLMProvider;
   anthropic?: ILLMProvider;
   gemini?: ILLMProvider;
+  bitnet?: ILLMProvider;
+  'local-llm'?: ILLMProvider;
 }
 
 export interface ProviderSelectionStrategy {

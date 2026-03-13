@@ -257,7 +257,7 @@ describe('HoloCompositionParser', () => {
       expect(result.ast?.logic?.handlers[0].event).toBe('on_enter');
     });
 
-    it.skip('parses event handler with parameters', () => {
+    it('parses event handler with parameters', () => {
       const source = `
         composition "Test" {
           logic {
@@ -291,7 +291,7 @@ describe('HoloCompositionParser', () => {
   });
 
   describe('Statements', () => {
-    it.skip('parses if statement', () => {
+    it('parses if statement', () => {
       const source = `
         composition "Test" {
           logic {
@@ -309,7 +309,7 @@ describe('HoloCompositionParser', () => {
       expect(stmt?.type).toBe('IfStatement');
     });
 
-    it.skip('parses if-else statement', () => {
+    it('parses if-else statement', () => {
       const source = `
         composition "Test" {
           logic {
@@ -331,7 +331,7 @@ describe('HoloCompositionParser', () => {
       expect(stmt?.alternate).toBeDefined();
     });
 
-    it.skip('parses for loop', () => {
+    it('parses for loop', () => {
       const source = `
         composition "Test" {
           logic {
@@ -349,7 +349,7 @@ describe('HoloCompositionParser', () => {
       expect(stmt?.type).toBe('ForStatement');
     });
 
-    it.skip('parses animate statement', () => {
+    it('parses animate statement', () => {
       const source = `
         composition "Test" {
           logic {
@@ -368,7 +368,7 @@ describe('HoloCompositionParser', () => {
       expect(stmt?.type).toBe('AnimateStatement');
     });
 
-    it.skip('parses emit statement', () => {
+    it('parses emit statement', () => {
       const source = `
         composition "Test" {
           logic {
@@ -592,13 +592,9 @@ describe('HoloCompositionParser', () => {
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it.skip('strict mode throws on error', () => {
-      const source = `
-        composition "Test" {
-          invalid_block {
-          }
-        }
-      `;
+    it('strict mode throws on error', () => {
+      // Severely truncated source that can't form a valid composition
+      const source = `composition`;
       expect(() => parseHoloStrict(source)).toThrow();
     });
 

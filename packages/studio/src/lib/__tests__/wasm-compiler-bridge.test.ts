@@ -82,7 +82,7 @@ vi.stubGlobal(
   vi.fn().mockImplementation(() => new MockWorker())
 );
 
-describe('CompilerBridge', () => {
+describe('CompilerBridge', { timeout: 15_000 }, () => {
   let bridge: CompilerBridge;
 
   beforeEach(() => {

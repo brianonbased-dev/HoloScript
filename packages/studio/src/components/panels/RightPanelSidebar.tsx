@@ -52,6 +52,7 @@ import { AgentCyclePanel } from './AgentCyclePanel';
 import { CharacterPanel } from './CharacterPanel';
 import { ModelViewerPanel } from './ModelViewerPanel';
 import { TemplateGalleryPanel } from './TemplateGalleryPanel';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
@@ -174,6 +175,7 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'scripting', icon: '📝', label: 'REPL', title: 'HoloScript REPL' },
       { id: 'security', icon: '🔒', label: 'Sandbox', title: 'Security sandbox' },
       { id: 'saveload', icon: '💾', label: 'Save', title: 'Save/load manager' },
+      { id: 'diagnostics', icon: '🔍', label: 'Diag', title: 'Unified diagnostics (errors, warnings, hints)' },
     ],
   },
   {
@@ -332,6 +334,7 @@ export function RightPanelSidebar({
             {activeTab === 'character' && <CharacterPanel />}
             {activeTab === 'models' && <ModelViewerPanel />}
             {activeTab === 'templates' && <TemplateGalleryPanel />}
+            {activeTab === 'diagnostics' && <DiagnosticsPanel />}
           </div>
         </div>
       )}

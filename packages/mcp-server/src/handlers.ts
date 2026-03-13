@@ -7,7 +7,7 @@
 
 import { HoloScriptPlusParser, parseHolo, parseHoloStrict, VR_TRAITS } from '@holoscript/core';
 
-import { generateObject, generateScene, suggestTraits } from './generators';
+import { generateObjectForMCP, generateSceneForMCP, suggestTraits } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
@@ -337,7 +337,10 @@ async function handleGenerateObject(args: Record<string, unknown>) {
   const format = (args.format as string) || 'hsplus';
   const includeDocs = args.includeDocs as boolean;
 
-  return generateObject(description, { format: format as 'hs' | 'hsplus' | 'holo', includeDocs });
+  return generateObjectForMCP(description, {
+    format: format as 'hs' | 'hsplus' | 'holo',
+    includeDocs,
+  });
 }
 
 async function handleGenerateScene(args: Record<string, unknown>) {
@@ -345,7 +348,7 @@ async function handleGenerateScene(args: Record<string, unknown>) {
   const style = (args.style as string) || 'detailed';
   const features = (args.features as string[]) || [];
 
-  return generateScene(description, {
+  return generateSceneForMCP(description, {
     style: style as 'minimal' | 'detailed' | 'production',
     features,
   });

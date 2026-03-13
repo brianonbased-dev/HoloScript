@@ -19,11 +19,13 @@
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
     "start": "node start.js",
+    "smoke:bitnet": "tsx scripts/bitnet-smoke.ts",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@holoscript/core": "workspace:^",
+    "@holoscript/llm-provider": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "playwright": "^1.58.2",
     "zod": "^3.24.0"

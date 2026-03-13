@@ -53,7 +53,7 @@
       "name": "VR Traits",
       "description": "49 VR trait documentation",
       "tools": ["list_traits", "explain_trait", "suggest_traits"],
-      "description": "1,800+ VR traits"
+      "description": "2,000+ VR traits"
     },
     "documentation": {
       "name": "Documentation",

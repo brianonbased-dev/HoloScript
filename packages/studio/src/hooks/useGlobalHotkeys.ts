@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useHistoryStore } from '../lib/historyStore';
+import { usePanelVisibilityStore } from '../lib/stores/panelVisibilityStore';
 
 interface GlobalHotkeyOptions {
   onOpenHelp?: () => void;
@@ -31,6 +32,10 @@ export function useGlobalHotkeys(options?: GlobalHotkeyOptions) {
         // Ctrl+Y = Redo
         e.preventDefault();
         useHistoryStore.temporal.getState().redo();
+      } else if (e.key === 'Escape') {
+        // Escape = Close all panels
+        usePanelVisibilityStore.getState().closeAll();
+        options?.onOpenHelp?.(); // optionally toggle help if open
       }
     };
 

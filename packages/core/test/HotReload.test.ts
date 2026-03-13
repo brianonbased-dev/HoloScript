@@ -11,7 +11,7 @@ describe('Hot-Reload & State Migration', () => {
     parser = new HoloScriptCodeParser();
   });
 
-  it.todo('should preserve object state across simple re-evaluation (ID consistency)', async () => {
+  it('should preserve object state across simple re-evaluation (ID consistency)', async () => {
     const codeV1 = `
       orb UserOrb {
         color: "#ff0000"
@@ -39,54 +39,37 @@ describe('Hot-Reload & State Migration', () => {
     const orbV2 = runtime.getVariable('UserOrb') as any;
     expect(orbV2).toBeDefined();
 
-    // CURRENT BEHAVIOR (Likely FAILS): It probably overwrites points back to 10
-    // and creates a new object (new .created timestamp)
+    // State preservation: @state properties survive hot-reload
     expect(orbV2.properties.points).toBe(25);
     expect(orbV2.created).toBe(originalCreation);
   });
 
-  it.todo('should execute migration block when template version increases', async () => {
-    const codeV1 = `
+  it('templates with @version are registered and store version number', async () => {
+    const code = `
       template BaseOrb {
-        @version(1)
+        @version(3)
         size: 0.5
       }
+    `;
+    const result = parser.parse(code);
+    await runtime.execute(result.ast);
 
-      orb TestingOrb using BaseOrb {
-        @state {
-          legacyScale: 2
-        }
+    // Verify template was registered (getVariable won't find templates, but we can check via another orb)
+    const orbCode = `
+      orb TestOrb using BaseOrb {
+        @state { score: 100 }
       }
     `;
+    const orbResult = parser.parse(orbCode);
+    await runtime.execute(orbResult.ast);
 
-    const resultV1 = parser.parse(codeV1);
-    await runtime.execute(resultV1.ast);
-
-    const orbV1 = runtime.getVariable('TestingOrb') as any;
-    expect(orbV1.properties.legacyScale).toBe(2);
-
-    const codeV2 = `
-      template BaseOrb {
-        @version(2)
-        size: 1.0
-        
-        migrate from(1) {
-          // Double the size based on legacy scale
-          this.properties.size = this.properties.size * this.properties.legacyScale;
-          delete this.properties.legacyScale;
-        }
-      }
-
-      orb TestingOrb using BaseOrb {
-        // Updated logic
-      }
-    `;
-
-    const resultV2 = parser.parse(codeV2);
-    await runtime.execute(resultV2.ast);
-
-    const orbV2 = runtime.getVariable('TestingOrb') as any;
-    expect(orbV2.properties.size).toBe(2.0); // 1.0 * 2 (from migration)
-    expect(orbV2.properties.legacyScale).toBeUndefined();
+    const orb = runtime.getVariable('TestOrb') as any;
+    expect(orb).toBeDefined();
+    expect(orb.properties.score).toBe(100);
+    // Template properties are merged
+    expect(orb.properties.size).toBe(0.5);
   });
+
+  it.todo('should detect template version increase and run migration blocks');
+  it.todo('should execute migration body expressions when template version increases (requires JS evaluator)');
 });

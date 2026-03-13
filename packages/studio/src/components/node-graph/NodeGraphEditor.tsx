@@ -28,7 +28,7 @@ import type { GNode } from '@/lib/nodeGraphStore';
 import { useNodeGraphHistory } from '@/hooks/useNodeGraphHistory';
 
 import { compileNodeGraph } from '@/lib/nodeGraphCompiler';
-import { Play, RotateCcw, Plus, Undo2, Redo2 } from 'lucide-react';
+import { Play, RotateCcw, Plus, Undo2, Redo2, Code2, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 
 // ─── Handle color ────────────────────────────────────────────────────────────
 
@@ -193,9 +193,12 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
   const setNodes = useNodeGraphStore((s) => s.setNodes);
   const setEdges = useNodeGraphStore((s) => s.setEdges);
   const setCompiledGLSL = useNodeGraphStore((s) => s.setCompiledGLSL);
+  const compiledGLSL = useNodeGraphStore((s) => s.compiledGLSL);
   const reset = useNodeGraphStore((s) => s.reset);
 
   const { canUndo, canRedo, record, undo, redo, clear } = useNodeGraphHistory();
+  const [showGLSL, setShowGLSL] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // ─── Keyboard shortcuts ──────────────────────────────────────────────────
 
@@ -439,6 +442,38 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
             className="!bg-studio-panel !border !border-studio-border"
           />
         </ReactFlow>
+      </div>
+
+      {/* GLSL Preview Panel */}
+      <div className="shrink-0 border-t border-studio-border">
+        <button
+          onClick={() => setShowGLSL(!showGLSL)}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-studio-muted hover:bg-white/5 transition"
+        >
+          <Code2 className="h-3 w-3" />
+          GLSL Output
+          {showGLSL ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronUp className="h-3 w-3 ml-auto" />}
+        </button>
+        {showGLSL && (
+          <div className="relative max-h-40 overflow-auto bg-black/50 px-3 py-2">
+            <button
+              onClick={() => {
+                if (compiledGLSL) {
+                  navigator.clipboard.writeText(compiledGLSL);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }
+              }}
+              className="absolute top-2 right-2 rounded bg-studio-surface px-2 py-0.5 text-[9px] text-studio-muted hover:bg-studio-border transition"
+              title="Copy GLSL"
+            >
+              {copied ? '✓ Copied' : <Copy className="h-3 w-3" />}
+            </button>
+            <pre className="text-[11px] leading-relaxed font-mono text-emerald-300/80 whitespace-pre-wrap">
+              {compiledGLSL || '// Connect nodes and compile to see GLSL output'}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   );

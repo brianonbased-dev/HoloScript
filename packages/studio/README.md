@@ -1,6 +1,8 @@
 # HoloScript Studio
 
-> **The AI-native spatial IDE for the web.** Build interactive 3D worlds with natural language — no installation, no coding required.
+> **One viewport into the semantic graph.** The 3D canvas is one way to view, edit, and interact with HoloScript entities. The same entities can be edited as text, queried via MCP, or compiled to any platform. [Read the V6 Vision →](../../VISION.md)
+
+The AI-native spatial IDE for the web. Build interactive 3D worlds with natural language — no installation required.
 
 [![Tests](https://img.shields.io/badge/tests-244%20passing-4ade80?style=flat-square)](./src/__tests__)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org)

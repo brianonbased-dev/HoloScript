@@ -1,0 +1,35 @@
+name: Studio Tests
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/studio/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/studio/**'
+
+jobs:
+  test-studio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx vitest run
+        working-directory: packages/studio
+
+  test-snn-webgpu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx vitest run
+        working-directory: packages/snn-webgpu

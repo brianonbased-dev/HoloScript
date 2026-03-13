@@ -43,11 +43,15 @@ interface SceneGraphState {
     transform: Partial<Pick<SceneNode, 'position' | 'rotation' | 'scale'>>
   ) => void;
   applyTransientMaterial: (id: string, materialProps: Record<string, any>) => void;
+  /** Export the scene graph as a portable JSON string */
+  serializeScene: () => string;
+  /** Replace the scene graph with deserialized nodes */
+  loadScene: (json: string) => void;
 }
 
 export const useSceneGraphStore = create<SceneGraphState>()(
   devtools(
-    (set) => ({
+    (set, get) => ({
       nodes: [],
       addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
       removeNode: (id) =>
@@ -175,6 +179,15 @@ export const useSceneGraphStore = create<SceneGraphState>()(
             }),
           };
         });
+      },
+      serializeScene: () => {
+        const { nodes } = get();
+        return JSON.stringify({ version: 1, nodes }, null, 2);
+      },
+      loadScene: (json: string) => {
+        const parsed = JSON.parse(json);
+        const nodes: SceneNode[] = Array.isArray(parsed?.nodes) ? parsed.nodes : [];
+        set({ nodes, nodeRefs: {} });
       },
     }),
     { name: 'scene-graph-store' }

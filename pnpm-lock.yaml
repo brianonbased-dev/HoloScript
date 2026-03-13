@@ -821,6 +821,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.36.0
         version: 0.36.3
+      '@holoscript/std':
+        specifier: workspace:^
+        version: link:../std
       openai:
         specifier: '>=4.0.0'
         version: 6.22.0(ws@8.19.0)
@@ -1047,6 +1050,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
+      '@holoscript/llm-provider':
+        specifier: workspace:^
+        version: link:../llm-provider
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.26.0(zod@3.25.76)
@@ -1477,6 +1483,9 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
+      webgpu:
+        specifier: ^0.3.8
+        version: 0.3.8
 
   packages/spatial-index:
     devDependencies:
@@ -14289,7 +14298,7 @@ packages:
       std-env: 3.10.0
       strip-literal: 2.1.1
       test-exclude: 6.0.0
-      vitest: 1.6.1(@types/node@24.10.13)(@vitest/ui@1.6.1)
+      vitest: 1.6.1(@types/node@24.10.13)(jsdom@28.1.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -30140,6 +30149,16 @@ packages:
 
   /webgl-sdf-generator@1.1.1:
     resolution: {integrity: sha512-9Z0JcMTFxeE+b2x1LJTdnaT8rT8aEp7MVxkNwoycNmJWwPdzoXzMh0BjJSh/AEFP+KPYZUli814h8bJZFIZ2jA==}
+
+  /webgpu@0.3.8:
+    resolution: {integrity: sha512-g2YwfCvzHoQHwSEY3fS95sVKdo/JVLL9AnicJyRQBPwWm4j7zISHvk6P85HaWP0LhtBV+aopsShKIaDi4smECg==}
+    requiresBuild: true
+    dependencies:
+      '@webgpu/types': 0.1.69
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
 
   /webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}

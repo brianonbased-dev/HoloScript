@@ -12,6 +12,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./adapters/bitnet": {
+      "types": "./dist/adapters/bitnet.d.ts",
+      "import": "./dist/adapters/bitnet.js",
+      "require": "./dist/adapters/bitnet.cjs"
+    },
     "./adapters/openai": {
       "types": "./dist/adapters/openai.d.ts",
       "import": "./dist/adapters/openai.js",

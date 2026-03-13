@@ -1,0 +1,92 @@
+// AR Foundation Starter — 16 AR Traits Showcase
+// Demonstrates: @ar_anchor, @ar_plane_detection, @ar_mesh, @ar_light_estimation,
+//   @ar_occlusion, @ar_image_target, @ar_face_tracking, @ar_body_tracking,
+//   @ar_persistent, @ar_shared, @ar_geospatial, @ar_scene_understanding,
+//   @ar_coaching_overlay, @ar_raycast, @ar_collaboration, @platform
+
+composition "ARFoundationStarter" {
+  metadata {
+    title: "AR Foundation Starter"
+    version: "1.0"
+    tags: ["ar", "foundation", "mobile", "spatial"]
+  }
+  scene {
+    environment { skybox: "passthrough"; lighting: "ar_estimated" }
+
+    object "ARSessionRoot" {
+      @ar_plane_detection(types: ["horizontal", "vertical"], mesh_visualization: true)
+      @ar_light_estimation(mode: "ambient_spherical_harmonics")
+      @ar_scene_understanding(classification: true, mesh_generation: true)
+      @ar_coaching_overlay(goal: "find_surface", auto_dismiss: true)
+      @ar_occlusion(mode: "environment_depth", human: true)
+      @platform(target: "arkit", min_version: "5.0", fallback: "arcore")
+    }
+
+    object "PlacedFurniture" {
+      @ar_anchor(tracking: "world", persist: true)
+      @ar_persistent(key: "furniture_placement", ttl: 86400)
+      @ar_raycast(target: "plane", align_to_surface: true)
+      @grabbable
+      @physics(mass: 5.0)
+      geometry: "box"
+      scale: [0.8, 0.4, 0.4]
+      color: "#8B4513"
+      material: "wood_polished"
+    }
+
+    object "SharedWhiteboard" {
+      @ar_anchor(tracking: "world")
+      @ar_shared(discovery: "nearby", max_peers: 6)
+      @ar_collaboration(sync: "realtime", conflict_resolution: "last_write_wins")
+      @networked(mode: "shared", syncRate: 15)
+      @interactive
+      geometry: "plane"
+      position: [0, 1.5, -1.0]
+      scale: [1.2, 0.8, 0.01]
+      color: "#ffffff"
+    }
+
+    object "ImageTargetPoster" {
+      @ar_image_target(
+        image: "poster_reference.jpg",
+        physical_width: 0.3,
+        max_tracked: 4
+      )
+      geometry: "plane"
+      scale: [0.3, 0.4, 0.01]
+    }
+
+    object "FaceFilter" {
+      @ar_face_tracking(blend_shapes: true, max_faces: 1)
+      @skeleton(type: "face", blend_shape_count: 52)
+      visible: false
+    }
+
+    object "BodyTracker" {
+      @ar_body_tracking(mode: "3d", skeleton: true)
+      @skeleton(type: "humanoid", height: 1.75)
+      visible: false
+    }
+
+    object "GeospatialAnchor" {
+      @ar_geospatial(
+        latitude: 37.7749,
+        longitude: -122.4194,
+        altitude: 10.0,
+        heading: 0
+      )
+      @ar_anchor(tracking: "geospatial")
+      @ar_persistent(key: "sf_landmark", ttl: 604800)
+      geometry: "sphere"
+      scale: [0.5, 0.5, 0.5]
+      color: "#ff4444"
+      material: "emissive"
+    }
+
+    object "ARMeshVisualizer" {
+      @ar_mesh(classification: true, normals: true, update_rate: 10)
+      material: "wireframe"
+      color: "#00ff0044"
+    }
+  }
+}

@@ -17,7 +17,6 @@ import type {
   LLMProviderConfig,
   TokenUsage,
 } from './types';
-import { extractTraits } from '@holoscript/std';
 
 // =============================================================================
 // HoloScript Generation System Prompt
@@ -54,6 +53,16 @@ cube {
 // =============================================================================
 
 const TRAIT_REGEX = /@([a-zA-Z_][a-zA-Z0-9_]*)/g;
+
+function extractTraits(code: string): string[] {
+  const traits = new Set<string>();
+
+  for (const match of code.matchAll(TRAIT_REGEX)) {
+    traits.add(`@${match[1]}`);
+  }
+
+  return Array.from(traits);
+}
 
 // =============================================================================
 // Base Adapter

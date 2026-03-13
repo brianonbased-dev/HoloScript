@@ -74,9 +74,41 @@ function flattenTree(node: R3FTreeNode, parentId: string | null, out: SceneNode[
 
 /**
  * Hook: sync R3F tree → SceneGraphStore whenever the tree changes.
+ *
+ * Uses a merge strategy to preserve gizmo-edited transforms:
+ * - New nodes from R3F → added to the store
+ * - Removed nodes (no longer in R3F) → pruned from the store
+ * - Existing nodes → update name/type/parentId but KEEP transforms
+ *   UNLESS the node wasn't edited by the user (gizmo/transform panel)
  */
 export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
   const prevTreeRef = useRef<string>('');
+  /** Set of node IDs whose transforms were edited by the user (gizmo, panel, etc.) */
+  const userEditedRef = useRef<Set<string>>(new Set());
+
+  // Subscribe once to track user-edited nodes
+  useEffect(() => {
+    // Listen for transform updates and mark the node as user-edited
+    const unsub = useSceneGraphStore.subscribe(
+      (state, prevState) => {
+        // Compare nodes by reference — any node whose position/rotation/scale changed
+        // between states was edited by the user (not by this sync hook)
+        if (state.nodes !== prevState.nodes) {
+          for (const node of state.nodes) {
+            const prev = prevState.nodes.find((n) => n.id === node.id);
+            if (prev &&
+              (prev.position !== node.position ||
+               prev.rotation !== node.rotation ||
+               prev.scale !== node.scale)
+            ) {
+              userEditedRef.current.add(node.id);
+            }
+          }
+        }
+      }
+    );
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!r3fTree) return;
@@ -86,21 +118,55 @@ export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
     if (treeId === prevTreeRef.current) return;
     prevTreeRef.current = treeId;
 
-    const nodes: SceneNode[] = [];
-    flattenTree(r3fTree, null, nodes);
+    const parsedNodes: SceneNode[] = [];
+    flattenTree(r3fTree, null, parsedNodes);
 
-    // Batch update: replace all nodes at once
     const store = useSceneGraphStore.getState();
-    // Only update if the node set actually changed
-    const existingIds = new Set(store.nodes.map((n) => n.id));
-    const newIds = new Set(nodes.map((n) => n.id));
+    const existingMap = new Map(store.nodes.map((n) => [n.id, n]));
+    const parsedMap = new Map(parsedNodes.map((n) => [n.id, n]));
 
-    const needsFullSync =
-      existingIds.size !== newIds.size || nodes.some((n) => !existingIds.has(n.id));
+    // Build merged node list
+    const mergedNodes: SceneNode[] = [];
 
-    if (needsFullSync) {
-      // Clear and re-add all nodes
-      useSceneGraphStore.setState({ nodes });
+    for (const parsed of parsedNodes) {
+      const existing = existingMap.get(parsed.id);
+
+      if (existing && userEditedRef.current.has(parsed.id)) {
+        // User edited this node's transform — keep their transforms, update metadata
+        mergedNodes.push({
+          ...parsed,
+          position: existing.position,
+          rotation: existing.rotation,
+          scale: existing.scale,
+          traits: existing.traits.length > 0 ? existing.traits : parsed.traits,
+        });
+      } else if (existing) {
+        // Node existed but wasn't user-edited — take parsed transforms
+        mergedNodes.push(parsed);
+      } else {
+        // Brand new node from parse
+        mergedNodes.push(parsed);
+      }
+    }
+
+    // Also keep user-placed nodes (from builderStore clicks) that aren't from the parser
+    for (const existing of store.nodes) {
+      if (!parsedMap.has(existing.id) && existing.id.startsWith('placed-')) {
+        mergedNodes.push(existing);
+      }
+      if (!parsedMap.has(existing.id) && existing.id.startsWith('dropped-')) {
+        mergedNodes.push(existing);
+      }
+    }
+
+    // Only update if something actually changed
+    const needsUpdate =
+      mergedNodes.length !== store.nodes.length ||
+      mergedNodes.some((n, i) => n !== store.nodes[i]);
+
+    if (needsUpdate) {
+      useSceneGraphStore.setState({ nodes: mergedNodes });
     }
   }, [r3fTree]);
 }
+

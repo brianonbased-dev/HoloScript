@@ -142,10 +142,7 @@ describe('ModRegistry — Production', () => {
   });
 
   describe('getDependents', () => {
-    // NOTE: Source has a bug on line 226: `depId` is not defined in getDependents scope.
-    // The `Object.keys(deps).includes(modId)` fallback on line 229 is correct, but
-    // line 226 crashes. Skipping until source is fixed.
-    it.skip('finds mods depending on target', () => {
+    it('finds mods depending on target', () => {
       reg.register(makeMod('core'));
       reg.register(makeMod('mod-a', { dependencies: { core: '^1.0.0' } }));
       const deps = reg.getDependents('core');

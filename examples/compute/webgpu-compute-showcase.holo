@@ -1,0 +1,140 @@
+// WebGPU Compute Showcase — 4 WebGPU/Compute Traits
+// Demonstrates: @compute, @shader, @gpu_buffer, @snn
+
+composition "WebGPUComputeShowcase" {
+  metadata {
+    title: "WebGPU Compute Showcase"
+    version: "1.0"
+    tags: ["webgpu", "compute", "shader", "neural"]
+  }
+  scene {
+    environment { skybox: "procedural_sky"; lighting: "neutral" }
+
+    // GPU particle system via compute shader
+    object "ParticleField" {
+      @compute(
+        shader: "particle_simulation",
+        workgroup_size: [256, 1, 1],
+        dispatch: [128, 1, 1],
+        bindings: [
+          { group: 0, binding: 0, type: "storage", name: "positions" },
+          { group: 0, binding: 1, type: "storage", name: "velocities" },
+          { group: 0, binding: 2, type: "uniform", name: "params" }
+        ]
+      )
+      @gpu_buffer(
+        name: "positions",
+        size: 131072,
+        usage: ["storage", "vertex"],
+        initial_data: "random_sphere"
+      )
+      @gpu_buffer(
+        name: "velocities",
+        size: 131072,
+        usage: ["storage"],
+        initial_data: "zero"
+      )
+      @shader(
+        type: "compute",
+        source: """
+          struct Particle { pos: vec4f, vel: vec4f };
+          struct Params { dt: f32, gravity: f32, damping: f32, count: u32 };
+          @group(0) @binding(0) var<storage, read_write> positions: array<Particle>;
+          @group(0) @binding(1) var<storage, read_write> velocities: array<Particle>;
+          @group(0) @binding(2) var<uniform> params: Params;
+          @compute @workgroup_size(256)
+          fn main(@builtin(global_invocation_id) id: vec3u) {
+            let i = id.x;
+            if (i >= params.count) { return; }
+            velocities[i].vel.y -= params.gravity * params.dt;
+            velocities[i].vel *= params.damping;
+            positions[i].pos += velocities[i].vel * params.dt;
+          }
+        """
+      )
+      position: [0, 3, 0]
+    }
+
+    // Custom PBR shader on a sphere
+    object "ShaderSphere" {
+      @shader(
+        type: "fragment",
+        source: """
+          @fragment
+          fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+            let t = uniforms.time;
+            let r = 0.5 + 0.5 * sin(uv.x * 10.0 + t);
+            let g = 0.5 + 0.5 * sin(uv.y * 10.0 + t * 1.3);
+            let b = 0.5 + 0.5 * sin((uv.x + uv.y) * 5.0 + t * 0.7);
+            return vec4f(r, g, b, 1.0);
+          }
+        """
+      )
+      geometry: "sphere"
+      position: [-3, 1.5, 0]
+      scale: [1.5, 1.5, 1.5]
+    }
+
+    // Neuromorphic SNN perception (RFC-0042)
+    object "SNNPerceptionAgent" {
+      @snn(
+        neuron_model: "lif",
+        neuron_count: 2048,
+        layer_topology: [512, 1024, 512],
+        dt: 0.001,
+        threshold: 1.0,
+        tau_membrane: 0.02,
+        refractory_period: 0.005,
+        backend: "webgpu",
+        spike_encoding: "rate"
+      )
+      @compute(
+        shader: "snn_timestep",
+        workgroup_size: [64, 1, 1],
+        dispatch: [32, 1, 1]
+      )
+      @gpu_buffer(
+        name: "membrane_potentials",
+        size: 8192,
+        usage: ["storage"]
+      )
+      @gpu_buffer(
+        name: "spike_trains",
+        size: 8192,
+        usage: ["storage", "copy_src"]
+      )
+      position: [3, 1, 0]
+      visible: false
+    }
+
+    // Terrain deformation via compute
+    object "DeformableTerrain" {
+      @compute(
+        shader: "terrain_deform",
+        workgroup_size: [16, 16, 1],
+        dispatch: [16, 16, 1]
+      )
+      @gpu_buffer(
+        name: "heightmap",
+        size: 262144,
+        usage: ["storage", "vertex"]
+      )
+      @shader(
+        type: "vertex",
+        source: """
+          @vertex
+          fn main(@location(0) pos: vec3f, @builtin(instance_index) idx: u32) -> @builtin(position) vec4f {
+            let h = heightmap[idx];
+            return uniforms.mvp * vec4f(pos.x, pos.y + h, pos.z, 1.0);
+          }
+        """
+      )
+      @physics(type: "static")
+      @collidable
+      geometry: "plane"
+      position: [0, 0, -8]
+      scale: [16, 1, 16]
+      color: "#4a7c32"
+    }
+  }
+}

@@ -10,7 +10,7 @@
  * - Material library (save → search → load → verify)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { ShaderGraph } from '@/lib/shaderGraph';
 import { ShaderEditorService } from '../ShaderEditorService';
 import { LivePreviewService } from '../LivePreviewService';
@@ -24,17 +24,32 @@ import {
   SetPropertyCommand,
 } from '../UndoRedoSystem';
 
-// Mock IndexedDB for tests
+// Mock IndexedDB (jsdom provides a stub, just ensure our mock is present)
 global.indexedDB = {
   open: vi.fn(),
   deleteDatabase: vi.fn(),
 } as any;
 
-// Mock WebGPU for tests
-global.navigator = {
-  ...global.navigator,
-  gpu: undefined, // Not available in test environment
-} as any;
+// Save and restore navigator.gpu so mock doesn't leak into parallel test files
+const _savedGpu = typeof navigator !== 'undefined' ? (navigator as any).gpu : undefined;
+
+beforeAll(() => {
+  // Override gpu to undefined for shader editor tests (no WebGPU in test env)
+  Object.defineProperty(navigator, 'gpu', {
+    value: undefined,
+    writable: true,
+    configurable: true,
+  });
+});
+
+afterAll(() => {
+  // Restore original navigator.gpu to prevent mock leakage
+  Object.defineProperty(navigator, 'gpu', {
+    value: _savedGpu,
+    writable: true,
+    configurable: true,
+  });
+});
 
 describe('ShaderEditorService', () => {
   let service: ShaderEditorService;

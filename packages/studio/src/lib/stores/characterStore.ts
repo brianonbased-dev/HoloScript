@@ -4,19 +4,13 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { RecordedClip } from '../animationBuilder';
 
+// Re-export wardrobe types for backward compatibility (now live in wardrobeStore)
+export type { WardrobeSlot, WardrobeItem } from './wardrobeStore';
+
 // ─── Character Store ─────────────────────────────────────────────────────────
 // Shared state between the R3F canvas (GlbViewer) and DOM panels (SkeletonPanel etc.)
+// Wardrobe state extracted to wardrobeStore.ts (Sprint 13 P1)
 
-export type WardrobeSlot = 'hair' | 'top' | 'bottom' | 'shoes' | 'accessory_1' | 'accessory_2';
-
-export interface WardrobeItem {
-  id: string;
-  name: string;
-  slot: WardrobeSlot;
-  thumbnail: string;
-  modelUrl?: string;
-  category: string;
-}
 
 interface CharacterState {
   /** Object URL of the loaded .glb file */
@@ -50,12 +44,6 @@ interface CharacterState {
   /** Active panel mode for the character layout */
   panelMode: 'skeleton' | 'customize' | 'wardrobe';
 
-  // ── Wardrobe (Phase 2) ──────────────────────────────────────────────────────
-  /** Equipped items by slot */
-  equippedItems: Partial<Record<WardrobeSlot, WardrobeItem>>;
-  /** Available wardrobe items */
-  wardrobeItems: WardrobeItem[];
-
   // Actions
   setGlbUrl: (url: string | null) => void;
   setBoneNames: (names: string[]) => void;
@@ -74,9 +62,6 @@ interface CharacterState {
   setSkinColor: (color: string) => void;
   setCustomizeMode: (v: boolean) => void;
   setPanelMode: (mode: 'skeleton' | 'customize' | 'wardrobe') => void;
-  equipItem: (item: WardrobeItem) => void;
-  unequipSlot: (slot: WardrobeSlot) => void;
-  clearWardrobe: () => void;
 }
 
 export const useCharacterStore = create<CharacterState>()(
@@ -96,8 +81,6 @@ export const useCharacterStore = create<CharacterState>()(
       skinColor: '#e8beac',
       customizeMode: false,
       panelMode: 'skeleton' as const,
-      equippedItems: {},
-      wardrobeItems: [],
 
       setGlbUrl: (glbUrl) =>
         set({
@@ -129,15 +112,6 @@ export const useCharacterStore = create<CharacterState>()(
       setCustomizeMode: (customizeMode) =>
         set({ customizeMode, panelMode: customizeMode ? 'customize' : 'skeleton' }),
       setPanelMode: (panelMode) => set({ panelMode, customizeMode: panelMode === 'customize' }),
-      equipItem: (item) =>
-        set((s) => ({ equippedItems: { ...s.equippedItems, [item.slot]: item } })),
-      unequipSlot: (slot) =>
-        set((s) => {
-          const next = { ...s.equippedItems };
-          delete next[slot];
-          return { equippedItems: next };
-        }),
-      clearWardrobe: () => set({ equippedItems: {} }),
     }),
     { name: 'character-store' }
   )

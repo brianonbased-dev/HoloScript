@@ -4,7 +4,7 @@
 
 HoloScript ships a complete autonomous agent ecosystem built on the **uAA2++ (Universal Autonomous Agent) protocol**. Agents are first-class citizens — they can perceive scenes, communicate across realities, claim ownership of objects, and coordinate with other AI systems.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │              uAA2++ Agent Ecosystem                      │
 │                                                          │
@@ -26,7 +26,7 @@ HoloScript ships a complete autonomous agent ecosystem built on the **uAA2++ (Un
 Every HoloScript agent follows this lifecycle:
 
 | Phase | Name | Description |
-|-------|------|-------------|
+| ----- | ---- | ----------- |
 | 1 | **Initialize** | Load scene context, register capabilities, claim spatial region |
 | 2 | **Perceive** | Observe objects, events, and other agents in range |
 | 3 | **Reason** | Apply LLM/rule-based logic to form intent |
@@ -69,7 +69,7 @@ composition "AutonomousAgent" {
 
 Agents communicate through three stacked layers:
 
-```
+```text
 Layer 3: MCP Tools        ← long-context AI agent access (Claude, Cursor)
 Layer 2: A2A Protocol     ← cross-org agent-to-agent (Google A2A)
 Layer 1: Real-Time Mesh   ← low-latency spatial events (WebSocket / CRDT)
@@ -84,7 +84,7 @@ Each layer is independent and composable. A Loihi2 neuromorphic agent running on
 ## Key Packages
 
 | Package | Purpose |
-|---------|---------|
+| ------- | ------- |
 | [`@holoscript/agent-protocol`](./uaa2-protocol) | 7-phase lifecycle, AgentManifest, CapabilityMatcher, CrossRealityHandoff |
 | [`@holoscript/uaal`](./uaal-vm) | Universal Autonomous Agent Language VM — bytecode execution |
 | `@holoscript/crdt` | Conflict-free replicated spatial state for distributed scenes |
@@ -95,7 +95,7 @@ Each layer is independent and composable. A Loihi2 neuromorphic agent running on
 ## Compiler Targets for Agents
 
 | Compiler | Output | Use Case |
-|----------|--------|---------|
+| -------- | ------ | -------- |
 | [A2A Agent Cards](../compilers/a2a) | JSON agent cards | Cross-org agent discovery (Google A2A protocol) |
 | [Neuromorphic (NIR)](../compilers/neuromorphic) | NIR bytecode for Loihi2/SpiNNaker | Ultra-low-energy on-device agents |
 | [SCM](../compilers/scm) | Structural Causal Models | Causally-aware reasoning agents |
@@ -143,3 +143,4 @@ holo compile hello-agent.hsplus --target a2a --out ./agents/
 - [A2A Compiler](../compilers/a2a)
 - [Neuromorphic Compiler](../compilers/neuromorphic)
 - [AI Behavior Traits](../traits/ai-behavior)
+- [Studio-First Agent Doctrine](./studio-first-agents)

@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GPUContext } from '../gpu-context.js';
+import { GPU_LIVE } from './setup.js';
 
 describe('GPUContext', () => {
   let ctx: GPUContext;
@@ -51,12 +52,21 @@ describe('GPUContext', () => {
       const caps = ctx.capabilities;
 
       expect(caps.maxWorkgroupSize).toHaveLength(3);
-      expect(caps.maxWorkgroupSize[0]).toBe(256);
-      expect(caps.maxWorkgroupsPerDimension).toBe(65535);
+      expect(caps.maxWorkgroupSize[0]).toBeGreaterThanOrEqual(64);
+      expect(caps.maxWorkgroupsPerDimension).toBeGreaterThanOrEqual(256);
       expect(caps.maxStorageBufferBindingSize).toBeGreaterThan(0);
       expect(caps.maxBufferSize).toBeGreaterThan(0);
-      expect(caps.vendor).toBe('mock-vendor');
-      expect(caps.architecture).toBe('mock-arch');
+      expect(typeof caps.vendor).toBe('string');
+      expect(typeof caps.architecture).toBe('string');
+
+      if (!GPU_LIVE) {
+        // Mock-specific exact values
+        expect(caps.vendor).toBe('mock-vendor');
+        expect(caps.architecture).toBe('mock-arch');
+      } else {
+        // Live GPU — vendor is non-empty
+        expect(caps.vendor.length).toBeGreaterThan(0);
+      }
     });
 
     it('should accept custom options', async () => {
@@ -134,8 +144,13 @@ describe('GPUContext', () => {
       const cmdBuffer = encoder.finish();
 
       await ctx.submitAndWait(cmdBuffer);
-      expect(ctx.device.queue.submit).toHaveBeenCalledWith([cmdBuffer]);
-      expect(ctx.device.queue.onSubmittedWorkDone).toHaveBeenCalled();
+
+      if (!GPU_LIVE) {
+        // Mock queue has spy methods
+        expect(ctx.device.queue.submit).toHaveBeenCalledWith([cmdBuffer]);
+        expect(ctx.device.queue.onSubmittedWorkDone).toHaveBeenCalled();
+      }
+      // On live GPU, the submit/wait completes without error — that's the assertion
     });
   });
 

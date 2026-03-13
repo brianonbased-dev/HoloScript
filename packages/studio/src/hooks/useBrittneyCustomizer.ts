@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { useCharacterStore } from '@/lib/stores';
+import { useCharacterStore, useWardrobeStore } from '@/lib/stores';
 import {
   parseCharacterIntent,
   executeCharacterIntent,
@@ -52,7 +52,7 @@ export function useBrittneyCustomizer(): BrittneyCustomizerReturn {
       });
 
       if (match) {
-        store.equipItem(match);
+        useWardrobeStore.getState().equipItem(match);
         const response = `👔 Equipped ${match.name} (${match.slot})`;
         setLastResponse(response);
         return response;

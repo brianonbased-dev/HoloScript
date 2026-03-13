@@ -1,6 +1,8 @@
 # @holoscript/core
 
-Core HoloScript parser, AST, compiler infrastructure, and trait system.
+> The **semantic engine** at the heart of HoloScript. Traits describe any domain entity — spatial, AI, services, IoT — and the compiler fleet translates them to platform-specific code. [Read the V6 Vision →](../../VISION.md)
+
+Core parser, AST, compiler infrastructure, and trait system.
 
 ## Installation
 

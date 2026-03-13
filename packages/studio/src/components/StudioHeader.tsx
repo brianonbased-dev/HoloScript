@@ -23,10 +23,14 @@ import {
   CheckCircle,
   Palette,
   Bot,
+  Paintbrush,
+  Download,
+  FolderOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAIStore, useSceneStore, useEditorStore, usePanelVisibilityStore } from '@/lib/stores';
+import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import { SaveBar } from '@/components/SaveBar';
 import { CollabBar } from '@/components/collaboration/CollabBar';
 import { xrStore } from '@/components/vr/VREditSession';
@@ -133,6 +137,15 @@ const SimpleMaterialPanel = dynamic(
   { ssr: false }
 );
 
+// Texture Paint Panel — brush painting on 3D surfaces
+const TexturePaintPanel = dynamic(
+  () =>
+    import('@/components/paint/TexturePaintPanel').then((m) => ({
+      default: m.TexturePaintPanel,
+    })),
+  { ssr: false }
+);
+
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
@@ -154,25 +167,41 @@ export function StudioHeader() {
   const toggleAgentMonitorOpen = usePanelVisibilityStore((s) => s.toggleAgentMonitorOpen);
   const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
   const toggleMaterialOpen = usePanelVisibilityStore((s) => s.toggleMaterialOpen);
+  const texturePaintOpen = usePanelVisibilityStore((s) => s.texturePaintOpen);
+  const toggleTexturePaintOpen = usePanelVisibilityStore((s) => s.toggleTexturePaintOpen);
 
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [examplesOpen, setExamplesOpen] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
-  const [promptsOpen, setPromptsOpen] = useState(false);
+  const publishOpen = usePanelVisibilityStore((s) => s.publishOpen);
+  const setPublishOpen = usePanelVisibilityStore((s) => s.setPublishOpen);
+  const examplesOpen = usePanelVisibilityStore((s) => s.examplesOpen);
+  const setExamplesOpen = usePanelVisibilityStore((s) => s.setExamplesOpen);
+  const showTutorial = usePanelVisibilityStore((s) => s.tutorialOpen);
+  const setShowTutorial = usePanelVisibilityStore((s) => s.setTutorialOpen);
+  const hotkeyOverlayOpen = usePanelVisibilityStore((s) => s.hotkeyOverlayOpen);
+  const setHotkeyOverlayOpen = usePanelVisibilityStore((s) => s.setHotkeyOverlayOpen);
+  const promptsOpen = usePanelVisibilityStore((s) => s.promptsOpen);
+  const setPromptsOpen = usePanelVisibilityStore((s) => s.setPromptsOpen);
 
-  // ── Orchestration panel toggles ──────────────────────────────────────────────
-  const [mcpConfigOpen, setMcpConfigOpen] = useState(false);
-  const [agentWorkflowOpen, setAgentWorkflowOpen] = useState(false);
-  const [behaviorTreeOpen, setBehaviorTreeOpen] = useState(false);
-  const [agentEnsembleOpen, setAgentEnsembleOpen] = useState(false);
-  const [eventMonitorOpen, setEventMonitorOpen] = useState(false);
-  const [toolCallGraphOpen, setToolCallGraphOpen] = useState(false);
-  const [marketplaceOpen, setMarketplaceOpen] = useState(false);
-  const [pluginManagerOpen, setPluginManagerOpen] = useState(false);
-  const [cloudDeployOpen, setCloudDeployOpen] = useState(false);
+  // ── Orchestration panel toggles (managed by panelVisibilityStore) ─────────
+  const mcpConfigOpen = usePanelVisibilityStore((s) => s.mcpConfigOpen);
+  const setMcpConfigOpen = usePanelVisibilityStore((s) => s.setMcpConfigOpen);
+  const agentWorkflowOpen = usePanelVisibilityStore((s) => s.agentWorkflowOpen);
+  const setAgentWorkflowOpen = usePanelVisibilityStore((s) => s.setAgentWorkflowOpen);
+  const behaviorTreeOpen = usePanelVisibilityStore((s) => s.behaviorTreeOpen);
+  const setBehaviorTreeOpen = usePanelVisibilityStore((s) => s.setBehaviorTreeOpen);
+  const agentEnsembleOpen = usePanelVisibilityStore((s) => s.agentEnsembleOpen);
+  const setAgentEnsembleOpen = usePanelVisibilityStore((s) => s.setAgentEnsembleOpen);
+  const eventMonitorOpen = usePanelVisibilityStore((s) => s.eventMonitorOpen);
+  const setEventMonitorOpen = usePanelVisibilityStore((s) => s.setEventMonitorOpen);
+  const toolCallGraphOpen = usePanelVisibilityStore((s) => s.toolCallGraphOpen);
+  const setToolCallGraphOpen = usePanelVisibilityStore((s) => s.setToolCallGraphOpen);
+  const marketplaceOpen = usePanelVisibilityStore((s) => s.marketplaceOpen);
+  const setMarketplaceOpen = usePanelVisibilityStore((s) => s.setMarketplaceOpen);
+  const pluginManagerOpen = usePanelVisibilityStore((s) => s.pluginManagerOpen);
+  const setPluginManagerOpen = usePanelVisibilityStore((s) => s.setPluginManagerOpen);
+  const cloudDeployOpen = usePanelVisibilityStore((s) => s.cloudDeployOpen);
+  const setCloudDeployOpen = usePanelVisibilityStore((s) => s.setCloudDeployOpen);
 
   // ── First-launch detection ──────────────────────────────────────────────────
   useEffect(() => {
@@ -190,18 +219,18 @@ export function StudioHeader() {
   };
 
   // ── Global keyboard shortcuts ───────────────────────────────────────────────
-  useGlobalHotkeys({ onOpenHelp: () => setHotkeyOverlayOpen((v) => !v) });
+  useGlobalHotkeys({ onOpenHelp: () => setHotkeyOverlayOpen(!hotkeyOverlayOpen) });
 
   // ── Orchestration keyboard shortcuts ────────────────────────────────────────
   useOrchestrationKeyboard({
-    onToggleMCP: () => setMcpConfigOpen((v) => !v),
-    onToggleWorkflow: () => setAgentWorkflowOpen((v) => !v),
-    onToggleBehaviorTree: () => setBehaviorTreeOpen((v) => !v),
-    onToggleEventMonitor: () => setEventMonitorOpen((v) => !v),
-    onToggleToolCallGraph: () => setToolCallGraphOpen((v) => !v),
-    onToggleAgentEnsemble: () => setAgentEnsembleOpen((v) => !v),
-    onTogglePlugins: () => setPluginManagerOpen((v) => !v),
-    onToggleCloud: () => setCloudDeployOpen((v) => !v),
+    onToggleMCP: () => setMcpConfigOpen(!mcpConfigOpen),
+    onToggleWorkflow: () => setAgentWorkflowOpen(!agentWorkflowOpen),
+    onToggleBehaviorTree: () => setBehaviorTreeOpen(!behaviorTreeOpen),
+    onToggleEventMonitor: () => setEventMonitorOpen(!eventMonitorOpen),
+    onToggleToolCallGraph: () => setToolCallGraphOpen(!toolCallGraphOpen),
+    onToggleAgentEnsemble: () => setAgentEnsembleOpen(!agentEnsembleOpen),
+    onTogglePlugins: () => setPluginManagerOpen(!pluginManagerOpen),
+    onToggleCloud: () => setCloudDeployOpen(!cloudDeployOpen),
   });
 
   // ── Orchestration auto-save ─────────────────────────────────────────────────
@@ -242,6 +271,37 @@ export function StudioHeader() {
         .catch(() => {});
     }
   };
+
+  const handleExportScene = useCallback(() => {
+    const json = useSceneGraphStore.getState().serializeScene();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${metadata.name || 'scene'}.holoscript.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [metadata.name]);
+
+  const handleImportScene = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.holoscript.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          useSceneGraphStore.getState().loadScene(reader.result as string);
+        } catch (err) {
+          console.error('[Studio] Failed to import scene:', err);
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, []);
 
   return (
     <>
@@ -296,6 +356,27 @@ export function StudioHeader() {
                   : 'AI Offline'}
             </span>
           </div>
+          {/* ── Scene I/O buttons ─────────────────────────────── */}
+          <button
+            id="studio-header-export-scene"
+            onClick={handleExportScene}
+            title="Export Scene (JSON)"
+            aria-label="Export Scene"
+            className="studio-header-btn flex items-center gap-1.5 rounded-lg border border-studio-border px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-text"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Export</span>
+          </button>
+          <button
+            id="studio-header-import-scene"
+            onClick={handleImportScene}
+            title="Import Scene (JSON)"
+            aria-label="Import Scene"
+            className="studio-header-btn flex items-center gap-1.5 rounded-lg border border-studio-border px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-text"
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Import</span>
+          </button>
 
           {/* ── Examples button ────────────────────────────────── */}
           <button
@@ -381,9 +462,24 @@ export function StudioHeader() {
               <span className="hidden lg:inline">Material</span>
             </button>
 
+            {/* Texture Paint — brush painting on 3D surfaces */}
+            <button
+              id="studio-header-texture-paint"
+              onClick={toggleTexturePaintOpen}
+              title="Texture Paint"
+              className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                texturePaintOpen
+                  ? 'border-pink-500/40 bg-pink-500/20 text-pink-300'
+                  : 'border-studio-border bg-studio-surface text-studio-muted hover:border-pink-500/40 hover:text-pink-400'
+              }`}
+            >
+              <Paintbrush className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Paint</span>
+            </button>
+
             <button
               onClick={() => setMcpConfigOpen(!mcpConfigOpen)}
-              title="MCP Servers"
+              title="MCP Servers (Ctrl+M)"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                 mcpConfigOpen
                   ? 'border-blue-500/40 bg-blue-500/20 text-blue-300'
@@ -396,7 +492,7 @@ export function StudioHeader() {
 
             <button
               onClick={() => setAgentWorkflowOpen(!agentWorkflowOpen)}
-              title="Agent Orchestration"
+              title="Agent Orchestration (Ctrl+Shift+W)"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                 agentWorkflowOpen
                   ? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
@@ -409,7 +505,7 @@ export function StudioHeader() {
 
             <button
               onClick={() => setBehaviorTreeOpen(!behaviorTreeOpen)}
-              title="Behavior Tree"
+              title="Behavior Tree (Ctrl+B)"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                 behaviorTreeOpen
                   ? 'border-green-500/40 bg-green-500/20 text-green-300'
@@ -422,7 +518,7 @@ export function StudioHeader() {
 
             <button
               onClick={() => setAgentEnsembleOpen(!agentEnsembleOpen)}
-              title="Agent Ensemble"
+              title="Agent Ensemble (Ctrl+Shift+A)"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                 agentEnsembleOpen
                   ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
@@ -435,7 +531,7 @@ export function StudioHeader() {
 
             <button
               onClick={() => setEventMonitorOpen(!eventMonitorOpen)}
-              title="Event Monitor"
+              title="Event Monitor (Ctrl+E)"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                 eventMonitorOpen
                   ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
@@ -448,7 +544,7 @@ export function StudioHeader() {
 
             <button
               onClick={() => setToolCallGraphOpen(!toolCallGraphOpen)}
-              title="Tool Call Graph"
+              title="Tool Call Graph (Ctrl+Shift+T)"
               className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
                 toolCallGraphOpen
                   ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
@@ -815,6 +911,13 @@ export function StudioHeader() {
       {materialOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
           <SimpleMaterialPanel onClose={toggleMaterialOpen} />
+        </div>
+      )}
+
+      {/* Texture Paint Panel (right sidebar) */}
+      {texturePaintOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <TexturePaintPanel onClose={toggleTexturePaintOpen} />
         </div>
       )}
     </>

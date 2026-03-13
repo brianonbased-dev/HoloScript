@@ -419,9 +419,7 @@ export class GraphGrammar {
     unexpanded: string[],
     verbose: boolean
   ): GrammarNode {
-    context.nodeCount++;
-
-    // Check termination conditions
+    // Check termination conditions first (before counting this node)
     if (node.type === NodeType.TERMINAL || node.type === NodeType.ANCHOR) {
       return node;
     }
@@ -481,6 +479,12 @@ export class GraphGrammar {
       context.symbolBudgets.set(node.symbol, budget - 1);
     }
 
+    // Count this node only when we are actually going to produce children.
+    // Keeping the increment here (after all early-exit checks) makes maxNodes an
+    // exact upper bound on the number of rule applications rather than on every
+    // expandNode() call (which would include early-termination nodes and skew counts).
+    context.nodeCount++;
+
     // Produce child nodes
     const produced = selectedRule.produce(node, context);
 
@@ -495,6 +499,10 @@ export class GraphGrammar {
 
       const expanded = this.expandNode(child, childContext, rng, rulesApplied, unexpanded, verbose);
       expandedChildren.push(expanded);
+      // Propagate accumulated nodeCount back so subsequent siblings see the correct total.
+      // Without this, sibling nodes each start with the same nodeCount copy (value spread),
+      // making the maxNodes limit ineffective for branching grammars.
+      context.nodeCount = childContext.nodeCount;
     }
 
     // Return as group node containing expanded children

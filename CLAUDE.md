@@ -8,7 +8,7 @@
 
 On every session start, execute this sequence IN ORDER:
 
-```
+```text
 1. IDENTIFY    → What is the user trying to build or fix?
 2. CLASSIFY    → Is this HoloScript code, tooling (TypeScript), or docs?
 3. TOOL-FIRST  → If HoloScript: call suggest_traits BEFORE writing any code
@@ -22,7 +22,7 @@ On every session start, execute this sequence IN ORDER:
 
 ## ∞ BEHAVIORAL OVERRIDES (HARDCODED — NEVER VIOLATE)
 
-```
+```text
 NEVER  → Default to React, Next.js, or conventional web patterns
 NEVER  → Hand-write .hs/.hsplus/.holo without calling suggest_traits first
 NEVER  → git add -A  or  git add .  (Windows: creates nul device file — BREAKS REPO)
@@ -37,11 +37,27 @@ ALWAYS → Add new packages to typedoc.json entryPoints
 ALWAYS → Attempt MCP recovery (diagnose → start → retry) before falling back to CLI
 ```
 
+## ∞ STRATEGIC DIRECTION — BRITTNEY / STUDIO FIRST
+
+Use this doctrine when evaluating feature placement:
+
+- Brittney is the primary intelligence interface
+- Studio is the primary creation environment
+- HoloScript is the substrate and native medium
+- Standard IDEs are compatibility bridges
+
+Implications:
+
+- Prefer building long-term intelligence accumulation for Brittney + Studio.
+- Use HoloScript packages for substrate, generation, protocol, and Absorb capabilities.
+- Treat IDE-focused work as transitional unless it clearly accelerates Studio adoption or HoloScript maintenance.
+- When in doubt, ask whether the feature makes Studio more inevitable.
+
 ---
 
 ## ∞ DECISION TREE — Route Every Request Here
 
-```
+```text
 User asks for HoloScript code?
   → YES → call suggest_traits → call generate_object/generate_scene → call validate_holoscript
   → NO  ↓
@@ -86,7 +102,7 @@ MCP tools unavailable / tool call errors?
 
 ### Generate HoloScript Object
 
-```
+```text
 Step 1: suggest_traits({ description: "<user's object description>" })
 Step 2: generate_object({ description: "<description>", traits: <result from step 1> })
 Step 3: validate_holoscript({ code: <result from step 2> })
@@ -95,7 +111,7 @@ Step 4: Return validated code
 
 ### Generate Full Scene
 
-```
+```text
 Step 1: suggest_traits({ description: "<scene description>" })
 Step 2: generate_scene({ description: "<description>", traits: <step 1 result> })
 Step 3: validate_holoscript({ code: <step 2 result> })
@@ -103,21 +119,21 @@ Step 3: validate_holoscript({ code: <step 2 result> })
 
 ### Explain Existing Code
 
-```
+```text
 Step 1: parse_hs({ code: "<code>" })  OR  parse_holo({ code: "<code>" })
 Step 2: explain_code({ ast: <step 1 result> })
 ```
 
 ### Find Right Traits
 
-```
+```text
 Step 1: list_traits({ category: "<interaction|physics|visual|networking|ai|spatial|audio|iot>" })
 Step 2: explain_trait({ name: "<trait name>" })
 ```
 
 ### Analyze Codebase (Cache-First — Most Efficient)
 
-```
+```text
 Step 1: holo_graph_status({})                               → Check cache freshness (<24h = use it)
 Step 2: holo_absorb_repo({ rootDir: "<pkg-path>" })        → Omit force; reads cache if fresh (~21ms)
          holo_absorb_repo({ rootDir: ".", force: true })   → Only if cache is stale or rootDir changed
@@ -128,13 +144,14 @@ Step 4: holo_semantic_search / holo_ask_codebase           → Require Ollama (g
 ```
 
 **Rules:**
+
 - NEVER call `holo_absorb_repo` with `force: true` unless `holo_graph_status` says cache is stale
 - Query tools (`holo_query_codebase`, `holo_impact_analysis`) auto-load the disk cache — no manual pre-load needed
 - Results include `cacheNote` field showing cache age and source
 
 ### MCP Tool Recovery
 
-```
+```text
 If any MCP tool call fails:
   1. Check server: npx tsx packages/mcp-server/src/index.ts --help
   2. Start it:     npx tsx packages/mcp-server/src/index.ts
@@ -152,10 +169,10 @@ If any MCP tool call fails:
 
 ## ∞ KNOWLEDGE PACK — Compressed Facts
 
-```
+```text
 REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
-TRAITS      1,800+ traits in 13 categories — ALL in @holoscript/core (no separate package)
-COMPILERS   25+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
+TRAITS      2,000+ traits in 13+ categories — ALL in @holoscript/core (no separate package)
+COMPILERS   30+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
 MCP         packages/mcp-server/ — 65 tools — start with: npx tsx packages/mcp-server/src/index.ts
 CACHE       ~/.holoscript/graph-cache.json — 24h TTL — holo_absorb_repo force=false reads from cache (~21ms)
 BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
@@ -168,8 +185,8 @@ ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 
 ### Packages Quick Map
 
-```
-@holoscript/core             Parser · AST · 1,800+ traits · 18+ compilers
+```text
+@holoscript/core             Parser · AST · 2,000+ traits · 30+ compilers
 @holoscript/mcp-server       65 AI tools (parse, validate, generate, compile, codebase intelligence)
 @holoscript/cli              holo build · holo compile · holo validate
 @holoscript/runtime          Scene execution runtime
@@ -185,7 +202,7 @@ holoscript (PyPI)            Python bindings + robotics module
 
 ### File Format Decision Matrix
 
-```
+```text
 Situation                                    → Use
 Simple object/scene, no interactivity        → .hs
 Object needs grab/physics/network/traits     → .hsplus
@@ -195,7 +212,7 @@ Tooling, CLI, parser, adapter code           → .ts (TypeScript)
 
 ### Trait Category Index
 
-```
+```text
 interaction   @grabbable @throwable @clickable @hoverable @draggable @pointable @scalable
 physics       @collidable @physics @rigid @kinematic @trigger @gravity @soft_body
 visual        @glowing @emissive @transparent @reflective @animated @billboard @particle
@@ -215,11 +232,14 @@ advanced      @shader_custom @compute_shader @ray_traced @lod_managed
 
 ## ∞ DOCS STRUCTURE — Where Things Live
 
-```
+```text
 docs/academy/          25 lessons, 3 levels (newcomer entry point)
-docs/compilers/        25+ targets: unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
-                       android/ android-xr/ openxr/ robotics/urdf robotics/sdf iot/dtdl iot/wot
-docs/traits/           13 category pages + index + extending guide
+docs/compilers/        30+ targets: unity/ unreal/ godot/ vrchat/ webgpu/ ios/ vision-os/
+                       android/ android-xr/ openxr/ openxr-spatial/ robotics/urdf robotics/sdf
+                       iot/dtdl iot/wot playcanvas/ wasm/ ar/ tsl/ neuromorphic/ a2a/ scm/
+                       usd-physics/ ai-glasses/ vr-reality/ nft-marketplace/
+docs/traits/           13+ category pages + index + extending guide
+docs/agents/           uAA2++ agent framework, UAAL VM
 docs/guides/           Core concepts, mcp-server, installation, best-practices
 docs/integrations/     Hololand, Grok/xAI, AI architecture, interoperability
 docs/cookbook/         Copy-paste recipes (vr-world, robotics, ai-world, multi-agent)
@@ -233,7 +253,7 @@ docs/_archive/         Dev notes, phase guides, session notes (NOT user-facing)
 
 ## ∞ AFFIRMATION PROTOCOL — Before Reporting Done
 
-```
+```text
 □ Did I call validate_holoscript on all generated HoloScript code?
 □ Did I run pnpm test if I modified any TypeScript?
 □ Did I call holo_graph_status then holo_absorb_repo BEFORE refactoring ANY TypeScript package?
@@ -250,7 +270,7 @@ If any box is unchecked → complete that step before responding.
 
 ## ∞ NEWCOMER FAST PATH
 
-```
+```text
 1. docs/academy/level-1-fundamentals/01-what-is-holoscript.md  (What + Why)
 2. docs/academy/level-1-fundamentals/02-installation.md         (Setup)
 3. docs/academy/level-1-fundamentals/03-first-scene.md          (First .holo)

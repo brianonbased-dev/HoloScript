@@ -60,6 +60,9 @@ import {
 } from './gltf/extensions';
 import { ASTNodePool } from './ObjectPool';
 
+// OOM fix: Pre-allocation reduced from 10K to 0 (demand-allocated).
+// Pool IS used (acquire in processObject) but 10K × ~80 bytes = ~800KB
+// pre-allocated upfront was wasteful. Nodes created on-demand now.
 const gltfNodePool = new ASTNodePool<GLTFNode>(
   () => ({ name: '' }),
   (node) => {
@@ -73,7 +76,7 @@ const gltfNodePool = new ASTNodePool<GLTFNode>(
     node.camera = undefined;
     node.extras = undefined;
   },
-  10000
+  0 // Was 10000 — demand-allocate instead of pre-allocating
 );
 
 // =============================================================================
@@ -851,9 +854,12 @@ function generatePlaneGeometry(scale: [number, number, number]): GeometryData {
 // GLTF PIPELINE
 // =============================================================================
 
-// Zero-allocation shared compilation buffer (starts at 10MB, grows as needed).
-// Reused across all synchronous compilation runs to prevent OOM memory pressure.
-let SHARED_COMPILE_BUFFER = new Uint8Array(1024 * 1024 * 10);
+// Shared compilation buffer — starts at 1MB, grows as needed.
+// Reused across synchronous compilation runs. Shrinks back after large builds
+// to prevent unbounded memory growth (see post-compile shrink in compile()).
+const INITIAL_COMPILE_BUFFER_SIZE = 1024 * 1024; // 1MB
+const MAX_RETAINED_BUFFER_SIZE = 1024 * 1024 * 20; // 20MB — shrink back above this
+let SHARED_COMPILE_BUFFER = new Uint8Array(INITIAL_COMPILE_BUFFER_SIZE);
 
 export class GLTFPipeline extends CompilerBase {
   protected readonly compilerName = 'GLTFPipeline';
@@ -871,7 +877,7 @@ export class GLTFPipeline extends CompilerBase {
 
   private ensureBufferCapacity(needed: number): void {
     if (this.bufferByteLength + needed > this.bufferData.length) {
-      const newLen = Math.max(this.bufferData.length * 2, this.bufferByteLength + needed, 1024 * 1024 * 10);
+      const newLen = Math.max(this.bufferData.length * 2, this.bufferByteLength + needed);
       const newArr = new Uint8Array(newLen);
       newArr.set(this.bufferData.subarray(0, this.bufferByteLength));
       this.bufferData = newArr;
@@ -1348,6 +1354,13 @@ export class GLTFPipeline extends CompilerBase {
 
     // Create buffer
     const buffer = this.bufferData.slice(0, this.bufferByteLength);
+
+    // OOM fix: shrink the shared buffer back if it grew beyond retention limit.
+    // Prevents unbounded memory growth across repeated compilations (e.g. dragon
+    // models that temporarily need 50MB+ aren't retained forever).
+    if (SHARED_COMPILE_BUFFER.length > MAX_RETAINED_BUFFER_SIZE) {
+      SHARED_COMPILE_BUFFER = new Uint8Array(INITIAL_COMPILE_BUFFER_SIZE);
+    }
 
     // Build glTF document
     const gltf = this.buildDocument(composition.name, buffer.byteLength);

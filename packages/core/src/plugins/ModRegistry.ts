@@ -226,9 +226,6 @@ export class ModRegistry {
     const dependents: string[] = [];
     for (const mod of this.mods.values()) {
       const deps = mod.manifest.dependencies || {};
-      if (depId in deps) {
-        // Check if this mod lists modId as a dependency
-      }
       if (Object.keys(deps).includes(modId)) {
         dependents.push(mod.manifest.id);
       }

@@ -1,0 +1,168 @@
+// Physics Interaction Demo — 5 Interaction Traits
+// Demonstrates: @grabbable, @clickable, @touchable, @sittable, @interactive
+
+composition "PhysicsInteractionDemo" {
+  metadata {
+    title: "Physics Interaction Demo"
+    version: "1.0"
+    tags: ["interaction", "grab", "touch", "physics"]
+  }
+  scene {
+    environment { skybox: "living_room"; lighting: "warm"; ambient_intensity: 0.4 }
+
+    object "Floor" {
+      @physics(type: "static")
+      @collidable(friction: 0.7)
+      geometry: "plane"
+      scale: [15, 1, 15]
+      color: "#C4A882"
+      material: "wood_floor"
+    }
+
+    // Grabbable coffee mug with haptic feedback
+    object "CoffeeMug" {
+      @grabbable(
+        grip_points: [
+          { position: [0, 0.05, 0.04], rotation: [0, 0, 0], hand: "any" }
+        ],
+        two_handed: false,
+        throw_velocity_multiplier: 1.5,
+        haptic_on_grab: { intensity: 0.3, duration: 0.1 },
+        snap_to_hand: true
+      )
+      @physics(mass: 0.35, center_of_mass: [0, -0.02, 0])
+      @collidable(restitution: 0.1)
+      @touchable(haptic_feedback: true, intensity: 0.1)
+      geometry: "cylinder"
+      position: [1, 1.05, 0]
+      scale: [0.04, 0.06, 0.04]
+      color: "#cc8844"
+      material: "ceramic"
+    }
+
+    // Table for the mug
+    object "CoffeeTable" {
+      @physics(type: "static")
+      @collidable
+      geometry: "box"
+      position: [1, 0.5, 0]
+      scale: [0.8, 1.0, 0.6]
+      color: "#5a3a1a"
+      material: "wood"
+    }
+
+    // Clickable light switch
+    object "LightSwitch" {
+      @clickable(
+        cursor: "pointer",
+        highlight_on_hover: true,
+        highlight_color: "#ffff0033",
+        click_sound: "sfx/switch_click.ogg",
+        double_click: false
+      )
+      @interactive(
+        actions: [
+          { trigger: "click", event: "toggle_lights", payload: { room: "living_room" } }
+        ],
+        feedback: "visual",
+        cooldown: 0.5
+      )
+      @touchable(haptic_feedback: true, intensity: 0.5, duration: 0.05)
+      geometry: "box"
+      position: [-3, 1.2, -2.99]
+      scale: [0.05, 0.08, 0.02]
+      color: "#eeeeee"
+    }
+
+    // Sittable couch
+    object "Couch" {
+      @sittable(
+        seat_positions: [
+          { position: [-0.5, 0.45, 0], rotation: [0, 0, 0] },
+          { position: [0, 0.45, 0], rotation: [0, 0, 0] },
+          { position: [0.5, 0.45, 0], rotation: [0, 0, 0] }
+        ],
+        sit_animation: "sit_casual",
+        stand_animation: "stand_up",
+        max_occupants: 3
+      )
+      @physics(type: "static")
+      @collidable
+      geometry: "box"
+      position: [-2, 0.35, 1]
+      scale: [2.0, 0.7, 0.8]
+      color: "#4455aa"
+      material: "fabric"
+    }
+
+    // Interactive TV with remote
+    object "Television" {
+      @interactive(
+        actions: [
+          { trigger: "click", event: "toggle_power", payload: { device: "tv" } },
+          { trigger: "swipe_up", event: "volume_up", payload: { step: 5 } },
+          { trigger: "swipe_down", event: "volume_down", payload: { step: 5 } },
+          { trigger: "swipe_left", event: "channel_prev" },
+          { trigger: "swipe_right", event: "channel_next" }
+        ],
+        feedback: "audio_visual",
+        state: { power: false, volume: 50, channel: 1 }
+      )
+      @clickable(cursor: "pointer", highlight_on_hover: true)
+      geometry: "box"
+      position: [0, 1.5, -2.9]
+      scale: [1.6, 0.9, 0.05]
+      color: "#111111"
+      material: "screen"
+    }
+
+    // Grabbable TV remote
+    object "TVRemote" {
+      @grabbable(
+        snap_to_hand: true,
+        throw_velocity_multiplier: 0.8,
+        haptic_on_grab: { intensity: 0.2, duration: 0.05 }
+      )
+      @touchable(haptic_feedback: true, intensity: 0.15)
+      @clickable(
+        cursor: "pointer",
+        click_sound: "sfx/button_press.ogg"
+      )
+      @interactive(
+        actions: [
+          { trigger: "button_a", event: "tv_power" },
+          { trigger: "thumbstick_up", event: "tv_volume_up" },
+          { trigger: "thumbstick_down", event: "tv_volume_down" }
+        ]
+      )
+      @physics(mass: 0.15)
+      geometry: "box"
+      position: [1, 1.06, 0.2]
+      scale: [0.04, 0.01, 0.15]
+      color: "#222222"
+    }
+
+    // Touchable globe
+    object "Globe" {
+      @touchable(
+        haptic_feedback: true,
+        intensity: 0.2,
+        surface_tracking: true,
+        multi_touch: true,
+        max_touch_points: 2
+      )
+      @interactive(
+        actions: [
+          { trigger: "touch_drag", event: "rotate_globe" },
+          { trigger: "pinch", event: "zoom_globe" },
+          { trigger: "double_tap", event: "select_location" }
+        ]
+      )
+      @physics(type: "kinematic")
+      geometry: "sphere"
+      position: [3, 1.3, 2]
+      scale: [0.3, 0.3, 0.3]
+      color: "#2266aa"
+    }
+  }
+}

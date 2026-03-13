@@ -1562,6 +1562,15 @@ export class HoloCompositionParser {
           // Generic IDENTIFIER handler for DSL-level blocks:
           // config { }, anchor "name" { }, activity "name" { }, module "name" { },
           // permissions: [...], panel "HUD" { }, networked { }, gesture "pinch" { }, etc.
+          const identValue = this.current().value;
+
+          // Typo detection: check if identifier is a typo of a known composition-level keyword
+          const knownBlocks = ['environment', 'state', 'logic', 'template', 'object', 'spatial_group', 'import', 'light', 'norm', 'metanorm'];
+          const typoMatch = TypoDetector.findClosestMatch(identValue, knownBlocks);
+          if (typoMatch && typoMatch !== identValue) {
+            this.error(`Unknown block "${identValue}"`, `Did you mean "${typoMatch}"? Check for typos in the keyword.`);
+          }
+
           this.advance(); // consume IDENTIFIER
           if (this.check('COLON')) {
             // identifier: value — property at composition level
@@ -2833,16 +2842,24 @@ export class HoloCompositionParser {
           this.advance(); // consume function name (e.g., `forward_kinematics`)
         }
         if (this.check('LPAREN')) {
-          // Normal event handler: on_player_touch(orb) { ... } or function name(params) { }
-          this.skipParens();
+          // Event handler with parameters: on_player_attack(enemy) { ... }
+          const parameters = this.parseParameterList();
           if (this.check('LBRACE')) {
-            this.skipBlock();
+            this.advance(); // consume {
+            this.skipNewlines();
+            const body = this.parseStatementBlock();
+            this.expect('RBRACE');
+            handlers.push({ type: 'EventHandler', event: name, parameters, body } as any);
+          } else {
+            handlers.push({ type: 'EventHandler', event: name, parameters, body: [] } as any);
           }
-          handlers.push({ type: 'EventHandler', event: name, parameters: [], body: [] } as any);
         } else if (this.check('LBRACE')) {
           // No-parens style: on_enter { ... }
-          this.skipBlock();
-          handlers.push({ type: 'EventHandler', event: name, parameters: [], body: [] } as any);
+          this.advance(); // consume {
+          this.skipNewlines();
+          const body = this.parseStatementBlock();
+          this.expect('RBRACE');
+          handlers.push({ type: 'EventHandler', event: name, parameters: [], body } as any);
         } else {
           this.error(`Unexpected token in logic: ${name}. Next token: ${this.current().type}`);
         }

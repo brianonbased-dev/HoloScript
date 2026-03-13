@@ -3732,7 +3732,15 @@ export class HoloScriptRuntime {
         // Ensure local state is merged into orb properties
         if (node && (node as any).__type === 'orb') {
           console.log(`[RUNTIME_DEBUG] Merging @state into orb ${node.name}:`, d.body);
-          (node as any).properties = { ...(node as any).properties, ...(d.body as any) };
+          const stateBody = d.body as Record<string, HoloScriptValue>;
+          const existingProps = (node as any).properties || {};
+          // Only set state defaults — never overwrite runtime-modified values
+          for (const [key, val] of Object.entries(stateBody)) {
+            if (existingProps[key] === undefined) {
+              existingProps[key] = val;
+            }
+          }
+          (node as any).properties = existingProps;
         }
         this.context.state.update(d.body as any);
       } else if (d.type === 'lifecycle') {

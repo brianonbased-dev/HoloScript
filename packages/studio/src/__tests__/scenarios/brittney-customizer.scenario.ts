@@ -18,7 +18,7 @@ import {
   type CharacterStoreActions,
 } from '../../lib/brittney/CharacterIntentParser';
 
-const { useCharacterStore } = await import('@/lib/stores');
+const { useCharacterStore, useWardrobeStore } = await import('@/lib/stores');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -26,21 +26,24 @@ function resetStore() {
   useCharacterStore.setState({
     morphTargets: {},
     skinColor: '#e8beac',
-    equippedItems: {},
     customizeMode: false,
     panelMode: 'skeleton',
+  });
+  useWardrobeStore.setState({
+    equippedItems: {},
   });
 }
 
 function getStoreActions(): CharacterStoreActions {
   const s = useCharacterStore.getState();
+  const w = useWardrobeStore.getState();
   return {
     setMorphTarget: s.setMorphTarget,
     resetMorphTargets: s.resetMorphTargets,
     setSkinColor: s.setSkinColor,
-    equipItem: s.equipItem as any,
-    unequipSlot: s.unequipSlot as any,
-    clearWardrobe: s.clearWardrobe,
+    equipItem: w.equipItem as any,
+    unequipSlot: w.unequipSlot as any,
+    clearWardrobe: w.clearWardrobe,
     morphTargets: s.morphTargets,
     skinColor: s.skinColor,
   };

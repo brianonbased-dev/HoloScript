@@ -1,0 +1,152 @@
+// Spatial Audio Showcase — 7 Audio Traits
+// Demonstrates: @spatial_audio, @audio_zone, @audio_filter, @voice_chat,
+//   @audio_occlusion, @audio_reverb, @ambient_audio
+
+composition "SpatialAudioShowcase" {
+  metadata {
+    title: "Spatial Audio Showcase"
+    version: "1.0"
+    tags: ["audio", "spatial", "hrtf", "voice"]
+  }
+  scene {
+    environment { skybox: "concert_hall"; lighting: "dim"; ambient_intensity: 0.2 }
+
+    // Concert hall floor
+    object "Hall" {
+      @physics(type: "static")
+      @collidable
+      geometry: "box"
+      position: [0, -0.1, 0]
+      scale: [30, 0.2, 20]
+      color: "#2a1810"
+      material: "wood_polished"
+    }
+
+    // Main stage speaker with HRTF spatial audio
+    object "StageLeftSpeaker" {
+      @spatial_audio(
+        source: "music",
+        file: "tracks/concert_left.ogg",
+        range: 30,
+        falloff: "inverse_square",
+        volume: 0.9,
+        loop: true,
+        hrtf: true,
+        doppler: 1.0,
+        cone: { inner_angle: 60, outer_angle: 120, outer_volume: 0.3 }
+      )
+      geometry: "box"
+      position: [-4, 2, -8]
+      scale: [0.8, 1.2, 0.5]
+      color: "#111111"
+    }
+
+    object "StageRightSpeaker" {
+      @spatial_audio(
+        source: "music",
+        file: "tracks/concert_right.ogg",
+        range: 30,
+        falloff: "inverse_square",
+        volume: 0.9,
+        loop: true,
+        hrtf: true,
+        cone: { inner_angle: 60, outer_angle: 120, outer_volume: 0.3 }
+      )
+      geometry: "box"
+      position: [4, 2, -8]
+      scale: [0.8, 1.2, 0.5]
+      color: "#111111"
+    }
+
+    // Audio zone — backstage area with different reverb
+    object "BackstageZone" {
+      @audio_zone(
+        shape: "box",
+        bounds: [10, 4, 8],
+        transition: "crossfade",
+        fade_time: 1.5
+      )
+      @audio_reverb(
+        preset: "small_room",
+        decay: 0.8,
+        density: 0.6,
+        diffusion: 0.7,
+        wet_mix: 0.4
+      )
+      @audio_occlusion(
+        material: "concrete_wall",
+        thickness: 0.3,
+        frequency_dependent: true,
+        low_pass_cutoff: 800
+      )
+      position: [0, 2, -15]
+      visible: false
+    }
+
+    // Main hall reverb zone
+    object "HallReverbZone" {
+      @audio_zone(shape: "box", bounds: [30, 8, 20])
+      @audio_reverb(
+        preset: "large_hall",
+        decay: 2.5,
+        density: 0.9,
+        diffusion: 0.8,
+        wet_mix: 0.3,
+        early_reflections: 0.15
+      )
+      position: [0, 4, 0]
+      visible: false
+    }
+
+    // Voice chat area with spatial falloff
+    object "VIPLounge" {
+      @voice_chat(
+        mode: "spatial",
+        codec: "opus",
+        bitrate: 48000,
+        sample_rate: 48000,
+        channels: 1,
+        echo_cancellation: true,
+        noise_suppression: true,
+        auto_gain: true,
+        range: 5,
+        falloff: "linear"
+      )
+      @audio_zone(shape: "sphere", bounds: [5, 5, 5])
+      @audio_reverb(preset: "small_room", decay: 0.5, wet_mix: 0.2)
+      @audio_filter(
+        type: "low_pass",
+        cutoff: 4000,
+        resonance: 0.5
+      )
+      position: [10, 1, 5]
+      visible: false
+    }
+
+    // Ambient outdoor audio
+    object "OutdoorAmbience" {
+      @ambient_audio(
+        layers: [
+          { file: "ambience/wind.ogg", volume: 0.3, loop: true },
+          { file: "ambience/crickets.ogg", volume: 0.2, loop: true, time_of_day: "night" },
+          { file: "ambience/birds.ogg", volume: 0.25, loop: true, time_of_day: "day" }
+        ],
+        blend_mode: "crossfade",
+        master_volume: 0.4
+      )
+      position: [0, 5, 10]
+      visible: false
+    }
+
+    // Interactive sound trigger
+    object "DoorwayTrigger" {
+      @spatial_audio(source: "sfx", file: "sfx/door_creak.ogg", range: 5, volume: 0.7)
+      @audio_occlusion(material: "wood_door", thickness: 0.05, frequency_dependent: true)
+      @clickable
+      geometry: "box"
+      position: [0, 1.5, -10]
+      scale: [1.5, 3, 0.1]
+      color: "#5a3a1a"
+    }
+  }
+}

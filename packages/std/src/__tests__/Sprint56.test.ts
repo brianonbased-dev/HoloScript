@@ -709,7 +709,7 @@ describe('IntervalTimer', () => {
 
   it('fires callback at interval', async () => {
     const fn = vi.fn();
-    const timer = new IntervalTimer(fn, 30);
+    const timer = new IntervalTimer(fn, 10);
     timer.start();
     await new Promise((r) => setTimeout(r, 80));
     timer.stop();

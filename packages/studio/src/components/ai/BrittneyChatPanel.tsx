@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Loader2, Zap, CheckCircle2, XCircle, Mic, MicOff, Trash2 } from 'lucide-react';
+import { Send, Loader2, Zap, CheckCircle2, XCircle, Mic, MicOff, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { streamBrittney, buildRichContext, executeTool } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
@@ -77,6 +77,24 @@ export function BrittneyChatPanel() {
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<BrittneyMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+
+  /** Speak text aloud via Web Speech Synthesis */
+  const speak = useCallback((text: string) => {
+    if (!ttsEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+    // Cancel any in-progress speech
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.05;
+    utterance.pitch = 1.1;
+    // Prefer a female voice for Brittney's persona
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(
+      (v) => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira')
+    );
+    if (femaleVoice) utterance.voice = femaleVoice;
+    window.speechSynthesis.speak(utterance);
+  }, [ttsEnabled]);
 
   // Load persisted history on mount
   useEffect(() => {
@@ -222,17 +240,25 @@ export function BrittneyChatPanel() {
     persistMessage({ role: 'assistant', content: accumulatedText });
 
     setIsThinking(false);
+
+    // TTS: speak the response
+    if (accumulatedText && !accumulatedText.startsWith('Sorry') && !accumulatedText.startsWith('Connection error')) {
+      speak(accumulatedText);
+    }
   }, [
     input,
     isThinking,
     llmHistory,
     nodes,
     selectedId,
+    selectedName,
+    code,
     addTrait,
     removeTrait,
     setTraitProperty,
     addNode,
     persistMessage,
+    speak,
   ]);
 
   const handleClearHistory = useCallback(() => {
@@ -286,6 +312,14 @@ export function BrittneyChatPanel() {
             className="ml-1 rounded p-1 text-studio-muted hover:bg-studio-border hover:text-red-400 transition"
           >
             <Trash2 className="h-3 w-3" />
+          </button>
+          <button
+            onClick={() => setTtsEnabled(!ttsEnabled)}
+            aria-label={ttsEnabled ? 'Disable voice responses' : 'Enable voice responses'}
+            title={ttsEnabled ? 'Disable voice responses' : 'Enable voice responses'}
+            className={`rounded p-1 transition ${ttsEnabled ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            {ttsEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
           </button>
         </div>
       </div>

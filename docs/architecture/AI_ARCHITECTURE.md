@@ -86,3 +86,25 @@ _AI-assisted target compilation to Udon/Unity outputs._
 | **Phase 2** | Context-Aware Modification ("Make it bigger") | ✅ Live  |
 | **Phase 3** | Semantic Scene Understanding (`@detectable`)  | 🟡 Beta  |
 | **Phase 4** | Autonomous Agents (Self-Coding)               | 🧪 Alpha |
+
+---
+
+## 4. Strategic Direction: Brittney And Studio Primacy
+
+The long-term AI architecture should converge toward a **Studio-first** operating model:
+
+- Brittney becomes the primary intelligence interface.
+- HoloScript Studio becomes the primary creation environment.
+- HoloScript remains the native medium for scenes, systems, and agent behavior.
+- Conventional IDEs remain important, but primarily as compatibility and maintenance surfaces.
+
+This means advanced intelligence accumulation should converge around:
+
+- project memory,
+- scene understanding,
+- asset and world refinement,
+- fine-tuning,
+- deployment orchestration,
+- and spatial debugging.
+
+In practice, generic IDE agents continue to help build HoloScript itself, while Brittney becomes the place where the ecosystem's deepest context and creation capabilities compound over time.

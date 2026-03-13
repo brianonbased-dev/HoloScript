@@ -1,5 +1,7 @@
 # @holoscript/mcp-server
 
+> **The programmatic bridge** for AI agents to read, write, compile, and transform HoloScript entities — spatial, backend, or anything in between. [Read the V6 Vision →](../../VISION.md)
+
 Model Context Protocol (MCP) server for HoloScript AI assistance. **43+ tools** across 5 categories, including **30+ compilation targets**. Free and open-source.
 
 ## Installation

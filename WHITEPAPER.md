@@ -416,6 +416,78 @@ The compiler is available. The format is documented. The 30-year bottleneck has 
 
 ---
 
+## 7. Beyond Spatial: HoloScript as Universal Semantic Language
+
+### 7.1 The Generalization
+
+Sections 2–3 demonstrated executable semantics for spatial computing: `@physics(mass: 5)` compiles to a rigid body constraint. But the architectural mechanism is not specific to physics. The trait-compiler pipeline works identically for *any* domain where a declarative specification can be deterministically compiled to platform-specific code.
+
+Consider an AI agent protocol. In TypeScript, a 7-phase execution cycle is expressed as a class with methods:
+
+```typescript
+class BaseAgent {
+  private phase: number = 0;
+  async execute() { /* imperative logic */ }
+}
+```
+
+The same domain concept in HoloScript:
+
+```holo
+entity Agent {
+  @protocol { phases: 7, current: 0, cycle: "uaa2++" }
+  @knowledge { patterns: [], wisdom: [], gotchas: [] }
+  @lifecycle { status: "active", cycle: 68, autoRestart: true }
+}
+```
+
+The trait declarations `@protocol`, `@knowledge`, and `@lifecycle` are not comments or documentation. They are compiler-enforceable contracts. A `node-service` compile target would emit:
+- A state machine with 7 phase transitions and guard conditions
+- A typed knowledge store with pattern/wisdom/gotcha schemas
+- A lifecycle manager with health checks and restart policies
+
+The mechanism is identical to `@physics` → `AddComponent<Rigidbody>()`. The domain changed; the architecture did not.
+
+### 7.2 The Absorb Pipeline as Proof
+
+The `holoscript absorb` command already demonstrates bidirectional TypeScript ↔ HoloScript conversion for non-spatial code. The `codebase-absorb.holo` file in the HoloScript repository converts a 31-file, 7,481-LOC TypeScript codebase into 1,898 lines of HoloScript entities:
+
+```holo
+object "CodebaseGraph" @class @public {
+  position: [162.86, -468.17, 1012.39]
+  language: "typescript"
+  signature: "class CodebaseGraph"
+  loc: 425
+}
+```
+
+Every class, interface, function, and method becomes a HoloScript entity with metadata traits. The `CodebaseGraph` class is not a 3D object — it is a semantic entity that *can* be rendered spatially, queried via Graph RAG, or compiled to documentation. The spatial position is one trait among many; the semantic identity is what matters.
+
+### 7.3 The Coverage Gradient
+
+Not all code can be expressed as traits. Empirical analysis of a production AI service platform (9 services, 36+ repositories) reveals a coverage gradient:
+
+| Coverage | Examples | Mechanism |
+|---|---|---|
+| **Full (~40%)** | Agent definitions, protocol state machines, knowledge schemas, entity relationships, economic models | Traits compile deterministically to typed implementations |
+| **Partial (~30%)** | MCP tool registration, resilience patterns, auth policies, mesh networking topology | Traits describe the contract; compiler generates boilerplate; imperative gaps filled by developer or AI |
+| **None (~30%)** | SQL queries, Express middleware chains, error handling plumbing, third-party API calls, file I/O | Inherently imperative — no declarative specification exists |
+
+The critical observation: the 40% that HoloScript handles natively is the **highest-value** code — the domain model, architecture, and design decisions. The 30% it cannot handle is infrastructure plumbing that rarely embodies novel design decisions.
+
+### 7.4 From Spatial Language to Semantic Platform
+
+HoloScript v1–v5 established the spatial computing use case. Version 6 recognizes that the underlying architecture — traits as closed-world declarations, compiled deterministically to platform targets — is domain-agnostic. Spatial computing is one application. Others include:
+
+- **Service orchestration**: Traits describe service contracts, compile to API handlers
+- **AI agent design**: Traits describe capabilities and behaviors, compile to agent runtimes
+- **Data pipeline specification**: Traits describe schema and transformation, compile to ETL code
+- **Infrastructure as Code**: Traits describe topology, compile to deployment manifests
+
+The trait system is a **semantic vocabulary** with 1,525+ entries across 13 categories. Physics is one category. The vocabulary grows with each domain HoloScript absorbs.
+
+---
+
 ## References
 
 [1] Harnad, S. (1990). The Symbol Grounding Problem. *Physica D: Nonlinear Phenomena*, 42(1–3), 335–346.

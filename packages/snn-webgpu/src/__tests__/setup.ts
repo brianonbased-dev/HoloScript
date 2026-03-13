@@ -22,21 +22,37 @@ async function tryDawnGPU(): Promise<boolean> {
   if (process.env.SNN_FORCE_MOCK === '1') return false;
 
   try {
-    // The `webgpu` npm package registers navigator.gpu globally on import
-    await import('webgpu');
+    // The `webgpu` npm package v0.3.x exports { create, globals }
+    // `globals` is an object (not a function), `create()` returns a GPU instance.
+    const { create } = await import('webgpu');
 
-    if (typeof navigator !== 'undefined' && navigator.gpu) {
-      // Smoke-test: can we actually get an adapter?
-      const adapter = await navigator.gpu.requestAdapter();
-      if (adapter) {
-        console.log('[snn-webgpu] ✅ Live GPU detected via Dawn');
-        const info = (adapter as any).info ?? { vendor: 'unknown', architecture: 'unknown' };
-        console.log(`[snn-webgpu]    Vendor: ${info.vendor}, Arch: ${info.architecture}`);
-        return true;
-      }
+    if (typeof create !== 'function') return false;
+
+    // Create a GPU instance backed by Dawn (local hardware GPU)
+    const gpuInstance = create([]);
+
+    // Prefer the discrete (high-performance) GPU on dual-GPU systems.
+    // Falls back to any available adapter if no high-perf adapter is found.
+    let adapter = await gpuInstance.requestAdapter({ powerPreference: 'high-performance' });
+    if (!adapter) {
+      adapter = await gpuInstance.requestAdapter();
     }
-  } catch {
+    if (!adapter) return false;
+
+    // Install navigator.gpu globally so downstream code works transparently
+    if (typeof globalThis.navigator === 'undefined') {
+      (globalThis as any).navigator = {};
+    }
+    (globalThis.navigator as any).gpu = gpuInstance;
+
+    console.log('[snn-webgpu] ✅ Live GPU detected via Dawn');
+    const info = (adapter as any).info ?? { vendor: 'unknown', architecture: 'unknown' };
+    console.log(`[snn-webgpu]    Vendor: ${info.vendor}, Arch: ${info.architecture}`);
+    console.log(`[snn-webgpu]    maxBufferSize: ${(adapter as any).limits?.maxBufferSize ?? 'unknown'}`);
+    return true;
+  } catch (e: any) {
     // Dawn not installed or failed — fall through to mocks
+    console.log(`[snn-webgpu] Dawn init error: ${e.message}`);
   }
   return false;
 }

@@ -49,4 +49,5 @@ export type PanelTab =
   | 'agent'
   | 'character'
   | 'models'
-  | 'templates';
+  | 'templates'
+  | 'diagnostics';

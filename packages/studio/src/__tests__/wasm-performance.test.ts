@@ -159,7 +159,7 @@ const TEST_CASES = {
 }`,
 };
 
-describe('WASM Performance Benchmarks', () => {
+describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
   // Clean up global Worker stub after all tests to prevent leaking
   // to other test files that share this vitest worker pool
   afterAll(() => {

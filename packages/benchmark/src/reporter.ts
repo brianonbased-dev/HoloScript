@@ -59,7 +59,7 @@ function buildSuiteTable(suite: SuiteResults): string {
 
   return `
   <div style="margin-bottom:32px">
-    <h2 style="font-size:18px;margin:0 0 12px;color:#333">${suite.suite}</h2>
+    <h2 style="font-size:18px;margin:0 0 12px;color:#333">Suite ${suite.suite}</h2>
     <table style="border-collapse:collapse;width:100%;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1)">
       <thead>
         <tr style="background:#f5f5f5;font-size:12px;color:#666;text-transform:uppercase">
@@ -106,6 +106,9 @@ export function generateHtmlReport(results: AllResults): string {
 </body>
 </html>`;
 }
+
+/** Canonical alias — consumers import `generateReport` from this module. */
+export const generateReport = generateHtmlReport;
 
 /**
  * Write the HTML report to disk.

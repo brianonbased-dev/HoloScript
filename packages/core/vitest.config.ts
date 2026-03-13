@@ -21,6 +21,11 @@ export default defineConfig({
       '**/dist/**',
       '**/hsplus-files.test.ts', // Causes vitest OOM - run separately with node --max-old-space-size
     ],
+    // Give fork processes enough memory for the large test suite (44K+ tests).
+    // poolOptions was removed in Vitest 4; execArgv is now a top-level option.
+    // This flows through project.config.execArgv → ForksPoolWorker → child_process.fork().
+    pool: 'forks',
+    execArgv: ['--max-old-space-size=16384'],
     // Increase timeout for slower tests
     testTimeout: 30000,
     // Clear mocks between tests (reset call counts)

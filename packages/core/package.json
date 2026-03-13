@@ -73,8 +73,8 @@
   "scripts": {
     "build": "tsup && node scripts/generate-types.mjs",
     "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "node --max-old-space-size=16384 run-vitest.mjs",
+    "test:coverage": "node --max-old-space-size=16384 run-vitest.mjs --coverage",
     "test:watch": "vitest"
   },
   "keywords": [
