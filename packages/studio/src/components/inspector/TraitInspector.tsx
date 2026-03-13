@@ -185,6 +185,7 @@ interface TraitInspectorProps {
 export function TraitInspector({ onOpenPalette, onOpenShaderEditor }: TraitInspectorProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const nodes = useSceneGraphStore((s) => s.nodes);
+  const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
 
   const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
 
@@ -230,7 +231,14 @@ export function TraitInspector({ onOpenPalette, onOpenShaderEditor }: TraitInspe
                     type="number"
                     value={selectedNode[prop][i]}
                     step={prop === 'rotation' ? 15 : prop === 'scale' ? 0.1 : 0.5}
-                    onChange={() => {}}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val)) {
+                        const updated = [...selectedNode[prop]] as [number, number, number];
+                        updated[i] = val;
+                        updateNodeTransform(selectedNode.id, { [prop]: updated });
+                      }
+                    }}
                     className="w-full min-w-0 rounded bg-studio-surface px-1 py-0.5 text-center text-[11px] text-studio-text outline-none focus:ring-1 focus:ring-studio-accent/50"
                     title={`${prop} ${axis.toUpperCase()}`}
                   />

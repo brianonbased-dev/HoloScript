@@ -10,19 +10,39 @@ import { test, expect } from '@playwright/test';
 const EDITOR_URL = '/create';
 
 test.describe('Studio editor page', () => {
+  // SceneRenderer loads heavy Three.js / R3F chunks dynamically; the canvas wait
+  // in beforeEach needs more time than the default 30 s global test timeout.
+  test.describe.configure({ timeout: 120_000 });
+
   test.beforeEach(async ({ page }) => {
-    await page.goto(EDITOR_URL);
-    // Wait for the main layout to load
-    await page.waitForLoadState('networkidle');
+    // Suppress first-visit onboarding modals by pre-populating the localStorage
+    // keys that the tutorial/wizard read to decide whether to show.
+    // addInitScript runs before any page scripts so the React components never
+    // open the modals in the first place.
+    await page.addInitScript(() => {
+      localStorage.setItem('holoscript-studio-tutorial-complete', 'true');
+      localStorage.setItem('studio-wizard-seen', '1');
+      // Force artist mode so the else-branch layout renders SceneGraphPanel + BrittneyChatPanel.
+      // Default 'creator' mode renders CreatorLayout which has neither.
+      localStorage.setItem('studio-mode', 'artist');
+    });
+
+    // Use 'domcontentloaded' so page.goto() resolves before heavy Three.js / R3F
+    // chunks are fetched — those can take >30 s on cold compile, exceeding the
+    // default navigation timeout.  The canvas wait below handles actual readiness.
+    await page.goto(EDITOR_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    // SceneRenderer is dynamically imported; wait for canvas (signals R3F mounted).
+    await expect(page.locator('canvas').first()).toBeVisible({ timeout: 60_000 });
   });
 
   test('shows the three main panels', async ({ page }) => {
-    // Scene graph panel (left sidebar)
-    await expect(page.getByText(/scene graph/i).first()).toBeVisible({ timeout: 10_000 });
+    // Scene graph panel (left sidebar) — the panel header label is "Scene",
+    // and the accessible tree has aria-label="Scene graph"
+    await expect(page.locator('[role="tree"]').first()).toBeVisible({ timeout: 10_000 });
     // Viewport (3D canvas is present)
     await expect(page.locator('canvas').first()).toBeVisible();
-    // Brittney chat panel
-    await expect(page.getByPlaceholder(/ask brittney/i).first()).toBeVisible();
+    // Brittney chat panel — placeholder varies but always contains "Brittney"
+    await expect(page.getByPlaceholder(/brittney/i).first()).toBeVisible();
   });
 
   test('can expand/collapse the scene graph panel', async ({ page }) => {
@@ -37,7 +57,7 @@ test.describe('Studio editor page', () => {
   });
 
   test('Brittney chat sends a message', async ({ page }) => {
-    const input = page.getByPlaceholder(/ask brittney/i).first();
+    const input = page.getByPlaceholder(/brittney/i).first();
     await input.fill('Hello Brittney');
     await page.keyboard.press('Enter');
     // Wait for the message to appear in the conversation

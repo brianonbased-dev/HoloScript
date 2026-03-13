@@ -20,7 +20,13 @@ import * as crypto from 'crypto';
 import { promisify } from 'util';
 import type { CulturalFamily, PromptDialect } from '../../traits/CultureTraits';
 
-const generateKeyPairAsync = promisify(crypto.generateKeyPair);
+// crypto.generateKeyPair is a Node.js-only API not present in browser polyfills.
+// Guard with a runtime check so the module can be imported in browser context
+// (e.g. for WorkflowStep / AgentRole enums) without crashing at load time.
+const generateKeyPairAsync: ((type: string, options: object) => Promise<{ publicKey: string; privateKey: string }>) | null =
+  typeof crypto.generateKeyPair === 'function'
+    ? (promisify(crypto.generateKeyPair) as unknown as (type: string, options: object) => Promise<{ publicKey: string; privateKey: string }>)
+    : null;
 
 /**
  * Agent roles in the HoloScript compiler pipeline
@@ -255,6 +261,9 @@ export async function generateAgentKeyPair(
   agentRole: AgentRole,
   timestamp?: Date
 ): Promise<AgentKeyPair> {
+  if (!generateKeyPairAsync) {
+    throw new Error('crypto.generateKeyPair is unavailable in this environment (browser). Key pair generation requires a Node.js runtime.');
+  }
   const { publicKey, privateKey } = await generateKeyPairAsync('ed25519', {
     publicKeyEncoding: {
       type: 'spki',

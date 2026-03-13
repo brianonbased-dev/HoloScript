@@ -9,10 +9,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // A single Next.js dev-server handles one compilation at a time; parallel
+  // workers race on heavy Three.js chunk requests and time out each other.
+  // Keep workers=1 in both CI and local runs to serialise page loads.
+  workers: 1,
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['junit', { outputFile: 'playwright-results.xml' }],
