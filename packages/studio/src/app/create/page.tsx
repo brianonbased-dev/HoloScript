@@ -844,8 +844,6 @@ export default function CreatePage() {
   const toggleExclusive = usePanelVisibilityStore((s) => s.toggleExclusive);
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
-  const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
-  const setMaterialOpen = usePanelVisibilityStore((s) => s.setMaterialOpen);
 
   // Non-panel state (kept local — layout dimensions, left tab)
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');

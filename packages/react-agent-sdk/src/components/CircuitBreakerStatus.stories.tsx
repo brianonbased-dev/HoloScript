@@ -2,7 +2,7 @@
  * CircuitBreakerStatus Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { CircuitBreakerStatus } from './CircuitBreakerStatus';
 
 const meta: Meta<typeof CircuitBreakerStatus> = {
