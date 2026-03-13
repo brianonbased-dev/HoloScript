@@ -1,0 +1,245 @@
+/**
+ * Physical-AI Swarm Training for Disaster Robotics
+ *
+ * RescueTrainer swarm runs behavior trees in sim, migrates live to
+ * real ROS 2 / Gazebo fleets for validation, pays each other compute
+ * credits for successful skill transfers, and uses FeedbackLoop to
+ * evolve curricula based on real-world disaster metrics. Ships to
+ * human oversight headsets + physical robots from one file.
+ *
+ * v5 Traits: agent_portal, economy, feedback_loop, digital_twin, ROS2Bridge
+ *
+ * Studio prompt: "Build a disaster robotics training arena where rescue
+ *   robot swarms train in VR, transfer to real hardware, and pay each
+ *   other for successful rescue maneuvers."
+ *
+ * Targets: CVPR 4D Digital Twins, AWE Enterprise, Wildfire extension
+ * @version 5.0.0
+ */
+composition "DisasterRoboticsSwarm" {
+
+  metadata {
+    name: "Physical-AI Swarm Training for Disaster Robotics"
+    category: "disaster_robotics"
+    platforms: ["urdf", "sdf", "unity", "unreal", "webxr", "visionos", "r3f"]
+  }
+
+  environment {
+    skybox: "collapsed_building"
+    ambient_light: 0.3
+    physics: true
+    physics_engine: "ode"
+    gravity: [0, -9.81, 0]
+  }
+
+  state {
+    training_runs: 0
+    successful_rescues_sim: 0
+    successful_rescues_real: 0
+    skill_transfers: 0
+    credits_exchanged: 0
+    curricula_evolved: 0
+  }
+
+  entity PortalHub {
+    traits: [agent_portal];
+    agent_portal: {
+      scene_id: "disaster_arena_001",
+      scene_name: "Disaster Robotics Arena",
+      agent_id: "arena_master",
+      capabilities: ["rescue_sim", "sim2real_transfer", "swarm_coordination"],
+      relay_url: "wss://portal.holoscript.dev/disaster",
+      auto_reconnect: true, max_hop_count: 5,
+      default_ttl: 120000, max_outbox_size: 400,
+    };
+  }
+
+  entity EconomyEngine {
+    traits: [economy];
+    economy: {
+      initial_balance: 150,
+      default_spend_limit: 200,
+      spend_limit_period: 3600000,
+      max_transaction_history: 500,
+      default_bounty_deadline: 600000,
+      max_bounties_per_agent: 15,
+      escrow_enabled: true,
+      task_completion_reward: 30,
+    };
+  }
+
+  entity FeedbackEngine {
+    traits: [feedback_loop];
+    feedback_loop: {
+      metrics: {
+        rescue_success_rate:  { target: 0.85, min: 0, max: 1.0 },
+        sim2real_gap:         { target: 0.1,  min: 0, max: 1.0 },
+        victim_detection:     { target: 0.95, min: 0, max: 1.0 },
+        navigation_accuracy:  { target: 0.9,  min: 0, max: 1.0 },
+        swarm_coordination:   { target: 0.8,  min: 0, max: 1.0 },
+        battery_efficiency:   { target: 0.7,  min: 0, max: 1.0 },
+      },
+      history_window: 100,
+      min_samples_for_trend: 10,
+      alert_threshold: 15,
+      critical_threshold: 35,
+      auto_signal: true,
+    };
+  }
+
+  // ━━━ AGENT TEMPLATES ━━━
+
+  template "RescueTrainer" {
+    @llm_agent
+    @perception(range: 40)
+
+    geometry: "capsule"; color: "#ff3300"; scale: [0.5, 1.0, 0.5]
+
+    state {
+      specialty: "search_and_rescue"
+      episode_count: 0
+      sim_rescues: 0
+      real_rescues: 0
+      credits: 150
+    }
+
+    on mount() {
+      print("RescueTrainer " + this.id + " — specialty: " + state.specialty)
+    }
+
+    action run_rescue_sim(scenario) {
+      state.episode_count += 1
+      emit("feedback:update_metric", { name: "rescue_success_rate",
+        value: state.sim_rescues / Math.max(1, state.episode_count) })
+      print("Running rescue scenario #" + state.episode_count + ": " + scenario.type)
+    }
+
+    action report_sim_result(success, metrics) {
+      if (success) state.sim_rescues += 1
+      emit("feedback:update_metric", { name: "victim_detection", value: metrics.detection_rate })
+      emit("feedback:update_metric", { name: "navigation_accuracy", value: metrics.nav_accuracy })
+    }
+
+    action transfer_to_real(robotFleetSceneId) {
+      emit("economy:spend", {
+        agentId: this.id, amount: 20,
+        reason: "Sim-to-real transfer: " + state.specialty, target: "__hardware__"
+      })
+      emit(PortalHub, "portal:migrate_out", {
+        agentId: this.id, name: "RescueTrainer",
+        capabilities: ["rescue_sim", "sim2real_transfer"],
+        memory: {
+          specialty: state.specialty,
+          simSuccessRate: state.sim_rescues / Math.max(1, state.episode_count)
+        },
+        state: { episode_count: state.episode_count, credits: state.credits },
+        targetScene: robotFleetSceneId,
+      })
+    }
+
+    action sell_skill(buyerId, skillName, price) {
+      emit("economy:transfer", {
+        from: buyerId, to: this.id,
+        amount: price, reason: "Skill purchase: " + skillName,
+        item: skillName
+      })
+      emit("skill_traded", { seller: this.id, buyer: buyerId, skill: skillName })
+    }
+  }
+
+  template "RescueRobotTwin" {
+    @digital_twin(
+      physical_id: "ros2_rescue_bot_01",
+      sync_properties: [
+        { physical_key: "lidar_scan",  virtual_property: "lidar",   direction: "in" },
+        { physical_key: "imu_data",    virtual_property: "imu",     direction: "in" },
+        { physical_key: "camera_feed", virtual_property: "camera",  direction: "in" },
+        { physical_key: "battery",     virtual_property: "battery", direction: "in" }
+      ],
+      update_mode: "push"
+    )
+    geometry: "cube"; scale: [0.6, 0.4, 0.8]; color: "#ff6600"
+    state { lidar: null; imu: null; camera: null; battery: 100 }
+
+    on on_twin_sync(data) {
+      emit("feedback:update_metric", { name: "battery_efficiency",
+        value: (data.state.battery || 100) / 100 })
+      if (data.state.battery < 15) {
+        pulsate(this.id, { color: "#ff0000", duration: 500 })
+        emit("low_battery_alert", { robotId: this.id, battery: data.state.battery })
+      }
+    }
+  }
+
+  // ━━━ DISASTER SCENARIO OBJECTS ━━━
+
+  object "RubbleField" { geometry: "plane"; scale: [40, 1, 40]; color: "#4a3728"; position: [0, -0.5, 0] }
+  object "CollapsedWall_A" {
+    @physics { type: "static"; mass: 500 }
+    @collidable
+    geometry: "cube"; position: [-5, 1.5, -3]; scale: [6, 3, 0.5]; color: "#888"
+    rotation: [0, 0, 15]
+  }
+  object "CollapsedWall_B" {
+    @physics { type: "static"; mass: 300 }
+    @collidable
+    geometry: "cube"; position: [4, 1, 5]; scale: [4, 2, 0.5]; color: "#777"
+    rotation: [10, 0, -5]
+  }
+  object "VictimMarker" {
+    geometry: "sphere"; position: [2, 0.3, -1]; scale: [0.3, 0.3, 0.3]
+    color: "#ff0000"; emissive: "#ff0000"; emissive_intensity: 0.8
+  }
+
+  // Agents & robots
+  object "Trainer_Search" using "RescueTrainer" { position: [-8, 1, 8]; color: "#ff3300" }
+  object "Trainer_Extract" using "RescueTrainer" { position: [8, 1, 8]; color: "#ff6600" }
+  object "Trainer_Recon" using "RescueTrainer" { position: [0, 1, 10]; color: "#ffaa00" }
+  object "RescueBot_01" using "RescueRobotTwin" { position: [0, 0.2, 6] }
+
+  system "ROS2Bridge" {
+    nodeName: "/disaster_swarm"
+    publishRate: 60
+    topics: {
+      swarmCmd: "/swarm/cmd",
+      lidarData: "/robot/lidar",
+      victimDetection: "/robot/victim_detect"
+    }
+  }
+
+  // ━━━ GLOBAL EVENTS ━━━
+
+  on_skill_traded(data) {
+    state.skill_transfers += 1
+    state.credits_exchanged += 1
+  }
+
+  on_low_battery_alert(data) {
+    emit("system_log", { level: "warn", message: "🔋 Low battery: " + data.robotId })
+  }
+
+  on(EconomyEngine, "economy:transaction") {
+    state.credits_exchanged += event.amount
+  }
+
+  on(FeedbackEngine, "feedback:optimization_signal") {
+    if (event.suggestedAction === "increase_rubble_complexity") {
+      print("🏗️ Auto-tuning: increasing rubble complexity for harder training")
+      state.curricula_evolved += 1
+    }
+    if (event.suggestedAction === "add_smoke_occlusion") {
+      print("💨 Auto-tuning: adding smoke occlusion to improve sensor robustness")
+      state.curricula_evolved += 1
+    }
+  }
+
+  panel "DisasterDashboard" {
+    position: "top-right"
+    text "Title" { content: "DISASTER ROBOTICS SWARM"; style: "heading" }
+    text "D1"    { bind: "'Training runs: ' + state.training_runs"; style: "info" }
+    text "D2"    { bind: "'Sim rescues: ' + state.successful_rescues_sim"; style: "info" }
+    text "D3"    { bind: "'Real rescues: ' + state.successful_rescues_real"; color: "#00ff88" }
+    text "D4"    { bind: "'Skill transfers: ' + state.skill_transfers"; style: "info" }
+    text "D5"    { bind: "'Curricula evolved: ' + state.curricula_evolved"; style: "info" }
+  }
+}

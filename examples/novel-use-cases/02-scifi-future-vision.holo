@@ -1,0 +1,250 @@
+/**
+ * Optimistic Sci-Fi Future Vision Builder
+ *
+ * Studio English → instant persistent orbital-city world where AI Citizens
+ * self-govern via bounties, co-author story branches, and migrate between
+ * a creator's headset and public Hololand instances. Exports to Unreal
+ * film pipeline for polished 3-minute trailers.
+ *
+ * v5 Traits: agent_portal, economy, cultural_profile, feedback_loop
+ * Compile targets: webxr, visionos, unreal, r3f, unity
+ *
+ * Studio prompt:
+ *   "Build a 2050 fusion-powered orbital city where AI citizens self-govern
+ *    via bounties. Let them co-author story branches and migrate between
+ *    my headset and a public Hololand instance. Export to Unreal for a
+ *    3-minute trailer."
+ *
+ * Prize targets:
+ *   - Future Vision XPRIZE $3.5M
+ *   - AWE Auggie "Best Art or Film"
+ *   - AWE "Best Campaign"
+ *
+ * @version 5.0.0
+ */
+composition "SciFiFutureVision" {
+
+  metadata {
+    name: "Optimistic Sci-Fi Future Vision Builder"
+    category: "film_art"
+    platforms: ["webxr", "visionos", "unreal", "r3f", "unity"]
+  }
+
+  environment {
+    skybox: "orbital_sunrise"
+    ambient_light: 0.7
+    physics: true
+    bloom: true
+    volumetric_fog: { density: 0.02, color: "#1a0033" }
+  }
+
+  state {
+    story_branches: 0
+    viewer_votes: 0
+    active_citizens: 0
+    total_bounties_filled: 0
+    avg_viewer_rating: 0.0
+    trailer_exports: 0
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PORTAL — creator headset ↔ public Hololand
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity PortalHub {
+    traits: [agent_portal];
+    agent_portal: {
+      scene_id: "orbital_city_001",
+      scene_name: "Orbital City 2050",
+      agent_id: "city_orchestrator",
+      capabilities: ["story_authoring", "world_building", "citizen_governance"],
+      relay_url: "wss://portal.holoscript.dev/futures",
+      auto_reconnect: true,
+      max_hop_count: 4,
+      default_ttl: 90000,
+      max_outbox_size: 300,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ECONOMY — in-scene governance bounties
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity EconomyEngine {
+    traits: [economy];
+    economy: {
+      initial_balance: 200,
+      default_spend_limit: 80,
+      spend_limit_period: 3600000,
+      max_transaction_history: 300,
+      default_bounty_deadline: 900000,
+      max_bounties_per_agent: 5,
+      escrow_enabled: true,
+      task_completion_reward: 15,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FEEDBACK — viewer rating → story evolution
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity FeedbackEngine {
+    traits: [feedback_loop];
+    feedback_loop: {
+      metrics: {
+        viewer_rating:     { target: 4.5, min: 0, max: 5.0 },
+        story_coherence:   { target: 0.9, min: 0, max: 1.0 },
+        visual_spectacle:  { target: 0.85, min: 0, max: 1.0 },
+        engagement_time:   { target: 180, min: 0, max: 600 },
+      },
+      history_window: 60,
+      min_samples_for_trend: 5,
+      alert_threshold: 15,
+      critical_threshold: 35,
+      max_feedback_entries: 500,
+      auto_signal: true,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGENT TEMPLATES
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  template "CitizenAgent" {
+    @llm_agent
+    @perception(range: 30)
+    @cultural_profile {
+      cooperation_index: 0.75
+      cultural_family: "cooperative"
+      prompt_dialect: "consensus"
+      norm_set: ["story_continuity", "constructive_vote", "no_griefing"]
+    }
+
+    geometry: "humanoid"
+    color: "#00ddaa"
+    scale: [0.8, 1.6, 0.8]
+
+    state {
+      role: "citizen"
+      faction: null
+      stories_authored: 0
+      votes_cast: 0
+      credits: 200
+    }
+
+    on mount() {
+      print("Citizen " + this.id + " online in Orbital City 2050")
+      state.faction = ["Solaris Council", "Deep Space Guild", "Terraform Union"][Math.floor(Math.random() * 3)]
+    }
+
+    action propose_story_branch(synopsis) {
+      emit("economy:post_bounty", {
+        posterId: this.id,
+        reward: 20,
+        description: "Story branch: " + synopsis,
+        requiredCapabilities: ["story_authoring"],
+        deadline: Date.now() + 600000,
+        maxClaimants: 3,
+      })
+      state.stories_authored += 1
+    }
+
+    action vote_on_branch(branchId, rating) {
+      state.votes_cast += 1
+      emit("feedback:submit", {
+        userId: this.id, rating: rating,
+        message: "Vote on branch " + branchId,
+        context: { branchId: branchId, faction: state.faction },
+      })
+    }
+
+    action migrate_to_hololand() {
+      emit(PortalHub, "portal:migrate_out", {
+        agentId: this.id,
+        name: "CitizenAgent",
+        capabilities: ["story_authoring", "governance_vote"],
+        memory: { faction: state.faction, stories: state.stories_authored },
+        state: { credits: state.credits, votes: state.votes_cast },
+        targetScene: "hololand_public_001",
+      })
+    }
+  }
+
+  template "DirectorAgent" {
+    @llm_agent
+    @perception(range: 50)
+
+    geometry: "humanoid"
+    color: "#ffd700"
+    scale: [0.8, 1.8, 0.8]
+
+    state {
+      trailer_cut: null
+      branches_merged: 0
+    }
+
+    action merge_branches(branchIds) {
+      state.branches_merged += branchIds.length
+      print("Director merging " + branchIds.length + " story branches into trailer cut")
+      emit("trailer_ready", { branchCount: branchIds.length, timestamp: Date.now() })
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WORLD OBJECTS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  object "OrbitalRing" {
+    geometry: "torus"; position: [0, 20, 0]; scale: [40, 2, 40]
+    color: "#1a1a2e"; emissive: "#4400ff"; emissive_intensity: 0.3
+  }
+  object "FusionCore" {
+    geometry: "sphere"; position: [0, 25, 0]; scale: [5, 5, 5]
+    color: "#ff8800"; emissive: "#ffaa00"; emissive_intensity: 1.0
+  }
+  object "CityPlatform" {
+    geometry: "cylinder"; position: [0, 0, 0]; scale: [35, 0.5, 35]
+    color: "#0d0d1a"
+  }
+
+  // Citizens
+  object "Citizen_01" using "CitizenAgent" { position: [-5, 1, 3]; color: "#00ddaa" }
+  object "Citizen_02" using "CitizenAgent" { position: [4, 1, -2]; color: "#00bbff" }
+  object "Citizen_03" using "CitizenAgent" { position: [0, 1, 7]; color: "#ff66cc" }
+  object "Director_Prime" using "DirectorAgent" { position: [0, 1, 0] }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GLOBAL EVENTS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(EconomyEngine, "economy:bounty_completed") {
+    state.total_bounties_filled += 1
+    state.story_branches += 1
+  }
+
+  on_trailer_ready(data) {
+    state.trailer_exports += 1
+    emit("system_log", { level: "info",
+      message: "🎬 Trailer cut exported (" + data.branchCount + " branches merged)"
+    })
+  }
+
+  on(FeedbackEngine, "feedback:optimization_signal") {
+    if (event.suggestedAction === "increase_spectacle") {
+      print("🎆 Auto-tuning: boosting particle/bloom intensity for viewer engagement")
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DASHBOARD
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  panel "VisionDashboard" {
+    position: "top-right"
+    text "Title"  { content: "FUTURE VISION 2050"; style: "heading" }
+    text "S1"     { bind: "'Story branches: ' + state.story_branches"; style: "info" }
+    text "S2"     { bind: "'Bounties filled: ' + state.total_bounties_filled"; color: "#00ff88" }
+    text "S3"     { bind: "'Trailer exports: ' + state.trailer_exports"; style: "info" }
+    text "S4"     { bind: "'Active citizens: ' + state.active_citizens"; style: "info" }
+  }
+}

@@ -390,6 +390,55 @@ Interactive 3D environments frequently become non-functional within a few major 
 
 HoloScript's declarative source format is engine-agnostic and plain-text. A `.holo` file describing a historical environment from 2026 can, in principle, be compiled to any future rendering target that implements the HoloScript compiler interface — just as a document formatted with the ISO Open Document standard from 2005 can be rendered by any modern office suite. The semantic content is preserved in the source; the rendering adapts to the platform.
 
+### 5.5 Novel Use Cases: v5 Autonomous Ecosystems
+
+HoloScript v5 extends executable semantics into autonomous, self-governing spatial systems. The Autonomous Ecosystems stack introduces five trait families — `AgentPortalTrait` (cross-scene migration), `EconomyPrimitivesTrait` (in-scene credit economies and escrow bounties), `FeedbackLoopTrait` (self-optimizing quality metrics), `CulturalTrait` family (norm enforcement and cultural memory), and `TenantTrait` (multi-tenant RBAC compliance) — that compose declaratively within a single `.holo` file.
+
+To demonstrate the breadth of this stack, we present 13 novel compositions spanning materials science, climate response, AI safety, physical robotics, healthcare, cultural heritage, and co-creative art. Each composition ships to 18+ compile targets from a single source file.
+
+| # | Composition | Domain | Key v5 Traits | Lines |
+|---|-------------|--------|---------------|-------|
+| 1 | Quantum Materials Arena | Materials Science | agent\_portal, economy, feedback\_loop, post\_quantum\_audit | ~230 |
+| 2 | Sci-Fi Future Vision | Film / Art | agent\_portal, economy, cultural\_profile, feedback\_loop | ~210 |
+| 3 | Water-Scarcity Swarm | Climate / Water | agent\_portal, economy, cultural\_profile, feedback\_loop, digital\_twin, ROS2Bridge | ~260 |
+| 4 | Ethical AI Sandbox | AI Safety | cultural\_profile, norm\_compliant, cultural\_memory, feedback\_loop, tenant | ~260 |
+| 5 | Robot Training Metaverse | Physical AI | agent\_portal, economy, feedback\_loop, digital\_twin, ROS2Bridge | ~270 |
+| 6 | Neurodiverse Therapy | Healthcare | agent\_portal, economy, cultural\_profile, feedback\_loop, tenant | ~250 |
+| 7 | Wildfire Response Swarm | Wildfire | agent\_portal, economy, cultural\_profile, feedback\_loop, post\_quantum\_audit, ROS2Bridge | ~200 |
+| 8 | Healthspan Twin | Longevity | agent\_portal, economy, feedback\_loop, tenant, cultural\_profile | ~195 |
+| 9 | Sci-Fi Co-Creation | Co-Creation | agent\_portal, economy, cultural\_profile, cultural\_memory, feedback\_loop | ~220 |
+| 10 | Urban Planning Governance | Smart City | agent\_portal, economy, norm\_compliant, feedback\_loop, tenant | ~210 |
+| 11 | Sensory Therapy Worlds | Mental Health | agent\_portal, economy, cultural\_profile, feedback\_loop, tenant | ~195 |
+| 12 | Heritage Revival Museum | Cultural Heritage | agent\_portal, economy, cultural\_profile, cultural\_memory, cultural\_trace | ~220 |
+| 13 | Disaster Robotics Swarm | Disaster Response | agent\_portal, economy, feedback\_loop, digital\_twin, ROS2Bridge | ~230 |
+
+A representative pattern from the Wildfire Response composition demonstrates how five trait families compose in a single agent:
+
+```holo
+template "FireGuardian" {
+  @llm_agent
+  @perception(range: 50)
+  @post_quantum_audit { algorithm: "ML-KEM-768"; log_all: true }
+  @cultural_profile {
+    cooperation_index: 0.9
+    cultural_family: "hierarchical"
+    norm_set: ["chain_of_command", "safety_first", "cross_jurisdiction"]
+  }
+
+  action report_fire(location, intensity, area) {
+    emit("economy:post_bounty", {
+      posterId: this.id, reward: 50,
+      description: "Contain fire at sector " + state.sector,
+      requiredCapabilities: ["fire_containment"],
+    })
+  }
+}
+```
+
+The `FireGuardian` is simultaneously an LLM-powered agent (`@llm_agent`), a post-quantum-audited entity, a culturally-aware collaborator, and an economic actor — all from declarative trait annotations. The compiler deterministically instantiates each capability across all supported targets. The agent's cross-scene migration (`AgentPortalTrait`), its escrow-backed bounty system (`EconomyPrimitivesTrait`), and its self-tuning fidelity metrics (`FeedbackLoopTrait`) are structural guarantees, not probabilistic behaviors.
+
+These compositions are available in `examples/novel-use-cases/` and each includes a Studio English prompt for natural-language scene generation.
+
 ---
 
 ## 6. Conclusion
