@@ -5,27 +5,36 @@ migrating agents, in-scene economies, FeedbackLoop self-optimization,
 cultural traits, TenantTrait compliance, post-quantum crypto, and
 whitepaper-grounded executable semantics.
 
-Each file ships to 18+ compile targets from a single source.
+Each use case is implemented in **4 formats** for full coverage:
 
-## Use Cases
+| Format | Purpose | Location |
+|--------|---------|----------|
+| `.holo` | Declarative scene compositions | `examples/novel-use-cases/` |
+| `.hsplus` | Behavioral contracts (modules + state machines) | `examples/novel-use-cases/` |
+| `.hs` | Procedural pipelines (connect wiring) | `examples/novel-use-cases/` |
+| `.scenario.ts` | Living-spec vitest tests | `packages/studio/src/__tests__/scenarios/` |
 
-| # | File | Domain | Key v5 Traits | Lines |
-|---|------|--------|---------------|-------|
-| 01 | [01-quantum-materials-arena.holo](./01-quantum-materials-arena.holo) | Materials Science | agent_portal, economy, feedback_loop, post_quantum_audit, digital_twin, ROS2Bridge | ~230 |
-| 02 | [02-scifi-future-vision.holo](./02-scifi-future-vision.holo) | Film / Art | agent_portal, economy, cultural_profile, feedback_loop | ~210 |
-| 03 | [03-water-scarcity-swarm.holo](./03-water-scarcity-swarm.holo) | Climate / Water | agent_portal, economy, cultural_profile, feedback_loop, post_quantum_audit, digital_twin, ROS2Bridge | ~260 |
-| 04 | [04-ethical-ai-sandbox.holo](./04-ethical-ai-sandbox.holo) | AI Safety | cultural_profile, norm_compliant, cultural_memory, feedback_loop, tenant | ~260 |
-| 05 | [05-robot-training-metaverse.holo](./05-robot-training-metaverse.holo) | Physical AI | agent_portal, economy, feedback_loop, digital_twin, ROS2Bridge | ~270 |
-| 06 | [06-neurodiverse-therapy.holo](./06-neurodiverse-therapy.holo) | Healthcare | agent_portal, economy, cultural_profile, feedback_loop, tenant | ~250 |
-| 07 | [07-wildfire-response-swarm.holo](./07-wildfire-response-swarm.holo) | Wildfire | agent_portal, economy, cultural_profile, feedback_loop, post_quantum_audit, digital_twin, ROS2Bridge | ~200 |
-| 08 | [08-healthspan-twin.holo](./08-healthspan-twin.holo) | Longevity | agent_portal, economy, feedback_loop, tenant, cultural_profile | ~195 |
-| 09 | [09-scifi-cocreation-metaverse.holo](./09-scifi-cocreation-metaverse.holo) | Co-Creation | agent_portal, economy, cultural_profile, cultural_memory, feedback_loop | ~220 |
-| 10 | [10-urban-planning-governance.holo](./10-urban-planning-governance.holo) | Smart City | agent_portal, economy, norm_compliant, feedback_loop, tenant | ~210 |
-| 11 | [11-sensory-therapy-worlds.holo](./11-sensory-therapy-worlds.holo) | Mental Health | agent_portal, economy, cultural_profile, feedback_loop, tenant | ~195 |
-| 12 | [12-heritage-revival-museum.holo](./12-heritage-revival-museum.holo) | Cultural Heritage | agent_portal, economy, cultural_profile, cultural_memory, cultural_trace | ~220 |
-| 13 | [13-disaster-robotics-swarm.holo](./13-disaster-robotics-swarm.holo) | Disaster Response | agent_portal, economy, feedback_loop, digital_twin, ROS2Bridge | ~230 |
+## Format Coverage Matrix
 
-## v5 Trait Coverage Matrix
+| # | Use Case | `.holo` | `.hsplus` | `.hs` | `.scenario.ts` |
+|---|----------|:-------:|:---------:|:-----:|:---------------:|
+| 01 | Quantum Materials Arena | ✅ | ✅ | ✅ | ✅ |
+| 02 | Sci-Fi Future Vision | ✅ | ✅ | ✅ | ✅ |
+| 03 | Water Scarcity Swarm | ✅ | ✅ | ✅ | ✅ |
+| 04 | Ethical AI Sandbox | ✅ | ✅ | ✅ | ✅ |
+| 05 | Robot Training Metaverse | ✅ | ✅ | ✅ | ✅ |
+| 06 | Neurodiverse Therapy | ✅ | ✅ | ✅ | ✅ |
+| 07 | Wildfire Response Swarm | ✅ | ✅ | ✅ | ✅ |
+| 08 | Healthspan Twin | ✅ | ✅ | ✅ | ✅ |
+| 09 | Sci-Fi Co-Creation | ✅ | ✅ | ✅ | ✅ |
+| 10 | Urban Planning Governance | ✅ | ✅ | ✅ | ✅ |
+| 11 | Sensory Therapy Worlds | ✅ | ✅ | ✅ | ✅ |
+| 12 | Heritage Revival Museum | ✅ | ✅ | ✅ | ✅ |
+| 13 | Disaster Robotics Swarm | ✅ | ✅ | ✅ | ✅ |
+
+**52 total files** across 4 formats.
+
+## v5 Trait Coverage
 
 | Trait | Files Using It |
 |-------|----------------|
@@ -34,21 +43,35 @@ Each file ships to 18+ compile targets from a single source.
 | `feedback_loop` | All 13 |
 | `cultural_profile` | 02, 03, 04, 06, 07, 08, 09, 11, 12 |
 | `cultural_memory` | 04, 09, 12 |
-| `cultural_trace` | 12 |
 | `norm_compliant` | 04, 10 |
 | `tenant` (RBAC) | 04, 06, 08, 10, 11 |
 | `post_quantum_audit` | 01, 03, 07 |
 | `digital_twin` | 01, 03, 05, 07, 13 |
 | `ROS2Bridge` | 01, 03, 05, 07, 13 |
 
+## Format Descriptions
+
+### `.holo` — Declarative Composition
+Declares **WHAT** exists: entities, templates, panels, environment, spatial groups. Uses `composition`, `entity`, `template`, `panel` blocks with trait annotations.
+
+### `.hsplus` — Behavioral Contracts
+Defines **HOW** things behave: `module` with `exports`, `@state_machine` with guarded transitions, `@on_event` reactive handlers. Each file contains 1-3 modules and 1-2 agent types.
+
+### `.hs` — Procedural Pipelines
+Expresses sequential **PROCESS** flow: `object` stages with `function` blocks, `connect A.event -> B.fn` wiring between stages, `execute fn() every Nms` periodic execution.
+
+### `.scenario.ts` — Living-Spec Tests
+Vitest test files with typed pure-function domain utilities. Each test includes a **persona** (who uses it) and a mix of `it()` (passing features) and `it.todo()` (backlog items).
+
 ## Running an Example
 
 ```bash
+# Compile any .holo to a target
 holoc examples/novel-use-cases/01-quantum-materials-arena.holo --target r3f
+
+# Run scenario tests
+npx vitest run packages/studio/src/__tests__/scenarios/quantum-materials.scenario.ts
+
+# Run integration tests
+npx vitest run packages/core/src/__tests__/novel-use-case-integration.test.ts
 ```
-
-## Studio Prompt
-
-Every file includes a Studio English prompt in its JSDoc header.
-Paste the prompt into HoloScript Studio to generate the scene from
-natural language, then iterate on the generated `.holo`.

@@ -324,6 +324,9 @@ type TokenType =
   | 'WAYPOINTS'
   | 'CONSTRAINT'
   | 'TERRAIN'
+  // Process pipeline directives (.hs format — v5)
+  | 'CONNECT'
+  | 'EXECUTE'
   // Comment tokens (skipped by lexer but used in parser guards)
   | 'COMMENT'
   | 'LINE_COMMENT';
@@ -584,6 +587,9 @@ const KEYWORDS: Record<string, TokenType> = {
   payment_gate: 'PAYMENT_GATE',
   subscription: 'SUBSCRIPTION',
   tip_jar: 'TIP_JAR',
+  // Process pipeline directives (.hs format — v5)
+  connect: 'CONNECT',
+  execute: 'EXECUTE',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',

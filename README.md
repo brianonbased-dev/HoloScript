@@ -400,6 +400,21 @@ HoloScript v5.0.0 ships **Autonomous Agent Networks**, **Economic Primitives**, 
 - **Spatial Primitives**: `spawn_group`, `waypoints`, `constraint`, `terrain`, `dialog` with branching options
 - **Extensible Blocks**: `custom_block` catch-all for community-defined domains
 
+### Novel Use Cases (52 Files × 4 Formats)
+
+13 real-world v5 compositions — each implemented in `.holo`, `.hsplus`, `.hs`, and `.scenario.ts` — covering quantum materials discovery, ethical AI sandboxes, wildfire response, healthspan twins, disaster robotics, and more.
+
+| Domain | Use Case | Formats |
+| --- | --- | --- |
+| Materials Science | Quantum Materials Arena | `.holo` `.hsplus` `.hs` `.ts` |
+| AI Safety | Ethical AI Sandbox | `.holo` `.hsplus` `.hs` `.ts` |
+| Robotics | Robot Training Metaverse | `.holo` `.hsplus` `.hs` `.ts` |
+| Healthcare | Healthspan Twin | `.holo` `.hsplus` `.hs` `.ts` |
+| Emergency Response | Wildfire Response Swarm | `.holo` `.hsplus` `.hs` `.ts` |
+| Cultural Heritage | Heritage Revival Museum | `.holo` `.hsplus` `.hs` `.ts` |
+
+**[View all 13 use cases with full format matrix →](./examples/novel-use-cases/INDEX.md)**
+
 ---
 
 ## 🔬 New in v3.4: Scientific Computing & Robotics
