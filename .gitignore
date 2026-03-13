@@ -182,6 +182,23 @@ stryker.log
 # Temp debug/test output (various naming conventions)
 *_test_log*.txt
 *_test_out.txt
+
+# Session temp files
+temp/
+absorb-output.txt
+codebase-graph.json
+codebase.holo
+core-graph.json
+.holo_audits/
+
+# Core debug/investigation scripts (not source)
+packages/core/check-fork-heap.cjs
+packages/core/check-fork.mjs
+packages/core/em-results.json
+packages/core/test_mem.mjs
+
+# Windows device file (created by accident with git add -A on Windows)
+nul
 shader*.txt
 tsc-*.txt
 tsc*.txt

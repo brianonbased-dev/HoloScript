@@ -1,0 +1,182 @@
+/**
+ * CompilerBridge
+ *
+ * Convenience wrapper that lazily loads @holoscript/core tokenizer, parser,
+ * and R3F compiler at runtime. Provides a simple compile() / validate() API
+ * for consumers that want to compile HoloScript to React Three Fiber without
+ * managing module initialization themselves.
+ *
+ * @module CompilerBridge
+ */
+
+export interface CompilationResult {
+  success: boolean;
+  r3fCode?: string;
+  error?: string;
+  metadata?: {
+    zones: number;
+    entities: number;
+    handlers: number;
+    duration: number;
+  };
+}
+
+export class CompilerBridge {
+  private modules: {
+    tokenize: (source: string) => unknown[];
+    Parser: new (tokens: unknown[]) => { parse(): unknown[] };
+    R3FCompiler: new (options: Record<string, unknown>) => { compile(ast: unknown[]): string };
+  } | null = null;
+  private initialized = false;
+
+  /**
+   * Initialize compiler modules (lazy load to avoid circular dependencies)
+   */
+  private async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    try {
+      // Dynamic import to avoid circular dependencies within @holoscript/core
+      const core = await import('../index');
+      this.modules = {
+        tokenize: (core as Record<string, unknown>).tokenize as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['tokenize'],
+        Parser: (core as Record<string, unknown>).Parser as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['Parser'],
+        R3FCompiler: (core as Record<string, unknown>).R3FCompiler as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['R3FCompiler'],
+      };
+      this.initialized = true;
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('[CompilerBridge] Failed to initialize:', msg);
+      throw new Error('Failed to load HoloScript compiler modules');
+    }
+  }
+
+  /**
+   * Compile HoloScript code to React Three Fiber components
+   */
+  async compile(holoScript: string): Promise<CompilationResult> {
+    const startTime = performance.now();
+
+    try {
+      await this.initialize();
+
+      if (!holoScript || holoScript.trim().length === 0) {
+        return { success: false, error: 'Empty HoloScript input' };
+      }
+
+      // Tokenize
+      const tokens = this.modules!.tokenize(holoScript);
+      if (tokens.length === 0) {
+        return { success: false, error: 'No valid tokens found' };
+      }
+
+      // Parse
+      const parser = new this.modules!.Parser(tokens);
+      const ast = parser.parse() as Array<{ entities?: Array<{ handlers?: unknown[] }> }>;
+      if (!ast || ast.length === 0) {
+        return { success: false, error: 'Failed to parse HoloScript' };
+      }
+
+      // Compile to R3F
+      const compiler = new this.modules!.R3FCompiler({
+        target: 'r3f',
+        optimize: true,
+        sourceMaps: false,
+      });
+      const r3fCode = compiler.compile(ast);
+      const duration = performance.now() - startTime;
+
+      return {
+        success: true,
+        r3fCode,
+        metadata: {
+          zones: ast.length,
+          entities: ast.reduce((sum, zone) => sum + (zone.entities?.length || 0), 0),
+          handlers: ast.reduce((sum, zone) =>
+            sum + (zone.entities?.reduce((s, e) => s + (e.handlers?.length || 0), 0) || 0), 0),
+          duration: Math.round(duration * 100) / 100,
+        },
+      };
+    } catch (error: unknown) {
+      const duration = performance.now() - startTime;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown compilation error',
+        metadata: { zones: 0, entities: 0, handlers: 0, duration: Math.round(duration * 100) / 100 },
+      };
+    }
+  }
+
+  /**
+   * Validate HoloScript syntax without compilation
+   */
+  async validate(holoScript: string): Promise<{ valid: boolean; errors: string[] }> {
+    const errors: string[] = [];
+
+    try {
+      await this.initialize();
+
+      if (!holoScript || holoScript.trim().length === 0) {
+        errors.push('Empty input');
+        return { valid: false, errors };
+      }
+
+      const tokens = this.modules!.tokenize(holoScript);
+      if (tokens.length === 0) {
+        errors.push('No valid tokens found');
+        return { valid: false, errors };
+      }
+
+      const parser = new this.modules!.Parser(tokens);
+      const ast = parser.parse();
+      if (!ast || ast.length === 0) {
+        errors.push('Failed to parse HoloScript');
+        return { valid: false, errors };
+      }
+
+      return { valid: true, errors: [] };
+    } catch (error: unknown) {
+      errors.push(error instanceof Error ? error.message : 'Unknown validation error');
+      return { valid: false, errors };
+    }
+  }
+
+  /**
+   * Get estimated compilation metrics
+   */
+  getMetrics(holoScript: string): {
+    lines: number;
+    characters: number;
+    estimatedZones: number;
+    estimatedComplexity: 'simple' | 'moderate' | 'complex';
+  } {
+    const lines = holoScript.split('\n').length;
+    const characters = holoScript.length;
+
+    const zoneMatches = holoScript.match(/\borb\b/gi) || [];
+    const estimatedZones = zoneMatches.length;
+
+    const handlerMatches = holoScript.match(/\bon_\w+/gi) || [];
+    const handlerCount = handlerMatches.length;
+
+    let complexity: 'simple' | 'moderate' | 'complex' = 'simple';
+    if (handlerCount > 5 || estimatedZones > 3) {
+      complexity = 'moderate';
+    }
+    if (handlerCount > 15 || estimatedZones > 8) {
+      complexity = 'complex';
+    }
+
+    return { lines, characters, estimatedZones, estimatedComplexity: complexity };
+  }
+}
+
+// Singleton instance
+let instance: CompilerBridge | null = null;
+
+export function getCompilerBridge(): CompilerBridge {
+  if (!instance) {
+    instance = new CompilerBridge();
+  }
+  return instance;
+}

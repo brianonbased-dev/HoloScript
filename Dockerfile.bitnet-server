@@ -1,0 +1,73 @@
+# BitNet Inference Server
+#
+# Builds and runs the real bitnet.cpp server with microsoft/bitnet-b1.58-2B-4T.
+# This is an OpenAI-compatible inference server running 1-bit quantized models
+# that require ~500 MB and no GPU — deployable on Railway, Fly.io, or any VPS.
+#
+# Railway deployment:
+#   1. Create a new Railway service pointing at this Dockerfile
+#   2. Set env var PORT (Railway injects this automatically)
+#   3. Attach a persistent volume at /data (for model cache between deploys)
+#   4. Set HOLOSCRIPT_BITNET_URL=https://<your-railway-domain> in the MCP server service
+#
+# Resource requirements:
+#   RAM:  2 GB minimum (model is ~500 MB, inference uses ~1 GB peak)
+#   CPU:  2 vCPU recommended (1-bit arithmetic scales well with cores)
+#   Disk: 2 GB for model weights + build artifacts
+#
+# Build args:
+#   MODEL_ID    HuggingFace model ID (default: microsoft/bitnet-b1.58-2B-4T)
+#   MODEL_QUANT Quantization type   (default: i2_s — recommended for 2B-4T)
+
+FROM python:3.11-slim
+
+# Build dependencies for bitnet.cpp (cmake + C++ compiler)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    cmake \
+    build-essential \
+    ninja-build \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /bitnet
+
+# Clone bitnet.cpp at HEAD (pin a commit in production for reproducibility)
+RUN git clone --recursive https://github.com/microsoft/BitNet .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Build args for model selection
+ARG MODEL_ID=microsoft/bitnet-b1.58-2B-4T
+ARG MODEL_QUANT=i2_s
+
+# Persist as env vars so the CMD can reference them
+ENV MODEL_ID=${MODEL_ID}
+ENV MODEL_QUANT=${MODEL_QUANT}
+ENV MODEL_CACHE=/data/models
+
+# Download the model and compile the inference binary.
+# setup_env.py handles both steps: downloads from HuggingFace + builds the binary.
+# The model is stored to /data/models (mount a Railway volume here).
+RUN mkdir -p ${MODEL_CACHE} \
+    && python setup_env.py -md ${MODEL_ID} -q ${MODEL_QUANT} --model-dir ${MODEL_CACHE}
+
+# Runtime env
+ENV PORT=8080
+ENV HOST=0.0.0.0
+
+EXPOSE ${PORT}
+
+# Health check — bitnet.cpp server responds at /health after warmup
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+  CMD wget -qO- http://localhost:${PORT}/health > /dev/null 2>&1 || exit 1
+
+# Start the bitnet.cpp inference server
+# -s / --serve: enable HTTP server mode
+# --port / --host: bind address
+CMD python run_inference.py \
+      --serve \
+      --port ${PORT} \
+      --host ${HOST} \
+      --model-dir ${MODEL_CACHE}/${MODEL_ID}
