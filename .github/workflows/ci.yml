@@ -332,3 +332,59 @@ jobs:
         with:
           path: .benchmark-baseline.json
           key: benchmark-baseline-main
+
+  test-compilers:
+    name: Compiler Golden-Output Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No Rust/WASM build needed — these are pure TypeScript compiler tests
+      - name: Run compiler golden-output regression tests
+        working-directory: packages/core
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: npx vitest run src/compiler/__tests__/golden-output/golden.test.ts
+
+      - name: Write compiler regression matrix to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Compiler Regression Matrix" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          targets=(Unity WebGPU Babylon URDF SDF WASM)
+          for t in "${targets[@]}"; do
+            if grep -q "FAIL.*${t}" /tmp/compiler-results.txt 2>/dev/null; then
+              echo "| ${t} | ❌ FAIL |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| ${t} | ✅ PASS |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "*Snapshot drift = compiler output changed without a deliberate update.*" >> "$GITHUB_STEP_SUMMARY"
+          echo "*To regenerate: \`pnpm --filter @holoscript/core exec vitest run -u src/compiler/__tests__/golden-output/golden.test.ts\`*" >> "$GITHUB_STEP_SUMMARY"
