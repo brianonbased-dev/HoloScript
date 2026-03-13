@@ -18,7 +18,7 @@ The x402 payment middleware (`x402PaymentService.requirePayment`) guards API rou
 | **HIGH** | `hono` | [GHSA-q5qw-h33p-qvwr](https://github.com/advisories/GHSA-q5qw-h33p-qvwr) — arbitrary file access via encoded slashes in ServeStatic | `mcp-server > @modelcontextprotocol/sdk > @hono/node-server > hono@4.11.7` | `hono >= 4.7.7` — **pnpm override added** |
 | **HIGH** | `@hono/node-server` | [GHSA-wc8c-qw6v-h7f6](https://github.com/advisories/GHSA-wc8c-qw6v-h7f6) — authorization bypass via encoded slashes in ServeStatic | Same path | `@hono/node-server >= 1.14.1` — **pnpm override added** |
 | **HIGH** | `@x402/svm` | [GHSA-qr2g-p6q7-w82m](https://github.com/advisories/GHSA-qr2g-p6q7-w82m) — x402 SDK Security Advisory | `@coinbase/agentkit > @x402/svm@2.5.0` | Upgrade `@coinbase/agentkit` when a patched release ships; monitor upstream |
-| **HIGH** | `glob` | [GHSA-5j98-mcp5-4vw2](https://github.com/advisories/GHSA-5j98-mcp5-4vw2) — CLI `-c/--cmd` command injection | `marketplace-web > eslint-config-next@14.2.35` (dev dep) | PR #41: upgrade Next.js 14 → 16 |
+| **HIGH** | `glob` | [GHSA-5j98-mcp5-4vw2](https://github.com/advisories/GHSA-5j98-mcp5-4vw2) — CLI `-c/--cmd` command injection | `marketplace-web > eslint-config-next@14.2.35` (dev dep) | PR #79: upgrade next → ^16.1.6, eslint-config-next → ^16.1.6 |
 | **MOD** | `hono` | [GHSA-5pq2-9x2x-5p6w](https://github.com/advisories/GHSA-5pq2-9x2x-5p6w) — Cookie attribute injection via `setCookie()` | x402 transitive | `hono >= 4.12.7` — **pnpm override added** |
 | **MOD** | `hono` | [GHSA-v8w9-8mx6-g223](https://github.com/advisories/GHSA-v8w9-8mx6-g223) / [GHSA-p6xx-57qc-3wxr](https://github.com/advisories/GHSA-p6xx-57qc-3wxr) — prototype pollution via `parseBody({dot:true})` | x402 + mcp-server transitive | Same pnpm override |
 | **MOD** | `express-rate-limit` | [GHSA-46wh-pxpv-q5gq](https://github.com/advisories/GHSA-46wh-pxpv-q5gq) | `packages/graphql-api > express-rate-limit@8.2.1` | Upgrade to `>= 7.x` in graphql-api |
@@ -194,6 +194,6 @@ The catch block now logs server-side (`console.error`) and returns only `{ error
 | 4 | No rate limiting | MEDIUM | 🟡 SECURITY comment added | marketplace-api |
 | 5 | WorkspaceService hardcoded key | HIGH | 🟡 SECURITY comment added | registry |
 | 6 | Error detail leak | LOW | ✅ Fixed in x402PaymentService | — |
-| 7 | glob CLI injection (PR #41) | HIGH | 🟡 Tracked in PR #41 | marketplace-web dep |
+| 7 | glob CLI injection (GHSA-5j98-mcp5-4vw2) | HIGH | 🟡 PR #79 open (needs lockfile regen) | marketplace-web dep |
 | 8 | express-rate-limit CVE | MOD | 🔴 Upgrade graphql-api dep | graphql-api |
 | 9 | @x402/svm advisory | HIGH | 🟡 Monitor @coinbase/agentkit upstream | root dep |
