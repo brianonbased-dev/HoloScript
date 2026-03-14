@@ -175,8 +175,7 @@ export { HoloScriptRuntime } from './HoloScriptRuntime';
 export { HoloScriptPlusRuntimeImpl, createRuntime } from './runtime/HoloScriptPlusRuntime';
 export type { RuntimeOptions, Renderer, NodeInstance } from './runtime/HoloScriptPlusRuntime';
 
-// Headless Runtime (CLI Support)
-export { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from './runtime/HeadlessRuntime';
+// Headless Runtime — see './runtime/profiles' re-export block below (line ~1929)
 
 // HoloScript+ Speech Recognition (NEW - Phase 16)
 export {

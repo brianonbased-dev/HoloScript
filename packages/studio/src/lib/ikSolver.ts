@@ -142,7 +142,7 @@ export function createChain(
 export function chainLength(joints: Vec3[]): number {
   let total = 0;
   for (let i = 1; i < joints.length; i++) {
-    total += vec3Dist(joints[i - 1], joints[i]);
+    total += vec3Distance(joints[i - 1], joints[i]);
   }
   return total;
 }

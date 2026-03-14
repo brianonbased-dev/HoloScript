@@ -118,6 +118,10 @@ interface DaemonState {
     qualityBefore: number;
     qualityAfter: number;
   }>;
+  /** Level 3: Track files/symbols already attempted to avoid repeating */
+  attemptedFiles: string[];
+  /** Track which error codes were targeted */
+  lastErrorCounts: Record<string, number>;
 }
 
 interface QualityEntry {

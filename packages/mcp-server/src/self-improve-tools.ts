@@ -175,6 +175,93 @@ export const selfImproveTools: Tool[] = [
     },
   },
   {
+    name: 'holo_batch_type_fix',
+    description:
+      'Group TypeScript errors by error code (TS7006, TS2339, etc.) and return ' +
+      'batch fix suggestions. Much more efficient than fixing one error at a time. ' +
+      'Returns errors grouped by code with fix patterns.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Root directory of the project',
+        },
+        errorCode: {
+          type: 'string',
+          description: 'Filter to a specific error code (e.g. "TS7006"). If omitted, groups all errors.',
+        },
+        maxFiles: {
+          type: 'number',
+          description: 'Maximum files to return. Defaults to 5.',
+        },
+      },
+      required: ['rootDir'],
+    },
+  },
+  {
+    name: 'holo_verify_before_commit',
+    description:
+      'Run tsc --noEmit on specific changed files to verify they compile before committing. ' +
+      'Much faster than full tsc. Use after edits and before holo_git_commit.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Root directory of the project',
+        },
+        files: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'File paths to check (relative or absolute)',
+        },
+      },
+      required: ['rootDir', 'files'],
+    },
+  },
+  {
+    name: 'holo_run_related_tests',
+    description:
+      'Run only tests related to specific source files using vitest --related. ' +
+      'Much faster than running the full test suite. Use after editing source files.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Root directory of the project',
+        },
+        sourceFiles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Source files that were changed (vitest finds their related tests)',
+        },
+      },
+      required: ['rootDir', 'sourceFiles'],
+    },
+  },
+  {
+    name: 'holo_quality_trend',
+    description:
+      'Analyze quality score history to detect trends, plateaus, and regressions. ' +
+      'Returns trend analysis and strategy recommendations based on what has and hasn\'t worked.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Root directory of the project (for finding .holoscript/)',
+        },
+        lastN: {
+          type: 'number',
+          description: 'Number of recent cycles to analyze. Defaults to 10.',
+        },
+      },
+      required: ['rootDir'],
+    },
+  },
+  {
     name: 'holo_self_diagnose',
     description:
       'Diagnose a codebase for improvement opportunities using Graph RAG. ' +
@@ -250,6 +337,14 @@ export async function handleSelfImproveTool(
       return handleRunTestsTargeted(args);
     case 'holo_list_type_errors':
       return handleListTypeErrors(args);
+    case 'holo_batch_type_fix':
+      return handleBatchTypeFix(args);
+    case 'holo_verify_before_commit':
+      return handleVerifyBeforeCommit(args);
+    case 'holo_run_related_tests':
+      return handleRunRelatedTests(args);
+    case 'holo_quality_trend':
+      return handleQualityTrend(args);
     case 'holo_self_diagnose':
       return handleDiagnose(args);
     case 'holo_validate_quality':
@@ -526,6 +621,326 @@ async function handleListTypeErrors(args: Record<string, unknown>): Promise<unkn
   }
 }
 
+// ── Batch Type Fix (Level 2) ────────────────────────────────────────────────
+
+async function handleBatchTypeFix(args: Record<string, unknown>): Promise<unknown> {
+  const rootDir = args.rootDir as string;
+  const errorCode = args.errorCode as string | undefined;
+  const maxFiles = (args.maxFiles as number) ?? 5;
+
+  try {
+    let output = '';
+    try {
+      const result = await execAsync('npx tsc --noEmit --pretty false 2>&1', {
+        cwd: rootDir,
+        timeout: 180_000,
+        maxBuffer: 50 * 1024 * 1024,
+      });
+      output = result.stdout + result.stderr;
+    } catch (err: any) {
+      output = (err.stdout ?? '') + (err.stderr ?? '');
+    }
+
+    const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
+
+    // Group by error code
+    const byCode: Record<string, Array<{ file: string; line: number; message: string }>> = {};
+    for (const line of errorLines) {
+      const match = line.match(/^([^(]+)\((\d+),\d+\): error (TS\d+): (.+)/);
+      if (match) {
+        const code = match[3];
+        if (errorCode && code !== errorCode) continue;
+        if (!byCode[code]) byCode[code] = [];
+        byCode[code].push({
+          file: match[1].trim(),
+          line: parseInt(match[2], 10),
+          message: match[4],
+        });
+      }
+    }
+
+    // Sort codes by frequency
+    const sortedCodes = Object.entries(byCode)
+      .sort(([, a], [, b]) => b.length - a.length);
+
+    // For each code, group by file and provide fix patterns
+    const fixPatterns: Record<string, string> = {
+      'TS7006': 'Add explicit type annotations to parameters (e.g., `param: any` or specific type)',
+      'TS2339': 'Property does not exist — add to interface, use type assertion, or check optional chaining',
+      'TS2322': 'Type mismatch — adjust the assignment or cast to the expected type',
+      'TS2304': 'Cannot find name — add missing import statement',
+      'TS2345': 'Argument type mismatch — cast argument or update function signature',
+      'TS2554': 'Wrong number of arguments — add/remove arguments or update function signature',
+      'TS2532': 'Object possibly undefined — add null check or use optional chaining (?.) / non-null assertion (!)',
+      'TS2307': 'Cannot find module — install the package or fix the import path',
+      'TS18046': 'Variable is of type unknown — add type guard or assertion',
+      'TS18047': 'Variable possibly null — add null check',
+    };
+
+    const groups = sortedCodes.slice(0, 10).map(([code, errors]) => {
+      // Group this code's errors by file
+      const fileMap: Record<string, typeof errors> = {};
+      for (const err of errors) {
+        if (!fileMap[err.file]) fileMap[err.file] = [];
+        fileMap[err.file].push(err);
+      }
+      const topFiles = Object.entries(fileMap)
+        .sort(([, a], [, b]) => b.length - a.length)
+        .slice(0, maxFiles);
+
+      return {
+        code,
+        count: errors.length,
+        fixPattern: fixPatterns[code] ?? 'Review each error and apply appropriate fix',
+        topFiles: topFiles.map(([file, errs]) => ({
+          file,
+          errorCount: errs.length,
+          errors: errs.slice(0, 5),
+        })),
+      };
+    });
+
+    return {
+      totalErrors: errorLines.length,
+      errorCodes: sortedCodes.length,
+      groups,
+      strategy: `Fix ${sortedCodes[0]?.[0]} first (${sortedCodes[0]?.[1]?.length} instances). ` +
+        `Then ${sortedCodes[1]?.[0]} (${sortedCodes[1]?.[1]?.length}). ` +
+        `Target the file with the most errors in each group for maximum impact.`,
+    };
+  } catch (err: any) {
+    return { error: `Failed to run tsc: ${err.message}` };
+  }
+}
+
+// ── Pre-Commit Verification (Level 4) ──────────────────────────────────────
+
+async function handleVerifyBeforeCommit(args: Record<string, unknown>): Promise<unknown> {
+  const rootDir = args.rootDir as string;
+  const files = (args.files as string[]) ?? [];
+
+  if (files.length === 0) {
+    return { error: 'No files specified for verification' };
+  }
+
+  try {
+    // Get current error count for these files BEFORE and check if we made them worse
+    let output = '';
+    try {
+      const result = await execAsync('npx tsc --noEmit --pretty false 2>&1', {
+        cwd: rootDir,
+        timeout: 180_000,
+        maxBuffer: 50 * 1024 * 1024,
+      });
+      output = result.stdout + result.stderr;
+    } catch (err: any) {
+      output = (err.stdout ?? '') + (err.stderr ?? '');
+    }
+
+    const allErrors = output.split('\n').filter((l: string) => l.includes('error TS'));
+    const fileErrors: Record<string, string[]> = {};
+    let totalRelevant = 0;
+
+    for (const file of files) {
+      const normalizedFile = file.replace(/\\/g, '/');
+      const matching = allErrors.filter((l: string) => {
+        const normalized = l.replace(/\\/g, '/');
+        return normalized.includes(normalizedFile) || normalized.includes(path.basename(file));
+      });
+      fileErrors[file] = matching;
+      totalRelevant += matching.length;
+    }
+
+    return {
+      safe: totalRelevant === 0,
+      totalErrors: allErrors.length,
+      relevantErrors: totalRelevant,
+      files: Object.entries(fileErrors).map(([file, errors]) => ({
+        file,
+        errors: errors.length,
+        details: errors.slice(0, 5),
+      })),
+      recommendation: totalRelevant === 0
+        ? 'Safe to commit — no type errors in changed files.'
+        : `${totalRelevant} type errors in changed files. Fix before committing.`,
+    };
+  } catch (err: any) {
+    return { error: `Verification failed: ${err.message}` };
+  }
+}
+
+// ── Smart Test Running (Level 5) ──────────────────────────────────────────
+
+async function handleRunRelatedTests(args: Record<string, unknown>): Promise<unknown> {
+  const rootDir = args.rootDir as string;
+  const sourceFiles = (args.sourceFiles as string[]) ?? [];
+
+  if (sourceFiles.length === 0) {
+    return { error: 'No source files specified' };
+  }
+
+  try {
+    const fileArgs = sourceFiles.map((f) => `"${f}"`).join(' ');
+    const { stdout, stderr } = await execAsync(
+      `npx vitest run --reporter=json --related ${fileArgs} 2>&1`,
+      { cwd: rootDir, timeout: 120_000, maxBuffer: 10 * 1024 * 1024 }
+    );
+
+    const output = stdout + stderr;
+    const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      return {
+        success: result.success ?? false,
+        numPassed: result.numPassedTests ?? 0,
+        numFailed: result.numFailedTests ?? 0,
+        numTotal: result.numTotalTests ?? 0,
+        sourceFiles,
+        noRelatedTests: (result.numTotalTests ?? 0) === 0,
+      };
+    }
+
+    return {
+      success: !output.includes('FAIL'),
+      rawOutput: output.slice(0, 3000),
+      sourceFiles,
+    };
+  } catch (err: any) {
+    // vitest --related exits non-zero if tests fail
+    const output = (err.stdout ?? '') + (err.stderr ?? '');
+    const jsonMatch = output.match?.(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          success: false,
+          numPassed: result.numPassedTests ?? 0,
+          numFailed: result.numFailedTests ?? 0,
+          numTotal: result.numTotalTests ?? 0,
+          sourceFiles,
+        };
+      } catch { /* fall through */ }
+    }
+    return { success: false, error: err.message?.slice(0, 1000), sourceFiles };
+  }
+}
+
+// ── Quality Trend Analysis (Level 6) ──────────────────────────────────────
+
+async function handleQualityTrend(args: Record<string, unknown>): Promise<unknown> {
+  const rootDir = args.rootDir as string;
+  const lastN = (args.lastN as number) ?? 10;
+
+  const historyPath = path.join(rootDir, '.holoscript', 'quality-history.json');
+  if (!fs.existsSync(historyPath)) {
+    return { error: 'No quality history found. Run at least one cycle first.' };
+  }
+
+  try {
+    const history = JSON.parse(fs.readFileSync(historyPath, 'utf-8')) as Array<{
+      timestamp: string;
+      cycle: number;
+      composite: number;
+      grade: string;
+      focus: string;
+      summary: string;
+    }>;
+
+    const recent = history.slice(-lastN);
+    if (recent.length === 0) return { error: 'Quality history is empty.' };
+
+    // Basic trend analysis
+    const scores = recent.map((h) => h.composite);
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const maxScore = Math.max(...scores);
+    const minScore = Math.min(...scores);
+
+    // Score by focus area
+    const focusScores: Record<string, { total: number; count: number; scores: number[] }> = {};
+    for (const entry of recent) {
+      if (!focusScores[entry.focus]) focusScores[entry.focus] = { total: 0, count: 0, scores: [] };
+      focusScores[entry.focus].total += entry.composite;
+      focusScores[entry.focus].count++;
+      focusScores[entry.focus].scores.push(entry.composite);
+    }
+
+    const focusAnalysis = Object.entries(focusScores)
+      .map(([focus, data]) => ({
+        focus,
+        avgScore: Math.round((data.total / data.count) * 1000) / 1000,
+        count: data.count,
+        trend: data.scores.length >= 2
+          ? data.scores[data.scores.length - 1] - data.scores[0] > 0
+            ? 'improving'
+            : data.scores[data.scores.length - 1] - data.scores[0] < -0.05
+              ? 'declining'
+              : 'stable'
+          : 'insufficient_data',
+      }))
+      .sort((a, b) => b.avgScore - a.avgScore);
+
+    // Detect zero-score cycles (crashes)
+    const crashCycles = recent.filter((h) => h.composite === 0);
+
+    // Calculate slope (linear regression)
+    const n = scores.length;
+    const xMean = (n - 1) / 2;
+    const yMean = avgScore;
+    let numerator = 0;
+    let denominator = 0;
+    for (let i = 0; i < n; i++) {
+      numerator += (i - xMean) * (scores[i] - yMean);
+      denominator += (i - xMean) * (i - xMean);
+    }
+    const slope = denominator !== 0 ? numerator / denominator : 0;
+
+    // Recommendations
+    const recommendations: string[] = [];
+
+    if (crashCycles.length > 0) {
+      recommendations.push(
+        `${crashCycles.length} cycles scored 0 (crashes). Fix the quality scorer — these waste API tokens.`
+      );
+    }
+
+    if (slope < -0.01) {
+      recommendations.push('Quality is DECLINING. Recent changes may be introducing regressions.');
+    } else if (slope < 0.005) {
+      recommendations.push('Quality is PLATEAUED. Try a different focus area or batch-fix approach.');
+    } else {
+      recommendations.push('Quality is IMPROVING. Continue current strategy.');
+    }
+
+    const bestFocus = focusAnalysis[0];
+    const worstFocus = focusAnalysis[focusAnalysis.length - 1];
+    if (bestFocus && worstFocus && bestFocus.focus !== worstFocus.focus) {
+      recommendations.push(
+        `Best focus: "${bestFocus.focus}" (avg ${bestFocus.avgScore}). ` +
+        `Worst: "${worstFocus.focus}" (avg ${worstFocus.avgScore}). Consider reducing "${worstFocus.focus}" cycles.`
+      );
+    }
+
+    return {
+      analyzed: recent.length,
+      avgScore: Math.round(avgScore * 1000) / 1000,
+      maxScore,
+      minScore,
+      slope: Math.round(slope * 10000) / 10000,
+      trend: slope > 0.005 ? 'improving' : slope < -0.01 ? 'declining' : 'plateau',
+      crashCycles: crashCycles.length,
+      focusAnalysis,
+      recommendations,
+      recentScores: recent.map((h) => ({
+        cycle: h.cycle,
+        score: h.composite,
+        focus: h.focus,
+      })),
+    };
+  } catch (err: any) {
+    return { error: `Failed to analyze history: ${err.message}` };
+  }
+}
+
 // ── Diagnostic Handlers ──────────────────────────────────────────────────────
 
 async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
@@ -683,11 +1098,18 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
   } catch (err: any) {
     // tsc exits non-zero when there are errors — this is normal, not a crash
     const output = (err.stdout ?? '') + (err.stderr ?? '');
-    const errorCount = (output.match?.(/error TS\d+/g) ?? []).length;
+    const tsErrors = output.match?.(/error TS\d+/g) ?? [];
+    const errorCount = tsErrors.length;
+    // Also check for "Found N errors" summary line as fallback
+    const foundMatch = output.match(/Found (\d+) errors?/);
+    const reportedCount = foundMatch ? parseInt(foundMatch[1], 10) : 0;
+    const bestCount = errorCount || reportedCount;
     scores.typeCheck = {
       pass: false,
-      score: tscScore(errorCount || 100),
-      details: `${errorCount || 'unknown'} type error(s)`,
+      score: tscScore(bestCount || 50),
+      details: bestCount > 0
+        ? `Type check failed: ${bestCount} errors`
+        : `Type check failed: unknown errors (tsc non-zero exit)`,
     };
   }
 
@@ -753,11 +1175,26 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
       });
       scores.lint = { pass: true, score: 1.0, details: 'No lint errors' };
     } catch (err: any) {
-      const warningCount = (err.stdout?.match?.(/warning/gi) ?? []).length;
-      const errorCount = (err.stdout?.match?.(/error/gi) ?? []).length;
+      const output = (err.stdout ?? '') + (err.stderr ?? '');
+      // Count actual ESLint problem lines (format: "N problems (X errors, Y warnings)")
+      const summaryMatch = output.match(/(\d+) problems? \((\d+) errors?, (\d+) warnings?\)/);
+      let errorCount: number;
+      let warningCount: number;
+      if (summaryMatch) {
+        errorCount = parseInt(summaryMatch[2], 10);
+        warningCount = parseInt(summaryMatch[3], 10);
+      } else {
+        // Fallback: count lines with severity markers (e.g. "2:10  error  ...")
+        errorCount = (output.match(/^\s*\d+:\d+\s+error\s/gm) ?? []).length;
+        warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;
+      }
+      // Use logarithmic scale for lint too — prevents score from going to 0 at 10+ errors
+      const lintScore = errorCount === 0
+        ? Math.max(0.8, 1 - warningCount * 0.01)
+        : 1 / (1 + Math.log(1 + errorCount / 5));
       scores.lint = {
         pass: errorCount === 0,
-        score: Math.max(0, 1 - errorCount * 0.1 - warningCount * 0.02),
+        score: Math.max(0, lintScore),
         details: `${errorCount} error(s), ${warningCount} warning(s)`,
       };
     }

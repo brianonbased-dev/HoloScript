@@ -11,6 +11,7 @@ import {
   vec3Scale,
   vec3ScaleArray,
   vec3Dot,
+  vec3Distance,
   type Vec3
 } from './vec3.js';
 
@@ -126,6 +127,26 @@ describe('vec3 utilities', () => {
       const a: Vec3 = { x: 1, y: 0, z: 0 };
       const b: Vec3 = { x: 0, y: 1, z: 0 };
       expect(vec3Dot(a, b)).toBe(0);
+    });
+  });
+
+  describe('vec3Distance', () => {
+    it('calculates distance between two vectors', () => {
+      const a: Vec3 = { x: 0, y: 0, z: 0 };
+      const b: Vec3 = { x: 3, y: 4, z: 0 };
+      expect(vec3Distance(a, b)).toBe(5);
+    });
+
+    it('handles same vector (zero distance)', () => {
+      const a: Vec3 = { x: 1, y: 2, z: 3 };
+      const b: Vec3 = { x: 1, y: 2, z: 3 };
+      expect(vec3Distance(a, b)).toBe(0);
+    });
+
+    it('calculates 3D distance correctly', () => {
+      const a: Vec3 = { x: 1, y: 1, z: 1 };
+      const b: Vec3 = { x: 4, y: 5, z: 5 };
+      expect(vec3Distance(a, b)).toBeCloseTo(Math.sqrt(9 + 16 + 16), 6); // sqrt(3² + 4² + 4²) = sqrt(41)
     });
   });
 });
