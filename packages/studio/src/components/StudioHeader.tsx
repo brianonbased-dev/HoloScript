@@ -47,6 +47,15 @@ const PublishPanel = dynamic(
 );
 const BenchmarkScene = dynamic(() => import('@/components/perf/BenchmarkScene'), { ssr: false });
 
+// Spatial Blame Overlay
+const SpatialBlameOverlay = dynamic(
+  () =>
+    import('@/components/versionControl/SpatialBlameOverlay').then((m) => ({
+      default: m.SpatialBlameOverlay,
+    })),
+  { ssr: false }
+);
+
 // Lazy-load panels to avoid SSR issues and reduce initial bundle
 const ExampleGallery = dynamic(
   () => import('@/components/gallery/ExampleGallery').then((m) => ({ default: m.ExampleGallery })),
@@ -946,6 +955,18 @@ export function StudioHeader() {
       {texturePaintOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
           <TexturePaintPanel onClose={toggleTexturePaintOpen} />
+        </div>
+      )}
+
+      {/* Spatial Blame Overlay (right sidebar — git blame for .holo traits) */}
+      {blameOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <SpatialBlameOverlay
+            filePath={metadata.name ? `${metadata.name}.holo` : 'untitled.holo'}
+            line={1}
+            traitLabel="scene"
+            onClose={toggleBlameOpen}
+          />
         </div>
       )}
     </>

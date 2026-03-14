@@ -86,7 +86,7 @@ const STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
 const LOG_FILE = path.join(STATE_DIR, 'daemon.log');
 const MODEL = 'claude-sonnet-4-20250514';
-const MAX_TOOL_CALLS = 40;
+const MAX_TOOL_CALLS = 50;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -197,6 +197,8 @@ function loadDaemonState(): DaemonState {
     convergenceStreak: 0,
     backoffMultiplier: 1,
     improvements: [],
+    attemptedFiles: [],
+    lastErrorCounts: {},
   };
 }
 
@@ -360,6 +362,11 @@ async function runImprovementCycle(
     input_schema: t.inputSchema as Anthropic.Tool['input_schema'],
   }));
 
+  // Build the list of attempted files for cycle memory (Level 3)
+  const attemptedList = (state.attemptedFiles ?? []).length > 0
+    ? `\n\n## Already Attempted (SKIP THESE)\n${(state.attemptedFiles ?? []).slice(-30).map(f => `- ${f}`).join('\n')}`
+    : '';
+
   const systemPrompt = `You are HoloScript's autonomous self-improvement daemon (Cycle ${state.totalCycles + 1}).
 
 ${skillContext ? `## /holoscript Skill\n${skillContext}\n` : ''}
@@ -371,45 +378,53 @@ ${skillContext ? `## /holoscript Skill\n${skillContext}\n` : ''}
 - Root: ${config.rootDir}
 - Focus: ${focus}
 - Auto-commit: ${config.commit ? 'YES' : 'NO'}
+${attemptedList}
 
 ## Protocol
-${focus === 'typefix' ? `### TYPEFIX MODE
-1. Call holo_list_type_errors with rootDir="${config.rootDir}" to get actual TS errors.
-2. Pick the file with the most errors.
-3. Use holo_read_file to understand the code.
-4. Fix 3-5 errors in that file using holo_edit_file (add missing types, fix imports, add properties to interfaces).
-5. Run holo_run_tests_targeted to verify no regressions.
-6. ${config.commit ? 'Call holo_git_commit to commit the fixes.' : 'Report what was fixed.'}
-7. Call holo_validate_quality with rootDir="${config.rootDir}" skipLint=true to measure improvement.
-8. Report: errors before, errors after, files changed.` :
+${focus === 'typefix' ? `### TYPEFIX MODE — Batch Fix Strategy
+1. Call holo_batch_type_fix with rootDir="${config.rootDir}" to see errors grouped by code.
+2. Pick the error code with the MOST instances (e.g., TS7006).
+3. Pick the file with the most errors for that code.
+4. Use holo_read_file to understand the code.
+5. Fix ALL errors of that type in that file using holo_edit_file (batch fix, not one at a time).
+6. Call holo_verify_before_commit with the changed files to check they compile.
+7. If verification passes, call holo_run_related_tests with the changed source files.
+8. ${config.commit ? 'If tests pass, call holo_git_commit.' : 'Report what was fixed.'}
+9. Call holo_validate_quality with rootDir="${config.rootDir}" (NO skipTests, NO skipLint — full validation).
+10. Report: error code targeted, errors before/after, files changed.` :
 focus === 'coverage' ? `### COVERAGE MODE
 1. Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
 2. Call holo_self_diagnose with focus="coverage" to find untested code.
-3. Pick the #1 candidate. Use holo_read_file to understand what it does.
+3. Pick the #1 candidate that is NOT in the "Already Attempted" list. Use holo_read_file to understand what it does.
 4. Create a test file using holo_write_file. Write REAL tests that exercise the function's behavior:
    - Test normal inputs, edge cases, and error cases.
    - Import the actual function — do NOT write placeholder tests.
    - Match the project's test patterns (vitest, describe/it blocks).
 5. Run holo_run_tests_targeted on the new test file to verify tests pass.
 6. ${config.commit ? 'Call holo_git_commit.' : 'Report what was tested.'}
-7. Call holo_validate_quality with rootDir="${config.rootDir}" to measure coverage improvement.
+7. Call holo_validate_quality with rootDir="${config.rootDir}" (NO skipTests — full validation).
 8. Report: what was tested, how many tests, pass/fail.` :
 `### STANDARD MODE
 1. Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
-2. Call holo_self_diagnose with focus="${focus}".
-3. Pick the #1 candidate. Use holo_read_file to understand the code.
-4. Write a fix using holo_write_file or holo_edit_file.
-5. Run holo_run_tests_targeted to verify no regressions.
-6. ${config.commit ? 'Call holo_git_commit.' : 'Report what was changed.'}
-7. Call holo_validate_quality with rootDir="${config.rootDir}" to measure improvement.
-8. Report: what changed, quality delta.`}
+2. Call holo_quality_trend with rootDir="${config.rootDir}" to see what's working.
+3. Call holo_self_diagnose with focus="${focus}".
+4. Pick the #1 candidate that is NOT in the "Already Attempted" list. Use holo_read_file to understand the code.
+5. Write a fix using holo_write_file or holo_edit_file.
+6. Call holo_verify_before_commit to check the edit compiles.
+7. Call holo_run_related_tests with the changed source files.
+8. ${config.commit ? 'If tests pass, call holo_git_commit.' : 'Report what was changed.'}
+9. Call holo_validate_quality with rootDir="${config.rootDir}" (NO skipTests — full validation).
+10. Report: what changed, quality delta.`}
 
 ## Rules
+- NEVER use skipTests=true or skipLint=true on the final holo_validate_quality call. Full validation only.
 - Read before editing. Always use holo_read_file before holo_edit_file.
-- One fix per cycle. Pick the highest-priority candidate and fix it well.
+- In TYPEFIX mode: fix ALL errors of one type in one file (batch), not just one error.
 - Keep changes small and targeted. Do not refactor unrelated code.
 - Write REAL tests with actual assertions — never \`expect(true).toBe(true)\`.
+- Always call holo_verify_before_commit before holo_git_commit.
 - If a fix breaks tests, revert via holo_edit_file and report the failure.
+- Skip files listed in "Already Attempted" — pick something new each cycle.
 - Keep responses concise — focus on actions, not analysis.`;
 
   let messages: Anthropic.MessageParam[] = [
@@ -422,6 +437,7 @@ focus === 'coverage' ? `### COVERAGE MODE
   let toolCallCount = 0;
   let finalSummary = '';
   let qualityScore = 0;
+  const filesEdited: string[] = [];
 
   while (toolCallCount < MAX_TOOL_CALLS) {
     const response = await anthropic.messages.create({
@@ -478,6 +494,12 @@ focus === 'coverage' ? `### COVERAGE MODE
         }
       }
 
+      // Track edited files for cycle memory (Level 3)
+      if (toolUse.name === 'holo_edit_file' || toolUse.name === 'holo_write_file') {
+        const fp = input.filePath as string;
+        if (fp && !filesEdited.includes(fp)) filesEdited.push(fp);
+      }
+
       // Extract quality score if this was a validate call
       if (toolUse.name === 'holo_validate_quality') {
         try {
@@ -502,7 +524,7 @@ focus === 'coverage' ? `### COVERAGE MODE
     messages.push({ role: 'user', content: toolResults });
   }
 
-  return { summary: finalSummary, qualityScore };
+  return { summary: finalSummary, qualityScore, filesEdited };
 }
 
 // ─── Harvest Helper ──────────────────────────────────────────────────────
@@ -708,6 +730,15 @@ async function runDaemon(
       state.totalCycles++;
       state.lastCycleAt = new Date().toISOString();
       state.currentFocusIndex = (state.currentFocusIndex + 1) % state.focusRotation.length;
+
+      // Level 3: Track attempted files (keep last 50 to avoid unbounded growth)
+      if (!state.attemptedFiles) state.attemptedFiles = [];
+      for (const f of result.filesEdited) {
+        if (!state.attemptedFiles.includes(f)) state.attemptedFiles.push(f);
+      }
+      if (state.attemptedFiles.length > 50) {
+        state.attemptedFiles = state.attemptedFiles.slice(-50);
+      }
 
       // Convergence detection
       const convergence = detectConvergence(state, result.qualityScore);

@@ -25,6 +25,7 @@ export default defineConfig({
     // poolOptions was removed in Vitest 4; execArgv is now a top-level option.
     // This flows through project.config.execArgv → ForksPoolWorker → child_process.fork().
     pool: 'forks',
+    isolate: true,
     execArgv: ['--max-old-space-size=16384'],
     // Increase timeout for slower tests
     testTimeout: 30000,
