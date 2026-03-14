@@ -1,4 +1,15 @@
 import { defineConfig } from 'tsup';
+import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
+
+// Capture version metadata at build time
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+let gitSha = 'unknown';
+try {
+  gitSha = execSync('git rev-parse --short HEAD').toString().trim();
+} catch {
+  // Not in a git repo or git not available — keep 'unknown'
+}
 
 export default defineConfig({
   entry: {
@@ -51,6 +62,11 @@ export default defineConfig({
 
     // Self-Improvement Pipeline (dynamically loaded)
     'self-improvement/index': 'src/self-improvement/index.ts',
+  },
+  define: {
+    __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
+    __GIT_COMMIT_SHA__: JSON.stringify(gitSha),
+    __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
   format: ['cjs', 'esm'],
   dts: false, // Temporarily disable for v3.0 - type mismatches to resolve in v3.1

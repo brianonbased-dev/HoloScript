@@ -13,8 +13,7 @@ import { packAsset, unpackAsset, inspectAsset } from './smartAssets';
 import { WatchService } from './WatchService';
 import { generateTargetCode } from './build/generators';
 import { publishPackage } from './publish';
-
-const VERSION = '2.5.0';
+import { getVersionString, getVersionInfo } from '@holoscript/core';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -182,10 +181,20 @@ async function main(): Promise<void> {
       break;
     }
 
-    case 'version':
-      console.log(`HoloScript CLI v${VERSION}`);
+    case 'version': {
+      const info = getVersionInfo();
+      console.log(`HoloScript CLI v${getVersionString()}`);
+      if (options.verbose) {
+        console.log(`  Version:    ${info.version}`);
+        console.log(`  Git Commit: ${info.gitCommitSha}`);
+        console.log(`  Built:      ${info.buildTimestamp}`);
+      }
+      if (options.json) {
+        console.log(JSON.stringify(info, null, 2));
+      }
       process.exit(0);
       break;
+    }
 
     case 'repl':
       await startREPL({

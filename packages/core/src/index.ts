@@ -38,6 +38,15 @@ import { HoloScriptRuntime } from './HoloScriptRuntime';
 // Constants (New)
 export * from './constants';
 
+// Version & Build Metadata
+export {
+  HOLOSCRIPT_VERSION,
+  GIT_COMMIT_SHA,
+  BUILD_TIMESTAMP,
+  getVersionString,
+  getVersionInfo,
+} from './version';
+
 // Performance Tracking System
 export * from './performance';
 
