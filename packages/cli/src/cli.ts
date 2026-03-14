@@ -13,7 +13,7 @@ import { packAsset, unpackAsset, inspectAsset } from './smartAssets';
 import { WatchService } from './WatchService';
 import { generateTargetCode } from './build/generators';
 import { publishPackage } from './publish';
-import { getVersionString, getVersionInfo } from '@holoscript/core';
+import { getVersionString, getVersionInfo, createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '@holoscript/core';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -570,8 +570,6 @@ async function main(): Promise<void> {
         const fs = await import('fs');
         const path = await import('path');
         const { HoloCompositionParser, HoloScriptPlusParser } = await import('@holoscript/core');
-        const { createHeadlessRuntime, HEADLESS_PROFILE, getProfile } =
-          await import('@holoscript/core/runtime/profiles');
 
         const filePath = path.resolve(options.input);
         if (!fs.existsSync(filePath)) {
@@ -901,7 +899,7 @@ async function main(): Promise<void> {
 
           if (!result.success) {
             console.error(`\x1b[31mError parsing composition:\x1b[0m`);
-            result.errors.forEach((e) =>
+            result.errors.forEach((e: any) =>
               console.error(`  ${e.loc?.line}:${e.loc?.column}: ${e.message}`)
             );
             process.exit(1);
@@ -910,15 +908,15 @@ async function main(): Promise<void> {
           // Map HoloComposition AST to Generator AST
           ast = {
             orbs:
-              result.ast?.objects?.map((obj) => ({
+              result.ast?.objects?.map((obj: any) => ({
                 name: obj.name,
-                properties: Object.fromEntries(obj.properties.map((p) => [p.key, p.value])),
+                properties: Object.fromEntries(obj.properties.map((p: any) => [p.key, p.value])),
                 traits: obj.traits || [],
                 state: obj.state,
               })) || [],
             functions: [
-              ...(result.ast?.logic?.actions?.map((a) => ({ name: a.name })) || []),
-              ...(result.ast?.logic?.handlers?.map((h) => ({ name: h.event })) || []),
+              ...(result.ast?.logic?.actions?.map((a: any) => ({ name: a.name })) || []),
+              ...(result.ast?.logic?.handlers?.map((h: any) => ({ name: h.event })) || []),
             ],
           };
         } else {
@@ -929,7 +927,7 @@ async function main(): Promise<void> {
 
           if (!result.success) {
             console.error(`\x1b[31mError parsing script:\x1b[0m`);
-            result.errors.forEach((e) => console.error(`  ${e.line}:${e.column}: ${e.message}`));
+            result.errors.forEach((e: any) => console.error(`  ${e.line}:${e.column}: ${e.message}`));
             process.exit(1);
           }
 
@@ -958,7 +956,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for WASM:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: any) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -1010,7 +1008,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for URDF:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
@@ -1056,7 +1054,7 @@ async function main(): Promise<void> {
 
           if (!parseResult.success || !parseResult.ast) {
             console.error(`\x1b[31mError parsing for SDF:\x1b[0m`);
-            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
             process.exit(1);
           }
 
