@@ -234,3 +234,16 @@ AGENTS.md
 
 # Benchmark scripts (temporary, not part of the project)
 benchmark-absorb.ts
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+playwright-results.xml
+
+# Studio debug/scratch files
+packages/studio/check-canvas*.ts
+packages/studio/knowledge.holo
+packages/studio/final*.txt
+packages/studio/targeted*.txt
+packages/studio/full_final_out.txt
+packages/studio/useshader_out.txt
