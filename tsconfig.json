@@ -16,7 +16,9 @@
     "packages/core/src/**/*",
     "packages/cli/src/**/*",
     "packages/mcp-server/src/**/*",
-    "scripts/**/*"
+    "packages/crdt/src/**/*",
+    "scripts/**/*",
+    "test-type-error.ts"
   ],
   "exclude": [
     "node_modules",

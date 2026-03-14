@@ -131,6 +131,15 @@ interface QualityEntry {
   grade: string;
   focus: string;
   summary: string;
+  // Experiment instrumentation (Phase 0)
+  inputTokens?: number;
+  outputTokens?: number;
+  costUSD?: number;
+  toolCallsTotal?: number;
+  toolCallsUseful?: number;
+  durationSeconds?: number;
+  arm?: 'control' | 'treatment';
+  trial?: number;
 }
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -355,7 +364,7 @@ async function runImprovementCycle(
   skillContext: string,
   focus: string,
   harvestData?: CycleHarvestData
-): Promise<{ summary: string; qualityScore: number }> {
+): Promise<{ summary: string; qualityScore: number; filesEdited: string[]; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number }> {
   const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
     name: t.name,
     description: t.description ?? '',
@@ -439,6 +448,16 @@ focus === 'coverage' ? `### COVERAGE MODE
   let qualityScore = 0;
   const filesEdited: string[] = [];
 
+  // Experiment instrumentation — token tracking
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let usefulToolCalls = 0;
+  const USEFUL_TOOLS = new Set([
+    'holo_read_file', 'holo_write_file', 'holo_edit_file',
+    'holo_run_tests_targeted', 'holo_verify_before_commit',
+    'holo_git_commit', 'holo_run_related_tests',
+  ]);
+
   while (toolCallCount < MAX_TOOL_CALLS) {
     const response = await anthropic.messages.create({
       model: MODEL,
@@ -447,6 +466,12 @@ focus === 'coverage' ? `### COVERAGE MODE
       tools,
       messages,
     });
+
+    // Track token usage for experiment instrumentation
+    if (response.usage) {
+      totalInputTokens += response.usage.input_tokens;
+      totalOutputTokens += response.usage.output_tokens;
+    }
 
     messages.push({ role: 'assistant', content: response.content });
 
@@ -465,6 +490,7 @@ focus === 'coverage' ? `### COVERAGE MODE
 
     for (const toolUse of toolUseBlocks) {
       toolCallCount++;
+      if (USEFUL_TOOLS.has(toolUse.name)) usefulToolCalls++;
       const input = toolUse.input as Record<string, unknown>;
 
       if (config.verbose) {
@@ -524,7 +550,22 @@ focus === 'coverage' ? `### COVERAGE MODE
     messages.push({ role: 'user', content: toolResults });
   }
 
-  return { summary: finalSummary, qualityScore, filesEdited };
+  return {
+    summary: finalSummary,
+    qualityScore,
+    filesEdited,
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
+    toolCallsTotal: toolCallCount,
+    toolCallsUseful: usefulToolCalls,
+  };
+}
+
+// ─── Experiment Cost Calculation ─────────────────────────────────────────────
+
+/** Sonnet pricing: $3/M input, $15/M output */
+function calculateCostUSD(inputTokens: number, outputTokens: number): number {
+  return (inputTokens * 3 + outputTokens * 15) / 1_000_000;
 }
 
 // ─── Harvest Helper ──────────────────────────────────────────────────────
@@ -773,7 +814,8 @@ async function runDaemon(
       // Save state after every cycle
       saveDaemonState(state);
 
-      // Log quality history
+      // Log quality history with experiment instrumentation
+      const costUSD = calculateCostUSD(result.inputTokens, result.outputTokens);
       appendQualityHistory({
         timestamp: new Date().toISOString(),
         cycle: state.totalCycles,
@@ -790,10 +832,17 @@ async function runDaemon(
                   : 'F',
         focus,
         summary: result.summary.slice(0, 300),
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        costUSD,
+        toolCallsTotal: result.toolCallsTotal,
+        toolCallsUseful: result.toolCallsUseful,
+        durationSeconds: parseFloat(durationSec),
+        arm: 'control',
       });
 
       log(
-        `📋 Cycle ${state.totalCycles} done (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)} — ${convergence.reason}`
+        `📋 Cycle ${state.totalCycles} done (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)} — $${costUSD.toFixed(3)} — ${convergence.reason}`
       );
       log(result.summary.split('\n').slice(0, 5).join('\n'));
 
@@ -895,6 +944,7 @@ async function runSingleShot(
       }
 
       saveDaemonState(state);
+      const costUSD = calculateCostUSD(result.inputTokens, result.outputTokens);
       appendQualityHistory({
         timestamp: new Date().toISOString(),
         cycle: state.totalCycles,
@@ -902,10 +952,17 @@ async function runSingleShot(
         grade: result.qualityScore >= 0.9 ? 'A' : result.qualityScore >= 0.8 ? 'B' : 'F',
         focus,
         summary: result.summary.slice(0, 300),
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        costUSD,
+        toolCallsTotal: result.toolCallsTotal,
+        toolCallsUseful: result.toolCallsUseful,
+        durationSeconds: parseFloat(durationSec),
+        arm: 'control',
       });
 
       console.log(
-        `\n📋 Cycle ${i + 1} (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)}`
+        `\n📋 Cycle ${i + 1} (${durationSec}s) — quality: ${result.qualityScore.toFixed(3)} — $${costUSD.toFixed(3)}`
       );
       console.log(result.summary);
       console.log(`✅ Cycle ${i + 1} complete\n`);

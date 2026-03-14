@@ -3229,3 +3229,11 @@ export {
   type AbsorbedImport,
 } from './traits/AbsorbTrait';
 
+// ── @hot_reload Trait (Live-Reload .hs Files on Disk Change) ────────────────
+export {
+  HotReloadWatcher,
+  HOT_RELOAD_TRAIT,
+  type HotReloadConfig,
+  type HotReloadEvent,
+  type HotReloadCallback,
+} from './traits/HotReloadTrait';

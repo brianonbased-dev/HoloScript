@@ -361,13 +361,77 @@ narrative "Tutorial" {
 
 ## 🛠️ Tooling
 
-- **`holoscript absorb`** — Scan any codebase (TypeScript, Python, Rust, Go), extract symbols, build a knowledge graph, and generate a `.holo` composition for spatial visualization. Then query it with Graph RAG: `"what calls X?"`, `"trace call chain from A to B"`.
-- **`holoscript query`** — Semantic GraphRAG search over an absorbed codebase. Supports four embedding backends: `bm25` (default, zero deps), `xenova` (local WASM semantics via `@huggingface/transformers`), `openai` (cloud, requires `openai` package + API key), and `ollama` (local HTTP). Add `--with-llm` to get a natural-language answer synthesised by an LLM. [Full guide →](./docs/guides/codebase-intelligence.md)
+### HoloScript CLI
+
+| Command | Description |
+|---------|-------------|
+| `holoscript run <file>` | Execute `.hs`/`.hsplus`/`.holo` headlessly with optional `--target node\|python` and `--profile headless\|minimal\|full` |
+| `holoscript test <file>` | Run `@script_test` blocks with real assertion evaluation, runtime state binding, and colorized output |
+| `holoscript compile <file>` | Compile to Node.js or Python with `--target` and `--output` flags |
+| `holoscript absorb <file>` | **Reverse-mode**: Convert Python/TypeScript/JavaScript → typed `.hsplus` agents. Extracts classes (with methods), functions, imports, constants |
+| `holoscript preview <file>` | Launch 3D preview in browser |
+| `holoscript query <query>` | Semantic GraphRAG search over an absorbed codebase. Supports `bm25`, `xenova`, `openai`, `ollama` backends. Add `--with-llm` for LLM-synthesized answers. [Full guide →](./docs/guides/codebase-intelligence.md) |
+
+### Native Testing (`@script_test`)
+
+HoloScript ships a **native-first testing framework** — assertions run inside the headless runtime, not in an external test harness:
+
+```hs
+@script_test "economy init" {
+  assert { balance == 500 }
+  assert { entity.health > 0 }
+}
+```
+
+- Assertions evaluate against live runtime state (dot-notation: `entity.health`)
+- Supports `==`, `!=`, `>`, `<`, `>=`, `<=`, booleans, numbers, strings, `null`
+- `setup {}`, `action {}`, `assert {}`, `teardown {}` blocks
+- Addresses [G.ARCH.001](./docs/strategy/audits/THE_BIGGEST_GOTCHA) — testing authority inside the language
+
+### Reverse-Mode Absorption (`@absorb`)
+
+Convert existing codebases into typed HoloScript agents:
+
+```bash
+holoscript absorb legacy_service.py --output agent.hsplus
+# Extracts: 5 functions, 2 classes (with methods), 3 imports, 2 constants
+# Generates: typed .hsplus with templates, event handlers, state
+```
+
+- **Python**: Extracts `def`/`class`/`import`/constants, class methods via indentation scope, `self.prop` from `__init__`
+- **TypeScript/JavaScript**: Extracts functions/classes/imports/const, class methods via brace-depth, property declarations
+- Generates canonical `.hsplus` with `template`, `@agent`, `@extends`, `on` handlers
+
+### Live Reload (`@hot_reload`)
+
+Watch `.hs`/`.hsplus`/`.holo` files and live-reload on change:
+
+```hs
+@hot_reload {
+  watch: ["./agents/*.hs", "./scenes/*.holo"]
+  debounce_ms: 300
+  on_reload: "soft"
+}
+```
+
+### DAG Visualization (Studio Panel)
+
+Interactive scene graph visualization with:
+- 🔍 **Search/filter** — Find nodes by name, type, or trait
+- 🌡️ **Heatmap** — Green→red gradient by trait density
+- 🗺️ **Minimap** — Overview navigation with viewport indicator
+- 📥 **SVG export** — One-click download with dark background
+- 🔗 **Trait dependency edges** — Dashed lines between nodes sharing traits
+- ✏️ **Live trait editing** — Click any trait badge to edit inline
+
+### Additional Tooling
+
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
 - **MCP Server (43+ tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
+- **LSP Server** — IntelliSense for 1,800+ traits with completions, hover docs, and diagnostics
 - **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.
 - **Plugin System** — Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
-- **HoloScript CLI** — Parse, validate, compile, absorb, and preview from your terminal.
+- **MCP Circuit Breaker** — Resilient MCP tool calls with retry, timeout, and fallback patterns
 
 ### Companion Repositories
 

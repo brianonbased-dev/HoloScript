@@ -11,6 +11,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GenerationCache } from '../GenerationCache';
 
 describe('GenerationCache — Production', () => {
+  // Helper function to mock Date.now with offset or counter
+  const mockDateNow = (offsetMs: number) => {
+    const originalNow = Date.now;
+    Date.now = vi.fn(() => originalNow() + offsetMs);
+    return () => { Date.now = originalNow; };
+  };
+  
+  const mockDateNowIncrementing = (startOffset: number = 0) => {
+    const originalNow = Date.now;
+    let counter = startOffset;
+    Date.now = vi.fn(() => originalNow() + counter++);
+    return () => { Date.now = originalNow; };
+  };
+
   // ─── Basic Get/Set ────────────────────────────────────────────────
   it('set + get returns cached entry', () => {
     const cache = new GenerationCache();
@@ -50,10 +64,9 @@ describe('GenerationCache — Production', () => {
     cache.set('p', 'c', 0.9, 'a');
 
     // Fast-forward time
-    const original = Date.now;
-    Date.now = vi.fn(() => original() + 200);
+    const restoreDateNow = mockDateNow(200);
     expect(cache.get('p', 'a')).toBeNull();
-    Date.now = original;
+    restoreDateNow();
   });
 
   // ─── LRU Eviction ─────────────────────────────────────────────────
@@ -61,15 +74,13 @@ describe('GenerationCache — Production', () => {
     const cache = new GenerationCache({ maxSize: 2 });
     cache.set('first', 'c1', 0.9, 'a');
 
-    // Ensure "second" is newer
-    const original = Date.now;
-    let offset = 1;
-    Date.now = vi.fn(() => original() + offset++);
+    // Ensure "second" and "third" are newer with incrementing timestamps
+    const restoreDateNow = mockDateNowIncrementing(1);
 
     cache.set('second', 'c2', 0.9, 'a');
     cache.set('third', 'c3', 0.9, 'a'); // should evict 'first'
 
-    Date.now = original;
+    restoreDateNow();
 
     expect(cache.get('first', 'a')).toBeNull();
     expect(cache.get('third', 'a')).not.toBeNull();

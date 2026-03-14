@@ -109,6 +109,8 @@ import { dataBindingHandler } from './DataBindingTrait';
 import { alertHandler } from './AlertTrait';
 import { heatmap3dHandler } from './Heatmap3DTrait';
 import { behaviorTreeHandler } from './BehaviorTreeTrait';
+import { feedbackLoopHandler } from './FeedbackLoopTrait';
+import { economyPrimitivesHandler } from './EconomyPrimitivesTrait';
 import { goalOrientedHandler } from './GoalOrientedTrait';
 import { llmAgentHandler } from './LLMAgentTrait';
 import { neuralLinkHandler } from './NeuralLinkTrait';
@@ -1198,6 +1200,8 @@ export class VRTraitRegistry {
 
     // Phase 7: Autonomous Agents
     this.register(behaviorTreeHandler as TraitHandler);
+    this.register(feedbackLoopHandler as TraitHandler);
+    this.register(economyPrimitivesHandler as TraitHandler);
     this.register(goalOrientedHandler as TraitHandler);
     this.register(llmAgentHandler as TraitHandler);
     this.register(neuralLinkHandler as TraitHandler);
@@ -1455,6 +1459,8 @@ export {
   heatmap3dHandler,
   // Phase 7: Autonomous Agents
   behaviorTreeHandler,
+  feedbackLoopHandler,
+  economyPrimitivesHandler,
   goalOrientedHandler,
   llmAgentHandler,
   neuralLinkHandler,

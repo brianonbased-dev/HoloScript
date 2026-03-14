@@ -100,7 +100,7 @@ async function runScript(opts: CLIOptions): Promise<void> {
   });
 
   // Set up interop context
-  const interop = new InteropContext(path.dirname(filePath));
+  const _interop = new InteropContext(path.dirname(filePath));
 
   if (opts.debug) {
     console.log(`[holoscript] Profile: ${profile.name}`);
@@ -139,7 +139,17 @@ async function testScript(opts: CLIOptions): Promise<void> {
 
   console.log(`[holoscript test] Running tests in ${path.basename(filePath)}`);
 
-  const runner = new ScriptTestRunner({ debug: opts.debug });
+  // Parse and create a headless runtime to populate state for assertions
+  const ast = parse(source);
+  const profile = HEADLESS_PROFILE;
+  const runtime = createHeadlessRuntime(ast, { profile, tickRate: 10, debug: opts.debug });
+  runtime.start();
+  for (let i = 0; i < 50; i++) runtime.tick();
+
+  const runner = new ScriptTestRunner({
+    debug: opts.debug,
+    runtimeState: runtime.getAllState(),
+  });
   const results = runner.runTestsFromSource(source, filePath);
 
   // Report
