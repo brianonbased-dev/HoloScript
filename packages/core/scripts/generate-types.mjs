@@ -170,6 +170,8 @@ export interface R3FMaterialProps {
   [key: string]: any;
 }
 
+export type AssetMaturity = 'draft' | 'mesh' | 'final';
+
 export interface R3FNode {
   type: string;
   id?: string;
@@ -177,6 +179,7 @@ export interface R3FNode {
   children?: R3FNode[];
   traits?: Map<string, any>;
   directives?: any[];
+  assetMaturity?: AssetMaturity;
   [key: string]: any;
 }
 
@@ -1857,6 +1860,77 @@ export interface MarketplaceSubmission { id: string; title: string; description:
 // ============================================================================
 
 export interface PlatformTarget { id: string; name: string; category: string; capabilities: string[]; [key: string]: any; }
+
+// ============================================================================
+// DRAFT TRAIT (Draft→Mesh→Simulation Pipeline)
+// ============================================================================
+
+export type DraftShape = 'box' | 'sphere' | 'cylinder' | 'cone' | 'capsule' | 'plane' | 'torus';
+
+export interface DraftConfig {
+  shape: DraftShape;
+  collision: boolean;
+  color: string;
+  opacity: number;
+  wireframe: boolean;
+  collisionScale: number;
+  targetMaturity: AssetMaturity;
+}
+
+export declare const DRAFT_DEFAULTS: DraftConfig;
+
+export declare const DRAFT_TRAIT: {
+  readonly name: '@draft';
+  readonly version: '1.0.0';
+  readonly description: string;
+  readonly category: 'pipeline';
+  readonly properties: Record<string, any>;
+};
+
+export declare class DraftManager {
+  setDraft(entityId: string, config?: Partial<DraftConfig>): DraftConfig;
+  getDraft(entityId: string): DraftConfig | null;
+  isDraft(entityId: string): boolean;
+  promote(entityId: string): AssetMaturity;
+  demote(entityId: string, config?: Partial<DraftConfig>): DraftConfig;
+  getDraftIds(): string[];
+  readonly count: number;
+  clear(): void;
+  demoteAll(entityIds: string[], shape?: DraftShape): void;
+  getCollisionShape(entityId: string): DraftShape | null;
+}
+
+// ============================================================================
+// VR PERFORMANCE REGRESSION MONITOR
+// ============================================================================
+
+export interface PerformanceRegressionConfig {
+  thresholdMs: number;
+  consecutiveFrames: number;
+  recoveryFrames: number;
+  recoveryThresholdMs: number;
+  enabled: boolean;
+}
+
+export interface PerformanceRegressionState {
+  avgFrameTimeMs: number;
+  isRegressed: boolean;
+  aboveCount: number;
+  belowCount: number;
+  regressionCount: number;
+  recoveryCount: number;
+}
+
+export declare const PERF_REGRESSION_DEFAULTS: PerformanceRegressionConfig;
+
+export declare class PerformanceRegressionMonitor {
+  constructor(config?: Partial<PerformanceRegressionConfig>);
+  tick(deltaMs: number): PerformanceRegressionState;
+  getState(): PerformanceRegressionState;
+  forceRegress(): void;
+  forceRecover(): void;
+  reset(): void;
+}
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {
