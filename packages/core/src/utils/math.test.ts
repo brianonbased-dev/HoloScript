@@ -1,119 +1,117 @@
-/**
- * Tests for mathematical utility functions
- */
-
 import { describe, it, expect } from 'vitest';
-import {
-  calculateAverage,
-  calculateSuccessRate,
-  calculateStandardDeviation,
-  calculateMedian,
+import { 
+  calculateAverage, 
+  calculateSuccessRate, 
+  calculateStandardDeviation, 
+  calculateMedian 
 } from './math';
 
 describe('Math Utilities', () => {
   describe('calculateAverage', () => {
-    it('should return 0 for empty array', () => {
-      expect(calculateAverage([])).toBe(0);
-    });
-
-    it('should calculate average of single number', () => {
-      expect(calculateAverage([5])).toBe(5);
-    });
-
-    it('should calculate average of multiple positive numbers', () => {
+    it('calculates the average of positive numbers', () => {
       expect(calculateAverage([1, 2, 3, 4, 5])).toBe(3);
+      expect(calculateAverage([10, 20, 30])).toBe(20);
     });
 
-    it('should handle decimal results', () => {
-      expect(calculateAverage([1, 2])).toBe(1.5);
-    });
-
-    it('should handle negative numbers', () => {
+    it('calculates the average of negative numbers', () => {
       expect(calculateAverage([-1, -2, -3])).toBe(-2);
     });
 
-    it('should handle mixed positive and negative numbers', () => {
-      expect(calculateAverage([-10, 10, 0])).toBe(0);
+    it('calculates the average of mixed positive and negative numbers', () => {
+      expect(calculateAverage([-5, 0, 5])).toBe(0);
+      expect(calculateAverage([-10, 10, 15, -5])).toBe(2.5);
     });
 
-    it('should handle large numbers', () => {
-      const large = [1000000, 2000000, 3000000];
-      expect(calculateAverage(large)).toBe(2000000);
+    it('handles decimal numbers', () => {
+      expect(calculateAverage([1.5, 2.5, 3.5])).toBe(2.5);
+      expect(calculateAverage([0.1, 0.2, 0.3])).toBeCloseTo(0.2, 10);
     });
 
-    it('should handle compilation time benchmarks realistically', () => {
-      // Typical compilation times in milliseconds
-      const compilationTimes = [250, 340, 180, 420, 300];
-      expect(calculateAverage(compilationTimes)).toBe(298);
+    it('returns 0 for empty array', () => {
+      expect(calculateAverage([])).toBe(0);
     });
 
-    it('should handle feature parity scores', () => {
-      // Feature parity percentages
-      const parityScores = [85.5, 92.3, 78.1, 89.7];
-      expect(calculateAverage(parityScores)).toBeCloseTo(86.4, 1);
+    it('handles single element array', () => {
+      expect(calculateAverage([42])).toBe(42);
+      expect(calculateAverage([0])).toBe(0);
+      expect(calculateAverage([-10])).toBe(-10);
     });
 
-    it('should handle zero values mixed with positive', () => {
-      expect(calculateAverage([0, 0, 6])).toBe(2);
+    it('handles very large numbers', () => {
+      expect(calculateAverage([1e10, 2e10, 3e10])).toBe(2e10);
+    });
+
+    it('handles very small numbers', () => {
+      expect(calculateAverage([1e-10, 2e-10, 3e-10])).toBeCloseTo(2e-10, 15);
     });
   });
 
   describe('calculateSuccessRate', () => {
-    it('should return 0 for zero total', () => {
-      expect(calculateSuccessRate(0, 0)).toBe(0);
-    });
-
-    it('should calculate 100% success rate', () => {
-      expect(calculateSuccessRate(10, 10)).toBe(100);
-    });
-
-    it('should calculate partial success rate', () => {
+    it('calculates success rate correctly', () => {
       expect(calculateSuccessRate(8, 10)).toBe(80);
+      expect(calculateSuccessRate(5, 5)).toBe(100);
+      expect(calculateSuccessRate(0, 10)).toBe(0);
     });
 
-    it('should handle zero successes', () => {
-      expect(calculateSuccessRate(0, 10)).toBe(0);
+    it('handles edge cases', () => {
+      expect(calculateSuccessRate(0, 0)).toBe(0);
+      expect(calculateSuccessRate(5, 0)).toBe(0);
+    });
+
+    it('handles partial successes with decimals', () => {
+      expect(calculateSuccessRate(1, 3)).toBeCloseTo(33.333, 2);
     });
   });
 
   describe('calculateStandardDeviation', () => {
-    it('should return 0 for empty array', () => {
+    it('calculates standard deviation correctly', () => {
+      expect(calculateStandardDeviation([1, 2, 3, 4, 5])).toBeCloseTo(1.4142, 3);
+      expect(calculateStandardDeviation([10, 10, 10, 10])).toBe(0);
+    });
+
+    it('returns 0 for empty array', () => {
       expect(calculateStandardDeviation([])).toBe(0);
     });
 
-    it('should return 0 for single element', () => {
+    it('returns 0 for single element array', () => {
       expect(calculateStandardDeviation([5])).toBe(0);
     });
 
-    it('should calculate standard deviation for uniform values', () => {
-      expect(calculateStandardDeviation([5, 5, 5, 5])).toBe(0);
-    });
-
-    it('should calculate standard deviation for varied values', () => {
-      const result = calculateStandardDeviation([1, 2, 3, 4, 5]);
-      expect(result).toBeCloseTo(1.414, 2);
+    it('handles negative numbers', () => {
+      expect(calculateStandardDeviation([-2, -1, 0, 1, 2])).toBeCloseTo(1.4142, 3);
     });
   });
 
   describe('calculateMedian', () => {
-    it('should return 0 for empty array', () => {
+    it('calculates median for odd number of elements', () => {
+      expect(calculateMedian([1, 3, 5])).toBe(3);
+      expect(calculateMedian([7, 1, 9, 3, 5])).toBe(5);
+    });
+
+    it('calculates median for even number of elements', () => {
+      expect(calculateMedian([1, 2, 3, 4])).toBe(2.5);
+      expect(calculateMedian([10, 20])).toBe(15);
+    });
+
+    it('returns 0 for empty array', () => {
       expect(calculateMedian([])).toBe(0);
     });
 
-    it('should return single value for array of one', () => {
-      expect(calculateMedian([5])).toBe(5);
+    it('handles single element array', () => {
+      expect(calculateMedian([42])).toBe(42);
     });
 
-    it('should calculate median for odd-length array', () => {
-      expect(calculateMedian([1, 3, 5])).toBe(3);
+    it('handles unsorted input', () => {
+      expect(calculateMedian([5, 1, 9, 3, 7])).toBe(5);
     });
 
-    it('should calculate median for even-length array', () => {
-      expect(calculateMedian([1, 2, 3, 4])).toBe(2.5);
+    it('handles negative numbers', () => {
+      expect(calculateMedian([-5, -1, -3])).toBe(-3);
     });
 
-    it('should handle unsorted input', () => {
-      expect(calculateMedian([5, 1, 3])).toBe(3);
+    it('handles duplicate values', () => {
+      expect(calculateMedian([1, 1, 2, 2, 3])).toBe(2);
+      expect(calculateMedian([5, 5, 5, 5])).toBe(5);
     });
   });
 });
