@@ -182,6 +182,18 @@ export function StudioHeader() {
   const blameOpen = usePanelVisibilityStore((s) => s.blameOpen);
   const toggleBlameOpen = usePanelVisibilityStore((s) => s.toggleBlameOpen);
 
+  // ── Keyboard shortcut: Ctrl+Shift+B → toggle blame overlay ──────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+        e.preventDefault();
+        toggleBlameOpen();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleBlameOpen]);
+
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
   const publishOpen = usePanelVisibilityStore((s) => s.publishOpen);

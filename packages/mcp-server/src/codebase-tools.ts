@@ -30,6 +30,7 @@ import { setGraphRAGState } from './graph-rag-tools';
 async function createDynamicEmbeddingIndex(mod: any): Promise<any> {
   const { EmbeddingIndex, createEmbeddingProvider } = mod;
   const providerName = (process.env.EMBEDDING_PROVIDER ?? 'bm25') as any;
+  console.error(`[EmbeddingProvider] Using provider: ${providerName}${providerName === 'openai' ? ' (API key: ' + (process.env.OPENAI_API_KEY ? 'set' : 'MISSING') + ')' : ''}`);
   const provider = await createEmbeddingProvider({
     provider: providerName,
     ollamaUrl: process.env.OLLAMA_URL,
@@ -38,6 +39,7 @@ async function createDynamicEmbeddingIndex(mod: any): Promise<any> {
     openaiModel: process.env.OPENAI_MODEL,
     xenovaModel: process.env.XENOVA_MODEL,
   });
+  console.error(`[EmbeddingProvider] Created: ${provider.name}`);
   return new EmbeddingIndex({ provider });
 }
 
