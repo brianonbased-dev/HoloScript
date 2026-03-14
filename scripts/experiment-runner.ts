@@ -162,7 +162,7 @@ async function runTrial(arm: 'control' | 'treatment', trial: number, config: Exp
     execSync(cmd, {
       cwd: REPO_ROOT,
       stdio: 'inherit',
-      timeout: config.cycles * 600_000, // 10 min per cycle max
+      timeout: config.cycles * 1_200_000, // 20 min per cycle max (calibration showed ~15 min avg)
     });
   } catch (err: any) {
     console.error(`  Trial ${trial} ${arm} failed: ${err.message}`);

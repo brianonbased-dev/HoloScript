@@ -550,16 +550,27 @@ async function executeAction(
     }
 
     case 'rollback_changes': {
-      // Rollback: revert edited files using git
+      // Rollback: revert edited files using git — quality unchanged
       console.log(`  [BT] rollback_changes: reverting ${blackboard.files_edited.length} files`);
+      blackboard.quality_after = blackboard.quality_before; // Nothing changed after rollback
       if (blackboard.files_edited.length > 0) {
-        try {
-          const { execSync } = await import('child_process');
-          for (const file of blackboard.files_edited) {
-            execSync(`git checkout -- "${file}"`, { cwd: rootDir });
+        const { execSync } = await import('child_process');
+        for (const file of blackboard.files_edited) {
+          try {
+            // Try git checkout first (for tracked files)
+            execSync(`git checkout -- "${file}"`, { cwd: rootDir, stdio: 'pipe' });
+          } catch {
+            try {
+              // File might be untracked (newly created) — check and remove
+              const status = execSync(`git status --porcelain "${file}"`, { cwd: rootDir, encoding: 'utf-8' });
+              if (status.startsWith('??') || status.startsWith('A ')) {
+                fs.unlinkSync(file);
+                console.log(`    Removed untracked file: ${path.basename(file)}`);
+              }
+            } catch (err2: any) {
+              console.error(`  [BT] rollback failed for ${path.basename(file)}: ${err2.message}`);
+            }
           }
-        } catch (err: any) {
-          console.error(`  [BT] rollback failed: ${err.message}`);
         }
       }
       blackboard.files_edited = [];
@@ -664,9 +675,11 @@ async function runBridgeCycle(
       }
     } else if (blackboard.files_edited.length === 0) {
       console.log('  [BT] No files edited — skipping verification');
+      blackboard.quality_after = blackboard.quality_before; // Nothing changed
     }
   } else {
     await executeAction('report_no_candidates', blackboard, anthropic, handlers, toolDefs, config, metrics);
+    blackboard.quality_after = blackboard.quality_before; // No changes attempted
   }
 
   // Step 12: Report

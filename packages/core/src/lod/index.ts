@@ -168,3 +168,16 @@ export {
   // Factory functions
   createLODPerformanceMetrics,
 } from './LODMetrics';
+
+// ============================================================================
+// LOD Bridge (Core → Renderer Pipeline)
+// ============================================================================
+
+export {
+  // Types
+  type LODChain,
+  type LODBridgeOptions,
+
+  // Bridge class
+  LODBridge,
+} from './LODBridge';
