@@ -78,5 +78,95 @@ Phase 4: Introduce policy checks for native-first architectural compliance.
 - Core platform features increasingly migrate from wrapper patterns to native capability.
 - Cross-target behavioral consistency improves under a shared native validation layer.
 
+## Exhibit A: The Self-Improvement Daemon (25 Cycles of Evidence)
+
+The autonomous self-improvement daemon (`scripts/self-improve.ts`) is the most complete real-world instantiation of G.ARCH.001. It is a 974-line TypeScript program that uses the Anthropic API to diagnose, fix, and commit improvements to HoloScript — the language's own improvement loop does not use the language.
+
+### Quantitative Record (2026-03-05 to 2026-03-14)
+
+| Metric | Value |
+|---|---|
+| Total cycles run | 25 |
+| Best quality score | 0.49 / 1.00 |
+| Final quality score | 0.20 / 1.00 |
+| Zero-score crashes | 4 (cycles 16, 19, 20, 21) |
+| Cycles stuck at 0.21 | 9 consecutive (cycles 1-9) |
+| Successful improvements recorded | 0 (`improvements: []`) |
+| Duplicate cycle entries (concurrent instances) | Cycle 23: 4 entries, Cycle 24: 4 entries |
+| Same target re-attempted | `calculateAverage` targeted 3+ times despite cycle memory |
+
+### Failure-to-Symptom Map
+
+Each daemon failure traces directly to an observable symptom from this document:
+
+**Symptom #1 — Self-hosting deficit:**
+The daemon orchestrates HoloScript improvement via TypeScript + Anthropic SDK + raw JSON state files. Zero `.hs` or `.hsplus` in its control path. The language cannot improve itself because its own tooling doesn't trust it to.
+
+**Symptom #3 — Config split-brain:**
+`daemon-state.json` stores `focusRotation`, `attemptedFiles`, `convergenceStreak` — all orchestration policy that `.hsplus` state machines are designed for. The JSON blob was silently overwritten by concurrent instances, reverting a 7-element focus rotation back to the original 4-element one. No conflict detection. No type safety. No transition guards.
+
+**Symptom #4 — Testing authority outside the language:**
+Cycle 25 summary: *"The test runner is completely broken."* The daemon depends entirely on vitest (external framework) for validation. When vitest fails, the daemon has no fallback. A native HoloScript test surface with deterministic headless validation (Required Control #2) would have provided an independent quality signal.
+
+**Root cause confirmed:**
+The daemon was built in TypeScript because that's where the tools were. Bridge-language velocity won. Native-first was never considered. This is exactly the pattern the document predicts: *"Fast multi-target scaling favored bridge-language velocity."*
+
+### Architectural Consequence: Non-Semantic Failure Reporting
+
+The quality scorer returns a number between 0 and 1. When it reports 0.20, the daemon has no structured understanding of what went wrong. It cannot distinguish between:
+- tsc timing out (infrastructure failure)
+- vitest crashing (configuration failure)
+- Lint regex over-matching (scorer bug)
+- Actual code quality regression
+
+This is the document's prediction realized: *"Slower autonomous repair loops due to non-semantic failure reporting."*
+
+### What Native HoloScript Primitives Would Have Prevented
+
+Each v5 trait maps to a specific daemon failure mode:
+
+| Daemon Failure | Missing HoloScript Primitive | Effect |
+|---|---|---|
+| Quality scores swing 0.14 to 0.48 on same codebase | `@FeedbackLoopTrait { metric; auto_adjust }` | Auto-calibrating scorer with anomaly detection |
+| Concurrent instances overwrite state | `@AgentPortalTrait { migration: true }` | Agent identity — one instance per identity, state owned |
+| 25 cycles, zero improvements, tokens still burning | `@EconomyPrimitivesTrait { budget; abort_on_overspend }` | Circuit breaker on resource consumption |
+| "Test runner completely broken" but cycle continues | `@behavior_tree { root: "diagnose_then_fix" }` | Explicit fail/retry/abort branches |
+| State reverts to old focusRotation silently | `.hsplus` state machine with typed transitions | Illegal state transitions are compile errors |
+| Edits break things, no rollback | `@protocol { enforce: "verify_before_commit" }` | Deterministic pre/post conditions |
+
+### Script-Layer Resolution Path
+
+The brainstorm from 2026-03-14 identified 8 high-utility directions for `.hs` + `.hsplus` as a universal agent/orchestration core. The daemon validates every one:
+
+1. **Autonomous Multi-Agent Orchestration** — The daemon IS a single-agent orchestrator that needs `@FeedbackLoopTrait` + `@EconomyPrimitivesTrait` + behavior trees. Multiple specialized agents (typefix, coverage, docs) coordinated by an `.hs` composition would replace the monolithic TypeScript loop.
+
+2. **Declarative Data/IoT Pipelines** — The quality scorer is a data pipeline (tsc output -> regex -> score). As a native stream with `filter`, `transform`, `aggregate`, it would be testable, self-healing, and not break when tsc output format changes.
+
+3. **Verifiable Economic Systems** — The daemon burned API tokens across 25 cycles with `improvements: []`. A native economy with `abort_on_overspend` would have stopped after cycle 9 (the first convergence plateau).
+
+4. **Headless Control Scripts** — `holoscript run daemon.hs` with no UI, no vitest dependency, no TypeScript compilation step. Pure agent logic.
+
+5. **Grounded LLM Agent Toolchains** — The daemon's system prompt is a free-form string. A `@protocol { enforce: "step_by_step_reasoning" }` trait would make every decision auditable and deterministic.
+
+6. **Self-Optimizing Simulations** — The quality scorer IS a simulation of codebase health. As a native simulation with physics-style convergence detection, it would auto-adjust its own parameters.
+
+7. **Service Contracts** — The MCP tools (`holo_validate_quality`, `holo_batch_type_fix`) are ad-hoc TypeScript functions. As `@http_endpoint` with `@circuit_breaker`, they would self-heal on timeout.
+
+8. **Narrative/StoryWeaver** — The daemon's summaries are unstructured prose. Native narrative traits would produce structured, machine-readable cycle reports.
+
+### Dogfooding Mandate
+
+The daemon should be rewritten as a `.hs` + `.hsplus` composition: `scripts/daemon.hs` + `scripts/daemon.hsplus`. This would:
+- Validate the native-first thesis with the hardest possible test case
+- Provide the first non-spatial production use of `.hs` agent orchestration
+- Create a reference implementation for every trait listed above
+- Prove that HoloScript is an execution-grade substrate, not declarative veneer
+
+If HoloScript cannot run its own improvement loop, the "HoloScript-first" thesis has no credibility.
+
 ## Compliance Note
 This document supersedes informal transcript-style notes for this gotcha and serves as the formal architectural record for G.ARCH.001.
+
+## Revision History
+- 2026-03-12: Initial formal record (G.ARCH.001)
+- 2026-03-14: Added Exhibit A (daemon 25-cycle evidence), failure-to-symptom map, trait resolution table, script-layer resolution path, dogfooding mandate

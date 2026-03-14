@@ -348,6 +348,33 @@ export class ErrorRecovery {
           fix: 'Some blocks require certain properties to be defined',
         });
         break;
+
+      case 'UNKNOWN_KEYWORD': {
+        const kwMatch = message.match(/keyword.*[:"']?\s*(\w+)/i);
+        if (kwMatch) {
+          const similar = findSimilar(kwMatch[1], VALID_KEYWORDS);
+          suggestions.push(
+            ...similar.map((s) => ({
+              description: `Did you mean '${s}'?`,
+              fix: `Replace with ${s}`,
+            }))
+          );
+        }
+        if (suggestions.length === 0) {
+          suggestions.push({
+            description: 'Check available keywords',
+            fix: 'Valid keywords: composition, object, group, template, etc.',
+          });
+        }
+        break;
+      }
+
+      case 'SYNTAX_ERROR':
+        suggestions.push({
+          description: 'Check syntax around this location',
+          fix: 'Verify braces, quotes, and property format',
+        });
+        break;
     }
 
     return suggestions;
