@@ -46,6 +46,14 @@ export interface R3FNode {
   children?: R3FNode[];
   traits?: Map<VRTraitName, any>;
   directives?: HSPlusDirective[];
+  /**
+   * Asset maturity stage in the Draft→Mesh→Simulation pipeline.
+   * - 'draft': Geometric primitive (shape-as-pixel), used for blockout AND collision proxy
+   * - 'mesh': Imported/generated mesh with LOD, still iterating
+   * - 'final': Production-ready asset with full materials and optimized LOD chain
+   * Defaults to 'mesh' for backward compatibility.
+   */
+  assetMaturity?: 'draft' | 'mesh' | 'final';
 }
 
 /**

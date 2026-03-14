@@ -368,10 +368,34 @@ export class BundleAnalyzer {
    * Build dependency graphs
    */
   private buildDependencyGraphs(dependencies: Record<string, string[]>): void {
-    // Process each module's dependencies
+    this.updateAllModuleDependencies(dependencies);
+    this.buildForwardDependencyGraph(dependencies);
+    this.buildReverseDependencyGraph(dependencies);
+  }
+
+  /**
+   * Update all module dependencies in batch
+   */
+  private updateAllModuleDependencies(dependencies: Record<string, string[]>): void {
     for (const [modulePath, deps] of Object.entries(dependencies)) {
       this.updateModuleDependencies(modulePath, deps);
+    }
+  }
+
+  /**
+   * Build forward dependency graph in batch
+   */
+  private buildForwardDependencyGraph(dependencies: Record<string, string[]>): void {
+    for (const [modulePath, deps] of Object.entries(dependencies)) {
       this.buildForwardGraph(modulePath, deps);
+    }
+  }
+
+  /**
+   * Build reverse dependency graph in batch
+   */
+  private buildReverseDependencyGraph(dependencies: Record<string, string[]>): void {
+    for (const [modulePath, deps] of Object.entries(dependencies)) {
       this.buildReverseGraph(modulePath, deps);
     }
   }

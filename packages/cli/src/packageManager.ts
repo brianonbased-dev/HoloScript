@@ -402,6 +402,25 @@ export async function remove(packages: string[], options?: RemoveOptions): Promi
   return pm.remove(packages, options);
 }
 
+/**
+ * List all HoloScript packages installed in the current project
+ * 
+ * Scans the project's package.json and displays all installed packages that 
+ * start with "@holoscript/" or are named "holoscript". Shows dependencies 
+ * and devDependencies separately, with [official] badges for verified packages.
+ * 
+ * @param {ListOptions} [options] - Formatting options
+ * @param {boolean} [options.verbose] - Show verbose output (currently unused)
+ * @param {boolean} [options.json] - Output as JSON instead of formatted text
+ * 
+ * @example
+ * // Show formatted list of packages
+ * list();
+ * 
+ * @example
+ * // Output as JSON for programmatic use
+ * list({ json: true });
+ */
 export function list(options?: ListOptions): void {
   const pm = new PackageManager();
   pm.list(options);

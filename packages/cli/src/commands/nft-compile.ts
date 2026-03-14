@@ -175,7 +175,7 @@ export async function nftCompileCommand(
  * Parse marketplace definition from HoloScript code
  * (Simplified parser - real implementation would use full parser)
  */
-function parseMarketplaceDefinition(code: string): NFTMarketplaceAST {
+export function parseMarketplaceDefinition(code: string): NFTMarketplaceAST {
   // This is a simplified example
   // Real implementation would parse the .holo syntax properly
 

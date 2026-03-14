@@ -24,6 +24,14 @@ export interface MeshNodeProps {
   isSelected?: boolean;
   /** Whether the editor is in break/delete mode */
   isBreakMode?: boolean;
+  /**
+   * Draft mode: render as blockout primitive with draft color.
+   * Skips textures, procedural maps, and effects for cheapest rendering.
+   * Also triggered when node.assetMaturity === 'draft'.
+   */
+  draftMode?: boolean;
+  /** Override draft color (default: '#88aaff') */
+  draftColor?: string;
 }
 
 /**
@@ -60,6 +68,8 @@ export function MeshNode({
   onRef,
   isSelected = false,
   isBreakMode = false,
+  draftMode = false,
+  draftColor = '#88aaff',
 }: MeshNodeProps) {
   const meshRef = useRef<any>(null);
 
@@ -69,6 +79,9 @@ export function MeshNode({
   const position = props.position || [0, 0, 0];
   const rotation = props.rotation || [0, 0, 0];
   const scale = props.scale || [1, 1, 1];
+
+  // Draft mode: either explicit prop or assetMaturity === 'draft'
+  const isDraft = draftMode || node.assetMaturity === 'draft';
 
   useEffect(() => {
     if (meshRef.current && node.id && onRef) {
@@ -87,11 +100,11 @@ export function MeshNode({
   // Keyframe animation
   useKeyframeAnimation(meshRef, props.keyframes);
 
-  // Has fire effects?
-  const hasFire = isFireMesh(node) && (props.emissiveIntensity ?? 0) > 1.0;
+  // Has fire effects? (skip in draft mode)
+  const hasFire = !isDraft && isFireMesh(node) && (props.emissiveIntensity ?? 0) > 1.0;
 
-  // Check if we need external texture loading (triggers Suspense)
-  const needsTextures = hasTextures(matProps);
+  // Check if we need external texture loading (skip in draft mode)
+  const needsTextures = !isDraft && hasTextures(matProps);
 
   // Recursively render nested children (native asset primitives)
   const childMeshes = node.children
@@ -106,6 +119,16 @@ export function MeshNode({
         isBreakMode={isBreakMode}
       />
     ));
+
+  // Draft material: flat color, no textures, cheapest rendering path
+  const draftMaterial = isDraft ? (
+    <meshBasicMaterial
+      color={draftColor}
+      wireframe={props.draftWireframe || false}
+      transparent={props.draftOpacity !== undefined && props.draftOpacity < 1}
+      opacity={props.draftOpacity ?? 1.0}
+    />
+  ) : null;
 
   // Default material with procedural textures (no external texture loading)
   const defaultMaterial = (
@@ -146,7 +169,9 @@ export function MeshNode({
         }}
       >
         {getGeometry(hsType, size, props)}
-        {needsTextures ? (
+        {isDraft ? (
+          draftMaterial
+        ) : needsTextures ? (
           <Suspense fallback={defaultMaterial}>
             <TexturedMaterial
               matProps={matProps}

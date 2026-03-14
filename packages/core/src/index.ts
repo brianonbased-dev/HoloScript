@@ -3281,3 +3281,21 @@ export { AgentInferenceExportTarget } from './compiler/AgentInferenceExportTarge
 
 // ── Sprint 1: Procedural Geometry Patch ─────────────────────────────────────
 export { ProceduralGeometryPatch } from './compiler/ProceduralGeometry.patch';
+
+// ── @draft Trait (Draft→Mesh→Simulation Pipeline) ───────────────────────────
+export {
+  DRAFT_TRAIT,
+  DRAFT_DEFAULTS,
+  DraftManager,
+  type AssetMaturity,
+  type DraftShape,
+  type DraftConfig,
+} from './traits/DraftTrait';
+
+// ── VR Performance Regression Monitor ───────────────────────────────────────
+export {
+  PerformanceRegressionMonitor,
+  PERF_REGRESSION_DEFAULTS,
+  type PerformanceRegressionConfig,
+  type PerformanceRegressionState,
+} from './traits/PerformanceRegressionMonitor';
