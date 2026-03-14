@@ -26,10 +26,29 @@ type ControllerButton =
 
 type ControllerHand = 'left' | 'right';
 
+/**
+ * Spatial pose information for a VR/AR controller.
+ * Represents the complete 6DOF (six degrees of freedom) tracking data
+ * including position, orientation, and motion vectors in 3D space.
+ * 
+ * @example
+ * ```typescript
+ * const pose: ControllerPose = {
+ *   position: { x: 0.5, y: 1.2, z: -0.8 },
+ *   rotation: { x: 0, y: 0, z: 0, w: 1 }, // Identity quaternion
+ *   velocity: { x: 0, y: 0, z: 0 }, // Stationary
+ *   angularVelocity: { x: 0, y: 0, z: 0 }
+ * };
+ * ```
+ */
 interface ControllerPose {
+  /** 3D position in meters relative to the tracking space origin */
   position: { x: number; y: number; z: number };
+  /** Orientation as a quaternion (x, y, z, w) - normalized unit quaternion */
   rotation: { x: number; y: number; z: number; w: number };
+  /** Linear velocity in meters per second */
   velocity: { x: number; y: number; z: number };
+  /** Angular velocity in radians per second around each axis */
   angularVelocity: { x: number; y: number; z: number };
 }
 
