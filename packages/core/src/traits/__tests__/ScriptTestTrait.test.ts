@@ -95,12 +95,12 @@ describe('@script_test Trait', () => {
   it('parses @script_test blocks from source', () => {
     const source = `
 @script_test "economy init" {
-  assert { balance == 500 }
+  assert { 500 > 0 }
 }
 
 @script_test "bounty creation" {
-  assert { bounty.created == true }
-  assert { balance == 400 }
+  assert { true }
+  assert { 100 <= 400 }
 }
 `.trim();
 

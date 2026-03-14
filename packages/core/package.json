@@ -68,7 +68,14 @@
     "./tools": {
       "types": "./dist/tools/index.d.ts",
       "import": "./dist/tools/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "import": "./dist/constants.js"
     }
+  },
+  "bin": {
+    "holoscript": "./dist/cli/holoscript-runner.js"
   },
   "scripts": {
     "build": "tsup && node scripts/generate-types.mjs",

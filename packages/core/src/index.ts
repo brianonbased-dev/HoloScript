@@ -3155,3 +3155,77 @@ export {
   calculateStandardDeviation,
   calculateMedian,
 } from './utils/math';
+
+// ── Headless Runtime (CLI & Server-Side Execution) ──────────────────────────
+export {
+  createHeadlessRuntime,
+  getProfile,
+  HEADLESS_PROFILE,
+  type HeadlessRuntime,
+  type HeadlessRuntimeOptions,
+  type RuntimeProfile,
+  type RuntimeStats,
+} from './runtime/HeadlessRuntime';
+
+// ── Error Recovery (Parser Error-Handling & Suggestions) ────────────────────
+export {
+  ErrorRecovery,
+  HOLOSCHEMA_KEYWORDS,
+  HOLOSCHEMA_GEOMETRIES,
+  HOLOSCHEMA_PROPERTIES,
+} from './parser/ErrorRecovery';
+
+// ── @script_test Trait (Headless Unit Testing for .hs Logic) ────────────────
+export {
+  ScriptTestRunner,
+  SCRIPT_TEST_TRAIT,
+  type ScriptTestResult,
+  type ScriptTestBlock,
+  type ScriptTestRunnerOptions,
+} from './traits/ScriptTestTrait';
+
+// ── Python/JS Interop Binding Generator ─────────────────────────────────────
+export {
+  InteropBindingGenerator,
+  type BindingExport,
+  type BindingParameter,
+  type GeneratedBinding,
+} from './interop/InteropBindingGenerator';
+
+// ── Interoperability (Module Resolution, Async, Error Boundaries) ───────────
+export {
+  ModuleResolver,
+  ExportImportHandler,
+  AsyncFunctionHandler,
+  ErrorBoundary,
+  TypeScriptTypeLoader,
+  InteropContext,
+} from './interop/Interoperability';
+
+// ── MCP Circuit Breaker (Resilient MCP Tool Calls) ──────────────────────────
+export {
+  MCPCircuitBreaker,
+  getMCPCircuitBreaker,
+  type MCPToolCallOptions,
+  type MCPToolResult,
+} from './mcp/MCPCircuitBreaker';
+
+// ── Resilience Patterns (Circuit Breaker, Retry, Timeout) ───────────────────
+export {
+  CircuitBreaker as ResilienceCircuitBreaker,
+  CircuitBreakerState,
+  retryWithBackoff,
+  withTimeout,
+} from './resilience/ResiliencePatterns';
+
+// ── @absorb Trait (Reverse-Mode: Legacy → .hsplus) ──────────────────────────
+export {
+  AbsorbProcessor,
+  ABSORB_TRAIT,
+  type AbsorbSource,
+  type AbsorbResult,
+  type AbsorbedFunction,
+  type AbsorbedClass,
+  type AbsorbedImport,
+} from './traits/AbsorbTrait';
+

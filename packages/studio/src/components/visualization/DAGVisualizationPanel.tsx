@@ -18,7 +18,7 @@
 import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import type { SceneNode } from '@/lib/stores';
-import { X, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Maximize2, Flame } from 'lucide-react';
 
 // ── Layout constants ────────────────────────────────────────────────────────
 const NODE_WIDTH = 160;
@@ -109,8 +109,33 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [heatmapMode, setHeatmapMode] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Heatmap: max trait count for normalization
+  const maxTraitCount = useMemo(
+    () => Math.max(1, ...layoutNodes.map((n) => n.traits.length)),
+    [layoutNodes]
+  );
+
+  // Heatmap color: green (0 traits) → yellow → red (max traits)
+  const getHeatmapColor = useCallback(
+    (traitCount: number) => {
+      const ratio = traitCount / maxTraitCount;
+      if (ratio < 0.5) {
+        // green → yellow
+        const g = 200;
+        const r = Math.round(ratio * 2 * 255);
+        return `rgb(${r}, ${g}, 50)`;
+      }
+      // yellow → red
+      const r = 255;
+      const g = Math.round((1 - (ratio - 0.5) * 2) * 200);
+      return `rgb(${r}, ${g}, 50)`;
+    },
+    [maxTraitCount]
+  );
 
   const { nodes: layoutNodes, edges } = useMemo(() => layoutDAG(sceneNodes), [sceneNodes]);
 
@@ -194,6 +219,13 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
+          <button
+            onClick={() => setHeatmapMode((h) => !h)}
+            className={`p-1 transition rounded ${heatmapMode ? 'text-orange-400 bg-orange-900/30' : 'text-slate-400 hover:text-white'}`}
+            title={heatmapMode ? 'Disable heatmap' : 'Trait density heatmap'}
+          >
+            <Flame className="w-3.5 h-3.5" />
+          </button>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white transition rounded">
             <X className="w-3.5 h-3.5" />
           </button>
@@ -273,9 +305,21 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                   height={NODE_HEIGHT}
                   rx={8}
                   ry={8}
-                  fill={isSelected ? `${color}33` : '#1e293b'}
-                  stroke={isSelected ? color : '#334155'}
-                  strokeWidth={isSelected ? 2 : 1}
+                  fill={
+                    heatmapMode
+                      ? `${getHeatmapColor(node.traits.length)}22`
+                      : isSelected
+                        ? `${color}33`
+                        : '#1e293b'
+                  }
+                  stroke={
+                    heatmapMode
+                      ? getHeatmapColor(node.traits.length)
+                      : isSelected
+                        ? color
+                        : '#334155'
+                  }
+                  strokeWidth={isSelected ? 2 : heatmapMode ? 1.5 : 1}
                   className="transition-all duration-150"
                 />
                 {/* Color accent bar */}
@@ -352,6 +396,17 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           )}
         </svg>
       </div>
+
+      {/* Heatmap legend */}
+      {heatmapMode && (
+        <div className="px-3 py-2 border-t border-slate-700 bg-slate-800 flex items-center gap-2">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Trait Density</span>
+          <div className="flex-1 h-2 rounded-full bg-gradient-to-r from-green-500 via-yellow-400 to-red-500 opacity-70" />
+          <span className="text-[10px] text-slate-500">0</span>
+          <span className="text-[10px] text-slate-500">→</span>
+          <span className="text-[10px] text-slate-500">{maxTraitCount}</span>
+        </div>
+      )}
     </div>
   );
 };

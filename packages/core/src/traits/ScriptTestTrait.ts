@@ -199,11 +199,7 @@ export class ScriptTestRunner {
         const assertBody = assertMatch[1].trim();
         assertions.push({
           description: assertBody,
-          check: () => {
-            // In headless mode, assertions are always evaluated
-            // Real impl would evaluate the expression against the runtime state
-            return true;
-          },
+          check: () => this.evaluateExpression(assertBody),
         });
       }
 
@@ -215,6 +211,66 @@ export class ScriptTestRunner {
     }
 
     return blocks;
+  }
+
+  /**
+   * Evaluate a simple assertion expression from @script_test blocks
+   * Supports: true, false, numeric comparisons, string equality, property access
+   */
+  private evaluateExpression(expr: string): boolean {
+    const trimmed = expr.trim();
+
+    // Boolean literals
+    if (trimmed === 'true') return true;
+    if (trimmed === 'false') return false;
+
+    // Comparison operators (==, !=, >, <, >=, <=)
+    const comparisonOps = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'] as const;
+    for (const op of comparisonOps) {
+      const idx = trimmed.indexOf(op);
+      if (idx !== -1) {
+        const left = this.resolveValue(trimmed.substring(0, idx).trim());
+        const right = this.resolveValue(trimmed.substring(idx + op.length).trim());
+
+        switch (op) {
+          case '===': return left === right;
+          case '!==': return left !== right;
+          case '==': return left == right;
+          case '!=': return left != right;
+          case '>=': return Number(left) >= Number(right);
+          case '<=': return Number(left) <= Number(right);
+          case '>': return Number(left) > Number(right);
+          case '<': return Number(left) < Number(right);
+        }
+      }
+    }
+
+    // Truthy evaluation
+    const value = this.resolveValue(trimmed);
+    return !!value;
+  }
+
+  /**
+   * Resolve a value token to a primitive
+   */
+  private resolveValue(token: string): string | number | boolean | null {
+    const t = token.trim();
+
+    // Boolean
+    if (t === 'true') return true;
+    if (t === 'false') return false;
+    if (t === 'null' || t === 'nil') return null;
+
+    // Number
+    if (/^-?\d+(\.\d+)?$/.test(t)) return Number(t);
+
+    // Quoted string
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      return t.slice(1, -1);
+    }
+
+    // Identifier (return as string for comparison)
+    return t;
   }
 }
 
