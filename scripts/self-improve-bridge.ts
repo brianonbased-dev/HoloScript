@@ -761,18 +761,59 @@ async function main() {
   const anthropic = new Anthropic();
   const bridgeState = loadBridgeState();
 
-  // Absorb repo for GraphRAG (required by holo_self_diagnose for coverage/docs/complexity)
-  console.log('Absorbing codebase for GraphRAG...');
+  // Pre-load GraphRAG: check for cached graph first, then absorb with bm25 (no API cost).
+  // This avoids paying for OpenAI embeddings during the experiment — bm25 is free and fast.
+  console.log('Pre-loading GraphRAG...');
+  let graphRAGReady = false;
   try {
-    const absorbResult = await callTool(handlers, 'holo_absorb_repo', { rootDir: config.rootDir });
-    const parsed = JSON.parse(absorbResult);
-    if (parsed.error) {
-      console.warn(`  Absorb warning: ${parsed.error}`);
+    // Step 1: Check if there's already a cached graph
+    const statusResult = await callTool(handlers, 'holo_graph_status', {});
+    const status = JSON.parse(statusResult);
+    if (status.inMemory || status.graphRAGReady) {
+      console.log('  Graph already loaded in memory');
+      graphRAGReady = true;
+    } else if (status.diskCache?.fresh) {
+      // Fresh disk cache exists — absorb will auto-load it (fast, no re-scan)
+      console.log(`  Found fresh disk cache (${status.diskCache.ageHuman}), loading...`);
+      const absorbResult = await callTool(handlers, 'holo_absorb_repo', {
+        rootDir: config.rootDir, outputFormat: 'stats',
+      });
+      const parsed = JSON.parse(absorbResult);
+      if (!parsed.error) {
+        console.log(`  Loaded ${parsed.totalSymbols ?? '?'} symbols from cache`);
+        graphRAGReady = true;
+      }
     } else {
-      console.log(`  Absorbed ${parsed.totalSymbols ?? '?'} symbols from ${parsed.filesScanned ?? '?'} files`);
+      // No cache — absorb from scratch using bm25 (fast, free, no API calls)
+      console.log('  No cache found, absorbing with bm25 embeddings (free, no API cost)...');
+      const prevProvider = process.env.EMBEDDING_PROVIDER;
+      process.env.EMBEDDING_PROVIDER = 'bm25';
+      try {
+        const absorbPromise = callTool(handlers, 'holo_absorb_repo', {
+          rootDir: config.rootDir, outputFormat: 'stats',
+        });
+        const timeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error('Absorb timed out after 120s')), 120_000),
+        );
+        const absorbResult = await Promise.race([absorbPromise, timeoutPromise]);
+        const parsed = JSON.parse(absorbResult);
+        if (!parsed.error) {
+          console.log(`  Absorbed ${parsed.totalSymbols ?? '?'} symbols from ${parsed.filesScanned ?? '?'} files`);
+          graphRAGReady = true;
+        } else {
+          console.warn(`  Absorb warning: ${parsed.error}`);
+        }
+      } finally {
+        // Restore original provider
+        if (prevProvider !== undefined) process.env.EMBEDDING_PROVIDER = prevProvider;
+        else delete process.env.EMBEDDING_PROVIDER;
+      }
     }
   } catch (err: any) {
-    console.warn(`  Absorb failed (non-fatal, typefix focus still works): ${err.message}`);
+    console.warn(`  GraphRAG pre-load skipped: ${err.message}`);
+  }
+  if (!graphRAGReady) {
+    console.warn('  GraphRAG unavailable — non-typefix cycles may return 0 candidates.');
   }
 
   console.log(`Resuming from cycle ${bridgeState.totalCycles}, best quality: ${bridgeState.bestQuality.toFixed(3)}`);

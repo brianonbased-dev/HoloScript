@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "timestamp": "2026-03-14T21:12:48.384Z",
+    "cycle": 1,
+    "composite": 0,
+    "grade": "F",
+    "focus": "typefix",
+    "summary": "Bridge cycle 1: quality 0.230 → 0.000",
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "costUSD": 0,
+    "toolCallsTotal": 2,
+    "toolCallsUseful": 2,
+    "durationSeconds": 0.1,
+    "arm": "treatment"
+  }
+]

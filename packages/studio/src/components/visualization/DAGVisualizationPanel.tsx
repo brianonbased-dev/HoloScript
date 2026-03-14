@@ -150,6 +150,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
   const [showMinimap, setShowMinimap] = useState(false);
   const [showTraitEdges, setShowTraitEdges] = useState(false);
   const [editingTrait, setEditingTrait] = useState<{ nodeId: string; trait: string } | null>(null);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -624,6 +625,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
             type="text"
             defaultValue=""
             placeholder="key: value (Enter to apply)"
+            list={`trait-props-${editingTrait.nodeId}`}
             className="flex-1 px-1.5 py-0.5 text-[10px] bg-slate-900 border border-slate-600 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && editingTrait) {
@@ -632,17 +634,35 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                 if (colonIdx > 0) {
                   const key = input.substring(0, colonIdx).trim();
                   const rawValue = input.substring(colonIdx + 1).trim();
-                  // Auto-detect type
                   let value: unknown = rawValue;
                   if (rawValue === 'true') value = true;
                   else if (rawValue === 'false') value = false;
                   else if (!isNaN(Number(rawValue)) && rawValue !== '') value = Number(rawValue);
                   setTraitProperty(editingTrait.nodeId, editingTrait.trait, key, value);
                   (e.target as HTMLInputElement).value = '';
+                  setFlashMessage(`✓ ${key} applied`);
+                  setTimeout(() => setFlashMessage(null), 1500);
                 }
               }
             }}
           />
+          {/* Autocomplete datalist: existing props + common suggestions */}
+          <datalist id={`trait-props-${editingTrait.nodeId}`}>
+            {(() => {
+              const node = sceneNodes.find((n) => n.id === editingTrait.nodeId);
+              const trait = node?.traits.find((t) => t.name === editingTrait.trait);
+              const existingKeys = trait ? Object.keys(trait.properties) : [];
+              const commonKeys = ['speed', 'radius', 'enabled', 'color', 'intensity', 'mass', 'friction',
+                'damping', 'force', 'range', 'delay', 'duration', 'volume', 'opacity', 'threshold'];
+              const allKeys = [...new Set([...existingKeys, ...commonKeys])];
+              return allKeys.map((k) => <option key={k} value={`${k}: `} />);
+            })()}
+          </datalist>
+          {flashMessage && (
+            <span className="text-[10px] text-emerald-400 animate-pulse whitespace-nowrap">
+              {flashMessage}
+            </span>
+          )}
           <button
             onClick={() => setEditingTrait(null)}
             className="text-[10px] text-slate-500 hover:text-white"

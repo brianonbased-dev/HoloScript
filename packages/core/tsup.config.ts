@@ -62,6 +62,10 @@ export default defineConfig({
 
     // Self-Improvement Pipeline (dynamically loaded)
     'self-improvement/index': 'src/self-improvement/index.ts',
+
+    // Sub-barrel focused entry points (lighter than monolithic index.ts)
+    'entries/scripting': 'src/entries/scripting.ts',
+    'entries/interop': 'src/entries/interop.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),

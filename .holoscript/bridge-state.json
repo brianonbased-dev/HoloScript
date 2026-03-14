@@ -1,8 +1,8 @@
 {
-  "totalCycles": 0,
+  "totalCycles": 1,
   "bestQuality": 0,
   "lastQuality": 0,
-  "focusIndex": 0,
+  "focusIndex": 1,
   "attemptedFiles": [],
   "totalInputTokens": 0,
   "totalOutputTokens": 0,

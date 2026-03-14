@@ -72,6 +72,16 @@
     "./constants": {
       "types": "./dist/constants.d.ts",
       "import": "./dist/constants.js"
+    },
+    "./scripting": {
+      "types": "./dist/entries/scripting.d.ts",
+      "import": "./dist/entries/scripting.js",
+      "require": "./dist/entries/scripting.cjs"
+    },
+    "./interop": {
+      "types": "./dist/entries/interop.d.ts",
+      "import": "./dist/entries/interop.js",
+      "require": "./dist/entries/interop.cjs"
     }
   },
   "bin": {
