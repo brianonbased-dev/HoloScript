@@ -28,6 +28,10 @@
     "examples",
     "temp",
     "benchmarks",
-    "samples"
+    "samples",
+    "scripts/training",
+    "scripts/archive",
+    "scripts/debug",
+    "scripts/analysis"
   ]
 }

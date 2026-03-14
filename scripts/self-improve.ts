@@ -93,7 +93,7 @@ const MAX_TOOL_CALLS = 40;
 interface Config {
   commit: boolean;
   cycles: number;
-  focus: 'coverage' | 'docs' | 'complexity' | 'all';
+  focus: 'coverage' | 'docs' | 'complexity' | 'typefix' | 'all';
   rootDir: string;
   verbose: boolean;
   daemon: boolean;
@@ -188,7 +188,7 @@ function loadDaemonState(): DaemonState {
     lastCycleAt: '',
     lastQuality: 0,
     bestQuality: 0,
-    focusRotation: ['coverage', 'docs', 'complexity', 'all'],
+    focusRotation: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'],
     currentFocusIndex: 0,
     convergenceStreak: 0,
     backoffMultiplier: 1,
@@ -369,22 +369,42 @@ ${skillContext ? `## /holoscript Skill\n${skillContext}\n` : ''}
 - Auto-commit: ${config.commit ? 'YES' : 'NO'}
 
 ## Protocol
-1. **ABSORB**: Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
-2. **DIAGNOSE**: Call holo_self_diagnose with focus="${focus}".
-3. **ANALYZE**: Pick the #1 candidate. Use holo_read_file to understand the code around it.
-4. **GENERATE**: Write a fix or test using holo_write_file or holo_edit_file.
-   - For missing tests: create a test file next to the source (e.g., foo.test.ts).
-   - For missing docs: add JSDoc via holo_edit_file.
-   - For complexity: refactor via holo_edit_file.
-5. **VERIFY**: Run holo_run_tests_targeted on the affected test files to confirm the fix.
-6. **COMMIT**: If tests pass${config.commit ? '' : ' AND auto-commit is enabled'}, call holo_git_commit.
-7. **VALIDATE**: Call holo_validate_quality with rootDir="${config.rootDir}" to measure overall improvement.
-8. **REPORT**: Concise summary with top candidate, quality delta, and what was changed.
+${focus === 'typefix' ? `### TYPEFIX MODE
+1. Call holo_list_type_errors with rootDir="${config.rootDir}" to get actual TS errors.
+2. Pick the file with the most errors.
+3. Use holo_read_file to understand the code.
+4. Fix 3-5 errors in that file using holo_edit_file (add missing types, fix imports, add properties to interfaces).
+5. Run holo_run_tests_targeted to verify no regressions.
+6. ${config.commit ? 'Call holo_git_commit to commit the fixes.' : 'Report what was fixed.'}
+7. Call holo_validate_quality with rootDir="${config.rootDir}" skipLint=true to measure improvement.
+8. Report: errors before, errors after, files changed.` :
+focus === 'coverage' ? `### COVERAGE MODE
+1. Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
+2. Call holo_self_diagnose with focus="coverage" to find untested code.
+3. Pick the #1 candidate. Use holo_read_file to understand what it does.
+4. Create a test file using holo_write_file. Write REAL tests that exercise the function's behavior:
+   - Test normal inputs, edge cases, and error cases.
+   - Import the actual function — do NOT write placeholder tests.
+   - Match the project's test patterns (vitest, describe/it blocks).
+5. Run holo_run_tests_targeted on the new test file to verify tests pass.
+6. ${config.commit ? 'Call holo_git_commit.' : 'Report what was tested.'}
+7. Call holo_validate_quality with rootDir="${config.rootDir}" to measure coverage improvement.
+8. Report: what was tested, how many tests, pass/fail.` :
+`### STANDARD MODE
+1. Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
+2. Call holo_self_diagnose with focus="${focus}".
+3. Pick the #1 candidate. Use holo_read_file to understand the code.
+4. Write a fix using holo_write_file or holo_edit_file.
+5. Run holo_run_tests_targeted to verify no regressions.
+6. ${config.commit ? 'Call holo_git_commit.' : 'Report what was changed.'}
+7. Call holo_validate_quality with rootDir="${config.rootDir}" to measure improvement.
+8. Report: what changed, quality delta.`}
 
 ## Rules
 - Read before editing. Always use holo_read_file before holo_edit_file.
 - One fix per cycle. Pick the highest-priority candidate and fix it well.
 - Keep changes small and targeted. Do not refactor unrelated code.
+- Write REAL tests with actual assertions — never \`expect(true).toBe(true)\`.
 - If a fix breaks tests, revert via holo_edit_file and report the failure.
 - Keep responses concise — focus on actions, not analysis.`;
 
