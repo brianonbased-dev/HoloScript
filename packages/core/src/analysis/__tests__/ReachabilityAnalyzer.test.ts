@@ -223,4 +223,38 @@ describe('ReachabilityAnalyzer', () => {
     const result = analyzer.analyze();
     expect(result.reachable.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('handles empty graph gracefully', () => {
+    const emptyGraph = new ReferenceGraph();
+    const analyzer = new ReachabilityAnalyzer(emptyGraph);
+    const result = analyzer.analyze();
+    
+    expect(result).toBeDefined();
+    expect(result.stats.totalSymbols).toBe(0);
+    expect(result.reachable).toHaveLength(0);
+    expect(result.unreachable).toHaveLength(0);
+    expect(result.deadCode).toHaveLength(0);
+    expect(result.stats.coveragePercent).toBe(0);
+  });
+
+  it('generates detailed report with all sections', () => {
+    // Create a complex scenario with multiple types
+    const ast = makeAST([
+      compositionNode('main', [orbNode('Used')]),
+      orbNode('Unused'),
+      { type: 'function', name: 'unusedFunc', loc: { start: { line: 3, column: 0 } }, children: [] },
+      { type: 'template', name: 'unusedTemplate', loc: { start: { line: 4, column: 0 } }, children: [] },
+    ]);
+    
+    graph.buildFromAST(ast, 'complex.holo');
+    const analyzer = new ReachabilityAnalyzer(graph);
+    const result = analyzer.analyze();
+    const report = analyzer.generateReport(result);
+    
+    expect(typeof report).toBe('string');
+    expect(report).toContain('Reachability Analysis');
+    expect(report).toContain('Coverage:');
+    expect(report).toContain('Total Symbols:');
+    expect(report.length).toBeGreaterThan(100);
+  });
 });
