@@ -38,6 +38,7 @@ import {
   URDFCompiler,
   SDFCompiler,
   DTDLCompiler,
+  calculateAverage,
 } from '@holoscript/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -561,10 +562,7 @@ function calculateSuccessRate(results: BenchmarkResult[]): number {
   return results.length > 0 ? (successful / results.length) * 100 : 0;
 }
 
-function calculateAverage(numbers: number[]): number {
-  if (numbers.length === 0) return 0;
-  return numbers.reduce((sum, n) => sum + n, 0) / numbers.length;
-}
+// calculateAverage is now imported from @holoscript/core/utils/math
 
 // ─── Entry Point ──────────────────────────────────────────────────────────
 

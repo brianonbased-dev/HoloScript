@@ -38,6 +38,9 @@ import { HoloScriptRuntime } from './HoloScriptRuntime';
 // Constants (New)
 export * from './constants';
 
+// Math Utilities (NEW - Centralized vector math to avoid duplication)
+export * from './math/vec3';
+
 // Version & Build Metadata
 export {
   HOLOSCRIPT_VERSION,
@@ -3142,3 +3145,11 @@ export type {
   TrackedNode,
   TraitRuntimeStats,
 } from './runtime/TraitRuntimeIntegration';
+
+// Mathematical utilities
+export {
+  calculateAverage,
+  calculateSuccessRate,
+  calculateStandardDeviation,
+  calculateMedian,
+} from './utils/math';
