@@ -1550,8 +1550,8 @@ export type {
   SceneGraphDescriptor,
 } from './types';
 
-// Version
-export const HOLOSCRIPT_VERSION = '1.0.0-alpha.1';
+
+// Version is now exported from './version' (build-time injected)
 
 // Supported Platforms
 export const HOLOSCRIPT_SUPPORTED_PLATFORMS = [
