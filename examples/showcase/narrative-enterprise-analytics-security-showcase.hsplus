@@ -1,0 +1,598 @@
+/**
+ * Narrative, Enterprise, Analytics & Security Trait Showcase
+ *
+ * TARGET: examples/traits/narrative-enterprise-analytics-security-showcase.hsplus
+ *
+ * Narrative & Storytelling (12): @dialogue, @quest, @quest_tracker,
+ *   @narrative_branch, @cutscene, @narrator, @journal,
+ *   @lore_entry, @story_trigger, @timeline, @flashback,
+ *   @choice_consequence
+ *
+ * Enterprise Multitenancy (19): @tenant, @tenant_isolation,
+ *   @rbac, @permission, @audit_log, @rate_limit,
+ *   @quota, @billing, @subscription, @feature_flag,
+ *   @service_mesh, @circuit_breaker, @retry_policy,
+ *   @health_check, @config_server, @secret_vault,
+ *   @deployment_slot, @canary, @blue_green
+ *
+ * Analytics & Observability (16): @telemetry, @metric,
+ *   @trace, @span, @log_structured, @dashboard,
+ *   @alert, @sla_monitor, @error_tracker,
+ *   @user_analytics, @ab_test, @funnel,
+ *   @heatmap, @session_replay, @performance_mark,
+ *   @custom_dimension
+ *
+ * Security & Crypto (7): @encrypted, @signed, @certificate,
+ *   @zero_knowledge, @homomorphic, @mpc, @tee
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior)
+ */
+
+composition "NarrativeEnterpriseSecurity" {
+  environment {
+    skybox: "medieval_castle"
+    ambient_light: 0.5
+    physics: true
+  }
+
+  // ========================================================================
+  // NARRATIVE SYSTEM
+  // ========================================================================
+
+  module StoryEngine {
+    state {
+      current_chapter: "prologue"
+      quest_log: []
+      choices_made: {}
+      lore_discovered: []
+      timeline_position: 0
+    }
+
+    action advance_story(trigger_id) {
+      emit("story:advance", { trigger: trigger_id, chapter: this.state.current_chapter });
+    }
+
+    action register_choice(choice_id, option) {
+      this.state.choices_made[choice_id] = option;
+      emit("story:choice_made", { choice: choice_id, option: option });
+    }
+
+    exports { advance_story, register_choice, state }
+  }
+
+  // Story NPCs and triggers
+  object "QuestGiverNPC" {
+    @dialogue {
+      lines: [
+        { id: "greet", text: "Welcome, traveler. I have a task for you.", next: "quest_offer" },
+        { id: "quest_offer", text: "Will you retrieve the ancient artifact?", choices: ["accept", "decline"] },
+        { id: "accept", text: "Excellent! Head to the ruins north of here.", next: null },
+        { id: "decline", text: "Perhaps another time, then.", next: null }
+      ]
+      voice: "old_sage"
+      typing_speed: 40
+      auto_advance: false
+      portrait: "sage_portrait.png"
+    }
+
+    @quest {
+      id: "artifact_retrieval"
+      title: "The Ancient Artifact"
+      description: "Retrieve the Crystal of Ages from the Northern Ruins"
+      objectives: [
+        { id: "find_ruins", text: "Find the Northern Ruins", type: "location" },
+        { id: "defeat_guardian", text: "Defeat the Guardian", type: "combat" },
+        { id: "retrieve_crystal", text: "Take the Crystal of Ages", type: "interact" },
+        { id: "return_crystal", text: "Return to the Quest Giver", type: "location" }
+      ]
+      rewards: { xp: 500, gold: 100, item: "crystal_of_ages" }
+      prerequisites: []
+      repeatable: false
+    }
+
+    @quest_tracker {
+      display: "sidebar"
+      pin_to_hud: true
+      show_distance: true
+      waypoint_color: "#ffcc00"
+      completion_sound: "quest_complete"
+    }
+
+    @narrator {
+      voice: "deep_male"
+      subtitles: true
+      volume: 0.8
+      spatial: false
+    }
+
+    @journal {
+      category: "main_quest"
+      auto_update: true
+      discoverable: true
+      illustration: "quest_illustration.png"
+    }
+
+    geometry: "humanoid"
+    position: [0, 0, -3]
+    color: "#6644aa"
+  }
+
+  object "StoryBranch" {
+    @narrative_branch {
+      branches: {
+        heroic: { condition: "choices.helped_villagers >= 3", weight: 1.0 },
+        neutral: { condition: "choices.helped_villagers >= 1", weight: 0.5 },
+        dark: { condition: "choices.stolen_items >= 2", weight: 1.0 }
+      }
+      default_branch: "neutral"
+      merge_point: "chapter_3"
+    }
+
+    @choice_consequence {
+      choice_id: "spare_or_fight"
+      consequences: {
+        spare: {
+          reputation: 10,
+          unlock: "peaceful_ending",
+          npc_reaction: "grateful"
+        },
+        fight: {
+          reputation: -5,
+          unlock: "warrior_ending",
+          loot: "guardian_armor"
+        }
+      }
+      delay_reveal: true
+      reveal_at: "chapter_3"
+    }
+
+    @cutscene {
+      duration: 15
+      camera_path: [[0, 5, -10], [5, 3, -5], [0, 2, 0]]
+      camera_targets: ["QuestGiverNPC", "ArtifactPedestal"]
+      skip_enabled: true
+      letterbox: true
+      music: "epic_reveal"
+    }
+
+    @lore_entry {
+      id: "crystal_history"
+      title: "The Crystal of Ages"
+      text: "Forged in the first era by the ancient builders..."
+      category: "artifacts"
+      discovered: false
+      voice_narration: true
+    }
+
+    @story_trigger {
+      type: "proximity"
+      radius: 5
+      once: true
+      trigger_action: "advance_chapter"
+    }
+
+    @timeline {
+      events: [
+        { time: 0, event: "prologue_start" },
+        { time: 300, event: "first_quest_available" },
+        { time: 900, event: "guardian_awakens" },
+        { time: 1800, event: "final_confrontation" }
+      ]
+      loop: false
+      pause_on_trigger: true
+    }
+
+    @flashback {
+      trigger: "crystal_touched"
+      scene: "ancient_builders_memory"
+      duration: 20
+      sepia_filter: true
+      echo_voice: true
+      fade_in: 2
+      fade_out: 2
+    }
+
+    position: [5, 0, -8]
+  }
+
+  // ========================================================================
+  // ENTERPRISE MULTITENANCY
+  // ========================================================================
+
+  module TenantManager {
+    state {
+      tenants: {}
+      current_tenant: null
+      feature_flags: {}
+    }
+
+    action create_tenant(id, plan) {
+      this.state.tenants[id] = {
+        id: id,
+        plan: plan,
+        created_at: current_time(),
+        active: true
+      };
+      emit("tenant:created", { id: id, plan: plan });
+    }
+
+    exports { create_tenant, state }
+  }
+
+  object "EnterpriseWorld" {
+    @tenant {
+      id: "tenant_001"
+      name: "Acme Corp"
+      plan: "enterprise"
+      region: "us-east-1"
+      data_residency: "US"
+    }
+
+    @tenant_isolation {
+      mode: "namespace"
+      shared_resources: ["static_assets", "shader_cache"]
+      isolated_resources: ["user_data", "world_state", "analytics"]
+      cross_tenant_blocked: true
+    }
+
+    @rbac {
+      roles: {
+        admin: { permissions: ["*"] },
+        editor: { permissions: ["read", "write", "deploy"] },
+        viewer: { permissions: ["read"] },
+        guest: { permissions: ["read_public"] }
+      }
+      default_role: "viewer"
+      enforce: true
+    }
+
+    @permission {
+      resource: "world_config"
+      actions: ["read", "write", "delete", "share"]
+      require_mfa: ["delete", "share"]
+      ip_whitelist: ["10.0.0.0/8"]
+    }
+
+    @audit_log {
+      enabled: true
+      retention_days: 365
+      include: ["auth", "data_access", "config_change", "deployment"]
+      format: "structured_json"
+      destination: "s3://audit-logs"
+      tamper_proof: true
+    }
+
+    @rate_limit {
+      requests_per_minute: 1000
+      burst: 50
+      per_tenant: true
+      per_user: true
+      response_header: "X-RateLimit-Remaining"
+    }
+
+    @quota {
+      max_objects: 10000
+      max_storage_gb: 50
+      max_concurrent_users: 500
+      max_api_calls_daily: 100000
+      enforcement: "soft"
+      alert_threshold: 0.8
+    }
+
+    @billing {
+      plan: "enterprise"
+      metered_resources: ["storage", "compute", "bandwidth"]
+      billing_cycle: "monthly"
+      currency: "USD"
+      invoice_email: "billing@acme.com"
+    }
+
+    @subscription {
+      tier: "enterprise"
+      features: ["custom_domain", "sso", "priority_support", "sla_99_9"]
+      renewal: "annual"
+      seats: 50
+    }
+
+    @feature_flag {
+      flags: {
+        new_renderer: { enabled: true, rollout: 100 },
+        ai_npc: { enabled: true, rollout: 50 },
+        pvp_mode: { enabled: false, rollout: 0 },
+        advanced_analytics: { enabled: true, rollout: 100 }
+      }
+      evaluation_context: "tenant"
+    }
+
+    @service_mesh {
+      sidecar: "envoy"
+      mtls: true
+      tracing: true
+      retry_budget: 0.2
+    }
+
+    @circuit_breaker {
+      failure_threshold: 5
+      recovery_timeout: 30
+      half_open_requests: 3
+      monitored_services: ["auth", "storage", "compute"]
+    }
+
+    @retry_policy {
+      max_retries: 3
+      backoff: "exponential"
+      initial_delay_ms: 100
+      max_delay_ms: 5000
+      jitter: true
+      retryable_errors: [429, 503, 504]
+    }
+
+    @health_check {
+      endpoint: "/health"
+      interval_seconds: 30
+      timeout_seconds: 5
+      unhealthy_threshold: 3
+      healthy_threshold: 2
+      checks: ["database", "cache", "storage", "auth"]
+    }
+
+    @config_server {
+      source: "consul"
+      refresh_interval: 60
+      encryption: true
+      versioned: true
+    }
+
+    @secret_vault {
+      provider: "hashicorp_vault"
+      path: "secret/holoscript/prod"
+      rotation: "automatic"
+      rotation_days: 90
+      encryption: "aes-256-gcm"
+    }
+
+    @deployment_slot {
+      slots: ["production", "staging", "preview"]
+      active: "production"
+      swap_strategy: "instant"
+      warmup_seconds: 30
+    }
+
+    @canary {
+      percentage: 5
+      duration_minutes: 30
+      metrics: ["error_rate", "latency_p99", "cpu_usage"]
+      auto_rollback: true
+      rollback_threshold: { error_rate: 0.05, latency_p99: 500 }
+    }
+
+    @blue_green {
+      active: "blue"
+      standby: "green"
+      health_check_path: "/ready"
+      switch_timeout: 60
+      rollback_on_failure: true
+    }
+
+    position: [0, 0, 0]
+  }
+
+  // ========================================================================
+  // ANALYTICS & OBSERVABILITY
+  // ========================================================================
+
+  object "AnalyticsCollector" {
+    @telemetry {
+      provider: "opentelemetry"
+      endpoint: "https://otel.example.com"
+      sampling_rate: 0.1
+      batch_size: 100
+      flush_interval_ms: 5000
+    }
+
+    @metric {
+      metrics: [
+        { name: "frame_time_ms", type: "histogram", buckets: [8, 11, 16, 33, 50] },
+        { name: "active_users", type: "gauge" },
+        { name: "objects_rendered", type: "counter" },
+        { name: "trait_updates_per_frame", type: "histogram" }
+      ]
+      export_interval: 10
+    }
+
+    @trace {
+      service_name: "holoscript-world"
+      propagation: "w3c"
+      auto_instrument: true
+      span_limit: 1000
+    }
+
+    @span {
+      name: "render_frame"
+      attributes: { "world.name": "NarrativeEnterprise", "world.version": "1.0.0" }
+      events: ["frame_start", "physics_update", "trait_update", "render_complete"]
+    }
+
+    @log_structured {
+      level: "info"
+      format: "json"
+      fields: ["timestamp", "level", "message", "trace_id", "span_id"]
+      destination: ["stdout", "cloud_logging"]
+      retention_days: 30
+    }
+
+    @dashboard {
+      panels: [
+        { title: "FPS", metric: "frame_time_ms", visualization: "gauge" },
+        { title: "Active Users", metric: "active_users", visualization: "number" },
+        { title: "Error Rate", metric: "error_count", visualization: "timeseries" },
+        { title: "Latency", metric: "request_latency", visualization: "histogram" }
+      ]
+      refresh_interval: 5
+      layout: "grid_2x2"
+    }
+
+    @alert {
+      rules: [
+        { name: "high_error_rate", condition: "error_rate > 0.05", severity: "critical", channel: "pagerduty" },
+        { name: "high_latency", condition: "p99_latency > 500", severity: "warning", channel: "slack" },
+        { name: "low_fps", condition: "avg_fps < 30", severity: "warning", channel: "email" }
+      ]
+      cooldown_minutes: 15
+    }
+
+    @sla_monitor {
+      target: 99.9
+      measurement_window: "monthly"
+      excluded_maintenance: true
+      budget_tracking: true
+      alerts_at: [99.5, 99.0, 98.0]
+    }
+
+    @error_tracker {
+      provider: "sentry"
+      dsn: "env:SENTRY_DSN"
+      sample_rate: 1.0
+      environment: "production"
+      release: "1.0.0"
+      ignore_errors: ["ResizeObserver loop limit exceeded"]
+    }
+
+    @user_analytics {
+      provider: "mixpanel"
+      events: ["world_enter", "object_interact", "quest_complete", "purchase"]
+      user_properties: ["plan", "region", "device_type"]
+      anonymous: true
+      gdpr_compliant: true
+    }
+
+    @ab_test {
+      tests: [
+        { name: "new_ui", variants: ["control", "variant_a", "variant_b"], allocation: [50, 25, 25] },
+        { name: "lighting_model", variants: ["pbr", "npr"], allocation: [70, 30] }
+      ]
+      duration_days: 14
+      significance_threshold: 0.95
+    }
+
+    @funnel {
+      name: "quest_completion"
+      steps: ["quest_accepted", "objective_1_complete", "objective_2_complete", "quest_complete"]
+      time_window_hours: 24
+    }
+
+    @heatmap {
+      resolution: [100, 100]
+      metric: "user_position"
+      update_interval: 1
+      visualization: "density"
+      color_scale: ["#0000ff", "#00ff00", "#ffff00", "#ff0000"]
+    }
+
+    @session_replay {
+      enabled: true
+      sample_rate: 0.01
+      max_duration_minutes: 30
+      mask_inputs: true
+      capture_dom: false
+      capture_network: true
+    }
+
+    @performance_mark {
+      marks: ["scene_load_start", "scene_load_end", "first_interaction", "first_render"]
+      measures: [
+        { name: "scene_load_time", start: "scene_load_start", end: "scene_load_end" },
+        { name: "time_to_interactive", start: "scene_load_start", end: "first_interaction" }
+      ]
+    }
+
+    @custom_dimension {
+      dimensions: {
+        world_complexity: "object_count > 100 ? 'high' : 'low'",
+        user_engagement: "session_duration > 300 ? 'engaged' : 'casual'",
+        device_tier: "gpu_tier >= 3 ? 'high_end' : 'low_end'"
+      }
+    }
+
+    position: [0, 10, 0]
+  }
+
+  // ========================================================================
+  // SECURITY & CRYPTOGRAPHY
+  // ========================================================================
+
+  object "SecureVault" {
+    @encrypted {
+      algorithm: "aes-256-gcm"
+      key_derivation: "argon2id"
+      key_source: "vault"
+      encrypt_at_rest: true
+      encrypt_in_transit: true
+      rotate_key_days: 90
+    }
+
+    @signed {
+      algorithm: "ed25519"
+      public_key: "env:VAULT_PUBLIC_KEY"
+      verify_on_load: true
+      timestamp: true
+      nonce: true
+    }
+
+    @certificate {
+      type: "x509"
+      issuer: "holoscript-ca"
+      subject: "secure-vault.holoscript.local"
+      validity_days: 365
+      key_usage: ["digitalSignature", "keyEncipherment"]
+      auto_renew: true
+      revocation_check: true
+    }
+
+    @zero_knowledge {
+      proof_system: "groth16"
+      circuit: "ownership_proof"
+      verification_key: "env:ZK_VERIFY_KEY"
+      trusted_setup: "powers_of_tau"
+    }
+
+    @homomorphic {
+      scheme: "bfv"
+      polynomial_degree: 8192
+      coefficient_modulus: [60, 40, 40, 60]
+      operations: ["add", "multiply"]
+      noise_budget: 200
+    }
+
+    @mpc {
+      parties: 3
+      threshold: 2
+      protocol: "shamir"
+      computation: "sum"
+      timeout_seconds: 30
+    }
+
+    @tee {
+      enclave: "sgx"
+      attestation: "remote"
+      sealed_storage: true
+      memory_encryption: true
+      trusted_channels: true
+    }
+
+    geometry: "cube"
+    position: [8, 1, -5]
+    color: "#225533"
+    scale: [0.8, 1.2, 0.8]
+
+    @on_event("vault:access_attempt"): (data) => {
+      emit("security:audit", {
+        action: "vault_access",
+        user: data.user_id,
+        granted: data.authorized,
+        timestamp: current_time()
+      });
+    }
+  }
+}

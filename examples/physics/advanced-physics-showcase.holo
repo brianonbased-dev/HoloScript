@@ -1,159 +1,455 @@
-// Advanced Physics Showcase — 8+ Physics Traits
-// Demonstrates: @physics, @collidable, @joint, @constraint, @softbody,
-//   @fluid, @breakable, @ragdoll, @buoyancy, @wind_affected
+// ============================================================
+// Advanced Physics Showcase - HoloScript Physics Traits
+// ============================================================
+// A physics playground demonstrating 8 advanced simulation
+// traits. Every object is interactive -- grab, throw, and
+// experiment with the forces at play.
+//
+// Traits demonstrated:
+//   @cloth        @fluid       @soft_body    @rope
+//   @chain        @wind        @buoyancy     @destruction
+//
+// Compile: holoscript compile advanced-physics-showcase.holo --target webxr
+// ============================================================
 
-composition "AdvancedPhysicsShowcase" {
+composition "Advanced Physics Showcase" {
+
   metadata {
     title: "Advanced Physics Showcase"
+    description: "Interactive physics playground: cloth, fluid, soft body, rope, chain, wind, buoyancy, destruction"
     version: "1.0"
-    tags: ["physics", "simulation", "destruction", "fluid"]
+    tags: ["physics", "cloth", "fluid", "soft-body", "rope", "destruction", "simulation"]
   }
-  scene {
-    environment { skybox: "cloudy"; lighting: "day"; ambient_intensity: 0.4 }
 
-    object "Ground" {
-      @physics(type: "static")
-      @collidable(friction: 0.8, restitution: 0.2)
+  environment {
+    skybox: "gradient"
+    ambient_light: 0.5
+    gravity: -9.81
+    shadows: true
+  }
+
+  // ----------------------------------------------------------
+  // GROUND
+  // ----------------------------------------------------------
+
+  object "Ground" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [40, 1, 40]
+    color: "#3a3a3a"
+    material: "concrete"
+    friction: 0.8
+  }
+
+  // ----------------------------------------------------------
+  // @wind - Global directional wind zone
+  // ----------------------------------------------------------
+  // Affects cloth, rope, and lightweight physics objects.
+  // Turbulence adds organic variation to the steady direction.
+
+  object "WindZone" {
+    @wind(
+      direction: [1, 0.2, 0.5],
+      strength: 4.0,
+      turbulence: 0.7,
+      gust_frequency: 0.3,
+      gust_strength: 6.0,
+      radius: 50
+    )
+
+    position: [0, 5, 0]
+  }
+
+  // ----------------------------------------------------------
+  // ZONE 1: @cloth - Fabric flags and canopy
+  // ----------------------------------------------------------
+  // Cloth simulation with pinned corners, wind interaction,
+  // and tearable fabric that rips under enough force.
+
+  spatial_group "ClothZone" {
+
+    object "FlagPole_L" @collidable {
+      geometry: "cylinder"
+      position: [-8, 2.5, -6]
+      scale: [0.08, 5, 0.08]
+      color: "#7f8c8d"
+      material: "metal"
+    }
+
+    object "FlagPole_R" @collidable {
+      geometry: "cylinder"
+      position: [-4, 2.5, -6]
+      scale: [0.08, 5, 0.08]
+      color: "#7f8c8d"
+      material: "metal"
+    }
+
+    // Large banner between two poles
+    object "Banner" {
+      @cloth(
+        resolution: 32,
+        mass: 0.25,
+        stiffness: 0.75,
+        damping: 0.04,
+        tear_threshold: 50.0,
+        wind_drag: 1.2
+      )
+
       geometry: "plane"
-      scale: [50, 1, 50]
-      color: "#556B2F"
+      position: [-6, 4.2, -6]
+      scale: [4, 2, 1]
+      color: "#c0392b"
+      material: "fabric"
+      pin_corners: ["top_left", "top_right"]
     }
 
-    // Breakable wall with fracture physics
-    object "BreakableWall" {
-      @physics(mass: 200.0, type: "dynamic")
-      @collidable
-      @breakable(
-        fracture_threshold: 50.0,
-        fragment_count: 12,
-        fragment_mass_distribution: "proportional",
-        debris_lifetime: 8.0
+    // Small pennant flags on a line
+    object "Pennants" {
+      @cloth(
+        resolution: 12,
+        mass: 0.08,
+        stiffness: 0.5,
+        damping: 0.06,
+        wind_drag: 1.5
       )
-      geometry: "box"
-      position: [0, 2, -5]
-      scale: [4, 4, 0.3]
-      color: "#8B7355"
-      material: "concrete"
-    }
 
-    // Ragdoll character
-    object "RagdollDummy" {
-      @physics(mass: 70.0)
-      @ragdoll(
-        bone_count: 15,
-        joint_limits: true,
-        self_collision: true,
-        blend_to_animation: 0.3
-      )
-      @skeleton(type: "humanoid", height: 1.8)
-      @collidable
-      position: [3, 0, 0]
+      geometry: "plane"
+      position: [-6, 3.0, -5]
+      scale: [4, 0.4, 1]
+      color: "#f1c40f"
+      material: "fabric"
+      pin_corners: ["top_left", "top_right"]
     }
+  }
 
-    // Soft body cushion
-    object "SoftCushion" {
-      @physics(mass: 2.0)
-      @softbody(
-        stiffness: 0.6,
-        damping: 0.1,
-        pressure: 1.0,
-        volume_preservation: 0.9,
-        solver_iterations: 10
-      )
-      @collidable
-      geometry: "sphere"
-      position: [-2, 0.5, 0]
-      scale: [0.8, 0.4, 0.8]
-      color: "#FF6B6B"
-    }
+  // ----------------------------------------------------------
+  // ZONE 2: @fluid + @buoyancy - Water pool
+  // ----------------------------------------------------------
+  // Particle-based fluid simulation. Objects dropped in create
+  // splashes and ripples. @buoyancy controls floating behavior.
 
-    // Fluid simulation pool
+  spatial_group "FluidZone" {
+
     object "WaterPool" {
-      @physics(type: "static")
       @fluid(
-        type: "sph",
-        particle_count: 5000,
+        type: "water",
+        particle_count: 50000,
         viscosity: 0.01,
         surface_tension: 0.07,
-        rest_density: 1000,
-        bounds: [4, 2, 4]
+        color_deep: "#0a3d62",
+        color_shallow: "#3dc1d3",
+        transparency: 0.7,
+        wave_speed: 1.2,
+        splash_particles: true
       )
-      @buoyancy(density: 1000, drag: 0.5)
+      @collidable
+
       geometry: "box"
-      position: [0, 0.5, 5]
-      scale: [4, 1, 4]
-      color: "#4488cc88"
-      material: "water"
+      position: [0, 0.4, -6]
+      scale: [6, 0.8, 4]
+      color: "#1e90ff"
     }
 
-    // Floating object in the pool
-    object "FloatingCrate" {
-      @physics(mass: 10.0)
-      @collidable
-      @buoyancy(density: 600, drag: 0.3, angular_drag: 0.1)
-      @wind_affected(drag_coefficient: 0.5, surface_area: 0.25)
-      geometry: "box"
-      position: [0, 1.5, 5]
+    // @buoyancy - Float on fluid surfaces
+    object "RubberDuck" {
+      @buoyancy(density: 0.3, drag: 0.8, angular_drag: 1.2)
+      @physics
+      @grabbable
+
+      geometry: "model/rubber_duck.glb"
+      position: [0, 1.0, -6]
+      scale: [0.15, 0.15, 0.15]
+      color: "#ffd700"
+      mass: 0.2
+    }
+
+    object "ToyBoat" {
+      @buoyancy(density: 0.25, drag: 1.0, angular_drag: 2.0)
+      @physics
+      @grabbable
+
+      geometry: "model/toy_boat.glb"
+      position: [1.5, 1.0, -5.5]
+      scale: [0.2, 0.2, 0.2]
+      color: "#e74c3c"
+      mass: 0.5
+    }
+
+    // Heavy object that sinks
+    object "IronBall" {
+      @buoyancy(density: 7.8, drag: 0.3, angular_drag: 0.5)
+      @physics
+      @grabbable
+
+      geometry: "sphere"
+      position: [-1, 2.0, -6]
+      scale: 0.15
+      color: "#555555"
+      material: "metal"
+      mass: 5.0
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ZONE 3: @soft_body - Deformable objects
+  // ----------------------------------------------------------
+  // Soft body objects deform on impact and slowly restore shape.
+
+  spatial_group "SoftBodyZone" {
+
+    object "BeachBall" {
+      @soft_body(
+        pressure: 1.5,
+        elasticity: 0.85,
+        damping: 0.1,
+        max_deformation: 0.4,
+        collision_margin: 0.02
+      )
+      @physics
+      @grabbable
+      @throwable
+
+      geometry: "sphere"
+      position: [8, 1.5, -6]
+      scale: 0.3
+      color: "#ff6b6b"
+      mass: 0.3
+      restitution: 0.7
+    }
+
+    object "GelCube" {
+      @soft_body(
+        pressure: 0.5,
+        elasticity: 0.6,
+        damping: 0.3,
+        max_deformation: 0.6,
+        collision_margin: 0.01
+      )
+      @physics
+      @grabbable
+
+      geometry: "cube"
+      position: [9, 1.0, -5]
       scale: [0.4, 0.4, 0.4]
-      color: "#DAA520"
+      color: "#2ecc71"
+      opacity: 0.8
+      mass: 1.0
+    }
+
+    object "StressBall" {
+      @soft_body(
+        pressure: 2.0,
+        elasticity: 0.95,
+        damping: 0.15,
+        max_deformation: 0.5
+      )
+      @physics
+      @grabbable
+
+      geometry: "sphere"
+      position: [7.5, 1.0, -7]
+      scale: 0.12
+      color: "#e67e22"
+      mass: 0.15
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ZONE 4: @rope + @chain - Suspension bridge
+  // ----------------------------------------------------------
+
+  spatial_group "RopeAndChainZone" {
+
+    object "BridgePost_L" @collidable {
+      geometry: "cube"
+      position: [-3, 1.5, 3]
+      scale: [0.4, 3, 0.4]
+      color: "#5d4037"
       material: "wood"
     }
 
-    // Chain constraint demo
-    object "ChainAnchor" {
-      @physics(type: "static")
-      position: [5, 5, 0]
-
-      object "ChainLink1" {
-        @physics(mass: 1.0)
-        @constraint(type: "ball_socket", connected_to: "ChainAnchor", pivot: [0, -0.3, 0])
-        @collidable
-        geometry: "capsule"
-        position: [5, 4.4, 0]
-        scale: [0.05, 0.3, 0.05]
-        color: "#888888"
-        material: "steel"
-      }
-      object "ChainLink2" {
-        @physics(mass: 1.0)
-        @constraint(type: "ball_socket", connected_to: "ChainLink1", pivot: [0, -0.3, 0])
-        @collidable
-        geometry: "capsule"
-        position: [5, 3.8, 0]
-        scale: [0.05, 0.3, 0.05]
-        color: "#888888"
-      }
-      object "PendulumWeight" {
-        @physics(mass: 10.0)
-        @constraint(type: "ball_socket", connected_to: "ChainLink2", pivot: [0, -0.3, 0])
-        @collidable
-        @wind_affected(drag_coefficient: 1.2, surface_area: 0.5)
-        geometry: "sphere"
-        position: [5, 3.0, 0]
-        scale: [0.3, 0.3, 0.3]
-        color: "#333333"
-        material: "steel"
-      }
+    object "BridgePost_R" @collidable {
+      geometry: "cube"
+      position: [3, 1.5, 3]
+      scale: [0.4, 3, 0.4]
+      color: "#5d4037"
+      material: "wood"
     }
 
-    // Joint-connected swing
-    object "SwingFrame" {
-      @physics(type: "static")
-      geometry: "box"
-      position: [-5, 3, 0]
-      scale: [0.1, 3, 0.1]
-      color: "#444444"
+    // Rope handrails
+    object "RopeRail_L" {
+      @rope(
+        segments: 24,
+        length: 6.0,
+        thickness: 0.03,
+        stiffness: 0.4,
+        damping: 0.2,
+        gravity_scale: 1.0,
+        max_stretch: 1.15,
+        collision: true,
+        attach_start: "BridgePost_L",
+        attach_end: "BridgePost_R"
+      )
 
-      object "SwingSeat" {
-        @physics(mass: 2.0)
-        @joint(type: "hinge", axis: [0, 0, 1], limits: [-60, 60], motor_force: 5.0)
-        @collidable
-        @sittable
-        geometry: "box"
-        position: [-5, 1, 0]
-        scale: [0.5, 0.05, 0.3]
-        color: "#8B4513"
-      }
+      position: [-3, 2.8, 2.7]
+      color: "#8d6e63"
+      material: "hemp"
+    }
+
+    object "RopeRail_R" {
+      @rope(
+        segments: 24,
+        length: 6.0,
+        thickness: 0.03,
+        stiffness: 0.4,
+        damping: 0.2,
+        gravity_scale: 1.0,
+        attach_start: "BridgePost_L",
+        attach_end: "BridgePost_R"
+      )
+
+      position: [-3, 2.8, 3.3]
+      color: "#8d6e63"
+      material: "hemp"
+    }
+
+    // Chain supporting a hanging lantern
+    object "LanternChain" {
+      @chain(
+        links: 12,
+        link_length: 0.08,
+        link_thickness: 0.015,
+        joint_limit: 30,
+        mass_per_link: 0.2,
+        material: "iron",
+        rattle_sound: true,
+        attach_start: "BridgePost_L"
+      )
+
+      position: [-3, 2.5, 3]
+      color: "#4a4a4a"
+    }
+
+    object "HangingLantern" {
+      @glowing
+      @physics
+
+      geometry: "model/lantern.glb"
+      position: [-3, 1.5, 3]
+      scale: [0.15, 0.15, 0.15]
+      color: "#ffd700"
+      emissive: "#ffaa00"
+      emissiveIntensity: 0.8
+      mass: 0.5
+    }
+  }
+
+  // ----------------------------------------------------------
+  // ZONE 5: @destruction - Breakable walls and objects
+  // ----------------------------------------------------------
+  // Voronoi fracture patterns create realistic shattering.
+
+  spatial_group "DestructionZone" {
+
+    object "BrickWall" {
+      @destruction(
+        pattern: "voronoi",
+        fragment_count: 40,
+        fracture_threshold: 800,
+        debris_lifetime: 8.0,
+        debris_fade: true,
+        sound: "brick_break",
+        dust_particles: true
+      )
+      @collidable
+      @physics
+
+      geometry: "cube"
+      position: [0, 1.5, 8]
+      scale: [4, 3, 0.4]
+      color: "#8b4513"
+      material: "brick"
+      mass: 500
+    }
+
+    object "GlassPane" {
+      @destruction(
+        pattern: "radial",
+        fragment_count: 80,
+        fracture_threshold: 200,
+        debris_lifetime: 5.0,
+        sound: "glass_shatter",
+        dust_particles: false
+      )
+      @collidable
+      @physics
+
+      geometry: "cube"
+      position: [3, 1.5, 8]
+      scale: [2, 2.5, 0.05]
+      color: "#87ceeb"
+      opacity: 0.3
+      material: "glass"
+      mass: 20
+    }
+
+    // Wrecking ball to smash into the walls
+    object "WreckingBall" {
+      @physics
+      @grabbable
+      @throwable
+
+      geometry: "sphere"
+      position: [0, 3, 5]
+      scale: 0.4
+      color: "#2c3e50"
+      material: "iron"
+      mass: 50
+      restitution: 0.1
+    }
+  }
+
+  // ----------------------------------------------------------
+  // CONTROLS
+  // ----------------------------------------------------------
+
+  object "ResetButton" {
+    @clickable
+    @glowing
+
+    geometry: "cylinder"
+    position: [0, 0.15, 12]
+    scale: [0.5, 0.1, 0.5]
+    color: "#e74c3c"
+    emissive: "#e74c3c"
+    emissiveIntensity: 0.4
+
+    on_click() {
+      trigger "reset_scene"
+    }
+  }
+
+  object "WindToggle" {
+    @clickable
+    @glowing
+
+    geometry: "sphere"
+    position: [1.5, 0.3, 12]
+    scale: 0.2
+    color: "#3498db"
+    emissive: "#3498db"
+    emissiveIntensity: 0.3
+
+    state {
+      wind_active: true
+    }
+
+    on_click() {
+      state.wind_active = !state.wind_active
+      ref("WindZone").wind_strength = state.wind_active ? 4.0 : 0.0
+      ui.toast(state.wind_active ? "Wind ON" : "Wind OFF")
     }
   }
 }
