@@ -32,6 +32,13 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { HoloScriptDebugger, type StackFrame as HoloStackFrame } from '@holoscript/core';
+import {
+  AttachConnection,
+  type AttachConfig,
+  type HotReloadEvent,
+  type TraitVariableInfo,
+  type PerformanceFrame,
+} from './dap/DAPHotReloadAdapter';
 
 // ── Launch/Attach Configuration ──────────────────────────────────────────────
 
@@ -118,6 +125,9 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
 
   // Configuration for restart
   private _launchArgs: LaunchRequestArguments | null = null;
+
+  // DAP Hot Reload adapter for attach-mode debugging
+  private _attachConnection: AttachConnection | null = null;
 
   public constructor() {
     super('holoscript-debug.txt');
@@ -332,11 +342,35 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
   /**
    * DAP Attach: attach to a running HoloScript process.
    */
-  protected attachRequest(
+  protected async attachRequest(
     response: DebugProtocol.AttachResponse,
-    _args: DebugProtocol.AttachRequestArguments
-  ): void {
-    this.sendErrorResponse(response, 1003, 'Attach is not yet supported. Use launch mode instead.');
+    args: DebugProtocol.AttachRequestArguments
+  ): Promise<void> {
+    const attachArgs = args as AttachRequestArguments;
+    const config: AttachConfig = {
+      host: attachArgs.host || 'localhost',
+      port: attachArgs.port || 9229,
+    };
+
+    this._attachConnection = new AttachConnection();
+    const connected = await this._attachConnection.connect(config);
+    if (!connected) {
+      this._attachConnection = null;
+      this.sendErrorResponse(response, 1003, `Failed to attach to ${config.host}:${config.port}`);
+      return;
+    }
+
+    this._attachConnection.on('hot-reload', (data: unknown) => {
+      const ev = data as HotReloadEvent;
+      this.sendEvent(new OutputEvent(
+        `[Hot Reload] ${ev.filePath} ${ev.success ? 'OK' : 'FAILED'}${ev.errors?.length ? ': ' + ev.errors.join(', ') : ''}\n`,
+        ev.success ? 'stdout' : 'stderr'
+      ));
+    });
+
+    this.sendEvent(new OutputEvent(`Attached to HoloScript runtime at ${config.host}:${config.port}\n`, 'console'));
+    this.sendEvent(new InitializedEvent());
+    this.sendResponse(response);
   }
 
   /**
@@ -349,6 +383,12 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
     // Stop the debugger
     this._debugger.stop();
     this._isRunning = false;
+
+    // Clean up attach connection if present
+    if (this._attachConnection) {
+      this._attachConnection.disconnect();
+      this._attachConnection = null;
+    }
 
     // Clean up handles
     this._variableHandles.reset();

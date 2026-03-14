@@ -53,6 +53,10 @@ export interface HeadlessRuntimeOptions {
   maxInstances?: number;
   /** Custom builtins to inject */
   builtins?: Record<string, unknown>;
+  /** Action dispatcher for BehaviorTreeTrait — maps BT action names to external handlers.
+   *  Return true (success), false (failure), or 'running' (async in progress).
+   *  The blackboard parameter is the BT's shared state for updating conditions. */
+  executeAction?: (owner: unknown, actionName: string, params: Record<string, unknown>, blackboard?: Record<string, unknown>) => boolean | 'running';
 }
 
 export interface HeadlessRuntimeStats {
@@ -484,6 +488,7 @@ export class HeadlessRuntime {
       setState: (updates) => this.state.update(updates),
       getScaleMultiplier: () => 1,
       setScaleContext: () => {},
+      ...(this.options.executeAction ? { executeAction: this.options.executeAction } : {}),
     };
   }
 

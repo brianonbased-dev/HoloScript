@@ -3315,3 +3315,23 @@ export {
   type WatchRunnerOptions,
   type WatchEvent,
 } from './runtime/WatchRunner';
+
+// ── Plugin System (Sandboxing, API, Lifecycle Management) ─────────────────
+export { PluginSandbox, createPluginSandbox } from './plugins/PluginSandbox';
+export type { PluginSandboxOptions, PluginManifest as SandboxPluginManifest } from './plugins/PluginSandbox';
+export { PluginAPI } from './plugins/PluginAPI';
+export { PluginLoader } from './plugins/PluginLoader';
+export { ModRegistry } from './plugins/ModRegistry';
+export { HololandExtensionRegistry } from './plugins/HololandExtensionRegistry';
+
+// ── Post-Quantum Cryptography (Hybrid Classical+PQ) ──────────────────────
+export {
+  HybridCryptoProvider,
+  getHybridCryptoProvider,
+  resetHybridCryptoProvider,
+} from './crypto/HybridCryptoProvider';
+export type {
+  HybridKeyPair,
+  HybridSignature,
+  HybridCryptoConfig,
+} from './crypto/HybridCryptoProvider';

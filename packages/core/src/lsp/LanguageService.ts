@@ -14,7 +14,19 @@ export interface HoverInfo {
   range?: { startLine: number; startCol: number; endLine: number; endCol: number };
 }
 
-// Built-in hover documentation
+/**
+ * Built-in hover documentation for HoloScript primitives and traits.
+ * 
+ * Maps HoloScript symbol names to their hover documentation strings that appear
+ * in editors when users hover over or request info about these symbols. Each
+ * entry includes the symbol name, description, and available properties/config.
+ * 
+ * Used by {@link LanguageService.getHover} to provide contextual help for
+ * built-in HoloScript primitives (box, sphere, panel) and traits (@grabbable,
+ * @audio, @particles, etc.) during development.
+ * 
+ * @internal
+ */
 const HOVER_DOCS: Record<string, string> = {
   box: '**box** — 3D box primitive\n\nProperties: position, rotation, scale, color, opacity',
   sphere:

@@ -40,6 +40,9 @@ export interface TraitContext {
   setState: (updates: Record<string, unknown>) => void;
   getScaleMultiplier: () => number;
   setScaleContext: (magnitude: string) => void;
+  /** Optional action dispatcher for BehaviorTreeTrait — maps action names to external handlers.
+   *  The blackboard parameter is the BT's shared state, allowing handlers to update conditions. */
+  executeAction?: (owner: unknown, actionName: string, params: Record<string, unknown>, blackboard?: Record<string, unknown>) => boolean | 'running';
 }
 
 export interface AccessibilityContext {

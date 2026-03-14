@@ -85,3 +85,36 @@ export { useCompilerBridge } from './hooks/useCompilerBridge';
 export type { UseCompilerBridgeReturn } from './hooks/useCompilerBridge';
 
 export { useScenePipeline } from './hooks/useScenePipeline';
+
+// ═══════════════════════════════════════════════════════════════════
+// Studio Components — UI building blocks for HoloScript Studio
+// ═══════════════════════════════════════════════════════════════════
+
+// AI & Confidence
+export { CalibrationUncertaintyIndicator } from './components/ai/CalibrationUncertaintyIndicator';
+export { ConfidenceAwareXRUI } from './components/xr/ConfidenceAwareXRUI';
+
+// Scene Preview & Diff
+export { DragonPreview } from './components/preview/DragonPreview';
+export { HoloDiffPanel } from './components/diff/HoloDiffPanel';
+
+// Editors & Inspectors
+export { SliderMaterialInspector } from './components/inspector/SliderMaterialInspector';
+export { AssetImportDropZone } from './components/import/AssetImportDropZone';
+export { CinematicCameraPanel } from './components/camera/CinematicCameraPanel';
+
+// Dashboards & Visualizers
+export { TraitSupportMatrixDashboard } from './components/registry/TraitSupportMatrixDashboard';
+export { SyntheticDataDashboard } from './components/synthetic/SyntheticDataDashboard';
+export { CompilationPipelineVisualizer } from './components/pipeline/CompilationPipelineVisualizer';
+export { StudioOperationsHub } from './components/operations/StudioOperationsHub';
+
+// Layouts
+export { ResponsiveStudioLayout } from './components/layouts/ResponsiveStudioLayout';
+
+// ═══════════════════════════════════════════════════════════════════
+// Studio Bridge — Visual-to-AST synchronization
+// ═══════════════════════════════════════════════════════════════════
+
+export { default as StudioBridge } from './lib/StudioBridge';
+export type { ASTMutation, MutationResult, ASTChangeEvent, StudioBridgeOptions } from './lib/StudioBridge';

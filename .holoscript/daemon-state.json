@@ -1,8 +1,8 @@
 {
-  "totalCycles": 29,
-  "lastCycleAt": "2026-03-14T22:54:36.740Z",
+  "totalCycles": 6,
+  "lastCycleAt": "2026-03-14T23:24:01.878Z",
   "lastQuality": 0.23,
-  "bestQuality": 0.49,
+  "bestQuality": 0.23,
   "focusRotation": [
     "typefix",
     "coverage",
@@ -13,15 +13,9 @@
     "all"
   ],
   "currentFocusIndex": 0,
-  "convergenceStreak": 4,
-  "backoffMultiplier": 2,
+  "convergenceStreak": 0,
+  "backoffMultiplier": 1,
   "improvements": [],
-  "attemptedFiles": [
-    "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\core\\src\\parser\\ImportResolver.test.ts",
-    "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\core\\src\\docs\\SemEnaWerq.ts",
-    "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\core\\src\\analysis\\ReachabilityAnalyzer.test.ts",
-    "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\core\\src\\compiler\\BundleAnalyzer.ts",
-    "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\studio\\src\\__tests__\\browser-benchmark.test.ts",
-    "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\mcp-server\\src\\__tests__\\typescript-client.test.ts"
-  ]
+  "attemptedFiles": [],
+  "lastErrorCounts": {}
 }

@@ -297,9 +297,9 @@ function tickAction(
 ): BTStatus {
   const actionName = node.action || '';
 
-  // Try to execute action via context
+  // Try to execute action via context (pass blackboard so handlers can update conditions)
   if (context.executeAction) {
-    const result = context.executeAction(owner, actionName, node.params || {});
+    const result = context.executeAction(owner, actionName, node.params || {}, state.blackboard);
     if (result === true) return 'success';
     if (result === false) return 'failure';
     if (result === 'running') return 'running';

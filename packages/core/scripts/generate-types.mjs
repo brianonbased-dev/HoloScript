@@ -1931,6 +1931,142 @@ export declare class PerformanceRegressionMonitor {
   forceRecover(): void;
   reset(): void;
 }
+
+// ============================================================================
+// PLUGIN SYSTEM (Sandboxing, API, Lifecycle)
+// ============================================================================
+
+export interface PluginSandboxOptions {
+  maxMemoryMB?: number;
+  timeoutMs?: number;
+  allowedAPIs?: string[];
+  [key: string]: any;
+}
+
+export declare class PluginSandbox {
+  constructor(options?: PluginSandboxOptions);
+  load(manifest: any): Promise<void>;
+  unload(): Promise<void>;
+  call(method: string, ...args: any[]): Promise<any>;
+  getState(): string;
+  [key: string]: any;
+}
+
+export declare function createPluginSandbox(options?: PluginSandboxOptions): PluginSandbox;
+
+export declare class PluginAPI {
+  constructor(config?: any);
+  registerCommand(name: string, handler: (...args: any[]) => any): void;
+  getAssets(): any[];
+  [key: string]: any;
+}
+
+export declare class PluginLoader {
+  constructor();
+  loadFromManifest(manifest: any): Promise<any>;
+  validateManifest(manifest: any): boolean;
+  [key: string]: any;
+}
+
+export declare class ModRegistry {
+  constructor();
+  register(entry: any): void;
+  resolve(name: string): any;
+  detectConflicts(): any[];
+  [key: string]: any;
+}
+
+export declare class HololandExtensionRegistry {
+  constructor();
+  registerExtension(type: string, extension: any): void;
+  getExtensions(type: string): any[];
+  [key: string]: any;
+}
+
+// ============================================================================
+// POST-QUANTUM CRYPTOGRAPHY (Hybrid Classical + PQ)
+// ============================================================================
+
+export interface HybridKeyPair {
+  classicalPublicKey: Uint8Array;
+  classicalPrivateKey: Uint8Array;
+  pqPublicKey: Uint8Array;
+  pqPrivateKey: Uint8Array;
+  [key: string]: any;
+}
+
+export interface HybridSignature {
+  classicalSignature: Uint8Array;
+  pqSignature: Uint8Array;
+  algorithm: string;
+  [key: string]: any;
+}
+
+export interface HybridCryptoConfig {
+  classicalAlgorithm?: string;
+  pqAlgorithm?: string;
+  [key: string]: any;
+}
+
+export declare class HybridCryptoProvider {
+  constructor(config?: HybridCryptoConfig);
+  generateKeyPair(): Promise<HybridKeyPair>;
+  sign(data: Uint8Array, privateKey: any): Promise<HybridSignature>;
+  verify(data: Uint8Array, signature: HybridSignature, publicKey: any): Promise<boolean>;
+  [key: string]: any;
+}
+
+export declare function getHybridCryptoProvider(): HybridCryptoProvider;
+export declare function resetHybridCryptoProvider(): void;
+
+// ============================================================================
+// CIRCUIT BREAKER SUITE
+// ============================================================================
+
+export declare class CircuitBreakerCICD {
+  constructor(config?: any);
+  runHealthChecks(): Promise<any>;
+  getMetrics(): any;
+  [key: string]: any;
+}
+
+export declare class CircuitBreakerBenchmarks {
+  constructor(config?: any);
+  runAll(): Promise<any>;
+  getResults(): any[];
+  [key: string]: any;
+}
+
+export declare class CircuitBreakerDeployment {
+  constructor(config?: any);
+  deploy(target: string): Promise<any>;
+  rollback(): Promise<void>;
+  [key: string]: any;
+}
+
+// ============================================================================
+// MIXTURE-OF-MEMORY-EXPERTS TRAIT DATABASE
+// ============================================================================
+
+export declare class MoMETraitDatabase {
+  constructor(config?: any);
+  query(traitName: string, context?: any): any;
+  register(trait: any): void;
+  getExperts(): any[];
+  [key: string]: any;
+}
+
+// ============================================================================
+// UNIFIED PBR SCHEMA
+// ============================================================================
+
+export declare class UnifiedPBRSchema {
+  constructor();
+  validate(material: any): boolean;
+  normalize(material: any): any;
+  toThreeJS(material: any): any;
+  [key: string]: any;
+}
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

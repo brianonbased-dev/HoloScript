@@ -1,0 +1,1 @@
+export { SliderMaterialInspector } from './SliderMaterialInspector';

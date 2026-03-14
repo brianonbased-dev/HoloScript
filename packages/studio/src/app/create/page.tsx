@@ -89,6 +89,7 @@ import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@/components/ui/PanelSplitter';
 import { CreatorLayout } from '@/components/layouts/CreatorLayout';
 import { FilmmakerLayout } from '@/components/layouts/FilmmakerLayout';
+import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { CharacterLayout } from '@/components/character/layout/CharacterLayout';
 
 const ScenarioLauncher = dynamic(

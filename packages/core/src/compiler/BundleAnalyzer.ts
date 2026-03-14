@@ -365,37 +365,18 @@ export class BundleAnalyzer {
   }
 
   /**
-   * Build dependency graphs
+   * Build dependency graphs - optimized single-pass implementation
    */
   private buildDependencyGraphs(dependencies: Record<string, string[]>): void {
-    this.updateAllModuleDependencies(dependencies);
-    this.buildForwardDependencyGraph(dependencies);
-    this.buildReverseDependencyGraph(dependencies);
-  }
-
-  /**
-   * Update all module dependencies in batch
-   */
-  private updateAllModuleDependencies(dependencies: Record<string, string[]>): void {
+    // Single iteration to build all dependency structures at once
     for (const [modulePath, deps] of Object.entries(dependencies)) {
+      // Update module dependencies
       this.updateModuleDependencies(modulePath, deps);
-    }
-  }
-
-  /**
-   * Build forward dependency graph in batch
-   */
-  private buildForwardDependencyGraph(dependencies: Record<string, string[]>): void {
-    for (const [modulePath, deps] of Object.entries(dependencies)) {
+      
+      // Build forward graph
       this.buildForwardGraph(modulePath, deps);
-    }
-  }
-
-  /**
-   * Build reverse dependency graph in batch
-   */
-  private buildReverseDependencyGraph(dependencies: Record<string, string[]>): void {
-    for (const [modulePath, deps] of Object.entries(dependencies)) {
+      
+      // Build reverse graph
       this.buildReverseGraph(modulePath, deps);
     }
   }
@@ -437,34 +418,51 @@ export class BundleAnalyzer {
   }
 
   /**
-   * Build chunk parent/child relationships
+   * Build chunk parent/child relationships - optimized with file-to-chunk mapping
    */
   private buildChunkRelationships(): void {
-    // Analyze module dependencies to determine chunk relationships
+    // Pre-build file-to-chunk mapping for O(1) lookup
+    const fileToChunk = new Map<string, string>();
+    for (const [chunkId, chunk] of this.chunks) {
+      for (const file of chunk.files) {
+        fileToChunk.set(file, chunkId);
+      }
+    }
+
+    // Use Sets to avoid duplicate relationships
+    const parentSets = new Map<string, Set<string>>();
+    const childSets = new Map<string, Set<string>>();
+    
+    for (const [chunkId, chunk] of this.chunks) {
+      parentSets.set(chunkId, new Set(chunk.parentChunks));
+      childSets.set(chunkId, new Set(chunk.childChunks));
+    }
+
+    // Analyze module dependencies with O(1) chunk lookup
     for (const [chunkId, chunk] of this.chunks) {
       for (const modulePath of chunk.files) {
         const module = this.modules.get(modulePath);
         if (!module) continue;
 
         for (const dep of module.dependencies) {
-          // Find which chunk contains this dependency
-          for (const [otherChunkId, otherChunk] of this.chunks) {
-            if (otherChunkId !== chunkId && otherChunk.files.includes(dep)) {
-              if (!chunk.parentChunks.includes(otherChunkId)) {
-                chunk.parentChunks.push(otherChunkId);
-              }
-              if (!otherChunk.childChunks.includes(chunkId)) {
-                otherChunk.childChunks.push(chunkId);
-              }
-            }
+          const depChunkId = fileToChunk.get(dep);
+          if (depChunkId && depChunkId !== chunkId) {
+            parentSets.get(chunkId)!.add(depChunkId);
+            childSets.get(depChunkId)!.add(chunkId);
           }
         }
       }
     }
+
+    // Update chunk objects with final relationships
+    for (const [chunkId, chunk] of this.chunks) {
+      chunk.parentChunks = Array.from(parentSets.get(chunkId)!);
+      chunk.childChunks = Array.from(childSets.get(chunkId)!);
+    }
   }
 
   /**
-   * Calculate unused exports
+   * Calculate unused exports - optimized with Set for O(1) lookup
    */
   private calculateUnusedExports(
     exports: Record<string, string[]>,
@@ -475,13 +473,13 @@ export class BundleAnalyzer {
       if (!module) continue;
 
       module.exports = moduleExports;
-      const used = usedExports[modulePath] ?? [];
-      module.unusedExports = moduleExports.filter((e) => !used.includes(e));
+      const usedSet = new Set(usedExports[modulePath] ?? []);
+      module.unusedExports = moduleExports.filter((e) => !usedSet.has(e));
     }
   }
 
   /**
-   * Detect circular dependencies
+   * Detect circular dependencies - optimized with early termination
    */
   private detectCircularDependencies(): string[][] {
     const circles: string[][] = [];
@@ -492,15 +490,22 @@ export class BundleAnalyzer {
       visited.add(node);
       recursionStack.add(node);
 
-      const deps = this.dependencyGraph.get(node) ?? new Set();
+      const deps = this.dependencyGraph.get(node);
+      if (!deps) {
+        recursionStack.delete(node);
+        return;
+      }
+
       for (const dep of deps) {
-        if (!visited.has(dep)) {
-          dfs(dep, [...path, dep]);
-        } else if (recursionStack.has(dep)) {
-          // Found circular dependency
+        if (recursionStack.has(dep)) {
+          // Found circular dependency - construct minimal cycle
           const circleStart = path.indexOf(dep);
-          const circle = path.slice(circleStart);
-          circles.push(circle);
+          if (circleStart >= 0) {
+            const circle = path.slice(circleStart).concat(dep);
+            circles.push(circle);
+          }
+        } else if (!visited.has(dep)) {
+          dfs(dep, [...path, dep]);
         }
       }
 

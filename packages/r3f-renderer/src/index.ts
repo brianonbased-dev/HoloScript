@@ -6,7 +6,9 @@ export type { ShaderMeshNodeProps } from './components/ShaderMeshNode';
 export { AnimatedMeshNode } from './components/AnimatedMeshNode';
 export type { AnimatedMeshNodeProps } from './components/AnimatedMeshNode';
 export { LODMeshNode, hasLOD } from './components/LODMeshNode';
-export type { LODMeshNodeProps } from './components/LODMeshNode';
+export type { LODMeshNodeProps, LODConfigProp } from './components/LODMeshNode';
+export { DraftMeshNode } from './components/DraftMeshNode';
+export type { DraftMeshNodeProps, DraftShape } from './components/DraftMeshNode';
 export {
   ProceduralGeometryComponent,
   getScaleTexture,
