@@ -45,7 +45,20 @@ function makeReader(files: Record<string, string>) {
   return { reader, calls };
 }
 
-/** Minimal HS+ source with @export */
+/**
+ * Generates minimal HS+ source code with an @export directive for testing.
+ * Creates a basic orb definition with the specified export metadata.
+ * 
+ * @param name - The name of the exported symbol
+ * @param kind - The export kind (default: 'template')
+ * @param extra - Additional content to include in the orb body
+ * @returns Formatted HS+ source string with @export directive and orb definition
+ * @example
+ * ```typescript
+ * hsExport('Button', 'component') 
+ * // Returns: '@export component "Button"\norb button { }\n'
+ * ```
+ */
 function hsExport(name: string, kind = 'template', extra = '') {
   return `@export ${kind} "${name}"\norb ${name.toLowerCase()} { ${extra} }\n`;
 }

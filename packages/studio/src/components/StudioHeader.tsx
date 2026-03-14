@@ -156,11 +156,89 @@ const SimpleMaterialPanel = dynamic(
   { ssr: false }
 );
 
-// Texture Paint Panel — brush painting on 3D surfaces
 const TexturePaintPanel = dynamic(
   () =>
     import('@/components/paint/TexturePaintPanel').then((m) => ({
       default: m.TexturePaintPanel,
+    })),
+  { ssr: false }
+);
+
+// Sprint 2-4: Orphaned studio components
+const CalibrationUncertaintyIndicator = dynamic(
+  () =>
+    import('@/components/ai/CalibrationUncertaintyIndicator').then((m) => ({
+      default: m.CalibrationUncertaintyIndicator,
+    })),
+  { ssr: false }
+);
+const DragonPreview = dynamic(
+  () =>
+    import('@/components/preview/DragonPreview').then((m) => ({
+      default: m.DragonPreview,
+    })),
+  { ssr: false }
+);
+const HoloDiffPanel = dynamic(
+  () =>
+    import('@/components/diff/HoloDiffPanel').then((m) => ({
+      default: m.HoloDiffPanel,
+    })),
+  { ssr: false }
+);
+const SliderMaterialInspector = dynamic(
+  () =>
+    import('@/components/inspector/SliderMaterialInspector').then((m) => ({
+      default: m.SliderMaterialInspector,
+    })),
+  { ssr: false }
+);
+const TraitSupportMatrixDashboard = dynamic(
+  () =>
+    import('@/components/registry/TraitSupportMatrixDashboard').then((m) => ({
+      default: m.TraitSupportMatrixDashboard,
+    })),
+  { ssr: false }
+);
+const AssetImportDropZone = dynamic(
+  () =>
+    import('@/components/import/AssetImportDropZone').then((m) => ({
+      default: m.AssetImportDropZone,
+    })),
+  { ssr: false }
+);
+const CinematicCameraPanel = dynamic(
+  () =>
+    import('@/components/camera/CinematicCameraPanel').then((m) => ({
+      default: m.CinematicCameraPanel,
+    })),
+  { ssr: false }
+);
+const SyntheticDataDashboard = dynamic(
+  () =>
+    import('@/components/synthetic/SyntheticDataDashboard').then((m) => ({
+      default: m.SyntheticDataDashboard,
+    })),
+  { ssr: false }
+);
+const CompilationPipelineVisualizer = dynamic(
+  () =>
+    import('@/components/pipeline/CompilationPipelineVisualizer').then((m) => ({
+      default: m.CompilationPipelineVisualizer,
+    })),
+  { ssr: false }
+);
+const ConfidenceAwareXRUI = dynamic(
+  () =>
+    import('@/components/xr/ConfidenceAwareXRUI').then((m) => ({
+      default: m.ConfidenceAwareXRUI,
+    })),
+  { ssr: false }
+);
+const StudioOperationsHub = dynamic(
+  () =>
+    import('@/components/operations/StudioOperationsHub').then((m) => ({
+      default: m.StudioOperationsHub,
     })),
   { ssr: false }
 );
@@ -997,6 +1075,63 @@ export function StudioHeader() {
       {dagOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[480px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
           <DAGVisualizationPanel onClose={toggleDagOpen} />
+        </div>
+      )}
+
+      {/* Sprint 2-4: Orphaned studio panels — now wired */}
+      {(usePanelVisibilityStore.getState() as any).calibrationOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <CalibrationUncertaintyIndicator onClose={() => usePanelVisibilityStore.getState().setCalibrationOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).dragonPreviewOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <DragonPreview onClose={() => usePanelVisibilityStore.getState().setDragonPreviewOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).holoDiffOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <HoloDiffPanel onClose={() => usePanelVisibilityStore.getState().setHoloDiffOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).sliderInspectorOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <SliderMaterialInspector onClose={() => usePanelVisibilityStore.getState().setSliderInspectorOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).traitMatrixOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <TraitSupportMatrixDashboard onClose={() => usePanelVisibilityStore.getState().setTraitMatrixOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).assetImportOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <AssetImportDropZone onClose={() => usePanelVisibilityStore.getState().setAssetImportOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).cinematicCameraOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <CinematicCameraPanel onClose={() => usePanelVisibilityStore.getState().setCinematicCameraOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).syntheticDataOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <SyntheticDataDashboard onClose={() => usePanelVisibilityStore.getState().setSyntheticDataOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).compilationPipelineOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <CompilationPipelineVisualizer onClose={() => usePanelVisibilityStore.getState().setCompilationPipelineOpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).confidenceXROpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <ConfidenceAwareXRUI onClose={() => usePanelVisibilityStore.getState().setConfidenceXROpen(false)} />
+        </div>
+      )}
+      {(usePanelVisibilityStore.getState() as any).operationsHubOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <StudioOperationsHub onClose={() => usePanelVisibilityStore.getState().setOperationsHubOpen(false)} />
         </div>
       )}
     </>

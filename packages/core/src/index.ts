@@ -3237,3 +3237,47 @@ export {
   type HotReloadEvent,
   type HotReloadCallback,
 } from './traits/HotReloadTrait';
+
+// ── Sprint 1: Identity & Validation ─────────────────────────────────────────
+export { AgentOutputSchemaValidator } from './identity/AgentOutputSchemaValidator';
+
+// ── Sprint 1: Testing & Contracts ───────────────────────────────────────────
+export { TraitPropertyTesting } from './testing/TraitPropertyTesting';
+export { TraitBehavioralContract } from './contracts/TraitBehavioralContract';
+
+// ── Sprint 1: Trait Support Matrix ──────────────────────────────────────────
+export { TraitSupportMatrix } from './traits/TraitSupportMatrix';
+
+// ── Sprint 3: Mixture-of-Memory-Experts Trait Database ──────────────────────
+export { MoMETraitDatabase } from './traits/MoMETraitDatabase';
+
+// ── Sprint 3: WASM Compilation Target ───────────────────────────────────────
+export { WASMCompilationTarget } from './wasm/WASMCompilationTarget';
+
+// ── Sprint 3: Material Preset Audit ─────────────────────────────────────────
+export { MaterialPresetAudit } from './materials/MaterialPresetAudit';
+
+// ── Sprint 4: Unified PBR Schema ────────────────────────────────────────────
+export { UnifiedPBRSchema } from './materials/UnifiedPBRSchema';
+
+// ── Sprint 4: SNN vs Backprop Experiment ────────────────────────────────────
+export { SNNvsBackpropExperiment } from './experiments/SNNvsBackpropExperiment';
+
+// ── Sprint 4: Circuit Breaker Suite ─────────────────────────────────────────
+export { CircuitBreakerCICD } from './circuit-breaker/CircuitBreakerCICD';
+export { CircuitBreakerBenchmarks } from './circuit-breaker/CircuitBreakerBenchmarks';
+export { CircuitBreakerDeployment } from './circuit-breaker/CircuitBreakerDeployment';
+
+// ── Sprint 2: Compiler Extensions ───────────────────────────────────────────
+export { COCOExporter } from './compiler/COCOExporter';
+export { GLTFPipelineMCPTool } from './compiler/GLTFPipelineMCPTool';
+export { NodeToyMapping } from './compiler/NodeToyMapping';
+export { RemotionBridge } from './compiler/RemotionBridge';
+export { ReproducibilityMode } from './compiler/ReproducibilityMode';
+export { SemanticSceneGraph } from './compiler/SemanticSceneGraph';
+
+// ── Sprint 3: Agent Inference Export ────────────────────────────────────────
+export { AgentInferenceExportTarget } from './compiler/AgentInferenceExportTarget';
+
+// ── Sprint 1: Procedural Geometry Patch ─────────────────────────────────────
+export { ProceduralGeometryPatch } from './compiler/ProceduralGeometry.patch';

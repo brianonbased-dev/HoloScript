@@ -52,6 +52,14 @@ const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..')
 
 loadEnvFile(REPO_ROOT);
 
+// Force bm25 embeddings for the experiment bridge — free, fast, no API cost.
+// OpenAI embeddings are higher quality but take 10+ minutes on the full repo
+// and cost money. bm25 is sufficient for code symbol matching in self-diagnose.
+// Override AFTER loadEnvFile so .env's EMBEDDING_PROVIDER=openai is overridden.
+if (!process.argv.includes('--openai-embeddings')) {
+  process.env.EMBEDDING_PROVIDER = 'bm25';
+}
+
 const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
 const BRIDGE_STATE_FILE = path.join(STATE_DIR, 'bridge-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
@@ -761,52 +769,40 @@ async function main() {
   const anthropic = new Anthropic();
   const bridgeState = loadBridgeState();
 
-  // Pre-load GraphRAG: check for cached graph first, then absorb with bm25 (no API cost).
-  // This avoids paying for OpenAI embeddings during the experiment — bm25 is free and fast.
-  console.log('Pre-loading GraphRAG...');
+  // Pre-load GraphRAG using bm25 embeddings (forced at startup, no API cost).
+  // EMBEDDING_PROVIDER=bm25 is set above loadEnvFile to override .env's openai.
+  // Use --openai-embeddings flag for higher quality at the cost of speed + API $.
+  console.log(`Pre-loading GraphRAG (provider: ${process.env.EMBEDDING_PROVIDER})...`);
   let graphRAGReady = false;
   try {
-    // Step 1: Check if there's already a cached graph
     const statusResult = await callTool(handlers, 'holo_graph_status', {});
     const status = JSON.parse(statusResult);
-    if (status.inMemory || status.graphRAGReady) {
-      console.log('  Graph already loaded in memory');
+
+    if (status.inMemory && status.graphRAGReady) {
+      console.log('  Graph already in memory — skipping absorb');
       graphRAGReady = true;
-    } else if (status.diskCache?.fresh) {
-      // Fresh disk cache exists — absorb will auto-load it (fast, no re-scan)
-      console.log(`  Found fresh disk cache (${status.diskCache.ageHuman}), loading...`);
-      const absorbResult = await callTool(handlers, 'holo_absorb_repo', {
+    } else {
+      // Absorb with force=false — uses disk cache if fresh (<24h), otherwise re-scans.
+      // bm25 embedding rebuild from cached graph takes ~2s vs 10+ min for OpenAI.
+      const label = status.diskCache?.fresh
+        ? `Loading from disk cache (${status.diskCache.ageHuman})...`
+        : 'Scanning codebase (first run)...';
+      console.log(`  ${label}`);
+
+      const absorbPromise = callTool(handlers, 'holo_absorb_repo', {
         rootDir: config.rootDir, outputFormat: 'stats',
       });
+      const timeoutPromise = new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('Absorb timed out after 120s')), 120_000),
+      );
+      const absorbResult = await Promise.race([absorbPromise, timeoutPromise]);
       const parsed = JSON.parse(absorbResult);
       if (!parsed.error) {
-        console.log(`  Loaded ${parsed.totalSymbols ?? '?'} symbols from cache`);
+        const src = parsed.cached ? 'cache' : 'scan';
+        console.log(`  Loaded ${parsed.totalSymbols ?? parsed.stats?.totalSymbols ?? '?'} symbols from ${src}`);
         graphRAGReady = true;
-      }
-    } else {
-      // No cache — absorb from scratch using bm25 (fast, free, no API calls)
-      console.log('  No cache found, absorbing with bm25 embeddings (free, no API cost)...');
-      const prevProvider = process.env.EMBEDDING_PROVIDER;
-      process.env.EMBEDDING_PROVIDER = 'bm25';
-      try {
-        const absorbPromise = callTool(handlers, 'holo_absorb_repo', {
-          rootDir: config.rootDir, outputFormat: 'stats',
-        });
-        const timeoutPromise = new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error('Absorb timed out after 120s')), 120_000),
-        );
-        const absorbResult = await Promise.race([absorbPromise, timeoutPromise]);
-        const parsed = JSON.parse(absorbResult);
-        if (!parsed.error) {
-          console.log(`  Absorbed ${parsed.totalSymbols ?? '?'} symbols from ${parsed.filesScanned ?? '?'} files`);
-          graphRAGReady = true;
-        } else {
-          console.warn(`  Absorb warning: ${parsed.error}`);
-        }
-      } finally {
-        // Restore original provider
-        if (prevProvider !== undefined) process.env.EMBEDDING_PROVIDER = prevProvider;
-        else delete process.env.EMBEDDING_PROVIDER;
+      } else {
+        console.warn(`  Absorb warning: ${parsed.error}`);
       }
     }
   } catch (err: any) {

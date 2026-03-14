@@ -77,7 +77,19 @@ export type PanelKey =
   | 'hotkeyOverlay'
   | 'prompts'
   | 'blame'
-  | 'dag';
+  | 'dag'
+  | 'calibration'
+  | 'dragonPreview'
+  | 'holoDiff'
+  | 'responsiveLayout'
+  | 'sliderInspector'
+  | 'traitMatrix'
+  | 'assetImport'
+  | 'cinematicCamera'
+  | 'syntheticData'
+  | 'compilationPipeline'
+  | 'confidenceXR'
+  | 'operationsHub';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -167,6 +179,18 @@ const PANEL_KEYS: PanelKey[] = [
   'prompts',
   'blame',
   'dag',
+  'calibration',
+  'dragonPreview',
+  'holoDiff',
+  'responsiveLayout',
+  'sliderInspector',
+  'traitMatrix',
+  'assetImport',
+  'cinematicCamera',
+  'syntheticData',
+  'compilationPipeline',
+  'confidenceXR',
+  'operationsHub',
 ];
 
 /** Panels that default to *open*. */

@@ -66,6 +66,17 @@ export default defineConfig({
     // Sub-barrel focused entry points (lighter than monolithic index.ts)
     'entries/scripting': 'src/entries/scripting.ts',
     'entries/interop': 'src/entries/interop.ts',
+
+    // Sprint 2: Compiler extensions
+    'compiler/coco': 'src/compiler/COCOExporter.ts',
+    'compiler/gltf-pipeline': 'src/compiler/GLTFPipelineMCPTool.ts',
+    'compiler/nodetoy': 'src/compiler/NodeToyMapping.ts',
+    'compiler/remotion': 'src/compiler/RemotionBridge.ts',
+    'compiler/reproducibility': 'src/compiler/ReproducibilityMode.ts',
+    'compiler/semantic-scene': 'src/compiler/SemanticSceneGraph.ts',
+
+    // Sprint 3: Agent inference export
+    'compiler/agent-inference': 'src/compiler/AgentInferenceExportTarget.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),

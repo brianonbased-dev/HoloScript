@@ -368,25 +368,46 @@ export class BundleAnalyzer {
    * Build dependency graphs
    */
   private buildDependencyGraphs(dependencies: Record<string, string[]>): void {
+    // Process each module's dependencies
     for (const [modulePath, deps] of Object.entries(dependencies)) {
-      const module = this.modules.get(modulePath);
-      if (module) {
-        module.dependencies = deps;
-        this.dependencyGraph.set(modulePath, new Set(deps));
+      this.updateModuleDependencies(modulePath, deps);
+      this.buildForwardGraph(modulePath, deps);
+      this.buildReverseGraph(modulePath, deps);
+    }
+  }
 
-        // Build reverse graph
-        for (const dep of deps) {
-          if (!this.reverseDependencyGraph.has(dep)) {
-            this.reverseDependencyGraph.set(dep, new Set());
-          }
-          this.reverseDependencyGraph.get(dep)!.add(modulePath);
+  /**
+   * Update module dependencies list
+   */
+  private updateModuleDependencies(modulePath: string, deps: string[]): void {
+    const module = this.modules.get(modulePath);
+    if (module) {
+      module.dependencies = deps;
+    }
+  }
 
-          // Update dependents in module
-          const depModule = this.modules.get(dep);
-          if (depModule) {
-            depModule.dependents.push(modulePath);
-          }
-        }
+  /**
+   * Build forward dependency graph
+   */
+  private buildForwardGraph(modulePath: string, deps: string[]): void {
+    this.dependencyGraph.set(modulePath, new Set(deps));
+  }
+
+  /**
+   * Build reverse dependency graph
+   */
+  private buildReverseGraph(modulePath: string, deps: string[]): void {
+    for (const dep of deps) {
+      // Initialize reverse dependency set if needed
+      if (!this.reverseDependencyGraph.has(dep)) {
+        this.reverseDependencyGraph.set(dep, new Set());
+      }
+      this.reverseDependencyGraph.get(dep)!.add(modulePath);
+
+      // Update dependents list in the dependency module
+      const depModule = this.modules.get(dep);
+      if (depModule) {
+        depModule.dependents.push(modulePath);
       }
     }
   }

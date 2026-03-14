@@ -498,6 +498,19 @@ export class SemEnaWerqRegistry {
 
 let globalRegistry: SemEnaWerqRegistry | null = null;
 
+/**
+ * Gets the global singleton instance of the SemEnaWerq documentation registry.
+ * 
+ * Creates a new registry instance if one doesn't exist. This registry serves as
+ * the central store for all trait documentation used by LSP, CLI, and tooling.
+ * 
+ * @returns The global SemEnaWerqRegistry instance
+ * @example
+ * ```typescript
+ * const registry = getDocRegistry();
+ * const grabbableDocs = registry.getTrait('Grabbable');
+ * ```
+ */
 export function getDocRegistry(): SemEnaWerqRegistry {
   if (!globalRegistry) {
     globalRegistry = new SemEnaWerqRegistry();
@@ -509,6 +522,21 @@ export function getDocRegistry(): SemEnaWerqRegistry {
 // Built-In Trait Documentation (Example Seed Data)
 // ═══════════════════════════════════════════════════════════════════
 
+/**
+ * Registers built-in HoloScript trait documentation into the provided registry.
+ * 
+ * Populates the registry with comprehensive documentation for core traits including
+ * Grabbable, Teleportable, Shimmering, and other fundamental VR/AR behaviors.
+ * This serves as seed data and examples for the documentation system.
+ * 
+ * @param registry - The SemEnaWerqRegistry instance to populate with built-in docs
+ * @example
+ * ```typescript
+ * const registry = new SemEnaWerqRegistry();
+ * registerBuiltInDocs(registry);
+ * // Registry now contains documentation for 20+ built-in traits
+ * ```
+ */
 export function registerBuiltInDocs(registry: SemEnaWerqRegistry): void {
   registry.register({
     sem: {
