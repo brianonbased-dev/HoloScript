@@ -18,6 +18,30 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { setGraphRAGState } from './graph-rag-tools';
 
 // =============================================================================
+// DYNAMIC EMBEDDING PROVIDER
+// =============================================================================
+
+/**
+ * Create an EmbeddingIndex with the provider selected by env vars.
+ *
+ * Reads EMBEDDING_PROVIDER (bm25 | xenova | openai | ollama, default: bm25)
+ * and passes relevant config (OPENAI_API_KEY, OLLAMA_URL, OLLAMA_MODEL, XENOVA_MODEL).
+ */
+async function createDynamicEmbeddingIndex(mod: any): Promise<any> {
+  const { EmbeddingIndex, createEmbeddingProvider } = mod;
+  const providerName = (process.env.EMBEDDING_PROVIDER ?? 'bm25') as any;
+  const provider = await createEmbeddingProvider({
+    provider: providerName,
+    ollamaUrl: process.env.OLLAMA_URL,
+    ollamaModel: process.env.OLLAMA_MODEL,
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    openaiModel: process.env.OPENAI_MODEL,
+    xenovaModel: process.env.XENOVA_MODEL,
+  });
+  return new EmbeddingIndex({ provider });
+}
+
+// =============================================================================
 // GRAPH PERSISTENCE
 // =============================================================================
 
@@ -281,11 +305,11 @@ async function ensureCachedGraph(): Promise<{
       cacheTimestamp = envelope.timestamp;
       // Rebuild GraphRAG (best-effort)
       try {
-        const { EmbeddingIndex, GraphRAGEngine } = mod;
-        const idx = new EmbeddingIndex();
+        const { GraphRAGEngine } = mod;
+        const idx = await createDynamicEmbeddingIndex(mod);
         await idx.buildIndex(cachedGraph);
         setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-      } catch { /* Ollama may not be running */ }
+      } catch { /* Embedding provider may not be available */ }
       const ageMs = Date.now() - envelope.timestamp;
       return { loaded: true, source: 'disk-cache', ageMs, rootDir: envelope.rootDir, stale: false };
     } catch {
@@ -368,11 +392,11 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
           cacheProvenance = 'disk-cache';
           cacheTimestamp = envelope.timestamp;
           try {
-            const { EmbeddingIndex, GraphRAGEngine } = mod;
-            const idx = new EmbeddingIndex();
+            const { GraphRAGEngine } = mod;
+            const idx = await createDynamicEmbeddingIndex(mod);
             await idx.buildIndex(cachedGraph);
             setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-          } catch { /* Ollama may not be running */ }
+          } catch { /* Embedding provider may not be available */ }
         } catch { /* corrupt cache — fall through to fresh scan */ }
       }
 
