@@ -48,8 +48,8 @@ export function walkTree(root: SyntaxNode, visitor: NodeVisitor): void {
  * Supports the following comment formats:
  * - JSDoc: `/** ... */` (JavaScript/TypeScript) - strips /** */ and leading asterisks
  * - Python docstrings: Triple-quoted strings immediately following function/class definitions
- * - Rust doc comments: `/// ...` comments - strips triple slashes
- * - Go doc comments: `// ...` comments preceding declarations
+ * - Rust doc comments: /// comments - strips triple slashes
+ * - Go doc comments: // comments preceding declarations
  * 
  * The function automatically detects and processes the appropriate format based on
  * the comment structure and language context.
