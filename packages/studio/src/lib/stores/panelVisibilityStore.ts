@@ -75,7 +75,8 @@ export type PanelKey =
   | 'examples'
   | 'tutorial'
   | 'hotkeyOverlay'
-  | 'prompts';
+  | 'prompts'
+  | 'blame';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -163,6 +164,7 @@ const PANEL_KEYS: PanelKey[] = [
   'tutorial',
   'hotkeyOverlay',
   'prompts',
+  'blame',
 ];
 
 /** Panels that default to *open*. */

@@ -441,13 +441,13 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
 
   // Build embedding index for Graph RAG (async, best-effort)
   try {
-    const { EmbeddingIndex, GraphRAGEngine } = mod;
-    const embeddingIndex = new EmbeddingIndex();
+    const { GraphRAGEngine } = mod;
+    const embeddingIndex = await createDynamicEmbeddingIndex(mod);
     await embeddingIndex.buildIndex(graph);
     const ragEngine = new GraphRAGEngine(graph, embeddingIndex);
     setGraphRAGState(embeddingIndex, ragEngine);
   } catch {
-    // Ollama may not be available; Graph RAG tools will return helpful errors
+    // Embedding provider may not be available; Graph RAG tools will return helpful errors
   }
 
   const stats = graph.getStats();

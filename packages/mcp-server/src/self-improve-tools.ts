@@ -537,8 +537,8 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
   if (!isGraphRAGReady()) {
     return {
       error:
-        'No Graph RAG engine initialized. Call holo_absorb_repo first, ' +
-        'or ensure Ollama is running with nomic-embed-text model.',
+        'No Graph RAG engine initialized. Call holo_absorb_repo first. ' +
+        'Embedding provider is configured via EMBEDDING_PROVIDER env var (bm25 | xenova | openai | ollama).',
       hint: 'Run: holo_absorb_repo with rootDir pointing to the project root.',
     };
   }

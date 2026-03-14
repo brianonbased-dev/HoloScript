@@ -13,6 +13,7 @@ import {
   Server,
   Workflow,
   GitCommit,
+  Eye,
   GitBranch,
   Users,
   Activity,
@@ -169,6 +170,8 @@ export function StudioHeader() {
   const toggleMaterialOpen = usePanelVisibilityStore((s) => s.toggleMaterialOpen);
   const texturePaintOpen = usePanelVisibilityStore((s) => s.texturePaintOpen);
   const toggleTexturePaintOpen = usePanelVisibilityStore((s) => s.toggleTexturePaintOpen);
+  const blameOpen = usePanelVisibilityStore((s) => s.blameOpen);
+  const toggleBlameOpen = usePanelVisibilityStore((s) => s.toggleBlameOpen);
 
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
@@ -432,6 +435,21 @@ export function StudioHeader() {
               <span className="hidden lg:inline">Governance</span>
             </button>
 
+            {/* Spatial Blame — git blame overlay for .holo traits (Ctrl+Shift+B) */}
+            <button
+              id="studio-header-blame"
+              onClick={toggleBlameOpen}
+              title="Spatial Blame (Ctrl+Shift+B)"
+              className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                blameOpen
+                  ? 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+                  : 'border-studio-border bg-studio-surface text-studio-muted hover:border-rose-500/40 hover:text-rose-400'
+              }`}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span className="hidden lg:inline">Blame</span>
+            </button>
+
             {/* Agent Monitor — uAA2++ cycle telemetry */}
             <button
               id="studio-header-agent-monitor"
@@ -620,6 +638,16 @@ export function StudioHeader() {
                           setOverflowOpen(false);
                         },
                         color: 'indigo',
+                      },
+                      {
+                        label: 'Blame',
+                        icon: Eye,
+                        active: blameOpen,
+                        onClick: () => {
+                          toggleBlameOpen();
+                          setOverflowOpen(false);
+                        },
+                        color: 'rose',
                       },
                       {
                         label: 'Workflow',
