@@ -1,4 +1,39 @@
-export function createEarthquakeComposition(): any {
+interface EarthquakeComposition {
+  name: string;
+  description: string;
+  version: string;
+  traits: {
+    simulation: {
+      buildingCount: number;
+      magnitude: number;
+      epicenterPosition: [number, number, number];
+      duration: number;
+    };
+    particles: {
+      seismicWaves: {
+        count: number;
+        color: string;
+        size: number;
+      };
+      debris: {
+        count: number;
+        color: string;
+        size: number;
+      };
+    };
+    camera: {
+      position: [number, number, number];
+      target: [number, number, number];
+      fov: number;
+    };
+    physics: {
+      gravity: [number, number, number];
+      timeScale: number;
+    };
+  };
+}
+
+export function createEarthquakeComposition(): EarthquakeComposition {
   return {
     name: 'AdvancedEarthquakeDemo',
     description: 'High-fidelity earthquake simulation with advanced rendering',

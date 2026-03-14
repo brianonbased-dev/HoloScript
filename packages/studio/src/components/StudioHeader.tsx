@@ -129,6 +129,15 @@ const ConformanceSuitePanel = dynamic(
   { ssr: false }
 );
 
+// DAG Visualization — scene graph viewer
+const DAGVisualizationPanel = dynamic(
+  () =>
+    import('@/components/visualization/DAGVisualizationPanel').then((m) => ({
+      default: m.DAGVisualizationPanel,
+    })),
+  { ssr: false }
+);
+
 // Agent Monitor — uAA2++ cycle telemetry
 const AgentMonitorPanel = dynamic(
   () =>
@@ -181,6 +190,8 @@ export function StudioHeader() {
   const toggleTexturePaintOpen = usePanelVisibilityStore((s) => s.toggleTexturePaintOpen);
   const blameOpen = usePanelVisibilityStore((s) => s.blameOpen);
   const toggleBlameOpen = usePanelVisibilityStore((s) => s.toggleBlameOpen);
+  const dagOpen = usePanelVisibilityStore((s) => s.dagOpen);
+  const toggleDagOpen = usePanelVisibilityStore((s) => s.toggleDagOpen);
 
   // ── Keyboard shortcut: Ctrl+Shift+B → toggle blame overlay ──────────────
   useEffect(() => {
@@ -979,6 +990,13 @@ export function StudioHeader() {
             traitLabel="scene"
             onClose={toggleBlameOpen}
           />
+        </div>
+      )}
+
+      {/* DAG Visualization (right sidebar — scene graph viewer) */}
+      {dagOpen && (
+        <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[480px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <DAGVisualizationPanel onClose={toggleDagOpen} />
         </div>
       )}
     </>
