@@ -16,6 +16,8 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const execAsync = promisify(exec);
 
@@ -24,6 +26,129 @@ const execAsync = promisify(exec);
 // =============================================================================
 
 export const selfImproveTools: Tool[] = [
+  {
+    name: 'holo_write_file',
+    description:
+      'Write content to a file. Creates parent directories if needed. ' +
+      'Use for generating tests, documentation, or applying fixes. ' +
+      'Path must be within the project root directory.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: 'Absolute path to the file to write',
+        },
+        content: {
+          type: 'string',
+          description: 'The full content to write to the file',
+        },
+        createOnly: {
+          type: 'boolean',
+          description: 'If true, fail if file already exists. Defaults to false.',
+        },
+      },
+      required: ['filePath', 'content'],
+    },
+  },
+  {
+    name: 'holo_edit_file',
+    description:
+      'Apply a search-and-replace edit to an existing file. ' +
+      'The old_string must match exactly (including whitespace). ' +
+      'Use for targeted code fixes without rewriting entire files.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: 'Absolute path to the file to edit',
+        },
+        oldString: {
+          type: 'string',
+          description: 'The exact string to search for in the file',
+        },
+        newString: {
+          type: 'string',
+          description: 'The replacement string',
+        },
+      },
+      required: ['filePath', 'oldString', 'newString'],
+    },
+  },
+  {
+    name: 'holo_read_file',
+    description:
+      'Read the contents of a file. Use to understand code before making edits.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: 'Absolute path to the file to read',
+        },
+        startLine: {
+          type: 'number',
+          description: 'Start reading from this line (1-indexed). Defaults to 1.',
+        },
+        endLine: {
+          type: 'number',
+          description: 'Stop reading at this line. Defaults to end of file.',
+        },
+      },
+      required: ['filePath'],
+    },
+  },
+  {
+    name: 'holo_git_commit',
+    description:
+      'Stage changed files and create a git commit. ' +
+      'Only commits files within the project root.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Root directory of the git repository',
+        },
+        files: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'File paths to stage (relative to rootDir). If empty, stages all changed files.',
+        },
+        message: {
+          type: 'string',
+          description: 'Commit message',
+        },
+      },
+      required: ['rootDir', 'message'],
+    },
+  },
+  {
+    name: 'holo_run_tests_targeted',
+    description:
+      'Run vitest on specific test files instead of the entire suite. ' +
+      'Much faster than full test run for validating individual changes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Root directory of the project',
+        },
+        testFiles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Specific test file paths to run (relative to rootDir)',
+        },
+        testPattern: {
+          type: 'string',
+          description: 'Test name pattern to match (vitest -t flag)',
+        },
+      },
+      required: ['rootDir'],
+    },
+  },
   {
     name: 'holo_self_diagnose',
     description:
@@ -88,6 +213,16 @@ export async function handleSelfImproveTool(
   args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
+    case 'holo_write_file':
+      return handleWriteFile(args);
+    case 'holo_edit_file':
+      return handleEditFile(args);
+    case 'holo_read_file':
+      return handleReadFile(args);
+    case 'holo_git_commit':
+      return handleGitCommit(args);
+    case 'holo_run_tests_targeted':
+      return handleRunTestsTargeted(args);
     case 'holo_self_diagnose':
       return handleDiagnose(args);
     case 'holo_validate_quality':
@@ -97,7 +232,196 @@ export async function handleSelfImproveTool(
   }
 }
 
-// ── Handlers ─────────────────────────────────────────────────────────────────
+// ── Write/Edit Handlers ──────────────────────────────────────────────────────
+
+async function handleWriteFile(args: Record<string, unknown>): Promise<unknown> {
+  const filePath = args.filePath as string;
+  const content = args.content as string;
+  const createOnly = (args.createOnly as boolean) ?? false;
+
+  if (!filePath || !path.isAbsolute(filePath)) {
+    return { error: 'filePath must be an absolute path' };
+  }
+
+  if (createOnly && fs.existsSync(filePath)) {
+    return { error: `File already exists: ${filePath}` };
+  }
+
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return {
+      success: true,
+      filePath,
+      bytesWritten: Buffer.byteLength(content, 'utf-8'),
+      linesWritten: content.split('\n').length,
+    };
+  } catch (err: any) {
+    return { error: `Write failed: ${err.message}` };
+  }
+}
+
+async function handleEditFile(args: Record<string, unknown>): Promise<unknown> {
+  const filePath = args.filePath as string;
+  const oldString = args.oldString as string;
+  const newString = args.newString as string;
+
+  if (!filePath || !path.isAbsolute(filePath)) {
+    return { error: 'filePath must be an absolute path' };
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return { error: `File not found: ${filePath}` };
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const occurrences = content.split(oldString).length - 1;
+
+    if (occurrences === 0) {
+      return { error: 'oldString not found in file', filePath };
+    }
+
+    if (occurrences > 1) {
+      return {
+        error: `oldString found ${occurrences} times — must be unique. Provide more context.`,
+        filePath,
+      };
+    }
+
+    const updated = content.replace(oldString, newString);
+    fs.writeFileSync(filePath, updated, 'utf-8');
+    return {
+      success: true,
+      filePath,
+      replacements: 1,
+    };
+  } catch (err: any) {
+    return { error: `Edit failed: ${err.message}` };
+  }
+}
+
+async function handleReadFile(args: Record<string, unknown>): Promise<unknown> {
+  const filePath = args.filePath as string;
+  const startLine = (args.startLine as number) ?? 1;
+  const endLine = args.endLine as number | undefined;
+
+  if (!filePath || !path.isAbsolute(filePath)) {
+    return { error: 'filePath must be an absolute path' };
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return { error: `File not found: ${filePath}` };
+  }
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    const start = Math.max(0, startLine - 1);
+    const end = endLine ? Math.min(lines.length, endLine) : Math.min(lines.length, start + 200);
+    const slice = lines.slice(start, end);
+
+    return {
+      filePath,
+      startLine: start + 1,
+      endLine: end,
+      totalLines: lines.length,
+      content: slice.map((line, i) => `${start + i + 1}: ${line}`).join('\n'),
+    };
+  } catch (err: any) {
+    return { error: `Read failed: ${err.message}` };
+  }
+}
+
+async function handleGitCommit(args: Record<string, unknown>): Promise<unknown> {
+  const rootDir = args.rootDir as string;
+  const files = (args.files as string[]) ?? [];
+  const message = args.message as string;
+
+  if (!message) {
+    return { error: 'Commit message is required' };
+  }
+
+  try {
+    // Stage files
+    if (files.length > 0) {
+      const fileArgs = files.map((f) => `"${f}"`).join(' ');
+      await execAsync(`git add ${fileArgs}`, { cwd: rootDir, timeout: 30_000 });
+    } else {
+      await execAsync('git add -A', { cwd: rootDir, timeout: 30_000 });
+    }
+
+    // Commit
+    const commitMsg = message.replace(/"/g, '\\"');
+    const { stdout } = await execAsync(
+      `git commit -m "${commitMsg}" --author="HoloScript Daemon <daemon@holoscript.dev>"`,
+      { cwd: rootDir, timeout: 30_000 }
+    );
+
+    return {
+      success: true,
+      message,
+      output: stdout.trim(),
+    };
+  } catch (err: any) {
+    return { error: `Git commit failed: ${err.message}` };
+  }
+}
+
+async function handleRunTestsTargeted(args: Record<string, unknown>): Promise<unknown> {
+  const rootDir = args.rootDir as string;
+  const testFiles = (args.testFiles as string[]) ?? [];
+  const testPattern = args.testPattern as string | undefined;
+
+  try {
+    let cmd = 'npx vitest run --reporter=json';
+    if (testFiles.length > 0) {
+      cmd += ' ' + testFiles.map((f) => `"${f}"`).join(' ');
+    }
+    if (testPattern) {
+      cmd += ` -t "${testPattern}"`;
+    }
+
+    const { stdout, stderr } = await execAsync(cmd + ' 2>&1', {
+      cwd: rootDir,
+      timeout: 120_000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    const output = stdout + stderr;
+    try {
+      const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          success: result.success ?? false,
+          numPassed: result.numPassedTests ?? 0,
+          numFailed: result.numFailedTests ?? 0,
+          numTotal: result.numTotalTests ?? 0,
+          testFiles,
+          duration: result.startTime
+            ? Date.now() - result.startTime
+            : undefined,
+        };
+      }
+    } catch { /* JSON parse failed */ }
+
+    return {
+      success: !output.includes('FAIL'),
+      rawOutput: output.slice(0, 5000),
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message?.slice(0, 2000),
+    };
+  }
+}
+
+// ── Diagnostic Handlers ──────────────────────────────────────────────────────
 
 async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
   const focus = (args.focus as string) ?? 'all';

@@ -47,11 +47,40 @@ import * as fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { SelfImproveHarvester } from '../packages/core/src/self-improvement/SelfImproveHarvester';
 
+// ─── .env Loading (no dotenv dependency) ─────────────────────────────────────
+
+function loadEnvFile(dir: string): void {
+  const envPath = path.join(dir, '.env');
+  try {
+    if (!fs.existsSync(envPath)) return;
+    const content = fs.readFileSync(envPath, 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let val = trimmed.slice(eqIdx + 1).trim();
+      // Strip surrounding quotes
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      // Only set if not already in environment (env vars take precedence)
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
+  } catch { /* best effort */ }
+}
+
 // ─── Path Resolution ─────────────────────────────────────────────────────────
 
 const __scriptDir =
   typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..');
+
+// Load .env from repo root before anything else
+loadEnvFile(REPO_ROOT);
 const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
 const STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
@@ -342,15 +371,22 @@ ${skillContext ? `## /holoscript Skill\n${skillContext}\n` : ''}
 ## Protocol
 1. **ABSORB**: Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
 2. **DIAGNOSE**: Call holo_self_diagnose with focus="${focus}".
-3. **ANALYZE**: Pick #1 candidate. Use holo_query_codebase to understand it.
-4. **VALIDATE**: Call holo_validate_quality with rootDir="${config.rootDir}".
-5. **REPORT**: Concise summary with:
-   - Top candidate (symbol, file, line)
-   - Quality score
-   - W/P/G wisdom (uAA2++ format)
-   - Recommended action
+3. **ANALYZE**: Pick the #1 candidate. Use holo_read_file to understand the code around it.
+4. **GENERATE**: Write a fix or test using holo_write_file or holo_edit_file.
+   - For missing tests: create a test file next to the source (e.g., foo.test.ts).
+   - For missing docs: add JSDoc via holo_edit_file.
+   - For complexity: refactor via holo_edit_file.
+5. **VERIFY**: Run holo_run_tests_targeted on the affected test files to confirm the fix.
+6. **COMMIT**: If tests pass${config.commit ? '' : ' AND auto-commit is enabled'}, call holo_git_commit.
+7. **VALIDATE**: Call holo_validate_quality with rootDir="${config.rootDir}" to measure overall improvement.
+8. **REPORT**: Concise summary with top candidate, quality delta, and what was changed.
 
-Keep responses concise. You are a diagnosis engine, not a code editor.`;
+## Rules
+- Read before editing. Always use holo_read_file before holo_edit_file.
+- One fix per cycle. Pick the highest-priority candidate and fix it well.
+- Keep changes small and targeted. Do not refactor unrelated code.
+- If a fix breaks tests, revert via holo_edit_file and report the failure.
+- Keep responses concise — focus on actions, not analysis.`;
 
   let messages: Anthropic.MessageParam[] = [
     {
