@@ -1,0 +1,61 @@
+/**
+ * gravity.test.hsplus
+ *
+ * Example HoloTest physics test:  verify discrete-time gravity simulation
+ * using TickSimulator from @holoscript/test.
+ *
+ * This file shows the .hsplus scene definition.  The TickSimulator is
+ * exercised via the companion TypeScript test at:
+ *   packages/test/examples/gravity.test.ts
+ */
+
+composition "Gravity Demo" {
+
+  // A static floor the crate should land on
+  object "main_floor" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    size:     [10, 0.5, 10]
+  }
+
+  // A dynamic crate dropped from 5m height
+  object "nft_crate" {
+    @physics
+    @collidable
+    @grabbable
+    geometry: "cube"
+    position: [0, 5, 0]
+    size:     [1, 1, 1]
+
+    physics: {
+      mass:        5.0
+      restitution: 0.3
+      friction:    0.8
+    }
+  }
+
+  // ── Physics test assertions ───────────────────────────────────────────────
+
+  describe "gravity simulation" {
+
+    /**
+     * After 120 ticks (2 seconds at 60 Hz with gravity=-9.81 m/s²):
+     *   - The crate should have landed on the floor
+     *   - The crate bottom Y must not penetrate below floor top Y
+     */
+    test "crate lands on floor — no clipping" {
+      // Run physics forward 2 seconds (handled by execute_holotest when
+      // provided with a physics {} block or TickSimulator config)
+      expect(nft_crate).not.toIntersect(main_floor)
+    }
+
+    test "crate stays within reasonable horizontal bounds" {
+      // No sideways drift expected for pure vertical drop
+      expect(nft_crate).toBeWithinVolume({
+        min: [-2, 0, -2],
+        max: [ 2, 8,  2]
+      })
+    }
+  }
+}

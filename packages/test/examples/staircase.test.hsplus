@@ -1,0 +1,94 @@
+/**
+ * staircase.test.hsplus
+ *
+ * Example HoloTest spatial test:  verify a staircase scene has no
+ * clipping between steps and walls, and that the player stays
+ * within the room volume.
+ *
+ * Run via MCP tool:  execute_holotest  (pass this file content as `code`)
+ * Or from CLI:       npx tsx packages/cli/src/cli.ts parse examples/staircase.test.hsplus
+ */
+
+composition "Staircase Scene" {
+
+  // ── Environment ─────────────────────────────────────────────────────────
+
+  object "room_floor" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    size:     [10, 0.2, 10]
+  }
+
+  object "north_wall" {
+    geometry: "cube"
+    position: [0, 2.5, 5]
+    size:     [10, 5, 0.3]
+  }
+
+  object "south_wall" {
+    geometry: "cube"
+    position: [0, 2.5, -5]
+    size:     [10, 5, 0.3]
+  }
+
+  // ── Staircase steps ──────────────────────────────────────────────────────
+
+  object "step_1" {
+    geometry: "cube"
+    position: [0, 0.25,  1]
+    size:     [2, 0.5,   1]
+    material: "concrete"
+  }
+
+  object "step_2" {
+    geometry: "cube"
+    position: [0, 0.75,  2]
+    size:     [2, 0.5,   1]
+    material: "concrete"
+  }
+
+  object "step_3" {
+    geometry: "cube"
+    position: [0, 1.25,  3]
+    size:     [2, 0.5,   1]
+    material: "concrete"
+  }
+
+  // ── Player ───────────────────────────────────────────────────────────────
+
+  object "player" {
+    @physics
+    @collidable
+    geometry: "capsule"
+    position: [0, 0.9, 0]
+    size:     [0.6, 1.8, 0.6]
+  }
+
+  // ── Spatial Tests ─────────────────────────────────────────────────────────
+
+  describe "staircase geometry checks" {
+
+    test "no step clips through north wall" {
+      // step_3 is closest to the north wall; assert no overlap
+      expect(step_3).not.toIntersect(north_wall)
+    }
+
+    test "no step clips through south wall" {
+      expect(step_1).not.toIntersect(south_wall)
+      expect(step_2).not.toIntersect(south_wall)
+      expect(step_3).not.toIntersect(south_wall)
+    }
+
+    test "steps do not overlap each other" {
+      expect(step_1).not.toIntersect(step_2)
+      expect(step_2).not.toIntersect(step_3)
+    }
+
+    test "player stays within room volume" {
+      expect(player).toBeWithinVolume({
+        min: [-5, 0, -5],
+        max: [ 5, 5,  5]
+      })
+    }
+  }
+}
