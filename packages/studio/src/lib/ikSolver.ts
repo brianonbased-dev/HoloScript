@@ -8,6 +8,8 @@
 // Re-export THREE.js IK solver class
 export { IKSolver } from './sculpt/ikSolver';
 
+import { vec3Normalize, vec3Length, vec3Distance, vec3Sub, vec3Add, vec3Scale } from '@holoscript/core/math/vec3.js';
+
 /*
  */
 
@@ -40,22 +42,13 @@ export interface IKResult {
   finalDistance: number;
 }
 
-function vec3Dist(a: Vec3, b: Vec3): number {
-  const dx = b.x - a.x,
-    dy = b.y - a.y,
-    dz = b.z - a.z;
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-}
+// Removed duplicate vec3Dist - using centralized vec3Distance
 
 function vec3Sub(a: Vec3, b: Vec3): Vec3 {
   return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
 
-function vec3Normalize(v: Vec3): Vec3 {
-  const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-  if (len === 0) return { x: 0, y: 0, z: 0 };
-  return { x: v.x / len, y: v.y / len, z: v.z / len };
-}
+// Removed duplicate vec3Normalize - using centralized math utilities
 
 function vec3Scale(v: Vec3, s: number): Vec3 {
   return { x: v.x * s, y: v.y * s, z: v.z * s };
@@ -82,11 +75,11 @@ export function fabrikSolve(chain: IKChain): IKResult {
   // Pre-compute bone lengths
   const boneLengths: number[] = [];
   for (let i = 0; i < n - 1; i++) {
-    boneLengths.push(vec3Dist(chain.joints[i].position, chain.joints[i + 1].position));
+    boneLengths.push(vec3Distance(chain.joints[i].position, chain.joints[i + 1].position));
   }
 
   const totalLength = boneLengths.reduce((s, l) => s + l, 0);
-  const targetDist = vec3Dist(chain.joints[0].position, chain.target);
+  const targetDist = vec3Distance(chain.joints[0].position, chain.target);
 
   const positions = chain.joints.map((j) => ({ ...j.position }));
   const root = { ...positions[0] };
@@ -110,7 +103,7 @@ export function fabrikSolve(chain: IKChain): IKResult {
   // FABRIK iterations
   let iterations = 0;
   for (iterations = 0; iterations < chain.maxIterations; iterations++) {
-    const endDist = vec3Dist(positions[n - 1], chain.target);
+    const endDist = vec3Distance(positions[n - 1], chain.target);
     if (endDist <= chain.tolerance) break;
 
     // Forward pass: move end effector to target
@@ -128,7 +121,7 @@ export function fabrikSolve(chain: IKChain): IKResult {
     }
   }
 
-  const finalDist = vec3Dist(positions[n - 1], chain.target);
+  const finalDist = vec3Distance(positions[n - 1], chain.target);
 
   return {
     joints: positions,
