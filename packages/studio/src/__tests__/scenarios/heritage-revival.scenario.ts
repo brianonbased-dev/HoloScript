@@ -16,7 +16,7 @@ function isFullyVerified(chain: { verifier: string }[], minVerifiers: number): b
 }
 
 function restorationBountyReward(condition: number): number {
-  return Math.floor((1 - condition) * 50);
+  return Math.round((1 - condition) * 50);
 }
 
 function needsRestoration(condition: number, threshold: number): boolean {
