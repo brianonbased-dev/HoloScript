@@ -36,8 +36,34 @@ export function walkTree(root: SyntaxNode, visitor: NodeVisitor): void {
 }
 
 /**
- * Extract a doc comment preceding a node.
- * Handles JSDoc (/** ... * /), Python docstrings, Rust /// comments, Go // comments.
+ * Extract a documentation comment preceding a syntax node.
+ * 
+ * This function parses various comment formats used across different programming languages
+ * and extracts clean documentation text without formatting artifacts.
+ * 
+ * @param node - The syntax tree node to extract documentation for
+ * @returns The cleaned documentation text, or undefined if no documentation comment is found
+ * 
+ * @remarks
+ * Supports the following comment formats:
+ * - JSDoc: `/** ... */` (JavaScript/TypeScript) - strips /** */ and leading asterisks
+ * - Python docstrings: Triple-quoted strings immediately following function/class definitions
+ * - Rust doc comments: `/// ...` comments - strips triple slashes
+ * - Go doc comments: `// ...` comments preceding declarations
+ * 
+ * The function automatically detects and processes the appropriate format based on
+ * the comment structure and language context.
+ * 
+ * @example
+ * ```typescript
+ * // For a node with preceding JSDoc comment:
+ * const docText = extractDocComment(functionNode);
+ * // Returns: "This function does something important"
+ * 
+ * // For a node without documentation:
+ * const noDoc = extractDocComment(variableNode);
+ * // Returns: undefined
+ * ```
  */
 export function extractDocComment(node: SyntaxNode): string | undefined {
   const prev = getPreviousSibling(node);
