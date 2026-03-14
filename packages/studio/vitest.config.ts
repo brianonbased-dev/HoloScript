@@ -7,6 +7,8 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.scenario.ts', 'src/**/*.scenario.tsx'],
     globals: true,
     pool: 'forks',
+    isolate: true,
+    restoreMocks: true,
     setupFiles: ['./src/test-setup/vitest.setup.ts'],
     coverage: {
       provider: 'v8',

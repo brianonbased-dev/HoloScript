@@ -178,6 +178,19 @@ function simulateCompilation(
   };
 }
 
+/**
+ * Generates a list of mock missing features for benchmark simulation.
+ * Used to simulate compilation gaps across different target platforms.
+ * 
+ * @param count - Number of missing features to generate (capped at available features)
+ * @returns Array of feature names that are "missing" from the target platform
+ * 
+ * @example
+ * ```typescript
+ * const missing = generateMissingFeatures(3);
+ * // Returns: ['body_tracking', 'gaussian_splat', 'haptic_feedback']
+ * ```
+ */
 function generateMissingFeatures(count: number): string[] {
   const allFeatures = [
     'body_tracking',

@@ -594,13 +594,19 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'communities': {
       const communities: Map<string, string[]> = cachedGraph.detectCommunities();
+      // Cap output: only show file counts + top 10 files per community to prevent token overflow
+      const MAX_FILES_PER_COMMUNITY = 10;
       return {
         query: 'communities',
-        results: Array.from(communities.entries()).map(([name, files]: [string, string[]]) => ({
-          name,
-          files,
-          fileCount: files.length,
-        })),
+        results: Array.from(communities.entries())
+          .sort(([, a]: [string, string[]], [, b]: [string, string[]]) => b.length - a.length)
+          .slice(0, 50)
+          .map(([name, files]: [string, string[]]) => ({
+            name,
+            files: files.slice(0, MAX_FILES_PER_COMMUNITY),
+            fileCount: files.length,
+            truncated: files.length > MAX_FILES_PER_COMMUNITY,
+          })),
         count: communities.size,
         ...(cacheNote && { cacheNote }),
       };

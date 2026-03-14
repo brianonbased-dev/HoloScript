@@ -63,5 +63,93 @@ describe('Scenario: Water Scarcity — Mitigation', () => {
     expect(sensorStaleness(4000, 5000, 3000)).toBe(false);
   });
   it.todo('ROS2 bridge integration for real IoT sensors');
-  it.todo('Satellite imagery overlay visualization');
+});
+
+// ── Visualization: Satellite Imagery Overlay ──────────────────────────────
+// Multi-layer tile compositor for stacking satellite bands on terrain maps.
+
+type SatelliteBand = 'visible' | 'infrared' | 'ndvi' | 'thermal';
+
+interface SatelliteLayer {
+  band: SatelliteBand;
+  opacity: number; // 0–1
+  resolution: number; // m/pixel
+  tileUrl: string;
+  bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number };
+}
+
+interface CompositePixel {
+  r: number; g: number; b: number; a: number;
+}
+
+function composeLayers(layers: SatelliteLayer[]): SatelliteLayer[] {
+  // Sort by opacity descending so highest-opacity layer renders on top
+  return [...layers].sort((a, b) => b.opacity - a.opacity);
+}
+
+function layerCoversRegion(
+  layer: SatelliteLayer,
+  region: { lat: number; lon: number },
+): boolean {
+  return (
+    region.lat >= layer.bounds.minLat &&
+    region.lat <= layer.bounds.maxLat &&
+    region.lon >= layer.bounds.minLon &&
+    region.lon <= layer.bounds.maxLon
+  );
+}
+
+function blendOpacity(base: number, overlay: number, overlayAlpha: number): number {
+  return base * (1 - overlayAlpha) + overlay * overlayAlpha;
+}
+
+function bestResolutionLayer(layers: SatelliteLayer[]): SatelliteLayer | null {
+  if (layers.length === 0) return null;
+  return layers.reduce((best, l) => l.resolution < best.resolution ? l : best);
+}
+
+function filterByBand(layers: SatelliteLayer[], band: SatelliteBand): SatelliteLayer[] {
+  return layers.filter(l => l.band === band);
+}
+
+describe('Scenario: Water Scarcity — Satellite Imagery Overlay', () => {
+  const layers: SatelliteLayer[] = [
+    {
+      band: 'visible', opacity: 1.0, resolution: 10,
+      tileUrl: '/tiles/visible/{z}/{x}/{y}.png',
+      bounds: { minLat: 10, maxLat: 20, minLon: 30, maxLon: 40 },
+    },
+    {
+      band: 'ndvi', opacity: 0.6, resolution: 30,
+      tileUrl: '/tiles/ndvi/{z}/{x}/{y}.png',
+      bounds: { minLat: 10, maxLat: 20, minLon: 30, maxLon: 40 },
+    },
+    {
+      band: 'infrared', opacity: 0.4, resolution: 60,
+      tileUrl: '/tiles/ir/{z}/{x}/{y}.png',
+      bounds: { minLat: 12, maxLat: 18, minLon: 32, maxLon: 38 },
+    },
+  ];
+
+  it('composeLayers() sorts by opacity desc', () => {
+    const composed = composeLayers(layers);
+    expect(composed[0].band).toBe('visible');
+    expect(composed[composed.length - 1].band).toBe('infrared');
+  });
+  it('layerCoversRegion() checks bounds', () => {
+    expect(layerCoversRegion(layers[0], { lat: 15, lon: 35 })).toBe(true);
+    expect(layerCoversRegion(layers[2], { lat: 11, lon: 35 })).toBe(false); // IR bounds tighter
+  });
+  it('blendOpacity() composites two values', () => {
+    expect(blendOpacity(100, 200, 0.5)).toBe(150);
+    expect(blendOpacity(100, 200, 0.0)).toBe(100);
+    expect(blendOpacity(100, 200, 1.0)).toBe(200);
+  });
+  it('bestResolutionLayer() picks lowest m/pixel', () => {
+    expect(bestResolutionLayer(layers)?.band).toBe('visible'); // 10 m/px
+  });
+  it('filterByBand() isolates specific bands', () => {
+    expect(filterByBand(layers, 'ndvi')).toHaveLength(1);
+    expect(filterByBand(layers, 'thermal')).toHaveLength(0);
+  });
 });

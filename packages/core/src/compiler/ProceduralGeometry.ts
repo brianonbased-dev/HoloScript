@@ -78,27 +78,12 @@ function catmullRom(p0: number[], p1: number[], p2: number[], p3: number[], t: n
   return result;
 }
 
-function vec3Normalize(v: number[]): number {
-  const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  if (len > 1e-8) {
-    v[0] /= len;
-    v[1] /= len;
-    v[2] /= len;
-  }
-  return len;
-}
+// Import centralized math utilities
+import { vec3NormalizeInPlace, vec3CrossArray, vec3SubArray, vec3ScaleArray } from '../math/vec3.js';
 
-function vec3Cross(a: number[], b: number[]): number[] {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-}
 
-function vec3Sub(a: number[], b: number[]): number[] {
-  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-}
 
-function vec3Scale(v: number[], s: number): number[] {
-  return [v[0] * s, v[1] * s, v[2] * s];
-}
+
 
 // =============================================================================
 // FALLBACK GENERATORS (minimal, for edge-case fallbacks)
@@ -262,37 +247,37 @@ export function generateSplineGeometry(
 
     let tangent: number[];
     if (ring === 0) {
-      tangent = vec3Sub(pathPoints[1], pathPoints[0]);
+      tangent = vec3SubArray(pathPoints[1], pathPoints[0]);
     } else if (ring === totalRings - 1) {
-      tangent = vec3Sub(pathPoints[totalRings - 1], pathPoints[totalRings - 2]);
+      tangent = vec3SubArray(pathPoints[totalRings - 1], pathPoints[totalRings - 2]);
     } else {
-      tangent = vec3Sub(pathPoints[ring + 1], pathPoints[ring - 1]);
+      tangent = vec3SubArray(pathPoints[ring + 1], pathPoints[ring - 1]);
     }
-    vec3Normalize(tangent);
+    vec3NormalizeInPlace(tangent);
 
     let normal: number[];
     let binormal: number[];
     if (ring === 0) {
       if (Math.abs(tangent[0]) < 0.9) {
-        normal = vec3Cross(tangent, [1, 0, 0]);
+        normal = vec3CrossArray(tangent, [1, 0, 0]);
       } else {
-        normal = vec3Cross(tangent, [0, 1, 0]);
+        normal = vec3CrossArray(tangent, [0, 1, 0]);
       }
-      vec3Normalize(normal);
-      binormal = vec3Cross(tangent, normal);
-      vec3Normalize(binormal);
+      vec3NormalizeInPlace(normal);
+      binormal = vec3CrossArray(tangent, normal);
+      vec3NormalizeInPlace(binormal);
     } else {
-      normal = vec3Sub(
+      normal = vec3SubArray(
         prevNormal,
-        vec3Scale(
+        vec3ScaleArray(
           tangent,
           prevNormal[0] * tangent[0] + prevNormal[1] * tangent[1] + prevNormal[2] * tangent[2]
         )
       );
-      const nLen = vec3Normalize(normal);
+      const nLen = vec3NormalizeInPlace(normal);
       if (nLen < 1e-6) normal = [...prevNormal];
-      binormal = vec3Cross(tangent, normal);
-      vec3Normalize(binormal);
+      binormal = vec3CrossArray(tangent, normal);
+      vec3NormalizeInPlace(binormal);
     }
 
     prevNormal = normal;
@@ -909,14 +894,14 @@ export function generateMembraneGeometry(
   for (let i = 0; i < anchors.length; i++) {
     const a = anchors[i];
     const b = anchors[(i + 1) % anchors.length];
-    const ca = vec3Sub(a, center);
-    const cb = vec3Sub(b, center);
-    const cross = vec3Cross(ca, cb);
+    const ca = vec3SubArray(a, center);
+    const cb = vec3SubArray(b, center);
+    const cross = vec3CrossArray(ca, cb);
     memNormal[0] += cross[0];
     memNormal[1] += cross[1];
     memNormal[2] += cross[2];
   }
-  vec3Normalize(memNormal);
+  vec3NormalizeInPlace(memNormal);
 
   // Generate subdivided rings from center to edge
   const numAnchors = anchors.length;
@@ -960,7 +945,7 @@ export function generateMembraneGeometry(
         memNormal[1] + dy * bulge * 0.5,
         memNormal[2] + dz * bulge * 0.5,
       ];
-      vec3Normalize(n);
+      vec3NormalizeInPlace(n);
       normals.push(n[0], n[1], n[2]);
 
       // UV

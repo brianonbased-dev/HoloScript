@@ -86,7 +86,7 @@ const STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
 const LOG_FILE = path.join(STATE_DIR, 'daemon.log');
 const MODEL = 'claude-sonnet-4-20250514';
-const MAX_TOOL_CALLS = 25;
+const MAX_TOOL_CALLS = 40;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
