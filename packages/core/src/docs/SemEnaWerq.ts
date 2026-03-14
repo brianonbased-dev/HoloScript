@@ -65,11 +65,32 @@ export interface SemAnnotation {
 // Layer 2: ena-werq — Human-Readable Narrative Documentation
 // ═══════════════════════════════════════════════════════════════════
 
-/** A code example with language and optional description. */
+/**
+ * A code example with syntax highlighting and optional description for documentation.
+ * 
+ * This interface represents executable or illustrative code samples that demonstrate
+ * HoloScript features, API usage, or implementation patterns across multiple languages.
+ * Used extensively in tutorials, trait documentation, and API references.
+ * 
+ * @interface DocExample
+ * @example
+ * ```typescript
+ * const example: DocExample = {
+ *   title: "Creating a Spinning Cube",
+ *   language: "holoscript",
+ *   code: "@cube { @spin(speed=2) }",
+ *   description: "A basic example of applying rotation animation to a cube object"
+ * };
+ * ```
+ */
 export interface DocExample {
+  /** Human-readable title describing what this example demonstrates */
   title: string;
+  /** Programming language for syntax highlighting and execution context */
   language: 'holoscript' | 'typescript' | 'wgsl' | 'json' | 'rust';
+  /** The actual code content to be displayed with syntax highlighting */
   code: string;
+  /** Optional explanatory text describing the example's purpose or behavior */
   description?: string;
 }
 

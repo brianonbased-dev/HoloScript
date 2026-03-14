@@ -126,17 +126,63 @@ export class AbsorbProcessor {
       });
     }
 
-    // Extract classes
+    // Extract classes with their methods
     const classRegex = /^class\s+(\w+)(?:\(([^)]*)\))?:/gm;
     let classMatch: RegExpExecArray | null;
     while ((classMatch = classRegex.exec(content)) !== null) {
-      result.classes.push({
+      const cls: AbsorbedClass = {
         name: classMatch[1],
         methods: [],
         properties: [],
         isExported: !classMatch[1].startsWith('_'),
         baseClass: classMatch[2]?.trim(),
-      });
+      };
+
+      // Extract methods within this class using indentation-based scope
+      const classStartIdx = classMatch.index + classMatch[0].length;
+      const classBody = content.substring(classStartIdx);
+      const methodRegex = /^(\s+)(async\s+)?def\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*(\w+))?:/gm;
+      let methodMatch: RegExpExecArray | null;
+      while ((methodMatch = methodRegex.exec(classBody)) !== null) {
+        // Stop if we hit a line with no indentation (next top-level def/class)
+        const beforeMethod = classBody.substring(0, methodMatch.index);
+        const lastNewline = beforeMethod.lastIndexOf('\n');
+        if (lastNewline >= 0) {
+          const lineStart = beforeMethod.substring(lastNewline + 1);
+          if (lineStart.length > 0 && !lineStart.startsWith(' ') && !lineStart.startsWith('\t')) break;
+        }
+
+        const params = methodMatch[4]
+          .split(',')
+          .filter((p) => p.trim() && p.trim() !== 'self' && p.trim() !== 'cls')
+          .map((p) => {
+            const parts = p.trim().split(':');
+            return { name: parts[0].trim(), type: parts[1]?.trim() };
+          });
+
+        cls.methods.push({
+          name: methodMatch[3],
+          params,
+          returnType: methodMatch[5] || undefined,
+          isAsync: !!methodMatch[2],
+          isExported: !methodMatch[3].startsWith('_'),
+        });
+
+        // Extract self.prop = assignments from __init__
+        if (methodMatch[3] === '__init__') {
+          const initBody = classBody.substring(methodMatch.index + methodMatch[0].length, methodMatch.index + methodMatch[0].length + 500);
+          const propRegex = /self\.(\w+)\s*=\s*(.+)/g;
+          let propMatch: RegExpExecArray | null;
+          while ((propMatch = propRegex.exec(initBody)) !== null) {
+            cls.properties.push({
+              name: propMatch[1],
+              value: propMatch[2].trim(),
+            });
+          }
+        }
+      }
+
+      result.classes.push(cls);
     }
 
     // Extract constants
@@ -188,17 +234,64 @@ export class AbsorbProcessor {
       });
     }
 
-    // Extract classes
-    const classRegex = /(?:export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?/g;
+    // Extract classes with their methods
+    const classRegex = /(?:export\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?\s*\{/g;
     let classMatch: RegExpExecArray | null;
     while ((classMatch = classRegex.exec(content)) !== null) {
-      result.classes.push({
+      const cls: AbsorbedClass = {
         name: classMatch[1],
         methods: [],
         properties: [],
         isExported: content.includes(`export class ${classMatch[1]}`),
         baseClass: classMatch[2]?.trim(),
-      });
+      };
+
+      // Find class body using brace depth
+      const bodyStart = classMatch.index + classMatch[0].length;
+      let depth = 1;
+      let bodyEnd = bodyStart;
+      while (depth > 0 && bodyEnd < content.length) {
+        if (content[bodyEnd] === '{') depth++;
+        if (content[bodyEnd] === '}') depth--;
+        bodyEnd++;
+      }
+      const classBody = content.substring(bodyStart, bodyEnd - 1);
+
+      // Extract methods from class body
+      const methodRegex = /(?:public|private|protected)?\s*(async\s+)?(\w+)\s*\(([^)]*)\)(?:\s*:\s*(\w+))?\s*\{/g;
+      let methodMatch: RegExpExecArray | null;
+      while ((methodMatch = methodRegex.exec(classBody)) !== null) {
+        const name = methodMatch[2];
+        if (name === 'if' || name === 'else' || name === 'for' || name === 'while' || name === 'switch') continue;
+        const params = methodMatch[3]
+          .split(',')
+          .filter((p) => p.trim())
+          .map((p) => {
+            const parts = p.trim().split(':');
+            return { name: parts[0].trim(), type: parts[1]?.trim() };
+          });
+
+        cls.methods.push({
+          name,
+          params,
+          returnType: methodMatch[4] || undefined,
+          isAsync: !!methodMatch[1],
+          isExported: true,
+        });
+      }
+
+      // Extract property declarations
+      const propRegex = /(?:public|private|protected)?\s+(\w+)(?:\s*:\s*(\w+))?\s*=\s*([^;]+);/g;
+      let propMatch: RegExpExecArray | null;
+      while ((propMatch = propRegex.exec(classBody)) !== null) {
+        cls.properties.push({
+          name: propMatch[1],
+          type: propMatch[2],
+          value: propMatch[3]?.trim(),
+        });
+      }
+
+      result.classes.push(cls);
     }
 
     // Extract const declarations

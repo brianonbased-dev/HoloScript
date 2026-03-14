@@ -66,6 +66,9 @@ export interface HeadlessRuntime {
   stop(): void;
   tick(): void;
   getStats(): RuntimeStats;
+  getState(key: string): unknown;
+  setState(key: string, value: unknown): void;
+  getAllState(): Record<string, unknown>;
 }
 
 export interface RuntimeStats {
@@ -81,6 +84,7 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
   private tickCount = 0;
   private startTime = 0;
   private intervalId?: NodeJS.Timeout;
+  private state = new Map<string, unknown>();
 
   constructor(ast: HSPlusAST, options: HeadlessRuntimeOptions = {}) {
     this.ast = ast;
@@ -137,6 +141,18 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
       uptime: this.running ? Date.now() - this.startTime : 0,
       nodesProcessed: this.ast?.body?.length || 0,
     };
+  }
+
+  getState(key: string): unknown {
+    return this.state.get(key);
+  }
+
+  setState(key: string, value: unknown): void {
+    this.state.set(key, value);
+  }
+
+  getAllState(): Record<string, unknown> {
+    return Object.fromEntries(this.state);
   }
 }
 

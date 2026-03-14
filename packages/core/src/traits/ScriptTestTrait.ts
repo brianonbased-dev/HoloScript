@@ -41,13 +41,14 @@ export interface ScriptTestRunnerOptions {
   debug?: boolean;
   timeout?: number;
   bail?: boolean;
+  runtimeState?: Record<string, unknown>;
 }
 
 /**
  * ScriptTestRunner — Executes @script_test blocks headlessly
  */
 export class ScriptTestRunner {
-  private options: Required<ScriptTestRunnerOptions>;
+  private options: Required<Omit<ScriptTestRunnerOptions, 'runtimeState'>> & { runtimeState: Record<string, unknown> };
   private tests: ScriptTestBlock[] = [];
 
   constructor(options: ScriptTestRunnerOptions = {}) {
@@ -55,7 +56,15 @@ export class ScriptTestRunner {
       debug: options.debug ?? false,
       timeout: options.timeout ?? 5000,
       bail: options.bail ?? false,
+      runtimeState: options.runtimeState ?? {},
     };
+  }
+
+  /**
+   * Bind runtime state for live assertion resolution
+   */
+  setRuntimeState(state: Record<string, unknown>): void {
+    this.options.runtimeState = state;
   }
 
   /**
@@ -267,6 +276,33 @@ export class ScriptTestRunner {
     // Quoted string
     if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
       return t.slice(1, -1);
+    }
+
+    // Runtime state lookup (supports dot-notation: entity.health)
+    const state = this.options.runtimeState;
+    if (state && Object.keys(state).length > 0) {
+      // Direct key match
+      if (t in state) {
+        const val = state[t];
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'string') return val;
+        return String(val);
+      }
+
+      // Dot-notation: entity.health → state.entity?.health
+      if (t.includes('.')) {
+        const parts = t.split('.');
+        let current: unknown = state;
+        for (const part of parts) {
+          if (current == null || typeof current !== 'object') { current = undefined; break; }
+          current = (current as Record<string, unknown>)[part];
+        }
+        if (current !== undefined) {
+          if (current === null) return null;
+          if (typeof current === 'number' || typeof current === 'boolean' || typeof current === 'string') return current;
+          return String(current);
+        }
+      }
     }
 
     // Identifier (return as string for comparison)

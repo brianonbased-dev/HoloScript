@@ -19,10 +19,11 @@ import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
+import { AbsorbProcessor } from '../traits/AbsorbTrait';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'help';
+  command: 'run' | 'test' | 'compile' | 'absorb' | 'help';
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
   profile: string;
@@ -43,7 +44,7 @@ function parseArgs(argv: string[]): CLIOptions {
 
   // First arg is command
   const cmd = args[0];
-  if (cmd === 'run' || cmd === 'test' || cmd === 'compile') {
+  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'absorb') {
     opts.command = cmd;
   }
 
@@ -240,6 +241,63 @@ function generatePythonTarget(ast: any): string {
   return lines.join('\n');
 }
 
+function absorbScript(opts: CLIOptions): void {
+  if (!opts.file) {
+    console.error('Error: No source file specified');
+    process.exit(1);
+  }
+
+  const filePath = path.resolve(opts.file);
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const ext = path.extname(filePath).toLowerCase();
+
+  // Auto-detect language from extension
+  const langMap: Record<string, 'python' | 'typescript' | 'javascript'> = {
+    '.py': 'python',
+    '.ts': 'typescript',
+    '.tsx': 'typescript',
+    '.js': 'javascript',
+    '.jsx': 'javascript',
+    '.mjs': 'javascript',
+  };
+
+  const language = langMap[ext];
+  if (!language) {
+    console.error(`Error: Unsupported file type '${ext}'. Supported: .py, .ts, .tsx, .js, .jsx, .mjs`);
+    process.exit(1);
+  }
+
+  const outputPath = opts.output || filePath.replace(/\.\w+$/, '.hsplus');
+  console.log(`[holoscript absorb] ${path.basename(filePath)} (${language}) → ${path.basename(outputPath)}`);
+
+  const processor = new AbsorbProcessor();
+  const result = processor.absorb({ language, filePath, content });
+
+  // Write output
+  fs.writeFileSync(outputPath, result.generatedHSPlus, 'utf-8');
+
+  // Report
+  console.log(`[holoscript absorb] Extracted:`);
+  console.log(`  ${result.functions.length} functions`);
+  console.log(`  ${result.classes.length} classes`);
+  console.log(`  ${result.imports.length} imports`);
+  console.log(`  ${result.constants.length} constants`);
+
+  if (result.warnings.length > 0) {
+    console.log(`\n  Warnings:`);
+    for (const w of result.warnings) {
+      console.log(`    ⚠ ${w}`);
+    }
+  }
+
+  console.log(`[holoscript absorb] Written to ${outputPath}`);
+}
+
 function showHelp(): void {
   console.log(`
 HoloScript CLI — Headless Runner v5.0
@@ -248,6 +306,7 @@ Usage:
   holoscript run <file>     [--target node|python|ros2] [--profile headless|minimal|full] [--debug]
   holoscript test <file>    [--debug]
   holoscript compile <file> [--target node|python] [--output <path>]
+  holoscript absorb <file>  [--output <path>] [--debug]
 
 Supported file types:
   .hs       Agent templates, behavior trees, event handlers
@@ -258,6 +317,7 @@ Examples:
   holoscript run agent.hs --target node --debug
   holoscript test tests.hs
   holoscript compile service.hsplus --target python --output service.py
+  holoscript absorb legacy.py --output agent.hsplus
 `);
 }
 
@@ -275,6 +335,9 @@ async function main(): Promise<void> {
       break;
     case 'compile':
       compileScript(opts);
+      break;
+    case 'absorb':
+      absorbScript(opts);
       break;
     case 'help':
     default:

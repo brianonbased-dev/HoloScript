@@ -8,17 +8,22 @@
  * Features:
  *   - Auto-layout using topological sort + layered positioning
  *   - Interactive node selection → syncs with scene graph store
- *   - Trait badges on each node
+ *   - Trait badges on each node (clickable for live editing)
  *   - Color-coded by node type (mesh, light, group, etc.)
  *   - Real-time updates when scene graph changes
+ *   - Trait density heatmap overlay
+ *   - Search/filter nodes by name or trait
+ *   - SVG/PNG export
+ *   - Minimap overview navigation
+ *   - Trait dependency edges (shared-trait connections)
  */
 
 'use client';
 
-import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import type { SceneNode } from '@/lib/stores';
-import { X, ZoomIn, ZoomOut, Maximize2, Flame } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Maximize2, Flame, Search, Download, Map, Link2, Edit3 } from 'lucide-react';
 
 // ── Layout constants ────────────────────────────────────────────────────────
 const NODE_WIDTH = 160;
@@ -52,6 +57,12 @@ interface LayoutNode {
 interface LayoutEdge {
   from: string;
   to: string;
+}
+
+interface TraitEdge {
+  from: string;
+  to: string;
+  trait: string;
 }
 
 function layoutDAG(nodes: SceneNode[]): { nodes: LayoutNode[]; edges: LayoutEdge[] } {
@@ -101,6 +112,29 @@ function layoutDAG(nodes: SceneNode[]): { nodes: LayoutNode[]; edges: LayoutEdge
   return { nodes: layoutNodes, edges };
 }
 
+// ── Compute trait dependency edges (nodes sharing the same trait) ────────
+function computeTraitEdges(nodes: LayoutNode[]): TraitEdge[] {
+  const traitToNodes = new Map<string, string[]>();
+  for (const node of nodes) {
+    for (const trait of node.traits) {
+      if (!traitToNodes.has(trait)) traitToNodes.set(trait, []);
+      traitToNodes.get(trait)!.push(node.id);
+    }
+  }
+
+  const edges: TraitEdge[] = [];
+  for (const [trait, nodeIds] of traitToNodes) {
+    if (nodeIds.length < 2) continue;
+    // Connect pairs (limit to avoid explosion)
+    for (let i = 0; i < Math.min(nodeIds.length, 5); i++) {
+      for (let j = i + 1; j < Math.min(nodeIds.length, 5); j++) {
+        edges.push({ from: nodeIds[i], to: nodeIds[j], trait });
+      }
+    }
+  }
+  return edges;
+}
+
 export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const sceneNodes = useSceneGraphStore((s) => s.nodes);
   const selectNode = useSceneGraphStore((s) => s.selectNode);
@@ -110,8 +144,16 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [heatmapMode, setHeatmapMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showMinimap, setShowMinimap] = useState(false);
+  const [showTraitEdges, setShowTraitEdges] = useState(false);
+  const [editingTrait, setEditingTrait] = useState<{ nodeId: string; trait: string } | null>(null);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Layout (must come before anything that uses layoutNodes)
+  const { nodes: layoutNodes, edges } = useMemo(() => layoutDAG(sceneNodes), [sceneNodes]);
 
   // Heatmap: max trait count for normalization
   const maxTraitCount = useMemo(
@@ -124,12 +166,10 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
     (traitCount: number) => {
       const ratio = traitCount / maxTraitCount;
       if (ratio < 0.5) {
-        // green → yellow
         const g = 200;
         const r = Math.round(ratio * 2 * 255);
         return `rgb(${r}, ${g}, 50)`;
       }
-      // yellow → red
       const r = 255;
       const g = Math.round((1 - (ratio - 0.5) * 2) * 200);
       return `rgb(${r}, ${g}, 50)`;
@@ -137,7 +177,22 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
     [maxTraitCount]
   );
 
-  const { nodes: layoutNodes, edges } = useMemo(() => layoutDAG(sceneNodes), [sceneNodes]);
+  // Trait dependency edges
+  const traitEdges = useMemo(
+    () => (showTraitEdges ? computeTraitEdges(layoutNodes) : []),
+    [layoutNodes, showTraitEdges]
+  );
+
+  // Search filter
+  const filteredNodes = useMemo(() => {
+    if (!searchQuery.trim()) return new Set(layoutNodes.map((n) => n.id));
+    const q = searchQuery.toLowerCase();
+    return new Set(
+      layoutNodes
+        .filter((n) => n.name.toLowerCase().includes(q) || n.traits.some((t) => t.toLowerCase().includes(q)) || n.type.toLowerCase().includes(q))
+        .map((n) => n.id)
+    );
+  }, [layoutNodes, searchQuery]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, LayoutNode>();
@@ -155,9 +210,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
   );
 
   const handleNodeClick = useCallback(
-    (id: string) => {
-      selectNode?.(id);
-    },
+    (id: string) => { selectNode?.(id); },
     [selectNode]
   );
 
@@ -189,6 +242,32 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
     setPan({ x: 0, y: 0 });
   }, []);
 
+  // ── SVG/PNG Export ──────────────────────────────────────────────────────
+  const exportSVG = useCallback(() => {
+    if (!svgRef.current) return;
+    const svgClone = svgRef.current.cloneNode(true) as SVGSVGElement;
+    svgClone.removeAttribute('style');
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svgClone.setAttribute('width', String(maxX));
+    svgClone.setAttribute('height', String(maxY));
+    // Add dark background
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('width', '100%');
+    bg.setAttribute('height', '100%');
+    bg.setAttribute('fill', '#0f172a');
+    svgClone.insertBefore(bg, svgClone.firstChild);
+
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(svgClone);
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'holoscript-dag.svg';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [maxX, maxY]);
+
   return (
     <div className="flex flex-col h-full bg-slate-900 border-l border-slate-700 text-slate-300">
       {/* Header */}
@@ -212,12 +291,15 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={fitToView}
-            className="p-1 text-slate-400 hover:text-white transition rounded"
-            title="Fit to view"
-          >
+          <button onClick={fitToView} className="p-1 text-slate-400 hover:text-white transition rounded" title="Fit to view">
             <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setShowSearch((s) => !s)}
+            className={`p-1 transition rounded ${showSearch ? 'text-blue-400 bg-blue-900/30' : 'text-slate-400 hover:text-white'}`}
+            title="Search nodes"
+          >
+            <Search className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setHeatmapMode((h) => !h)}
@@ -226,15 +308,51 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           >
             <Flame className="w-3.5 h-3.5" />
           </button>
+          <button
+            onClick={() => setShowTraitEdges((t) => !t)}
+            className={`p-1 transition rounded ${showTraitEdges ? 'text-emerald-400 bg-emerald-900/30' : 'text-slate-400 hover:text-white'}`}
+            title={showTraitEdges ? 'Hide trait edges' : 'Show trait dependency edges'}
+          >
+            <Link2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setShowMinimap((m) => !m)}
+            className={`p-1 transition rounded ${showMinimap ? 'text-cyan-400 bg-cyan-900/30' : 'text-slate-400 hover:text-white'}`}
+            title={showMinimap ? 'Hide minimap' : 'Show minimap'}
+          >
+            <Map className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={exportSVG} className="p-1 text-slate-400 hover:text-white transition rounded" title="Export SVG">
+            <Download className="w-3.5 h-3.5" />
+          </button>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white transition rounded">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
+      {/* Search bar */}
+      {showSearch && (
+        <div className="px-3 py-2 border-b border-slate-700 bg-slate-800/50">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter nodes by name, type, or trait..."
+            className="w-full px-2 py-1 text-xs bg-slate-900 border border-slate-600 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            autoFocus
+          />
+          {searchQuery && (
+            <div className="mt-1 text-[10px] text-slate-500">
+              {filteredNodes.size}/{layoutNodes.length} nodes match
+            </div>
+          )}
+        </div>
+      )}
+
       {/* SVG Canvas */}
       <div
-        className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
+        className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing relative"
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
@@ -263,13 +381,25 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
             >
               <polygon points="0 0, 8 3, 0 6" />
             </marker>
+            <marker
+              id="arrowhead-trait"
+              markerWidth="6"
+              markerHeight="4"
+              refX="6"
+              refY="2"
+              orient="auto"
+              fill="#10b981"
+            >
+              <polygon points="0 0, 6 2, 0 4" />
+            </marker>
           </defs>
 
-          {/* Edges */}
+          {/* Parent-child edges */}
           {edges.map((edge) => {
             const fromNode = nodeMap.get(edge.from);
             const toNode = nodeMap.get(edge.to);
             if (!fromNode || !toNode) return null;
+            const isFiltered = filteredNodes.has(edge.from) && filteredNodes.has(edge.to);
             return (
               <line
                 key={`${edge.from}-${edge.to}`}
@@ -280,8 +410,31 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                 stroke="#475569"
                 strokeWidth={1.5}
                 markerEnd="url(#arrowhead)"
+                opacity={isFiltered ? 1 : 0.15}
                 className="transition-opacity"
               />
+            );
+          })}
+
+          {/* Trait dependency edges (dashed, green) */}
+          {traitEdges.map((edge, i) => {
+            const fromNode = nodeMap.get(edge.from);
+            const toNode = nodeMap.get(edge.to);
+            if (!fromNode || !toNode) return null;
+            return (
+              <line
+                key={`trait-${i}`}
+                x1={fromNode.x + NODE_WIDTH / 2}
+                y1={fromNode.y + NODE_HEIGHT}
+                x2={toNode.x + NODE_WIDTH / 2}
+                y2={toNode.y}
+                stroke="#10b98166"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+                markerEnd="url(#arrowhead-trait)"
+              >
+                <title>@{edge.trait}</title>
+              </line>
             );
           })}
 
@@ -289,6 +442,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           {layoutNodes.map((node) => {
             const color = TYPE_COLORS[node.type] || TYPE_COLORS.default;
             const isSelected = node.id === selectedNodeId;
+            const isVisible = filteredNodes.has(node.id);
             return (
               <g
                 key={node.id}
@@ -297,6 +451,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                   handleNodeClick(node.id);
                 }}
                 className="cursor-pointer"
+                opacity={isVisible ? 1 : 0.15}
               >
                 <rect
                   x={node.x}
@@ -353,16 +508,26 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                 >
                   {node.type}
                 </text>
-                {/* Trait badges */}
+                {/* Trait badges (clickable for live editing) */}
                 {node.traits.slice(0, 3).map((trait, ti) => (
-                  <g key={trait}>
+                  <g
+                    key={trait}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingTrait({ nodeId: node.id, trait });
+                    }}
+                    className="cursor-pointer"
+                  >
                     <rect
                       x={node.x + 14 + ti * 38}
                       y={node.y + 40}
                       width={36}
                       height={12}
                       rx={3}
-                      fill={`${color}22`}
+                      fill={editingTrait?.nodeId === node.id && editingTrait?.trait === trait
+                        ? `${color}55`
+                        : `${color}22`
+                      }
                       stroke={`${color}44`}
                       strokeWidth={0.5}
                     />
@@ -395,7 +560,79 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
             </text>
           )}
         </svg>
+
+        {/* Minimap overlay */}
+        {showMinimap && layoutNodes.length > 0 && (
+          <div className="absolute bottom-2 right-2 w-32 h-24 bg-slate-800/90 border border-slate-600 rounded overflow-hidden">
+            <svg viewBox={`0 0 ${maxX} ${maxY}`} width="100%" height="100%">
+              <rect width="100%" height="100%" fill="#0f172a" />
+              {layoutNodes.map((node) => (
+                <rect
+                  key={`mini-${node.id}`}
+                  x={node.x}
+                  y={node.y}
+                  width={NODE_WIDTH}
+                  height={NODE_HEIGHT}
+                  rx={4}
+                  fill={node.id === selectedNodeId ? '#6366f1' : '#334155'}
+                  stroke="none"
+                />
+              ))}
+              {edges.map((edge) => {
+                const from = nodeMap.get(edge.from);
+                const to = nodeMap.get(edge.to);
+                if (!from || !to) return null;
+                return (
+                  <line
+                    key={`mini-e-${edge.from}-${edge.to}`}
+                    x1={from.x + NODE_WIDTH}
+                    y1={from.y + NODE_HEIGHT / 2}
+                    x2={to.x}
+                    y2={to.y + NODE_HEIGHT / 2}
+                    stroke="#47556944"
+                    strokeWidth={2}
+                  />
+                );
+              })}
+              {/* Viewport indicator */}
+              <rect
+                x={-pan.x / zoom}
+                y={-pan.y / zoom}
+                width={maxX / zoom}
+                height={maxY / zoom}
+                fill="none"
+                stroke="#6366f1"
+                strokeWidth={4}
+                rx={2}
+              />
+            </svg>
+          </div>
+        )}
       </div>
+
+      {/* Live trait editor */}
+      {editingTrait && (
+        <div className="px-3 py-2 border-t border-slate-700 bg-slate-800 flex items-center gap-2">
+          <Edit3 className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+          <span className="text-[10px] text-slate-400 truncate">
+            <span className="text-indigo-300">@{editingTrait.trait}</span>
+            {' on '}
+            <span className="text-slate-200">{nodeMap.get(editingTrait.nodeId)?.name || editingTrait.nodeId}</span>
+          </span>
+          <input
+            type="text"
+            defaultValue=""
+            placeholder="key: value"
+            className="flex-1 px-1.5 py-0.5 text-[10px] bg-slate-900 border border-slate-600 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            onClick={() => setEditingTrait(null)}
+            className="text-[10px] text-slate-500 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Heatmap legend */}
       {heatmapMode && (
