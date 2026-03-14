@@ -44,19 +44,7 @@ export interface IKResult {
 
 // Removed duplicate vec3Dist - using centralized vec3Distance
 
-function vec3Sub(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-}
-
-// Removed duplicate vec3Normalize - using centralized math utilities
-
-function vec3Scale(v: Vec3, s: number): Vec3 {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
-}
-
-function vec3Add(a: Vec3, b: Vec3): Vec3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
-}
+// Removed duplicate vec3Sub, vec3Scale, vec3Add, vec3Normalize - using centralized math utilities
 
 /**
  * Solve IK using the FABRIK algorithm.

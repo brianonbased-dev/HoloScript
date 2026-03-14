@@ -17,6 +17,8 @@
  * @module rendering
  */
 
+import { vec3Normalize, vec3Length } from '../math/vec3.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -94,13 +96,7 @@ function vec3Dot(a: Vec3, b: Vec3): number {
 function vec3Cross(a: Vec3, b: Vec3): Vec3 {
   return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
 }
-function vec3Length(v: Vec3): number {
-  return Math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2);
-}
-function vec3Normalize(v: Vec3): Vec3 {
-  const len = vec3Length(v) || 1;
-  return { x: v.x / len, y: v.y / len, z: v.z / len };
-}
+// Removed duplicate vec3Length and vec3Normalize - using centralized math utilities
 function vec3AtT(ray: Ray, t: number): Vec3 {
   return {
     x: ray.origin.x + ray.direction.x * t,
