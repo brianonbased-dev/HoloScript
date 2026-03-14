@@ -352,23 +352,58 @@ async function executeAction(
         blackboard.quality_before = parsed.composite ?? 0;
       } catch { blackboard.quality_before = 0; }
 
-      // Run diagnosis
-      const diagResult = await callTool(handlers, 'holo_self_diagnose', { focus: blackboard.focus });
-      try {
-        const parsed = JSON.parse(diagResult);
-        const candidates = parsed.candidates ?? [];
-        blackboard.candidates = candidates;
-        blackboard.has_candidates = candidates.length > 0;
-        if (candidates.length > 0) {
-          blackboard.current_candidate = candidates[0];
-          blackboard.current_file = candidates[0].file;
+      if (blackboard.focus === 'typefix') {
+        // 'typefix' is not a valid holo_self_diagnose focus — use holo_list_type_errors instead
+        const typeResult = await callTool(handlers, 'holo_list_type_errors', { rootDir, maxErrors: 10 });
+        try {
+          const parsed = JSON.parse(typeResult);
+          const errors = parsed.errors ?? [];
+          // Transform type errors into candidates format, dedup by file
+          const byFile = new Map<string, any>();
+          for (const e of errors) {
+            const filePath = path.isAbsolute(e.file) ? e.file : path.join(rootDir, e.file);
+            if (!byFile.has(filePath)) {
+              byFile.set(filePath, {
+                type: e.code,
+                priority: 1,
+                symbol: `${e.code} at line ${e.line}`,
+                file: filePath,
+                line: e.line,
+                reason: e.message,
+                suggestedAction: `Fix ${e.code}: ${e.message}`,
+              });
+            }
+          }
+          blackboard.candidates = [...byFile.values()];
+          blackboard.has_candidates = blackboard.candidates.length > 0;
+          if (blackboard.candidates.length > 0) {
+            blackboard.current_candidate = blackboard.candidates[0];
+            blackboard.current_file = blackboard.candidates[0].file;
+          }
+        } catch {
+          blackboard.has_candidates = false;
         }
-      } catch {
-        blackboard.has_candidates = false;
+        metrics.toolCallsTotal += 2;
+        metrics.toolCallsUseful += 2;
+      } else {
+        // Standard diagnosis for coverage/docs/complexity/all
+        const diagResult = await callTool(handlers, 'holo_self_diagnose', { focus: blackboard.focus });
+        try {
+          const parsed = JSON.parse(diagResult);
+          const candidates = parsed.candidates ?? [];
+          blackboard.candidates = candidates;
+          blackboard.has_candidates = candidates.length > 0;
+          if (candidates.length > 0) {
+            blackboard.current_candidate = candidates[0];
+            blackboard.current_file = candidates[0].file;
+          }
+        } catch {
+          blackboard.has_candidates = false;
+        }
+        metrics.toolCallsTotal += 2;
+        metrics.toolCallsUseful += 1;
       }
 
-      metrics.toolCallsTotal += 2;
-      metrics.toolCallsUseful += 1;
       return blackboard.has_candidates;
     }
 
@@ -725,6 +760,20 @@ async function main() {
 
   const anthropic = new Anthropic();
   const bridgeState = loadBridgeState();
+
+  // Absorb repo for GraphRAG (required by holo_self_diagnose for coverage/docs/complexity)
+  console.log('Absorbing codebase for GraphRAG...');
+  try {
+    const absorbResult = await callTool(handlers, 'holo_absorb_repo', { rootDir: config.rootDir });
+    const parsed = JSON.parse(absorbResult);
+    if (parsed.error) {
+      console.warn(`  Absorb warning: ${parsed.error}`);
+    } else {
+      console.log(`  Absorbed ${parsed.totalSymbols ?? '?'} symbols from ${parsed.filesScanned ?? '?'} files`);
+    }
+  } catch (err: any) {
+    console.warn(`  Absorb failed (non-fatal, typefix focus still works): ${err.message}`);
+  }
 
   console.log(`Resuming from cycle ${bridgeState.totalCycles}, best quality: ${bridgeState.bestQuality.toFixed(3)}`);
   console.log('');

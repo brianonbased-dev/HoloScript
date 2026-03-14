@@ -139,6 +139,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
   const sceneNodes = useSceneGraphStore((s) => s.nodes);
   const selectNode = useSceneGraphStore((s) => s.selectNode);
   const selectedNodeId = useSceneGraphStore((s) => s.selectedNodeId);
+  const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -622,8 +623,25 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           <input
             type="text"
             defaultValue=""
-            placeholder="key: value"
+            placeholder="key: value (Enter to apply)"
             className="flex-1 px-1.5 py-0.5 text-[10px] bg-slate-900 border border-slate-600 rounded text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && editingTrait) {
+                const input = (e.target as HTMLInputElement).value.trim();
+                const colonIdx = input.indexOf(':');
+                if (colonIdx > 0) {
+                  const key = input.substring(0, colonIdx).trim();
+                  const rawValue = input.substring(colonIdx + 1).trim();
+                  // Auto-detect type
+                  let value: unknown = rawValue;
+                  if (rawValue === 'true') value = true;
+                  else if (rawValue === 'false') value = false;
+                  else if (!isNaN(Number(rawValue)) && rawValue !== '') value = Number(rawValue);
+                  setTraitProperty(editingTrait.nodeId, editingTrait.trait, key, value);
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }
+            }}
           />
           <button
             onClick={() => setEditingTrait(null)}

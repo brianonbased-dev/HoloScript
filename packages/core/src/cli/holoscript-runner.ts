@@ -20,6 +20,7 @@ import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
 import { AbsorbProcessor } from '../traits/AbsorbTrait';
+import { HotReloadWatcher } from '../traits/HotReloadTrait';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 interface CLIOptions {
@@ -29,6 +30,7 @@ interface CLIOptions {
   profile: string;
   debug: boolean;
   output?: string;
+  watch: boolean;
 }
 
 function parseArgs(argv: string[]): CLIOptions {
@@ -38,6 +40,7 @@ function parseArgs(argv: string[]): CLIOptions {
     target: 'headless',
     profile: 'headless',
     debug: false,
+    watch: false,
   };
 
   if (args.length === 0) return opts;
@@ -59,6 +62,7 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--profile' && args[i + 1]) opts.profile = args[++i];
     if (args[i] === '--output' && args[i + 1]) opts.output = args[++i];
     if (args[i] === '--debug') opts.debug = true;
+    if (args[i] === '--watch' || args[i] === '-w') opts.watch = true;
   }
 
   return opts;
@@ -121,6 +125,44 @@ async function runScript(opts: CLIOptions): Promise<void> {
   // Report
   const stats = runtime.getStats();
   console.log(`[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`);
+
+  // Watch mode: re-run on file changes
+  if (opts.watch) {
+    console.log(`[holoscript] Watching for changes... (Ctrl+C to stop)`);
+    const watcher = new HotReloadWatcher({
+      watchPaths: [path.dirname(filePath)],
+      extensions: ['.hs', '.hsplus', '.holo'],
+      debounceMs: 300,
+      mode: 'soft',
+    });
+
+    watcher.on('reload', async (event: { filePath: string }) => {
+      console.log(`\n[holoscript] File changed: ${path.basename(event.filePath)}`);
+      console.log(`[holoscript] Re-running ${path.basename(filePath)}...`);
+
+      try {
+        const newSource = fs.readFileSync(filePath, 'utf-8');
+        const newAst = parse(newSource);
+        const newRuntime = createHeadlessRuntime(newAst, {
+          profile: opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile),
+          tickRate: 10,
+          debug: opts.debug,
+        });
+        newRuntime.start();
+        for (let j = 0; j < TICK_COUNT; j++) newRuntime.tick();
+        newRuntime.stop();
+        const newStats = newRuntime.getStats();
+        console.log(`[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`);
+      } catch (err: unknown) {
+        console.error(`[holoscript] Error:`, (err as Error).message);
+      }
+    });
+
+    watcher.start();
+
+    // Keep process alive
+    await new Promise(() => {});
+  }
 }
 
 async function testScript(opts: CLIOptions): Promise<void> {
