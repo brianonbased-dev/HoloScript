@@ -117,6 +117,8 @@ export function MeshNode({
         onRemove={onRemove}
         onRef={onRef}
         isBreakMode={isBreakMode}
+        draftMode={draftMode}
+        draftColor={draftColor}
       />
     ));
 

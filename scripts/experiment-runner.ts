@@ -172,6 +172,16 @@ async function runTrial(arm: 'control' | 'treatment', trial: number, config: Exp
   ensureDirs();
   archiveResults(arm, trial);
 
+  // Clean working tree before switching branches (daemon may have left uncommitted changes)
+  try {
+    git('checkout -- .');
+    // Remove untracked files the daemon may have created (tests, etc.)
+    git('clean -fd --exclude=.holoscript/');
+    console.log('  Cleaned working tree after trial');
+  } catch (err: any) {
+    console.error(`  Warning: cleanup failed: ${err.message}`);
+  }
+
   // Return to original branch
   git(`checkout ${originalBranch}`);
   console.log(`  Returned to ${originalBranch}`);

@@ -176,6 +176,7 @@ export {
 export {
   // Types
   type LODChain,
+  type LODChainLevel,
   type LODBridgeOptions,
 
   // Bridge class

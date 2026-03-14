@@ -308,6 +308,23 @@ export class ScriptTestRunner {
     // Identifier (return as string for comparison)
     return t;
   }
+
+  /**
+   * Bind a HeadlessRuntime so @script_test assertions can read live scene state.
+   * Snapshots the runtime's state into runtimeState before each test run.
+   *
+   * Usage:
+   * ```ts
+   * import { createHeadlessRuntime } from '../runtime/HeadlessRuntime';
+   * const runtime = createHeadlessRuntime(ast);
+   * runtime.setState('balance', 500);
+   * runner.bindHeadlessRuntime(runtime);
+   * // Now @script_test assertions like `assert { balance == 500 }` work
+   * ```
+   */
+  bindHeadlessRuntime(runtime: { getAllState(): Record<string, unknown> }): void {
+    this.options.runtimeState = runtime.getAllState();
+  }
 }
 
 /**

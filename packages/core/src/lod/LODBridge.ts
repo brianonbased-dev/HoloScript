@@ -18,11 +18,21 @@
  * @see P.080 — Draft-Mesh-Sim Circular Pipeline
  */
 
-import { LODGenerator, type MeshData, type LODResult, type LODGenerationOptions } from '../lod/LODGenerator';
-import { type LODLevel, type LODConfig, type LODTransition } from '../lod/LODTypes';
+import { LODGenerator, type MeshData } from './LODGenerator';
+import { type LODConfig, type LODTransition, type LODGenerationOptions, type GeneratedLODLevel } from './LODTypes';
 import { type AssetMaturity } from '../traits/DraftTrait';
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+/** Single LOD level in a chain — wraps GeneratedLODLevel with source MeshData */
+export interface LODChainLevel {
+  /** The simplified mesh data for this level */
+  mesh: MeshData;
+  /** Triangle count at this level */
+  triangleCount: number;
+  /** Reduction ratio from original (1.0 = full detail) */
+  ratio: number;
+}
 
 /** LOD chain for a single entity — contains all computed LOD levels */
 export interface LODChain {
@@ -31,7 +41,7 @@ export interface LODChain {
   /** Source mesh data (LOD 0 = full detail) */
   source: MeshData;
   /** Generated LOD levels (sorted by detail: highest first) */
-  levels: LODResult[];
+  levels: LODChainLevel[];
   /** Distance thresholds for each LOD level */
   distances: number[];
   /** Current asset maturity */
@@ -54,6 +64,22 @@ export interface LODBridgeOptions {
   maxCacheSize?: number;
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Convert a GeneratedLODLevel to a LODChainLevel with MeshData */
+function generatedToChainLevel(generated: GeneratedLODLevel): LODChainLevel {
+  return {
+    mesh: {
+      positions: generated.positions,
+      normals: generated.normals,
+      uvs: generated.uvs,
+      indices: generated.indices,
+    },
+    triangleCount: generated.triangleCount,
+    ratio: generated.reductionRatio,
+  };
+}
+
 // ── LODBridge ────────────────────────────────────────────────────────────────
 
 export class LODBridge {
@@ -65,7 +91,7 @@ export class LODBridge {
     this.options = {
       generatorOptions: options.generatorOptions ?? {},
       defaultDistances: options.defaultDistances ?? [0, 10, 25, 50],
-      defaultTransition: options.defaultTransition ?? 'discrete',
+      defaultTransition: options.defaultTransition ?? 'instant',
       maxCacheSize: options.maxCacheSize ?? 256,
     };
     this.generator = new LODGenerator(this.options.generatorOptions);
@@ -87,7 +113,11 @@ export class LODBridge {
       const chain: LODChain = {
         entityId,
         source,
-        levels: [{ mesh: source, triangleCount: source.indices.length / 3, ratio: 1.0 }],
+        levels: [{
+          mesh: source,
+          triangleCount: source.indices.length / 3,
+          ratio: 1.0,
+        }],
         distances: [0],
         maturity,
         transition: transition ?? this.options.defaultTransition,
@@ -98,13 +128,14 @@ export class LODBridge {
     }
 
     // Generate LOD levels
-    const levels = this.generator.generate(source);
+    const result = this.generator.generate(source);
+    const chainLevels: LODChainLevel[] = result.levels.map(generatedToChainLevel);
 
     const chain: LODChain = {
       entityId,
       source,
-      levels,
-      distances: distances ?? this.options.defaultDistances.slice(0, levels.length),
+      levels: chainLevels,
+      distances: distances ?? this.options.defaultDistances.slice(0, chainLevels.length),
       maturity,
       transition: transition ?? this.options.defaultTransition,
       computedAt: Date.now(),
@@ -155,12 +186,22 @@ export class LODBridge {
     if (!chain) return null;
 
     return {
-      levels: chain.levels.map((level, i) => ({
-        distance: chain.distances[i] ?? chain.distances[chain.distances.length - 1],
-        triangleRatio: level.ratio,
-      })) as LODLevel[],
+      id: entityId,
+      strategy: 'distance',
       transition: chain.transition,
-      hysteresis: 0.1, // 10% hysteresis to prevent LOD thrashing
+      transitionDuration: 0.3,
+      levels: chain.levels.map((level, i) => ({
+        level: i,
+        distance: chain.distances[i] ?? chain.distances[chain.distances.length - 1],
+        polygonRatio: level.ratio,
+        textureScale: Math.max(0.25, level.ratio),
+        disabledFeatures: i >= 2 ? ['reflections' as const, 'particles' as const] : [],
+        triangleCount: level.triangleCount,
+      })),
+      hysteresis: 0.1,
+      bias: 0,
+      fadeEnabled: false,
+      enabled: true,
     };
   }
 

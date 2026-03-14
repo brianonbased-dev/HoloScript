@@ -3299,3 +3299,19 @@ export {
   type PerformanceRegressionConfig,
   type PerformanceRegressionState,
 } from './traits/PerformanceRegressionMonitor';
+
+// ── Headless Runtime + Watch Runner ─────────────────────────────────────────
+export {
+  createHeadlessRuntime,
+  type HeadlessRuntime,
+  type HeadlessRuntimeOptions,
+  type RuntimeProfile,
+  HEADLESS_PROFILE,
+  getProfile,
+} from './runtime/HeadlessRuntime';
+
+export {
+  WatchRunner,
+  type WatchRunnerOptions,
+  type WatchEvent,
+} from './runtime/WatchRunner';

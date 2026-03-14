@@ -35,6 +35,7 @@ const r3fNodePool = new ASTNodePool<R3FNode>(
     node.children = undefined;
     node.traits = undefined;
     node.directives = undefined;
+    node.assetMaturity = undefined;
   },
   0 // Was 20000 — demand-allocate instead of pre-allocating
 );
@@ -2889,6 +2890,18 @@ export class R3FCompiler {
         } else if (name === 'neural_animation') {
           props.neuralAnimation = trait.config || { style: 'motion_matching' };
         }
+        // ── Draft Pipeline ────────────────────────────────────────
+        else if (name === 'draft') {
+          props.draftMode = true;
+          props.draftShape = trait.config?.shape || 'box';
+          props.draftColor = trait.config?.color || '#88aaff';
+          props.draftOpacity = trait.config?.opacity ?? 1.0;
+          props.draftWireframe = trait.config?.wireframe || false;
+          if (trait.config?.collision !== false) {
+            if (!props.rigidBody) props.rigidBody = { type: 'fixed' };
+            if (!props.collider) props.collider = { type: 'auto' };
+          }
+        }
         // ── Fallthrough: pass trait config as prop ────────────────
         else {
           props[name] = trait.config || true;
@@ -2940,6 +2953,11 @@ export class R3FCompiler {
     }
 
     const r3fNode = this.createNode(type, props, obj.name);
+
+    // Set asset maturity from @draft trait
+    if (props.draftMode) {
+      r3fNode.assetMaturity = 'draft';
+    }
 
     if (obj.children) {
       for (const child of obj.children) {
