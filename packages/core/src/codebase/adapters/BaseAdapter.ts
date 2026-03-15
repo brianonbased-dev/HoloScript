@@ -55,15 +55,13 @@ export function walkTree(root: SyntaxNode, visitor: NodeVisitor): void {
  * the comment structure and language context.
  * 
  * @example
- * ```typescript
- * // For a node with preceding JSDoc comment:
+ * For a node with preceding JSDoc comment:
  * const docText = extractDocComment(functionNode);
- * // Returns: "This function does something important"
+ * Returns: "This function does something important"
  * 
- * // For a node without documentation:
+ * For a node without documentation:
  * const noDoc = extractDocComment(variableNode);
- * // Returns: undefined
- * ```
+ * Returns: undefined
  */
 export function extractDocComment(node: SyntaxNode): string | undefined {
   const prev = getPreviousSibling(node);

@@ -79,7 +79,19 @@ describe('AttachConnection', () => {
   });
 
   afterEach(() => {
-    conn.disconnect();
+    // Clear any pending requests before disconnect to avoid unhandled rejections
+    const pendingMap = (conn as unknown as { pendingRequests: Map<number, { reject: (e: Error) => void; timeout: ReturnType<typeof setTimeout> }> }).pendingRequests;
+    if (pendingMap) {
+      for (const [, pending] of pendingMap) {
+        clearTimeout(pending.timeout);
+      }
+      pendingMap.clear();
+    }
+    // Now safe to disconnect without unhandled rejections
+    const ws = (conn as unknown as { ws: unknown }).ws;
+    if (ws) {
+      (ws as { close: () => void }).close();
+    }
     vi.useRealTimers();
   });
 

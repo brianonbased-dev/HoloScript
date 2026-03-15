@@ -3,7 +3,7 @@
  *
  * Tests for the main benchmark runner and utility functions.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Re-implement the functions to test them (since importing from JS is complex in TS test)
 function extractResults(bench: any, suiteName: string) {
@@ -325,6 +325,49 @@ describe('Benchmark Index', () => {
       expect(report.regressions).toHaveLength(1);
       expect(report.regressions[0].suite).toBe('Parser');
       expect(report.regressions[0].changePercent).toBe(20);
+    });
+  });
+
+  describe('argument parsing', () => {
+    it('should detect JSON output mode from command line arguments', () => {
+      // Save original argv
+      const originalArgv = process.argv;
+      
+      try {
+        // Test --json flag
+        process.argv = ['node', 'index.js', '--json'];
+        let args = process.argv.slice(2);
+        let isJson = args.includes('--json') || args.includes('--ci');
+        expect(isJson).toBe(true);
+
+        // Test --ci flag  
+        process.argv = ['node', 'index.js', '--ci'];
+        args = process.argv.slice(2);
+        isJson = args.includes('--json') || args.includes('--ci');
+        expect(isJson).toBe(true);
+
+        // Test normal mode
+        process.argv = ['node', 'index.js'];
+        args = process.argv.slice(2);
+        isJson = args.includes('--json') || args.includes('--ci');
+        expect(isJson).toBe(false);
+      } finally {
+        // Restore original argv
+        process.argv = originalArgv;
+      }
+    });
+
+    it('should parse compare file argument correctly', () => {
+      const originalArgv = process.argv;
+      
+      try {
+        process.argv = ['node', 'index.js', '--compare=baseline.json'];
+        const args = process.argv.slice(2);
+        const compareFile = args.find((a) => a.startsWith('--compare='))?.split('=')[1];
+        expect(compareFile).toBe('baseline.json');
+      } finally {
+        process.argv = originalArgv;
+      }
     });
   });
 });

@@ -151,7 +151,7 @@ export function parseKnowledge(raw: string): HSKnowledgeFile {
   const chunks: HSKnowledgeChunk[] = [];
   const categories = new Set<string>();
 
-  const chunkRegex = /chunk\s+(\w+)\s*\{([\s\S]*?)^\s*\}/gm;
+  const chunkRegex = /chunk\s+(\w+)\s*\{([\s\S]*?)^\}/gm;
   let match;
 
   while ((match = chunkRegex.exec(raw)) !== null) {

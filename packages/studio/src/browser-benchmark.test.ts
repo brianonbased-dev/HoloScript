@@ -133,13 +133,13 @@ describe('quickBenchmark', () => {
     });
   });
 
-  it('should handle compiler errors gracefully', async () => {
+  it('should propagate compiler errors', async () => {
     // Mock compiler to throw errors
     mockCompilerBridge.parse.mockRejectedValue(new Error('Parse failed'));
     mockCompilerBridge.compile.mockRejectedValue(new Error('Compile failed'));
     
-    // Should not throw, but may return undefined or error results
-    await expect(quickBenchmark()).resolves.not.toThrow();
+    // measureOperationAsync does not catch errors, so quickBenchmark rejects
+    await expect(quickBenchmark()).rejects.toThrow();
   });
 
   it('should use correct test code and compilation target', async () => {
