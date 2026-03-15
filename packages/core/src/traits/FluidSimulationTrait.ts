@@ -464,25 +464,40 @@ export class FluidSimulationSystem {
   }
 }
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to SpatialHash) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const fluidSimulationHandler = {
   name: 'fluid_simulation',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__fluid_simulationState = { active: true, config };
-    ctx.emit('fluid_simulation_attached', { node });
+    const instance = new SpatialHash(config);
+    node.__fluid_simulation_instance = instance;
+    ctx.emit('fluid_simulation_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__fluid_simulation_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('fluid_simulation_detached', { node });
-    delete node.__fluid_simulationState;
+    delete node.__fluid_simulation_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'fluid_simulation_configure') {
-      Object.assign(node.__fluid_simulationState?.config ?? {}, event.payload ?? {});
+    const instance = node.__fluid_simulation_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'fluid_simulation_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('fluid_simulation_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__fluid_simulation_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

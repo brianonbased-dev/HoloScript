@@ -659,8 +659,8 @@ Every new Priority file must ship with:
 - [x] Spatial awareness updates at 30hz ✅ (SpatialContextProvider with configurable updateRate)
 - [ ] Test coverage ≥ 60% ⚠️ (Current: 41.47% statements, gap of ~18%)
 - [x] No P0/P1 bugs in agent features ✅ (14 failed tests are P2 timeout-related)
-- [x] Full API documentation ✅ (docs/AGENT_API_REFERENCE.md)
-- [x] Migration guide from v3.3.0 ✅ (docs/MIGRATION_v3.3_to_v3.4.md)
+- [x] Full API documentation ✅ (../AGENT_API_REFERENCE.md)
+- [x] Migration guide from v3.3.0 ✅ (../MIGRATION_v3.3_to_v3.4.md)
 
 ### Extensibility Interfaces Added
 

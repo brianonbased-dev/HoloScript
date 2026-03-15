@@ -64,5 +64,5 @@ Each target generates platform-specific files:
 ## Learn More
 
 - [Platform Compilers Guide](../../docs/guides/PLATFORM_COMPILERS.md)
-- [Traits Reference](../../docs/TRAITS_REFERENCE.md)
+- [Traits Reference](../../docs/traits/index.md)
 - [CLI Reference](../../docs/guides/CLI_REFERENCE.md)

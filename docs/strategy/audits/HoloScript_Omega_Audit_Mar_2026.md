@@ -27,7 +27,7 @@
 
 ### Infrastructure
 - **MCP Circuit Breaker** — Resilient tool calls with retry/timeout/fallback
-- **LSP Server** — IntelliSense for 1,800+ traits
+- **LSP Server** — IntelliSense for 2,000+ traits
 - **Barrel Exports** — 9 new modules exported from `@holoscript/core`
 - **Bin Wiring** — `npx holoscript run agent.hs` works globally
 

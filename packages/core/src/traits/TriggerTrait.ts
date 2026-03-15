@@ -596,25 +596,40 @@ export function createTriggerTrait(config: Partial<TriggerConfig> = {}): Trigger
 export type TriggerShapeType = TriggerShape;
 export type TriggerEventTypeAlias = TriggerEventType;
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to TriggerTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const triggerHandler = {
   name: 'trigger',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__triggerState = { active: true, config };
-    ctx.emit('trigger_attached', { node });
+    const instance = new TriggerTrait(config);
+    node.__trigger_instance = instance;
+    ctx.emit('trigger_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__trigger_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('trigger_detached', { node });
-    delete node.__triggerState;
+    delete node.__trigger_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'trigger_configure') {
-      Object.assign(node.__triggerState?.config ?? {}, event.payload ?? {});
+    const instance = node.__trigger_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'trigger_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('trigger_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__trigger_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

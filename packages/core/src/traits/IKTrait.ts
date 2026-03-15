@@ -592,25 +592,40 @@ export type IKTarget = string;
 
 export default IKTrait;
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to IKTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const iKHandler = {
   name: 'i_k',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__i_kState = { active: true, config };
-    ctx.emit('i_k_attached', { node });
+    const instance = new IKTrait(config);
+    node.__i_k_instance = instance;
+    ctx.emit('i_k_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__i_k_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('i_k_detached', { node });
-    delete node.__i_kState;
+    delete node.__i_k_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'i_k_configure') {
-      Object.assign(node.__i_kState?.config ?? {}, event.payload ?? {});
+    const instance = node.__i_k_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'i_k_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('i_k_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__i_k_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

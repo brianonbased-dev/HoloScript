@@ -81,7 +81,7 @@ All 15 compositions are representative, production-quality examples demonstratin
 
 ### Composition Sizes
 
-```
+```text
 01-healthcare.holo         1.2 KB    (8 targets)
 02-education.holo          1.2 KB    (8 targets)
 03-retail.holo             1.2 KB    (7 targets)
@@ -214,7 +214,7 @@ Not all targets are suitable for all verticals. Mapping based on:
 
 ## File Structure
 
-```
+```text
 benchmarks/cross-compilation/
 ├── INDEX.md                         # This file
 ├── README.md                        # Usage guide (8KB)
@@ -265,7 +265,7 @@ benchmarks/cross-compilation/
 - [Compiler Architecture](../../docs/ARCHITECTURE.md)
 - [Supported Targets](../../packages/core/README.md)
 - [Vertical Use Cases](../../docs/USE_CASE_RESEARCH_COMPREHENSIVE.md)
-- [Trait System](../../docs/TRAITS_REFERENCE.md)
+- [Trait System](../../docs/traits/index.md)
 
 ---
 

@@ -88,23 +88,23 @@ https://github.com/brianonbased-dev/HoloScript.git?path=/packages/unity-sdk
 1. **Install CLI** (see above)
 2. **Create `hello.holo`:**
 
-```holo
-composition "Hello Holo" {
-  object "Cube" {
-    @grabbable
-    @physics
-    geometry: "box"
-    position: [0, 1, 0]
-  }
-}
-```
+   ```holo
+   composition "Hello Holo" {
+     object "Cube" {
+       @grabbable
+       @physics
+       geometry: "box"
+       position: [0, 1, 0]
+     }
+   }
+   ```
 
 3. **Preview:** `holoscript preview hello.holo`
 4. **Explore the other formats:**
    - Add agent behaviors with `.hs` files (spatial awareness, patrol routes, IoT streams)
    - Build full applications with `.hsplus` files (modules, types, physics, state machines)
 
-**[View Full 5-Minute Tutorial →](./docs/getting-started/quickstart.md)**
+**[View Full 5-Minute Tutorial →](./docs/guides/quick-start.md)**
 
 ---
 
@@ -218,7 +218,7 @@ my-vr-game/
     └── lobby.holo         # Scene graph — multiplayer lobby
 ```
 
-**[📄 Full File Types Guide →](./docs/FILE_TYPES.md)**
+**[📄 Full File Types Guide →](./docs/guides/file-formats.md)**
 
 ---
 
@@ -237,7 +237,7 @@ my-vr-game/
 
 ### 1. Universal Semantic Traits
 
-HoloScript's 1,525+ traits describe **any domain entity** — not just 3D:
+HoloScript's 2,000+ traits describe **any domain entity** — not just 3D:
 
 - **Spatial**: `@physics`, `@grabbable`, `@anchor`, `@spatial_audio`
 - **AI/Agents**: `@protocol`, `@lifecycle`, `@knowledge`, `@llm_agent`
@@ -255,7 +255,7 @@ HoloScript provides **three specialized languages** that work together:
 - **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
 - **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
 
-**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 18+ platforms.
+**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 30+ targets.
 
 ### 3. Even Playing Field (Commons-Based)
 
@@ -284,7 +284,7 @@ Write **one** HoloScript file. Compile to:
 
 - ✅ **2,000+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — 43+ MCP tools, Brittney agent, scene generation from natural language
+- ✅ **AI-Native** — 65+ MCP tools, Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
@@ -308,20 +308,21 @@ Write **one** HoloScript file. Compile to:
 
 ### Getting Started
 
-- 📗 **[Quickstart](./docs/getting-started/quickstart.md)** - Start building in minutes.
-- 📄 **[File Types Guide](./docs/FILE_TYPES.md)** - Understanding `.holo`, `.hs`, `.hsplus`, and `.ts` files.
-- 🚀 **[Installation Guide](./docs/INSTALLATION_GUIDE.md)** - Full install options (CLI, SDK, Unity, npm).
+- 📗 **[Quickstart](./docs/guides/quick-start.md)** - Start building in minutes.
+- 📄 **[File Types Guide](./docs/guides/file-formats.md)** - Understanding `.holo`, `.hs`, `.hsplus`, and `.ts` files.
+- 🚀 **[Installation Guide](./docs/guides/installation.md)** - Full install options (CLI, SDK, Unity, npm).
 
 ### Agents & AI
 
-- 🤖 **[Agent API Reference](./docs/AGENT_API_REFERENCE.md)** - Complete public API for `LLMAgentTrait`, `MultiAgentTrait`, `ChoreographyEngine`, and `AgentRegistry`.
-- 🔌 **[MCP Server Guide](./docs/MCP_SERVER_GUIDE.md)** - Configure Claude, Cursor, or any MCP-compatible agent to build HoloScript scenes.
+- 🤖 **[Agents Reference](./docs/agents/index.md)** - Agent architecture, protocols, and orchestration patterns.
+- 🔌 **[MCP Server Guide](./docs/guides/mcp-server.md)** - Configure Claude, Cursor, or any MCP-compatible agent to build HoloScript scenes.
 - 🐦 **[Grok/X Integration](./docs/GROK_X_INTEGRATION_ROADMAP.md)** - Native X/Twitter AI tools: `explain_code`, scene generation from posts, real-time agent triggers.
 
 ### Reference & Advanced
 
-- 📘 **[Traits Reference](./docs/TRAITS_REFERENCE.md)** - Explore the massive library of 2,000+ VR traits.
-- 📙 **[Academy](./docs/academy/README.md)** - Master HoloScript through interactive lessons.
+- 📘 **[Traits Reference](./docs/traits/index.md)** - Explore the massive library of 2,000+ VR traits.
+- 🧩 **[RFC Proposals Index](./proposals/README.md)** - Track active proposals and draft new RFCs for language and platform evolution.
+- 📙 **[Academy](./docs/academy/index.md)** - Master HoloScript through interactive lessons.
 - 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 30+ compile targets.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.
@@ -364,7 +365,7 @@ narrative "Tutorial" {
 ### HoloScript CLI
 
 | Command | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `holoscript run <file>` | Execute `.hs`/`.hsplus`/`.holo` headlessly with optional `--target node\|python` and `--profile headless\|minimal\|full` |
 | `holoscript test <file>` | Run `@script_test` blocks with real assertion evaluation, runtime state binding, and colorized output |
 | `holoscript compile <file>` | Compile to Node.js or Python with `--target` and `--output` flags |
@@ -417,6 +418,7 @@ Watch `.hs`/`.hsplus`/`.holo` files and live-reload on change:
 ### DAG Visualization (Studio Panel)
 
 Interactive scene graph visualization with:
+
 - 🔍 **Search/filter** — Find nodes by name, type, or trait
 - 🌡️ **Heatmap** — Green→red gradient by trait density
 - 🗺️ **Minimap** — Overview navigation with viewport indicator
@@ -427,8 +429,8 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server (43+ tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
-- **LSP Server** — IntelliSense for 1,800+ traits with completions, hover docs, and diagnostics
+- **MCP Server (65+ tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/guides/mcp-server.md)**
+- **LSP Server** — IntelliSense for 2,000+ traits with completions, hover docs, and diagnostics
 - **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.
 - **Plugin System** — Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
 - **MCP Circuit Breaker** — Resilient MCP tool calls with retry, timeout, and fallback patterns
@@ -531,7 +533,7 @@ HoloScript is not just a language — it's an **open platform**: the foundation 
 
 [Hololand](https://github.com/brianonbased-dev/Hololand) is a VR social platform ("Roblox for VR") built entirely on HoloScript:
 
-- **43+ packages**: Multiplayer, physics, rendering, voice chat
+- **60+ packages**: Multiplayer, physics, rendering, voice chat
 - **Public APIs only**: No privileged access (proves others can compete)
 - **Open architecture**: Source available as reference
 

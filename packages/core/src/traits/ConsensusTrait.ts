@@ -422,25 +422,40 @@ export function createConsensusTrait(
   return new ConsensusTrait(entityId, config);
 }
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to ConsensusTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const consensusHandler = {
   name: 'consensus',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__consensusState = { active: true, config };
-    ctx.emit('consensus_attached', { node });
+    const instance = new ConsensusTrait(config);
+    node.__consensus_instance = instance;
+    ctx.emit('consensus_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__consensus_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('consensus_detached', { node });
-    delete node.__consensusState;
+    delete node.__consensus_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'consensus_configure') {
-      Object.assign(node.__consensusState?.config ?? {}, event.payload ?? {});
+    const instance = node.__consensus_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'consensus_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('consensus_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__consensus_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

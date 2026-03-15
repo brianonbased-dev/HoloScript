@@ -259,4 +259,4 @@ To add to CI pipeline:
 - [HoloScript Compiler Architecture](../../docs/ARCHITECTURE.md)
 - [Supported Compilation Targets](../../packages/core/README.md)
 - [Vertical Use Cases](../../docs/USE_CASE_RESEARCH_COMPREHENSIVE.md)
-- [Trait System Reference](../../docs/TRAITS_REFERENCE.md)
+- [Trait System Reference](../../docs/traits/index.md)

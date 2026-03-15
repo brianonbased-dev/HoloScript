@@ -1,9 +1,3 @@
 [
-  "P: docs candidates found but no improvement — consider different approach",
-  "G: typefix fix on EffectInference.ts failed after 2 retries — compile errors persist",
-  "P: complexity candidates found but no improvement — consider different approach",
-  "P: all candidates found but no improvement — consider different approach",
-  "G: typefix fix on EffectInference.ts failed after 2 retries — compile errors persist",
-  "P: coverage candidates found but no improvement — consider different approach",
-  "G: typefix fix on EffectInference.ts failed after 2 retries — compile errors persist"
+  "G: typefix fix on BaseAdapter.ts failed after 2 retries — compile errors persist"
 ]

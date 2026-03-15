@@ -82,25 +82,40 @@ export class SlidableTrait implements Trait {
   }
 }
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to SlidableTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const slidableHandler = {
   name: 'slidable',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__slidableState = { active: true, config };
-    ctx.emit('slidable_attached', { node });
+    const instance = new SlidableTrait();
+    node.__slidable_instance = instance;
+    ctx.emit('slidable_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__slidable_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('slidable_detached', { node });
-    delete node.__slidableState;
+    delete node.__slidable_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'slidable_configure') {
-      Object.assign(node.__slidableState?.config ?? {}, event.payload ?? {});
+    const instance = node.__slidable_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'slidable_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('slidable_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__slidable_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

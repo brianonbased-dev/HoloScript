@@ -795,25 +795,40 @@ export type LobbyStateType = LobbyState;
 export type LobbyMatchmakingMode = MatchmakingMode;
 export type LobbyEventTypeAlias = LobbyEventType;
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to LobbyTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const lobbyHandler = {
   name: 'lobby',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__lobbyState = { active: true, config };
-    ctx.emit('lobby_attached', { node });
+    const instance = new LobbyTrait(config);
+    node.__lobby_instance = instance;
+    ctx.emit('lobby_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__lobby_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('lobby_detached', { node });
-    delete node.__lobbyState;
+    delete node.__lobby_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'lobby_configure') {
-      Object.assign(node.__lobbyState?.config ?? {}, event.payload ?? {});
+    const instance = node.__lobby_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'lobby_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('lobby_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__lobby_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

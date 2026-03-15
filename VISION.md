@@ -8,7 +8,7 @@
 
 ### 1. Traits Are the Foundation
 
-HoloScript is not a 3D language. It is not a spatial computing tool. It is a **semantic specification language** built on a trait system of 1,525+ composable decorators.
+HoloScript is not a 3D language. It is not a spatial computing tool. It is a **semantic specification language** built on a trait system of 2,000+ composable decorators.
 
 A trait is a closed-world declaration: `@physics { mass: 5 }`, `@protocol { phases: 7 }`, `@http { method: "GET" }`, `@agent { role: "researcher" }`. Every trait carries its own referent — the compiler enforces what the trait means on every target platform.
 
@@ -18,7 +18,7 @@ Spatial traits (`@physics`, `@grabbable`, `@anchor`) are **one category among th
 
 In HoloScript, a REST endpoint, an AI agent, a 3D dragon, a database schema, and a neural network layer are all the same thing: **an entity with traits**.
 
-```
+```hs
 entity RestAPI       { @http { method: "GET", path: "/health" } }
 entity Agent         { @protocol { phases: 7 } @lifecycle { cycle: 68 } }
 entity Dragon        { @mesh { geometry: "dragon.glb" } @physics { mass: 200 } }
@@ -30,7 +30,7 @@ There is no distinction between "backend code" and "3D content." Traits describe
 
 ### 3. The Compiler Makes It Real
 
-HoloScript's compiler fleet has **18 platform-level compile targets** and 9 internal compilation modes. The same trait declaration compiles to:
+HoloScript's compiler fleet has **30+ platform-level compile targets** and 9 internal compilation modes. The same trait declaration compiles to:
 
 - **Unity C#**: `AddComponent<Rigidbody>(); rb.mass = 5.0f;`
 - **VRChat Udon**: `[UdonBehaviourSyncMode] rb.mass = 5.0f;`
@@ -45,7 +45,7 @@ HoloScript Studio — the React/R3F-based visual editor — is **one way to view
 
 - Rendered as a 3D scene (Studio viewport)
 - Edited as text (`.holo`, `.hs`, `.hsplus` files)
-- Queried via MCP tools (43+ tools for AI agents)
+- Queried via MCP tools (65+ tools for AI agents)
 - Analyzed as a dependency graph (`holoscript absorb`)
 - Compiled to platform code (compiler fleet)
 
@@ -55,7 +55,7 @@ The 3D canvas is the most visual rendering mode, but it's not privileged. An age
 
 The `holoscript absorb` pipeline scans existing codebases (TypeScript, Python, Rust, Go) and converts them into HoloScript entities:
 
-```
+```text
 TypeScript Source → CodebaseScanner → CodebaseGraph → .holo Composition
 ```
 
@@ -74,7 +74,7 @@ Using uaa2-service (a production AI agent orchestration platform) as the benchma
 ### Natively (~40%)
 
 | System | How |
-|---|---|
+| --- | --- |
 | Agent definitions | Entity + `@agent`, `@lifecycle`, `@protocol` traits |
 | Protocol state machines | Trait state transitions, phase enums, guard conditions |
 | Knowledge schemas | `@pattern`, `@wisdom`, `@gotcha` traits with typed properties |
@@ -85,7 +85,7 @@ Using uaa2-service (a production AI agent orchestration platform) as the benchma
 ### Partially (~30%)
 
 | System | Gap |
-|---|---|
+| --- | --- |
 | MCP tool registration | Trait describes the tool; handler needs imperative code |
 | Resilience patterns | `@circuit_breaker { threshold: 5 }` as spec; retry logic compiled |
 | Auth & RBAC | Policy-as-trait; JWT validation as compiled TypeScript |
@@ -94,7 +94,7 @@ Using uaa2-service (a production AI agent orchestration platform) as the benchma
 ### Needs TypeScript (~30%)
 
 | System | Why |
-|---|---|
+| --- | --- |
 | SQL/database queries | Imperative data access |
 | Express middleware | Sequential request processing |
 | Error handling plumbing | Runtime try/catch, stack traces |
@@ -107,7 +107,7 @@ Using uaa2-service (a production AI agent orchestration platform) as the benchma
 
 ## The Semantic Stack
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │  .holo  — Scene compositions, world layout  │  Declarative
 ├─────────────────────────────────────────────┤
@@ -125,6 +125,7 @@ Using uaa2-service (a production AI agent orchestration platform) as the benchma
 ```
 
 Each layer has a purpose:
+
 - **`.holo`**: What the world looks like and how entities relate
 - **`.hs`**: How entities behave and respond to events
 - **`.hsplus`**: Type-safe logic, modules, state machines
@@ -141,6 +142,7 @@ HoloScript operates as three complementary layers:
 3. **Translation Layer** (AI + absorb + compiler) — Bridges between specification and implementation
 
 An AI agent working with HoloScript:
+
 - Reads `.holo`/`.hs`/`.hsplus` files to understand domain semantics
 - Generates trait-based entity definitions from natural language
 - Lets the compiler produce platform-specific code
@@ -153,7 +155,7 @@ This is not "AI replacing code." It's **AI working at the semantic level** while
 ## Version History
 
 | Version | Focus |
-|---|---|
+| --- | --- |
 | v1–v2 | 3D scene description language |
 | v3 | Multi-target compiler, trait system |
 | v4 | Multi-domain expansion (IoT, robotics, healthcare) |

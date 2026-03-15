@@ -2,7 +2,7 @@
 
 Complete catalog of all HoloScript examples organized by category, platform, and feature.
 
-> **📄 New to HoloScript file types?** See [File Types Guide](../docs/FILE_TYPES.md) to understand `.holo`, `.hs`, and `.hsplus` files.
+> **📄 New to HoloScript file types?** See [File Formats Guide](../docs/guides/file-formats.md) to understand `.holo`, `.hs`, and `.hsplus` files.
 
 ## Quick Reference
 

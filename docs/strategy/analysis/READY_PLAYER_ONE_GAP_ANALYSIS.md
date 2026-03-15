@@ -201,11 +201,11 @@ HoloScript has **bidirectional flow:**
 
 ---
 
-### 10. 1,800+ TRAITS vs HARDCODED OBJECTS
+### 10. 2,000+ TRAITS vs HARDCODED OBJECTS
 
 Objects in the OASIS have hardcoded behaviors. A sword is a sword. An Iron Giant is an Iron Giant.
 
-HoloScript objects compose from **1,800+ declarative traits:**
+HoloScript objects compose from **2,000+ declarative traits:**
 
 ```hsplus
 // Make ANY object networked, grabbable, and glowing in 3 lines
@@ -356,7 +356,7 @@ OASIS:     Platform → locked content → one experience
 HoloScript: Language → portable code → infinite experiences
 ```
 
-When Halliday dies, the OASIS is at risk. When HoloScript exists as open source with 1,262+ tests and 1,800+ traits, it's bigger than any one person or company.
+When Halliday dies, the OASIS is at risk. When HoloScript exists as open source with 1,262+ tests and 2,000+ traits, it's bigger than any one person or company.
 
 ---
 

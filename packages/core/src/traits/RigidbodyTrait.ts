@@ -675,25 +675,40 @@ export type RigidbodyInterpolation = InterpolationMode;
 export type RigidbodyForceMode = ForceMode;
 export type RigidbodyColliderShape = ColliderShape;
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to RigidbodyTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const rigidbodyHandler = {
   name: 'rigidbody',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__rigidbodyState = { active: true, config };
-    ctx.emit('rigidbody_attached', { node });
+    const instance = new RigidbodyTrait(config);
+    node.__rigidbody_instance = instance;
+    ctx.emit('rigidbody_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__rigidbody_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('rigidbody_detached', { node });
-    delete node.__rigidbodyState;
+    delete node.__rigidbody_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'rigidbody_configure') {
-      Object.assign(node.__rigidbodyState?.config ?? {}, event.payload ?? {});
+    const instance = node.__rigidbody_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'rigidbody_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('rigidbody_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__rigidbody_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

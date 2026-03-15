@@ -1,12 +1,13 @@
 # HoloScript Roadmap 2026-2028
 
+> Historical archive: this roadmap is preserved as a planning snapshot from the v3-v5 era. Counts, milestones, and wording below reflect that period. For current canonical positioning and metrics, use ../../README.md, ../README.md, ../../VISION.md, and ../../CHANGELOG.md.
+
 **The language for spatial computing.**
 
 A declarative language with tooling that compiles to multiple platforms. This roadmap is scoped for **5 AI agents working in parallel**.
 
 > 📦 HoloScript includes its own full runtime engine (50+ subsystems). [Hololand](https://github.com/brianonbased-dev/Hololand) is an optional deployment platform that provides hosting, Brittney AI assistant, and additional platform adapters.
-
-> 🎯 **Current version: v5.0.0** — see [CHANGELOG.md](./CHANGELOG.md) for full release history.
+> 🎯 **Current version at archive time: v5.0.0** — see [CHANGELOG.md](../../CHANGELOG.md) for full release history.
 > ✅ **Latest release: v5.0.0 Autonomous Ecosystems** → [Jump to latest ↓](#-v500---autonomous-ecosystems-march-2026)
 
 ---
@@ -1178,7 +1179,7 @@ integration SmartCampusIntegration {
 
 ### ✅ Complete
 
-- `.hsplus` / `.holo` parsers (1,800+ traits)
+- `.hsplus` / `.holo` parsers (historical snapshot: 1,800+ traits at the time)
 - Type system (generics, unions, type guards)
 - Template system, 16 structural directives
 - Formatter, Linter (28 rules), LSP, CLI

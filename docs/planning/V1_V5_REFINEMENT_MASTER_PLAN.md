@@ -23,7 +23,7 @@ _Focus: Eliminating friction from the primary authoring environments._
 
 - **Unified Error Classification**: Standardize parser, compiler, and runtime error schemas. Errors must provide exact AST line/column numbers and actionable fix suggestions.
 - **CLI Robustness**: Audit `holoscript compile` and `holoscript preview` for silent failures or obscure stack traces.
-- **Language Server Protocol (LSP)**: Ensure the VS Code extension provides near-instant IntelliSense for all 1,800+ traits.
+- **Language Server Protocol (LSP)**: Ensure the VS Code extension provides near-instant IntelliSense for all 2,000+ traits.
 
 ---
 
@@ -48,7 +48,7 @@ _Focus: Perfecting the underlying execution and compilation environment._
 
 ## Track 3: Trait Ecosystem Integration
 
-_Focus: Harmonizing the 1,800+ traits into a cohesive, uncrashable library._
+_Focus: Harmonizing the 2,000+ traits into a cohesive, uncrashable library._
 
 ### Phase 3A: Cross-Domain Interoperability Audits
 

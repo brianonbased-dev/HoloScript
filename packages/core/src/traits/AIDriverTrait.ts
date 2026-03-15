@@ -499,25 +499,40 @@ export function createAIDriverTrait(config: AIDriverConfig): AIDriverTrait {
   return new AIDriverTrait(config);
 }
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to BehaviorTreeRunner) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const aIDriverHandler = {
   name: 'a_i_driver',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__a_i_driverState = { active: true, config };
-    ctx.emit('a_i_driver_attached', { node });
+    const instance = new BehaviorTreeRunner(config);
+    node.__a_i_driver_instance = instance;
+    ctx.emit('a_i_driver_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__a_i_driver_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('a_i_driver_detached', { node });
-    delete node.__a_i_driverState;
+    delete node.__a_i_driver_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'a_i_driver_configure') {
-      Object.assign(node.__a_i_driverState?.config ?? {}, event.payload ?? {});
+    const instance = node.__a_i_driver_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'a_i_driver_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('a_i_driver_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__a_i_driver_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

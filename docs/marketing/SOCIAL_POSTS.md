@@ -15,15 +15,15 @@ Ready-to-post content for X/Twitter. Generated with Grok AI assistance.
 
 ### Post 1
 
-Hey creators! Meet HoloScript — an open-source language for building VR/AR/XR experiences as easily as writing HTML. With 1,800+ traits like @grabbable & @teleport, it compiles to WebXR and runs in any browser. Start building now! #VRdev #WebXR
+Hey creators! Meet HoloScript — an open-source language for building VR/AR/XR experiences as easily as writing HTML. With 2,000+ traits like @grabbable & @teleport, it compiles to WebXR and runs in any browser. Start building now! #VRdev #WebXR
 
 ### Post 2
 
-VR dev just got easier with HoloScript. It's free, open-source, and turns simple code into immersive WebXR experiences. Ideal for indie devs & hobbyists. 1,800+ traits to explore! Find it on GitHub and start building. #VRdev
+VR dev just got easier with HoloScript. It's free, open-source, and turns simple code into immersive WebXR experiences. Ideal for indie devs & hobbyists. 2,000+ traits to explore! Find it on GitHub and start building. #VRdev
 
 ### Post 3
 
-Introducing HoloScript — an open-source, declarative way to craft VR/AR experiences. 1,800+ traits to play with, from @physics to @portal. Perfect for educators & creators. Compiles to WebXR, runs anywhere. Dive in on GitHub! #WebXR
+Introducing HoloScript — an open-source, declarative way to craft VR/AR experiences. 2,000+ traits to play with, from @physics to @portal. Perfect for educators & creators. Compiles to WebXR, runs anywhere. Dive in on GitHub! #WebXR
 
 ### Post 4
 
@@ -79,7 +79,7 @@ VR educators! How could HoloScript help in classrooms? It's free, open-source, a
 
 ### Post 13
 
-Indie devs, what's your biggest VR dev struggle? HoloScript is open-source and aims to simplify with 1,800+ traits like @teleport. Tell us how we can make it better! #WebXR
+Indie devs, what's your biggest VR dev struggle? HoloScript is open-source and aims to simplify with 2,000+ traits like @teleport. Tell us how we can make it better! #WebXR
 
 ### Post 14
 

@@ -1,29 +1,28 @@
-# HoloScript Technical Documentation
+# HoloScript Documentation Index
 
-**Comprehensive deployment, architecture, and implementation guides**
+Use this index for current, canonical documentation entry points.
 
-See individual guides for detailed implementation strategies.
+## Start Here
 
-## Documentation Index
+1. **[Guides Home](./guides/index.md)** - Main onboarding and core concepts
+2. **[Quick Start](./guides/quick-start.md)** - Build your first composition quickly
+3. **[Installation](./guides/installation.md)** - CLI and environment setup
+4. **[File Formats](./guides/file-formats.md)** - `.holo`, `.hs`, and `.hsplus`
 
-### Language Fundamentals
+## Reference
 
-1. **[FILE_TYPES.md](FILE_TYPES.md)** - Understanding `.holo`, `.hs`, and `.hsplus` file extensions
+1. **[Traits](./traits/index.md)** - 2,000+ trait categories and examples
+2. **[Compilers](./compilers/index.md)** - 30+ export targets and profiles
+3. **[Agents](./agents/index.md)** - Agent protocol and orchestration docs
+4. **[Packages](./packages/index.md)** - Monorepo package map and APIs
 
-### AI & Agents
+## Learn and Build
 
-1. **[AI_TRAITS_REFERENCE.md](AI_TRAITS_REFERENCE.md)** - Comprehensive guide to LLM agents, uAA2++ protocol, and observability
-2. **[AI_QUICK_REF.md](AI_QUICK_REF.md)** - One-page cheat sheet for AI agents working with HoloScript
-3. **[AGENT_API_REFERENCE.md](AGENT_API_REFERENCE.md)** - Multi-agent orchestration APIs (AgentRegistry, Choreography, Negotiation)
-4. **[MCP_SERVER_GUIDE.md](MCP_SERVER_GUIDE.md)** - Configure Claude, Cursor, or any MCP-compatible agent
+1. **[Academy](./academy/index.md)** - Structured learning path
+2. **[Examples](./examples/index.md)** - Practical copy-ready scenes
+3. **[Cookbook](./cookbook/index.md)** - Task-focused recipes
 
-### Deployment & Architecture
+## Contributing and RFCs
 
-1. **[DEPLOYMENT.md](../DEPLOYMENT.md)** - Multi-channel deployment
-2. **[MONOREPO_STRATEGY.md](MONOREPO_STRATEGY.md)** - Rust + TypeScript integration
-3. **[GAME_ENGINE_VERSIONING.md](GAME_ENGINE_VERSIONING.md)** - Unity/Unreal/Godot support
-4. **[INCREMENTAL_COMPILATION.md](INCREMENTAL_COMPILATION.md)** - Build optimization
-5. **[CLOUD_COMPILER_SECURITY.md](CLOUD_COMPILER_SECURITY.md)** - Cloud deployment
-6. **[PLUGIN_ECOSYSTEM.md](PLUGIN_ECOSYSTEM.md)** - WASM plugin system
-
-All guides are production-ready and based on comprehensive research.
+1. **[Contributing Guide](../CONTRIBUTING.md)** - Contribution workflow and standards
+2. **[Proposals Index](../proposals/README.md)** - Active RFCs and proposal templates

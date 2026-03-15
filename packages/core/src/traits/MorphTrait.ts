@@ -839,25 +839,40 @@ export function createMorphTrait(config?: MorphConfig): MorphTrait {
   return new MorphTrait(config);
 }
 
-// ── Handler wrapper (auto-generated) ──
+// ── Handler (delegates to MorphTrait) ──
 import type { TraitHandler } from './TraitTypes';
 
 export const morphHandler = {
   name: 'morph',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    node.__morphState = { active: true, config };
-    ctx.emit('morph_attached', { node });
+    const instance = new MorphTrait(config);
+    node.__morph_instance = instance;
+    ctx.emit('morph_attached', { node, config });
   },
   onDetach(node: any, _config: any, ctx: any): void {
+    const instance = node.__morph_instance;
+    if (instance) {
+      if (typeof instance.onDetach === 'function') instance.onDetach(node, ctx);
+      else if (typeof instance.dispose === 'function') instance.dispose();
+      else if (typeof instance.cleanup === 'function') instance.cleanup();
+    }
     ctx.emit('morph_detached', { node });
-    delete node.__morphState;
+    delete node.__morph_instance;
   },
   onEvent(node: any, _config: any, ctx: any, event: any): void {
-    if (event.type === 'morph_configure') {
-      Object.assign(node.__morphState?.config ?? {}, event.payload ?? {});
+    const instance = node.__morph_instance;
+    if (!instance) return;
+    if (typeof instance.onEvent === 'function') instance.onEvent(event);
+    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    if (event.type === 'morph_configure' && event.payload) {
+      Object.assign(instance, event.payload);
       ctx.emit('morph_configured', { node });
     }
   },
-  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+  onUpdate(node: any, _config: any, ctx: any, dt: number): void {
+    const instance = node.__morph_instance;
+    if (!instance) return;
+    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+  },
 } as const satisfies TraitHandler;

@@ -351,7 +351,7 @@ adb install -r plane-detection.apk
 
 ## Resources
 
-- [HoloScript AR Traits Reference](../../docs/TRAITS_REFERENCE.md#arspatial-traits)
+- [HoloScript Spatial Traits Reference](../../docs/traits/spatial.md)
 - [ARKit Documentation](https://developer.apple.com/documentation/arkit)
 - [ARCore Documentation](https://developers.google.com/ar)
 - [AR Foundation Unity](https://docs.unity3d.com/Packages/com.unity.xr.arfoundation@latest)

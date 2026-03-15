@@ -102,7 +102,7 @@ holoscript compile hello.holo --target webxr --output hello.html
 
 > [SHOW: Compilation output]
 
-```
+```text
 ✓ Parsing... OK
 ✓ Validating traits... OK
 ✓ Generating WebXR... OK
@@ -200,7 +200,7 @@ cd vr-playground
 holoscript init     # Creates project structure
 ```
 
-```
+```text
 vr-playground/
 ├── scenes/
 │   └── main.holo
@@ -217,7 +217,7 @@ vr-playground/
 
 "Let's build our scene step by step."
 
-**Step 1: The environment**
+#### Step 1: The Environment
 
 ```holoscript
 scene {
@@ -237,7 +237,7 @@ scene {
   }
 ```
 
-**Step 2: Interactive objects**
+#### Step 2: Interactive Objects
 
 ```holoscript
   // A stack of physics cubes
@@ -272,7 +272,7 @@ scene {
   }
 ```
 
-**Step 3: Networked table (persistent)**
+#### Step 3: Networked Table (Persistent)
 
 ```holoscript
   // A table where objects stay when placed
@@ -287,7 +287,7 @@ scene {
   }
 ```
 
-**Step 4: Ambient environment**
+#### Step 4: Ambient Environment
 
 ```holoscript
   // Directional light
@@ -363,7 +363,7 @@ Next tutorial: Building custom traits for specialized behaviors. Link below."
 
 ### INTRO (0:00 - 0:40)
 
-"HoloScript ships with 1,800+ traits, but your project probably needs something specific. Maybe a health system, a sensor visualization, or custom physics.
+"HoloScript ships with 2,000+ traits, but your project probably needs something specific. Maybe a health system, a sensor visualization, or custom physics.
 
 In this tutorial, we'll build a complete `@health_system` trait package from scratch — with tests, TypeScript types, and npm publishing."
 
@@ -641,7 +641,7 @@ Next: Publishing to the HoloScript Trait Registry for community discovery."
 
 ---
 
-### INTRO (0:00 - 0:30)
+### Tutorial 4 Intro (0:00 - 0:30)
 
 "HoloScript is designed for AI collaboration. The MCP server gives any AI agent — Claude, GPT, Gemini — full access to HoloScript's 72+ tools.
 
@@ -685,7 +685,7 @@ npm install -g @holoscript/mcp-server
 
 **Claude's response using MCP:**
 
-```
+```text
 I'll use the generate_scene tool to create a haunted mansion scene...
 
 [Using generate_scene with params: {
@@ -763,7 +763,7 @@ if (result.valid) {
 
 > [SCREEN: Running validation]
 
-```
+```text
 ✓ Valid! Hallucination score: 12/100
 Traits validated: 14
 Warnings: 0
@@ -854,4 +854,4 @@ This is the future of spatial computing — AI co-creation with safety guardrail
 
 ---
 
-_Last updated: 2026-02-16 | HoloScript v3.4.0_
+Last updated: 2026-02-16 | HoloScript v3.4.0

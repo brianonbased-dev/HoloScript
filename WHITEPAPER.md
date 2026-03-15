@@ -9,7 +9,7 @@
 
 ## Abstract
 
-Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through *executable semantics*. By utilizing a robust library of over 1,500 standard traits organized across 13 semantic categories and a compiler fleet of 18 platform-level compile targets (with 9 additional internal compilation modes), HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
+Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through *executable semantics*. By utilizing a robust library of over 2,000 standard traits organized across 13 semantic categories and a compiler fleet of 30+ platform-level compile targets (with 9 additional internal compilation modes), HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
 
 ---
 
@@ -75,7 +75,7 @@ composition "PhysicsDemoScene" {
 
 #### `.hsplus` — Behavioral Contract Layer
 
-The `.hsplus` format extends `.hs` with a trait system — a library of 1,500+ semantic decorators that encode spatial, physical, interaction, networking, and AI behaviors as first-class language primitives:
+The `.hsplus` format extends `.hs` with a trait system — a library of 2,000+ semantic decorators that encode spatial, physical, interaction, networking, and AI behaviors as first-class language primitives:
 
 ```hsplus
 composition "InteractiveScene" {
@@ -141,10 +141,10 @@ composition "Marketplace" {
 
 ### 2.2 The Trait System as Semantic Vocabulary
 
-The 1,500+ standard trait library is organized into 13 semantic categories. The following table presents 7 representative categories:
+The 2,000+ standard trait library is organized into 13 semantic categories. The following table presents 7 representative categories:
 
 | Category | Representative Traits |
-|---|---|
+| --- | --- |
 | Interaction | `@grabbable`, `@throwable`, `@clickable`, `@draggable` |
 | Physics | `@physics`, `@collidable`, `@kinematic`, `@trigger` |
 | Networking | `@networked`, `@synced`, `@persistent`, `@replicated` |
@@ -307,7 +307,7 @@ The converter accepts `UnityGameObject` types containing `UnityComponent` arrays
 
 This bidirectionality is the formal closure of the grounding loop:
 
-```
+```text
                     ┌──────────────────────────────────────────────┐
                     │          CompiledPhysics IR                  │
                     └──────┬─────────┬──────────┬─────────────────┘
@@ -394,10 +394,10 @@ HoloScript's declarative source format is engine-agnostic and plain-text. A `.ho
 
 HoloScript v5 extends executable semantics into autonomous, self-governing spatial systems. The Autonomous Ecosystems stack introduces five trait families — `AgentPortalTrait` (cross-scene migration), `EconomyPrimitivesTrait` (in-scene credit economies and escrow bounties), `FeedbackLoopTrait` (self-optimizing quality metrics), `CulturalTrait` family (norm enforcement and cultural memory), and `TenantTrait` (multi-tenant RBAC compliance) — that compose declaratively within a single `.holo` file.
 
-To demonstrate the breadth of this stack, we present 13 novel compositions spanning materials science, climate response, AI safety, physical robotics, healthcare, cultural heritage, and co-creative art. Each composition ships to 18+ compile targets from a single source file.
+To demonstrate the breadth of this stack, we present 13 novel compositions spanning materials science, climate response, AI safety, physical robotics, healthcare, cultural heritage, and co-creative art. Each composition ships to 30+ compile targets from a single source file.
 
 | # | Composition | Domain | Key v5 Traits | Lines |
-|---|-------------|--------|---------------|-------|
+| --- | --- | --- | --- | --- |
 | 1 | Quantum Materials Arena | Materials Science | agent\_portal, economy, feedback\_loop, post\_quantum\_audit | ~230 |
 | 2 | Sci-Fi Future Vision | Film / Art | agent\_portal, economy, cultural\_profile, feedback\_loop | ~210 |
 | 3 | Water-Scarcity Swarm | Climate / Water | agent\_portal, economy, cultural\_profile, feedback\_loop, digital\_twin, ROS2Bridge | ~260 |
@@ -491,6 +491,7 @@ entity Agent {
 ```
 
 The trait declarations `@protocol`, `@knowledge`, and `@lifecycle` are not comments or documentation. They are compiler-enforceable contracts. A `node-service` compile target would emit:
+
 - A state machine with 7 phase transitions and guard conditions
 - A typed knowledge store with pattern/wisdom/gotcha schemas
 - A lifecycle manager with health checks and restart policies
@@ -517,7 +518,7 @@ Every class, interface, function, and method becomes a HoloScript entity with me
 Not all code can be expressed as traits. Empirical analysis of a production AI service platform (9 services, 36+ repositories) reveals a coverage gradient:
 
 | Coverage | Examples | Mechanism |
-|---|---|---|
+| --- | --- | --- |
 | **Full (~40%)** | Agent definitions, protocol state machines, knowledge schemas, entity relationships, economic models | Traits compile deterministically to typed implementations |
 | **Partial (~30%)** | MCP tool registration, resilience patterns, auth policies, mesh networking topology | Traits describe the contract; compiler generates boilerplate; imperative gaps filled by developer or AI |
 | **None (~30%)** | SQL queries, Express middleware chains, error handling plumbing, third-party API calls, file I/O | Inherently imperative — no declarative specification exists |
