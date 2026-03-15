@@ -25,9 +25,24 @@ export interface HoverInfo {
  * built-in HoloScript primitives (box, sphere, panel) and traits (@grabbable,
  * @audio, @particles, etc.) during development.
  * 
- * @internal
+ * This is exported to allow other tools and IDE extensions to access the same
+ * documentation strings that the core language service uses.
+ * 
+ * @example
+ * ```typescript
+ * import { HOVER_DOCS } from '@holoscript/core/lsp';
+ * 
+ * // Get documentation for the box primitive
+ * const boxDoc = HOVER_DOCS.box;
+ * console.log(boxDoc); // "**box** — 3D box primitive..."
+ * 
+ * // Get documentation for a trait
+ * const grabbableDoc = HOVER_DOCS['@grabbable'];
+ * ```
+ * 
+ * @public
  */
-const HOVER_DOCS: Record<string, string> = {
+export const HOVER_DOCS: Record<string, string> = {
   box: '**box** — 3D box primitive\n\nProperties: position, rotation, scale, color, opacity',
   sphere:
     '**sphere** — 3D sphere primitive\n\nProperties: position, rotation, scale, color, radius',

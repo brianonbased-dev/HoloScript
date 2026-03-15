@@ -7,11 +7,8 @@ import path from 'path';
 // Preserve the original jsdom window so afterEach can restore it
 const savedOriginalWindow = global.window;
 
-// Mock console methods
-const consoleSpy = {
-  log: vi.spyOn(console, 'log').mockImplementation(() => {}),
-  error: vi.spyOn(console, 'error').mockImplementation(() => {}),
-};
+// consoleSpy is created in beforeEach so it wraps vitest's own console interception
+let consoleSpy: { log: ReturnType<typeof vi.spyOn>; error: ReturnType<typeof vi.spyOn> };
 
 // Load and execute the browser benchmark script in a controlled environment
 function loadBenchmarkScript() {
@@ -42,10 +39,12 @@ describe('browser-benchmark.js', () => {
   let mockPerformance: any;
   
   beforeEach(() => {
-    // Reset console spies
-    consoleSpy.log.mockClear();
-    consoleSpy.error.mockClear();
-    
+    // Create fresh spies each test — must be after vitest's own console setup
+    consoleSpy = {
+      log: vi.spyOn(console, 'log').mockImplementation(() => {}),
+      error: vi.spyOn(console, 'error').mockImplementation(() => {}),
+    };
+
     // Mock performance.now to return predictable values
     let callCount = 0;
     mockPerformance = vi.spyOn(performance, 'now').mockImplementation(() => {
@@ -53,10 +52,10 @@ describe('browser-benchmark.js', () => {
       return callCount++ * 10;
     });
   });
-  
+
   afterEach(() => {
-    // clearAllMocks keeps spies attached (consoleSpy remains hooked); restoreAllMocks would detach them
-    vi.clearAllMocks();
+    // restoreAllMocks is safe here because spies are recreated fresh in beforeEach
+    vi.restoreAllMocks();
     // Restore global.window after each test (loadBenchmarkScript leaves it as mockWindow)
     global.window = savedOriginalWindow;
   });
@@ -139,7 +138,7 @@ describe('browser-benchmark.js', () => {
       
       // Verify console output includes benchmark startup message
       expect(consoleSpy.log).toHaveBeenCalledWith(
-        '⚡ Running quick benchmark (1 scenario, 20 iterations)...\\n'
+        '⚡ Running quick benchmark (1 scenario, 20 iterations)...\n'
       );
       expect(consoleSpy.log).toHaveBeenCalledWith('Quick Benchmark Results:');
     });

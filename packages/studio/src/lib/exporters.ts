@@ -8,21 +8,49 @@ import type { SceneNode } from './serializer';
 
 export type ExportFormat = 'glb' | 'gltf' | 'obj' | 'fbx' | 'usd' | 'holoscript';
 
+/**
+ * Configuration options for exporting HoloScript scenes to various 3D formats.
+ * 
+ * Used by HoloScript Studio's export system to control output quality,
+ * optimization level, and asset bundling behavior.
+ * 
+ * @interface ExportOptions
+ */
 export interface ExportOptions {
+  /** Target format for the exported scene (GLB, GLTF, OBJ, FBX, USD, or native HoloScript) */
   format: ExportFormat;
+  /** Whether to include texture files in the exported output */
   includeTextures: boolean;
+  /** Whether to include animation data in the exported output */
   includeAnimations: boolean;
+  /** Whether to apply mesh optimization (decimation, compression) during export */
   optimizeMeshes: boolean;
+  /** Whether to embed assets inline vs. external references */
   embedAssets: boolean;
+  /** Export quality level affecting file size, processing time, and fidelity */
   quality: 'draft' | 'production' | 'archival';
 }
 
+/**
+ * Result data returned after successfully exporting a HoloScript scene.
+ * 
+ * Contains the exported data, metadata about the export process,
+ * and any warnings encountered during conversion.
+ * 
+ * @interface ExportResult
+ */
 export interface ExportResult {
+  /** The format that was used for export (matches the requested format) */
   format: ExportFormat;
+  /** The exported scene data as a string (base64 for binary formats) */
   data: string;
+  /** Size of the exported data in bytes */
   sizeBytes: number;
+  /** Number of scene nodes included in the export */
   nodeCount: number;
+  /** Array of non-fatal warnings encountered during export */
   warnings: string[];
+  /** Time taken to complete the export operation in milliseconds */
   duration: number;
 }
 

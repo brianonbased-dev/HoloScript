@@ -284,6 +284,7 @@ export interface StudioBridgeOptions {
  */
 export class StudioBridge {
   private ast: HoloComposition;
+  private initialAST: HoloComposition;
   private history: ASTMutation[] = [];
   private redoStack: ASTMutation[] = [];
   private historyIndex: number = -1;
@@ -293,6 +294,7 @@ export class StudioBridge {
 
   constructor(initialAST: HoloComposition, options: StudioBridgeOptions = {}) {
     this.ast = this.deepClone(initialAST);
+    this.initialAST = this.deepClone(initialAST);
     this.maxHistorySize = options.maxHistorySize ?? 100;
     this.validate = options.validate ?? true;
   }
@@ -391,11 +393,24 @@ export class StudioBridge {
     if (this.historyIndex < 0) return false;
 
     const mutation = this.history[this.historyIndex];
+    const previousAST = this.ast;
     this.redoStack.push(mutation);
     this.historyIndex--;
 
     // Rebuild AST from scratch up to historyIndex
     this.rebuildFromHistory();
+
+    // Notify listeners
+    const event: ASTChangeEvent = {
+      mutation,
+      previousAST,
+      newAST: this.ast,
+      historyIndex: this.historyIndex,
+    };
+    for (const listener of this.listeners) {
+      listener(event);
+    }
+
     return true;
   }
 
@@ -404,6 +419,7 @@ export class StudioBridge {
     if (this.redoStack.length === 0) return false;
 
     const mutation = this.redoStack.pop()!;
+    const previousAST = this.ast;
     this.historyIndex++;
     this.history[this.historyIndex] = mutation;
 
@@ -411,6 +427,17 @@ export class StudioBridge {
     const result = this.applyMutation(this.deepClone(this.ast), mutation);
     if (result.success) {
       this.ast = result.ast;
+
+      // Notify listeners
+      const event: ASTChangeEvent = {
+        mutation,
+        previousAST,
+        newAST: this.ast,
+        historyIndex: this.historyIndex,
+      };
+      for (const listener of this.listeners) {
+        listener(event);
+      }
     }
 
     return result.success;
@@ -434,6 +461,7 @@ export class StudioBridge {
   /** Reset to a specific AST (clears history) */
   reset(ast: HoloComposition): void {
     this.ast = this.deepClone(ast);
+    this.initialAST = this.deepClone(ast);
     this.history = [];
     this.redoStack = [];
     this.historyIndex = -1;
@@ -895,16 +923,29 @@ export class StudioBridge {
   // Internal helpers
   // ---------------------------------------------------------------------------
 
+  /**
+   * Rebuild the AST by replaying all mutations from the initial state
+   * up to the current historyIndex.
+   *
+   * This is O(n) in history length. For typical studio editing workloads
+   * (maxHistorySize defaults to 100), this is fast enough. A production
+   * optimization would store periodic AST snapshots to reduce replay cost.
+   */
   private rebuildFromHistory(): void {
-    // This is a simplified rebuild -- in production, you might store
-    // snapshots at intervals for efficiency.
-    // For now, the previous AST snapshot approach via undo/redo stacks
-    // is sufficient for typical studio editing workloads.
-    // The undo simply reverts by re-applying all mutations up to historyIndex.
-    // This is correct but O(n) in history length.
+    // Start from the initial AST
+    let current = this.deepClone(this.initialAST);
 
-    // For a more efficient implementation, store AST snapshots periodically.
-    // Skipped here for simplicity.
+    // Replay mutations up to (and including) historyIndex
+    for (let i = 0; i <= this.historyIndex; i++) {
+      const result = this.applyMutation(current, this.history[i]);
+      if (result.success) {
+        current = result.ast;
+      }
+      // If a mutation fails during replay, skip it (defensive).
+      // This shouldn't happen if mutations were valid when first applied.
+    }
+
+    this.ast = current;
   }
 
   private findObjectInList(name: string, objects: HoloObjectDecl[]): HoloObjectDecl | null {

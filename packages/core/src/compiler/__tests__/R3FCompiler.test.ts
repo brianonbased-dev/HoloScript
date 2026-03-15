@@ -171,4 +171,164 @@ describe('R3FCompiler', () => {
     const grp = result.children!.find((c) => c.id === 'grp1');
     expect(grp).toBeDefined();
   });
+
+  // =========== @draft trait → assetMaturity ===========
+
+  it('sets assetMaturity to draft when @draft trait is present', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'DraftScene',
+      objects: [
+        {
+          name: 'building',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [{ name: 'draft', config: { shape: 'box', collision: true } }],
+        },
+      ],
+    });
+    const building = result.children!.find((c) => c.id === 'building');
+    expect(building).toBeDefined();
+    expect(building!.assetMaturity).toBe('draft');
+    expect(building!.props.draftMode).toBe(true);
+    expect(building!.props.draftShape).toBe('box');
+  });
+
+  it('@draft trait auto-adds collision proxy', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'DraftScene',
+      objects: [
+        {
+          name: 'wall',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [{ name: 'draft' }],
+        },
+      ],
+    });
+    const wall = result.children!.find((c) => c.id === 'wall');
+    expect(wall).toBeDefined();
+    expect(wall!.props.rigidBody).toEqual({ type: 'fixed' });
+    expect(wall!.props.collider).toEqual({ type: 'auto' });
+  });
+
+  it('@draft trait respects collision: false', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'DraftScene',
+      objects: [
+        {
+          name: 'ghost',
+          properties: [{ key: 'geometry', value: 'sphere' }],
+          traits: [{ name: 'draft', config: { collision: false } }],
+        },
+      ],
+    });
+    const ghost = result.children!.find((c) => c.id === 'ghost');
+    expect(ghost).toBeDefined();
+    expect(ghost!.props.rigidBody).toBeUndefined();
+    expect(ghost!.props.collider).toBeUndefined();
+  });
+
+  it('@draft uses default color and wireframe', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'DraftScene',
+      objects: [
+        {
+          name: 'prop',
+          properties: [{ key: 'geometry', value: 'cylinder' }],
+          traits: [{ name: 'draft' }],
+        },
+      ],
+    });
+    const prop = result.children!.find((c) => c.id === 'prop');
+    expect(prop!.props.draftColor).toBe('#88aaff');
+    expect(prop!.props.draftWireframe).toBe(false);
+    expect(prop!.props.draftOpacity).toBe(1.0);
+  });
+
+  // =========== maturity / promoteUrl / collisionShape properties ===========
+
+  it('sets assetMaturity from explicit maturity property', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'MaturityScene',
+      objects: [
+        {
+          name: 'tree',
+          properties: [
+            { key: 'geometry', value: 'cone' },
+            { key: 'maturity', value: 'final' },
+          ],
+          traits: [],
+        },
+      ],
+    });
+    const tree = result.children!.find((c) => c.id === 'tree');
+    expect(tree!.assetMaturity).toBe('final');
+  });
+
+  it('passes through promoteUrl property', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'PromoteScene',
+      objects: [
+        {
+          name: 'building',
+          properties: [
+            { key: 'geometry', value: 'box' },
+            { key: 'promoteUrl', value: '/assets/building.glb' },
+          ],
+          traits: [{ name: 'draft' }],
+        },
+      ],
+    });
+    const building = result.children!.find((c) => c.id === 'building');
+    expect(building!.props.promoteUrl).toBe('/assets/building.glb');
+    expect(building!.assetMaturity).toBe('draft');
+  });
+
+  it('passes through collisionShape property', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'CollisionScene',
+      objects: [
+        {
+          name: 'rock',
+          properties: [
+            { key: 'geometry', value: 'sphere' },
+            { key: 'collisionShape', value: 'capsule' },
+          ],
+          traits: [],
+        },
+      ],
+    });
+    const rock = result.children!.find((c) => c.id === 'rock');
+    expect(rock!.props.collisionShape).toBe('capsule');
+  });
+
+  // =========== Pool reset clears assetMaturity ===========
+
+  it('does not carry assetMaturity across unrelated objects', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'MixedScene',
+      objects: [
+        {
+          name: 'draft_obj',
+          properties: [{ key: 'geometry', value: 'box' }],
+          traits: [{ name: 'draft' }],
+        },
+        {
+          name: 'normal_obj',
+          properties: [{ key: 'geometry', value: 'sphere' }],
+          traits: [],
+        },
+      ],
+    });
+    const draftObj = result.children!.find((c) => c.id === 'draft_obj');
+    const normalObj = result.children!.find((c) => c.id === 'normal_obj');
+    expect(draftObj!.assetMaturity).toBe('draft');
+    expect(normalObj!.assetMaturity).toBeUndefined();
+  });
 });

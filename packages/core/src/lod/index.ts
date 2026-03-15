@@ -182,3 +182,24 @@ export {
   // Bridge class
   LODBridge,
 } from './LODBridge';
+
+// ============================================================================
+// Meshlet Generator (Nanite-style Clusters)
+// ============================================================================
+
+export {
+  // Types
+  type Meshlet,
+  type MeshletGeneratorOptions,
+  type MeshletGenerationResult,
+
+  // Constants
+  DEFAULT_MESHLET_OPTIONS,
+
+  // Generator class
+  MeshletGenerator,
+
+  // Factory functions
+  createMeshletGenerator,
+  generateMeshlets,
+} from './MeshletGenerator';

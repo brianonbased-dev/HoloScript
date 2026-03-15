@@ -20,6 +20,7 @@ import { useAssetStore } from '@/components/assets/useAssetStore';
 import { decodeSceneFromURL } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
+import { useStudioBridge } from '@/hooks/useStudioBridge';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { GovernancePanel } from '@/components/history/GovernancePanel';
 import { ConformanceSuitePanel } from '@/components/validation/ConformanceSuitePanel';
@@ -405,18 +406,13 @@ const AssetPackStorePanel = dynamic(
   { ssr: false }
 );
 
-const ProfilerPanel2 = dynamic(
-  () => import('@/components/profiler/ProfilerPanel').then((m) => ({ default: m.ProfilerPanel })),
-  { ssr: false }
-);
 
-const TraitRegistryPanel = dynamic(
-  () =>
-    import('@/components/remote/RemotePreviewPanel').then((m) => ({
-      default: m.RemotePreviewPanel,
-    })),
-  { ssr: false }
-);
+// ProfilerPanel2 removed — duplicate of ProfilerPanel (line 263)
+
+
+
+// TraitRegistryPanel removed — misnamed duplicate of RemotePreviewPanel (line 484)
+
 
 const AiSceneGeneratorPanel = dynamic(
   () =>

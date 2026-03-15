@@ -200,36 +200,41 @@ function analyzeOperations(ops: any[]): string {
   return analysis;
 }
 
-function analyzeMemory(mem: any[]): string {
+/**
+ * Generic analyzer for metrics grouped by operation count
+ * @param data - Array of benchmark results
+ * @param metricKey - Key to sort/compare by (e.g., 'heapUsed', 'serializedSize')
+ * @param verb - Action verb for comparison (e.g., 'uses', 'serializes')
+ * @param unit - Unit description (e.g., 'less memory', 'smaller')
+ * @returns Formatted analysis string
+ */
+function analyzeByOperationCount(
+  data: any[],
+  metricKey: string,
+  verb: string,
+  unit: string
+): string {
   let analysis = '';
 
-  const byCount = groupBy(mem, 'operationCount');
+  const byCount = groupBy(data, 'operationCount');
   for (const [count, results] of Object.entries(byCount)) {
-    const sorted = results.sort((a: any, b: any) => a.heapUsed - b.heapUsed);
+    const sorted = results.sort((a: any, b: any) => a[metricKey] - b[metricKey]);
     const best = sorted[0];
     const worst = sorted[sorted.length - 1];
-    const ratio = (worst.heapUsed / best.heapUsed).toFixed(1);
+    const ratio = (worst[metricKey] / best[metricKey]).toFixed(1);
 
-    analysis += `- **${count} operations**: ${best.library} uses ${ratio}× less memory than ${worst.library}\n`;
+    analysis += `- **${count} operations**: ${best.library} ${verb} ${ratio}× ${unit} than ${worst.library}\n`;
   }
 
   return analysis;
 }
 
+function analyzeMemory(mem: any[]): string {
+  return analyzeByOperationCount(mem, 'heapUsed', 'uses', 'less memory');
+}
+
 function analyzeSerialization(ser: any[]): string {
-  let analysis = '';
-
-  const byCount = groupBy(ser, 'operationCount');
-  for (const [count, results] of Object.entries(byCount)) {
-    const sorted = results.sort((a: any, b: any) => a.serializedSize - b.serializedSize);
-    const best = sorted[0];
-    const worst = sorted[sorted.length - 1];
-    const ratio = (worst.serializedSize / best.serializedSize).toFixed(1);
-
-    analysis += `- **${count} operations**: ${best.library} serializes ${ratio}× smaller than ${worst.library}\n`;
-  }
-
-  return analysis;
+  return analyzeByOperationCount(ser, 'serializedSize', 'serializes', 'smaller');
 }
 
 function analyzeMerge(merge: any[]): string {

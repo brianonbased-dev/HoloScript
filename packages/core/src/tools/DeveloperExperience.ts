@@ -11,7 +11,20 @@ import * as readline from 'readline';
  */
 export class ErrorFormatter {
   /**
-   * Format error with source context
+   * Format error with source context and helpful visual indicators
+   * 
+   * @param error - The error object containing message, location, and suggestion
+   * @param sourceCode - Optional source code to show contextual error location
+   * @returns Formatted error string with visual cues and source context
+   * 
+   * @example
+   * ```typescript
+   * const formatted = ErrorFormatter.formatError({
+   *   message: "Unexpected token",
+   *   location: { line: 5, column: 12 },
+   *   suggestion: "Try adding a semicolon"
+   * }, sourceCode);
+   * ```
    */
   static formatError(error: any, sourceCode?: string): string {
     const { message, location, suggestion, token: _token } = error;
@@ -40,7 +53,10 @@ export class ErrorFormatter {
   }
 
   /**
-   * Format multiple errors
+   * Format multiple errors with summary and limit display to first 5
+   * 
+   * @param errors - Array of error objects to format
+   * @returns Formatted string with error count summary and individual error details
    */
   static formatErrors(errors: any[]): string {
     if (errors.length === 0) return '';

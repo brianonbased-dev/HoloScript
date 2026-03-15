@@ -50,4 +50,6 @@ export type PanelTab =
   | 'character'
   | 'models'
   | 'templates'
-  | 'diagnostics';
+  | 'diagnostics'
+  | 'pipeline'
+  | 'lodmetrics';

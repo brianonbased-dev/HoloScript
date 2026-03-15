@@ -1,4 +1,5 @@
-// removed
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 // Mock browser globals
 const mockConsole = {
@@ -84,7 +85,7 @@ describe('quickBenchmark', () => {
     
     const result = await quickBenchmark();
     
-    expect(mockConsole.log).toHaveBeenCalledWith('⚡ Running quick benchmark (1 scenario, 20 iterations)...\\n');
+    expect(mockConsole.log).toHaveBeenCalledWith('⚡ Running quick benchmark (1 scenario, 20 iterations)...\n');
     expect(mockConsole.error).toHaveBeenCalledWith('❌ CompilerBridge not available');
     expect(result).toBeUndefined();
   });
@@ -97,7 +98,7 @@ describe('quickBenchmark', () => {
     const result = await quickBenchmark();
     
     // Should log startup message
-    expect(mockConsole.log).toHaveBeenCalledWith('⚡ Running quick benchmark (1 scenario, 20 iterations)...\\n');
+    expect(mockConsole.log).toHaveBeenCalledWith('⚡ Running quick benchmark (1 scenario, 20 iterations)...\n');
     
     // Should call parse 20 times
     expect(mockCompilerBridge.parse).toHaveBeenCalledTimes(20);

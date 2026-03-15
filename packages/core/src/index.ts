@@ -3157,10 +3157,8 @@ export {
 } from './utils/math';
 
 // ── Headless Runtime (CLI & Server-Side Execution) ──────────────────────────
+// createHeadlessRuntime, getProfile, HEADLESS_PROFILE already exported from './runtime/profiles' above
 export {
-  createHeadlessRuntime,
-  getProfile,
-  HEADLESS_PROFILE,
   type HeadlessRuntime,
   type HeadlessRuntimeOptions,
   type RuntimeProfile,
@@ -3301,15 +3299,6 @@ export {
 } from './traits/PerformanceRegressionMonitor';
 
 // ── Headless Runtime + Watch Runner ─────────────────────────────────────────
-export {
-  createHeadlessRuntime,
-  type HeadlessRuntime,
-  type HeadlessRuntimeOptions,
-  type RuntimeProfile,
-  HEADLESS_PROFILE,
-  getProfile,
-} from './runtime/HeadlessRuntime';
-
 export {
   WatchRunner,
   type WatchRunnerOptions,

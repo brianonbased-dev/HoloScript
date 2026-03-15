@@ -53,6 +53,8 @@ import { CharacterPanel } from './CharacterPanel';
 import { ModelViewerPanel } from './ModelViewerPanel';
 import { TemplateGalleryPanel } from './TemplateGalleryPanel';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { AssetPipelinePanel } from './AssetPipelinePanel';
+import { LODMetricsPanel } from './LODMetricsPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
@@ -130,6 +132,8 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'lighting', icon: '💡', label: 'Lighting', title: 'Scene lighting manager' },
       { id: 'procgen', icon: '🌋', label: 'ProcGen', title: 'Procedural generation' },
       { id: 'lod', icon: '🔍', label: 'LOD', title: 'Level of Detail' },
+      { id: 'pipeline', icon: '🔄', label: 'Pipeline', title: 'Draft→Mesh→Final asset pipeline' },
+      { id: 'lodmetrics', icon: '📊', label: 'LOD Stats', title: 'LOD performance metrics' },
       { id: 'models', icon: '📐', label: 'Models', title: '3D model browser & preview' },
     ],
   },
@@ -335,6 +339,8 @@ export function RightPanelSidebar({
             {activeTab === 'models' && <ModelViewerPanel />}
             {activeTab === 'templates' && <TemplateGalleryPanel />}
             {activeTab === 'diagnostics' && <DiagnosticsPanel />}
+            {activeTab === 'pipeline' && <AssetPipelinePanel />}
+            {activeTab === 'lodmetrics' && <LODMetricsPanel />}
           </div>
         </div>
       )}

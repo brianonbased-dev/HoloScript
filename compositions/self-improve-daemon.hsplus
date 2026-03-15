@@ -2,250 +2,42 @@
  * Self-Improvement Daemon — .hsplus Composition
  *
  * HoloScript's own codebase improvement loop, orchestrated natively via
- * behavior trees, state machines, and feedback loops. This composition
- * replaces the monolithic TypeScript system prompt with deterministic,
- * machine-verifiable orchestration logic.
+ * a behavior tree executed through HeadlessRuntime. The BT defines the
+ * deterministic sequence/selector logic; the bridge's executeAction callback
+ * dispatches each action to real tool handlers and LLM micro-calls.
  *
  * Architecture:
  *   Behavior tree sequences the improvement cycle:
- *     diagnose → generate fix → verify → test → commit/rollback → report
- *   State machine tracks the cycle phase:
- *     idle → diagnosing → fixing → verifying → committing → reporting → done
- *   FeedbackLoopTrait monitors quality score trends
- *   EconomyPrimitivesTrait tracks API token budget
+ *     diagnose → read → generate fix → verify → test → quality → commit/rollback → report
+ *   Conditions check blackboard flags set by action handlers:
+ *     has_candidates, compilation_passed, tests_passed, quality_improved
+ *   Selectors implement fallback paths (rollback on failure)
  *
- * This is Exhibit A of G.ARCH.001 — proving HoloScript is an
- * execution-grade substrate, not declarative veneer.
+ * This is Exhibit A of G.ARCH.001 — proving HoloScript's BehaviorTreeTrait
+ * can orchestrate real-world async operations through HeadlessRuntime.
  *
- * @version 1.0.0
+ * @version 2.0.0
  * @format .hsplus (behavior)
  * @experiment HoloScript Self-Orchestration vs TypeScript Daemon
  */
 
 composition "SelfImproveDaemon" {
 
-  // ========================================================================
-  // QUALITY TRACKER MODULE
-  // ========================================================================
-  // Collects quality metrics from each improvement cycle and computes
-  // trends. Feeds data to the FeedbackLoopTrait for auto-signal generation.
-
-  module QualityTracker {
-    state {
-      current_score: 0
-      previous_score: 0
-      best_score: 0
-      cycle_count: 0
-      history: []
-      max_history: 50
-      convergence_streak: 0
-      convergence_threshold: 0.01
-    }
-
-    action record_score(score) {
-      this.state.previous_score = this.state.current_score;
-      this.state.current_score = score;
-      this.state.cycle_count += 1;
-
-      if (score > this.state.best_score) {
-        this.state.best_score = score;
-        emit("quality:new_best", { score: score, cycle: this.state.cycle_count });
-      }
-
-      this.state.history.push({
-        score: score,
-        cycle: this.state.cycle_count,
-        timestamp: Date.now()
-      });
-
-      if (this.state.history.length > this.state.max_history) {
-        this.state.history.shift();
-      }
-
-      // Convergence detection
-      const delta = Math.abs(score - this.state.previous_score);
-      if (delta < this.state.convergence_threshold && this.state.cycle_count > 1) {
-        this.state.convergence_streak += 1;
-        emit("quality:converged", {
-          streak: this.state.convergence_streak,
-          delta: delta
-        });
-      } else {
-        this.state.convergence_streak = 0;
-      }
-
-      // Emit metric update for FeedbackLoopTrait
-      emit("feedback:update_metric", {
-        name: "quality_score",
-        value: score
-      });
-
-      return score;
-    }
-
-    action get_delta() {
-      return this.state.current_score - this.state.previous_score;
-    }
-
-    action is_improving() {
-      return this.state.current_score > this.state.previous_score;
-    }
-
-    exports {
-      record_score
-      get_delta
-      is_improving
-      state
-    }
-  }
-
-  // ========================================================================
-  // COST TRACKER MODULE
-  // ========================================================================
-  // Tracks API token consumption and enforces budget limits via the
-  // EconomyPrimitivesTrait. Prevents the daemon from burning tokens
-  // without progress (the 25-cycle-zero-improvement failure mode).
-
-  module CostTracker {
-    state {
-      total_input_tokens: 0
-      total_output_tokens: 0
-      total_cost_usd: 0
-      cycle_costs: []
-      budget_usd: 10.0
-      cost_per_input_token: 0.000003
-      cost_per_output_token: 0.000015
-      budget_exhausted: false
-    }
-
-    action record_tokens(input_tokens, output_tokens) {
-      this.state.total_input_tokens += input_tokens;
-      this.state.total_output_tokens += output_tokens;
-
-      const cost = input_tokens * this.state.cost_per_input_token
-                 + output_tokens * this.state.cost_per_output_token;
-      this.state.total_cost_usd += cost;
-
-      this.state.cycle_costs.push({
-        input_tokens: input_tokens,
-        output_tokens: output_tokens,
-        cost: cost,
-        cumulative: this.state.total_cost_usd,
-        timestamp: Date.now()
-      });
-
-      // Check budget
-      if (this.state.total_cost_usd >= this.state.budget_usd) {
-        this.state.budget_exhausted = true;
-        emit("cost:budget_exhausted", {
-          spent: this.state.total_cost_usd,
-          budget: this.state.budget_usd
-        });
-      }
-
-      // Emit economy spend for trait tracking
-      emit("economy:spend", {
-        agentId: "daemon",
-        amount: Math.round(cost * 1000),
-        reason: "api_call"
-      });
-
-      return cost;
-    }
-
-    action get_remaining_budget() {
-      return Math.max(0, this.state.budget_usd - this.state.total_cost_usd);
-    }
-
-    exports {
-      record_tokens
-      get_remaining_budget
-      state
-    }
-  }
-
-  // ========================================================================
-  // CANDIDATE MANAGER MODULE
-  // ========================================================================
-  // Manages improvement candidates discovered by diagnosis. Tracks which
-  // files have been attempted to avoid repeating the same target.
-
-  module CandidateManager {
-    state {
-      candidates: []
-      current_candidate: null
-      attempted_files: []
-      max_attempted: 50
-      focus_rotation: ["typefix", "coverage", "typefix", "docs", "typefix", "complexity", "all"]
-      current_focus_index: 0
-    }
-
-    action set_candidates(candidate_list) {
-      // Filter out already-attempted files
-      this.state.candidates = candidate_list.filter(
-        c => !this.state.attempted_files.includes(c.file)
-      );
-      emit("candidates:loaded", { count: this.state.candidates.length });
-    }
-
-    action pick_next() {
-      if (this.state.candidates.length === 0) {
-        this.state.current_candidate = null;
-        return null;
-      }
-      this.state.current_candidate = this.state.candidates.shift();
-      return this.state.current_candidate;
-    }
-
-    action mark_attempted(file_path) {
-      if (!this.state.attempted_files.includes(file_path)) {
-        this.state.attempted_files.push(file_path);
-      }
-      if (this.state.attempted_files.length > this.state.max_attempted) {
-        this.state.attempted_files = this.state.attempted_files.slice(-this.state.max_attempted);
-      }
-    }
-
-    action get_current_focus() {
-      return this.state.focus_rotation[
-        this.state.current_focus_index % this.state.focus_rotation.length
-      ];
-    }
-
-    action advance_focus() {
-      this.state.current_focus_index =
-        (this.state.current_focus_index + 1) % this.state.focus_rotation.length;
-    }
-
-    exports {
-      set_candidates
-      pick_next
-      mark_attempted
-      get_current_focus
-      advance_focus
-      state
-    }
-  }
-
-  // ========================================================================
-  // DAEMON CONTROLLER — behavior tree + state machine + traits
-  // ========================================================================
-
   object "Daemon" {
-    // Behavior tree: deterministic sequencing of improvement steps.
-    // The LLM handles individual actions; the tree handles flow control.
     @behavior_tree {
       root: {
         type: "sequence",
         name: "improvement_cycle",
         children: [
-          // Step 1: Diagnose — find improvement candidates
+          // Step 1: Diagnose — find improvement candidates for the current focus
+          // Sets blackboard: has_candidates, candidates, current_candidate, current_file
           {
             type: "action",
             name: "diagnose_codebase",
             action: "diagnose"
           },
-          // Step 2: Pick a candidate
+
+          // Step 2: Pick a candidate and attempt fix, or skip if none found
           {
             type: "selector",
             name: "find_candidate",
@@ -254,31 +46,37 @@ composition "SelfImproveDaemon" {
                 type: "sequence",
                 name: "try_candidate",
                 children: [
-                  // Check we have candidates
+                  // Gate: only proceed if diagnosis found candidates
                   {
                     type: "condition",
                     name: "has_candidates",
                     condition: "has_candidates"
                   },
-                  // Step 3: Read the candidate code
+
+                  // Step 3: Read the candidate file for context
                   {
                     type: "action",
                     name: "read_candidate",
                     action: "read_candidate"
                   },
-                  // Step 4: Generate a fix using LLM
+
+                  // Step 4: Generate a fix via focused LLM micro-call
+                  // Sets blackboard: files_edited
                   {
                     type: "action",
                     name: "generate_fix",
                     action: "generate_fix"
                   },
-                  // Step 5: Verify compilation
+
+                  // Step 5: Verify the edit compiles
+                  // Sets blackboard: compilation_passed
                   {
                     type: "action",
                     name: "verify_compilation",
                     action: "verify_compilation"
                   },
-                  // Step 6: Check compilation result
+
+                  // Step 6: Handle verification result
                   {
                     type: "selector",
                     name: "handle_verification",
@@ -292,13 +90,16 @@ composition "SelfImproveDaemon" {
                             name: "compilation_passed",
                             condition: "compilation_passed"
                           },
+
                           // Step 7: Run related tests
+                          // Sets blackboard: tests_passed
                           {
                             type: "action",
                             name: "run_tests",
                             action: "run_related_tests"
                           },
-                          // Step 8: Check test + quality results
+
+                          // Step 8: Handle test results
                           {
                             type: "selector",
                             name: "handle_test_results",
@@ -312,13 +113,16 @@ composition "SelfImproveDaemon" {
                                     name: "tests_passed",
                                     condition: "tests_passed"
                                   },
-                                  // Step 9: Validate quality
+
+                                  // Step 9: Full quality validation
+                                  // Sets blackboard: quality_after, quality_improved
                                   {
                                     type: "action",
                                     name: "validate_quality",
                                     action: "validate_quality"
                                   },
-                                  // Step 10: Check quality improved
+
+                                  // Step 10: Commit if quality improved, rollback if not
                                   {
                                     type: "selector",
                                     name: "quality_check",
@@ -332,6 +136,7 @@ composition "SelfImproveDaemon" {
                                             name: "quality_improved",
                                             condition: "quality_improved"
                                           },
+
                                           // Step 11: Commit!
                                           {
                                             type: "action",
@@ -340,6 +145,7 @@ composition "SelfImproveDaemon" {
                                           }
                                         ]
                                       },
+
                                       // Quality didn't improve — rollback
                                       {
                                         type: "action",
@@ -350,6 +156,7 @@ composition "SelfImproveDaemon" {
                                   }
                                 ]
                               },
+
                               // Tests failed — rollback
                               {
                                 type: "action",
@@ -360,6 +167,7 @@ composition "SelfImproveDaemon" {
                           }
                         ]
                       },
+
                       // Compilation failed — rollback
                       {
                         type: "action",
@@ -370,7 +178,8 @@ composition "SelfImproveDaemon" {
                   }
                 ]
               },
-              // No candidates — skip
+
+              // No candidates found — report and continue
               {
                 type: "action",
                 name: "no_candidates",
@@ -378,6 +187,7 @@ composition "SelfImproveDaemon" {
               }
             ]
           },
+
           // Step 12: Report cycle results
           {
             type: "action",
@@ -421,118 +231,6 @@ composition "SelfImproveDaemon" {
       max_transaction_history: 100,
       escrow_enabled: false,
       task_completion_reward: 0
-    }
-
-    // State machine: tracks the daemon's phase
-    @state_machine {
-      initial: "idle"
-
-      states: {
-        idle: {
-          enter: {
-            emit("daemon:idle");
-          }
-          on_cycle_start: -> "diagnosing"
-        }
-
-        diagnosing: {
-          enter: {
-            emit("daemon:diagnosing", { focus: CandidateManager.get_current_focus() });
-          }
-          on_diagnosis_complete: -> "fixing" guard(state.has_candidates)
-          on_diagnosis_empty: -> "reporting"
-        }
-
-        fixing: {
-          enter: {
-            emit("daemon:fixing", { candidate: CandidateManager.state.current_candidate });
-          }
-          on_fix_complete: -> "verifying"
-          on_fix_failed: -> "reporting"
-        }
-
-        verifying: {
-          enter: {
-            emit("daemon:verifying");
-          }
-          on_verification_passed: -> "committing"
-          on_verification_failed: -> "rolling_back"
-        }
-
-        committing: {
-          enter: {
-            emit("daemon:committing");
-          }
-          on_commit_complete: -> "reporting"
-          on_commit_failed: -> "rolling_back"
-        }
-
-        rolling_back: {
-          enter: {
-            emit("daemon:rolling_back");
-          }
-          on_rollback_complete: -> "reporting"
-        }
-
-        reporting: {
-          enter: {
-            emit("daemon:reporting");
-          }
-          on_report_complete: -> "idle"
-          on_budget_exhausted: -> "done"
-          on_converged: -> "done"
-        }
-
-        done: {
-          enter: {
-            emit("daemon:done", {
-              cycles: QualityTracker.state.cycle_count,
-              best_score: QualityTracker.state.best_score,
-              total_cost: CostTracker.state.total_cost_usd
-            });
-          }
-        }
-      }
-    }
-
-    state {
-      has_candidates: false
-      compilation_passed: false
-      tests_passed: false
-      quality_improved: false
-      current_phase: "idle"
-      cycle_start_time: 0
-      files_edited: []
-    }
-
-    // ------------------------------------------------------------------
-    // Event handlers for trait signals
-    // ------------------------------------------------------------------
-
-    @on_event("feedback:optimization_signal"): (signal) => {
-      // FeedbackLoopTrait detected quality drift — auto-adjust strategy
-      if (signal.metric === "quality_score" && signal.direction === "increase") {
-        emit("daemon:quality_alert", {
-          urgency: signal.magnitude,
-          action: signal.suggestedAction
-        });
-      }
-    }
-
-    @on_event("cost:budget_exhausted"): () => {
-      emit("on_budget_exhausted");
-    }
-
-    @on_event("quality:converged"): (data) => {
-      if (data.streak >= 5) {
-        emit("on_converged");
-      }
-    }
-
-    @on_event("bt_complete"): (data) => {
-      // Behavior tree finished one improvement cycle
-      CandidateManager.advance_focus();
-      emit("on_report_complete");
     }
   }
 }

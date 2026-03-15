@@ -15,6 +15,8 @@ export {
   FireEmbers,
   useKeyframeAnimation,
 } from './components/ProceduralMesh';
+export { ProgressiveLoader } from './components/ProgressiveLoader';
+export type { ProgressiveLoaderProps, LoadingEntity } from './components/ProgressiveLoader';
 
 // Utilities
 export {
@@ -28,3 +30,10 @@ export type { LODDetail } from './utils/materialUtils';
 // Hooks
 export { useHoloTextures, hasTextures } from './hooks/useHoloTextures';
 export { useProceduralTexture } from './hooks/useProceduralTexture';
+export { useLODBridge, resetLODBridge } from './hooks/useLODBridge';
+export type { UseLODBridgeResult } from './hooks/useLODBridge';
+export { usePerformanceRegression } from './hooks/usePerformanceRegression';
+export type {
+  UsePerformanceRegressionOptions,
+  UsePerformanceRegressionResult,
+} from './hooks/usePerformanceRegression';

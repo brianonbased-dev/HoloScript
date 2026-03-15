@@ -1,100 +1,20 @@
 import { describe, it, expect } from 'vitest';
+import { parseMarketplaceDefinition } from './nft-compile';
 
-// Define minimal types for testing (avoiding import issues)
+// Minimal type interface for testing
 interface NFTMarketplaceAST {
-  type: 'NFTMarketplace';
+  type: string;
   name: string;
-  chains: Array<{
-    network: string;
-    chainId: number;
-    testnet: boolean;
-  }>;
-  contracts: Array<{
-    name: string;
-    symbol: string;
-    standard: string;
-    maxSupply: number;
-    mintable: boolean;
-    burnable: boolean;
-    pausable: boolean;
-    upgradeable: boolean;
-    metadata: {
-      baseURI: string;
-      dynamic: boolean;
-    };
-  }>;
-  royalties: {
-    defaultRoyalty: {
-      receiver: string;
-      bps: number;
-    };
-    upgradeable: boolean;
-  };
-  lazyMinting: {
-    enabled: boolean;
-    voucherVersion: string;
-    signingDomain: string;
-  };
-  gasOptimization: {
-    storageOptimization: boolean;
-    batchOperations: boolean;
-    enableStaticAnalysis: boolean;
-  };
+  chains: any[];
+  contracts: any[];
+  royalties: any;
+  lazyMinting: any;
+  gasOptimization: any;
 }
 
-/**
- * Copy of parseMarketplaceDefinition for testing
- * In production, this function should be exported from the main file
- */
-function parseMarketplaceDefinition(code: string): NFTMarketplaceAST {
-  // This is a simplified example
-  // Real implementation would parse the .holo syntax properly
 
-  return {
-    type: 'NFTMarketplace',
-    name: 'ExampleMarketplace',
-    chains: [
-      {
-        network: 'base',
-        chainId: 8453,
-        testnet: false,
-      },
-    ],
-    contracts: [
-      {
-        name: 'ExampleNFT',
-        symbol: 'NFT',
-        standard: 'ERC1155',
-        maxSupply: 10000,
-        mintable: true,
-        burnable: true,
-        pausable: true,
-        upgradeable: false,
-        metadata: {
-          baseURI: 'ipfs://example/',
-          dynamic: true,
-        },
-      },
-    ],
-    royalties: {
-      defaultRoyalty: {
-        receiver: '0x0000000000000000000000000000000000000001',
-        bps: 500,
-      },
-      upgradeable: false,
-    },
-    lazyMinting: {
-      enabled: true,
-      voucherVersion: '1',
-      signingDomain: 'ExampleNFT',
-    },
-    gasOptimization: {
-      storageOptimization: true,
-      batchOperations: true,
-      enableStaticAnalysis: true,
-    },
-  };
-}
+
+
 
 describe('NFT Marketplace Compiler - parseMarketplaceDefinition', () => {
   describe('parseMarketplaceDefinition', () => {

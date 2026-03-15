@@ -232,14 +232,130 @@ function detectModuleType(path: string): ModuleType {
 }
 
 /**
+ * Dependency Graph Manager - Handles module dependency relationships
+ */
+class DependencyGraphManager {
+  private dependencyGraph: Map<string, Set<string>> = new Map();
+  private reverseDependencyGraph: Map<string, Set<string>> = new Map();
+
+  /**
+   * Build dependency graphs in separate focused passes
+   */
+  buildGraphs(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+    // Clear existing graphs and module dependency arrays
+    this.dependencyGraph.clear();
+    this.reverseDependencyGraph.clear();
+    this.clearModuleDependencyArrays(modules);
+    
+    // Pass 1: Build forward graph and update module dependencies
+    this.buildForwardGraphs(dependencies, modules);
+    
+    // Pass 2: Build reverse graph
+    this.buildReverseGraphs(dependencies, modules);
+  }
+
+  /**
+   * Clear dependency arrays from all modules
+   */
+  private clearModuleDependencyArrays(modules: Map<string, ModuleInfo>): void {
+    for (const module of modules.values()) {
+      module.dependencies = [];
+      module.dependents = [];
+    }
+  }
+
+  /**
+   * Build forward dependency graphs and update module dependencies
+   */
+  private buildForwardGraphs(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+    for (const [modulePath, deps] of Object.entries(dependencies)) {
+      this.dependencyGraph.set(modulePath, new Set(deps));
+      
+      const module = modules.get(modulePath);
+      if (module) {
+        module.dependencies = deps;
+      }
+    }
+  }
+
+  /**
+   * Build reverse dependency graphs
+   */
+  private buildReverseGraphs(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+    for (const [modulePath, deps] of Object.entries(dependencies)) {
+      for (const dep of deps) {
+        if (!this.reverseDependencyGraph.has(dep)) {
+          this.reverseDependencyGraph.set(dep, new Set());
+        }
+        this.reverseDependencyGraph.get(dep)!.add(modulePath);
+
+        const depModule = modules.get(dep);
+        if (depModule) {
+          depModule.dependents.push(modulePath);
+        }
+      }
+    }
+  }
+
+
+
+  /**
+   * Detect circular dependencies using optimized DFS with path tracking
+   */
+  detectCircularDependencies(modules: Map<string, ModuleInfo>): string[][] {
+    const circles: string[][] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    const findCircle = (node: string, path: string[]): void => {
+      if (visiting.has(node)) {
+        // Extract cycle from current path
+        const cycleStart = path.indexOf(node);
+        if (cycleStart !== -1) {
+          circles.push([...path.slice(cycleStart), node]);
+        }
+        return;
+      }
+
+      if (visited.has(node)) return;
+
+      visited.add(node);
+      visiting.add(node);
+      
+      const dependencies = this.dependencyGraph.get(node);
+      if (dependencies) {
+        for (const dep of dependencies) {
+          findCircle(dep, [...path, node]);
+        }
+      }
+      
+      visiting.delete(node);
+    };
+
+    // Check each unvisited module as a potential cycle root
+    for (const moduleId of modules.keys()) {
+      if (!visited.has(moduleId)) {
+        findCircle(moduleId, []);
+      }
+    }
+
+    return circles;
+  }
+
+  clear(): void {
+    this.dependencyGraph.clear();
+    this.reverseDependencyGraph.clear();
+  }
+}
+
+/**
  * Bundle Analyzer
  */
 export class BundleAnalyzer {
   private options: Required<BundleAnalyzerOptions>;
   private modules: Map<string, ModuleInfo> = new Map();
   private chunks: Map<string, ChunkInfo> = new Map();
-  private dependencyGraph: Map<string, Set<string>> = new Map();
-  private reverseDependencyGraph: Map<string, Set<string>> = new Map();
+  private dependencyManager = new DependencyGraphManager();
 
   constructor(options: BundleAnalyzerOptions = {}) {
     this.options = {
@@ -264,14 +380,13 @@ export class BundleAnalyzer {
     // Reset state
     this.modules.clear();
     this.chunks.clear();
-    this.dependencyGraph.clear();
-    this.reverseDependencyGraph.clear();
+    this.dependencyManager.clear();
 
     // Process chunks and modules
     this.processChunks(input);
 
     // Build dependency graphs
-    this.buildDependencyGraphs(input.dependencies ?? {});
+    this.dependencyManager.buildGraphs(input.dependencies ?? {}, this.modules);
 
     // Calculate unused exports
     if (this.options.trackUnusedExports && input.usedExports) {
@@ -364,58 +479,7 @@ export class BundleAnalyzer {
     return sideEffectPatterns.some((pattern) => pattern.test(content));
   }
 
-  /**
-   * Build dependency graphs - optimized single-pass implementation
-   */
-  private buildDependencyGraphs(dependencies: Record<string, string[]>): void {
-    // Single iteration to build all dependency structures at once
-    for (const [modulePath, deps] of Object.entries(dependencies)) {
-      // Update module dependencies
-      this.updateModuleDependencies(modulePath, deps);
-      
-      // Build forward graph
-      this.buildForwardGraph(modulePath, deps);
-      
-      // Build reverse graph
-      this.buildReverseGraph(modulePath, deps);
-    }
-  }
 
-  /**
-   * Update module dependencies list
-   */
-  private updateModuleDependencies(modulePath: string, deps: string[]): void {
-    const module = this.modules.get(modulePath);
-    if (module) {
-      module.dependencies = deps;
-    }
-  }
-
-  /**
-   * Build forward dependency graph
-   */
-  private buildForwardGraph(modulePath: string, deps: string[]): void {
-    this.dependencyGraph.set(modulePath, new Set(deps));
-  }
-
-  /**
-   * Build reverse dependency graph
-   */
-  private buildReverseGraph(modulePath: string, deps: string[]): void {
-    for (const dep of deps) {
-      // Initialize reverse dependency set if needed
-      if (!this.reverseDependencyGraph.has(dep)) {
-        this.reverseDependencyGraph.set(dep, new Set());
-      }
-      this.reverseDependencyGraph.get(dep)!.add(modulePath);
-
-      // Update dependents list in the dependency module
-      const depModule = this.modules.get(dep);
-      if (depModule) {
-        depModule.dependents.push(modulePath);
-      }
-    }
-  }
 
   /**
    * Build chunk parent/child relationships - optimized with file-to-chunk mapping
@@ -478,48 +542,7 @@ export class BundleAnalyzer {
     }
   }
 
-  /**
-   * Detect circular dependencies - optimized with early termination
-   */
-  private detectCircularDependencies(): string[][] {
-    const circles: string[][] = [];
-    const visited = new Set<string>();
-    const recursionStack = new Set<string>();
 
-    const dfs = (node: string, path: string[]): void => {
-      visited.add(node);
-      recursionStack.add(node);
-
-      const deps = this.dependencyGraph.get(node);
-      if (!deps) {
-        recursionStack.delete(node);
-        return;
-      }
-
-      for (const dep of deps) {
-        if (recursionStack.has(dep)) {
-          // Found circular dependency - construct minimal cycle
-          const circleStart = path.indexOf(dep);
-          if (circleStart >= 0) {
-            const circle = path.slice(circleStart).concat(dep);
-            circles.push(circle);
-          }
-        } else if (!visited.has(dep)) {
-          dfs(dep, [...path, dep]);
-        }
-      }
-
-      recursionStack.delete(node);
-    };
-
-    for (const module of this.modules.keys()) {
-      if (!visited.has(module)) {
-        dfs(module, [module]);
-      }
-    }
-
-    return circles;
-  }
 
   /**
    * Find duplicate modules
@@ -682,7 +705,7 @@ export class BundleAnalyzer {
 
     // Circular dependency warnings
     if (this.options.detectCircular) {
-      const circles = this.detectCircularDependencies();
+      const circles = this.dependencyManager.detectCircularDependencies(this.modules);
       for (const circle of circles) {
         warnings.push({
           type: 'circular',

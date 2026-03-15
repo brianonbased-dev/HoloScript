@@ -42,6 +42,12 @@
     "packages/holoscript/src/**/*",
     "packages/visual/src/**/*",
     "packages/test/src/**/*",
+    "packages/agent-sdk/src/**/*",
+    "packages/agent-protocol/src/**/*",
+    "packages/uaal/src/**/*",
+    "packages/holo-vm/src/**/*",
+    "packages/vm-bridge/src/**/*",
+    "packages/studio-plugin-sdk/src/**/*",
     "scripts/**/*"
   ],
   "exclude": [

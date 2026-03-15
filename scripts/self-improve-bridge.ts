@@ -22,6 +22,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 
+// ─── HoloScript Runtime Imports ──────────────────────────────────────────────
+// These are the REAL HoloScript primitives. The treatment arm uses them natively.
+import { HeadlessRuntime, createHeadlessRuntime } from '../packages/core/src/runtime/profiles/HeadlessRuntime';
+import { HEADLESS_PROFILE } from '../packages/core/src/runtime/profiles/RuntimeProfile';
+import { parse } from '../packages/core/src/parser/HoloScriptPlusParser';
+
 // ─── .env Loading ─────────────────────────────────────────────────────────────
 
 function loadEnvFile(dir: string): void {
@@ -336,16 +342,21 @@ async function callLLMForAction(
 // ─── Action Dispatcher ───────────────────────────────────────────────────────
 // Maps behavior tree action names to tool calls and LLM micro-calls.
 // This is where the bridge connects HoloScript orchestration to real execution.
+// Called ASYNCHRONOUSLY by the executeAction wrapper when the BT ticks an action.
 
-async function executeAction(
+async function dispatchActionAsync(
   actionName: string,
-  blackboard: Blackboard,
+  btBlackboard: Record<string, unknown>,
   anthropic: Anthropic,
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   toolDefs: any[],
   config: BridgeConfig,
   metrics: { inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number },
 ): Promise<boolean> {
+  // Cast the BT blackboard to our typed interface for safe property access.
+  // The BT passes its blackboard as Record<string, unknown> but we store
+  // typed values in it (the BT doesn't care about the types, only conditions).
+  const blackboard = btBlackboard as unknown as Blackboard;
   const rootDir = config.rootDir;
 
   switch (actionName) {
@@ -600,12 +611,13 @@ function calculateCostUSD(inputTokens: number, outputTokens: number): number {
   return (inputTokens * 3 + outputTokens * 15) / 1_000_000;
 }
 
-// ─── Bridge Cycle ────────────────────────────────────────────────────────────
-// Runs one complete improvement cycle by driving the behavior tree manually.
-// Instead of using HeadlessRuntime's tick loop, we drive the behavior tree
-// step by step, awaiting each async action before advancing.
+// ─── HeadlessRuntime Bridge Cycle ─────────────────────────────────────────────
+// Creates a HeadlessRuntime from the parsed .hsplus composition, wires the
+// executeAction callback so the BehaviorTreeTrait drives tool dispatch,
+// then ticks until the BT completes. THIS IS THE REAL HOLOSCRIPT INTEGRATION.
 
 async function runBridgeCycle(
+  compositionAST: any,
   anthropic: Anthropic,
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   toolDefs: any[],
@@ -614,79 +626,115 @@ async function runBridgeCycle(
 ): Promise<{ qualityBefore: number; qualityAfter: number; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number; filesEdited: string[] }> {
   const FOCUS_ROTATION = ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'];
   const focus = FOCUS_ROTATION[bridgeState.focusIndex % FOCUS_ROTATION.length];
+  const cycleNumber = bridgeState.totalCycles + 1;
 
-  // Initialize blackboard
-  const blackboard: Blackboard = {
-    has_candidates: false,
-    compilation_passed: false,
-    tests_passed: false,
-    quality_improved: false,
-    current_file: null,
-    current_candidate: null,
-    candidates: [],
-    quality_before: 0,
-    quality_after: 0,
-    files_edited: [],
-    focus,
-    cycle_number: bridgeState.totalCycles + 1,
-    error_message: null,
-  };
+  console.log(`\n━━━ BT Cycle ${cycleNumber} (focus: ${focus}) ━━━━━━━━━━━━━━━━━━━━━━`);
 
+  // Metrics accumulator (shared across all action dispatches)
   const metrics = { inputTokens: 0, outputTokens: 0, toolCallsTotal: 0, toolCallsUseful: 0 };
 
-  // Drive the behavior tree manually — this mirrors the BT structure from the .hsplus
-  // but executes it imperatively so we can await async actions.
+  // Pending async actions — bridges async tool calls to the BT's sync executeAction
+  const pendingActions = new Map<string, { resolved: boolean; result: boolean }>();
 
-  console.log(`\n━━━ BT Cycle ${blackboard.cycle_number} (focus: ${focus}) ━━━━━━━━━━━━━━━━━━━━━━`);
+  // Create the executeAction callback for HeadlessRuntime's TraitContext.
+  // This is called synchronously by BehaviorTreeTrait.tickAction() on every tick.
+  // Returns true (success), false (failure), or 'running' (async in progress).
+  const executeActionCallback = (
+    _owner: unknown,
+    actionName: string,
+    _params: Record<string, unknown>,
+    blackboard?: Record<string, unknown>,
+  ): boolean | 'running' => {
+    if (!blackboard) return false;
 
-  // Step 1: Diagnose
-  await executeAction('diagnose', blackboard, anthropic, handlers, toolDefs, config, metrics);
-
-  if (blackboard.has_candidates) {
-    // Step 3: Read candidate
-    await executeAction('read_candidate', blackboard, anthropic, handlers, toolDefs, config, metrics);
-
-    // Step 4: Generate fix (LLM micro-call)
-    const fixGenerated = await executeAction('generate_fix', blackboard, anthropic, handlers, toolDefs, config, metrics);
-
-    if (fixGenerated && blackboard.files_edited.length > 0) {
-      // Step 5: Verify compilation
-      await executeAction('verify_compilation', blackboard, anthropic, handlers, toolDefs, config, metrics);
-
-      if (blackboard.compilation_passed) {
-        // Step 7: Run tests
-        await executeAction('run_related_tests', blackboard, anthropic, handlers, toolDefs, config, metrics);
-
-        if (blackboard.tests_passed) {
-          // Step 9: Validate quality
-          await executeAction('validate_quality', blackboard, anthropic, handlers, toolDefs, config, metrics);
-
-          if (blackboard.quality_improved) {
-            // Step 11: Commit
-            await executeAction('commit_changes', blackboard, anthropic, handlers, toolDefs, config, metrics);
-          } else {
-            await executeAction('rollback_changes', blackboard, anthropic, handlers, toolDefs, config, metrics);
-          }
-        } else {
-          await executeAction('rollback_changes', blackboard, anthropic, handlers, toolDefs, config, metrics);
-        }
-      } else {
-        await executeAction('rollback_changes', blackboard, anthropic, handlers, toolDefs, config, metrics);
-      }
-    } else if (blackboard.files_edited.length === 0) {
-      console.log('  [BT] No files edited — skipping verification');
-      blackboard.quality_after = blackboard.quality_before; // Nothing changed
+    // Inject cycle context into BT blackboard on first action
+    // (The .hsplus only defines condition flags; we add runtime context here)
+    if (!blackboard.focus) {
+      blackboard.focus = focus;
+      blackboard.cycle_number = cycleNumber;
+      blackboard.candidates = [];
+      blackboard.current_candidate = null;
+      blackboard.current_file = null;
+      blackboard.files_edited = blackboard.files_edited ?? [];
     }
-  } else {
-    await executeAction('report_no_candidates', blackboard, anthropic, handlers, toolDefs, config, metrics);
-    blackboard.quality_after = blackboard.quality_before; // No changes attempted
+
+    // Check if a previously started async action has resolved
+    const pending = pendingActions.get(actionName);
+    if (pending) {
+      if (pending.resolved) {
+        pendingActions.delete(actionName);
+        return pending.result;
+      }
+      return 'running'; // Still waiting for async op
+    }
+
+    // Start a new async action via dispatchActionAsync
+    const entry = { resolved: false, result: false };
+    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics)
+      .then((result) => {
+        entry.resolved = true;
+        entry.result = result;
+      })
+      .catch((err) => {
+        console.error(`  [BT] Action '${actionName}' threw: ${err.message}`);
+        entry.resolved = true;
+        entry.result = false;
+      });
+    pendingActions.set(actionName, entry);
+    return 'running';
+  };
+
+  // Create HeadlessRuntime from the parsed .hsplus composition
+  const runtime = createHeadlessRuntime(compositionAST, {
+    profile: HEADLESS_PROFILE,
+    executeAction: executeActionCallback,
+    tickRate: 0, // Manual ticking only — we control the loop
+    debug: config.verbose,
+  });
+
+  // Start the runtime — this instantiates nodes, attaches traits (including BT)
+  // Blackboard context (focus, cycle_number, etc.) is injected on first action tick
+  runtime.start();
+
+  // Listen for BT completion events — bt_complete includes the final blackboard
+  let btComplete = false;
+  let btStatus: string = 'unknown';
+  let btBlackboard: Record<string, unknown> = {};
+  runtime.on('bt_complete', (event: any) => {
+    btComplete = true;
+    btStatus = event?.status ?? 'unknown';
+    btBlackboard = event?.blackboard ?? {};
+  });
+
+  // Tick the runtime until the BT completes or we hit a safety limit
+  const MAX_TICKS = 50_000; // Safety valve (~2.5h at 200ms yield per tick)
+  const TICK_DELTA = 0.1; // 100ms simulated delta
+  let tickCount = 0;
+
+  while (!btComplete && tickCount < MAX_TICKS) {
+    runtime.manualTick(TICK_DELTA);
+    tickCount++;
+
+    // Yield to allow async Promises to resolve between ticks
+    // This is critical: without yielding, pending actions never complete
+    await new Promise(resolve => setTimeout(resolve, 200));
   }
 
-  // Step 12: Report
-  await executeAction('report_results', blackboard, anthropic, handlers, toolDefs, config, metrics);
+  runtime.stop();
+
+  if (tickCount >= MAX_TICKS) {
+    console.warn(`  [BT] Safety limit reached (${MAX_TICKS} ticks). BT may not have completed.`);
+  }
+
+  // Extract results from the BT's blackboard (emitted with bt_complete event)
+  const qualityBefore = (btBlackboard.quality_before as number) ?? 0;
+  const qualityAfter = (btBlackboard.quality_after as number) ?? qualityBefore;
+  const filesEdited = (btBlackboard.files_edited as string[]) ?? [];
+
+  console.log(`  [Runtime] BT completed: ${btStatus} (${tickCount} ticks)`);
 
   // Mark attempted files
-  for (const f of blackboard.files_edited) {
+  for (const f of filesEdited) {
     if (!bridgeState.attemptedFiles.includes(f)) {
       bridgeState.attemptedFiles.push(f);
     }
@@ -696,13 +744,13 @@ async function runBridgeCycle(
   }
 
   return {
-    qualityBefore: blackboard.quality_before,
-    qualityAfter: blackboard.quality_after,
+    qualityBefore,
+    qualityAfter,
     inputTokens: metrics.inputTokens,
     outputTokens: metrics.outputTokens,
     toolCallsTotal: metrics.toolCallsTotal,
     toolCallsUseful: metrics.toolCallsUseful,
-    filesEdited: blackboard.files_edited,
+    filesEdited,
   };
 }
 
@@ -754,8 +802,30 @@ async function main() {
   process.on('SIGINT', () => { releaseLock(); process.exit(0); });
   process.on('SIGTERM', () => { releaseLock(); process.exit(0); });
 
+  // Parse the .hsplus composition — this is THE CORE of the treatment arm.
+  // The BT structure, state machine, feedback loops, and economy traits are
+  // all defined in HoloScript's native format and executed through HeadlessRuntime.
+  console.log('Parsing .hsplus composition...');
+  let compositionAST: any;
+  try {
+    const compositionSource = fs.readFileSync(COMPOSITION_FILE, 'utf-8');
+    const parseResult = parse(compositionSource);
+    if (!parseResult.success) {
+      console.error('Failed to parse .hsplus:', parseResult.errors);
+      releaseLock();
+      process.exit(1);
+    }
+    compositionAST = parseResult.ast;
+    console.log(`  Parsed: ${COMPOSITION_FILE.split(path.sep).pop()} (${compositionSource.split('\n').length} lines)`);
+  } catch (err: any) {
+    console.error(`Failed to read composition: ${err.message}`);
+    releaseLock();
+    process.exit(1);
+  }
+
   console.log('╔══════════════════════════════════════════════════════════════╗');
   console.log('║  🧪 HoloScript Self-Improvement Bridge (Treatment Arm)     ║');
+  console.log('║  Runtime: HeadlessRuntime + BehaviorTreeTrait (native)      ║');
   console.log('╚══════════════════════════════════════════════════════════════╝');
   console.log(`  Root:     ${config.rootDir}`);
   console.log(`  Cycles:   ${config.cycles}`);
@@ -832,7 +902,7 @@ async function main() {
     const startTime = Date.now();
 
     try {
-      const result = await runBridgeCycle(anthropic, handlers, toolDefs, config, bridgeState);
+      const result = await runBridgeCycle(compositionAST, anthropic, handlers, toolDefs, config, bridgeState);
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
       // Update state

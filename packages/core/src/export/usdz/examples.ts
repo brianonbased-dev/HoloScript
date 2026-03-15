@@ -17,6 +17,18 @@ import {
 // Example 1: Basic USDZ Export
 // ============================================================================
 
+/**
+ * Demonstrates basic USDZ export functionality with a simple scene containing a red material.
+ * 
+ * Creates a minimal scene graph with a single red material that has metallic
+ * and roughness properties, then exports it to USDZ format for testing
+ * the core export pipeline.
+ * 
+ * @example
+ * ```typescript
+ * await example1_BasicExport();
+ * ```
+ */
 export async function example1_BasicExport(): Promise<void> {
   console.log('Example 1: Basic USDZ Export');
 
@@ -49,6 +61,18 @@ export async function example1_BasicExport(): Promise<void> {
 // Example 2: AR Quick Look with Floor Placement
 // ============================================================================
 
+/**
+ * Demonstrates USDZ export optimized for iOS AR Quick Look with floor placement.
+ * 
+ * Creates a scene with proper anchoring metadata that allows the model
+ * to be placed on horizontal surfaces when viewed through AR Quick Look
+ * on iOS devices. Includes scale and lighting setup for realistic AR presentation.
+ * 
+ * @example
+ * ```typescript
+ * await example2_ARFloorPlacement();
+ * ```
+ */
 export async function example2_ARFloorPlacement(): Promise<void> {
   console.log('Example 2: AR Quick Look with Floor Placement');
 
@@ -93,6 +117,18 @@ export async function example2_ARFloorPlacement(): Promise<void> {
 // Example 3: Wall-Mounted AR Object
 // ============================================================================
 
+/**
+ * Demonstrates USDZ export for wall-mounted AR experiences.
+ * 
+ * Creates a scene optimized for vertical surface placement in AR,
+ * such as hanging artwork or wall-mounted displays. Includes proper
+ * orientation metadata and lighting for wall-based AR experiences.
+ * 
+ * @example
+ * ```typescript
+ * await example3_WallMountedAR();
+ * ```
+ */
 export async function example3_WallMountedAR(): Promise<void> {
   console.log('Example 3: Wall-Mounted AR Object');
 

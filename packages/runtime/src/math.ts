@@ -148,6 +148,7 @@ export function wrap(value: number, min: number, max: number): number {
  * Ping pong value between 0 and length
  */
 export function pingPong(t: number, length: number): number {
+  if (length === 0) return 0;
   t = wrap(t, 0, length * 2);
   return length - Math.abs(t - length);
 }

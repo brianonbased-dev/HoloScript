@@ -2666,6 +2666,15 @@ export class R3FCompiler {
           props.receiveShadow = value;
         } else if (key === 'visible') {
           props[key] = value;
+        } else if (key === 'maturity') {
+          // Explicit asset maturity override: maturity: "draft" | "mesh" | "final"
+          props.maturityOverride = value;
+        } else if (key === 'promoteUrl' || key === 'promote_url') {
+          // GLTF URL for draft→mesh promotion
+          props.promoteUrl = value;
+        } else if (key === 'collisionShape' || key === 'collision_shape') {
+          // Explicit collision proxy shape override
+          props.collisionShape = value;
         } else {
           props[key] = this.resolveValue(value);
         }
@@ -2954,9 +2963,14 @@ export class R3FCompiler {
 
     const r3fNode = this.createNode(type, props, obj.name);
 
-    // Set asset maturity from @draft trait
+    // Set asset maturity from @draft trait or explicit maturity property
     if (props.draftMode) {
       r3fNode.assetMaturity = 'draft';
+    } else if (props.maturityOverride) {
+      const m = props.maturityOverride;
+      if (m === 'draft' || m === 'mesh' || m === 'final') {
+        r3fNode.assetMaturity = m;
+      }
     }
 
     if (obj.children) {

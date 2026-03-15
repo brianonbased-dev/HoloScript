@@ -19,7 +19,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/hsplus-files.test.ts', // Causes vitest OOM - run separately with node --max-old-space-size
+      '**/hsplus-files.test.ts', // Causes vitest OOM - replaced with hsplus-files-optimized.test.ts
     ],
     // Give fork processes enough memory for the large test suite (44K+ tests).
     // poolOptions was removed in Vitest 4; execArgv is now a top-level option.

@@ -12,6 +12,9 @@ import {
   randomInt,
   randomItem,
   shuffle,
+  normalize,
+  wrap,
+  pingPong,
 } from '../math.js';
 
 describe('Math Utilities', () => {
@@ -279,6 +282,84 @@ describe('Math Utilities', () => {
 
       // Should have changed at least once (very high probability)
       expect(changedCount).toBeGreaterThan(0);
+    });
+  });
+
+  describe('normalize', () => {
+    it('should normalize value to 0-1 range', () => {
+      expect(normalize(5, 0, 10)).toBe(0.5);
+      expect(normalize(25, 20, 30)).toBe(0.5);
+      expect(normalize(0, 0, 100)).toBe(0);
+      expect(normalize(100, 0, 100)).toBe(1);
+    });
+
+    it('should handle edge cases', () => {
+      expect(normalize(0, 0, 0)).toBe(NaN); // Division by zero
+      expect(normalize(5, 5, 5)).toBe(NaN); // No range
+      expect(normalize(10, 0, 5)).toBe(2); // Outside range
+    });
+
+    it('should work with negative ranges', () => {
+      expect(normalize(-5, -10, 0)).toBe(0.5);
+      expect(normalize(-15, -20, -10)).toBe(0.5);
+    });
+
+    it('should work with fractional values', () => {
+      expect(normalize(2.5, 0, 10)).toBe(0.25);
+      expect(normalize(7.5, 0, 10)).toBe(0.75);
+    });
+  });
+
+  describe('wrap', () => {
+    it('should wrap values within range', () => {
+      expect(wrap(5, 0, 10)).toBe(5);
+      expect(wrap(15, 0, 10)).toBe(5);
+      expect(wrap(-5, 0, 10)).toBe(5);
+      expect(wrap(25, 0, 10)).toBe(5);
+    });
+
+    it('should handle zero-based range', () => {
+      expect(wrap(0, 0, 5)).toBe(0);
+      expect(wrap(5, 0, 5)).toBe(0);
+      expect(wrap(-1, 0, 5)).toBe(4);
+    });
+
+    it('should handle negative ranges', () => {
+      expect(wrap(-15, -10, 0)).toBe(-5);
+      expect(wrap(-5, -10, 0)).toBe(-5);
+      expect(wrap(5, -10, 0)).toBe(-5);
+    });
+
+    it('should handle fractional values', () => {
+      expect(wrap(2.5, 0, 5)).toBe(2.5);
+      expect(wrap(7.5, 0, 5)).toBe(2.5);
+      expect(wrap(-2.5, 0, 5)).toBe(2.5);
+    });
+  });
+
+  describe('pingPong', () => {
+    it('should ping pong between 0 and length', () => {
+      expect(pingPong(0, 5)).toBe(0);
+      expect(pingPong(2.5, 5)).toBe(2.5);
+      expect(pingPong(5, 5)).toBe(5);
+      expect(pingPong(7.5, 5)).toBe(2.5);
+      expect(pingPong(10, 5)).toBe(0);
+    });
+
+    it('should handle negative values', () => {
+      expect(pingPong(-2.5, 5)).toBe(2.5);
+      expect(pingPong(-5, 5)).toBe(5);
+      expect(pingPong(-7.5, 5)).toBe(2.5);
+    });
+
+    it('should handle zero length', () => {
+      expect(pingPong(5, 0)).toBe(0);
+      expect(pingPong(-5, 0)).toBe(0);
+    });
+
+    it('should handle fractional lengths', () => {
+      expect(pingPong(1.25, 2.5)).toBe(1.25);
+      expect(pingPong(3.75, 2.5)).toBe(1.25);
     });
   });
 });

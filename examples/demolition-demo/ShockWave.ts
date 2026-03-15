@@ -223,7 +223,23 @@ export class ShockWave {
   }
 
   /**
-   * Get statistics
+   * Get comprehensive statistics about the shock wave's current state
+   * 
+   * @returns An object containing current shock wave statistics:
+   * - `radius`: Current propagation radius in meters
+   * - `age`: Time elapsed since shock wave creation in seconds
+   * - `active`: Whether the shock wave is still propagating
+   * - `energy`: Current energy level after attenuation in joules
+   * - `wavefrontArea`: Surface area of the current wavefront in square meters
+   * - `coverage`: Percentage of maximum radius reached (0-100)
+   * 
+   * @example
+   * ```typescript
+   * const shockWave = new ShockWave({ origin: {x: 0, y: 0, z: 0}, energy: 1000000 });
+   * shockWave.update(1.0); // Update for 1 second
+   * const stats = shockWave.getStatistics();
+   * console.log(`Shock wave has traveled ${stats.radius}m and covered ${stats.coverage}%`);
+   * ```
    */
   public getStatistics(): {
     radius: number;
