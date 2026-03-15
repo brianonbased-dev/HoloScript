@@ -26,39 +26,64 @@ const BAR_COLORS = ['#22c55e', '#eab308', '#f97316', '#ef4444'];
 const THRESHOLD_LINE = 9.0; // VR regression threshold
 
 export function LODMetricsPanel() {
-  const { emit } = useStudioBus();
+  const { emit, on } = useStudioBus();
   const [history, setHistory] = useState<LODMetricSnapshot[]>([]);
   const [isRecording, setIsRecording] = useState(true);
   const [regressionCount, setRegressionCount] = useState(0);
   const [recoveryCount, setRecoveryCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Simulate metric ticks (in production, this would come from usePerformanceRegression)
+  // Receive metric ticks from usePerformanceRegression via bus, with simulation fallback
   useEffect(() => {
     if (!isRecording) return;
-    intervalRef.current = setInterval(() => {
+    let hasBusData = false;
+
+    // Subscribe to real performance tick events from SceneRenderer's hook
+    const unsub = on('lodMetrics:tick', (data: unknown) => {
+      hasBusData = true;
+      const snapshot = data as LODMetricSnapshot;
+      if (!snapshot?.timestamp) return;
       setHistory((prev) => {
-        const last = prev[prev.length - 1];
-        // Simulated baseline — real data comes from bus events
-        const snapshot: LODMetricSnapshot = {
-          timestamp: Date.now(),
-          avgFrameTimeMs: last ? last.avgFrameTimeMs + (Math.random() - 0.5) * 2 : 8.0,
-          isRegressed: false,
-          levelDistribution: last?.levelDistribution || [0, 0, 0, 0],
-          totalTriangles: last?.totalTriangles || 0,
-          entityCount: last?.entityCount || 0,
-        };
-        snapshot.avgFrameTimeMs = Math.max(1, Math.min(20, snapshot.avgFrameTimeMs));
-        snapshot.isRegressed = snapshot.avgFrameTimeMs > THRESHOLD_LINE;
         const next = [...prev, snapshot];
         if (next.length > HISTORY_SIZE) next.shift();
         return next;
       });
-    }, 16);
+    });
+
+    // Fallback: simulated walk if no bus data arrives after 500ms
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+    const fallbackDelay = setTimeout(() => {
+      if (hasBusData) return;
+      fallbackTimer = setInterval(() => {
+        if (hasBusData) {
+          if (fallbackTimer) clearInterval(fallbackTimer);
+          return;
+        }
+        setHistory((prev) => {
+          const last = prev[prev.length - 1];
+          const snapshot: LODMetricSnapshot = {
+            timestamp: Date.now(),
+            avgFrameTimeMs: last ? last.avgFrameTimeMs + (Math.random() - 0.5) * 2 : 8.0,
+            isRegressed: false,
+            levelDistribution: last?.levelDistribution || [0, 0, 0, 0],
+            totalTriangles: last?.totalTriangles || 0,
+            entityCount: last?.entityCount || 0,
+          };
+          snapshot.avgFrameTimeMs = Math.max(1, Math.min(20, snapshot.avgFrameTimeMs));
+          snapshot.isRegressed = snapshot.avgFrameTimeMs > THRESHOLD_LINE;
+          const next = [...prev, snapshot];
+          if (next.length > HISTORY_SIZE) next.shift();
+          return next;
+        });
+      }, 16);
+    }, 500);
+
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      unsub();
+      clearTimeout(fallbackDelay);
+      if (fallbackTimer) clearInterval(fallbackTimer);
     };
-  }, [isRecording]);
+  }, [isRecording, on]);
 
   const latest = history[history.length - 1];
   const avgFrame = latest?.avgFrameTimeMs ?? 0;

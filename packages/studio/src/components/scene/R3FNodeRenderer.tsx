@@ -9,6 +9,7 @@ import {
   AnimatedMeshNode,
   LODMeshNode,
   hasLOD,
+  DraftMeshNode,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -87,7 +88,17 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         ));
 
       let meshComponent;
-      if (isShaderMesh) {
+      // Draft maturity: render as geometric primitive (blockout / collision proxy)
+      if (node.assetMaturity === 'draft') {
+        meshComponent = (
+          <DraftMeshNode
+            node={node}
+            shape={(props.draftShape || props.hsType || 'box') as any}
+            showWireframe={props.draftWireframe}
+            color={props.draftColor}
+          />
+        );
+      } else if (isShaderMesh) {
         meshComponent = <StudioShaderMeshNode node={node} />;
       } else if (isLODMesh) {
         const distances = props.lodDistances || [0, 25, 50];

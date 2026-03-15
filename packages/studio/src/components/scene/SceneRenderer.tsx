@@ -27,6 +27,8 @@ import { useSceneGraphSync } from '@/hooks/useSceneGraphSync';
 import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
 import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
 import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/ContentCameraUI';
+import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
+import { usePerformanceRegression, ProgressiveLoader } from '@holoscript/r3f-renderer';
 import * as THREE from 'three';
 
 interface SceneRendererProps {
@@ -302,6 +304,15 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   // Sync R3F tree → scene graph store (flattens nested native asset children)
   useSceneGraphSync(r3fTree);
 
+  // Gap 3: Pipeline maturity events → scene graph store
+  usePipelineMaturitySync();
+
+  // Gap 5: Performance regression monitor → bus events for LODMetricsPanel
+  const perfResult = usePerformanceRegression({
+    thresholdMs: 9.0,
+    windowSize: 60,
+  });
+
   // ─── XR support detection ──────────────────────────────────────────────────
   const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({
     vr: false,
@@ -433,6 +444,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         
         {/* Handles WebM video recording of the Canvas stream */}
         <ContentCameraCapture />
+
+        {/* Gap 6: Progressive loader for streaming asset LODs */}
+        <ProgressiveLoader />
       </Canvas>
       
       {/* Social Aspect Ratio Overlays & Recording UI */}

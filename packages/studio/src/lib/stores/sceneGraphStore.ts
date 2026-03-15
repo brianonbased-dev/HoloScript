@@ -19,6 +19,13 @@ export interface SceneNode {
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
+  /**
+   * Asset maturity stage in the Draft→Mesh→Final pipeline.
+   * - 'draft': Geometric primitive blockout with collision proxy
+   * - 'mesh': Imported/generated mesh, still iterating
+   * - 'final': Production-ready with full materials and LOD
+   */
+  assetMaturity?: 'draft' | 'mesh' | 'final';
 }
 
 interface SceneGraphState {

@@ -61,7 +61,7 @@ ${results.memory
 
 ### Analysis
 
-${analyzeMemory(results.memory)}
+${analyzeByOperationCount(results.memory, 'heapUsed', 'uses', 'less memory')}
 
 ---
 
@@ -80,7 +80,7 @@ ${results.serialization
 
 ### Analysis
 
-${analyzeSerialization(results.serialization)}
+${analyzeByOperationCount(results.serialization, 'serializedSize', 'serializes', 'smaller')}
 
 ---
 
@@ -229,13 +229,7 @@ function analyzeByOperationCount(
   return analysis;
 }
 
-function analyzeMemory(mem: any[]): string {
-  return analyzeByOperationCount(mem, 'heapUsed', 'uses', 'less memory');
-}
 
-function analyzeSerialization(ser: any[]): string {
-  return analyzeByOperationCount(ser, 'serializedSize', 'serializes', 'smaller');
-}
 
 function analyzeMerge(merge: any[]): string {
   let analysis =

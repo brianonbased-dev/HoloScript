@@ -684,8 +684,14 @@ async function runBridgeCycle(
     return 'running';
   };
 
-  // Create HeadlessRuntime from the parsed .hsplus composition
-  const runtime = createHeadlessRuntime(compositionAST, {
+  // Deep-clone the AST so each cycle gets fresh node objects.
+  // BT trait state (__bt_state, __bt_blackboard) is stored on nodes —
+  // without cloning, cycle 2+ would see stale "completed" state from cycle 1.
+  // Use structuredClone to preserve Maps (node.traits is a Map).
+  const freshAST = structuredClone(compositionAST);
+
+  // Create HeadlessRuntime from the cloned .hsplus composition
+  const runtime = createHeadlessRuntime(freshAST, {
     profile: HEADLESS_PROFILE,
     executeAction: executeActionCallback,
     tickRate: 0, // Manual ticking only — we control the loop
