@@ -49,7 +49,7 @@ interface NFTConfig {
 // =============================================================================
 
 export const nftHandler: TraitHandler<NFTConfig> = {
-  name: 'nft' as any,
+  name: 'nft',
 
   defaultConfig: {
     chain: 'ethereum',

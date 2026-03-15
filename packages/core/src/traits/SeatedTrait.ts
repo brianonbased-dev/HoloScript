@@ -43,7 +43,7 @@ interface SeatedState {
 // =============================================================================
 
 export const seatedHandler: TraitHandler<SeatedTrait> = {
-  name: 'seated' as any,
+  name: 'seated',
 
   defaultConfig: {
     height_offset: 0,

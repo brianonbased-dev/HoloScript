@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OfflineSyncConfig { sync_interval_ms: number; }
 export const offlineSyncHandler: TraitHandler<OfflineSyncConfig> = {
-  name: 'offline_sync' as any, defaultConfig: { sync_interval_ms: 5000 },
+  name: 'offline_sync', defaultConfig: { sync_interval_ms: 5000 },
   onAttach(node: HSPlusNode): void { node.__syncState = { pending: [] as any[], synced: 0, online: true }; },
   onDetach(node: HSPlusNode): void { delete node.__syncState; },
   onUpdate(): void {},

@@ -38,7 +38,7 @@ interface AudioPortalConfig {
 // =============================================================================
 
 export const audioPortalHandler: TraitHandler<AudioPortalConfig> = {
-  name: 'audio_portal' as any,
+  name: 'audio_portal',
 
   defaultConfig: {
     opening_size: 1,

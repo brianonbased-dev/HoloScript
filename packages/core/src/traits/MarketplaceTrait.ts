@@ -46,7 +46,7 @@ interface MarketplaceConfig {
 // =============================================================================
 
 export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
-  name: 'marketplace' as any,
+  name: 'marketplace',
 
   defaultConfig: {
     platform: 'opensea',

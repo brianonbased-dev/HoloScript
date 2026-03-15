@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface PermissionConfig { default_role: string; }
 
 export const permissionHandler: TraitHandler<PermissionConfig> = {
-  name: 'permission' as any,
+  name: 'permission',
   defaultConfig: { default_role: 'viewer' },
 
   onAttach(node: any): void { node.__permState = { grants: new Map<string, Set<string>>() }; },

@@ -41,7 +41,7 @@ interface RooftopAnchorConfig {
 // =============================================================================
 
 export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
-  name: 'rooftop_anchor' as any,
+  name: 'rooftop_anchor',
 
   defaultConfig: {
     latitude: 0,

@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface ChangeTrackingConfig { max_history: number; }
 export const changeTrackingHandler: TraitHandler<ChangeTrackingConfig> = {
-  name: 'change_tracking' as any, defaultConfig: { max_history: 100 },
+  name: 'change_tracking', defaultConfig: { max_history: 100 },
   onAttach(node: any): void { node.__changeState = { history: [] as Array<{ entityId: string; field: string; oldValue: unknown; newValue: unknown; ts: number }> }; },
   onDetach(node: any): void { delete node.__changeState; },
   onUpdate(): void {},

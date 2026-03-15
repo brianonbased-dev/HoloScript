@@ -54,7 +54,7 @@ interface GeospatialEnvConfig {
 // =============================================================================
 
 export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
-  name: 'geospatial' as any,
+  name: 'geospatial',
 
   defaultConfig: {
     latitude: 0,

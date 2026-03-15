@@ -71,7 +71,7 @@ export interface StructuredLoggerState {
 // =============================================================================
 
 export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
-  name: 'structured_logger' as any,
+  name: 'structured_logger',
 
   defaultConfig: {
     min_level: 'info',

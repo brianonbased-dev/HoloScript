@@ -50,7 +50,7 @@ interface RopeConfig {
 // =============================================================================
 
 export const ropeHandler: TraitHandler<RopeConfig> = {
-  name: 'rope' as any,
+  name: 'rope',
 
   defaultConfig: {
     length: 5,

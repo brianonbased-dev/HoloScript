@@ -54,7 +54,7 @@ interface VPSConfig {
 // =============================================================================
 
 export const vpsHandler: TraitHandler<VPSConfig> = {
-  name: 'vps' as any,
+  name: 'vps',
 
   defaultConfig: {
     provider: 'arcore',

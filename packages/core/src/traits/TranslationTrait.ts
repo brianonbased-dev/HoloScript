@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface TranslationConfig { fallback_locale: string; }
 
 export const translationHandler: TraitHandler<TranslationConfig> = {
-  name: 'translation' as any,
+  name: 'translation',
   defaultConfig: { fallback_locale: 'en' },
   onAttach(node: any): void { node.__i18nState = { bundles: new Map<string, Map<string, string>>() }; },
   onDetach(node: any): void { delete node.__i18nState; },

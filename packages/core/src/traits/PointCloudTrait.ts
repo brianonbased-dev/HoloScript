@@ -47,7 +47,7 @@ interface PointCloudConfig {
 // =============================================================================
 
 export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
-  name: 'point_cloud' as any,
+  name: 'point_cloud',
 
   defaultConfig: {
     source: '',

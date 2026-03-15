@@ -16,7 +16,7 @@ export interface RollbackConfig {
 }
 
 export const rollbackHandler: TraitHandler<RollbackConfig> = {
-  name: 'rollback' as any,
+  name: 'rollback',
   defaultConfig: { max_history: 20 },
 
   onAttach(node: any): void {

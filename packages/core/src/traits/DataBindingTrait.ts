@@ -47,7 +47,7 @@ interface DataBindingConfig {
 // =============================================================================
 
 export const dataBindingHandler: TraitHandler<DataBindingConfig> = {
-  name: 'data_binding' as any,
+  name: 'data_binding',
 
   defaultConfig: {
     source: '',

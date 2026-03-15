@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface SubscriptionConfig { plans: string[]; }
 
 export const subscriptionHandler: TraitHandler<SubscriptionConfig> = {
-  name: 'subscription' as any,
+  name: 'subscription',
   defaultConfig: { plans: ['free', 'pro', 'enterprise'] },
 
   onAttach(node: any): void { node.__subState = { subs: new Map<string, { plan: string; status: string; started: number }>() }; },

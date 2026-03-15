@@ -76,7 +76,7 @@ interface SharedWorldConfig {
 // =============================================================================
 
 export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
-  name: 'shared_world' as any,
+  name: 'shared_world',
 
   defaultConfig: {
     authority_model: 'server',

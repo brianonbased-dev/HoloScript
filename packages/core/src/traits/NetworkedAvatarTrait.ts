@@ -20,7 +20,7 @@ export interface NetworkedAvatarConfig {
 }
 
 export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
-  name: 'networked_avatar' as any,
+  name: 'networked_avatar',
 
   defaultConfig: {
     isLocal: false,

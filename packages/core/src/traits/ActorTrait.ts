@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface ActorConfig { mailbox_size: number; }
 export const actorHandler: TraitHandler<ActorConfig> = {
-  name: 'actor' as any, defaultConfig: { mailbox_size: 1000 },
+  name: 'actor', defaultConfig: { mailbox_size: 1000 },
   onAttach(node: HSPlusNode): void { node.__actorState = { mailbox: [] as any[], processed: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__actorState; },
   onUpdate(): void {},

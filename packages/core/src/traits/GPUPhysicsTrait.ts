@@ -43,7 +43,7 @@ interface InternalState {
 }
 
 export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
-  name: 'gpu_physics' as any,
+  name: 'gpu_physics',
 
   defaultConfig: {
     sim_type: 'rigid_body',

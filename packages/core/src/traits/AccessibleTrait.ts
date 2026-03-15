@@ -59,7 +59,7 @@ interface AccessibleConfig {
 // =============================================================================
 
 export const accessibleHandler: TraitHandler<AccessibleConfig> = {
-  name: 'accessible' as any,
+  name: 'accessible',
 
   defaultConfig: {
     role: 'button',

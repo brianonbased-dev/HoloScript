@@ -65,7 +65,7 @@ interface MeshDetectionConfig {
 // =============================================================================
 
 export const meshDetectionHandler: TraitHandler<MeshDetectionConfig> = {
-  name: 'mesh_detection' as any,
+  name: 'mesh_detection',
 
   defaultConfig: {
     resolution: 'medium',

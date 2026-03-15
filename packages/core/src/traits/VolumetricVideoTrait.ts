@@ -46,7 +46,7 @@ interface VolumetricVideoConfig {
 // =============================================================================
 
 export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
-  name: 'volumetric_video' as any,
+  name: 'volumetric_video',
 
   defaultConfig: {
     source: '',

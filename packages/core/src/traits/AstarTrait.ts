@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface AstarConfig { max_iterations: number; heuristic: string; }
 export const astarHandler: TraitHandler<AstarConfig> = {
-  name: 'astar' as any, defaultConfig: { max_iterations: 10000, heuristic: 'euclidean' },
+  name: 'astar', defaultConfig: { max_iterations: 10000, heuristic: 'euclidean' },
   onAttach(node: HSPlusNode): void { node.__astarState = { searches: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__astarState; },
   onUpdate(): void {},

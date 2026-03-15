@@ -116,7 +116,7 @@ const builtInPatterns: Record<string, HapticPattern> = {
 // =============================================================================
 
 export const hapticHandler: TraitHandler<HapticTrait> = {
-  name: 'haptic' as any,
+  name: 'haptic',
 
   defaultConfig: {
     intensity: 0.5,

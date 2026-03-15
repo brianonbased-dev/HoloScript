@@ -87,7 +87,7 @@ function mapValue(
 // =============================================================================
 
 export const sonificationHandler: TraitHandler<SonificationConfig> = {
-  name: 'sonification' as any,
+  name: 'sonification',
 
   defaultConfig: {
     data_source: '',

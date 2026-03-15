@@ -18,7 +18,7 @@ export interface EmailConfig {
 }
 
 export const emailHandler: TraitHandler<EmailConfig> = {
-  name: 'email' as any,
+  name: 'email',
   defaultConfig: { from: 'noreply@holoscript.dev', max_queue: 100 },
 
   onAttach(node: any): void {

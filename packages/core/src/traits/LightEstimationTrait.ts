@@ -69,7 +69,7 @@ function kelvinToRGB(kelvin: number): { r: number; g: number; b: number } {
 // =============================================================================
 
 export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
-  name: 'light_estimation' as any,
+  name: 'light_estimation',
 
   defaultConfig: {
     mode: 'ambient_intensity',

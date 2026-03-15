@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface GraphqlConfig { depth_limit: number; }
 export const graphqlHandler: TraitHandler<GraphqlConfig> = {
-  name: 'graphql' as any, defaultConfig: { depth_limit: 10 },
+  name: 'graphql', defaultConfig: { depth_limit: 10 },
   onAttach(node: any): void { node.__gqlState = { resolvers: new Map<string, string>(), queries: 0 }; },
   onDetach(node: any): void { delete node.__gqlState; },
   onUpdate(): void {},

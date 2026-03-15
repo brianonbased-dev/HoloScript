@@ -45,7 +45,7 @@ interface TokenGatedConfig {
 // =============================================================================
 
 export const tokenGatedHandler: TraitHandler<TokenGatedConfig> = {
-  name: 'token_gated' as any,
+  name: 'token_gated',
 
   defaultConfig: {
     chain: 'ethereum',

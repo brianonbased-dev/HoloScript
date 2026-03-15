@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface RolloutConfig { default_percentage: number; }
 export const rolloutHandler: TraitHandler<RolloutConfig> = {
-  name: 'rollout' as any, defaultConfig: { default_percentage: 0 },
+  name: 'rollout', defaultConfig: { default_percentage: 0 },
   onAttach(node: any): void { node.__rolloutState = { features: new Map<string, { percentage: number; enabled: Set<string> }>() }; },
   onDetach(node: any): void { delete node.__rolloutState; },
   onUpdate(): void {},

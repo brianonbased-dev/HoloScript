@@ -128,7 +128,7 @@ function createManifest(nodeId: string, config: AgentDiscoveryConfig): AgentMani
 // =============================================================================
 
 export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
-  name: 'agent_discovery' as any,
+  name: 'agent_discovery',
 
   defaultConfig: {
     agent_id: '',

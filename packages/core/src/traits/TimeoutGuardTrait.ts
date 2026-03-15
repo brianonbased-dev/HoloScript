@@ -56,7 +56,7 @@ export interface TimeoutGuardState {
 // =============================================================================
 
 export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
-  name: 'timeout_guard' as any,
+  name: 'timeout_guard',
 
   defaultConfig: {
     default_timeout_ms: 30000,

@@ -362,7 +362,7 @@ export class URDFRobotTrait {
  * HoloScript+ trait handler for @urdf_robot
  */
 export const urdfRobotHandler: TraitHandler<URDFRobotConfig> = {
-  name: 'urdf_robot' as any,
+  name: 'urdf_robot',
 
   defaultConfig: {
     urdf_source: '',

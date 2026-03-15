@@ -30,7 +30,7 @@ interface LogEntry {
 }
 
 export const logAggregatorHandler: TraitHandler<LogAggregatorConfig> = {
-  name: 'log_aggregator' as any,
+  name: 'log_aggregator',
   defaultConfig: { max_entries: 5000, min_level: 'info' },
 
   onAttach(node: any): void {

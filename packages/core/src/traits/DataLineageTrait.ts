@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface DataLineageConfig { max_depth: number; }
 export const dataLineageHandler: TraitHandler<DataLineageConfig> = {
-  name: 'data_lineage' as any, defaultConfig: { max_depth: 50 },
+  name: 'data_lineage', defaultConfig: { max_depth: 50 },
   onAttach(node: any): void { node.__lineageState = { graph: new Map<string, { source: string; transforms: string[] }>() }; },
   onDetach(node: any): void { delete node.__lineageState; },
   onUpdate(): void {},

@@ -17,7 +17,7 @@ export type OrbitalTraitConfig = OrbitalElements;
  * Updates orb position based on orbital mechanics on every frame
  */
 export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
-  name: 'orbital' as any,
+  name: 'orbital',
   defaultConfig: {} as OrbitalTraitConfig,
 
   /**

@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface DeadlockFreeConfig { max_resources: number; }
 export const deadlockFreeHandler: TraitHandler<DeadlockFreeConfig> = {
-  name: 'deadlock_free' as any, defaultConfig: { max_resources: 100 },
+  name: 'deadlock_free', defaultConfig: { max_resources: 100 },
   onAttach(node: HSPlusNode): void { node.__dlState = { locks: new Map<string, { owner: string; order: number }>(), nextOrder: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__dlState; },
   onUpdate(): void {},

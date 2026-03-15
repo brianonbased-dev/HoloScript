@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface FfiConfig { allowed_libs: string[]; }
 export const ffiHandler: TraitHandler<FfiConfig> = {
-  name: 'ffi' as any, defaultConfig: { allowed_libs: [] },
+  name: 'ffi', defaultConfig: { allowed_libs: [] },
   onAttach(node: HSPlusNode): void { node.__ffiState = { bindings: new Map<string, string>(), calls: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__ffiState; },
   onUpdate(): void {},

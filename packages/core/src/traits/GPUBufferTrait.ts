@@ -45,7 +45,7 @@ interface GPUBufferConfig {
 // =============================================================================
 
 export const gpuBufferHandler: TraitHandler<GPUBufferConfig> = {
-  name: 'gpu_buffer' as any,
+  name: 'gpu_buffer',
 
   defaultConfig: {
     size: 1024,

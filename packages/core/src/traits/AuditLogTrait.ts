@@ -222,7 +222,7 @@ function inferSeverity(action: string, result: string): AuditSeverity {
 // =============================================================================
 
 export const auditLogHandler: TraitHandler<AuditLogConfig> = {
-  name: 'audit_log' as any,
+  name: 'audit_log',
 
   defaultConfig: {
     tenantId: '',

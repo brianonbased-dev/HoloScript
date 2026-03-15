@@ -65,7 +65,7 @@ interface GPUParticleConfig {
 // =============================================================================
 
 export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
-  name: 'gpu_particle' as any,
+  name: 'gpu_particle',
 
   defaultConfig: {
     count: 10000,

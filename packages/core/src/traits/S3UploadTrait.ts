@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface S3UploadConfig { bucket: string; max_size_mb: number; }
 export const s3UploadHandler: TraitHandler<S3UploadConfig> = {
-  name: 's3_upload' as any, defaultConfig: { bucket: 'default', max_size_mb: 100 },
+  name: 's3_upload', defaultConfig: { bucket: 'default', max_size_mb: 100 },
   onAttach(node: any): void { node.__s3State = { uploads: 0, totalBytes: 0 }; },
   onDetach(node: any): void { delete node.__s3State; },
   onUpdate(): void {},

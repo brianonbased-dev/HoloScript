@@ -53,7 +53,7 @@ const PRIORITY_VALUES: Record<Priority, number> = {
 // =============================================================================
 
 export const spatialAudioCueHandler: TraitHandler<SpatialAudioCueConfig> = {
-  name: 'spatial_audio_cue' as any,
+  name: 'spatial_audio_cue',
 
   defaultConfig: {
     cue_type: 'navigation',

@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface ApiKeyConfig { prefix: string; max_keys: number; }
 
 export const apiKeyHandler: TraitHandler<ApiKeyConfig> = {
-  name: 'api_key' as any,
+  name: 'api_key',
   defaultConfig: { prefix: 'sk_', max_keys: 50 },
 
   onAttach(node: any): void { node.__apiKeyState = { keys: new Map<string, { name: string; created: number }>() }; },

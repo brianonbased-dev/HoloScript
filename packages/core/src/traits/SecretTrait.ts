@@ -19,7 +19,7 @@ export interface SecretConfig {
 }
 
 export const secretHandler: TraitHandler<SecretConfig> = {
-  name: 'secret' as any,
+  name: 'secret',
   defaultConfig: { max_secrets: 100, auto_expire: true },
 
   onAttach(node: any): void {

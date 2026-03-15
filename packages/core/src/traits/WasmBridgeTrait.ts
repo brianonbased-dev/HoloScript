@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface WasmBridgeConfig { max_memory_pages: number; }
 export const wasmBridgeHandler: TraitHandler<WasmBridgeConfig> = {
-  name: 'wasm_bridge' as any, defaultConfig: { max_memory_pages: 256 },
+  name: 'wasm_bridge', defaultConfig: { max_memory_pages: 256 },
   onAttach(node: HSPlusNode): void { node.__wasmState = { modules: new Map<string, boolean>(), calls: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__wasmState; },
   onUpdate(): void {},

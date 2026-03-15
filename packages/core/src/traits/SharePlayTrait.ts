@@ -47,7 +47,7 @@ interface SharePlaySessionState {
 // =============================================================================
 
 export const sharePlayHandler: TraitHandler<SharePlayConfig> = {
-  name: 'shareplay' as any,
+  name: 'shareplay',
 
   defaultConfig: {
     activity_title: 'Shared Experience',

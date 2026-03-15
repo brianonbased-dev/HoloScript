@@ -329,7 +329,7 @@ function quantizePosition(x: number, y: number, z: number, resolution: number): 
 // =============================================================================
 
 export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
-  name: 'analytics' as any,
+  name: 'analytics',
 
   defaultConfig: {
     enabled: true,

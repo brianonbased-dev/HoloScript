@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface RenderPipelineConfig { max_passes: number; }
 export const renderPipelineHandler: TraitHandler<RenderPipelineConfig> = {
-  name: 'render_pipeline' as any, defaultConfig: { max_passes: 8 },
+  name: 'render_pipeline', defaultConfig: { max_passes: 8 },
   onAttach(node: HSPlusNode): void { node.__rpState = { passes: [] as string[], active: false }; },
   onDetach(node: HSPlusNode): void { delete node.__rpState; },
   onUpdate(): void {},

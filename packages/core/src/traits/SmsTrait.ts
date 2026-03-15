@@ -17,7 +17,7 @@ export interface SmsConfig {
 }
 
 export const smsHandler: TraitHandler<SmsConfig> = {
-  name: 'sms' as any,
+  name: 'sms',
   defaultConfig: { provider: 'default', max_length: 160 },
 
   onAttach(node: any): void {

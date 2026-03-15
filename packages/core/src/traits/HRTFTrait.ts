@@ -45,7 +45,7 @@ interface HRTFConfig {
 // =============================================================================
 
 export const hrtfHandler: TraitHandler<HRTFConfig> = {
-  name: 'hrtf' as any,
+  name: 'hrtf',
 
   defaultConfig: {
     profile: 'generic',

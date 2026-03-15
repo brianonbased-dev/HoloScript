@@ -84,7 +84,7 @@ const defaultConfig: MQTTSinkConfig = {
 // =============================================================================
 
 export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
-  name: 'mqtt_sink' as any,
+  name: 'mqtt_sink',
 
   defaultConfig,
 

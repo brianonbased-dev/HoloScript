@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface MfaConfig { methods: string[]; }
 
 export const mfaHandler: TraitHandler<MfaConfig> = {
-  name: 'mfa' as any,
+  name: 'mfa',
   defaultConfig: { methods: ['totp', 'sms'] },
 
   onAttach(node: any): void { node.__mfaState = { enrolled: new Map<string, { method: string; verified: boolean }>() }; },

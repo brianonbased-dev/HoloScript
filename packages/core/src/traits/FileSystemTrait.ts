@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface FileSystemConfig { root: string; }
 export const fileSystemHandler: TraitHandler<FileSystemConfig> = {
-  name: 'file_system' as any, defaultConfig: { root: '/' },
+  name: 'file_system', defaultConfig: { root: '/' },
   onAttach(node: any): void { node.__fsState = { files: new Map<string, string>() }; },
   onDetach(node: any): void { delete node.__fsState; },
   onUpdate(): void {},

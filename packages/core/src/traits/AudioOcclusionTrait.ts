@@ -70,7 +70,7 @@ function calculateOcclusion(
 // =============================================================================
 
 export const audioOcclusionHandler: TraitHandler<AudioOcclusionConfig> = {
-  name: 'audio_occlusion' as any,
+  name: 'audio_occlusion',
 
   defaultConfig: {
     mode: 'raycast',

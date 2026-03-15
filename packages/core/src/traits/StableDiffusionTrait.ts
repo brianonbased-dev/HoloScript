@@ -53,7 +53,7 @@ interface DiffusionState {
 // =============================================================================
 
 export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
-  name: 'stable_diffusion' as any,
+  name: 'stable_diffusion',
 
   defaultConfig: {
     diffusion_model: 'sdxl',
@@ -182,7 +182,7 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
  */
 export const aiTextureGenHandler: TraitHandler<StableDiffusionConfig> = {
   ...stableDiffusionHandler,
-  name: 'ai_texture_gen' as any,
+  name: 'ai_texture_gen',
 };
 
 /**
@@ -190,7 +190,7 @@ export const aiTextureGenHandler: TraitHandler<StableDiffusionConfig> = {
  */
 export const diffusionRealtimeHandler: TraitHandler<StableDiffusionConfig> = {
   ...stableDiffusionHandler,
-  name: 'diffusion_realtime' as any,
+  name: 'diffusion_realtime',
   defaultConfig: {
     ...stableDiffusionHandler.defaultConfig,
     realtime: true,
@@ -204,7 +204,7 @@ export const diffusionRealtimeHandler: TraitHandler<StableDiffusionConfig> = {
  */
 export const aiInpaintingHandler: TraitHandler<StableDiffusionConfig> = {
   ...stableDiffusionHandler,
-  name: 'ai_inpainting' as any,
+  name: 'ai_inpainting',
   defaultConfig: {
     ...stableDiffusionHandler.defaultConfig,
     inpaint_strength: 0.75,
@@ -216,7 +216,7 @@ export const aiInpaintingHandler: TraitHandler<StableDiffusionConfig> = {
  */
 export const controlnetHandler: TraitHandler<StableDiffusionConfig> = {
   ...stableDiffusionHandler,
-  name: 'controlnet' as any,
+  name: 'controlnet',
   defaultConfig: {
     ...stableDiffusionHandler.defaultConfig,
     control_mode: 'canny',

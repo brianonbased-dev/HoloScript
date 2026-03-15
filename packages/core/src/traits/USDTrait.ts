@@ -319,7 +319,7 @@ export function secondsToUSDTimeCode(seconds: number, fps: number): number {
 // =============================================================================
 
 export const usdHandler: TraitHandler<USDConfig> = {
-  name: 'usd' as any,
+  name: 'usd',
 
   defaultConfig: defaultUSDConfig,
 

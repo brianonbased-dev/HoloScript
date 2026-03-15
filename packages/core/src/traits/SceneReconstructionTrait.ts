@@ -55,7 +55,7 @@ interface SceneReconstructionState {
 // =============================================================================
 
 export const sceneReconstructionHandler: TraitHandler<SceneReconstructionConfig> = {
-  name: 'scene_reconstruction' as any,
+  name: 'scene_reconstruction',
 
   defaultConfig: {
     reconstruction_mode: 'realtime',

@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface NativeCallConfig { sandbox: boolean; }
 export const nativeCallHandler: TraitHandler<NativeCallConfig> = {
-  name: 'native_call' as any, defaultConfig: { sandbox: true },
+  name: 'native_call', defaultConfig: { sandbox: true },
   onAttach(node: HSPlusNode): void { node.__nativeState = { calls: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__nativeState; },
   onUpdate(): void {},

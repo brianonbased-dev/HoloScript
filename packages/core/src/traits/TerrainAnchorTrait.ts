@@ -41,7 +41,7 @@ interface TerrainAnchorConfig {
 // =============================================================================
 
 export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
-  name: 'terrain_anchor' as any,
+  name: 'terrain_anchor',
 
   defaultConfig: {
     latitude: 0,

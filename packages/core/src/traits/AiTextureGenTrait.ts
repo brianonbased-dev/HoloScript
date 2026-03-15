@@ -58,7 +58,7 @@ interface AiTextureGenState {
 // =============================================================================
 
 export const aiTextureGenHandler: TraitHandler<AiTextureGenConfig> = {
-  name: 'ai_texture_gen' as any,
+  name: 'ai_texture_gen',
 
   defaultConfig: {
     style: 'photorealistic',

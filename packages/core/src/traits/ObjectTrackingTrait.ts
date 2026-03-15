@@ -49,7 +49,7 @@ interface ObjectTrackingState {
 // =============================================================================
 
 export const objectTrackingHandler: TraitHandler<ObjectTrackingConfig> = {
-  name: 'object_tracking' as any,
+  name: 'object_tracking',
 
   defaultConfig: {
     tracking_target: 'objects',

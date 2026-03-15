@@ -29,7 +29,7 @@ interface SLOEntry {
 }
 
 export const sloMonitorHandler: TraitHandler<SLOMonitorConfig> = {
-  name: 'slo_monitor' as any,
+  name: 'slo_monitor',
   defaultConfig: { alert_on_budget_breach: true },
 
   onAttach(node: any): void {

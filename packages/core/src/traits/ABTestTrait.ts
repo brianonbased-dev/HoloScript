@@ -526,7 +526,7 @@ function initVariantStats(variantId: string, goalIds: string[]): VariantStats {
 // =============================================================================
 
 export const abTestHandler: TraitHandler<ABTestConfig> = {
-  name: 'abtest' as any,
+  name: 'abtest',
 
   defaultConfig: {
     enabled: true,

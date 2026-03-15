@@ -16,7 +16,7 @@ export interface SlackConfig {
 }
 
 export const slackHandler: TraitHandler<SlackConfig> = {
-  name: 'slack' as any,
+  name: 'slack',
   defaultConfig: { webhook_url: '', default_channel: '#general' },
 
   onAttach(node: any): void { node.__slackState = { sent: 0 }; },

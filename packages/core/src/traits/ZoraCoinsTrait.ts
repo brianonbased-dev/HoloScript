@@ -177,7 +177,7 @@ const BONDING_CURVE_PRESETS = {
 // =============================================================================
 
 export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
-  name: 'zora_coins' as any,
+  name: 'zora_coins',
 
   defaultConfig: {
     creator_wallet: '',

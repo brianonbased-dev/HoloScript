@@ -48,7 +48,7 @@ interface VolumetricWindowState {
 // =============================================================================
 
 export const volumetricWindowHandler: TraitHandler<VolumetricWindowConfig> = {
-  name: 'volumetric_window' as any,
+  name: 'volumetric_window',
 
   defaultConfig: {
     window_type: 'bounded',

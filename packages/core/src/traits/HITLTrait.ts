@@ -147,7 +147,7 @@ interface HITLConfig {
 // =============================================================================
 
 export const hitlHandler: TraitHandler<HITLConfig> = {
-  name: 'hitl' as any,
+  name: 'hitl',
 
   defaultConfig: {
     mode: 'supervised',

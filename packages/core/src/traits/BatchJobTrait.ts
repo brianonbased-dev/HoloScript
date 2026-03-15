@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface BatchJobConfig { max_concurrent: number; }
 export const batchJobHandler: TraitHandler<BatchJobConfig> = {
-  name: 'batch_job' as any, defaultConfig: { max_concurrent: 5 },
+  name: 'batch_job', defaultConfig: { max_concurrent: 5 },
   onAttach(node: any): void { node.__batchState = { jobs: new Map<string, { status: string; progress: number }>() }; },
   onDetach(node: any): void { delete node.__batchState; },
   onUpdate(): void {},

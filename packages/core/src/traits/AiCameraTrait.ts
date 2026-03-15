@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface AiCameraConfig { tracking_speed: number; }
 export const aiCameraHandler: TraitHandler<AiCameraConfig> = {
-  name: 'ai_camera' as any, defaultConfig: { tracking_speed: 1.0 },
+  name: 'ai_camera', defaultConfig: { tracking_speed: 1.0 },
   onAttach(node: HSPlusNode): void { node.__camState = { mode: 'static', target: null as string | null, shots: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__camState; },
   onUpdate(): void {},

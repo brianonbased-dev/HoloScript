@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface FormBuilderConfig { max_fields: number; }
 
 export const formBuilderHandler: TraitHandler<FormBuilderConfig> = {
-  name: 'form_builder' as any,
+  name: 'form_builder',
   defaultConfig: { max_fields: 100 },
   onAttach(node: any): void { node.__formState = { forms: new Map<string, { fields: Array<{ name: string; type: string; required: boolean }>; submitted: boolean }>() }; },
   onDetach(node: any): void { delete node.__formState; },

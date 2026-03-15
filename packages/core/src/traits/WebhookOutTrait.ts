@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface WebhookOutConfig { max_retries: number; timeout_ms: number; }
 export const webhookOutHandler: TraitHandler<WebhookOutConfig> = {
-  name: 'webhook_out' as any, defaultConfig: { max_retries: 3, timeout_ms: 5000 },
+  name: 'webhook_out', defaultConfig: { max_retries: 3, timeout_ms: 5000 },
   onAttach(node: any): void { node.__whOutState = { sent: 0, failed: 0 }; },
   onDetach(node: any): void { delete node.__whOutState; },
   onUpdate(): void {},

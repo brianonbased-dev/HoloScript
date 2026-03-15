@@ -64,7 +64,7 @@ const DEFAULT_RANGES: Record<BiofeedbackSource, { min: number; max: number }> = 
 // =============================================================================
 
 export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
-  name: 'biofeedback' as any,
+  name: 'biofeedback',
 
   defaultConfig: {
     sources: ['heart_rate'],

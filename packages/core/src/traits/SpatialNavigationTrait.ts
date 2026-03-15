@@ -50,7 +50,7 @@ interface SpatialNavigationState {
 // =============================================================================
 
 export const spatialNavigationHandler: TraitHandler<SpatialNavigationConfig> = {
-  name: 'spatial_navigation' as any,
+  name: 'spatial_navigation',
 
   defaultConfig: {
     navigation_mode: 'walking',

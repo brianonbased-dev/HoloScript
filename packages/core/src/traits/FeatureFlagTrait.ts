@@ -23,7 +23,7 @@ interface Flag {
 }
 
 export const featureFlagHandler: TraitHandler<FeatureFlagConfig> = {
-  name: 'feature_flag' as any,
+  name: 'feature_flag',
   defaultConfig: { max_flags: 200 },
 
   onAttach(node: any): void {

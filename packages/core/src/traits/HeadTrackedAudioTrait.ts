@@ -68,7 +68,7 @@ function applyInverseRotation(
 // =============================================================================
 
 export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
-  name: 'head_tracked_audio' as any,
+  name: 'head_tracked_audio',
 
   defaultConfig: {
     source: '',

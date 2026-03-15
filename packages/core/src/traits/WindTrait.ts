@@ -59,7 +59,7 @@ function smoothNoise(t: number, seed: number = 0): number {
 // =============================================================================
 
 export const windHandler: TraitHandler<WindConfig> = {
-  name: 'wind' as any,
+  name: 'wind',
 
   defaultConfig: {
     direction: [1, 0, 0],

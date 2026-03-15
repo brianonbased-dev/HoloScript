@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface SessionConfig { ttl_ms: number; max_sessions: number; }
 
 export const sessionHandler: TraitHandler<SessionConfig> = {
-  name: 'session' as any,
+  name: 'session',
   defaultConfig: { ttl_ms: 86400000, max_sessions: 1000 },
 
   onAttach(node: any): void { node.__sessionState = { sessions: new Map<string, { userId: string; expiresAt: number }>() }; },

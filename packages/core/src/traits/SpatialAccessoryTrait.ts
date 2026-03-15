@@ -64,7 +64,7 @@ interface SpatialAccessoryConfig {
 // =============================================================================
 
 export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
-  name: 'spatial_accessory' as any,
+  name: 'spatial_accessory',
 
   defaultConfig: {
     device_type: 'stylus',

@@ -40,7 +40,7 @@ interface SpectatorConfig {
 // =============================================================================
 
 export const spectatorHandler: TraitHandler<SpectatorConfig> = {
-  name: 'spectator' as any,
+  name: 'spectator',
 
   defaultConfig: {
     camera_mode: 'free',

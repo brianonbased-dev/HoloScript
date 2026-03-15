@@ -65,7 +65,7 @@ const defaultConfig: WoTThingConfig = {
 // =============================================================================
 
 export const wotThingHandler: TraitHandler<WoTThingConfig> = {
-  name: 'wot_thing' as any,
+  name: 'wot_thing',
 
   defaultConfig,
 

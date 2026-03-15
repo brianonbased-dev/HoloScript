@@ -286,7 +286,7 @@ function selectLODLevel(distance: number, lodDistances: number[], maxLOD: number
 // =============================================================================
 
 export const gltfHandler: TraitHandler<GLTFConfig> = {
-  name: 'gltf' as any,
+  name: 'gltf',
 
   defaultConfig: defaultGLTFConfig,
 

@@ -79,7 +79,7 @@ const defaultConfig: MQTTSourceConfig = {
 // =============================================================================
 
 export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
-  name: 'mqtt_source' as any,
+  name: 'mqtt_source',
 
   defaultConfig,
 

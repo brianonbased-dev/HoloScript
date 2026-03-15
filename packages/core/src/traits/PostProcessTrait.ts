@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface PostProcessConfig { max_effects: number; }
 export const postProcessHandler: TraitHandler<PostProcessConfig> = {
-  name: 'post_process' as any, defaultConfig: { max_effects: 16 },
+  name: 'post_process', defaultConfig: { max_effects: 16 },
   onAttach(node: HSPlusNode): void { node.__ppState = { effects: [] as Array<{ name: string; intensity: number }> }; },
   onDetach(node: HSPlusNode): void { delete node.__ppState; },
   onUpdate(): void {},

@@ -141,7 +141,7 @@ function suggestAction(name: string, value: number, target: number): string {
 // =============================================================================
 
 export const feedbackLoopHandler: TraitHandler<FeedbackConfig> = {
-  name: 'feedback_loop' as any,
+  name: 'feedback_loop',
 
   defaultConfig: {
     metrics: {

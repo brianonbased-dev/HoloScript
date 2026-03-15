@@ -15,7 +15,7 @@ interface RoadmapConfig {
 }
 
 export const roadmapNodeHandler: TraitHandler<RoadmapConfig> = {
-  name: 'roadmap_node' as any,
+  name: 'roadmap_node',
 
   defaultConfig: {
     milestone_id: '',

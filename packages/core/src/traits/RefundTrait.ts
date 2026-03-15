@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface RefundConfig { max_refund_days: number; }
 
 export const refundHandler: TraitHandler<RefundConfig> = {
-  name: 'refund' as any,
+  name: 'refund',
   defaultConfig: { max_refund_days: 30 },
 
   onAttach(node: any): void { node.__refundState = { refunds: [] as Array<{ refundId: string; chargeId: string; amount: number; reason: string }> }; },

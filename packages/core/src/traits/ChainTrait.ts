@@ -48,7 +48,7 @@ interface ChainConfig {
 // =============================================================================
 
 export const chainHandler: TraitHandler<ChainConfig> = {
-  name: 'chain' as any,
+  name: 'chain',
 
   defaultConfig: {
     links: 10,

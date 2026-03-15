@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface FullTextSearchConfig { max_results: number; }
 export const fullTextSearchHandler: TraitHandler<FullTextSearchConfig> = {
-  name: 'full_text_search' as any, defaultConfig: { max_results: 50 },
+  name: 'full_text_search', defaultConfig: { max_results: 50 },
   onAttach(node: any): void { node.__ftsState = { index: new Map<string, string>() }; },
   onDetach(node: any): void { delete node.__ftsState; },
   onUpdate(): void {},

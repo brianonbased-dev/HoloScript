@@ -19,7 +19,7 @@ export interface SseConfig {
 }
 
 export const sseHandler: TraitHandler<SseConfig> = {
-  name: 'sse' as any,
+  name: 'sse',
   defaultConfig: { max_clients: 1000, keepalive_ms: 30000 },
 
   onAttach(node: any): void {

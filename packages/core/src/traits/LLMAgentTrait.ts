@@ -153,7 +153,7 @@ function checkEscalation(
 // =============================================================================
 
 export const llmAgentHandler: TraitHandler<LLMConfig> = {
-  name: 'llm_agent' as any,
+  name: 'llm_agent',
 
   defaultConfig: {
     model: 'gpt-4',

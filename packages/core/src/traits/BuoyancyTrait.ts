@@ -68,7 +68,7 @@ function calculateBuoyancyForce(
 // =============================================================================
 
 export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
-  name: 'buoyancy' as any,
+  name: 'buoyancy',
 
   defaultConfig: {
     fluid_density: 1000,

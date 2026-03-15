@@ -17,7 +17,7 @@ export interface InferenceConfig {
 }
 
 export const inferenceHandler: TraitHandler<InferenceConfig> = {
-  name: 'inference' as any,
+  name: 'inference',
   defaultConfig: { timeout_ms: 30000, max_tokens: 4096 },
 
   onAttach(node: any): void {

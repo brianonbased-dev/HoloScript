@@ -61,7 +61,7 @@ export interface WebhookState {
 // =============================================================================
 
 export const webhookHandler: TraitHandler<WebhookConfig> = {
-  name: 'webhook' as any,
+  name: 'webhook',
 
   defaultConfig: {
     url: '',

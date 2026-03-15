@@ -125,7 +125,7 @@ function generatePackageId(): string {
 // =============================================================================
 
 export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationConfig> = {
-  name: 'marketplace_integration' as any,
+  name: 'marketplace_integration',
 
   defaultConfig: {
     marketplace_url: 'https://marketplace.holoscript.net',

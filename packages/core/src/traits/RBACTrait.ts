@@ -565,7 +565,7 @@ function checkAgentCapability(
 // =============================================================================
 
 export const rbacHandler: TraitHandler<RBACConfig> = {
-  name: 'rbac' as any,
+  name: 'rbac',
 
   defaultConfig: {
     tenantId: '',

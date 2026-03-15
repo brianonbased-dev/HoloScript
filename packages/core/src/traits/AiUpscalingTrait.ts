@@ -47,7 +47,7 @@ interface UpscalingState {
 // =============================================================================
 
 export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
-  name: 'ai_upscaling' as any,
+  name: 'ai_upscaling',
 
   defaultConfig: {
     upscale_model: 'realesrgan',
@@ -185,7 +185,7 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
  */
 export const neuralUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
   ...aiUpscalingHandler,
-  name: 'neural_upscaling' as any,
+  name: 'neural_upscaling',
   defaultConfig: {
     ...aiUpscalingHandler.defaultConfig,
     upscale_model: 'swinir',

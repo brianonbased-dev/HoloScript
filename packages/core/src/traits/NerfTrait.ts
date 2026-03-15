@@ -43,7 +43,7 @@ interface NerfConfig {
 // =============================================================================
 
 export const nerfHandler: TraitHandler<NerfConfig> = {
-  name: 'nerf' as any,
+  name: 'nerf',
 
   defaultConfig: {
     model_url: '',

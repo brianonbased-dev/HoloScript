@@ -40,7 +40,7 @@ interface PortableConfig {
 // =============================================================================
 
 export const portableHandler: TraitHandler<PortableConfig> = {
-  name: 'portable' as any,
+  name: 'portable',
 
   defaultConfig: {
     interoperable: true,

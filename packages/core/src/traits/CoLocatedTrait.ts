@@ -52,7 +52,7 @@ interface CoLocatedConfig {
 // =============================================================================
 
 export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
-  name: 'co_located' as any,
+  name: 'co_located',
 
   defaultConfig: {
     shared_anchor_id: '',

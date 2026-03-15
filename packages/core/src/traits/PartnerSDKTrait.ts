@@ -142,7 +142,7 @@ function verifyWebhookSignature(
 // =============================================================================
 
 export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
-  name: 'partner_sdk' as any,
+  name: 'partner_sdk',
 
   defaultConfig: {
     partners: [],

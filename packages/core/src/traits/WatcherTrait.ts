@@ -48,7 +48,7 @@ export interface WatcherState {
 // =============================================================================
 
 export const watcherHandler: TraitHandler<WatcherConfig> = {
-  name: 'watcher' as any,
+  name: 'watcher',
 
   defaultConfig: {
     watch_type: 'event',

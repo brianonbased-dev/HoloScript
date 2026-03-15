@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface RestEndpointConfig { base_path: string; }
 export const restEndpointHandler: TraitHandler<RestEndpointConfig> = {
-  name: 'rest_endpoint' as any, defaultConfig: { base_path: '/api' },
+  name: 'rest_endpoint', defaultConfig: { base_path: '/api' },
   onAttach(node: any): void { node.__restState = { routes: new Map<string, string>(), requests: 0 }; },
   onDetach(node: any): void { delete node.__restState; },
   onUpdate(): void {},

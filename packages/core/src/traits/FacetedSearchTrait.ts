@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface FacetedSearchConfig { max_facets: number; }
 export const facetedSearchHandler: TraitHandler<FacetedSearchConfig> = {
-  name: 'faceted_search' as any, defaultConfig: { max_facets: 20 },
+  name: 'faceted_search', defaultConfig: { max_facets: 20 },
   onAttach(node: any): void { node.__facetState = { facets: new Map<string, Set<string>>() }; },
   onDetach(node: any): void { delete node.__facetState; },
   onUpdate(): void {},

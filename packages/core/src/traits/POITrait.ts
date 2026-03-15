@@ -42,7 +42,7 @@ interface POIConfig {
 // =============================================================================
 
 export const poiHandler: TraitHandler<POIConfig> = {
-  name: 'poi' as any,
+  name: 'poi',
 
   defaultConfig: {
     name: '',

@@ -37,7 +37,7 @@ interface NPCAIConfig {
 // =============================================================================
 
 export const npcAIHandler: TraitHandler<NPCAIConfig> = {
-  name: 'npc_ai' as any,
+  name: 'npc_ai',
 
   defaultConfig: {
     model: 'hermes-3-70b',

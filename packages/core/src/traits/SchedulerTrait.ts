@@ -72,7 +72,7 @@ export interface SchedulerState {
 // =============================================================================
 
 export const schedulerHandler: TraitHandler<SchedulerConfig> = {
-  name: 'scheduler' as any,
+  name: 'scheduler',
 
   defaultConfig: {
     jobs: [],

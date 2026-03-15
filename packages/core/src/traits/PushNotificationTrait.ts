@@ -17,7 +17,7 @@ export interface PushNotificationConfig {
 }
 
 export const pushNotificationHandler: TraitHandler<PushNotificationConfig> = {
-  name: 'push_notification' as any,
+  name: 'push_notification',
   defaultConfig: { platform: 'fcm', max_batch: 500 },
 
   onAttach(node: any): void {

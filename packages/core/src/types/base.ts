@@ -44,7 +44,8 @@ export type VRTraitName =
   | 'hitl'
   | 'interactive_graph'
   | 'draft'
-  | 'hot_reload';
+  | 'hot_reload'
+  | (string & {}); // Allow any string for extensibility while preserving autocomplete
 
 // ============================================================================
 // Base AST Node (without directive reference to avoid circular dependency)

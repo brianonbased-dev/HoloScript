@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OrmEntityConfig { table_prefix: string; }
 export const ormEntityHandler: TraitHandler<OrmEntityConfig> = {
-  name: 'orm_entity' as any, defaultConfig: { table_prefix: '' },
+  name: 'orm_entity', defaultConfig: { table_prefix: '' },
   onAttach(node: HSPlusNode): void { node.__ormState = { entities: new Map<string, Record<string, unknown>>() }; },
   onDetach(node: HSPlusNode): void { delete node.__ormState; },
   onUpdate(): void {},

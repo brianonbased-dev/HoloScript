@@ -84,7 +84,7 @@ const HAPTIC_PATTERNS: Record<HapticPattern, Array<{ intensity: number; duration
 // =============================================================================
 
 export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
-  name: 'haptic_cue' as any,
+  name: 'haptic_cue',
 
   defaultConfig: {
     pattern: 'pulse',

@@ -76,7 +76,7 @@ function dotProduct(a: number[], b: number[]): number {
 // =============================================================================
 
 export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
-  name: 'vector_db' as any,
+  name: 'vector_db',
 
   defaultConfig: {
     embedding_model: 'sentence-transformers',
@@ -241,5 +241,5 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
  */
 export const embeddingSearchHandler: TraitHandler<VectorDBConfig> = {
   ...vectorDBHandler,
-  name: 'embedding_search' as any,
+  name: 'embedding_search',
 };

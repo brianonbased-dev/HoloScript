@@ -129,7 +129,7 @@ function createEmptyControllerData(): ControllerData {
 // =============================================================================
 
 export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
-  name: 'controller' as any,
+  name: 'controller',
 
   defaultConfig: {
     haptic_on_button: true,

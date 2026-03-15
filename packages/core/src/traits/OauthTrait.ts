@@ -17,7 +17,7 @@ export interface OauthConfig {
 }
 
 export const oauthHandler: TraitHandler<OauthConfig> = {
-  name: 'oauth' as any,
+  name: 'oauth',
   defaultConfig: { providers: ['google', 'github'] },
 
   onAttach(node: any): void { node.__oauthState = { tokens: new Map<string, { provider: string; expiresAt: number }>() }; },

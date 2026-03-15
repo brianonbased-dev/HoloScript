@@ -97,7 +97,7 @@ function generateHandMesh(
 
 export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
   ...handTrackingHandler,
-  name: 'hand_mesh_ai' as any,
+  name: 'hand_mesh_ai',
 
   defaultConfig: {
     ...handTrackingHandler.defaultConfig,

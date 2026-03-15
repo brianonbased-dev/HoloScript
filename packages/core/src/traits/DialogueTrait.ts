@@ -117,7 +117,7 @@ function filterOptions(
 // =============================================================================
 
 export const dialogueHandler: TraitHandler<DialogueConfig> = {
-  name: 'dialogue' as any,
+  name: 'dialogue',
 
   defaultConfig: {
     dialogue_tree: {},

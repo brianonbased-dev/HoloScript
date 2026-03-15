@@ -63,7 +63,7 @@ interface RealityKitMeshState {
 // =============================================================================
 
 export const realityKitMeshHandler: TraitHandler<RealityKitMeshConfig> = {
-  name: 'realitykit_mesh' as any,
+  name: 'realitykit_mesh',
 
   defaultConfig: {
     mesh_classification: true,

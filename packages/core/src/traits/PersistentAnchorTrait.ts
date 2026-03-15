@@ -43,7 +43,7 @@ interface PersistentAnchorConfig {
 // =============================================================================
 
 export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
-  name: 'persistent_anchor' as any,
+  name: 'persistent_anchor',
 
   defaultConfig: {
     storage: 'local',

@@ -36,7 +36,7 @@ interface MotionReducedConfig {
 // =============================================================================
 
 export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
-  name: 'motion_reduced' as any,
+  name: 'motion_reduced',
 
   defaultConfig: {
     disable_parallax: true,

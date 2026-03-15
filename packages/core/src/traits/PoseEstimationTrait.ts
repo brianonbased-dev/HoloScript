@@ -103,7 +103,7 @@ function smoothKeypoints(current: Keypoint[], buffer: Keypoint[][], smoothing: n
 // =============================================================================
 
 export const poseEstimationHandler: TraitHandler<PoseEstimationConfig> = {
-  name: 'pose_estimation' as any,
+  name: 'pose_estimation',
 
   defaultConfig: {
     model: 'mediapipe',

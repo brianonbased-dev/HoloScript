@@ -120,7 +120,7 @@ function generateFragments(
 // =============================================================================
 
 export const destructionHandler: TraitHandler<DestructionConfig> = {
-  name: 'destruction' as any,
+  name: 'destruction',
 
   defaultConfig: {
     mode: 'voronoi',

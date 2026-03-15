@@ -42,7 +42,7 @@ interface OcclusionConfig {
 // =============================================================================
 
 export const occlusionHandler: TraitHandler<OcclusionConfig> = {
-  name: 'occlusion' as any,
+  name: 'occlusion',
 
   defaultConfig: {
     mode: 'environment',

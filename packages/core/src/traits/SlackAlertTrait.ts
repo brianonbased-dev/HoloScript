@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface SlackAlertConfig { default_channel: string; }
 export const slackAlertHandler: TraitHandler<SlackAlertConfig> = {
-  name: 'slack_alert' as any, defaultConfig: { default_channel: '#alerts' },
+  name: 'slack_alert', defaultConfig: { default_channel: '#alerts' },
   onAttach(node: any): void { node.__slackAlertState = { sent: 0 }; },
   onDetach(node: any): void { delete node.__slackAlertState; },
   onUpdate(): void {},

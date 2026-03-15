@@ -138,7 +138,7 @@ function smoothPose(current: JointPose, prev: JointPose, smoothing: number): Joi
 // =============================================================================
 
 export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
-  name: 'body_tracking' as any,
+  name: 'body_tracking',
 
   defaultConfig: {
     mode: 'upper_body',

@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface ApprovalConfig { timeout_ms: number; }
 
 export const approvalHandler: TraitHandler<ApprovalConfig> = {
-  name: 'approval' as any,
+  name: 'approval',
   defaultConfig: { timeout_ms: 86400000 },
   onAttach(node: any): void { node.__approvalState = { requests: new Map<string, { status: string; requestedAt: number }>() }; },
   onDetach(node: any): void { delete node.__approvalState; },

@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface CinematicSeqConfig { fps: number; }
 export const cinematicSeqHandler: TraitHandler<CinematicSeqConfig> = {
-  name: 'cinematic_seq' as any, defaultConfig: { fps: 24 },
+  name: 'cinematic_seq', defaultConfig: { fps: 24 },
   onAttach(node: HSPlusNode): void { node.__cinState = { clips: [] as Array<{ name: string; startFrame: number; endFrame: number }>, currentFrame: 0, playing: false }; },
   onDetach(node: HSPlusNode): void { delete node.__cinState; },
   onUpdate(): void {},

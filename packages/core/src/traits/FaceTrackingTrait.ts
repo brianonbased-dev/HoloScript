@@ -112,7 +112,7 @@ function detectPhoneme(blendShapes: Map<BlendShape, number>): string | null {
 // =============================================================================
 
 export const faceTrackingHandler: TraitHandler<FaceTrackingConfig> = {
-  name: 'face_tracking' as any,
+  name: 'face_tracking',
 
   defaultConfig: {
     blend_shapes: true,

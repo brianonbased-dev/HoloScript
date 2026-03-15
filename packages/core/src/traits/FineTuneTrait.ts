@@ -16,7 +16,7 @@ export interface FineTuneConfig {
 }
 
 export const fineTuneHandler: TraitHandler<FineTuneConfig> = {
-  name: 'fine_tune' as any,
+  name: 'fine_tune',
   defaultConfig: { max_concurrent: 2 },
 
   onAttach(node: any): void {

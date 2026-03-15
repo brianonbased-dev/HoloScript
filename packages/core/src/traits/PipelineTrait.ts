@@ -62,7 +62,7 @@ export interface PipelineState {
 // =============================================================================
 
 export const pipelineHandler: TraitHandler<PipelineConfig> = {
-  name: 'pipeline' as any,
+  name: 'pipeline',
 
   defaultConfig: {
     pipeline_id: 'default',

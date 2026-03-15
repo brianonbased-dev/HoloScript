@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface DataQualityConfig { fail_on_error: boolean; }
 export const dataQualityHandler: TraitHandler<DataQualityConfig> = {
-  name: 'data_quality' as any, defaultConfig: { fail_on_error: false },
+  name: 'data_quality', defaultConfig: { fail_on_error: false },
   onAttach(node: any): void { node.__dqState = { checks: 0, passed: 0, failed: 0 }; },
   onDetach(node: any): void { delete node.__dqState; },
   onUpdate(): void {},

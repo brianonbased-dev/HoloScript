@@ -31,7 +31,7 @@ export interface StreamState {
 }
 
 export const streamHandler: TraitHandler<StreamConfig> = {
-  name: 'stream' as any,
+  name: 'stream',
 
   defaultConfig: {
     max_buffer: 1000,

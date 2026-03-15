@@ -82,7 +82,7 @@ function angleBetween(
 // =============================================================================
 
 export const perceptionHandler: TraitHandler<PerceptionConfig> = {
-  name: 'perception' as any,
+  name: 'perception',
 
   defaultConfig: {
     sight_range: 20,

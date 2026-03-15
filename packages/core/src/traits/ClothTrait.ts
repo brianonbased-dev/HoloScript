@@ -54,7 +54,7 @@ interface ClothConfig {
 // =============================================================================
 
 export const clothHandler: TraitHandler<ClothConfig> = {
-  name: 'cloth' as any,
+  name: 'cloth',
 
   defaultConfig: {
     resolution: 32,

@@ -150,7 +150,7 @@ const CREDIT_ESTIMATES: Record<RenderQuality, number> = {
 // =============================================================================
 
 export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
-  name: 'render_network' as any,
+  name: 'render_network',
 
   defaultConfig: {
     api_key: '',

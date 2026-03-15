@@ -19,7 +19,7 @@ export interface ModelLoadConfig {
 }
 
 export const modelLoadHandler: TraitHandler<ModelLoadConfig> = {
-  name: 'model_load' as any,
+  name: 'model_load',
   defaultConfig: { max_loaded: 5, warmup_rounds: 1 },
 
   onAttach(node: any): void {

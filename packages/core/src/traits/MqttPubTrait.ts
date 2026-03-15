@@ -16,7 +16,7 @@ export interface MqttPubConfig {
 }
 
 export const mqttPubHandler: TraitHandler<MqttPubConfig> = {
-  name: 'mqtt_pub' as any,
+  name: 'mqtt_pub',
   defaultConfig: { broker_url: '', default_qos: 1 },
 
   onAttach(node: any): void { node.__mqttPubState = { published: 0 }; },

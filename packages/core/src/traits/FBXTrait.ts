@@ -313,7 +313,7 @@ function removeNamespace(name: string): string {
 // =============================================================================
 
 export const fbxHandler: TraitHandler<FBXConfig> = {
-  name: 'fbx' as any,
+  name: 'fbx',
 
   defaultConfig: defaultFBXConfig,
 

@@ -52,7 +52,7 @@ interface AnchorConfig {
 // =============================================================================
 
 export const anchorHandler: TraitHandler<AnchorConfig> = {
-  name: 'anchor' as any,
+  name: 'anchor',
 
   defaultConfig: {
     anchor_type: 'spatial',

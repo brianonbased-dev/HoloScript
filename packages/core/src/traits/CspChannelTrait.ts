@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface CspChannelConfig { buffer_size: number; }
 export const cspChannelHandler: TraitHandler<CspChannelConfig> = {
-  name: 'csp_channel' as any, defaultConfig: { buffer_size: 10 },
+  name: 'csp_channel', defaultConfig: { buffer_size: 10 },
   onAttach(node: HSPlusNode): void { node.__cspState = { channels: new Map<string, any[]>() }; },
   onDetach(node: HSPlusNode): void { delete node.__cspState; },
   onUpdate(): void {},

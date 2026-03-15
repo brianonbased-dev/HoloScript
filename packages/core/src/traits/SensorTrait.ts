@@ -44,7 +44,7 @@ interface SensorConfig {
 // =============================================================================
 
 export const sensorHandler: TraitHandler<SensorConfig> = {
-  name: 'sensor' as any,
+  name: 'sensor',
 
   defaultConfig: {
     protocol: 'rest',

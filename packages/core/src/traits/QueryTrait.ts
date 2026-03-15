@@ -18,7 +18,7 @@ export interface QueryConfig {
 }
 
 export const queryHandler: TraitHandler<QueryConfig> = {
-  name: 'query' as any,
+  name: 'query',
   defaultConfig: { default_limit: 50, max_limit: 1000 },
 
   onAttach(node: any): void {

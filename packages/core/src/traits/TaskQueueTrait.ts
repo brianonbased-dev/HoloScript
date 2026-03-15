@@ -77,7 +77,7 @@ function sortByPriority(queue: QueueTask[]): void {
 // =============================================================================
 
 export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
-  name: 'task_queue' as any,
+  name: 'task_queue',
 
   defaultConfig: {
     max_concurrent: 1,

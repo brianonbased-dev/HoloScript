@@ -19,7 +19,7 @@ export interface JwtConfig {
 }
 
 export const jwtHandler: TraitHandler<JwtConfig> = {
-  name: 'jwt' as any,
+  name: 'jwt',
   defaultConfig: { algorithm: 'HS256', default_expiry_s: 3600 },
 
   onAttach(node: any): void {

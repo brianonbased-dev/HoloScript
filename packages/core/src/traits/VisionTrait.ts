@@ -38,7 +38,7 @@ export interface DetectedObject {
 // =============================================================================
 
 export const visionHandler: TraitHandler<VisionConfig> = {
-  name: 'vision' as any,
+  name: 'vision',
 
   defaultConfig: {
     scan_interval: 1000,

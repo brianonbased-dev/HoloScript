@@ -44,7 +44,7 @@ interface SpatialPersonaState {
 // =============================================================================
 
 export const spatialPersonaHandler: TraitHandler<SpatialPersonaConfig> = {
-  name: 'spatial_persona' as any,
+  name: 'spatial_persona',
 
   defaultConfig: {
     persona_style: 'realistic',

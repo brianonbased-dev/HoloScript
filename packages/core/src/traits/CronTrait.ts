@@ -205,7 +205,7 @@ async function loadAllJobs(db: IDBDatabase | null): Promise<CronJob[]> {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export const cronHandler = {
-  name: 'cron' as any,
+  name: 'cron',
   defaultConfig: DEFAULT_CONFIG,
 
   async onAttach(node: any, config: CronConfig, ctx: any): Promise<void> {

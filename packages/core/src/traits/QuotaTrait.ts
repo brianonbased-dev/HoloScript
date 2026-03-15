@@ -241,7 +241,7 @@ function shouldReset(limit: QuotaLimit): boolean {
 // =============================================================================
 
 export const quotaHandler: TraitHandler<QuotaConfig> = {
-  name: 'quota' as any,
+  name: 'quota',
 
   defaultConfig: {
     tenantId: '',

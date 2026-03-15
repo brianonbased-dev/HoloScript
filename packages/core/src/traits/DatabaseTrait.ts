@@ -28,7 +28,7 @@ export interface DatabaseState {
 }
 
 export const databaseHandler: TraitHandler<DatabaseConfig> = {
-  name: 'database' as any,
+  name: 'database',
 
   defaultConfig: {
     default_collection: 'default',

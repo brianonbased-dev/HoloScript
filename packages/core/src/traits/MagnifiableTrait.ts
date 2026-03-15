@@ -41,7 +41,7 @@ interface MagnifiableConfig {
 // =============================================================================
 
 export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
-  name: 'magnifiable' as any,
+  name: 'magnifiable',
 
   defaultConfig: {
     min_scale: 1,

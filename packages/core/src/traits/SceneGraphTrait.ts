@@ -50,7 +50,7 @@ interface SceneGraphConfig {
 // =============================================================================
 
 export const sceneGraphHandler: TraitHandler<SceneGraphConfig> = {
-  name: 'scene_graph' as any,
+  name: 'scene_graph',
 
   defaultConfig: {
     root_node: '',

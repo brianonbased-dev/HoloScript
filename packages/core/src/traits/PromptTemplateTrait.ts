@@ -21,7 +21,7 @@ interface PromptEntry {
 }
 
 export const promptTemplateHandler: TraitHandler<PromptTemplateConfig> = {
-  name: 'prompt_template' as any,
+  name: 'prompt_template',
   defaultConfig: { max_templates: 100 },
 
   onAttach(node: any): void {

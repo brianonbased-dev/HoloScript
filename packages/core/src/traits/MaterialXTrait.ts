@@ -40,7 +40,7 @@ interface MaterialXConfig {
 // =============================================================================
 
 export const materialXHandler: TraitHandler<MaterialXConfig> = {
-  name: 'material_x' as any,
+  name: 'material_x',
 
   defaultConfig: {
     source: '',

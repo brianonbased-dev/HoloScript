@@ -140,7 +140,7 @@ function createEmptyHandData(): HandData {
 // =============================================================================
 
 export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
-  name: 'hand_tracking' as any,
+  name: 'hand_tracking',
 
   defaultConfig: {
     mode: 'skeletal',

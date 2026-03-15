@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface MockConfig { strict: boolean; }
 
 export const mockHandler: TraitHandler<MockConfig> = {
-  name: 'mock' as any,
+  name: 'mock',
   defaultConfig: { strict: true },
   onAttach(node: any): void { node.__mockState = { mocks: new Map<string, { calls: number; returnValue: unknown }>() }; },
   onDetach(node: any): void { delete node.__mockState; },

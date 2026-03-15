@@ -36,7 +36,7 @@ interface Incident {
 }
 
 export const incidentHandler: TraitHandler<IncidentConfig> = {
-  name: 'incident' as any,
+  name: 'incident',
   defaultConfig: { max_incidents: 200, auto_archive_resolved: true },
 
   onAttach(node: any): void {

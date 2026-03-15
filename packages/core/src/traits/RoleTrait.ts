@@ -36,7 +36,7 @@ interface RoleConfig {
 // =============================================================================
 
 export const roleHandler: TraitHandler<RoleConfig> = {
-  name: 'role' as any,
+  name: 'role',
 
   defaultConfig: {
     role_id: 'user',

@@ -19,7 +19,7 @@ export interface CanaryConfig {
 }
 
 export const canaryHandler: TraitHandler<CanaryConfig> = {
-  name: 'canary' as any,
+  name: 'canary',
   defaultConfig: { initial_percentage: 5, increment: 10 },
 
   onAttach(node: any): void {

@@ -56,7 +56,7 @@ const CONTRAST_PALETTES: Record<ContrastMode, { fg: string; bg: string; accent: 
 // =============================================================================
 
 export const highContrastHandler: TraitHandler<HighContrastConfig> = {
-  name: 'high_contrast' as any,
+  name: 'high_contrast',
 
   defaultConfig: {
     mode: 'auto',

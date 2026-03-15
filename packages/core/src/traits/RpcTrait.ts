@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface RpcConfig { timeout_ms: number; }
 export const rpcHandler: TraitHandler<RpcConfig> = {
-  name: 'rpc' as any, defaultConfig: { timeout_ms: 5000 },
+  name: 'rpc', defaultConfig: { timeout_ms: 5000 },
   onAttach(node: any): void { node.__rpcState = { methods: new Map<string, number>() }; },
   onDetach(node: any): void { delete node.__rpcState; },
   onUpdate(): void {},

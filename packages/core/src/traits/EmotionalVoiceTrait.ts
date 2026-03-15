@@ -31,7 +31,7 @@ interface InternalState {
 }
 
 export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
-  name: 'emotional_voice' as any,
+  name: 'emotional_voice',
 
   defaultConfig: {
     defaultEmotion: 'neutral',

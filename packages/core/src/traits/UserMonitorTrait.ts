@@ -32,7 +32,7 @@ interface UserMonitorState {
 }
 
 export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
-  name: 'user_monitor' as any,
+  name: 'user_monitor',
 
   defaultConfig: {
     updateRate: 0.2,

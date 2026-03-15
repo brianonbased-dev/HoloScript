@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface AutocompleteConfig { max_suggestions: number; min_chars: number; }
 export const autocompleteHandler: TraitHandler<AutocompleteConfig> = {
-  name: 'autocomplete' as any, defaultConfig: { max_suggestions: 10, min_chars: 2 },
+  name: 'autocomplete', defaultConfig: { max_suggestions: 10, min_chars: 2 },
   onAttach(node: any): void { node.__acState = { terms: [] as string[] }; },
   onDetach(node: any): void { delete node.__acState; },
   onUpdate(): void {},

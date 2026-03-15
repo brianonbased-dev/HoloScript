@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface TimeTravelDebugConfig { max_snapshots: number; }
 export const timeTravelDebugHandler: TraitHandler<TimeTravelDebugConfig> = {
-  name: 'time_travel_debug' as any, defaultConfig: { max_snapshots: 100 },
+  name: 'time_travel_debug', defaultConfig: { max_snapshots: 100 },
   onAttach(node: HSPlusNode): void { node.__ttdState = { snapshots: [] as Array<{ frame: number; data: unknown }>, cursor: -1 }; },
   onDetach(node: HSPlusNode): void { delete node.__ttdState; },
   onUpdate(): void {},

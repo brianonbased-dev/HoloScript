@@ -59,7 +59,7 @@ export interface RateLimiterState {
 // =============================================================================
 
 export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
-  name: 'rate_limiter' as any,
+  name: 'rate_limiter',
 
   defaultConfig: {
     strategy: 'token_bucket',

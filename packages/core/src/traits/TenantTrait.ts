@@ -125,7 +125,7 @@ export interface TenantEvent {
 // =============================================================================
 
 export const tenantHandler: TraitHandler<TenantConfig> = {
-  name: 'tenant' as any,
+  name: 'tenant',
 
   defaultConfig: {
     tenantId: '',

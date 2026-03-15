@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface PagerdutyConfig { severity: string; }
 export const pagerdutyHandler: TraitHandler<PagerdutyConfig> = {
-  name: 'pagerduty' as any, defaultConfig: { severity: 'critical' },
+  name: 'pagerduty', defaultConfig: { severity: 'critical' },
   onAttach(node: any): void { node.__pdState = { incidents: 0 }; },
   onDetach(node: any): void { delete node.__pdState; },
   onUpdate(): void {},

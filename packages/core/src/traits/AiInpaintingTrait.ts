@@ -51,7 +51,7 @@ interface AiInpaintingState {
 // =============================================================================
 
 export const aiInpaintingHandler: TraitHandler<AiInpaintingConfig> = {
-  name: 'ai_inpainting' as any,
+  name: 'ai_inpainting',
 
   defaultConfig: {
     model: 'sd-inpaint',

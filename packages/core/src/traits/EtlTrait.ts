@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface EtlConfig { max_batch_size: number; }
 export const etlHandler: TraitHandler<EtlConfig> = {
-  name: 'etl' as any, defaultConfig: { max_batch_size: 10000 },
+  name: 'etl', defaultConfig: { max_batch_size: 10000 },
   onAttach(node: any): void { node.__etlState = { pipelines: new Map<string, { phase: string; records: number }>() }; },
   onDetach(node: any): void { delete node.__etlState; },
   onUpdate(): void {},

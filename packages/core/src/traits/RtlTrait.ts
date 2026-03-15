@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface RtlConfig { rtl_locales: string[]; }
 
 export const rtlHandler: TraitHandler<RtlConfig> = {
-  name: 'rtl' as any,
+  name: 'rtl',
   defaultConfig: { rtl_locales: ['ar', 'he', 'fa', 'ur'] },
   onAttach(node: any): void { node.__rtlState = { enabled: false }; },
   onDetach(node: any): void { delete node.__rtlState; },

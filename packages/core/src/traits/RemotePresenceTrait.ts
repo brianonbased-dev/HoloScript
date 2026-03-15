@@ -67,7 +67,7 @@ interface RemotePresenceConfig {
 // =============================================================================
 
 export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
-  name: 'remote_presence' as any,
+  name: 'remote_presence',
 
   defaultConfig: {
     avatar_type: 'head_hands',

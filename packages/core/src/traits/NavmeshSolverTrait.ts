@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface NavmeshSolverConfig { cell_size: number; }
 export const navmeshSolverHandler: TraitHandler<NavmeshSolverConfig> = {
-  name: 'navmesh_solver' as any, defaultConfig: { cell_size: 0.5 },
+  name: 'navmesh_solver', defaultConfig: { cell_size: 0.5 },
   onAttach(node: HSPlusNode): void { node.__navState = { meshBuilt: false, polygons: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__navState; },
   onUpdate(): void {},

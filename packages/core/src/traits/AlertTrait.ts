@@ -50,7 +50,7 @@ interface AlertConfig {
 // =============================================================================
 
 export const alertHandler: TraitHandler<AlertConfig> = {
-  name: 'alert' as any,
+  name: 'alert',
 
   defaultConfig: {
     condition: '',

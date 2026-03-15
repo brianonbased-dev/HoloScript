@@ -29,7 +29,7 @@ export interface NeuralLinkConfig {
 // =============================================================================
 
 export const neuralLinkHandler: TraitHandler<NeuralLinkConfig> = {
-  name: 'neural_link' as any,
+  name: 'neural_link',
 
   defaultConfig: {
     model: 'brittney-v4.gguf',

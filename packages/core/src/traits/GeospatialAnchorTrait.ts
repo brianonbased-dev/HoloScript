@@ -59,7 +59,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 // =============================================================================
 
 export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
-  name: 'geospatial_anchor' as any,
+  name: 'geospatial_anchor',
 
   defaultConfig: {
     latitude: 0,

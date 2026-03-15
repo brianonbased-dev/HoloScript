@@ -180,7 +180,7 @@ function resetSpendPeriodIfNeeded(account: CreditAccount): void {
 // =============================================================================
 
 export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
-  name: 'economy' as any,
+  name: 'economy',
 
   defaultConfig: {
     initial_balance: 100,

@@ -18,7 +18,7 @@ export interface EnvConfigConfig {
 }
 
 export const envConfigHandler: TraitHandler<EnvConfigConfig> = {
-  name: 'env_config' as any,
+  name: 'env_config',
   defaultConfig: { layers: ['default', 'env', 'override'] },
 
   onAttach(node: any): void {

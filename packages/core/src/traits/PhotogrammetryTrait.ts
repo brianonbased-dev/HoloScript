@@ -51,7 +51,7 @@ interface PhotogrammetryConfig {
 // =============================================================================
 
 export const photogrammetryHandler: TraitHandler<PhotogrammetryConfig> = {
-  name: 'photogrammetry' as any,
+  name: 'photogrammetry',
 
   defaultConfig: {
     source_type: 'images',

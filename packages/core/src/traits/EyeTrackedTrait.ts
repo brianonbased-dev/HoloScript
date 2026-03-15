@@ -53,7 +53,7 @@ interface EyeTrackedState {
 // =============================================================================
 
 export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
-  name: 'eye_tracked' as any,
+  name: 'eye_tracked',
 
   defaultConfig: {
     dwell_enabled: true,

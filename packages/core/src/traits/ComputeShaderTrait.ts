@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface ComputeShaderConfig { max_workgroups: number; }
 export const computeShaderHandler: TraitHandler<ComputeShaderConfig> = {
-  name: 'compute_shader' as any, defaultConfig: { max_workgroups: 256 },
+  name: 'compute_shader', defaultConfig: { max_workgroups: 256 },
   onAttach(node: HSPlusNode): void { node.__csState = { dispatches: 0, shaders: new Map<string, { workgroups: number[] }>() }; },
   onDetach(node: HSPlusNode): void { delete node.__csState; },
   onUpdate(): void {},

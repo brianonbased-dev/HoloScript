@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface RayTraceConfig { max_bounces: number; samples_per_pixel: number; }
 export const rayTraceHandler: TraitHandler<RayTraceConfig> = {
-  name: 'ray_trace' as any, defaultConfig: { max_bounces: 4, samples_per_pixel: 1 },
+  name: 'ray_trace', defaultConfig: { max_bounces: 4, samples_per_pixel: 1 },
   onAttach(node: HSPlusNode): void { node.__rtState = { rays_cast: 0, hits: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__rtState; },
   onUpdate(): void {},

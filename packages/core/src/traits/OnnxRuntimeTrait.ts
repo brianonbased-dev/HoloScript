@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OnnxRuntimeConfig { execution_provider: string; }
 export const onnxRuntimeHandler: TraitHandler<OnnxRuntimeConfig> = {
-  name: 'onnx_runtime' as any, defaultConfig: { execution_provider: 'cpu' },
+  name: 'onnx_runtime', defaultConfig: { execution_provider: 'cpu' },
   onAttach(node: HSPlusNode): void { node.__onnxState = { models: new Map<string, { loaded: boolean }>(), inferences: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__onnxState; },
   onUpdate(): void {},

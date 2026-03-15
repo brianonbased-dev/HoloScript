@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface SchemaMigrateConfig { auto_rollback: boolean; }
 export const schemaMigrateHandler: TraitHandler<SchemaMigrateConfig> = {
-  name: 'schema_migrate' as any, defaultConfig: { auto_rollback: true },
+  name: 'schema_migrate', defaultConfig: { auto_rollback: true },
   onAttach(node: any): void { node.__migrateState = { version: 0, history: [] as number[] }; },
   onDetach(node: any): void { delete node.__migrateState; },
   onUpdate(): void {},

@@ -18,7 +18,7 @@ export interface DeployConfig {
 }
 
 export const deployHandler: TraitHandler<DeployConfig> = {
-  name: 'deploy' as any,
+  name: 'deploy',
   defaultConfig: { stages: ['prepare', 'deploy', 'verify'], auto_verify: true },
 
   onAttach(node: any): void {

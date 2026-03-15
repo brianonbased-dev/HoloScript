@@ -58,7 +58,7 @@ export interface ConsentGateConfig {
 // =============================================================================
 
 export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
-  name: 'consent_gate' as any,
+  name: 'consent_gate',
 
   defaultConfig: {
     scope: ['camera'],

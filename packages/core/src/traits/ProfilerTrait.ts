@@ -26,7 +26,7 @@ interface ProfilerSpan {
 }
 
 export const profilerHandler: TraitHandler<ProfilerConfig> = {
-  name: 'profiler' as any,
+  name: 'profiler',
   defaultConfig: { max_spans: 500, auto_report_interval_ms: 0 },
 
   onAttach(node: any): void {

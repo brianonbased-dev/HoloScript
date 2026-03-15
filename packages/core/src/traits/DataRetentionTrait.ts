@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface DataRetentionConfig { default_ttl_days: number; }
 export const dataRetentionHandler: TraitHandler<DataRetentionConfig> = {
-  name: 'data_retention' as any, defaultConfig: { default_ttl_days: 90 },
+  name: 'data_retention', defaultConfig: { default_ttl_days: 90 },
   onAttach(node: any): void { node.__retentionState = { policies: new Map<string, { ttl: number; created: number }>() }; },
   onDetach(node: any): void { delete node.__retentionState; },
   onUpdate(): void {},

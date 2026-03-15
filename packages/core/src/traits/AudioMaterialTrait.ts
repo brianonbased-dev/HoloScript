@@ -65,7 +65,7 @@ const MATERIAL_PRESETS: Record<MaterialPreset, Partial<FrequencyBands>> = {
 // =============================================================================
 
 export const audioMaterialHandler: TraitHandler<AudioMaterialConfig> = {
-  name: 'audio_material' as any,
+  name: 'audio_material',
 
   defaultConfig: {
     absorption_coefficients: {},

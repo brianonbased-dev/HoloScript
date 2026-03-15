@@ -218,7 +218,7 @@ async function autoVoteInternal(
  * Negotiation trait handler
  */
 export const negotiationHandler: TraitHandler<NegotiationTraitConfig> = {
-  name: 'negotiation' as any,
+  name: 'negotiation',
 
   defaultConfig: DEFAULT_NEGOTIATION_CONFIG,
 

@@ -53,7 +53,7 @@ interface ReverbZoneConfig {
 // =============================================================================
 
 export const reverbZoneHandler: TraitHandler<ReverbZoneConfig> = {
-  name: 'reverb_zone' as any,
+  name: 'reverb_zone',
 
   defaultConfig: {
     preset: 'room',

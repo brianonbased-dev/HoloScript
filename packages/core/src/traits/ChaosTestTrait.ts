@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface ChaosTestConfig { failure_rate: number; }
 
 export const chaosTestHandler: TraitHandler<ChaosTestConfig> = {
-  name: 'chaos_test' as any,
+  name: 'chaos_test',
   defaultConfig: { failure_rate: 0.1 },
   onAttach(node: any): void { node.__chaosState = { injected: 0, types: [] as string[] }; },
   onDetach(node: any): void { delete node.__chaosState; },

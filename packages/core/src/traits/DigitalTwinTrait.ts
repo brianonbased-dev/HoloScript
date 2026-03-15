@@ -49,7 +49,7 @@ interface DigitalTwinConfig {
 // =============================================================================
 
 export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
-  name: 'digital_twin' as any,
+  name: 'digital_twin',
 
   defaultConfig: {
     physical_id: '',

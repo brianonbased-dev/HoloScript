@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface LoadTestConfig { max_vus: number; default_duration_ms: number; }
 
 export const loadTestHandler: TraitHandler<LoadTestConfig> = {
-  name: 'load_test' as any,
+  name: 'load_test',
   defaultConfig: { max_vus: 100, default_duration_ms: 30000 },
   onAttach(node: any): void { node.__loadState = { running: false, vus: 0, requests: 0, errors: 0 }; },
   onDetach(node: any): void { delete node.__loadState; },

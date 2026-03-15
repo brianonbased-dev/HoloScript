@@ -353,6 +353,58 @@ import { cspChannelHandler } from './CspChannelTrait';
 import { temporalGuardHandler } from './TemporalGuardTrait';
 import { deadlockFreeHandler } from './DeadlockFreeTrait';
 
+// ── Phase A: Previously unregistered handlers ──
+import { agentDiscoveryHandler } from './AgentDiscoveryTrait';
+import { agentMemoryHandler } from './AgentMemoryTrait';
+import { agentPortalHandler } from './AgentPortalTrait';
+import { aiInpaintingHandler } from './AiInpaintingTrait';
+import { ainpcBrainHandler } from './AINPCBrainTrait';
+import { aiTextureGenHandler } from './AiTextureGenTrait';
+import { analyticsHandler } from './AnalyticsTrait';
+import { biofeedbackHandler } from './BiofeedbackTrait';
+import { blackboardHandler } from './BlackboardTrait';
+import { computerUseHandler } from './ComputerUseTrait';
+import { consentGateHandler } from './ConsentGateTrait';
+import { controlNetHandler } from './ControlNetTrait';
+import { diffusionRealtimeHandler } from './DiffusionRealtimeTrait';
+import { wasmBridgeHandler as ecsWorldHandler } from './ECSWorldTrait';
+import { embeddingSearchHandler } from './EmbeddingSearchTrait';
+import { handMeshAIHandler } from './HandMeshAITrait';
+import { hitlHandler } from './HITLTrait';
+import { InteractiveGraphTrait as interactiveGraphHandler } from './InteractiveGraphTrait';
+import { localLLMHandler } from './LocalLLMTrait';
+import { marketplaceIntegrationHandler } from './MarketplaceIntegrationTrait';
+import { messagingHandler } from './MessagingTrait';
+import { mqttSinkHandler } from './MQTTSinkTrait';
+import { mqttSourceHandler } from './MQTTSourceTrait';
+import { multiAgentHandler } from './MultiAgentTrait';
+import { networkedAvatarHandler } from './NetworkedAvatarTrait';
+import { neuralAnimationHandler } from './NeuralAnimationTrait';
+import { neuralForgeHandler } from './NeuralForgeTrait';
+import { npcAIHandler } from './NPCAITrait';
+import { objectTrackingHandler } from './ObjectTrackingTrait';
+import { openXRHALHandler } from './OpenXRHALTrait';
+import { orbitalHandler } from './OrbitalTrait';
+import { partnerSDKHandler } from './PartnerSDKTrait';
+import { poseEstimationHandler } from './PoseEstimationTrait';
+import { ragKnowledgeHandler } from './RAGKnowledgeTrait';
+import { realityKitMeshHandler } from './RealityKitMeshTrait';
+import { renderNetworkHandler } from './RenderNetworkTrait';
+import { sceneReconstructionHandler } from './SceneReconstructionTrait';
+import { sharePlayHandler } from './SharePlayTrait';
+import { skillRegistryHandler } from './SkillRegistryTrait';
+import { spatialNavigationHandler } from './SpatialNavigationTrait';
+import { spatialPersonaHandler } from './SpatialPersonaTrait';
+import { stableDiffusionHandler } from './StableDiffusionTrait';
+import { urdfRobotHandler } from './URDFRobotTrait';
+import { vectorDBHandler } from './VectorDBTrait';
+import { visionHandler } from './VisionTrait';
+import { voiceMeshHandler } from './VoiceMeshTrait';
+import { volumetricHandler } from './VolumetricTrait';
+import { volumetricWindowHandler } from './VolumetricWindowTrait';
+import { wotThingHandler } from './WoTThingTrait';
+import { zoraCoinsHandler } from './ZoraCoinsTrait';
+
 // =============================================================================
 // TRAIT STATE
 // =============================================================================
@@ -1223,7 +1275,7 @@ const bodyHandler: TraitHandler<BodyTrait> = {
  * observe its environment and proactively suggest actions or state changes.
  */
 const proactiveHandler: TraitHandler<ProactiveTrait> = {
-  name: 'proactive' as any,
+  name: 'proactive',
 
   defaultConfig: {
     intelligence_tier: 'basic',
@@ -1654,6 +1706,58 @@ export class VRTraitRegistry {
     this.register(cspChannelHandler as TraitHandler);
     this.register(temporalGuardHandler as TraitHandler);
     this.register(deadlockFreeHandler as TraitHandler);
+
+    // ── Phase A: Previously unregistered handlers ──
+    this.register(agentDiscoveryHandler as TraitHandler);
+    this.register(agentMemoryHandler as TraitHandler);
+    this.register(agentPortalHandler as TraitHandler);
+    this.register(aiInpaintingHandler as TraitHandler);
+    this.register(ainpcBrainHandler as TraitHandler);
+    this.register(aiTextureGenHandler as TraitHandler);
+    this.register(analyticsHandler as TraitHandler);
+    this.register(biofeedbackHandler as TraitHandler);
+    this.register(blackboardHandler as TraitHandler);
+    this.register(computerUseHandler as TraitHandler);
+    this.register(consentGateHandler as TraitHandler);
+    this.register(controlNetHandler as TraitHandler);
+    this.register(diffusionRealtimeHandler as TraitHandler);
+    this.register(ecsWorldHandler as TraitHandler);
+    this.register(embeddingSearchHandler as TraitHandler);
+    this.register(handMeshAIHandler as TraitHandler);
+    this.register(hitlHandler as TraitHandler);
+    this.register(interactiveGraphHandler as TraitHandler);
+    this.register(localLLMHandler as TraitHandler);
+    this.register(marketplaceIntegrationHandler as TraitHandler);
+    this.register(messagingHandler as TraitHandler);
+    this.register(mqttSinkHandler as TraitHandler);
+    this.register(mqttSourceHandler as TraitHandler);
+    this.register(multiAgentHandler as TraitHandler);
+    this.register(networkedAvatarHandler as TraitHandler);
+    this.register(neuralAnimationHandler as TraitHandler);
+    this.register(neuralForgeHandler as TraitHandler);
+    this.register(npcAIHandler as TraitHandler);
+    this.register(objectTrackingHandler as TraitHandler);
+    this.register(openXRHALHandler as TraitHandler);
+    this.register(orbitalHandler as TraitHandler);
+    this.register(partnerSDKHandler as TraitHandler);
+    this.register(poseEstimationHandler as TraitHandler);
+    this.register(ragKnowledgeHandler as TraitHandler);
+    this.register(realityKitMeshHandler as TraitHandler);
+    this.register(renderNetworkHandler as TraitHandler);
+    this.register(sceneReconstructionHandler as TraitHandler);
+    this.register(sharePlayHandler as TraitHandler);
+    this.register(skillRegistryHandler as TraitHandler);
+    this.register(spatialNavigationHandler as TraitHandler);
+    this.register(spatialPersonaHandler as TraitHandler);
+    this.register(stableDiffusionHandler as TraitHandler);
+    this.register(urdfRobotHandler as TraitHandler);
+    this.register(vectorDBHandler as TraitHandler);
+    this.register(visionHandler as TraitHandler);
+    this.register(voiceMeshHandler as TraitHandler);
+    this.register(volumetricHandler as TraitHandler);
+    this.register(volumetricWindowHandler as TraitHandler);
+    this.register(wotThingHandler as TraitHandler);
+    this.register(zoraCoinsHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {
@@ -2135,4 +2239,58 @@ export {
   cspChannelHandler,
   temporalGuardHandler,
   deadlockFreeHandler,
+};
+
+// Phase A: Previously unregistered handler exports
+export {
+  agentDiscoveryHandler,
+  agentMemoryHandler,
+  agentPortalHandler,
+  aiInpaintingHandler,
+  ainpcBrainHandler,
+  aiTextureGenHandler,
+  analyticsHandler,
+  biofeedbackHandler,
+  blackboardHandler,
+  computerUseHandler,
+  consentGateHandler,
+  controlNetHandler,
+  diffusionRealtimeHandler,
+  ecsWorldHandler,
+  embeddingSearchHandler,
+  handMeshAIHandler,
+  hitlHandler,
+  interactiveGraphHandler,
+  localLLMHandler,
+  marketplaceIntegrationHandler,
+  messagingHandler,
+  mqttSinkHandler,
+  mqttSourceHandler,
+  multiAgentHandler,
+  networkedAvatarHandler,
+  neuralAnimationHandler,
+  neuralForgeHandler,
+  npcAIHandler,
+  objectTrackingHandler,
+  openXRHALHandler,
+  orbitalHandler,
+  partnerSDKHandler,
+  poseEstimationHandler,
+  ragKnowledgeHandler,
+  realityKitMeshHandler,
+  renderNetworkHandler,
+  sceneReconstructionHandler,
+  sharePlayHandler,
+  skillRegistryHandler,
+  spatialNavigationHandler,
+  spatialPersonaHandler,
+  stableDiffusionHandler,
+  urdfRobotHandler,
+  vectorDBHandler,
+  visionHandler,
+  voiceMeshHandler,
+  volumetricHandler,
+  volumetricWindowHandler,
+  wotThingHandler,
+  zoraCoinsHandler,
 };

@@ -27,7 +27,7 @@ interface MigrationStep {
 }
 
 export const migrateHandler: TraitHandler<MigrateConfig> = {
-  name: 'migrate' as any,
+  name: 'migrate',
   defaultConfig: { current_version: 0, auto_run: false },
 
   onAttach(node: any): void {

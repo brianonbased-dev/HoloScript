@@ -329,7 +329,7 @@ const CONTROLLER_PROFILES: Record<string, ControllerProfileDatabase> = {
 // =============================================================================
 
 export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
-  name: 'openxr_hal' as any,
+  name: 'openxr_hal',
 
   defaultConfig: {
     preferred_refresh_rate: 0,

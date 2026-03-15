@@ -118,7 +118,7 @@ function computeRoomBounds(blocks: Map<string, MeshBlock>): { min: Vector3; max:
 // =============================================================================
 
 export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
-  name: 'room_mesh' as any,
+  name: 'room_mesh',
 
   defaultConfig: {
     resolution: 'medium',

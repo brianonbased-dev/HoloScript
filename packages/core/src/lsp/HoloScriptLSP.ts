@@ -928,6 +928,10 @@ const TRAIT_COMPLETIONS: Record<string, { detail: string; documentation: string 
     documentation:
       'Tracks resource ownership and prevents deadlocks.\n\n```holo\n@deadlock_free(max_resources: 100)\n```',
   },
+
+
+  // ── Auto-generated completions ──
+node.exe : npm warn Unknown project
 };
 
 // =============================================================================

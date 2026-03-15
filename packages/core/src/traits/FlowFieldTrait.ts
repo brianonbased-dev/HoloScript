@@ -29,7 +29,7 @@ interface FlowFieldState {
 }
 
 export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
-  name: 'flow_field' as any,
+  name: 'flow_field',
 
   defaultConfig: {
     destinationId: '',

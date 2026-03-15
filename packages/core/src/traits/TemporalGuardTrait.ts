@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface TemporalGuardConfig { default_timeout_ms: number; }
 export const temporalGuardHandler: TraitHandler<TemporalGuardConfig> = {
-  name: 'temporal_guard' as any, defaultConfig: { default_timeout_ms: 5000 },
+  name: 'temporal_guard', defaultConfig: { default_timeout_ms: 5000 },
   onAttach(node: HSPlusNode): void { node.__tempState = { guards: new Map<string, { deadline: number; property: string }>(), violations: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__tempState; },
   onUpdate(): void {},

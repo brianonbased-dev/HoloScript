@@ -97,6 +97,10 @@ interface Blackboard {
   focus: string;
   cycle_number: number;
   error_message: string | null;
+  // Internal bridge state (prefixed with __ to avoid .hsplus blackboard collisions)
+  __circuitOpen?: boolean;
+  __currentCbId?: string;
+  __tickCount?: number;
 }
 
 interface BridgeState {
@@ -443,6 +447,31 @@ async function dispatchActionAsync(
       console.log(`  [BT] generate_fix: LLM micro-call for ${blackboard.current_candidate?.symbol || 'unknown'}`);
       if (!blackboard.current_candidate) return false;
 
+      // ── @circuit_breaker: check if circuit is open before calling LLM ──
+      // If the circuit is open (too many recent failures), skip the LLM call
+      // entirely to save API credits. The circuit auto-recovers after reset_timeout_ms.
+      if (blackboard.__circuitOpen) {
+        console.log(`  [BT] generate_fix: SKIPPED — circuit breaker open`);
+        blackboard.files_edited = [];
+        if (runtimeEmit) {
+          runtimeEmit('logger:warn', {
+            message: 'LLM call skipped — circuit breaker open',
+            fields: { focus: blackboard.focus, candidate: blackboard.current_candidate?.symbol },
+          });
+        }
+        return true; // Proceed to verify_compilation which will fail gracefully
+      }
+
+      // ── @circuit_breaker: signal execution start ──
+      const cbId = `cb_fix_${Date.now()}`;
+      blackboard.__currentCbId = cbId;
+      if (runtimeEmit) {
+        runtimeEmit('circuit_breaker:execute', {
+          action: 'llm_generate',
+          params: { focus: blackboard.focus, cbId },
+        });
+      }
+
       const focus = blackboard.focus;
       const candidate = blackboard.current_candidate;
       let prompt: string;
@@ -466,8 +495,6 @@ async function dispatchActionAsync(
       blackboard.files_edited.push(...llmResult.filesEdited);
 
       // ── @economy: emit LLM spend event ──
-      // EconomyPrimitivesTrait.onEvent expects payload.agentId + payload.amount + payload.reason.
-      // Amount is in USD — the composition's initial_balance is also in USD units.
       if (runtimeEmit) {
         const cost = calculateCostUSD(llmResult.inputTokens, llmResult.outputTokens);
         runtimeEmit('economy:spend', {
@@ -507,6 +534,18 @@ async function dispatchActionAsync(
 
       metrics.toolCallsTotal += 1;
       metrics.toolCallsUseful += 1;
+
+      // ── @circuit_breaker: report result after verification ──
+      // Success = compilation passed. Failure = compilation failed.
+      // After failure_threshold failures, the circuit opens and skips future LLM calls.
+      if (runtimeEmit && blackboard.__currentCbId) {
+        runtimeEmit('circuit_breaker:result', {
+          cbId: blackboard.__currentCbId,
+          success: blackboard.compilation_passed,
+          error: blackboard.compilation_passed ? undefined : 'compilation_failed',
+        });
+      }
+
       return true; // Always succeed — condition node checks compilation_passed
     }
 
@@ -636,13 +675,28 @@ async function dispatchActionAsync(
       console.log(`  [BT] report: quality ${blackboard.quality_before.toFixed(3)} → ${blackboard.quality_after.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)})`);
 
       // ── @feedback_loop: emit cost_efficiency metric ──
-      // Computed as quality-delta-per-dollar. Clamped to [0, 1] for the trait's range.
       if (runtimeEmit) {
         const costSoFar = calculateCostUSD(metrics.inputTokens, metrics.outputTokens);
         const efficiency = costSoFar > 0 ? Math.min(1, Math.max(0, delta / costSoFar)) : 0;
         runtimeEmit('feedback:update_metric', {
           name: 'cost_efficiency',
           value: efficiency,
+        });
+
+        // ── @transform: emit raw cycle telemetry ──
+        // TransformTrait picks fields, computes qualityDelta + tokensPerDollar,
+        // and emits the normalized result as daemon:cycle_telemetry.
+        runtimeEmit('daemon:cycle_raw_telemetry', {
+          focus: blackboard.focus,
+          ticks: blackboard.__tickCount ?? 0,
+          inputTokens: metrics.inputTokens,
+          outputTokens: metrics.outputTokens,
+          qualityBefore: blackboard.quality_before,
+          qualityAfter: blackboard.quality_after,
+          costUSD: costSoFar,
+          committed: blackboard.quality_improved === true,
+          filesEdited: blackboard.files_edited?.length ?? 0,
+          circuitOpen: blackboard.__circuitOpen ?? false,
         });
       }
 
@@ -697,7 +751,7 @@ async function runBridgeCycle(
   ): boolean | 'running' => {
     if (!blackboard) return false;
 
-    // Inject cycle context into BT blackboard on first action
+    // Inject cycle context into BT blackboard on every action call
     // (The .hsplus only defines condition flags; we add runtime context here)
     if (!blackboard.focus) {
       blackboard.focus = focus;
@@ -707,6 +761,8 @@ async function runBridgeCycle(
       blackboard.current_file = null;
       blackboard.files_edited = blackboard.files_edited ?? [];
     }
+    // Always sync circuit breaker state into blackboard so generate_fix can check it
+    blackboard.__circuitOpen = circuitOpen;
 
     // Check if a previously started async action has resolved
     const pending = pendingActions.get(actionName);
@@ -779,8 +835,6 @@ async function runBridgeCycle(
   });
 
   // ── @economy: listen for cost circuit breaker events ──
-  // EconomyPrimitivesTrait emits these when spend_limit or balance is exceeded.
-  // We abort the tick loop early to prevent further API spend.
   let budgetExhausted = false;
   runtime.on('economy:spend_limit_exceeded', (event: any) => {
     budgetExhausted = true;
@@ -789,6 +843,71 @@ async function runBridgeCycle(
   runtime.on('economy:insufficient_funds', (event: any) => {
     budgetExhausted = true;
     console.warn(`  [economy] Insufficient funds — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`);
+  });
+
+  // ── @circuit_breaker: track circuit state ──
+  let circuitOpen = false;
+
+  // ── @circuit_breaker: listen for circuit state changes ──
+  // When the circuit opens, set a flag on the blackboard so generate_fix skips the LLM call.
+  // The circuit auto-recovers to half-open after reset_timeout_ms (60s in composition).
+  runtime.on('circuit_breaker:opened', (event: any) => {
+    console.warn(`  [circuit_breaker] Circuit OPENED — ${event?.failureCount ?? '?'} failures in window. Skipping LLM calls for ${Math.round((60000) / 1000)}s.`);
+    // Inject into pending blackboard — next generate_fix will check this
+    circuitOpen = true;
+  });
+  runtime.on('circuit_breaker:closed', (event: any) => {
+    console.log(`  [circuit_breaker] Circuit CLOSED — recovered after ${Math.round((event?.recoveredAfterMs ?? 0) / 1000)}s.`);
+    circuitOpen = false;
+  });
+  runtime.on('circuit_breaker:half_opened', () => {
+    console.log(`  [circuit_breaker] Circuit HALF-OPEN — testing next LLM call.`);
+    circuitOpen = false; // Allow one test call through
+  });
+  runtime.on('circuit_breaker:rejected', (event: any) => {
+    console.log(`  [circuit_breaker] Action REJECTED — circuit open, ${Math.round((event?.remainingMs ?? 0) / 1000)}s remaining.`);
+  });
+
+  // ── @scheduler: activate periodic jobs after runtime starts ──
+  // Resume the pre-configured jobs so they start firing.
+  runtimeEmit('scheduler:resume_job', { jobId: 'quality_heartbeat' });
+  runtimeEmit('scheduler:resume_job', { jobId: 'test_watchdog' });
+
+  // Listen for scheduler job triggers — log them as structured events
+  runtime.on('scheduler:job_triggered', (event: any) => {
+    if (config.verbose) {
+      console.log(`  [scheduler] Job fired: ${event?.jobId} (execution #${event?.executionCount})`);
+    }
+  });
+
+  // Listen for quality heartbeat — the scheduler fires this periodically
+  runtime.on('daemon:quality_heartbeat', () => {
+    if (config.verbose) {
+      console.log(`  [scheduler] Quality heartbeat — will re-check baseline on next cycle`);
+    }
+  });
+
+  // ── @buffer: listen for batch flushes ──
+  runtime.on('daemon:cost_batch_flushed', (event: any) => {
+    const items = event?.items ?? [];
+    const totalCost = items.reduce((sum: number, e: any) => sum + (e?.amount ?? 0), 0);
+    if (config.verbose) {
+      console.log(`  [buffer] Cost batch flushed: ${items.length} items, total $${totalCost.toFixed(3)}`);
+    }
+  });
+  runtime.on('daemon:telemetry_batch_flushed', (event: any) => {
+    if (config.verbose) {
+      console.log(`  [buffer] Telemetry batch flushed: ${event?.count ?? 0} cycles`);
+    }
+  });
+
+  // ── @transform: listen for normalized telemetry output ──
+  runtime.on('daemon:cycle_telemetry', (event: any) => {
+    if (config.verbose) {
+      const delta = event?.qualityDelta?.toFixed(3) ?? '?';
+      const tpd = event?.tokensPerDollar ? Math.round(event.tokensPerDollar) : '?';
+      console.log(`  [transform] Cycle telemetry: Δ${delta}, ${tpd} tokens/$`);
+    }
   });
 
   // Tick the runtime until the BT completes or we hit a safety limit
@@ -817,6 +936,12 @@ async function runBridgeCycle(
       outputTokens: metrics.outputTokens,
     },
   });
+
+  // ── Cleanup: pause scheduler jobs + flush buffers before stopping ──
+  runtimeEmit('scheduler:pause_job', { jobId: 'quality_heartbeat' });
+  runtimeEmit('scheduler:pause_job', { jobId: 'test_watchdog' });
+  runtimeEmit('buffer:force_flush', { channelId: 'cost_batch' });
+  runtimeEmit('buffer:force_flush', { channelId: 'telemetry_batch' });
 
   runtime.stop();
 

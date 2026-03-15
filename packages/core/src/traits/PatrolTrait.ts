@@ -126,7 +126,7 @@ function getNextIndex(state: PatrolState, config: PatrolConfig): number {
 // =============================================================================
 
 export const patrolHandler: TraitHandler<PatrolConfig> = {
-  name: 'patrol' as any,
+  name: 'patrol',
 
   defaultConfig: {
     waypoints: [],

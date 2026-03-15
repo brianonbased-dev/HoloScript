@@ -50,7 +50,7 @@ interface SharedAnchorConfig {
 // =============================================================================
 
 export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
-  name: 'shared_anchor' as any,
+  name: 'shared_anchor',
 
   defaultConfig: {
     authority: 'creator',

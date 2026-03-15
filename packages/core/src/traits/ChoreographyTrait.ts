@@ -162,7 +162,7 @@ function addEvent(
  * Choreography trait handler
  */
 export const choreographyHandler: TraitHandler<ChoreographyConfig> = {
-  name: 'choreography' as any,
+  name: 'choreography',
 
   defaultConfig: DEFAULT_CHOREOGRAPHY_CONFIG,
 

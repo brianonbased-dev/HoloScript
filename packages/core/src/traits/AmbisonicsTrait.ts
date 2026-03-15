@@ -42,7 +42,7 @@ interface AmbisonicsConfig {
 // =============================================================================
 
 export const ambisonicsHandler: TraitHandler<AmbisonicsConfig> = {
-  name: 'ambisonics' as any,
+  name: 'ambisonics',
 
   defaultConfig: {
     order: 1,

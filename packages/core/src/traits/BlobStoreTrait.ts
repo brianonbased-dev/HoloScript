@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface BlobStoreConfig { max_blob_mb: number; }
 export const blobStoreHandler: TraitHandler<BlobStoreConfig> = {
-  name: 'blob_store' as any, defaultConfig: { max_blob_mb: 500 },
+  name: 'blob_store', defaultConfig: { max_blob_mb: 500 },
   onAttach(node: any): void { node.__blobState = { blobs: new Map<string, number>() }; },
   onDetach(node: any): void { delete node.__blobState; },
   onUpdate(): void {},

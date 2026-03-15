@@ -48,7 +48,7 @@ interface ControlNetState {
 // =============================================================================
 
 export const controlNetHandler: TraitHandler<ControlNetConfig> = {
-  name: 'controlnet' as any,
+  name: 'controlnet',
 
   defaultConfig: {
     model_type: 'canny',

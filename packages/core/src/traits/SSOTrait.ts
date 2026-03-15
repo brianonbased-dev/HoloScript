@@ -208,7 +208,7 @@ export interface SSOAuthEvent {
 // =============================================================================
 
 export const ssoSamlHandler: TraitHandler<SSOConfig> = {
-  name: 'sso_saml' as any,
+  name: 'sso_saml',
 
   defaultConfig: {
     tenantId: '',
@@ -727,7 +727,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
 // OIDC handler shares the same implementation with different default name
 export const ssoOidcHandler: TraitHandler<SSOConfig> = {
   ...ssoSamlHandler,
-  name: 'sso_oidc' as any,
+  name: 'sso_oidc',
 };
 
 export default ssoSamlHandler;

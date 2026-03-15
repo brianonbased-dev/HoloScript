@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface PdfGenerateConfig { page_size: string; }
 
 export const pdfGenerateHandler: TraitHandler<PdfGenerateConfig> = {
-  name: 'pdf_generate' as any,
+  name: 'pdf_generate',
   defaultConfig: { page_size: 'A4' },
 
   onAttach(node: any): void { node.__pdfState = { generated: 0 }; },

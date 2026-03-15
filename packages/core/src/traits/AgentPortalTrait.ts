@@ -189,7 +189,7 @@ function createPortalMessage(
 // =============================================================================
 
 export const agentPortalHandler: TraitHandler<PortalConfig> = {
-  name: 'agent_portal' as any,
+  name: 'agent_portal',
 
   defaultConfig: {
     scene_id: '',

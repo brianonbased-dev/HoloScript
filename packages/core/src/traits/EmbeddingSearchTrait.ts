@@ -47,7 +47,7 @@ interface EmbeddingSearchState {
 // =============================================================================
 
 export const embeddingSearchHandler: TraitHandler<EmbeddingSearchConfig> = {
-  name: 'embedding_search' as any,
+  name: 'embedding_search',
 
   defaultConfig: {
     embedding_model: 'all-minilm-l6-v2',

@@ -33,7 +33,7 @@ interface AltTextConfig {
 // =============================================================================
 
 export const altTextHandler: TraitHandler<AltTextConfig> = {
-  name: 'alt_text' as any,
+  name: 'alt_text',
 
   defaultConfig: {
     text: '',

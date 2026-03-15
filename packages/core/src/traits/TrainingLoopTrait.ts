@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface TrainingLoopConfig { max_epochs: number; learning_rate: number; }
 export const trainingLoopHandler: TraitHandler<TrainingLoopConfig> = {
-  name: 'training_loop' as any, defaultConfig: { max_epochs: 100, learning_rate: 0.001 },
+  name: 'training_loop', defaultConfig: { max_epochs: 100, learning_rate: 0.001 },
   onAttach(node: HSPlusNode): void { node.__trainState = { epoch: 0, loss: Infinity, running: false }; },
   onDetach(node: HSPlusNode): void { delete node.__trainState; },
   onUpdate(): void {},

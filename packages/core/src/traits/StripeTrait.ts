@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface StripeConfig { currency: string; }
 
 export const stripeHandler: TraitHandler<StripeConfig> = {
-  name: 'stripe' as any,
+  name: 'stripe',
   defaultConfig: { currency: 'usd' },
 
   onAttach(node: any): void { node.__stripeState = { charges: 0, totalAmount: 0 }; },

@@ -162,7 +162,7 @@ function evaluateExpr(expr: string, data: Record<string, unknown>): unknown {
 // =============================================================================
 
 export const transformHandler: TraitHandler<TransformConfig> = {
-  name: 'transform' as any,
+  name: 'transform',
 
   defaultConfig: {
     rules: [],

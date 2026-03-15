@@ -23,7 +23,7 @@ export interface IndexState {
 }
 
 export const indexHandler: TraitHandler<IndexConfig> = {
-  name: 'index' as any,
+  name: 'index',
   defaultConfig: { max_indices: 50 },
 
   onAttach(node: any): void {

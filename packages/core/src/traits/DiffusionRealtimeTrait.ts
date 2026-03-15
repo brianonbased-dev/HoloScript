@@ -45,7 +45,7 @@ interface DiffusionRealtimeState {
 // =============================================================================
 
 export const diffusionRealtimeHandler: TraitHandler<DiffusionRealtimeConfig> = {
-  name: 'diffusion_realtime' as any,
+  name: 'diffusion_realtime',
 
   defaultConfig: {
     backend: 'lcm',

@@ -32,7 +32,7 @@ export interface AINPCBrainConfig extends LLMConfig {
 
 export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
   ...llmAgentHandler,
-  name: 'ai_npc_brain' as any,
+  name: 'ai_npc_brain',
 
   defaultConfig: {
     ...llmAgentHandler.defaultConfig,

@@ -68,7 +68,7 @@ export interface CircuitBreakerState {
 // =============================================================================
 
 export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
-  name: 'circuit_breaker' as any,
+  name: 'circuit_breaker',
 
   defaultConfig: {
     failure_threshold: 5,

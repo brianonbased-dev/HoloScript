@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface MarkdownRenderConfig { sanitize: boolean; gfm: boolean; }
 
 export const markdownRenderHandler: TraitHandler<MarkdownRenderConfig> = {
-  name: 'markdown_render' as any,
+  name: 'markdown_render',
   defaultConfig: { sanitize: true, gfm: true },
 
   onAttach(node: any): void { node.__mdState = { rendered: 0 }; },

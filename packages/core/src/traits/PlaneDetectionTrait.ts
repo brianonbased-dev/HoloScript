@@ -53,7 +53,7 @@ interface PlaneDetectionConfig {
 // =============================================================================
 
 export const planeDetectionHandler: TraitHandler<PlaneDetectionConfig> = {
-  name: 'plane_detection' as any,
+  name: 'plane_detection',
 
   defaultConfig: {
     mode: 'all',

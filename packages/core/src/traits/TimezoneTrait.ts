@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface TimezoneConfig { default_tz: string; }
 
 export const timezoneHandler: TraitHandler<TimezoneConfig> = {
-  name: 'timezone' as any,
+  name: 'timezone',
   defaultConfig: { default_tz: 'UTC' },
   onAttach(node: any, config: any): void { node.__tzState = { current: config.default_tz || 'UTC' }; },
   onDetach(node: any): void { delete node.__tzState; },

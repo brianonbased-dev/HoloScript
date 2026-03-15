@@ -170,7 +170,7 @@ export interface AvatarEmbodimentEvent {
 // =============================================================================
 
 export const avatarEmbodimentHandler: TraitHandler<any> = {
-  name: 'avatar_embodiment' as any,
+  name: 'avatar_embodiment',
 
   defaultConfig: {
     tracking_source: 'ai',

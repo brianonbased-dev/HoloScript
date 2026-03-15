@@ -50,7 +50,7 @@ interface BlackboardConfig {
 // =============================================================================
 
 export const blackboardHandler: TraitHandler<BlackboardConfig> = {
-  name: 'blackboard' as any,
+  name: 'blackboard',
 
   defaultConfig: {
     group_id: 'default_swarm',

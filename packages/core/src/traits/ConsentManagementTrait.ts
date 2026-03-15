@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface ConsentManagementConfig { required_consents: string[]; }
 export const consentManagementHandler: TraitHandler<ConsentManagementConfig> = {
-  name: 'consent_management' as any, defaultConfig: { required_consents: ['analytics', 'marketing'] },
+  name: 'consent_management', defaultConfig: { required_consents: ['analytics', 'marketing'] },
   onAttach(node: any): void { node.__consentState = { consents: new Map<string, Map<string, boolean>>() }; },
   onDetach(node: any): void { delete node.__consentState; },
   onUpdate(): void {},

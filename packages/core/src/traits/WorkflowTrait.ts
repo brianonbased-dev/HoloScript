@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface WorkflowConfig { max_steps: number; }
 
 export const workflowHandler: TraitHandler<WorkflowConfig> = {
-  name: 'workflow' as any,
+  name: 'workflow',
   defaultConfig: { max_steps: 50 },
   onAttach(node: any): void { node.__wfState = { workflows: new Map<string, { steps: string[]; current: number; status: string }>() }; },
   onDetach(node: any): void { delete node.__wfState; },

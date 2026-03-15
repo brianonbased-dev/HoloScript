@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface SysIoConfig { allow_write: boolean; }
 export const sysIoHandler: TraitHandler<SysIoConfig> = {
-  name: 'sys_io' as any, defaultConfig: { allow_write: false },
+  name: 'sys_io', defaultConfig: { allow_write: false },
   onAttach(node: HSPlusNode): void { node.__sysState = { reads: 0, writes: 0 }; },
   onDetach(node: HSPlusNode): void { delete node.__sysState; },
   onUpdate(): void {},

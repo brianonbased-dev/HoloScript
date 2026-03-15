@@ -114,7 +114,7 @@ function clampPad(pad: PAD): PAD {
 // =============================================================================
 
 export const emotionHandler: TraitHandler<EmotionConfig> = {
-  name: 'emotion' as any,
+  name: 'emotion',
 
   defaultConfig: {
     model: 'pad',

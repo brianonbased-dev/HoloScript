@@ -64,7 +64,7 @@ export interface BufferState {
 // =============================================================================
 
 export const bufferHandler: TraitHandler<BufferConfig> = {
-  name: 'buffer' as any,
+  name: 'buffer',
 
   defaultConfig: {
     channels: [],

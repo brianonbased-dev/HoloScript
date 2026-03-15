@@ -351,7 +351,7 @@ function tickWait(node: BTNode, nodeState: BTNodeState, delta: number): BTStatus
 // =============================================================================
 
 export const behaviorTreeHandler: TraitHandler<BTConfig> = {
-  name: 'behavior_tree' as any,
+  name: 'behavior_tree',
 
   defaultConfig: {
     root: { type: 'sequence', children: [] },

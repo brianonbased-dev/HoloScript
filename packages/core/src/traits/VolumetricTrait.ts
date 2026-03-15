@@ -43,7 +43,7 @@ interface VolumetricConfig {
 // =============================================================================
 
 export const volumetricHandler: TraitHandler<VolumetricConfig> = {
-  name: 'volumetric' as any,
+  name: 'volumetric',
 
   defaultConfig: {
     src: '',

@@ -137,7 +137,7 @@ interface MultiAgentState {
 // =============================================================================
 
 export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
-  name: 'multi_agent' as any,
+  name: 'multi_agent',
 
   defaultConfig: {
     agent_id: '',

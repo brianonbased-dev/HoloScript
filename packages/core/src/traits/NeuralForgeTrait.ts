@@ -41,7 +41,7 @@ interface NeuralConfig {
 // =============================================================================
 
 export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
-  name: 'neural_forge' as any,
+  name: 'neural_forge',
 
   defaultConfig: {
     auto_synthesize: true,

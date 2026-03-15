@@ -97,7 +97,7 @@ function computeDelay(config: RetryConfig, attempt: number): number {
 // =============================================================================
 
 export const retryHandler: TraitHandler<RetryConfig> = {
-  name: 'retry' as any,
+  name: 'retry',
 
   defaultConfig: {
     max_retries: 3,

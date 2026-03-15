@@ -22,7 +22,7 @@ interface VectorDoc {
 }
 
 export const vectorSearchHandler: TraitHandler<VectorSearchConfig> = {
-  name: 'vector_search' as any,
+  name: 'vector_search',
   defaultConfig: { default_top_k: 10, max_collections: 20 },
 
   onAttach(node: any): void {

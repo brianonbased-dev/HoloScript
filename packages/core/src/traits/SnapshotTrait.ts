@@ -29,7 +29,7 @@ export interface SnapshotEntry {
 }
 
 export const snapshotHandler: TraitHandler<SnapshotConfig> = {
-  name: 'snapshot' as any,
+  name: 'snapshot',
   defaultConfig: { max_snapshots: 20, auto_capture_interval_ms: 0 },
 
   onAttach(node: any): void {

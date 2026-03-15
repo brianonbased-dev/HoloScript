@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface InvoiceConfig { auto_number: boolean; }
 
 export const invoiceHandler: TraitHandler<InvoiceConfig> = {
-  name: 'invoice' as any,
+  name: 'invoice',
   defaultConfig: { auto_number: true },
 
   onAttach(node: any): void { node.__invoiceState = { invoices: new Map<string, { amount: number; status: string }>(), counter: 0 }; },

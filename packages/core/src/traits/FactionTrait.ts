@@ -65,7 +65,7 @@ function getRelationType(standing: number, factionId: string, config: FactionCon
 // =============================================================================
 
 export const factionHandler: TraitHandler<FactionConfig> = {
-  name: 'faction' as any,
+  name: 'faction',
 
   defaultConfig: {
     faction_id: '',

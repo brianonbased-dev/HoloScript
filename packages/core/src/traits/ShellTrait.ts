@@ -63,7 +63,7 @@ export interface ShellState {
 // =============================================================================
 
 export const shellHandler: TraitHandler<ShellConfig> = {
-  name: 'shell' as any,
+  name: 'shell',
 
   defaultConfig: {
     command: '',

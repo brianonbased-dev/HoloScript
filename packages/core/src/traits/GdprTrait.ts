@@ -5,7 +5,7 @@
 import type { TraitHandler } from './TraitTypes';
 export interface GdprConfig { retention_days: number; }
 export const gdprHandler: TraitHandler<GdprConfig> = {
-  name: 'gdpr' as any, defaultConfig: { retention_days: 365 },
+  name: 'gdpr', defaultConfig: { retention_days: 365 },
   onAttach(node: any): void { node.__gdprState = { requests: new Map<string, { type: string; status: string }>() }; },
   onDetach(node: any): void { delete node.__gdprState; },
   onUpdate(): void {},

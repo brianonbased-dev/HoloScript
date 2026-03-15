@@ -37,7 +37,7 @@ export interface CacheState {
 }
 
 export const cacheHandler: TraitHandler<CacheConfig> = {
-  name: 'cache' as any,
+  name: 'cache',
 
   defaultConfig: {
     max_size: 1000,

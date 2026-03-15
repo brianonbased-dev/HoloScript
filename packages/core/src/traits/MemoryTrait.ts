@@ -96,7 +96,7 @@ function sortMemories(memories: Memory[], mode: MemoryConfig['retrieval_mode']):
 // =============================================================================
 
 export const memoryHandler: TraitHandler<MemoryConfig> = {
-  name: 'memory' as any,
+  name: 'memory',
 
   defaultConfig: {
     memory_type: 'episodic',

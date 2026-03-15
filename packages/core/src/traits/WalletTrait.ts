@@ -49,7 +49,7 @@ interface WalletConfig {
 // =============================================================================
 
 export const walletHandler: TraitHandler<WalletConfig> = {
-  name: 'wallet' as any,
+  name: 'wallet',
 
   defaultConfig: {
     supported_wallets: ['metamask', 'walletconnect', 'coinbase'],

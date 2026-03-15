@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface SpatialProfilerConfig { sample_rate_ms: number; }
 export const spatialProfilerHandler: TraitHandler<SpatialProfilerConfig> = {
-  name: 'spatial_profiler' as any, defaultConfig: { sample_rate_ms: 16 },
+  name: 'spatial_profiler', defaultConfig: { sample_rate_ms: 16 },
   onAttach(node: HSPlusNode): void { node.__profState = { samples: [] as Array<{ ts: number; fps: number; drawCalls: number }>, recording: false }; },
   onDetach(node: HSPlusNode): void { delete node.__profState; },
   onUpdate(): void {},

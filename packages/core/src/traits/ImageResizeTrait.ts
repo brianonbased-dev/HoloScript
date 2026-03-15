@@ -9,7 +9,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface ImageResizeConfig { max_width: number; max_height: number; quality: number; }
 
 export const imageResizeHandler: TraitHandler<ImageResizeConfig> = {
-  name: 'image_resize' as any,
+  name: 'image_resize',
   defaultConfig: { max_width: 2048, max_height: 2048, quality: 85 },
 
   onAttach(node: any): void { node.__imgResizeState = { processed: 0 }; },

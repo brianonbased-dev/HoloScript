@@ -27,7 +27,7 @@ interface VoiceMeshState {
 }
 
 export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
-  name: 'voice_mesh' as any,
+  name: 'voice_mesh',
 
   defaultConfig: {
     auto_connect: true,

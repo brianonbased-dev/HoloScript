@@ -41,7 +41,7 @@ interface ScreenReaderConfig {
 // =============================================================================
 
 export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
-  name: 'screen_reader' as any,
+  name: 'screen_reader',
 
   defaultConfig: {
     semantic_structure: true,

@@ -29,7 +29,7 @@ interface HealthCheck {
 }
 
 export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
-  name: 'healthcheck' as any,
+  name: 'healthcheck',
   defaultConfig: { auto_interval_ms: 30000, timeout_ms: 5000 },
 
   onAttach(node: any): void {

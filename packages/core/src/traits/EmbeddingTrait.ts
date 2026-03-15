@@ -16,7 +16,7 @@ export interface EmbeddingConfig {
 }
 
 export const embeddingHandler: TraitHandler<EmbeddingConfig> = {
-  name: 'embedding' as any,
+  name: 'embedding',
   defaultConfig: { default_model: 'text-embedding-3-small', default_dimensions: 1536 },
 
   onAttach(node: any): void { node.__embeddingState = { generated: 0 }; },

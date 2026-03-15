@@ -54,7 +54,7 @@ interface FluidConfig {
 // =============================================================================
 
 export const fluidHandler: TraitHandler<FluidConfig> = {
-  name: 'fluid' as any,
+  name: 'fluid',
 
   defaultConfig: {
     method: 'sph',

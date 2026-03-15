@@ -96,7 +96,7 @@ interface GaussianSplatConfig {
 // =============================================================================
 
 export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
-  name: 'gaussian_splat' as any,
+  name: 'gaussian_splat',
 
   defaultConfig: {
     source: '',

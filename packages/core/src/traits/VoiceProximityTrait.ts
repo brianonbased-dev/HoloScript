@@ -85,7 +85,7 @@ function isInZone(position: { x: number; y: number; z: number }, zone: VoiceZone
 // =============================================================================
 
 export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
-  name: 'voice_proximity' as any,
+  name: 'voice_proximity',
 
   defaultConfig: {
     min_distance: 1,

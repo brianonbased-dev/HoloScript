@@ -6,7 +6,7 @@ import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface ReactiveStoreConfig { max_keys: number; }
 export const reactiveStoreHandler: TraitHandler<ReactiveStoreConfig> = {
-  name: 'reactive_store' as any, defaultConfig: { max_keys: 500 },
+  name: 'reactive_store', defaultConfig: { max_keys: 500 },
   onAttach(node: HSPlusNode): void { node.__storeState = { store: new Map<string, unknown>(), subscribers: new Map<string, number>() }; },
   onDetach(node: HSPlusNode): void { delete node.__storeState; },
   onUpdate(): void {},

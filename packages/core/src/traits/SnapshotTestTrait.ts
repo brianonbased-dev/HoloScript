@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface SnapshotTestConfig { update_on_mismatch: boolean; }
 
 export const snapshotTestHandler: TraitHandler<SnapshotTestConfig> = {
-  name: 'snapshot_test' as any,
+  name: 'snapshot_test',
   defaultConfig: { update_on_mismatch: false },
   onAttach(node: any): void { node.__snapState = { snapshots: new Map<string, string>() }; },
   onDetach(node: any): void { delete node.__snapState; },

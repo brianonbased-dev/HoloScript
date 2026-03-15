@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface StateMachineConfig { initial_state: string; }
 
 export const stateMachineHandler: TraitHandler<StateMachineConfig> = {
-  name: 'state_machine' as any,
+  name: 'state_machine',
   defaultConfig: { initial_state: 'idle' },
   onAttach(node: any, config: any): void { node.__smState = { current: config.initial_state || 'idle', transitions: 0, history: [] as string[] }; },
   onDetach(node: any): void { delete node.__smState; },

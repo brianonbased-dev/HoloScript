@@ -7,7 +7,7 @@ import type { TraitHandler } from './TraitTypes';
 export interface FixtureConfig { auto_teardown: boolean; }
 
 export const fixtureHandler: TraitHandler<FixtureConfig> = {
-  name: 'fixture' as any,
+  name: 'fixture',
   defaultConfig: { auto_teardown: true },
   onAttach(node: any): void { node.__fixtureState = { fixtures: new Map<string, { data: unknown; active: boolean }>() }; },
   onDetach(node: any): void { delete node.__fixtureState; },

@@ -62,7 +62,7 @@ const SPEAKER_COLORS = [
 // =============================================================================
 
 export const subtitleHandler: TraitHandler<SubtitleConfig> = {
-  name: 'subtitle' as any,
+  name: 'subtitle',
 
   defaultConfig: {
     language: 'en',

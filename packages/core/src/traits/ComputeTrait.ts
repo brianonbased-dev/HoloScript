@@ -50,7 +50,7 @@ interface ComputeConfig {
 // =============================================================================
 
 export const computeHandler: TraitHandler<ComputeConfig> = {
-  name: 'compute' as any,
+  name: 'compute',
 
   defaultConfig: {
     workgroup_size: [64, 1, 1],

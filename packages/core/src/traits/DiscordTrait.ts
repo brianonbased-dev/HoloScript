@@ -16,7 +16,7 @@ export interface DiscordConfig {
 }
 
 export const discordHandler: TraitHandler<DiscordConfig> = {
-  name: 'discord' as any,
+  name: 'discord',
   defaultConfig: { webhook_url: '', bot_name: 'HoloBot' },
 
   onAttach(node: any): void { node.__discordState = { sent: 0 }; },

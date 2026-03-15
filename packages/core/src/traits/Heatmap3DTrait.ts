@@ -61,7 +61,7 @@ interface Heatmap3DConfig {
 // =============================================================================
 
 export const heatmap3dHandler: TraitHandler<Heatmap3DConfig> = {
-  name: 'heatmap_3d' as any,
+  name: 'heatmap_3d',
 
   defaultConfig: {
     data_source: '',

@@ -62,7 +62,7 @@ function chunkText(text: string, chunkSize: number, overlap: number): string[] {
 // =============================================================================
 
 export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
-  name: 'rag_knowledge' as any,
+  name: 'rag_knowledge',
 
   defaultConfig: {
     knowledge_sources: [],

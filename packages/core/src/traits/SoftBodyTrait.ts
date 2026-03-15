@@ -118,7 +118,7 @@ function autoPopulateFromMesh(
 // =============================================================================
 
 export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
-  name: 'soft_body' as any,
+  name: 'soft_body',
 
   defaultConfig: {
     stiffness: 0.5,

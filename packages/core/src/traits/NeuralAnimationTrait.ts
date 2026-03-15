@@ -81,7 +81,7 @@ function interpolatePoses(from: SkeletonPose, to: SkeletonPose, t: number): Skel
 // =============================================================================
 
 export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
-  name: 'neural_animation' as any,
+  name: 'neural_animation',
 
   defaultConfig: {
     animation_model: 'neural_motion',

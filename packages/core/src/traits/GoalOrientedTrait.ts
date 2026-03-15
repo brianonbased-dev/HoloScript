@@ -179,7 +179,7 @@ function planActions(
 // =============================================================================
 
 export const goalOrientedHandler: TraitHandler<GOAPConfig> = {
-  name: 'goal_oriented' as any,
+  name: 'goal_oriented',
 
   defaultConfig: {
     goals: [],
