@@ -38,7 +38,7 @@ const output = compiler.compile(ast);
 - **Complete AST** - Full abstract syntax tree representation
 - **Validation** - Comprehensive error checking with recovery
 - **15+ Compile Targets** - Web (R3F, Babylon), Unity, Unreal, Godot, iOS, Android, Vision Pro, WebGPU, WASM, VRChat, OpenXR, URDF, DTDL, SDF
-- **2,000+ Traits** - Modularized across 74 category files covering VR interactions, physics, networking, AI, animation, nature, magic, sci-fi, emotions, and more
+- **2,000+ Traits** - Modularized across 101 category files covering VR interactions, physics, networking, AI, scripting, automation, animation, nature, magic, sci-fi, emotions, and more
 - **AI Integration** - Adapters for OpenAI, Anthropic, Gemini, Ollama, and more
 - **Reactive State** - `reactive()`, `computed()`, `effect()`, `bind()`
 
@@ -74,7 +74,7 @@ const output = compiler.compile(ast);
 
 ## Trait System
 
-VR traits are modularized into 74 category files under `src/traits/constants/`:
+VR traits are modularized into 101 category files under `src/traits/constants/`:
 
 | Category        | File                     | Traits                                  |
 | --------------- | ------------------------ | --------------------------------------- |

@@ -784,6 +784,150 @@ const TRAIT_COMPLETIONS: Record<string, { detail: string; documentation: string 
     documentation:
       'Enables destruction with fracture patterns and debris.\n\n```holo\n@destruction(health: 100, fracture_pattern: "voronoi")\n```',
   },
+
+  // ── Phase 14: GPU Compute ───────────────────────────────────────────
+  '@compute_shader': {
+    detail: 'GPU compute shader',
+    documentation:
+      'Compiles and dispatches GPU compute shaders.\n\n```holo\n@compute_shader(max_workgroups: 256)\n```',
+  },
+  '@render_pipeline': {
+    detail: 'Custom render pipeline',
+    documentation:
+      'Defines a custom multi-pass render pipeline.\n\n```holo\n@render_pipeline(max_passes: 8)\n```',
+  },
+  '@post_process': {
+    detail: 'Post-processing effects',
+    documentation:
+      'Adds post-processing effects (bloom, SSAO, etc.).\n\n```holo\n@post_process(max_effects: 16)\n```',
+  },
+  '@ray_trace': {
+    detail: 'Ray tracing',
+    documentation:
+      'Hardware-accelerated ray tracing for reflections and GI.\n\n```holo\n@ray_trace(max_bounces: 4, samples_per_pixel: 1)\n```',
+  },
+
+  // ── Phase 15: ML / Tensor ───────────────────────────────────────────
+  '@tensor_op': {
+    detail: 'Tensor operations',
+    documentation:
+      'GPU-accelerated tensor math (matmul, conv, etc.).\n\n```holo\n@tensor_op(max_dimensions: 4)\n```',
+  },
+  '@onnx_runtime': {
+    detail: 'ONNX model runtime',
+    documentation:
+      'Loads and runs ONNX models for inference.\n\n```holo\n@onnx_runtime(execution_provider: "cpu")\n```',
+  },
+  '@training_loop': {
+    detail: 'ML training loop',
+    documentation:
+      'Manages training epochs with loss tracking.\n\n```holo\n@training_loop(max_epochs: 100, learning_rate: 0.001)\n```',
+  },
+
+  // ── Phase 16: Database / Persistence ────────────────────────────────
+  '@sql_query': {
+    detail: 'SQL query execution',
+    documentation:
+      'Executes parameterized SQL queries.\n\n```holo\n@sql_query(max_results: 100)\n```',
+  },
+  '@orm_entity': {
+    detail: 'ORM entity mapping',
+    documentation:
+      'Maps objects to database entities with CRUD.\n\n```holo\n@orm_entity(table_prefix: "game_")\n```',
+  },
+  '@offline_sync': {
+    detail: 'Offline data sync',
+    documentation:
+      'Queues mutations offline and syncs when connected.\n\n```holo\n@offline_sync(sync_interval_ms: 5000)\n```',
+  },
+  '@reactive_store': {
+    detail: 'Reactive key-value store',
+    documentation:
+      'Observable key-value store with subscriptions.\n\n```holo\n@reactive_store(max_keys: 500)\n```',
+  },
+
+  // ── Phase 17: Spatial Algorithms ────────────────────────────────────
+  '@astar': {
+    detail: 'A* pathfinding',
+    documentation:
+      'A* search with configurable heuristic.\n\n```holo\n@astar(max_iterations: 10000, heuristic: "euclidean")\n```',
+  },
+  '@navmesh_solver': {
+    detail: 'Navigation mesh solver',
+    documentation:
+      'Builds and queries navigation meshes.\n\n```holo\n@navmesh_solver(cell_size: 0.5)\n```',
+  },
+  '@optimization': {
+    detail: 'Mathematical optimization',
+    documentation:
+      'Solves constrained optimization problems.\n\n```holo\n@optimization(max_iterations: 1000, tolerance: 1e-6)\n```',
+  },
+
+  // ── Phase 18: Debug / Cinematic ─────────────────────────────────────
+  '@time_travel_debug': {
+    detail: 'Time-travel debugger',
+    documentation:
+      'Captures state snapshots for rewind/replay.\n\n```holo\n@time_travel_debug(max_snapshots: 100)\n```',
+  },
+  '@spatial_profiler': {
+    detail: 'Spatial profiler',
+    documentation:
+      'Profiles FPS, draw calls, and GPU metrics.\n\n```holo\n@spatial_profiler(sample_rate_ms: 16)\n```',
+  },
+  '@cinematic_seq': {
+    detail: 'Cinematic sequencer',
+    documentation:
+      'Timeline-based cinematic clip sequencer.\n\n```holo\n@cinematic_seq(fps: 24)\n```',
+  },
+  '@ai_camera': {
+    detail: 'AI camera director',
+    documentation:
+      'AI-driven camera tracking and framing.\n\n```holo\n@ai_camera(tracking_speed: 1.0)\n```',
+  },
+
+  // ── Phase 19: FFI / OS Bindings ─────────────────────────────────────
+  '@ffi': {
+    detail: 'Foreign function interface',
+    documentation:
+      'Binds and calls foreign library symbols.\n\n```holo\n@ffi(allowed_libs: ["libm"])\n```',
+  },
+  '@native_call': {
+    detail: 'Native API call',
+    documentation:
+      'Invokes native OS/platform APIs in a sandbox.\n\n```holo\n@native_call(sandbox: true)\n```',
+  },
+  '@wasm_bridge': {
+    detail: 'WebAssembly bridge',
+    documentation:
+      'Loads and calls WebAssembly modules.\n\n```holo\n@wasm_bridge(max_memory_pages: 256)\n```',
+  },
+  '@sys_io': {
+    detail: 'System I/O',
+    documentation:
+      'Filesystem read/write with permission control.\n\n```holo\n@sys_io(allow_write: false)\n```',
+  },
+
+  // ── Phase 20: Concurrency ──────────────────────────────────────────
+  '@actor': {
+    detail: 'Actor model',
+    documentation:
+      'Message-passing actor with mailbox.\n\n```holo\n@actor(mailbox_size: 10)\n```',
+  },
+  '@csp_channel': {
+    detail: 'CSP channel',
+    documentation:
+      'Communicating sequential processes channel.\n\n```holo\n@csp_channel(buffer_size: 10)\n```',
+  },
+  '@temporal_guard': {
+    detail: 'Temporal logic guard',
+    documentation:
+      'Asserts temporal properties (liveness, safety).\n\n```holo\n@temporal_guard(default_timeout_ms: 5000)\n```',
+  },
+  '@deadlock_free': {
+    detail: 'Deadlock freedom verifier',
+    documentation:
+      'Tracks resource ownership and prevents deadlocks.\n\n```holo\n@deadlock_free(max_resources: 100)\n```',
+  },
 };
 
 // =============================================================================

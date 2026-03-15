@@ -223,14 +223,41 @@ composition "SelfImproveDaemon" {
       min_samples_for_trend: 3
     }
 
-    // Economy: API token budget tracking
+    // Economy: API token budget tracking (amounts in USD)
+    // initial_balance = $50 total experiment budget
+    // default_spend_limit = $5 per hour cost circuit breaker
     @economy {
-      initial_balance: 10000,
-      default_spend_limit: 0,
+      initial_balance: 50,
+      default_spend_limit: 5,
       spend_limit_period: 3600000,
       max_transaction_history: 100,
       escrow_enabled: false,
       task_completion_reward: 0
+    }
+
+    // Rate limiter: prevent API hammering (max 10 calls, refill 2/min)
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 10,
+      refill_rate: 2,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    // Timeout guard: fail-safe for stuck LLM calls (2 min default)
+    @timeout_guard {
+      default_timeout_ms: 120000,
+      fallback_action: "abort"
+    }
+
+    // Structured logger: cycle telemetry captured in-trait
+    @structured_logger {
+      min_level: "info",
+      max_entries: 500,
+      rotation_count: 100,
+      emit_events: true,
+      console_output: false,
+      default_fields: {}
     }
   }
 }

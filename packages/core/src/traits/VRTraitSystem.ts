@@ -179,6 +179,180 @@ import { quotaHandler } from './QuotaTrait';
 import { ssoSamlHandler, ssoOidcHandler } from './SSOTrait';
 import { auditLogHandler } from './AuditLogTrait';
 
+// Scripting & Automation
+import { cronHandler } from './CronTrait';
+import { pipelineHandler } from './PipelineTrait';
+import { watcherHandler } from './WatcherTrait';
+import { taskQueueHandler } from './TaskQueueTrait';
+import { webhookHandler } from './WebhookTrait';
+import { shellHandler } from './ShellTrait';
+import { retryHandler } from './RetryTrait';
+import { schedulerHandler } from './SchedulerTrait';
+import { circuitBreakerHandler } from './CircuitBreakerTrait';
+import { rateLimiterHandler } from './RateLimiterTrait';
+import { timeoutGuardHandler } from './TimeoutGuardTrait';
+import { transformHandler } from './TransformTrait';
+import { bufferHandler } from './BufferTrait';
+import { structuredLoggerHandler } from './StructuredLoggerTrait';
+
+// Data & Storage handlers
+import { databaseHandler } from './DatabaseTrait';
+import { cacheHandler } from './CacheTrait';
+import { streamHandler } from './StreamTrait';
+import { snapshotHandler } from './SnapshotTrait';
+import { migrateHandler } from './MigrateTrait';
+import { queryHandler } from './QueryTrait';
+import { indexHandler } from './IndexTrait';
+
+// Observability handlers
+import { healthcheckHandler } from './HealthcheckTrait';
+import { profilerHandler } from './ProfilerTrait';
+import { sloMonitorHandler } from './SLOMonitorTrait';
+import { logAggregatorHandler } from './LogAggregatorTrait';
+import { incidentHandler } from './IncidentTrait';
+
+// Communication handlers
+import { emailHandler } from './EmailTrait';
+import { smsHandler } from './SmsTrait';
+import { pushNotificationHandler } from './PushNotificationTrait';
+import { slackHandler } from './SlackTrait';
+import { discordHandler } from './DiscordTrait';
+import { mqttPubHandler } from './MqttPubTrait';
+import { sseHandler } from './SseTrait';
+
+// ML / Inference handlers
+import { modelLoadHandler } from './ModelLoadTrait';
+import { inferenceHandler } from './InferenceTrait';
+import { embeddingHandler } from './EmbeddingTrait';
+import { fineTuneHandler } from './FineTuneTrait';
+import { vectorSearchHandler } from './VectorSearchTrait';
+import { promptTemplateHandler } from './PromptTemplateTrait';
+
+// DevOps / CI handlers
+import { deployHandler } from './DeployTrait';
+import { rollbackHandler } from './RollbackTrait';
+import { canaryHandler } from './CanaryTrait';
+import { featureFlagHandler } from './FeatureFlagTrait';
+import { envConfigHandler } from './EnvConfigTrait';
+import { secretHandler } from './SecretTrait';
+
+// Auth / Identity handlers
+import { jwtHandler } from './JwtTrait';
+import { oauthHandler } from './OauthTrait';
+import { apiKeyHandler } from './ApiKeyTrait';
+import { sessionHandler } from './SessionTrait';
+import { permissionHandler } from './PermissionTrait';
+import { mfaHandler } from './MfaTrait';
+
+// Payment handlers (walletHandler already imported in Phase 12 block above)
+import { stripeHandler } from './StripeTrait';
+import { invoiceHandler } from './InvoiceTrait';
+import { subscriptionHandler } from './SubscriptionTrait';
+import { refundHandler } from './RefundTrait';
+
+// Media / Content handlers
+import { imageResizeHandler } from './ImageResizeTrait';
+import { videoTranscodeHandler } from './VideoTranscodeTrait';
+import { pdfGenerateHandler } from './PdfGenerateTrait';
+import { markdownRenderHandler } from './MarkdownRenderTrait';
+
+// Testing / QA handlers
+import { mockHandler } from './MockTrait';
+import { fixtureHandler } from './FixtureTrait';
+import { snapshotTestHandler } from './SnapshotTestTrait';
+import { loadTestHandler } from './LoadTestTrait';
+import { chaosTestHandler } from './ChaosTestTrait';
+
+// Workflow / BPM handlers
+import { workflowHandler } from './WorkflowTrait';
+import { approvalHandler } from './ApprovalTrait';
+import { stateMachineHandler } from './StateMachineTrait';
+import { formBuilderHandler } from './FormBuilderTrait';
+
+// i18n / Localization handlers
+import { localeHandler } from './LocaleTrait';
+import { translationHandler } from './TranslationTrait';
+import { rtlHandler } from './RtlTrait';
+import { timezoneHandler } from './TimezoneTrait';
+
+// Data Pipeline / ETL handlers
+import { etlHandler } from './EtlTrait';
+import { batchJobHandler } from './BatchJobTrait';
+import { dataTransformHandler } from './DataTransformTrait';
+import { schemaMigrateHandler } from './SchemaMigrateTrait';
+import { dataQualityHandler } from './DataQualityTrait';
+
+// Notification / Alerting handlers
+import { webhookOutHandler } from './WebhookOutTrait';
+import { pagerdutyHandler } from './PagerdutyTrait';
+import { slackAlertHandler } from './SlackAlertTrait';
+
+// Search handlers
+import { fullTextSearchHandler } from './FullTextSearchTrait';
+import { facetedSearchHandler } from './FacetedSearchTrait';
+import { autocompleteHandler } from './AutocompleteTrait';
+
+// Compliance / Governance handlers
+import { gdprHandler } from './GdprTrait';
+import { dataRetentionHandler } from './DataRetentionTrait';
+import { consentManagementHandler } from './ConsentManagementTrait';
+
+// File Storage handlers
+import { s3UploadHandler } from './S3UploadTrait';
+import { fileSystemHandler } from './FileSystemTrait';
+import { blobStoreHandler } from './BlobStoreTrait';
+
+// API Gateway handlers
+import { graphqlHandler } from './GraphqlTrait';
+import { restEndpointHandler } from './RestEndpointTrait';
+import { rpcHandler } from './RpcTrait';
+
+// Feature Flags handlers (featureFlagHandler + canaryHandler already imported in DevOps / CI block)
+import { abTestHandler } from './ABTestTrait';
+import { rolloutHandler } from './RolloutTrait';
+
+// Audit Trail handlers (auditLogHandler already imported in Enterprise Multi-Tenancy block)
+import { changeTrackingHandler } from './ChangeTrackingTrait';
+import { dataLineageHandler } from './DataLineageTrait';
+
+import { computeShaderHandler } from './ComputeShaderTrait';
+import { renderPipelineHandler } from './RenderPipelineTrait';
+import { postProcessHandler } from './PostProcessTrait';
+import { rayTraceHandler } from './RayTraceTrait';
+
+import { tensorOpHandler } from './TensorOpTrait';
+import { onnxRuntimeHandler } from './OnnxRuntimeTrait';
+import { trainingLoopHandler } from './TrainingLoopTrait';
+
+// Database / Persistence handlers
+import { sqlQueryHandler } from './SqlQueryTrait';
+import { ormEntityHandler } from './OrmEntityTrait';
+import { offlineSyncHandler } from './OfflineSyncTrait';
+import { reactiveStoreHandler } from './ReactiveStoreTrait';
+
+// Spatial Algorithms handlers
+import { astarHandler } from './AstarTrait';
+import { navmeshSolverHandler } from './NavmeshSolverTrait';
+import { optimizationHandler } from './OptimizationTrait';
+
+// Debug / Cinematic handlers
+import { timeTravelDebugHandler } from './TimeTravelDebugTrait';
+import { spatialProfilerHandler } from './SpatialProfilerTrait';
+import { cinematicSeqHandler } from './CinematicSeqTrait';
+import { aiCameraHandler } from './AiCameraTrait';
+
+// FFI / OS handlers
+import { ffiHandler } from './FfiTrait';
+import { nativeCallHandler } from './NativeCallTrait';
+import { wasmBridgeHandler } from './WasmBridgeTrait';
+import { sysIoHandler } from './SysIoTrait';
+
+// Concurrency handlers
+import { actorHandler } from './ActorTrait';
+import { cspChannelHandler } from './CspChannelTrait';
+import { temporalGuardHandler } from './TemporalGuardTrait';
+import { deadlockFreeHandler } from './DeadlockFreeTrait';
+
 // =============================================================================
 // TRAIT STATE
 // =============================================================================
@@ -1049,7 +1223,7 @@ const bodyHandler: TraitHandler<BodyTrait> = {
  * observe its environment and proactively suggest actions or state changes.
  */
 const proactiveHandler: TraitHandler<ProactiveTrait> = {
-  name: 'proactive',
+  name: 'proactive' as any,
 
   defaultConfig: {
     intelligence_tier: 'basic',
@@ -1287,6 +1461,199 @@ export class VRTraitRegistry {
     this.register(ssoSamlHandler as TraitHandler);
     this.register(ssoOidcHandler as TraitHandler);
     this.register(auditLogHandler as TraitHandler);
+
+    // Scripting & Automation
+    this.register(cronHandler as TraitHandler);
+    this.register(pipelineHandler as TraitHandler);
+    this.register(watcherHandler as TraitHandler);
+    this.register(taskQueueHandler as TraitHandler);
+    this.register(webhookHandler as TraitHandler);
+    this.register(shellHandler as TraitHandler);
+    this.register(retryHandler as TraitHandler);
+    this.register(schedulerHandler as TraitHandler);
+    this.register(circuitBreakerHandler as TraitHandler);
+    this.register(rateLimiterHandler as TraitHandler);
+    this.register(timeoutGuardHandler as TraitHandler);
+    this.register(transformHandler as TraitHandler);
+    this.register(bufferHandler as TraitHandler);
+    this.register(structuredLoggerHandler as TraitHandler);
+
+    // Data & Storage
+    this.register(databaseHandler as TraitHandler);
+    this.register(cacheHandler as TraitHandler);
+    this.register(streamHandler as TraitHandler);
+    this.register(snapshotHandler as TraitHandler);
+    this.register(migrateHandler as TraitHandler);
+    this.register(queryHandler as TraitHandler);
+    this.register(indexHandler as TraitHandler);
+
+    // Observability
+    this.register(healthcheckHandler as TraitHandler);
+    this.register(profilerHandler as TraitHandler);
+    this.register(sloMonitorHandler as TraitHandler);
+    this.register(logAggregatorHandler as TraitHandler);
+    this.register(incidentHandler as TraitHandler);
+
+    // Communication
+    this.register(emailHandler as TraitHandler);
+    this.register(smsHandler as TraitHandler);
+    this.register(pushNotificationHandler as TraitHandler);
+    this.register(slackHandler as TraitHandler);
+    this.register(discordHandler as TraitHandler);
+    this.register(mqttPubHandler as TraitHandler);
+    this.register(sseHandler as TraitHandler);
+
+    // ML / Inference
+    this.register(modelLoadHandler as TraitHandler);
+    this.register(inferenceHandler as TraitHandler);
+    this.register(embeddingHandler as TraitHandler);
+    this.register(fineTuneHandler as TraitHandler);
+    this.register(vectorSearchHandler as TraitHandler);
+    this.register(promptTemplateHandler as TraitHandler);
+
+    // DevOps / CI
+    this.register(deployHandler as TraitHandler);
+    this.register(rollbackHandler as TraitHandler);
+    this.register(canaryHandler as TraitHandler);
+    this.register(featureFlagHandler as TraitHandler);
+    this.register(envConfigHandler as TraitHandler);
+    this.register(secretHandler as TraitHandler);
+
+    // Auth / Identity
+    this.register(jwtHandler as TraitHandler);
+    this.register(oauthHandler as TraitHandler);
+    this.register(apiKeyHandler as TraitHandler);
+    this.register(sessionHandler as TraitHandler);
+    this.register(permissionHandler as TraitHandler);
+    this.register(mfaHandler as TraitHandler);
+
+    // Payment
+    this.register(stripeHandler as TraitHandler);
+    this.register(invoiceHandler as TraitHandler);
+    this.register(subscriptionHandler as TraitHandler);
+    this.register(refundHandler as TraitHandler);
+    this.register(walletHandler as TraitHandler);
+
+    // Media / Content
+    this.register(imageResizeHandler as TraitHandler);
+    this.register(videoTranscodeHandler as TraitHandler);
+    this.register(pdfGenerateHandler as TraitHandler);
+    this.register(markdownRenderHandler as TraitHandler);
+
+    // Scripting (existing handlers, newly registered)
+    this.register(schedulerHandler as TraitHandler);
+    this.register(circuitBreakerHandler as TraitHandler);
+    this.register(rateLimiterHandler as TraitHandler);
+    this.register(timeoutGuardHandler as TraitHandler);
+    this.register(transformHandler as TraitHandler);
+    this.register(bufferHandler as TraitHandler);
+    this.register(structuredLoggerHandler as TraitHandler);
+
+    // Testing / QA
+    this.register(mockHandler as TraitHandler);
+    this.register(fixtureHandler as TraitHandler);
+    this.register(snapshotTestHandler as TraitHandler);
+    this.register(loadTestHandler as TraitHandler);
+    this.register(chaosTestHandler as TraitHandler);
+
+    // Workflow / BPM
+    this.register(workflowHandler as TraitHandler);
+    this.register(approvalHandler as TraitHandler);
+    this.register(stateMachineHandler as TraitHandler);
+    this.register(formBuilderHandler as TraitHandler);
+
+    // i18n / Localization
+    this.register(localeHandler as TraitHandler);
+    this.register(translationHandler as TraitHandler);
+    this.register(rtlHandler as TraitHandler);
+    this.register(timezoneHandler as TraitHandler);
+
+    // Data Pipeline / ETL
+    this.register(etlHandler as TraitHandler);
+    this.register(batchJobHandler as TraitHandler);
+    this.register(dataTransformHandler as TraitHandler);
+    this.register(schemaMigrateHandler as TraitHandler);
+    this.register(dataQualityHandler as TraitHandler);
+
+    // Notification / Alerting
+    this.register(webhookOutHandler as TraitHandler);
+    this.register(pagerdutyHandler as TraitHandler);
+    this.register(slackAlertHandler as TraitHandler);
+
+    // Search
+    this.register(fullTextSearchHandler as TraitHandler);
+    this.register(facetedSearchHandler as TraitHandler);
+    this.register(autocompleteHandler as TraitHandler);
+
+    // Compliance / Governance
+    this.register(gdprHandler as TraitHandler);
+    this.register(dataRetentionHandler as TraitHandler);
+    this.register(consentManagementHandler as TraitHandler);
+
+    // File Storage
+    this.register(s3UploadHandler as TraitHandler);
+    this.register(fileSystemHandler as TraitHandler);
+    this.register(blobStoreHandler as TraitHandler);
+
+    // API Gateway
+    this.register(graphqlHandler as TraitHandler);
+    this.register(restEndpointHandler as TraitHandler);
+    this.register(rpcHandler as TraitHandler);
+
+    // Feature Flags
+    this.register(featureFlagHandler as TraitHandler);
+    this.register(abTestHandler as TraitHandler);
+    this.register(rolloutHandler as TraitHandler);
+    this.register(canaryHandler as TraitHandler);
+
+    // Audit Trail
+    this.register(auditLogHandler as TraitHandler);
+    this.register(changeTrackingHandler as TraitHandler);
+    this.register(dataLineageHandler as TraitHandler);
+
+    // GPU Compute
+    this.register(computeShaderHandler as TraitHandler);
+    this.register(renderPipelineHandler as TraitHandler);
+    this.register(postProcessHandler as TraitHandler);
+    this.register(rayTraceHandler as TraitHandler);
+    this.register(computeHandler as TraitHandler);
+
+    // ML / Tensor
+    this.register(tensorOpHandler as TraitHandler);
+    this.register(onnxRuntimeHandler as TraitHandler);
+    this.register(trainingLoopHandler as TraitHandler);
+    this.register(modelLoadHandler as TraitHandler);
+    this.register(inferenceHandler as TraitHandler);
+    this.register(embeddingHandler as TraitHandler);
+
+    // Database / Persistence
+    this.register(sqlQueryHandler as TraitHandler);
+    this.register(ormEntityHandler as TraitHandler);
+    this.register(offlineSyncHandler as TraitHandler);
+    this.register(reactiveStoreHandler as TraitHandler);
+
+    // Spatial Algorithms
+    this.register(astarHandler as TraitHandler);
+    this.register(navmeshSolverHandler as TraitHandler);
+    this.register(optimizationHandler as TraitHandler);
+
+    // Debug / Cinematic
+    this.register(timeTravelDebugHandler as TraitHandler);
+    this.register(spatialProfilerHandler as TraitHandler);
+    this.register(cinematicSeqHandler as TraitHandler);
+    this.register(aiCameraHandler as TraitHandler);
+
+    // FFI / OS
+    this.register(ffiHandler as TraitHandler);
+    this.register(nativeCallHandler as TraitHandler);
+    this.register(wasmBridgeHandler as TraitHandler);
+    this.register(sysIoHandler as TraitHandler);
+
+    // Concurrency
+    this.register(actorHandler as TraitHandler);
+    this.register(cspChannelHandler as TraitHandler);
+    this.register(temporalGuardHandler as TraitHandler);
+    this.register(deadlockFreeHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {
@@ -1536,4 +1903,236 @@ export {
   ssoSamlHandler,
   ssoOidcHandler,
   auditLogHandler,
+};
+
+// Scripting & Automation exports
+export {
+  cronHandler,
+  pipelineHandler,
+  watcherHandler,
+  taskQueueHandler,
+  webhookHandler,
+  shellHandler,
+  retryHandler,
+  schedulerHandler,
+  circuitBreakerHandler,
+  rateLimiterHandler,
+  timeoutGuardHandler,
+  transformHandler,
+  bufferHandler,
+  structuredLoggerHandler,
+};
+
+// Data & Storage exports
+export {
+  databaseHandler,
+  cacheHandler,
+  streamHandler,
+  snapshotHandler,
+  migrateHandler,
+  queryHandler,
+  indexHandler,
+};
+
+// Observability exports
+export {
+  healthcheckHandler,
+  profilerHandler,
+  sloMonitorHandler,
+  logAggregatorHandler,
+  incidentHandler,
+};
+
+// Communication exports
+export {
+  emailHandler,
+  smsHandler,
+  pushNotificationHandler,
+  slackHandler,
+  discordHandler,
+  mqttPubHandler,
+  sseHandler,
+};
+
+// ML / Inference exports
+export {
+  modelLoadHandler,
+  inferenceHandler,
+  embeddingHandler,
+  fineTuneHandler,
+  vectorSearchHandler,
+  promptTemplateHandler,
+};
+
+// DevOps / CI exports
+export {
+  deployHandler,
+  rollbackHandler,
+  canaryHandler,
+  featureFlagHandler,
+  envConfigHandler,
+  secretHandler,
+};
+
+// Auth / Identity exports
+export {
+  jwtHandler,
+  oauthHandler,
+  apiKeyHandler,
+  sessionHandler,
+  permissionHandler,
+  mfaHandler,
+};
+
+// Payment exports (walletHandler already exported in main block)
+export {
+  stripeHandler,
+  invoiceHandler,
+  subscriptionHandler,
+  refundHandler,
+};
+
+// Media / Content exports
+export {
+  imageResizeHandler,
+  videoTranscodeHandler,
+  pdfGenerateHandler,
+  markdownRenderHandler,
+};
+
+// Scripting (newly registered) — already exported in Scripting & Automation block above
+
+// Testing / QA exports
+export {
+  mockHandler,
+  fixtureHandler,
+  snapshotTestHandler,
+  loadTestHandler,
+  chaosTestHandler,
+};
+
+// Workflow / BPM exports
+export {
+  workflowHandler,
+  approvalHandler,
+  stateMachineHandler,
+  formBuilderHandler,
+};
+
+// i18n / Localization exports
+export {
+  localeHandler,
+  translationHandler,
+  rtlHandler,
+  timezoneHandler,
+};
+
+// Data Pipeline / ETL exports
+export {
+  etlHandler,
+  batchJobHandler,
+  dataTransformHandler,
+  schemaMigrateHandler,
+  dataQualityHandler,
+};
+
+// Notification / Alerting exports
+export {
+  webhookOutHandler,
+  pagerdutyHandler,
+  slackAlertHandler,
+};
+
+// Search exports
+export {
+  fullTextSearchHandler,
+  facetedSearchHandler,
+  autocompleteHandler,
+};
+
+// Compliance / Governance exports
+export {
+  gdprHandler,
+  dataRetentionHandler,
+  consentManagementHandler,
+};
+
+// File Storage exports
+export {
+  s3UploadHandler,
+  fileSystemHandler,
+  blobStoreHandler,
+};
+
+// API Gateway exports
+export {
+  graphqlHandler,
+  restEndpointHandler,
+  rpcHandler,
+};
+
+// Feature Flags exports (featureFlagHandler, canaryHandler already exported in DevOps / CI block)
+export {
+  abTestHandler,
+  rolloutHandler,
+};
+
+// Audit Trail exports (auditLogHandler already exported in Enterprise Multi-Tenancy block)
+export {
+  changeTrackingHandler,
+  dataLineageHandler,
+};
+
+// GPU Compute exports
+export {
+  computeShaderHandler,
+  renderPipelineHandler,
+  postProcessHandler,
+  rayTraceHandler,
+};
+
+// ML / Tensor exports
+export {
+  tensorOpHandler,
+  onnxRuntimeHandler,
+  trainingLoopHandler,
+};
+
+// Database / Persistence exports
+export {
+  sqlQueryHandler,
+  ormEntityHandler,
+  offlineSyncHandler,
+  reactiveStoreHandler,
+};
+
+// Spatial Algorithms exports
+export {
+  astarHandler,
+  navmeshSolverHandler,
+  optimizationHandler,
+};
+
+// Debug / Cinematic exports
+export {
+  timeTravelDebugHandler,
+  spatialProfilerHandler,
+  cinematicSeqHandler,
+  aiCameraHandler,
+};
+
+// FFI / OS exports
+export {
+  ffiHandler,
+  nativeCallHandler,
+  wasmBridgeHandler,
+  sysIoHandler,
+};
+
+// Concurrency exports
+export {
+  actorHandler,
+  cspChannelHandler,
+  temporalGuardHandler,
+  deadlockFreeHandler,
 };

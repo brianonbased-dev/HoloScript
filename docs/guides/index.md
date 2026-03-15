@@ -86,7 +86,7 @@ composition "Hello World" {
 
 - [Quick Start Guide](./quick-start) - Build your first HoloScript app
 - [File Formats](./file-formats) - Deep dive into .hs, .hsplus, and .holo
-- [Traits Reference](./traits) - 2,000+ traits across 73+ categories
+- [Traits Reference](./traits) - 2,000+ traits across 101+ categories
 - [Working Tree Triage](./working-tree-triage) - Keep large local change sets cleanly scoped
 - [Release Slice v5.0.1](./release-slice-v5-0-1) - Current patch-train scope and ship criteria
 - [MCP Mesh Operations](./mcp-mesh-operations) - Health checks and first-response recovery

@@ -5,7 +5,7 @@
 > **Traits describe everything. The compiler makes it real. From 3D worlds to backend services — one language, one stack.**
 > Write a dragon, an AI agent, or a REST endpoint in the same notation. Compile to Unity, Node.js, VRChat, ROS 2, or visionOS.
 
-HoloScript is a **semantic specification language**: **2,000+ traits** across 13 categories + **30+ compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
+HoloScript is a **semantic specification language**: **2,000+ traits** across 40 trait categories + **30+ compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
 
 Spatial computing is one application. HoloScript v6 extends executable semantics to service contracts, agent protocols, data schemas, and any domain expressible as declarative traits.
 

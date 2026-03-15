@@ -1,6 +1,6 @@
 # HoloScript VR Traits Reference
 
-Complete API reference for all **1,800+ VR traits** in HoloScript v5.0.0. Traits are now modularized into 74 specialized categories (Physics, AI, Magic, etc.), with new enterprise multi-tenancy, autonomous ecosystems, and post-quantum cryptography traits.
+Complete API reference for all **2,000+ VR traits** in HoloScript v5.1.0. Traits are now modularized into 101 specialized categories (Physics, AI, Magic, Scripting, etc.), with new enterprise multi-tenancy, autonomous ecosystems, scripting & automation, and post-quantum cryptography traits.
 
 ---
 

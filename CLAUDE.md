@@ -171,7 +171,7 @@ If any MCP tool call fails:
 
 ```text
 REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
-TRAITS      2,000+ traits in 13+ categories — ALL in @holoscript/core (no separate package)
+TRAITS      2,000+ traits in 40+ categories — ALL in @holoscript/core (no separate package)
 COMPILERS   30+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
 MCP         packages/mcp-server/ — 65 tools — start with: npx tsx packages/mcp-server/src/index.ts
 CACHE       ~/.holoscript/graph-cache.json — 24h TTL — holo_absorb_repo force=false reads from cache (~21ms)

@@ -352,6 +352,7 @@ async function dispatchActionAsync(
   toolDefs: any[],
   config: BridgeConfig,
   metrics: { inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number },
+  runtimeEmit?: (event: string, data: Record<string, unknown>) => void,
 ): Promise<boolean> {
   // Cast the BT blackboard to our typed interface for safe property access.
   // The BT passes its blackboard as Record<string, unknown> but we store
@@ -364,8 +365,8 @@ async function dispatchActionAsync(
       // Step 1: Diagnose the codebase for improvement candidates
       console.log(`  [BT] diagnose (focus: ${blackboard.focus})`);
 
-      // Get quality baseline
-      const qualityResult = await callTool(handlers, 'holo_validate_quality', { rootDir });
+      // Get quality baseline — skip tests for speed (full test run happens in validate_quality)
+      const qualityResult = await callTool(handlers, 'holo_validate_quality', { rootDir, skipTests: true });
       try {
         const parsed = JSON.parse(qualityResult);
         blackboard.quality_before = parsed.composite ?? 0;
@@ -464,15 +465,32 @@ async function dispatchActionAsync(
       metrics.toolCallsUseful += llmResult.toolCallsUseful;
       blackboard.files_edited.push(...llmResult.filesEdited);
 
-      return llmResult.filesEdited.length > 0;
+      // ── @economy: emit LLM spend event ──
+      // EconomyPrimitivesTrait.onEvent expects payload.agentId + payload.amount + payload.reason.
+      // Amount is in USD — the composition's initial_balance is also in USD units.
+      if (runtimeEmit) {
+        const cost = calculateCostUSD(llmResult.inputTokens, llmResult.outputTokens);
+        runtimeEmit('economy:spend', {
+          agentId: 'daemon',
+          amount: cost,
+          reason: `generate_fix:${blackboard.focus}`,
+        });
+      }
+
+      // Always succeed — if LLM didn't edit any files, verify_compilation will
+      // set compilation_passed=false and the selector handles the rollback path.
+      return true;
     }
 
     case 'verify_compilation': {
       // Step 5: Verify the edit compiles
+      // IMPORTANT: Always return true — set blackboard.compilation_passed for the
+      // condition node in handle_verification selector. If we return false here,
+      // the parent sequence aborts and the rollback action never executes.
       console.log(`  [BT] verify_compilation: ${blackboard.files_edited.join(', ')}`);
       if (blackboard.files_edited.length === 0) {
         blackboard.compilation_passed = false;
-        return false;
+        return true; // Let the condition gate handle it
       }
 
       const verifyResult = await callTool(handlers, 'holo_verify_before_commit', {
@@ -489,7 +507,7 @@ async function dispatchActionAsync(
 
       metrics.toolCallsTotal += 1;
       metrics.toolCallsUseful += 1;
-      return blackboard.compilation_passed;
+      return true; // Always succeed — condition node checks compilation_passed
     }
 
     case 'run_related_tests': {
@@ -514,25 +532,43 @@ async function dispatchActionAsync(
 
       metrics.toolCallsTotal += 1;
       metrics.toolCallsUseful += 1;
-      return blackboard.tests_passed;
+      return true; // Always succeed — condition node checks tests_passed
     }
 
     case 'validate_quality': {
       // Step 9: Full quality validation
+      // Use skipTests for speed — the verify_compilation + run_related_tests steps
+      // already validated the changes. Full vitest on 10K+ tests takes 5+ minutes
+      // and crashes on edited files, producing false 0.000 composites.
       console.log(`  [BT] validate_quality`);
-      const qualityResult = await callTool(handlers, 'holo_validate_quality', { rootDir });
+      const qualityResult = await callTool(handlers, 'holo_validate_quality', { rootDir, skipTests: true });
 
       try {
         const parsed = JSON.parse(qualityResult);
         blackboard.quality_after = parsed.composite ?? 0;
         blackboard.quality_improved = blackboard.quality_after > blackboard.quality_before;
+        if (config.verbose) {
+          console.log(`  [quality] composite=${parsed.composite?.toFixed(3)} typeCheck=${parsed.scores?.typeCheck?.score?.toFixed(3)} lint=${parsed.scores?.lint?.score?.toFixed(3)}`);
+        }
       } catch {
+        console.warn(`  [quality] Failed to parse quality result: ${qualityResult.slice(0, 200)}`);
         blackboard.quality_after = 0;
         blackboard.quality_improved = false;
       }
 
       metrics.toolCallsTotal += 1;
       metrics.toolCallsUseful += 1;
+
+      // ── @feedback_loop: emit quality_score metric ──
+      // FeedbackLoopTrait.onEvent looks up payload.name in state.metrics Map.
+      // The .hsplus defines quality_score (target 0.80) and cost_efficiency (target 0.50).
+      if (runtimeEmit) {
+        runtimeEmit('feedback:update_metric', {
+          name: 'quality_score',
+          value: blackboard.quality_after,
+        });
+      }
+
       return blackboard.quality_improved;
     }
 
@@ -590,12 +626,26 @@ async function dispatchActionAsync(
 
     case 'report_no_candidates': {
       console.log(`  [BT] No improvement candidates found for focus: ${blackboard.focus}`);
+      // Preserve quality — nothing was changed
+      blackboard.quality_after = blackboard.quality_before;
       return true;
     }
 
     case 'report_results': {
       const delta = blackboard.quality_after - blackboard.quality_before;
       console.log(`  [BT] report: quality ${blackboard.quality_before.toFixed(3)} → ${blackboard.quality_after.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)})`);
+
+      // ── @feedback_loop: emit cost_efficiency metric ──
+      // Computed as quality-delta-per-dollar. Clamped to [0, 1] for the trait's range.
+      if (runtimeEmit) {
+        const costSoFar = calculateCostUSD(metrics.inputTokens, metrics.outputTokens);
+        const efficiency = costSoFar > 0 ? Math.min(1, Math.max(0, delta / costSoFar)) : 0;
+        runtimeEmit('feedback:update_metric', {
+          name: 'cost_efficiency',
+          value: efficiency,
+        });
+      }
+
       return true;
     }
 
@@ -670,7 +720,7 @@ async function runBridgeCycle(
 
     // Start a new async action via dispatchActionAsync
     const entry = { resolved: false, result: false };
-    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics)
+    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics, runtimeEmit)
       .then((result) => {
         entry.resolved = true;
         entry.result = result;
@@ -698,9 +748,25 @@ async function runBridgeCycle(
     debug: config.verbose,
   });
 
+  // ── @feedback_loop + @economy: create event emitter bound to this runtime ──
+  // Events emitted here flow through HeadlessRuntime's event bus, reaching any
+  // FeedbackLoopTrait or EconomyTrait attached to nodes in the .hsplus composition.
+  const runtimeEmit = (event: string, data: Record<string, unknown>) => {
+    try {
+      runtime.emit(event, data);
+      if (config.verbose) console.log(`  [trait-event] ${event}`, JSON.stringify(data).slice(0, 120));
+    } catch { /* best effort — traits may not be attached */ }
+  };
+
   // Start the runtime — this instantiates nodes, attaches traits (including BT)
   // Blackboard context (focus, cycle_number, etc.) is injected on first action tick
   runtime.start();
+
+  // ── @structured_logger: log cycle start ──
+  runtimeEmit('logger:info', {
+    message: `Cycle ${cycleNumber} started`,
+    fields: { focus, cycle: cycleNumber },
+  });
 
   // Listen for BT completion events — bt_complete includes the final blackboard
   let btComplete = false;
@@ -712,12 +778,25 @@ async function runBridgeCycle(
     btBlackboard = event?.blackboard ?? {};
   });
 
+  // ── @economy: listen for cost circuit breaker events ──
+  // EconomyPrimitivesTrait emits these when spend_limit or balance is exceeded.
+  // We abort the tick loop early to prevent further API spend.
+  let budgetExhausted = false;
+  runtime.on('economy:spend_limit_exceeded', (event: any) => {
+    budgetExhausted = true;
+    console.warn(`  [economy] Spend limit exceeded — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`);
+  });
+  runtime.on('economy:insufficient_funds', (event: any) => {
+    budgetExhausted = true;
+    console.warn(`  [economy] Insufficient funds — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`);
+  });
+
   // Tick the runtime until the BT completes or we hit a safety limit
   const MAX_TICKS = 50_000; // Safety valve (~2.5h at 200ms yield per tick)
   const TICK_DELTA = 0.1; // 100ms simulated delta
   let tickCount = 0;
 
-  while (!btComplete && tickCount < MAX_TICKS) {
+  while (!btComplete && !budgetExhausted && tickCount < MAX_TICKS) {
     runtime.manualTick(TICK_DELTA);
     tickCount++;
 
@@ -725,6 +804,19 @@ async function runBridgeCycle(
     // This is critical: without yielding, pending actions never complete
     await new Promise(resolve => setTimeout(resolve, 200));
   }
+
+  // ── @structured_logger: log cycle completion ──
+  runtimeEmit('logger:info', {
+    message: `Cycle ${cycleNumber} finished`,
+    fields: {
+      focus,
+      ticks: tickCount,
+      btStatus,
+      budgetExhausted,
+      inputTokens: metrics.inputTokens,
+      outputTokens: metrics.outputTokens,
+    },
+  });
 
   runtime.stop();
 

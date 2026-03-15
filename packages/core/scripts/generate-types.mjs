@@ -2067,6 +2067,39 @@ export declare class UnifiedPBRSchema {
   toThreeJS(material: any): any;
   [key: string]: any;
 }
+
+// ============================================================================
+// SCRIPTING & AUTOMATION TRAITS
+// ============================================================================
+
+export interface SchedulerJob { id: string; interval_ms: number; action: string; params: Record<string, unknown>; mode: 'repeat' | 'once'; max_executions: number; paused: boolean; }
+export interface SchedulerConfig { jobs: SchedulerJob[]; max_jobs: number; poll_interval_ms: number; }
+export declare const schedulerHandler: TraitHandler<SchedulerConfig>;
+
+export type CBState = 'closed' | 'open' | 'half-open';
+export interface CircuitBreakerConfig { failure_threshold: number; window_ms: number; reset_timeout_ms: number; success_threshold: number; failure_rate_threshold: number; min_requests: number; }
+export declare const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig>;
+
+export type RateLimitStrategy = 'token_bucket' | 'sliding_window';
+export interface RateLimiterConfig { strategy: RateLimitStrategy; max_requests: number; window_ms: number; refill_rate: number; max_tokens: number; default_key: string; }
+export declare const rateLimiterHandler: TraitHandler<RateLimiterConfig>;
+
+export interface TimeoutGuardConfig { default_timeout_ms: number; default_fallback_action: string; max_concurrent: number; }
+export declare const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig>;
+
+export type TransformOp = { type: 'pick'; fields: string[] } | { type: 'omit'; fields: string[] } | { type: 'rename'; from: string; to: string } | { type: 'default'; field: string; value: unknown } | { type: 'compute'; field: string; expr: string } | { type: 'filter'; field: string; op: string; value: unknown } | { type: 'map_value'; field: string; mapping: Record<string, unknown> };
+export interface TransformRule { id: string; source_event: string; output_event: string; ops: TransformOp[]; enabled: boolean; }
+export interface TransformConfig { rules: TransformRule[]; }
+export declare const transformHandler: TraitHandler<TransformConfig>;
+
+export interface BufferChannel { id: string; source_event: string; output_event: string; max_count: number; max_wait_ms: number; max_size: number; enabled: boolean; }
+export interface BufferConfig { channels: BufferChannel[]; }
+export declare const bufferHandler: TraitHandler<BufferConfig>;
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export interface StructuredLoggerConfig { min_level: LogLevel; max_entries: number; rotation_count: number; emit_events: boolean; console_output: boolean; default_fields: Record<string, unknown>; }
+export interface LogEntry { level: LogLevel; message: string; fields: Record<string, unknown>; timestamp: number; iso: string; }
+export declare const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig>;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

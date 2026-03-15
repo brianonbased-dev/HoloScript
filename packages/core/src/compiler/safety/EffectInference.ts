@@ -90,6 +90,46 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
   '@norm_compliant': ['agent:observe', 'agent:communicate'], // Must observe + report norms
   '@cultural_memory': ['state:read', 'state:write', 'state:persistent'], // Dual memory persistence
   '@cultural_trace': ['state:write', 'render:spawn'], // Spatial stigmergic markers
+
+  // GPU Compute traits
+  '@compute_shader': ['resource:gpu', 'render:shader'],
+  '@render_pipeline': ['resource:gpu', 'render:spawn'],
+  '@post_process': ['resource:gpu', 'render:material'],
+  '@ray_trace': ['resource:gpu', 'resource:cpu'],
+
+  // ML / Tensor traits
+  '@tensor_op': ['resource:gpu', 'resource:memory'],
+  '@onnx_runtime': ['resource:cpu', 'resource:memory'],
+  '@training_loop': ['resource:gpu', 'resource:cpu', 'resource:memory'],
+
+  // Database / Persistence traits
+  '@sql_query': ['io:read', 'io:write'],
+  '@orm_entity': ['io:read', 'io:write', 'state:read', 'state:write'],
+  '@offline_sync': ['io:network', 'io:write', 'state:persistent'],
+  '@reactive_store': ['state:read', 'state:write'],
+
+  // Spatial Algorithm traits
+  '@astar': ['resource:cpu'],
+  '@navmesh_solver': ['resource:cpu', 'resource:memory'],
+  '@optimization': ['resource:cpu'],
+
+  // Debug / Cinematic traits
+  '@time_travel_debug': ['state:read', 'state:write', 'resource:memory'],
+  '@spatial_profiler': ['state:read', 'resource:cpu'],
+  '@cinematic_seq': ['render:spawn', 'state:read'],
+  '@ai_camera': ['render:spawn', 'agent:observe'],
+
+  // FFI / OS traits
+  '@ffi': ['io:read', 'io:write'],
+  '@native_call': ['io:read', 'io:write'],
+  '@wasm_bridge': ['resource:memory', 'resource:cpu'],
+  '@sys_io': ['io:read', 'io:write'],
+
+  // Concurrency traits
+  '@actor': ['agent:spawn', 'agent:communicate'],
+  '@csp_channel': ['state:read', 'state:write'],
+  '@temporal_guard': ['state:read'],
+  '@deadlock_free': ['resource:cpu'],
 };
 
 /**

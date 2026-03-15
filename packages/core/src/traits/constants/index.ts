@@ -82,12 +82,44 @@ import { ENTERPRISE_MULTITENANCY_TRAITS } from './enterprise-multitenancy';
 import { ANALYTICS_OBSERVABILITY_TRAITS } from './analytics-observability';
 import { SECURITY_CRYPTO_TRAITS } from './security-crypto';
 import { RENDERING_TRAITS } from './rendering';
+import { SCRIPTING_AUTOMATION_TRAITS } from './scripting-automation';
+import { DATA_STORAGE_TRAITS } from './data-storage';
+import { OBSERVABILITY_TRAITS } from './observability';
+import { COMMUNICATION_TRAITS } from './communication';
+import { ML_INFERENCE_TRAITS } from './ml-inference';
+import { DEVOPS_CI_TRAITS } from './devops-ci';
+import { AUTH_IDENTITY_TRAITS } from './auth-identity';
+import { PAYMENT_TRAITS } from './payment';
+import { MEDIA_CONTENT_TRAITS } from './media-content';
+import { TESTING_QA_TRAITS } from './testing-qa';
+import { WORKFLOW_BPM_TRAITS } from './workflow-bpm';
+import { I18N_LOCALIZATION_TRAITS } from './i18n-localization';
+import { DATA_PIPELINE_TRAITS } from './data-pipeline';
+import { NOTIFICATION_ALERTING_TRAITS } from './notification-alerting';
+import { SEARCH_TRAITS } from './search';
+import { COMPLIANCE_GOVERNANCE_TRAITS } from './compliance-governance';
+import { FILE_STORAGE_TRAITS } from './file-storage';
+import { API_GATEWAY_TRAITS } from './api-gateway';
+import { FEATURE_FLAGS_TRAITS } from './feature-flags';
+import { AUDIT_TRAIL_TRAITS } from './audit-trail';
+import { GPU_COMPUTE_TRAITS } from './gpu-compute';
+import { ML_TENSOR_TRAITS } from './ml-tensor';
+import { DATABASE_PERSISTENCE_TRAITS } from './database-persistence';
+import { SPATIAL_ALGORITHMS_TRAITS } from './spatial-algorithms';
+import { DEBUG_CINEMATIC_TRAITS } from './debug-cinematic';
+import { FFI_OS_TRAITS } from './ffi-os';
+import { CONCURRENCY_TRAITS } from './concurrency';
 
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
  * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1)
  * + 23 V43 AI/XR traits (Tier 1-3) + 18 enterprise multi-tenancy traits
- * + 18 analytics & observability traits + 76 security & cryptography traits + 27 rendering traits.
+ * + 18 analytics & observability traits + 76 security & cryptography traits + 27 rendering traits
+ * + 14 scripting & automation traits + 7 data & storage traits + 6 observability traits
+ * + 7 communication traits + 6 ML/inference traits + 6 devops/CI traits
+ * + 6 auth/identity traits + 5 payment traits + 4 media/content traits
+ * + 5 testing/QA traits + 4 workflow/BPM traits + 4 i18n/localization traits
+ * + 5 data pipeline/ETL traits + 3 notification/alerting traits + 3 search traits + 3 compliance/governance traits.
  */
 export const VR_TRAITS = [
   ...CORE_VR_INTERACTION_TRAITS,
@@ -179,6 +211,87 @@ export const VR_TRAITS = [
 
   // Rendering & Graphics (27 traits - Phase 1)
   ...RENDERING_TRAITS,
+
+  // Scripting & Automation (14 traits)
+  ...SCRIPTING_AUTOMATION_TRAITS,
+
+  // Data & Storage (7 traits)
+  ...DATA_STORAGE_TRAITS,
+
+  // Observability — Infrastructure (6 traits)
+  ...OBSERVABILITY_TRAITS,
+
+  // Communication (7 traits)
+  ...COMMUNICATION_TRAITS,
+
+  // ML / Inference (6 traits)
+  ...ML_INFERENCE_TRAITS,
+
+  // DevOps / CI (6 traits)
+  ...DEVOPS_CI_TRAITS,
+
+  // Auth / Identity (6 traits)
+  ...AUTH_IDENTITY_TRAITS,
+
+  // Payment (5 traits)
+  ...PAYMENT_TRAITS,
+
+  // Media / Content (4 traits)
+  ...MEDIA_CONTENT_TRAITS,
+
+  // Testing / QA (5 traits)
+  ...TESTING_QA_TRAITS,
+
+  // Workflow / BPM (4 traits)
+  ...WORKFLOW_BPM_TRAITS,
+
+  // i18n / Localization (4 traits)
+  ...I18N_LOCALIZATION_TRAITS,
+
+  // Data Pipeline / ETL (5 traits)
+  ...DATA_PIPELINE_TRAITS,
+
+  // Notification / Alerting (3 traits)
+  ...NOTIFICATION_ALERTING_TRAITS,
+
+  // Search (3 traits)
+  ...SEARCH_TRAITS,
+
+  // Compliance / Governance (3 traits)
+  ...COMPLIANCE_GOVERNANCE_TRAITS,
+
+  // File Storage (3 traits)
+  ...FILE_STORAGE_TRAITS,
+
+  // API Gateway (3 traits)
+  ...API_GATEWAY_TRAITS,
+
+  // Feature Flags (2 new traits — feature_flag already in devops-ci)
+  ...FEATURE_FLAGS_TRAITS,
+
+  // Audit Trail (2 new traits — audit_log already in observability)
+  ...AUDIT_TRAIL_TRAITS,
+
+  // GPU Compute / Shaders (4 traits)
+  ...GPU_COMPUTE_TRAITS,
+
+  // ML / Tensor Ops (3 new traits — model_load/inference/embedding already exist)
+  ...ML_TENSOR_TRAITS,
+
+  // Database / Persistence (4 traits)
+  ...DATABASE_PERSISTENCE_TRAITS,
+
+  // Spatial Algorithms (3 new traits — voronoi already exists)
+  ...SPATIAL_ALGORITHMS_TRAITS,
+
+  // Debug / Cinematic (4 traits)
+  ...DEBUG_CINEMATIC_TRAITS,
+
+  // FFI / OS Bindings (4 traits)
+  ...FFI_OS_TRAITS,
+
+  // Formal Verification / Concurrency (4 traits)
+  ...CONCURRENCY_TRAITS,
 ] as const;
 
 /**
@@ -309,3 +422,165 @@ export { SECURITY_CRYPTO_TRAITS } from './security-crypto';
 
 // Rendering & Graphics (Phase 1)
 export { RENDERING_TRAITS, type RenderingTraitName } from './rendering';
+
+// Scripting & Automation
+export {
+  SCRIPTING_AUTOMATION_TRAITS,
+  type ScriptingAutomationTraitName,
+} from './scripting-automation';
+
+// Data & Storage
+export {
+  DATA_STORAGE_TRAITS,
+  type DataStorageTraitName,
+} from './data-storage';
+
+// Observability (Infrastructure)
+export {
+  OBSERVABILITY_TRAITS,
+  type ObservabilityTraitName,
+} from './observability';
+
+// Communication
+export {
+  COMMUNICATION_TRAITS,
+  type CommunicationTraitName,
+} from './communication';
+
+// ML / Inference
+export {
+  ML_INFERENCE_TRAITS,
+  type MLInferenceTraitName,
+} from './ml-inference';
+
+// DevOps / CI
+export {
+  DEVOPS_CI_TRAITS,
+  type DevOpsCITraitName,
+} from './devops-ci';
+
+// Auth / Identity
+export {
+  AUTH_IDENTITY_TRAITS,
+  type AuthIdentityTraitName,
+} from './auth-identity';
+
+// Payment
+export {
+  PAYMENT_TRAITS,
+  type PaymentTraitName,
+} from './payment';
+
+// Media / Content
+export {
+  MEDIA_CONTENT_TRAITS,
+  type MediaContentTraitName,
+} from './media-content';
+
+// Testing / QA
+export {
+  TESTING_QA_TRAITS,
+  type TestingQATraitName,
+} from './testing-qa';
+
+// Workflow / BPM
+export {
+  WORKFLOW_BPM_TRAITS,
+  type WorkflowBPMTraitName,
+} from './workflow-bpm';
+
+// i18n / Localization
+export {
+  I18N_LOCALIZATION_TRAITS,
+  type I18NLocalizationTraitName,
+} from './i18n-localization';
+
+// Data Pipeline / ETL
+export {
+  DATA_PIPELINE_TRAITS,
+  type DataPipelineTraitName,
+} from './data-pipeline';
+
+// Notification / Alerting
+export {
+  NOTIFICATION_ALERTING_TRAITS,
+  type NotificationAlertingTraitName,
+} from './notification-alerting';
+
+// Search
+export {
+  SEARCH_TRAITS,
+  type SearchTraitName,
+} from './search';
+
+// Compliance / Governance
+export {
+  COMPLIANCE_GOVERNANCE_TRAITS,
+  type ComplianceGovernanceTraitName,
+} from './compliance-governance';
+
+// File Storage
+export {
+  FILE_STORAGE_TRAITS,
+  type FileStorageTraitName,
+} from './file-storage';
+
+// API Gateway
+export {
+  API_GATEWAY_TRAITS,
+  type ApiGatewayTraitName,
+} from './api-gateway';
+
+// Feature Flags
+export {
+  FEATURE_FLAGS_TRAITS,
+  type FeatureFlagsTraitName,
+} from './feature-flags';
+
+// Audit Trail
+export {
+  AUDIT_TRAIL_TRAITS,
+  type AuditTrailTraitName,
+} from './audit-trail';
+
+// GPU Compute
+export {
+  GPU_COMPUTE_TRAITS,
+  type GpuComputeTraitName,
+} from './gpu-compute';
+
+// ML / Tensor
+export {
+  ML_TENSOR_TRAITS,
+  type MlTensorTraitName,
+} from './ml-tensor';
+
+// Database / Persistence
+export {
+  DATABASE_PERSISTENCE_TRAITS,
+  type DatabasePersistenceTraitName,
+} from './database-persistence';
+
+// Spatial Algorithms
+export {
+  SPATIAL_ALGORITHMS_TRAITS,
+  type SpatialAlgorithmsTraitName,
+} from './spatial-algorithms';
+
+// Debug / Cinematic
+export {
+  DEBUG_CINEMATIC_TRAITS,
+  type DebugCinematicTraitName,
+} from './debug-cinematic';
+
+// FFI / OS
+export {
+  FFI_OS_TRAITS,
+  type FfiOsTraitName,
+} from './ffi-os';
+
+// Concurrency
+export {
+  CONCURRENCY_TRAITS,
+  type ConcurrencyTraitName,
+} from './concurrency';

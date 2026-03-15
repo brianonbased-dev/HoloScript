@@ -1,0 +1,70 @@
+{
+  "config": {
+    "arm": "both",
+    "trials": 3,
+    "cycles": 15,
+    "commit": true,
+    "verbose": false
+  },
+  "results": [
+    {
+      "arm": "control",
+      "trial": 1,
+      "cycles": 0,
+      "bestQuality": 0,
+      "totalCost": 0,
+      "durationSeconds": 5.065,
+      "exitCode": 1,
+      "error": "Exit code 1"
+    },
+    {
+      "arm": "control",
+      "trial": 2,
+      "cycles": 0,
+      "bestQuality": 0,
+      "totalCost": 0,
+      "durationSeconds": 6.968,
+      "exitCode": 0
+    },
+    {
+      "arm": "control",
+      "trial": 3,
+      "cycles": 0,
+      "bestQuality": 0,
+      "totalCost": 0,
+      "durationSeconds": 6.774,
+      "exitCode": 0
+    },
+    {
+      "arm": "treatment",
+      "trial": 1,
+      "cycles": 15,
+      "bestQuality": 0,
+      "totalCost": 0,
+      "durationSeconds": 849.333,
+      "exitCode": 0
+    },
+    {
+      "arm": "treatment",
+      "trial": 2,
+      "cycles": 0,
+      "bestQuality": 0,
+      "totalCost": 0,
+      "durationSeconds": 0,
+      "exitCode": -1,
+      "error": "Branch creation failed: Command failed: git checkout -b experiment/treatment-trial-2"
+    },
+    {
+      "arm": "treatment",
+      "trial": 3,
+      "cycles": 0,
+      "bestQuality": 0,
+      "totalCost": 0,
+      "durationSeconds": 0,
+      "exitCode": -1,
+      "error": "Branch creation failed: Command failed: git checkout -b experiment/treatment-trial-3"
+    }
+  ],
+  "completedAt": "2026-03-15T07:00:59.225Z",
+  "totalCost": 0
+}
