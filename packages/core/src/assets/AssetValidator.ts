@@ -12,6 +12,18 @@ import {
   AssetOptimization,
 } from './AssetMetadata';
 
+/**
+ * Format bytes as human-readable string
+ * Enhanced implementation matching @holoscript/std
+ */
+function formatBytes(bytes: number, decimals = 2): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
+}
+
 // ============================================================================
 // Validation Result Types
 // ============================================================================
@@ -604,18 +616,7 @@ export class AssetValidator {
 // Utility Functions
 // ============================================================================
 
-/**
- * Format bytes to human-readable string
- */
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
 
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
 
 // ============================================================================
 // Factory Functions

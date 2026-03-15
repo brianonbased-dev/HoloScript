@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudioHeader } from '@/components/StudioHeader';
@@ -857,6 +857,39 @@ export default function CreatePage() {
 
   useOllamaStatus();
 
+  // ── StudioBridge — AST mutation engine with history tracking ────────────────
+  const emptyAST = useMemo(() => ({
+    type: 'Composition' as const,
+    name: 'untitled',
+    templates: [],
+    objects: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
+  }), []);
+  const {
+    bridge: studioBridge,
+    apply: bridgeApply,
+    undo: bridgeUndo,
+    redo: bridgeRedo,
+    canUndo: bridgeCanUndo,
+    canRedo: bridgeCanRedo,
+  } = useStudioBridge(emptyAST);
+
   // ── URL scene restore (?scene= parameter) ──────────────────────────────────
   const searchParams = useSearchParams();
   useEffect(() => {
@@ -927,6 +960,10 @@ export default function CreatePage() {
           <ScenarioLauncher />
         </div>
       ) : (
+        <ResponsiveStudioLayout
+          leftTitle="Scene"
+          rightTitle="Properties"
+        >
         <div className="flex flex-1 overflow-hidden">
           {/* LEFT: Scene Graph + Assets tabbed panel (hidden on mobile, collapsible on tablet) */}
           <div
@@ -1985,6 +2022,7 @@ export default function CreatePage() {
             </button>
           </div>
         </div>
+        </ResponsiveStudioLayout>
       )}
 
       {/* Trait Palette modal */}

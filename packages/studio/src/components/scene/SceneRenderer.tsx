@@ -28,6 +28,7 @@ import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
 import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
 import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/ContentCameraUI';
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
+import { useStudioBus } from '@/hooks/useStudioBus';
 import { usePerformanceRegression, ProgressiveLoader } from '@holoscript/r3f-renderer';
 import * as THREE from 'three';
 
@@ -311,6 +312,27 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const perfResult = usePerformanceRegression({
     thresholdMs: 9.0,
     windowSize: 60,
+  });
+
+  // Perf → bus bridge: emit lodMetrics:tick so LODMetricsPanel receives real data
+  const { emit: emitBus } = useStudioBus();
+  const lastEmitRef = useRef(0);
+  useEffect(() => {
+    // Throttle to ~60Hz (every 16ms) to avoid flooding the bus
+    const now = Date.now();
+    if (now - lastEmitRef.current < 16) return;
+    lastEmitRef.current = now;
+
+    emitBus('lodMetrics:tick', {
+      timestamp: now,
+      avgFrameTimeMs: perfResult.avgFrameTimeMs,
+      isRegressed: perfResult.isRegressed,
+      levelDistribution: [0, 0, 0, 0], // TODO: wire from LODManager when available
+      totalTriangles: 0,
+      entityCount: 0,
+      regressionCount: perfResult.regressionCount,
+      recoveryCount: perfResult.recoveryCount,
+    });
   });
 
   // ─── XR support detection ──────────────────────────────────────────────────

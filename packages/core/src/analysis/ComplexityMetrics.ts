@@ -354,8 +354,84 @@ export class ComplexityAnalyzer {
   private analyzeFunctions(lines: string[]): FunctionComplexity[] {
     const functions: FunctionComplexity[] = [];
     const funcRegex = /\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/g;
+    
+    let inFunction = false;
+    let currentFunc: FunctionComplexity | null = null;
+    let braceDepth = 0;
+    let funcStartLine = 0;
+    let funcNesting = 0;
+    let maxFuncNesting = 0;
 
-    // Decision point patterns for cyclomatic complexity
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Check for function start
+      const funcMatch = this.tryStartFunction(line, funcRegex);
+      if (funcMatch && !inFunction) {
+        currentFunc = this.createFunctionMetrics(funcMatch, i);
+        inFunction = true;
+        funcStartLine = i;
+        braceDepth = 0;
+        funcNesting = 0;
+        maxFuncNesting = 0;
+      }
+
+      if (inFunction && currentFunc) {
+        // Count decision points
+        currentFunc.cyclomatic += this.countDecisionPoints(line);
+
+        // Track nesting
+        const nestingData = this.updateNesting(line, funcNesting, maxFuncNesting);
+        funcNesting = nestingData.current;
+        maxFuncNesting = nestingData.max;
+        braceDepth += nestingData.braceChange;
+
+        // Function end
+        if (braceDepth <= 0 && i > funcStartLine) {
+          this.finalizeFunctionMetrics(currentFunc, i, funcStartLine, maxFuncNesting);
+          functions.push(currentFunc);
+          inFunction = false;
+          currentFunc = null;
+        }
+      }
+    }
+
+    // Handle unclosed function
+    if (currentFunc) {
+      this.finalizeFunctionMetrics(currentFunc, lines.length - 1, funcStartLine, maxFuncNesting);
+      functions.push(currentFunc);
+    }
+
+    return functions;
+  }
+
+  /**
+   * Try to match a function start pattern
+   */
+  private tryStartFunction(line: string, funcRegex: RegExp): RegExpExecArray | null {
+    funcRegex.lastIndex = 0;
+    return funcRegex.exec(line);
+  }
+
+  /**
+   * Create initial function complexity metrics
+   */
+  private createFunctionMetrics(funcMatch: RegExpExecArray, lineIndex: number): FunctionComplexity {
+    const params = funcMatch[2].split(',').filter((p) => p.trim()).length;
+    return {
+      name: funcMatch[1],
+      line: lineIndex + 1,
+      cyclomatic: 1, // Base complexity
+      lines: 0,
+      parameters: params,
+      maxNesting: 0,
+    };
+  }
+
+  /**
+   * Count decision points in a line for cyclomatic complexity
+   */
+  private countDecisionPoints(line: string): number {
     const decisionPatterns = [
       /\bif\s*\(/g,
       /\belse\s+if\s*\(/g,
@@ -369,77 +445,53 @@ export class ComplexityAnalyzer {
       /catch\s*\(/g,
     ];
 
-    let inFunction = false;
-    let currentFunc: FunctionComplexity | null = null;
-    let braceDepth = 0;
-    let funcStartLine = 0;
-    let funcNesting = 0;
-    let maxFuncNesting = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Check for function start
-      funcRegex.lastIndex = 0;
-      const funcMatch = funcRegex.exec(line);
-
-      if (funcMatch && !inFunction) {
-        const params = funcMatch[2].split(',').filter((p) => p.trim()).length;
-        currentFunc = {
-          name: funcMatch[1],
-          line: i + 1,
-          cyclomatic: 1, // Base complexity
-          lines: 0,
-          parameters: params,
-          maxNesting: 0,
-        };
-        inFunction = true;
-        funcStartLine = i;
-        braceDepth = 0;
-        funcNesting = 0;
-        maxFuncNesting = 0;
-      }
-
-      if (inFunction && currentFunc) {
-        // Count decision points
-        for (const pattern of decisionPatterns) {
-          pattern.lastIndex = 0;
-          const matches = line.match(pattern);
-          if (matches) {
-            currentFunc.cyclomatic += matches.length;
-          }
-        }
-
-        // Track nesting
-        const opens = (line.match(/{/g) || []).length;
-        const closes = (line.match(/}/g) || []).length;
-        funcNesting += opens;
-        if (funcNesting > maxFuncNesting) {
-          maxFuncNesting = funcNesting;
-        }
-        funcNesting -= closes;
-
-        braceDepth += opens - closes;
-
-        // Function end
-        if (braceDepth <= 0 && i > funcStartLine) {
-          currentFunc.lines = i - funcStartLine + 1;
-          currentFunc.maxNesting = maxFuncNesting;
-          functions.push(currentFunc);
-          inFunction = false;
-          currentFunc = null;
-        }
+    let count = 0;
+    for (const pattern of decisionPatterns) {
+      pattern.lastIndex = 0;
+      const matches = line.match(pattern);
+      if (matches) {
+        count += matches.length;
       }
     }
+    return count;
+  }
 
-    // Handle unclosed function
-    if (currentFunc) {
-      currentFunc.lines = lines.length - funcStartLine;
-      currentFunc.maxNesting = maxFuncNesting;
-      functions.push(currentFunc);
-    }
+  /**
+   * Update nesting levels and brace depth
+   */
+  private updateNesting(line: string, currentNesting: number, maxNesting: number): {
+    current: number;
+    max: number;
+    braceChange: number;
+  } {
+    const opens = (line.match(/{/g) || []).length;
+    const closes = (line.match(/}/g) || []).length;
+    
+    // Function nesting increases with opens, then decreases with closes
+    let newCurrent = currentNesting + opens;
+    const newMax = Math.max(maxNesting, newCurrent);
+    newCurrent -= closes;
+    
+    const braceChange = opens - closes;
+    
+    return {
+      current: newCurrent,
+      max: newMax,
+      braceChange,
+    };
+  }
 
-    return functions;
+  /**
+   * Finalize function metrics when function ends
+   */
+  private finalizeFunctionMetrics(
+    func: FunctionComplexity,
+    endLine: number,
+    startLine: number,
+    maxNesting: number
+  ): void {
+    func.lines = endLine - startLine + 1;
+    func.maxNesting = maxNesting;
   }
 
   /**

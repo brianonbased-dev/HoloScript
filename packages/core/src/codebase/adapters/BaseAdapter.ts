@@ -110,6 +110,9 @@ export function extractDocComment(node: SyntaxNode): string | undefined {
  * Looks for the first comment child of the root that starts at line 0 or 1.
  * Handles JSDoc (/** ... *\/), line comments (// or ///), hash comments (#),
  * and Python module docstrings.
+ * 
+ * @param rootNode - The root syntax node of the parsed source tree
+ * @returns The extracted documentation comment text, or undefined if none found
  */
 export function extractFileDocComment(rootNode: SyntaxNode): string | undefined {
   for (const child of rootNode.children) {

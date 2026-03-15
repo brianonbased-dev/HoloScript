@@ -107,7 +107,20 @@ chunk physics {
   });
 
   it('extracts example content from triple backticks', () => {
-    const result = parseKnowledge(sampleKnowledge);
+    // Build sample with real backticks (avoids template literal escaping issues)
+    const bt = '`'.repeat(3);
+    const withExample = [
+      'meta { id: "t" name: "T" version: "1" }',
+      'chunk demo {',
+      '  category: "test"',
+      '  keywords: ["a"]',
+      '  description: "Demo"',
+      `  example: ${bt}`,
+      '    @material { roughness: 0.5 }',
+      `  ${bt}`,
+      '}',
+    ].join('\n');
+    const result = parseKnowledge(withExample);
     expect(result.chunks[0].content).toContain('@material');
     expect(result.chunks[0].content).toContain('roughness');
   });
