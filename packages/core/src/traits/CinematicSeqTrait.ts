@@ -2,14 +2,15 @@
  * CinematicSeqTrait — v5.1
  * Cinematic sequencing / timeline.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface CinematicSeqConfig { fps: number; }
 export const cinematicSeqHandler: TraitHandler<CinematicSeqConfig> = {
   name: 'cinematic_seq' as any, defaultConfig: { fps: 24 },
-  onAttach(node: any): void { node.__cinState = { clips: [] as Array<{ name: string; startFrame: number; endFrame: number }>, currentFrame: 0, playing: false }; },
-  onDetach(node: any): void { delete node.__cinState; },
+  onAttach(node: HSPlusNode): void { node.__cinState = { clips: [] as Array<{ name: string; startFrame: number; endFrame: number }>, currentFrame: 0, playing: false }; },
+  onDetach(node: HSPlusNode): void { delete node.__cinState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: CinematicSeqConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: CinematicSeqConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__cinState as { clips: any[]; currentFrame: number; playing: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

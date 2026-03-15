@@ -2,14 +2,15 @@
  * CspChannelTrait — v5.1
  * CSP channel communication.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface CspChannelConfig { buffer_size: number; }
 export const cspChannelHandler: TraitHandler<CspChannelConfig> = {
   name: 'csp_channel' as any, defaultConfig: { buffer_size: 10 },
-  onAttach(node: any): void { node.__cspState = { channels: new Map<string, any[]>() }; },
-  onDetach(node: any): void { delete node.__cspState; },
+  onAttach(node: HSPlusNode): void { node.__cspState = { channels: new Map<string, any[]>() }; },
+  onDetach(node: HSPlusNode): void { delete node.__cspState; },
   onUpdate(): void {},
-  onEvent(node: any, config: CspChannelConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: CspChannelConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__cspState as { channels: Map<string, any[]> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

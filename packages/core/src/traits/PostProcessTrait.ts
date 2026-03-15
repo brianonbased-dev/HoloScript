@@ -2,14 +2,15 @@
  * PostProcessTrait — v5.1
  * Post-processing effect chain.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface PostProcessConfig { max_effects: number; }
 export const postProcessHandler: TraitHandler<PostProcessConfig> = {
   name: 'post_process' as any, defaultConfig: { max_effects: 16 },
-  onAttach(node: any): void { node.__ppState = { effects: [] as Array<{ name: string; intensity: number }> }; },
-  onDetach(node: any): void { delete node.__ppState; },
+  onAttach(node: HSPlusNode): void { node.__ppState = { effects: [] as Array<{ name: string; intensity: number }> }; },
+  onDetach(node: HSPlusNode): void { delete node.__ppState; },
   onUpdate(): void {},
-  onEvent(node: any, config: PostProcessConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: PostProcessConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__ppState as { effects: Array<{ name: string; intensity: number }> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

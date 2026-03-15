@@ -2,14 +2,15 @@
  * SysIoTrait — v5.1
  * System I/O operations.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface SysIoConfig { allow_write: boolean; }
 export const sysIoHandler: TraitHandler<SysIoConfig> = {
   name: 'sys_io' as any, defaultConfig: { allow_write: false },
-  onAttach(node: any): void { node.__sysState = { reads: 0, writes: 0 }; },
-  onDetach(node: any): void { delete node.__sysState; },
+  onAttach(node: HSPlusNode): void { node.__sysState = { reads: 0, writes: 0 }; },
+  onDetach(node: HSPlusNode): void { delete node.__sysState; },
   onUpdate(): void {},
-  onEvent(node: any, config: SysIoConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SysIoConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__sysState as { reads: number; writes: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

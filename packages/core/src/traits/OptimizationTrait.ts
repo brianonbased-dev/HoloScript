@@ -2,14 +2,15 @@
  * OptimizationTrait — v5.1
  * Constraint optimization solver.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OptimizationConfig { max_iterations: number; tolerance: number; }
 export const optimizationHandler: TraitHandler<OptimizationConfig> = {
   name: 'optimization' as any, defaultConfig: { max_iterations: 1000, tolerance: 1e-6 },
-  onAttach(node: any): void { node.__optState = { solves: 0 }; },
-  onDetach(node: any): void { delete node.__optState; },
+  onAttach(node: HSPlusNode): void { node.__optState = { solves: 0 }; },
+  onDetach(node: HSPlusNode): void { delete node.__optState; },
   onUpdate(): void {},
-  onEvent(node: any, config: OptimizationConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: OptimizationConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__optState as { solves: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

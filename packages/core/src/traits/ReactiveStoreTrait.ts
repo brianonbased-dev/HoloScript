@@ -2,14 +2,15 @@
  * ReactiveStoreTrait — v5.1
  * Reactive state store with subscriptions.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface ReactiveStoreConfig { max_keys: number; }
 export const reactiveStoreHandler: TraitHandler<ReactiveStoreConfig> = {
   name: 'reactive_store' as any, defaultConfig: { max_keys: 500 },
-  onAttach(node: any): void { node.__storeState = { store: new Map<string, unknown>(), subscribers: new Map<string, number>() }; },
-  onDetach(node: any): void { delete node.__storeState; },
+  onAttach(node: HSPlusNode): void { node.__storeState = { store: new Map<string, unknown>(), subscribers: new Map<string, number>() }; },
+  onDetach(node: HSPlusNode): void { delete node.__storeState; },
   onUpdate(): void {},
-  onEvent(node: any, config: ReactiveStoreConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: ReactiveStoreConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__storeState as { store: Map<string, unknown>; subscribers: Map<string, number> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

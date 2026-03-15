@@ -2,14 +2,15 @@
  * ComputeShaderTrait — v5.1
  * Custom GPU compute shader dispatch.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface ComputeShaderConfig { max_workgroups: number; }
 export const computeShaderHandler: TraitHandler<ComputeShaderConfig> = {
   name: 'compute_shader' as any, defaultConfig: { max_workgroups: 256 },
-  onAttach(node: any): void { node.__csState = { dispatches: 0, shaders: new Map<string, { workgroups: number[] }>() }; },
-  onDetach(node: any): void { delete node.__csState; },
+  onAttach(node: HSPlusNode): void { node.__csState = { dispatches: 0, shaders: new Map<string, { workgroups: number[] }>() }; },
+  onDetach(node: HSPlusNode): void { delete node.__csState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: ComputeShaderConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: ComputeShaderConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__csState as { dispatches: number; shaders: Map<string, any> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

@@ -2,14 +2,15 @@
  * SpatialProfilerTrait — v5.1
  * Spatial performance profiler.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface SpatialProfilerConfig { sample_rate_ms: number; }
 export const spatialProfilerHandler: TraitHandler<SpatialProfilerConfig> = {
   name: 'spatial_profiler' as any, defaultConfig: { sample_rate_ms: 16 },
-  onAttach(node: any): void { node.__profState = { samples: [] as Array<{ ts: number; fps: number; drawCalls: number }>, recording: false }; },
-  onDetach(node: any): void { delete node.__profState; },
+  onAttach(node: HSPlusNode): void { node.__profState = { samples: [] as Array<{ ts: number; fps: number; drawCalls: number }>, recording: false }; },
+  onDetach(node: HSPlusNode): void { delete node.__profState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: SpatialProfilerConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: SpatialProfilerConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__profState as { samples: any[]; recording: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

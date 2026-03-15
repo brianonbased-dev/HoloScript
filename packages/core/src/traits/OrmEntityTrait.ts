@@ -2,14 +2,15 @@
  * OrmEntityTrait — v5.1
  * ORM entity mapping and CRUD.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OrmEntityConfig { table_prefix: string; }
 export const ormEntityHandler: TraitHandler<OrmEntityConfig> = {
   name: 'orm_entity' as any, defaultConfig: { table_prefix: '' },
-  onAttach(node: any): void { node.__ormState = { entities: new Map<string, Record<string, unknown>>() }; },
-  onDetach(node: any): void { delete node.__ormState; },
+  onAttach(node: HSPlusNode): void { node.__ormState = { entities: new Map<string, Record<string, unknown>>() }; },
+  onDetach(node: HSPlusNode): void { delete node.__ormState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: OrmEntityConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: OrmEntityConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__ormState as { entities: Map<string, Record<string, unknown>> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

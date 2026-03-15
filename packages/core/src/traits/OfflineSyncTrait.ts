@@ -2,14 +2,15 @@
  * OfflineSyncTrait — v5.1
  * Offline-first data synchronization.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OfflineSyncConfig { sync_interval_ms: number; }
 export const offlineSyncHandler: TraitHandler<OfflineSyncConfig> = {
   name: 'offline_sync' as any, defaultConfig: { sync_interval_ms: 5000 },
-  onAttach(node: any): void { node.__syncState = { pending: [] as any[], synced: 0, online: true }; },
-  onDetach(node: any): void { delete node.__syncState; },
+  onAttach(node: HSPlusNode): void { node.__syncState = { pending: [] as any[], synced: 0, online: true }; },
+  onDetach(node: HSPlusNode): void { delete node.__syncState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: OfflineSyncConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: OfflineSyncConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__syncState as { pending: any[]; synced: number; online: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

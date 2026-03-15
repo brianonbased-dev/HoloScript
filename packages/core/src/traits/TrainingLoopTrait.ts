@@ -2,14 +2,15 @@
  * TrainingLoopTrait — v5.1
  * On-device training loop.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface TrainingLoopConfig { max_epochs: number; learning_rate: number; }
 export const trainingLoopHandler: TraitHandler<TrainingLoopConfig> = {
   name: 'training_loop' as any, defaultConfig: { max_epochs: 100, learning_rate: 0.001 },
-  onAttach(node: any): void { node.__trainState = { epoch: 0, loss: Infinity, running: false }; },
-  onDetach(node: any): void { delete node.__trainState; },
+  onAttach(node: HSPlusNode): void { node.__trainState = { epoch: 0, loss: Infinity, running: false }; },
+  onDetach(node: HSPlusNode): void { delete node.__trainState; },
   onUpdate(): void {},
-  onEvent(node: any, config: TrainingLoopConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: TrainingLoopConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__trainState as { epoch: number; loss: number; running: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

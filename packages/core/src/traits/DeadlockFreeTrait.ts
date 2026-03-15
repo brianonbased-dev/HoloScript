@@ -2,14 +2,15 @@
  * DeadlockFreeTrait — v5.1
  * Deadlock-free guarantee marker with resource ordering.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface DeadlockFreeConfig { max_resources: number; }
 export const deadlockFreeHandler: TraitHandler<DeadlockFreeConfig> = {
   name: 'deadlock_free' as any, defaultConfig: { max_resources: 100 },
-  onAttach(node: any): void { node.__dlState = { locks: new Map<string, { owner: string; order: number }>(), nextOrder: 0 }; },
-  onDetach(node: any): void { delete node.__dlState; },
+  onAttach(node: HSPlusNode): void { node.__dlState = { locks: new Map<string, { owner: string; order: number }>(), nextOrder: 0 }; },
+  onDetach(node: HSPlusNode): void { delete node.__dlState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: DeadlockFreeConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: DeadlockFreeConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__dlState as { locks: Map<string, { owner: string; order: number }>; nextOrder: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

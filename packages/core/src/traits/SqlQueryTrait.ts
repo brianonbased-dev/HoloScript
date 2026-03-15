@@ -2,14 +2,15 @@
  * SqlQueryTrait — v5.1
  * Native SQL query execution.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface SqlQueryConfig { max_results: number; }
 export const sqlQueryHandler: TraitHandler<SqlQueryConfig> = {
   name: 'sql_query' as any, defaultConfig: { max_results: 1000 },
-  onAttach(node: any): void { node.__sqlState = { queries: 0, results: [] as any[] }; },
-  onDetach(node: any): void { delete node.__sqlState; },
+  onAttach(node: HSPlusNode): void { node.__sqlState = { queries: 0, results: [] as any[] }; },
+  onDetach(node: HSPlusNode): void { delete node.__sqlState; },
   onUpdate(): void {},
-  onEvent(node: any, config: SqlQueryConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, config: SqlQueryConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__sqlState as { queries: number; results: any[] } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;

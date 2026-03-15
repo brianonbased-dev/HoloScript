@@ -2,14 +2,15 @@
  * WasmBridgeTrait — v5.1
  * WebAssembly bridge.
  */
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface WasmBridgeConfig { max_memory_pages: number; }
 export const wasmBridgeHandler: TraitHandler<WasmBridgeConfig> = {
   name: 'wasm_bridge' as any, defaultConfig: { max_memory_pages: 256 },
-  onAttach(node: any): void { node.__wasmState = { modules: new Map<string, boolean>(), calls: 0 }; },
-  onDetach(node: any): void { delete node.__wasmState; },
+  onAttach(node: HSPlusNode): void { node.__wasmState = { modules: new Map<string, boolean>(), calls: 0 }; },
+  onDetach(node: HSPlusNode): void { delete node.__wasmState; },
   onUpdate(): void {},
-  onEvent(node: any, _config: WasmBridgeConfig, context: any, event: any): void {
+  onEvent(node: HSPlusNode, _config: WasmBridgeConfig, context: TraitContext, event: TraitEvent): void {
     const state = node.__wasmState as { modules: Map<string, boolean>; calls: number } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
