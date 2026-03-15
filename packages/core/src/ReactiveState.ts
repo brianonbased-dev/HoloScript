@@ -14,19 +14,19 @@ export class ReactiveState implements IReactiveState {
     this.proxy = this.createReactiveProxy(this.state);
   }
 
-  private createReactiveProxy(target: any): any {
+  private createReactiveProxy(target: Record<string, HoloScriptValue>): Record<string, HoloScriptValue> {
     const self = this;
     return new Proxy(target, {
       get(obj, key) {
-        const val = obj[key];
+        const val = obj[key as string];
         if (val && typeof val === 'object' && !Array.isArray(val)) {
-          return self.createReactiveProxy(val);
+          return self.createReactiveProxy(val as Record<string, HoloScriptValue>);
         }
         return val;
       },
       set(obj, key, value) {
-        const oldVal = obj[key];
-        obj[key] = value;
+        const oldVal = obj[key as string];
+        obj[key as string] = value;
         if (oldVal !== value) {
           self.notify();
         }

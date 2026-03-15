@@ -239,56 +239,67 @@ class DependencyGraphManager {
   private reverseDependencyGraph: Map<string, Set<string>> = new Map();
 
   /**
-   * Build dependency graphs in separate focused passes
+   * Build dependency graphs from dependency map
    */
   buildGraphs(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
-    // Clear existing graphs and module dependency arrays
+    this.reset();
+    this.buildForwardGraph(dependencies);
+    this.buildReverseGraph(dependencies);
+    this.updateModuleDependencies(dependencies, modules);
+  }
+
+  /**
+   * Reset internal state
+   */
+  private reset(): void {
     this.dependencyGraph.clear();
     this.reverseDependencyGraph.clear();
-    this.clearModuleDependencyArrays(modules);
-    
-    // Pass 1: Build forward graph and update module dependencies
-    this.buildForwardGraphs(dependencies, modules);
-    
-    // Pass 2: Build reverse graph
-    this.buildReverseGraphs(dependencies, modules);
   }
 
   /**
-   * Clear dependency arrays from all modules
+   * Build forward dependency graph (module -> dependencies)
    */
-  private clearModuleDependencyArrays(modules: Map<string, ModuleInfo>): void {
-    for (const module of modules.values()) {
-      module.dependencies = [];
-      module.dependents = [];
-    }
-  }
-
-  /**
-   * Build forward dependency graphs and update module dependencies
-   */
-  private buildForwardGraphs(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+  private buildForwardGraph(dependencies: Record<string, string[]>): void {
     for (const [modulePath, deps] of Object.entries(dependencies)) {
       this.dependencyGraph.set(modulePath, new Set(deps));
-      
-      const module = modules.get(modulePath);
-      if (module) {
-        module.dependencies = deps;
-      }
     }
   }
 
   /**
-   * Build reverse dependency graphs
+   * Build reverse dependency graph (dependency -> dependents)
    */
-  private buildReverseGraphs(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+  private buildReverseGraph(dependencies: Record<string, string[]>): void {
     for (const [modulePath, deps] of Object.entries(dependencies)) {
       for (const dep of deps) {
         if (!this.reverseDependencyGraph.has(dep)) {
           this.reverseDependencyGraph.set(dep, new Set());
         }
         this.reverseDependencyGraph.get(dep)!.add(modulePath);
+      }
+    }
+  }
 
+  /**
+   * Update module objects with dependency information
+   */
+  private updateModuleDependencies(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+    // Clear existing arrays
+    for (const module of modules.values()) {
+      module.dependencies = [];
+      module.dependents = [];
+    }
+
+    // Update dependencies
+    for (const [modulePath, deps] of Object.entries(dependencies)) {
+      const module = modules.get(modulePath);
+      if (module) {
+        module.dependencies = deps;
+      }
+    }
+
+    // Update dependents
+    for (const [modulePath, deps] of Object.entries(dependencies)) {
+      for (const dep of deps) {
         const depModule = modules.get(dep);
         if (depModule) {
           depModule.dependents.push(modulePath);

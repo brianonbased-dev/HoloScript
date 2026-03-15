@@ -1225,6 +1225,12 @@ export class HoloCompositionParser {
           // Domain-specific blocks (v4.1)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
+        } else if (this.check('MODULE')) {
+          // Module block — capture name and skip opaque body
+          this.advance(); // consume 'module'
+          if (this.check('STRING')) this.expectString();
+          else if (this.check('IDENTIFIER')) this.expectIdentifier();
+          if (this.check('LBRACE')) this.skipBlock();
         } else if (this.check('COMMENT') || this.check('LINE_COMMENT')) {
           this.advance(); // skip comments
         } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
@@ -1490,6 +1496,12 @@ export class HoloCompositionParser {
           // Domain-specific blocks (v4)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
+        } else if (this.check('MODULE')) {
+          // Module block — capture name and skip opaque body
+          this.advance(); // consume 'module'
+          if (this.check('STRING')) this.expectString();
+          else if (this.check('IDENTIFIER')) this.expectIdentifier();
+          if (this.check('LBRACE')) this.skipBlock();
         } else if (this.check('AT')) {
           // Check for @platform(...) decorator at composition level
           if (
@@ -3054,10 +3066,23 @@ export class HoloCompositionParser {
 
   private parseEmitStatement(): HoloStatement {
     this.expect('EMIT');
-    const event = this.expectString();
+    let event: string;
     let data: HoloExpression | undefined;
-    if (this.check('LBRACE') || this.check('IDENTIFIER')) {
-      data = this.parseExpression();
+    if (this.check('LPAREN')) {
+      // emit("event", data) — paren-call syntax
+      this.advance(); // consume (
+      event = this.expectString();
+      if (this.check('COMMA')) {
+        this.advance(); // consume ,
+        data = this.parseExpression();
+      }
+      this.expect('RPAREN');
+    } else {
+      // emit "event" data — bare syntax
+      event = this.expectString();
+      if (this.check('LBRACE') || this.check('IDENTIFIER')) {
+        data = this.parseExpression();
+      }
     }
     return { type: 'EmitStatement', event, data };
   }
@@ -4619,8 +4644,69 @@ export class HoloCompositionParser {
       // Handle inline `state "name" { }` blocks (alternative state_machine syntax)
       if (this.check('STATE')) {
         this.advance(); // consume 'state'
-        if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // state name
-        if (this.check('LBRACE')) this.skipBlock();
+        const stateName = (this.check('STRING') || this.check('IDENTIFIER'))
+          ? this.advance().value : 'anonymous';
+        // Auto-set first state as initial if not explicitly set
+        if (!sm.initialState) sm.initialState = stateName;
+        if (this.check('LBRACE')) {
+          this.expect('LBRACE');
+          this.skipNewlines();
+          const state: HoloState_Machine = {
+            type: 'State_Machine',
+            name: stateName,
+            actions: [],
+            transitions: [],
+          };
+          while (!this.check('RBRACE') && !this.isAtEnd()) {
+            this.skipNewlines();
+            if (this.check('RBRACE')) break;
+            const key = this.expectIdentifier();
+            if (this.check('COLON')) {
+              this.advance(); // consume :
+              if (key === 'enter' || key === 'entry') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.entry = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'exit') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.exit = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'actions') {
+                state.actions = this.parseBehaviorActions();
+              } else if (key === 'transitions') {
+                state.transitions = this.parseStateTransitions();
+              } else if (key === 'onDamage') {
+                state.onDamage = this.parseStatementBlock();
+              } else if (key === 'timeout') {
+                state.timeout = this.parseValue() as number;
+              } else if (key === 'onTimeout') {
+                state.onTimeout = this.parseStatementBlock();
+              } else {
+                this.parseValue(); // skip unknown value
+              }
+            } else if (this.check('LBRACE')) {
+              // key { ... } shorthand (e.g., enter { ... })
+              if (key === 'enter' || key === 'entry') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.entry = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'exit') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.exit = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else {
+                this.skipBlock();
+              }
+            }
+            this.skipNewlines();
+          }
+          this.expect('RBRACE');
+          sm.states[stateName] = state;
+        }
         this.skipNewlines();
         continue;
       }

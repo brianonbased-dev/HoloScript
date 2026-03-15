@@ -797,4 +797,241 @@ describe('Brittney AI Features', () => {
       expect(result.ast?.quests[0].giver).toBe('Aldric');
     });
   });
+
+  // ==========================================
+  // PARSER LIMITATION FIXES (March 2026)
+  // ==========================================
+
+  describe('Fix: State Machines with inline state blocks and emit()', () => {
+    it('parses state machine with inline state blocks and enter/exit handlers', () => {
+      const source = `
+        composition "Test" {
+          state_machine "enemy_ai" {
+            state "idle" {
+              enter: {
+                emit "entered_idle"
+              }
+              exit: {
+                emit "left_idle"
+              }
+            }
+            state "attacking" {
+              enter: {
+                emit "attack_started"
+              }
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.stateMachines).toHaveLength(1);
+      const sm = result.ast?.stateMachines[0];
+      expect(sm?.name).toBe('enemy_ai');
+      expect(sm?.initialState).toBe('idle'); // first state auto-set as initial
+      expect(sm?.states['idle']).toBeDefined();
+      expect(sm?.states['idle'].entry).toBeDefined();
+      expect(sm?.states['idle'].entry!.length).toBeGreaterThan(0);
+      expect(sm?.states['idle'].exit).toBeDefined();
+      expect(sm?.states['attacking']).toBeDefined();
+      expect(sm?.states['attacking'].entry).toBeDefined();
+    });
+
+    it('parses state machine with enter block containing emit() paren-call', () => {
+      const source = `
+        composition "Test" {
+          state_machine "boss" {
+            initialState: "phase1"
+            state "phase1" {
+              enter: {
+                emit("phase_changed", "phase1")
+              }
+            }
+            state "phase2" {
+              enter: {
+                emit("phase_changed", "phase2")
+                state.health -= 100
+              }
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const sm = result.ast?.stateMachines[0];
+      expect(sm?.initialState).toBe('phase1');
+      expect(sm?.states['phase1']).toBeDefined();
+      expect(sm?.states['phase1'].entry).toBeDefined();
+      expect(sm?.states['phase2']).toBeDefined();
+      // phase2 enter should have 2 statements: emit + assignment
+      expect(sm?.states['phase2'].entry!.length).toBe(2);
+    });
+
+    it('parses state machine with enter shorthand (no colon)', () => {
+      const source = `
+        composition "Test" {
+          state_machine "patrol" {
+            state "walking" {
+              enter {
+                emit "start_walking"
+              }
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const sm = result.ast?.stateMachines[0];
+      expect(sm?.states['walking']).toBeDefined();
+      expect(sm?.states['walking'].entry).toBeDefined();
+      expect(sm?.states['walking'].entry!.length).toBe(1);
+    });
+
+    it('parses state machine with transitions inside inline states', () => {
+      const source = `
+        composition "Test" {
+          state_machine "fsm" {
+            initialState: "idle"
+            state "idle" {
+              transitions: [
+                {
+                  target: "active"
+                  event: "activate"
+                }
+              ]
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const sm = result.ast?.stateMachines[0];
+      expect(sm?.states['idle'].transitions).toHaveLength(1);
+      expect(sm?.states['idle'].transitions[0].target).toBe('active');
+    });
+  });
+
+  describe('Fix: Module blocks at composition level', () => {
+    it('parses composition containing a module block', () => {
+      const source = `
+        composition "Test" {
+          object "Player" {
+            position: [0, 0, 0]
+          }
+          module "GameLogic" {
+            function update() {
+              state.x += 1
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.objects).toHaveLength(1);
+      expect(result.ast?.objects[0].name).toBe('Player');
+    });
+
+    it('parses composition with named module using string name', () => {
+      const source = `
+        composition "Test" {
+          module "AI" {
+            let target = null
+          }
+          object "NPC" {
+            position: [0, 0, 0]
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.objects).toHaveLength(1);
+    });
+
+    it('parses composition with module using identifier name', () => {
+      const source = `
+        composition "Test" {
+          module Utils {
+            export const PI = 3.14159
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Fix: emit() paren-call syntax in logic blocks', () => {
+    it('parses emit() with paren-call in on_enter handler', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            on_enter {
+              emit("player_entered")
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.logic?.handlers).toHaveLength(1);
+      expect(result.ast?.logic?.handlers[0].body).toHaveLength(1);
+      expect(result.ast?.logic?.handlers[0].body[0].type).toBe('EmitStatement');
+      expect((result.ast?.logic?.handlers[0].body[0] as any).event).toBe('player_entered');
+    });
+
+    it('parses emit() with paren-call and data argument', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            on_enter {
+              emit("damage_dealt", 50)
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const stmt = result.ast?.logic?.handlers[0].body[0] as any;
+      expect(stmt.type).toBe('EmitStatement');
+      expect(stmt.event).toBe('damage_dealt');
+      expect(stmt.data).toBeDefined();
+    });
+
+    it('parses bare emit syntax (existing behavior preserved)', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            on_enter {
+              emit "player_entered"
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      expect(result.ast?.logic?.handlers[0].body[0].type).toBe('EmitStatement');
+      expect((result.ast?.logic?.handlers[0].body[0] as any).event).toBe('player_entered');
+    });
+
+    it('parses multiple emit statements in one handler', () => {
+      const source = `
+        composition "Test" {
+          logic {
+            on_click {
+              emit("click_start")
+              state.clicks += 1
+              emit("click_end", state.clicks)
+            }
+          }
+        }
+      `;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const body = result.ast?.logic?.handlers[0].body;
+      expect(body).toHaveLength(3);
+      expect(body?.[0].type).toBe('EmitStatement');
+      expect(body?.[1].type).toBe('Assignment');
+      expect(body?.[2].type).toBe('EmitStatement');
+    });
+  });
 });

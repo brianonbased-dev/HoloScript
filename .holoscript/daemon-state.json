@@ -1,7 +1,7 @@
 {
-  "totalCycles": 40,
-  "lastCycleAt": "2026-03-15T02:07:06.301Z",
-  "lastQuality": 0.23,
+  "totalCycles": 42,
+  "lastCycleAt": "2026-03-15T02:41:02.317Z",
+  "lastQuality": 0.32,
   "bestQuality": 0.49,
   "focusRotation": [
     "typefix",
@@ -12,7 +12,7 @@
     "complexity",
     "all"
   ],
-  "currentFocusIndex": 4,
+  "currentFocusIndex": 6,
   "convergenceStreak": 0,
   "backoffMultiplier": 1,
   "improvements": []

@@ -28,28 +28,28 @@ class NoOpLogger implements HoloScriptLogger {
    * @param message - Debug message to discard
    * @param meta - Optional metadata to discard
    */
-  debug(): void {}
+  debug(message: string, meta?: Record<string, unknown>): void {}
   
   /**
    * Info-level logging (no-op implementation).
    * @param message - Info message to discard
    * @param meta - Optional metadata to discard
    */
-  info(): void {}
+  info(message: string, meta?: Record<string, unknown>): void {}
   
   /**
    * Warning-level logging (no-op implementation).
    * @param message - Warning message to discard
    * @param meta - Optional metadata to discard
    */
-  warn(): void {}
+  warn(message: string, meta?: Record<string, unknown>): void {}
   
   /**
    * Error-level logging (no-op implementation).
    * @param message - Error message to discard
    * @param meta - Optional metadata to discard
    */
-  error(): void {}
+  error(message: string, meta?: Record<string, unknown>): void {}
 }
 
 class ConsoleLogger implements HoloScriptLogger {

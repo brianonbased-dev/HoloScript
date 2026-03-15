@@ -61,6 +61,21 @@ interface FeatureParityScore {
   missingFeatures: string[];
 }
 
+interface ParsedASTNode {
+  objects?: Array<{
+    traits?: Array<{ name: string }>;
+  }>;
+  spatialGroups?: Array<{
+    objects?: Array<{
+      traits?: Array<{ name: string }>;
+    }>;
+  }>;
+  environment?: Record<string, unknown>;
+  states?: unknown;
+  audio?: unknown;
+  [key: string]: unknown;
+}
+
 interface TargetMapping {
   [vertical: string]: {
     targets: string[];
@@ -69,7 +84,9 @@ interface TargetMapping {
 }
 
 interface CompilerRegistry {
-  [target: string]: any;
+  [target: string]: {
+    compile: (ast: ParsedASTNode, options?: Record<string, unknown>) => string | Record<string, unknown>;
+  };
 }
 
 // ─── Configuration ────────────────────────────────────────────────────────
@@ -249,7 +266,7 @@ async function benchmarkCompilation(
 
 // ─── Feature Parity Calculation ──────────────────────────────────────────
 
-function calculateFeatureParity(ast: any, output: any): FeatureParityScore {
+function calculateFeatureParity(ast: ParsedASTNode, output: string | Record<string, unknown>): FeatureParityScore {
   const features = extractFeatures(ast);
   const outputStr = typeof output === 'string' ? output : JSON.stringify(output);
 
@@ -277,7 +294,7 @@ function calculateFeatureParity(ast: any, output: any): FeatureParityScore {
   };
 }
 
-function extractFeatures(ast: any): string[] {
+function extractFeatures(ast: ParsedASTNode): string[] {
   const features = new Set<string>();
 
   // Extract traits

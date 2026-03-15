@@ -80,7 +80,7 @@ ${results.serialization
 
 ### Analysis
 
-${analyzeByOperationCount(results.serialization, 'serializedSize', 'serializes', 'smaller')}
+${analyzeSerialization(results.serialization)}
 
 ---
 
@@ -229,7 +229,29 @@ function analyzeByOperationCount(
   return analysis;
 }
 
+function analyzeSerialization(ser: any[]): string {
+  let analysis = '';
 
+  // Group by operation count
+  const byCount = groupBy(ser, 'operationCount');
+  for (const [count, results] of Object.entries(byCount)) {
+    const sorted = results.sort((a: any, b: any) => a.serializedSize - b.serializedSize);
+    const smallest = sorted[0];
+    const largest = sorted[sorted.length - 1];
+    const ratio = (largest.serializedSize / smallest.serializedSize).toFixed(1);
+
+    analysis += `- **${count} operations**: ${smallest.library} serializes ${ratio}× smaller than ${largest.library}\n`;
+  }
+
+  // Performance analysis
+  const fastestSerializer = ser.reduce((best, r) => (r.serializeTime < best.serializeTime ? r : best));
+  const fastestDeserializer = ser.reduce((best, r) => (r.deserializeTime < best.deserializeTime ? r : best));
+
+  analysis += `\n**Serialization Speed**: ${fastestSerializer.library} (${fastestSerializer.serializeTime.toFixed(4)} ms)\n`;
+  analysis += `**Deserialization Speed**: ${fastestDeserializer.library} (${fastestDeserializer.deserializeTime.toFixed(4)} ms)\n`;
+
+  return analysis;
+}
 
 function analyzeMerge(merge: any[]): string {
   let analysis =
