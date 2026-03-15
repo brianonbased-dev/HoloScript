@@ -87,6 +87,12 @@ const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
 const LOG_FILE = path.join(STATE_DIR, 'daemon.log');
 const MODEL = 'claude-sonnet-4-20250514';
 const MAX_TOOL_CALLS = 50;
+const LOCK_FILE = path.join(STATE_DIR, 'control.lock');
+
+// W.090 Safeguard: Heartbeat interval and staleness threshold
+const HEARTBEAT_INTERVAL_MS = 30_000;   // Refresh lock file every 30s
+const HEARTBEAT_STALE_MS = 120_000;     // Lock is stale if not refreshed in 2min
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -241,6 +247,77 @@ function log(msg: string, toConsole = true): void {
     fs.appendFileSync(LOG_FILE, line + '\n', 'utf-8');
   } catch {
     /* best effort */
+  }
+}
+
+// ─── File Lock (W.090 Safeguards: heartbeat + staleness detection) ───────────
+
+function acquireLock(): boolean {
+  ensureStateDir();
+  try {
+    if (fs.existsSync(LOCK_FILE)) {
+      const lockData = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8'));
+      const lockAge = Date.now() - (lockData.heartbeat ?? lockData.time);
+      if (lockAge > HEARTBEAT_STALE_MS) {
+        console.warn(`Stale lock detected (age: ${(lockAge / 1000).toFixed(0)}s, PID: ${lockData.pid}). Reclaiming.`);
+      } else {
+        try {
+          process.kill(lockData.pid, 0);
+          return false;
+        } catch { /* process dead, reclaim */ }
+      }
+    }
+    fs.writeFileSync(LOCK_FILE, JSON.stringify({
+      pid: process.pid, time: Date.now(), heartbeat: Date.now(),
+    }), 'utf-8');
+    return true;
+  } catch { return false; }
+}
+
+function startHeartbeat(): void {
+  heartbeatTimer = setInterval(() => {
+    try {
+      if (fs.existsSync(LOCK_FILE)) {
+        const lockData = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8'));
+        if (lockData.pid === process.pid) {
+          lockData.heartbeat = Date.now();
+          fs.writeFileSync(LOCK_FILE, JSON.stringify(lockData), 'utf-8');
+        }
+      }
+    } catch { /* best effort */ }
+  }, HEARTBEAT_INTERVAL_MS);
+  if (heartbeatTimer && typeof heartbeatTimer === 'object' && 'unref' in heartbeatTimer) {
+    heartbeatTimer.unref();
+  }
+}
+
+function stopHeartbeat(): void {
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+}
+
+function releaseLock(): void {
+  stopHeartbeat();
+  try { if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE); } catch { /* best effort */ }
+}
+
+async function validateApiKeyAndCredits(): Promise<void> {
+  const anthropic = new Anthropic();
+  try {
+    const response = await anthropic.messages.create({
+      model: MODEL, max_tokens: 1, messages: [{ role: 'user', content: 'x' }],
+    });
+    if (response.stop_reason === 'end_turn' || response.stop_reason === 'max_tokens') {
+      console.log('  API key validated (pre-check passed)');
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('credit') || message.includes('balance') || message.includes('billing')) {
+      throw new Error(`Insufficient API credits. Fix billing before running daemon. Error: ${message}`);
+    }
+    if (message.includes('auth') || message.includes('key') || message.includes('401')) {
+      throw new Error(`Invalid API key. Check ANTHROPIC_API_KEY. Error: ${message}`);
+    }
+    throw new Error(`API pre-check failed: ${message}`);
   }
 }
 
@@ -711,9 +788,9 @@ async function runDaemon(
   let state = config.resume ? loadDaemonState() : loadDaemonState();
   let running = true;
 
-  // Graceful shutdown
+  // Graceful shutdown (W.090: also releases lock)
   const shutdown = () => {
-    log('🛑 Shutdown signal received — saving state...');
+    log('Shutdown signal received — saving state...');
     saveDaemonState(state);
     if (harvester) {
       harvester.flush().catch(() => {
@@ -721,12 +798,13 @@ async function runDaemon(
       });
       const stats = harvester.getStats();
       log(
-        `📊 Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured → ${stats.outputFile}`
+        `Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured → ${stats.outputFile}`
       );
     }
     log(
-      `💾 State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`
+      `State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`
     );
+    releaseLock();
     running = false;
   };
 
@@ -986,7 +1064,38 @@ async function main() {
   const config = parseArgs();
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('❌ ANTHROPIC_API_KEY required. Set with: $env:ANTHROPIC_API_KEY = "sk-ant-..."');
+    console.error('ANTHROPIC_API_KEY required. Set with: $env:ANTHROPIC_API_KEY = "sk-ant-..."');
+    process.exit(1);
+  }
+
+  // W.090 Safeguard 1: Acquire lock with heartbeat
+  if (!acquireLock()) {
+    console.error('Another self-improve instance is running. Exiting.');
+    process.exit(1);
+  }
+  startHeartbeat();
+
+  // W.090 Safeguard 3: Robust process cleanup — catch ALL exit paths
+  const cleanup = () => { releaseLock(); };
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    cleanup();
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+    cleanup();
+    process.exit(1);
+  });
+
+  // W.090 Safeguard 2: Validate API key before expensive cycles
+  console.log('Validating API key...');
+  try {
+    await validateApiKeyAndCredits();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(message);
+    releaseLock();
     process.exit(1);
   }
 
@@ -1056,11 +1165,14 @@ async function main() {
     await runDaemon(anthropic, handlers, toolDefs, config, skillContext, harvester);
   } else {
     await runSingleShot(anthropic, handlers, toolDefs, config, skillContext, harvester);
-    console.log('🏁 Self-improvement session complete.');
+    console.log('Self-improvement session complete.');
   }
+
+  releaseLock();
 }
 
 main().catch((err) => {
+  releaseLock();
   console.error('Fatal error:', err);
   process.exit(1);
 });

@@ -73,6 +73,11 @@ const LOCK_FILE = path.join(STATE_DIR, 'bridge.lock');
 const COMPOSITION_FILE = path.join(REPO_ROOT, 'compositions', 'self-improve-daemon.hsplus');
 const MODEL = 'claude-sonnet-4-20250514';
 
+// W.090 Safeguard: Heartbeat interval and staleness threshold
+const HEARTBEAT_INTERVAL_MS = 30_000;   // Refresh lock file every 30s
+const HEARTBEAT_STALE_MS = 120_000;     // Lock is stale if not refreshed in 2min
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface BridgeConfig {
@@ -173,32 +178,97 @@ function appendQualityHistory(entry: QualityEntry): void {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf-8');
 }
 
-// ─── File Lock ───────────────────────────────────────────────────────────────
+// ─── File Lock (W.090 Safeguards: heartbeat + staleness detection) ───────────
 
 function acquireLock(): boolean {
   ensureStateDir();
   try {
     if (fs.existsSync(LOCK_FILE)) {
       const lockData = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8'));
-      // Check if the process is still alive (stale lock detection)
-      try {
-        process.kill(lockData.pid, 0);
-        return false; // Process is alive, can't acquire
-      } catch {
-        // Process is dead, remove stale lock
+      // W.090 Safeguard 1: Check heartbeat staleness BEFORE PID check.
+      // If the lock file hasn't been refreshed within HEARTBEAT_STALE_MS,
+      // the owning process is likely an orphan (parent died, no cleanup).
+      const lockAge = Date.now() - (lockData.heartbeat ?? lockData.time);
+      if (lockAge > HEARTBEAT_STALE_MS) {
+        console.warn(`Stale lock detected (age: ${(lockAge / 1000).toFixed(0)}s, PID: ${lockData.pid}). Reclaiming.`);
+        // Fall through to overwrite
+      } else {
+        // Lock is fresh — check if the process is still alive
+        try {
+          process.kill(lockData.pid, 0);
+          return false; // Process is alive and lock is fresh
+        } catch {
+          // Process is dead, reclaim lock
+        }
       }
     }
-    fs.writeFileSync(LOCK_FILE, JSON.stringify({ pid: process.pid, time: Date.now() }), 'utf-8');
+    fs.writeFileSync(LOCK_FILE, JSON.stringify({
+      pid: process.pid,
+      time: Date.now(),
+      heartbeat: Date.now(),
+    }), 'utf-8');
     return true;
   } catch {
     return false;
   }
 }
 
+function startHeartbeat(): void {
+  heartbeatTimer = setInterval(() => {
+    try {
+      if (fs.existsSync(LOCK_FILE)) {
+        const lockData = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8'));
+        if (lockData.pid === process.pid) {
+          lockData.heartbeat = Date.now();
+          fs.writeFileSync(LOCK_FILE, JSON.stringify(lockData), 'utf-8');
+        }
+      }
+    } catch { /* best effort */ }
+  }, HEARTBEAT_INTERVAL_MS);
+  // Don't let the heartbeat timer prevent process exit
+  if (heartbeatTimer && typeof heartbeatTimer === 'object' && 'unref' in heartbeatTimer) {
+    heartbeatTimer.unref();
+  }
+}
+
+function stopHeartbeat(): void {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
 function releaseLock(): void {
+  stopHeartbeat();
   try {
     if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE);
   } catch { /* best effort */ }
+}
+
+// ─── W.090 Safeguard 2: API Credit Pre-Check ────────────────────────────────
+
+async function validateApiKeyAndCredits(): Promise<void> {
+  const anthropic = new Anthropic();
+  try {
+    // Minimal API call: 1 input token, max 1 output token — costs ~$0.000003
+    const response = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'x' }],
+    });
+    if (response.stop_reason === 'end_turn' || response.stop_reason === 'max_tokens') {
+      console.log('  API key validated (pre-check passed)');
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes('credit') || message.includes('balance') || message.includes('billing')) {
+      throw new Error(`Insufficient API credits. Fix billing before running daemon. Error: ${message}`);
+    }
+    if (message.includes('auth') || message.includes('key') || message.includes('401')) {
+      throw new Error(`Invalid API key. Check ANTHROPIC_API_KEY. Error: ${message}`);
+    }
+    throw new Error(`API pre-check failed: ${message}`);
+  }
 }
 
 // ─── Tool Loading ────────────────────────────────────────────────────────────
@@ -1022,8 +1092,34 @@ async function main() {
     process.exit(1);
   }
 
-  process.on('SIGINT', () => { releaseLock(); process.exit(0); });
-  process.on('SIGTERM', () => { releaseLock(); process.exit(0); });
+  // W.090 Safeguard 1: Start heartbeat to keep lock file fresh
+  startHeartbeat();
+
+  // W.090 Safeguard 3: Robust process cleanup — catch ALL exit paths
+  const cleanup = () => { releaseLock(); };
+  process.on('SIGINT', () => { cleanup(); process.exit(0); });
+  process.on('SIGTERM', () => { cleanup(); process.exit(0); });
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    cleanup();
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+    cleanup();
+    process.exit(1);
+  });
+
+  // W.090 Safeguard 2: Validate API key with cheap pre-check before expensive cycles
+  console.log('Validating API key...');
+  try {
+    await validateApiKeyAndCredits();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(message);
+    releaseLock();
+    process.exit(1);
+  }
 
   // Parse the .hsplus composition — this is THE CORE of the treatment arm.
   // The BT structure, state machine, feedback loops, and economy traits are

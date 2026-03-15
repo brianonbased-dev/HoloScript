@@ -433,5 +433,50 @@
     "toolCallsUseful": 12,
     "durationSeconds": 255.5,
     "arm": "treatment"
+  },
+  {
+    "timestamp": "2026-03-15T10:40:42.397Z",
+    "cycle": 29,
+    "composite": 0.2,
+    "grade": "F",
+    "focus": "typefix",
+    "summary": "Bridge cycle 29: quality 0.200 → 0.200",
+    "inputTokens": 83929,
+    "outputTokens": 1371,
+    "costUSD": 0.272352,
+    "toolCallsTotal": 11,
+    "toolCallsUseful": 10,
+    "durationSeconds": 167.3,
+    "arm": "treatment"
+  },
+  {
+    "timestamp": "2026-03-15T10:43:42.460Z",
+    "cycle": 30,
+    "composite": 0.2,
+    "grade": "F",
+    "focus": "coverage",
+    "summary": "Bridge cycle 30: quality 0.200 → 0.200",
+    "inputTokens": 10856,
+    "outputTokens": 2171,
+    "costUSD": 0.065133,
+    "toolCallsTotal": 4,
+    "toolCallsUseful": 3,
+    "durationSeconds": 180.1,
+    "arm": "treatment"
+  },
+  {
+    "timestamp": "2026-03-15T10:46:15.202Z",
+    "cycle": 31,
+    "composite": 0.2,
+    "grade": "F",
+    "focus": "typefix",
+    "summary": "Bridge cycle 31: quality 0.200 → 0.200",
+    "inputTokens": 81394,
+    "outputTokens": 1438,
+    "costUSD": 0.265752,
+    "toolCallsTotal": 11,
+    "toolCallsUseful": 10,
+    "durationSeconds": 152.7,
+    "arm": "treatment"
   }
 ]

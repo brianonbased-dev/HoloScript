@@ -1,12 +1,12 @@
 {
-  "totalCycles": 28,
+  "totalCycles": 31,
   "bestQuality": 0.28,
-  "lastQuality": 0.28,
-  "focusIndex": 28,
+  "lastQuality": 0.2,
+  "focusIndex": 31,
   "attemptedFiles": [
     "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\packages\\core\\src\\codebase\\adapters\\BaseAdapter.ts"
   ],
-  "totalInputTokens": 655538,
-  "totalOutputTokens": 19297,
-  "totalCostUSD": 2.256069
+  "totalInputTokens": 831717,
+  "totalOutputTokens": 24277,
+  "totalCostUSD": 2.859306
 }
