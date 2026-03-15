@@ -498,3 +498,26 @@ export class AIDriverTrait {
 export function createAIDriverTrait(config: AIDriverConfig): AIDriverTrait {
   return new AIDriverTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const aIDriverHandler = {
+  name: 'a_i_driver',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__a_i_driverState = { active: true, config };
+    ctx.emit('a_i_driver_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('a_i_driver_detached', { node });
+    delete node.__a_i_driverState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'a_i_driver_configure') {
+      Object.assign(node.__a_i_driverState?.config ?? {}, event.payload ?? {});
+      ctx.emit('a_i_driver_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

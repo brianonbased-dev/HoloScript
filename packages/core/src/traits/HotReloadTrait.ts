@@ -175,3 +175,26 @@ export const HOT_RELOAD_TRAIT = {
     { name: 'on_reload', type: 'string', required: false, default: 'soft', description: '"soft" (re-parse) or "hard" (full restart)' },
   ],
 };
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const hotReloadHandler = {
+  name: 'hot_reload',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__hot_reloadState = { active: true, config };
+    ctx.emit('hot_reload_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('hot_reload_detached', { node });
+    delete node.__hot_reloadState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'hot_reload_configure') {
+      Object.assign(node.__hot_reloadState?.config ?? {}, event.payload ?? {});
+      ctx.emit('hot_reload_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

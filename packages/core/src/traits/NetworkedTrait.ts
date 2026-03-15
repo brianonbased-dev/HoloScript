@@ -1033,3 +1033,26 @@ export function cleanupNetworkPool(): void {
 }
 
 export default NetworkedTrait;
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const networkedHandler = {
+  name: 'networked',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__networkedState = { active: true, config };
+    ctx.emit('networked_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('networked_detached', { node });
+    delete node.__networkedState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'networked_configure') {
+      Object.assign(node.__networkedState?.config ?? {}, event.payload ?? {});
+      ctx.emit('networked_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

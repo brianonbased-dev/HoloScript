@@ -502,3 +502,26 @@ export class GranularMaterialSystem {
     }
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const granularMaterialHandler = {
+  name: 'granular_material',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__granular_materialState = { active: true, config };
+    ctx.emit('granular_material_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('granular_material_detached', { node });
+    delete node.__granular_materialState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'granular_material_configure') {
+      Object.assign(node.__granular_materialState?.config ?? {}, event.payload ?? {});
+      ctx.emit('granular_material_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

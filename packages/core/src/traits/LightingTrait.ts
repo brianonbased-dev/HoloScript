@@ -499,3 +499,26 @@ export const LIGHTING_PRESETS = {
     groundIntensity: 0.8,
   }),
 };
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const lightingHandler = {
+  name: 'lighting',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__lightingState = { active: true, config };
+    ctx.emit('lighting_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('lighting_detached', { node });
+    delete node.__lightingState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'lighting_configure') {
+      Object.assign(node.__lightingState?.config ?? {}, event.payload ?? {});
+      ctx.emit('lighting_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

@@ -103,3 +103,26 @@ export class MultiviewGaussianRendererTrait {
     Object.assign(this.blendConfig, config);
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const multiviewGaussianRendererHandler = {
+  name: 'multiview_gaussian_renderer',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__multiview_gaussian_rendererState = { active: true, config };
+    ctx.emit('multiview_gaussian_renderer_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('multiview_gaussian_renderer_detached', { node });
+    delete node.__multiview_gaussian_rendererState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'multiview_gaussian_renderer_configure') {
+      Object.assign(node.__multiview_gaussian_rendererState?.config ?? {}, event.payload ?? {});
+      ctx.emit('multiview_gaussian_renderer_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

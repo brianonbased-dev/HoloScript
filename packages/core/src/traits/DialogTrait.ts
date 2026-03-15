@@ -1057,3 +1057,26 @@ export class DialogTrait {
 export function createDialogTrait(config?: DialogConfig): DialogTrait {
   return new DialogTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const dialogHandler = {
+  name: 'dialog',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__dialogState = { active: true, config };
+    ctx.emit('dialog_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('dialog_detached', { node });
+    delete node.__dialogState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'dialog_configure') {
+      Object.assign(node.__dialogState?.config ?? {}, event.payload ?? {});
+      ctx.emit('dialog_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

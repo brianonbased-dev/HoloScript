@@ -134,11 +134,52 @@ composition "SelfImproveDaemon" {
                   },
 
                   // Step 5: Verify the edit compiles
-                  // Sets blackboard: compilation_passed
+                  // Sets blackboard: compilation_passed, compile_errors
                   {
                     type: "action",
                     name: "verify_compilation",
                     action: "verify_compilation"
+                  },
+
+                  // Step 5.5: Retry loop — if compilation failed, feed errors back to LLM
+                  // The repeater ticks its child up to 2 times. The inverter gates on
+                  // "compilation NOT passed" — if compilation already succeeded, the
+                  // inverter makes the sequence fail immediately (no-op retry).
+                  // This is the key "loosening" — the LLM gets to see WHY its fix
+                  // failed and try again, like a human developer.
+                  {
+                    type: "repeater",
+                    name: "compile_retry_loop",
+                    count: 2,
+                    children: [
+                      {
+                        type: "sequence",
+                        name: "retry_compile_fix",
+                        children: [
+                          {
+                            type: "inverter",
+                            name: "compilation_not_passed",
+                            children: [
+                              {
+                                type: "condition",
+                                name: "compilation_passed",
+                                condition: "compilation_passed"
+                              }
+                            ]
+                          },
+                          {
+                            type: "action",
+                            name: "fix_from_compile_errors",
+                            action: "fix_from_compile_errors"
+                          },
+                          {
+                            type: "action",
+                            name: "verify_compilation_retry",
+                            action: "verify_compilation"
+                          }
+                        ]
+                      }
+                    ]
                   },
 
                   // Step 6: Handle verification result
@@ -316,6 +357,8 @@ composition "SelfImproveDaemon" {
         quality_before: 0,
         quality_after: 0,
         files_edited: [],
+        compile_errors: [],
+        retry_count: 0,
         cycle_wisdom: null,
         cycle_praised: false
       }

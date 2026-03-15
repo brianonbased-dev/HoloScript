@@ -1024,3 +1024,26 @@ export class LipSyncTrait {
 export function createLipSyncTrait(config?: LipSyncConfig): LipSyncTrait {
   return new LipSyncTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const lipSyncHandler = {
+  name: 'lip_sync',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__lip_syncState = { active: true, config };
+    ctx.emit('lip_sync_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('lip_sync_detached', { node });
+    delete node.__lip_syncState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'lip_sync_configure') {
+      Object.assign(node.__lip_syncState?.config ?? {}, event.payload ?? {});
+      ctx.emit('lip_sync_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

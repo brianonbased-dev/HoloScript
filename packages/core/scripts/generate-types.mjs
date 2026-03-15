@@ -403,6 +403,112 @@ export function generateScaleTexture(size: number, baseColor?: [number, number, 
 export function generateScaleNormalMap(size: number): Uint8Array;
 
 // ============================================================================
+// USDZ PIPELINE (USDA/USDZ Export)
+// ============================================================================
+
+export interface USDZPipelineOptions {
+  upAxis?: 'Y' | 'Z';
+  metersPerUnit?: number;
+  includeAnimations?: boolean;
+  exportMaterials?: boolean;
+  defaultMaterial?: string;
+  textureData?: Record<string, Uint8Array>;
+}
+
+export interface USDMaterial {
+  name: string;
+  baseColor?: [number, number, number];
+  metallic?: number;
+  roughness?: number;
+  emissiveColor?: [number, number, number];
+  emissiveIntensity?: number;
+  opacity?: number;
+  ior?: number;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  transmission?: number;
+  thickness?: number;
+  attenuationColor?: [number, number, number];
+  attenuationDistance?: number;
+  sheen?: number;
+  sheenRoughness?: number;
+  sheenColor?: [number, number, number];
+  iridescence?: number;
+  iridescenceIOR?: number;
+  anisotropy?: number;
+  anisotropyRotation?: number;
+  textureMaps?: Record<string, string>;
+}
+
+export interface USDGeometry {
+  type: 'sphere' | 'cube' | 'cylinder' | 'cone' | 'plane' | 'mesh';
+  radius?: number;
+  size?: [number, number, number];
+  height?: number;
+  points?: number[][];
+  faceVertexCounts?: number[];
+  faceVertexIndices?: number[];
+}
+
+export interface USDXform {
+  name: string;
+  translation?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+  geometry?: USDGeometry;
+  material?: string;
+  children?: USDXform[];
+}
+
+export interface USDADocument {
+  header: string;
+  stage: string;
+  materials: string;
+  prims: string;
+}
+
+export class USDZPipeline {
+  constructor(options?: USDZPipelineOptions);
+  generateUSDA(composition: HoloComposition): string;
+  generateUSDZ(composition: HoloComposition): Uint8Array;
+}
+
+export function generateUSDA(composition: HoloComposition, options?: USDZPipelineOptions): string;
+export function generateUSDZ(composition: HoloComposition, options?: USDZPipelineOptions): Uint8Array;
+export function getUSDZConversionCommand(usdaPath: string, usdzPath: string): string;
+export function getPythonConversionScript(usdaPath: string, usdzPath: string): string;
+
+// ============================================================================
+// USD PHYSICS COMPILER (Isaac Sim / Omniverse)
+// ============================================================================
+
+export interface USDPhysicsCompilerOptions {
+  stageName?: string;
+  upAxis?: 'Y' | 'Z';
+  metersPerUnit?: number;
+  timeCodesPerSecond?: number;
+  includePhysicsScene?: boolean;
+  gravity?: [number, number, number];
+  physicsTimestep?: number;
+  enableGPUDynamics?: boolean;
+  includeCollision?: boolean;
+  includeVisual?: boolean;
+  defaultMass?: number;
+  defaultStaticFriction?: number;
+  defaultDynamicFriction?: number;
+  defaultRestitution?: number;
+  enableArticulation?: boolean;
+}
+
+export class USDPhysicsCompiler {
+  constructor(options?: USDPhysicsCompilerOptions);
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string;
+}
+
+export function compileToUSDPhysics(composition: HoloComposition, options?: USDPhysicsCompilerOptions): string;
+export function compileForIsaacSim(composition: HoloComposition, options?: Partial<USDPhysicsCompilerOptions>): string;
+
+// ============================================================================
 // COMPILERS & GENERATORS
 // ============================================================================
 

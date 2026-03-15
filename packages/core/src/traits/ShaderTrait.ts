@@ -848,3 +848,26 @@ export type ShaderChunk = { name: string; code: string };
 export type InlineShader = { vertex?: string; fragment?: string };
 
 export default ShaderTrait;
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const shaderHandler = {
+  name: 'shader',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__shaderState = { active: true, config };
+    ctx.emit('shader_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('shader_detached', { node });
+    delete node.__shaderState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'shader_configure') {
+      Object.assign(node.__shaderState?.config ?? {}, event.payload ?? {});
+      ctx.emit('shader_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

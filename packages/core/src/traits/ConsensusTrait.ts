@@ -421,3 +421,26 @@ export function createConsensusTrait(
 ): ConsensusTrait {
   return new ConsensusTrait(entityId, config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const consensusHandler = {
+  name: 'consensus',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__consensusState = { active: true, config };
+    ctx.emit('consensus_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('consensus_detached', { node });
+    delete node.__consensusState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'consensus_configure') {
+      Object.assign(node.__consensusState?.config ?? {}, event.payload ?? {});
+      ctx.emit('consensus_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

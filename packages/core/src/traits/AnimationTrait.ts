@@ -1186,3 +1186,26 @@ export class AnimationTrait {
 export function createAnimationTrait(config?: AnimationConfig): AnimationTrait {
   return new AnimationTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const animationHandler = {
+  name: 'animation',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__animationState = { active: true, config };
+    ctx.emit('animation_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('animation_detached', { node });
+    delete node.__animationState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'animation_configure') {
+      Object.assign(node.__animationState?.config ?? {}, event.payload ?? {});
+      ctx.emit('animation_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

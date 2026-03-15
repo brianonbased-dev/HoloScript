@@ -514,3 +514,26 @@ export class SyncTierTrait {
     return counts;
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const syncTierHandler = {
+  name: 'sync_tier',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__sync_tierState = { active: true, config };
+    ctx.emit('sync_tier_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('sync_tier_detached', { node });
+    delete node.__sync_tierState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'sync_tier_configure') {
+      Object.assign(node.__sync_tierState?.config ?? {}, event.payload ?? {});
+      ctx.emit('sync_tier_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

@@ -542,3 +542,26 @@ export default {
   normalizeCenter,
   CRDT_ROOM_TRAIT_DEFAULTS,
 };
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const cRDTRoomHandler = {
+  name: 'c_r_d_t_room',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__c_r_d_t_roomState = { active: true, config };
+    ctx.emit('c_r_d_t_room_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('c_r_d_t_room_detached', { node });
+    delete node.__c_r_d_t_roomState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'c_r_d_t_room_configure') {
+      Object.assign(node.__c_r_d_t_roomState?.config ?? {}, event.payload ?? {});
+      ctx.emit('c_r_d_t_room_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

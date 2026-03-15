@@ -838,3 +838,26 @@ export class MorphTrait {
 export function createMorphTrait(config?: MorphConfig): MorphTrait {
   return new MorphTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const morphHandler = {
+  name: 'morph',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__morphState = { active: true, config };
+    ctx.emit('morph_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('morph_detached', { node });
+    delete node.__morphState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'morph_configure') {
+      Object.assign(node.__morphState?.config ?? {}, event.payload ?? {});
+      ctx.emit('morph_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

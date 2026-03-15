@@ -469,3 +469,26 @@ export function createSpatialAwarenessTrait(
 export function createSharedSpatialProvider(): SpatialContextProvider {
   return new SpatialContextProvider();
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const spatialAwarenessHandler = {
+  name: 'spatial_awareness',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__spatial_awarenessState = { active: true, config };
+    ctx.emit('spatial_awareness_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('spatial_awareness_detached', { node });
+    delete node.__spatial_awarenessState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'spatial_awareness_configure') {
+      Object.assign(node.__spatial_awarenessState?.config ?? {}, event.payload ?? {});
+      ctx.emit('spatial_awareness_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

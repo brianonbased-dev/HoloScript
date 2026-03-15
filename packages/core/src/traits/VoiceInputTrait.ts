@@ -396,3 +396,26 @@ export class VoiceInputTrait {
 export function createVoiceInputTrait(config: VoiceInputConfig): VoiceInputTrait {
   return new VoiceInputTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const voiceInputHandler = {
+  name: 'voice_input',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__voice_inputState = { active: true, config };
+    ctx.emit('voice_input_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('voice_input_detached', { node });
+    delete node.__voice_inputState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'voice_input_configure') {
+      Object.assign(node.__voice_inputState?.config ?? {}, event.payload ?? {});
+      ctx.emit('voice_input_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

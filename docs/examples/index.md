@@ -38,11 +38,11 @@ A full VR battle arena in ~100 lines.
 
 ### [AI Integration](/examples/ai-agent)
 
-Use MCP server (34+ tools) for AI-generated content.
+Use MCP server (65+ tools) for AI-generated content.
 
 ### [Multi-Platform Export](/examples/export)
 
-Compile to 25+ targets: Unity, Unreal, Godot, VRChat, Babylon, WebGPU, visionOS, Android XR, and more.
+Compile to 30+ targets: Unity, Unreal, Godot, VRChat, Babylon, WebGPU, visionOS, Android XR, and more.
 
 ## Cross-Domain Examples
 
@@ -61,6 +61,18 @@ Export scene objects as W3C Web of Things Thing Descriptions for IoT device inte
 ### OpenUSD Pipeline
 
 Compile scenes to USDA for the Pixar/Apple/NVIDIA OpenUSD ecosystem.
+
+### Volumetric Rendering (NeRF / 3D Gaussian Splatting)
+
+Repository examples include NeRF real-time rendering, Gaussian splat photogrammetry, and volumetric video streaming pipelines.
+
+### Multisensory Interaction
+
+Repository examples include haptic and force-feedback showcase scenes for VR interaction systems.
+
+### Quantum Simulation Use Cases
+
+Repository examples include quantum arena and quantum radar scenarios under novel use cases.
 
 ---
 

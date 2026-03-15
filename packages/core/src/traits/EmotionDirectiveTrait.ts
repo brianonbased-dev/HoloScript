@@ -940,3 +940,26 @@ export function createEmotionDirectiveTrait(
 ): EmotionDirectiveTrait {
   return new EmotionDirectiveTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const emotionDirectiveHandler = {
+  name: 'emotion_directive',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__emotion_directiveState = { active: true, config };
+    ctx.emit('emotion_directive_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('emotion_directive_detached', { node });
+    delete node.__emotion_directiveState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'emotion_directive_configure') {
+      Object.assign(node.__emotion_directiveState?.config ?? {}, event.payload ?? {});
+      ctx.emit('emotion_directive_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

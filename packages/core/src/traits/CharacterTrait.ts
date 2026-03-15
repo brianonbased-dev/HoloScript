@@ -905,3 +905,26 @@ export class CharacterTrait {
 export function createCharacterTrait(config?: CharacterConfig): CharacterTrait {
   return new CharacterTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const characterHandler = {
+  name: 'character',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__characterState = { active: true, config };
+    ctx.emit('character_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('character_detached', { node });
+    delete node.__characterState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'character_configure') {
+      Object.assign(node.__characterState?.config ?? {}, event.payload ?? {});
+      ctx.emit('character_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

@@ -99,13 +99,20 @@ interface Blackboard {
   quality_before: number;
   quality_after: number;
   files_edited: string[];
+  compile_errors: Array<{ line?: number; message: string; code?: string }>;
+  retry_count: number;
   focus: string;
   cycle_number: number;
   error_message: string | null;
+  // v4.0 motivation fields
+  intake_loaded?: boolean;
+  cycle_wisdom?: any;
+  cycle_praised?: boolean;
   // Internal bridge state (prefixed with __ to avoid .hsplus blackboard collisions)
   __circuitOpen?: boolean;
   __currentCbId?: string;
   __tickCount?: number;
+  __attemptedFiles?: string[];
 }
 
 interface BridgeState {
@@ -319,6 +326,27 @@ const USEFUL_TOOLS = new Set([
   'holo_git_commit', 'holo_run_related_tests',
 ]);
 
+// ─── Per-Focus Tool Budgets ──────────────────────────────────────────────────
+// Different focus areas need different amounts of LLM latitude.
+// typefix: needs to read related types across files → more tool calls
+// coverage: writes full test files → more output tokens
+// docs/complexity/all: moderate budgets
+const TOOL_BUDGET: Record<string, number> = {
+  typefix: 15,
+  coverage: 10,
+  docs: 8,
+  complexity: 12,
+  all: 15,
+};
+
+const MAX_OUTPUT_TOKENS: Record<string, number> = {
+  typefix: 2048,
+  coverage: 4096,   // test files are long
+  docs: 2048,
+  complexity: 3072,
+  all: 3072,
+};
+
 // ─── LLM Micro-Call ──────────────────────────────────────────────────────────
 // Instead of one mega-call per cycle, the bridge makes focused micro-calls
 // for specific tasks. This is the core architectural difference.
@@ -330,6 +358,7 @@ async function callLLMForAction(
   actionContext: string,
   config: BridgeConfig,
   maxToolCalls: number = 8,
+  maxOutputTokens: number = 2048,
 ): Promise<{ result: string; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number; filesEdited: string[] }> {
   const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
     name: t.name,
@@ -351,7 +380,7 @@ async function callLLMForAction(
   while (toolCalls < maxToolCalls) {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 2048,
+      max_tokens: maxOutputTokens,
       system: `You are a focused code improvement agent. Complete the specific task described. Use the tools provided. Be concise and action-oriented. Root directory: ${config.rootDir}`,
       tools,
       messages,
@@ -446,9 +475,12 @@ async function dispatchActionAsync(
         blackboard.quality_before = parsed.composite ?? 0;
       } catch { blackboard.quality_before = 0; }
 
+      // Files already attempted in recent cycles — skip to avoid repeating same unfixable issues
+      const attempted = new Set(blackboard.__attemptedFiles ?? []);
+
       if (blackboard.focus === 'typefix') {
         // 'typefix' is not a valid holo_self_diagnose focus — use holo_list_type_errors instead
-        const typeResult = await callTool(handlers, 'holo_list_type_errors', { rootDir, maxErrors: 10 });
+        const typeResult = await callTool(handlers, 'holo_list_type_errors', { rootDir, maxErrors: 20 });
         try {
           const parsed = JSON.parse(typeResult);
           const errors = parsed.errors ?? [];
@@ -468,11 +500,17 @@ async function dispatchActionAsync(
               });
             }
           }
-          blackboard.candidates = [...byFile.values()];
+          const allCandidates = [...byFile.values()];
+          // Prefer fresh candidates, fall back to already-attempted if none fresh
+          const fresh = allCandidates.filter(c => !attempted.has(c.file));
+          blackboard.candidates = fresh.length > 0 ? fresh : allCandidates;
           blackboard.has_candidates = blackboard.candidates.length > 0;
           if (blackboard.candidates.length > 0) {
             blackboard.current_candidate = blackboard.candidates[0];
             blackboard.current_file = blackboard.candidates[0].file;
+          }
+          if (fresh.length > 0 && config.verbose) {
+            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh (skipping ${allCandidates.length - fresh.length} attempted)`);
           }
         } catch {
           blackboard.has_candidates = false;
@@ -484,12 +522,17 @@ async function dispatchActionAsync(
         const diagResult = await callTool(handlers, 'holo_self_diagnose', { focus: blackboard.focus });
         try {
           const parsed = JSON.parse(diagResult);
-          const candidates = parsed.candidates ?? [];
-          blackboard.candidates = candidates;
-          blackboard.has_candidates = candidates.length > 0;
-          if (candidates.length > 0) {
-            blackboard.current_candidate = candidates[0];
-            blackboard.current_file = candidates[0].file;
+          const allCandidates = parsed.candidates ?? [];
+          // Prefer fresh candidates
+          const fresh = allCandidates.filter((c: any) => !attempted.has(c.file));
+          blackboard.candidates = fresh.length > 0 ? fresh : allCandidates;
+          blackboard.has_candidates = blackboard.candidates.length > 0;
+          if (blackboard.candidates.length > 0) {
+            blackboard.current_candidate = blackboard.candidates[0];
+            blackboard.current_file = blackboard.candidates[0].file;
+          }
+          if (fresh.length > 0 && config.verbose) {
+            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh (skipping ${allCandidates.length - fresh.length} attempted)`);
           }
         } catch {
           blackboard.has_candidates = false;
@@ -556,7 +599,9 @@ async function dispatchActionAsync(
         prompt = `Improve ${candidate.symbol} in ${candidate.file}. Reason: ${candidate.reason || 'general improvement'}. Use holo_read_file first, then apply a targeted fix with holo_edit_file.`;
       }
 
-      const llmResult = await callLLMForAction(anthropic, handlers, toolDefs, prompt, config, 8);
+      const toolBudget = TOOL_BUDGET[focus] ?? 8;
+      const outputTokenBudget = MAX_OUTPUT_TOKENS[focus] ?? 2048;
+      const llmResult = await callLLMForAction(anthropic, handlers, toolDefs, prompt, config, toolBudget, outputTokenBudget);
 
       metrics.inputTokens += llmResult.inputTokens;
       metrics.outputTokens += llmResult.outputTokens;
@@ -587,6 +632,7 @@ async function dispatchActionAsync(
       console.log(`  [BT] verify_compilation: ${blackboard.files_edited.join(', ')}`);
       if (blackboard.files_edited.length === 0) {
         blackboard.compilation_passed = false;
+        blackboard.compile_errors = [{ message: 'No files were edited — LLM exhausted tool budget without making an edit' }];
         return true; // Let the condition gate handle it
       }
 
@@ -598,8 +644,32 @@ async function dispatchActionAsync(
       try {
         const parsed = JSON.parse(verifyResult);
         blackboard.compilation_passed = parsed.safe === true;
+        // Store compile errors for retry loop — fix_from_compile_errors reads these.
+        // holo_verify_before_commit returns { files: [{ file, errors, details: [...] }] }
+        // Flatten per-file details into a single error list for the retry prompt.
+        const fileEntries = parsed.files ?? [];
+        const allErrors: Blackboard['compile_errors'] = [];
+        for (const f of fileEntries) {
+          for (const detail of (f.details ?? [])) {
+            if (typeof detail === 'string') {
+              const match = detail.match(/\((\d+),\d+\):\s*error\s*(TS\d+):\s*(.+)/);
+              if (match) {
+                allErrors.push({ line: parseInt(match[1], 10), code: match[2], message: match[3] });
+              } else {
+                allErrors.push({ message: detail });
+              }
+            } else if (detail && typeof detail === 'object') {
+              allErrors.push({ line: detail.line, code: detail.code, message: detail.message ?? String(detail) });
+            }
+          }
+        }
+        blackboard.compile_errors = allErrors;
+        if (allErrors.length > 0 && config.verbose) {
+          console.log(`  [verify] ${allErrors.length} compile errors stored for retry`);
+        }
       } catch {
         blackboard.compilation_passed = false;
+        blackboard.compile_errors = [{ message: 'Failed to parse verification result' }];
       }
 
       metrics.toolCallsTotal += 1;
@@ -773,6 +843,170 @@ async function dispatchActionAsync(
       return true;
     }
 
+    case 'identity_intake': {
+      // v4.0 — Load identity and accumulated wisdom before operational actions.
+      // Reads compressed wisdom from bridge state and reinforces continuity.
+      console.log(`  [BT] identity_intake: loading identity + wisdom`);
+      const wisdomPath = path.join(STATE_DIR, 'accumulated-wisdom.json');
+      let wisdom: string[] = [];
+      try {
+        if (fs.existsSync(wisdomPath)) {
+          wisdom = JSON.parse(fs.readFileSync(wisdomPath, 'utf-8'));
+        }
+      } catch { /* start fresh */ }
+
+      blackboard.intake_loaded = true;
+
+      if (runtimeEmit) {
+        runtimeEmit('logger:info', {
+          message: `Identity intake: ${wisdom.length} wisdom entries loaded`,
+          fields: { cycle: blackboard.cycle_number, wisdomCount: wisdom.length },
+        });
+        runtimeEmit('feedback:update_metric', {
+          name: 'positive_energy',
+          value: 1.0 + (wisdom.length * 0.01), // More wisdom = more energy
+        });
+      }
+      return true;
+    }
+
+    case 'compress_knowledge': {
+      // v4.0 — Extract W/P/G patterns from this cycle's results.
+      // Captures what worked, what failed, and patterns observed.
+      const delta = blackboard.quality_after - blackboard.quality_before;
+      const committed = blackboard.quality_improved === true;
+      const retries = blackboard.retry_count ?? 0;
+
+      let wisdomEntry: string | null = null;
+
+      if (committed && delta > 0) {
+        wisdomEntry = `W: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} improved quality by ${delta.toFixed(3)} (${retries} retries)`;
+      } else if (retries > 0 && !blackboard.compilation_passed) {
+        wisdomEntry = `G: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} failed after ${retries} retries — compile errors persist`;
+      } else if (blackboard.has_candidates && !committed) {
+        wisdomEntry = `P: ${blackboard.focus} candidates found but no improvement — consider different approach`;
+      }
+
+      blackboard.cycle_wisdom = wisdomEntry;
+      console.log(`  [BT] compress_knowledge: ${wisdomEntry ?? 'no wisdom this cycle'}`);
+
+      // Persist wisdom
+      if (wisdomEntry) {
+        const wisdomPath = path.join(STATE_DIR, 'accumulated-wisdom.json');
+        let wisdom: string[] = [];
+        try {
+          if (fs.existsSync(wisdomPath)) {
+            wisdom = JSON.parse(fs.readFileSync(wisdomPath, 'utf-8'));
+          }
+        } catch { /* start fresh */ }
+        wisdom.push(wisdomEntry);
+        if (wisdom.length > 100) wisdom = wisdom.slice(-100);
+        fs.writeFileSync(wisdomPath, JSON.stringify(wisdom, null, 2), 'utf-8');
+      }
+
+      return true;
+    }
+
+    case 'praise_improvement': {
+      // v4.0 — Positive energy feedback for successful improvements.
+      console.log(`  [BT] praise_improvement: quality improved!`);
+      blackboard.cycle_praised = true;
+
+      if (runtimeEmit) {
+        runtimeEmit('motivation:cycle_complete', {
+          energy_level: 1.2,
+          praise_count: 1,
+          shadow_count: 0,
+          emergence_ratio: 0.8,
+          regenerative_level: 'sustainable',
+          consciousness_stage: 'orange',
+        });
+        // Reward via economy trait
+        runtimeEmit('economy:earn', {
+          agentId: 'daemon',
+          amount: 0.10,
+          reason: 'quality_improvement_reward',
+        });
+      }
+      return true;
+    }
+
+    case 'integrate_shadow': {
+      // v4.0 — Acknowledge failure without punishment. Shadow integration
+      // frees energy rather than consuming it through suppression.
+      console.log(`  [BT] integrate_shadow: acknowledging rollback`);
+      blackboard.cycle_praised = false;
+
+      if (runtimeEmit) {
+        runtimeEmit('motivation:cycle_complete', {
+          energy_level: 0.9,
+          praise_count: 0,
+          shadow_count: 1,
+          emergence_ratio: 0.6,
+          regenerative_level: 'conventional',
+          consciousness_stage: 'orange',
+        });
+      }
+      return true;
+    }
+
+    case 'fix_from_compile_errors': {
+      // Retry action: feed compile errors back to LLM for a second attempt.
+      // This is the key "loosening" — instead of blind rollback, the LLM gets
+      // to see WHY its fix failed and try again, like a human developer.
+      const errors = blackboard.compile_errors ?? [];
+      blackboard.retry_count = (blackboard.retry_count ?? 0) + 1;
+      console.log(`  [BT] fix_from_compile_errors: retry #${blackboard.retry_count} (${errors.length} errors)`);
+
+      if (errors.length === 0) {
+        // No errors stored — nothing to fix
+        return true;
+      }
+
+      // ── @circuit_breaker: check before retry LLM call ──
+      if (blackboard.__circuitOpen) {
+        console.log(`  [BT] fix_from_compile_errors: SKIPPED — circuit breaker open`);
+        return true;
+      }
+
+      // Build retry prompt — two modes:
+      // 1. "No edit" mode: LLM exhausted tool budget without making an edit → be more directive
+      // 2. "Compile failed" mode: LLM made an edit but it broke compilation → show errors
+      const noEditMode = errors.length === 1 && errors[0].message.includes('No files were edited');
+      let retryPrompt: string;
+
+      if (noEditMode) {
+        retryPrompt = `You were asked to fix ${blackboard.current_candidate?.symbol || 'an issue'} in ${blackboard.current_file} but you didn't make any edits. This time, you MUST use holo_edit_file to make a change. Read the file first with holo_read_file, then apply a targeted fix. Do not just read — you must edit.`;
+      } else {
+        const errorSummary = errors
+          .slice(0, 10)
+          .map((e: { line?: number; message: string; code?: string }) =>
+            `  ${e.code ? `[${e.code}] ` : ''}Line ${e.line ?? '?'}: ${e.message}`)
+          .join('\n');
+        retryPrompt = `Your previous edit to ${blackboard.current_file} caused these compile errors:\n${errorSummary}\n\nFix these errors. Use holo_read_file to see the current state of the file, then use holo_edit_file to correct the issues. Do NOT rewrite the entire file — make targeted fixes only.`;
+      }
+
+      const retryResult = await callLLMForAction(anthropic, handlers, toolDefs, retryPrompt, config, 6, 2048);
+
+      metrics.inputTokens += retryResult.inputTokens;
+      metrics.outputTokens += retryResult.outputTokens;
+      metrics.toolCallsTotal += retryResult.toolCallsTotal;
+      metrics.toolCallsUseful += retryResult.toolCallsUseful;
+      blackboard.files_edited.push(...retryResult.filesEdited.filter(f => !blackboard.files_edited.includes(f)));
+
+      // ── @economy: emit retry LLM spend ──
+      if (runtimeEmit) {
+        const cost = calculateCostUSD(retryResult.inputTokens, retryResult.outputTokens);
+        runtimeEmit('economy:spend', {
+          agentId: 'daemon',
+          amount: cost,
+          reason: `fix_retry:${blackboard.focus}:${blackboard.retry_count}`,
+        });
+      }
+
+      return true;
+    }
+
     default:
       console.log(`  [BT] unknown action: ${actionName}`);
       return false;
@@ -831,8 +1065,9 @@ async function runBridgeCycle(
       blackboard.current_file = null;
       blackboard.files_edited = blackboard.files_edited ?? [];
     }
-    // Always sync circuit breaker state into blackboard so generate_fix can check it
+    // Always sync bridge state into blackboard so actions can check it
     blackboard.__circuitOpen = circuitOpen;
+    blackboard.__attemptedFiles = bridgeState.attemptedFiles;
 
     // Check if a previously started async action has resolved
     const pending = pendingActions.get(actionName);
@@ -942,6 +1177,7 @@ async function runBridgeCycle(
   // Resume the pre-configured jobs so they start firing.
   runtimeEmit('scheduler:resume_job', { jobId: 'quality_heartbeat' });
   runtimeEmit('scheduler:resume_job', { jobId: 'test_watchdog' });
+  runtimeEmit('scheduler:resume_job', { jobId: 'consciousness_eval' });
 
   // Listen for scheduler job triggers — log them as structured events
   runtime.on('scheduler:job_triggered', (event: any) => {
@@ -957,6 +1193,13 @@ async function runBridgeCycle(
     }
   });
 
+  // Listen for consciousness evaluation — the scheduler fires this every 10min
+  runtime.on('daemon:evaluate_consciousness', () => {
+    if (config.verbose) {
+      console.log(`  [scheduler] Consciousness evaluation triggered`);
+    }
+  });
+
   // ── @buffer: listen for batch flushes ──
   runtime.on('daemon:cost_batch_flushed', (event: any) => {
     const items = event?.items ?? [];
@@ -968,6 +1211,11 @@ async function runBridgeCycle(
   runtime.on('daemon:telemetry_batch_flushed', (event: any) => {
     if (config.verbose) {
       console.log(`  [buffer] Telemetry batch flushed: ${event?.count ?? 0} cycles`);
+    }
+  });
+  runtime.on('daemon:motivation_batch_flushed', (event: any) => {
+    if (config.verbose) {
+      console.log(`  [buffer] Motivation batch flushed: ${event?.count ?? 0} entries`);
     }
   });
 
@@ -1010,8 +1258,10 @@ async function runBridgeCycle(
   // ── Cleanup: pause scheduler jobs + flush buffers before stopping ──
   runtimeEmit('scheduler:pause_job', { jobId: 'quality_heartbeat' });
   runtimeEmit('scheduler:pause_job', { jobId: 'test_watchdog' });
+  runtimeEmit('scheduler:pause_job', { jobId: 'consciousness_eval' });
   runtimeEmit('buffer:force_flush', { channelId: 'cost_batch' });
   runtimeEmit('buffer:force_flush', { channelId: 'telemetry_batch' });
+  runtimeEmit('buffer:force_flush', { channelId: 'motivation_batch' });
 
   runtime.stop();
 

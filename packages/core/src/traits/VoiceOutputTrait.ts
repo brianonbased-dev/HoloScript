@@ -900,3 +900,26 @@ export class VoiceOutputTrait {
 export function createVoiceOutputTrait(config?: VoiceOutputConfig): VoiceOutputTrait {
   return new VoiceOutputTrait(config);
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const voiceOutputHandler = {
+  name: 'voice_output',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__voice_outputState = { active: true, config };
+    ctx.emit('voice_output_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('voice_output_detached', { node });
+    delete node.__voice_outputState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'voice_output_configure') {
+      Object.assign(node.__voice_outputState?.config ?? {}, event.payload ?? {});
+      ctx.emit('voice_output_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

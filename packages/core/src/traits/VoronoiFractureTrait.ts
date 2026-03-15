@@ -659,3 +659,26 @@ export interface VoronoiFractureTrait {
     falloff: number;
   }>;
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const voronoiFractureHandler = {
+  name: 'voronoi_fracture',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__voronoi_fractureState = { active: true, config };
+    ctx.emit('voronoi_fracture_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('voronoi_fracture_detached', { node });
+    delete node.__voronoi_fractureState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'voronoi_fracture_configure') {
+      Object.assign(node.__voronoi_fractureState?.config ?? {}, event.payload ?? {});
+      ctx.emit('voronoi_fracture_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

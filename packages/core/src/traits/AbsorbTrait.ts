@@ -380,3 +380,26 @@ export const ABSORB_TRAIT = {
     { name: 'output', type: 'string', required: false, description: 'Output .hsplus file path' },
   ],
 };
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const absorbHandler = {
+  name: 'absorb',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__absorbState = { active: true, config };
+    ctx.emit('absorb_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('absorb_detached', { node });
+    delete node.__absorbState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'absorb_configure') {
+      Object.assign(node.__absorbState?.config ?? {}, event.payload ?? {});
+      ctx.emit('absorb_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

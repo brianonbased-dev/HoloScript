@@ -81,3 +81,26 @@ export class SlidableTrait implements Trait {
     }
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const slidableHandler = {
+  name: 'slidable',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__slidableState = { active: true, config };
+    ctx.emit('slidable_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('slidable_detached', { node });
+    delete node.__slidableState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'slidable_configure') {
+      Object.assign(node.__slidableState?.config ?? {}, event.payload ?? {});
+      ctx.emit('slidable_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

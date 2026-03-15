@@ -489,3 +489,26 @@ export class AdvancedClothSystem {
     return false;
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const advancedClothHandler = {
+  name: 'advanced_cloth',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__advanced_clothState = { active: true, config };
+    ctx.emit('advanced_cloth_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('advanced_cloth_detached', { node });
+    delete node.__advanced_clothState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'advanced_cloth_configure') {
+      Object.assign(node.__advanced_clothState?.config ?? {}, event.payload ?? {});
+      ctx.emit('advanced_cloth_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

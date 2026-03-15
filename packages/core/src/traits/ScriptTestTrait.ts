@@ -342,3 +342,26 @@ export const SCRIPT_TEST_TRAIT = {
     { name: 'skip', type: 'boolean', required: false, default: false, description: 'Skip this test' },
   ],
 };
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const scriptTestHandler = {
+  name: 'script_test',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__script_testState = { active: true, config };
+    ctx.emit('script_test_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('script_test_detached', { node });
+    delete node.__script_testState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'script_test_configure') {
+      Object.assign(node.__script_testState?.config ?? {}, event.payload ?? {});
+      ctx.emit('script_test_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

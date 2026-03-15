@@ -521,3 +521,26 @@ export type JointDrive = DriveConfig;
 export type JointSpring = SpringConfig;
 
 export default JointTrait;
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const jointHandler = {
+  name: 'joint',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__jointState = { active: true, config };
+    ctx.emit('joint_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('joint_detached', { node });
+    delete node.__jointState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'joint_configure') {
+      Object.assign(node.__jointState?.config ?? {}, event.payload ?? {});
+      ctx.emit('joint_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

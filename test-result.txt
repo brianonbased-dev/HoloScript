@@ -1,0 +1,463 @@
+﻿node.exe : npm warn Unknown project 
+config "shamefully-hoist". This will 
+stop working in the next major 
+version of npm.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\josep\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (npm warn Unknow...version  
+   of npm.:String) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+npm warn Unknown project config 
+"strict-peer-dependencies". This will 
+stop working in the next major 
+version of npm.
+Γû▓ [WARNING] The condition "types" 
+here will never be used as it comes 
+after both "import" and "require" 
+[package.json]
+
+    packages/holoscript-cdn/package.js
+on:12:6:
+      12 Γöé       "types": 
+"./dist/index.d.ts"
+         Γò╡       ~~~~~~~
+
+  The "import" condition comes 
+earlier and will be used for all 
+"import" statements:
+
+    packages/holoscript-cdn/package.js
+on:10:6:
+      10 Γöé       "import": 
+"./dist/holoscript.cdn.mjs",
+         Γò╡       ~~~~~~~~
+
+  The "require" condition comes 
+earlier and will be used for all 
+"require" calls:
+
+    packages/holoscript-cdn/package.js
+on:11:6:
+      11 Γöé       "require": 
+"./dist/holoscript.cdn.js",
+         Γò╡       ~~~~~~~~~
+
+Γû▓ [WARNING] The condition "types" 
+here will never be used as it comes 
+after both "import" and "require" 
+[package.json]
+
+    packages/react-agent-sdk/package.j
+son:13:6:
+      13 Γöé       "types": 
+"./dist/index.d.ts"
+         Γò╡       ~~~~~~~
+
+  The "import" condition comes 
+earlier and will be used for all 
+"import" statements:
+
+    packages/react-agent-sdk/package.j
+son:11:6:
+      11 Γöé       "import": 
+"./dist/index.mjs",
+         Γò╡       ~~~~~~~~
+
+  The "require" condition comes 
+earlier and will be used for all 
+"require" calls:
+
+    packages/react-agent-sdk/package.j
+son:12:6:
+      12 Γöé       "require": 
+"./dist/index.js",
+         Γò╡       ~~~~~~~~~
+
+Γû▓ [WARNING] The condition "types" 
+here will never be used as it comes 
+after both "import" and "require" 
+[package.json]
+
+    packages/react-agent-sdk/package.j
+son:18:6:
+      18 Γöé       "types": 
+"./dist/hooks/index.d.ts"
+         Γò╡       ~~~~~~~
+
+  The "import" condition comes 
+earlier and will be used for all 
+"import" statements:
+
+    packages/react-agent-sdk/package.j
+son:16:6:
+      16 Γöé       "import": 
+"./dist/hooks/index.mjs",
+         Γò╡       ~~~~~~~~
+
+  The "require" condition comes 
+earlier and will be used for all 
+"require" calls:
+
+    packages/react-agent-sdk/package.j
+son:17:6:
+      17 Γöé       "require": 
+"./dist/hooks/index.js",
+         Γò╡       ~~~~~~~~~
+
+Γû▓ [WARNING] The condition "types" 
+here will never be used as it comes 
+after both "import" and "require" 
+[package.json]
+
+    packages/react-agent-sdk/package.j
+son:23:6:
+      23 Γöé       "types": 
+"./dist/components/index.d.ts"
+         Γò╡       ~~~~~~~
+
+  The "import" condition comes 
+earlier and will be used for all 
+"import" statements:
+
+    packages/react-agent-sdk/package.j
+son:21:6:
+      21 Γöé       "import": 
+"./dist/components/index.mjs",
+         Γò╡       ~~~~~~~~
+
+  The "require" condition comes 
+earlier and will be used for all 
+"require" calls:
+
+    packages/react-agent-sdk/package.j
+son:22:6:
+      22 Γöé       "require": 
+"./dist/components/index.js",
+         Γò╡       ~~~~~~~~~
+
+[33mThe CJS build of Vite's Node API 
+is deprecated. See https://vite.dev/gu
+ide/troubleshooting.html#vite-cjs-node
+-api-deprecated for more details.[39m
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript[39m
+
+[31mNo test files found, exiting 
+with code 1
+[39m
+[2mfilter: [22m[33mpackages/core/sr
+c/compiler/safety/__tests__/EffectInfe
+rence.test.ts[39m
+
+[30m[45m @holoscript/benchmark 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[46m @holoscript/sdk [49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[42m std [49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[46m graphql-api [49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[45m @holoscript/visual 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[2m, 
+[22msrc/**/*.test.tsx[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[45m @holoscript/core 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/dist/**[2m, 
+[22m**/hsplus-files.test.ts[39m
+
+[30m[45m @holoscript/cli [49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[43m @holoscript/formatter 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[46m @holoscript/linter 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[42m @holoscript/lsp [49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[42m vscode-extension 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[46m 
+@holoscript/adapter-postgres 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[46m @holoscript/mcp-server 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[2m, 
+[22mexamples/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[42m @holoscript/partner-sdk 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[43m security-sandbox 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[45m ai-validator [49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[46m comparative-benchmarks 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[45m @holoscript/llm-provider 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[46m @holoscript/registry 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[43m holoscript-cdn [49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[46m @holoscript/runtime 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[42m @holoscript/fs [49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[42m @holoscript/playground 
+[49m[39m 
+
+[2minclude: 
+[22m[33m__tests__/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[45m @holoscript/collab-server 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[45m @holoscript/studio 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[2m, 
+[22msrc/**/*.test.tsx[2m, 
+[22msrc/**/*.scenario.ts[2m, 
+[22msrc/**/*.scenario.tsx[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[45m studio-plugin-sdk 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/dist/**[39m
+
+[30m[42m @hololand/react-agent-sdk 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[42m 
+@holoscript/preview-component 
+[49m[39m 
+
+[2minclude: 
+[22m[33mtest/**/*.test.{ts,tsx}[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[46m 
+@holoscript/marketplace-web 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[46m 
+@holoscript/marketplace-api 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[43m @holoscript/auth 
+[49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec
+}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  
+[22m[33m**/node_modules/**[2m, 
+[22m**/.git/**[39m
+
+[30m[45m 
+@holoscript/animation-presets 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[39m
+
+[30m[42m @holoscript/test 
+[49m[39m 
+
+[2minclude: 
+[22m[33msrc/**/*.test.ts[2m, 
+[22mexamples/**/*.test.ts[39m
+[2mexclude:  
+[22m[33m**/dist/**[2m, 
+[22m**/node_modules/**[2m, [22msrc/
+__tests__/scenes.test.ts[2m, [22msrc
+/__tests__/visual.test.ts[2m, 
+[22msrc/__tests__/visual/**[39m
+

@@ -463,3 +463,26 @@ export class FluidSimulationSystem {
     }
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const fluidSimulationHandler = {
+  name: 'fluid_simulation',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__fluid_simulationState = { active: true, config };
+    ctx.emit('fluid_simulation_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('fluid_simulation_detached', { node });
+    delete node.__fluid_simulationState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'fluid_simulation_configure') {
+      Object.assign(node.__fluid_simulationState?.config ?? {}, event.payload ?? {});
+      ctx.emit('fluid_simulation_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

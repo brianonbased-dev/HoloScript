@@ -41,7 +41,7 @@ onMounted(() => {
           <a href="/guides/">Docs</a>
           <a href="/guides/quick-start">Quick Start</a>
           <a href="/examples/">Examples</a>
-          <a href="/api/traits">Traits</a>
+          <a href="/traits/">Traits</a>
           <a href="https://studio.holoscript.net" class="nav-studio">Studio</a>
           <a href="https://github.com/brianonbased-dev/Holoscript" class="nav-github">GitHub</a>
         </div>
@@ -92,7 +92,7 @@ onMounted(() => {
           <span class="platform-badge">WebGPU</span>
           <span class="platform-badge">ROS 2</span>
           <span class="platform-badge">Android XR</span>
-          <span class="platform-more">+17 more</span>
+          <span class="platform-more">+22 more</span>
         </div>
       </div>
       <div class="scroll-indicator">
@@ -159,7 +159,7 @@ onMounted(() => {
             <span class="solution-icon">&#x1F680;</span>
             <h3 class="card-title card-title--cyan">Ship It</h3>
             <p>
-              Compile to 25+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and
+              Compile to 30+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and
               more. Or share a link that runs in any browser. True write-once, deploy-anywhere.
             </p>
           </div>
@@ -197,7 +197,7 @@ onMounted(() => {
           <div class="stack-layer stack-3">
             <span class="stack-num">3</span><strong>Compiler</strong
             ><span class="stack-detail"
-              >16 named backends &middot; 25+ targets &middot; Circuit breaker &middot;
+              >16 named backends &middot; 30+ targets &middot; Circuit breaker &middot;
               Incremental</span
             >
           </div>
@@ -210,7 +210,7 @@ onMounted(() => {
           <div class="stack-layer stack-1">
             <span class="stack-num">1</span><strong>Language</strong
             ><span class="stack-detail"
-              >3 formats (.holo, .hs, .hsplus) &middot; 1,800+ traits &middot; 200+ trait
+              >3 formats (.holo, .hs, .hsplus) &middot; 2,000+ traits &middot; 200+ trait
               types</span
             >
           </div>
@@ -353,7 +353,7 @@ animate();</code></pre>
     <!-- TRAITS -->
     <section class="section section--alt" id="traits">
       <div class="container">
-        <h2 class="section-title">1,800+ Semantic Traits</h2>
+        <h2 class="section-title">2,000+ Semantic Traits</h2>
         <p class="section-sub">
           99 module communities covering VR, robotics, IoT, AI agents, swarm intelligence, economy,
           physics, rendering, multiplayer, and more. Add powerful behaviors with simple decorators.
@@ -367,10 +367,10 @@ animate();</code></pre>
         </div>
         <p style="text-align: center; margin-top: 2rem">
           <a
-            href="/api/traits"
+            href="/traits/"
             class="btn btn-outline"
             style="padding: 0.75rem 2rem; font-size: 1rem"
-            >See All 1,800+ Traits &rarr;</a
+            >See All 2,000+ Traits &rarr;</a
           >
         </p>
       </div>
@@ -409,7 +409,7 @@ animate();</code></pre>
             <div class="use-icon">&#x1F3AD;</div>
             <h3>Autonomous Intelligence</h3>
             <p>
-              43+ MCP tools, swarm intelligence (ant colony, particle swarm, flocking), 3-layer
+              65+ MCP tools, swarm intelligence (ant colony, particle swarm, flocking), 3-layer
               agent comms (RealTime/A2A/MCP), economy primitives, and Brittney &mdash; a fine-tuned
               model that writes native HoloScript. Your agents think, trade, and evolve.
             </p>
@@ -528,13 +528,13 @@ animate();</code></pre>
         <h2 class="section-title">Everything You Need</h2>
         <div class="grid-3">
           <div class="card card--glow" style="text-align: center">
-            <div class="feature-number">1,800+</div>
+            <div class="feature-number">2,000+</div>
             <h3 class="card-title card-title--cyan">Semantic Traits</h3>
             <p>99 communities: VR, physics, AI, swarm, economy, robotics, IoT, and more</p>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F504;</div>
-            <h3 class="card-title card-title--cyan">25+ Compile Targets</h3>
+            <h3 class="card-title card-title--cyan">30+ Compile Targets</h3>
             <p>
               Unity, Unreal, Godot, VRChat, WebGPU, visionOS, Android XR, URDF, SDF, DTDL, OpenUSD,
               and more
@@ -542,7 +542,7 @@ animate();</code></pre>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F916;</div>
-            <h3 class="card-title card-title--cyan">43+ AI Tools</h3>
+            <h3 class="card-title card-title--cyan">65+ MCP Tools</h3>
             <p>
               MCP server for Claude, Cursor, Copilot. Brittney fine-tuned model. Swarm intelligence.
               3-layer agent comms

@@ -591,3 +591,26 @@ export type BoneConstraint = BoneConstraints;
 export type IKTarget = string;
 
 export default IKTrait;
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const iKHandler = {
+  name: 'i_k',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__i_kState = { active: true, config };
+    ctx.emit('i_k_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('i_k_detached', { node });
+    delete node.__i_kState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'i_k_configure') {
+      Object.assign(node.__i_kState?.config ?? {}, event.payload ?? {});
+      ctx.emit('i_k_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

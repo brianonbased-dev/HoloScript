@@ -623,3 +623,26 @@ export const MATERIAL_PRESETS = {
     },
   }),
 };
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const materialHandler = {
+  name: 'material',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__materialState = { active: true, config };
+    ctx.emit('material_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('material_detached', { node });
+    delete node.__materialState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'material_configure') {
+      Object.assign(node.__materialState?.config ?? {}, event.payload ?? {});
+      ctx.emit('material_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

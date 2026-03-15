@@ -1,0 +1,183 @@
+﻿node.exe : npm warn Unknown project 
+config "shamefully-hoist". This will 
+stop working in the next major 
+version of npm.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\josep\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (npm warn Unknow...version  
+   of npm.:String) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+npm warn Unknown project config 
+"strict-peer-dependencies". This will 
+stop working in the next major 
+version of npm.
+Γ£à AbsorbTrait ΓåÆ absorbHandler (absorb)
+Γ£à AdvancedClothTrait ΓåÆ advancedClothHandler (advanced_cloth)
+Γ£à AIDriverTrait ΓåÆ aIDriverHandler (a_i_driver)
+Γ£à AnimationTrait ΓåÆ animationHandler (animation)
+Γ£à CharacterTrait ΓåÆ characterHandler (character)
+Γ£à ConsensusTrait ΓåÆ consensusHandler (consensus)
+Γ£à CRDTRoomTrait ΓåÆ cRDTRoomHandler (c_r_d_t_room)
+Γ£à DialogTrait ΓåÆ dialogHandler (dialog)
+Γ£à DraftTrait ΓåÆ draftHandler (draft)
+Γ£à EmotionDirectiveTrait ΓåÆ emotionDirectiveHandler (emotion_directive)
+Γ£à EnvironmentalAudioTrait ΓåÆ environmentalAudioHandler (environmental_audio)
+Γ£à FluidSimulationTrait ΓåÆ fluidSimulationHandler (fluid_simulation)
+Γ£à GrabbableTrait ΓåÆ grabbableHandler (grabbable)
+Γ£à GranularMaterialTrait ΓåÆ granularMaterialHandler (granular_material)
+Γ£à HotReloadTrait ΓåÆ hotReloadHandler (hot_reload)
+Γ£à IKTrait ΓåÆ iKHandler (i_k)
+Γ£à JointTrait ΓåÆ jointHandler (joint)
+Γ£à LightingTrait ΓåÆ lightingHandler (lighting)
+Γ£à LipSyncTrait ΓåÆ lipSyncHandler (lip_sync)
+Γ£à LobbyTrait ΓåÆ lobbyHandler (lobby)
+Γ£à MaterialTrait ΓåÆ materialHandler (material)
+Γ£à MorphTrait ΓåÆ morphHandler (morph)
+Γ£à MultiviewGaussianRendererTrait ΓåÆ multiviewGaussianRendererHandler (multiview_gaussian_renderer)
+Γ£à NetworkedTrait ΓåÆ networkedHandler (networked)
+Γ£à PIDControllerTrait ΓåÆ pIDControllerHandler (p_i_d_controller)
+Γ£à PressableTrait ΓåÆ pressableHandler (pressable)
+Γ£à RenderingTrait ΓåÆ renderingHandler (rendering)
+Γ£à RigidbodyTrait ΓåÆ rigidbodyHandler (rigidbody)
+Γ£à ScriptTestTrait ΓåÆ scriptTestHandler (script_test)
+Γ£à ShaderTrait ΓåÆ shaderHandler (shader)
+Γ£à SkeletonTrait ΓåÆ skeletonHandler (skeleton)
+Γ£à SlidableTrait ΓåÆ slidableHandler (slidable)
+Γ£à SpatialAwarenessTrait ΓåÆ spatialAwarenessHandler (spatial_awareness)
+Γ£à SyncTierTrait ΓåÆ syncTierHandler (sync_tier)
+Γ£à TriggerTrait ΓåÆ triggerHandler (trigger)
+Γ£à VoiceInputTrait ΓåÆ voiceInputHandler (voice_input)
+Γ£à VoiceOutputTrait ΓåÆ voiceOutputHandler (voice_output)
+Γ£à VoronoiFractureTrait ΓåÆ voronoiFractureHandler (voronoi_fracture)
+
+Added 38 handlers
+
+// ΓòÉΓòÉΓòÉ IMPORTS ΓòÉΓòÉΓòÉ
+import { absorbHandler } from './AbsorbTrait';
+import { advancedClothHandler } from './AdvancedClothTrait';
+import { aIDriverHandler } from './AIDriverTrait';
+import { animationHandler } from './AnimationTrait';
+import { characterHandler } from './CharacterTrait';
+import { consensusHandler } from './ConsensusTrait';
+import { cRDTRoomHandler } from './CRDTRoomTrait';
+import { dialogHandler } from './DialogTrait';
+import { draftHandler } from './DraftTrait';
+import { emotionDirectiveHandler } from './EmotionDirectiveTrait';
+import { environmentalAudioHandler } from './EnvironmentalAudioTrait';
+import { fluidSimulationHandler } from './FluidSimulationTrait';
+import { grabbableHandler } from './GrabbableTrait';
+import { granularMaterialHandler } from './GranularMaterialTrait';
+import { hotReloadHandler } from './HotReloadTrait';
+import { iKHandler } from './IKTrait';
+import { jointHandler } from './JointTrait';
+import { lightingHandler } from './LightingTrait';
+import { lipSyncHandler } from './LipSyncTrait';
+import { lobbyHandler } from './LobbyTrait';
+import { materialHandler } from './MaterialTrait';
+import { morphHandler } from './MorphTrait';
+import { multiviewGaussianRendererHandler } from './MultiviewGaussianRendererTrait';
+import { networkedHandler } from './NetworkedTrait';
+import { pIDControllerHandler } from './PIDControllerTrait';
+import { pressableHandler } from './PressableTrait';
+import { renderingHandler } from './RenderingTrait';
+import { rigidbodyHandler } from './RigidbodyTrait';
+import { scriptTestHandler } from './ScriptTestTrait';
+import { shaderHandler } from './ShaderTrait';
+import { skeletonHandler } from './SkeletonTrait';
+import { slidableHandler } from './SlidableTrait';
+import { spatialAwarenessHandler } from './SpatialAwarenessTrait';
+import { syncTierHandler } from './SyncTierTrait';
+import { triggerHandler } from './TriggerTrait';
+import { voiceInputHandler } from './VoiceInputTrait';
+import { voiceOutputHandler } from './VoiceOutputTrait';
+import { voronoiFractureHandler } from './VoronoiFractureTrait';
+
+// ΓòÉΓòÉΓòÉ REGISTRATIONS ΓòÉΓòÉΓòÉ
+    this.register(absorbHandler as TraitHandler);
+    this.register(advancedClothHandler as TraitHandler);
+    this.register(aIDriverHandler as TraitHandler);
+    this.register(animationHandler as TraitHandler);
+    this.register(characterHandler as TraitHandler);
+    this.register(consensusHandler as TraitHandler);
+    this.register(cRDTRoomHandler as TraitHandler);
+    this.register(dialogHandler as TraitHandler);
+    this.register(draftHandler as TraitHandler);
+    this.register(emotionDirectiveHandler as TraitHandler);
+    this.register(environmentalAudioHandler as TraitHandler);
+    this.register(fluidSimulationHandler as TraitHandler);
+    this.register(grabbableHandler as TraitHandler);
+    this.register(granularMaterialHandler as TraitHandler);
+    this.register(hotReloadHandler as TraitHandler);
+    this.register(iKHandler as TraitHandler);
+    this.register(jointHandler as TraitHandler);
+    this.register(lightingHandler as TraitHandler);
+    this.register(lipSyncHandler as TraitHandler);
+    this.register(lobbyHandler as TraitHandler);
+    this.register(materialHandler as TraitHandler);
+    this.register(morphHandler as TraitHandler);
+    this.register(multiviewGaussianRendererHandler as TraitHandler);
+    this.register(networkedHandler as TraitHandler);
+    this.register(pIDControllerHandler as TraitHandler);
+    this.register(pressableHandler as TraitHandler);
+    this.register(renderingHandler as TraitHandler);
+    this.register(rigidbodyHandler as TraitHandler);
+    this.register(scriptTestHandler as TraitHandler);
+    this.register(shaderHandler as TraitHandler);
+    this.register(skeletonHandler as TraitHandler);
+    this.register(slidableHandler as TraitHandler);
+    this.register(spatialAwarenessHandler as TraitHandler);
+    this.register(syncTierHandler as TraitHandler);
+    this.register(triggerHandler as TraitHandler);
+    this.register(voiceInputHandler as TraitHandler);
+    this.register(voiceOutputHandler as TraitHandler);
+    this.register(voronoiFractureHandler as TraitHandler);
+
+// ΓòÉΓòÉΓòÉ EXPORTS ΓòÉΓòÉΓòÉ
+export {
+  absorbHandler,
+  advancedClothHandler,
+  aIDriverHandler,
+  animationHandler,
+  characterHandler,
+  consensusHandler,
+  cRDTRoomHandler,
+  dialogHandler,
+  draftHandler,
+  emotionDirectiveHandler,
+  environmentalAudioHandler,
+  fluidSimulationHandler,
+  grabbableHandler,
+  granularMaterialHandler,
+  hotReloadHandler,
+  iKHandler,
+  jointHandler,
+  lightingHandler,
+  lipSyncHandler,
+  lobbyHandler,
+  materialHandler,
+  morphHandler,
+  multiviewGaussianRendererHandler,
+  networkedHandler,
+  pIDControllerHandler,
+  pressableHandler,
+  renderingHandler,
+  rigidbodyHandler,
+  scriptTestHandler,
+  shaderHandler,
+  skeletonHandler,
+  slidableHandler,
+  spatialAwarenessHandler,
+  syncTierHandler,
+  triggerHandler,
+  voiceInputHandler,
+  voiceOutputHandler,
+  voronoiFractureHandler,
+};

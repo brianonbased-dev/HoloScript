@@ -1758,6 +1758,46 @@ export class VRTraitRegistry {
     this.register(volumetricWindowHandler as TraitHandler);
     this.register(wotThingHandler as TraitHandler);
     this.register(zoraCoinsHandler as TraitHandler);
+
+    // ── CLASS trait handlers (auto-generated wrappers) ──
+    this.register(absorbHandler as TraitHandler);
+    this.register(advancedClothHandler as TraitHandler);
+    this.register(aIDriverHandler as TraitHandler);
+    this.register(animationHandler as TraitHandler);
+    this.register(characterHandler as TraitHandler);
+    this.register(consensusHandler as TraitHandler);
+    this.register(cRDTRoomHandler as TraitHandler);
+    this.register(dialogHandler as TraitHandler);
+    this.register(draftHandler as TraitHandler);
+    this.register(emotionDirectiveHandler as TraitHandler);
+    this.register(environmentalAudioHandler as TraitHandler);
+    this.register(fluidSimulationHandler as TraitHandler);
+    this.register(grabbableHandler as TraitHandler);
+    this.register(granularMaterialHandler as TraitHandler);
+    this.register(hotReloadHandler as TraitHandler);
+    this.register(iKHandler as TraitHandler);
+    this.register(jointHandler as TraitHandler);
+    this.register(lightingHandler as TraitHandler);
+    this.register(lipSyncHandler as TraitHandler);
+    this.register(lobbyHandler as TraitHandler);
+    this.register(materialHandler as TraitHandler);
+    this.register(morphHandler as TraitHandler);
+    this.register(multiviewGaussianRendererHandler as TraitHandler);
+    this.register(networkedHandler as TraitHandler);
+    this.register(pIDControllerHandler as TraitHandler);
+    this.register(pressableHandler as TraitHandler);
+    this.register(renderingHandler as TraitHandler);
+    this.register(rigidbodyHandler as TraitHandler);
+    this.register(scriptTestHandler as TraitHandler);
+    this.register(shaderHandler as TraitHandler);
+    this.register(skeletonHandler as TraitHandler);
+    this.register(slidableHandler as TraitHandler);
+    this.register(spatialAwarenessHandler as TraitHandler);
+    this.register(syncTierHandler as TraitHandler);
+    this.register(triggerHandler as TraitHandler);
+    this.register(voiceInputHandler as TraitHandler);
+    this.register(voiceOutputHandler as TraitHandler);
+    this.register(voronoiFractureHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {
@@ -2293,4 +2333,79 @@ export {
   volumetricWindowHandler,
   wotThingHandler,
   zoraCoinsHandler,
+};
+
+// CLASS trait handler exports
+import { absorbHandler } from './AbsorbTrait';
+import { advancedClothHandler } from './AdvancedClothTrait';
+import { aIDriverHandler } from './AIDriverTrait';
+import { animationHandler } from './AnimationTrait';
+import { characterHandler } from './CharacterTrait';
+import { consensusHandler } from './ConsensusTrait';
+import { cRDTRoomHandler } from './CRDTRoomTrait';
+import { dialogHandler } from './DialogTrait';
+import { draftHandler } from './DraftTrait';
+import { emotionDirectiveHandler } from './EmotionDirectiveTrait';
+import { environmentalAudioHandler } from './EnvironmentalAudioTrait';
+import { fluidSimulationHandler } from './FluidSimulationTrait';
+import { granularMaterialHandler } from './GranularMaterialTrait';
+import { hotReloadHandler } from './HotReloadTrait';
+import { iKHandler } from './IKTrait';
+import { jointHandler } from './JointTrait';
+import { lightingHandler } from './LightingTrait';
+import { lipSyncHandler } from './LipSyncTrait';
+import { lobbyHandler } from './LobbyTrait';
+import { materialHandler } from './MaterialTrait';
+import { morphHandler } from './MorphTrait';
+import { multiviewGaussianRendererHandler } from './MultiviewGaussianRendererTrait';
+import { pIDControllerHandler } from './PIDControllerTrait';
+import { pressableHandler } from './PressableTrait';
+import { renderingHandler } from './RenderingTrait';
+import { rigidbodyHandler } from './RigidbodyTrait';
+import { scriptTestHandler } from './ScriptTestTrait';
+import { shaderHandler } from './ShaderTrait';
+import { slidableHandler } from './SlidableTrait';
+import { spatialAwarenessHandler } from './SpatialAwarenessTrait';
+import { syncTierHandler } from './SyncTierTrait';
+import { triggerHandler } from './TriggerTrait';
+import { voiceInputHandler } from './VoiceInputTrait';
+import { voiceOutputHandler } from './VoiceOutputTrait';
+import { voronoiFractureHandler } from './VoronoiFractureTrait';
+
+export {
+  absorbHandler,
+  advancedClothHandler,
+  aIDriverHandler,
+  animationHandler,
+  characterHandler,
+  consensusHandler,
+  cRDTRoomHandler,
+  dialogHandler,
+  draftHandler,
+  emotionDirectiveHandler,
+  environmentalAudioHandler,
+  fluidSimulationHandler,
+  granularMaterialHandler,
+  hotReloadHandler,
+  iKHandler,
+  jointHandler,
+  lightingHandler,
+  lipSyncHandler,
+  lobbyHandler,
+  materialHandler,
+  morphHandler,
+  multiviewGaussianRendererHandler,
+  pIDControllerHandler,
+  pressableHandler,
+  renderingHandler,
+  rigidbodyHandler,
+  scriptTestHandler,
+  shaderHandler,
+  slidableHandler,
+  spatialAwarenessHandler,
+  syncTierHandler,
+  triggerHandler,
+  voiceInputHandler,
+  voiceOutputHandler,
+  voronoiFractureHandler,
 };

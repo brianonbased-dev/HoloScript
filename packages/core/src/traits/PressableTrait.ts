@@ -79,3 +79,26 @@ export class PressableTrait implements Trait {
     }
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const pressableHandler = {
+  name: 'pressable',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__pressableState = { active: true, config };
+    ctx.emit('pressable_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('pressable_detached', { node });
+    delete node.__pressableState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'pressable_configure') {
+      Object.assign(node.__pressableState?.config ?? {}, event.payload ?? {});
+      ctx.emit('pressable_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

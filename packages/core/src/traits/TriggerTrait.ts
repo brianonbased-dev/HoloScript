@@ -595,3 +595,26 @@ export function createTriggerTrait(config: Partial<TriggerConfig> = {}): Trigger
 // Type aliases for re-export
 export type TriggerShapeType = TriggerShape;
 export type TriggerEventTypeAlias = TriggerEventType;
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const triggerHandler = {
+  name: 'trigger',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__triggerState = { active: true, config };
+    ctx.emit('trigger_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('trigger_detached', { node });
+    delete node.__triggerState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'trigger_configure') {
+      Object.assign(node.__triggerState?.config ?? {}, event.payload ?? {});
+      ctx.emit('trigger_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

@@ -794,3 +794,26 @@ export type LobbyVisibilityType = LobbyVisibility;
 export type LobbyStateType = LobbyState;
 export type LobbyMatchmakingMode = MatchmakingMode;
 export type LobbyEventTypeAlias = LobbyEventType;
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const lobbyHandler = {
+  name: 'lobby',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__lobbyState = { active: true, config };
+    ctx.emit('lobby_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('lobby_detached', { node });
+    delete node.__lobbyState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'lobby_configure') {
+      Object.assign(node.__lobbyState?.config ?? {}, event.payload ?? {});
+      ctx.emit('lobby_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

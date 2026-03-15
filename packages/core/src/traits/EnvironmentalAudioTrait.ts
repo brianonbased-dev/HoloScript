@@ -424,3 +424,26 @@ export class EnvironmentalAudioSystem {
     };
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const environmentalAudioHandler = {
+  name: 'environmental_audio',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__environmental_audioState = { active: true, config };
+    ctx.emit('environmental_audio_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('environmental_audio_detached', { node });
+    delete node.__environmental_audioState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'environmental_audio_configure') {
+      Object.assign(node.__environmental_audioState?.config ?? {}, event.payload ?? {});
+      ctx.emit('environmental_audio_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

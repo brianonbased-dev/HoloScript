@@ -160,3 +160,26 @@ export class DraftManager {
     return config.shape;
   }
 }
+
+// ── Handler wrapper (auto-generated) ──
+import type { TraitHandler } from './TraitTypes';
+
+export const draftHandler = {
+  name: 'draft',
+  defaultConfig: {},
+  onAttach(node: any, config: any, ctx: any): void {
+    node.__draftState = { active: true, config };
+    ctx.emit('draft_attached', { node });
+  },
+  onDetach(node: any, _config: any, ctx: any): void {
+    ctx.emit('draft_detached', { node });
+    delete node.__draftState;
+  },
+  onEvent(node: any, _config: any, ctx: any, event: any): void {
+    if (event.type === 'draft_configure') {
+      Object.assign(node.__draftState?.config ?? {}, event.payload ?? {});
+      ctx.emit('draft_configured', { node });
+    }
+  },
+  onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
+} as const satisfies TraitHandler;

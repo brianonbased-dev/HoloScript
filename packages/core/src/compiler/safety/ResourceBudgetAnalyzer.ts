@@ -94,20 +94,112 @@ export const PLATFORM_BUDGETS: Record<string, Partial<Record<ResourceCategory, n
 
 /** Cost of each trait in resource units */
 export const TRAIT_RESOURCE_COSTS: Record<string, Partial<Record<ResourceCategory, number>>> = {
+  // ── Core Rendering ──
   '@mesh': { meshInstances: 1, gpuDrawCalls: 1 },
+  '@material': { shaderPasses: 1, gpuDrawCalls: 1, memoryMB: 0.5 },
+  '@shader': { shaderPasses: 1, gpuDrawCalls: 1 },
+  '@advanced_pbr': { shaderPasses: 2, gpuDrawCalls: 1, memoryMB: 1 },
+  '@advanced_lighting': { gpuDrawCalls: 2, shaderPasses: 1 },
+  '@advanced_texturing': { memoryMB: 2, gpuDrawCalls: 1 },
+  '@light': { gpuDrawCalls: 1, shaderPasses: 1 },
+  '@lighting': { gpuDrawCalls: 2, shaderPasses: 1 },
+  '@global_illumination': { gpuDrawCalls: 4, shaderPasses: 3, memoryMB: 8 },
+  '@ray_tracing': { gpuDrawCalls: 8, shaderPasses: 4, memoryMB: 16 },
+  '@screen_space_effects': { shaderPasses: 2, gpuDrawCalls: 2 },
+  '@subsurface_scattering': { shaderPasses: 2, gpuDrawCalls: 1 },
+  '@rendering': { meshInstances: 1, gpuDrawCalls: 1, memoryMB: 1 },
+  '@render_network': { gpuDrawCalls: 2, networkMsgs: 5, memoryMB: 4 },
+
+  // ── Particles & VFX ──
   '@particle': { particles: 100, gpuDrawCalls: 1, memoryMB: 2 },
+  '@vfx': { particles: 200, shaderPasses: 1, gpuDrawCalls: 2 },
+  '@volumetric': { gpuDrawCalls: 3, shaderPasses: 2, memoryMB: 4 },
+  '@volumetric_window': { gpuDrawCalls: 2, memoryMB: 2 },
+
+  // ── Gaussian Splatting & Neural ──
+  '@gaussian': { gaussians: 10000, memoryMB: 10 },
+  '@gaussian_splat': { gaussians: 10000, memoryMB: 10 },
+  '@multiview_gaussian_renderer': { gaussians: 20000, memoryMB: 20, gpuDrawCalls: 4 },
+  '@nerf': { gpuDrawCalls: 4, memoryMB: 16, shaderPasses: 2 },
+
+  // ── Physics & Simulation ──
   '@physics': { physicsBodies: 1 },
   '@rigidbody': { physicsBodies: 1 },
   '@collider': { physicsBodies: 1 },
+  '@joint': { physicsBodies: 2 },
+  '@trigger': { physicsBodies: 1 },
+  '@fluid_simulation': { particles: 500, physicsBodies: 10, memoryMB: 8 },
+  '@advanced_cloth': { particles: 200, physicsBodies: 5, memoryMB: 4 },
+  '@granular_material': { particles: 300, physicsBodies: 8, memoryMB: 6 },
+  '@voronoi_fracture': { physicsBodies: 20, meshInstances: 20, memoryMB: 4 },
+
+  // ── Audio ──
   '@audio': { audioSources: 1 },
   '@spatial_audio': { audioSources: 1 },
-  '@light': { gpuDrawCalls: 1, shaderPasses: 1 },
-  '@shader': { shaderPasses: 1, gpuDrawCalls: 1 },
-  '@gaussian': { gaussians: 10000, memoryMB: 10 },
+  '@environmental_audio': { audioSources: 4, memoryMB: 2 },
+  '@voice_mesh': { audioSources: 1, networkMsgs: 10 },
+  '@voice_input': { audioSources: 1, memoryMB: 1 },
+  '@voice_output': { audioSources: 1, memoryMB: 1 },
+  '@lip_sync': { memoryMB: 2, gpuDrawCalls: 1 },
+  '@ambisonics': { audioSources: 4, memoryMB: 4 },
+
+  // ── Networking & Multiplayer ──
+  '@networked': { networkMsgs: 1 },
+  '@networked_avatar': { networkMsgs: 10, meshInstances: 1, memoryMB: 2 },
+  '@lobby': { networkMsgs: 5, memoryMB: 2 },
+  '@mqtt_sink': { networkMsgs: 5 },
+  '@mqtt_source': { networkMsgs: 5 },
+  '@sync_tier': { networkMsgs: 2 },
+  '@crdt_room': { networkMsgs: 10, memoryMB: 4 },
+  '@shareplay': { networkMsgs: 5, memoryMB: 2 },
+
+  // ── AI & Agents ──
   '@agent': { agentCount: 1, memoryMB: 5 },
   '@npc': { agentCount: 1, memoryMB: 3, physicsBodies: 1 },
-  '@networked': { networkMsgs: 1 },
-  '@vfx': { particles: 200, shaderPasses: 1, gpuDrawCalls: 2 },
+  '@npc_ai': { agentCount: 1, memoryMB: 8 },
+  '@ai_npc_brain': { agentCount: 1, memoryMB: 10 },
+  '@multi_agent': { agentCount: 3, memoryMB: 15 },
+  '@agent_discovery': { agentCount: 1, memoryMB: 2 },
+  '@neural_animation': { memoryMB: 8, gpuDrawCalls: 2 },
+  '@neural_forge': { memoryMB: 16, agentCount: 1 },
+  '@local_llm': { memoryMB: 32, agentCount: 1 },
+  '@rag_knowledge': { memoryMB: 8 },
+  '@embedding_search': { memoryMB: 4 },
+  '@vector_db': { memoryMB: 8 },
+  '@stable_diffusion': { memoryMB: 32, gpuDrawCalls: 1 },
+  '@diffusion_realtime': { memoryMB: 16, gpuDrawCalls: 2 },
+  '@vision': { memoryMB: 4 },
+  '@pose_estimation': { memoryMB: 4, agentCount: 1 },
+  '@object_tracking': { memoryMB: 4 },
+  '@hand_mesh_ai': { memoryMB: 4, gpuDrawCalls: 1 },
+
+  // ── Animation & Character ──
+  '@animation': { gpuDrawCalls: 1, memoryMB: 2 },
+  '@skeleton': { gpuDrawCalls: 1, memoryMB: 1 },
+  '@ik': { memoryMB: 1 },
+  '@morph': { gpuDrawCalls: 1, memoryMB: 1 },
+  '@character': { physicsBodies: 1, meshInstances: 1, gpuDrawCalls: 2, memoryMB: 4 },
+  '@emotion_directive': { memoryMB: 1 },
+  '@dialog': { memoryMB: 2 },
+
+  // ── Spatial & XR ──
+  '@scene_reconstruction': { meshInstances: 10, memoryMB: 8, gpuDrawCalls: 5 },
+  '@realitykit_mesh': { meshInstances: 5, memoryMB: 4, gpuDrawCalls: 3 },
+  '@openxr_hal': { memoryMB: 2 },
+  '@spatial_navigation': { memoryMB: 2 },
+  '@spatial_persona': { meshInstances: 1, memoryMB: 2, networkMsgs: 5 },
+  '@spatial_awareness': { memoryMB: 2 },
+  '@orbital': { physicsBodies: 1, memoryMB: 1 },
+  '@grabbable': { physicsBodies: 1 },
+  '@pressable': { physicsBodies: 1 },
+  '@slidable': { physicsBodies: 1 },
+
+  // ── IoT & Infrastructure ──
+  '@wot_thing': { networkMsgs: 2, memoryMB: 1 },
+  '@urdf_robot': { physicsBodies: 10, meshInstances: 10, memoryMB: 4 },
+  '@computer_use': { memoryMB: 4 },
+  '@pid_controller': { memoryMB: 0.5 },
+  '@biofeedback': { memoryMB: 1 },
 };
 
 /** Cost of each built-in function call (per invocation) */
