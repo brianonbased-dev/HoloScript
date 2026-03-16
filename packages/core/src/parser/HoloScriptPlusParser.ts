@@ -12,12 +12,12 @@
 
 import type {
   ASTProgram,
-  HSPlusNode,
   HSPlusDirective,
   HSPlusCompileResult,
   HSPlusParserOptions,
   VRTraitName,
 } from '../types/AdvancedTypeSystem';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 
 export type {
   ASTProgram,
@@ -836,7 +836,7 @@ export class HoloScriptPlusParser {
   private source: string = '';
   private errors: RichParseError[] = [];
   private warnings: RichParseError[] = [];
-  private imports: Array<{ path: string; alias: string }> = [];
+  private imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }> = [];
   private hasState: boolean = false;
   private hasVRTraits: boolean = false;
   private hasControlFlow: boolean = false;
@@ -989,21 +989,21 @@ export class HoloScriptPlusParser {
   }
 
   private buildResult(root: HSPlusNode): HSPlusCompileResult {
-    const isFragment = (root as any).type === 'fragment';
+    const isFragment = root.type === 'fragment';
     const directives = root.directives || [];
 
     // Extract version and migrations from directives
     let version: string | number | undefined;
-    const migrations: any[] = [];
+    const migrations: Array<{ type: string; fromVersion: number; body: string }> = [];
 
     for (const d of directives) {
-      if ((d as any).type === 'version') {
-        version = (d as any).version;
-      } else if ((d as any).type === 'migrate') {
+      if (d.type === 'version') {
+        version = d.version;
+      } else if (d.type === 'migrate') {
         migrations.push({
           type: 'Migration',
-          fromVersion: (d as any).fromVersion,
-          body: (d as any).body,
+          fromVersion: d.fromVersion,
+          body: d.body,
         });
       }
     }
@@ -1073,7 +1073,7 @@ export class HoloScriptPlusParser {
         while (this.check('AT')) {
           const directive = this.parseDirective();
           if (directive) {
-            const type = (directive as any).type;
+            const { type } = directive;
             if (
               type === 'version' ||
               type === 'migrate' ||
@@ -1224,26 +1224,30 @@ export class HoloScriptPlusParser {
       const templateBody = this.parseBlockContent();
 
       let version: number | undefined;
-      const migrations: any[] = [];
-      const directives: any[] = [];
-      const children: any[] = [];
+      const migrations: Array<{ type: string; fromVersion: number; body: string }> = [];
+      const directives: HSPlusDirective[] = [];
+      const children: unknown[] = [];
 
       // Extract from directives and children inside the template block
       for (const [key, value] of Object.entries(templateBody)) {
         if (key === '@version') {
-          version = (value as any).version;
+          const v = value as HSPlusDirective;
+          if (v.type === 'version') version = v.version;
           delete templateBody[key];
         } else if (key === '@migrate') {
-          migrations.push({
-            type: 'Migration',
-            fromVersion: (value as any).fromVersion,
-            body: (value as any).body,
-          });
+          const m = value as HSPlusDirective;
+          if (m.type === 'migrate') {
+            migrations.push({
+              type: 'Migration',
+              fromVersion: m.fromVersion,
+              body: m.body,
+            });
+          }
           delete templateBody[key];
         } else if (key.startsWith('@')) {
-          directives.push(value);
+          directives.push(value as HSPlusDirective);
           delete templateBody[key];
-        } else if (typeof value === 'object' && value && (value as any).type) {
+        } else if (typeof value === 'object' && value && 'type' in value) {
           children.push(value);
           delete templateBody[key];
         }
@@ -1484,7 +1488,7 @@ export class HoloScriptPlusParser {
           const directive = this.parseDirective();
           if (directive) {
             if (directive.type === 'trait') {
-              traits.set(directive.name as VRTraitName, (directive as any).config);
+              traits.set(directive.name as VRTraitName, directive.config);
               this.hasVRTraits = true;
               directives.push(directive);
             } else {
@@ -1497,7 +1501,7 @@ export class HoloScriptPlusParser {
           const targetExpr = this.parseUnary(); // parseUnary handles identifiers and member access
           let target: string;
           if (typeof targetExpr === 'object' && targetExpr && '__ref' in targetExpr) {
-            target = (targetExpr as any).__ref;
+            target = (targetExpr as { __ref: string }).__ref;
           } else if (typeof targetExpr === 'string') {
             target = targetExpr;
           } else {
@@ -1560,7 +1564,7 @@ export class HoloScriptPlusParser {
             const directive = this.parseDirective();
             if (directive) {
               if (directive.type === 'trait') {
-                traits.set(directive.name as VRTraitName, (directive as any).config);
+                traits.set(directive.name as VRTraitName, directive.config);
                 this.hasVRTraits = true;
               }
               directives.push(directive);
@@ -1571,7 +1575,7 @@ export class HoloScriptPlusParser {
             const targetExpr = this.parseUnary(); // parseUnary handles identifiers and member access
             let target: string;
             if (typeof targetExpr === 'object' && targetExpr && '__ref' in targetExpr) {
-              target = (targetExpr as any).__ref;
+              target = (targetExpr as { __ref: string }).__ref;
             } else if (typeof targetExpr === 'string') {
               target = targetExpr;
             } else {
@@ -2282,7 +2286,7 @@ export class HoloScriptPlusParser {
           // Nested node (e.g. object "Name" { ... }, or action name(params) { ... })
           const node = this.parseNode();
           const type = node.type;
-          const name = (node as any).name || `unnamed_${type}_${Object.keys(content).length}`;
+          const name = node.name || `unnamed_${type}_${Object.keys(content).length}`;
           content[name] = node;
         } else {
           // Bare key
@@ -2298,7 +2302,7 @@ export class HoloScriptPlusParser {
         // Nested directive
         const directive = this.parseDirective();
         if (directive) {
-          const dirKey = (directive as any).name || directive.type;
+          const dirKey = ('name' in directive ? (directive as { name: string }).name : undefined) || directive.type;
           content[`@${dirKey}`] = directive;
         }
       } else if (this.check('LBRACE')) {
@@ -3218,7 +3222,7 @@ export class HoloScriptPlusParser {
       const isAssignable =
         typeof expr === 'string' ||
         (typeof expr === 'object' && expr && '__ref' in expr) || // identifier or member expression
-        (typeof expr === 'object' && expr && (expr as any).type === 'member');
+        (typeof expr === 'object' && expr && 'type' in expr && expr.type === 'member');
 
       if (isAssignable) {
         this.advance(); // consume ??=
