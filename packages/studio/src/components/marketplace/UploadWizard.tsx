@@ -8,6 +8,7 @@ import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft } f
 import { ContentType, CONTENT_TYPE_METADATA, ContentUpload } from '@/lib/marketplace/types';
 import { useUpload } from '@/lib/marketplace/hooks';
 import { useDaemonJobs, type DaemonProfile, type DaemonProjectDNA } from '@/hooks/useDaemonJobs';
+import { OperationsSurfacePanel } from '@/components/daemon/OperationsSurfacePanel';
 
 interface UploadWizardProps {
   onClose: () => void;
@@ -87,6 +88,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
   const [enableDaemon, setEnableDaemon] = useState(true);
   const [daemonProfile, setDaemonProfile] = useState<DaemonProfile>('balanced');
   const [daemonJobId, setDaemonJobId] = useState<string | null>(null);
+  const [showOperationsSurface, setShowOperationsSurface] = useState(false);
   const [metadata, setMetadata] = useState({
     name: remixFrom ? `${remixFrom.name} (Remix)` : '',
     description: remixFrom
@@ -635,10 +637,18 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                     Your content is now pending moderation.
                   </p>
                   {enableDaemon && (
-                    <p className="mt-2 text-xs text-studio-muted">
-                      Daemon job queued{daemonJobId ? `: ${daemonJobId}` : ''}
-                      {creatingDaemonJob ? ' (starting...)' : ''}
-                    </p>
+                    <div className="mt-2 space-y-2 text-center">
+                      <p className="text-xs text-studio-muted">
+                        Daemon job queued{daemonJobId ? `: ${daemonJobId}` : ''}
+                        {creatingDaemonJob ? ' (starting...)' : ''}
+                      </p>
+                      <button
+                        onClick={() => setShowOperationsSurface(true)}
+                        className="rounded bg-studio-accent px-3 py-1 text-[11px] font-medium text-white hover:bg-studio-accent/80"
+                      >
+                        Open 2D HoloScript Operations Surface
+                      </button>
+                    </div>
                   )}
                 </>
               )}
@@ -682,6 +692,10 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
           </div>
         </div>
       </div>
+
+      {showOperationsSurface && (
+        <OperationsSurfacePanel onClose={() => setShowOperationsSurface(false)} />
+      )}
     </div>
   );
 }

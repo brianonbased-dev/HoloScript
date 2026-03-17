@@ -17,7 +17,8 @@ import type {
   DaemonLogEntry,
   DaemonProfile,
   DaemonProjectDNA,
-  ManifestData,
+  DaemonTelemetryEvent,
+  DaemonTelemetrySummary,
   PatchProposal,
 } from '@/lib/daemon/types';
 
@@ -26,18 +27,6 @@ export type { CreateDaemonJobInput } from '@/lib/daemon/types';
 // ---------------------------------------------------------------------------
 // Telemetry
 // ---------------------------------------------------------------------------
-
-export interface DaemonTelemetryEvent {
-  eventType: 'job_created' | 'job_started' | 'job_completed' | 'job_failed' | 'patch_applied' | 'patch_exported' | 'patch_rejected';
-  jobId: string;
-  timestamp: string;
-  profile?: DaemonProfile;
-  durationMs?: number;
-  qualityDelta?: number;
-  filesChanged?: number;
-  patchCount?: number;
-  error?: string;
-}
 
 const daemonJobs = new Map<string, DaemonJob>();
 const telemetryLog: DaemonTelemetryEvent[] = [];
@@ -169,7 +158,7 @@ export function recordPatchAction(jobId: string, patchIds: string[], action: 'ap
   }
 }
 
-export function getTelemetrySummary() {
+export function getTelemetrySummary(): DaemonTelemetrySummary {
   const jobs = Array.from(daemonJobs.values());
   const completed = jobs.filter((j) => j.status === 'completed');
   const failed = jobs.filter((j) => j.status === 'failed');

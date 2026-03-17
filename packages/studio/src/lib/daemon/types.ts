@@ -141,3 +141,34 @@ export interface CreateDaemonJobInput {
   projectPath?: string;
   customLimits?: Partial<DaemonJobLimits>;
 }
+
+export interface DaemonTelemetryEvent {
+  eventType:
+    | 'job_created'
+    | 'job_started'
+    | 'job_completed'
+    | 'job_failed'
+    | 'patch_applied'
+    | 'patch_exported'
+    | 'patch_rejected';
+  jobId: string;
+  timestamp: string;
+  profile?: DaemonProfile;
+  durationMs?: number;
+  qualityDelta?: number;
+  filesChanged?: number;
+  patchCount?: number;
+  error?: string;
+}
+
+export interface DaemonTelemetrySummary {
+  totalJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  totalPatches: number;
+  appliedPatches: number;
+  avgQualityDelta: number;
+  avgDurationMs: number;
+  profileUsage: Record<DaemonProfile, number>;
+  recentEvents: DaemonTelemetryEvent[];
+}

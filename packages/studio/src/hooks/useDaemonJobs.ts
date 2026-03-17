@@ -6,6 +6,7 @@ import type {
   DaemonLogEntry,
   DaemonProfile,
   DaemonProjectDNA,
+  DaemonTelemetrySummary,
   PatchProposal,
 } from '@/lib/daemon/types';
 
@@ -14,6 +15,7 @@ export type {
   DaemonLogEntry,
   DaemonProfile,
   DaemonProjectDNA,
+  DaemonTelemetrySummary,
   PatchProposal,
 } from '@/lib/daemon/types';
 
@@ -22,6 +24,33 @@ interface CreateJobInput {
   profile: DaemonProfile;
   projectDna: DaemonProjectDNA;
   projectPath?: string;
+}
+
+export interface OperationsSurfaceResponse {
+  kind: 'dashboard' | 'orchestration';
+  format: 'hsplus';
+  name: string;
+  code: string;
+  sourcePath: string;
+  jobCount: number;
+  telemetry: DaemonTelemetrySummary;
+  summary: {
+    activityCount: number;
+    agentCount: number;
+    forkCount: number;
+    runningJobs: number;
+    queuedJobs: number;
+    reviewJobs: number;
+  };
+  validation: {
+    valid: boolean;
+    errors: string[];
+  };
+  generation?: {
+    native: boolean;
+    mode: 'loaded-from-composition';
+    hydrated: boolean;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -65,6 +94,35 @@ export function useDaemonJobs() {
     return json.job;
   }, []);
 
+  const listJobs = useCallback(async (): Promise<DaemonJob[]> => {
+    const response = await fetch('/api/daemon/jobs');
+    const json = (await response.json()) as { jobs?: DaemonJob[]; error?: string };
+    if (!response.ok) {
+      throw new Error(json.error || `Daemon jobs fetch failed (${response.status})`);
+    }
+    return json.jobs ?? [];
+  }, []);
+
+  const getTelemetry = useCallback(async (): Promise<DaemonTelemetrySummary> => {
+    const response = await fetch('/api/daemon/jobs?view=telemetry');
+    const json = (await response.json()) as { telemetry?: DaemonTelemetrySummary; error?: string };
+    if (!response.ok || !json.telemetry) {
+      throw new Error(json.error || `Daemon telemetry fetch failed (${response.status})`);
+    }
+    return json.telemetry;
+  }, []);
+
+  const getOperationsSurface = useCallback(async (
+    kind: OperationsSurfaceResponse['kind'] = 'dashboard',
+  ): Promise<OperationsSurfaceResponse> => {
+    const response = await fetch(`/api/daemon/surface?kind=${kind}`);
+    const json = (await response.json()) as OperationsSurfaceResponse & { error?: string };
+    if (!response.ok) {
+      throw new Error(json.error || `Operations surface fetch failed (${response.status})`);
+    }
+    return json;
+  }, []);
+
   const getPatches = useCallback(async (jobId: string): Promise<PatchProposal[]> => {
     const response = await fetch(`/api/daemon/jobs/${jobId}?view=patches`);
     const json = (await response.json()) as { patches?: PatchProposal[]; error?: string };
@@ -95,7 +153,18 @@ export function useDaemonJobs() {
     });
   }, []);
 
-  return { createJob, getJob, getPatches, getLogs, recordPatchAction, creating, error };
+  return {
+    createJob,
+    getJob,
+    listJobs,
+    getTelemetry,
+    getOperationsSurface,
+    getPatches,
+    getLogs,
+    recordPatchAction,
+    creating,
+    error,
+  };
 }
 
 // ---------------------------------------------------------------------------
