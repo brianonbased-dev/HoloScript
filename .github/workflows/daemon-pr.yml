@@ -46,6 +46,13 @@ jobs:
             src/cli/__tests__/holoscript-runner.daemon.test.ts \
             src/cli/__tests__/holoscript-daemon-integration.test.ts
 
+      - name: Validate daemon composition compile
+        run: |
+          pnpm --filter @holoscript/core exec tsx src/cli/holoscript-runner.ts compile \
+            ../../compositions/self-improve-daemon.hsplus \
+            --target node \
+            --output ../../.holoscript/self-improve-daemon.ci-check.js
+
   daemon-pr-branch-run:
     name: Daemon PR Branch Run (1 cycle)
     runs-on: ubuntu-latest

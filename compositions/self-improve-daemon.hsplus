@@ -121,32 +121,78 @@ composition "SelfImproveDaemon" {
                     condition: "has_candidates"
                   },
 
-                  // Repeater: try up to 3 candidates per cycle.
-                  // When try_candidate fails (rollback + advance exhausted), the
-                  // repeater's child fails → repeater stops → candidate_loop fails
-                  // → find_candidate selector falls to outer no_candidates report.
+                  // Validation-focused cycle (no code edits expected)
                   {
-                    type: "repeater",
-                    name: "candidate_iterator",
-                    count: 3,
+                    type: "selector",
+                    name: "focus_router",
                     children: [
                       {
                         type: "sequence",
-                        name: "try_candidate",
+                        name: "validation_focus_path",
                         children: [
-                          // Gate: stop repeater if advance_candidate exhausted all candidates
                           {
                             type: "condition",
-                            name: "has_candidates_inner",
-                            condition: "has_candidates"
+                            name: "validation_focus",
+                            condition: "validation_focus"
                           },
-
-                          // Step 3: Read the candidate file for context
                           {
                             type: "action",
-                            name: "read_candidate",
+                            name: "read_validation_candidate",
                             action: "read_candidate"
                           },
+                          {
+                            type: "action",
+                            name: "run_validation_check",
+                            action: "generate_fix"
+                          },
+                          {
+                            type: "action",
+                            name: "validate_validation_quality",
+                            action: "validate_quality"
+                          },
+                          {
+                            type: "action",
+                            name: "advance_validation_candidate",
+                            action: "advance_candidate"
+                          }
+                        ]
+                      },
+                      {
+                        type: "sequence",
+                        name: "edit_focus_path",
+                        children: [
+                          {
+                            type: "condition",
+                            name: "edit_focus",
+                            condition: "edit_focus"
+                          },
+
+                          // Repeater: try up to 3 candidates per cycle.
+                          // When try_candidate fails (rollback + advance exhausted), the
+                          // repeater's child fails → repeater stops → candidate_loop fails
+                          // → find_candidate selector falls to outer no_candidates report.
+                          {
+                            type: "repeater",
+                            name: "candidate_iterator",
+                            count: 3,
+                            children: [
+                              {
+                                type: "sequence",
+                                name: "try_candidate",
+                                children: [
+                                  // Gate: stop repeater if advance_candidate exhausted all candidates
+                                  {
+                                    type: "condition",
+                                    name: "has_candidates_inner",
+                                    condition: "has_candidates"
+                                  },
+
+                                  // Step 3: Read the candidate file for context
+                                  {
+                                    type: "action",
+                                    name: "read_candidate",
+                                    action: "read_candidate"
+                                  },
 
                               // Step 4: Generate a fix via focused LLM micro-call
                               // Sets blackboard: files_edited
@@ -331,6 +377,10 @@ composition "SelfImproveDaemon" {
                                   }
                                 ]
                               }
+                                ]
+                              }
+                            ]
+                          }
                         ]
                       }
                     ]
@@ -403,6 +453,8 @@ composition "SelfImproveDaemon" {
       blackboard: {
         intake_loaded: false,
         has_candidates: false,
+        validation_focus: false,
+        edit_focus: true,
         compilation_passed: false,
         tests_passed: false,
         quality_improved: false,

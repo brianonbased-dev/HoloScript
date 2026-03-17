@@ -191,6 +191,10 @@ codebase.holo
 core-graph.json
 .holo_audits/
 
+# Daemon local runtime artifacts
+.holoscript/.daemon-tsbuildinfo
+tmp-daemon-run.txt
+
 # Core debug/investigation scripts (not source)
 packages/core/check-fork-heap.cjs
 packages/core/check-fork.mjs
