@@ -1059,7 +1059,7 @@ export function compileToWASM(
   options?: WASMCompilerOptions
 ): WASMCompileResult {
   const compiler = new WASMCompiler(options);
-  return compiler.compile(composition);
+  return compiler.compile(composition, createTestCompilerToken());
 }
 
 /**
