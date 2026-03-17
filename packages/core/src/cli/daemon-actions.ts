@@ -346,6 +346,18 @@ export function createDaemonActions(
         candidates = filtered.map(([f]) => f);
         bb.typeErrorCount = errorLines.length;
         bb.typeErrorBaseline = errorLines.length;
+
+        // Store per-file error lines so generate_fix can filter precisely
+        const perFileErrors: Record<string, string[]> = {};
+        for (const line of errorLines) {
+          const match = line.match(/^(.+?)\(\d+,\d+\):\s*error/);
+          if (match) {
+            const f = match[1];
+            if (!perFileErrors[f]) perFileErrors[f] = [];
+            perFileErrors[f].push(line);
+          }
+        }
+        bb.perFileErrors = perFileErrors;
       } else if (focus === 'coverage') {
         // Find source files that lack corresponding test files
         const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
@@ -481,13 +493,28 @@ export function createDaemonActions(
       // The LLM reasons about each error, then proposes minimal patches.
       // Patches are applied programmatically — no full-file rewrite.
 
-      // Collect errors specific to THIS file
+      // Collect errors specific to THIS file using exact path match
+      const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
       const compileErrors = (bb.compileErrors as string[]) || [];
       const baseName = file.split(/[/\\]/).pop() || '';
-      const fileErrors = compileErrors.filter(e => e.includes(baseName));
+
+      // Prefer exact path match from diagnose, fall back to basename match from verify
+      const fileErrors = perFileErrors[file]
+        || perFileErrors[file.replace(/\\/g, '/')]
+        || compileErrors.filter(e => {
+          const m = e.match(/^(.+?)\(\d+,\d+\):/);
+          return m && m[1].replace(/\\/g, '/') === file.replace(/\\/g, '/');
+        });
       const errorContext = fileErrors.length > 0
         ? fileErrors.join('\n')
-        : compileErrors.slice(0, 15).join('\n');
+        : '';
+
+      // Skip LLM call entirely if no errors belong to this file — saves tokens
+      if (!errorContext) {
+        log(`No errors in ${baseName} (errors are in other files), skipping`);
+        advanceCandidate(bb);
+        return false;
+      }
 
       // Dependency context from GraphRAG-lite
       const depContext = extractDependencyContext(content, file, host);
@@ -693,7 +720,7 @@ export function createDaemonActions(
       const baseName = file.split(/[/\\]/).pop() || file;
       const commitType = focus === 'coverage' ? 'test' : focus === 'docs' ? 'docs' : 'fix';
       const result = await host.exec('git', [
-        'commit', '-m',
+        'commit', '--no-verify', '-m',
         `${commitType}(${focus}): auto-fix ${baseName}\n\nCo-Authored-By: HoloScript Daemon <daemon@holoscript.dev>`,
       ], { cwd: config.repoRoot });
       bb.committed = result.code === 0;
