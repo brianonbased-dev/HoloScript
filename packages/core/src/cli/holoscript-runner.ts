@@ -45,6 +45,8 @@ interface CLIOptions {
   commit: boolean;
   trial?: number;
   model: string;
+  timeout: number; // per-cycle timeout in minutes
+  focus?: string; // override focus rotation with fixed focus
 }
 
 function parseArgs(argv: string[]): CLIOptions {
@@ -60,6 +62,7 @@ function parseArgs(argv: string[]): CLIOptions {
     cycles: 15,
     commit: false,
     model: 'claude-sonnet-4-20250514',
+    timeout: 30,
   };
 
   if (args.length === 0) return opts;
@@ -101,6 +104,15 @@ function parseArgs(argv: string[]): CLIOptions {
     }
     if (args[i] === '--model' && args[i + 1]) {
       opts.model = args[++i];
+    }
+    if (args[i] === '--timeout' && args[i + 1]) {
+      const parsed = Number(args[++i]);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        opts.timeout = Math.floor(parsed);
+      }
+    }
+    if (args[i] === '--focus' && args[i + 1]) {
+      opts.focus = args[++i];
     }
   }
 
@@ -784,7 +796,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   console.log(`[daemon] Composition: ${path.basename(filePath)}`);
   console.log(`[daemon] Repo root: ${repoRoot}`);
-  console.log(`[daemon] Cycles: ${opts.cycles} | Commit: ${opts.commit} | Model: ${opts.model}`);
+  console.log(`[daemon] Cycles: ${opts.cycles} | Commit: ${opts.commit} | Timeout: ${opts.timeout}min | Model: ${opts.model}`);
 
   // State directory
   const stateDir = path.join(repoRoot, '.holoscript');
@@ -934,7 +946,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   for (let cycle = 0; cycle < opts.cycles; cycle++) {
     const focusIdx = (daemonState.focusIndex + cycle) % focusRotation.length;
-    const focus = focusRotation[focusIdx];
+    const focus = opts.focus || focusRotation[focusIdx];
     const cycleStart = Date.now();
 
     console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} ===`);
@@ -965,7 +977,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     }
 
     // Wait for BT completion or timeout
-    const maxWaitMs = 10 * 60 * 1000; // 10 minutes max per cycle
+    const maxWaitMs = opts.timeout * 60 * 1000;
     const btResult = await new Promise<{ status: string; blackboard: Record<string, unknown> }>((resolve) => {
       let resolved = false;
       const timeout = setTimeout(() => {

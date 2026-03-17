@@ -69,11 +69,11 @@ composition "TypeFixer" {
                     condition: "has_candidates"
                   },
 
-                  // Try up to 10 candidates per cycle (3x more than default)
+                  // Try up to 25 candidates per cycle
                   {
                     type: "repeater",
                     name: "candidate_iterator",
-                    count: 10,
+                    count: 25,
                     children: [
                       {
                         type: "sequence",
@@ -245,8 +245,8 @@ composition "TypeFixer" {
     // Rate limiter: prevent API hammering
     @rate_limiter {
       strategy: "token_bucket",
-      max_tokens: 15,
-      refill_rate: 3,
+      max_tokens: 30,
+      refill_rate: 5,
       window_ms: 60000,
       per_key: false
     }
@@ -257,9 +257,9 @@ composition "TypeFixer" {
       fallback_action: "abort"
     }
 
-    // Circuit breaker: stop after 5 consecutive failures
+    // Circuit breaker: stop after 10 consecutive failures
     @circuit_breaker {
-      failure_threshold: 5,
+      failure_threshold: 10,
       window_ms: 300000,
       reset_timeout_ms: 60000,
       success_threshold: 1,

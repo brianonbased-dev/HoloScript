@@ -1,3 +1,21 @@
 [
-  "G: typefix fix on BaseAdapter.ts failed after 2 retries — compile errors persist"
+  "G: typefix fix on BaseAdapter.ts failed after 2 retries — compile errors persist",
+  {
+    "delta": 0.72,
+    "candidate": "packages/core/src/runtime/WatchRunner.ts",
+    "timestamp": "2026-03-17T10:17:56.249Z"
+  },
+  {
+    "delta": 0.72,
+    "timestamp": "2026-03-17T10:18:03.373Z"
+  },
+  {
+    "delta": 0.72,
+    "timestamp": "2026-03-17T10:18:10.460Z"
+  },
+  {
+    "delta": 0.399,
+    "candidate": "packages/core/src/traits/USDTrait.ts",
+    "timestamp": "2026-03-17T10:29:31.783Z"
+  }
 ]

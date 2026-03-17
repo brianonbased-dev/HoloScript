@@ -163,6 +163,97 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
   return exports.length > 0 ? `\n\nImported type signatures:\n${exports.join('\n')}` : '';
 }
 
+// ── Patch Types & Helpers ────────────────────────────────────────────────────
+
+interface Patch {
+  old: string;
+  new: string;
+}
+
+interface PatchResponse {
+  analysis: string;
+  patches: Patch[];
+}
+
+/** Parse LLM JSON response into structured patches */
+function parsePatchResponse(text: string): PatchResponse | null {
+  let jsonStr = text.trim();
+  // Strip markdown code fences if LLM wraps output
+  const fenceMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (fenceMatch) jsonStr = fenceMatch[1].trim();
+
+  try {
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!Array.isArray(parsed.patches)) return null;
+
+    const patches: Patch[] = [];
+    for (const p of parsed.patches) {
+      if (typeof p.old === 'string' && typeof p.new === 'string' && p.old !== p.new) {
+        patches.push({ old: p.old, new: p.new });
+      }
+    }
+
+    return {
+      analysis: typeof parsed.analysis === 'string' ? parsed.analysis : '',
+      patches,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Apply patches to file content via exact string matching (like Edit tool's old→new) */
+function applyPatches(content: string, patches: Patch[]): { result: string; applied: number; failed: string[] } {
+  let result = content;
+  let applied = 0;
+  const failed: string[] = [];
+
+  for (const patch of patches) {
+    const idx = result.indexOf(patch.old);
+    if (idx === -1) {
+      failed.push(`Not found: "${patch.old.slice(0, 80)}..."`);
+      continue;
+    }
+    // Require unique match — ambiguous patches are dangerous
+    if (result.indexOf(patch.old, idx + 1) !== -1) {
+      failed.push(`Ambiguous (2+ matches): "${patch.old.slice(0, 80)}..."`);
+      continue;
+    }
+    result = result.slice(0, idx) + patch.new + result.slice(idx + patch.old.length);
+    applied++;
+  }
+
+  return { result, applied, failed };
+}
+
+/** Safety guards — reject destructive LLM edits */
+function validatePatchSafety(original: string, patched: string): { safe: boolean; reason?: string } {
+  const origLines = original.split('\n').length;
+  const patchedLines = patched.split('\n').length;
+
+  // Guard 1: Reject if >20% of lines deleted
+  if (patchedLines < origLines * 0.8) {
+    return { safe: false, reason: `Deleted ${origLines - patchedLines} lines (${((1 - patchedLines / origLines) * 100).toFixed(0)}% reduction)` };
+  }
+
+  // Guard 2: Reject if too many `as any` added
+  const origAsAny = (original.match(/as any/g) || []).length;
+  const patchedAsAny = (patched.match(/as any/g) || []).length;
+  if (patchedAsAny - origAsAny > 2) {
+    return { safe: false, reason: `Added ${patchedAsAny - origAsAny} "as any" casts (max 2 allowed)` };
+  }
+
+  // Guard 3: Reject if exported symbols decreased
+  const origExports = (original.match(/^export\s/gm) || []).length;
+  const patchedExports = (patched.match(/^export\s/gm) || []).length;
+  if (patchedExports < origExports - 1) {
+    return { safe: false, reason: `Removed ${origExports - patchedExports} exports` };
+  }
+
+  return { safe: true };
+}
+
 // ── Quarantine ───────────────────────────────────────────────────────────────
 
 const QUARANTINE_THRESHOLD = 2;
@@ -183,6 +274,13 @@ export function createDaemonActions(
 ): Record<string, ActionHandler> {
   const log = (msg: string) => {
     if (config.verbose) console.log(`[daemon] ${msg}`);
+  };
+
+  /** Advance blackboard to next candidate (shared by generate_fix skip paths) */
+  const advanceCandidate = (bb: Record<string, unknown>) => {
+    const idx = ((bb.candidateIndex as number) || 0) + 1;
+    bb.candidateIndex = idx;
+    bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
   };
 
   return {
@@ -323,90 +421,171 @@ export function createDaemonActions(
     },
 
     // ── Generate Fix (LLM Call) ────────────────────────────────────────
+    // Think→Patch architecture: LLM reasons about errors, proposes JSON patches,
+    // patches are applied programmatically. Prevents file truncation/deletion.
     generate_fix: async (_params, bb) => {
       const file = bb.currentCandidate as string;
       const content = bb.candidateContent as string;
       const focus = (bb.focus as string) || 'typefix';
 
-      let systemPrompt: string;
+      // ── Coverage/Docs: full-file approach (generating new content) ────
       if (focus === 'coverage') {
-        systemPrompt = [
+        const systemPrompt = [
           'You are a TypeScript testing expert. Generate a comprehensive test file for the given source.',
           'Use vitest (import { describe, it, expect, vi } from "vitest").',
           'Mock external dependencies with vi.mock(). Test exported functions and classes.',
           'Return ONLY the complete test file content. No markdown fences, no explanations.',
         ].join(' ');
-      } else if (focus === 'docs') {
-        systemPrompt = [
+        try {
+          const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
+          bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
+          bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
+          const edited = result.text.trim();
+          if (edited.length > 10 && !isContaminatedEdit(edited)) {
+            const testPath = file.replace(/\\/g, '/').replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
+            host.writeFile(testPath, edited);
+            bb.fileEdited = true;
+            bb.generatedTestFile = testPath;
+            log(`Generated test: ${testPath.split('/').pop()}`);
+            return true;
+          }
+        } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
+        advanceCandidate(bb);
+        return false;
+      }
+
+      if (focus === 'docs') {
+        const systemPrompt = [
           'You are a TypeScript documentation expert. Add JSDoc comments to all exported symbols.',
           'Include @param, @returns, @throws, and @example where appropriate.',
           'Return ONLY the complete file content with added JSDoc. No markdown fences, no explanations.',
           'Do NOT change any code logic — only add documentation comments.',
         ].join(' ');
-      } else {
-        systemPrompt = [
-          'You are a TypeScript expert fixing type errors in a HoloScript monorepo.',
-          'Fix ONLY the specific type errors listed. Do NOT refactor, rename, or restructure.',
-          'Prefer minimal fixes: add type annotations, fix import paths, cast where needed.',
-          'Return ONLY the complete corrected file content. No markdown fences, no explanations.',
-          'If you cannot fix the issue, return the original content unchanged.',
-        ].join(' ');
+        try {
+          const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
+          bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
+          bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
+          const edited = result.text.trim();
+          if (edited !== content && edited.length > 10 && !isContaminatedEdit(edited)) {
+            host.writeFile(file, edited);
+            bb.fileEdited = true;
+            log(`Applied docs to ${file}`);
+            return true;
+          }
+        } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
+        advanceCandidate(bb);
+        return false;
       }
 
-      // Collect errors specific to THIS file for targeted context
-      const compileErrors = (bb.compileErrors as string[]) || [];
-      const fileErrors = compileErrors.filter(e => e.includes(file.split(/[/\\]/).pop() || ''));
-      const errorContext = fileErrors.length > 0
-        ? `\nErrors in this file:\n${fileErrors.join('\n')}`
-        : compileErrors.length > 0
-          ? `\nCompile errors to fix:\n${compileErrors.slice(0, 10).join('\n')}`
-          : '';
+      // ── Type fixes: think→patch→apply architecture ────────────────────
+      // The LLM reasons about each error, then proposes minimal patches.
+      // Patches are applied programmatically — no full-file rewrite.
 
-      // Inject dependency context for type-aware fixes
-      const depContext = focus === 'typefix' ? extractDependencyContext(content, file, host) : '';
-      const prompt = `File: ${file}${errorContext}${depContext}\n\nCurrent content:\n${content}`;
+      // Collect errors specific to THIS file
+      const compileErrors = (bb.compileErrors as string[]) || [];
+      const baseName = file.split(/[/\\]/).pop() || '';
+      const fileErrors = compileErrors.filter(e => e.includes(baseName));
+      const errorContext = fileErrors.length > 0
+        ? fileErrors.join('\n')
+        : compileErrors.slice(0, 15).join('\n');
+
+      // Dependency context from GraphRAG-lite
+      const depContext = extractDependencyContext(content, file, host);
+
+      const systemPrompt = [
+        'You are a TypeScript expert fixing type errors in a large monorepo.',
+        'This is HoloScript — a DSL for VR/AR with traits, compilers, and parsers.',
+        '',
+        'RULES — violations cause automatic rejection:',
+        '1. NEVER delete functions, classes, or code blocks to eliminate errors',
+        '2. NEVER use "as any" — use proper type annotations instead',
+        '3. NEVER remove or change export statements',
+        '4. NEVER restructure, refactor, or rename anything',
+        '5. Each patch "old" field must match the file EXACTLY (including whitespace/indentation)',
+        '6. Keep patches minimal — change only what fixes the specific type error',
+        '',
+        'Think through each error: what type is expected vs actual? What is the minimal fix?',
+        'Common fixes: add missing type annotations, fix import paths, add missing properties,',
+        'update generic parameters, add null checks, fix return types.',
+        '',
+        'Respond with ONLY valid JSON (no markdown fences):',
+        '{',
+        '  "analysis": "Brief reasoning about each error and your fix strategy",',
+        '  "patches": [',
+        '    { "old": "exact text to find in file", "new": "replacement text" }',
+        '  ]',
+        '}',
+        '',
+        'If you cannot fix an error safely, omit it and explain in analysis.',
+        'If no errors can be fixed safely, return: {"analysis": "...", "patches": []}',
+      ].join('\n');
+
+      const prompt = [
+        `File: ${file}`,
+        '',
+        'Type errors to fix:',
+        errorContext || '(no specific errors — check file for type issues)',
+        depContext,
+        '',
+        `Source (${content.split('\n').length} lines):`,
+        content,
+      ].join('\n');
 
       try {
-        const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: 8192 });
+        const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: 4096 });
         bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
         bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
 
-        const edited = result.text.trim();
-
-        if (isContaminatedEdit(edited)) {
-          log(`Contaminated edit detected for ${file}, skipping`);
-          // Advance past this candidate (nothing to rollback)
-          const idx = ((bb.candidateIndex as number) || 0) + 1;
-          bb.candidateIndex = idx;
-          bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
+        // Parse structured response
+        const patchResponse = parsePatchResponse(result.text);
+        if (!patchResponse) {
+          log(`Failed to parse LLM JSON for ${baseName}, skipping`);
+          advanceCandidate(bb);
           return false;
         }
 
-        if (edited !== content && edited.length > 10) {
-          if (focus === 'coverage') {
-            // Write to test file path, not source
-            const testPath = file.replace(/\\/g, '/')
-              .replace(/\.ts$/, '.test.ts')
-              .replace(/\/src\//, '/src/__tests__/');
-            host.writeFile(testPath, edited);
-            bb.fileEdited = true;
-            bb.generatedTestFile = testPath;
-            log(`Generated test: ${testPath.split('/').pop()}`);
-          } else {
-            host.writeFile(file, edited);
-            bb.fileEdited = true;
-            log(`Applied fix to ${file}`);
-          }
-          return true;
-        } else {
-          bb.fileEdited = false;
-          log(`No changes generated for ${file}`);
-          // Advance past this candidate (nothing to rollback, skip verify/test pipeline)
-          const idx = ((bb.candidateIndex as number) || 0) + 1;
-          bb.candidateIndex = idx;
-          bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
+        if (patchResponse.analysis) {
+          log(`Analysis: ${patchResponse.analysis.slice(0, 200)}`);
+        }
+
+        if (patchResponse.patches.length === 0) {
+          log(`No patches proposed for ${baseName}`);
+          advanceCandidate(bb);
           return false;
         }
+
+        // Apply patches via exact string matching
+        const { result: patched, applied, failed } = applyPatches(content, patchResponse.patches);
+        if (applied === 0) {
+          log(`All ${failed.length} patches failed to match in ${baseName}`);
+          for (const f of failed.slice(0, 3)) log(`  ${f}`);
+          advanceCandidate(bb);
+          return false;
+        }
+        if (failed.length > 0) {
+          log(`${applied}/${patchResponse.patches.length} patches applied (${failed.length} failed) in ${baseName}`);
+        }
+
+        // Safety validation — reject destructive edits
+        const safety = validatePatchSafety(content, patched);
+        if (!safety.safe) {
+          log(`SAFETY REJECT: ${safety.reason} — skipping ${baseName}`);
+          advanceCandidate(bb);
+          return false;
+        }
+
+        // Contamination check
+        if (isContaminatedEdit(patched)) {
+          log(`Contaminated edit detected for ${baseName}, skipping`);
+          advanceCandidate(bb);
+          return false;
+        }
+
+        // Write patched file
+        host.writeFile(file, patched);
+        bb.fileEdited = true;
+        log(`Applied ${applied} patches to ${baseName}`);
+        return true;
       } catch (err: unknown) {
         log(`LLM error: ${(err as Error).message}`);
         return false;
@@ -498,10 +677,7 @@ export function createDaemonActions(
         if (file) await host.exec('git', ['checkout', '--', file], { cwd: config.repoRoot });
         if (testFile) await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
         bb.generatedTestFile = undefined;
-        // Advance to next candidate for repeater's next iteration
-        const idx = ((bb.candidateIndex as number) || 0) + 1;
-        bb.candidateIndex = idx;
-        bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
+        advanceCandidate(bb);
         return true;
       }
       const file = bb.currentCandidate as string;
@@ -523,11 +699,7 @@ export function createDaemonActions(
       bb.committed = result.code === 0;
       log(`Commit: ${bb.committed ? 'OK' : 'FAILED'}`);
 
-      // Advance to next candidate for repeater's next iteration
-      const idx = ((bb.candidateIndex as number) || 0) + 1;
-      bb.candidateIndex = idx;
-      bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
-
+      advanceCandidate(bb);
       return bb.committed as boolean;
     },
 

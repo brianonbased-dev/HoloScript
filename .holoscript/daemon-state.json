@@ -1,8 +1,12 @@
 {
-  "totalCycles": 0,
+  "totalCycles": 6,
+  "focusIndex": 2,
+  "bestQuality": 0.72,
+  "lastQuality": 0.399,
+  "totalCostUSD": 2.9126549999999995,
+  "totalInputTokens": 430710,
+  "totalOutputTokens": 108035,
   "lastCycleAt": "",
-  "lastQuality": 0,
-  "bestQuality": 0,
   "focusRotation": [
     "typefix",
     "coverage",
