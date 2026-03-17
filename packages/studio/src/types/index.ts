@@ -1,4 +1,11 @@
-import type { R3FNode } from '@holoscript/core';
+export interface R3FNode {
+  id?: string;
+  type: string;
+  props?: Record<string, unknown>;
+  traits?: Set<string>;
+  children?: R3FNode[];
+  assetMaturity?: 'draft' | 'production';
+}
 
 export interface SceneMetadata {
   id: string;

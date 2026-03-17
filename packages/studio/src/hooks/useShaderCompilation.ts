@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useShaderGraph } from './useShaderGraph';
-import type { IShaderNode, IShaderConnection } from './useShaderGraph';
+import type { ShaderNode, ShaderConnection } from './useShaderGraph';
 
 // ── Output types ──────────────────────────────────────────────────────────────
 
@@ -65,11 +65,12 @@ const _warnedNodeTypes = new Set<string>();
 
 /** Emit a GLSL expression for a single node. */
 function emitNodeExpr(
-  node: IShaderNode,
-  connections: IShaderConnection[],
+  node: ShaderNode,
+  connections: ShaderConnection[],
   resolvedPorts: Map<string, string> // portId → GLSL expression
 ): string {
-  const getInput = (portId: string, fallback = '0.0') => resolvedPorts.get(portId) ?? fallback;
+  const getInput = (portId?: string, fallback = '0.0') =>
+    portId ? (resolvedPorts.get(portId) ?? fallback) : fallback;
 
   switch (node.type) {
     // ── Inputs ──────────────────────────────────────────────────────────────
@@ -287,11 +288,11 @@ function emitNodeExpr(
 /** Topological sort: returns nodes in dependency order (deepest first). */
 function topoSort(
   outputNodeId: string,
-  nodes: Map<string, IShaderNode>,
-  connections: IShaderConnection[]
-): IShaderNode[] {
+  nodes: Map<string, ShaderNode>,
+  connections: ShaderConnection[]
+): ShaderNode[] {
   const visited = new Set<string>();
-  const order: IShaderNode[] = [];
+  const order: ShaderNode[] = [];
 
   const visit = (nodeId: string) => {
     if (visited.has(nodeId)) return;
@@ -311,8 +312,8 @@ function topoSort(
 
 /** Main compiler: produces ICompiledShader from the graph. */
 function compileGraph(
-  nodes: Map<string, IShaderNode>,
-  connections: IShaderConnection[]
+  nodes: Map<string, ShaderNode>,
+  connections: ShaderConnection[]
 ): ICompiledShader {
   const warnings: string[] = [];
 
@@ -345,21 +346,23 @@ function compileGraph(
 
     // Resolve input port expressions
     for (const inPort of node.inputs) {
-      const conn = connections.find((c) => c.toNodeId === node.id && c.toPortId === inPort.id);
+      const conn = connections.find((c) => c.toNodeId === node.id && c.toPort === inPort.id);
       if (conn) {
         const fromNode = nodes.get(conn.fromNodeId);
         if (fromNode) {
-          const fromPort = fromNode.outputs.find((p) => p.id === conn.fromPortId);
-          if (fromPort) {
+          const fromPort = fromNode.outputs.find((p: { id?: string; name: string }) => p.id === conn.fromPort);
+          if (fromPort?.id && inPort.id) {
             resolvedPorts.set(inPort.id, varName(conn.fromNodeId, fromPort.name));
           }
         }
       } else if (inPort.defaultValue !== undefined) {
         const dv = inPort.defaultValue;
-        resolvedPorts.set(
-          inPort.id,
-          Array.isArray(dv) ? `vec${dv.length}(${dv.join(',')})` : String(dv)
-        );
+        if (inPort.id) {
+          resolvedPorts.set(
+            inPort.id,
+            Array.isArray(dv) ? `vec${dv.length}(${dv.join(',')})` : String(dv)
+          );
+        }
       }
     }
 
@@ -375,7 +378,9 @@ function compileGraph(
       const type = glslType(outPort.type);
       const vName = varName(node.id, outPort.name);
       lines.push(`  ${type} ${vName} = ${type}(${expr});`);
-      resolvedPorts.set(outPort.id, vName);
+      if (outPort.id) {
+        resolvedPorts.set(outPort.id, vName);
+      }
     }
 
     if (node.type === 'TimeInput') usedUniforms.add('uTime');
@@ -388,13 +393,13 @@ function compileGraph(
 
   if (outputInputPort) {
     const conn = connections.find(
-      (c) => c.toNodeId === outputNode.id && c.toPortId === outputInputPort.id
+      (c) => c.toNodeId === outputNode.id && c.toPort === outputInputPort.id
     );
     if (conn) {
       const fromNode = nodes.get(conn.fromNodeId);
       if (fromNode) {
-        const fromPort = fromNode.outputs.find((p) => p.id === conn.fromPortId);
-        if (fromPort) {
+        const fromPort = fromNode.outputs.find((p: { id?: string; name: string }) => p.id === conn.fromPort);
+        if (fromPort?.id) {
           outputExpr = resolvedPorts.get(fromPort.id) ?? outputExpr;
         }
       }

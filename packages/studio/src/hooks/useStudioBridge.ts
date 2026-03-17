@@ -13,7 +13,8 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import StudioBridge from '@/lib/StudioBridge';
-import type { ASTMutation, HoloComposition } from '@/lib/StudioBridge';
+import type { ASTMutation } from '@/lib/StudioBridge';
+import type { HoloComposition } from '@/parser/HoloCompositionTypes';
 
 export interface UseStudioBridgeResult {
   /** The StudioBridge instance */
@@ -61,7 +62,7 @@ export function useStudioBridge(initialAST: HoloComposition): UseStudioBridgeRes
       setAst(event.newAST);
       setCanUndo(bridge.canUndo());
       setCanRedo(bridge.canRedo());
-      setHistorySize(bridge.getHistorySize());
+      setHistorySize(bridge.getHistoryLength());
     });
     return unsubscribe;
   }, [bridge]);

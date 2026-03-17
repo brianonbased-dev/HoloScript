@@ -740,7 +740,7 @@ export class StudioBridge {
       return { success: false, ast, errors: [`Object "${objectName}" not found`] };
     }
 
-    const existing = obj.properties.find((p) => p.key === key);
+    const existing = obj.properties.find((p: HoloObjectProperty) => p.key === key);
     if (existing) {
       existing.value = value;
     } else {
@@ -754,13 +754,13 @@ export class StudioBridge {
     ast: HoloComposition,
     mutation: AddTimelineEntryMutation
   ): MutationResult {
-    const timeline = ast.timelines.find((t) => t.name === mutation.timelineName);
+    const timeline = ast.timelines.find((t: HoloTimeline) => t.name === mutation.timelineName);
     if (!timeline) {
       return { success: false, ast, errors: [`Timeline "${mutation.timelineName}" not found`] };
     }
 
     timeline.entries.push(mutation.entry);
-    timeline.entries.sort((a, b) => a.time - b.time);
+    timeline.entries.sort((a: HoloTimelineEntry, b: HoloTimelineEntry) => a.time - b.time);
     return { success: true, ast };
   }
 
@@ -768,7 +768,7 @@ export class StudioBridge {
     ast: HoloComposition,
     mutation: RemoveTimelineEntryMutation
   ): MutationResult {
-    const timeline = ast.timelines.find((t) => t.name === mutation.timelineName);
+    const timeline = ast.timelines.find((t: HoloTimeline) => t.name === mutation.timelineName);
     if (!timeline) {
       return { success: false, ast, errors: [`Timeline "${mutation.timelineName}" not found`] };
     }
@@ -787,12 +787,12 @@ export class StudioBridge {
   }
 
   private applyUpdateLight(ast: HoloComposition, mutation: UpdateLightMutation): MutationResult {
-    const light = ast.lights.find((l) => l.name === mutation.lightName);
+    const light = ast.lights.find((l: HoloLight) => l.name === mutation.lightName);
     if (!light) {
       return { success: false, ast, errors: [`Light "${mutation.lightName}" not found`] };
     }
 
-    const existing = light.properties.find((p) => p.key === mutation.key);
+    const existing = light.properties.find((p: HoloLightProperty) => p.key === mutation.key);
     if (existing) {
       existing.value = mutation.value;
     } else {
@@ -803,7 +803,7 @@ export class StudioBridge {
   }
 
   private applyRemoveLight(ast: HoloComposition, mutation: RemoveLightMutation): MutationResult {
-    const idx = ast.lights.findIndex((l) => l.name === mutation.lightName);
+    const idx = ast.lights.findIndex((l: HoloLight) => l.name === mutation.lightName);
     if (idx === -1) {
       return { success: false, ast, errors: [`Light "${mutation.lightName}" not found`] };
     }
@@ -820,7 +820,7 @@ export class StudioBridge {
       };
     }
 
-    const existing = ast.camera.properties.find((p) => p.key === mutation.key);
+    const existing = ast.camera.properties.find((p: HoloCameraProperty) => p.key === mutation.key);
     if (existing) {
       existing.value = mutation.value;
     } else {
@@ -842,7 +842,7 @@ export class StudioBridge {
       ast.environment = { type: 'Environment', properties: [] };
     }
 
-    const existing = ast.environment.properties.find((p) => p.key === mutation.key);
+    const existing = ast.environment.properties.find((p: HoloGroupProperty) => p.key === mutation.key);
     if (existing) {
       existing.value = mutation.value;
     } else {
@@ -882,7 +882,7 @@ export class StudioBridge {
 
     // Apply position offset
     if (mutation.positionOffset) {
-      const posProp = clone.properties.find((p) => p.key === 'position');
+      const posProp = clone.properties.find((p: HoloObjectProperty) => p.key === 'position');
       if (posProp && Array.isArray(posProp.value)) {
         const arr = posProp.value as number[];
         posProp.value = [
@@ -983,7 +983,7 @@ export class StudioBridge {
   }
 
   private removeObjectByName(name: string, objects: HoloObjectDecl[]): boolean {
-    const idx = objects.findIndex((o) => o.name === name);
+    const idx = objects.findIndex((o: HoloObjectDecl) => o.name === name);
     if (idx !== -1) {
       objects.splice(idx, 1);
       return true;
@@ -1008,7 +1008,7 @@ export class StudioBridge {
     name: string,
     group: HoloSpatialGroup
   ): HoloObjectDecl | null {
-    const idx = group.objects.findIndex((o) => o.name === name);
+    const idx = group.objects.findIndex((o: HoloObjectDecl) => o.name === name);
     if (idx !== -1) {
       return group.objects.splice(idx, 1)[0];
     }

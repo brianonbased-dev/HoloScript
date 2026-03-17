@@ -2,8 +2,7 @@
 
 import { useMemo } from 'react';
 import { HoloScriptPlusParser, HoloCompositionParser, R3FCompiler } from '@holoscript/core';
-import type { R3FNode } from '@holoscript/core';
-import type { PipelineResult } from '@/types';
+import type { PipelineResult, R3FNode } from '@/types';
 
 type ScenePipelineFormatHint = 'auto' | 'holo' | 'hsplus';
 

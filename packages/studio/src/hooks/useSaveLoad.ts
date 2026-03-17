@@ -3,10 +3,18 @@
  * useSaveLoad — Hook for save/load slot management
  */
 import { useState, useCallback, useRef } from 'react';
-import { SaveManager, type SaveSlot } from '@holoscript/core';
+import { SaveManager } from '@holoscript/core';
+
+interface SaveSlot {
+  id: string;
+  name: string;
+  timestamp?: number;
+  playtime?: number;
+  metadata?: Record<string, unknown>;
+}
 
 export interface UseSaveLoadReturn {
-  manager: SaveManager;
+  manager: InstanceType<typeof SaveManager>;
   slots: SaveSlot[];
   playtime: number;
   save: (name: string, data?: Record<string, unknown>) => void;
