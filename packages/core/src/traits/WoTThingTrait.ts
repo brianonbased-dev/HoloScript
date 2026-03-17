@@ -142,8 +142,8 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
     if (event.type === 'wot_td_generated') {
       state.tdGenerated = true;
       state.lastGenerated = Date.now();
-      state.cachedTD = (event as Record<string, unknown>).td || null;
-      state.validationErrors = (event as Record<string, unknown>).errors || [];
+      state.cachedTD = typeof (event as Record<string, unknown>).td === 'string' ? (event as Record<string, unknown>).td : null;
+      state.validationErrors = Array.isArray((event as Record<string, unknown>).errors) ? (event as Record<string, unknown>).errors : [];
     }
   },
 };
