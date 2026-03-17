@@ -702,9 +702,9 @@ export function createDaemonActions(
 
       const baseName = file.split(/[/\\]/).pop() || file;
       const commitType = focus === 'coverage' ? 'test' : focus === 'docs' ? 'docs' : 'fix';
+      const msg = `${commitType}(${focus}): auto-fix ${baseName} [daemon]`;
       const result = await host.exec('git', [
-        'commit', '--no-verify', '-m',
-        `${commitType}(${focus}): auto-fix ${baseName} [daemon]`,
+        'commit', '--no-verify', '-m', `"${msg}"`,
       ], { cwd: config.repoRoot });
       bb.committed = result.code === 0;
       if (!bb.committed) {
