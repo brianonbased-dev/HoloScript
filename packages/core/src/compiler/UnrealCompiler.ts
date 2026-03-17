@@ -816,5 +816,5 @@ export function compileToUnreal(
   options?: UnrealCompilerOptions
 ): UnrealCompileResult {
   const compiler = new UnrealCompiler(options);
-  return compiler.compile(composition);
+  return compiler.compile(composition, createTestCompilerToken());
 }
