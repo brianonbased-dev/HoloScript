@@ -1080,23 +1080,39 @@ function materializeTraits(ast: unknown): void {
 
 /**
  * Set values in the AST's blackboard node (used to configure BT per cycle).
+ * Deep traversal into ALL object properties including Map values to find
+ * blackboard inside trait configs (e.g. @behavior_tree { blackboard: {...} }).
  */
 function setASTBlackboard(ast: unknown, values: Record<string, unknown>): void {
+  const visited = new WeakSet<object>();
+  let found = false;
+
   const walk = (node: unknown): void => {
-    if (!node || typeof node !== 'object') return;
-    const n = node as Record<string, unknown>;
+    if (found || !node || typeof node !== 'object') return;
+    const obj = node as Record<string, unknown>;
+    if (visited.has(obj)) return;
+    visited.add(obj);
 
     // Direct blackboard object
-    if (n.blackboard && typeof n.blackboard === 'object' && !Array.isArray(n.blackboard)) {
-      Object.assign(n.blackboard as object, values);
+    if (obj.blackboard && typeof obj.blackboard === 'object' && !Array.isArray(obj.blackboard)) {
+      Object.assign(obj.blackboard as object, values);
+      found = true;
       return;
     }
 
-    // Recurse
-    for (const key of ['body', 'children', 'nodes', 'members']) {
-      if (Array.isArray(n[key])) {
-        (n[key] as unknown[]).forEach(walk);
+    // Deep traverse ALL properties (not just body/children/nodes/members)
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val && typeof val === 'object') {
+        if (Array.isArray(val)) {
+          for (const item of val) walk(item);
+        } else if (val instanceof Map) {
+          for (const v of val.values()) walk(v);
+        } else {
+          walk(val);
+        }
       }
+      if (found) return;
     }
   };
   walk(ast);

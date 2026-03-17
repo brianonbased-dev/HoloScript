@@ -60,28 +60,45 @@ function isContaminatedEdit(content: string): boolean {
 
 // ── Quality Scorer ───────────────────────────────────────────────────────────
 
-async function computeQuality(host: DaemonHost, repoRoot: string): Promise<number> {
+/** Count type errors from tsc output */
+function countTypeErrors(output: string): number {
+  return output.split('\n').filter(l => /error TS\d{4}:/.test(l)).length;
+}
+
+/**
+ * Delta-based quality scoring. Measures improvement relative to baseline
+ * error count captured at cycle start (not absolute normalization).
+ *
+ * Score = typeScore * 0.6 + testScore * 0.4
+ */
+async function computeQuality(
+  host: DaemonHost,
+  repoRoot: string,
+  baselineErrors?: number,
+): Promise<{ score: number; typeErrors: number; testsPassed: number; testsTotal: number }> {
   const [tsc, test] = await Promise.all([
     host.exec('npx', ['tsc', '--noEmit', '--pretty', 'false'], { cwd: repoRoot, timeoutMs: 120_000 }),
-    host.exec('npx', ['vitest', 'run', '--reporter=json', '--no-color'], { cwd: repoRoot, timeoutMs: 120_000 }),
+    host.exec('npx', ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'], { cwd: repoRoot, timeoutMs: 120_000 }),
   ]);
 
-  // Type error count
-  const typeErrors = (tsc.stdout + tsc.stderr).split('\n').filter(l => /error TS\d{4}:/.test(l)).length;
-  const typeScore = Math.max(0, 1 - typeErrors / 100);
+  const typeErrors = countTypeErrors(tsc.stdout + tsc.stderr);
+  const baseline = baselineErrors ?? typeErrors;
+  const typeScore = baseline === 0 ? 1 : Math.max(0, Math.min(1, 1 - typeErrors / Math.max(baseline, 1)));
 
-  // Test pass rate
+  let testsPassed = 0;
+  let testsTotal = 0;
   let testScore = 0.5;
   try {
     const json = JSON.parse(test.stdout);
-    const total = json.numTotalTests || 1;
-    const passed = json.numPassedTests || 0;
-    testScore = passed / total;
+    testsTotal = json.numTotalTests || 0;
+    testsPassed = json.numPassedTests || 0;
+    testScore = testsTotal > 0 ? testsPassed / testsTotal : (test.code === 0 ? 1 : 0.5);
   } catch {
     testScore = test.code === 0 ? 0.8 : 0.3;
   }
 
-  return Number((typeScore * 0.6 + testScore * 0.4).toFixed(3));
+  const score = Number((typeScore * 0.6 + testScore * 0.4).toFixed(3));
+  return { score, typeErrors, testsPassed, testsTotal };
 }
 
 // ── Quarantine ───────────────────────────────────────────────────────────────
@@ -133,24 +150,79 @@ export function createDaemonActions(
       const focus = (bb.focus as string) || 'typefix';
       log(`Diagnosing with focus: ${focus}`);
 
-      const candidates: string[] = [];
+      let candidates: string[] = [];
 
-      if (focus === 'typefix') {
+      if (focus === 'typefix' || focus === 'all') {
+        // Run tsc and collect files with type errors
         const result = await host.exec('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
           cwd: config.repoRoot, timeoutMs: 120_000,
         });
         const errorLines = (result.stdout + result.stderr).split('\n').filter(l => /error TS\d{4}:/.test(l));
-        const fileSet = new Set<string>();
+
+        // Count errors per file for prioritization
+        const errorCounts = new Map<string, number>();
         for (const line of errorLines) {
           const match = line.match(/^(.+?)\(\d+,\d+\):\s*error/);
-          if (match) fileSet.add(match[1]);
+          if (match) {
+            errorCounts.set(match[1], (errorCounts.get(match[1]) || 0) + 1);
+          }
         }
-        for (const f of fileSet) {
-          if ((failureCounts.get(f) || 0) < QUARANTINE_THRESHOLD) {
+
+        // Filter: only packages/core/src/ (skip examples/, benchmarks, external packages)
+        // Then remove quarantined files
+        const filtered = [...errorCounts.entries()]
+          .filter(([f]) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(([f]) => (failureCounts.get(f) || 0) < QUARANTINE_THRESHOLD);
+
+        // Prioritize files with fewest errors (easiest wins first)
+        filtered.sort((a, b) => a[1] - b[1]);
+
+        candidates = filtered.map(([f]) => f);
+        bb.typeErrorCount = errorLines.length;
+        bb.typeErrorBaseline = errorLines.length;
+      } else if (focus === 'coverage') {
+        // Find source files that lack corresponding test files
+        const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
+          cwd: config.repoRoot, timeoutMs: 120_000,
+        });
+        const sourceFiles = (result.stdout + result.stderr).split('\n')
+          .map(l => l.trim())
+          .filter(f => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
+
+        for (const f of sourceFiles) {
+          const testFile = f.replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
+          if (!host.exists(testFile) && (failureCounts.get(f) || 0) < QUARANTINE_THRESHOLD) {
             candidates.push(f);
           }
         }
-        bb.typeErrorCount = errorLines.length;
+        // Prioritize shorter files (easier to generate tests for)
+        candidates.sort((a, b) => {
+          try {
+            return host.readFile(a).length - host.readFile(b).length;
+          } catch { return 0; }
+        });
+        bb.typeErrorCount = 0;
+      } else if (focus === 'docs') {
+        // Find exported functions/classes without JSDoc
+        const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
+          cwd: config.repoRoot, timeoutMs: 120_000,
+        });
+        const sourceFiles = (result.stdout + result.stderr).split('\n')
+          .map(l => l.trim())
+          .filter(f => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
+
+        for (const f of sourceFiles) {
+          if ((failureCounts.get(f) || 0) >= QUARANTINE_THRESHOLD) continue;
+          try {
+            const content = host.readFile(f);
+            const hasUndocumented = /^export\s+(function|class|const|interface|type)\s+/m.test(content) &&
+              !/\/\*\*[\s\S]*?\*\/\s*\nexport\s/m.test(content);
+            if (hasUndocumented) candidates.push(f);
+          } catch { /* skip unreadable */ }
+        }
+        bb.typeErrorCount = 0;
       } else {
         bb.typeErrorCount = 0;
       }
@@ -158,7 +230,7 @@ export function createDaemonActions(
       bb.candidates = candidates;
       bb.candidateIndex = 0;
       bb.has_candidates = candidates.length > 0;
-      log(`Found ${candidates.length} candidates`);
+      log(`Found ${candidates.length} candidates (focus: ${focus})`);
       return true;
     },
 
@@ -188,21 +260,44 @@ export function createDaemonActions(
       const content = bb.candidateContent as string;
       const focus = (bb.focus as string) || 'typefix';
 
-      const system = [
-        `You are a TypeScript expert fixing ${focus} issues in a HoloScript codebase.`,
-        'Return ONLY the complete corrected file content. No markdown fences, no explanations.',
-        'If you cannot fix the issue, return the original content unchanged.',
-      ].join(' ');
+      let systemPrompt: string;
+      if (focus === 'coverage') {
+        systemPrompt = [
+          'You are a TypeScript testing expert. Generate a comprehensive test file for the given source.',
+          'Use vitest (import { describe, it, expect, vi } from "vitest").',
+          'Mock external dependencies with vi.mock(). Test exported functions and classes.',
+          'Return ONLY the complete test file content. No markdown fences, no explanations.',
+        ].join(' ');
+      } else if (focus === 'docs') {
+        systemPrompt = [
+          'You are a TypeScript documentation expert. Add JSDoc comments to all exported symbols.',
+          'Include @param, @returns, @throws, and @example where appropriate.',
+          'Return ONLY the complete file content with added JSDoc. No markdown fences, no explanations.',
+          'Do NOT change any code logic — only add documentation comments.',
+        ].join(' ');
+      } else {
+        systemPrompt = [
+          'You are a TypeScript expert fixing type errors in a HoloScript monorepo.',
+          'Fix ONLY the specific type errors listed. Do NOT refactor, rename, or restructure.',
+          'Prefer minimal fixes: add type annotations, fix import paths, cast where needed.',
+          'Return ONLY the complete corrected file content. No markdown fences, no explanations.',
+          'If you cannot fix the issue, return the original content unchanged.',
+        ].join(' ');
+      }
 
+      // Collect errors specific to THIS file for targeted context
       const compileErrors = (bb.compileErrors as string[]) || [];
-      const errorContext = compileErrors.length > 0
-        ? `\nCompile errors to fix:\n${compileErrors.join('\n')}`
-        : '';
+      const fileErrors = compileErrors.filter(e => e.includes(file.split(/[/\\]/).pop() || ''));
+      const errorContext = fileErrors.length > 0
+        ? `\nErrors in this file:\n${fileErrors.join('\n')}`
+        : compileErrors.length > 0
+          ? `\nCompile errors to fix:\n${compileErrors.slice(0, 10).join('\n')}`
+          : '';
 
       const prompt = `File: ${file}${errorContext}\n\nCurrent content:\n${content}`;
 
       try {
-        const result = await llm.chat({ system, prompt, maxTokens: 8192 });
+        const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: 8192 });
         bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
         bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
 
@@ -210,18 +305,38 @@ export function createDaemonActions(
 
         if (isContaminatedEdit(edited)) {
           log(`Contaminated edit detected for ${file}, skipping`);
+          // Advance past this candidate (nothing to rollback)
+          const idx = ((bb.candidateIndex as number) || 0) + 1;
+          bb.candidateIndex = idx;
+          bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
           return false;
         }
 
         if (edited !== content && edited.length > 10) {
-          host.writeFile(file, edited);
-          bb.fileEdited = true;
-          log(`Applied fix to ${file}`);
+          if (focus === 'coverage') {
+            // Write to test file path, not source
+            const testPath = file.replace(/\\/g, '/')
+              .replace(/\.ts$/, '.test.ts')
+              .replace(/\/src\//, '/src/__tests__/');
+            host.writeFile(testPath, edited);
+            bb.fileEdited = true;
+            bb.generatedTestFile = testPath;
+            log(`Generated test: ${testPath.split('/').pop()}`);
+          } else {
+            host.writeFile(file, edited);
+            bb.fileEdited = true;
+            log(`Applied fix to ${file}`);
+          }
+          return true;
         } else {
           bb.fileEdited = false;
           log(`No changes generated for ${file}`);
+          // Advance past this candidate (nothing to rollback, skip verify/test pipeline)
+          const idx = ((bb.candidateIndex as number) || 0) + 1;
+          bb.candidateIndex = idx;
+          bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
+          return false;
         }
-        return true;
       } catch (err: unknown) {
         log(`LLM error: ${(err as Error).message}`);
         return false;
@@ -229,6 +344,8 @@ export function createDaemonActions(
     },
 
     // ── Verify Compilation ─────────────────────────────────────────────
+    // Always returns true (check completed). Sets bb.compilation_passed flag
+    // for the BT condition node to decide commit vs rollback path.
     verify_compilation: async (_params, bb) => {
       const result = await host.exec('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
         cwd: config.repoRoot, timeoutMs: 120_000,
@@ -238,7 +355,7 @@ export function createDaemonActions(
       bb.compilation_passed = errors.length === 0 || errors.length <= baseline;
       bb.compileErrors = errors.slice(0, 20);
       log(`Compilation: ${bb.compilation_passed ? 'PASS' : 'FAIL'} (${errors.length} errors)`);
-      return bb.compilation_passed as boolean;
+      return true;
     },
 
     // ── Fix From Compile Errors ────────────────────────────────────────
@@ -257,25 +374,47 @@ export function createDaemonActions(
     // ── Run Related Tests ──────────────────────────────────────────────
     run_related_tests: async (_params, bb) => {
       const file = bb.currentCandidate as string;
-      const testFile = file
-        .replace(/\.ts$/, '.test.ts')
-        .replace(/\/src\//, '/src/__tests__/');
+      const normalized = file.replace(/\\/g, '/');
 
-      const result = await host.exec('npx', ['vitest', 'run', '--no-color', testFile], {
+      // Try multiple test file resolution patterns
+      const testCandidates = [
+        normalized.replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/'),
+        normalized.replace(/\.ts$/, '.test.ts'),
+        normalized.replace(/\.tsx$/, '.test.tsx').replace(/\/src\//, '/src/__tests__/'),
+        normalized.replace(/\.ts$/, '.spec.ts').replace(/\/src\//, '/src/__tests__/'),
+      ];
+
+      const testFile = testCandidates.find(t => host.exists(t));
+
+      if (!testFile) {
+        // No test file exists — pass (don't block fixes on missing tests)
+        log(`Tests: SKIP (no test file for ${normalized.split('/').pop()})`);
+        bb.tests_passed = true;
+        return true;
+      }
+
+      const result = await host.exec('npx', ['vitest', 'run', '--no-color', '--passWithNoTests', testFile], {
         cwd: config.repoRoot, timeoutMs: 120_000,
       });
       bb.tests_passed = result.code === 0;
-      log(`Tests: ${bb.tests_passed ? 'PASS' : 'FAIL'}`);
+      log(`Tests: ${bb.tests_passed ? 'PASS' : 'FAIL'} (${testFile.split('/').pop()})`);
       return bb.tests_passed as boolean;
     },
 
     // ── Validate Quality ───────────────────────────────────────────────
     validate_quality: async (_params, bb) => {
+      const baselineErrors = (bb.typeErrorBaseline as number) || (bb.typeErrorCount as number) || undefined;
+      const result = await computeQuality(host, config.repoRoot, baselineErrors);
       const qualityBefore = (bb.quality_before as number) || 0;
-      const qualityAfter = await computeQuality(host, config.repoRoot);
-      bb.quality_after = qualityAfter;
-      bb.quality_improved = qualityAfter > qualityBefore;
-      log(`Quality: ${qualityBefore.toFixed(3)} -> ${qualityAfter.toFixed(3)} (${bb.quality_improved ? 'improved' : 'regressed'})`);
+
+      bb.quality_after = result.score;
+      bb.quality_typeErrors = result.typeErrors;
+      bb.quality_testsPassed = result.testsPassed;
+      bb.quality_testsTotal = result.testsTotal;
+      bb.quality_improved = result.score > qualityBefore;
+
+      log(`Quality: ${qualityBefore.toFixed(3)} -> ${result.score.toFixed(3)} | ` +
+        `types: ${result.typeErrors} errors | tests: ${result.testsPassed}/${result.testsTotal} passed`);
       return bb.quality_improved as boolean;
     },
 
@@ -283,32 +422,62 @@ export function createDaemonActions(
     commit_changes: async (_params, bb) => {
       if (!config.commit) {
         log('Dry run — skipping commit');
+        // Rollback file changes since we're not committing
+        const file = bb.currentCandidate as string;
+        const testFile = bb.generatedTestFile as string | undefined;
+        if (file) await host.exec('git', ['checkout', '--', file], { cwd: config.repoRoot });
+        if (testFile) await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
+        bb.generatedTestFile = undefined;
+        // Advance to next candidate for repeater's next iteration
+        const idx = ((bb.candidateIndex as number) || 0) + 1;
+        bb.candidateIndex = idx;
+        bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
         return true;
       }
       const file = bb.currentCandidate as string;
-      await host.exec('git', ['add', file], { cwd: config.repoRoot });
+      const testFile = bb.generatedTestFile as string | undefined;
       const focus = (bb.focus as string) || 'typefix';
+
+      // Stage modified/created files
+      const filesToAdd = testFile ? [file, testFile] : [file];
+      for (const f of filesToAdd) {
+        await host.exec('git', ['add', f], { cwd: config.repoRoot });
+      }
+
       const baseName = file.split(/[/\\]/).pop() || file;
+      const commitType = focus === 'coverage' ? 'test' : focus === 'docs' ? 'docs' : 'fix';
       const result = await host.exec('git', [
         'commit', '-m',
-        `fix(${focus}): auto-fix ${baseName}\n\nCo-Authored-By: HoloScript Daemon <daemon@holoscript.dev>`,
+        `${commitType}(${focus}): auto-fix ${baseName}\n\nCo-Authored-By: HoloScript Daemon <daemon@holoscript.dev>`,
       ], { cwd: config.repoRoot });
       bb.committed = result.code === 0;
       log(`Commit: ${bb.committed ? 'OK' : 'FAILED'}`);
+
+      // Advance to next candidate for repeater's next iteration
+      const idx = ((bb.candidateIndex as number) || 0) + 1;
+      bb.candidateIndex = idx;
+      bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
+
       return bb.committed as boolean;
     },
 
     // ── Rollback Changes ───────────────────────────────────────────────
     rollback_changes: async (_params, bb) => {
       const file = bb.currentCandidate as string;
+      const testFile = bb.generatedTestFile as string | undefined;
       if (file) {
         await host.exec('git', ['checkout', '--', file], { cwd: config.repoRoot });
+        // Also rollback generated test file if coverage mode created one
+        if (testFile) {
+          await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
+        }
         const isQuarantined = quarantineFile(file);
         if (isQuarantined) {
           log(`Quarantined ${file} (${QUARANTINE_THRESHOLD} failures)`);
         }
         log(`Rolled back ${file}`);
       }
+      bb.generatedTestFile = undefined;
       return true;
     },
 
@@ -333,9 +502,12 @@ export function createDaemonActions(
       const delta = after - before;
       const iTokens = (bb.inputTokens as number) || 0;
       const oTokens = (bb.outputTokens as number) || 0;
+      const typeErrors = (bb.quality_typeErrors as number) ?? '?';
+      const testsPassed = (bb.quality_testsPassed as number) ?? '?';
+      const testsTotal = (bb.quality_testsTotal as number) ?? '?';
       console.log(
-        `[daemon] Cycle complete | quality: ${after.toFixed(3)} | ` +
-        `delta: ${delta >= 0 ? '+' : ''}${delta.toFixed(3)} | ` +
+        `[daemon] Cycle complete | quality: ${after.toFixed(3)} (${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) | ` +
+        `types: ${typeErrors} errors | tests: ${testsPassed}/${testsTotal} | ` +
         `tokens: ${iTokens}i/${oTokens}o`,
       );
       return true;
