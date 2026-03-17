@@ -139,7 +139,7 @@ export class AndroidXRCompiler extends CompilerBase {
 
   compile(
     composition: HoloComposition,
-    agentToken: string,
+    agentToken: CompilerToken,
     outputPath?: string
   ): AndroidXRCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
