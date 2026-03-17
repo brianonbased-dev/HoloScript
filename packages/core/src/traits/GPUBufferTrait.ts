@@ -65,7 +65,7 @@ export const gpuBufferHandler: TraitHandler<GPUBufferConfig> = {
       lastWriteTime: 0,
       pendingWrites: [],
     };
-    (node as any).__gpuBufferState = state;
+    node.__gpuBufferState = state;
 
     // Create GPU buffer
     context.emit?.('gpu_buffer_create', {
@@ -78,15 +78,15 @@ export const gpuBufferHandler: TraitHandler<GPUBufferConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__gpuBufferState as GPUBufferState;
+    const state = node.__gpuBufferState as GPUBufferState;
     if (state?.isAllocated) {
       context.emit?.('gpu_buffer_destroy', { node });
     }
-    delete (node as any).__gpuBufferState;
+    delete node.__gpuBufferState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__gpuBufferState as GPUBufferState;
+    const state = node.__gpuBufferState as GPUBufferState;
     if (!state || !state.isAllocated) return;
 
     // Process pending writes
@@ -105,7 +105,7 @@ export const gpuBufferHandler: TraitHandler<GPUBufferConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__gpuBufferState as GPUBufferState;
+    const state = node.__gpuBufferState as GPUBufferState;
     if (!state) return;
 
     if (event.type === 'gpu_buffer_created') {

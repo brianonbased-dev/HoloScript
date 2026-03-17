@@ -75,7 +75,7 @@ export const planeDetectionHandler: TraitHandler<PlaneDetectionConfig> = {
       selectedPlane: null,
       hitTestResults: [],
     };
-    (node as any).__planeDetectionState = state;
+    node.__planeDetectionState = state;
 
     // Start plane detection
     context.emit?.('plane_detection_start', {
@@ -87,15 +87,15 @@ export const planeDetectionHandler: TraitHandler<PlaneDetectionConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__planeDetectionState as PlaneDetectionState;
+    const state = node.__planeDetectionState as PlaneDetectionState;
     if (state?.isDetecting) {
       context.emit?.('plane_detection_stop', { node });
     }
-    delete (node as any).__planeDetectionState;
+    delete node.__planeDetectionState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__planeDetectionState as PlaneDetectionState;
+    const state = node.__planeDetectionState as PlaneDetectionState;
     if (!state || !state.isDetecting) return;
 
     const now = Date.now();
@@ -141,7 +141,7 @@ export const planeDetectionHandler: TraitHandler<PlaneDetectionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__planeDetectionState as PlaneDetectionState;
+    const state = node.__planeDetectionState as PlaneDetectionState;
     if (!state) return;
 
     if (event.type === 'plane_detected') {

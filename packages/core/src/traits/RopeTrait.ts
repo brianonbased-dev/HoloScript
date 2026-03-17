@@ -78,7 +78,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
       startAttachment: null,
       endAttachment: null,
     };
-    (node as any).__ropeState = state;
+    node.__ropeState = state;
 
     // Initialize segments
     const segmentLength = config.length / config.segments;
@@ -123,15 +123,15 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__ropeState as RopeState;
+    const state = node.__ropeState as RopeState;
     if (state?.isSimulating) {
       context.emit?.('rope_destroy', { node });
     }
-    delete (node as any).__ropeState;
+    delete node.__ropeState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__ropeState as RopeState;
+    const state = node.__ropeState as RopeState;
     if (!state || !state.isSimulating || state.isSnapped) return;
 
     // Step rope simulation
@@ -159,7 +159,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__ropeState as RopeState;
+    const state = node.__ropeState as RopeState;
     if (!state) return;
 
     if (event.type === 'rope_segment_update') {

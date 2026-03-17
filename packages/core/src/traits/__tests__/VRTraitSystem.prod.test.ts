@@ -79,7 +79,7 @@ describe('VRTraitSystem — Production', () => {
     it('registers a custom handler', () => {
       const reg = new VRTraitRegistry();
       const custom: TraitHandler<any> = {
-        name: 'custom_test' as any,
+        name: 'custom_test',
         defaultConfig: { value: 42 },
         onAttach: vi.fn(),
       };
@@ -96,14 +96,14 @@ describe('VRTraitSystem — Production', () => {
       const reg = new VRTraitRegistry();
       const onAttach = vi.fn();
       reg.register({
-        name: 'test_attach' as any,
+        name: 'test_attach',
         defaultConfig: { a: 1, b: 2 },
         onAttach,
       });
 
       const node = makeNode();
       const ctx = makeContext();
-      reg.attachTrait(node, 'test_attach' as any, { b: 99 }, ctx);
+      reg.attachTrait(node, 'test_attach', { b: 99 }, ctx);
 
       expect(node.traits.has('test_attach')).toBe(true);
       expect(node.traits.get('test_attach')).toEqual({ a: 1, b: 99 });
@@ -112,10 +112,10 @@ describe('VRTraitSystem — Production', () => {
 
     it('creates traits map if missing', () => {
       const reg = new VRTraitRegistry();
-      reg.register({ name: 'auto_map' as any, defaultConfig: {} });
+      reg.register({ name: 'auto_map', defaultConfig: {} });
 
       const node = { id: 'bare' } as any;
-      reg.attachTrait(node, 'auto_map' as any, {}, makeContext());
+      reg.attachTrait(node, 'auto_map', {}, makeContext());
       expect(node.traits).toBeDefined();
       expect(node.traits.has('auto_map')).toBe(true);
     });
@@ -123,12 +123,12 @@ describe('VRTraitSystem — Production', () => {
     it('detaches trait and calls onDetach', () => {
       const reg = new VRTraitRegistry();
       const onDetach = vi.fn();
-      reg.register({ name: 'test_detach' as any, defaultConfig: { x: 1 }, onDetach });
+      reg.register({ name: 'test_detach', defaultConfig: { x: 1 }, onDetach });
 
       const node = makeNode();
       const ctx = makeContext();
-      reg.attachTrait(node, 'test_detach' as any, {}, ctx);
-      reg.detachTrait(node, 'test_detach' as any, ctx);
+      reg.attachTrait(node, 'test_detach', {}, ctx);
+      reg.detachTrait(node, 'test_detach', ctx);
 
       expect(onDetach).toHaveBeenCalled();
       expect(node.traits.has('test_detach')).toBe(false);
@@ -137,7 +137,7 @@ describe('VRTraitSystem — Production', () => {
     it('no-op attach for unknown handler', () => {
       const reg = new VRTraitRegistry();
       const node = makeNode();
-      reg.attachTrait(node, 'does_not_exist' as any, {}, makeContext());
+      reg.attachTrait(node, 'does_not_exist', {}, makeContext());
       expect(node.traits.size).toBe(0);
     });
   });
@@ -148,19 +148,19 @@ describe('VRTraitSystem — Production', () => {
     it('calls onUpdate with config and delta', () => {
       const reg = new VRTraitRegistry();
       const onUpdate = vi.fn();
-      reg.register({ name: 'test_update' as any, defaultConfig: { speed: 5 }, onUpdate });
+      reg.register({ name: 'test_update', defaultConfig: { speed: 5 }, onUpdate });
 
       const node = makeNode();
       const ctx = makeContext();
-      reg.attachTrait(node, 'test_update' as any, {}, ctx);
-      reg.updateTrait(node, 'test_update' as any, ctx, 0.016);
+      reg.attachTrait(node, 'test_update', {}, ctx);
+      reg.updateTrait(node, 'test_update', ctx, 0.016);
 
       expect(onUpdate).toHaveBeenCalledWith(node, { speed: 5 }, ctx, 0.016);
     });
 
     it('no-op for missing handler', () => {
       const reg = new VRTraitRegistry();
-      reg.updateTrait(makeNode(), 'nope' as any, makeContext(), 0.016);
+      reg.updateTrait(makeNode(), 'nope', makeContext(), 0.016);
       // No crash
     });
   });
@@ -171,14 +171,14 @@ describe('VRTraitSystem — Production', () => {
     it('routes event to handler.onEvent', () => {
       const reg = new VRTraitRegistry();
       const onEvent = vi.fn();
-      reg.register({ name: 'test_event' as any, defaultConfig: {}, onEvent });
+      reg.register({ name: 'test_event', defaultConfig: {}, onEvent });
 
       const node = makeNode();
       const ctx = makeContext();
-      reg.attachTrait(node, 'test_event' as any, {}, ctx);
+      reg.attachTrait(node, 'test_event', {}, ctx);
 
       const event = { type: 'click', hand: {} } as any;
-      reg.handleEvent(node, 'test_event' as any, ctx, event);
+      reg.handleEvent(node, 'test_event', ctx, event);
 
       expect(onEvent).toHaveBeenCalledWith(node, {}, ctx, event);
     });
@@ -191,13 +191,13 @@ describe('VRTraitSystem — Production', () => {
       const reg = new VRTraitRegistry();
       const u1 = vi.fn();
       const u2 = vi.fn();
-      reg.register({ name: 't1' as any, defaultConfig: {}, onUpdate: u1 });
-      reg.register({ name: 't2' as any, defaultConfig: {}, onUpdate: u2 });
+      reg.register({ name: 't1', defaultConfig: {}, onUpdate: u1 });
+      reg.register({ name: 't2', defaultConfig: {}, onUpdate: u2 });
 
       const node = makeNode();
       const ctx = makeContext();
-      reg.attachTrait(node, 't1' as any, {}, ctx);
-      reg.attachTrait(node, 't2' as any, {}, ctx);
+      reg.attachTrait(node, 't1', {}, ctx);
+      reg.attachTrait(node, 't2', {}, ctx);
 
       reg.updateAllTraits(node, ctx, 0.016);
 
@@ -217,13 +217,13 @@ describe('VRTraitSystem — Production', () => {
       const reg = new VRTraitRegistry();
       const e1 = vi.fn();
       const e2 = vi.fn();
-      reg.register({ name: 'ev1' as any, defaultConfig: {}, onEvent: e1 });
-      reg.register({ name: 'ev2' as any, defaultConfig: {}, onEvent: e2 });
+      reg.register({ name: 'ev1', defaultConfig: {}, onEvent: e1 });
+      reg.register({ name: 'ev2', defaultConfig: {}, onEvent: e2 });
 
       const node = makeNode();
       const ctx = makeContext();
-      reg.attachTrait(node, 'ev1' as any, {}, ctx);
-      reg.attachTrait(node, 'ev2' as any, {}, ctx);
+      reg.attachTrait(node, 'ev1', {}, ctx);
+      reg.attachTrait(node, 'ev2', {}, ctx);
 
       reg.handleEventForAllTraits(node, ctx, { type: 'custom' } as any);
 

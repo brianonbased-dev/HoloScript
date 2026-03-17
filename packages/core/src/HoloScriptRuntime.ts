@@ -153,7 +153,7 @@ export class HoloScriptRuntime {
 
     // Initialize Agent Pool
     this.agentPool = new ObjectPool<HoloScriptAgentRuntime>(
-      () => new (HoloScriptAgentRuntime as any)(), // Dummy constructor for pooling
+      () => new HoloScriptAgentRuntime(), // Preallocation mode (optional args)
       (agent) => agent.destroy(),
       50
     );
@@ -166,7 +166,7 @@ export class HoloScriptRuntime {
     for (const [name, fn] of this.builtinFunctions) {
       // Wrap builtins so they work when called via spread args from evaluateHoloExpression.
       // Builtins expect (args: HoloScriptValue[]) but the expression evaluator calls callee(...args).
-      this.context.functions.set(name, ((...spreadArgs: any[]) => fn(spreadArgs)) as any);
+      this.context.functions.set(name, ((...spreadArgs: HoloScriptValue[]) => fn(spreadArgs)) as unknown as MethodNode);
     }
 
     // Attention Graph Query (TODO-018)
@@ -174,17 +174,17 @@ export class HoloScriptRuntime {
     this.registerFunction('get_attended_entities', (args: HoloScriptValue[]) => {
       const topK = typeof args[0] === 'number' ? args[0] : 10;
 
-      const selfNode = this.context.variables.get('self') as any;
+      const selfNode = this.context.variables.get('self') as Record<string, unknown> | undefined;
       const observerPos = selfNode?.position || { x: 0, y: 0, z: 0 };
 
-      const entities: any[] = [];
+      const entities: Array<{ id: string; position: SpatialPosition; velocity?: SpatialPosition; saliencyBase?: number }> = [];
       this.context.spatialMemory.forEach((pos, id) => {
         if (id !== selfNode?.name) {
           entities.push({
             id,
             position: pos,
-            velocity: (this.context.variables.get(id) as any)?.velocity,
-            saliencyBase: (this.context.variables.get(id) as any)?.saliency,
+            velocity: (this.context.variables.get(id) as Record<string, unknown> | undefined)?.velocity as SpatialPosition | undefined,
+            saliencyBase: (this.context.variables.get(id) as Record<string, unknown> | undefined)?.saliency as number | undefined,
           });
         }
       });
@@ -193,8 +193,8 @@ export class HoloScriptRuntime {
     });
 
     // Register Trait Handlers
-    this.traitHandlers.set('mitosis' as any, mitosisHandler);
-    this.traitHandlers.set('orbital' as any, orbitalHandler);
+    this.traitHandlers.set('mitosis' as VRTraitName, mitosisHandler);
+    this.traitHandlers.set('orbital' as VRTraitName, orbitalHandler);
 
     // Initialize Extension Registry
     this.extensionRegistry = new ExtensionRegistry(this);
@@ -289,7 +289,7 @@ export class HoloScriptRuntime {
 
     // Spatial commands
     builtins.set('spawn', async (args): Promise<HoloScriptValue> => {
-      const config = args[0] as any;
+      const config = args[0] as HoloScriptValue;
       // Legacy support for (name, position)
       if (typeof config === 'string') {
         const target = config;
@@ -300,9 +300,10 @@ export class HoloScriptRuntime {
       }
 
       // Mitosis support for ({ template, id, position, ... })
-      const templateName = config.template;
-      const id = config.id || `${templateName}_${Date.now()}`;
-      const position = config.position || { x: 0, y: 0, z: 0 };
+      const spawnConfig = config as Record<string, unknown>;
+      const templateName = String(spawnConfig.template);
+      const id = String(spawnConfig.id || `${templateName}_${Date.now()}`);
+      const position = (spawnConfig.position as SpatialPosition) || { x: 0, y: 0, z: 0 };
 
       const template = this.context.templates.get(templateName);
       if (!template) {
@@ -315,7 +316,7 @@ export class HoloScriptRuntime {
         type: 'orb',
         name: id,
         position: position,
-        properties: { ...config.config }, // Initial state from config
+        properties: { ...(spawnConfig.config as Record<string, HoloScriptValue> || {}) }, // Initial state from config
         children: template.children,
         traits: template.traits,
         directives: template.directives,
@@ -326,13 +327,13 @@ export class HoloScriptRuntime {
       if (holoTpl.state) {
         for (const prop of holoTpl.state.properties) {
           if (spawnNode.properties[prop.key] === undefined) {
-            spawnNode.properties[prop.key] = this.resolveHoloValue(prop.value as any);
+            spawnNode.properties[prop.key] = this.resolveHoloValue(prop.value as HoloValue);
           }
         }
       }
       for (const prop of holoTpl.properties) {
         if (spawnNode.properties[prop.key] === undefined) {
-          spawnNode.properties[prop.key] = this.resolveHoloValue(prop.value as any);
+          spawnNode.properties[prop.key] = this.resolveHoloValue(prop.value as HoloValue);
         }
       }
 
@@ -340,8 +341,8 @@ export class HoloScriptRuntime {
       await this.executeOrb(spawnNode);
 
       // If there's a parent, notify them of the mitosis event
-      if (config.parentId || config.parent_id) {
-        const parentId = config.parentId || config.parent_id;
+      if (spawnConfig.parentId || spawnConfig.parent_id) {
+        const parentId = String(spawnConfig.parentId || spawnConfig.parent_id);
         await this.emit(`mitosis_spawned`, { parentId, childId: id });
 
         // Also emit on the specific orb event bus if needed
@@ -523,7 +524,7 @@ export class HoloScriptRuntime {
     builtins.set('think', async (args) => {
       const activeNode = this.context.executionStack[this.context.executionStack.length - 1];
       if (!activeNode) return 'No context';
-      const agentId = (activeNode as any).name;
+      const agentId = (activeNode as unknown as Record<string, unknown>).name as string;
       const agentRuntime = this.agentRuntimes.get(agentId);
       if (agentRuntime) {
         return await agentRuntime.think(String(args[0] || ''));
@@ -539,13 +540,13 @@ export class HoloScriptRuntime {
    */
   public registerGlobalFunction(name: string, fn: Function): void {
     // Wrap function to accept spread arguments from evaluator
-    this.context.functions.set(name, ((...spreadArgs: any[]) => fn(spreadArgs)) as any);
+    this.context.functions.set(name, ((...spreadArgs: HoloScriptValue[]) => fn(spreadArgs)) as unknown as MethodNode);
   }
 
   /**
    * Register a custom trait from an extension
    */
-  public registerTrait(name: string, handler: TraitHandler<any>): void {
+  public registerTrait(name: string, handler: TraitHandler<Record<string, unknown>>): void {
     const vrName = name as VRTraitName; // Cast for now, dynamic traits expand the type implicitly
     this.traitHandlers.set(vrName, handler);
     logger.info(`Registered trait: ${name}`);
@@ -563,14 +564,14 @@ export class HoloScriptRuntime {
    */
   async executeNode(node: ASTNode): Promise<ExecutionResult> {
     const startTime = Date.now();
-    console.log(`[RUNTIME_DEBUG] executeNode: ${node.type} (Line: ${(node as any).line})`);
+    console.log(`[RUNTIME_DEBUG] executeNode: ${node.type} (Line: ${(node as unknown as Record<string, unknown>).line})`);
 
     try {
       this.context.executionStack.push(node);
 
       let result: ExecutionResult;
 
-      const nodeType = (node as any).type;
+      const nodeType = (node as unknown as Record<string, unknown>).type as string;
       switch (nodeType) {
         case 'orb':
         case 'object':
@@ -624,18 +625,18 @@ export class HoloScriptRuntime {
           result = await this.executeReturn(node as ASTNode & { value: unknown });
           break;
         case 'memory':
-          result = await this.executeMemory(node as any);
+          result = await this.executeMemory(node as import('./types').MemoryNode);
           break;
         case 'semantic-memory':
         case 'episodic-memory':
         case 'procedural-memory':
-          result = await this.executeMemoryDefinition(node as any);
+          result = await this.executeMemoryDefinition(node as import('./types').SemanticMemoryNode | import('./types').EpisodicMemoryNode | import('./types').ProceduralMemoryNode);
           break;
         case 'generic':
           result = await this.executeGeneric(node);
           break;
         case 'expression-statement':
-          result = await this.executeExpressionStatement(node as any);
+          result = await this.executeExpressionStatement(node as ASTNode & { expression: string });
           break;
         case 'scale':
           result = await this.executeScale(node as ScaleNode);
@@ -679,31 +680,31 @@ export class HoloScriptRuntime {
           result = await this.executeTarget(node as ExecuteNode);
           break;
         case 'state-declaration':
-          result = await this.executeStateDeclaration(node as any);
+          result = await this.executeStateDeclaration(node as ASTNode & { directives?: import('./types/AdvancedTypeSystem').HSPlusDirective[] });
           break;
         case 'state-machine':
           result = await this.executeStateMachine(node as StateMachineNode);
           break;
         case 'system':
-          result = await this.executeSystem(node as any);
+          result = await this.executeSystem(node as SystemNode);
           break;
         case 'core_config':
-          result = await this.executeCoreConfig(node as any);
+          result = await this.executeCoreConfig(node as CoreConfigNode);
           break;
         case 'for':
-          result = await this.executeForLoop(node as any);
+          result = await this.executeForLoop(node as ASTNode & { variable: string; iterable: string | unknown; body: ASTNode[] });
           break;
         case 'forEach':
-          result = await this.executeForEachLoop(node as any);
+          result = await this.executeForEachLoop(node as ASTNode & { variable: string; collection: string | unknown; body: ASTNode[] });
           break;
         case 'while':
-          result = await this.executeWhileLoop(node as any);
+          result = await this.executeWhileLoop(node as ASTNode & { condition: string | unknown; body: ASTNode[] });
           break;
         case 'if':
-          result = await this.executeIfStatement(node as any);
+          result = await this.executeIfStatement(node as ASTNode & { condition: string | unknown; body: ASTNode[]; elseBody?: ASTNode[] });
           break;
         case 'match':
-          result = await this.executeMatch(node as any);
+          result = await this.executeMatch(node as ASTNode & { subject: string | unknown; cases: Array<{ pattern: string | unknown; guard?: string | unknown; body: ASTNode[] | unknown }> });
           break;
         default:
           result = {
@@ -746,7 +747,7 @@ export class HoloScriptRuntime {
 
       // Bubble up return result if present
       const lastResult = results[results.length - 1];
-      let output: any = success ? `Program executed (${results.length} nodes)` : 'Program failed';
+      let output: HoloScriptValue = success ? `Program executed (${results.length} nodes)` : 'Program failed';
 
       if (lastResult && lastResult.success && lastResult.output !== undefined) {
         // If evaluateExpression was used, it likely came from a return node or expression statement
@@ -957,14 +958,14 @@ export class HoloScriptRuntime {
       this.wss &&
       typeof value === 'object' &&
       value !== null &&
-      (value as any).__type === 'orb'
+      (value as Record<string, unknown>).__type === 'orb'
     ) {
       this.broadcast('orb_update', { orb: value });
     } else if (this.wss && name.includes('.')) {
       // If updating a property of an orb, broadcast the orb
       const root = name.split('.')[0];
       const rootVar = this.getVariable(root, scopeOverride);
-      if (rootVar && typeof rootVar === 'object' && (rootVar as any).__type === 'orb') {
+      if (rootVar && typeof rootVar === 'object' && (rootVar as Record<string, unknown>).__type === 'orb') {
         this.broadcast('orb_update', { orb: rootVar });
       }
     }
@@ -1019,7 +1020,7 @@ export class HoloScriptRuntime {
 
     const evaluator = new ExpressionEvaluator(this.context.state.getSnapshot());
     // Also include currently set variables in context
-    const varContext: Record<string, any> = {};
+    const varContext: Record<string, HoloScriptValue> = {};
     this.context.variables.forEach((v, k) => (varContext[k] = v));
 
     evaluator.updateContext(varContext);
@@ -1036,7 +1037,7 @@ export class HoloScriptRuntime {
     const scale = this.context.currentScale || 1;
 
     // 1. STATE RECONCILIATION: Check for existing orb instance
-    const existingOrb = this.context.variables.get(node.name) as any;
+    const existingOrb = this.context.variables.get(node.name) as Record<string, unknown> | undefined;
     const isUpdate = !!existingOrb && existingOrb.__type === 'orb';
 
     let pos = { x: 0, y: 0, z: 0 };
@@ -1069,7 +1070,7 @@ export class HoloScriptRuntime {
 
     // Handle both Record (HS+ Type) and Array (HS Composition ObjectProperty)
     if (Array.isArray(node.properties)) {
-      for (const prop of node.properties as any[]) {
+      for (const prop of node.properties as Array<{ key: string; value: HoloScriptValue }>) {
         const key = prop.key;
         const val = prop.value;
         if (typeof val === 'string') {
@@ -1089,19 +1090,19 @@ export class HoloScriptRuntime {
     }
 
     // 3. TEMPLATE MERGING (Inherit properties from template)
-    const orbNodeAny = node as any;
-    if (orbNodeAny.template) {
-      const tpl = this.context.templates.get(orbNodeAny.template) as unknown as
+    const orbNodeExt = node as OrbNode & { template?: string };
+    if (orbNodeExt.template) {
+      const tpl = this.context.templates.get(orbNodeExt.template) as unknown as
         | TemplateNode
         | undefined;
       console.log(
-        `[RUNTIME_DEBUG] executeOrb: ${orbNodeAny.name} using template: ${orbNodeAny.template}. Found template: ${!!tpl}`
+        `[RUNTIME_DEBUG] executeOrb: ${orbNodeExt.name} using template: ${orbNodeExt.template}. Found template: ${!!tpl}`
       );
       if (tpl) {
         // Merge template properties if not overridden by orb
         if (tpl.properties) {
           console.log(
-            `[RUNTIME_DEBUG] Merging properties from template ${orbNodeAny.template} into ${orbNodeAny.name}`
+            `[RUNTIME_DEBUG] Merging properties from template ${orbNodeExt.template} into ${orbNodeExt.name}`
           );
           for (const [key, val] of Object.entries(tpl.properties)) {
             if (evaluatedProperties[key] === undefined) {
@@ -1117,7 +1118,7 @@ export class HoloScriptRuntime {
         // Note: Template children/traits are handled via directives
         if (tpl.directives) {
           console.log(
-            `[RUNTIME_DEBUG] Merging ${tpl.directives.length} directives from template ${node.template} into ${node.name}`
+            `[RUNTIME_DEBUG] Merging ${tpl.directives.length} directives from template ${orbNodeExt.template} into ${orbNodeExt.name}`
           );
           // Prepend template directives so orb directives can override if needed (though usually directives accumulate)
           // Actually for things like @state, we might want unique processing.
@@ -1149,7 +1150,7 @@ export class HoloScriptRuntime {
           color: (evaluatedProperties.color as string) || '#ffffff',
           size:
             (Number(evaluatedProperties.size) || Number(evaluatedProperties.scale) || 1) * scale,
-          shape: (evaluatedProperties.geometry || 'sphere') as any,
+          shape: (evaluatedProperties.geometry || 'sphere') as HologramShape,
           glow: !!evaluatedProperties.glow,
           interactive: !!evaluatedProperties.interactive,
         };
@@ -1195,7 +1196,7 @@ export class HoloScriptRuntime {
     if (isUpdate) {
       // Merge new properties into existing ones, but we might want to be selective
       // For now, new script properties take precedence, but old ones not in script are kept
-      orbData.properties = { ...orbData.properties, ...evaluatedProperties };
+      orbData.properties = { ...(orbData.properties as Record<string, HoloScriptValue>), ...evaluatedProperties };
     } else {
       orbData.properties = evaluatedProperties;
     }
@@ -1206,7 +1207,7 @@ export class HoloScriptRuntime {
     orbData._templateRef = node.template ? this.context.templates.get(node.template) : undefined;
 
     if (!isUpdate) {
-      this.context.variables.set(node.name, orbData as any);
+      this.context.variables.set(node.name, orbData as HoloScriptValue);
     }
 
     if (hologram) {
@@ -1215,7 +1216,7 @@ export class HoloScriptRuntime {
 
     // Apply directives
     if (node.directives) {
-      this.applyDirectives(orbData as any);
+      this.applyDirectives(orbData as unknown as ASTNode);
 
       // State handling: if @state is present, it might override some properties
       // Historically applyDirectives updates global state, we might need a local merge
@@ -1231,20 +1232,20 @@ export class HoloScriptRuntime {
         const agentRuntime = this.agentPool.acquire();
         agentRuntime.reset(node, this);
         this.agentRuntimes.set(node.name, agentRuntime);
-        (orbData as any).state = agentRuntime.getState();
+        (orbData as Record<string, unknown>).state = agentRuntime.getState();
 
         // Bind all methods
-        (node.directives as any[])
+        (node.directives as Array<{ type: string; name: string }>)
           ?.filter((d) => d.type === 'method')
           .forEach((m) => {
-            (orbData as any)[m.name] = (...args: any[]) => agentRuntime.executeAction(m.name, args);
+            (orbData as Record<string, unknown>)[m.name] = (...args: HoloScriptValue[]) => agentRuntime.executeAction(m.name, args);
           });
       }
     }
 
     logger.info(isUpdate ? 'Orb updated' : 'Orb created', {
       name: node.name,
-      properties: Object.keys(orbData.properties),
+      properties: Object.keys(orbData.properties as Record<string, unknown>),
       scale,
     });
 
@@ -1257,7 +1258,7 @@ export class HoloScriptRuntime {
         properties: orbData.properties,
         hologram: hologram,
         traits:
-          node.directives?.filter((d) => d.type === 'trait').map((d) => (d as any).name) || [],
+          node.directives?.filter((d) => d.type === 'trait').map((d) => (d as unknown as { name: string }).name) || [],
       },
     });
 
@@ -1527,7 +1528,7 @@ export class HoloScriptRuntime {
    * Handles commands like: show, hide, animate, pulse, create
    */
   private async executeGeneric(_node: ASTNode): Promise<ExecutionResult> {
-    const genericNode = _node as any;
+    const genericNode = _node as ASTNode & { command?: string; position?: SpatialPosition; hologram?: HologramProperties };
     const command = String(genericNode.command || '')
       .trim()
       .toLowerCase();
@@ -1538,7 +1539,7 @@ export class HoloScriptRuntime {
     logger.info('Executing generic command', { command, action, target });
 
     try {
-      let result: any;
+      let result: Record<string, unknown>;
 
       switch (action) {
         case 'show':
@@ -1588,7 +1589,7 @@ export class HoloScriptRuntime {
   /**
    * Execute 'show' command
    */
-  private async executeShowCommand(target: string, _node: any): Promise<any> {
+  private async executeShowCommand(target: string, _node: ASTNode & { position?: SpatialPosition; hologram?: HologramProperties }): Promise<Record<string, unknown>> {
     // Create or show orb for this target
     const hologram = _node.hologram || {
       shape: 'orb',
@@ -1614,7 +1615,7 @@ export class HoloScriptRuntime {
   /**
    * Execute 'hide' command
    */
-  private async executeHideCommand(target: string, _node: any): Promise<any> {
+  private async executeHideCommand(target: string, _node: ASTNode): Promise<Record<string, unknown>> {
     const position = this.context.spatialMemory.get(target) || { x: 0, y: 0, z: 0 };
     this.createParticleEffect(`${target}_hide`, position, '#ff0000', 10);
 
@@ -1628,7 +1629,7 @@ export class HoloScriptRuntime {
   /**
    * Execute 'create' command
    */
-  private async executeCreateCommand(tokens: string[], _node: any): Promise<any> {
+  private async executeCreateCommand(tokens: string[], _node: ASTNode & { position?: SpatialPosition; hologram?: HologramProperties }): Promise<Record<string, unknown>> {
     if (tokens.length < 2) {
       return { error: 'Create command requires shape and name' };
     }
@@ -1661,11 +1662,11 @@ export class HoloScriptRuntime {
   /**
    * Execute 'animate' command
    */
-  private async executeAnimateCommand(target: string, tokens: string[], _node: any): Promise<any> {
+  private async executeAnimateCommand(target: string, tokens: string[], _node: ASTNode): Promise<Record<string, unknown>> {
     const property = tokens[0] || 'position.y';
     const duration = parseInt(tokens[1] || '1000', 10);
 
-    const animation: any = {
+    const animation: Animation = {
       target,
       property,
       from: 0,
@@ -1688,7 +1689,7 @@ export class HoloScriptRuntime {
   /**
    * Execute 'pulse' command
    */
-  private async executePulseCommand(target: string, tokens: string[], _node: any): Promise<any> {
+  private async executePulseCommand(target: string, tokens: string[], _node: ASTNode): Promise<Record<string, unknown>> {
     const duration = parseInt(tokens[0] || '500', 10);
     const position = this.context.spatialMemory.get(target) || { x: 0, y: 0, z: 0 };
 
@@ -1696,7 +1697,7 @@ export class HoloScriptRuntime {
     this.createParticleEffect(`${target}_pulse`, position, '#ffff00', 30);
 
     // Create animation for scale
-    const animation: any = {
+    const animation: Animation = {
       target,
       property: 'scale',
       from: 1,
@@ -1721,7 +1722,7 @@ export class HoloScriptRuntime {
   /**
    * Execute 'move' command
    */
-  private async executeMoveCommand(target: string, tokens: string[], _node: any): Promise<any> {
+  private async executeMoveCommand(target: string, tokens: string[], _node: ASTNode): Promise<Record<string, unknown>> {
     const x = parseFloat(tokens[0] || '0');
     const y = parseFloat(tokens[1] || '0');
     const z = parseFloat(tokens[2] || '0');
@@ -1746,7 +1747,7 @@ export class HoloScriptRuntime {
   /**
    * Execute 'delete' command
    */
-  private async executeDeleteCommand(target: string, _node: any): Promise<any> {
+  private async executeDeleteCommand(target: string, _node: ASTNode): Promise<Record<string, unknown>> {
     const position = this.context.spatialMemory.get(target);
     if (position) {
       this.createParticleEffect(`${target}_delete`, position, '#ff0000', 15);
@@ -1806,19 +1807,20 @@ export class HoloScriptRuntime {
   // Condition Evaluation
   // ============================================================================
 
-  private evaluateCondition(condition: any): boolean {
+  private evaluateCondition(condition: string | unknown): boolean {
     if (!condition) return false;
+    const condStr = String(condition);
 
     const suspiciousKeywords = ['eval', 'process', 'require', '__proto__', 'constructor'];
-    if (suspiciousKeywords.some((kw) => condition.toLowerCase().includes(kw))) {
+    if (suspiciousKeywords.some((kw) => condStr.toLowerCase().includes(kw))) {
       logger.warn('Suspicious condition blocked', { condition });
       return false;
     }
 
     try {
       // Boolean literals
-      if (condition.trim().toLowerCase() === 'true') return true;
-      if (condition.trim().toLowerCase() === 'false') return false;
+      if (condStr.trim().toLowerCase() === 'true') return true;
+      if (condStr.trim().toLowerCase() === 'false') return false;
 
       // Comparison operators
       const comparisonPatterns: Array<{ regex: RegExp; logical?: string }> = [
@@ -1829,7 +1831,7 @@ export class HoloScriptRuntime {
       ];
 
       for (const { regex, logical } of comparisonPatterns) {
-        const match = condition.match(regex);
+        const match = condStr.match(regex);
         if (match) {
           const [, leftExpr, operator, rightExpr] = match;
           const left = this.evaluateExpression(leftExpr.trim());
@@ -1860,12 +1862,12 @@ export class HoloScriptRuntime {
       }
 
       // Negation
-      if (condition.startsWith('!')) {
-        return !this.evaluateCondition(condition.slice(1).trim());
+      if (condStr.startsWith('!')) {
+        return !this.evaluateCondition(condStr.slice(1).trim());
       }
 
       // Variable truthiness
-      const value = this.evaluateExpression(condition.trim());
+      const value = this.evaluateExpression(condStr.trim());
       return Boolean(value);
     } catch (error) {
       logger.error('Condition evaluation error', { condition, error });
@@ -1885,7 +1887,7 @@ export class HoloScriptRuntime {
 
     switch (transform.operation) {
       case 'filter': {
-        if (!Array.isArray(data)) return data as any;
+        if (!Array.isArray(data)) return data as HoloScriptValue;
         const predicate = params.predicate as string;
         if (predicate) {
           return data.filter((item) => {
@@ -1897,7 +1899,7 @@ export class HoloScriptRuntime {
       }
 
       case 'map': {
-        if (!Array.isArray(data)) return data as any;
+        if (!Array.isArray(data)) return data as HoloScriptValue;
         const mapper = params.mapper as string;
         if (mapper) {
           return data.map((item) => {
@@ -1909,7 +1911,7 @@ export class HoloScriptRuntime {
       }
 
       case 'reduce': {
-        if (!Array.isArray(data)) return data as any;
+        if (!Array.isArray(data)) return data as HoloScriptValue;
         const initial = params.initial ?? 0;
         const reducer = params.reducer as string;
         if (reducer) {
@@ -1923,7 +1925,7 @@ export class HoloScriptRuntime {
       }
 
       case 'sort': {
-        if (!Array.isArray(data)) return data as any;
+        if (!Array.isArray(data)) return data as HoloScriptValue;
         const key = params.key as string;
         const desc = params.descending as boolean;
         const sorted = [...data].sort((a, b) => {
@@ -1944,32 +1946,32 @@ export class HoloScriptRuntime {
         ) as HoloScriptValue;
 
       case 'count':
-        return (Array.isArray(data) ? data.length : 1) as any;
+        return (Array.isArray(data) ? data.length : 1) as HoloScriptValue;
 
       case 'unique':
-        return (Array.isArray(data) ? Array.from(new Set(data)) : data) as any;
+        return (Array.isArray(data) ? Array.from(new Set(data)) : data) as HoloScriptValue;
 
       case 'flatten':
-        return (Array.isArray(data) ? data.flat() : data) as any;
+        return (Array.isArray(data) ? data.flat() : data) as HoloScriptValue;
 
       case 'reverse':
-        return (Array.isArray(data) ? [...data].reverse() : data) as any;
+        return (Array.isArray(data) ? [...data].reverse() : data) as HoloScriptValue;
 
       case 'take': {
-        if (!Array.isArray(data)) return data as any;
+        if (!Array.isArray(data)) return data as HoloScriptValue;
         const count = Number(params.count) || 10;
         return data.slice(0, count);
       }
 
       case 'skip': {
-        if (!Array.isArray(data)) return data as any;
+        if (!Array.isArray(data)) return data as HoloScriptValue;
         const count = Number(params.count) || 0;
         return data.slice(count);
       }
 
       default:
         logger.warn('Unknown transformation', { operation: transform.operation });
-        return data as any;
+        return data as HoloScriptValue;
     }
   }
 
@@ -2519,12 +2521,12 @@ export class HoloScriptRuntime {
               this.handleTimeControl(data.command, data.value);
             }
           } catch (e) {
-            logger.error('[Visualizer] Failed to parse message', String(e));
+            logger.error('[Visualizer] Failed to parse message', { error: String(e) });
           }
         });
       });
     } catch (error) {
-      logger.error('[Visualizer] Failed to start server', String(error));
+      logger.error('[Visualizer] Failed to start server', { error: String(error) });
     }
   }
 
@@ -2956,7 +2958,7 @@ export class HoloScriptRuntime {
           return { success: true, output: val };
         }
         default:
-          return { success: false, error: `Unknown stmt type: ${(stmt as any).type}` };
+          return { success: false, error: `Unknown stmt type: ${(stmt as { type?: string }).type}` };
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -2977,7 +2979,7 @@ export class HoloScriptRuntime {
       case 'MemberExpression': {
         const obj = await this.evaluateHoloExpression(expr.object, scopeOverride);
         if (obj && typeof obj === 'object') {
-          return (obj as Record<string, unknown>)[expr.property];
+          return (obj as Record<string, unknown>)[expr.property] as HoloScriptValue;
         }
         return undefined;
       }
@@ -3128,7 +3130,7 @@ export class HoloScriptRuntime {
    */
   private async executeForLoop(node: {
     variable: string;
-    iterable: any;
+    iterable: string | unknown;
     body: ASTNode[];
   }): Promise<ExecutionResult> {
     const startTime = Date.now();
@@ -3174,10 +3176,10 @@ export class HoloScriptRuntime {
         output: lastResult.output,
         executionTime: Date.now() - startTime,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: `For loop error: ${error.message}`,
+        error: `For loop error: ${error instanceof Error ? error.message : String(error)}`,
         executionTime: Date.now() - startTime,
       };
     }
@@ -3188,7 +3190,7 @@ export class HoloScriptRuntime {
    */
   private async executeForEachLoop(node: {
     variable: string;
-    collection: any;
+    collection: string | unknown;
     body: ASTNode[];
   }): Promise<ExecutionResult> {
     // forEach is functionally identical to for in this context
@@ -3203,7 +3205,7 @@ export class HoloScriptRuntime {
    * Execute a while loop: @while condition { ... }
    */
   private async executeWhileLoop(node: {
-    condition: any;
+    condition: string | unknown;
     body: ASTNode[];
   }): Promise<ExecutionResult> {
     const startTime = Date.now();
@@ -3237,10 +3239,10 @@ export class HoloScriptRuntime {
         output: lastResult.output,
         executionTime: Date.now() - startTime,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: `While loop error: ${error.message}`,
+        error: `While loop error: ${error instanceof Error ? error.message : String(error)}`,
         executionTime: Date.now() - startTime,
       };
     }
@@ -3250,7 +3252,7 @@ export class HoloScriptRuntime {
    * Execute an if statement: @if condition { ... } @else { ... }
    */
   private async executeIfStatement(node: {
-    condition: any;
+    condition: string | unknown;
     body: ASTNode[];
     elseBody?: ASTNode[];
   }): Promise<ExecutionResult> {
@@ -3273,10 +3275,10 @@ export class HoloScriptRuntime {
         output: lastResult.output,
         executionTime: Date.now() - startTime,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: `If statement error: ${error.message}`,
+        error: `If statement error: ${error instanceof Error ? error.message : String(error)}`,
         executionTime: Date.now() - startTime,
       };
     }
@@ -3286,8 +3288,8 @@ export class HoloScriptRuntime {
    * Execute a match expression: @match subject { pattern => result, ... }
    */
   private async executeMatch(node: {
-    subject: any;
-    cases: Array<{ pattern: any; guard?: any; body: any }>;
+    subject: string | unknown;
+    cases: Array<{ pattern: string | unknown; guard?: string | unknown; body: ASTNode[] | unknown }>;
   }): Promise<ExecutionResult> {
     const startTime = Date.now();
     const { subject, cases } = node;
@@ -3325,10 +3327,10 @@ export class HoloScriptRuntime {
         error: 'No pattern matched',
         executionTime: Date.now() - startTime,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: `Match expression error: ${error.message}`,
+        error: `Match expression error: ${error instanceof Error ? error.message : String(error)}`,
         executionTime: Date.now() - startTime,
       };
     }
@@ -3337,7 +3339,7 @@ export class HoloScriptRuntime {
   /**
    * Check if a pattern matches a value
    */
-  private patternMatches(pattern: any, value: any): boolean {
+  private patternMatches(pattern: HoloScriptValue, value: HoloScriptValue): boolean {
     // Wildcard pattern
     if (pattern === '_' || pattern === 'else' || pattern === 'default') {
       return true;
@@ -3460,7 +3462,7 @@ export class HoloScriptRuntime {
   /**
    * Execute a migration script for an object
    */
-  private async executeMigrationBlock(orb: any, migration: MigrationNode): Promise<void> {
+  private async executeMigrationBlock(orb: Record<string, unknown>, migration: MigrationNode): Promise<void> {
     logger.info(`Running migration for ${orb.name}...`);
 
     const previousScope = this.currentScope;
@@ -3574,8 +3576,8 @@ export class HoloScriptRuntime {
     };
   }
 
-  private async executeStateDeclaration(node: any): Promise<ExecutionResult> {
-    const stateDirective = node.directives?.find((d: any) => d.type === 'state');
+  private async executeStateDeclaration(node: ASTNode & { directives?: import('./types/AdvancedTypeSystem').HSPlusDirective[] }): Promise<ExecutionResult> {
+    const stateDirective = node.directives?.find((d) => d.type === 'state');
     if (stateDirective) {
       this.context.state.update(stateDirective.body);
     }
@@ -3590,7 +3592,7 @@ export class HoloScriptRuntime {
     const startTime = Date.now();
     logger.info(`[Memory] Initializing memory block: ${node.name}`);
 
-    const memoryState: Record<string, any> = {
+    const memoryState: Record<string, unknown> = {
       id: node.name,
       type: 'agent-memory',
     };

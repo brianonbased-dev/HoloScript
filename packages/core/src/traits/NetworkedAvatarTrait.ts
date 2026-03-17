@@ -92,15 +92,15 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
       updateInterval: 1000 / (config.updateRate || 30),
     };
 
-    (node as any).__avatarState = state;
+    node.__avatarState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__avatarState;
+    delete node.__avatarState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__avatarState;
+    const state = node.__avatarState;
     if (!state) return;
 
     if (config.isLocal) {
@@ -141,7 +141,7 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
 
   onEvent(node, config, context, event) {
     if (!config.isLocal && event.type === 'network_pose_received') {
-      const state = (node as any).__avatarState;
+      const state = node.__avatarState;
       if (state && event.pose) {
         // Apply received pose
         Object.entries(event.pose).forEach(([boneId, transform]) => {

@@ -92,7 +92,7 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
       error: null,
       client: null,
     };
-    (node as any).__mqttSourceState = state;
+    node.__mqttSourceState = state;
 
     // Create or get existing client
     const clientKey = `${config.broker}_${config.clientId || 'default'}`;
@@ -182,15 +182,15 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
   },
 
   onDetach(node, config, _context) {
-    const state = (node as any).__mqttSourceState as MQTTSourceState | undefined;
+    const state = node.__mqttSourceState as MQTTSourceState | undefined;
     if (state?.client) {
       state.client.unsubscribe(config.topic);
     }
-    delete (node as any).__mqttSourceState;
+    delete node.__mqttSourceState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = (node as any).__mqttSourceState as MQTTSourceState | undefined;
+    const state = node.__mqttSourceState as MQTTSourceState | undefined;
     if (!state) return;
 
     // Check connection status and reconnect if needed
@@ -202,7 +202,7 @@ export const mqttSourceHandler: TraitHandler<MQTTSourceConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__mqttSourceState as MQTTSourceState | undefined;
+    const state = node.__mqttSourceState as MQTTSourceState | undefined;
     if (!state) return;
 
     // Handle manual connect/disconnect events

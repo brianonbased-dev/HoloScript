@@ -181,7 +181,7 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
       taskCounter: 0,
     };
 
-    (node as any).__multiAgentState = state;
+    node.__multiAgentState = state;
 
     context.emit?.('multi_agent_registered', {
       node,
@@ -190,18 +190,18 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__multiAgentState as MultiAgentState | undefined;
+    const state = node.__multiAgentState as MultiAgentState | undefined;
     if (state) {
       context.emit?.('multi_agent_unregistered', {
         node,
         agentId: state.self.id,
       });
     }
-    delete (node as any).__multiAgentState;
+    delete node.__multiAgentState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__multiAgentState as MultiAgentState;
+    const state = node.__multiAgentState as MultiAgentState;
     if (!state) return;
 
     // Heartbeat broadcast
@@ -251,7 +251,7 @@ export const multiAgentHandler: TraitHandler<MultiAgentConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__multiAgentState as MultiAgentState;
+    const state = node.__multiAgentState as MultiAgentState;
     if (!state) return;
 
     // -------- REGISTRY --------

@@ -61,14 +61,14 @@ export const portableHandler: TraitHandler<PortableConfig> = {
       portabilityScore: 0,
       warnings: [],
     };
-    (node as any).__portableState = state;
+    node.__portableState = state;
 
     // Analyze portability
     analyzePortability(node, state, config, context);
   },
 
   onDetach(node) {
-    delete (node as any).__portableState;
+    delete node.__portableState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -76,7 +76,7 @@ export const portableHandler: TraitHandler<PortableConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__portableState as PortableState;
+    const state = node.__portableState as PortableState;
     if (!state) return;
 
     if (event.type === 'portable_export') {

@@ -92,7 +92,7 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
       environmentMap: null,
       updateAccumulator: 0,
     };
-    (node as any).__lightEstimationState = state;
+    node.__lightEstimationState = state;
 
     context.emit?.('light_estimation_request', {
       node,
@@ -105,11 +105,11 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('light_estimation_stop', { node });
-    delete (node as any).__lightEstimationState;
+    delete node.__lightEstimationState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__lightEstimationState as LightEstimationState;
+    const state = node.__lightEstimationState as LightEstimationState;
     if (!state || !state.isActive) return;
 
     state.updateAccumulator += delta;
@@ -137,7 +137,7 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__lightEstimationState as LightEstimationState;
+    const state = node.__lightEstimationState as LightEstimationState;
     if (!state) return;
 
     if (event.type === 'light_estimation_update') {

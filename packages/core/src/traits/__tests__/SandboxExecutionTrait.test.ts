@@ -54,7 +54,7 @@ describe('SandboxExecutionTrait', () => {
       const config: SandboxExecutionConfig = {
         sandbox_type: 'worker',
         permissions: {
-          network: 'restricted' as any,
+          network: 'restricted',
         },
       };
 
@@ -66,7 +66,7 @@ describe('SandboxExecutionTrait', () => {
         sandbox_type: 'iframe',
         permissions: {
           filesystem: 'none',
-          network: 'restricted' as any,
+          network: 'restricted',
         },
       };
 
@@ -287,7 +287,7 @@ describe('SandboxExecutionTrait', () => {
         sandbox_type: 'iframe',
         permissions: {
           filesystem: 'none',
-          network: 'restricted' as any,
+          network: 'restricted',
         },
       };
 
@@ -346,7 +346,7 @@ describe('SandboxExecutionTrait', () => {
         max_cpu_percent: 50,
         permissions: {
           filesystem: 'read',
-          network: 'restricted' as any,
+          network: 'restricted',
         },
       };
 

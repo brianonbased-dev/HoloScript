@@ -95,7 +95,7 @@ export const audioOcclusionHandler: TraitHandler<AudioOcclusionConfig> = {
       sourcePosition: { x: 0, y: 0, z: 0 },
       listenerPosition: { x: 0, y: 0, z: 0 },
     };
-    (node as any).__audioOcclusionState = state;
+    node.__audioOcclusionState = state;
 
     context.emit?.('audio_occlusion_register', {
       node,
@@ -105,11 +105,11 @@ export const audioOcclusionHandler: TraitHandler<AudioOcclusionConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('audio_occlusion_unregister', { node });
-    delete (node as any).__audioOcclusionState;
+    delete node.__audioOcclusionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__audioOcclusionState as AudioOcclusionState;
+    const state = node.__audioOcclusionState as AudioOcclusionState;
     if (!state || config.mode === 'none') return;
 
     const now = Date.now();
@@ -161,7 +161,7 @@ export const audioOcclusionHandler: TraitHandler<AudioOcclusionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__audioOcclusionState as AudioOcclusionState;
+    const state = node.__audioOcclusionState as AudioOcclusionState;
     if (!state) return;
 
     if (event.type === 'audio_occlusion_raycast_result') {

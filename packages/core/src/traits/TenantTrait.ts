@@ -162,7 +162,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
       activeSessions: 0,
       eventLog: [],
     };
-    (node as any).__tenantState = state;
+    node.__tenantState = state;
 
     // Generate namespace prefix if not provided
     if (!config.namespacePrefix) {
@@ -201,7 +201,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__tenantState as TenantState | undefined;
+    const state = node.__tenantState as TenantState | undefined;
     if (!state) return;
 
     // Revoke all outgoing grants
@@ -237,11 +237,11 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
       tenantId: config.tenantId,
     });
 
-    delete (node as any).__tenantState;
+    delete node.__tenantState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__tenantState as TenantState | undefined;
+    const state = node.__tenantState as TenantState | undefined;
     if (!state) return;
 
     // Skip updates for non-active tenants
@@ -272,13 +272,13 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__tenantState as TenantState | undefined;
+    const state = node.__tenantState as TenantState | undefined;
     if (!state) return;
 
     if (event.type === 'tenant_suspend') {
       if (config.status === 'active') {
         config.status = 'suspended';
-        const reason = (event as any).reason || 'manual';
+        const reason = (event as Record<string, unknown>).reason || 'manual';
         state.eventLog.push({
           type: 'tenant_suspended',
           timestamp: new Date().toISOString(),
@@ -342,9 +342,9 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'tenant_register_trait') {
-      const traitName = (event as any).traitName as string;
-      const isCustom = (event as any).isCustom ?? true;
-      const requiredTier = (event as any).requiredTier ?? 'free';
+      const traitName = (event as Record<string, unknown>).traitName as string;
+      const isCustom = (event as Record<string, unknown>).isCustom ?? true;
+      const requiredTier = (event as Record<string, unknown>).requiredTier ?? 'free';
 
       if (!traitName) return;
 
@@ -369,7 +369,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'tenant_unregister_trait') {
-      const traitName = (event as any).traitName as string;
+      const traitName = (event as Record<string, unknown>).traitName as string;
       if (traitName && state.traitRegistry.has(traitName)) {
         state.traitRegistry.delete(traitName);
         context.emit('tenant_trait_unregistered', {
@@ -385,7 +385,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
         });
       }
     } else if (event.type === 'tenant_use_trait') {
-      const traitName = (event as any).traitName as string;
+      const traitName = (event as Record<string, unknown>).traitName as string;
       const entry = state.traitRegistry.get(traitName);
       if (entry) {
         entry.usageCount++;
@@ -403,12 +403,12 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
 
       const grant: CrossTenantGrant = {
         sourceTenantId: config.tenantId,
-        targetTenantId: (event as any).targetTenantId,
-        resourceType: (event as any).resourceType,
-        resourceId: (event as any).resourceId,
-        accessLevel: (event as any).accessLevel || 'read',
-        expiresAt: (event as any).expiresAt,
-        grantedBy: (event as any).grantedBy || 'system',
+        targetTenantId: (event as Record<string, unknown>).targetTenantId,
+        resourceType: (event as Record<string, unknown>).resourceType,
+        resourceId: (event as Record<string, unknown>).resourceId,
+        accessLevel: (event as Record<string, unknown>).accessLevel || 'read',
+        expiresAt: (event as Record<string, unknown>).expiresAt,
+        grantedBy: (event as Record<string, unknown>).grantedBy || 'system',
         grantedAt: new Date().toISOString(),
       };
 
@@ -427,7 +427,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'cross_tenant_grant_revoke') {
-      const grantId = (event as any).grantId as string;
+      const grantId = (event as Record<string, unknown>).grantId as string;
       const grant = state.outgoingGrants.get(grantId);
       if (grant) {
         state.outgoingGrants.delete(grantId);
@@ -449,7 +449,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
         action: 'tenant.session.start',
         tenantId: config.tenantId,
         details: {
-          userId: (event as any).userId,
+          userId: (event as Record<string, unknown>).userId,
           activeSessions: state.activeSessions,
         },
         timestamp: new Date().toISOString(),
@@ -460,14 +460,14 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
         action: 'tenant.session.end',
         tenantId: config.tenantId,
         details: {
-          userId: (event as any).userId,
+          userId: (event as Record<string, unknown>).userId,
           activeSessions: state.activeSessions,
         },
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'tenant_upgrade_tier') {
       const oldTier = config.tier;
-      const newTier = (event as any).tier as TenantTier;
+      const newTier = (event as Record<string, unknown>).tier as TenantTier;
       if (newTier) {
         config.tier = newTier;
         state.eventLog.push({
@@ -491,7 +491,7 @@ export const tenantHandler: TraitHandler<TenantConfig> = {
       }
     } else if (event.type === 'tenant_query') {
       context.emit('tenant_info', {
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         node,
         tenantId: config.tenantId,
         organizationName: config.organizationName,

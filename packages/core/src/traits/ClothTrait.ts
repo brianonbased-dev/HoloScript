@@ -79,7 +79,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
       windForce: { x: 0, y: 0, z: 0 },
       simulationHandle: null,
     };
-    (node as any).__clothState = state;
+    node.__clothState = state;
 
     // Initialize cloth mesh
     initializeClothMesh(state, config);
@@ -100,15 +100,15 @@ export const clothHandler: TraitHandler<ClothConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__clothState as ClothState;
+    const state = node.__clothState as ClothState;
     if (state?.isSimulating) {
       context.emit?.('cloth_destroy', { node });
     }
-    delete (node as any).__clothState;
+    delete node.__clothState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__clothState as ClothState;
+    const state = node.__clothState as ClothState;
     if (!state || !state.isSimulating) return;
 
     // Apply wind force
@@ -131,7 +131,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__clothState as ClothState;
+    const state = node.__clothState as ClothState;
     if (!state) return;
 
     if (event.type === 'cloth_vertex_update') {

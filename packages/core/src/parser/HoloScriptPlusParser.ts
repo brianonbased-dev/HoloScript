@@ -861,7 +861,7 @@ export class HoloScriptPlusParser {
     for (const error of this.errors) {
       const errorFixes = generateQuickFixes(
         {
-          code: error.code as any,
+          code: error.code as unknown as ErrorCode,
           message: error.message,
           line: error.line,
           column: error.column,
@@ -883,7 +883,7 @@ export class HoloScriptPlusParser {
     return this.errors.map((error) =>
       enrichErrorWithSuggestions(
         {
-          code: error.code as any,
+          code: error.code as unknown as ErrorCode,
           message: error.message,
           line: error.line,
           column: error.column,
@@ -948,8 +948,10 @@ export class HoloScriptPlusParser {
       } else {
         // Must re-parse this chunk
         const chunkResult = this.parse(chunk.content);
-        if (chunkResult.ast.root) {
-          const node = chunkResult.ast.root;
+        const chunkAst = chunkResult.ast as ASTProgram | undefined;
+        const chunkFeatures = chunkResult.features as { state: boolean; vrTraits: boolean; loops: boolean; conditionals: boolean } | undefined;
+        if (chunkAst?.root) {
+          const node = chunkAst.root as HSPlusNode;
           // Sync line numbers for the chunk node (naive)
           this.offsetNodeLoc(node, chunk.startLine - 1);
 
@@ -957,20 +959,20 @@ export class HoloScriptPlusParser {
           cache.set(chunk.id, hash, node);
 
           // Merge metadata
-          this.hasState = this.hasState || chunkResult.features.state;
-          this.hasVRTraits = this.hasVRTraits || chunkResult.features.vrTraits;
+          this.hasState = this.hasState || !!chunkFeatures?.state;
+          this.hasVRTraits = this.hasVRTraits || !!chunkFeatures?.vrTraits;
           this.hasControlFlow =
-            this.hasControlFlow || chunkResult.features.loops || chunkResult.features.conditionals;
-          this.imports.push(...chunkResult.ast.imports);
+            this.hasControlFlow || !!chunkFeatures?.loops || !!chunkFeatures?.conditionals;
+          this.imports.push(...chunkAst.imports);
         }
-        this.errors.push(...(chunkResult.errors as any));
-        this.warnings.push(...(chunkResult.warnings as any));
+        this.errors.push(...(chunkResult.errors as RichParseError[]));
+        this.warnings.push(...((chunkResult.warnings || []) as RichParseError[]));
       }
     }
 
     // 2. Build result from top-level nodes
     const root: HSPlusNode = {
-      type: 'fragment' as any,
+      type: 'fragment',
       id: 'root',
       properties: {},
       directives: globalDirectives,
@@ -981,7 +983,7 @@ export class HoloScriptPlusParser {
         end: { line: chunks.length > 0 ? chunks[chunks.length - 1].endLine : 1, column: 1 },
       },
       body: topLevelNodes,
-    } as any;
+    } as unknown as HSPlusNode;
 
     const result = this.buildResult(root);
     // console.log(`[DEBUG_PERF] Incremental parse took ${Date.now() - startTime}ms`);
@@ -1019,7 +1021,7 @@ export class HoloScriptPlusParser {
       children: isFragment ? root.children || [] : [root],
       traits: isFragment ? root.traits || new Map() : new Map(),
       loc: root.loc,
-      body: (isFragment ? root.children || [] : [root]) as any,
+      body: (isFragment ? root.children || [] : [root]) as unknown as HSPlusNode[],
       version: version,
       migrations: migrations.length > 0 ? migrations : undefined,
       root,
@@ -1027,7 +1029,7 @@ export class HoloScriptPlusParser {
       hasState: this.hasState,
       hasVRTraits: this.hasVRTraits,
       hasControlFlow: this.hasControlFlow,
-    } as any;
+    } as unknown as ASTProgram;
 
     return {
       success: this.errors.length === 0,
@@ -1039,7 +1041,7 @@ export class HoloScriptPlusParser {
         vrTraits: this.hasVRTraits,
         loops: this.hasControlFlow,
         conditionals: this.hasControlFlow,
-        lifecycleHooks: (root.directives || []).some((d: any) => d.type === 'lifecycle'),
+        lifecycleHooks: (root.directives || []).some((d) => d.type === 'lifecycle'),
       },
       warnings: this.warnings,
       errors: this.errors,
@@ -1104,19 +1106,19 @@ export class HoloScriptPlusParser {
           const node = this.parseNode();
           // Attach preceding directives to this node
           const existingDirectives = node.directives || [];
-          node.directives = [...currentDirectives, ...existingDirectives] as any;
+          node.directives = [...currentDirectives, ...existingDirectives];
 
           // Extract @version and @migrate directives into template properties
-          if ((node as any).type === 'template') {
+          if (node.type === 'template') {
             for (const d of currentDirectives) {
-              if ((d as any).type === 'version') {
-                (node as any).version = (d as any).version;
-              } else if ((d as any).type === 'migrate') {
-                if (!(node as any).migrations) (node as any).migrations = [];
-                (node as any).migrations.push({
+              if (d.type === 'version') {
+                node.version = d.version;
+              } else if (d.type === 'migrate') {
+                if (!node.migrations) node.migrations = [];
+                node.migrations.push({
                   type: 'Migration',
-                  fromVersion: (d as any).fromVersion,
-                  body: (d as any).body,
+                  fromVersion: d.fromVersion,
+                  body: d.body,
                 });
               }
             }
@@ -1155,7 +1157,7 @@ export class HoloScriptPlusParser {
           const connection = this.parseConnectionStatement();
           // connections aren't nodes, but we can treat them as a data node
           const node: HSPlusNode = {
-            type: 'connection' as any,
+            type: 'connection',
             properties: connection,
             directives: [],
             children: [],
@@ -1164,7 +1166,7 @@ export class HoloScriptPlusParser {
               start: { line: this.current().line, column: 0 },
               end: { line: this.current().line, column: 0 },
             },
-          } as any;
+          } as unknown as HSPlusNode;
           topLevelNodes.push(node);
         }
       } catch (e: unknown) {
@@ -1183,7 +1185,7 @@ export class HoloScriptPlusParser {
     }
 
     return {
-      type: 'fragment' as any,
+      type: 'fragment',
       id: 'root',
       properties: {},
       directives: globalDirectives,
@@ -1254,7 +1256,7 @@ export class HoloScriptPlusParser {
       }
 
       return {
-        type: 'template' as any,
+        type: 'template',
         name: templateName,
         properties: templateBody, // Now contains only true properties
         version,
@@ -1266,7 +1268,7 @@ export class HoloScriptPlusParser {
           start: { line: startToken.line, column: startToken.column },
           end: { line: this.current().line, column: this.current().column },
         },
-      } as any;
+      } as unknown as HSPlusNode;
     }
 
     // =========================================================================
@@ -1275,7 +1277,7 @@ export class HoloScriptPlusParser {
     if (type === 'logic') {
       const logicBody = this.parseLogicBlock();
       return {
-        type: 'logic' as any,
+        type: 'logic',
         name: 'logic',
         id: 'logic',
         properties: {},
@@ -1287,7 +1289,7 @@ export class HoloScriptPlusParser {
           start: { line: startToken.line, column: startToken.column },
           end: { line: this.current().line, column: this.current().column },
         },
-      } as any;
+      } as unknown as HSPlusNode;
     }
 
     // =========================================================================
@@ -1333,7 +1335,7 @@ export class HoloScriptPlusParser {
       }
 
       return {
-        type: type as any,
+        type: type,
         name: name,
         id: name,
         properties: {},
@@ -1345,7 +1347,7 @@ export class HoloScriptPlusParser {
           start: { line: startToken.line, column: startToken.column },
           end: { line: this.current().line, column: this.current().column },
         },
-      } as any;
+      } as unknown as HSPlusNode;
     }
 
     // =========================================================================
@@ -1375,7 +1377,7 @@ export class HoloScriptPlusParser {
     if (type === 'environment') {
       const envBody = this.parseEnvironmentBlock();
       return {
-        type: 'environment' as any,
+        type: 'environment',
         properties: envBody.properties,
         directives: envBody.directives,
         children: [],
@@ -1384,7 +1386,7 @@ export class HoloScriptPlusParser {
           start: { line: startToken.line, column: startToken.column },
           end: { line: this.current().line, column: this.current().column },
         },
-      } as any;
+      } as unknown as HSPlusNode;
     }
 
     if (type === 'composition') {
@@ -1402,7 +1404,7 @@ export class HoloScriptPlusParser {
 
       const compBody = this.parseCompositionBlock();
       return {
-        type: 'composition' as any,
+        type: 'composition',
         name: id,
         id,
         properties: compBody.properties || {},
@@ -1414,7 +1416,7 @@ export class HoloScriptPlusParser {
           start: { line: startToken.line, column: startToken.column },
           end: { line: this.current().line, column: this.current().column },
         },
-      } as any;
+      } as unknown as HSPlusNode;
     }
 
     // =========================================================================
@@ -1518,10 +1520,10 @@ export class HoloScriptPlusParser {
               start: { line: startToken.line, column: startToken.column },
               end: { line: this.current().line, column: this.current().column },
             },
-          } as any);
+          } as unknown as HSPlusNode);
         } else if (this.check('IDENTIFIER')) {
           const key = this.advance().value;
-          let value: any = true;
+          let value: unknown = true;
 
           if (this.check('COLON')) {
             this.advance();
@@ -1592,7 +1594,7 @@ export class HoloScriptPlusParser {
                 start: { line: startToken.line, column: startToken.column },
                 end: { line: this.current().line, column: this.current().column },
               },
-            } as any;
+            };
             // Store in both places: in children (for traditional spread handling) and in properties (for modern detection)
             children.push(spreadNode);
             const key = '__spread_' + target;
@@ -1684,7 +1686,7 @@ export class HoloScriptPlusParser {
     }
 
     return {
-      type: type as any,
+      type: type,
       name: id, // Mapping id to name for runtime compatibility
       id,
       properties,
@@ -1695,7 +1697,7 @@ export class HoloScriptPlusParser {
         start: { line: startToken.line, column: startToken.column },
         end: { line: this.current().line, column: this.current().column },
       },
-    } as any;
+    } as unknown as HSPlusNode;
   }
 
   private parseDirective(): HSPlusDirective | null {
@@ -1726,7 +1728,7 @@ export class HoloScriptPlusParser {
       } else if (this.check('LBRACE')) {
         config = this.parseBlockContent();
       }
-      return { type: 'trait' as const, name: name as VRTraitName, config } as any;
+      return { type: 'trait' as const, name: name as VRTraitName, config } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1767,7 +1769,7 @@ export class HoloScriptPlusParser {
         hook: name,
         params,
         body,
-      } as any;
+      } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1776,7 +1778,7 @@ export class HoloScriptPlusParser {
     if (name === 'state') {
       this.hasState = true;
       const body = this.parseStateBlock();
-      return { type: 'state' as const, body } as any;
+      return { type: 'state' as const, body } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1784,7 +1786,7 @@ export class HoloScriptPlusParser {
     // =========================================================================
     if (name === 'bindings') {
       const bindings = this.parseBindingsBlock();
-      return { type: 'bindings' as const, bindings } as any;
+      return { type: 'bindings' as const, bindings } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1796,7 +1798,7 @@ export class HoloScriptPlusParser {
       this.expect('IDENTIFIER', 'Expected "in"');
       const iterable = this.parseInlineExpression();
       const body = this.parseControlFlowBody();
-      return { type: 'for' as const, variable, iterable, body } as any;
+      return { type: 'for' as const, variable, iterable, body } as HSPlusDirective;
     }
 
     if (name === 'forEach') {
@@ -1805,14 +1807,14 @@ export class HoloScriptPlusParser {
       this.expect('IDENTIFIER', 'Expected "in"');
       const collection = this.parseInlineExpression();
       const body = this.parseControlFlowBody();
-      return { type: 'forEach' as const, variable, collection, body } as any;
+      return { type: 'forEach' as const, variable, collection, body } as HSPlusDirective;
     }
 
     if (name === 'while') {
       this.hasControlFlow = true;
       const condition = this.parseInlineExpression();
       const body = this.parseControlFlowBody();
-      return { type: 'while' as const, condition, body } as any;
+      return { type: 'while' as const, condition, body } as HSPlusDirective;
     }
 
     if (name === 'if') {
@@ -1833,7 +1835,7 @@ export class HoloScriptPlusParser {
         }
       }
 
-      return { type: 'if' as const, condition, body, else: elseBody } as any;
+      return { type: 'if' as const, condition, body, else: elseBody } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1907,7 +1909,7 @@ export class HoloScriptPlusParser {
         alias,
         namedImports,
         isWildcard,
-      } as any;
+      } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1936,14 +1938,14 @@ export class HoloScriptPlusParser {
         type: 'export' as const,
         exportKind,
         exportName,
-      } as any;
+      } as HSPlusDirective;
     }
 
     // =========================================================================
     // Asset Manifest & References
     // =========================================================================
     if (name === 'manifest') {
-      let config: any = {};
+      let config: Record<string, unknown> = {};
       let manifestName = 'default';
 
       if (this.check('LPAREN')) {
@@ -1978,10 +1980,10 @@ export class HoloScriptPlusParser {
     if (name === 'asset') {
       if (this.check('LPAREN')) {
         const config = this.parseTraitConfig();
-        return { type: 'asset' as const, ...config } as any;
+        return { ...config, type: 'asset' as const } as HSPlusDirective;
       }
       const assetId = this.expect('STRING', 'Expected asset ID').value;
-      return { type: 'asset' as const, id: assetId } as any;
+      return { type: 'asset' as const, id: assetId } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -1992,7 +1994,7 @@ export class HoloScriptPlusParser {
         ? this.parseParenString()
         : this.expect('STRING', 'Expected semantic name').value;
       const config = this.parseBlockContent();
-      return { type: 'semantic' as const, name: semanticName, ...config } as any;
+      return { ...config, type: 'semantic' as const, name: semanticName } as HSPlusDirective;
     }
 
     if (name === 'annotate') {
@@ -2008,19 +2010,19 @@ export class HoloScriptPlusParser {
       } else if (this.check('RPAREN')) {
         this.advance();
       }
-      return { type: 'annotate' as const, annotationType: annotateName, config } as any;
+      return { type: 'annotate' as const, annotationType: annotateName, config } as HSPlusDirective;
     }
 
     if (name === 'semantic_ref') {
       const refName = this.check('LPAREN')
         ? this.parseParenString()
         : this.expect('STRING', 'Expected semantic reference').value;
-      return { type: 'semantic_ref' as const, ref: refName } as any;
+      return { type: 'semantic_ref' as const, ref: refName } as HSPlusDirective;
     }
 
     if (name === 'bindings') {
       const bindings = this.parseBindingsBlock();
-      return { type: 'bindings' as const, bindings } as any;
+      return { type: 'bindings' as const, bindings } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2028,22 +2030,22 @@ export class HoloScriptPlusParser {
     // =========================================================================
     if (name === 'world_metadata') {
       const config = this.parseBlockContent();
-      return { type: 'world_metadata' as const, ...config } as any;
+      return { ...config, type: 'world_metadata' as const } as HSPlusDirective;
     }
 
     if (name === 'world_config') {
       const config = this.parseBlockContent();
-      return { type: 'world_config' as const, ...config } as any;
+      return { ...config, type: 'world_config' as const } as HSPlusDirective;
     }
 
     if (name === 'zones') {
       const zones = this.parseNamedBlockList('zone');
-      return { type: 'zones' as const, zones } as any;
+      return { type: 'zones' as const, zones } as HSPlusDirective;
     }
 
     if (name === 'spawn_points') {
       const spawns = this.parseNamedBlockList('spawn');
-      return { type: 'spawn_points' as const, spawns } as any;
+      return { type: 'spawn_points' as const, spawns } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2051,12 +2053,12 @@ export class HoloScriptPlusParser {
     // =========================================================================
     if (name === 'skybox') {
       const config = this.parseBlockContent();
-      return { type: 'skybox' as const, ...config } as any;
+      return { ...config, type: 'skybox' as const } as HSPlusDirective;
     }
 
     if (name === 'ambient_light') {
       const config = this.parseBlockContent();
-      return { type: 'ambient_light' as const, ...config } as any;
+      return { ...config, type: 'ambient_light' as const } as HSPlusDirective;
     }
 
     if (name === 'directional_light') {
@@ -2065,12 +2067,12 @@ export class HoloScriptPlusParser {
         lightName = this.parseParenString();
       }
       const config = this.parseBlockContent();
-      return { type: 'directional_light' as const, name: lightName, ...config } as any;
+      return { ...config, type: 'directional_light' as const, name: lightName } as HSPlusDirective;
     }
 
     if (name === 'fog') {
       const config = this.parseBlockContent();
-      return { type: 'fog' as const, ...config } as any;
+      return { ...config, type: 'fog' as const } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2078,31 +2080,31 @@ export class HoloScriptPlusParser {
     // =========================================================================
     if (name === 'artwork_metadata') {
       const config = this.parseBlockContent();
-      return { type: 'artwork_metadata' as const, ...config } as any;
+      return { ...config, type: 'artwork_metadata' as const } as HSPlusDirective;
     }
 
     if (name === 'npc_behavior') {
       const config = this.parseBlockContent();
-      return { type: 'npc_behavior' as const, ...config } as any;
+      return { ...config, type: 'npc_behavior' as const } as HSPlusDirective;
     }
 
     if (name === 'interactive') {
       const config = this.parseBlockContent();
-      return { type: 'interactive' as const, ...config } as any;
+      return { ...config, type: 'interactive' as const } as HSPlusDirective;
     }
 
     if (name === 'lod') {
       const config = this.parseBlockContent();
-      return { type: 'lod' as const, ...config } as any;
+      return { ...config, type: 'lod' as const } as HSPlusDirective;
     }
 
     // =========================================================================
     // External API & AI
     // =========================================================================
     if (name === 'external_api') {
-      const config: Record<string, any> = this.parseTraitConfig();
-      const url = config.url || '';
-      const method = config.method || 'GET';
+      const config: Record<string, unknown> = this.parseTraitConfig();
+      const url = (config.url as string) || '';
+      const method = (config.method as string) || 'GET';
       const interval = config.interval || '0s';
 
       let body: HSPlusNode[] = [];
@@ -2110,16 +2112,16 @@ export class HoloScriptPlusParser {
         body = this.parseControlFlowBody();
       }
 
-      return { type: 'external_api' as const, url, method, interval, body } as any;
+      return { type: 'external_api' as const, url, method, interval, body } as HSPlusDirective;
     }
 
     if (name === 'generate') {
-      const config: Record<string, any> = this.parseTraitConfig();
-      const prompt = config.prompt || '';
-      const context = config.context || '';
-      const target = config.target || 'children';
+      const config: Record<string, unknown> = this.parseTraitConfig();
+      const prompt = (config.prompt as string) || '';
+      const context = (config.context as string) || '';
+      const target = (config.target as string) || 'children';
 
-      return { type: 'generate' as const, prompt, context, target } as any;
+      return { type: 'generate' as const, prompt, context, target } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2128,13 +2130,13 @@ export class HoloScriptPlusParser {
     if (name === 'npc') {
       const npcName = this.expect('STRING', 'Expected NPC name').value;
       const props = this.parsePropsBlock();
-      return { type: 'npc' as const, name: npcName, props } as any;
+      return { type: 'npc' as const, name: npcName, props } as HSPlusDirective;
     }
 
     if (name === 'dialog') {
       const dialogName = this.expect('STRING', 'Expected dialog name').value;
       const { props, options } = this.parseDialogBlock();
-      return { type: 'dialog' as const, name: dialogName, props, options } as any;
+      return { type: 'dialog' as const, name: dialogName, props, options } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2157,7 +2159,7 @@ export class HoloScriptPlusParser {
           }
           this.expect('RPAREN', 'Expected )');
         }
-        return { type: 'hololand_event' as const, event: eventName, params } as any;
+        return { type: 'hololand_event' as const, event: eventName, params } as HSPlusDirective;
       }
     }
 
@@ -2169,7 +2171,7 @@ export class HoloScriptPlusParser {
       const versionToken = this.expect('NUMBER', 'Expected version number');
       const version = Number(versionToken.value);
       this.expect('RPAREN', 'Expected ) after version number');
-      return { type: 'version' as const, version } as any;
+      return { type: 'version' as const, version } as HSPlusDirective;
     }
 
     if (name === 'migrate') {
@@ -2183,7 +2185,7 @@ export class HoloScriptPlusParser {
       const fromVersion = Number(fromVersionToken.value);
       this.expect('RPAREN', 'Expected ) after version number');
       const body = this.check('LBRACE') ? this.parseCodeBlock() : '';
-      return { type: 'migrate' as const, fromVersion, body } as any;
+      return { type: 'migrate' as const, fromVersion, body } as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2196,7 +2198,7 @@ export class HoloScriptPlusParser {
         nodeName = this.advance().value;
       }
       const config = this.check('LBRACE') ? this.parseBlockContent() : this.parseTraitConfig();
-      return { type: name as any, name: nodeName, ...config } as any;
+      return { ...config, type: name, name: nodeName } as HSPlusDirective;
     }
 
     // Unknown directive - emit warning and parse as generic trait
@@ -2225,7 +2227,7 @@ export class HoloScriptPlusParser {
     }
 
     // Return as a generic trait so it appears in AST
-    return { type: 'trait' as const, name: name as any, config } as any;
+    return { type: 'trait' as const, name, config } as HSPlusDirective;
   }
 
   /**
@@ -2525,7 +2527,7 @@ export class HoloScriptPlusParser {
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])] as any;
+          node.directives = [...currentDirectives, ...(node.directives || [])];
 
           if (keyword === 'system' || node.type === 'system') {
             result.systems.push(node);
@@ -2551,7 +2553,7 @@ export class HoloScriptPlusParser {
         else if (next.type === 'LBRACE' || next.type === 'IDENTIFIER') {
           const keyword = this.current().value;
           const node = this.parseNode();
-          node.directives = [...currentDirectives, ...(node.directives || [])] as any;
+          node.directives = [...currentDirectives, ...(node.directives || [])];
 
           if (keyword === 'system' || node.type === 'system') {
             result.systems.push(node);
@@ -2569,12 +2571,12 @@ export class HoloScriptPlusParser {
       } else if (currentDirectives.length > 0) {
         // Standalone directives in composition body (like @manifest)
         const fragment: HSPlusNode = {
-          type: 'fragment' as any,
+          type: 'fragment',
           directives: currentDirectives,
           children: [],
           traits: new Map(),
           properties: {},
-        } as any;
+        } as unknown as HSPlusNode;
         result.children.push(fragment);
       } else if (this.check('COMMA')) {
         this.advance();
@@ -2828,10 +2830,10 @@ export class HoloScriptPlusParser {
     return props;
   }
 
-  private parseDialogBlock(): { props: Record<string, any>; options: any[] } {
+  private parseDialogBlock(): { props: Record<string, unknown>; options: unknown[] } {
     this.skipNewlines();
-    const props: Record<string, any> = {};
-    const options: any[] = [];
+    const props: Record<string, unknown> = {};
+    const options: unknown[] = [];
 
     if (this.check('LBRACE')) {
       this.advance();
@@ -2842,7 +2844,7 @@ export class HoloScriptPlusParser {
           this.advance(); // consume 'option'
           const text = this.expect('STRING', 'Expected option text').value;
           this.expect('ARROW', 'Expected ->');
-          let target: any;
+          let target: unknown;
           if (this.check('AT')) {
             // @close or @trigger
             const d = this.parseDirective();
@@ -2909,8 +2911,8 @@ export class HoloScriptPlusParser {
     return config;
   }
 
-  private parseStateBlock(): Record<string, any> {
-    const state: Record<string, any> = {};
+  private parseStateBlock(): Record<string, unknown> {
+    const state: Record<string, unknown> = {};
 
     if (this.check('LBRACE')) {
       this.advance();
@@ -2958,8 +2960,8 @@ export class HoloScriptPlusParser {
     }
 
     const name = this.expect('IDENTIFIER', 'Expected state machine name').value;
-    const states: any[] = [];
-    const transitions: any[] = [];
+    const states: Array<Record<string, unknown>> = [];
+    const transitions: Array<Record<string, unknown>> = [];
     let initialState = '';
 
     this.expect('LBRACE', 'Expected { after state machine name');
@@ -2988,7 +2990,7 @@ export class HoloScriptPlusParser {
     this.expect('RBRACE', 'Expected } at end of state machine');
 
     return {
-      type: 'state-machine' as any,
+      type: 'state-machine',
       name,
       initialState,
       states,
@@ -2997,10 +2999,10 @@ export class HoloScriptPlusParser {
         start: { line: startToken.line, column: startToken.column },
         end: { line: this.current().line, column: this.current().column },
       },
-    } as any;
+    } as unknown as HSPlusNode;
   }
 
-  private parseStateNode(): any {
+  private parseStateNode(): Record<string, unknown> {
     this.advance(); // state
     const name = this.expect('IDENTIFIER', 'Expected state name').value;
     let onEntry: string | undefined;
@@ -3034,13 +3036,13 @@ export class HoloScriptPlusParser {
     const startToken = this.previous();
     const body = this.parseControlFlowBody();
     return {
-      type: 'on_error' as any,
+      type: 'on_error',
       body,
       loc: {
         start: { line: startToken.line, column: startToken.column },
         end: { line: this.current().line, column: this.current().column },
       },
-    } as any;
+    } as unknown as HSPlusNode;
   }
 
   private parseAssertNode(): HSPlusNode {
@@ -3053,18 +3055,18 @@ export class HoloScriptPlusParser {
     }
     this.expect('RPAREN', 'Expected )');
     return {
-      type: 'assert' as any,
+      type: 'assert',
       condition,
       message,
       loc: {
         start: { line: startToken.line, column: startToken.column },
         end: { line: this.current().line, column: this.current().column },
       },
-    } as any;
+    } as unknown as HSPlusNode;
   }
 
-  private parseTransitionsBlock(): any[] {
-    const transitions: any[] = [];
+  private parseTransitionsBlock(): Array<Record<string, string>> {
+    const transitions: Array<Record<string, string>> = [];
     this.advance(); // transitions
     this.expect('LBRACE', 'Expected {');
     this.skipNewlines();
@@ -3114,12 +3116,12 @@ export class HoloScriptPlusParser {
               // but the parser should ideally handle them as first-class citizens.
               // For compatibility with return type HSPlusNode[], we wrap.
               nodes.push({
-                type: 'fragment' as any,
+                type: 'fragment',
                 directives: [directive],
                 children: [],
                 traits: new Map(),
                 properties: {},
-              } as any);
+              } as unknown as HSPlusNode);
             } else if (directive.type === 'trait') {
               // A lone trait in a block - attach to next node if possible,
               // or handle as standalone. For now, we skip or wrap.
@@ -3127,12 +3129,12 @@ export class HoloScriptPlusParser {
             } else {
               // Other directives (npc, dialog, external_api)
               nodes.push({
-                type: 'fragment' as any,
+                type: 'fragment',
                 directives: [directive],
                 children: [],
                 traits: new Map(),
                 properties: {},
-              } as any);
+              } as unknown as HSPlusNode);
             }
           }
         } else if (this.check('IDENTIFIER')) {
@@ -3596,8 +3598,8 @@ export class HoloScriptPlusParser {
     return items.length === 1 ? items[0] : items;
   }
 
-  private parseArrowFunction(): any {
-    const params: any[] = [];
+  private parseArrowFunction(): Record<string, unknown> {
+    const params: Array<{ name: string; type: string | null; rest?: boolean }> = [];
 
     // Parse params
     if (this.check('LPAREN')) {
@@ -3650,7 +3652,7 @@ export class HoloScriptPlusParser {
     this.expect('ARROW', 'Expected =>');
 
     // Parse Body
-    let body: any;
+    let body: unknown;
     if (this.check('LBRACE')) {
       body = this.parseCodeBlock(); // treat as string for now
     } else {
@@ -3755,7 +3757,7 @@ export class HoloScriptPlusParser {
    * - Binding patterns: x (captures value)
    * - Guard clauses: pattern if condition => body
    */
-  private parseMatchExpression(): any {
+  private parseMatchExpression(): Record<string, unknown> | null {
     const startToken = this.current();
     this.expect('MATCH', 'Expected match keyword');
 
@@ -3769,7 +3771,7 @@ export class HoloScriptPlusParser {
     this.expect('LBRACE', 'Expected { after match subject');
     this.skipNewlines();
 
-    const cases: any[] = [];
+    const cases: Array<Record<string, unknown>> = [];
     let hasWildcard = false;
 
     while (!this.check('RBRACE') && !this.check('EOF')) {
@@ -3781,7 +3783,7 @@ export class HoloScriptPlusParser {
         cases.push(caseNode);
 
         // Check if this case has a wildcard pattern
-        if (caseNode.pattern && caseNode.pattern.type === 'wildcard-pattern') {
+        if (caseNode.pattern && (caseNode.pattern as Record<string, unknown>).type === 'wildcard-pattern') {
           hasWildcard = true;
         }
       }
@@ -3808,7 +3810,7 @@ export class HoloScriptPlusParser {
   /**
    * Parse a single match case: pattern [if guard] => body
    */
-  private parseMatchCase(): any {
+  private parseMatchCase(): Record<string, unknown> | null {
     const pattern = this.parseMatchPattern();
     if (!pattern) {
       return null;
@@ -3831,7 +3833,7 @@ export class HoloScriptPlusParser {
     this.expect('ARROW', 'Expected => after match pattern');
 
     // Parse the body - can be a single expression or a block
-    let body: any;
+    let body: unknown;
     if (this.check('LBRACE')) {
       body = this.parseBlockContent();
     } else {
@@ -3852,7 +3854,7 @@ export class HoloScriptPlusParser {
    * - Wildcard: _
    * - Binding: identifier
    */
-  private parseMatchPattern(): any {
+  private parseMatchPattern(): Record<string, unknown> | null {
     const token = this.current();
 
     // Wildcard pattern: _

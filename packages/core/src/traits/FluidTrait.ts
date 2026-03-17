@@ -82,7 +82,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       simulationHandle: null,
       emitters: new Map(),
     };
-    (node as any).__fluidState = state;
+    node.__fluidState = state;
 
     // Create fluid simulation
     context.emit?.('fluid_create', {
@@ -101,15 +101,15 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__fluidState as FluidState;
+    const state = node.__fluidState as FluidState;
     if (state?.isSimulating) {
       context.emit?.('fluid_destroy', { node });
     }
-    delete (node as any).__fluidState;
+    delete node.__fluidState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__fluidState as FluidState;
+    const state = node.__fluidState as FluidState;
     if (!state || !state.isSimulating) return;
 
     // Process emitters
@@ -135,7 +135,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__fluidState as FluidState;
+    const state = node.__fluidState as FluidState;
     if (!state) return;
 
     if (event.type === 'fluid_particle_update') {

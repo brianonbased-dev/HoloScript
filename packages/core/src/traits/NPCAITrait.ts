@@ -56,24 +56,24 @@ export const npcAIHandler: TraitHandler<NPCAIConfig> = {
       goals: ['wait_for_interaction'],
       conversationHistory: [],
     };
-    (node as any).__npcAIState = state;
+    node.__npcAIState = state;
 
     context.emit?.('npc_ai_initialized', { node });
   },
 
   onDetach(node, config, context) {
-    delete (node as any).__npcAIState;
+    delete node.__npcAIState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__npcAIState as NPCAIState;
+    const state = node.__npcAIState as NPCAIState;
     if (!state || state.isThinking) return;
 
     // Periodic perception checks or goal evaluation
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__npcAIState as NPCAIState;
+    const state = node.__npcAIState as NPCAIState;
     if (!state) return;
 
     if (event.type === 'npc_ai_prompt') {

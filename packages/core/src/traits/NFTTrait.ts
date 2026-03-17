@@ -71,7 +71,7 @@ export const nftHandler: TraitHandler<NFTConfig> = {
       tokenStandard: null,
       lastVerificationTime: 0,
     };
-    (node as any).__nftState = state;
+    node.__nftState = state;
 
     if (config.contract_address && config.token_id) {
       verifyOwnership(node, state, config, context);
@@ -80,11 +80,11 @@ export const nftHandler: TraitHandler<NFTConfig> = {
   },
 
   onDetach(node) {
-    delete (node as any).__nftState;
+    delete node.__nftState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__nftState as NFTState;
+    const state = node.__nftState as NFTState;
     if (!state) return;
 
     // Periodic re-verification
@@ -97,7 +97,7 @@ export const nftHandler: TraitHandler<NFTConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__nftState as NFTState;
+    const state = node.__nftState as NFTState;
     if (!state) return;
 
     if (event.type === 'nft_ownership_verified') {

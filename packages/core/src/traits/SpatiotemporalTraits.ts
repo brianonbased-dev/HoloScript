@@ -254,7 +254,7 @@ interface TrajectoryState {
  * ```
  */
 export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacentConfig> = {
-  name: 'spatial_temporal_adjacent' as any,
+  name: 'spatial_temporal_adjacent',
 
   defaultConfig: {
     target: '',
@@ -372,10 +372,10 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
   },
 
   onEvent(node, config, context, event) {
-    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
+    if (event.type === 'spatial_target_update' && (event as Record<string, unknown>).targetId === config.target) {
       const state = context.getState().spatialTemporalAdjacent as TemporalAdjacentState | undefined;
       if (state) {
-        state.targetPosition = (event as any).position;
+        state.targetPosition = (event as Record<string, unknown>).position;
         context.setState({ spatialTemporalAdjacent: state });
       }
     }
@@ -407,7 +407,7 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
  * ```
  */
 export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReachableConfig> = {
-  name: 'spatial_temporal_reachable' as any,
+  name: 'spatial_temporal_reachable',
 
   defaultConfig: {
     target: '',
@@ -549,8 +549,8 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
     if (!state) return;
 
     // Track target position
-    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
-      state.targetPosition = (event as any).position;
+    if (event.type === 'spatial_target_update' && (event as Record<string, unknown>).targetId === config.target) {
+      state.targetPosition = (event as Record<string, unknown>).position;
       context.setState({ spatialTemporalReachable: state });
     }
 
@@ -568,7 +568,7 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
 
     // Remove despawned obstacles
     if (event.type === 'obstacle_removed') {
-      state.movingObstacles.delete((event as any).obstacleId);
+      state.movingObstacles.delete((event as Record<string, unknown>).obstacleId);
       context.setState({ spatialTemporalReachable: state });
     }
   },
@@ -601,7 +601,7 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
  * ```
  */
 export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
-  name: 'spatial_trajectory' as any,
+  name: 'spatial_trajectory',
 
   defaultConfig: {
     mode: 'keep_in',
@@ -843,9 +843,9 @@ export const spatialTrajectoryHandler: TraitHandler<SpatialTrajectoryConfig> = {
 
     // Update velocity from physics
     if (event.type === 'velocity_update') {
-      state.velocity = (event as any).velocity;
-      if ((event as any).acceleration) {
-        state.acceleration = (event as any).acceleration;
+      state.velocity = (event as Record<string, unknown>).velocity;
+      if ((event as Record<string, unknown>).acceleration) {
+        state.acceleration = (event as Record<string, unknown>).acceleration;
       }
       context.setState({ spatialTrajectory: state });
     }

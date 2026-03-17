@@ -143,15 +143,15 @@ export const dialogueHandler: TraitHandler<DialogueConfig> = {
       awaitingInput: false,
       ongoingLLMRequest: false,
     };
-    (node as any).__dialogueState = state;
+    node.__dialogueState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__dialogueState;
+    delete node.__dialogueState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__dialogueState as DialogueState;
+    const state = node.__dialogueState as DialogueState;
     if (!state || !state.isActive) return;
 
     const currentNode = state.currentNodeId ? config.dialogue_tree[state.currentNodeId] : null;
@@ -172,7 +172,7 @@ export const dialogueHandler: TraitHandler<DialogueConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__dialogueState as DialogueState;
+    const state = node.__dialogueState as DialogueState;
     if (!state) return;
 
     if (event.type === 'start_dialogue') {

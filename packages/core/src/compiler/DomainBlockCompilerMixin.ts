@@ -36,7 +36,7 @@ export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
     block.keyword === 'unlit_material' ? 'unlit' : block.keyword === 'shader' ? 'shader' : 'pbr';
 
   const textureMaps: Record<string, string> = {};
-  const otherProps: Record<string, any> = {};
+  const otherProps: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(block.properties || {})) {
     if (key.endsWith('_map')) {
@@ -69,33 +69,33 @@ export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
 export interface CompiledCollider {
   type: 'collider' | 'trigger';
   shape?: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /** Compiled rigidbody sub-block (mass, drag, angular_damping, use_gravity) */
 export interface CompiledRigidbody {
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /** Compiled force field sub-block (gravity_zone, wind_zone, buoyancy_zone) */
 export interface CompiledForceField {
   keyword: string;
   name?: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 /** Compiled joint sub-block within articulation */
 export interface CompiledJoint {
   keyword: string;
   name?: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface CompiledPhysics {
   keyword: string;
   name?: string;
   shape?: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   /** Nested collider sub-blocks */
   colliders?: CompiledCollider[];
   /** Nested rigidbody sub-block (at most one) */
@@ -113,7 +113,7 @@ export function compilePhysicsBlock(block: HoloDomainBlock): CompiledPhysics {
   let rigidbody: CompiledRigidbody | undefined;
 
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.type !== 'DomainBlock') continue;
 
     const kw = c.keyword as string;
@@ -169,7 +169,7 @@ export function compilePhysicsBlock(block: HoloDomainBlock): CompiledPhysics {
 export interface CompiledParticleModule {
   /** Module type keyword (emission, velocity, color_over_life, size_over_life, noise, etc.) */
   type: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface CompiledParticleSystem {
@@ -179,7 +179,7 @@ export interface CompiledParticleSystem {
   /** Trait decorators (@looping, @burst, @gpu, etc.) */
   traits: string[];
   /** Top-level scalar properties (rate, max_particles, start_lifetime, etc.) */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   /** Structured sub-module blocks (emission, velocity, color_over_life, etc.) */
   modules: CompiledParticleModule[];
 }
@@ -188,7 +188,7 @@ export function compileParticleBlock(block: HoloDomainBlock): CompiledParticleSy
   const modules: CompiledParticleModule[] = [];
 
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.type === 'DomainBlock') {
       modules.push({
         type: c.keyword,
@@ -214,7 +214,7 @@ export function compileParticleBlock(block: HoloDomainBlock): CompiledParticleSy
 export interface CompiledPostEffect {
   /** Effect type keyword (bloom, depth_of_field, vignette, etc.) */
   type: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface CompiledPostProcessing {
@@ -229,7 +229,7 @@ export function compilePostProcessingBlock(block: HoloDomainBlock): CompiledPost
   const effects: CompiledPostEffect[] = [];
 
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.type === 'DomainBlock') {
       effects.push({
         type: c.keyword,
@@ -256,7 +256,7 @@ export interface CompiledAudioSource {
   /** Trait decorators (@spatial, @hrtf, @stereo, etc.) */
   traits: string[];
   /** Audio properties (clip, volume, pitch, spatial_blend, etc.) */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export function compileAudioSourceBlock(block: HoloDomainBlock): CompiledAudioSource {
@@ -276,7 +276,7 @@ export function compileAudioSourceBlock(block: HoloDomainBlock): CompiledAudioSo
 export interface CompiledWeatherLayer {
   /** Layer type keyword (rain, snow, wind, lightning, clouds, fog_layer, etc.) */
   type: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface CompiledWeather {
@@ -286,7 +286,7 @@ export interface CompiledWeather {
   /** Trait decorators (@dynamic, @cyclical, etc.) */
   traits: string[];
   /** Top-level scalar properties (intensity, transition_time, etc.) */
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   /** Structured weather layers (rain, snow, wind, lightning, clouds, etc.) */
   layers: CompiledWeatherLayer[];
 }
@@ -295,7 +295,7 @@ export function compileWeatherBlock(block: HoloDomainBlock): CompiledWeather {
   const layers: CompiledWeatherLayer[] = [];
 
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.type === 'DomainBlock') {
       layers.push({
         type: c.keyword,
@@ -525,7 +525,7 @@ export function materialToUSD(mat: CompiledMaterial): string {
 
 /** Generate glTF material object */
 export function materialToGLTF(mat: CompiledMaterial): object {
-  const gltfMat: any = { name: mat.name };
+  const gltfMat: Record<string, unknown> = { name: mat.name };
   if (mat.type === 'pbr' || mat.type === 'shader') {
     gltfMat.pbrMetallicRoughness = {
       baseColorFactor: mat.baseColor ? hexToRGBA(mat.baseColor, mat.opacity ?? 1) : [1, 1, 1, 1],
@@ -2205,7 +2205,7 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
   let hasChoices = false;
 
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.type !== 'DomainBlock') continue;
 
     const kw = c.keyword as string;
@@ -2218,11 +2218,11 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
       const dialogueLines: CompiledDialogueLine[] = [];
       const choices: CompiledChoice[] = [];
       for (const dc of c.children || []) {
-        const dck = (dc as any).keyword as string;
+        const dck = (dc as unknown as HoloDomainBlock).keyword as string;
         if (dck === 'line' || dck === 'dialogue') {
-          dialogueLines.push(compileDialogueLine(dc as any));
+          dialogueLines.push(compileDialogueLine(dc as unknown as HoloDomainBlock));
         } else if (dck === 'choice') {
-          choices.push(compileChoiceNode(dc as any));
+          choices.push(compileChoiceNode(dc as unknown as HoloDomainBlock));
           hasChoices = true;
         }
       }
@@ -2246,18 +2246,18 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
     type: narrativeType,
     chapters,
     startChapter: (props.start_chapter || props.startChapter) as string | undefined,
-    variables: props.variables as Record<string, any> | undefined,
+    variables: props.variables as Record<string, unknown> | undefined,
   };
 }
 
-function compileChapterBlock(block: any): CompiledChapter {
+function compileChapterBlock(block: HoloDomainBlock): CompiledChapter {
   const props = block.properties || {};
   const dialogueLines: CompiledDialogueLine[] = [];
   const choices: CompiledChoice[] = [];
   const cutsceneActions: CompiledCutsceneAction[] = [];
 
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     const kw = c.keyword as string;
     if (kw === 'line' || kw === 'dialogue') {
       dialogueLines.push(compileDialogueLine(c));
@@ -2285,7 +2285,7 @@ function compileChapterBlock(block: any): CompiledChapter {
   };
 }
 
-function compileDialogueLine(block: any): CompiledDialogueLine {
+function compileDialogueLine(block: HoloDomainBlock): CompiledDialogueLine {
   const props = block.properties || {};
   return {
     speaker: (props.speaker || props.character) as string | undefined,
@@ -2296,7 +2296,7 @@ function compileDialogueLine(block: any): CompiledDialogueLine {
   };
 }
 
-function compileChoiceNode(block: any): CompiledChoice {
+function compileChoiceNode(block: HoloDomainBlock): CompiledChoice {
   const props = block.properties || {};
   return {
     text: (props.text || block.name || '') as string,
@@ -2306,7 +2306,7 @@ function compileChoiceNode(block: any): CompiledChoice {
   };
 }
 
-function compileCutsceneAction(block: any): CompiledCutsceneAction {
+function compileCutsceneAction(block: HoloDomainBlock): CompiledCutsceneAction {
   const props = block.properties || {};
   const kw = block.keyword as string;
   const type: CompiledCutsceneAction['type'] =
@@ -2648,14 +2648,14 @@ export function compilePaymentBlock(block: HoloDomainBlock): CompiledPaywall {
     gatedContent.push(props.gated_content as string);
   }
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.name) gatedContent.push(c.name);
   }
 
   // Extract revenue split
   let revenueSplit: CompiledPaywall['revenueSplit'] | undefined;
   if (props.revenue_split && typeof props.revenue_split === 'object') {
-    const rs = props.revenue_split as Record<string, any>;
+    const rs = props.revenue_split as Record<string, unknown>;
     revenueSplit = {
       creator: (rs.creator as number) ?? 80,
       platform: (rs.platform as number) ?? 10,
@@ -2903,7 +2903,7 @@ export function compileHealthcareBlock(block: HoloDomainBlock): CompiledHealthca
     procedureSteps.push(...(props.steps as string[]));
   }
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.keyword === 'step' && c.name) procedureSteps.push(c.name);
   }
 
@@ -3098,7 +3098,7 @@ export function compileRoboticsBlock(block: HoloDomainBlock): CompiledRobotics {
       velocity: (props.velocity as number) ?? 1.0,
     };
   } else if (props.limits && typeof props.limits === 'object') {
-    const lim = props.limits as Record<string, any>;
+    const lim = props.limits as Record<string, unknown>;
     jointLimits = {
       lower: (lim.lower as number) ?? -3.14159,
       upper: (lim.upper as number) ?? 3.14159,
@@ -3432,7 +3432,7 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
   if (props.x_axis || props.y_axis || props.z_axis) {
     axes = { x: props.x_axis as string, y: props.y_axis as string, z: props.z_axis as string };
   } else if (props.axes && typeof props.axes === 'object') {
-    const a = props.axes as Record<string, any>;
+    const a = props.axes as Record<string, unknown>;
     axes = { x: a.x, y: a.y, z: a.z };
   }
   let dimensions: CompiledDataViz['dimensions'];
@@ -3541,13 +3541,13 @@ export function compileEducationBlock(block: HoloDomainBlock): CompiledEducation
   if (Array.isArray(props.prerequisites)) prerequisites = props.prerequisites as string[];
   let questions: CompiledEducation['questions'];
   if (Array.isArray(props.questions)) {
-    questions = (props.questions as any[]).map((q) =>
+    questions = (props.questions as unknown[]).map((q) =>
       typeof q === 'string' ? { question: q } : q
     );
   }
   // Extract questions from children (quiz sub-blocks)
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.keyword === 'question' && c.name) {
       if (!questions) questions = [];
       questions.push({
@@ -3654,7 +3654,7 @@ export function compileMusicBlock(block: HoloDomainBlock): CompiledMusic {
   if (Array.isArray(props.effects)) effects = props.effects as string[];
   // Extract effects from children
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.keyword === 'effect' && c.name) {
       if (!effects) effects = [];
       effects.push(c.name);
@@ -3859,7 +3859,7 @@ export function compileWeb3Block(block: HoloDomainBlock): CompiledWeb3 {
   if (Array.isArray(props.functions)) functions = props.functions as string[];
   // Extract functions from children
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.keyword === 'function' && c.name) {
       if (!functions) functions = [];
       functions.push(c.name);
@@ -3970,7 +3970,7 @@ export function compileProceduralBlock(block: HoloDomainBlock): CompiledProcedur
       amplitude: (props.amplitude as number) ?? 1.0,
     };
   } else if (props.noise && typeof props.noise === 'object') {
-    const n = props.noise as Record<string, any>;
+    const n = props.noise as Record<string, unknown>;
     noise = {
       type: n.type ?? 'perlin',
       octaves: n.octaves ?? 4,
@@ -4086,13 +4086,13 @@ export function compileRenderingBlock(block: HoloDomainBlock): CompiledRendering
   const props = block.properties || {};
   let lodLevels: CompiledRendering['lodLevels'];
   if (Array.isArray(props.levels)) {
-    lodLevels = (props.levels as any[]).map((l) =>
+    lodLevels = (props.levels as unknown[]).map((l) =>
       typeof l === 'object' ? l : { distance: l }
     );
   }
   // Extract LOD levels from children
   for (const child of block.children || []) {
-    const c = child as any;
+    const c = child as unknown as HoloDomainBlock;
     if (c.keyword === 'level' || c.keyword === 'lod_level') {
       if (!lodLevels) lodLevels = [];
       lodLevels.push({

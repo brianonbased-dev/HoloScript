@@ -71,7 +71,7 @@ export const sceneGraphHandler: TraitHandler<SceneGraphConfig> = {
       nodes: new Map(),
       isDirty: false,
     };
-    (node as any).__sceneGraphState = state;
+    node.__sceneGraphState = state;
 
     // Register root node
     state.nodes.set(nodeId, {
@@ -96,11 +96,11 @@ export const sceneGraphHandler: TraitHandler<SceneGraphConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('scene_graph_destroy', { node });
-    delete (node as any).__sceneGraphState;
+    delete node.__sceneGraphState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__sceneGraphState as SceneGraphState;
+    const state = node.__sceneGraphState as SceneGraphState;
     if (!state || !state.isDirty) return;
 
     state.isDirty = false;
@@ -117,7 +117,7 @@ export const sceneGraphHandler: TraitHandler<SceneGraphConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__sceneGraphState as SceneGraphState;
+    const state = node.__sceneGraphState as SceneGraphState;
     if (!state) return;
 
     if (event.type === 'scene_graph_add_node') {

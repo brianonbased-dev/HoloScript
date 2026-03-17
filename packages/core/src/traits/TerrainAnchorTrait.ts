@@ -64,7 +64,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
       confidence: 0,
       anchorHandle: null,
     };
-    (node as any).__terrainAnchorState = state;
+    node.__terrainAnchorState = state;
 
     if (config.auto_resolve) {
       state.state = 'resolving';
@@ -80,15 +80,15 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__terrainAnchorState as TerrainAnchorState;
+    const state = node.__terrainAnchorState as TerrainAnchorState;
     if (state?.anchorHandle) {
       context.emit?.('terrain_anchor_release', { node, handle: state.anchorHandle });
     }
-    delete (node as any).__terrainAnchorState;
+    delete node.__terrainAnchorState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = (node as any).__terrainAnchorState as TerrainAnchorState;
+    const state = node.__terrainAnchorState as TerrainAnchorState;
     if (!state) return;
 
     if (state.state === 'tracking' || state.state === 'resolved') {
@@ -132,7 +132,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__terrainAnchorState as TerrainAnchorState;
+    const state = node.__terrainAnchorState as TerrainAnchorState;
     if (!state) return;
 
     if (event.type === 'terrain_anchor_resolved') {

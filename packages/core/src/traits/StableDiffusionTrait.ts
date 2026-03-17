@@ -83,7 +83,7 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
       last_prompt: config.prompt,
       texture_cache: new Map(),
     };
-    (node as any).__stableDiffusionState = state;
+    node.__stableDiffusionState = state;
 
     context.emit?.('stable_diffusion_init', {
       node,
@@ -106,7 +106,7 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__stableDiffusionState as DiffusionState;
+    const state = node.__stableDiffusionState as DiffusionState;
 
     if (state?.is_generating) {
       context.emit?.('stable_diffusion_cancel', { node });
@@ -115,11 +115,11 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
     // Clear texture cache
     state?.texture_cache.clear();
 
-    delete (node as any).__stableDiffusionState;
+    delete node.__stableDiffusionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__stableDiffusionState as DiffusionState;
+    const state = node.__stableDiffusionState as DiffusionState;
     if (!state) return;
 
     // Real-time diffusion mode
@@ -140,7 +140,7 @@ export const stableDiffusionHandler: TraitHandler<StableDiffusionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__stableDiffusionState as DiffusionState;
+    const state = node.__stableDiffusionState as DiffusionState;
     if (!state) return;
 
     if (event.type === 'stable_diffusion_result') {

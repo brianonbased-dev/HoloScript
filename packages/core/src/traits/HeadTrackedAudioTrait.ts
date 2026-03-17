@@ -91,7 +91,7 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
       lastUpdateTime: 0,
       audioSourceId: null,
     };
-    (node as any).__headTrackedAudioState = state;
+    node.__headTrackedAudioState = state;
 
     // Get initial world position
     if ((node as any).position) {
@@ -115,16 +115,16 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__headTrackedAudioState as HeadTrackedAudioState;
+    const state = node.__headTrackedAudioState as HeadTrackedAudioState;
     if (state?.isPlaying) {
       context.emit?.('audio_stop', { node });
     }
     context.emit?.('audio_dispose_source', { node });
-    delete (node as any).__headTrackedAudioState;
+    delete node.__headTrackedAudioState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__headTrackedAudioState as HeadTrackedAudioState;
+    const state = node.__headTrackedAudioState as HeadTrackedAudioState;
     if (!state || !state.isPlaying) return;
 
     if (config.anchor_mode === 'world') {
@@ -169,7 +169,7 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__headTrackedAudioState as HeadTrackedAudioState;
+    const state = node.__headTrackedAudioState as HeadTrackedAudioState;
     if (!state) return;
 
     if (event.type === 'head_rotation_update') {

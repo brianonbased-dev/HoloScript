@@ -76,7 +76,7 @@ export const spatialAudioCueHandler: TraitHandler<SpatialAudioCueConfig> = {
       lastPlayTime: 0,
       queuedMessage: null,
     };
-    (node as any).__spatialAudioCueState = state;
+    node.__spatialAudioCueState = state;
 
     // Register cue with audio system
     context.emit?.('audio_cue_register', {
@@ -98,11 +98,11 @@ export const spatialAudioCueHandler: TraitHandler<SpatialAudioCueConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('audio_cue_unregister', { node });
-    delete (node as any).__spatialAudioCueState;
+    delete node.__spatialAudioCueState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__spatialAudioCueState as SpatialAudioCueState;
+    const state = node.__spatialAudioCueState as SpatialAudioCueState;
     if (!state || !state.isActive) return;
 
     // Handle repeat interval
@@ -130,7 +130,7 @@ export const spatialAudioCueHandler: TraitHandler<SpatialAudioCueConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__spatialAudioCueState as SpatialAudioCueState;
+    const state = node.__spatialAudioCueState as SpatialAudioCueState;
     if (!state) return;
 
     if (event.type === 'audio_cue_trigger') {

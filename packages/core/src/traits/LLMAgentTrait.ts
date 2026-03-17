@@ -190,16 +190,16 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
       });
     }
 
-    (node as any).__llmAgentState = state;
+    node.__llmAgentState = state;
     context.emit?.('llm_agent_ready', { node });
   },
 
   onDetach(node) {
-    delete (node as any).__llmAgentState;
+    delete node.__llmAgentState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__llmAgentState as LLMState;
+    const state = node.__llmAgentState as LLMState;
     if (!state) return;
 
     // Process pending tool calls
@@ -227,7 +227,7 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__llmAgentState as LLMState;
+    const state = node.__llmAgentState as LLMState;
     if (!state) return;
 
     if (event.type === 'llm_prompt') {

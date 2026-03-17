@@ -77,7 +77,7 @@ export const anchorHandler: TraitHandler<AnchorConfig> = {
       createdAt: Date.now(),
       updateCount: 0,
     };
-    (node as any).__anchorState = state;
+    node.__anchorState = state;
 
     // Request anchor creation
     context.emit?.('anchor_request', {
@@ -89,18 +89,18 @@ export const anchorHandler: TraitHandler<AnchorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__anchorState as AnchorState;
+    const state = node.__anchorState as AnchorState;
     if (state?.anchorId) {
       context.emit?.('anchor_release', {
         anchorId: state.anchorId,
         persist: config.persist,
       });
     }
-    delete (node as any).__anchorState;
+    delete node.__anchorState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__anchorState as AnchorState;
+    const state = node.__anchorState as AnchorState;
     if (!state) return;
 
     // Handle tracking state
@@ -155,7 +155,7 @@ export const anchorHandler: TraitHandler<AnchorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__anchorState as AnchorState;
+    const state = node.__anchorState as AnchorState;
     if (!state) return;
 
     if (event.type === 'anchor_created') {

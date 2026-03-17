@@ -63,17 +63,17 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
       proposals: new Map(),
       groupId: config.group_id,
     };
-    (node as any).__blackboardState = state;
+    node.__blackboardState = state;
 
     context.emit?.('blackboard_initialized', { node, groupId: config.group_id });
   },
 
   onDetach(node, config, context) {
-    delete (node as any).__blackboardState;
+    delete node.__blackboardState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__blackboardState as BlackboardState;
+    const state = node.__blackboardState as BlackboardState;
     if (!state) return;
 
     const now = Date.now();
@@ -97,7 +97,7 @@ export const blackboardHandler: TraitHandler<BlackboardConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__blackboardState as BlackboardState;
+    const state = node.__blackboardState as BlackboardState;
     if (!state) return;
 
     if (event.type === 'blackboard_post_belief') {

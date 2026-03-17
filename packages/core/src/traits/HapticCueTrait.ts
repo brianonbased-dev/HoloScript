@@ -104,7 +104,7 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
       repeatTimer: 0,
       lastTriggerTime: 0,
     };
-    (node as any).__hapticCueState = state;
+    node.__hapticCueState = state;
 
     context.emit?.('haptic_cue_register', {
       node,
@@ -115,11 +115,11 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('haptic_cue_stop', { node });
-    delete (node as any).__hapticCueState;
+    delete node.__hapticCueState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__hapticCueState as HapticCueState;
+    const state = node.__hapticCueState as HapticCueState;
     if (!state || !state.isPlaying) return;
 
     // Handle repeat logic
@@ -144,7 +144,7 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__hapticCueState as HapticCueState;
+    const state = node.__hapticCueState as HapticCueState;
     if (!state) return;
 
     // Match trigger event

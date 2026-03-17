@@ -67,7 +67,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       localRotation: { x: 0, y: 0, z: 0, w: 1 },
       anchorHandle: null,
     };
-    (node as any).__persistentAnchorState = state;
+    node.__persistentAnchorState = state;
 
     // Try to load existing anchor
     if (config.auto_resolve && config.name) {
@@ -82,7 +82,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__persistentAnchorState as PersistentAnchorState;
+    const state = node.__persistentAnchorState as PersistentAnchorState;
 
     // Save anchor before detaching if we have one
     if (state?.anchorHandle && config.name) {
@@ -95,11 +95,11 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       });
     }
 
-    delete (node as any).__persistentAnchorState;
+    delete node.__persistentAnchorState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__persistentAnchorState as PersistentAnchorState;
+    const state = node.__persistentAnchorState as PersistentAnchorState;
     if (!state) return;
 
     // Check TTL expiration
@@ -134,7 +134,7 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__persistentAnchorState as PersistentAnchorState;
+    const state = node.__persistentAnchorState as PersistentAnchorState;
     if (!state) return;
 
     if (event.type === 'persistent_anchor_loaded') {

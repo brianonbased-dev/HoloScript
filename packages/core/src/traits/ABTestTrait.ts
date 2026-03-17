@@ -553,7 +553,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
       localParticipantId: generateAnonymousId(),
       isActive: config.enabled,
     };
-    (node as any).__abTestState = state;
+    node.__abTestState = state;
 
     context.emit?.('abtest_attached', {
       node,
@@ -563,7 +563,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__abTestState as ABTestState;
+    const state = node.__abTestState as ABTestState;
     if (!state) return;
 
     // Emit final experiment summaries
@@ -580,11 +580,11 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
       }
     }
 
-    delete (node as any).__abTestState;
+    delete node.__abTestState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__abTestState as ABTestState;
+    const state = node.__abTestState as ABTestState;
     if (!state || !state.isActive) return;
 
     const now = Date.now();
@@ -606,7 +606,7 @@ export const abTestHandler: TraitHandler<ABTestConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__abTestState as ABTestState;
+    const state = node.__abTestState as ABTestState;
     if (!state) return;
 
     // --- Create experiment ---

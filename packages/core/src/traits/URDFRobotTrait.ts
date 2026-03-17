@@ -381,7 +381,7 @@ export const urdfRobotHandler: TraitHandler<URDFRobotConfig> = {
 
   onAttach(node: HSPlusNode, config: URDFRobotConfig, context: TraitContext): void {
     const trait = new URDFRobotTrait(config);
-    (node as any).__urdfRobotTrait = trait;
+    node.__urdfRobotTrait = trait;
 
     // Emit attachment event
     context.emit('urdf_robot:attached', {
@@ -391,7 +391,7 @@ export const urdfRobotHandler: TraitHandler<URDFRobotConfig> = {
   },
 
   onDetach(node: HSPlusNode, _config: URDFRobotConfig, context: TraitContext): void {
-    delete (node as any).__urdfRobotTrait;
+    delete node.__urdfRobotTrait;
     context.emit('urdf_robot:detached', {});
   },
 
@@ -401,7 +401,7 @@ export const urdfRobotHandler: TraitHandler<URDFRobotConfig> = {
     _context: TraitContext,
     _delta: number
   ): void {
-    const trait = (node as any).__urdfRobotTrait as URDFRobotTrait | undefined;
+    const trait = node.__urdfRobotTrait as URDFRobotTrait | undefined;
     if (!trait) return;
 
     // No continuous update needed for static model display

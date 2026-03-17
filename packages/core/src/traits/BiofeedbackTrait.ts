@@ -82,7 +82,7 @@ export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
       lastSampleTime: 0,
       thresholdEdge: new Map(),
     };
-    (node as any).__biofeedbackState = state;
+    node.__biofeedbackState = state;
 
     context.emit?.('biofeedback_connect', {
       node,
@@ -92,15 +92,15 @@ export const biofeedbackHandler: TraitHandler<BiofeedbackConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__biofeedbackState as BiofeedbackState;
+    const state = node.__biofeedbackState as BiofeedbackState;
     if (state?.isConnected) {
       context.emit?.('biofeedback_disconnect', { node });
     }
-    delete (node as any).__biofeedbackState;
+    delete node.__biofeedbackState;
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__biofeedbackState as BiofeedbackState;
+    const state = node.__biofeedbackState as BiofeedbackState;
     if (!state) return;
 
     if (event.type === 'biofeedback_device_connected') {

@@ -50,7 +50,7 @@ export const altTextHandler: TraitHandler<AltTextConfig> = {
       generatedText: null,
       isGenerating: false,
     };
-    (node as any).__altTextState = state;
+    node.__altTextState = state;
 
     // Register alt text
     if (config.text) {
@@ -73,7 +73,7 @@ export const altTextHandler: TraitHandler<AltTextConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('alt_text_unregister', { node });
-    delete (node as any).__altTextState;
+    delete node.__altTextState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -81,7 +81,7 @@ export const altTextHandler: TraitHandler<AltTextConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__altTextState as AltTextState;
+    const state = node.__altTextState as AltTextState;
     if (!state) return;
 
     if (event.type === 'alt_text_generated') {

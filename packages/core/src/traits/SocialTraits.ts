@@ -54,7 +54,7 @@ interface TweetableConfig {
  * - QR code for mobile XR access
  */
 export const shareableHandler: TraitHandler<ShareableConfig> = {
-  name: 'shareable' as any,
+  name: 'shareable',
 
   defaultConfig: {
     camera: [5, 2, 5],
@@ -72,11 +72,11 @@ export const shareableHandler: TraitHandler<ShareableConfig> = {
       previewUrl: null,
       qrCodeUrl: null,
     };
-    (node as any).__shareableState = state;
+    node.__shareableState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__shareableState;
+    delete node.__shareableState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -85,7 +85,7 @@ export const shareableHandler: TraitHandler<ShareableConfig> = {
 
   onEvent(node, config, context, event) {
     if (event.type === 'share') {
-      context.emit('on_share', { node, platform: (event as any).platform || 'x' });
+      context.emit('on_share', { node, platform: (event as Record<string, unknown>).platform || 'x' });
     }
   },
 };
@@ -101,7 +101,7 @@ export const shareableHandler: TraitHandler<ShareableConfig> = {
  * simultaneously. Perfect for building in X threads together.
  */
 export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
-  name: 'collaborative' as any,
+  name: 'collaborative',
 
   defaultConfig: {
     sync: 'realtime',
@@ -119,7 +119,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
       isConnected: false,
       localStream: null,
     };
-    (node as any).__collaborativeState = state;
+    node.__collaborativeState = state;
 
     // Initialize Voice Chat if enabled
     if (config.voice) {
@@ -128,15 +128,15 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
   },
 
   onDetach(node) {
-    const state = (node as any).__collaborativeState;
+    const state = node.__collaborativeState;
     if (state && state.localStream) {
       (state.localStream as MediaStream).getTracks().forEach((track) => track.stop());
     }
-    delete (node as any).__collaborativeState;
+    delete node.__collaborativeState;
   },
 
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as any).__collaborativeState;
+    const state = node.__collaborativeState;
     if (!state) return;
     // Sync logic handled by WebRTC layer
   },
@@ -150,7 +150,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
       context.emit('request_mic_access', {
         node,
         onStream: (stream: MediaStream) => {
-          const state = (node as any).__collaborativeState;
+          const state = node.__collaborativeState;
           if (state) {
             state.localStream = stream;
             // Provide stream to network layer
@@ -165,26 +165,26 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__collaborativeState;
+    const state = node.__collaborativeState;
     if (!state) return;
 
     switch (event.type) {
       case 'user_join':
-        context.emit('on_user_join', { node, user: (event as any).user });
+        context.emit('on_user_join', { node, user: (event as Record<string, unknown>).user });
         break;
       case 'user_leave':
-        context.emit('on_user_leave', { node, user: (event as any).user });
+        context.emit('on_user_leave', { node, user: (event as Record<string, unknown>).user });
         break;
       case 'edit':
-        context.emit('on_edit', { node, edit: (event as any).edit });
+        context.emit('on_edit', { node, edit: (event as Record<string, unknown>).edit });
         break;
       case 'voice_stream_received':
         // Handle incoming voice stream from a peer
         // This event would be triggered by the runtime bridging WebRTCTransport events to traits
         context.emit('on_voice_stream', {
           node,
-          peerId: (event as any).peerId,
-          stream: (event as any).stream,
+          peerId: (event as Record<string, unknown>).peerId,
+          stream: (event as Record<string, unknown>).stream,
         });
         break;
     }
@@ -202,7 +202,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
  * or scene is shared, including hashtags and preview cards.
  */
 export const tweetableHandler: TraitHandler<TweetableConfig> = {
-  name: 'tweetable' as any,
+  name: 'tweetable',
 
   defaultConfig: {
     template: 'Check out {name}! Built with HoloScript 🎮',
@@ -217,11 +217,11 @@ export const tweetableHandler: TraitHandler<TweetableConfig> = {
       tweetGenerated: false,
       tweetUrl: null,
     };
-    (node as any).__tweetableState = state;
+    node.__tweetableState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__tweetableState;
+    delete node.__tweetableState;
   },
 
   onUpdate(_node, _config, _context, _delta) {

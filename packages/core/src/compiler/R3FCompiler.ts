@@ -45,7 +45,7 @@ export interface R3FNode {
   id?: string;
   props: Record<string, any>;
   children?: R3FNode[];
-  traits?: Map<VRTraitName, any>;
+  traits?: Map<VRTraitName, Record<string, unknown>>;
   directives?: HSPlusDirective[];
   /**
    * Asset maturity stage in the Draft→Mesh→Simulation pipeline.
@@ -60,7 +60,7 @@ export interface R3FNode {
 /**
  * Material presets mapping surface names to Three.js PBR properties.
  */
-export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
+export const MATERIAL_PRESETS: Record<string, Record<string, unknown>> = {
   plastic: { roughness: 0.5, metalness: 0.0, clearcoat: 0.1 },
   metal: { roughness: 0.2, metalness: 1.0 },
   chrome: { roughness: 0.05, metalness: 1.0, envMapIntensity: 1.5 },
@@ -1666,7 +1666,7 @@ export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
   },
 };
 
-export const ENVIRONMENT_PRESETS: Record<string, any> = {
+export const ENVIRONMENT_PRESETS: Record<string, Record<string, unknown>> = {
   forest_sunset: {
     background: true,
     envPreset: 'sunset',
@@ -1765,7 +1765,7 @@ const MESH_TYPES = new Set([
  */
 export const UI_COMPONENT_PRESETS: Record<
   string,
-  { component: string; defaultProps: Record<string, any> }
+  { component: string; defaultProps: Record<string, unknown> }
 > = {
   UIPanel: {
     component: 'Container', // @react-three/uikit Container
@@ -1922,10 +1922,10 @@ export class R3FCompiler {
    * @returns A new object with spreads expanded and merged
    */
   private expandSpreads(
-    props: Record<string, any>,
-    context?: { templates?: Map<string, any>; state?: Record<string, any> }
-  ): Record<string, any> {
-    const result: Record<string, any> = {};
+    props: Record<string, unknown>,
+    context?: { templates?: Map<string, Record<string, unknown>>; state?: Record<string, unknown> }
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
     const spreadKeys: string[] = [];
 
     // First pass: collect spread keys and non-spread properties
@@ -1996,10 +1996,10 @@ export class R3FCompiler {
    * Spread elements have { type: 'spread', argument: <value> }
    */
   private expandArraySpreads(
-    arr: any[],
-    context?: { templates?: Map<string, any>; state?: Record<string, any> }
-  ): any[] {
-    const result: any[] = [];
+    arr: unknown[],
+    context?: { templates?: Map<string, Record<string, unknown>>; state?: Record<string, unknown> }
+  ): unknown[] {
+    const result: unknown[] = [];
 
     for (const item of arr) {
       if (item && typeof item === 'object' && item.type === 'spread') {
@@ -2026,9 +2026,9 @@ export class R3FCompiler {
    * Handles: direct values, __ref references, template references
    */
   private resolveSpreadArgument(
-    argument: any,
-    context?: { templates?: Map<string, any>; state?: Record<string, any> }
-  ): any {
+    argument: unknown,
+    context?: { templates?: Map<string, Record<string, unknown>>; state?: Record<string, unknown> }
+  ): unknown {
     if (argument === null || argument === undefined) {
       return undefined;
     }
@@ -2109,10 +2109,10 @@ export class R3FCompiler {
     this.injectDefaultLighting(root);
 
     // v4.2: Compile domain blocks (materials, physics, particles, post-fx, audio, weather)
-    const domainBlocks = (ast as any).domainBlocks ?? [];
+    const domainBlocks = ((ast as unknown as Record<string, unknown>).domainBlocks ?? []) as Array<Record<string, unknown>>;
     if (domainBlocks.length > 0) {
-      const compiled = compileDomainBlocks(domainBlocks, {
-        material: (block: any) => {
+      const compiled = compileDomainBlocks(domainBlocks as unknown as import('./DomainBlockCompilerMixin').HoloDomainBlock[], {
+        material: (block) => {
           const mat = compileMaterialBlock(block);
           return {
             type: 'DomainBlockOutput',
@@ -2120,7 +2120,7 @@ export class R3FCompiler {
             children: [],
           } as R3FNode;
         },
-        physics: (block: any) => {
+        physics: (block) => {
           const phys = compilePhysicsBlock(block);
           return {
             type: 'DomainBlockOutput',
@@ -2132,7 +2132,7 @@ export class R3FCompiler {
             children: [],
           } as R3FNode;
         },
-        vfx: (block: any) => {
+        vfx: (block) => {
           const ps = compileParticleBlock(block);
           return {
             type: 'DomainBlockOutput',
@@ -2140,7 +2140,7 @@ export class R3FCompiler {
             children: [],
           } as R3FNode;
         },
-        postfx: (block: any) => {
+        postfx: (block) => {
           const pp = compilePostProcessingBlock(block);
           return {
             type: 'DomainBlockOutput',
@@ -2152,7 +2152,7 @@ export class R3FCompiler {
             children: [],
           } as R3FNode;
         },
-        audio: (block: any) => {
+        audio: (block) => {
           const audio = compileAudioSourceBlock(block);
           return {
             type: 'DomainBlockOutput',
@@ -2160,7 +2160,7 @@ export class R3FCompiler {
             children: [],
           } as R3FNode;
         },
-        weather: (block: any) => {
+        weather: (block) => {
           const weather = compileWeatherBlock(block);
           return {
             type: 'DomainBlockOutput',
@@ -2182,7 +2182,7 @@ export class R3FCompiler {
     return root;
   }
 
-  private createNode(type: string, props: Record<string, any> = {}, id?: string): R3FNode {
+  private createNode(type: string, props: Record<string, unknown> = {}, id?: string): R3FNode {
     const node = r3fNodePool.acquire();
     node.type = type;
     node.id = id;
@@ -2202,12 +2202,12 @@ export class R3FCompiler {
       return this.compileComponentNode(node);
     }
 
-    const rawProps = (node as any).properties || {};
+    const rawProps = (node as unknown as Record<string, unknown>).properties as Record<string, unknown> || {};
     const type = this.mapType(node.type, rawProps);
 
     const r3fNode = r3fNodePool.acquire();
     r3fNode.type = type;
-    r3fNode.id = (node as any).id || (node as any).name;
+    r3fNode.id = (node as unknown as Record<string, unknown>).id as string || (node as unknown as Record<string, unknown>).name as string;
     r3fNode.props = this.compileProperties(node, rawProps);
     r3fNode.children = [];
     r3fNode.traits = new Map();
@@ -2216,18 +2216,18 @@ export class R3FCompiler {
     if (node.directives) {
       for (const directive of node.directives) {
         if (directive.type === 'trait') {
-          r3fNode.traits?.set(directive.name as any, directive.config);
+          r3fNode.traits?.set(directive.name as VRTraitName, directive.config as Record<string, unknown>);
         }
       }
     }
 
-    const enhanced = node as any;
+    const enhanced = node as unknown as Record<string, unknown>;
     if (enhanced.graphics) {
       this.applyGraphicsConfig(r3fNode, enhanced.graphics);
     }
 
     if (enhanced.children && Array.isArray(enhanced.children)) {
-      r3fNode.children = enhanced.children.map((child: any) => this.compileNode(child as ASTNode));
+      r3fNode.children = (enhanced.children as ASTNode[]).map((child: ASTNode) => this.compileNode(child));
     }
 
     return r3fNode;
@@ -2235,7 +2235,7 @@ export class R3FCompiler {
 
   // ─── HoloComposition Compilation (.holo files) ────────────────────────
 
-  public compileComposition(composition: any, agentToken?: string, outputPath?: string): R3FNode {
+  public compileComposition(composition: Record<string, unknown>, agentToken?: string, outputPath?: string): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
 
     const root = r3fNodePool.acquire();
@@ -2247,7 +2247,7 @@ export class R3FCompiler {
     root.directives = [];
 
     // Build template map for trait merging
-    const templateMap = new Map<string, any>();
+    const templateMap = new Map<string, Record<string, unknown>>();
     if (composition.templates) {
       for (const tmpl of composition.templates) {
         templateMap.set(tmpl.name, tmpl);
@@ -2362,7 +2362,7 @@ export class R3FCompiler {
     return root;
   }
 
-  private compileLightBlock(light: any): R3FNode {
+  private compileLightBlock(light: Record<string, unknown>): R3FNode {
     const lightMapping: Record<string, string> = {
       directional: 'directionalLight',
       point: 'pointLight',
@@ -2372,7 +2372,7 @@ export class R3FCompiler {
       area: 'rectAreaLight',
     };
     const type = lightMapping[light.lightType] || 'directionalLight';
-    const props: Record<string, any> = {};
+    const props: Record<string, unknown> = {};
 
     if (light.properties) {
       for (const prop of light.properties) {
@@ -2408,7 +2408,7 @@ export class R3FCompiler {
     return r3fNode;
   }
 
-  private compileEffectsBlock(effects: any): R3FNode {
+  private compileEffectsBlock(effects: Record<string, unknown>): R3FNode {
     const children: R3FNode[] = [];
     if (effects.effects) {
       for (const effect of effects.effects) {
@@ -2430,8 +2430,8 @@ export class R3FCompiler {
     return composer;
   }
 
-  private compileCameraBlock(camera: any): R3FNode {
-    const props: Record<string, any> = {};
+  private compileCameraBlock(camera: Record<string, unknown>): R3FNode {
+    const props: Record<string, unknown> = {};
     if (camera.properties) {
       for (const prop of camera.properties) {
         if (prop.key === 'field_of_view' || prop.key === 'fov') {
@@ -2534,8 +2534,8 @@ export class R3FCompiler {
     return nodes;
   }
 
-  private compileObjectDecl(obj: any, templateMap?: Map<string, any>): R3FNode {
-    const props: Record<string, any> = {};
+  private compileObjectDecl(obj: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
+    const props: Record<string, unknown> = {};
     let geometryType = 'cube';
 
     // Merge template traits onto the object if it uses a template
@@ -2544,18 +2544,18 @@ export class R3FCompiler {
       if (tmpl) {
         // Merge template traits (object's own traits take precedence)
         if (tmpl.traits && Array.isArray(tmpl.traits)) {
-          const existingTraitNames = new Set((obj.traits || []).map((t: any) => t.name));
+          const existingTraitNames = new Set((obj.traits as Array<Record<string, unknown>> || []).map((t: Record<string, unknown>) => t.name));
           obj.traits = [
-            ...tmpl.traits.filter((t: any) => !existingTraitNames.has(t.name)),
+            ...tmpl.traits.filter((t: Record<string, unknown>) => !existingTraitNames.has(t.name as string)),
             ...(obj.traits || []),
           ];
         }
         // Merge template properties (object's own properties take precedence)
         if (tmpl.properties && Array.isArray(tmpl.properties)) {
-          const existingKeys = new Set((obj.properties || []).map((p: any) => p.key));
+          const existingKeys = new Set((obj.properties as Array<Record<string, unknown>> || []).map((p: Record<string, unknown>) => p.key));
           const mergedProps = tmpl.properties
-            .filter((p: any) => !existingKeys.has(p.key))
-            .map((p: any) => ({ type: 'ObjectProperty', key: p.key, value: p.value }));
+            .filter((p: Record<string, unknown>) => !existingKeys.has(p.key as string))
+            .map((p: Record<string, unknown>) => ({ type: 'ObjectProperty', key: p.key, value: p.value }));
           obj.properties = [...mergedProps, ...(obj.properties || [])];
         }
       }
@@ -2563,7 +2563,7 @@ export class R3FCompiler {
 
     // Expand spread expressions in properties (for HoloComposition format)
     if (obj.properties && Array.isArray(obj.properties)) {
-      const expandedProperties: any[] = [];
+      const expandedProperties: unknown[] = [];
       for (const prop of obj.properties) {
         // Handle spread properties: { type: 'spread', target: 'TemplateName' }
         if (prop && prop.type === 'spread') {
@@ -2922,7 +2922,7 @@ export class R3FCompiler {
     // Uses TraitCompositor for layer-ordered merge with suppression,
     // requirement, additive, and multi-trait merge rules.
     if (obj.traits && Array.isArray(obj.traits)) {
-      const traitNames = obj.traits.map((t: any) => t.name as string);
+      const traitNames = (obj.traits as Array<Record<string, unknown>>).map((t: Record<string, unknown>) => t.name as string);
       const compositor = new TraitCompositor();
       const composedMaterial = compositor.compose(traitNames);
       if (Object.keys(composedMaterial).length > 0) {
@@ -2990,8 +2990,8 @@ export class R3FCompiler {
    * to a group node annotated with its rich metadata (state, actions,
    * hooks) so the runtime/renderer can wire up behavior.
    */
-  private compileSystemNode(node: any, templateMap?: Map<string, any>): R3FNode {
-    const props: Record<string, any> = {};
+  private compileSystemNode(node: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
+    const props: Record<string, unknown> = {};
 
     // Preserve system metadata for runtime
     if (node.state) {
@@ -3049,7 +3049,7 @@ export class R3FCompiler {
    * and render/UI blocks. They compile to a group node annotated with
    * component metadata for the runtime.
    */
-  private compileComponentNode(node: any, templateMap?: Map<string, any>): R3FNode {
+  private compileComponentNode(node: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
     const props: Record<string, any> = {};
 
     // Preserve component metadata for runtime
@@ -3109,7 +3109,7 @@ export class R3FCompiler {
    * Used by compileSystemNode, compileComponentNode, and compileComposition
    * when processing the parser's children array.
    */
-  private compileChildNode(child: any, templateMap?: Map<string, any>): R3FNode {
+  private compileChildNode(child: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
     switch (child.type) {
       case 'system':
         return this.compileSystemNode(child, templateMap);
@@ -3137,7 +3137,7 @@ export class R3FCompiler {
    * In the R3F tree, they compile to an empty group (they're not
    * rendered directly — objects "using" them inherit their properties).
    */
-  private compileTemplateNode(node: any, _templateMap?: Map<string, any>): R3FNode {
+  private compileTemplateNode(node: Record<string, unknown>, _templateMap?: Map<string, Record<string, unknown>>): R3FNode {
     const props: Record<string, any> = {};
 
     // Preserve template metadata
@@ -3155,7 +3155,7 @@ export class R3FCompiler {
     return this.createNode('Template', props, node.name);
   }
 
-  private compileSpatialGroup(group: any, templateMap?: Map<string, any>): R3FNode {
+  private compileSpatialGroup(group: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
     const props: Record<string, any> = {};
     if (group.properties) {
       for (const prop of group.properties) {
@@ -3206,7 +3206,7 @@ export class R3FCompiler {
     return timelineNode;
   }
 
-  private compileAudioBlock(audio: any): R3FNode {
+  private compileAudioBlock(audio: Record<string, unknown>): R3FNode {
     const props: Record<string, any> = {};
     if (audio.properties) {
       for (const prop of audio.properties) {
@@ -3222,7 +3222,7 @@ export class R3FCompiler {
     return this.createNode('Audio', props, audio.name);
   }
 
-  private compileZoneBlock(zone: any): R3FNode {
+  private compileZoneBlock(zone: Record<string, unknown>): R3FNode {
     const props: Record<string, any> = {};
     if (zone.properties) {
       for (const prop of zone.properties) {
@@ -3231,7 +3231,7 @@ export class R3FCompiler {
     }
     // Attach handlers as props
     if (zone.handlers && zone.handlers.length > 0) {
-      props.handlers = zone.handlers.map((h: any) => ({
+      props.handlers = (zone.handlers as Array<Record<string, unknown>>).map((h: Record<string, unknown>) => ({
         event: h.event,
         parameters: h.parameters,
         body: h.body,
@@ -3240,7 +3240,7 @@ export class R3FCompiler {
     return this.createNode('Zone', props, zone.name);
   }
 
-  private compileUIBlock(ui: any): R3FNode {
+  private compileUIBlock(ui: Record<string, unknown>): R3FNode {
     const children: R3FNode[] = [];
     if (ui.elements) {
       for (const el of ui.elements) {
@@ -3262,7 +3262,7 @@ export class R3FCompiler {
     return uiNode;
   }
 
-  private compileTransitionBlock(transition: any): R3FNode {
+  private compileTransitionBlock(transition: Record<string, unknown>): R3FNode {
     const props: Record<string, any> = {};
     if (transition.properties) {
       for (const prop of transition.properties) {
@@ -3272,7 +3272,7 @@ export class R3FCompiler {
     return this.createNode('Transition', props, transition.name);
   }
 
-  private compileConditionalBlock(cond: any, templateMap?: Map<string, any>): R3FNode {
+  private compileConditionalBlock(cond: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
     const children: R3FNode[] = [];
     if (cond.objects) {
       for (const obj of cond.objects) children.push(this.compileObjectDecl(obj, templateMap));
@@ -3299,7 +3299,7 @@ export class R3FCompiler {
     return conditionalNode;
   }
 
-  private compileForEachBlock(iter: any, templateMap?: Map<string, any>): R3FNode {
+  private compileForEachBlock(iter: Record<string, unknown>, templateMap?: Map<string, Record<string, unknown>>): R3FNode {
     const templateChildren: R3FNode[] = [];
     if (iter.objects) {
       for (const obj of iter.objects)
@@ -3318,7 +3318,7 @@ export class R3FCompiler {
   /**
    * Resolve a property value, converting bind expressions into runtime-reactive markers.
    */
-  private resolveValue(value: any): any {
+  private resolveValue(value: unknown): unknown {
     if (value && typeof value === 'object' && value.__bind) {
       return { __bind: true, source: value.source, transform: value.transform };
     }
@@ -3348,7 +3348,7 @@ export class R3FCompiler {
   }
 
   private hasPostProcessing(node: R3FNode): boolean {
-    if (node.traits?.has('bloom' as any) || node.traits?.has('postprocessing' as any)) return true;
+    if (node.traits?.has('bloom' as VRTraitName) || node.traits?.has('postprocessing' as VRTraitName)) return true;
     if (node.props.bloom) return true;
     return node.children?.some((c) => this.hasPostProcessing(c)) || false;
   }
@@ -3356,7 +3356,7 @@ export class R3FCompiler {
   private extractPostProcessingNodes(node: R3FNode): R3FNode[] {
     const effects: R3FNode[] = [];
 
-    const ppTrait = node.traits?.get('postprocessing' as any);
+    const ppTrait = node.traits?.get('postprocessing' as VRTraitName);
     if (ppTrait) {
       if (ppTrait.bloom) effects.push(this.createNode('Bloom', ppTrait.bloom));
       if (ppTrait.ssao) effects.push(this.createNode('SSAO', ppTrait.ssao));
@@ -3486,35 +3486,35 @@ export class R3FCompiler {
             props.grabbable = d.config || true;
             if (!props.rigidBody) props.rigidBody = { type: 'dynamic' };
             if (!props.collider) props.collider = { type: 'auto' };
-          } else if ((d.name as any) === 'animated') {
+          } else if ((d.name as string) === 'animated') {
             props.animated = d.config || true;
-          } else if ((d.name as any) === 'spatial_audio' || (d.name as any) === 'voice') {
+          } else if ((d.name as string) === 'spatial_audio' || (d.name as string) === 'voice') {
             props.spatial = true;
           } else if (d.name === 'networked') {
             props.networked = d.config || true;
-          } else if (d.name === ('moldable' as any)) {
+          } else if (d.name === ('moldable' as VRTraitName)) {
             props.moldable = d.config || true;
-          } else if (d.name === ('stretchable' as any)) {
+          } else if (d.name === ('stretchable' as VRTraitName)) {
             props.stretchable = d.config || true;
-          } else if (d.name === ('ai_driven' as any)) {
+          } else if (d.name === ('ai_driven' as VRTraitName)) {
             props.ai_driven = d.config || true;
-          } else if (d.name === ('dialogue' as any)) {
+          } else if (d.name === ('dialogue' as VRTraitName)) {
             props.dialogue = d.config || true;
-          } else if (d.name === ('gesture' as any)) {
+          } else if (d.name === ('gesture' as VRTraitName)) {
             props.gesture = d.config || true;
-          } else if (d.name === ('haptic' as any)) {
+          } else if (d.name === ('haptic' as VRTraitName)) {
             props.haptic = d.config || true;
-          } else if (d.name === ('avatar_embodiment' as any)) {
+          } else if (d.name === ('avatar_embodiment' as VRTraitName)) {
             props.avatarEmbodiment = d.config || true;
-          } else if (d.name === ('lip_sync' as any)) {
+          } else if (d.name === ('lip_sync' as VRTraitName)) {
             props.lipSync = d.config || true;
-          } else if (d.name === ('emotion_directive' as any)) {
+          } else if (d.name === ('emotion_directive' as VRTraitName)) {
             props.emotionDirective = d.config || true;
-          } else if (d.name === ('stt' as any)) {
+          } else if (d.name === ('stt' as VRTraitName)) {
             props.stt = d.config || true;
-          } else if (d.name === ('tts' as any)) {
+          } else if (d.name === ('tts' as VRTraitName)) {
             props.tts = d.config || true;
-          } else if (d.name === ('generate' as any)) {
+          } else if (d.name === ('generate' as VRTraitName)) {
             props.generate = d.config;
           } else if (d.name === 'skeleton') {
             props.skeleton = d.config || true;
@@ -3536,7 +3536,7 @@ export class R3FCompiler {
     return props;
   }
 
-  private applyGraphicsConfig(r3fNode: R3FNode, graphics: any): void {
+  private applyGraphicsConfig(r3fNode: R3FNode, graphics: Record<string, unknown>): void {
     if (graphics.material) {
       const m = graphics.material;
       const materialProps: Record<string, any> = {};
@@ -3576,7 +3576,7 @@ export class R3FCompiler {
     }
   }
 
-  private mapColor(c: any): string {
+  private mapColor(c: string | number | Record<string, number>): string {
     if (typeof c === 'string') return c;
     if (typeof c === 'number') return `#${c.toString(16).padStart(6, '0')}`;
     if (c.r !== undefined) {
@@ -3588,7 +3588,7 @@ export class R3FCompiler {
     return '#ffffff';
   }
 
-  private getGeometryArgs(type: string, hologram: any): any[] {
+  private getGeometryArgs(type: string, hologram: Record<string, unknown>): unknown[] {
     const size = hologram.size || 1;
     switch (type) {
       case 'sphere':

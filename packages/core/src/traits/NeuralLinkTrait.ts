@@ -46,44 +46,44 @@ export const neuralLinkHandler: TraitHandler<NeuralLinkConfig> = {
       last_inference_time: 0,
       last_response: null,
     };
-    (node as any).__neuralLinkState = state;
+    node.__neuralLinkState = state;
     context.emit('neural_link_ready', { nodeId: (node as any).id, model: config.model });
   },
 
   onDetach(node) {
-    const state = (node as any).__neuralLinkState;
+    const state = node.__neuralLinkState;
     if (state) {
       state.neural_status = 'disconnected';
     }
-    delete (node as any).__neuralLinkState;
+    delete node.__neuralLinkState;
   },
 
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as any).__neuralLinkState;
+    const state = node.__neuralLinkState;
     if (!state) return;
     // Background heartbeat or thinking animation pulses could be driven here
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__neuralLinkState;
+    const state = node.__neuralLinkState;
     if (!state) return;
 
-    if ((event as any).type === 'neural_link_execute') {
+    if ((event as Record<string, unknown>).type === 'neural_link_execute') {
       state.neural_status = 'inferring';
       context.emit('on_neural_inference_start', {
         nodeId: (node as any).id,
         model: config.model,
-        prompt: (event as any).data?.prompt,
+        prompt: (event as Record<string, unknown>).data?.prompt,
       });
     }
 
-    if ((event as any).type === 'neural_link_response') {
+    if ((event as Record<string, unknown>).type === 'neural_link_response') {
       state.neural_status = 'idle';
-      state.last_response = (event as any).data?.text;
-      state.last_inference_time = (event as any).data?.generationTime ?? 0;
+      state.last_response = (event as Record<string, unknown>).data?.text;
+      state.last_inference_time = (event as Record<string, unknown>).data?.generationTime ?? 0;
       context.emit('on_neural_response', {
         nodeId: (node as any).id,
-        text: (event as any).data?.text,
+        text: (event as Record<string, unknown>).data?.text,
       });
     }
   },

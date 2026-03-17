@@ -94,7 +94,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
       entry_count: 0,
       last_search_time: 0,
     };
-    (node as any).__vectorDBState = state;
+    node.__vectorDBState = state;
 
     context.emit?.('vector_db_init', {
       node,
@@ -105,7 +105,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__vectorDBState as VectorDBState;
+    const state = node.__vectorDBState as VectorDBState;
 
     // Optionally persist index
     context.emit?.('vector_db_persist', {
@@ -114,7 +114,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
       entryCount: state?.entry_count,
     });
 
-    delete (node as any).__vectorDBState;
+    delete node.__vectorDBState;
   },
 
   onUpdate(node, config, context, delta) {
@@ -122,7 +122,7 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__vectorDBState as VectorDBState;
+    const state = node.__vectorDBState as VectorDBState;
     if (!state) return;
 
     if (event.type === 'vector_db_insert') {

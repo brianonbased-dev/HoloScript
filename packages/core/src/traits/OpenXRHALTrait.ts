@@ -364,21 +364,21 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
       lastError: null,
       errorCount: 0,
     };
-    (node as any).__openxrHALState = state;
+    node.__openxrHALState = state;
 
     initializeOpenXR(node, state, config, context);
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__openxrHALState as OpenXRHALState;
+    const state = node.__openxrHALState as OpenXRHALState;
     if (state?.session) {
       context.emit?.('openxr_session_end', { node });
     }
-    delete (node as any).__openxrHALState;
+    delete node.__openxrHALState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__openxrHALState as OpenXRHALState;
+    const state = node.__openxrHALState as OpenXRHALState;
     if (!state || !state.isInitialized) return;
 
     // Phase 4: Skip updates if session is interrupted
@@ -420,7 +420,7 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__openxrHALState as OpenXRHALState;
+    const state = node.__openxrHALState as OpenXRHALState;
     if (!state) return;
 
     if (event.type === 'xr_session_start') {

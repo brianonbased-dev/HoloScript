@@ -69,7 +69,7 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
       history: [],
       alertActive: false,
     };
-    (node as any).__sensorState = state;
+    node.__sensorState = state;
 
     if (config.endpoint) {
       connectSensor(node, state, config, context);
@@ -77,15 +77,15 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__sensorState as SensorState;
+    const state = node.__sensorState as SensorState;
     if (state?.connectionHandle) {
       context.emit?.('sensor_disconnect', { node });
     }
-    delete (node as any).__sensorState;
+    delete node.__sensorState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__sensorState as SensorState;
+    const state = node.__sensorState as SensorState;
     if (!state || !state.isConnected) return;
 
     // Poll for REST protocol
@@ -103,7 +103,7 @@ export const sensorHandler: TraitHandler<SensorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__sensorState as SensorState;
+    const state = node.__sensorState as SensorState;
     if (!state) return;
 
     if (event.type === 'sensor_connected') {

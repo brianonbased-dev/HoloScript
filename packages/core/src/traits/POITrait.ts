@@ -68,7 +68,7 @@ export const poiHandler: TraitHandler<POIConfig> = {
       lastTriggerTime: 0,
       userInTriggerZone: false,
     };
-    (node as any).__poiState = state;
+    node.__poiState = state;
 
     // Register POI with navigation system
     if (config.navigation_target) {
@@ -94,11 +94,11 @@ export const poiHandler: TraitHandler<POIConfig> = {
     if (config.navigation_target) {
       context.emit?.('poi_unregister', { node });
     }
-    delete (node as any).__poiState;
+    delete node.__poiState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__poiState as POIState;
+    const state = node.__poiState as POIState;
     if (!state) return;
 
     // Calculate distance to user
@@ -165,7 +165,7 @@ export const poiHandler: TraitHandler<POIConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__poiState as POIState;
+    const state = node.__poiState as POIState;
     if (!state) return;
 
     if (event.type === 'poi_navigate_to') {

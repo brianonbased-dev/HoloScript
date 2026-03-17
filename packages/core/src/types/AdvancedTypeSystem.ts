@@ -97,7 +97,7 @@ export class TypeInferenceEngine {
   /**
    * Infer type from value
    */
-  inferType(value: any): HoloScriptType {
+  inferType(value: unknown): HoloScriptType {
     if (typeof value === 'number') {
       return { kind: 'primitive', name: 'number' };
     }
@@ -277,7 +277,7 @@ export class AdvancedTypeChecker {
   /**
    * Infer type from value
    */
-  public inferType(value: any): HoloScriptType {
+  public inferType(value: unknown): HoloScriptType {
     return this.inference.inferType(value);
   }
 
@@ -380,14 +380,14 @@ export class AdvancedTypeChecker {
 
 export interface ASTProgram {
   type: 'Program';
-  body: any[];
+  body: unknown[];
   version: string | number;
-  root: any;
-  imports: Array<{ path: string; alias: string }>;
+  root: unknown;
+  imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }>;
   hasState: boolean;
   hasVRTraits: boolean;
   hasControlFlow: boolean;
-  migrations?: any[];
+  migrations?: unknown[];
 }
 
 export type HSPlusAST = ASTProgram;
@@ -403,10 +403,24 @@ export type HSPlusDirective =
   | HSPlusIfDirective
   | HSPlusImportDirective
   | HSPlusVersionDirective
-  | HSPlusMigrateDirective;
+  | HSPlusMigrateDirective
+  | HSPlusBindingsDirective
+  | HSPlusExportDirective
+  | HSPlusConfigDirective
+  | HSPlusNamedConfigDirective
+  | HSPlusAnnotateDirective
+  | HSPlusSemanticRefDirective
+  | HSPlusZonesDirective
+  | HSPlusSpawnPointsDirective
+  | HSPlusExternalApiDirective
+  | HSPlusGenerateDirective
+  | HSPlusNpcDirective
+  | HSPlusDialogDirective
+  | HSPlusHololandEventDirective
+  | HSPlusAssetDirective;
 
 export interface HSPlusBaseDirective {
-  type: 'directive' | 'fragment' | 'external_api' | 'generate';
+  type: 'directive' | 'fragment';
   name: string;
   args: string[];
 }
@@ -414,8 +428,8 @@ export interface HSPlusBaseDirective {
 export interface HSPlusTraitDirective {
   type: 'trait';
   name: string;
-  args?: any[];
-  config?: any;
+  args?: unknown[];
+  config?: Record<string, unknown>;
 }
 
 export interface HSPlusLifecycleDirective {
@@ -428,42 +442,45 @@ export interface HSPlusLifecycleDirective {
 
 export interface HSPlusStateDirective {
   type: 'state';
-  name: string;
-  body?: Record<string, any>;
-  initial?: any;
+  name?: string;
+  body?: Record<string, unknown>;
+  initial?: unknown;
 }
 
 export interface HSPlusForDirective {
   type: 'for';
   variable: string;
   range?: [number, number];
-  iterable?: any;
-  body: any[];
+  iterable?: string;
+  body: unknown[];
 }
 
 export interface HSPlusForEachDirective {
   type: 'forEach';
   variable: string;
   collection: string;
-  body: any[];
+  body: unknown[];
 }
 
 export interface HSPlusWhileDirective {
   type: 'while';
   condition: string;
-  body: any[];
+  body: unknown[];
 }
 
 export interface HSPlusIfDirective {
   type: 'if';
   condition: string;
-  body: any[];
+  body: unknown[];
+  else?: unknown[];
 }
 
 export interface HSPlusImportDirective {
   type: 'import';
-  source: string;
-  specifiers: string[];
+  path: string;
+  alias: string;
+  namedImports?: string[];
+  isWildcard?: boolean;
 }
 
 export interface HSPlusVersionDirective {
@@ -477,17 +494,102 @@ export interface HSPlusMigrateDirective {
   body: string;
 }
 
+export interface HSPlusBindingsDirective {
+  type: 'bindings';
+  bindings: unknown[];
+}
+
+export interface HSPlusExportDirective {
+  type: 'export';
+  exportKind: string;
+  exportName: string;
+}
+
+/** Config-spread directives: { type: 'skybox', ...config } */
+export interface HSPlusConfigDirective {
+  type: 'world_metadata' | 'world_config' | 'skybox' | 'ambient_light' | 'fog' | 'artwork_metadata' | 'npc_behavior' | 'interactive' | 'lod' | 'gravity' | 'time_of_day' | 'audio_settings' | 'render_settings' | 'physics_config' | 'network_config' | 'accessibility';
+  [key: string]: unknown;
+}
+
+/** Named config-spread directives: { type: 'manifest', name, ...config } */
+export interface HSPlusNamedConfigDirective {
+  type: 'manifest' | 'semantic' | 'directional_light';
+  name: string;
+  [key: string]: unknown;
+}
+
+export interface HSPlusAnnotateDirective {
+  type: 'annotate';
+  annotationType: string;
+  config: Record<string, unknown>;
+}
+
+export interface HSPlusSemanticRefDirective {
+  type: 'semantic_ref';
+  ref: string;
+}
+
+export interface HSPlusZonesDirective {
+  type: 'zones';
+  zones: unknown[];
+}
+
+export interface HSPlusSpawnPointsDirective {
+  type: 'spawn_points';
+  spawns: unknown[];
+}
+
+export interface HSPlusExternalApiDirective {
+  type: 'external_api';
+  url: string;
+  method: string;
+  interval?: unknown;
+  body?: unknown[];
+}
+
+export interface HSPlusGenerateDirective {
+  type: 'generate';
+  prompt: string;
+  context: string;
+  target: string;
+}
+
+export interface HSPlusNpcDirective {
+  type: 'npc';
+  name: string;
+  props: Record<string, unknown>;
+}
+
+export interface HSPlusDialogDirective {
+  type: 'dialog';
+  name: string;
+  props: Record<string, unknown>;
+  options: unknown[];
+}
+
+export interface HSPlusHololandEventDirective {
+  type: 'hololand_event';
+  event: string;
+  params: unknown[];
+}
+
+export interface HSPlusAssetDirective {
+  type: 'asset';
+  id?: string;
+  [key: string]: unknown;
+}
+
 export interface HSPlusCompileResult {
   success: boolean;
   code?: string;
-  sourceMap?: any;
+  sourceMap?: unknown;
   errors: Array<{ message: string; line: number; column: number }>;
-  ast?: any;
-  compiledExpressions?: any;
+  ast?: unknown;
+  compiledExpressions?: unknown;
   requiredCompanions?: string[];
-  features?: any;
-  warnings?: any[];
-  [key: string]: any;
+  features?: unknown;
+  warnings?: unknown[];
+  [key: string]: unknown;
 }
 
 export interface HSPlusParserOptions {
@@ -502,8 +604,8 @@ export interface HSPlusParserOptions {
 export interface StateDeclaration {
   name: string;
   type: HoloScriptType;
-  initialValue?: any;
-  [key: string]: any;
+  initialValue?: unknown;
+  [key: string]: unknown;
 }
 
 export interface LifecycleHook {

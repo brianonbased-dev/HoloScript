@@ -197,7 +197,7 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
       sessionStartTime: Date.now(),
       permissions: {},
     };
-    (node as any).__hitlState = state;
+    node.__hitlState = state;
 
     context.emit?.('hitl_initialized', {
       node,
@@ -210,7 +210,7 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__hitlState as HITLState;
+    const state = node.__hitlState as HITLState;
     if (state && config.enable_audit_log) {
       // Persist audit log before detaching
       context.emit?.('hitl_audit_persist', {
@@ -219,11 +219,11 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
         rollbackCheckpoints: state.rollbackCheckpoints,
       });
     }
-    delete (node as any).__hitlState;
+    delete node.__hitlState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__hitlState as HITLState;
+    const state = node.__hitlState as HITLState;
     if (!state) return;
 
     // Check for expired approvals
@@ -266,7 +266,7 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__hitlState as HITLState;
+    const state = node.__hitlState as HITLState;
     if (!state) return;
 
     // Handle action request from agent

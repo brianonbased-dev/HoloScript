@@ -50,7 +50,7 @@ describe('UITraits', () => {
   describe('Registration', () => {
     it('should register and retrieve trait handlers', () => {
       const handler: UITraitHandler<any> = {
-        name: 'ui_custom' as any,
+        name: 'ui_custom',
         defaultConfig: {},
         validate: () => ({ valid: true, errors: [] }),
       };

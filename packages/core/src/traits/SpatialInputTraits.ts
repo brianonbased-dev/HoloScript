@@ -212,7 +212,7 @@ function smoothJointPose(
 }
 
 export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig> = {
-  name: 'spatial_input_hand_tracking' as any,
+  name: 'spatial_input_hand_tracking',
 
   defaultConfig: {
     update_rate_hz: 90,
@@ -235,7 +235,7 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
       prevLeftGesture: null,
       prevRightGesture: null,
     };
-    (node as any).__spatialHandTrackingState = state;
+    node.__spatialHandTrackingState = state;
 
     context.emit?.('spatial_hand_tracking_start', {
       node,
@@ -246,11 +246,11 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
 
   onDetach(node, _config, context) {
     context.emit?.('spatial_hand_tracking_stop', { node });
-    delete (node as any).__spatialHandTrackingState;
+    delete node.__spatialHandTrackingState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__spatialHandTrackingState as SpatialHandTrackingState;
+    const state = node.__spatialHandTrackingState as SpatialHandTrackingState;
     if (!state) return;
 
     // Rate limiting to target Hz
@@ -318,15 +318,15 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__spatialHandTrackingState as SpatialHandTrackingState;
+    const state = node.__spatialHandTrackingState as SpatialHandTrackingState;
     if (!state) return;
 
     if (event.type === 'spatial_hand_data') {
-      const hand = (event as any).hand as 'left' | 'right';
-      const jointData = (event as any).joints as Record<string, SpatialHandJointPose> | undefined;
-      const pinch = (event as any).pinchStrength as number | undefined;
-      const grip = (event as any).gripStrength as number | undefined;
-      const tracked = (event as any).tracked as boolean;
+      const hand = (event as Record<string, unknown>).hand as 'left' | 'right';
+      const jointData = (event as Record<string, unknown>).joints as Record<string, SpatialHandJointPose> | undefined;
+      const pinch = (event as Record<string, unknown>).pinchStrength as number | undefined;
+      const grip = (event as Record<string, unknown>).gripStrength as number | undefined;
+      const tracked = (event as Record<string, unknown>).tracked as boolean;
 
       const handState = hand === 'left' ? state.left : state.right;
       const wasTracked = handState.tracked;
@@ -419,7 +419,7 @@ export interface GazeTransientPointerConfig {
 }
 
 export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfig> = {
-  name: 'spatial_input_gaze_transient_pointer' as any,
+  name: 'spatial_input_gaze_transient_pointer',
 
   defaultConfig: {
     dwell_enabled: true,
@@ -442,7 +442,7 @@ export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfi
       lastCommitTime: 0,
       _dwellAccum: 0,
     };
-    (node as any).__gazeTransientPointerState = state;
+    node.__gazeTransientPointerState = state;
 
     context.emit?.('gaze_transient_pointer_start', {
       node,
@@ -453,11 +453,11 @@ export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfi
 
   onDetach(node, _config, context) {
     context.emit?.('gaze_transient_pointer_stop', { node });
-    delete (node as any).__gazeTransientPointerState;
+    delete node.__gazeTransientPointerState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__gazeTransientPointerState as GazeTransientPointerState;
+    const state = node.__gazeTransientPointerState as GazeTransientPointerState;
     if (!state || !state.active) return;
 
     // Dwell accumulation — note: the runtime system notifies us of dwell
@@ -501,7 +501,7 @@ export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfi
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__gazeTransientPointerState as GazeTransientPointerState;
+    const state = node.__gazeTransientPointerState as GazeTransientPointerState;
     if (!state) return;
 
     if (event.type === 'gaze_transient_activate') {
@@ -516,9 +516,9 @@ export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfi
       state.dwellProgress = 0;
     } else if (event.type === 'gaze_transient_pinch_commit') {
       // Runtime reveals the intersection ONLY at the pinch moment
-      const point = (event as any).point as Vec3 | undefined;
-      const normal = (event as any).normal as Vec3 | undefined;
-      const targetId = (event as any).targetId as string | undefined;
+      const point = (event as Record<string, unknown>).point as Vec3 | undefined;
+      const normal = (event as Record<string, unknown>).normal as Vec3 | undefined;
+      const targetId = (event as Record<string, unknown>).targetId as string | undefined;
 
       state.commitPoint = point || null;
       state.commitNormal = normal || null;
@@ -550,7 +550,7 @@ export const gazeTransientPointerHandler: TraitHandler<GazeTransientPointerConfi
       context.emit?.('gaze_transient_release', { node });
     } else if (event.type === 'gaze_dwell_tick') {
       // Runtime ticks dwell time without revealing gaze direction
-      const deltaMs = (event as any).deltaMs as number;
+      const deltaMs = (event as Record<string, unknown>).deltaMs as number;
       if (deltaMs > 0) {
         state._dwellAccum += deltaMs;
       }
@@ -620,7 +620,7 @@ export interface SpatialAnchorSharedConfig {
 }
 
 export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig> = {
-  name: 'spatial_input_anchor_shared' as any,
+  name: 'spatial_input_anchor_shared',
 
   defaultConfig: {
     auto_share: true,
@@ -644,7 +644,7 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
       createdAt: Date.now(),
       ttl: config.ttl_seconds * 1000,
     };
-    (node as any).__spatialAnchorSharedState = state;
+    node.__spatialAnchorSharedState = state;
 
     if (config.auto_share) {
       state.resolveState = 'resolving';
@@ -659,7 +659,7 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
+    const state = node.__spatialAnchorSharedState as SpatialAnchorSharedState;
     if (state?.cloudAnchorId) {
       context.emit?.('shared_anchor_release', {
         node,
@@ -667,11 +667,11 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
         persistent: config.persistent,
       });
     }
-    delete (node as any).__spatialAnchorSharedState;
+    delete node.__spatialAnchorSharedState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
+    const state = node.__spatialAnchorSharedState as SpatialAnchorSharedState;
     if (!state) return;
 
     // Apply local pose to node when resolved/joined
@@ -705,12 +705,12 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
+    const state = node.__spatialAnchorSharedState as SpatialAnchorSharedState;
     if (!state) return;
 
     if (event.type === 'shared_anchor_resolved') {
-      const pose = (event as any).pose as SpatialPose;
-      const cloudId = (event as any).cloudAnchorId as string;
+      const pose = (event as Record<string, unknown>).pose as SpatialPose;
+      const cloudId = (event as Record<string, unknown>).cloudAnchorId as string;
 
       state.localPose = pose;
       state.cloudAnchorId = cloudId;
@@ -740,7 +740,7 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
         roomId: config.room_id,
       });
     } else if (event.type === 'shared_anchor_join') {
-      const cloudId = (event as any).cloudAnchorId as string;
+      const cloudId = (event as Record<string, unknown>).cloudAnchorId as string;
       state.cloudAnchorId = cloudId;
       state.resolveState = 'joining';
       context.emit?.('shared_anchor_resolve', {
@@ -748,7 +748,7 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
         cloudAnchorId: cloudId,
       });
     } else if (event.type === 'shared_anchor_joined') {
-      const pose = (event as any).pose as SpatialPose;
+      const pose = (event as Record<string, unknown>).pose as SpatialPose;
       state.localPose = pose;
       state.resolveState = 'joined';
       context.emit?.('shared_anchor_synced', {
@@ -757,8 +757,8 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
         pose,
       });
     } else if (event.type === 'shared_anchor_peer_joined') {
-      const peerId = (event as any).peerId as string;
-      const displayName = (event as any).displayName as string | undefined;
+      const peerId = (event as Record<string, unknown>).peerId as string;
+      const displayName = (event as Record<string, unknown>).displayName as string | undefined;
       state.peers.set(peerId, {
         peerId,
         displayName,
@@ -769,14 +769,14 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
         peers: Array.from(state.peers.values()),
       });
     } else if (event.type === 'shared_anchor_peer_left') {
-      const peerId = (event as any).peerId as string;
+      const peerId = (event as Record<string, unknown>).peerId as string;
       state.peers.delete(peerId);
       context.emit?.('shared_anchor_peer_update', {
         node,
         peers: Array.from(state.peers.values()),
       });
     } else if (event.type === 'shared_anchor_failed') {
-      const error = (event as any).error as string;
+      const error = (event as Record<string, unknown>).error as string;
       state.resolveAttempts++;
 
       if (state.resolveAttempts < config.max_retries) {
@@ -798,14 +798,14 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
         });
       }
     } else if (event.type === 'shared_anchor_pose_update') {
-      const pose = (event as any).pose as SpatialPose;
+      const pose = (event as Record<string, unknown>).pose as SpatialPose;
       if (pose.confidence >= config.quality_threshold) {
         state.localPose = pose;
       }
     } else if (event.type === 'shared_anchor_transform_sync' && config.sync_transforms) {
       // Receive transform from peer
-      const peerId = (event as any).peerId as string;
-      const transform = (event as any).transform as { position: Vec3; rotation: Quat };
+      const peerId = (event as Record<string, unknown>).peerId as string;
+      const transform = (event as Record<string, unknown>).transform as { position: Vec3; rotation: Quat };
       context.emit?.('shared_anchor_peer_transform', {
         node,
         peerId,
@@ -901,7 +901,7 @@ function applyDeadzone(value: number, deadzone: number): number {
 }
 
 export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputConfig> = {
-  name: 'spatial_input_controller' as any,
+  name: 'spatial_input_controller',
 
   defaultConfig: {
     deadzone: 0.15,
@@ -920,7 +920,7 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
       right: createEmptyControllerState('right'),
       changedButtons: [],
     };
-    (node as any).__spatialControllerInputState = state;
+    node.__spatialControllerInputState = state;
 
     context.emit?.('spatial_controller_start', {
       node,
@@ -930,11 +930,11 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
 
   onDetach(node, _config, context) {
     context.emit?.('spatial_controller_stop', { node });
-    delete (node as any).__spatialControllerInputState;
+    delete node.__spatialControllerInputState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__spatialControllerInputState as SpatialControllerInputState;
+    const state = node.__spatialControllerInputState as SpatialControllerInputState;
     if (!state) return;
 
     // Process button changes accumulated this frame
@@ -990,24 +990,24 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__spatialControllerInputState as SpatialControllerInputState;
+    const state = node.__spatialControllerInputState as SpatialControllerInputState;
     if (!state) return;
 
     if (event.type === 'spatial_controller_data') {
-      const hand = (event as any).hand as 'left' | 'right';
+      const hand = (event as Record<string, unknown>).hand as 'left' | 'right';
       const ctrl = state[hand];
       const wasConnected = ctrl.connected;
 
-      ctrl.connected = (event as any).connected ?? true;
-      ctrl.profiles = (event as any).profiles ?? ctrl.profiles;
+      ctrl.connected = (event as Record<string, unknown>).connected ?? true;
+      ctrl.profiles = (event as Record<string, unknown>).profiles ?? ctrl.profiles;
 
       // Update pose
-      if ((event as any).pose) {
-        ctrl.pose = (event as any).pose as SpatialPose;
+      if ((event as Record<string, unknown>).pose) {
+        ctrl.pose = (event as Record<string, unknown>).pose as SpatialPose;
       }
 
       // Update buttons
-      const buttons = (event as any).buttons as Record<string, SpatialButtonState> | undefined;
+      const buttons = (event as Record<string, unknown>).buttons as Record<string, SpatialButtonState> | undefined;
       if (buttons) {
         for (const [btnName, btnState] of Object.entries(buttons)) {
           const button = btnName as SpatialControllerButton;
@@ -1029,27 +1029,27 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
       }
 
       // Update axes with deadzone
-      if ((event as any).thumbstick) {
-        const ts = (event as any).thumbstick as { x: number; y: number };
+      if ((event as Record<string, unknown>).thumbstick) {
+        const ts = (event as Record<string, unknown>).thumbstick as { x: number; y: number };
         ctrl.thumbstick = {
           x: applyDeadzone(ts.x, config.deadzone),
           y: applyDeadzone(ts.y, config.deadzone),
         };
       }
 
-      if ((event as any).touchpad) {
-        const tp = (event as any).touchpad as { x: number; y: number };
+      if ((event as Record<string, unknown>).touchpad) {
+        const tp = (event as Record<string, unknown>).touchpad as { x: number; y: number };
         ctrl.touchpad = {
           x: applyDeadzone(tp.x, config.deadzone),
           y: applyDeadzone(tp.y, config.deadzone),
         };
       }
 
-      if ((event as any).triggerValue !== undefined) {
-        ctrl.triggerValue = (event as any).triggerValue;
+      if ((event as Record<string, unknown>).triggerValue !== undefined) {
+        ctrl.triggerValue = (event as Record<string, unknown>).triggerValue;
       }
-      if ((event as any).gripValue !== undefined) {
-        ctrl.gripValue = (event as any).gripValue;
+      if ((event as Record<string, unknown>).gripValue !== undefined) {
+        ctrl.gripValue = (event as Record<string, unknown>).gripValue;
       }
 
       // Connection events
@@ -1075,7 +1075,7 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
         });
       }
     } else if (event.type === 'spatial_controller_disconnect') {
-      const hand = (event as any).hand as 'left' | 'right';
+      const hand = (event as Record<string, unknown>).hand as 'left' | 'right';
       const ctrl = state[hand];
       ctrl.connected = false;
       ctrl.buttons.clear();

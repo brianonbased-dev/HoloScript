@@ -68,7 +68,7 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
       last_upscale: 0,
       cache: new Map(),
     };
-    (node as any).__aiUpscalingState = state;
+    node.__aiUpscalingState = state;
 
     context.emit?.('ai_upscaling_init', {
       node,
@@ -93,18 +93,18 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__aiUpscalingState as UpscalingState;
+    const state = node.__aiUpscalingState as UpscalingState;
 
     if (state?.is_processing) {
       context.emit?.('ai_upscaling_cancel', { node });
     }
 
     state?.cache.clear();
-    delete (node as any).__aiUpscalingState;
+    delete node.__aiUpscalingState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__aiUpscalingState as UpscalingState;
+    const state = node.__aiUpscalingState as UpscalingState;
     if (!state || config.input_source !== 'live' || state.is_processing) return;
 
     // Live mode: re-upscale every 2 seconds
@@ -126,7 +126,7 @@ export const aiUpscalingHandler: TraitHandler<AiUpscalingConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__aiUpscalingState as UpscalingState;
+    const state = node.__aiUpscalingState as UpscalingState;
     if (!state) return;
 
     if (event.type === 'ai_upscaling_result') {

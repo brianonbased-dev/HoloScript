@@ -165,7 +165,7 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
       totalRequests: 0,
       totalErrors: 0,
     };
-    (node as any).__partnerSDKState = state;
+    node.__partnerSDKState = state;
 
     context.emit?.('partner_sdk_initialized', {
       node,
@@ -174,7 +174,7 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__partnerSDKState as PartnerSDKState | undefined;
+    const state = node.__partnerSDKState as PartnerSDKState | undefined;
     if (state) {
       // Disconnect all partner sessions
       for (const [partnerId, session] of state.sessions) {
@@ -183,11 +183,11 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
       }
       state.sessions.clear();
     }
-    delete (node as any).__partnerSDKState;
+    delete node.__partnerSDKState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__partnerSDKState as PartnerSDKState | undefined;
+    const state = node.__partnerSDKState as PartnerSDKState | undefined;
     if (!state) return;
 
     const now = Date.now();
@@ -237,7 +237,7 @@ export const partnerSDKHandler: TraitHandler<PartnerSDKConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__partnerSDKState as PartnerSDKState | undefined;
+    const state = node.__partnerSDKState as PartnerSDKState | undefined;
     if (!state) return;
 
     // -------------------------------------------------------------------------

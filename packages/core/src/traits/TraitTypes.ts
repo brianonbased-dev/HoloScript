@@ -20,6 +20,40 @@ export interface TraitHandler<TConfig = unknown> {
   onEvent?: (node: HSPlusNode, config: TConfig, context: TraitContext, event: TraitEvent) => void;
 }
 
+export interface HostExecOptions {
+  cwd?: string;
+  env?: Record<string, string>;
+  timeoutMs?: number;
+}
+
+export interface HostExecResult {
+  code: number | null;
+  signal?: string | null;
+  stdout?: string;
+  stderr?: string;
+}
+
+export interface HostFileSystemCapabilities {
+  readFile: (path: string) => Promise<string> | string;
+  writeFile: (path: string, content: string) => Promise<void> | void;
+  deleteFile: (path: string) => Promise<void> | void;
+  exists?: (path: string) => Promise<boolean> | boolean;
+}
+
+export interface HostProcessCapabilities {
+  exec: (
+    command: string,
+    args?: string[],
+    options?: HostExecOptions
+  ) => Promise<HostExecResult> | HostExecResult;
+  kill?: (pid: number, signal?: string) => Promise<void> | void;
+}
+
+export interface HostCapabilities {
+  fileSystem?: HostFileSystemCapabilities;
+  process?: HostProcessCapabilities;
+}
+
 export interface TraitContext {
   vr: VRContext;
   physics: PhysicsContext;
@@ -43,6 +77,8 @@ export interface TraitContext {
   /** Optional action dispatcher for BehaviorTreeTrait — maps action names to external handlers.
    *  The blackboard parameter is the BT's shared state, allowing handlers to update conditions. */
   executeAction?: (owner: unknown, actionName: string, params: Record<string, unknown>, blackboard?: Record<string, unknown>) => boolean | 'running';
+  /** Optional host capability adapter to execute sensitive operations through policy-aware providers. */
+  hostCapabilities?: HostCapabilities;
 }
 
 export interface AccessibilityContext {
@@ -101,7 +137,7 @@ export interface RaycastHit {
 }
 
 export type TraitEvent =
-  | { type: string; [key: string]: any }
+  | { type: string; [key: string]: unknown }
   | { type: 'grab_start'; hand: VRHand }
   | { type: 'grab_end'; hand: VRHand; velocity: ThrowVelocity }
   | { type: 'hover_enter'; hand: VRHand }

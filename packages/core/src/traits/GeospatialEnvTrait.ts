@@ -82,7 +82,7 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
       lastUpdateTime: 0,
       vpsAvailable: false,
     };
-    (node as any).__geospatialEnvState = state;
+    node.__geospatialEnvState = state;
 
     if (config.auto_initialize) {
       state.state = 'initializing';
@@ -101,11 +101,11 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('geospatial_env_shutdown', { node });
-    delete (node as any).__geospatialEnvState;
+    delete node.__geospatialEnvState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__geospatialEnvState as GeospatialEnvState;
+    const state = node.__geospatialEnvState as GeospatialEnvState;
     if (!state) return;
 
     state.lastUpdateTime += delta;
@@ -126,7 +126,7 @@ export const geospatialEnvHandler: TraitHandler<GeospatialEnvConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__geospatialEnvState as GeospatialEnvState;
+    const state = node.__geospatialEnvState as GeospatialEnvState;
     if (!state) return;
 
     if (event.type === 'geospatial_initialized') {

@@ -93,7 +93,7 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
       isCalibrated: !config.calibration_required,
       lastInput: 0,
     };
-    (node as any).__spatialAccessoryState = state;
+    node.__spatialAccessoryState = state;
 
     if (config.device_id) {
       context.emit?.('accessory_connect', {
@@ -106,15 +106,15 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__spatialAccessoryState as SpatialAccessoryState;
+    const state = node.__spatialAccessoryState as SpatialAccessoryState;
     if (state?.isConnected) {
       context.emit?.('accessory_disconnect', { node });
     }
-    delete (node as any).__spatialAccessoryState;
+    delete node.__spatialAccessoryState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__spatialAccessoryState as SpatialAccessoryState;
+    const state = node.__spatialAccessoryState as SpatialAccessoryState;
     if (!state || !state.isConnected) return;
 
     context.emit?.('accessory_request_pose', {
@@ -124,7 +124,7 @@ export const spatialAccessoryHandler: TraitHandler<SpatialAccessoryConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__spatialAccessoryState as SpatialAccessoryState;
+    const state = node.__spatialAccessoryState as SpatialAccessoryState;
     if (!state) return;
 
     if (event.type === 'accessory_connected') {

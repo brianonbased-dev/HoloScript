@@ -117,7 +117,7 @@ export const memoryHandler: TraitHandler<MemoryConfig> = {
       decayTimer: 0,
       nextId: 1,
     };
-    (node as any).__memoryState = state;
+    node.__memoryState = state;
 
     // Try to load persisted memories
     if (config.persist_across_sessions) {
@@ -126,7 +126,7 @@ export const memoryHandler: TraitHandler<MemoryConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__memoryState as MemoryState;
+    const state = node.__memoryState as MemoryState;
 
     // Persist before detach
     if (config.persist_across_sessions && state) {
@@ -134,11 +134,11 @@ export const memoryHandler: TraitHandler<MemoryConfig> = {
       context.emit?.('memory_save', { node, memories: serialized });
     }
 
-    delete (node as any).__memoryState;
+    delete node.__memoryState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__memoryState as MemoryState;
+    const state = node.__memoryState as MemoryState;
     if (!state) return;
 
     state.decayTimer += delta;
@@ -181,7 +181,7 @@ export const memoryHandler: TraitHandler<MemoryConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__memoryState as MemoryState;
+    const state = node.__memoryState as MemoryState;
     if (!state) return;
 
     if (event.type === 'remember') {

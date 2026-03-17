@@ -370,17 +370,17 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
       isRunning: true,
       debug: { lastTick: 0, nodesVisited: 0 },
     };
-    (node as any).__behaviorTreeState = state;
+    node.__behaviorTreeState = state;
 
     context.emit?.('bt_started', { node });
   },
 
   onDetach(node) {
-    delete (node as any).__behaviorTreeState;
+    delete node.__behaviorTreeState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__behaviorTreeState as BTState;
+    const state = node.__behaviorTreeState as BTState;
     if (!state || !state.isRunning) return;
 
     // Tick at configured rate
@@ -415,7 +415,7 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__behaviorTreeState as BTState;
+    const state = node.__behaviorTreeState as BTState;
     if (!state) return;
 
     if (event.type === 'bt_set_blackboard') {

@@ -110,7 +110,7 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
       voiceActive: false,
       panningVector: { x: 0, y: 0, z: 0 },
     };
-    (node as any).__voiceProximityState = state;
+    node.__voiceProximityState = state;
 
     context.emit?.('voice_proximity_register', {
       node,
@@ -128,11 +128,11 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('voice_proximity_unregister', { node });
-    delete (node as any).__voiceProximityState;
+    delete node.__voiceProximityState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__voiceProximityState as VoiceProximityState;
+    const state = node.__voiceProximityState as VoiceProximityState;
     if (!state || state.isMuted) return;
 
     // Smooth attenuation transition
@@ -167,7 +167,7 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__voiceProximityState as VoiceProximityState;
+    const state = node.__voiceProximityState as VoiceProximityState;
     if (!state) return;
 
     if (event.type === 'voice_distance_update') {

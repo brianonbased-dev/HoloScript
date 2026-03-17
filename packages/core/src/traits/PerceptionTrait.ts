@@ -108,15 +108,15 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
       lastKnownPosition: null,
       scanTimer: 0,
     };
-    (node as any).__perceptionState = state;
+    node.__perceptionState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__perceptionState;
+    delete node.__perceptionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__perceptionState as PerceptionState;
+    const state = node.__perceptionState as PerceptionState;
     if (!state) return;
 
     const now = Date.now();
@@ -193,7 +193,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__perceptionState as PerceptionState;
+    const state = node.__perceptionState as PerceptionState;
     if (!state) return;
 
     const position = (node as any).position || { x: 0, y: 0, z: 0 };

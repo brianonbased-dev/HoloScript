@@ -207,7 +207,7 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
       collections: [],
       rewardsBalance: '0',
     };
-    (node as any).__zoraCoinsState = state;
+    node.__zoraCoinsState = state;
 
     if (config.creator_wallet) {
       connectToZora(node, state, config, context);
@@ -215,15 +215,15 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__zoraCoinsState as ZoraCoinsState;
+    const state = node.__zoraCoinsState as ZoraCoinsState;
     if (state?.isConnected) {
       context.emit?.('zora_disconnect', { node });
     }
-    delete (node as any).__zoraCoinsState;
+    delete node.__zoraCoinsState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__zoraCoinsState as ZoraCoinsState;
+    const state = node.__zoraCoinsState as ZoraCoinsState;
     if (!state || !state.isConnected || !state.wallet) return;
 
     // Create execution context for blockchain operations
@@ -241,7 +241,7 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__zoraCoinsState as ZoraCoinsState;
+    const state = node.__zoraCoinsState as ZoraCoinsState;
     if (!state) return;
 
     // Auto-mint on scene publish

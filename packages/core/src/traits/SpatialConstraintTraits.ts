@@ -144,7 +144,7 @@ function emitResolved(
  * ```
  */
 export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
-  name: 'spatial_adjacent' as any,
+  name: 'spatial_adjacent',
 
   defaultConfig: {
     target: '',
@@ -234,10 +234,10 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
 
   onEvent(node, config, context, event) {
     // Listen for target position updates
-    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
+    if (event.type === 'spatial_target_update' && (event as Record<string, unknown>).targetId === config.target) {
       const state = context.getState().spatialAdjacent as AdjacentState | undefined;
       if (state) {
-        state.targetPosition = (event as any).position;
+        state.targetPosition = (event as Record<string, unknown>).position;
         context.setState({ spatialAdjacent: state });
       }
     }
@@ -262,7 +262,7 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
  * ```
  */
 export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
-  name: 'spatial_contains' as any,
+  name: 'spatial_contains',
 
   defaultConfig: {
     target: '',
@@ -375,8 +375,8 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
     if (event.type === 'spatial_entity_registered') {
       const state = context.getState().spatialContains as ContainsState | undefined;
       if (state) {
-        const entityId = (event as any).entityId as string;
-        const entityType = (event as any).entityType as string;
+        const entityId = (event as Record<string, unknown>).entityId as string;
+        const entityType = (event as Record<string, unknown>).entityType as string;
         if (entityId === config.target || entityType === config.target) {
           if (!state.containedEntities.includes(entityId)) {
             state.containedEntities.push(entityId);
@@ -388,8 +388,8 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
 
     // Track contained entity position updates
     if (event.type === 'spatial_target_update') {
-      const targetId = (event as any).targetId as string;
-      const position = (event as any).position;
+      const targetId = (event as Record<string, unknown>).targetId as string;
+      const position = (event as Record<string, unknown>).position;
       if (position) {
         context.setState({ [`entity_pos_${targetId}`]: position });
       }
@@ -419,7 +419,7 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
  * ```
  */
 export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
-  name: 'spatial_reachable' as any,
+  name: 'spatial_reachable',
 
   defaultConfig: {
     target: '',
@@ -522,9 +522,9 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
 
   onEvent(node, config, context, event) {
     // Track target position for reachability
-    if (event.type === 'spatial_target_update' && (event as any).targetId === config.target) {
+    if (event.type === 'spatial_target_update' && (event as Record<string, unknown>).targetId === config.target) {
       context.setState({
-        [`reachable_target_${config.target}`]: (event as any).position,
+        [`reachable_target_${config.target}`]: (event as Record<string, unknown>).position,
       });
     }
 

@@ -66,7 +66,7 @@ export const occlusionHandler: TraitHandler<OcclusionConfig> = {
       occludingObjects: [],
       fadeProgress: 0,
     };
-    (node as any).__occlusionState = state;
+    node.__occlusionState = state;
 
     context.emit?.('occlusion_enable', {
       node,
@@ -81,11 +81,11 @@ export const occlusionHandler: TraitHandler<OcclusionConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('occlusion_disable', { node });
-    delete (node as any).__occlusionState;
+    delete node.__occlusionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__occlusionState as OcclusionState;
+    const state = node.__occlusionState as OcclusionState;
     if (!state) return;
 
     const targetFade = state.isOccluded ? 1 : 0;
@@ -106,7 +106,7 @@ export const occlusionHandler: TraitHandler<OcclusionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__occlusionState as OcclusionState;
+    const state = node.__occlusionState as OcclusionState;
     if (!state) return;
 
     if (event.type === 'occlusion_update') {

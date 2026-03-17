@@ -201,7 +201,7 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
       selectedRegion: persistedState?.selectedRegion ?? 'us-west',
       persistence,
     };
-    (node as any).__renderNetworkState = state;
+    node.__renderNetworkState = state;
 
     if (config.api_key) {
       connectToRenderNetwork(node, state, config, context);
@@ -209,18 +209,18 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__renderNetworkState as RenderNetworkState;
+    const state = node.__renderNetworkState as RenderNetworkState;
     if (state?.isConnected) {
       context.emit?.('render_network_disconnect', { node });
     }
     if (state?.persistence) {
       state.persistence.close();
     }
-    delete (node as any).__renderNetworkState;
+    delete node.__renderNetworkState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__renderNetworkState as RenderNetworkState;
+    const state = node.__renderNetworkState as RenderNetworkState;
     if (!state || !state.isConnected) return;
 
     // Poll active jobs for status updates
@@ -232,7 +232,7 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__renderNetworkState as RenderNetworkState;
+    const state = node.__renderNetworkState as RenderNetworkState;
     if (!state) return;
 
     // Submit render job

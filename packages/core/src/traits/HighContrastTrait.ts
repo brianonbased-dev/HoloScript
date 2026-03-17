@@ -75,7 +75,7 @@ export const highContrastHandler: TraitHandler<HighContrastConfig> = {
       originalMaterials: new Map(),
       systemPreference: 'auto',
     };
-    (node as any).__highContrastState = state;
+    node.__highContrastState = state;
 
     // Check system preference
     context.emit?.('high_contrast_check_system', { node });
@@ -87,11 +87,11 @@ export const highContrastHandler: TraitHandler<HighContrastConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__highContrastState as HighContrastState;
+    const state = node.__highContrastState as HighContrastState;
     if (state?.isActive) {
       restoreOriginalMaterials(node, state, context);
     }
-    delete (node as any).__highContrastState;
+    delete node.__highContrastState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -99,7 +99,7 @@ export const highContrastHandler: TraitHandler<HighContrastConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__highContrastState as HighContrastState;
+    const state = node.__highContrastState as HighContrastState;
     if (!state) return;
 
     if (event.type === 'high_contrast_system_preference') {

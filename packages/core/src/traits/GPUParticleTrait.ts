@@ -103,7 +103,7 @@ export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
       emitterVelocity: { x: 0, y: 0, z: 0 },
       burstQueue: [],
     };
-    (node as any).__gpuParticleState = state;
+    node.__gpuParticleState = state;
 
     // Create GPU particle system
     context.emit?.('gpu_particle_create', {
@@ -128,15 +128,15 @@ export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__gpuParticleState as GPUParticleState;
+    const state = node.__gpuParticleState as GPUParticleState;
     if (state?.computeHandle) {
       context.emit?.('gpu_particle_destroy', { node });
     }
-    delete (node as any).__gpuParticleState;
+    delete node.__gpuParticleState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__gpuParticleState as GPUParticleState;
+    const state = node.__gpuParticleState as GPUParticleState;
     if (!state || !state.isRunning) return;
 
     // Process burst queue
@@ -175,7 +175,7 @@ export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__gpuParticleState as GPUParticleState;
+    const state = node.__gpuParticleState as GPUParticleState;
     if (!state) return;
 
     if (event.type === 'gpu_particle_update') {

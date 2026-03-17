@@ -64,7 +64,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
       navigationStack: [],
       childNodes: [],
     };
-    (node as any).__screenReaderState = state;
+    node.__screenReaderState = state;
 
     // Store initial position
     if ((node as any).position) {
@@ -82,11 +82,11 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('screen_reader_unregister', { node });
-    delete (node as any).__screenReaderState;
+    delete node.__screenReaderState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__screenReaderState as ScreenReaderState;
+    const state = node.__screenReaderState as ScreenReaderState;
     if (!state) return;
 
     // Process announcement queue
@@ -127,7 +127,7 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__screenReaderState as ScreenReaderState;
+    const state = node.__screenReaderState as ScreenReaderState;
     if (!state) return;
 
     if (event.type === 'screen_reader_focus') {

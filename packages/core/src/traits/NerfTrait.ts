@@ -67,7 +67,7 @@ export const nerfHandler: TraitHandler<NerfConfig> = {
       lastCameraHash: '',
       modelHandle: null,
     };
-    (node as any).__nerfState = state;
+    node.__nerfState = state;
 
     if (config.model_url) {
       loadNerfModel(node, state, config, context);
@@ -75,15 +75,15 @@ export const nerfHandler: TraitHandler<NerfConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__nerfState as NerfState;
+    const state = node.__nerfState as NerfState;
     if (state?.modelHandle) {
       context.emit?.('nerf_destroy', { node });
     }
-    delete (node as any).__nerfState;
+    delete node.__nerfState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__nerfState as NerfState;
+    const state = node.__nerfState as NerfState;
     if (!state || !state.isReady) return;
 
     // Get camera position and check cache
@@ -127,7 +127,7 @@ export const nerfHandler: TraitHandler<NerfConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__nerfState as NerfState;
+    const state = node.__nerfState as NerfState;
     if (!state) return;
 
     if (event.type === 'nerf_model_loaded') {

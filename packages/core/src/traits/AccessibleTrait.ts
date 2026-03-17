@@ -88,7 +88,7 @@ export const accessibleHandler: TraitHandler<AccessibleConfig> = {
       ariaValue:
         config.role === 'slider' || config.role === 'progressbar' ? config.value_now : null,
     };
-    (node as any).__accessibleState = state;
+    node.__accessibleState = state;
 
     // Register with accessibility system
     context.emit?.('accessibility_register', {
@@ -108,11 +108,11 @@ export const accessibleHandler: TraitHandler<AccessibleConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('accessibility_unregister', { node });
-    delete (node as any).__accessibleState;
+    delete node.__accessibleState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__accessibleState as AccessibleState;
+    const state = node.__accessibleState as AccessibleState;
     if (!state) return;
 
     // Process announce queue
@@ -137,7 +137,7 @@ export const accessibleHandler: TraitHandler<AccessibleConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__accessibleState as AccessibleState;
+    const state = node.__accessibleState as AccessibleState;
     if (!state) return;
 
     if (event.type === 'hover_enter') {

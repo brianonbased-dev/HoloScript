@@ -113,7 +113,7 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
       spatialPersonas: config.persona_count ? new Map() : undefined,
       activeActivity: config.activity_type,
     };
-    (node as any).__sharedWorldState = state;
+    node.__sharedWorldState = state;
 
     context.emit?.('shared_world_init', {
       node,
@@ -142,7 +142,7 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__sharedWorldState as SharedWorldState;
+    const state = node.__sharedWorldState as SharedWorldState;
 
     if (state?.isSynced) {
       context.emit?.('shared_world_leave', { node });
@@ -155,11 +155,11 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
       }
     }
 
-    delete (node as any).__sharedWorldState;
+    delete node.__sharedWorldState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__sharedWorldState as SharedWorldState;
+    const state = node.__sharedWorldState as SharedWorldState;
     if (!state || !state.isSynced) return;
 
     const syncInterval = 1 / config.sync_rate;
@@ -183,7 +183,7 @@ export const sharedWorldHandler: TraitHandler<SharedWorldConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__sharedWorldState as SharedWorldState;
+    const state = node.__sharedWorldState as SharedWorldState;
     if (!state) return;
 
     if (event.type === 'shared_world_connected') {

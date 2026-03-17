@@ -89,7 +89,7 @@ export const heatmap3dHandler: TraitHandler<Heatmap3DConfig> = {
       animationProgress: 1,
       previousData: null,
     };
-    (node as any).__heatmap3dState = state;
+    node.__heatmap3dState = state;
 
     // Create heatmap renderer
     context.emit?.('heatmap_create', {
@@ -119,15 +119,15 @@ export const heatmap3dHandler: TraitHandler<Heatmap3DConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__heatmap3dState as Heatmap3DState;
+    const state = node.__heatmap3dState as Heatmap3DState;
     if (state?.textureHandle) {
       context.emit?.('heatmap_destroy', { node });
     }
-    delete (node as any).__heatmap3dState;
+    delete node.__heatmap3dState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__heatmap3dState as Heatmap3DState;
+    const state = node.__heatmap3dState as Heatmap3DState;
     if (!state) return;
 
     // Handle animated transitions
@@ -175,7 +175,7 @@ export const heatmap3dHandler: TraitHandler<Heatmap3DConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__heatmap3dState as Heatmap3DState;
+    const state = node.__heatmap3dState as Heatmap3DState;
     if (!state) return;
 
     if (event.type === 'heatmap_data_loaded') {

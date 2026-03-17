@@ -41,35 +41,35 @@ export interface HSPlusRuntime {
   update(delta: number): void;
   on(event: string, handler: (payload: unknown) => void): () => void;
   emit(event: string, payload?: unknown): void;
-  getHologramStates(): Map<string, any>;
+  getHologramStates(): Map<string, unknown>;
   setState(updates: Record<string, unknown>): void;
   // State access
-  getState(): Record<string, any>;
+  getState(): Record<string, unknown>;
   // Methods from AdvancedTypeSystem's version
-  execute?(ast: any): any;
-  callMethod?(name: string, args: any[]): any;
+  execute?(ast: unknown): unknown;
+  callMethod?(name: string, args: unknown[]): unknown;
   destroy?(): void;
-  state?: Record<string, any>;
-  props?: Record<string, any>;
-  refs?: Record<string, any>;
+  state?: Record<string, unknown>;
+  props?: Record<string, unknown>;
+  refs?: Record<string, unknown>;
 }
 
 export interface HSPlusBuiltins {
-  log: (...args: any[]) => void;
-  warn: (...args: any[]) => void;
-  error: (...args: any[]) => void;
+  log: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
   setTimeout: (fn: () => void, ms: number) => number;
   clearTimeout: (id: number) => void;
   setInterval?: (fn: () => void, ms: number) => number;
   clearInterval?: (id: number) => void;
-  fetch?: (url: string, options?: any) => Promise<any>;
-  emit?: (event: string, data?: any) => void;
-  on?: (event: string, handler: (data: any) => void) => void;
-  off?: (event: string, handler?: (data: any) => void) => void;
+  fetch?: (url: string, options?: unknown) => Promise<unknown>;
+  emit?: (event: string, data?: unknown) => void;
+  on?: (event: string, handler: (data: unknown) => void) => void;
+  off?: (event: string, handler?: (data: unknown) => void) => void;
   showSettings?: () => void;
-  openChat?: (config?: any) => void;
+  openChat?: (config?: unknown) => void;
   assistant_generate?: (prompt: string, context?: string) => void;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 import type { VRTraitName, ASTNode } from './base';
@@ -80,21 +80,21 @@ export interface HSPlusNode extends ASTNode {
   children?: HSPlusNode[];
   properties?: Record<string, unknown>;
   directives?: HSPlusDirective[];
-  args?: any;
-  body?: any;
+  args?: unknown;
+  body?: unknown;
   version?: string | number;
-  migrations?: any[];
+  migrations?: Array<{ type: string; fromVersion: number; body: string }>;
   migrationBlocks?: Record<number, string>;
   // Additional properties for runtime evaluation
-  value?: any;
-  target?: any;
-  arguments?: any[];
+  value?: unknown;
+  target?: unknown;
+  arguments?: unknown[];
   method?: string;
   condition?: HSPlusNode;
   consequent?: HSPlusNode;
   alternate?: HSPlusNode;
   event?: string;
-  data?: any;
+  data?: unknown;
   loc?: {
     start: { line: number; column: number };
     end: { line: number; column: number };
@@ -111,6 +111,8 @@ export interface HSPlusNode extends ASTNode {
    * Set during compilation; never present on freshly-parsed AST.
    */
   inferredType?: HSPlusType;
+  /** Trait private state — `__`-prefixed keys are reserved for trait handlers. */
+  [key: `__${string}`]: unknown;
 }
 
 export interface HSPlusAST {
@@ -118,7 +120,7 @@ export interface HSPlusAST {
   body: HSPlusNode[];
   root: HSPlusNode;
   version?: string | number;
-  migrations?: any[];
+  migrations?: Array<{ type: string; fromVersion: number; body: string }>;
   imports?: Array<{
     source: string;
     specifiers: string[];
@@ -133,10 +135,10 @@ export type HSPlusExpression = HSPlusNode;
 
 export interface StateDeclaration {
   name: string;
-  type: string | any; // Accept both simple and advanced types for now
+  type: string | unknown;
   initial?: unknown;
   reactive?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -154,7 +156,7 @@ export type HSPlusType =
   | 'color'
   | 'unknown';
 
-export interface ReactiveState<T = any> {
+export interface ReactiveState<T = unknown> {
   get<K extends keyof T>(key: K): T[K];
   set<K extends keyof T>(key: K, value: T[K]): void;
   subscribe(callback: (state: T, changedKey?: keyof T) => void): () => void;

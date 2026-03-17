@@ -325,7 +325,7 @@ export const usdHandler: TraitHandler<USDConfig> = {
 
   onAttach(node: HSPlusNode, config: USDConfig, context: TraitContext) {
     const state = createInitialState();
-    (node as any).__usdState = state;
+    node.__usdState = state;
 
     // Start loading if source is provided
     if (config.source) {
@@ -334,7 +334,7 @@ export const usdHandler: TraitHandler<USDConfig> = {
   },
 
   onDetach(node: HSPlusNode, config: USDConfig, context: TraitContext) {
-    const state = (node as any).__usdState as USDState | undefined;
+    const state = node.__usdState as USDState | undefined;
     if (!state) return;
 
     // Stop animation
@@ -348,11 +348,11 @@ export const usdHandler: TraitHandler<USDConfig> = {
       });
     }
 
-    delete (node as any).__usdState;
+    delete node.__usdState;
   },
 
   onUpdate(node: HSPlusNode, config: USDConfig, context: TraitContext, delta: number) {
-    const state = (node as any).__usdState as USDState | undefined;
+    const state = node.__usdState as USDState | undefined;
     if (!state || !state.isLoaded) return;
 
     // Update animation
@@ -390,7 +390,7 @@ export const usdHandler: TraitHandler<USDConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: USDConfig, context: TraitContext, event: any) {
-    const state = (node as any).__usdState as USDState | undefined;
+    const state = node.__usdState as USDState | undefined;
     if (!state) return;
 
     switch (event.type) {
@@ -810,7 +810,7 @@ function exportStage(
  * Get USD state from a node
  */
 export function getUSDState(node: HSPlusNode): USDState | undefined {
-  return (node as any).__usdState;
+  return node.__usdState;
 }
 
 /**

@@ -43,11 +43,11 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
     const state: InternalState = {
       audioCache: new Map(),
     };
-    (node as any).__emotionalVoiceState = state;
+    node.__emotionalVoiceState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__emotionalVoiceState;
+    delete node.__emotionalVoiceState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -55,13 +55,13 @@ export const emotionalVoiceHandler: TraitHandler<EmotionalVoiceConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__emotionalVoiceState as InternalState;
+    const state = node.__emotionalVoiceState as InternalState;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
 
     if (eventType === 'speak') {
-      const data = (event as any).data || {};
+      const data = (event as Record<string, unknown>).data || {};
       const { text, emotion, intensity, voiceId } = data;
 
       (this as any).handleSpeak(node, config, state, {

@@ -196,15 +196,15 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
       isListening: false,
       turnCount: 0,
     };
-    (node as any).__avatarEmbodimentState = state;
+    node.__avatarEmbodimentState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__avatarEmbodimentState;
+    delete node.__avatarEmbodimentState;
   },
 
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as any).__avatarEmbodimentState as AvatarEmbodimentState | undefined;
+    const state = node.__avatarEmbodimentState as AvatarEmbodimentState | undefined;
     if (!state) return;
 
     // Pipeline state management handled by runtime in @hololand
@@ -212,7 +212,7 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__avatarEmbodimentState as AvatarEmbodimentState | undefined;
+    const state = node.__avatarEmbodimentState as AvatarEmbodimentState | undefined;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;

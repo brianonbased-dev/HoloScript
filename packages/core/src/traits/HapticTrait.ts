@@ -135,15 +135,15 @@ export const hapticHandler: TraitHandler<HapticTrait> = {
       patternTimer: 0,
       proximityIntensity: 0,
     };
-    (node as any).__hapticState = state;
+    node.__hapticState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__hapticState;
+    delete node.__hapticState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__hapticState as HapticState;
+    const state = node.__hapticState as HapticState;
     if (!state) return;
 
     // Handle proximity haptics
@@ -200,7 +200,7 @@ export const hapticHandler: TraitHandler<HapticTrait> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__hapticState as HapticState;
+    const state = node.__hapticState as HapticState;
     if (!state) return;
 
     // Handle collision haptics
@@ -219,13 +219,13 @@ export const hapticHandler: TraitHandler<HapticTrait> = {
     }
 
     // Handle grab haptics
-    if ((event as any).type === 'grab_start') {
+    if ((event as Record<string, unknown>).type === 'grab_start') {
       pulseHands(config.hands, config.intensity * 0.7, context, 50);
     }
 
     // Handle custom pattern trigger
-    if ((event as any).type === 'play_pattern') {
-      const patternName = (event as any).pattern || config.collision_pattern;
+    if ((event as Record<string, unknown>).type === 'play_pattern') {
+      const patternName = (event as Record<string, unknown>).pattern || config.collision_pattern;
       const pattern = builtInPatterns[patternName] || config.custom_pattern;
       if (pattern) {
         playPattern(state, pattern, config, context);
@@ -233,7 +233,7 @@ export const hapticHandler: TraitHandler<HapticTrait> = {
     }
 
     // Handle stop pattern
-    if ((event as any).type === 'stop_pattern') {
+    if ((event as Record<string, unknown>).type === 'stop_pattern') {
       state.isPlaying = false;
       state.currentPattern = null;
     }

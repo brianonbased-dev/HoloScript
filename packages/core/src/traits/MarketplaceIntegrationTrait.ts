@@ -151,7 +151,7 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
       isAuthenticated: false,
       publisherName: null,
     };
-    (node as any).__marketplaceIntegrationState = state;
+    node.__marketplaceIntegrationState = state;
 
     // Auto-authenticate if publisher_id is provided
     if (config.publisher_id) {
@@ -173,11 +173,11 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
 
   onDetach(node, _config, context) {
     context.emit?.('marketplace_integration_disconnected', { node });
-    delete (node as any).__marketplaceIntegrationState;
+    delete node.__marketplaceIntegrationState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__marketplaceIntegrationState as
+    const state = node.__marketplaceIntegrationState as
       | MarketplaceIntegrationState
       | undefined;
     if (!state) return;
@@ -193,7 +193,7 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__marketplaceIntegrationState as
+    const state = node.__marketplaceIntegrationState as
       | MarketplaceIntegrationState
       | undefined;
     if (!state) return;

@@ -51,15 +51,15 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
       confusion: 0,
       engagement: 0,
     };
-    (node as any).__userMonitorState = state;
+    node.__userMonitorState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__userMonitorState;
+    delete node.__userMonitorState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__userMonitorState as UserMonitorState;
+    const state = node.__userMonitorState as UserMonitorState;
     if (!state) return;
 
     // 1. Collect tracking signals
@@ -83,7 +83,7 @@ export const userMonitorHandler: TraitHandler<UserMonitorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__userMonitorState as UserMonitorState;
+    const state = node.__userMonitorState as UserMonitorState;
     if (!state) return;
 
     if (event.type === 'click') {

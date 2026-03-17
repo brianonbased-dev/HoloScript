@@ -374,7 +374,7 @@ describe('ConsensusTrait.start() — raft path', () => {
 
   it('sets messageSender on raft when provided', () => {
     const sender = vi.fn();
-    const t = makeTrait('e', { mechanism: 'raft' as any, messageSender: sender });
+    const t = makeTrait('e', { mechanism: 'raft', messageSender: sender });
     const r = startRaftTrait(t);
     expect(r.setMessageSender).toHaveBeenCalledWith(sender);
     t.stop();

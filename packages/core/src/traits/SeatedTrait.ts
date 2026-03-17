@@ -61,7 +61,7 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
       originalPosition: (node.properties?.position as any) || [0, 0, 0],
       currentReach: 0,
     };
-    (node as any).__seatedState = state;
+    node.__seatedState = state;
 
     // Auto-calibrate on attach
     if (config.auto_calibrate) {
@@ -71,11 +71,11 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
   },
 
   onDetach(node) {
-    delete (node as any).__seatedState;
+    delete node.__seatedState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__seatedState as SeatedState;
+    const state = node.__seatedState as SeatedState;
     if (!state) return;
 
     const headPos = context.vr.headset.position as any;
@@ -108,20 +108,20 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__seatedState as SeatedState;
+    const state = node.__seatedState as SeatedState;
     if (!state) return;
 
     // Handle recalibration request
-    if ((event as any).type === 'recalibrate') {
+    if ((event as Record<string, unknown>).type === 'recalibrate') {
       state.calibratedHeight = (context.vr.headset.position as any)[1];
       state.isCalibrated = true;
       context.emit('seated_calibrated', { height: state.calibratedHeight });
     }
 
     // Handle snap turn
-    if ((event as any).type === 'turn_left' || (event as any).type === 'turn_right') {
+    if ((event as Record<string, unknown>).type === 'turn_left' || (event as Record<string, unknown>).type === 'turn_right') {
       const angle = config.snap_turn_angle || 45;
-      const direction = (event as any).type === 'turn_left' ? -1 : 1;
+      const direction = (event as Record<string, unknown>).type === 'turn_left' ? -1 : 1;
       const currentRot = (node.properties?.rotation as any) || [0, 0, 0];
 
       (node.properties as any).rotation = [

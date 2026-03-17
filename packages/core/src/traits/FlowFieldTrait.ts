@@ -43,15 +43,15 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
       currentDirection: [0, 0, 0],
       isMoving: false,
     };
-    (node as any).__flowFieldState = state;
+    node.__flowFieldState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__flowFieldState;
+    delete node.__flowFieldState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__flowFieldState as FlowFieldState;
+    const state = node.__flowFieldState as FlowFieldState;
     if (!state || !config.destinationId) return;
 
     const navEngine = getNavigationEngine('gpu_flowfield') || getNavigationEngine('default');

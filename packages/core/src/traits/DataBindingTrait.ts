@@ -69,7 +69,7 @@ export const dataBindingHandler: TraitHandler<DataBindingConfig> = {
       refreshTimer: null,
       errorCount: 0,
     };
-    (node as any).__dataBindingState = state;
+    node.__dataBindingState = state;
 
     if (config.source) {
       connectDataSource(node, state, config, context);
@@ -77,15 +77,15 @@ export const dataBindingHandler: TraitHandler<DataBindingConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__dataBindingState as DataBindingState;
+    const state = node.__dataBindingState as DataBindingState;
     if (state?.connectionHandle) {
       context.emit?.('data_binding_disconnect', { node });
     }
-    delete (node as any).__dataBindingState;
+    delete node.__dataBindingState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__dataBindingState as DataBindingState;
+    const state = node.__dataBindingState as DataBindingState;
     if (!state || !state.isConnected) return;
 
     // Poll for REST/GraphQL sources
@@ -123,7 +123,7 @@ export const dataBindingHandler: TraitHandler<DataBindingConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__dataBindingState as DataBindingState;
+    const state = node.__dataBindingState as DataBindingState;
     if (!state) return;
 
     if (event.type === 'data_binding_connected') {

@@ -74,7 +74,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
       localAnchorHandle: null,
       quality: 0,
     };
-    (node as any).__sharedAnchorState = state;
+    node.__sharedAnchorState = state;
 
     // Initialize cloud anchor provider
     context.emit?.('shared_anchor_init', {
@@ -92,7 +92,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__sharedAnchorState as SharedAnchorState;
+    const state = node.__sharedAnchorState as SharedAnchorState;
 
     if (state?.isShared) {
       context.emit?.('shared_anchor_leave', {
@@ -101,11 +101,11 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
       });
     }
 
-    delete (node as any).__sharedAnchorState;
+    delete node.__sharedAnchorState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__sharedAnchorState as SharedAnchorState;
+    const state = node.__sharedAnchorState as SharedAnchorState;
     if (!state || !state.isShared) return;
 
     state.syncAccumulator += delta * 1000; // Convert to ms
@@ -124,7 +124,7 @@ export const sharedAnchorHandler: TraitHandler<SharedAnchorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__sharedAnchorState as SharedAnchorState;
+    const state = node.__sharedAnchorState as SharedAnchorState;
     if (!state) return;
 
     if (event.type === 'shared_anchor_upload_complete') {

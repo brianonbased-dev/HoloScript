@@ -62,21 +62,21 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
       experienceLog: [],
       lastSynthesis: Date.now(),
     };
-    (node as any).__neuralState = state;
+    node.__neuralState = state;
 
     context.emit?.('neural_forge_connected', { node });
   },
 
   onDetach(node, config, context) {
-    delete (node as any).__neuralState;
+    delete node.__neuralState;
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__neuralState as NeuralState;
+    const state = node.__neuralState as NeuralState;
     if (!state) return;
 
     if (event.type === 'npc_ai_response') {
-      const text = (event as any).text as string;
+      const text = (event as Record<string, unknown>).text as string;
       state.experienceLog.push(text);
 
       // Auto-Synthesis Check
@@ -102,7 +102,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
         context.emit?.('neural_cognition_evolved', { node, currentWeights: state.weights });
       }
     } else if (event.type === 'neural_absorb_shard') {
-      const shard = (event as any).shard as NeuralShard;
+      const shard = (event as Record<string, unknown>).shard as NeuralShard;
       state.shards.push(shard);
 
       // Simple personality modulation based on shard type (mock logic)

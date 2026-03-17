@@ -4,6 +4,8 @@
  *
  * @module types/base
  */
+import type { HSPlusDirective } from './AdvancedTypeSystem';
+import type { SpatialPosition, HologramProperties } from '../types';
 
 // ============================================================================
 // VR Trait Names
@@ -48,14 +50,14 @@ export type VRTraitName =
   | (string & {}); // Allow any string for extensibility while preserving autocomplete
 
 // ============================================================================
-// Base AST Node (without directive reference to avoid circular dependency)
+// Base AST Node
 // ============================================================================
 
 export interface BaseASTNode {
   type: string;
   id?: string;
-  position?: any; // SpatialPosition from types.ts
-  hologram?: any; // HologramProperties from types.ts
+  position?: SpatialPosition;
+  hologram?: HologramProperties;
   /** Source line number (1-indexed) */
   line?: number;
   /** Source column number (0-indexed) */
@@ -64,11 +66,11 @@ export interface BaseASTNode {
 
 /**
  * Full ASTNode with directives and traits.
- * Can reference HSPlusDirective because it's defined in AdvancedTypeSystem.
+ * Uses import type for HSPlusDirective (erased at compile time, no circular dependency).
  */
 export interface ASTNode extends BaseASTNode {
   /** HS+ Directives */
-  directives?: any[]; // HSPlusDirective[] - using any to avoid circular dependency
+  directives?: HSPlusDirective[];
   /** HS+ Traits (Pre-processed map) */
-  traits?: Map<VRTraitName, any>;
+  traits?: Map<VRTraitName, Record<string, unknown>>;
 }

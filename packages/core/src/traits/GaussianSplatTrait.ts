@@ -141,7 +141,7 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
       gaussianBudgetUsed: 0,
       temporalFrameIndex: 0,
     };
-    (node as any).__gaussianSplatState = state;
+    node.__gaussianSplatState = state;
 
     if (config.source) {
       loadSplatScene(node, state, config, context);
@@ -149,15 +149,15 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__gaussianSplatState as GaussianSplatState;
+    const state = node.__gaussianSplatState as GaussianSplatState;
     if (state?.renderHandle) {
       context.emit?.('splat_destroy', { node });
     }
-    delete (node as any).__gaussianSplatState;
+    delete node.__gaussianSplatState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__gaussianSplatState as GaussianSplatState;
+    const state = node.__gaussianSplatState as GaussianSplatState;
     if (!state || !state.isLoaded) return;
 
     // Check if camera moved and needs resort
@@ -216,7 +216,7 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__gaussianSplatState as GaussianSplatState;
+    const state = node.__gaussianSplatState as GaussianSplatState;
     if (!state) return;
 
     if (event.type === 'splat_load_complete') {

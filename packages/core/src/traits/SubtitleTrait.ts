@@ -86,7 +86,7 @@ export const subtitleHandler: TraitHandler<SubtitleConfig> = {
       speechRecognitionActive: false,
       translationPending: false,
     };
-    (node as any).__subtitleState = state;
+    node.__subtitleState = state;
 
     // Initialize subtitle display
     context.emit?.('subtitle_init', {
@@ -100,16 +100,16 @@ export const subtitleHandler: TraitHandler<SubtitleConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__subtitleState as SubtitleState;
+    const state = node.__subtitleState as SubtitleState;
     if (state?.speechRecognitionActive) {
       context.emit?.('subtitle_stop_recognition', { node });
     }
     context.emit?.('subtitle_destroy', { node });
-    delete (node as any).__subtitleState;
+    delete node.__subtitleState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__subtitleState as SubtitleState;
+    const state = node.__subtitleState as SubtitleState;
     if (!state) return;
 
     const now = Date.now();
@@ -132,7 +132,7 @@ export const subtitleHandler: TraitHandler<SubtitleConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__subtitleState as SubtitleState;
+    const state = node.__subtitleState as SubtitleState;
     if (!state) return;
 
     if (event.type === 'subtitle_text') {

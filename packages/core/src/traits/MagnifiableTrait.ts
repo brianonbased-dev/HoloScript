@@ -64,7 +64,7 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
       originalScale: { x: 1, y: 1, z: 1 },
       zoomCenter: { x: 0, y: 0, z: 0 },
     };
-    (node as any).__magnifiableState = state;
+    node.__magnifiableState = state;
 
     // Store original scale
     if ((node as any).scale) {
@@ -80,7 +80,7 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__magnifiableState as MagnifiableState;
+    const state = node.__magnifiableState as MagnifiableState;
 
     // Restore original scale
     if (state && (node as any).scale) {
@@ -90,11 +90,11 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
     }
 
     context.emit?.('magnifiable_unregister', { node });
-    delete (node as any).__magnifiableState;
+    delete node.__magnifiableState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__magnifiableState as MagnifiableState;
+    const state = node.__magnifiableState as MagnifiableState;
     if (!state) return;
 
     // Smooth zoom interpolation
@@ -124,7 +124,7 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__magnifiableState as MagnifiableState;
+    const state = node.__magnifiableState as MagnifiableState;
     if (!state) return;
 
     if (event.type === 'magnify_start' || event.type === 'pinch_start') {

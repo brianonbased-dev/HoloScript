@@ -67,6 +67,10 @@ import type {
   HoloAbilityStats,
   HoloAbilityScaling,
   HoloAbilityEffects,
+  HoloAbilityImpact,
+  HoloAbilityDamage,
+  HoloAbilityBuff,
+  HoloAbilityDebuff,
   HoloAbilityProjectile,
   HoloDialogue,
   HoloDialogueOption,
@@ -74,7 +78,9 @@ import type {
   HoloState_Machine,
   HoloStateTransition,
   HoloAchievement,
+  HoloAchievementReward,
   HoloTalentTree,
+  HoloTalentEffect,
   HoloTalentRow,
   HoloTalentNode,
   HoloShape,
@@ -1295,7 +1301,7 @@ export class HoloCompositionParser {
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
       }
-      traits.push({ type: 'ObjectTrait', name: traitName, config } as any);
+      traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
 
     // Parse body
@@ -1314,7 +1320,7 @@ export class HoloCompositionParser {
           if (this.check('LPAREN')) {
             config = this.parseTraitConfig();
           }
-          traits.push({ type: 'ObjectTrait', name: traitName, config } as any);
+          traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
         } else if (this.check('IDENTIFIER')) {
           const key = this.expectIdentifier();
           if (this.check('COLON')) {
@@ -1723,7 +1729,7 @@ export class HoloCompositionParser {
         properties.push({
           type: 'EnvironmentProperty',
           key: ps.name,
-          value: ps as any,
+          value: ps,
         });
       } else {
         const key = this.expectIdentifier();
@@ -2361,7 +2367,7 @@ export class HoloCompositionParser {
       } else if (this.check('ACTION') || this.check('ASYNC')) {
         const action = this.parseAction();
         template.actions.push(action);
-        (template as any).directives.push({
+        template.directives!.push({
           type: 'method',
           name: action.name,
           parameters: action.parameters || [],
@@ -2391,7 +2397,7 @@ export class HoloCompositionParser {
           }
           template.traits.push({ type: 'ObjectTrait', name: traitName, config } as HoloObjectTrait);
           // Also add traits as directives for compatibility
-          (template as any).directives!.push({ type: 'trait', name: traitName, config });
+          template.directives!.push({ type: 'trait', name: traitName, config });
         }
       } else if (this.check('MIGRATE')) {
         // migrate from(N) { ... } — schema migration block for hot-reload
@@ -2431,7 +2437,7 @@ export class HoloCompositionParser {
           if (this.check('IDENTIFIER')) this.advance(); // consume sub-name
         }
 
-        let parameters: any[] = [];
+        let parameters: HoloParameter[] = [];
         if (this.check('LPAREN')) {
           parameters = this.parseParameterList();
         }
@@ -2440,7 +2446,7 @@ export class HoloCompositionParser {
         this.skipBlock();
 
         // Add as lifecycle directive
-        (template as any).directives!.push({
+        template.directives!.push({
           type: 'lifecycle',
           hook: eventName,
           parameters,
@@ -2452,7 +2458,7 @@ export class HoloCompositionParser {
         this.skipParens(); // skip parameter list
         if (this.check('LBRACE')) {
           this.skipBlock(); // skip body — too diverse (arrow fns, GDScript, etc.)
-          (template as any).directives!.push({
+          template.directives!.push({
             type: 'method',
             name: methodName,
             parameters: [],
@@ -2471,7 +2477,7 @@ export class HoloCompositionParser {
         }
         if (this.check('LBRACE')) {
           this.skipBlock(); // skip HoloScript property block (not code statements)
-          (template as any).directives!.push({
+          template.directives!.push({
             type: blockType,
             name: blockName,
             parameters: [],
@@ -2483,7 +2489,7 @@ export class HoloCompositionParser {
         const blockType = this.expectIdentifier();
         if (this.check('LBRACE')) {
           this.skipBlock(); // skip HoloScript property block (not code statements)
-          (template as any).directives!.push({
+          template.directives!.push({
             type: blockType,
             name: '',
             parameters: [],
@@ -2540,7 +2546,7 @@ export class HoloCompositionParser {
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
       }
-      traits.push({ type: 'ObjectTrait', name: traitName, config } as any);
+      traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
 
     this.expect('LBRACE');
@@ -2549,7 +2555,7 @@ export class HoloCompositionParser {
     const properties: HoloObjectProperty[] = [];
     const children: HoloObjectDecl[] = [];
     const subOrbs: HoloSubOrb[] = [];
-    const directives: any[] = [];
+    const directives: Array<Record<string, unknown>> = [];
     let state: HoloState | undefined;
 
     while (!this.check('RBRACE') && !this.check('EOF')) {
@@ -2591,7 +2597,7 @@ export class HoloCompositionParser {
           if (this.check('IDENTIFIER')) this.advance(); // consume sub-name
         }
 
-        let parameters: any[] = [];
+        let parameters: HoloParameter[] = [];
         if (this.check('LPAREN')) {
           parameters = this.parseParameterList();
         }
@@ -2614,7 +2620,7 @@ export class HoloCompositionParser {
         } else if (this.check('LBRACE')) {
           this.skipBlock(); // @trait { key: value } block-style config — skip it
         }
-        const trait = { type: 'ObjectTrait', name: traitName, config } as any;
+        const trait = { type: 'ObjectTrait' as const, name: traitName, config };
         traits.push(trait);
         directives.push({ type: 'trait', name: traitName, config });
       } else if (this.check('STATE')) {
@@ -2652,7 +2658,7 @@ export class HoloCompositionParser {
             if (isCodeBlock) {
               // Use skipBlock() for event handlers — bodies may contain non-HoloScript syntax
               this.skipBlock();
-              properties.push({ type: 'ObjectProperty', key, value: [] as any });
+              properties.push({ type: 'ObjectProperty', key, value: [] });
             } else {
               properties.push({ type: 'ObjectProperty', key, value: this.parseValue() });
             }
@@ -2667,7 +2673,7 @@ export class HoloCompositionParser {
           properties.push({
             type: 'ObjectProperty',
             key,
-            value: { type: 'EventHandler', parameters: [], body: [] } as any,
+            value: { type: 'EventHandler', parameters: [], body: [] } as unknown as HoloValue,
           });
         } else if (this.check('EQUALS')) {
           // Common mistake: using = instead of : for property assignment
@@ -2682,7 +2688,7 @@ export class HoloCompositionParser {
           const blockName = this.advance().value; // consume quoted name
           if (this.check('LPAREN')) this.skipParens();
           if (this.check('LBRACE')) this.skipBlock();
-          directives.push({ type: key, name: blockName, parameters: [], body: '' } as any);
+          directives.push({ type: key, name: blockName, parameters: [], body: '' });
         } else {
           // Bare identifier (like a trait without @)
           properties.push({ type: 'ObjectProperty', key, value: true });
@@ -2867,9 +2873,9 @@ export class HoloCompositionParser {
             this.skipNewlines();
             const body = this.parseStatementBlock();
             this.expect('RBRACE');
-            handlers.push({ type: 'EventHandler', event: name, parameters, body } as any);
+            handlers.push({ type: 'EventHandler' as const, event: name, parameters, body });
           } else {
-            handlers.push({ type: 'EventHandler', event: name, parameters, body: [] } as any);
+            handlers.push({ type: 'EventHandler' as const, event: name, parameters, body: [] });
           }
         } else if (this.check('LBRACE')) {
           // No-parens style: on_enter { ... }
@@ -2877,7 +2883,7 @@ export class HoloCompositionParser {
           this.skipNewlines();
           const body = this.parseStatementBlock();
           this.expect('RBRACE');
-          handlers.push({ type: 'EventHandler', event: name, parameters: [], body } as any);
+          handlers.push({ type: 'EventHandler' as const, event: name, parameters: [], body });
         } else {
           this.error(`Unexpected token in logic: ${name}. Next token: ${this.current().type}`);
         }
@@ -3168,7 +3174,7 @@ export class HoloCompositionParser {
       if (key === 'source' && typeof value === 'string') {
         source = value;
       } else {
-        properties.push({ type: 'ObjectProperty', key, value: value as any });
+        properties.push({ type: 'ObjectProperty', key, value });
       }
       this.skipNewlines();
     }
@@ -3286,9 +3292,9 @@ export class HoloCompositionParser {
         const args = this.parseArgumentList();
         expr = { type: 'CallExpression', callee: expr, arguments: args };
       } else if (this.match('INC')) {
-        expr = { type: 'UpdateExpression', operator: '++', argument: expr, prefix: false } as any;
+        expr = { type: 'UpdateExpression' as const, operator: '++' as const, argument: expr, prefix: false };
       } else if (this.match('DEC')) {
-        expr = { type: 'UpdateExpression', operator: '--', argument: expr, prefix: false } as any;
+        expr = { type: 'UpdateExpression' as const, operator: '--' as const, argument: expr, prefix: false };
       } else {
         break;
       }
@@ -3780,7 +3786,7 @@ export class HoloCompositionParser {
           if (this.check('LPAREN')) {
             config = this.parseTraitConfig();
           }
-          traits.push({ type: 'ObjectTrait', name, config } as any);
+          traits.push({ type: 'ObjectTrait' as const, name, config });
         } else if (this.check('IDENTIFIER')) {
           const key = this.expectIdentifier();
           if (this.check('COLON')) {
@@ -4322,7 +4328,7 @@ export class HoloCompositionParser {
 
       if (key === 'experience') rewards.experience = value as number;
       else if (key === 'gold') rewards.gold = value as number;
-      else if (key === 'items') rewards.items = value as any[];
+      else if (key === 'items') rewards.items = value as unknown as string[];
       else if (key === 'reputation') rewards.reputation = value as Record<string, number>;
       else if (key === 'unlocks') rewards.unlocks = value as string[];
 
@@ -4488,16 +4494,16 @@ export class HoloCompositionParser {
 
       if (key === 'impact') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.impact = { type: 'AbilityImpact', ...val } as any;
+        effects.impact = { type: 'AbilityImpact', ...val } as unknown as HoloAbilityImpact;
       } else if (key === 'damage') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.damage = { type: 'AbilityDamage', damageType: 'physical', ...val } as any;
+        effects.damage = { type: 'AbilityDamage', damageType: 'physical', ...val } as unknown as HoloAbilityDamage;
       } else if (key === 'buff') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.buff = { type: 'AbilityBuff', stat: '', amount: 0, duration: 0, ...val } as any;
+        effects.buff = { type: 'AbilityBuff', stat: '', amount: 0, duration: 0, ...val } as unknown as HoloAbilityBuff;
       } else if (key === 'debuff') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.debuff = { type: 'AbilityDebuff', effect: 'slow', duration: 0, ...val } as any;
+        effects.debuff = { type: 'AbilityDebuff', effect: 'slow', duration: 0, ...val } as unknown as HoloAbilityDebuff;
       }
 
       this.skipNewlines();
@@ -4858,7 +4864,7 @@ export class HoloCompositionParser {
       else if (key === 'progress') achievement.progress = this.parseExpression();
       else if (key === 'reward') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        achievement.reward = { type: 'AchievementReward', ...val } as any;
+        achievement.reward = { type: 'AchievementReward', ...val } as unknown as HoloAchievementReward;
       }
 
       this.skipNewlines();
@@ -4978,7 +4984,7 @@ export class HoloCompositionParser {
         else if (key === 'icon') node.icon = this.parseValue() as string;
         else if (key === 'effect') {
           const val = this.parseValue() as Record<string, HoloValue>;
-          node.effect = { type: 'TalentEffect', effectType: 'passive', ...val } as any;
+          node.effect = { type: 'TalentEffect', effectType: 'passive', ...val } as unknown as HoloTalentEffect;
         }
 
         this.skipNewlines();

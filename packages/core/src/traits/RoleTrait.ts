@@ -59,7 +59,7 @@ export const roleHandler: TraitHandler<RoleConfig> = {
       roleHistory: [{ role: config.role_id, timestamp: Date.now() }],
       pendingRoleChange: null,
     };
-    (node as any).__roleState = state;
+    node.__roleState = state;
 
     // Calculate effective permissions
     calculateEffectivePermissions(state, config);
@@ -74,11 +74,11 @@ export const roleHandler: TraitHandler<RoleConfig> = {
   },
 
   onDetach(node) {
-    delete (node as any).__roleState;
+    delete node.__roleState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__roleState as RoleState;
+    const state = node.__roleState as RoleState;
     if (!state) return;
 
     // Process pending role change
@@ -109,7 +109,7 @@ export const roleHandler: TraitHandler<RoleConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__roleState as RoleState;
+    const state = node.__roleState as RoleState;
     if (!state) return;
 
     if (event.type === 'role_set') {

@@ -72,7 +72,7 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
       lastDispatchTime: 0,
       executionCount: 0,
     };
-    (node as any).__computeState = state;
+    node.__computeState = state;
 
     if (config.shader_source) {
       context.emit?.('compute_init', {
@@ -86,18 +86,18 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__computeState as ComputeState;
+    const state = node.__computeState as ComputeState;
     if (state?.isReady) {
       context.emit?.('compute_destroy', {
         node,
         buffers: Array.from(state.buffers.keys()),
       });
     }
-    delete (node as any).__computeState;
+    delete node.__computeState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__computeState as ComputeState;
+    const state = node.__computeState as ComputeState;
     if (!state || !state.isReady) return;
 
     if (config.dispatch_on_update) {
@@ -113,7 +113,7 @@ export const computeHandler: TraitHandler<ComputeConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__computeState as ComputeState;
+    const state = node.__computeState as ComputeState;
     if (!state) return;
 
     if (event.type === 'compute_initialized') {

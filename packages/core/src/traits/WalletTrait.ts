@@ -73,7 +73,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
       provider: null,
       balance: null,
     };
-    (node as any).__walletState = state;
+    node.__walletState = state;
 
     // Auto-connect if configured
     if (config.auto_connect) {
@@ -85,11 +85,11 @@ export const walletHandler: TraitHandler<WalletConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__walletState as WalletState;
+    const state = node.__walletState as WalletState;
     if (state?.isConnected) {
       context.emit?.('wallet_cleanup', { node });
     }
-    delete (node as any).__walletState;
+    delete node.__walletState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -97,7 +97,7 @@ export const walletHandler: TraitHandler<WalletConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__walletState as WalletState;
+    const state = node.__walletState as WalletState;
     if (!state) return;
 
     if (event.type === 'wallet_connect') {

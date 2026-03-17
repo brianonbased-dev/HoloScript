@@ -60,7 +60,7 @@ export const audioPortalHandler: TraitHandler<AudioPortalConfig> = {
       targetZone: config.connected_zones[1],
       activeConnections: new Set(),
     };
-    (node as any).__audioPortalState = state;
+    node.__audioPortalState = state;
 
     context.emit?.('audio_portal_register', {
       node,
@@ -73,11 +73,11 @@ export const audioPortalHandler: TraitHandler<AudioPortalConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('audio_portal_unregister', { node });
-    delete (node as any).__audioPortalState;
+    delete node.__audioPortalState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__audioPortalState as AudioPortalState;
+    const state = node.__audioPortalState as AudioPortalState;
     if (!state) return;
 
     // Smooth open/close transition
@@ -107,7 +107,7 @@ export const audioPortalHandler: TraitHandler<AudioPortalConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__audioPortalState as AudioPortalState;
+    const state = node.__audioPortalState as AudioPortalState;
     if (!state) return;
 
     if (event.type === 'audio_portal_open') {

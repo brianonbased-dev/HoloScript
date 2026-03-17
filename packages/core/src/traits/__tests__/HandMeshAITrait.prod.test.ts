@@ -23,7 +23,7 @@ function makeCtx() {
 function makeConfig(overrides: Partial<HandMeshAIConfig> = {}): HandMeshAIConfig {
   return {
     // HandTracking base
-    tracking_backend: 'webxr' as any,
+    tracking_backend: 'webxr',
     hand: 'both',
     joint_count: 21,
     gesture_enabled: false,

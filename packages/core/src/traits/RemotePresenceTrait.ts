@@ -92,7 +92,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
       qualityLevel: 1.0,
       bandwidthUsage: 0,
     };
-    (node as any).__remotePresenceState = state;
+    node.__remotePresenceState = state;
 
     // Initialize presence system
     context.emit?.('remote_presence_init', {
@@ -105,17 +105,17 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__remotePresenceState as RemotePresenceState;
+    const state = node.__remotePresenceState as RemotePresenceState;
 
     if (state?.isConnected) {
       context.emit?.('remote_presence_disconnect', { node });
     }
 
-    delete (node as any).__remotePresenceState;
+    delete node.__remotePresenceState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__remotePresenceState as RemotePresenceState;
+    const state = node.__remotePresenceState as RemotePresenceState;
     if (!state || !state.isConnected) return;
 
     // Adaptive quality based on bandwidth
@@ -152,7 +152,7 @@ export const remotePresenceHandler: TraitHandler<RemotePresenceConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__remotePresenceState as RemotePresenceState;
+    const state = node.__remotePresenceState as RemotePresenceState;
     if (!state) return;
 
     if (event.type === 'remote_presence_connected') {

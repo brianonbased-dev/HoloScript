@@ -127,7 +127,7 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
       is_generating: false,
       last_update_time: 0,
     };
-    (node as any).__handMeshState = meshState;
+    node.__handMeshState = meshState;
 
     context.emit?.('hand_mesh_ai_init', {
       node,
@@ -138,15 +138,15 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
 
   onDetach(node, config, context) {
     handTrackingHandler.onDetach?.(node, config, context);
-    delete (node as any).__handMeshState;
+    delete node.__handMeshState;
   },
 
   onUpdate(node, config, context, delta) {
     // Call base update
     handTrackingHandler.onUpdate?.(node, config, context, delta);
 
-    const meshState = (node as any).__handMeshState as HandMeshState;
-    const trackingState = (node as any).__handTrackingState;
+    const meshState = node.__handMeshState as HandMeshState;
+    const trackingState = node.__handTrackingState;
 
     if (!meshState || !trackingState || !config.real_time_generation) return;
 
@@ -184,7 +184,7 @@ export const handMeshAIHandler: TraitHandler<HandMeshAIConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const meshState = (node as any).__handMeshState as HandMeshState;
+    const meshState = node.__handMeshState as HandMeshState;
 
     if (event.type === 'hand_mesh_result') {
       const hand = event.hand as 'left' | 'right';

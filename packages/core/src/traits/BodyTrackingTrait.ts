@@ -160,7 +160,7 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
       lostTime: 0,
       calibrated: false,
     };
-    (node as any).__bodyTrackingState = state;
+    node.__bodyTrackingState = state;
 
     const trackedJoints = getTrackedJoints(config.mode, config.custom_joints);
 
@@ -174,11 +174,11 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('body_tracking_stop', { node });
-    delete (node as any).__bodyTrackingState;
+    delete node.__bodyTrackingState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__bodyTrackingState as BodyTrackingState;
+    const state = node.__bodyTrackingState as BodyTrackingState;
     if (!state) return;
 
     if (!state.isTracking) {
@@ -196,7 +196,7 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__bodyTrackingState as BodyTrackingState;
+    const state = node.__bodyTrackingState as BodyTrackingState;
     if (!state) return;
 
     if (event.type === 'body_pose_update') {

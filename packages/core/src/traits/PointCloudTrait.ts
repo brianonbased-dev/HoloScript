@@ -75,7 +75,7 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
       memoryUsage: 0,
       octreeHandle: null,
     };
-    (node as any).__pointCloudState = state;
+    node.__pointCloudState = state;
 
     if (config.source) {
       loadPointCloud(node, state, config, context);
@@ -83,15 +83,15 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__pointCloudState as PointCloudState;
+    const state = node.__pointCloudState as PointCloudState;
     if (state?.octreeHandle) {
       context.emit?.('point_cloud_destroy', { node });
     }
-    delete (node as any).__pointCloudState;
+    delete node.__pointCloudState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__pointCloudState as PointCloudState;
+    const state = node.__pointCloudState as PointCloudState;
     if (!state || !state.isLoaded) return;
 
     // Update LOD based on camera distance if enabled
@@ -128,7 +128,7 @@ export const pointCloudHandler: TraitHandler<PointCloudConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__pointCloudState as PointCloudState;
+    const state = node.__pointCloudState as PointCloudState;
     if (!state) return;
 
     if (event.type === 'point_cloud_loaded') {

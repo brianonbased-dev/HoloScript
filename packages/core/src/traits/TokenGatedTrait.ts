@@ -70,18 +70,18 @@ export const tokenGatedHandler: TraitHandler<TokenGatedConfig> = {
       lastVerifyTime: 0,
       verifyAttempts: 0,
     };
-    (node as any).__tokenGatedState = state;
+    node.__tokenGatedState = state;
 
     // Apply initial fallback state
     applyFallbackBehavior(node, config, context, false);
   },
 
   onDetach(node) {
-    delete (node as any).__tokenGatedState;
+    delete node.__tokenGatedState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__tokenGatedState as TokenGatedState;
+    const state = node.__tokenGatedState as TokenGatedState;
     if (!state) return;
 
     // Re-verify periodically if configured
@@ -97,7 +97,7 @@ export const tokenGatedHandler: TraitHandler<TokenGatedConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__tokenGatedState as TokenGatedState;
+    const state = node.__tokenGatedState as TokenGatedState;
     if (!state) return;
 
     if (event.type === 'token_gate_verify') {

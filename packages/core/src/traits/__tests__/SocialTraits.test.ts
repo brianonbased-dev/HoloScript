@@ -78,8 +78,8 @@ describe('shareableHandler', () => {
 
       const event = getLastEvent(ctx, 'on_share');
       expect(event).toBeDefined();
-      expect((event as any).node).toBe(node);
-      expect((event as any).platform).toBe('x');
+      expect((event as Record<string, unknown>).node).toBe(node);
+      expect((event as Record<string, unknown>).platform).toBe('x');
     });
 
     it('should use custom platform from event', () => {
@@ -90,7 +90,7 @@ describe('shareableHandler', () => {
       sendEvent(shareableHandler, node, {}, ctx, { type: 'share', platform: 'instagram' });
 
       const event = getLastEvent(ctx, 'on_share');
-      expect((event as any).platform).toBe('instagram');
+      expect((event as Record<string, unknown>).platform).toBe('instagram');
     });
   });
 });
@@ -152,8 +152,8 @@ describe('collaborativeHandler', () => {
 
       const event = getLastEvent(ctx, 'on_user_join');
       expect(event).toBeDefined();
-      expect((event as any).node).toBe(node);
-      expect((event as any).user).toEqual({ id: 'user-1', name: 'Alice' });
+      expect((event as Record<string, unknown>).node).toBe(node);
+      expect((event as Record<string, unknown>).user).toEqual({ id: 'user-1', name: 'Alice' });
     });
 
     it('should emit on_user_leave event', () => {
@@ -168,7 +168,7 @@ describe('collaborativeHandler', () => {
 
       const event = getLastEvent(ctx, 'on_user_leave');
       expect(event).toBeDefined();
-      expect((event as any).user).toEqual({ id: 'user-1' });
+      expect((event as Record<string, unknown>).user).toEqual({ id: 'user-1' });
     });
 
     it('should emit on_edit event', () => {
@@ -183,7 +183,7 @@ describe('collaborativeHandler', () => {
 
       const event = getLastEvent(ctx, 'on_edit');
       expect(event).toBeDefined();
-      expect((event as any).edit).toEqual({ type: 'move', position: [1, 2, 3] });
+      expect((event as Record<string, unknown>).edit).toEqual({ type: 'move', position: [1, 2, 3] });
     });
 
     it('should not emit events when state not initialized', () => {
@@ -250,7 +250,7 @@ describe('tweetableHandler', () => {
 
       const event = getLastEvent(ctx, 'on_tweet');
       expect(event).toBeDefined();
-      expect((event as any).node).toBe(node);
+      expect((event as Record<string, unknown>).node).toBe(node);
     });
 
     it('should emit on_thread_created event', () => {
@@ -262,7 +262,7 @@ describe('tweetableHandler', () => {
 
       const event = getLastEvent(ctx, 'on_thread_created');
       expect(event).toBeDefined();
-      expect((event as any).node).toBe(node);
+      expect((event as Record<string, unknown>).node).toBe(node);
     });
   });
 });

@@ -93,15 +93,15 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
       velocity: { x: 0, y: 0, z: 0 },
       splashCooldown: 0,
     };
-    (node as any).__buoyancyState = state;
+    node.__buoyancyState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__buoyancyState;
+    delete node.__buoyancyState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__buoyancyState as BuoyancyState;
+    const state = node.__buoyancyState as BuoyancyState;
     if (!state) return;
 
     const position = (node as any).position || { x: 0, y: 0, z: 0 };
@@ -187,7 +187,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__buoyancyState as BuoyancyState;
+    const state = node.__buoyancyState as BuoyancyState;
     if (!state) return;
 
     // Handle external events that affect buoyancy

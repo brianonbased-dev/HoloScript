@@ -57,7 +57,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
       conversation_count: 0,
       relationship_delta: 0,
     };
-    (node as any).__npcState = npcState;
+    node.__npcState = npcState;
 
     // Override system prompt for NPC personality
     const personalityPrompts: Record<string, string> = {
@@ -82,13 +82,13 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
 
   onDetach(node, config, context) {
     llmAgentHandler.onDetach?.(node, config, context);
-    delete (node as any).__npcState;
+    delete node.__npcState;
   },
 
   onUpdate(node, config, context, delta) {
     llmAgentHandler.onUpdate?.(node, config, context, delta);
 
-    const npcState = (node as any).__npcState;
+    const npcState = node.__npcState;
     if (!npcState) return;
 
     // Decay player relationship slowly over time
@@ -99,7 +99,7 @@ export const ainpcBrainHandler: TraitHandler<AINPCBrainConfig> = {
 
   onEvent(node, config, context, event) {
     // Handle NPC-specific events
-    const npcState = (node as any).__npcState;
+    const npcState = node.__npcState;
 
     if (event.type === 'player_enter_dialogue_range') {
       if (!npcState.in_dialogue) {

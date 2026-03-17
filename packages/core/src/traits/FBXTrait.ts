@@ -319,7 +319,7 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
 
   onAttach(node: HSPlusNode, config: FBXConfig, context: TraitContext) {
     const state = createInitialState();
-    (node as any).__fbxState = state;
+    node.__fbxState = state;
 
     // Start loading if source is provided
     if (config.source) {
@@ -328,7 +328,7 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
   },
 
   onDetach(node: HSPlusNode, config: FBXConfig, context: TraitContext) {
-    const state = (node as any).__fbxState as FBXState | undefined;
+    const state = node.__fbxState as FBXState | undefined;
     if (!state) return;
 
     // Stop all animations
@@ -342,11 +342,11 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
       });
     }
 
-    delete (node as any).__fbxState;
+    delete node.__fbxState;
   },
 
   onUpdate(node: HSPlusNode, config: FBXConfig, context: TraitContext, delta: number) {
-    const state = (node as any).__fbxState as FBXState | undefined;
+    const state = node.__fbxState as FBXState | undefined;
     if (!state || !state.isLoaded) return;
 
     // Update animations
@@ -384,7 +384,7 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: FBXConfig, context: TraitContext, event: any) {
-    const state = (node as any).__fbxState as FBXState | undefined;
+    const state = node.__fbxState as FBXState | undefined;
     if (!state) return;
 
     switch (event.type) {
@@ -914,7 +914,7 @@ function clearBoneOverride(state: FBXState, boneName?: string): void {
  * Get FBX state from a node
  */
 export function getFBXState(node: HSPlusNode): FBXState | undefined {
-  return (node as any).__fbxState;
+  return node.__fbxState;
 }
 
 /**

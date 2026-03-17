@@ -386,7 +386,7 @@ describe('matchesCondition', () => {
       )
     ).toBe(true));
   it('unknown type: false', () =>
-    expect(matchesCondition({ type: 'unknown' as any, value: 0 }, makeBaseAction())).toBe(false));
+    expect(matchesCondition({ type: 'unknown', value: 0 }, makeBaseAction())).toBe(false));
 });
 
 // ─── onEvent — agent_action_request ──────────────────────────────────────────

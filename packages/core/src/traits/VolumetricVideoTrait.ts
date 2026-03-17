@@ -73,7 +73,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
       bufferedFrames: 0,
       isLoaded: false,
     };
-    (node as any).__volumetricVideoState = state;
+    node.__volumetricVideoState = state;
 
     if (config.source) {
       if (config.preload) {
@@ -89,16 +89,16 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__volumetricVideoState as VolumetricVideoState;
+    const state = node.__volumetricVideoState as VolumetricVideoState;
     if (state?.playbackState === 'playing') {
       context.emit?.('volumetric_stop', { node });
     }
     context.emit?.('volumetric_unload', { node });
-    delete (node as any).__volumetricVideoState;
+    delete node.__volumetricVideoState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__volumetricVideoState as VolumetricVideoState;
+    const state = node.__volumetricVideoState as VolumetricVideoState;
     if (!state || state.playbackState !== 'playing') return;
 
     // Advance playback
@@ -148,7 +148,7 @@ export const volumetricVideoHandler: TraitHandler<VolumetricVideoConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__volumetricVideoState as VolumetricVideoState;
+    const state = node.__volumetricVideoState as VolumetricVideoState;
     if (!state) return;
 
     if (event.type === 'volumetric_play') {

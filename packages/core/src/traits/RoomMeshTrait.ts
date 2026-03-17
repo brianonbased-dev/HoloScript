@@ -143,7 +143,7 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
       physicsColliderIds: [],
       lastUpdateTime: 0,
     };
-    (node as any).__roomMeshState = state;
+    node.__roomMeshState = state;
 
     context.emit?.('room_mesh_start', {
       node,
@@ -155,7 +155,7 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__roomMeshState as RoomMeshState;
+    const state = node.__roomMeshState as RoomMeshState;
     if (state) {
       for (const colliderId of state.physicsColliderIds) {
         context.emit?.('physics_remove_collider', { colliderId });
@@ -167,11 +167,11 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
         context.emit?.('room_mesh_stop', { node });
       }
     }
-    delete (node as any).__roomMeshState;
+    delete node.__roomMeshState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__roomMeshState as RoomMeshState;
+    const state = node.__roomMeshState as RoomMeshState;
     if (!state || !state.isScanning) return;
 
     const now = Date.now();
@@ -183,7 +183,7 @@ export const roomMeshHandler: TraitHandler<RoomMeshConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__roomMeshState as RoomMeshState;
+    const state = node.__roomMeshState as RoomMeshState;
     if (!state) return;
 
     if (event.type === 'mesh_block_update') {

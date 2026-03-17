@@ -72,7 +72,7 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
       connectionHandle: null,
       historyBuffer: [],
     };
-    (node as any).__digitalTwinState = state;
+    node.__digitalTwinState = state;
 
     if (!config.simulation_mode && config.physical_id) {
       connectToPhysical(node, state, config, context);
@@ -90,15 +90,15 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__digitalTwinState as DigitalTwinState;
+    const state = node.__digitalTwinState as DigitalTwinState;
     if (state?.connectionHandle) {
       context.emit?.('twin_disconnect', { node });
     }
-    delete (node as any).__digitalTwinState;
+    delete node.__digitalTwinState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__digitalTwinState as DigitalTwinState;
+    const state = node.__digitalTwinState as DigitalTwinState;
     if (!state) return;
 
     // Poll for updates
@@ -145,7 +145,7 @@ export const digitalTwinHandler: TraitHandler<DigitalTwinConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__digitalTwinState as DigitalTwinState;
+    const state = node.__digitalTwinState as DigitalTwinState;
     if (!state) return;
 
     if (event.type === 'twin_connected') {

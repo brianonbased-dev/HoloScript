@@ -56,7 +56,7 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
       originalAnimations: new Map(),
       velocityBuffer: [],
     };
-    (node as any).__motionReducedState = state;
+    node.__motionReducedState = state;
 
     // Check system preference
     if (config.auto_detect) {
@@ -78,7 +78,7 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__motionReducedState as MotionReducedState;
+    const state = node.__motionReducedState as MotionReducedState;
 
     // Restore original animations
     if (state?.isActive && state.originalAnimations.size > 0) {
@@ -89,11 +89,11 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
     }
 
     context.emit?.('motion_reduced_unregister', { node });
-    delete (node as any).__motionReducedState;
+    delete node.__motionReducedState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__motionReducedState as MotionReducedState;
+    const state = node.__motionReducedState as MotionReducedState;
     if (!state || !state.isActive) return;
 
     // Velocity limiting
@@ -125,7 +125,7 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__motionReducedState as MotionReducedState;
+    const state = node.__motionReducedState as MotionReducedState;
     if (!state) return;
 
     if (event.type === 'motion_reduced_system_preference') {

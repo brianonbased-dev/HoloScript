@@ -83,7 +83,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
       retrieved_chunks: [],
       is_indexing: false,
     };
-    (node as any).__ragState = state;
+    node.__ragState = state;
 
     context.emit?.('rag_init', {
       node,
@@ -102,7 +102,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__ragState as RAGState;
+    const state = node.__ragState as RAGState;
 
     // Optionally persist indexed documents
     context.emit?.('rag_persist', {
@@ -110,7 +110,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
       documents: Array.from(state?.indexed_documents.values()),
     });
 
-    delete (node as any).__ragState;
+    delete node.__ragState;
   },
 
   onUpdate(node, config, context, delta) {
@@ -118,7 +118,7 @@ export const ragKnowledgeHandler: TraitHandler<RAGConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__ragState as RAGState;
+    const state = node.__ragState as RAGState;
     if (!state) return;
 
     if (event.type === 'rag_ingest_document') {

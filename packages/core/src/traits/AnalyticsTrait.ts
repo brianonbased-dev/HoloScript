@@ -387,7 +387,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
       stutterCount: 0,
       traceIdCounter: 0,
     };
-    (node as any).__analyticsState = state;
+    node.__analyticsState = state;
 
     // Start root trace span for scene lifetime
     const rootSpan = createSpan(state, config, 'scene_lifecycle', null);
@@ -403,7 +403,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__analyticsState as AnalyticsState;
+    const state = node.__analyticsState as AnalyticsState;
     if (!state) return;
 
     // Close all active spans
@@ -461,11 +461,11 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
       });
     }
 
-    delete (node as any).__analyticsState;
+    delete node.__analyticsState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__analyticsState as AnalyticsState;
+    const state = node.__analyticsState as AnalyticsState;
     if (!state || !state.isCollecting) return;
 
     const now = Date.now();
@@ -636,7 +636,7 @@ export const analyticsHandler: TraitHandler<AnalyticsConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__analyticsState as AnalyticsState;
+    const state = node.__analyticsState as AnalyticsState;
     if (!state) return;
 
     // --- Render stats response ---

@@ -438,7 +438,7 @@ export class NetworkedTrait {
         from: string;
       };
       this.emit('rpcReceived', {
-        type: 'rpcReceived' as any,
+        type: 'rpcReceived',
         property: method,
         value: args,
         peerId: from,
@@ -983,7 +983,7 @@ export class NetworkedTrait {
    * Connect with auto-detection (WebRTC → WebSocket → local)
    */
   public async connectAuto(serverUrl: string): Promise<void> {
-    await this.connect('auto' as any, serverUrl);
+    await this.connect('auto', serverUrl);
   }
 
   /**

@@ -78,7 +78,7 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
       lastGazePosition: [(pos as any)[0] || 0, (pos as any)[1] || 0, (pos as any)[2] || 0],
       smoothPosition: [(pos as any)[0] || 0, (pos as any)[1] || 0, (pos as any)[2] || 0],
     };
-    (node as any).__eyeTrackedState = state;
+    node.__eyeTrackedState = state;
 
     // Register for foveated rendering
     context.emit('register_foveated', {
@@ -88,7 +88,7 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__eyeTrackedState as EyeTrackedState;
+    const state = node.__eyeTrackedState as EyeTrackedState;
 
     // Restore original properties
     if (state && node.properties) {
@@ -101,11 +101,11 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
     // Unregister from foveated rendering
     context.emit('unregister_foveated', { node });
 
-    delete (node as any).__eyeTrackedState;
+    delete node.__eyeTrackedState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__eyeTrackedState as EyeTrackedState;
+    const state = node.__eyeTrackedState as EyeTrackedState;
     if (!state) return;
 
     // Get eye gaze data from VR context
@@ -198,19 +198,19 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__eyeTrackedState as EyeTrackedState;
+    const state = node.__eyeTrackedState as EyeTrackedState;
     if (!state) return;
 
     // Handle manual gaze simulation (for testing/accessibility)
-    if ((event as any).type === 'simulate_gaze') {
-      state.isGazed = (event as any).active;
+    if ((event as Record<string, unknown>).type === 'simulate_gaze') {
+      state.isGazed = (event as Record<string, unknown>).active;
       if (state.isGazed) {
         state.gazeStartTime = Date.now();
       }
     }
 
     // Handle dwell cancel
-    if ((event as any).type === 'cancel_dwell') {
+    if ((event as Record<string, unknown>).type === 'cancel_dwell') {
       state.dwellProgress = 0;
       state.gazeStartTime = Date.now();
     }

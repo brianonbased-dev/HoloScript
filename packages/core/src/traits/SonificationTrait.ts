@@ -116,7 +116,7 @@ export const sonificationHandler: TraitHandler<SonificationConfig> = {
       currentPan: 0,
       lastDataUpdate: 0,
     };
-    (node as any).__sonificationState = state;
+    node.__sonificationState = state;
 
     // Create audio nodes
     context.emit?.('sonification_create', {
@@ -129,16 +129,16 @@ export const sonificationHandler: TraitHandler<SonificationConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__sonificationState as SonificationState;
+    const state = node.__sonificationState as SonificationState;
     if (state?.isActive) {
       context.emit?.('sonification_stop', { node });
     }
     context.emit?.('sonification_destroy', { node });
-    delete (node as any).__sonificationState;
+    delete node.__sonificationState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__sonificationState as SonificationState;
+    const state = node.__sonificationState as SonificationState;
     if (!state || !state.isActive) return;
 
     // Continuous mode - keep updating audio parameters
@@ -153,7 +153,7 @@ export const sonificationHandler: TraitHandler<SonificationConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__sonificationState as SonificationState;
+    const state = node.__sonificationState as SonificationState;
     if (!state) return;
 
     if (event.type === 'sonification_data_update') {

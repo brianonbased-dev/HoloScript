@@ -68,7 +68,7 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
       indices: null,
       service: new SplatProcessingService(),
     };
-    (node as any).__volumetricState = state;
+    node.__volumetricState = state;
 
     if (config.src) {
       context.emit?.('volumetric_load_start', { node, src: config.src });
@@ -76,15 +76,15 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__volumetricState as VolumetricState;
+    const state = node.__volumetricState as VolumetricState;
     if (state?.isLoaded) {
       context.emit?.('volumetric_unload', { node });
     }
-    delete (node as any).__volumetricState;
+    delete node.__volumetricState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__volumetricState as VolumetricState;
+    const state = node.__volumetricState as VolumetricState;
     if (!state || !state.isLoaded || !state.splatData) return;
 
     // Optional: Trigger re-sort if camera moved significantly
@@ -97,7 +97,7 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__volumetricState as VolumetricState;
+    const state = node.__volumetricState as VolumetricState;
     if (!state) return;
 
     if (event.type === 'volumetric_data_ready') {
@@ -147,7 +147,7 @@ export const volumetricHandler: TraitHandler<VolumetricConfig> = {
         context.emit?.('volumetric_ray_hit', {
           node,
           hit,
-          queryId: (event as any).queryId,
+          queryId: (event as Record<string, unknown>).queryId,
         });
       }
     }

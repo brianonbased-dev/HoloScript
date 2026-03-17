@@ -75,7 +75,7 @@ export const photogrammetryHandler: TraitHandler<PhotogrammetryConfig> = {
       boundingBox: null,
       textureResolution: config.texture_resolution,
     };
-    (node as any).__photogrammetryState = state;
+    node.__photogrammetryState = state;
 
     // Initialize photogrammetry processor
     context.emit?.('photogrammetry_init', {
@@ -88,11 +88,11 @@ export const photogrammetryHandler: TraitHandler<PhotogrammetryConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__photogrammetryState as PhotogrammetryState;
+    const state = node.__photogrammetryState as PhotogrammetryState;
     if (state?.meshHandle) {
       context.emit?.('photogrammetry_destroy', { node });
     }
-    delete (node as any).__photogrammetryState;
+    delete node.__photogrammetryState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -100,7 +100,7 @@ export const photogrammetryHandler: TraitHandler<PhotogrammetryConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__photogrammetryState as PhotogrammetryState;
+    const state = node.__photogrammetryState as PhotogrammetryState;
     if (!state) return;
 
     if (event.type === 'photogrammetry_add_images') {

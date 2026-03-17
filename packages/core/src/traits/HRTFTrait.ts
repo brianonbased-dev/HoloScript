@@ -68,7 +68,7 @@ export const hrtfHandler: TraitHandler<HRTFConfig> = {
       listenerPosition: { x: 0, y: 0, z: 0 },
       listenerOrientation: { forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } },
     };
-    (node as any).__hrtfState = state;
+    node.__hrtfState = state;
 
     // Request HRTF database load
     if (config.custom_sofa_url) {
@@ -96,11 +96,11 @@ export const hrtfHandler: TraitHandler<HRTFConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('hrtf_disable', { node });
-    delete (node as any).__hrtfState;
+    delete node.__hrtfState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__hrtfState as HRTFState;
+    const state = node.__hrtfState as HRTFState;
     if (!state || !state.isActive) return;
 
     // Profile change
@@ -115,7 +115,7 @@ export const hrtfHandler: TraitHandler<HRTFConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__hrtfState as HRTFState;
+    const state = node.__hrtfState as HRTFState;
     if (!state) return;
 
     if (event.type === 'hrtf_database_loaded') {

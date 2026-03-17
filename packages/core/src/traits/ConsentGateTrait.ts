@@ -76,7 +76,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
       auditLog: [],
       pendingPromise: false,
     };
-    (node as any).__consentGateState = state;
+    node.__consentGateState = state;
 
     // Emit a request event so the UX layer can present a consent dialog
     context.emit?.('consent_requested', {
@@ -92,15 +92,15 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__consentGateState as ConsentGateState;
+    const state = node.__consentGateState as ConsentGateState;
     if (state?.status === 'granted') {
       context.emit?.('consent_revoked', { node, reason: 'detach' });
     }
-    delete (node as any).__consentGateState;
+    delete node.__consentGateState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = (node as any).__consentGateState as ConsentGateState;
+    const state = node.__consentGateState as ConsentGateState;
     if (!state || state.status !== 'granted') return;
 
     // Check expiry
@@ -114,7 +114,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__consentGateState as ConsentGateState;
+    const state = node.__consentGateState as ConsentGateState;
     if (!state) return;
 
     if (event.type === 'consent_grant') {
@@ -210,7 +210,7 @@ export const consentGateHandler: TraitHandler<ConsentGateConfig> = {
  * Returns false if even one scope is not covered.
  */
 export function isConsentGranted(node: unknown, requiredScopes: ConsentScope[]): boolean {
-  const state = (node as any).__consentGateState as ConsentGateState | undefined;
+  const state = node.__consentGateState as ConsentGateState | undefined;
   if (!state || state.status !== 'granted') return false;
   // All required scopes must be a subset of the granted config scopes
   return true; // Scope check delegated to config validation at attach time

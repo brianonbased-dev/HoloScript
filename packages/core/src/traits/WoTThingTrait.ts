@@ -76,7 +76,7 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
       cachedTD: null,
       validationErrors: [],
     };
-    (node as any).__wotThingState = state;
+    node.__wotThingState = state;
 
     // Emit attach event for tracking
     context.emit('wot_thing_attached', {
@@ -94,27 +94,27 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__wotThingState as WoTThingState | undefined;
+    const state = node.__wotThingState as WoTThingState | undefined;
     if (state) {
       context.emit('wot_thing_detached', {
         nodeId: node.name,
       });
     }
-    delete (node as any).__wotThingState;
+    delete node.__wotThingState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__wotThingState as WoTThingState | undefined;
+    const state = node.__wotThingState as WoTThingState | undefined;
     if (!state) return;
 
     // Check if state has changed and TD needs regeneration
     const nodeState = context.getState();
     const stateHash = JSON.stringify(nodeState);
-    const cachedHash = (node as any).__wotThingStateHash;
+    const cachedHash = node.__wotThingStateHash;
     const hadPreviousHash = cachedHash !== undefined;
 
     if (stateHash !== cachedHash) {
-      (node as any).__wotThingStateHash = stateHash;
+      node.__wotThingStateHash = stateHash;
 
       // Mark TD as stale only if we had a previous hash (not the first update)
       if (hadPreviousHash && state.tdGenerated) {
@@ -127,7 +127,7 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__wotThingState as WoTThingState | undefined;
+    const state = node.__wotThingState as WoTThingState | undefined;
     if (!state) return;
 
     // Handle generation request
@@ -142,8 +142,8 @@ export const wotThingHandler: TraitHandler<WoTThingConfig> = {
     if (event.type === 'wot_td_generated') {
       state.tdGenerated = true;
       state.lastGenerated = Date.now();
-      state.cachedTD = (event as any).td || null;
-      state.validationErrors = (event as any).errors || [];
+      state.cachedTD = (event as Record<string, unknown>).td || null;
+      state.validationErrors = (event as Record<string, unknown>).errors || [];
     }
   },
 };

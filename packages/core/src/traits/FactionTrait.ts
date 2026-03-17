@@ -124,7 +124,7 @@ export const factionHandler: TraitHandler<FactionConfig> = {
       history: [],
       decayTimer: 0,
     };
-    (node as any).__factionState = state;
+    node.__factionState = state;
 
     // Register in global faction registry
     context.emit?.('faction_registered', {
@@ -137,11 +137,11 @@ export const factionHandler: TraitHandler<FactionConfig> = {
     context.emit?.('faction_unregistered', {
       factionId: config.faction_id,
     });
-    delete (node as any).__factionState;
+    delete node.__factionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__factionState as FactionState;
+    const state = node.__factionState as FactionState;
     if (!state) return;
 
     // Decay timer
@@ -177,7 +177,7 @@ export const factionHandler: TraitHandler<FactionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__factionState as FactionState;
+    const state = node.__factionState as FactionState;
     if (!state) return;
 
     if (event.type === 'reputation_change') {

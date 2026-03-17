@@ -108,7 +108,7 @@ interface NetworkedHandlerConfig {
 // =============================================================================
 
 export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
-  name: 'networked' as any,
+  name: 'networked',
 
   defaultConfig: {
     mode: 'owner',
@@ -326,7 +326,7 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
       // W.NET.05: Separate event type for AI agent state
       case 'networked:remote_state':
       case 'networked:agent_state': {
-        const data = (event as any).data || (event as any);
+        const data = (event as Record<string, unknown>).data || (event as any);
         if (!trait.isLocalOwner()) {
           trait.applyState(data);
         }
@@ -335,13 +335,13 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
 
       // Ownership granted by server/host
       case 'networked:authority_granted': {
-        trait.setOwner(true, (event as any).peerId);
+        trait.setOwner(true, (event as Record<string, unknown>).peerId);
         break;
       }
 
       // Ownership revoked
       case 'networked:authority_revoked': {
-        trait.setOwner(false, (event as any).peerId);
+        trait.setOwner(false, (event as Record<string, unknown>).peerId);
         break;
       }
     }

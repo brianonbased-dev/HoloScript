@@ -144,7 +144,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       centerOfMass: { x: 0, y: 0, z: 0 },
       solver: null,
     };
-    (node as any).__softBodyState = state;
+    node.__softBodyState = state;
 
     // Build solver particles from mesh data
     const { particles, constraints } = autoPopulateFromMesh(node, config);
@@ -156,15 +156,15 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__softBodyState as SoftBodyState;
+    const state = node.__softBodyState as SoftBodyState;
     if (state?.isSimulating) {
       context.emit?.('soft_body_destroy', { node });
     }
-    delete (node as any).__softBodyState;
+    delete node.__softBodyState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__softBodyState as SoftBodyState;
+    const state = node.__softBodyState as SoftBodyState;
     if (!state || !state.isSimulating) return;
 
     // Step simulation
@@ -200,7 +200,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__softBodyState as SoftBodyState;
+    const state = node.__softBodyState as SoftBodyState;
     if (!state) return;
 
     if (event.type === 'soft_body_vertex_update') {

@@ -99,7 +99,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
       target_pose: null,
       blend_accumulator: 0,
     };
-    (node as any).__neuralAnimationState = state;
+    node.__neuralAnimationState = state;
 
     context.emit?.('neural_animation_init', {
       node,
@@ -109,11 +109,11 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
   },
 
   onDetach(node, config, context) {
-    delete (node as any).__neuralAnimationState;
+    delete node.__neuralAnimationState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__neuralAnimationState as NeuralAnimationState;
+    const state = node.__neuralAnimationState as NeuralAnimationState;
     if (!state || !state.target_pose) return;
 
     // Smooth interpolation to target pose
@@ -142,7 +142,7 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__neuralAnimationState as NeuralAnimationState;
+    const state = node.__neuralAnimationState as NeuralAnimationState;
     if (!state) return;
 
     if (event.type === 'neural_animation_synthesize') {

@@ -73,19 +73,19 @@ export const alertHandler: TraitHandler<AlertConfig> = {
       activeAlerts: new Map(),
       isOnCooldown: false,
     };
-    (node as any).__alertState = state;
+    node.__alertState = state;
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__alertState as AlertState;
+    const state = node.__alertState as AlertState;
     if (state?.activeAlerts.size > 0) {
       context.emit?.('alert_dismiss_all', { node });
     }
-    delete (node as any).__alertState;
+    delete node.__alertState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__alertState as AlertState;
+    const state = node.__alertState as AlertState;
     if (!state) return;
 
     // Check cooldown
@@ -109,7 +109,7 @@ export const alertHandler: TraitHandler<AlertConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__alertState as AlertState;
+    const state = node.__alertState as AlertState;
     if (!state) return;
 
     if (event.type === 'alert_trigger') {

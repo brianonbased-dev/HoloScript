@@ -83,7 +83,7 @@ export const windHandler: TraitHandler<WindConfig> = {
       time: 0,
       isActive: true,
     };
-    (node as any).__windState = state;
+    node.__windState = state;
 
     // Register wind zone with physics system via event
     context.emit?.('register_wind_zone', {
@@ -95,11 +95,11 @@ export const windHandler: TraitHandler<WindConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('unregister_wind_zone', { node });
-    delete (node as any).__windState;
+    delete node.__windState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__windState as WindState;
+    const state = node.__windState as WindState;
     if (!state || !state.isActive) return;
 
     state.time += delta;
@@ -161,7 +161,7 @@ export const windHandler: TraitHandler<WindConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__windState as WindState;
+    const state = node.__windState as WindState;
     if (!state) return;
 
     if (event.type === 'set_wind_direction') {

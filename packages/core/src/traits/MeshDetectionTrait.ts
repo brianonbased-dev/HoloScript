@@ -89,7 +89,7 @@ export const meshDetectionHandler: TraitHandler<MeshDetectionConfig> = {
       scanProgress: 0,
       physicsColliderIds: [],
     };
-    (node as any).__meshDetectionState = state;
+    node.__meshDetectionState = state;
 
     context.emit?.('mesh_detection_start', {
       node,
@@ -101,7 +101,7 @@ export const meshDetectionHandler: TraitHandler<MeshDetectionConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__meshDetectionState as MeshDetectionState;
+    const state = node.__meshDetectionState as MeshDetectionState;
     if (state) {
       for (const colliderId of state.physicsColliderIds) {
         context.emit?.('physics_remove_collider', { colliderId });
@@ -113,11 +113,11 @@ export const meshDetectionHandler: TraitHandler<MeshDetectionConfig> = {
         context.emit?.('mesh_detection_stop', { node });
       }
     }
-    delete (node as any).__meshDetectionState;
+    delete node.__meshDetectionState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__meshDetectionState as MeshDetectionState;
+    const state = node.__meshDetectionState as MeshDetectionState;
     if (!state || !state.isScanning) return;
 
     const now = Date.now();
@@ -133,7 +133,7 @@ export const meshDetectionHandler: TraitHandler<MeshDetectionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__meshDetectionState as MeshDetectionState;
+    const state = node.__meshDetectionState as MeshDetectionState;
     if (!state) return;
 
     if (event.type === 'mesh_block_update') {

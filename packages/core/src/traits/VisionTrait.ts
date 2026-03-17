@@ -52,16 +52,16 @@ export const visionHandler: TraitHandler<VisionConfig> = {
       isScanning: config.auto_scan,
       lastScan: 0,
     };
-    (node as any).__visionState = state;
+    node.__visionState = state;
     context.emit?.('vision_system_online', { node });
   },
 
   onDetach(node) {
-    delete (node as any).__visionState;
+    delete node.__visionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__visionState;
+    const state = node.__visionState;
     if (!state || !state.isScanning) return;
 
     state.lastScan += delta * 1000;

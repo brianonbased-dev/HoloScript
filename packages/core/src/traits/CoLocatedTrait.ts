@@ -77,7 +77,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
       alignmentQuality: 0,
       lastAlignmentTime: 0,
     };
-    (node as any).__coLocatedState = state;
+    node.__coLocatedState = state;
 
     // Show visual indicator
     if (config.visual_indicator) {
@@ -101,7 +101,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__coLocatedState as CoLocatedState;
+    const state = node.__coLocatedState as CoLocatedState;
 
     // Leave session
     if (state?.isAligned) {
@@ -115,11 +115,11 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
       context.emit?.('co_located_hide_indicator', { node });
     }
 
-    delete (node as any).__coLocatedState;
+    delete node.__coLocatedState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__coLocatedState as CoLocatedState;
+    const state = node.__coLocatedState as CoLocatedState;
     if (!state || !state.isAligned) return;
 
     // Check for realignment need
@@ -144,7 +144,7 @@ export const coLocatedHandler: TraitHandler<CoLocatedConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__coLocatedState as CoLocatedState;
+    const state = node.__coLocatedState as CoLocatedState;
     if (!state) return;
 
     if (event.type === 'co_located_aligned') {

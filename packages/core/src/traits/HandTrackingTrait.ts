@@ -168,7 +168,7 @@ export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
       rightGrabbing: false,
       updateAccum: 0,
     };
-    (node as any).__handTrackingState = state;
+    node.__handTrackingState = state;
 
     // Register for hand tracking updates
     context.emit?.('hand_tracking_register', { node });
@@ -176,11 +176,11 @@ export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('hand_tracking_unregister', { node });
-    delete (node as any).__handTrackingState;
+    delete node.__handTrackingState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__handTrackingState as HandTrackingState;
+    const state = node.__handTrackingState as HandTrackingState;
     if (!state) return;
 
     // Rate limiting
@@ -271,7 +271,7 @@ export const handTrackingHandler: TraitHandler<HandTrackingConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__handTrackingState as HandTrackingState;
+    const state = node.__handTrackingState as HandTrackingState;
     if (!state) return;
 
     if (event.type === 'hand_data') {

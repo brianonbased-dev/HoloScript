@@ -292,7 +292,7 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
 
   onAttach(node: HSPlusNode, config: GLTFConfig, context: TraitContext) {
     const state = createInitialState();
-    (node as any).__gltfState = state;
+    node.__gltfState = state;
 
     // Start loading if source is provided
     if (config.source) {
@@ -301,7 +301,7 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
   },
 
   onDetach(node: HSPlusNode, config: GLTFConfig, context: TraitContext) {
-    const state = (node as any).__gltfState as GLTFState | undefined;
+    const state = node.__gltfState as GLTFState | undefined;
     if (!state) return;
 
     // Stop all animations
@@ -315,11 +315,11 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
       });
     }
 
-    delete (node as any).__gltfState;
+    delete node.__gltfState;
   },
 
   onUpdate(node: HSPlusNode, config: GLTFConfig, context: TraitContext, delta: number) {
-    const state = (node as any).__gltfState as GLTFState | undefined;
+    const state = node.__gltfState as GLTFState | undefined;
     if (!state || !state.isLoaded) return;
 
     // Update animations
@@ -360,7 +360,7 @@ export const gltfHandler: TraitHandler<GLTFConfig> = {
   },
 
   onEvent(node: HSPlusNode, config: GLTFConfig, context: TraitContext, event: any) {
-    const state = (node as any).__gltfState as GLTFState | undefined;
+    const state = node.__gltfState as GLTFState | undefined;
     if (!state) return;
 
     switch (event.type) {
@@ -604,7 +604,7 @@ function setMorphWeight(state: GLTFState, target: string, weight: number): void 
  * Get GLTF state from a node
  */
 export function getGLTFState(node: HSPlusNode): GLTFState | undefined {
-  return (node as any).__gltfState;
+  return node.__gltfState;
 }
 
 /**

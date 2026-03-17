@@ -122,7 +122,7 @@ export const poseEstimationHandler: TraitHandler<PoseEstimationConfig> = {
       last_detection_time: 0,
       smoothing_buffer: [],
     };
-    (node as any).__poseEstimationState = state;
+    node.__poseEstimationState = state;
 
     context.emit?.('pose_estimation_init', {
       node,
@@ -132,7 +132,7 @@ export const poseEstimationHandler: TraitHandler<PoseEstimationConfig> = {
   },
 
   onDetach(node, config, context) {
-    delete (node as any).__poseEstimationState;
+    delete node.__poseEstimationState;
   },
 
   onUpdate(node, config, context, delta) {
@@ -140,7 +140,7 @@ export const poseEstimationHandler: TraitHandler<PoseEstimationConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__poseEstimationState as PoseState;
+    const state = node.__poseEstimationState as PoseState;
     if (!state) return;
 
     if (event.type === 'pose_detected') {

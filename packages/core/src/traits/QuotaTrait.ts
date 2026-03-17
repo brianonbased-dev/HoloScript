@@ -298,7 +298,7 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
       state.notificationsSent.set(resource, new Set());
     }
 
-    (node as any).__quotaState = state;
+    node.__quotaState = state;
 
     context.emit('quota_initialized', {
       node,
@@ -314,7 +314,7 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__quotaState as QuotaState | undefined;
+    const state = node.__quotaState as QuotaState | undefined;
     if (state) {
       context.emit('audit_log', {
         action: 'quota.teardown',
@@ -328,11 +328,11 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
         timestamp: new Date().toISOString(),
       });
     }
-    delete (node as any).__quotaState;
+    delete node.__quotaState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__quotaState as QuotaState | undefined;
+    const state = node.__quotaState as QuotaState | undefined;
     if (!state || !config.enabled) return;
 
     // Check for quota resets
@@ -386,13 +386,13 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__quotaState as QuotaState | undefined;
+    const state = node.__quotaState as QuotaState | undefined;
     if (!state) return;
 
     if (event.type === 'quota_consume') {
-      const resource = (event as any).resource as QuotaResource;
-      const amount = ((event as any).amount as number) || 1;
-      const userId = (event as any).userId as string | undefined;
+      const resource = (event as Record<string, unknown>).resource as QuotaResource;
+      const amount = ((event as Record<string, unknown>).amount as number) || 1;
+      const userId = (event as Record<string, unknown>).userId as string | undefined;
 
       if (!resource) return;
 
@@ -518,8 +518,8 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
         hardLimit: limit.hardLimit,
       });
     } else if (event.type === 'quota_release') {
-      const resource = (event as any).resource as QuotaResource;
-      const amount = ((event as any).amount as number) || 1;
+      const resource = (event as Record<string, unknown>).resource as QuotaResource;
+      const amount = ((event as Record<string, unknown>).amount as number) || 1;
 
       if (!resource) return;
 
@@ -553,8 +553,8 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
         newUsage: limit.currentUsage,
       });
     } else if (event.type === 'quota_set_limit') {
-      const resource = (event as any).resource as QuotaResource;
-      const newLimit = (event as any).limit as number;
+      const resource = (event as Record<string, unknown>).resource as QuotaResource;
+      const newLimit = (event as Record<string, unknown>).limit as number;
 
       if (!resource || newLimit === undefined) return;
 
@@ -588,7 +588,7 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'quota_apply_tier') {
-      const tier = (event as any).tier as string;
+      const tier = (event as Record<string, unknown>).tier as string;
       const tierDefaults = TIER_DEFAULTS[tier];
 
       if (!tierDefaults) {
@@ -643,13 +643,13 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'quota_query') {
-      const resource = (event as any).resource as QuotaResource | undefined;
+      const resource = (event as Record<string, unknown>).resource as QuotaResource | undefined;
 
       if (resource) {
         const limit = state.limits.get(resource);
         if (limit) {
           context.emit('quota_info', {
-            queryId: (event as any).queryId,
+            queryId: (event as Record<string, unknown>).queryId,
             node,
             tenantId: config.tenantId,
             resource,
@@ -671,15 +671,15 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
           };
         }
         context.emit('quota_info', {
-          queryId: (event as any).queryId,
+          queryId: (event as Record<string, unknown>).queryId,
           node,
           tenantId: config.tenantId,
           limits: allLimits,
         });
       }
     } else if (event.type === 'quota_usage_report') {
-      const resource = (event as any).resource as QuotaResource | undefined;
-      const limit = ((event as any).limit as number) || 100;
+      const resource = (event as Record<string, unknown>).resource as QuotaResource | undefined;
+      const limit = ((event as Record<string, unknown>).limit as number) || 100;
 
       let history = state.usageHistory;
       if (resource) {
@@ -687,7 +687,7 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
       }
 
       context.emit('quota_usage_report_result', {
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         node,
         tenantId: config.tenantId,
         records: history.slice(-limit),

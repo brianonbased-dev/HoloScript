@@ -169,7 +169,7 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
       eventHistory: [],
       registry: null,
     };
-    (node as any).__agentDiscoveryState = state;
+    node.__agentDiscoveryState = state;
 
     // Get or create registry
     state.registry = getDefaultRegistry(config.registry_config || undefined);
@@ -208,7 +208,7 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__agentDiscoveryState as AgentDiscoveryState;
+    const state = node.__agentDiscoveryState as AgentDiscoveryState;
     if (!state) return;
 
     // Stop timers
@@ -236,11 +236,11 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
       agentId: state.manifest?.id,
     });
 
-    delete (node as any).__agentDiscoveryState;
+    delete node.__agentDiscoveryState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__agentDiscoveryState as AgentDiscoveryState;
+    const state = node.__agentDiscoveryState as AgentDiscoveryState;
     if (!state) return;
 
     // Heartbeat on each update cycle if registered
@@ -250,11 +250,11 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__agentDiscoveryState as AgentDiscoveryState;
+    const state = node.__agentDiscoveryState as AgentDiscoveryState;
     if (!state) return;
 
     // Handle custom agent discovery events
-    const eventType = (event as any).type as string;
+    const eventType = (event as Record<string, unknown>).type as string;
 
     switch (eventType) {
       case 'agent_register':
@@ -270,7 +270,7 @@ export const agentDiscoveryHandler: TraitHandler<AgentDiscoveryConfig> = {
         break;
 
       case 'agent_query': {
-        const query = (event as any).query as CapabilityQuery;
+        const query = (event as Record<string, unknown>).query as CapabilityQuery;
         if (query) {
           runQuery(state, query, context);
         }

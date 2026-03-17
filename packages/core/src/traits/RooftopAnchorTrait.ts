@@ -64,7 +64,7 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
       confidence: 0,
       anchorHandle: null,
     };
-    (node as any).__rooftopAnchorState = state;
+    node.__rooftopAnchorState = state;
 
     if (config.auto_resolve) {
       state.state = 'resolving';
@@ -81,15 +81,15 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__rooftopAnchorState as RooftopAnchorState;
+    const state = node.__rooftopAnchorState as RooftopAnchorState;
     if (state?.anchorHandle) {
       context.emit?.('rooftop_anchor_release', { node, handle: state.anchorHandle });
     }
-    delete (node as any).__rooftopAnchorState;
+    delete node.__rooftopAnchorState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = (node as any).__rooftopAnchorState as RooftopAnchorState;
+    const state = node.__rooftopAnchorState as RooftopAnchorState;
     if (!state) return;
 
     // Apply position from resolved anchor
@@ -103,7 +103,7 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__rooftopAnchorState as RooftopAnchorState;
+    const state = node.__rooftopAnchorState as RooftopAnchorState;
     if (!state) return;
 
     if (event.type === 'rooftop_anchor_resolved') {

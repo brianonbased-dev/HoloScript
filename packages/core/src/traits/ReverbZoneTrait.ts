@@ -79,7 +79,7 @@ export const reverbZoneHandler: TraitHandler<ReverbZoneConfig> = {
       isActive: true,
       convolverLoaded: false,
     };
-    (node as any).__reverbZoneState = state;
+    node.__reverbZoneState = state;
 
     // Register reverb zone
     context.emit?.('reverb_zone_register', {
@@ -98,11 +98,11 @@ export const reverbZoneHandler: TraitHandler<ReverbZoneConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('reverb_zone_unregister', { node });
-    delete (node as any).__reverbZoneState;
+    delete node.__reverbZoneState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__reverbZoneState as ReverbZoneState;
+    const state = node.__reverbZoneState as ReverbZoneState;
     if (!state || !state.isActive) return;
 
     // Smooth blend toward target wet level
@@ -125,7 +125,7 @@ export const reverbZoneHandler: TraitHandler<ReverbZoneConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__reverbZoneState as ReverbZoneState;
+    const state = node.__reverbZoneState as ReverbZoneState;
     if (!state) return;
 
     if (event.type === 'listener_enter_zone') {

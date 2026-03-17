@@ -74,7 +74,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
       breakPoint: null,
       totalLength: config.links * config.link_length,
     };
-    (node as any).__chainState = state;
+    node.__chainState = state;
 
     // Initialize links
     for (let i = 0; i < config.links; i++) {
@@ -117,15 +117,15 @@ export const chainHandler: TraitHandler<ChainConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__chainState as ChainState;
+    const state = node.__chainState as ChainState;
     if (state?.isSimulating) {
       context.emit?.('chain_destroy', { node });
     }
-    delete (node as any).__chainState;
+    delete node.__chainState;
   },
 
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as any).__chainState as ChainState;
+    const state = node.__chainState as ChainState;
     if (!state || !state.isSimulating) return;
 
     // Physics update is handled by physics engine
@@ -133,7 +133,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__chainState as ChainState;
+    const state = node.__chainState as ChainState;
     if (!state) return;
 
     if (event.type === 'chain_link_update') {

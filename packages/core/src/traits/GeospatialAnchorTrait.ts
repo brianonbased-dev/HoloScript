@@ -85,7 +85,7 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
       lastUpdateTime: 0,
       anchorHandle: null,
     };
-    (node as any).__geospatialAnchorState = state;
+    node.__geospatialAnchorState = state;
 
     if (config.auto_resolve) {
       state.state = 'resolving';
@@ -108,18 +108,18 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__geospatialAnchorState as GeospatialAnchorState;
+    const state = node.__geospatialAnchorState as GeospatialAnchorState;
     if (state?.anchorHandle) {
       context.emit?.('geospatial_anchor_release', { node, handle: state.anchorHandle });
     }
     if (config.visual_indicator) {
       context.emit?.('geospatial_indicator_hide', { node });
     }
-    delete (node as any).__geospatialAnchorState;
+    delete node.__geospatialAnchorState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__geospatialAnchorState as GeospatialAnchorState;
+    const state = node.__geospatialAnchorState as GeospatialAnchorState;
     if (!state) return;
 
     state.lastUpdateTime += delta;
@@ -144,7 +144,7 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__geospatialAnchorState as GeospatialAnchorState;
+    const state = node.__geospatialAnchorState as GeospatialAnchorState;
     if (!state) return;
 
     if (event.type === 'geospatial_anchor_resolved') {

@@ -199,18 +199,18 @@ export const goalOrientedHandler: TraitHandler<GOAPConfig> = {
       replanTimer: 0,
       isExecuting: false,
     };
-    (node as any).__goalOrientedState = state;
+    node.__goalOrientedState = state;
 
     // Initial planning
     selectGoalAndPlan(state, config, context, node);
   },
 
   onDetach(node) {
-    delete (node as any).__goalOrientedState;
+    delete node.__goalOrientedState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__goalOrientedState as GOAPState;
+    const state = node.__goalOrientedState as GOAPState;
     if (!state) return;
 
     // Periodic replan
@@ -258,7 +258,7 @@ export const goalOrientedHandler: TraitHandler<GOAPConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__goalOrientedState as GOAPState;
+    const state = node.__goalOrientedState as GOAPState;
     if (!state) return;
 
     if (event.type === 'goap_set_state') {

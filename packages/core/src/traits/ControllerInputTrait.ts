@@ -153,7 +153,7 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
       prevTrigger: { left: false, right: false },
       prevGrip: { left: false, right: false },
     };
-    (node as any).__controllerInputState = state;
+    node.__controllerInputState = state;
 
     // Register for controller input
     context.emit?.('controller_register', { node });
@@ -161,11 +161,11 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('controller_unregister', { node });
-    delete (node as any).__controllerInputState;
+    delete node.__controllerInputState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__controllerInputState as ControllerInputState;
+    const state = node.__controllerInputState as ControllerInputState;
     if (!state) return;
 
     // Process each hand
@@ -279,7 +279,7 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__controllerInputState as ControllerInputState;
+    const state = node.__controllerInputState as ControllerInputState;
     if (!state) return;
 
     if (event.type === 'controller_data') {

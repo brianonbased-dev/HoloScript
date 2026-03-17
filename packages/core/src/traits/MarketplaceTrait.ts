@@ -72,7 +72,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
       auctionEndTime: null,
       ownerAddress: null,
     };
-    (node as any).__marketplaceState = state;
+    node.__marketplaceState = state;
 
     // Connect to marketplace
     context.emit?.('marketplace_connect', {
@@ -84,11 +84,11 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('marketplace_disconnect', { node });
-    delete (node as any).__marketplaceState;
+    delete node.__marketplaceState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__marketplaceState as MarketplaceState;
+    const state = node.__marketplaceState as MarketplaceState;
     if (!state) return;
 
     // Check auction end time
@@ -111,7 +111,7 @@ export const marketplaceHandler: TraitHandler<MarketplaceConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__marketplaceState as MarketplaceState;
+    const state = node.__marketplaceState as MarketplaceState;
     if (!state) return;
 
     if (event.type === 'marketplace_list') {

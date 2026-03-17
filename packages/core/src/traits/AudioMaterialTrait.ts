@@ -80,7 +80,7 @@ export const audioMaterialHandler: TraitHandler<AudioMaterialConfig> = {
       isRegistered: false,
       effectiveAbsorption: 0,
     };
-    (node as any).__audioMaterialState = state;
+    node.__audioMaterialState = state;
 
     // Get absorption from preset or custom
     const absorption =
@@ -104,7 +104,7 @@ export const audioMaterialHandler: TraitHandler<AudioMaterialConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('audio_material_unregister', { node });
-    delete (node as any).__audioMaterialState;
+    delete node.__audioMaterialState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -112,7 +112,7 @@ export const audioMaterialHandler: TraitHandler<AudioMaterialConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__audioMaterialState as AudioMaterialState;
+    const state = node.__audioMaterialState as AudioMaterialState;
     if (!state) return;
 
     if (event.type === 'audio_material_query') {

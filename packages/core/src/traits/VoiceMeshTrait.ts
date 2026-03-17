@@ -46,7 +46,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
       audioContext: null,
       analyzer: null,
     };
-    (node as any).__voiceMeshState = state;
+    node.__voiceMeshState = state;
 
     if (config.auto_connect) {
       this.startLocalStream(node, config, context);
@@ -56,16 +56,16 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
   },
 
   onDetach(node, _config, context) {
-    const state = (node as any).__voiceMeshState as VoiceMeshState;
+    const state = node.__voiceMeshState as VoiceMeshState;
     if (state) {
       state.localStream?.getTracks().forEach((track) => track.stop());
       state.audioContext?.close();
-      delete (node as any).__voiceMeshState;
+      delete node.__voiceMeshState;
     }
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__voiceMeshState as VoiceMeshState;
+    const state = node.__voiceMeshState as VoiceMeshState;
     if (!state || !state.analyzer || state.isMuted) return;
 
     // VAD Logic
@@ -88,7 +88,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__voiceMeshState as VoiceMeshState;
+    const state = node.__voiceMeshState as VoiceMeshState;
     if (!state) return;
 
     if (event.type === 'voice_stream_received') {
@@ -109,7 +109,7 @@ export const voiceMeshHandler: TraitHandler<VoiceMeshConfig> = {
   // --- Helpers ---
 
   async startLocalStream(node: any, config: VoiceMeshConfig, context: any) {
-    const state = (node as any).__voiceMeshState as VoiceMeshState;
+    const state = node.__voiceMeshState as VoiceMeshState;
 
     // In node/test env, navigator might be missing
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) {

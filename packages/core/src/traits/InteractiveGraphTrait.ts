@@ -189,7 +189,7 @@ export const InteractiveGraphTrait: TraitHandler<InteractiveGraphConfig> = {
         break;
 
       case 'graph:select_nodes': {
-        const nodeIds = (event as any).nodeIds as string[] | undefined;
+        const nodeIds = (event as Record<string, unknown>).nodeIds as string[] | undefined;
         if (nodeIds) {
           for (const id of nodeIds) {
             state.selectedNodes.add(id);
@@ -203,7 +203,7 @@ export const InteractiveGraphTrait: TraitHandler<InteractiveGraphConfig> = {
       }
 
       case 'graph:focus_node': {
-        const targetId = (event as any).nodeId as string | undefined;
+        const targetId = (event as Record<string, unknown>).nodeId as string | undefined;
         if (targetId) {
           startFlyTo(state, config, context, targetId);
         }
@@ -286,7 +286,7 @@ function handlePointerClick(
     return;
   }
 
-  const isShift = (event as any).modifiers?.includes('Shift') ?? false;
+  const isShift = (event as Record<string, unknown>).modifiers?.includes('Shift') ?? false;
 
   if (config.multiSelect && isShift) {
     // Additive select

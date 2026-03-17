@@ -138,15 +138,15 @@ export const emotionHandler: TraitHandler<EmotionConfig> = {
       targetPad: { ...defaultPad },
       blendSpeed: 1,
     };
-    (node as any).__emotionState = state;
+    node.__emotionState = state;
   },
 
   onDetach(node) {
-    delete (node as any).__emotionState;
+    delete node.__emotionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__emotionState as EmotionState;
+    const state = node.__emotionState as EmotionState;
     if (!state) return;
 
     const previousEmotion = state.currentEmotion;
@@ -204,7 +204,7 @@ export const emotionHandler: TraitHandler<EmotionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__emotionState as EmotionState;
+    const state = node.__emotionState as EmotionState;
     if (!state) return;
 
     if (event.type === 'feel') {

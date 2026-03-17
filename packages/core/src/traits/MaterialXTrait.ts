@@ -61,7 +61,7 @@ export const materialXHandler: TraitHandler<MaterialXConfig> = {
       inputs: new Map(),
       compiledShader: null,
     };
-    (node as any).__materialXState = state;
+    node.__materialXState = state;
 
     if (config.source) {
       loadMaterialX(node, state, config, context);
@@ -69,11 +69,11 @@ export const materialXHandler: TraitHandler<MaterialXConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__materialXState as MaterialXState;
+    const state = node.__materialXState as MaterialXState;
     if (state?.materialId) {
       context.emit?.('materialx_destroy', { node });
     }
-    delete (node as any).__materialXState;
+    delete node.__materialXState;
   },
 
   onUpdate(_node, _config, _context, _delta) {
@@ -81,7 +81,7 @@ export const materialXHandler: TraitHandler<MaterialXConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__materialXState as MaterialXState;
+    const state = node.__materialXState as MaterialXState;
     if (!state) return;
 
     if (event.type === 'materialx_loaded') {

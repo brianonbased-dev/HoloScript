@@ -55,7 +55,7 @@ const makePartner = (id = 'stripe', overrides: any = {}) => ({
   id,
   name: 'Stripe',
   base_url: 'https://api.stripe.com',
-  auth_mode: 'hmac' as any,
+  auth_mode: 'hmac',
   api_key: 'pk_test',
   secret: 'whsec_test',
   capabilities: ['charge', 'refund'],

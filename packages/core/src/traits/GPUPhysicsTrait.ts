@@ -62,7 +62,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     // 1. Check for Soft Body
     if (config.sim_type === 'soft_body') {
       const softBody = new SoftBodyAdapter(node, config);
-      (node as any).__gpuPhysicsState = {
+      node.__gpuPhysicsState = {
         engineId: 'soft_body_solver',
         isSimulating: true,
         lastPosition: extractPosition(node),
@@ -85,7 +85,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
       lastPosition: [0, 0, 0],
       islandDetector: new IslandDetector(),
     };
-    (node as any).__gpuPhysicsState = state;
+    node.__gpuPhysicsState = state;
 
     // Register body in GPU engine
     engine?.addBody(node.name || '', {
@@ -101,7 +101,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
   },
 
   onDetach(node) {
-    const state = (node as any).__gpuPhysicsState as InternalState;
+    const state = node.__gpuPhysicsState as InternalState;
     if (state) {
       if (state.softBody) {
         // Dispose soft body resources if any
@@ -109,12 +109,12 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
         const engine = getPhysicsEngine(state.engineId);
         engine?.removeBody(node.name || '');
       }
-      delete (node as any).__gpuPhysicsState;
+      delete node.__gpuPhysicsState;
     }
   },
 
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as any).__gpuPhysicsState as InternalState;
+    const state = node.__gpuPhysicsState as InternalState;
     if (!state || !state.isSimulating) return;
 
     // 1. Soft Body Update
@@ -141,7 +141,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__gpuPhysicsState as InternalState;
+    const state = node.__gpuPhysicsState as InternalState;
     if (!state) return;
 
     const eventType = typeof event === 'string' ? event : event.type;
@@ -150,7 +150,7 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
         // Forward force to soft body (Implementation pending in adapter)
       } else {
         const engine = getPhysicsEngine(state.engineId || 'webgpu');
-        engine?.applyForce(node.name || '', (event as any).data.force, (event as any).data.point);
+        engine?.applyForce(node.name || '', (event as Record<string, unknown>).data.force, (event as Record<string, unknown>).data.point);
       }
     }
   },

@@ -113,7 +113,7 @@ export type HoloScriptValue =
   | null
   | undefined
   | HoloScriptValue[]
-  | { [key: string]: any }
+  | { [key: string]: HoloScriptValue }
   // We can include ASTNode if values can be nodes (e.g. templates)
   | ASTNode
   | SpreadExpression
@@ -1415,14 +1415,14 @@ export interface SceneGraphDescriptor {
 
 export interface AnyTraitAnnotation {
   type: string;
-  config: any;
+  config: Record<string, unknown>;
   line?: number;
   column?: number;
 }
 
 export interface EnhancedOrbNode extends OrbNode {
-  graphics?: any;
-  traits?: any;
+  graphics?: Record<string, unknown>;
+  traits?: Map<string, Record<string, unknown>>;
   eventHandlers?: Map<string, string>;
   isCompanion?: boolean;
 }

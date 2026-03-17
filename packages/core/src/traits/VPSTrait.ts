@@ -82,7 +82,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
       },
       localizationAttempts: 0,
     };
-    (node as any).__vpsState = state;
+    node.__vpsState = state;
 
     // Initialize VPS provider
     context.emit?.('vps_init', {
@@ -103,16 +103,16 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__vpsState as VPSState;
+    const state = node.__vpsState as VPSState;
     if (state?.continuousTrackingActive) {
       context.emit?.('vps_stop_tracking', { node });
     }
     context.emit?.('vps_shutdown', { node });
-    delete (node as any).__vpsState;
+    delete node.__vpsState;
   },
 
   onUpdate(node, _config, _context, _delta) {
-    const state = (node as any).__vpsState as VPSState;
+    const state = node.__vpsState as VPSState;
     if (!state) return;
 
     // Apply VPS pose to node
@@ -134,7 +134,7 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__vpsState as VPSState;
+    const state = node.__vpsState as VPSState;
     if (!state) return;
 
     if (event.type === 'vps_coverage_result') {

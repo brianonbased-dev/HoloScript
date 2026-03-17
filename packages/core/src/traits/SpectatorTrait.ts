@@ -62,7 +62,7 @@ export const spectatorHandler: TraitHandler<SpectatorConfig> = {
       followTarget: config.follow_target || null,
       streamDelay: config.delay,
     };
-    (node as any).__spectatorState = state;
+    node.__spectatorState = state;
 
     // Initialize spectator system
     context.emit?.('spectator_init', {
@@ -74,15 +74,15 @@ export const spectatorHandler: TraitHandler<SpectatorConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__spectatorState as SpectatorState;
+    const state = node.__spectatorState as SpectatorState;
     if (state?.spectatorCount > 0) {
       context.emit?.('spectator_end_all', { node });
     }
-    delete (node as any).__spectatorState;
+    delete node.__spectatorState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__spectatorState as SpectatorState;
+    const state = node.__spectatorState as SpectatorState;
     if (!state) return;
 
     // Update follow camera if active
@@ -95,7 +95,7 @@ export const spectatorHandler: TraitHandler<SpectatorConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__spectatorState as SpectatorState;
+    const state = node.__spectatorState as SpectatorState;
     if (!state) return;
 
     if (event.type === 'spectator_join') {

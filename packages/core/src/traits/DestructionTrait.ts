@@ -148,14 +148,14 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
       lastImpactTime: 0,
       chainReactionTriggered: false,
     };
-    (node as any).__destructionState = state;
+    node.__destructionState = state;
 
     // Subscribe to collision events via emit
     context.emit?.('subscribe_collision', { node });
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__destructionState as DestructionState;
+    const state = node.__destructionState as DestructionState;
     if (state?.fragments) {
       // Clean up fragments via emit
       for (const frag of state.fragments) {
@@ -164,11 +164,11 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
         }
       }
     }
-    delete (node as any).__destructionState;
+    delete node.__destructionState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__destructionState as DestructionState;
+    const state = node.__destructionState as DestructionState;
     if (!state) return;
 
     // Update fragments
@@ -234,7 +234,7 @@ export const destructionHandler: TraitHandler<DestructionConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__destructionState as DestructionState;
+    const state = node.__destructionState as DestructionState;
     if (!state) return;
 
     if (event.type === 'damage') {

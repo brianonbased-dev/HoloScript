@@ -256,7 +256,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
       categoryCounts: {},
     };
 
-    (node as any).__auditLogState = state;
+    node.__auditLogState = state;
 
     // Log our own initialization
     const initEntry = createAuditEntry(config, state, {
@@ -275,7 +275,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
   },
 
   onDetach(node, config, _context) {
-    const state = (node as any).__auditLogState as AuditLogState | undefined;
+    const state = node.__auditLogState as AuditLogState | undefined;
     if (state) {
       // Create final entry
       createAuditEntry(config, state, {
@@ -290,11 +290,11 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         actor: { userId: 'system' },
       });
     }
-    delete (node as any).__auditLogState;
+    delete node.__auditLogState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = (node as any).__auditLogState as AuditLogState | undefined;
+    const state = node.__auditLogState as AuditLogState | undefined;
     if (!state || !config.enabled) return;
 
     // Trim entries exceeding max
@@ -320,20 +320,20 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__auditLogState as AuditLogState | undefined;
+    const state = node.__auditLogState as AuditLogState | undefined;
     if (!state) return;
 
     if (event.type === 'audit_log') {
       if (!config.enabled) return;
 
-      const action = (event as any).action as string;
-      const details = ((event as any).details as Record<string, unknown>) || {};
-      const result = ((event as any).result as string) || 'success';
-      const userId = (event as any).userId || (event as any).actorId || 'system';
-      const tenantId = (event as any).tenantId || config.tenantId;
+      const action = (event as Record<string, unknown>).action as string;
+      const details = ((event as Record<string, unknown>).details as Record<string, unknown>) || {};
+      const result = ((event as Record<string, unknown>).result as string) || 'success';
+      const userId = (event as Record<string, unknown>).userId || (event as Record<string, unknown>).actorId || 'system';
+      const tenantId = (event as Record<string, unknown>).tenantId || config.tenantId;
 
       const category = categorizeAction(action);
-      const severity = (event as any).severity || inferSeverity(action, result);
+      const severity = (event as Record<string, unknown>).severity || inferSeverity(action, result);
 
       // Check severity filter
       if (SEVERITY_ORDER[severity as AuditSeverity] < SEVERITY_ORDER[config.minSeverity]) {
@@ -361,11 +361,11 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         details,
         actor: {
           userId,
-          role: (event as any).actorRole,
-          ipAddress: (event as any).ipAddress,
-          sessionId: (event as any).sessionId,
+          role: (event as Record<string, unknown>).actorRole,
+          ipAddress: (event as Record<string, unknown>).ipAddress,
+          sessionId: (event as Record<string, unknown>).sessionId,
         },
-        resource: (event as any).resource,
+        resource: (event as Record<string, unknown>).resource,
         tenantId,
       });
 
@@ -499,7 +499,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
     } else if (event.type === 'audit_stats') {
       context.emit('audit_stats_result', {
         node,
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         tenantId: config.tenantId,
         totalEntryCount: state.totalEntryCount,
         currentEntries: state.entries.length,
@@ -510,8 +510,8 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
         newestEntry: state.entries[state.entries.length - 1]?.timestamp,
       });
     } else if (event.type === 'audit_export') {
-      const format = ((event as any).format as string) || 'json';
-      const query = (event as any).query as AuditLogQuery | undefined;
+      const format = ((event as Record<string, unknown>).format as string) || 'json';
+      const query = (event as Record<string, unknown>).query as AuditLogQuery | undefined;
 
       let entries = state.entries;
       if (query) {
@@ -527,7 +527,7 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
 
       context.emit('audit_export_result', {
         node,
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         tenantId: config.tenantId,
         format,
         entryCount: entries.length,

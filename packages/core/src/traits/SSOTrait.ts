@@ -243,7 +243,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
       authLog: [],
     };
 
-    (node as any).__ssoState = state;
+    node.__ssoState = state;
 
     context.emit('sso_initialized', {
       node,
@@ -259,7 +259,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__ssoState as SSOState | undefined;
+    const state = node.__ssoState as SSOState | undefined;
     if (state) {
       // Invalidate all sessions
       for (const [sessionId, session] of state.sessions) {
@@ -281,11 +281,11 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         timestamp: new Date().toISOString(),
       });
     }
-    delete (node as any).__ssoState;
+    delete node.__ssoState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__ssoState as SSOState | undefined;
+    const state = node.__ssoState as SSOState | undefined;
     if (!state || !config.enabled) return;
 
     const now = new Date();
@@ -324,11 +324,11 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__ssoState as SSOState | undefined;
+    const state = node.__ssoState as SSOState | undefined;
     if (!state) return;
 
     if (event.type === 'sso_register_idp') {
-      const idpConfig = (event as any).idp as IdPConfig;
+      const idpConfig = (event as Record<string, unknown>).idp as IdPConfig;
       if (!idpConfig || !idpConfig.idpId) return;
 
       state.idps.set(idpConfig.idpId, { ...idpConfig });
@@ -351,7 +351,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'sso_remove_idp') {
-      const idpId = (event as any).idpId as string;
+      const idpId = (event as Record<string, unknown>).idpId as string;
       if (idpId && state.idps.has(idpId)) {
         state.idps.delete(idpId);
 
@@ -376,8 +376,8 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         });
       }
     } else if (event.type === 'sso_init_auth') {
-      const idpId = (event as any).idpId as string;
-      const redirectUri = (event as any).redirectUri as string;
+      const idpId = (event as Record<string, unknown>).idpId as string;
+      const redirectUri = (event as Record<string, unknown>).redirectUri as string;
       const idp = state.idps.get(idpId);
 
       if (!idp || !idp.enabled) {
@@ -424,7 +424,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         });
       }
     } else if (event.type === 'sso_auth_callback') {
-      const nonce = (event as any).nonce as string;
+      const nonce = (event as Record<string, unknown>).nonce as string;
       const pending = state.pendingAuthRequests.get(nonce);
 
       if (!pending) {
@@ -447,13 +447,13 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
       if (!idp) return;
 
       // Extract user info from callback
-      const externalUserId = (event as any).externalUserId as string;
-      const attributes = ((event as any).attributes as Record<string, string>) || {};
-      const internalUserId = (event as any).internalUserId || externalUserId;
+      const externalUserId = (event as Record<string, unknown>).externalUserId as string;
+      const attributes = ((event as Record<string, unknown>).attributes as Record<string, string>) || {};
+      const internalUserId = (event as Record<string, unknown>).internalUserId || externalUserId;
 
       // Map roles from IdP
       const mappedRoles: string[] = [];
-      const idpRoles = ((event as any).idpRoles as string[]) || [];
+      const idpRoles = ((event as Record<string, unknown>).idpRoles as string[]) || [];
       for (const idpRole of idpRoles) {
         const mappedRole = idp.roleMapping[idpRole];
         if (mappedRole) {
@@ -534,10 +534,10 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         lastActivityAt: now.toISOString(),
         attributes,
         roles: mappedRoles,
-        tokenData: (event as any).tokenData,
-        samlData: (event as any).samlData,
-        ipAddress: (event as any).ipAddress,
-        userAgent: (event as any).userAgent,
+        tokenData: (event as Record<string, unknown>).tokenData,
+        samlData: (event as Record<string, unknown>).samlData,
+        ipAddress: (event as Record<string, unknown>).ipAddress,
+        userAgent: (event as Record<string, unknown>).userAgent,
       };
 
       state.sessions.set(sessionId, session);
@@ -596,9 +596,9 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         timestamp: now.toISOString(),
       });
     } else if (event.type === 'sso_logout') {
-      const sessionId = (event as any).sessionId as string;
-      const globalLogout = (event as any).global as boolean;
-      const userId = (event as any).userId as string;
+      const sessionId = (event as Record<string, unknown>).sessionId as string;
+      const globalLogout = (event as Record<string, unknown>).global as boolean;
+      const userId = (event as Record<string, unknown>).userId as string;
 
       if (globalLogout && userId) {
         // Revoke all sessions for user
@@ -666,7 +666,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         }
       }
     } else if (event.type === 'sso_validate_session') {
-      const sessionId = (event as any).sessionId as string;
+      const sessionId = (event as Record<string, unknown>).sessionId as string;
       const session = state.sessions.get(sessionId);
 
       let valid = false;
@@ -687,7 +687,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
 
       context.emit('sso_session_validation', {
         node,
-        checkId: (event as any).checkId,
+        checkId: (event as Record<string, unknown>).checkId,
         sessionId,
         valid,
         reason,
@@ -702,7 +702,7 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
       });
     } else if (event.type === 'sso_query') {
       context.emit('sso_info', {
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         node,
         tenantId: config.tenantId,
         enabled: config.enabled,

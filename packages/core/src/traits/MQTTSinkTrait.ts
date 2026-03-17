@@ -97,7 +97,7 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
       client: null,
       lastStateHash: null,
     };
-    (node as any).__mqttSinkState = state;
+    node.__mqttSinkState = state;
 
     // Create or get existing client
     const clientKey = `${config.broker}_${config.clientId || 'default'}`;
@@ -141,7 +141,7 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
   },
 
   onDetach(node, config, _context) {
-    const state = (node as any).__mqttSinkState as MQTTSinkState | undefined;
+    const state = node.__mqttSinkState as MQTTSinkState | undefined;
     if (state?.client) {
       // Publish empty/null with retain to clear retained message
       if (config.retain) {
@@ -149,11 +149,11 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
         state.client.publish(topic, '', { retain: true, qos: config.qos });
       }
     }
-    delete (node as any).__mqttSinkState;
+    delete node.__mqttSinkState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const sinkState = (node as any).__mqttSinkState as MQTTSinkState | undefined;
+    const sinkState = node.__mqttSinkState as MQTTSinkState | undefined;
     if (!sinkState || !sinkState.client || !sinkState.connected) return;
 
     // Check throttle
@@ -198,13 +198,13 @@ export const mqttSinkHandler: TraitHandler<MQTTSinkConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__mqttSinkState as MQTTSinkState | undefined;
+    const state = node.__mqttSinkState as MQTTSinkState | undefined;
     if (!state) return;
 
     // Handle manual publish event
     if (event.type === 'mqtt_publish_request' && state.client) {
-      const topic = (event as any).topic || resolveTopic(config.topic, node);
-      const payload = (event as any).payload || context.getState();
+      const topic = (event as Record<string, unknown>).topic || resolveTopic(config.topic, node);
+      const payload = (event as Record<string, unknown>).payload || context.getState();
 
       state.client
         .publish(topic, config.serializeJson ? payload : String(payload), {

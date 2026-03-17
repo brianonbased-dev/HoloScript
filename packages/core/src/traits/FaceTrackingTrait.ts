@@ -135,7 +135,7 @@ export const faceTrackingHandler: TraitHandler<FaceTrackingConfig> = {
       smoothedShapes: new Map(),
       lipSyncPhoneme: null,
     };
-    (node as any).__faceTrackingState = state;
+    node.__faceTrackingState = state;
 
     context.emit?.('face_tracking_start', {
       node,
@@ -147,11 +147,11 @@ export const faceTrackingHandler: TraitHandler<FaceTrackingConfig> = {
 
   onDetach(node, config, context) {
     context.emit?.('face_tracking_stop', { node });
-    delete (node as any).__faceTrackingState;
+    delete node.__faceTrackingState;
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = (node as any).__faceTrackingState as FaceTrackingState;
+    const state = node.__faceTrackingState as FaceTrackingState;
     if (!state || !state.isTracking) return;
 
     if (config.blend_shapes && state.smoothedShapes.size > 0) {
@@ -179,7 +179,7 @@ export const faceTrackingHandler: TraitHandler<FaceTrackingConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__faceTrackingState as FaceTrackingState;
+    const state = node.__faceTrackingState as FaceTrackingState;
     if (!state) return;
 
     if (event.type === 'face_data_update') {

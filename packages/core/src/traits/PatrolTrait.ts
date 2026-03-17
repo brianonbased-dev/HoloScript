@@ -152,7 +152,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
       completed: false,
       visitedSet: new Set(),
     };
-    (node as any).__patrolState = state;
+    node.__patrolState = state;
 
     if (config.waypoints.length > 0) {
       context.emit?.('patrol_started', { node, waypoints: config.waypoints.length });
@@ -160,11 +160,11 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
   },
 
   onDetach(node) {
-    delete (node as any).__patrolState;
+    delete node.__patrolState;
   },
 
   onUpdate(node, config, context, delta) {
-    const state = (node as any).__patrolState as PatrolState;
+    const state = node.__patrolState as PatrolState;
     if (!state || state.isPaused || state.completed) return;
     if (config.waypoints.length === 0) return;
 
@@ -254,7 +254,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__patrolState as PatrolState;
+    const state = node.__patrolState as PatrolState;
     if (!state) return;
 
     if (event.type === 'patrol_pause') {

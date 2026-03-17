@@ -610,7 +610,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       state.roles.set(roleDef.role, { ...roleDef });
     }
 
-    (node as any).__rbacState = state;
+    node.__rbacState = state;
 
     context.emit('rbac_initialized', {
       node,
@@ -626,7 +626,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
   },
 
   onDetach(node, config, context) {
-    const state = (node as any).__rbacState as RBACState | undefined;
+    const state = node.__rbacState as RBACState | undefined;
     if (state) {
       context.emit('audit_log', {
         action: 'rbac.teardown',
@@ -646,11 +646,11 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         timestamp: new Date().toISOString(),
       });
     }
-    delete (node as any).__rbacState;
+    delete node.__rbacState;
   },
 
   onUpdate(node, config, _context, _delta) {
-    const state = (node as any).__rbacState as RBACState | undefined;
+    const state = node.__rbacState as RBACState | undefined;
     if (!state || !config.enabled) return;
 
     // Expire role assignments
@@ -708,14 +708,14 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
   },
 
   onEvent(node, config, context, event) {
-    const state = (node as any).__rbacState as RBACState | undefined;
+    const state = node.__rbacState as RBACState | undefined;
     if (!state) return;
 
     if (event.type === 'rbac_assign_role') {
-      const userId = (event as any).userId as string;
-      const role = (event as any).role as string;
-      const assignedBy = (event as any).assignedBy as string;
-      const expiresAt = (event as any).expiresAt as string | undefined;
+      const userId = (event as Record<string, unknown>).userId as string;
+      const role = (event as Record<string, unknown>).role as string;
+      const assignedBy = (event as Record<string, unknown>).assignedBy as string;
+      const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
       if (!userId || !role) return;
 
@@ -789,9 +789,9 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'rbac_revoke_role') {
-      const userId = (event as any).userId as string;
-      const role = (event as any).role as string;
-      const revokedBy = (event as any).revokedBy as string;
+      const userId = (event as Record<string, unknown>).userId as string;
+      const role = (event as Record<string, unknown>).role as string;
+      const revokedBy = (event as Record<string, unknown>).revokedBy as string;
 
       if (!userId || !role) return;
 
@@ -818,10 +818,10 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'rbac_check_permission') {
-      const userId = (event as any).userId as string;
-      const permission = (event as any).permission as string;
-      const resource = (event as any).resource as string | undefined;
-      const checkId = (event as any).checkId as string;
+      const userId = (event as Record<string, unknown>).userId as string;
+      const permission = (event as Record<string, unknown>).permission as string;
+      const resource = (event as Record<string, unknown>).resource as string | undefined;
+      const checkId = (event as Record<string, unknown>).checkId as string;
 
       if (!userId || !permission) return;
 
@@ -900,12 +900,12 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         return;
       }
 
-      const roleName = (event as any).role as string;
-      const label = (event as any).label as string;
-      const description = (event as any).description as string;
-      const permissions = ((event as any).permissions as Permission[]) || [];
-      const inheritsFrom = (event as any).inheritsFrom as string | undefined;
-      const maxAssignees = ((event as any).maxAssignees as number) || 0;
+      const roleName = (event as Record<string, unknown>).role as string;
+      const label = (event as Record<string, unknown>).label as string;
+      const description = (event as Record<string, unknown>).description as string;
+      const permissions = ((event as Record<string, unknown>).permissions as Permission[]) || [];
+      const inheritsFrom = (event as Record<string, unknown>).inheritsFrom as string | undefined;
+      const maxAssignees = ((event as Record<string, unknown>).maxAssignees as number) || 0;
 
       if (!roleName || state.roles.has(roleName)) {
         context.emit('rbac_error', {
@@ -943,7 +943,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'rbac_delete_custom_role') {
-      const roleName = (event as any).role as string;
+      const roleName = (event as Record<string, unknown>).role as string;
       const roleDef = state.roles.get(roleName);
 
       if (!roleDef) return;
@@ -989,12 +989,12 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         timestamp: new Date().toISOString(),
       });
     } else if (event.type === 'rbac_query_user_roles') {
-      const userId = (event as any).userId as string;
+      const userId = (event as Record<string, unknown>).userId as string;
       const userAssignments = (state.assignments.get(userId) || []).filter((a) => a.active);
 
       context.emit('rbac_user_roles', {
         node,
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         userId,
         tenantId: config.tenantId,
         roles: userAssignments.map((a) => ({
@@ -1005,8 +1005,8 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
         })),
       });
     } else if (event.type === 'rbac_query_access_log') {
-      const limit = ((event as any).limit as number) || 100;
-      const userId = (event as any).userId as string | undefined;
+      const limit = ((event as Record<string, unknown>).limit as number) || 100;
+      const userId = (event as Record<string, unknown>).userId as string | undefined;
 
       let entries = state.accessLog;
       if (userId) {
@@ -1015,7 +1015,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
 
       context.emit('rbac_access_log', {
         node,
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         tenantId: config.tenantId,
         entries: entries.slice(-limit),
         total: entries.length,
@@ -1025,9 +1025,9 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       // checkCapability(agentDID, capability)
       // Verifies an agent has a specific capability via UCAN tokens.
       // ---------------------------------------------------------------
-      const agentDID = (event as any).agentDID as string;
-      const capability = (event as any).capability as string;
-      const checkId = (event as any).checkId as string;
+      const agentDID = (event as Record<string, unknown>).agentDID as string;
+      const capability = (event as Record<string, unknown>).capability as string;
+      const checkId = (event as Record<string, unknown>).checkId as string;
 
       if (!agentDID || !capability) {
         context.emit('rbac_error', {
@@ -1073,12 +1073,12 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       // ---------------------------------------------------------------
       // Grant a capability to an agent within the current tenant scope.
       // ---------------------------------------------------------------
-      const agentDID = (event as any).agentDID as string;
-      const capabilityWith = (event as any).capabilityWith as string;
-      const capabilityCan = (event as any).capabilityCan as string;
-      const caveats = (event as any).caveats as Record<string, unknown> | undefined;
-      const grantedBy = (event as any).grantedBy as string;
-      const expiresAt = (event as any).expiresAt as string | undefined;
+      const agentDID = (event as Record<string, unknown>).agentDID as string;
+      const capabilityWith = (event as Record<string, unknown>).capabilityWith as string;
+      const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
+      const caveats = (event as Record<string, unknown>).caveats as Record<string, unknown> | undefined;
+      const grantedBy = (event as Record<string, unknown>).grantedBy as string;
+      const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
       if (!agentDID || !capabilityCan) {
         context.emit('rbac_error', {
@@ -1133,9 +1133,9 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       // ---------------------------------------------------------------
       // Revoke a specific capability from an agent.
       // ---------------------------------------------------------------
-      const agentDID = (event as any).agentDID as string;
-      const capabilityCan = (event as any).capabilityCan as string;
-      const revokedBy = (event as any).revokedBy as string;
+      const agentDID = (event as Record<string, unknown>).agentDID as string;
+      const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
+      const revokedBy = (event as Record<string, unknown>).revokedBy as string;
 
       if (!agentDID || !capabilityCan) return;
 
@@ -1183,7 +1183,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       // setTenant(tenantId)
       // Scopes all subsequent permission checks to a tenant namespace.
       // ---------------------------------------------------------------
-      const newTenantId = (event as any).tenantId as string;
+      const newTenantId = (event as Record<string, unknown>).tenantId as string;
 
       if (!newTenantId) {
         context.emit('rbac_error', {
@@ -1217,12 +1217,12 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       // In-scene capability delegation between agents following UCAN
       // attenuation semantics.
       // ---------------------------------------------------------------
-      const fromDID = (event as any).fromDID as string;
-      const toDID = (event as any).toDID as string;
-      const capabilityWith = (event as any).capabilityWith as string;
-      const capabilityCan = (event as any).capabilityCan as string;
-      const constraints = (event as any).constraints as DelegationConstraints | undefined;
-      const expiresAt = (event as any).expiresAt as string | undefined;
+      const fromDID = (event as Record<string, unknown>).fromDID as string;
+      const toDID = (event as Record<string, unknown>).toDID as string;
+      const capabilityWith = (event as Record<string, unknown>).capabilityWith as string;
+      const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
+      const constraints = (event as Record<string, unknown>).constraints as DelegationConstraints | undefined;
+      const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
       if (!fromDID || !toDID || !capabilityCan) {
         context.emit('rbac_error', {
@@ -1329,14 +1329,14 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       // ---------------------------------------------------------------
       context.emit('rbac_tenant_id', {
         node,
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         tenantId: state.currentTenantId || config.tenantId,
       });
     } else if (event.type === 'rbac_query_agent_capabilities') {
       // ---------------------------------------------------------------
       // Query all capabilities for an agent within the current tenant.
       // ---------------------------------------------------------------
-      const agentDID = (event as any).agentDID as string;
+      const agentDID = (event as Record<string, unknown>).agentDID as string;
       const tenantId = state.currentTenantId || config.tenantId;
 
       const directGrants = (state.capabilityGrants.get(agentDID) || []).filter(
@@ -1349,7 +1349,7 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
 
       context.emit('rbac_agent_capabilities', {
         node,
-        queryId: (event as any).queryId,
+        queryId: (event as Record<string, unknown>).queryId,
         agentDID,
         tenantId,
         directGrants: directGrants.map((g) => ({
