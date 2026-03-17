@@ -331,7 +331,7 @@ export function publishToMQTTSink(node: any, payload?: unknown, topic?: string):
 
   const nodeState = node.__mqttSinkConfig as MQTTSinkConfig | undefined;
   const finalTopic = topic || resolveTopic(nodeState?.topic || '', node);
-  const finalPayload = payload !== undefined && payload !== null ? payload : {};
+  const finalPayload = payload !== undefined && payload !== null ? payload : '';
 
   return state.client.publish(finalTopic, finalPayload as string | Buffer | object, {
     retain: nodeState?.retain || false,
