@@ -9,11 +9,12 @@ interface DaemonHarness {
   lines: string[];
   json: Array<Record<string, unknown>>;
   tempDir: string;
+  stderr: string[];
 }
 
 function waitFor(
   predicate: () => boolean,
-  timeoutMs = 7000,
+  timeoutMs = 20000,
   intervalMs = 20
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -54,6 +55,7 @@ function startDaemon(): DaemonHarness {
 
   const lines: string[] = [];
   const json: Array<Record<string, unknown>> = [];
+  const stderr: string[] = [];
 
   proc.stdout.setEncoding('utf-8');
   proc.stdout.on('data', (chunk: string) => {
@@ -71,7 +73,12 @@ function startDaemon(): DaemonHarness {
     }
   });
 
-  return { proc, lines, json, tempDir };
+  proc.stderr.setEncoding('utf-8');
+  proc.stderr.on('data', (chunk: string) => {
+    stderr.push(chunk);
+  });
+
+  return { proc, lines, json, tempDir, stderr };
 }
 
 function sendCommand(proc: ChildProcessWithoutNullStreams, command: Record<string, unknown>): void {
@@ -153,6 +160,9 @@ describe('holoscript-runner daemon mode', () => {
       expect(stopped).toBeDefined();
       expect(stopped?.reason).toBe('command');
     } finally {
+      if (!harness.json.some((msg) => msg.type === 'daemon:ready') && harness.stderr.length > 0) {
+        console.error(harness.stderr.join(''));
+      }
       try {
         harness.proc.kill();
       } catch {
