@@ -15,7 +15,7 @@
  * @version 1.0.0
  */
 
-import { CompilerBase } from './CompilerBase';
+import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
@@ -64,7 +64,7 @@ export class IOSCompiler extends CompilerBase {
     };
   }
 
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): IOSCompileResult {
+  compile(composition: HoloComposition, agentToken: CompilerToken, outputPath?: string): IOSCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
     return {
       viewFile: this.generateViewFile(composition),
@@ -827,5 +827,5 @@ export function compileToIOS(
   options?: IOSCompilerOptions
 ): IOSCompileResult {
   const compiler = new IOSCompiler(options);
-  return compiler.compile(composition);
+  return compiler.compile(composition, 'test-token');
 }
