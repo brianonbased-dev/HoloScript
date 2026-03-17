@@ -191,7 +191,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
 
   get<K extends keyof T>(key: K): T[K] {
     const val = this.proxy[key];
-    return val;
+    return val as T[K];
   }
 
   set<K extends keyof T>(key: K, value: T[K]): void {
@@ -278,7 +278,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
       eventBus.emit(`state_sync:${this.syncId}`, {
         source: 'local',
         op,
-      });
+      } as any);
     }
   }
 
