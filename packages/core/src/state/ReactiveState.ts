@@ -247,7 +247,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
     if (step) {
       this.isApplyingSync = true;
       try {
-        this.set(step.redo.key as any, step.redo.value);
+        this.set(step.redo.key as any, step.redo.value as any);
       } finally {
         this.isApplyingSync = false;
       }
