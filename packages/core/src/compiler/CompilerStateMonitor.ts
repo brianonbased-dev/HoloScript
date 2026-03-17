@@ -137,7 +137,7 @@ export class CompilerStateMonitor {
       onAlert: options.onAlert ?? (() => {}),
       monitoringInterval: options.monitoringInterval ?? DEFAULT_MONITORING_INTERVAL,
     };
-    this.thresholds = this.options.thresholds;
+    this.thresholds = this.options.thresholds as MemoryThresholds;
 
     if (this.options.enabled) {
       this.startMonitoring();
