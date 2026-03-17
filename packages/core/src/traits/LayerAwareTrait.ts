@@ -1,4 +1,4 @@
-import type { TraitHandler, HSPlusNode } from './TraitTypes';
+import type { TraitHandler } from './TraitTypes';
 
 export interface LayerAwareTrait {
   layers: Array<'vr' | 'vrr' | 'ar' | 'all'>;
