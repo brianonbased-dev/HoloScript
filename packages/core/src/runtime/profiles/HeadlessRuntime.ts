@@ -20,6 +20,7 @@
 import type { HSPlusAST, HSPlusNode, StateDeclaration } from '../../types/HoloScriptPlus';
 import type { HSPlusDirective } from '../../types';
 import { ReactiveState, createState, ExpressionEvaluator } from '../../state/ReactiveState';
+import type { HostCapabilities } from '../../traits/TraitTypes';
 import { vrTraitRegistry, type TraitContext } from '../../traits/VRTraitSystem';
 import { eventBus } from '../EventBus';
 import type { RuntimeProfile } from './RuntimeProfile';
@@ -57,6 +58,8 @@ export interface HeadlessRuntimeOptions {
    *  Return true (success), false (failure), or 'running' (async in progress).
    *  The blackboard parameter is the BT's shared state for updating conditions. */
   executeAction?: (owner: unknown, actionName: string, params: Record<string, unknown>, blackboard?: Record<string, unknown>) => boolean | 'running';
+  /** Optional capability adapter for host operations used by traits such as shell/file_system. */
+  hostCapabilities?: HostCapabilities;
 }
 
 export interface HeadlessRuntimeStats {
@@ -489,6 +492,7 @@ export class HeadlessRuntime {
       getScaleMultiplier: () => 1,
       setScaleContext: () => {},
       ...(this.options.executeAction ? { executeAction: this.options.executeAction } : {}),
+      ...(this.options.hostCapabilities ? { hostCapabilities: this.options.hostCapabilities } : {}),
     };
   }
 

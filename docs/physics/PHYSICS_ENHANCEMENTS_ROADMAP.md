@@ -1,7 +1,7 @@
 # Physics Integration Enhancements Roadmap
 
 **Date**: February 21, 2026
-**Status**: Planning Phase
+**Status**: Active Roadmap
 **Based On**: Physics Integration System (COMPLETE ✅)
 
 ---
@@ -33,7 +33,7 @@
 - 🎯 Fallback to CPU for non-WebGPU browsers
 - 🎯 Particle instancing for rendering
 
-### Implementation Steps
+### Implementation Steps (Enhancement 3)
 
 #### Phase 1: WebGPU Foundation (Week 1)
 
@@ -148,7 +148,7 @@
    - [ ] Energy conservation tests
    - [ ] Stability tests (no explosions)
 
-### Deliverables
+### Deliverables (Enhancement 3)
 
 - [ ] `packages/core/src/gpu/WebGPUPhysics.ts` (~600 lines)
 - [ ] `packages/core/src/gpu/shaders/*.wgsl` (~400 lines)
@@ -156,7 +156,7 @@
 - [ ] `samples/gpu-physics-demo.html` (100K particle demo)
 - [ ] `docs/GPU_ACCELERATION_GUIDE.md` (~500 lines)
 
-### Success Criteria
+### Success Criteria (Enhancement 3)
 
 - ✅ 100K particles @ 60 FPS on modern GPU (RTX 3060+)
 - ✅ 10K particles @ 60 FPS on integrated GPU (Intel Iris Xe)
@@ -170,7 +170,7 @@
 
 **Goal**: Create 4 spectacular physics demos showcasing different scenarios
 
-### Current State
+### Current State (Enhancement 2)
 
 - ✅ Wrecking Ball Demolition (complete)
 - ⏳ Earthquake, Avalanche, Erosion, Demolition (pending)
@@ -179,7 +179,7 @@
 
 **Scenario**: Seismic waves cause multi-story building to collapse floor-by-floor
 
-#### Implementation Steps
+#### Implementation Steps (Earthquake)
 
 1. **Building Structure**
    - [ ] 5-story building (30 fragments per floor = 150 total)
@@ -215,7 +215,7 @@
    - [ ] Dramatic angle during collapse
    - [ ] Aerial view of final debris pile
 
-#### Features
+#### Features (Earthquake)
 
 - 🏢 5-story building with 150 fragments
 - 🌊 Realistic seismic wave simulation
@@ -227,7 +227,7 @@
 
 **Scenario**: Snowpack destabilizes and cascades down mountainside
 
-#### Implementation Steps
+#### Implementation Steps (Avalanche)
 
 1. **Terrain Generation**
    - [ ] Procedural mountain slope (30-45° incline)
@@ -268,7 +268,7 @@
    - [ ] Momentum-based destruction of obstacles
    - [ ] Final debris cone at bottom
 
-#### Features
+#### Features (Avalanche)
 
 - 🏔️ Procedural mountain terrain
 - ❄️ 50K granular snow particles
@@ -280,7 +280,7 @@
 
 **Scenario**: Fluid simulation carves channels through granular terrain
 
-#### Implementation Steps
+#### Implementation Steps (Water Erosion)
 
 1. **Terrain Setup**
    - [ ] Granular material pile (sand/dirt)
@@ -313,7 +313,7 @@
    - [ ] Delta formation (deposition at end)
    - [ ] Realistic sediment transport
 
-#### Features
+#### Features (Water Erosion)
 
 - 🏜️ 20K granular terrain particles
 - 💧 Fluid simulation (SPH or grid-based)
@@ -325,7 +325,7 @@
 
 **Scenario**: Precisely timed charges bring down building in controlled manner
 
-#### Implementation Steps
+#### Implementation Steps (Explosive Demolition)
 
 1. **Building Structure**
    - [ ] 10-story skyscraper
@@ -369,7 +369,7 @@
    - [ ] Dust cloud expansion
    - [ ] Flying debris
 
-#### Features
+#### Features (Explosive Demolition)
 
 - 🏙️ 10-story building (200+ fragments)
 - 💣 Timed explosive charges (realistic sequence)
@@ -398,13 +398,13 @@
 
 **Goal**: Enable physics demos in immersive VR/AR with hand tracking and spatial audio
 
-### Current State
+### Current State (Enhancement 3)
 
 - ✅ Desktop rendering (Three.js)
 - ✅ Mouse/keyboard controls
 - ⏳ No VR/AR support
 
-### Target State
+### Target State (Enhancement 3)
 
 - 🎯 WebXR support (VR + AR modes)
 - 🎯 Hand tracking interaction

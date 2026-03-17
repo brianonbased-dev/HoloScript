@@ -42,6 +42,9 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      - name: Check roadmap drift markers
+        run: pnpm docs:roadmap:drift
+
   test:
     name: Test
     runs-on: ubuntu-latest

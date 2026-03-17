@@ -46,7 +46,7 @@ export function walkTree(root: SyntaxNode, visitor: NodeVisitor): void {
  * 
  * @remarks
  * Supports the following comment formats:
- * - JSDoc: `/** ... */` (JavaScript/TypeScript) - strips /** */ and leading asterisks
+ * - JSDoc: block comments starting with two asterisks (JavaScript/TypeScript)
  * - Python docstrings: Triple-quoted strings immediately following function/class definitions
  * - Rust doc comments: /// comments - strips triple slashes
  * - Go doc comments: // comments preceding declarations
@@ -96,7 +96,7 @@ export function extractDocComment(node: SyntaxNode): string | undefined {
       if (first.type === 'expression_statement') {
         const expr = first.children[0];
         if (expr && expr.type === 'string') {
-          return expr.text.replace(/^['"`]{1,3}|['"`]{1,3}$/g, '').trim();
+          return expr.text.replace(/^['"]{1,3}|['"]{1,3}$/g, '').trim();
         }
       }
     }
@@ -141,7 +141,7 @@ export function extractFileDocComment(rootNode: SyntaxNode): string | undefined 
     if (child.type === 'expression_statement') {
       const expr = child.children[0];
       if (expr && expr.type === 'string') {
-        return expr.text.replace(/^['"`]{1,3}|['"`]{1,3}$/g, '').trim();
+        return expr.text.replace(/^['"]{1,3}|['"]{1,3}$/g, '').trim();
       }
     }
   }

@@ -115,10 +115,56 @@ export const shellHandler: TraitHandler<ShellConfig> = {
         const command = (payload.command as string) || config.command;
         const args = (payload.args as string[]) || config.args;
         const cwd = (payload.cwd as string) || config.cwd;
+        const processCaps = context.hostCapabilities?.process;
 
         if (!command) {
           context.emit?.('shell:error', { command: '', error: 'No command specified' });
           return;
+        }
+
+        // Preferred path: execute through policy-aware host capabilities.
+        if (processCaps?.exec) {
+          const startedAt = Date.now();
+          const pid = Date.now();
+          const cmd = `${command} ${args.join(' ')}`.trim();
+
+          state.totalExecutions++;
+          context.emit?.('shell:start', { pid, command, args });
+
+          Promise.resolve(
+            processCaps.exec(command, args, {
+              cwd,
+              env: { ...config.env, ...(payload.env ?? {}) },
+              timeoutMs: config.timeout_ms,
+            })
+          )
+            .then((result: any) => {
+              const stdout = (result?.stdout as string | undefined) ?? '';
+              const stderr = (result?.stderr as string | undefined) ?? '';
+              const code = (result?.code as number | null | undefined) ?? null;
+              const signal = (result?.signal as string | null | undefined) ?? null;
+              const elapsed = Date.now() - startedAt;
+
+              if (stdout) context.emit?.('shell:stdout', { pid, data: stdout });
+              if (stderr) context.emit?.('shell:stderr', { pid, data: stderr });
+
+              state.history.push({
+                command: cmd,
+                exitCode: code,
+                elapsed,
+                timestamp: Date.now(),
+              });
+              if (state.history.length > 50) state.history.shift();
+
+              context.emit?.('shell:exit', { pid, code, signal, elapsed });
+            })
+            .catch((err: any) => {
+              context.emit?.('shell:error', {
+                command: cmd,
+                error: err?.message ?? String(err),
+              });
+            });
+          break;
         }
 
         try {

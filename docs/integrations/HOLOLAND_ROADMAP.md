@@ -10,7 +10,7 @@ Hololand is a VR world hosting and social platform where creators build immersiv
 
 ## Architecture Clarification
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         HOLOSCRIPT                                   │
 │                    (Complete Language + Runtime)                     │
@@ -224,7 +224,7 @@ class HololandClient {
 
 ## Repository Structure
 
-```
+```text
 github.com/brianonbased-dev/
 ├── HoloScript/              # Language + Runtime (THIS REPO)
 │   ├── packages/core/       # Parser, compiler, types

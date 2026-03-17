@@ -103,13 +103,16 @@ composition "SelfImproveDaemon" {
           },
 
           // Step 2: Pick a candidate and attempt fix, or skip if none found
+          // Multi-candidate iteration: repeater tries up to 3 candidates per cycle.
+          // On each rollback, advance_candidate moves to the next candidate.
+          // On successful commit, the sequence completes (repeater stops).
           {
             type: "selector",
             name: "find_candidate",
             children: [
               {
                 type: "sequence",
-                name: "try_candidate",
+                name: "candidate_loop",
                 children: [
                   // Gate: only proceed if diagnosis found candidates
                   {
@@ -118,167 +121,217 @@ composition "SelfImproveDaemon" {
                     condition: "has_candidates"
                   },
 
-                  // Step 3: Read the candidate file for context
-                  {
-                    type: "action",
-                    name: "read_candidate",
-                    action: "read_candidate"
-                  },
-
-                  // Step 4: Generate a fix via focused LLM micro-call
-                  // Sets blackboard: files_edited
-                  {
-                    type: "action",
-                    name: "generate_fix",
-                    action: "generate_fix"
-                  },
-
-                  // Step 5: Verify the edit compiles
-                  // Sets blackboard: compilation_passed, compile_errors
-                  {
-                    type: "action",
-                    name: "verify_compilation",
-                    action: "verify_compilation"
-                  },
-
-                  // Step 5.5: Retry loop — if compilation failed, feed errors back to LLM
-                  // The repeater ticks its child up to 2 times. The inverter gates on
-                  // "compilation NOT passed" — if compilation already succeeded, the
-                  // inverter makes the sequence fail immediately (no-op retry).
-                  // This is the key "loosening" — the LLM gets to see WHY its fix
-                  // failed and try again, like a human developer.
+                  // Repeater: try up to 3 candidates per cycle.
+                  // When try_candidate fails (rollback + advance exhausted), the
+                  // repeater's child fails → repeater stops → candidate_loop fails
+                  // → find_candidate selector falls to outer no_candidates report.
                   {
                     type: "repeater",
-                    name: "compile_retry_loop",
-                    count: 2,
+                    name: "candidate_iterator",
+                    count: 3,
                     children: [
                       {
                         type: "sequence",
-                        name: "retry_compile_fix",
+                        name: "try_candidate",
                         children: [
-                          {
-                            type: "inverter",
-                            name: "compilation_not_passed",
-                            children: [
-                              {
-                                type: "condition",
-                                name: "compilation_passed",
-                                condition: "compilation_passed"
-                              }
-                            ]
-                          },
-                          {
-                            type: "action",
-                            name: "fix_from_compile_errors",
-                            action: "fix_from_compile_errors"
-                          },
-                          {
-                            type: "action",
-                            name: "verify_compilation_retry",
-                            action: "verify_compilation"
-                          }
-                        ]
-                      }
-                    ]
-                  },
-
-                  // Step 6: Handle verification result
-                  {
-                    type: "selector",
-                    name: "handle_verification",
-                    children: [
-                      {
-                        type: "sequence",
-                        name: "verification_passed",
-                        children: [
+                          // Gate: stop repeater if advance_candidate exhausted all candidates
                           {
                             type: "condition",
-                            name: "compilation_passed",
-                            condition: "compilation_passed"
+                            name: "has_candidates_inner",
+                            condition: "has_candidates"
                           },
 
-                          // Step 7: Run related tests
-                          // Sets blackboard: tests_passed
+                          // Step 3: Read the candidate file for context
                           {
                             type: "action",
-                            name: "run_tests",
-                            action: "run_related_tests"
+                            name: "read_candidate",
+                            action: "read_candidate"
                           },
 
-                          // Step 8: Handle test results
-                          {
-                            type: "selector",
-                            name: "handle_test_results",
-                            children: [
+                              // Step 4: Generate a fix via focused LLM micro-call
+                              // Sets blackboard: files_edited
                               {
-                                type: "sequence",
-                                name: "tests_passed_path",
+                                type: "action",
+                                name: "generate_fix",
+                                action: "generate_fix"
+                              },
+
+                              // Step 5: Verify the edit compiles
+                              // Sets blackboard: compilation_passed, compile_errors
+                              {
+                                type: "action",
+                                name: "verify_compilation",
+                                action: "verify_compilation"
+                              },
+
+                              // Step 5.5: Retry loop — if compilation failed, feed errors back to LLM
+                              {
+                                type: "repeater",
+                                name: "compile_retry_loop",
+                                count: 2,
                                 children: [
                                   {
-                                    type: "condition",
-                                    name: "tests_passed",
-                                    condition: "tests_passed"
-                                  },
-
-                                  // Step 9: Full quality validation
-                                  // Sets blackboard: quality_after, quality_improved
-                                  {
-                                    type: "action",
-                                    name: "validate_quality",
-                                    action: "validate_quality"
-                                  },
-
-                                  // Step 10: Commit if quality improved, rollback if not
-                                  {
-                                    type: "selector",
-                                    name: "quality_check",
+                                    type: "sequence",
+                                    name: "retry_compile_fix",
                                     children: [
                                       {
-                                        type: "sequence",
-                                        name: "quality_improved_path",
+                                        type: "inverter",
+                                        name: "compilation_not_passed",
                                         children: [
                                           {
                                             type: "condition",
-                                            name: "quality_improved",
-                                            condition: "quality_improved"
-                                          },
-
-                                          // Step 11: Commit!
-                                          {
-                                            type: "action",
-                                            name: "commit_changes",
-                                            action: "commit_changes"
+                                            name: "compilation_passed",
+                                            condition: "compilation_passed"
                                           }
                                         ]
                                       },
-
-                                      // Quality didn't improve — rollback
                                       {
                                         type: "action",
-                                        name: "rollback_no_improvement",
-                                        action: "rollback_changes"
+                                        name: "fix_from_compile_errors",
+                                        action: "fix_from_compile_errors"
+                                      },
+                                      {
+                                        type: "action",
+                                        name: "verify_compilation_retry",
+                                        action: "verify_compilation"
                                       }
                                     ]
                                   }
                                 ]
                               },
 
-                              // Tests failed — rollback
+                              // Step 6: Handle verification result
                               {
-                                type: "action",
-                                name: "rollback_test_failure",
-                                action: "rollback_changes"
-                              }
-                            ]
-                          }
-                        ]
-                      },
+                                type: "selector",
+                                name: "handle_verification",
+                                children: [
+                                  {
+                                    type: "sequence",
+                                    name: "verification_passed",
+                                    children: [
+                                      {
+                                        type: "condition",
+                                        name: "compilation_passed",
+                                        condition: "compilation_passed"
+                                      },
 
-                      // Compilation failed — rollback
-                      {
-                        type: "action",
-                        name: "rollback_compile_failure",
-                        action: "rollback_changes"
+                                      // Step 7: Run related tests
+                                      {
+                                        type: "action",
+                                        name: "run_tests",
+                                        action: "run_related_tests"
+                                      },
+
+                                      // Step 8: Handle test results
+                                      {
+                                        type: "selector",
+                                        name: "handle_test_results",
+                                        children: [
+                                          {
+                                            type: "sequence",
+                                            name: "tests_passed_path",
+                                            children: [
+                                              {
+                                                type: "condition",
+                                                name: "tests_passed",
+                                                condition: "tests_passed"
+                                              },
+
+                                              // Step 9: Full quality validation
+                                              {
+                                                type: "action",
+                                                name: "validate_quality",
+                                                action: "validate_quality"
+                                              },
+
+                                              // Step 10: Commit if quality improved, rollback + advance if not
+                                              {
+                                                type: "selector",
+                                                name: "quality_check",
+                                                children: [
+                                                  {
+                                                    type: "sequence",
+                                                    name: "quality_improved_path",
+                                                    children: [
+                                                      {
+                                                        type: "condition",
+                                                        name: "quality_improved",
+                                                        condition: "quality_improved"
+                                                      },
+
+                                                      // Step 11: Commit!
+                                                      {
+                                                        type: "action",
+                                                        name: "commit_changes",
+                                                        action: "commit_changes"
+                                                      }
+                                                    ]
+                                                  },
+
+                                                  // Quality didn't improve — rollback + advance
+                                                  {
+                                                    type: "sequence",
+                                                    name: "rollback_and_advance_quality",
+                                                    children: [
+                                                      {
+                                                        type: "action",
+                                                        name: "rollback_no_improvement",
+                                                        action: "rollback_changes"
+                                                      },
+                                                      {
+                                                        type: "action",
+                                                        name: "advance_after_quality_fail",
+                                                        action: "advance_candidate"
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+
+                                          // Tests failed — rollback + advance
+                                          {
+                                            type: "sequence",
+                                            name: "rollback_and_advance_tests",
+                                            children: [
+                                              {
+                                                type: "action",
+                                                name: "rollback_test_failure",
+                                                action: "rollback_changes"
+                                              },
+                                              {
+                                                type: "action",
+                                                name: "advance_after_test_fail",
+                                                action: "advance_candidate"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+
+                                  // Compilation failed — rollback + advance
+                                  {
+                                    type: "sequence",
+                                    name: "rollback_and_advance_compile",
+                                    children: [
+                                      {
+                                        type: "action",
+                                        name: "rollback_compile_failure",
+                                        action: "rollback_changes"
+                                      },
+                                      {
+                                        type: "action",
+                                        name: "advance_after_compile_fail",
+                                        action: "advance_candidate"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                        ]
                       }
                     ]
                   }
@@ -359,6 +412,7 @@ composition "SelfImproveDaemon" {
         files_edited: [],
         compile_errors: [],
         retry_count: 0,
+        candidate_index: 0,
         cycle_wisdom: null,
         cycle_praised: false
       }

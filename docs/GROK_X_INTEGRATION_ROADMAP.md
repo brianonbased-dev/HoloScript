@@ -30,7 +30,7 @@ Full Model Context Protocol server for AI agent integration.
 
 **Tools to Implement:**
 
-```
+```text
 parse_hs          - Parse .hs/.hsplus code → AST
 parse_holo        - Parse .holo compositions → AST
 validate          - Validate syntax with AI-friendly errors
@@ -137,7 +137,7 @@ Enhanced error messages for LLM consumption:
 
 Endpoint for generating static previews:
 
-```
+```text
 POST /api/render
 {
   "code": "composition {...}",
@@ -245,7 +245,7 @@ object Art @tweetable {
 
 Hosted API for immediate agent access:
 
-```
+```text
 Base URL: https://api.holoscript.net
 
 Endpoints:
@@ -266,7 +266,7 @@ GET  /examples/{category}   - Get examples
 
 ## Implementation Packages
 
-```
+```text
 packages/
 ├── mcp-server/          # MCP protocol server
 ├── python-bindings/     # Python/Pyodide wrapper

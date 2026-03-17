@@ -78,6 +78,29 @@ const HEARTBEAT_INTERVAL_MS = 30_000;   // Refresh lock file every 30s
 const HEARTBEAT_STALE_MS = 120_000;     // Lock is stale if not refreshed in 2min
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
+// ─── Safeguard: Candidate Sanitizer ──────────────────────────────────────────
+// Reject LLM edits that contain terminal/log output injected into source code.
+// These indicate the LLM confused stdout with code, producing compiling but broken files.
+const CONTAMINATION_SIGNATURES = [
+  /node\.exe\s*:\s*npm\s+warn/i,
+  /npm\s+warn\s+Unknown\s+project\s+config/i,
+  /Command\s+exited\s+with\s+code\s+\d+/i,
+  /^\s*at\s+\w+\s+\(.*:\d+:\d+\)\s*$/m,    // Stack trace lines
+  /^\s*ERR!\s/m,                              // npm ERR! lines
+];
+
+function isContaminatedEdit(content: string): string | null {
+  for (const sig of CONTAMINATION_SIGNATURES) {
+    const match = content.match(sig);
+    if (match) return match[0].slice(0, 80);
+  }
+  return null;
+}
+
+// ─── Safeguard: Per-File Quarantine ──────────────────────────────────────────
+// Files that fail post-apply (compile or test) N times get auto-quarantined.
+const QUARANTINE_THRESHOLD = 2;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface BridgeConfig {
@@ -113,6 +136,9 @@ interface Blackboard {
   __currentCbId?: string;
   __tickCount?: number;
   __attemptedFiles?: string[];
+  __blacklistedFiles?: string[];
+  /** Index into candidates array for multi-candidate rotation */
+  __candidateIndex?: number;
 }
 
 interface BridgeState {
@@ -121,6 +147,12 @@ interface BridgeState {
   lastQuality: number;
   focusIndex: number;
   attemptedFiles: string[];
+  /** Files that failed after max retries — skip in future cycles until manually cleared */
+  blacklistedFiles: string[];
+  /** Per-file failure count — auto-quarantine after QUARANTINE_THRESHOLD failures */
+  fileFailureCounts: Record<string, number>;
+  /** Known limitations discovered during daemon operation */
+  knownLimitations: string[];
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCostUSD: number;
@@ -150,21 +182,28 @@ function ensureStateDir(): void {
 }
 
 function loadBridgeState(): BridgeState {
-  try {
-    if (fs.existsSync(BRIDGE_STATE_FILE)) {
-      return JSON.parse(fs.readFileSync(BRIDGE_STATE_FILE, 'utf-8'));
-    }
-  } catch { /* start fresh */ }
-  return {
+  const defaults: BridgeState = {
     totalCycles: 0,
     bestQuality: 0,
     lastQuality: 0,
     focusIndex: 0,
     attemptedFiles: [],
+    blacklistedFiles: [],
+    fileFailureCounts: {},
+    knownLimitations: [],
     totalInputTokens: 0,
     totalOutputTokens: 0,
     totalCostUSD: 0,
   };
+  try {
+    if (fs.existsSync(BRIDGE_STATE_FILE)) {
+      const loaded = JSON.parse(fs.readFileSync(BRIDGE_STATE_FILE, 'utf-8'));
+      // Merge with defaults so new fields added after initial state creation
+      // don't crash with "Cannot read properties of undefined"
+      return { ...defaults, ...loaded };
+    }
+  } catch { /* start fresh */ }
+  return defaults;
 }
 
 function saveBridgeState(state: BridgeState): void {
@@ -456,6 +495,7 @@ async function dispatchActionAsync(
   config: BridgeConfig,
   metrics: { inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number },
   runtimeEmit?: (event: string, data: Record<string, unknown>) => void,
+  bridgeState?: BridgeState,
 ): Promise<boolean> {
   // Cast the BT blackboard to our typed interface for safe property access.
   // The BT passes its blackboard as Record<string, unknown> but we store
@@ -477,6 +517,8 @@ async function dispatchActionAsync(
 
       // Files already attempted in recent cycles — skip to avoid repeating same unfixable issues
       const attempted = new Set(blackboard.__attemptedFiles ?? []);
+      // Files that failed after max retries — permanently skip until manually cleared
+      const blacklisted = new Set(blackboard.__blacklistedFiles ?? []);
 
       if (blackboard.focus === 'typefix') {
         // 'typefix' is not a valid holo_self_diagnose focus — use holo_list_type_errors instead
@@ -488,7 +530,7 @@ async function dispatchActionAsync(
           const byFile = new Map<string, any>();
           for (const e of errors) {
             const filePath = path.isAbsolute(e.file) ? e.file : path.join(rootDir, e.file);
-            if (!byFile.has(filePath)) {
+            if (!byFile.has(filePath) && !blacklisted.has(filePath)) {
               byFile.set(filePath, {
                 type: e.code,
                 priority: 1,
@@ -509,8 +551,8 @@ async function dispatchActionAsync(
             blackboard.current_candidate = blackboard.candidates[0];
             blackboard.current_file = blackboard.candidates[0].file;
           }
-          if (fresh.length > 0 && config.verbose) {
-            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh (skipping ${allCandidates.length - fresh.length} attempted)`);
+          if (config.verbose) {
+            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh, ${blacklisted.size} blacklisted`);
           }
         } catch {
           blackboard.has_candidates = false;
@@ -523,16 +565,17 @@ async function dispatchActionAsync(
         try {
           const parsed = JSON.parse(diagResult);
           const allCandidates = parsed.candidates ?? [];
-          // Prefer fresh candidates
-          const fresh = allCandidates.filter((c: any) => !attempted.has(c.file));
-          blackboard.candidates = fresh.length > 0 ? fresh : allCandidates;
+          // Filter blacklisted, then prefer fresh candidates
+          const nonBlacklisted = allCandidates.filter((c: any) => !blacklisted.has(c.file));
+          const fresh = nonBlacklisted.filter((c: any) => !attempted.has(c.file));
+          blackboard.candidates = fresh.length > 0 ? fresh : nonBlacklisted;
           blackboard.has_candidates = blackboard.candidates.length > 0;
           if (blackboard.candidates.length > 0) {
             blackboard.current_candidate = blackboard.candidates[0];
             blackboard.current_file = blackboard.candidates[0].file;
           }
-          if (fresh.length > 0 && config.verbose) {
-            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh (skipping ${allCandidates.length - fresh.length} attempted)`);
+          if (config.verbose) {
+            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh, ${blacklisted.size} blacklisted`);
           }
         } catch {
           blackboard.has_candidates = false;
@@ -608,6 +651,31 @@ async function dispatchActionAsync(
       metrics.toolCallsTotal += llmResult.toolCallsTotal;
       metrics.toolCallsUseful += llmResult.toolCallsUseful;
       blackboard.files_edited.push(...llmResult.filesEdited);
+
+      // ── Safeguard: Candidate sanitizer ──
+      // Check if LLM injected terminal/log output into source files.
+      // If contaminated, revert immediately and fail the action.
+      for (const editedFile of llmResult.filesEdited) {
+        try {
+          const content = fs.readFileSync(editedFile, 'utf-8');
+          const contamination = isContaminatedEdit(content);
+          if (contamination) {
+            console.log(`  [sanitizer] REJECTED edit to ${path.basename(editedFile)}: contains terminal output "${contamination}"`);
+            // Revert this file immediately
+            const { execSync } = await import('child_process');
+            try {
+              execSync(`git checkout -- "${editedFile}"`, { cwd: rootDir, stdio: 'pipe' });
+            } catch { /* file may be untracked */ }
+            blackboard.files_edited = blackboard.files_edited.filter(f => f !== editedFile);
+            if (runtimeEmit) {
+              runtimeEmit('logger:warn', {
+                message: `Sanitizer rejected contaminated edit`,
+                fields: { file: path.basename(editedFile), signature: contamination },
+              });
+            }
+          }
+        } catch { /* file read failed — verify_compilation will catch it */ }
+      }
 
       // ── @economy: emit LLM spend event ──
       if (runtimeEmit) {
@@ -753,6 +821,8 @@ async function dispatchActionAsync(
 
     case 'commit_changes': {
       // Step 11: Commit changes
+      // Set has_candidates=false to stop the repeater from trying more candidates after a successful commit
+      blackboard.has_candidates = false;
       if (!config.commit) {
         console.log(`  [BT] commit_changes: SKIPPED (dry run)`);
         return true;
@@ -799,8 +869,62 @@ async function dispatchActionAsync(
           }
         }
       }
+
+      // ── Safeguard: Per-file quarantine ──
+      // Track per-file failure counts across cycles. Auto-quarantine (blacklist)
+      // after QUARANTINE_THRESHOLD failures. This covers both compile failures
+      // AND test regressions — any rollback increments the counter.
+      if (blackboard.current_file && bridgeState) {
+        const file = blackboard.current_file;
+        const counts = bridgeState.fileFailureCounts;
+        counts[file] = (counts[file] ?? 0) + 1;
+        const failCount = counts[file];
+
+        if (failCount >= QUARANTINE_THRESHOLD && !bridgeState.blacklistedFiles.includes(file)) {
+          bridgeState.blacklistedFiles.push(file);
+          const limitation = `${blackboard.focus}: ${path.basename(file)} quarantined after ${failCount} failures (compile-only success with test regression)`;
+          if (!bridgeState.knownLimitations.includes(limitation)) {
+            bridgeState.knownLimitations.push(limitation);
+          }
+          console.log(`  [quarantine] ${path.basename(file)} auto-blacklisted after ${failCount} failures`);
+          if (runtimeEmit) {
+            runtimeEmit('logger:warn', {
+              message: `File quarantined after ${failCount} failures`,
+              fields: { file: path.basename(file), focus: blackboard.focus, failCount },
+            });
+          }
+        }
+        saveBridgeState(bridgeState);
+      }
+
       blackboard.files_edited = [];
       return true;
+    }
+
+    case 'advance_candidate': {
+      // Multi-candidate rotation: move to the next candidate in the list.
+      // Called after rollback to try a different file in the same cycle.
+      const idx = (blackboard.__candidateIndex ?? 0) + 1;
+      blackboard.__candidateIndex = idx;
+
+      if (idx < blackboard.candidates.length) {
+        blackboard.current_candidate = blackboard.candidates[idx];
+        blackboard.current_file = blackboard.candidates[idx].file;
+        blackboard.compilation_passed = false;
+        blackboard.tests_passed = false;
+        blackboard.compile_errors = [];
+        blackboard.retry_count = 0;
+        console.log(`  [BT] advance_candidate: trying candidate ${idx + 1}/${blackboard.candidates.length} — ${path.basename(blackboard.current_file ?? '?')}`);
+        return true;
+      }
+
+      // No more candidates — signal exhaustion.
+      // Null out current_file so read_candidate fails if repeater retries.
+      blackboard.has_candidates = false;
+      blackboard.current_candidate = null;
+      blackboard.current_file = null;
+      console.log(`  [BT] advance_candidate: all ${blackboard.candidates.length} candidates exhausted`);
+      return false;
     }
 
     case 'report_no_candidates': {
@@ -866,6 +990,15 @@ async function dispatchActionAsync(
           name: 'positive_energy',
           value: 1.0 + (wisdom.length * 0.01), // More wisdom = more energy
         });
+        // Sync identity state to runtime composition state
+        runtimeEmit('state:update', {
+          path: 'identity.cycles_completed',
+          value: bridgeState?.totalCycles ?? 0,
+        });
+        runtimeEmit('state:update', {
+          path: 'identity.wisdom_accumulated',
+          value: wisdom.slice(-10), // Last 10 entries for context
+        });
       }
       return true;
     }
@@ -883,6 +1016,10 @@ async function dispatchActionAsync(
         wisdomEntry = `W: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} improved quality by ${delta.toFixed(3)} (${retries} retries)`;
       } else if (retries > 0 && !blackboard.compilation_passed) {
         wisdomEntry = `G: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} failed after ${retries} retries — compile errors persist`;
+      } else if (blackboard.compilation_passed && !blackboard.tests_passed && blackboard.has_candidates) {
+        // Known limitation: LLM produces edits that compile but break tests.
+        // This is an LLM capability boundary, not an orchestration bug.
+        wisdomEntry = `G: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} compiled but tests regressed — LLM capability miss (compile-only success)`;
       } else if (blackboard.has_candidates && !committed) {
         wisdomEntry = `P: ${blackboard.focus} candidates found but no improvement — consider different approach`;
       }
@@ -1068,6 +1205,7 @@ async function runBridgeCycle(
     // Always sync bridge state into blackboard so actions can check it
     blackboard.__circuitOpen = circuitOpen;
     blackboard.__attemptedFiles = bridgeState.attemptedFiles;
+    blackboard.__blacklistedFiles = bridgeState.blacklistedFiles;
 
     // Check if a previously started async action has resolved
     const pending = pendingActions.get(actionName);
@@ -1081,7 +1219,7 @@ async function runBridgeCycle(
 
     // Start a new async action via dispatchActionAsync
     const entry = { resolved: false, result: false };
-    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics, runtimeEmit)
+    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics, runtimeEmit, bridgeState)
       .then((result) => {
         entry.resolved = true;
         entry.result = result;
@@ -1101,10 +1239,101 @@ async function runBridgeCycle(
   // Use structuredClone to preserve Maps (node.traits is a Map).
   const freshAST = structuredClone(compositionAST);
 
+  const rootAbs = path.resolve(config.rootDir);
+  const resolveWithinRoot = (inputPath: string): string => {
+    const absolutePath = path.resolve(rootAbs, inputPath);
+    const rootPrefix = rootAbs.endsWith(path.sep) ? rootAbs : `${rootAbs}${path.sep}`;
+    if (absolutePath !== rootAbs && !absolutePath.startsWith(rootPrefix)) {
+      throw new Error(`Path escapes bridge root: ${inputPath}`);
+    }
+    return absolutePath;
+  };
+
+  const hostCapabilities = {
+    fileSystem: {
+      readFile: async (filePath: string): Promise<string> => {
+        const target = resolveWithinRoot(filePath);
+        return fs.promises.readFile(target, 'utf-8');
+      },
+      writeFile: async (filePath: string, content: string): Promise<void> => {
+        const target = resolveWithinRoot(filePath);
+        await fs.promises.mkdir(path.dirname(target), { recursive: true });
+        await fs.promises.writeFile(target, content, 'utf-8');
+      },
+      deleteFile: async (filePath: string): Promise<void> => {
+        const target = resolveWithinRoot(filePath);
+        await fs.promises.rm(target, { force: true });
+      },
+      exists: async (filePath: string): Promise<boolean> => {
+        const target = resolveWithinRoot(filePath);
+        try {
+          await fs.promises.access(target);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    },
+    process: {
+      exec: async (
+        command: string,
+        args: string[] = [],
+        options?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number }
+      ): Promise<{ code: number | null; signal?: string | null; stdout?: string; stderr?: string }> => {
+        const { spawn } = await import('child_process');
+        const execCwd = options?.cwd ? resolveWithinRoot(options.cwd) : rootAbs;
+        const timeoutMs = options?.timeoutMs ?? 30_000;
+
+        return new Promise((resolve, reject) => {
+          const child = spawn(command, args, {
+            cwd: execCwd,
+            env: { ...process.env, ...(options?.env ?? {}) },
+            shell: true,
+            stdio: 'pipe',
+          });
+
+          let stdout = '';
+          let stderr = '';
+          let timedOut = false;
+
+          const timer = timeoutMs > 0
+            ? setTimeout(() => {
+                timedOut = true;
+                try { child.kill('SIGKILL'); } catch { /* best effort */ }
+              }, timeoutMs)
+            : null;
+
+          child.stdout?.on('data', (chunk: Buffer) => {
+            stdout += chunk.toString('utf-8');
+          });
+
+          child.stderr?.on('data', (chunk: Buffer) => {
+            stderr += chunk.toString('utf-8');
+          });
+
+          child.on('error', (err) => {
+            if (timer) clearTimeout(timer);
+            reject(err);
+          });
+
+          child.on('close', (code, signal) => {
+            if (timer) clearTimeout(timer);
+            if (timedOut) {
+              resolve({ code: code ?? null, signal: signal ?? 'SIGKILL', stdout, stderr: `${stderr}\nProcess timed out after ${timeoutMs}ms`.trim() });
+              return;
+            }
+            resolve({ code, signal, stdout, stderr });
+          });
+        });
+      },
+    },
+  };
+
   // Create HeadlessRuntime from the cloned .hsplus composition
   const runtime = createHeadlessRuntime(freshAST, {
     profile: HEADLESS_PROFILE,
     executeAction: executeActionCallback,
+    hostCapabilities,
     tickRate: 0, // Manual ticking only — we control the loop
     debug: config.verbose,
   });
@@ -1137,6 +1366,34 @@ async function runBridgeCycle(
     btComplete = true;
     btStatus = event?.status ?? 'unknown';
     btBlackboard = event?.blackboard ?? {};
+  });
+
+  // ── @feedback_loop: consume optimization signals ──
+  // FeedbackLoopTrait emits signals when metrics trend down (auto_signal: true).
+  // We listen here and adjust behavior: switch focus, tighten budgets, etc.
+  let feedbackSignalAction: string | null = null;
+  runtime.on('feedback:optimization_signal', (event: any) => {
+    const metric = event?.metric ?? 'unknown';
+    const signal = event?.signal ?? 'unknown';
+    const trend = event?.trend ?? 'unknown';
+    console.log(`  [feedback] Signal: ${metric} → ${signal} (trend: ${trend})`);
+
+    // React to quality decline by suggesting focus change
+    if (metric === 'quality_score' && (signal === 'alert' || signal === 'critical')) {
+      feedbackSignalAction = 'switch_focus';
+      console.log(`  [feedback] Quality declining — will suggest focus switch next cycle`);
+    }
+    // React to cost efficiency decline by tightening tool budget
+    if (metric === 'cost_efficiency' && signal === 'critical') {
+      feedbackSignalAction = 'tighten_budget';
+      console.log(`  [feedback] Cost efficiency critical — tightening tool budget`);
+    }
+  });
+  runtime.on('feedback:alert', (event: unknown) => {
+    const e = event as Record<string, unknown> | undefined;
+    const metric = (e?.metric as string) ?? 'unknown';
+    const deviation = typeof e?.deviation === 'number' ? e.deviation.toFixed(1) : '?';
+    console.log(`  [feedback] Alert: ${metric} deviated ${deviation}% from target`);
   });
 
   // ── @economy: listen for cost circuit breaker events ──
@@ -1284,6 +1541,13 @@ async function runBridgeCycle(
   }
   if (bridgeState.attemptedFiles.length > 50) {
     bridgeState.attemptedFiles = bridgeState.attemptedFiles.slice(-50);
+  }
+
+  // Apply feedback signal actions to bridge state for next cycle
+  if (feedbackSignalAction === 'switch_focus') {
+    // Skip ahead in focus rotation to avoid repeating a declining focus
+    bridgeState.focusIndex += 1;
+    console.log(`  [feedback] Focus rotation advanced due to quality decline signal`);
   }
 
   return {
@@ -1511,6 +1775,9 @@ async function main() {
 
       const delta = result.qualityAfter - result.qualityBefore;
       console.log(`\nCycle ${i + 1}/${config.cycles} (${durationSec}s) — quality: ${result.qualityAfter.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) — $${costUSD.toFixed(3)}`);
+      if (bridgeState.blacklistedFiles?.length > 0) {
+        console.log(`  Blacklisted files: ${bridgeState.blacklistedFiles.map(f => path.basename(f)).join(', ')}`)
+      }
     } catch (err: any) {
       console.error(`Cycle ${i + 1} failed: ${err.message}`);
       if (config.verbose) console.error(err.stack);

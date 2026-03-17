@@ -1,4 +1,6 @@
-﻿# HoloScript Roadmap 2026-2028
+﻿<!-- markdownlint-disable MD012 MD024 MD026 MD031 MD032 MD033 MD036 MD040 MD051 MD060 -->
+
+# HoloScript Roadmap 2026-2028
 
 > Historical archive: this roadmap is preserved as a planning snapshot from the v3-v5 era. Counts, milestones, and wording below reflect that period. For current canonical positioning and metrics, use ../../README.md, ../README.md, ../../VISION.md, and ../../CHANGELOG.md.
 

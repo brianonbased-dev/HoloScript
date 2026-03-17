@@ -1,10 +1,11 @@
 {
-  "totalCycles": 0,
-  "bestQuality": 0,
+  "totalCycles": 6,
+  "bestQuality": 0.31,
   "lastQuality": 0,
-  "focusIndex": 0,
+  "focusIndex": 6,
   "attemptedFiles": [],
-  "totalInputTokens": 0,
-  "totalOutputTokens": 0,
-  "totalCostUSD": 0
+  "blacklistedFiles": [],
+  "totalInputTokens": 1033968,
+  "totalOutputTokens": 11334,
+  "totalCostUSD": 3.2719139999999998
 }

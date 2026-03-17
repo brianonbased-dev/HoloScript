@@ -7,12 +7,16 @@ on:
       - 'docs/**'
       - 'DOCS_AUDIT_COMPLETE.md'
       - '.github/workflows/docs-quality.yml'
+      - 'scripts/check-roadmap-drift.mjs'
+      - 'package.json'
   pull_request:
     branches: [main]
     paths:
       - 'docs/**'
       - 'DOCS_AUDIT_COMPLETE.md'
       - '.github/workflows/docs-quality.yml'
+      - 'scripts/check-roadmap-drift.mjs'
+      - 'package.json'
 
 jobs:
   docs-build:
@@ -53,3 +57,6 @@ jobs:
             "docs/guides/**/*.md" \
             "DOCS_AUDIT_COMPLETE.md" \
             --config .markdownlint-docs.json
+
+      - name: Check roadmap drift markers
+        run: pnpm docs:roadmap:drift
