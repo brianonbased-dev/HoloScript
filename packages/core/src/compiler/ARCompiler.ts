@@ -52,7 +52,7 @@ export class ARCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ) {
+  ): ARCompilationResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
