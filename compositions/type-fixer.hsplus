@@ -1,0 +1,270 @@
+/**
+ * Type Fixer — Streamlined .hsplus Composition
+ *
+ * A performance-optimized variant of self-improve-daemon.hsplus focused
+ * exclusively on fixing TypeScript type errors. Key differences:
+ *
+ *   1. No per-candidate quality validation (saves 2+ minutes per candidate)
+ *   2. No per-candidate test runs (tests at end of cycle only)
+ *   3. Higher candidate throughput (10 per cycle vs 3)
+ *   4. Commit on compilation pass only (no quality gate per file)
+ *   5. Single quality + test check at cycle end for reporting
+ *   6. No motivation layer (pure operational mode)
+ *
+ * Expected cycle time: ~4-6 min (vs 8-10 min for self-improve-daemon)
+ * Expected cost/cycle: ~$0.30 (more LLM calls, less tsc/vitest)
+ *
+ * Usage:
+ *   holoscript daemon compositions/type-fixer.hsplus --cycles 5 --commit
+ *
+ * @version 1.0.0
+ * @format .hsplus (behavior)
+ */
+
+composition "TypeFixer" {
+
+  state {
+    identity: {
+      statement: "I fix type errors. One file at a time. Every fix counts.",
+      cycles_completed: 0,
+      wisdom_accumulated: []
+    }
+  }
+
+  object "Daemon" {
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "typefix_cycle",
+        children: [
+          // Step 0: Load accumulated wisdom
+          {
+            type: "action",
+            name: "identity_intake",
+            action: "identity_intake"
+          },
+
+          // Step 1: Diagnose — find files with type errors
+          // Focus is always "typefix" for this composition
+          {
+            type: "action",
+            name: "diagnose_codebase",
+            action: "diagnose"
+          },
+
+          // Step 2: Batch candidate processing
+          // Higher throughput: 10 candidates per cycle
+          // No per-candidate quality validation — just compile check
+          {
+            type: "selector",
+            name: "find_candidate",
+            children: [
+              {
+                type: "sequence",
+                name: "candidate_loop",
+                children: [
+                  {
+                    type: "condition",
+                    name: "has_candidates",
+                    condition: "has_candidates"
+                  },
+
+                  // Try up to 10 candidates per cycle (3x more than default)
+                  {
+                    type: "repeater",
+                    name: "candidate_iterator",
+                    count: 10,
+                    children: [
+                      {
+                        type: "sequence",
+                        name: "try_candidate",
+                        children: [
+                          {
+                            type: "condition",
+                            name: "has_candidates_inner",
+                            condition: "has_candidates"
+                          },
+
+                          // Read candidate source
+                          {
+                            type: "action",
+                            name: "read_candidate",
+                            action: "read_candidate"
+                          },
+
+                          // Generate fix via LLM
+                          {
+                            type: "action",
+                            name: "generate_fix",
+                            action: "generate_fix"
+                          },
+
+                          // Verify compilation (incremental = fast after first)
+                          {
+                            type: "action",
+                            name: "verify_compilation",
+                            action: "verify_compilation"
+                          },
+
+                          // Retry loop for compile errors
+                          {
+                            type: "repeater",
+                            name: "compile_retry_loop",
+                            count: 1,
+                            children: [
+                              {
+                                type: "sequence",
+                                name: "retry_compile_fix",
+                                children: [
+                                  {
+                                    type: "inverter",
+                                    name: "compilation_not_passed",
+                                    children: [
+                                      {
+                                        type: "condition",
+                                        name: "compilation_passed",
+                                        condition: "compilation_passed"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    type: "action",
+                                    name: "fix_from_compile_errors",
+                                    action: "fix_from_compile_errors"
+                                  },
+                                  {
+                                    type: "action",
+                                    name: "verify_compilation_retry",
+                                    action: "verify_compilation"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+
+                          // Handle verification: commit on pass, rollback on fail
+                          // NO quality validation, NO test run — just compile gate
+                          {
+                            type: "selector",
+                            name: "handle_verification",
+                            children: [
+                              {
+                                type: "sequence",
+                                name: "compilation_passed_path",
+                                children: [
+                                  {
+                                    type: "condition",
+                                    name: "compilation_passed",
+                                    condition: "compilation_passed"
+                                  },
+
+                                  // Commit directly — no quality/test gate
+                                  {
+                                    type: "action",
+                                    name: "commit_changes",
+                                    action: "commit_changes"
+                                  }
+                                ]
+                              },
+
+                              // Compilation failed — rollback + advance
+                              {
+                                type: "sequence",
+                                name: "rollback_and_advance",
+                                children: [
+                                  {
+                                    type: "action",
+                                    name: "rollback_compile_failure",
+                                    action: "rollback_changes"
+                                  },
+                                  {
+                                    type: "action",
+                                    name: "advance_after_compile_fail",
+                                    action: "advance_candidate"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+
+              // No candidates found
+              {
+                type: "action",
+                name: "no_candidates",
+                action: "report_no_candidates"
+              }
+            ]
+          },
+
+          // Step 3: Single quality check at end of cycle (for reporting only)
+          {
+            type: "action",
+            name: "validate_quality",
+            action: "validate_quality"
+          },
+
+          // Step 4: Report results
+          {
+            type: "action",
+            name: "report_results",
+            action: "report_results"
+          },
+
+          // Step 5: Save wisdom
+          {
+            type: "action",
+            name: "compress_knowledge",
+            action: "compress_knowledge"
+          }
+        ]
+      },
+      tick_rate: 1,
+      restart_on_complete: false,
+      blackboard: {
+        intake_loaded: false,
+        has_candidates: false,
+        compilation_passed: false,
+        tests_passed: true,
+        quality_improved: false,
+        current_file: null,
+        quality_before: 0,
+        quality_after: 0,
+        files_edited: [],
+        compile_errors: [],
+        retry_count: 0,
+        candidate_index: 0
+      }
+    }
+
+    // Rate limiter: prevent API hammering
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 15,
+      refill_rate: 3,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    // Timeout guard: 2 min per LLM call
+    @timeout_guard {
+      default_timeout_ms: 120000,
+      fallback_action: "abort"
+    }
+
+    // Circuit breaker: stop after 5 consecutive failures
+    @circuit_breaker {
+      failure_threshold: 5,
+      window_ms: 300000,
+      reset_timeout_ms: 60000,
+      success_threshold: 1,
+      failure_rate_threshold: 0,
+      min_requests: 3
+    }
+  }
+}

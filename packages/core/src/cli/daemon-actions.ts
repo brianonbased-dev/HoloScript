@@ -74,10 +74,11 @@ function countTypeErrors(output: string): number {
 async function computeQuality(
   host: DaemonHost,
   repoRoot: string,
+  stateDir: string,
   baselineErrors?: number,
 ): Promise<{ score: number; typeErrors: number; testsPassed: number; testsTotal: number }> {
   const [tsc, test] = await Promise.all([
-    host.exec('npx', ['tsc', '--noEmit', '--pretty', 'false'], { cwd: repoRoot, timeoutMs: 120_000 }),
+    host.exec('npx', tscCheckArgs(stateDir), { cwd: repoRoot, timeoutMs: 120_000 }),
     host.exec('npx', ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'], { cwd: repoRoot, timeoutMs: 120_000 }),
   ]);
 
@@ -99,6 +100,67 @@ async function computeQuality(
 
   const score = Number((typeScore * 0.6 + testScore * 0.4).toFixed(3));
   return { score, typeErrors, testsPassed, testsTotal };
+}
+
+// ── Incremental tsc ──────────────────────────────────────────────────────────
+
+/** tsc args with incremental caching — subsequent runs in same cycle reuse .tsbuildinfo */
+function tscCheckArgs(stateDir: string): string[] {
+  return ['tsc', '--noEmit', '--pretty', 'false',
+    '--incremental', '--tsBuildInfoFile', `${stateDir}/.daemon-tsbuildinfo`];
+}
+
+// ── Lightweight Import Graph (GraphRAG-lite) ─────────────────────────────────
+
+/** Count how many candidate files import each candidate (downstream impact) */
+function computeDownstreamImpact(
+  candidates: Array<[string, number]>,
+  host: DaemonHost,
+): Map<string, number> {
+  const impact = new Map<string, number>();
+  for (const [file] of candidates) {
+    try {
+      const content = host.readFile(file);
+      const re = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(content))) {
+        const importedBase = m[1].split('/').pop()?.replace(/\.(ts|tsx|js)$/, '') || '';
+        for (const [cFile] of candidates) {
+          if (cFile === file) continue;
+          const cBase = cFile.split(/[/\\]/).pop()?.replace(/\.(ts|tsx)$/, '') || '';
+          if (importedBase === cBase) {
+            impact.set(cFile, (impact.get(cFile) || 0) + 1);
+          }
+        }
+      }
+    } catch { /* skip unreadable */ }
+  }
+  return impact;
+}
+
+/** Extract exported type signatures from imported files for LLM context */
+function extractDependencyContext(content: string, file: string, host: DaemonHost): string {
+  const importRe = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+  let im: RegExpExecArray | null;
+  const exports: string[] = [];
+  const dir = file.replace(/[/\\][^/\\]+$/, '');
+  while ((im = importRe.exec(content))) {
+    for (const ext of ['.ts', '.tsx', '/index.ts']) {
+      const resolved = `${dir}/${im[1]}${ext}`.replace(/\\/g, '/');
+      try {
+        if (host.exists(resolved)) {
+          const depContent = host.readFile(resolved);
+          const exportLines = depContent.split('\n')
+            .filter(l => /^export\s/.test(l))
+            .slice(0, 10)
+            .join('\n');
+          if (exportLines) exports.push(`// ${im[1]}:\n${exportLines}`);
+          break;
+        }
+      } catch { /* skip */ }
+    }
+  }
+  return exports.length > 0 ? `\n\nImported type signatures:\n${exports.join('\n')}` : '';
 }
 
 // ── Quarantine ───────────────────────────────────────────────────────────────
@@ -153,8 +215,8 @@ export function createDaemonActions(
       let candidates: string[] = [];
 
       if (focus === 'typefix' || focus === 'all') {
-        // Run tsc and collect files with type errors
-        const result = await host.exec('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
+        // Run tsc and collect files with type errors (incremental for speed)
+        const result = await host.exec('npx', tscCheckArgs(config.stateDir), {
           cwd: config.repoRoot, timeoutMs: 120_000,
         });
         const errorLines = (result.stdout + result.stderr).split('\n').filter(l => /error TS\d{4}:/.test(l));
@@ -174,8 +236,14 @@ export function createDaemonActions(
           .filter(([f]) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
           .filter(([f]) => (failureCounts.get(f) || 0) < QUARANTINE_THRESHOLD);
 
-        // Prioritize files with fewest errors (easiest wins first)
-        filtered.sort((a, b) => a[1] - b[1]);
+        // Rank by downstream impact × error tractability
+        // Files imported by many others AND with few errors = highest value
+        const impact = computeDownstreamImpact(filtered, host);
+        filtered.sort((a, b) => {
+          const scoreA = (1 + (impact.get(a[0]) || 0)) / (1 + a[1]);
+          const scoreB = (1 + (impact.get(b[0]) || 0)) / (1 + b[1]);
+          return scoreB - scoreA;
+        });
 
         candidates = filtered.map(([f]) => f);
         bb.typeErrorCount = errorLines.length;
@@ -294,7 +362,9 @@ export function createDaemonActions(
           ? `\nCompile errors to fix:\n${compileErrors.slice(0, 10).join('\n')}`
           : '';
 
-      const prompt = `File: ${file}${errorContext}\n\nCurrent content:\n${content}`;
+      // Inject dependency context for type-aware fixes
+      const depContext = focus === 'typefix' ? extractDependencyContext(content, file, host) : '';
+      const prompt = `File: ${file}${errorContext}${depContext}\n\nCurrent content:\n${content}`;
 
       try {
         const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: 8192 });
@@ -347,7 +417,7 @@ export function createDaemonActions(
     // Always returns true (check completed). Sets bb.compilation_passed flag
     // for the BT condition node to decide commit vs rollback path.
     verify_compilation: async (_params, bb) => {
-      const result = await host.exec('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
+      const result = await host.exec('npx', tscCheckArgs(config.stateDir), {
         cwd: config.repoRoot, timeoutMs: 120_000,
       });
       const errors = (result.stdout + result.stderr).split('\n').filter(l => /error TS\d{4}:/.test(l));
@@ -404,7 +474,7 @@ export function createDaemonActions(
     // ── Validate Quality ───────────────────────────────────────────────
     validate_quality: async (_params, bb) => {
       const baselineErrors = (bb.typeErrorBaseline as number) || (bb.typeErrorCount as number) || undefined;
-      const result = await computeQuality(host, config.repoRoot, baselineErrors);
+      const result = await computeQuality(host, config.repoRoot, config.stateDir, baselineErrors);
       const qualityBefore = (bb.quality_before as number) || 0;
 
       bb.quality_after = result.score;
