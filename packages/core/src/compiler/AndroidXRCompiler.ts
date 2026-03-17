@@ -34,7 +34,7 @@
  * @version 3.0.0 — Android XR SDK Developer Preview 3 + AI Glasses
  */
 
-import { CompilerBase } from './CompilerBase';
+import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
