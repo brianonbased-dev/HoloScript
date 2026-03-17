@@ -914,7 +914,7 @@ function clearBoneOverride(state: FBXState, boneName?: string): void {
  * Get FBX state from a node
  */
 export function getFBXState(node: HSPlusNode): FBXState | undefined {
-  return node.__fbxState;
+  return (node as any).__fbxState as FBXState | undefined;
 }
 
 /**
