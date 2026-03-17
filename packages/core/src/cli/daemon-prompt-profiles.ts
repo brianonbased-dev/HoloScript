@@ -10,6 +10,25 @@ export interface DaemonPromptContext {
 
 export type DaemonPromptAction = 'coverage' | 'docs' | 'typefix';
 
+const HOLOSCRIPT_IDENTITY = [
+  'HoloScript is an AI-native declarative semantic specification language.',
+  'Core model: entities + composable traits (2,000+ across many categories).',
+  'Formats: .holo (scene), .hs (behavior), .hsplus (typed logic).',
+  'Compiler model: deterministic parser -> AST -> validator -> target output.',
+].join(' ');
+
+const HOLOSCRIPT_WISDOM = [
+  'Traits declare WHAT; compilers decide HOW per target.',
+  'Everything is an entity; avoid artificial frontend/backend splits in reasoning.',
+  'Prefer semantic intent over syntax tricks; preserve declarative composition boundaries.',
+].join(' ');
+
+const HOLOSCRIPT_GOTCHAS = [
+  'Target capabilities vary; keep fixes portable unless target constraints are explicit.',
+  'Avoid invalid trait combinations and hidden imperative rewrites.',
+  'When uncertain, choose minimally invasive edits and preserve compile determinism.',
+].join(' ');
+
 function modelStyleGuideFor(provider: DaemonProvider): string {
   switch (provider) {
     case 'xai':
@@ -77,6 +96,7 @@ export function getDaemonSystemPrompt(
   context: DaemonPromptContext,
 ): string {
   const { modelStyleGuide, toolGuide, toolProfile } = context;
+  const repoContext = [HOLOSCRIPT_IDENTITY, HOLOSCRIPT_WISDOM, HOLOSCRIPT_GOTCHAS].join(' ');
 
   if (action === 'coverage') {
     const profileAddendum =
@@ -88,6 +108,7 @@ export function getDaemonSystemPrompt(
 
     return [
       'You are a TypeScript testing expert. Generate a comprehensive test file for the given source.',
+      repoContext,
       modelStyleGuide,
       toolGuide,
       profileAddendum,
@@ -107,6 +128,7 @@ export function getDaemonSystemPrompt(
 
     return [
       'You are a TypeScript documentation expert. Add JSDoc comments to all exported symbols.',
+      repoContext,
       modelStyleGuide,
       toolGuide,
       profileAddendum,
@@ -126,6 +148,7 @@ export function getDaemonSystemPrompt(
   return [
     'You are a TypeScript expert fixing type errors in a large monorepo.',
     'This is HoloScript — a DSL for VR/AR with traits, compilers, and parsers.',
+    repoContext,
     modelStyleGuide,
     toolGuide,
     typefixAddendum,

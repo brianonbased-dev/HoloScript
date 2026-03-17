@@ -58,7 +58,8 @@ describe('holoscript daemon integration', () => {
   let host: MockHost;
   let llm: LLMProvider;
   let blackboard: Blackboard;
-  let context: { emit: ReturnType<typeof vi.fn> };
+  let emitSpy: (event: string, payload?: unknown) => void;
+  let context: { emit: (event: string, payload?: unknown) => void };
 
   beforeEach(() => {
     host = new MockHost();
@@ -78,7 +79,8 @@ describe('holoscript daemon integration', () => {
       })),
     };
     blackboard = {};
-    context = { emit: vi.fn() };
+    emitSpy = vi.fn<(event: string, payload?: unknown) => void>();
+    context = { emit: emitSpy };
   });
 
   it('loads persisted wisdom during identity intake', async () => {
@@ -170,5 +172,116 @@ describe('holoscript daemon integration', () => {
     expect(ok).toBe(false);
     expect(host.readFile('packages/core/src/example.ts')).toBe('export const fixed = false;\n');
     expect(blackboard.fileEdited).toBeUndefined();
+  });
+
+  it('runs compiler target sweep checks across node and python targets', async () => {
+    host.seedFile('compositions/self-improve-daemon.hsplus', 'composition "Daemon" { @grabbable @networked }\n');
+    host.setExecResponses((command, args) => {
+      if (command === 'npx' && args?.[0] === 'tsx' && args?.includes('compile')) {
+        return { code: 0, stdout: 'compile ok\n', stderr: '' };
+      }
+      return { code: 0, stdout: '', stderr: '' };
+    });
+
+    blackboard.focus = 'target-sweep';
+    blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
+
+    const actions = createDaemonActions(host, llm, createConfig());
+    const diagnosed = await actions.diagnose({}, blackboard, context);
+    const read = await actions.read_candidate({}, blackboard, context);
+    const fixed = await actions.generate_fix({}, blackboard, context);
+
+    expect(diagnosed).toBe(true);
+    expect(read).toBe(true);
+    expect(fixed).toBe(true);
+    expect(blackboard.has_candidates).toBe(true);
+    expect((blackboard.sweep_results as Array<{ ok: boolean }>).length).toBe(2);
+    expect((blackboard.sweep_results as Array<{ ok: boolean }>).every(r => r.ok)).toBe(true);
+  });
+
+  it('samples trait categories from daemon composition', async () => {
+    host.seedFile(
+      'compositions/self-improve-daemon.hsplus',
+      [
+        'composition "Daemon" {',
+        '  object "Cube" {',
+        '    @grabbable',
+        '    @networked',
+        '    @collidable',
+        '    @spatial_audio',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+    host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
+
+    blackboard.focus = 'trait-sampling';
+    blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
+
+    const actions = createDaemonActions(host, llm, createConfig());
+    const diagnosed = await actions.diagnose({}, blackboard, context);
+    const read = await actions.read_candidate({}, blackboard, context);
+    const fixed = await actions.generate_fix({}, blackboard, context);
+
+    expect(diagnosed).toBe(true);
+    expect(read).toBe(true);
+    expect(fixed).toBe(true);
+    expect(blackboard.trait_sampling).toMatchObject({
+      sampledFiles: 1,
+    });
+    expect((blackboard.trait_sampling as { sampledCategories: number }).sampledCategories).toBeGreaterThanOrEqual(3);
+  });
+
+  it('runs runtime profile matrix checks for headless, minimal, and full', async () => {
+    host.seedFile('compositions/self-improve-daemon.hsplus', 'composition "Daemon" { @grabbable }\n');
+    host.setExecResponses((command, args) => {
+      if (command === 'npx' && args?.[0] === 'tsx' && args?.includes('run')) {
+        return { code: 0, stdout: 'run ok\n', stderr: '' };
+      }
+      return { code: 0, stdout: '', stderr: '' };
+    });
+
+    blackboard.focus = 'runtime-matrix';
+    blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
+
+    const actions = createDaemonActions(host, llm, createConfig());
+    const diagnosed = await actions.diagnose({}, blackboard, context);
+    const read = await actions.read_candidate({}, blackboard, context);
+    const fixed = await actions.generate_fix({}, blackboard, context);
+
+    expect(diagnosed).toBe(true);
+    expect(read).toBe(true);
+    expect(fixed).toBe(true);
+    expect((blackboard.runtime_matrix as Array<{ profile: string }>).map(r => r.profile)).toEqual([
+      'headless',
+      'minimal',
+      'full',
+    ]);
+  });
+
+  it('executes absorb and roundtrip compile validation cycle', async () => {
+    host.seedFile('packages/core/src/cli/daemon-actions.ts', 'export const sentinel = true;\n');
+    host.setExecResponses((command, args) => {
+      if (command === 'npx' && args?.[0] === 'tsx' && (args?.includes('absorb') || args?.includes('compile'))) {
+        return { code: 0, stdout: 'ok\n', stderr: '' };
+      }
+      return { code: 0, stdout: '', stderr: '' };
+    });
+
+    blackboard.focus = 'absorb-roundtrip';
+    blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
+
+    const actions = createDaemonActions(host, llm, createConfig());
+    const diagnosed = await actions.diagnose({}, blackboard, context);
+    const read = await actions.read_candidate({}, blackboard, context);
+    const fixed = await actions.generate_fix({}, blackboard, context);
+
+    expect(diagnosed).toBe(true);
+    expect(read).toBe(true);
+    expect(fixed).toBe(true);
+    expect(blackboard.absorb_roundtrip).toMatchObject({
+      absorbOk: true,
+      compileOk: true,
+    });
   });
 });

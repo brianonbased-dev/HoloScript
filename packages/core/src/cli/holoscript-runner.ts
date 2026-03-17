@@ -1137,7 +1137,18 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   const llm = createDaemonLLMProvider(opts);
 
   // Daemon configuration
-  const focusRotation = ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'];
+  const focusRotation = [
+    'typefix',
+    'coverage',
+    'typefix',
+    'docs',
+    'target-sweep',
+    'trait-sampling',
+    'runtime-matrix',
+    'absorb-roundtrip',
+    'typefix',
+    'all',
+  ];
   const config: DaemonConfig = {
     repoRoot,
     commit: opts.commit,
@@ -1193,6 +1204,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     setASTBlackboard(cycleAST, {
       focus,
       cycleNumber: daemonState.totalCycles + cycle,
+      daemon_file: filePath,
       quality_before: daemonState.lastQuality,
     });
 

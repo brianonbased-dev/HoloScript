@@ -171,6 +171,205 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
   return exports.length > 0 ? `\n\nImported type signatures:\n${exports.join('\n')}` : '';
 }
 
+// ── Feature Sweep Helpers ───────────────────────────────────────────────────
+
+const SWEEP_TARGETS = ['node', 'python'] as const;
+const PROFILE_MATRIX = ['headless', 'minimal', 'full'] as const;
+
+type SweepTarget = (typeof SWEEP_TARGETS)[number];
+type RuntimeProfile = (typeof PROFILE_MATRIX)[number];
+
+interface CompilerSweepResult {
+  target: SweepTarget;
+  ok: boolean;
+  output: string;
+  error: string;
+}
+
+interface RuntimeProfileResult {
+  profile: RuntimeProfile;
+  ok: boolean;
+  error: string;
+}
+
+interface AbsorbRoundtripResult {
+  sourceFile: string;
+  absorbedFile: string;
+  compiledFile: string;
+  absorbOk: boolean;
+  compileOk: boolean;
+  error: string;
+}
+
+interface TraitCoverageResult {
+  sampledFiles: number;
+  sampledTraits: number;
+  sampledCategories: number;
+  categories: string[];
+}
+
+function sanitizeName(filePath: string): string {
+  return filePath
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_{2,}/g, '_')
+    .slice(0, 120);
+}
+
+function collectTraitCoverage(content: string): TraitCoverageResult {
+  const traits = new Set<string>();
+  const categories = new Set<string>();
+
+  const inferCategory = (trait: string): string => {
+    const t = trait.toLowerCase();
+    if (/grab|throw|click|hover|drag|point|hold|equip|consume/.test(t)) return 'interaction';
+    if (/collid|physics|rigid|kinematic|trigger|gravity|mass|friction/.test(t)) return 'physics';
+    if (/glow|emiss|transparent|reflect|billboard|particle|animat/.test(t)) return 'visual';
+    if (/network|sync|replicat|persistent|owned|host/.test(t)) return 'networking';
+    if (/npc|path|llm|state_machine|crowd|agent/.test(t)) return 'ai-behavior';
+    if (/anchor|track|world_locked|hand|eye|plane/.test(t)) return 'spatial';
+    if (/audio|voice|reverb|doppler/.test(t)) return 'audio';
+    if (/state|reactive|observable|computed/.test(t)) return 'state';
+    if (/iot|digital_twin|mqtt|telemetry|sensor/.test(t)) return 'iot';
+    if (/wallet|nft|token|marketplace|zora|economy/.test(t)) return 'economics-web3';
+    if (/zero_knowledge|zk_|rsa|audit|security|encrypt/.test(t)) return 'security';
+    return 'other';
+  };
+
+  const traitRe = /@([a-zA-Z_][a-zA-Z0-9_]*)/g;
+  let match: RegExpExecArray | null;
+  while ((match = traitRe.exec(content))) {
+    const trait = match[1];
+    traits.add(trait);
+    categories.add(inferCategory(trait));
+  }
+
+  return {
+    sampledFiles: 1,
+    sampledTraits: traits.size,
+    sampledCategories: categories.size,
+    categories: [...categories].sort(),
+  };
+}
+
+async function runCompilerSweep(
+  host: DaemonHost,
+  repoRoot: string,
+  stateDir: string,
+  compositionFile: string,
+): Promise<CompilerSweepResult[]> {
+  const runner = 'packages/core/src/cli/holoscript-runner.ts';
+  const safeName = sanitizeName(compositionFile.split(/[/\\]/).pop() || 'composition.hsplus');
+  const results: CompilerSweepResult[] = [];
+
+  for (const target of SWEEP_TARGETS) {
+    const output = `${stateDir}/sweep-${safeName}.${target === 'python' ? 'py' : 'js'}`;
+    const execResult = await host.exec('npx', [
+      'tsx',
+      runner,
+      'compile',
+      compositionFile,
+      '--target',
+      target,
+      '--output',
+      output,
+    ], {
+      cwd: repoRoot,
+      timeoutMs: 120_000,
+    });
+
+    results.push({
+      target,
+      ok: execResult.code === 0,
+      output,
+      error: (execResult.stderr || execResult.stdout || '').trim(),
+    });
+  }
+
+  return results;
+}
+
+async function runRuntimeProfileMatrix(
+  host: DaemonHost,
+  repoRoot: string,
+  compositionFile: string,
+): Promise<RuntimeProfileResult[]> {
+  const runner = 'packages/core/src/cli/holoscript-runner.ts';
+  const results: RuntimeProfileResult[] = [];
+
+  for (const profile of PROFILE_MATRIX) {
+    const execResult = await host.exec('npx', [
+      'tsx',
+      runner,
+      'run',
+      compositionFile,
+      '--profile',
+      profile,
+      '--ticks',
+      '1',
+    ], {
+      cwd: repoRoot,
+      timeoutMs: 120_000,
+    });
+
+    results.push({
+      profile,
+      ok: execResult.code === 0,
+      error: (execResult.stderr || execResult.stdout || '').trim(),
+    });
+  }
+
+  return results;
+}
+
+async function runAbsorbRoundtrip(
+  host: DaemonHost,
+  repoRoot: string,
+  stateDir: string,
+  sourceFile: string,
+): Promise<AbsorbRoundtripResult> {
+  const runner = 'packages/core/src/cli/holoscript-runner.ts';
+  const safeName = sanitizeName(sourceFile.split(/[/\\]/).pop() || 'source.ts');
+  const absorbedFile = `${stateDir}/roundtrip-${safeName}.hsplus`;
+  const compiledFile = `${stateDir}/roundtrip-${safeName}.js`;
+
+  const absorbResult = await host.exec('npx', [
+    'tsx',
+    runner,
+    'absorb',
+    sourceFile,
+    '--output',
+    absorbedFile,
+  ], {
+    cwd: repoRoot,
+    timeoutMs: 120_000,
+  });
+
+  const compileResult = absorbResult.code === 0
+    ? await host.exec('npx', [
+      'tsx',
+      runner,
+      'compile',
+      absorbedFile,
+      '--target',
+      'node',
+      '--output',
+      compiledFile,
+    ], {
+      cwd: repoRoot,
+      timeoutMs: 120_000,
+    })
+    : { code: 1, stdout: '', stderr: 'absorb step failed' };
+
+  return {
+    sourceFile,
+    absorbedFile,
+    compiledFile,
+    absorbOk: absorbResult.code === 0,
+    compileOk: compileResult.code === 0,
+    error: ((absorbResult.stderr || '') + '\n' + (compileResult.stderr || '')).trim(),
+  };
+}
+
 // ── Patch Types & Helpers ────────────────────────────────────────────────────
 
 interface Patch {
@@ -325,6 +524,10 @@ export function createDaemonActions(
     diagnose: async (_params, bb) => {
       const focus = (bb.focus as string) || 'typefix';
       log(`Diagnosing with focus: ${focus}`);
+      const daemonCompositionFile = (bb.daemon_file as string) || '';
+      const validationFocuses = new Set(['target-sweep', 'trait-sampling', 'runtime-matrix', 'absorb-roundtrip']);
+      bb.validation_focus = validationFocuses.has(focus);
+      bb.edit_focus = !bb.validation_focus;
 
       let candidates: string[] = [];
 
@@ -417,6 +620,69 @@ export function createDaemonActions(
           } catch { /* skip unreadable */ }
         }
         bb.typeErrorCount = 0;
+      } else if (focus === 'target-sweep') {
+        if (!daemonCompositionFile) {
+          bb.sweep_results = [];
+          bb.sweep_passed = false;
+          bb.has_candidates = false;
+          log('Target sweep skipped: daemon file not available on blackboard');
+          return true;
+        }
+
+        const sweepResults = await runCompilerSweep(host, config.repoRoot, config.stateDir, daemonCompositionFile);
+        bb.sweep_results = sweepResults;
+        bb.sweep_passed = sweepResults.every(r => r.ok);
+        candidates = [daemonCompositionFile];
+        bb.typeErrorCount = 0;
+      } else if (focus === 'trait-sampling') {
+        if (!daemonCompositionFile || !host.exists(daemonCompositionFile)) {
+          bb.trait_sampling = {
+            sampledFiles: 0,
+            sampledTraits: 0,
+            sampledCategories: 0,
+            categories: [],
+          };
+          bb.trait_sampling_passed = false;
+          bb.has_candidates = false;
+          log('Trait sampling skipped: daemon file not available');
+          return true;
+        }
+
+        const content = host.readFile(daemonCompositionFile);
+        const sampling = collectTraitCoverage(content);
+        bb.trait_sampling = sampling;
+        bb.trait_sampling_passed = sampling.sampledCategories >= 3;
+        candidates = [daemonCompositionFile];
+        bb.typeErrorCount = 0;
+      } else if (focus === 'runtime-matrix') {
+        if (!daemonCompositionFile) {
+          bb.runtime_matrix = [];
+          bb.runtime_matrix_passed = false;
+          bb.has_candidates = false;
+          log('Runtime profile matrix skipped: daemon file not available on blackboard');
+          return true;
+        }
+
+        const matrix = await runRuntimeProfileMatrix(host, config.repoRoot, daemonCompositionFile);
+        bb.runtime_matrix = matrix;
+        bb.runtime_matrix_passed = matrix.every(r => r.ok);
+        candidates = [daemonCompositionFile];
+        bb.typeErrorCount = 0;
+      } else if (focus === 'absorb-roundtrip') {
+        const sourceFile = 'packages/core/src/cli/daemon-actions.ts';
+        if (!host.exists(sourceFile)) {
+          bb.absorb_roundtrip = undefined;
+          bb.absorb_roundtrip_passed = false;
+          bb.has_candidates = false;
+          log('Absorb roundtrip skipped: source fixture not found');
+          return true;
+        }
+
+        const roundtrip = await runAbsorbRoundtrip(host, config.repoRoot, config.stateDir, sourceFile);
+        bb.absorb_roundtrip = roundtrip;
+        bb.absorb_roundtrip_passed = roundtrip.absorbOk && roundtrip.compileOk;
+        candidates = [sourceFile];
+        bb.typeErrorCount = 0;
       } else {
         bb.typeErrorCount = 0;
       }
@@ -475,6 +741,46 @@ export function createDaemonActions(
         } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
         advanceCandidate(bb);
         return false;
+      }
+
+      if (focus === 'target-sweep') {
+        const sweep = (bb.sweep_results as CompilerSweepResult[]) || [];
+        bb.fileEdited = false;
+        bb.generatedTestFile = undefined;
+        log(`Target sweep: ${sweep.filter(r => r.ok).length}/${sweep.length} targets passed`);
+        return sweep.length > 0 && sweep.every(r => r.ok);
+      }
+
+      if (focus === 'trait-sampling') {
+        const sampling = bb.trait_sampling as TraitCoverageResult | undefined;
+        bb.fileEdited = false;
+        bb.generatedTestFile = undefined;
+        if (!sampling) {
+          log('Trait sampling: no data');
+          return false;
+        }
+        log(`Trait sampling: ${sampling.sampledTraits} traits across ${sampling.sampledCategories} categories`);
+        return sampling.sampledCategories >= 3;
+      }
+
+      if (focus === 'runtime-matrix') {
+        const matrix = (bb.runtime_matrix as RuntimeProfileResult[]) || [];
+        bb.fileEdited = false;
+        bb.generatedTestFile = undefined;
+        log(`Runtime matrix: ${matrix.filter(r => r.ok).length}/${matrix.length} profiles passed`);
+        return matrix.length > 0 && matrix.every(r => r.ok);
+      }
+
+      if (focus === 'absorb-roundtrip') {
+        const roundtrip = bb.absorb_roundtrip as AbsorbRoundtripResult | undefined;
+        bb.fileEdited = false;
+        bb.generatedTestFile = undefined;
+        if (!roundtrip) {
+          log('Absorb roundtrip: no result');
+          return false;
+        }
+        log(`Absorb roundtrip: absorb=${roundtrip.absorbOk ? 'ok' : 'fail'} compile=${roundtrip.compileOk ? 'ok' : 'fail'}`);
+        return roundtrip.absorbOk && roundtrip.compileOk;
       }
 
       if (focus === 'docs') {
@@ -676,6 +982,13 @@ export function createDaemonActions(
 
     // ── Commit Changes ─────────────────────────────────────────────────
     commit_changes: async (_params, bb) => {
+      if (!bb.fileEdited) {
+        log('No edits produced — skipping commit');
+        bb.committed = false;
+        advanceCandidate(bb);
+        return true;
+      }
+
       if (!config.commit) {
         log('Dry run — skipping commit');
         // Rollback file changes since we're not committing
@@ -719,6 +1032,11 @@ export function createDaemonActions(
 
     // ── Rollback Changes ───────────────────────────────────────────────
     rollback_changes: async (_params, bb) => {
+      if (!bb.fileEdited) {
+        log('No edits produced — skipping rollback');
+        return true;
+      }
+
       const file = bb.currentCandidate as string;
       const testFile = bb.generatedTestFile as string | undefined;
       if (file) {
