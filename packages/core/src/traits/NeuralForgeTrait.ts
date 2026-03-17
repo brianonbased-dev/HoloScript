@@ -86,7 +86,7 @@ export const neuralForgeHandler: TraitHandler<NeuralConfig> = {
         // Mock Synthesis (Real would call LLM)
         const shard: NeuralShard = {
           id: `shard_${Date.now()}`,
-          sourceId: node.id,
+          sourceId: node.id || 'unknown',
           timestamp: Date.now(),
           type: 'memory',
           data: { summary: `Experienced ${state.experienceLog.length} interactions.` },
