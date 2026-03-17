@@ -415,6 +415,9 @@ import { forgetPolicyHandler } from './ForgetPolicyTrait';
 import { versionedStateHandler } from './VersionedStateTrait';
 import { worldHeartbeatHandler } from './WorldHeartbeatTrait';
 import { circuitAutoResetHandler } from './CircuitAutoResetTrait';
+// Wisdom/Gotcha Meta-Traits
+import { wisdomHandler } from './WisdomTrait';
+import { gotchaHandler } from './GotchaTrait';
 
 // =============================================================================
 // TRAIT STATE
@@ -1780,6 +1783,9 @@ export class VRTraitRegistry {
     this.register(versionedStateHandler as TraitHandler);
     this.register(worldHeartbeatHandler as TraitHandler);
     this.register(circuitAutoResetHandler as TraitHandler);
+    // Wisdom/Gotcha Meta-Traits
+    this.register(wisdomHandler as TraitHandler);
+    this.register(gotchaHandler as TraitHandler);
 
     // ── CLASS trait handlers (auto-generated wrappers) ──
     this.register(absorbHandler as TraitHandler);
@@ -2443,4 +2449,9 @@ export {
   versionedStateHandler,
   worldHeartbeatHandler,
   circuitAutoResetHandler,
+};
+// Wisdom/Gotcha Meta-Trait exports
+export {
+  wisdomHandler,
+  gotchaHandler,
 };

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — v1
+Phase 1 Implemented — v2
 
 ## Authors
 
@@ -160,12 +160,13 @@ GraphRAG + MCP over raw text; absorption builds semantic graphs.
 
 ## Implementation Plan
 
-### Phase 1 — 1 week
-- Add `@wisdom` and `@gotcha` to `@holoscript/core` trait registry (2 new traits).
-- Add `@onWisdomQuery` and `@onGotchaTrigger` CLASS handlers (2 new handlers, pattern follows existing 38).
-- Update TRAITS_REFERENCE.md with new meta-trait category.
-- Create `examples/wisdom-demo/wisdom-demo.holo` as reference composition.
-- Backward compatible — all existing traits unchanged.
+### Phase 1 — DONE
+
+- [x] Add `@wisdom` and `@gotcha` to `@holoscript/core` trait registry (2 new traits).
+- [x] Add `@onWisdomQuery` and `@onGotchaTrigger` CLASS handlers (via onEvent routing).
+- [ ] Update TRAITS_REFERENCE.md with new meta-trait category.
+- [ ] Create `examples/wisdom-demo/wisdom-demo.holo` as reference composition.
+- [x] Backward compatible — all existing traits unchanged (11,026 tests pass).
 
 ### Phase 2 — Follow-on
 - Studio tooltip integration (surface `@wisdom` on hover).
