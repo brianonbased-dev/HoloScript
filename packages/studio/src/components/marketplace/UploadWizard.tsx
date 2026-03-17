@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { ContentType, CONTENT_TYPE_METADATA, ContentUpload } from '@/lib/marketplace/types';
 import { useUpload } from '@/lib/marketplace/hooks';
+import { useDaemonJobs, type DaemonProfile, type DaemonProjectDNA } from '@/hooks/useDaemonJobs';
 
 interface UploadWizardProps {
   onClose: () => void;
@@ -21,7 +22,60 @@ interface UploadWizardProps {
   };
 }
 
-type WizardStep = 'type' | 'file' | 'thumbnail' | 'metadata' | 'preview' | 'submit';
+type WizardStep = 'type' | 'file' | 'analysis' | 'thumbnail' | 'metadata' | 'daemon' | 'preview' | 'submit';
+
+function inferProjectDNA(file: File): DaemonProjectDNA {
+  const lower = file.name.toLowerCase();
+  const ext = lower.includes('.') ? lower.slice(lower.lastIndexOf('.')) : '';
+
+  if (['.holo', '.hs', '.hsplus', '.glb', '.gltf', '.vrm', '.fbx'].includes(ext)) {
+    return {
+      kind: 'spatial',
+      confidence: 0.9,
+      detectedStack: ['holoscript', ext.replace('.', '')],
+      recommendedProfile: 'balanced',
+      notes: ['Spatial/XR content detected. Include trait and runtime profile validation checks.'],
+    };
+  }
+
+  if (['.zip', '.tar', '.gz', '.tgz'].includes(ext)) {
+    return {
+      kind: 'service',
+      confidence: 0.7,
+      detectedStack: ['archive', 'legacy-project'],
+      recommendedProfile: 'balanced',
+      notes: ['Archive upload detected. Run absorb-first analysis before edits.'],
+    };
+  }
+
+  if (['.py', '.ipynb', '.csv', '.jsonl', '.parquet'].includes(ext)) {
+    return {
+      kind: 'data',
+      confidence: 0.86,
+      detectedStack: ['python', 'data-pipeline'],
+      recommendedProfile: 'quick',
+      notes: ['Data workload detected. Prioritize parsing and schema-safe checks.'],
+    };
+  }
+
+  if (['.ts', '.tsx', '.js', '.jsx', '.vue', '.svelte'].includes(ext)) {
+    return {
+      kind: 'frontend',
+      confidence: 0.88,
+      detectedStack: ['web', ext.replace('.', '')],
+      recommendedProfile: 'balanced',
+      notes: ['Frontend project detected. Emphasize typefix + coverage + docs paths.'],
+    };
+  }
+
+  return {
+    kind: 'unknown',
+    confidence: 0.45,
+    detectedStack: [ext || 'unknown'],
+    recommendedProfile: 'quick',
+    notes: ['Unknown format. Start with conservative daemon profile.'],
+  };
+}
 
 export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProps) {
   const isRemix = !!remixFrom;
@@ -29,6 +83,10 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
   const [selectedType, setSelectedType] = useState<ContentType | null>(remixFrom?.type || null);
   const [contentFile, setContentFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [projectDNA, setProjectDNA] = useState<DaemonProjectDNA | null>(null);
+  const [enableDaemon, setEnableDaemon] = useState(true);
+  const [daemonProfile, setDaemonProfile] = useState<DaemonProfile>('balanced');
+  const [daemonJobId, setDaemonJobId] = useState<string | null>(null);
   const [metadata, setMetadata] = useState({
     name: remixFrom ? `${remixFrom.name} (Remix)` : '',
     description: remixFrom
@@ -42,8 +100,9 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
   });
 
   const { upload, uploading, progress } = useUpload();
+  const { createJob, creating: creatingDaemonJob, error: daemonJobError } = useDaemonJobs();
 
-  const steps: WizardStep[] = ['type', 'file', 'thumbnail', 'metadata', 'preview', 'submit'];
+  const steps: WizardStep[] = ['type', 'file', 'analysis', 'thumbnail', 'metadata', 'daemon', 'preview', 'submit'];
   const currentStepIndex = steps.indexOf(currentStep);
 
   const canProceed = useCallback(() => {
@@ -54,12 +113,16 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
         return contentFile !== null;
       case 'thumbnail':
         return thumbnailFile !== null;
+      case 'analysis':
+        return projectDNA !== null;
       case 'metadata':
         return (
           metadata.name.trim() !== '' &&
           metadata.description.trim() !== '' &&
           metadata.category !== ''
         );
+      case 'daemon':
+        return !enableDaemon || !!daemonProfile;
       case 'preview':
         return true;
       default:
@@ -68,6 +131,12 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
   }, [currentStep, selectedType, contentFile, thumbnailFile, metadata]);
 
   const handleNext = () => {
+    if (currentStep === 'file' && contentFile) {
+      const detected = inferProjectDNA(contentFile);
+      setProjectDNA(detected);
+      setDaemonProfile(detected.recommendedProfile);
+    }
+
     if (canProceed() && currentStepIndex < steps.length - 1) {
       setCurrentStep(steps[currentStepIndex + 1]);
     }
@@ -96,6 +165,16 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
       };
 
       const result = await upload(uploadData);
+
+      if (enableDaemon && projectDNA) {
+        const daemonJob = await createJob({
+          projectId: result.id,
+          profile: daemonProfile,
+          projectDna: projectDNA,
+        });
+        setDaemonJobId(daemonJob.id);
+      }
+
       setCurrentStep('submit');
 
       // Wait 2 seconds to show success message, then close
@@ -153,6 +232,8 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
           </div>
           <button
             onClick={onClose}
+            title="Close upload wizard"
+            aria-label="Close upload wizard"
             className="rounded-lg p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text"
           >
             <X className="h-5 w-5" />
@@ -160,10 +241,12 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
         </div>
 
         {/* Progress Bar */}
-        <div className="h-1 bg-studio-surface">
-          <div
-            className="h-full bg-studio-accent transition-all duration-300"
-            style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+        <div className="bg-studio-surface px-6 py-2">
+          <progress
+            className="h-1 w-full overflow-hidden rounded bg-studio-surface [&::-webkit-progress-bar]:bg-studio-surface [&::-webkit-progress-value]:bg-studio-accent [&::-moz-progress-bar]:bg-studio-accent"
+            value={currentStepIndex + 1}
+            max={steps.length}
+            aria-label="Upload wizard progress"
           />
         </div>
 
@@ -231,6 +314,56 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
           )}
 
           {/* Step 3: Thumbnail Upload */}
+          {currentStep === 'analysis' && projectDNA && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-studio-text">Project DNA Analysis</h3>
+              <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-studio-muted">Detected Project Type</p>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-studio-text">
+                      {projectDNA.kind}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-studio-muted">Confidence</p>
+                    <p className="text-sm font-semibold text-studio-accent">
+                      {Math.round(projectDNA.confidence * 100)}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <p className="text-xs text-studio-muted">Detected Stack</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {projectDNA.detectedStack.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded bg-studio-accent/20 px-2 py-0.5 text-[10px] text-studio-accent"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <p className="text-xs text-studio-muted">Recommendation</p>
+                  <p className="text-xs text-studio-text">
+                    Use <span className="font-semibold">{projectDNA.recommendedProfile}</span> daemon profile.
+                  </p>
+                </div>
+
+                <ul className="mt-3 space-y-1 text-[11px] text-studio-muted">
+                  {projectDNA.notes.map((note) => (
+                    <li key={note}>• {note}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Thumbnail Upload */}
           {currentStep === 'thumbnail' && (
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-studio-text">Upload Thumbnail</h3>
@@ -273,7 +406,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
             </div>
           )}
 
-          {/* Step 4: Metadata Form */}
+          {/* Step 5: Metadata Form */}
           {currentStep === 'metadata' && (
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-studio-text">Content Details</h3>
@@ -308,6 +441,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                     Category *
                   </label>
                   <select
+                    title="Select content category"
                     value={metadata.category}
                     onChange={(e) => setMetadata({ ...metadata, category: e.target.value })}
                     className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
@@ -358,6 +492,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                     License *
                   </label>
                   <select
+                    title="Select content license"
                     value={metadata.license}
                     onChange={(e) => setMetadata({ ...metadata, license: e.target.value as any })}
                     className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
@@ -394,7 +529,55 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
             </div>
           )}
 
-          {/* Step 5: Preview */}
+          {/* Step 6: Daemon Profile */}
+          {currentStep === 'daemon' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-studio-text">Daemon Optimization</h3>
+
+              <label className="flex items-center gap-3 rounded-lg border border-studio-border bg-studio-surface p-3">
+                <input
+                  type="checkbox"
+                  checked={enableDaemon}
+                  onChange={(e) => setEnableDaemon(e.target.checked)}
+                />
+                <div>
+                  <p className="text-sm font-medium text-studio-text">Run daemon after upload</p>
+                  <p className="text-xs text-studio-muted">
+                    Legacy-first absorb + quality checks with safe dry-run patch planning.
+                  </p>
+                </div>
+              </label>
+
+              {enableDaemon && (
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { value: 'quick', label: 'Quick', desc: 'Typefix + smoke checks' },
+                    { value: 'balanced', label: 'Balanced', desc: 'Typefix + docs + coverage' },
+                    { value: 'deep', label: 'Deep', desc: 'Full legacy analysis matrix' },
+                  ] as const).map((profile) => (
+                    <button
+                      key={profile.value}
+                      onClick={() => setDaemonProfile(profile.value)}
+                      className={`rounded-lg border p-3 text-left transition ${
+                        daemonProfile === profile.value
+                          ? 'border-studio-accent bg-studio-accent/10'
+                          : 'border-studio-border bg-studio-surface hover:border-studio-accent/40'
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-studio-text">{profile.label}</p>
+                      <p className="mt-1 text-xs text-studio-muted">{profile.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {daemonJobError && (
+                <p className="text-xs text-red-400">Daemon job setup error: {daemonJobError}</p>
+              )}
+            </div>
+          )}
+
+          {/* Step 7: Preview */}
           {currentStep === 'preview' && (
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-studio-text">Preview</h3>
@@ -423,6 +606,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                     <div className="mt-2 flex items-center gap-4 text-xs text-studio-muted">
                       <span>License: {metadata.license}</span>
                       <span>Category: {metadata.category}</span>
+                      <span>Daemon: {enableDaemon ? daemonProfile : 'disabled'}</span>
                       {contentFile && <span>Size: {(contentFile.size / 1024).toFixed(1)} KB</span>}
                     </div>
                   </div>
@@ -431,7 +615,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
             </div>
           )}
 
-          {/* Step 6: Submitting */}
+          {/* Step 8: Submitting */}
           {currentStep === 'submit' && (
             <div className="flex flex-col items-center justify-center py-12">
               {uploading ? (
@@ -450,6 +634,12 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                   <p className="mt-1 text-xs text-studio-muted">
                     Your content is now pending moderation.
                   </p>
+                  {enableDaemon && (
+                    <p className="mt-2 text-xs text-studio-muted">
+                      Daemon job queued{daemonJobId ? `: ${daemonJobId}` : ''}
+                      {creatingDaemonJob ? ' (starting...)' : ''}
+                    </p>
+                  )}
                 </>
               )}
             </div>
