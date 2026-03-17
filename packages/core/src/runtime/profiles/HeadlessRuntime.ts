@@ -490,6 +490,8 @@ export class HeadlessRuntime {
         applyAngularVelocity: () => {},
         setKinematic: () => {},
         raycast: () => null,
+        getBodyPosition: () => [0, 0, 0] as [number, number, number],
+        getBodyVelocity: () => [0, 0, 0] as [number, number, number],
       },
       audio: {
         playSound: () => {},
