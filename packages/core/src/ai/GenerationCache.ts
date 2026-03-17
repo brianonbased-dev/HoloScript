@@ -185,7 +185,7 @@ export class GenerationCache {
       const data = JSON.parse(json);
 
       this.cache.clear();
-      data.entries.forEach((entry: CacheEntry) => {
+      data.entries.forEach((entry: CacheEntry & { key: string }) => {
         const { key, ...cacheEntry } = entry;
         this.cache.set(key, cacheEntry);
       });
