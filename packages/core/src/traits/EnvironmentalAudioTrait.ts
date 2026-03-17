@@ -432,7 +432,7 @@ export const environmentalAudioHandler = {
   name: 'environmental_audio',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    const instance = new EnvironmentalAudioSystem(config);
+    const instance = new EnvironmentalAudioSystem();
     node.__environmental_audio_instance = instance;
     ctx.emit('environmental_audio_attached', { node, config });
   },
