@@ -1,7 +1,7 @@
 import { World, Entity } from '../ecs/World';
 import { SelectionManager } from './SelectionManager';
 import { effect } from '../state/ReactiveState';
-import { Vector3, Quaternion } from '../types/HoloScriptPlus';
+import { Vector3 } from '../types/HoloScriptPlus';
 
 /**
  * GizmoSystem
