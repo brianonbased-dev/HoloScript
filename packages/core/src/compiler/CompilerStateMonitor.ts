@@ -131,7 +131,7 @@ export class CompilerStateMonitor {
   constructor(options: CompilerStateMonitorOptions = {}) {
     this.options = {
       enabled: options.enabled ?? true,
-      thresholds: { ...DEFAULT_THRESHOLDS, ...options.thresholds },
+      thresholds: { ...DEFAULT_THRESHOLDS, ...options.thresholds } as MemoryThresholds,
       autoPrune: options.autoPrune ?? true,
       autoIncrementalCompile: options.autoIncrementalCompile ?? true,
       onAlert: options.onAlert ?? (() => {}),
