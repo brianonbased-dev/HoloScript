@@ -601,6 +601,8 @@ export const SYNC_DEFAULTS: Required<ISyncConfig> = {
   interpolationDelay: 100,
   maxHistorySize: 128,
   ownership: 'creator',
+  syncTier: 'movement',
+  entityType: 'player',
 };
 
 // ============================================================================
