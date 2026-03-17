@@ -117,6 +117,17 @@ describe('useScenePipeline', () => {
 
       expect(result.current.errors[0].message).toBe(String(errorObj));
     });
+
+    it('should honor hsplus format hint for composition-style code', () => {
+      mockParse.mockReturnValue({ ast: { type: 'Scene' }, errors: [] });
+      mockCompile.mockReturnValue({ type: 'R3FNode' });
+
+      const code = 'composition "Ops" { object "Panel" { type: "ui" } }';
+      renderHook(() => useScenePipeline(code, { formatHint: 'hsplus' }));
+
+      expect(mockCompile).toHaveBeenCalled();
+      expect(mockCompileComposition).not.toHaveBeenCalled();
+    });
   });
 
   describe('HoloComposition Format', () => {
@@ -186,6 +197,16 @@ describe('useScenePipeline', () => {
       renderHook(() => useScenePipeline(code));
 
       expect(mockCompileComposition).toHaveBeenCalled();
+    });
+
+    it('should honor holo format hint even without auto-detection', () => {
+      mockParse.mockReturnValue({ ast: { type: 'Composition' }, errors: [] });
+      mockCompileComposition.mockReturnValue({ type: 'R3FComp' });
+
+      renderHook(() => useScenePipeline('scene Main {}', { formatHint: 'holo' }));
+
+      expect(mockCompileComposition).toHaveBeenCalled();
+      expect(mockCompile).not.toHaveBeenCalled();
     });
 
     it('should use hsplus for code starting with comments', () => {

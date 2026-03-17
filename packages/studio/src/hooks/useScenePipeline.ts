@@ -5,6 +5,12 @@ import { HoloScriptPlusParser, HoloCompositionParser, R3FCompiler } from '@holos
 import type { R3FNode } from '@holoscript/core';
 import type { PipelineResult } from '@/types';
 
+type ScenePipelineFormatHint = 'auto' | 'holo' | 'hsplus';
+
+interface ScenePipelineOptions {
+  formatHint?: ScenePipelineFormatHint;
+}
+
 /**
  * Post-process R3F tree to set assetMaturity on nodes with @draft trait.
  * Walks the tree recursively and marks draft nodes so the renderer
@@ -27,7 +33,7 @@ function applyDraftMaturity(node: R3FNode): void {
  * Parses HoloScript source code and compiles it to an R3FNode tree for rendering.
  * Detects format (.holo composition vs .hsplus) automatically.
  */
-export function useScenePipeline(code: string): PipelineResult {
+export function useScenePipeline(code: string, options: ScenePipelineOptions = {}): PipelineResult {
   return useMemo(() => {
     if (!code.trim()) {
       return { r3fTree: null, errors: [] };
@@ -36,9 +42,13 @@ export function useScenePipeline(code: string): PipelineResult {
     try {
       const compiler = new R3FCompiler();
       const trimmed = code.trimStart();
+      const formatHint = options.formatHint ?? 'auto';
+      const useCompositionParser =
+        formatHint === 'holo' ||
+        (formatHint === 'auto' && trimmed.startsWith('composition'));
 
       // Detect .holo composition format
-      if (trimmed.startsWith('composition')) {
+      if (useCompositionParser) {
         const parser = new HoloCompositionParser();
         const result = parser.parse(code);
 
@@ -80,5 +90,5 @@ export function useScenePipeline(code: string): PipelineResult {
         errors: [{ message: err instanceof Error ? err.message : String(err) }],
       };
     }
-  }, [code]);
+  }, [code, options.formatHint]);
 }
