@@ -550,7 +550,7 @@ export const cRDTRoomHandler = {
   name: 'c_r_d_t_room',
   defaultConfig: {},
   onAttach(node: any, config: any, ctx: any): void {
-    const instance = new CRDTRoomTraitValidationError(config);
+    const instance = new CRDTRoomTraitValidationError('config', 'Handler instantiation');
     node.__c_r_d_t_room_instance = instance;
     ctx.emit('c_r_d_t_room_attached', { node, config });
   },
