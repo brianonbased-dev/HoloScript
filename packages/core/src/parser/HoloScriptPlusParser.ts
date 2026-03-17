@@ -4031,7 +4031,7 @@ export class HoloScriptPlusParser {
     }
   }
 
-  private error(message: string, code: ErrorCode = 'HSP001'): void {
+  private error(message: string, code: keyof typeof import('./RichErrors').HSPLUS_ERROR_CODES = 'HSP001'): void {
     const token = this.current();
     const line = token.line;
     const column = token.column;
@@ -4074,7 +4074,7 @@ export class HoloScriptPlusParser {
     this.errors.push(createTraitError(traitName, token.line, token.column, this.source));
   }
 
-  private warn(message: string, code: ErrorCode = 'HSP001'): void {
+  private warn(message: string, code: keyof typeof import('./RichErrors').HSPLUS_ERROR_CODES = 'HSP001'): void {
     const token = this.current();
     this.warnings.push(
       createRichError(code, message, token.line, token.column, {
