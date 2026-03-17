@@ -537,6 +537,7 @@ class BarretenbergBackend {
 
   async initialize(wasmPath?: string): Promise<boolean> {
     try {
+      // @ts-ignore - Optional dependency, may not be available
       const { Barretenberg } = await import('@aztec/bb.js');
       this.bb = await (Barretenberg as any).new({ threads: 4 });
       return true;
