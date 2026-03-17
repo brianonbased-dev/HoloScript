@@ -207,7 +207,7 @@ export class VRRCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): VRRCompilationResult {
+  ): Promise<VRRCompilationResult> {
     this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
@@ -216,7 +216,7 @@ export class VRRCompiler extends CompilerBase {
     // Analyze Composition
     if (!composition || composition.type !== 'Composition') {
       this.errors.push('Invalid composition tree');
-      return this.buildResult();
+      return Promise.resolve(this.buildResult());
     }
 
     const twinNodes = this.extractNodesWithTrait(composition, '@vrr_twin');
