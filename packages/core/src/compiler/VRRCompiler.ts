@@ -269,7 +269,7 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`\n// --- End of VRR Bindings --- //\n`);
     this.generatedCode.push(`scene.add(phoenix_downtown);`);
 
-    return this.buildResult();
+    return Promise.resolve(this.buildResult());
   }
 
   private extractNodesWithTrait(astNode: any, traitName: string) {
