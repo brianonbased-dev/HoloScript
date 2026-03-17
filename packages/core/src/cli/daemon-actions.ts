@@ -10,6 +10,11 @@
  */
 
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
+import {
+  buildDaemonPromptContext,
+  type DaemonProvider,
+  type DaemonToolProfile,
+} from './daemon-prompt-profiles';
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -17,6 +22,8 @@ export interface DaemonConfig {
   repoRoot: string;
   commit: boolean;
   model: string;
+  provider?: DaemonProvider;
+  toolProfile?: DaemonToolProfile;
   verbose: boolean;
   trial?: number;
   focusRotation: string[];
@@ -276,6 +283,14 @@ export function createDaemonActions(
     if (config.verbose) console.log(`[daemon] ${msg}`);
   };
 
+  const promptContext = buildDaemonPromptContext(
+    config.provider || 'anthropic',
+    config.toolProfile || 'standard',
+  );
+  const { provider, toolProfile, modelStyleGuide, toolGuide } = promptContext;
+
+  log(`LLM provider=${provider} | toolProfile=${toolProfile} | model=${config.model}`);
+
   /** Advance blackboard to next candidate (shared by generate_fix skip paths) */
   const advanceCandidate = (bb: Record<string, unknown>) => {
     const idx = ((bb.candidateIndex as number) || 0) + 1;
@@ -444,6 +459,8 @@ export function createDaemonActions(
       if (focus === 'coverage') {
         const systemPrompt = [
           'You are a TypeScript testing expert. Generate a comprehensive test file for the given source.',
+          modelStyleGuide,
+          toolGuide,
           'Use vitest (import { describe, it, expect, vi } from "vitest").',
           'Mock external dependencies with vi.mock(). Test exported functions and classes.',
           'Return ONLY the complete test file content. No markdown fences, no explanations.',
@@ -469,6 +486,8 @@ export function createDaemonActions(
       if (focus === 'docs') {
         const systemPrompt = [
           'You are a TypeScript documentation expert. Add JSDoc comments to all exported symbols.',
+          modelStyleGuide,
+          toolGuide,
           'Include @param, @returns, @throws, and @example where appropriate.',
           'Return ONLY the complete file content with added JSDoc. No markdown fences, no explanations.',
           'Do NOT change any code logic — only add documentation comments.',
@@ -522,6 +541,8 @@ export function createDaemonActions(
       const systemPrompt = [
         'You are a TypeScript expert fixing type errors in a large monorepo.',
         'This is HoloScript — a DSL for VR/AR with traits, compilers, and parsers.',
+        modelStyleGuide,
+        toolGuide,
         '',
         'RULES — violations cause automatic rejection:',
         '1. NEVER delete functions, classes, or code blocks to eliminate errors',
@@ -714,17 +735,24 @@ export function createDaemonActions(
       // Stage modified/created files
       const filesToAdd = testFile ? [file, testFile] : [file];
       for (const f of filesToAdd) {
-        await host.exec('git', ['add', f], { cwd: config.repoRoot });
+        const addResult = await host.exec('git', ['add', f], { cwd: config.repoRoot });
+        if (addResult.code !== 0) {
+          log(`git add FAILED for ${f} (stderr=${(addResult.stderr || '').trim()})`);
+        }
       }
 
       const baseName = file.split(/[/\\]/).pop() || file;
       const commitType = focus === 'coverage' ? 'test' : focus === 'docs' ? 'docs' : 'fix';
       const result = await host.exec('git', [
         'commit', '--no-verify', '-m',
-        `${commitType}(${focus}): auto-fix ${baseName}\n\nCo-Authored-By: HoloScript Daemon <daemon@holoscript.dev>`,
+        `${commitType}(${focus}): auto-fix ${baseName} [daemon]`,
       ], { cwd: config.repoRoot });
       bb.committed = result.code === 0;
-      log(`Commit: ${bb.committed ? 'OK' : 'FAILED'}`);
+      if (!bb.committed) {
+        log(`Commit: FAILED (code=${result.code}, stderr=${(result.stderr || '').trim()})`);
+      } else {
+        log(`Commit: OK`);
+      }
 
       advanceCandidate(bb);
       return bb.committed as boolean;
@@ -735,8 +763,10 @@ export function createDaemonActions(
       const file = bb.currentCandidate as string;
       const testFile = bb.generatedTestFile as string | undefined;
       if (file) {
-        await host.exec('git', ['checkout', '--', file], { cwd: config.repoRoot });
-        // Also rollback generated test file if coverage mode created one
+        const rb = await host.exec('git', ['checkout', '--', file], { cwd: config.repoRoot });
+        if (rb.code !== 0) {
+          log(`Rollback FAILED for ${file} (stderr=${(rb.stderr || '').trim()})`);
+        }
         if (testFile) {
           await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
         }

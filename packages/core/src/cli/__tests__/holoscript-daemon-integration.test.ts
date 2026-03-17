@@ -127,6 +127,11 @@ describe('holoscript daemon integration', () => {
     blackboard.currentCandidate = 'packages/core/src/example.ts';
     blackboard.candidateContent = 'export const fixed = false;\n';
     blackboard.focus = 'typefix';
+    blackboard.perFileErrors = {
+      'packages/core/src/example.ts': [
+        'packages/core/src/example.ts(1,14): error TS2322: Type \"false\" is not assignable to type \"true\".',
+      ],
+    };
 
     const actions = createDaemonActions(host, llm, createConfig());
     const ok = await actions.generate_fix({}, blackboard, context);

@@ -44,9 +44,38 @@ interface CLIOptions {
   cycles: number;
   commit: boolean;
   trial?: number;
+  provider: 'anthropic' | 'xai' | 'openai' | 'ollama';
+  toolProfile: 'claude-hsplus' | 'grok-hsplus' | 'standard';
   model: string;
   timeout: number; // per-cycle timeout in minutes
   focus?: string; // override focus rotation with fixed focus
+}
+
+function defaultModelForProvider(provider: CLIOptions['provider']): string {
+  switch (provider) {
+    case 'xai':
+      return 'grok-3';
+    case 'openai':
+      return 'gpt-4.1';
+    case 'ollama':
+      return 'brittney-qwen-v23:latest';
+    case 'anthropic':
+    default:
+      return 'claude-sonnet-4-20250514';
+  }
+}
+
+function defaultToolProfileForProvider(provider: CLIOptions['provider']): CLIOptions['toolProfile'] {
+  switch (provider) {
+    case 'xai':
+      return 'grok-hsplus';
+    case 'anthropic':
+      return 'claude-hsplus';
+    case 'openai':
+    case 'ollama':
+    default:
+      return 'standard';
+  }
 }
 
 function parseArgs(argv: string[]): CLIOptions {
@@ -61,9 +90,13 @@ function parseArgs(argv: string[]): CLIOptions {
     ticks: 100,
     cycles: 15,
     commit: false,
+    provider: 'anthropic',
+    toolProfile: 'claude-hsplus',
     model: 'claude-sonnet-4-20250514',
     timeout: 30,
   };
+  let modelExplicit = false;
+  let toolProfileExplicit = false;
 
   if (args.length === 0) return opts;
 
@@ -102,8 +135,22 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--trial' && args[i + 1]) {
       opts.trial = Number(args[++i]);
     }
+    if (args[i] === '--provider' && args[i + 1]) {
+      const provider = args[++i].toLowerCase();
+      if (provider === 'anthropic' || provider === 'xai' || provider === 'openai' || provider === 'ollama') {
+        opts.provider = provider;
+      }
+    }
+    if (args[i] === '--tool-profile' && args[i + 1]) {
+      const profile = args[++i].toLowerCase();
+      if (profile === 'claude-hsplus' || profile === 'grok-hsplus' || profile === 'standard') {
+        opts.toolProfile = profile;
+        toolProfileExplicit = true;
+      }
+    }
     if (args[i] === '--model' && args[i + 1]) {
       opts.model = args[++i];
+      modelExplicit = true;
     }
     if (args[i] === '--timeout' && args[i + 1]) {
       const parsed = Number(args[++i]);
@@ -116,7 +163,193 @@ function parseArgs(argv: string[]): CLIOptions {
     }
   }
 
+  if (!modelExplicit) {
+    opts.model = defaultModelForProvider(opts.provider);
+  }
+  if (!toolProfileExplicit) {
+    opts.toolProfile = defaultToolProfileForProvider(opts.provider);
+  }
+
   return opts;
+}
+
+function extractChatText(data: any): string {
+  return (
+    data?.content?.[0]?.text ??
+    data?.choices?.[0]?.message?.content ??
+    data?.message?.content ??
+    data?.response ??
+    ''
+  );
+}
+
+function extractTokenUsage(data: any): { inputTokens: number; outputTokens: number } {
+  const inputTokens =
+    data?.usage?.input_tokens ??
+    data?.usage?.prompt_tokens ??
+    data?.prompt_eval_count ??
+    0;
+  const outputTokens =
+    data?.usage?.output_tokens ??
+    data?.usage?.completion_tokens ??
+    data?.eval_count ??
+    0;
+
+  return {
+    inputTokens: Number.isFinite(inputTokens) ? Number(inputTokens) : 0,
+    outputTokens: Number.isFinite(outputTokens) ? Number(outputTokens) : 0,
+  };
+}
+
+function createDaemonLLMProvider(opts: CLIOptions): LLMProvider {
+  if (opts.provider === 'anthropic') {
+    return {
+      chat: async ({ system, prompt, maxTokens }) => {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
+
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: opts.model,
+            max_tokens: maxTokens || 4096,
+            system,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+
+        if (!response.ok) {
+          const body = await response.text().catch(() => '');
+          throw new Error(`Anthropic API ${response.status}: ${body.slice(0, 200)}`);
+        }
+
+        const data = await response.json();
+        const usage = extractTokenUsage(data);
+        return {
+          text: extractChatText(data),
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+        };
+      },
+    };
+  }
+
+  if (opts.provider === 'xai') {
+    return {
+      chat: async ({ system, prompt, maxTokens }) => {
+        const apiKey = process.env.XAI_API_KEY;
+        if (!apiKey) throw new Error('XAI_API_KEY not set');
+
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: opts.model,
+            max_tokens: maxTokens || 4096,
+            temperature: 0.2,
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const body = await response.text().catch(() => '');
+          throw new Error(`xAI API ${response.status}: ${body.slice(0, 200)}`);
+        }
+
+        const data = await response.json();
+        const usage = extractTokenUsage(data);
+        return {
+          text: extractChatText(data),
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+        };
+      },
+    };
+  }
+
+  if (opts.provider === 'openai') {
+    return {
+      chat: async ({ system, prompt, maxTokens }) => {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) throw new Error('OPENAI_API_KEY not set');
+
+        const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: opts.model,
+            max_tokens: maxTokens || 4096,
+            temperature: 0.2,
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          const body = await response.text().catch(() => '');
+          throw new Error(`OpenAI API ${response.status}: ${body.slice(0, 200)}`);
+        }
+
+        const data = await response.json();
+        const usage = extractTokenUsage(data);
+        return {
+          text: extractChatText(data),
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+        };
+      },
+    };
+  }
+
+  // ollama
+  return {
+    chat: async ({ system, prompt }) => {
+      const baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+      const response = await fetch(`${baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: opts.model,
+          system,
+          prompt,
+          stream: false,
+          options: {
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Ollama API ${response.status}: ${body.slice(0, 200)}`);
+      }
+
+      const data = await response.json();
+      const usage = extractTokenUsage(data);
+      return {
+        text: extractChatText(data),
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+      };
+    },
+  };
 }
 
 function createNodeHostCapabilities(cwd: string): HostCapabilities {
@@ -796,7 +1029,10 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   console.log(`[daemon] Composition: ${path.basename(filePath)}`);
   console.log(`[daemon] Repo root: ${repoRoot}`);
-  console.log(`[daemon] Cycles: ${opts.cycles} | Commit: ${opts.commit} | Timeout: ${opts.timeout}min | Model: ${opts.model}`);
+  console.log(
+    `[daemon] Cycles: ${opts.cycles} | Commit: ${opts.commit} | Timeout: ${opts.timeout}min | ` +
+      `Provider: ${opts.provider} | Model: ${opts.model} | Tool profile: ${opts.toolProfile}`,
+  );
 
   // State directory
   const stateDir = path.join(repoRoot, '.holoscript');
@@ -867,43 +1103,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       }),
   };
 
-  // LLM provider (Anthropic Messages API via fetch)
-  const llm: LLMProvider = {
-    chat: async ({ system, prompt, maxTokens }) => {
-      const apiKey = process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: opts.model,
-          max_tokens: maxTokens || 4096,
-          system,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new Error(`Anthropic API ${response.status}: ${body.slice(0, 200)}`);
-      }
-
-      const data = await response.json() as {
-        content?: Array<{ text?: string }>;
-        usage?: { input_tokens?: number; output_tokens?: number };
-      };
-      return {
-        text: data.content?.[0]?.text || '',
-        inputTokens: data.usage?.input_tokens || 0,
-        outputTokens: data.usage?.output_tokens || 0,
-      };
-    },
-  };
+  // LLM provider (provider-aware)
+  const llm = createDaemonLLMProvider(opts);
 
   // Daemon configuration
   const focusRotation = ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'];
@@ -911,6 +1112,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     repoRoot,
     commit: opts.commit,
     model: opts.model,
+    provider: opts.provider,
+    toolProfile: opts.toolProfile,
     verbose: opts.debug,
     trial: opts.trial,
     focusRotation,
@@ -1139,7 +1342,7 @@ Usage:
   holoscript test <file>    [--debug]
   holoscript compile <file> [--target node|python] [--output <path>]
   holoscript absorb <file>  [--output <path>] [--debug]
-  holoscript daemon <file>  [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--debug]
+  holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--debug]
 
 Supported file types:
   .hs       Agent templates, behavior trees, event handlers
@@ -1153,6 +1356,8 @@ Examples:
   holoscript compile service.hsplus --target python --output service.py
   holoscript absorb legacy.py --output agent.hsplus
   holoscript daemon compositions/self-improve-daemon.hsplus --cycles 15 --commit
+  holoscript daemon compositions/self-improve-daemon.hsplus --provider xai --model grok-3
+  holoscript daemon compositions/self-improve-daemon.hsplus --provider anthropic --tool-profile claude-hsplus
 `);
 }
 
