@@ -641,7 +641,7 @@ class SceneGraphGenerator {
     if (typeof value === 'object') {
       const result: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value)) {
-        result[k] = this.serializeValue(v as HoloValue);
+        result[k] = this.serializeValue(v as unknown as HoloValue);
       }
       return result;
     }
