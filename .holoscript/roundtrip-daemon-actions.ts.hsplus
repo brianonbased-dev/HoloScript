@@ -1,0 +1,72 @@
+// @absorb: auto-generated from C:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\cli\daemon-actions.ts
+// Source language: typescript
+// Generated at: 2026-03-17T22:11:58.526Z
+
+state CONTAMINATION_SIGNATURES: dynamic = [
+state SWEEP_TARGETS: dynamic = ['node', 'python'] as const
+state PROFILE_MATRIX: dynamic = ['headless', 'minimal', 'full'] as const
+state QUARANTINE_THRESHOLD: dynamic = 2
+
+fn isContaminatedEdit(content) -> boolean {
+  // TODO: port isContaminatedEdit logic from typescript
+}
+
+fn countTypeErrors(output) -> number {
+  // TODO: port countTypeErrors logic from typescript
+}
+
+async fn computeQuality(host, repoRoot, stateDir, baselineErrors?) -> Promise {
+  // TODO: port computeQuality logic from typescript
+}
+
+fn tscCheckArgs(stateDir) -> string {
+  // TODO: port tscCheckArgs logic from typescript
+}
+
+fn computeDownstreamImpact(candidates, number]>, host) -> Map {
+  // TODO: port computeDownstreamImpact logic from typescript
+}
+
+fn extractDependencyContext(content, file, host) -> string {
+  // TODO: port extractDependencyContext logic from typescript
+}
+
+fn sanitizeName(filePath) -> string {
+  // TODO: port sanitizeName logic from typescript
+}
+
+fn collectTraitCoverage(content) -> TraitCoverageResult {
+  // TODO: port collectTraitCoverage logic from typescript
+}
+
+async fn runCompilerSweep(host, repoRoot, stateDir, compositionFile) -> Promise {
+  // TODO: port runCompilerSweep logic from typescript
+}
+
+async fn runRuntimeProfileMatrix(host, repoRoot, compositionFile) -> Promise {
+  // TODO: port runRuntimeProfileMatrix logic from typescript
+}
+
+async fn runAbsorbRoundtrip(host, repoRoot, stateDir, sourceFile) -> Promise {
+  // TODO: port runAbsorbRoundtrip logic from typescript
+}
+
+fn parsePatchResponse(text) -> PatchResponse {
+  // TODO: port parsePatchResponse logic from typescript
+}
+
+fn applyPatches(content, patches) {
+  // TODO: port applyPatches logic from typescript
+}
+
+fn validatePatchSafety(original, patched) {
+  // TODO: port validatePatchSafety logic from typescript
+}
+
+fn quarantineFile(filePath) -> boolean {
+  // TODO: port quarantineFile logic from typescript
+}
+
+fn createDaemonActions(host, llm, config) -> Record {
+  // TODO: port createDaemonActions logic from typescript
+}

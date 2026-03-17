@@ -14,6 +14,8 @@ GitHub stores code. Studio understands, improves, and visualizes codebases.
 
 HoloScript runs the intelligence layer, the surfaces, and the immersive view of the workspace.
 
+Rollout priority: the 2D Studio layer comes first and must display the full operational surface (logs, agents, activity, forks, patch review, architecture, risk, and lineage). Immersive `codebase.holo` is layered on top after 2D parity is complete.
+
 ## Primary Users
 
 1. Solo developers with messy legacy repos.
@@ -95,6 +97,7 @@ HoloScript runs the intelligence layer, the surfaces, and the immersive view of 
 5. Visualization is a trust layer and differentiator, not a gimmick.
 6. Studio surfaces should be HoloScript-native wherever possible, not bolted on as a separate UI model.
 7. The immersive repo experience must be an extension of the same workspace model, not a disconnected demo mode.
+8. 2D-first execution: every core capability must work in 2D before immersive mode is required.
 
 ## User Flow
 
@@ -329,6 +332,8 @@ interface DaemonPlan {
 - patch review state
 - collaboration presence
 
+These surfaces are first-class in 2D and are not gated on spatial mode.
+
 ### Immersive codebase.holo
 
 - same workspace represented as a HoloScript world
@@ -367,6 +372,7 @@ In HoloScript Studio, visualization should also be execution-aware. The user sho
 5. Daemon dry-run job
 6. Patch review UI
 7. Open PR or export patch
+8. Full 2D operational layer for logs, agents, activity, and forks
 
 ## Phase 2
 
@@ -376,6 +382,7 @@ In HoloScript Studio, visualization should also be execution-aware. The user sho
 4. Policy controls
 5. Cost and runtime estimates
 6. Saved daemon profiles
+7. Immersive `codebase.holo` preview with 2D parity maintained
 
 ## Phase 3
 

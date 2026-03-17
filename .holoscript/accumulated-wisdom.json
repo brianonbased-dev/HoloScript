@@ -17,5 +17,23 @@
     "delta": 0.399,
     "candidate": "packages/core/src/traits/USDTrait.ts",
     "timestamp": "2026-03-17T10:29:31.783Z"
+  },
+  {
+    "focus": "target-sweep",
+    "delta": 0.398,
+    "candidate": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\compositions\\self-improve-daemon.hsplus",
+    "timestamp": "2026-03-17T21:37:49.130Z"
+  },
+  {
+    "focus": "runtime-matrix",
+    "delta": 0.398,
+    "candidate": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\compositions\\self-improve-daemon.hsplus",
+    "timestamp": "2026-03-17T22:09:47.639Z"
+  },
+  {
+    "focus": "absorb-roundtrip",
+    "delta": 0.398,
+    "candidate": "packages/core/src/cli/daemon-actions.ts",
+    "timestamp": "2026-03-17T22:16:23.519Z"
   }
 ]

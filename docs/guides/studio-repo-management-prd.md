@@ -31,6 +31,7 @@ Studio should solve this by combining:
 5. Apply or export patches without bypassing safe branch and review workflows.
 6. Render core Studio surfaces through a consistent HoloScript-native workspace model.
 7. Let users open an immersive `codebase.holo` view of the same repo when they want a spatial workflow.
+8. Deliver complete 2D operational coverage first, then expand to immersive mode without feature regression.
 
 ## Non-Goals
 
@@ -122,6 +123,7 @@ Needs autonomous, policy-aware maintenance loops across multiple repos.
 5. Render timeline or historical health view.
 6. Render operational surfaces for logs, agents, activity, and forks.
 7. Render `codebase.holo` for immersive workspace navigation.
+8. Guarantee 2D parity for all operational and review capabilities.
 
 ### GitHub Integration
 
@@ -167,6 +169,7 @@ Needs autonomous, policy-aware maintenance loops across multiple repos.
 6. Patch review UI.
 7. Export patch or open PR.
 8. Initial HoloScript-native operational surfaces for logs and activity.
+9. 2D-first coverage of logs, agents, activity, and forks.
 
 ## Phase 2 Scope
 
@@ -177,6 +180,7 @@ Needs autonomous, policy-aware maintenance loops across multiple repos.
 5. Policy packs by organization.
 6. Agent and fork lineage surfaces.
 7. First immersive `codebase.holo` release.
+8. Immersive mode validation against 2D parity checklist.
 
 ## Phase 3 Scope
 
