@@ -319,7 +319,7 @@ export const fbxHandler: TraitHandler<FBXConfig> = {
 
   onAttach(node: HSPlusNode, config: FBXConfig, context: TraitContext) {
     const state = createInitialState();
-    node.__fbxState = state;
+    (node as any).__fbxState = state as FBXState;
 
     // Start loading if source is provided
     if (config.source) {
