@@ -810,7 +810,7 @@ function exportStage(
  * Get USD state from a node
  */
 export function getUSDState(node: HSPlusNode): USDState | undefined {
-  return node.__usdState;
+  return node.__usdState as USDState | undefined;
 }
 
 /**
