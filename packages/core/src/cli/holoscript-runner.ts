@@ -1191,6 +1191,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   for (let cycle = 0; cycle < opts.cycles; cycle++) {
     const focusIdx = (daemonState.focusIndex + cycle) % focusRotation.length;
     const focus = opts.focus || focusRotation[focusIdx];
+    config.cycleFocus = focus;
+    config.daemonFile = filePath;
     const cycleStart = Date.now();
 
     console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} ===`);
@@ -1201,12 +1203,17 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     materializeTraits(cycleAST);
 
     // Set focus in AST blackboard before runtime creation
-    setASTBlackboard(cycleAST, {
+    const bbValues = {
       focus,
       cycleNumber: daemonState.totalCycles + cycle,
       daemon_file: filePath,
       quality_before: daemonState.lastQuality,
-    });
+    };
+    setASTBlackboard(cycleAST, bbValues);
+    if (opts.debug) {
+      console.log(`[daemon] Blackboard injection: focus=${focus}, daemon_file=${filePath}`);
+    }
+
 
     // Create runtime with profile-aware HeadlessRuntime (auto-tick via setInterval)
     const runtime = createProfileRuntime(cycleAST, {

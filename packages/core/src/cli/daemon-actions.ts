@@ -29,6 +29,10 @@ export interface DaemonConfig {
   trial?: number;
   focusRotation: string[];
   stateDir: string;
+  /** Current cycle's focus — set by the runner per cycle */
+  cycleFocus?: string;
+  /** Path to the daemon composition file */
+  daemonFile?: string;
 }
 
 export interface DaemonExecResult {
@@ -516,6 +520,11 @@ export function createDaemonActions(
         bb.wisdom = [];
         bb.wisdomCount = 0;
       }
+      // Inject cycle focus and daemon file from config (reliable path —
+      // AST blackboard injection may not survive parse→clone→materialize)
+      if (config.cycleFocus) bb.focus = config.cycleFocus;
+      if (config.daemonFile) bb.daemon_file = config.daemonFile;
+
       bb.identity_ready = true;
       return true;
     },
