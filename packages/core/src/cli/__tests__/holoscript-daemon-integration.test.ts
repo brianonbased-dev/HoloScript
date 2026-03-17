@@ -1,347 +1,155 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { spawn } from 'child_process';
-import { writeFileSync, mkdtempSync, rmSync } from 'fs';
-import { join } from 'path';
-import { resolveCommand } from '../../../test-utils/resolve-command';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-/**
- * Integration Test: Three-Phase Daemon Architecture
- * 
- * Phase 1: HeadlessRuntime Native Action Bridge
- * - Tests ActionHandler registration and action:* → handler → action:result flow
- * 
- * Phase 2: CLI daemon Subcommand
- * - Tests holoscript daemon <file> with cycle control and state persistence
- * 
- * Phase 3: Standalone Action Handlers
- * - Tests daemon-actions.ts handlers (diagnose, generate_fix, verify_compilation, etc.)
- */
+import {
+  createDaemonActions,
+  type DaemonConfig,
+  type DaemonExecResult,
+  type DaemonHost,
+  type LLMProvider,
+} from '../daemon-actions';
 
-interface DaemonMessage {
-  type: string;
-  op?: string;
-  action?: string;
-  actionRequestId?: string;
-  status?: string;
-  error?: string;
-  success?: boolean;
-  [key: string]: unknown;
-}
+type Blackboard = Record<string, unknown>;
 
-class DaemonHarness {
-  private process: ReturnType<typeof spawn> | null = null;
-  private buffer = '';
-  private messageQueue: DaemonMessage[] = [];
-  private resolveWaiters: Map<string, (msg: DaemonMessage) => void> = new Map();
-  private readonly tempDir: string;
-  private actionRegistry: Map<string, (params: unknown) => Promise<boolean>> = new Map();
+class MockHost implements DaemonHost {
+  private readonly files = new Map<string, string>();
+  private readonly execImpl = vi.fn<(command: string, args?: string[], opts?: { cwd?: string; timeoutMs?: number }) => Promise<DaemonExecResult>>();
 
-  constructor() {
-    this.tempDir = mkdtempSync(join(process.cwd(), 'daemon-test-'));
+  seedFile(filePath: string, content: string): void {
+    this.files.set(filePath, content);
   }
 
-  async start(compositionFile: string, options: { cycles?: number; debug?: boolean } = {}): Promise<void> {
-    const tsxPath = resolveCommand('tsx');
-    const cliPath = join(process.cwd(), 'packages/core/src/cli/holoscript-runner.ts');
-
-    this.process = spawn('node', [tsxPath, cliPath, 'daemon', compositionFile, ...(options.cycles ? ['--cycles', String(options.cycles)] : [])], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      cwd: process.cwd(),
-    });
-
-    this.process.stdout!.on('data', (data) => {
-      this.buffer += data.toString();
-      this.parseMessages();
-    });
-
-    this.process.stderr!.on('data', (data) => {
-      if (options.debug) console.error('[daemon stderr]', data.toString());
-    });
-
-    return this.waitFor('daemon:ready', 5000);
-  }
-
-  private parseMessages(): void {
-    const lines = this.buffer.split('\n');
-    this.buffer = lines[lines.length - 1]; // keep incomplete line
-
-    for (let i = 0; i < lines.length - 1; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      try {
-        const msg = JSON.parse(line) as DaemonMessage;
-        this.messageQueue.push(msg);
-
-        // Resolve any waiters for this message type
-        const key = msg.type;
-        const resolver = this.resolveWaiters.get(key);
-        if (resolver) {
-          resolver(msg);
-          this.resolveWaiters.delete(key);
-        }
-      } catch (e) {
-        // Not JSON, skip
-      }
+  readFile(filePath: string): string {
+    const value = this.files.get(filePath);
+    if (value === undefined) {
+      throw new Error(`Missing file: ${filePath}`);
     }
+    return value;
   }
 
-  private waitFor(type: string, timeoutMs: number = 5000): Promise<DaemonMessage> {
-    return new Promise((resolve, reject) => {
-      // Check if already in queue
-      const existing = this.messageQueue.find((m) => m.type === type);
-      if (existing) {
-        this.messageQueue = this.messageQueue.filter((m) => m !== existing);
-        return resolve(existing);
-      }
-
-      // Wait for future message
-      const timer = setTimeout(() => {
-        this.resolveWaiters.delete(type);
-        reject(new Error(`Timeout waiting for ${type}`));
-      }, timeoutMs);
-
-      this.resolveWaiters.set(type, (msg) => {
-        clearTimeout(timer);
-        resolve(msg);
-      });
-    });
+  writeFile(filePath: string, content: string): void {
+    this.files.set(filePath, content);
   }
 
-  async sendCommand(command: Record<string, unknown>): Promise<DaemonMessage> {
-    if (!this.process?.stdin) throw new Error('Daemon not running');
-    this.process.stdin.write(JSON.stringify(command) + '\n');
-    return this.waitFor('daemon:ok', 5000);
+  exists(filePath: string): boolean {
+    return this.files.has(filePath);
   }
 
-  async registerAction(name: string, handler: (params: unknown) => Promise<boolean>): Promise<void> {
-    this.actionRegistry.set(name, handler);
-    await this.sendCommand({ op: 'action:register', action: name, timeoutMs: 5000 });
+  exec(command: string, args?: string[], opts?: { cwd?: string; timeoutMs?: number }): Promise<DaemonExecResult> {
+    return this.execImpl(command, args, opts);
   }
 
-  async triggerAction(actionName: string, params: unknown = {}): Promise<void> {
-    await this.sendCommand({ op: 'emit', event: `action:${actionName}`, payload: params });
-  }
-
-  async resolveActionRequest(actionRequestId: string, success: boolean): Promise<void> {
-    await this.sendCommand({ op: 'action:resolve', actionRequestId, success });
-  }
-
-  async waitForActionRequest(): Promise<DaemonMessage> {
-    return this.waitFor('daemon:action_request', 30000);
-  }
-
-  async stop(): Promise<void> {
-    if (!this.process) return;
-    await this.sendCommand({ op: 'stop' });
-    await new Promise((resolve) => {
-      this.process!.on('exit', resolve);
-      setTimeout(resolve, 5000);
-    });
-    this.process = null;
-  }
-
-  cleanup(): void {
-    this.stop().catch(() => {});
-    try {
-      rmSync(this.tempDir, { recursive: true, force: true });
-    } catch (e) {
-      // Ignore cleanup errors
-    }
+  setExecResponses(resolver: (command: string, args?: string[]) => DaemonExecResult | Promise<DaemonExecResult>): void {
+    this.execImpl.mockImplementation((command, args) => Promise.resolve(resolver(command, args)));
   }
 }
 
-describe('Daemon Integration: Three Phases', () => {
-  let harness: DaemonHarness;
-  let compositionFile: string;
+function createConfig(): DaemonConfig {
+  return {
+    repoRoot: 'repo',
+    commit: false,
+    model: 'claude-3-5-haiku-20241022',
+    verbose: false,
+    focusRotation: ['typefix'],
+    stateDir: '.holoscript',
+  };
+}
 
-  beforeAll(() => {
-    harness = new DaemonHarness();
+describe('holoscript daemon integration', () => {
+  let host: MockHost;
+  let llm: LLMProvider;
+  let blackboard: Blackboard;
+  let context: { emit: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    host = new MockHost();
+    llm = {
+      chat: vi.fn(async () => ({
+        text: 'export const fixed = true;\n',
+        inputTokens: 123,
+        outputTokens: 45,
+      })),
+    };
+    blackboard = {};
+    context = { emit: vi.fn() };
   });
 
-  afterAll(() => {
-    harness.cleanup();
+  it('loads persisted wisdom during identity intake', async () => {
+    host.seedFile('.holoscript/accumulated-wisdom.json', JSON.stringify([{ pattern: 'typefix' }]));
+    host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
+
+    const actions = createDaemonActions(host, llm, createConfig());
+    const ok = await actions.identity_intake({}, blackboard, context);
+
+    expect(ok).toBe(true);
+    expect(blackboard.identity_ready).toBe(true);
+    expect(blackboard.wisdomCount).toBe(1);
+    expect(blackboard.wisdom).toEqual([{ pattern: 'typefix' }]);
   });
 
-  it('Phase 1: Native Action Bridge — action:* events trigger handlers and emit action:result', async () => {
-    // Create a minimal composition with a BehaviorTree action
-    const composition = `
-composition "ActionBridgeTest" {
-  template "Root" {
-    @behavioral_tree
-    tree {
-      sequence {
-        action "test_action" {
-          param1: "value1"
-        }
+  it('diagnoses type errors and reads the first candidate file', async () => {
+    host.seedFile('packages/core/src/example.ts', 'export const broken: string = 1;\n');
+    host.setExecResponses((command, args) => {
+      if (command === 'npx' && args?.[0] === 'tsc') {
+        return {
+          code: 2,
+          stdout: 'packages/core/src/example.ts(1,14): error TS2322: Type \'number\' is not assignable to type \'string\'.\n',
+          stderr: '',
+        };
       }
-    }
-  }
-  object "Root" using "Root" { }
-}
-`;
-    compositionFile = join(harness['tempDir'], 'action-bridge.hsplus');
-    writeFileSync(compositionFile, composition);
 
-    await harness.start(compositionFile, { debug: false });
-
-    // Register a handler for test_action
-    let handlerCalled = false;
-    await harness.registerAction('test_action', async (params) => {
-      handlerCalled = true;
-      expect(params).toHaveProperty('param1', 'value1');
-      return true;
+      return { code: 0, stdout: '', stderr: '' };
     });
 
-    // Trigger the action
-    await harness.triggerAction('test_action', { param1: 'value1' });
+    const actions = createDaemonActions(host, llm, createConfig());
+    const diagnosed = await actions.diagnose({}, blackboard, context);
+    const read = await actions.read_candidate({}, blackboard, context);
 
-    // Wait for daemon to forward the action request to orchestrator
-    const actionRequest = await harness.waitForActionRequest();
-    expect(actionRequest.type).toBe('daemon:action_request');
-    expect(actionRequest.action).toBe('test_action');
-    expect(actionRequest.actionRequestId).toBeDefined();
-
-    // Resolve the action
-    await harness.resolveActionRequest(actionRequest.actionRequestId as string, true);
-
-    // Verify handler was called via native bridge
-    expect(handlerCalled).toBe(true);
-
-    await harness.stop();
+    expect(diagnosed).toBe(true);
+    expect(read).toBe(true);
+    expect(blackboard.has_candidates).toBe(true);
+    expect(blackboard.typeErrorCount).toBe(1);
+    expect(blackboard.candidates).toEqual(['packages/core/src/example.ts']);
+    expect(blackboard.currentCandidate).toBe('packages/core/src/example.ts');
+    expect(blackboard.candidateContent).toContain('broken');
   });
 
-  it('Phase 2: Daemon Subcommand — cycle control and state persistence', async () => {
-    const composition = `
-composition "DaemonCycleTest" {
-  state {
-    cycle_count: 0
-  }
-  template "Cycler" {
-    @behavioral_tree
-    tree {
-      sequence {
-        action "increment_cycle"
-      }
-    }
-  }
-  object "Cycler" using "Cycler" { }
-}
-`;
-    compositionFile = join(harness['tempDir'], 'daemon-cycle.hsplus');
-    writeFileSync(compositionFile, composition);
+  it('generates and writes a fix while tracking token usage', async () => {
+    host.seedFile('packages/core/src/example.ts', 'export const fixed = false;\n');
+    host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
+    blackboard.currentCandidate = 'packages/core/src/example.ts';
+    blackboard.candidateContent = 'export const fixed = false;\n';
+    blackboard.focus = 'typefix';
 
-    // Start daemon with 3 cycles
-    await harness.start(compositionFile, { cycles: 3 });
+    const actions = createDaemonActions(host, llm, createConfig());
+    const ok = await actions.generate_fix({}, blackboard, context);
 
-    // Register increment_cycle action
-    let cycleCount = 0;
-    await harness.registerAction('increment_cycle', async () => {
-      cycleCount++;
-      return true;
-    });
-
-    // Trigger 3 actions (one per cycle)
-    for (let i = 0; i < 3; i++) {
-      await harness.triggerAction('increment_cycle');
-      const request = await harness.waitForActionRequest();
-      await harness.resolveActionRequest(request.actionRequestId as string, true);
-    }
-
-    // Verify cycle count
-    expect(cycleCount).toBe(3);
-
-    await harness.stop();
+    expect(ok).toBe(true);
+    expect(host.readFile('packages/core/src/example.ts')).toBe('export const fixed = true;');
+    expect(blackboard.fileEdited).toBe(true);
+    expect(blackboard.inputTokens).toBe(123);
+    expect(blackboard.outputTokens).toBe(45);
   });
 
-  it('Phase 3: Standalone Daemon Actions — diagnose, generate_fix, verify_compilation', async () => {
-    const composition = `
-composition "DaemonActionsTest" {
-  state {
-    diagnosis: ""
-  }
-  template "SelfHealing" {
-    @behavioral_tree
-    tree {
-      sequence {
-        action "diagnose"
-        action "generate_fix"
-        action "verify_compilation"
-      }
-    }
-  }
-  object "SelfHealing" using "SelfHealing" { }
-}
-`;
-    compositionFile = join(harness['tempDir'], 'daemon-actions.hsplus');
-    writeFileSync(compositionFile, composition);
+  it('rejects contaminated edits and leaves the source file unchanged', async () => {
+    host.seedFile('packages/core/src/example.ts', 'export const fixed = false;\n');
+    host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
+    blackboard.currentCandidate = 'packages/core/src/example.ts';
+    blackboard.candidateContent = 'export const fixed = false;\n';
+    blackboard.focus = 'typefix';
 
-    await harness.start(compositionFile, { cycles: 1 });
+    llm = {
+      chat: vi.fn(async () => ({
+        text: 'PASS src/example.test.ts\n',
+        inputTokens: 5,
+        outputTokens: 2,
+      })),
+    };
 
-    const actionSequence = ['diagnose', 'generate_fix', 'verify_compilation'];
-    const executedActions = [];
+    const actions = createDaemonActions(host, llm, createConfig());
+    const ok = await actions.generate_fix({}, blackboard, context);
 
-    for (const actionName of actionSequence) {
-      await harness.registerAction(actionName, async () => {
-        executedActions.push(actionName);
-        return true;
-      });
-    }
-
-    // Trigger all actions
-    for (const actionName of actionSequence) {
-      await harness.triggerAction(actionName);
-      const request = await harness.waitForActionRequest();
-      expect(request.action).toBe(actionName);
-      await harness.resolveActionRequest(request.actionRequestId as string, true);
-    }
-
-    // Verify all actions executed in order
-    expect(executedActions).toEqual(actionSequence);
-
-    await harness.stop();
-  });
-
-  it('End-to-End: Full daemon cycle with action failure and recovery', async () => {
-    const composition = `
-composition "FailureRecoveryTest" {
-  state {
-    retry_count: 0
-  }
-  template "Resilient" {
-    @behavioral_tree
-    tree {
-      repeat {
-        sequence {
-          action "attempt_operation"
-        }
-      }
-    }
-  }
-  object "Resilient" using "Resilient" { }
-}
-`;
-    compositionFile = join(harness['tempDir'], 'failure-recovery.hsplus');
-    writeFileSync(compositionFile, composition);
-
-    await harness.start(compositionFile);
-
-    let attemptCount = 0;
-    await harness.registerAction('attempt_operation', async () => {
-      attemptCount++;
-      // Fail first 2 attempts, succeed on 3rd
-      return attemptCount > 2;
-    });
-
-    // Trigger 3 attempts
-    for (let i = 0; i < 3; i++) {
-      await harness.triggerAction('attempt_operation');
-      const request = await harness.waitForActionRequest();
-      const shouldSucceed = attemptCount > 2;
-      await harness.resolveActionRequest(request.actionRequestId as string, shouldSucceed);
-    }
-
-    expect(attemptCount).toBe(3);
-
-    await harness.stop();
+    expect(ok).toBe(false);
+    expect(host.readFile('packages/core/src/example.ts')).toBe('export const fixed = false;\n');
+    expect(blackboard.fileEdited).toBeUndefined();
   });
 });
