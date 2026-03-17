@@ -36,6 +36,7 @@ import type {
   MigrationNode,
   HoloScriptValue,
   HSPlusDirective,
+  TypeGuardExpression,
   ZoneNode,
   HologramShape,
   CompositionNode,
@@ -46,6 +47,13 @@ import type {
   EpisodicMemoryNode,
   ProceduralMemoryNode,
 } from './types';
+import type {
+  HSPlusStateDirective,
+  HSPlusBindingsDirective,
+  HSPlusLifecycleDirective,
+  HSPlusTraitDirective,
+  HSPlusVersionDirective,
+} from './types/AdvancedTypeSystem';
 import { HoloScriptPersistenceParser } from './HoloScriptPersistenceParser';
 
 // =============================================================================
@@ -1318,7 +1326,7 @@ export class HoloScriptCodeParser {
         interactive: true,
       },
       properties,
-      directives: directives as any,
+      directives: directives as unknown as HSPlusDirective[],
       template,
       methods: [],
       children: [],
@@ -1337,13 +1345,13 @@ export class HoloScriptCodeParser {
     // Handle @state { ... }
     if (name === 'state') {
       const body = this.parseObject() as Record<string, HoloScriptValue>;
-      return { type: 'state', body } as any;
+      return { type: 'state' as const, body } as HSPlusStateDirective;
     }
 
     // Handle @bindings { ... }
     if (name === 'bindings') {
       const bindings = this.parseBindingsBlock();
-      return { type: 'bindings', bindings } as any;
+      return { type: 'bindings' as const, bindings } as HSPlusBindingsDirective;
     }
 
     // Handle @on_... hooks
@@ -1365,7 +1373,7 @@ export class HoloScriptCodeParser {
         const t = this.advance();
         if (t) body = t.value;
       }
-      return { type: 'lifecycle', hook: name as any, body } as any;
+      return { type: 'lifecycle' as const, hook: name, body } as HSPlusLifecycleDirective;
     }
 
     // Default: handle as trait
@@ -1386,7 +1394,7 @@ export class HoloScriptCodeParser {
       config = this.parseObject() as Record<string, HoloScriptValue>;
     }
 
-    return { type: 'trait', name: name as any, config } as any;
+    return { type: 'trait' as const, name, config } as HSPlusTraitDirective;
   }
 
   /**
@@ -1780,7 +1788,7 @@ export class HoloScriptCodeParser {
         interactive: true,
       },
       properties,
-      directives: directives as any,
+      directives: directives as unknown as HSPlusDirective[],
       template,
       methods: [],
       children: [],
@@ -1924,7 +1932,7 @@ export class HoloScriptCodeParser {
             }
             this.expect('punctuation', ')');
             // Also add as a directive for completeness
-            directives.push({ type: 'version' as any, version } as any);
+            directives.push({ type: 'version' as const, version } as HSPlusVersionDirective);
             this.skipNewlines();
             continue;
           } else {
@@ -1976,7 +1984,7 @@ export class HoloScriptCodeParser {
       parameters: params,
       children,
       properties,
-      directives: directives as any,
+      directives: directives as unknown as HSPlusDirective[],
       version,
       migrations,
     };
@@ -2126,7 +2134,7 @@ export class HoloScriptCodeParser {
       hooks: hooks.length > 0 ? hooks : undefined,
       ui: uiNodes.length > 0 ? uiNodes : undefined,
       children: children.length > 0 ? children : undefined,
-      directives: directives.length > 0 ? (directives as any) : undefined,
+      directives: directives.length > 0 ? (directives as unknown as HSPlusDirective[]) : undefined,
     };
   }
 
@@ -2280,7 +2288,7 @@ export class HoloScriptCodeParser {
       hooks: hooks.length > 0 ? hooks : undefined,
       ui: uiNodes.length > 0 ? uiNodes : undefined,
       children: children.length > 0 ? children : undefined,
-      directives: directives.length > 0 ? (directives as any) : undefined,
+      directives: directives.length > 0 ? (directives as unknown as HSPlusDirective[]) : undefined,
       properties: Object.keys(properties).length > 0 ? properties : undefined,
     };
   }
@@ -2459,7 +2467,7 @@ export class HoloScriptCodeParser {
       type: 'return',
       value: expression.trim(), // Use 'value' to match runtime's executeReturn
       position: { x: 0, y: 0, z: 0 },
-    } as any;
+    } as unknown as ASTNode;
   }
 
   /**
@@ -2507,7 +2515,7 @@ export class HoloScriptCodeParser {
       type: 'expression-statement',
       expression: expression.trim(),
       position: { x: 0, y: 0, z: 0 },
-    } as any;
+    } as unknown as ASTNode;
   }
 
   /**
@@ -2654,8 +2662,8 @@ export class HoloScriptCodeParser {
   /**
    * Parse array [...]
    */
-  private parseArray(): any[] {
-    const arr: any[] = [];
+  private parseArray(): HoloScriptValue[] {
+    const arr: HoloScriptValue[] = [];
     this.expect('punctuation', '[');
 
     while (!this.check('punctuation', ']') && this.position < this.tokens.length) {
@@ -2980,7 +2988,7 @@ export class HoloScriptCodeParser {
    * Parse a condition string into a structured TypeGuardExpression if applicable,
    * otherwise returns the string as-is.
    */
-  private parseConditionExpression(condition: string): string | any {
+  private parseConditionExpression(condition: string): string | TypeGuardExpression {
     // Check for 'subject is "Type"' pattern
     const isPattern = /^([a-zA-Z_][a-zA-Z0-9_]*)\s+is\s+["']([^"']+)["']$/;
     const match = condition.match(isPattern);
@@ -2992,7 +3000,7 @@ export class HoloScriptCodeParser {
         guardType: match[2],
         line: 0, // Simplified for now
         column: 0,
-      };
+      } as TypeGuardExpression;
     }
 
     return condition;
