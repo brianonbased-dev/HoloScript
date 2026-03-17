@@ -285,7 +285,7 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
     if (event.type === 'controller_data') {
       // Receive controller data from XR system
       const hand = event.hand as ControllerHand;
-      const data = event.data as Partial<ControllerData>;
+      const data = (event as any).data as Partial<ControllerData>;
 
       const controller = hand === 'left' ? state.left : state.right;
       const wasConnected = controller.connected;
