@@ -68,7 +68,7 @@ export class UIBuilder {
     }
 
     if (node.properties?.tag) {
-      this.world.addTag(entity, node.properties.tag);
+      this.world.addTag(entity, node.properties.tag as string);
     }
 
     // 4. Children
