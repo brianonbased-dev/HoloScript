@@ -78,8 +78,38 @@ function defaultToolProfileForProvider(provider: CLIOptions['provider']): CLIOpt
   }
 }
 
+function parseProvider(value: string | undefined): CLIOptions['provider'] | undefined {
+  const normalized = value?.toLowerCase();
+  if (normalized === 'anthropic' || normalized === 'xai' || normalized === 'openai' || normalized === 'ollama') {
+    return normalized;
+  }
+  return undefined;
+}
+
+function parseToolProfile(value: string | undefined): CLIOptions['toolProfile'] | undefined {
+  const normalized = value?.toLowerCase();
+  if (normalized === 'claude-hsplus' || normalized === 'grok-hsplus' || normalized === 'standard') {
+    return normalized;
+  }
+  return undefined;
+}
+
+function daemonEnvDefaults(): {
+  provider: CLIOptions['provider'];
+  toolProfile: CLIOptions['toolProfile'];
+  model: string;
+} {
+  const provider = parseProvider(process.env.HOLODAEMON_PROVIDER) || 'anthropic';
+  const toolProfile =
+    parseToolProfile(process.env.HOLODAEMON_TOOL_PROFILE) || defaultToolProfileForProvider(provider);
+  const model = process.env.HOLODAEMON_MODEL || defaultModelForProvider(provider);
+
+  return { provider, toolProfile, model };
+}
+
 function parseArgs(argv: string[]): CLIOptions {
   const args = argv.slice(2);
+  const envDefaults = daemonEnvDefaults();
   const opts: CLIOptions = {
     command: 'help',
     target: 'headless',
@@ -90,9 +120,9 @@ function parseArgs(argv: string[]): CLIOptions {
     ticks: 100,
     cycles: 15,
     commit: false,
-    provider: 'anthropic',
-    toolProfile: 'claude-hsplus',
-    model: 'claude-sonnet-4-20250514',
+    provider: envDefaults.provider,
+    toolProfile: envDefaults.toolProfile,
+    model: envDefaults.model,
     timeout: 30,
   };
   let modelExplicit = false;
@@ -136,14 +166,14 @@ function parseArgs(argv: string[]): CLIOptions {
       opts.trial = Number(args[++i]);
     }
     if (args[i] === '--provider' && args[i + 1]) {
-      const provider = args[++i].toLowerCase();
-      if (provider === 'anthropic' || provider === 'xai' || provider === 'openai' || provider === 'ollama') {
+      const provider = parseProvider(args[++i]);
+      if (provider) {
         opts.provider = provider;
       }
     }
     if (args[i] === '--tool-profile' && args[i + 1]) {
-      const profile = args[++i].toLowerCase();
-      if (profile === 'claude-hsplus' || profile === 'grok-hsplus' || profile === 'standard') {
+      const profile = parseToolProfile(args[++i]);
+      if (profile) {
         opts.toolProfile = profile;
         toolProfileExplicit = true;
       }
@@ -1343,6 +1373,11 @@ Usage:
   holoscript compile <file> [--target node|python] [--output <path>]
   holoscript absorb <file>  [--output <path>] [--debug]
   holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--debug]
+
+Environment defaults (daemon):
+  HOLODAEMON_PROVIDER       anthropic|xai|openai|ollama
+  HOLODAEMON_TOOL_PROFILE   claude-hsplus|grok-hsplus|standard
+  HOLODAEMON_MODEL          model identifier for selected provider
 
 Supported file types:
   .hs       Agent templates, behavior trees, event handlers
