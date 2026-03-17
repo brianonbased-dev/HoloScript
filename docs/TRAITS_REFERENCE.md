@@ -1912,6 +1912,74 @@ object Chair @anchor @occlusion @light_estimation {
 
 ---
 
+## Wisdom/Gotcha Atom Extensions (Proposed)
+
+Commit-ready reference entries for 20 new atoms that encode explicit wisdom patterns and defensive gotchas.
+
+### Atomic Trait Set (1-20)
+
+| Atom | Domain | Wisdom Encoded | Gotcha Guarded |
+| --- | --- | --- | --- |
+| `@memory_crystal` | Memory | Semantic compression and retrieval value | Unbounded memory growth |
+| `@recall_trigger` | Memory | Context-aware proactive recall | Low-confidence retrieval spam |
+| `@forget_policy` | Memory | Intentional bounded forgetting | Silent permanent loss |
+| `@versioned_state` | Memory | Branchable collaborative state | Merge conflict cascades |
+| `@echo_memory` | Memory | Distributed cognition sharing | Gossip amplification |
+| `@plot_anchor` | Narrative | Convergence stability for story arcs | Railroading through over-constraint |
+| `@superposition_clip` | Narrative | Multi-variant quantum storytelling | Render-cost explosion |
+| `@emotional_beat` | Narrative | Structured pacing through valence curves | Manipulative over-emoting |
+| `@branch_fork` | Narrative | Safe branch/merge narrative paths | Infinite branch trees |
+| `@director_override` | Narrative | Live authority override for production | Continuity corruption |
+| `@proposal_weight` | Governance | Balanced influence via quadratic/conviction weighting | Sybil capture |
+| `@treasury_ragequit` | Governance | Exit-tax treasury stabilization | Sudden liquidity drains |
+| `@veto_shield` | Governance | Minority safety check | Veto spam abuse |
+| `@fork_escape` | Governance | Last-resort constitutional fork | Community split shock |
+| `@reputation_decay` | Governance | Prevent permanent power concentration | Contributor discouragement |
+| `@circuit_auto_reset` | Resilience | Auto-recovery with exponential backoff | Hidden repeated failures |
+| `@swarm_rebalance` | Resilience | Adaptive load redistribution | Control-loop oscillation |
+| `@damage_morph` | Resilience | Stress-adaptive transformation | Infinite morph loops |
+| `@climate_feedback` | Resilience | Closed-loop sustainability control | Over-correction instability |
+| `@world_heartbeat` | Resilience | Global distributed sync pulse | Single-point sync failure |
+
+### Signatures
+
+```holo
+@memory_crystal { capacity: "semantic" | "raw" | "time-window", prune_threshold: 0.4, backend: "ipfs" | "kv" }
+@recall_trigger { query: "similar intruder", min_confidence: 0.75 }
+@forget_policy { after: "30d", when: "relevance < 0.2", audit: true }
+@versioned_state { strategy: "crdt" | "manual", branches: 5 }
+@echo_memory { to: "swarm_group", max_size_kb: 64 }
+
+@plot_anchor { act: 2, convergence_radius: "time 5min" }
+@superposition_clip { variants: 4, collapse_on: "@viewer_gaze | @grok_decision" }
+@emotional_beat { curve: [0.2, 0.8, 0.3], trigger: "chapter_end" }
+@branch_fork { max_depth: 3, merge_strategy: "vote" }
+@director_override { authority: "grok" | "human", priority: "high" }
+
+@proposal_weight { type: "quadratic", decay_days: 7 }
+@treasury_ragequit { tax_percent: 8, cooldown: "30d" }
+@veto_shield { min_reputation: 100, cooldown: "72h" }
+@fork_escape { signaling_days: 14, quorum: "33%" }
+@reputation_decay { half_life: "90d", floor: 10 }
+
+@circuit_auto_reset { backoff_base: 2, max_attempts: 5 }
+@swarm_rebalance { algorithm: "particle_swarm", damping: 0.7 }
+@damage_morph { to: "@fortified", cost: "health * 0.3" }
+@climate_feedback { hysteresis: 2.5, target: "carbon_neutral" }
+@world_heartbeat { interval_ms: 1000, redundancy: 3 }
+```
+
+### Recommended Compiler Checks
+
+- Validate numeric range constraints and parseable duration predicates.
+- Require memory source pairing for `@recall_trigger`.
+- Warn when `@memory_crystal` exists without `@forget_policy`.
+- Require damping for `@swarm_rebalance` and hysteresis for `@climate_feedback`.
+- Enforce minimum redundancy policy for distributed `@world_heartbeat` targets.
+- Enforce identity proof requirements for weighted governance atoms.
+
+---
+
 ## Version History
 
 | Version | Changes                                            |

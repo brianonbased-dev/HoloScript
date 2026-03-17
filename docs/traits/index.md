@@ -50,6 +50,16 @@ interface TraitHandler<TConfig> {
 | [Security / ZK](/traits/security)        | @zero_knowledge_proof, @zk_private, @rsa_encrypt, @audit_log         | Cryptographic privacy, ZK proofs, tamper logs      |
 | [AI Generation](/traits/ai-generation)   | @stable_diffusion, @neural_forge, @ai_texture_gen, @diffusion_realtime| Generative AI: textures, meshes, shaders           |
 | [Human-in-the-Loop](/traits/hitl)        | @hitl, @feedback_loop, @biofeedback                                  | Human oversight, biometric feedback, RLHF gates    |
+
+## Wisdom/Gotcha Atoms Navigation
+
+| Resource | Link | Purpose |
+| --- | --- | --- |
+| Batch 1 RFC | [WISDOM_GOTCHA_ATOMS_BATCH1_RFC](../../proposals/WISDOM_GOTCHA_ATOMS_BATCH1_RFC.md) | Full spec + semantics + compiler checks for substrate atoms |
+| 20 Atom Reference Entries | [TRAITS_REFERENCE](../TRAITS_REFERENCE.md#wisdomgotcha-atom-extensions-proposed) | Commit-ready signatures, gotchas, and validation rules |
+| Canonical Demo | [canonical-atoms-demo.holo](../../examples/atoms/canonical-atoms-demo.holo) | Cross-domain demo using 8 atoms together |
+| Governance Companion Demo | [governance-atoms-demo.holo](../../examples/atoms/governance-atoms-demo.holo) | Focused demo for governance atoms 11-15 |
+
 ## Extending Traits
 
 Build your own custom traits using the [Trait Extension Guide](/traits/extending).
