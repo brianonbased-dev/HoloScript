@@ -4,15 +4,6 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-    paths:
-      - 'compositions/self-improve-daemon.hsplus'
-      - 'packages/core/src/cli/**'
-      - 'packages/core/src/runtime/**'
-      - 'packages/core/src/traits/**'
-      - '.github/workflows/daemon-pr.yml'
-      - 'pnpm-lock.yaml'
-      - 'package.json'
-      - 'packages/core/package.json'
 
 permissions:
   contents: read
