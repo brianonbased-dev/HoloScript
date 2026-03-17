@@ -35,8 +35,6 @@ async function main(): Promise<void> {
 
       const fs = await import('fs');
       const path = await import('path');
-      const { HoloScriptCodeParser } = await import('@holoscript/core');
-
       const filePath = path.resolve(options.input);
       if (!fs.existsSync(filePath)) {
         console.error(`\x1b[31mError: File not found: ${filePath}\x1b[0m`);
@@ -44,17 +42,17 @@ async function main(): Promise<void> {
       }
 
       const content = fs.readFileSync(filePath, 'utf-8');
-      const _parser = new HoloScriptCodeParser();
 
       console.log(`\n\x1b[36mValidating ${options.input}...\x1b[0m\n`);
 
       try {
         const isHolo = options.input.endsWith('.holo');
+        const isHsplus = options.input.endsWith('.hsplus');
         let success = false;
         let errorList: any[] = [];
 
         if (options.verbose)
-          console.log(`\x1b[2m[TRACE] Starting validation (isHolo: ${isHolo})...\x1b[0m`);
+          console.log(`\x1b[2m[TRACE] Starting validation (isHolo: ${isHolo}, isHsplus: ${isHsplus})...\x1b[0m`);
 
         let parseResult: any;
 
@@ -75,6 +73,23 @@ async function main(): Promise<void> {
             line: e.loc?.line,
             column: e.loc?.column,
             message: e.message,
+          }));
+        } else if (isHsplus) {
+          if (options.verbose)
+            console.log(`\x1b[2m[TRACE] Importing HoloScriptPlusParser...\x1b[0m`);
+          const { HoloScriptPlusParser } = await import('@holoscript/core');
+          if (options.verbose)
+            console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
+          const parser = new HoloScriptPlusParser();
+          if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
+          const result = parser.parse(content);
+          parseResult = result;
+          const parserErrors = result.errors ?? [];
+          success = parserErrors.length === 0;
+          errorList = parserErrors.map((e: any) => ({
+            line: e.line,
+            column: e.column,
+            message: typeof e === 'string' ? e : e.message,
           }));
         } else {
           if (options.verbose)
