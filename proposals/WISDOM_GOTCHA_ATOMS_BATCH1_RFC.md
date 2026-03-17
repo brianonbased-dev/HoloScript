@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed - v1
+Proposed - v2 (Memory Cluster Implemented)
 
 ## Authors
 
@@ -336,6 +336,21 @@ Additions aligned with existing CLASS upgrade path:
 1. Should `@memory_crystal(capacity="raw")` be disallowed in constrained mobile targets by default?
 2. Should `@world_heartbeat(redundancy=1)` be hard-error in clustered deployments?
 3. Should `@recall_trigger` support a cooldown key to prevent trigger storms?
+
+## Implementation Status
+
+| Atom | Handler File | Registered | Tests | Status |
+| --- | --- | --- | --- | --- |
+| `@memory_crystal` | `src/traits/MemoryCrystalTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
+| `@recall_trigger` | `src/traits/RecallTriggerTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
+| `@forget_policy` | `src/traits/ForgetPolicyTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
+| `@versioned_state` | — | — | — | Pending |
+| `@world_heartbeat` | — | — | — | Pending |
+| `@circuit_auto_reset` | — | — | — | Pending |
+
+Reference composition: `examples/memory-atoms-showcase.holo`
+
+All three memory atoms compose with the existing `AgentMemoryTrait` via `node.__agentMemoryState`.
 
 ## Related Work
 
