@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
-import { createDaemonJob, listDaemonJobs, type CreateDaemonJobInput } from './store';
+import {
+  createDaemonJob,
+  listDaemonJobs,
+  getTelemetrySummary,
+  type CreateDaemonJobInput,
+} from './store';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const view = searchParams.get('view');
+
+  // GET /api/daemon/jobs?view=telemetry — return telemetry summary
+  if (view === 'telemetry') {
+    return NextResponse.json({ telemetry: getTelemetrySummary() });
+  }
+
   return NextResponse.json({ jobs: listDaemonJobs() });
 }
 
@@ -16,7 +29,7 @@ export async function POST(request: Request) {
   if (!body.projectId || !body.profile || !body.projectDna) {
     return NextResponse.json(
       { error: 'Missing required fields: projectId, profile, projectDna' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -24,6 +37,8 @@ export async function POST(request: Request) {
     projectId: body.projectId,
     profile: body.profile,
     projectDna: body.projectDna,
+    projectPath: body.projectPath,
+    customLimits: body.customLimits,
   });
 
   return NextResponse.json({ job: created }, { status: 201 });

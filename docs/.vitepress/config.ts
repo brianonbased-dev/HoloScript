@@ -192,6 +192,8 @@ export default defineConfig({
           text: 'Development',
           items: [
             { text: 'Best Practices', link: '/guides/best-practices' },
+            { text: 'Studio Repo Management', link: '/guides/studio-repo-management' },
+            { text: 'Studio Repo Management PRD', link: '/guides/studio-repo-management-prd' },
             { text: 'Troubleshooting', link: '/guides/troubleshooting' },
             { text: 'Python Bindings', link: '/guides/python-bindings' },
             { text: 'Working Tree Triage', link: '/guides/working-tree-triage' },

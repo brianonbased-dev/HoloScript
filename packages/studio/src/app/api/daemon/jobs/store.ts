@@ -1,76 +1,124 @@
-export type DaemonProjectKind = 'service' | 'data' | 'frontend' | 'spatial' | 'automation' | 'unknown';
-export type DaemonProfile = 'quick' | 'balanced' | 'deep';
-export type DaemonJobStatus = 'queued' | 'running' | 'completed' | 'failed';
+/**
+ * Daemon Job Store -- Persists job state, logs, metrics, and patch proposals.
+ *
+ * Replaces the former simulated lifecycle with real daemon execution via
+ * the DaemonRunner. Jobs run in isolated workspace directories and produce
+ * concrete patch proposals that users can review and apply through Studio.
+ */
 
-export interface DaemonProjectDNA {
-  kind: DaemonProjectKind;
-  confidence: number;
-  detectedStack: string[];
-  recommendedProfile: DaemonProfile;
-  notes: string[];
-}
+import {
+  runDaemonJob,
+} from './runner';
+import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
+import type {
+  CreateDaemonJobInput,
+  DaemonJob,
+  DaemonJobLimits,
+  DaemonLogEntry,
+  DaemonProfile,
+  DaemonProjectDNA,
+  ManifestData,
+  PatchProposal,
+} from '@/lib/daemon/types';
 
-export interface DaemonJob {
-  id: string;
-  projectId: string;
-  profile: DaemonProfile;
-  projectDna: DaemonProjectDNA;
-  status: DaemonJobStatus;
-  createdAt: string;
-  updatedAt: string;
-  progress: number;
-  summary?: string;
-  metrics?: {
-    qualityDelta: number;
-    filesChanged: number;
-    cycles: number;
-  };
-}
+export type { CreateDaemonJobInput } from '@/lib/daemon/types';
 
-export interface CreateDaemonJobInput {
-  projectId: string;
-  profile: DaemonProfile;
-  projectDna: DaemonProjectDNA;
+// ---------------------------------------------------------------------------
+// Telemetry
+// ---------------------------------------------------------------------------
+
+export interface DaemonTelemetryEvent {
+  eventType: 'job_created' | 'job_started' | 'job_completed' | 'job_failed' | 'patch_applied' | 'patch_exported' | 'patch_rejected';
+  jobId: string;
+  timestamp: string;
+  profile?: DaemonProfile;
+  durationMs?: number;
+  qualityDelta?: number;
+  filesChanged?: number;
+  patchCount?: number;
+  error?: string;
 }
 
 const daemonJobs = new Map<string, DaemonJob>();
+const telemetryLog: DaemonTelemetryEvent[] = [];
 
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-function simulateDaemonLifecycle(jobId: string): void {
-  const queued = daemonJobs.get(jobId);
-  if (!queued) return;
+function emitTelemetry(event: DaemonTelemetryEvent): void {
+  telemetryLog.push(event);
+  if (telemetryLog.length > 1000) {
+    telemetryLog.splice(0, telemetryLog.length - 1000);
+  }
+}
 
-  setTimeout(() => {
-    const running = daemonJobs.get(jobId);
-    if (!running) return;
-    daemonJobs.set(jobId, {
-      ...running,
-      status: 'running',
-      progress: 40,
-      updatedAt: nowIso(),
-    });
-  }, 200);
+// ---------------------------------------------------------------------------
+// Real Daemon Execution
+// ---------------------------------------------------------------------------
 
-  setTimeout(() => {
-    const running = daemonJobs.get(jobId);
-    if (!running) return;
+async function executeDaemonJob(jobId: string): Promise<void> {
+  const job = daemonJobs.get(jobId);
+  if (!job) return;
+
+  const now = nowIso();
+  daemonJobs.set(jobId, { ...job, status: 'running', progress: 5, statusMessage: 'Initializing daemon pipeline...', updatedAt: now });
+  emitTelemetry({ eventType: 'job_started', jobId, timestamp: now, profile: job.profile });
+
+  const projectPath = job.projectPath || process.cwd();
+
+  try {
+    const result = await runDaemonJob(
+      projectPath,
+      job.profile,
+      job.projectDna,
+      (progress, status, log) => {
+        const current = daemonJobs.get(jobId);
+        if (!current || current.status !== 'running') return;
+        daemonJobs.set(jobId, {
+          ...current,
+          progress: progress >= 0 ? progress : current.progress,
+          statusMessage: status,
+          updatedAt: nowIso(),
+          logs: log ? [...(current.logs ?? []), log] : current.logs,
+        });
+      },
+      job.limits || undefined,
+    );
+
+    const final = daemonJobs.get(jobId)!;
     daemonJobs.set(jobId, {
-      ...running,
+      ...final,
       status: 'completed',
       progress: 100,
+      statusMessage: 'Complete',
       updatedAt: nowIso(),
-      summary: 'Legacy-first daemon scan completed with dry-run patch recommendations.',
+      summary: result.summary,
       metrics: {
-        qualityDelta: 0.12,
-        filesChanged: running.profile === 'quick' ? 4 : running.profile === 'balanced' ? 9 : 15,
-        cycles: running.profile === 'quick' ? 1 : running.profile === 'balanced' ? 2 : 3,
+        qualityDelta: result.qualityDelta,
+        qualityBefore: result.qualityBefore,
+        qualityAfter: result.qualityAfter,
+        filesChanged: result.filesChanged,
+        filesAnalyzed: result.filesAnalyzed,
+        cycles: result.cycles,
+        durationMs: result.durationMs,
       },
+      patches: result.patches,
+      logs: result.logs,
     });
-  }, 1200);
+
+    emitTelemetry({ eventType: 'job_completed', jobId, timestamp: nowIso(), profile: job.profile, durationMs: result.durationMs, qualityDelta: result.qualityDelta, filesChanged: result.filesChanged, patchCount: result.patches.length });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const final = daemonJobs.get(jobId)!;
+    daemonJobs.set(jobId, { ...final, status: 'failed', progress: 0, statusMessage: `Failed: ${errorMessage}`, updatedAt: nowIso(), summary: `Daemon job failed: ${errorMessage}`, error: errorMessage });
+    emitTelemetry({ eventType: 'job_failed', jobId, timestamp: nowIso(), profile: job.profile, error: errorMessage });
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export function createDaemonJob(input: CreateDaemonJobInput): DaemonJob {
   const id = `dj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -79,14 +127,22 @@ export function createDaemonJob(input: CreateDaemonJobInput): DaemonJob {
     projectId: input.projectId,
     profile: input.profile,
     projectDna: input.projectDna,
+    plan: buildDaemonPlan(projectDNAFromLegacySignals(input.projectDna), input.profile),
     status: 'queued',
     createdAt: nowIso(),
     updatedAt: nowIso(),
-    progress: 5,
+    progress: 0,
+    statusMessage: 'Queued',
+    projectPath: input.projectPath,
+    limits: input.customLimits as DaemonJobLimits | undefined,
   };
 
   daemonJobs.set(id, created);
-  simulateDaemonLifecycle(id);
+  emitTelemetry({ eventType: 'job_created', jobId: id, timestamp: created.createdAt, profile: input.profile });
+
+  // Fire-and-forget: start real execution asynchronously
+  void executeDaemonJob(id);
+
   return created;
 }
 
@@ -96,4 +152,43 @@ export function listDaemonJobs(): DaemonJob[] {
 
 export function getDaemonJob(id: string): DaemonJob | null {
   return daemonJobs.get(id) ?? null;
+}
+
+export function getJobPatches(jobId: string): PatchProposal[] {
+  return daemonJobs.get(jobId)?.patches ?? [];
+}
+
+export function getJobLogs(jobId: string): DaemonLogEntry[] {
+  return daemonJobs.get(jobId)?.logs ?? [];
+}
+
+export function recordPatchAction(jobId: string, patchIds: string[], action: 'applied' | 'exported' | 'rejected'): void {
+  const eventType = action === 'applied' ? 'patch_applied' as const : action === 'exported' ? 'patch_exported' as const : 'patch_rejected' as const;
+  for (const _patchId of patchIds) {
+    emitTelemetry({ eventType, jobId, timestamp: nowIso(), patchCount: 1 });
+  }
+}
+
+export function getTelemetrySummary() {
+  const jobs = Array.from(daemonJobs.values());
+  const completed = jobs.filter((j) => j.status === 'completed');
+  const failed = jobs.filter((j) => j.status === 'failed');
+  const totalPatches = completed.reduce((sum, j) => sum + (j.patches?.length ?? 0), 0);
+  const appliedPatches = telemetryLog.filter((e) => e.eventType === 'patch_applied').length;
+  const avgDelta = completed.length > 0 ? completed.reduce((sum, j) => sum + (j.metrics?.qualityDelta ?? 0), 0) / completed.length : 0;
+  const avgDuration = completed.length > 0 ? completed.reduce((sum, j) => sum + (j.metrics?.durationMs ?? 0), 0) / completed.length : 0;
+  const profileUsage: Record<DaemonProfile, number> = { quick: 0, balanced: 0, deep: 0 };
+  for (const job of jobs) profileUsage[job.profile]++;
+
+  return {
+    totalJobs: jobs.length,
+    completedJobs: completed.length,
+    failedJobs: failed.length,
+    totalPatches,
+    appliedPatches,
+    avgQualityDelta: Math.round(avgDelta * 100) / 100,
+    avgDurationMs: Math.round(avgDuration),
+    profileUsage,
+    recentEvents: telemetryLog.slice(-50),
+  };
 }
