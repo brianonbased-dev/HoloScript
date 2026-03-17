@@ -333,7 +333,7 @@ export function publishToMQTTSink(node: any, payload?: unknown, topic?: string):
   const finalTopic = topic || resolveTopic(nodeState?.topic || '', node);
   const finalPayload = payload !== undefined && payload !== null ? payload : '';
 
-  return state.client.publish(finalTopic, finalPayload as string | Buffer | object, {
+  return state.client.publish(finalTopic, typeof finalPayload === 'string' ? finalPayload : JSON.stringify(finalPayload), {
     retain: nodeState?.retain || false,
     qos: nodeState?.qos || 0,
   });
