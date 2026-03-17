@@ -281,7 +281,7 @@ export class MLDSACryptoProvider implements ICryptoProvider {
       return this.mlDsaModule;
     }
 
-    const noble = await import('@noble/post-quantum/ml-dsa').catch(() => null);
+    const noble = await import('@noble/post-quantum/ml-dsa' as any).catch(() => null);
     if (!noble) {
       throw new Error(
         'ML-DSA-65 requires @noble/post-quantum. ' +
@@ -359,7 +359,7 @@ export class MLDSACryptoProvider implements ICryptoProvider {
  * @returns Promise<boolean> — true if @noble/post-quantum/ml-dsa is importable
  */
 export async function isPostQuantumAvailable(): Promise<boolean> {
-  const noble = await import('@noble/post-quantum/ml-dsa').catch(() => null);
+  const noble = await import('@noble/post-quantum/ml-dsa' as any).catch(() => null);
   return noble !== null;
 }
 
