@@ -109,7 +109,7 @@ import {
   createRichError,
   createTraitError,
   findSimilarKeyword,
-  type ErrorCode,
+  type ErrorCode as RichErrorCode,
 } from './RichErrors';
 import {
   ErrorRecovery,
@@ -117,6 +117,7 @@ import {
   generateQuickFixes,
   type ParseError,
   type QuickFix,
+  type ErrorCode as ErrorRecoveryErrorCode,
 } from './ErrorRecovery';
 
 // =============================================================================
@@ -3956,7 +3957,7 @@ export class HoloScriptPlusParser {
       const fullMessage = `${message}. Got ${current.type} "${current.value}"`;
 
       // Use specific error codes based on expected token type
-      let errorCode: ErrorCode = 'HSP001';
+      let errorCode: RichErrorCode = 'HSP001';
       let suggestion: string | undefined;
 
       switch (type) {
@@ -4031,7 +4032,7 @@ export class HoloScriptPlusParser {
     }
   }
 
-  private error(message: string, code: keyof typeof import('./RichErrors').HSPLUS_ERROR_CODES = 'HSP001'): void {
+  private error(message: string, code: RichErrorCode = 'HSP001'): void {
     const token = this.current();
     const line = token.line;
     const column = token.column;
@@ -4057,7 +4058,7 @@ export class HoloScriptPlusParser {
   private errorWithSuggestion(
     message: string,
     suggestion: string,
-    code: ErrorCode = 'HSP001'
+    code: RichErrorCode = 'HSP001'
   ): void {
     const token = this.current();
     this.errors.push(
@@ -4074,7 +4075,7 @@ export class HoloScriptPlusParser {
     this.errors.push(createTraitError(traitName, token.line, token.column, this.source));
   }
 
-  private warn(message: string, code: keyof typeof import('./RichErrors').HSPLUS_ERROR_CODES = 'HSP001'): void {
+  private warn(message: string, code: RichErrorCode = 'HSP001'): void {
     const token = this.current();
     this.warnings.push(
       createRichError(code, message, token.line, token.column, {
@@ -4087,7 +4088,7 @@ export class HoloScriptPlusParser {
   /**
    * Detect common mistakes and provide context-aware error messages
    */
-  private detectCommonMistake(): { message: string; suggestion: string; code: ErrorCode } | null {
+  private detectCommonMistake(): { message: string; suggestion: string; code: RichErrorCode } | null {
     const current = this.current();
     const prev = this.pos > 0 ? this.tokens[this.pos - 1] : null;
     const next = this.pos + 1 < this.tokens.length ? this.tokens[this.pos + 1] : null;
@@ -4161,7 +4162,7 @@ export class HoloScriptPlusParser {
   /**
    * Enhanced error reporting with common mistake detection
    */
-  private errorWithContext(message: string, code: ErrorCode = 'HSP001'): void {
+  private errorWithContext(message: string, code: RichErrorCode = 'HSP001'): void {
     // First check for common mistakes
     const commonMistake = this.detectCommonMistake();
     if (commonMistake) {
