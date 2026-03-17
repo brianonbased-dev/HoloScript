@@ -191,7 +191,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
     if (!state) return;
 
     // Handle external events that affect buoyancy
-    if (event.type === 'set_fluid_level') {
+    if (event.type === 'set_fluid_level' && typeof event.level === 'number') {
       config.fluid_level = event.level;
     }
   },
