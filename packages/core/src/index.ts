@@ -3276,7 +3276,7 @@ export { SemanticSceneGraph } from './compiler/SemanticSceneGraph';
 export { AgentInferenceExportTarget } from './compiler/AgentInferenceExportTarget';
 
 // ── Sprint 1: Procedural Geometry Patch ─────────────────────────────────────
-export { ProceduralGeometryPatch } from './compiler/ProceduralGeometry.patch';
+export * from './compiler/ProceduralGeometry';
 
 // ── @draft Trait (Draft→Mesh→Simulation Pipeline) ───────────────────────────
 export {

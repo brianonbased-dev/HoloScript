@@ -862,7 +862,7 @@ export class HoloScriptPlusParser {
     for (const error of this.errors) {
       const errorFixes = generateQuickFixes(
         {
-          code: error.code as unknown as ErrorCode,
+          code: error.code as unknown as ErrorRecoveryErrorCode,
           message: error.message,
           line: error.line,
           column: error.column,
@@ -884,7 +884,7 @@ export class HoloScriptPlusParser {
     return this.errors.map((error) =>
       enrichErrorWithSuggestions(
         {
-          code: error.code as unknown as ErrorCode,
+          code: error.code as unknown as ErrorRecoveryErrorCode,
           message: error.message,
           line: error.line,
           column: error.column,

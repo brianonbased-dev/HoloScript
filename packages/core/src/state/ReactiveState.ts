@@ -140,7 +140,7 @@ function createReactiveProxy<T extends object>(
       if (oldValue !== value) {
         trigger(obj, key);
         if (onMutation) {
-          onMutation(obj, key, value, oldValue);
+          onMutation(obj as T, key, value, oldValue);
         }
       }
 
@@ -247,7 +247,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
     if (step) {
       this.isApplyingSync = true;
       try {
-        this.set(step.redo.key as any, step.redo.value as any);
+        this.set(step.redo.key as any, step.redo.value as T[keyof T]);
       } finally {
         this.isApplyingSync = false;
       }
