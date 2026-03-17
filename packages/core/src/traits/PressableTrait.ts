@@ -56,7 +56,7 @@ export class PressableTrait implements Trait {
     // TODO: Handle rotation! For now assume world-aligned or use local transform logic.
     // If we assume the button only moves along Z, we can check distance.
 
-    const dist = Math.abs(currentPos.z - this.initialPos.z);
+    const dist = Math.abs((currentPos as any).z - this.initialPos.z);
 
     // Config
     const maxDist = node.properties.distance || 0.01;
