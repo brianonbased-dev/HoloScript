@@ -12,7 +12,7 @@
 import { ChunkDetector, SourceChunk } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
-import type { HSPlusNode } from '../types/AdvancedTypeSystem';
+import type { HSPlusNode } from './ParseCache';
 
 export interface IncrementalParseResult {
   ast: HSPlusNode;
