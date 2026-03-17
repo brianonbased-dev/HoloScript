@@ -1,4 +1,4 @@
-import { AssetRegistry, AssetMetadata, AssetType } from '../assets/AssetRegistry';
+import { AssetRegistry } from '../assets/AssetRegistry';
 import { World } from '../ecs/World';
 
 /**
@@ -15,7 +15,7 @@ export class AssetManager {
   private world: World;
 
   // Session-only assets (not part of global manifest)
-  private sessionAssets: Map<string, AssetMetadata> = new Map();
+  private sessionAssets: Map<string, any> = new Map();
 
   constructor(world: World) {
     this.world = world;
@@ -27,7 +27,7 @@ export class AssetManager {
 
   private registerDefaultAssets() {
     // Mock standard library for testing
-    const defaults: AssetMetadata[] = [
+    const defaults: any[] = [
       {
         id: 'std_cube',
         name: 'Standard Cube',
@@ -79,8 +79,8 @@ export class AssetManager {
   /**
    * Get all available assets (Registry + Session)
    */
-  getAllAssets(): AssetMetadata[] {
-    const registryAssets: AssetMetadata[] = [];
+  getAllAssets(): any[] {
+    const registryAssets: any[] = [];
     // registry.search('') returns all unique?
 
     // This is inefficient but functional for MVP
@@ -90,7 +90,7 @@ export class AssetManager {
     return [...all, ...Array.from(this.sessionAssets.values())];
   }
 
-  getAssetsByType(type: AssetType): AssetMetadata[] {
+  getAssetsByType(type: string): any[] {
     const registryAssets = this.registry.findByType(type);
     const sessionAssets = Array.from(this.sessionAssets.values()).filter(
       (a) => a.assetType === type
@@ -98,7 +98,7 @@ export class AssetManager {
     return [...registryAssets, ...sessionAssets];
   }
 
-  getAsset(id: string): AssetMetadata | undefined {
+  getAsset(id: string): any | undefined {
     return this.sessionAssets.get(id) || this.registry.getAsset(id);
   }
 
@@ -106,9 +106,9 @@ export class AssetManager {
    * Import a file (Mock)
    * In a real app, this would handle File object from Drop event.
    */
-  importFile(name: string, url: string, type: AssetType) {
+  importFile(name: string, url: string, type: string) {
     const id = `local_${Date.now()}_${name}`;
-    const asset: AssetMetadata = {
+    const asset: any = {
       id,
       name,
       assetType: type,
