@@ -109,8 +109,8 @@ describe('holoscript-runner daemon mode', () => {
     };
 
     try {
-      // Allow up to 80s for daemon startup — tsx compilation on CI runners can take 30-60s.
-      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:ready'), 80000, 25, timeoutDetails);
+      // Allow up to 120s for daemon startup on slower CI runners.
+      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:ready'), 120000, 25, timeoutDetails);
 
       sendCommand(harness.proc, { op: 'stats' });
       await waitFor(() => harness.json.some((msg) => msg.op === 'stats' && msg.type === 'daemon:ok'), 45000, 25, timeoutDetails);
@@ -195,5 +195,5 @@ describe('holoscript-runner daemon mode', () => {
       }
       rmSync(harness.tempDir, { recursive: true, force: true });
     }
-  }, 120_000); // 120s: tsx startup on CI can take 30-60s; pre-built JS is much faster
+  }, 180_000); // 180s: protects against slow cold-start tsx compilation on CI
 });

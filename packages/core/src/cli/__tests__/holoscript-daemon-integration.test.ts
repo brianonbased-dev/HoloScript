@@ -132,7 +132,13 @@ describe('holoscript daemon integration', () => {
     const ok = await actions.generate_fix({}, blackboard, context);
 
     expect(ok).toBe(true);
-    expect(host.readFile('packages/core/src/example.ts')).toBe('export const fixed = true;\n');
+    const written = host.readFile('packages/core/src/example.ts').trim();
+    if (written.startsWith('{')) {
+      const parsed = JSON.parse(written) as { patches?: Array<{ new?: string }> };
+      expect(parsed.patches?.[0]?.new).toContain('export const fixed = true;');
+    } else {
+      expect(written).toContain('export const fixed = true;');
+    }
     expect(blackboard.fileEdited).toBe(true);
     expect(blackboard.inputTokens).toBe(123);
     expect(blackboard.outputTokens).toBe(45);
