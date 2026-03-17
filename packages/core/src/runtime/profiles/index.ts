@@ -26,6 +26,7 @@ export {
 export {
   HeadlessRuntime,
   createHeadlessRuntime,
+  type ActionHandler,
   type HeadlessRuntimeOptions,
   type HeadlessRuntimeStats,
   type HeadlessNodeInstance,

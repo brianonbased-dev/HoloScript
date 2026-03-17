@@ -4,11 +4,13 @@
  */
 
 import type { HSPlusAST } from '../types/HoloScriptPlus';
+import type { HostCapabilities } from '../traits/TraitTypes';
 
 export interface HeadlessRuntimeOptions {
   profile?: RuntimeProfile;
   tickRate?: number;
   debug?: boolean;
+  hostCapabilities?: HostCapabilities;
 }
 
 export interface RuntimeProfile {
@@ -61,6 +63,12 @@ export function getProfile(profileName: string): RuntimeProfile {
   return profile;
 }
 
+export type ActionHandler = (
+  params: Record<string, unknown>,
+  blackboard: Record<string, unknown>,
+  context: { emit: (event: string, payload?: unknown) => void; hostCapabilities?: HostCapabilities }
+) => Promise<boolean> | boolean;
+
 export interface HeadlessRuntime {
   start(): void;
   stop(): void;
@@ -69,6 +77,9 @@ export interface HeadlessRuntime {
   getState(key: string): unknown;
   setState(key: string, value: unknown): void;
   getAllState(): Record<string, unknown>;
+  emit(event: string, payload?: unknown): void;
+  on(event: string, handler: (payload: unknown) => void): () => void;
+  registerAction(name: string, handler: ActionHandler): void;
 }
 
 export interface RuntimeStats {
@@ -85,6 +96,8 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
   private startTime = 0;
   private intervalId?: NodeJS.Timeout;
   private state = new Map<string, unknown>();
+  private eventHandlers = new Map<string, Set<(payload: unknown) => void>>();
+  private actionRegistry = new Map<string, ActionHandler>();
 
   constructor(ast: HSPlusAST, options: HeadlessRuntimeOptions = {}) {
     this.ast = ast;
@@ -153,6 +166,68 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
 
   getAllState(): Record<string, unknown> {
     return Object.fromEntries(this.state);
+  }
+
+  emit(event: string, payload?: unknown): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      for (const handler of handlers) {
+        try {
+          handler(payload);
+        } catch {
+          // best effort
+        }
+      }
+    }
+
+    if (event.startsWith('action:') && event !== 'action:result') {
+      const actionName = event.slice(7);
+      const actionHandler = this.actionRegistry.get(actionName);
+      if (!actionHandler) return;
+
+      const p = (payload ?? {}) as Record<string, unknown>;
+      const requestId = p.requestId as string | undefined;
+      const params = (p.params as Record<string, unknown>) ?? {};
+      const blackboard = (p.blackboard as Record<string, unknown>) ?? {};
+
+      Promise.resolve(
+        actionHandler(params, blackboard, {
+          emit: this.emit.bind(this),
+          hostCapabilities: this.options.hostCapabilities,
+        })
+      )
+        .then((success) => {
+          this.emit('action:result', {
+            requestId,
+            status: success ? 'success' : 'failure',
+            success,
+          });
+        })
+        .catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          this.emit('action:result', {
+            requestId,
+            status: 'failure',
+            success: false,
+            error: message,
+          });
+        });
+    }
+  }
+
+  on(event: string, handler: (payload: unknown) => void): () => void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, new Set());
+    }
+
+    this.eventHandlers.get(event)!.add(handler);
+    return () => {
+      this.eventHandlers.get(event)?.delete(handler);
+    };
+  }
+
+  registerAction(name: string, handler: ActionHandler): void {
+    this.actionRegistry.set(name, handler);
   }
 }
 

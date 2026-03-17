@@ -1948,6 +1948,7 @@ export {
   // Headless runtime
   HeadlessRuntime,
   createHeadlessRuntime,
+  type ActionHandler,
   type HeadlessRuntimeOptions,
   type HeadlessRuntimeStats,
   type HeadlessNodeInstance,
@@ -3157,11 +3158,8 @@ export {
 } from './utils/math';
 
 // ── Headless Runtime (CLI & Server-Side Execution) ──────────────────────────
-// createHeadlessRuntime, getProfile, HEADLESS_PROFILE already exported from './runtime/profiles' above
+// HeadlessRuntime, HeadlessRuntimeOptions, RuntimeProfile already exported from './runtime/profiles' above
 export {
-  type HeadlessRuntime,
-  type HeadlessRuntimeOptions,
-  type RuntimeProfile,
   type RuntimeStats,
 } from './runtime/HeadlessRuntime';
 

@@ -20,7 +20,7 @@
 import type { HSPlusAST, HSPlusNode, StateDeclaration } from '../../types/HoloScriptPlus';
 import type { HSPlusDirective } from '../../types';
 import { ReactiveState, createState, ExpressionEvaluator } from '../../state/ReactiveState';
-import type { HostCapabilities } from '../../traits/TraitTypes';
+import type { HostCapabilities, TraitEvent } from '../../traits/TraitTypes';
 import { vrTraitRegistry, type TraitContext } from '../../traits/VRTraitSystem';
 import { eventBus } from '../EventBus';
 import type { RuntimeProfile } from './RuntimeProfile';
@@ -40,6 +40,17 @@ export interface HeadlessNodeInstance {
   destroyed: boolean;
   data?: Record<string, unknown>;
 }
+
+/**
+ * Handler function for BT action dispatch via `runtime.registerAction()`.
+ * Called when the BehaviorTree's native action bridge emits `action:${name}`.
+ * Return true (success) or false (failure). Async handlers return a Promise.
+ */
+export type ActionHandler = (
+  params: Record<string, unknown>,
+  blackboard: Record<string, unknown>,
+  context: { emit: (event: string, payload?: unknown) => void; hostCapabilities?: HostCapabilities }
+) => Promise<boolean> | boolean;
 
 export interface HeadlessRuntimeOptions {
   /** Runtime profile (defaults to HEADLESS_PROFILE) */
@@ -103,6 +114,7 @@ export class HeadlessRuntime {
   };
   private running: boolean = false;
   private builtins: Record<string, unknown>;
+  private actionRegistry: Map<string, ActionHandler> = new Map();
 
   constructor(ast: HSPlusAST, options: HeadlessRuntimeOptions = {}) {
     this.ast = ast;
@@ -497,6 +509,26 @@ export class HeadlessRuntime {
   }
 
   // ===========================================================================
+  // EVENT-TO-TRAIT ROUTING
+  // ===========================================================================
+
+  /**
+   * Route an event to trait onEvent() handlers on all node instances.
+   * This enables @shell, @file_system, @llm_agent and other traits to
+   * receive events in headless mode (previously only onUpdate/onAttach fired).
+   */
+  private routeEventToTraits(instance: HeadlessNodeInstance, event: TraitEvent): void {
+    if (instance.destroyed) return;
+    if (instance.node.traits) {
+      const traitContext = this.createTraitContext(instance);
+      vrTraitRegistry.handleEventForAllTraits(instance.node, traitContext, event);
+    }
+    for (const child of instance.children) {
+      this.routeEventToTraits(child, event);
+    }
+  }
+
+  // ===========================================================================
   // INSTANCE DESTRUCTION
   // ===========================================================================
 
@@ -578,6 +610,50 @@ export class HeadlessRuntime {
     if (this.profile.events) {
       eventBus.emit(event, payload as any);
     }
+
+    // Native action bridge: route action:* events to registered handlers.
+    // BehaviorTreeTrait emits action:${name} with { requestId, params, blackboard }.
+    // We call the registered handler and emit action:result back.
+    if (event.startsWith('action:') && !event.startsWith('action:result')) {
+      const actionName = event.slice(7); // strip 'action:'
+      const handler = this.actionRegistry.get(actionName);
+      if (handler) {
+        const p = payload as Record<string, unknown> | undefined;
+        const requestId = p?.requestId as string | undefined;
+        const blackboard = (p?.blackboard as Record<string, unknown>) ?? {};
+        const params = (p?.params as Record<string, unknown>) ?? {};
+        Promise.resolve(
+          handler(params, blackboard, {
+            emit: this.emit.bind(this),
+            hostCapabilities: this.options.hostCapabilities,
+          })
+        )
+          .then((result) => {
+            this.emit('action:result', { requestId, status: result ? 'success' : 'failure' });
+          })
+          .catch(() => {
+            this.emit('action:result', { requestId, status: 'failure' });
+          });
+      }
+    }
+
+    // Route events to trait onEvent() handlers on all nodes.
+    // This activates @shell, @file_system, @llm_agent, @scheduler, etc. in headless mode.
+    if (this.profile.traits && this.rootInstance) {
+      const traitEvent: TraitEvent = typeof payload === 'object' && payload !== null
+        ? { type: event, ...(payload as object) }
+        : { type: event, payload };
+      this.routeEventToTraits(this.rootInstance, traitEvent);
+    }
+  }
+
+  /**
+   * Register a named action handler for BehaviorTree's native action bridge.
+   * When a BT action node emits `action:${name}`, this handler is called
+   * and the result is sent back via `action:result`.
+   */
+  registerAction(name: string, handler: ActionHandler): void {
+    this.actionRegistry.set(name, handler);
   }
 
   /**
