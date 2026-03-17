@@ -31,7 +31,7 @@ import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'help';
+  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'help';
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
   profile: string;
@@ -66,7 +66,7 @@ function parseArgs(argv: string[]): CLIOptions {
 
   // First arg is command
   const cmd = args[0];
-  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'absorb' || cmd === 'daemon') {
+  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon') {
     opts.command = cmd;
   }
 
@@ -80,7 +80,7 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--target' && args[i + 1]) opts.target = args[++i] as CLIOptions['target'];
     if (args[i] === '--profile' && args[i + 1]) opts.profile = args[++i];
     if (args[i] === '--output' && args[i + 1]) opts.output = args[++i];
-    if (args[i] === '--debug') opts.debug = true;
+    if (args[i] === '--debug' || args[i] === '--verbose') opts.debug = true;
     if (args[i] === '--watch' || args[i] === '-w') opts.watch = true;
     if (args[i] === '--daemon') opts.daemon = true;
     if (args[i] === '--ticks' && args[i + 1]) {
@@ -1163,6 +1163,7 @@ async function main(): Promise<void> {
       absorbScript(opts);
       break;
     case 'daemon':
+    case 'holodaemon':
       await daemonScript(opts);
       break;
     case 'help':
