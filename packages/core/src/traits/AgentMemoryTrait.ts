@@ -23,6 +23,11 @@
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+/** Minimal trait context */
+interface TraitCtx { emit(event: string, data: Record<string, unknown>): void; }
+/** Node with dynamic agent memory state */
+type MemoryNode = Record<string, unknown> & { __agentMemoryState?: AgentMemoryState };
+
 export interface Memory {
   id: string;
   key: string;
@@ -167,7 +172,7 @@ async function loadAllFromDB(db: IDBDatabase | null): Promise<Memory[]> {
 export const agentMemoryHandler = {
   defaultConfig: DEFAULT_CONFIG,
 
-  async onAttach(node: any, config: AgentMemoryConfig, ctx: any): Promise<void> {
+  async onAttach(node: MemoryNode, config: AgentMemoryConfig, ctx: TraitCtx): Promise<void> {
     const db = await openDB(config.db_name);
     const existing = await loadAllFromDB(db);
 
@@ -194,7 +199,7 @@ export const agentMemoryHandler = {
     });
   },
 
-  onDetach(node: any, _config: AgentMemoryConfig, ctx: any): void {
+  onDetach(node: MemoryNode, _config: AgentMemoryConfig, ctx: TraitCtx): void {
     const state: AgentMemoryState | undefined = node.__agentMemoryState;
     if (!state) return;
 
@@ -207,25 +212,25 @@ export const agentMemoryHandler = {
     delete node.__agentMemoryState;
   },
 
-  onEvent(node: any, config: AgentMemoryConfig, ctx: any, event: any): void {
+  onEvent(node: MemoryNode, config: AgentMemoryConfig, ctx: TraitCtx, event: { type: string; payload?: unknown }): void {
     const state: AgentMemoryState | undefined = node.__agentMemoryState;
     if (!state?.isReady) return;
 
     switch (event.type) {
       case 'memory_store':
-        this._store(state, node, config, ctx, event.payload);
+        this._store(state, node, config, ctx, event.payload as { key: string; content: string; tags?: string[]; ttl?: number | null; source?: string; embedding?: number[] });
         break;
       case 'memory_recall':
-        this._recall(state, node, config, ctx, event.payload);
+        this._recall(state, node, config, ctx, event.payload as { query: string; top_k?: number; tags?: string[]; embedding?: number[] });
         break;
       case 'memory_forget':
-        this._forget(state, node, config, ctx, event.payload);
+        this._forget(state, node, config, ctx, event.payload as { key?: string; tag?: string; all?: boolean });
         break;
       case 'memory_compress':
-        this._compress(state, node, config, ctx, event.payload);
+        this._compress(state, node, config, ctx, event.payload as { strategy?: 'oldest' | 'least_accessed' | 'tag'; keep_percent?: number; tag?: string });
         break;
       case 'memory_list':
-        this._list(state, node, ctx, event.payload);
+        this._list(state, node, ctx, event.payload as { limit?: number; offset?: number; tags?: string[] });
         break;
       case 'memory_stats':
         this._stats(state, node, ctx);
@@ -233,7 +238,7 @@ export const agentMemoryHandler = {
     }
   },
 
-  onUpdate(node: any, _config: AgentMemoryConfig, _ctx: any, _dt: number): void {
+  onUpdate(node: MemoryNode, _config: AgentMemoryConfig, _ctx: TraitCtx, _dt: number): void {
     const state: AgentMemoryState | undefined = node.__agentMemoryState;
     if (!state?.isReady) return;
     // Evict expired memories on each update cycle (low-frequency)
@@ -246,9 +251,9 @@ export const agentMemoryHandler = {
 
   _store(
     state: AgentMemoryState,
-    node: any,
+    node: MemoryNode,
     config: AgentMemoryConfig,
-    ctx: any,
+    ctx: TraitCtx,
     payload: {
       key: string;
       content: string;
@@ -291,9 +296,9 @@ export const agentMemoryHandler = {
 
   _recall(
     state: AgentMemoryState,
-    node: any,
+    node: MemoryNode,
     _config: AgentMemoryConfig,
-    ctx: any,
+    ctx: TraitCtx,
     payload: { query: string; top_k?: number; tags?: string[]; embedding?: number[] }
   ): void {
     if (!payload?.query && !payload?.tags?.length && !payload?.embedding?.length) return;
@@ -349,9 +354,9 @@ export const agentMemoryHandler = {
 
   _forget(
     state: AgentMemoryState,
-    node: any,
+    node: MemoryNode,
     _config: AgentMemoryConfig,
-    ctx: any,
+    ctx: TraitCtx,
     payload: { key?: string; tag?: string; all?: boolean }
   ): void {
     if (payload?.all) {
@@ -385,9 +390,9 @@ export const agentMemoryHandler = {
 
   _compress(
     state: AgentMemoryState,
-    node: any,
+    node: MemoryNode,
     _config: AgentMemoryConfig,
-    ctx: any,
+    ctx: TraitCtx,
     payload: { strategy?: 'oldest' | 'least_accessed' | 'tag'; keep_percent?: number; tag?: string }
   ): void {
     const strategy = payload?.strategy ?? 'oldest';
@@ -424,8 +429,8 @@ export const agentMemoryHandler = {
 
   _list(
     state: AgentMemoryState,
-    node: any,
-    ctx: any,
+    node: MemoryNode,
+    ctx: TraitCtx,
     payload: { limit?: number; offset?: number; tags?: string[] }
   ): void {
     let list = [...state.memories.values()].filter((m) => !isExpired(m));
@@ -438,7 +443,7 @@ export const agentMemoryHandler = {
     ctx.emit('memory_listed', { node, memories: page, total: list.length, offset, limit });
   },
 
-  _stats(state: AgentMemoryState, node: any, ctx: any): void {
+  _stats(state: AgentMemoryState, node: MemoryNode, ctx: TraitCtx): void {
     ctx.emit('memory_stats', {
       node,
       count: state.memories.size,

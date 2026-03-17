@@ -155,7 +155,7 @@ interface ZoraCoinsConfig {
  */
 interface ZoraExecutionContext {
   wallet: WalletConnection;
-  emitEvent: (event: string, data: any) => void;
+  emitEvent: (event: string, data: Record<string, unknown>) => void;
 }
 
 // =============================================================================
@@ -229,7 +229,7 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
     // Create execution context for blockchain operations
     const execContext: ZoraExecutionContext = {
       wallet: state.wallet,
-      emitEvent: (event: string, data: any) => context.emit?.(event, { node, ...data }),
+      emitEvent: (event: string, data: Record<string, unknown>) => context.emit?.(event, { node, ...data }),
     };
 
     // Check pending mints for status updates
@@ -362,10 +362,10 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
 // =============================================================================
 
 async function connectToZora(
-  node: any,
+  node: Record<string, unknown>,
   state: ZoraCoinsState,
   config: ZoraCoinsConfig,
-  context: any
+  context: { emit?: (event: string, data: Record<string, unknown>) => void }
 ): Promise<void> {
   try {
     // Initialize wallet connection for blockchain interactions
@@ -379,7 +379,7 @@ async function connectToZora(
 
     // Fetch existing coins for this creator
     const url = `${ZORA_API_BASE}/coins?creator=${config.creator_wallet}&chain=${config.default_chain}`;
-    const response = await executeZoraApiCall<any>('GET', url);
+    const response = await executeZoraApiCall<{ coins?: ZoraCoin[]; collections?: Collection[]; totalRoyalties?: string; rewardsBalance?: string }>('GET', url);
 
     state.isConnected = true;
     state.coins = response.coins || [];
@@ -401,10 +401,10 @@ async function connectToZora(
 }
 
 async function mintCoin(
-  node: any,
+  node: Record<string, unknown>,
   state: ZoraCoinsState,
   config: ZoraCoinsConfig,
-  context: any,
+  context: { emit?: (event: string, data: Record<string, unknown>) => void },
   params: {
     name: string;
     symbol: string;
@@ -462,7 +462,7 @@ async function mintCoin(
     // Create execution context
     const execContext: ZoraExecutionContext = {
       wallet: state.wallet,
-      emitEvent: (event: string, data: any) => context.emit?.(event, { node, ...data }),
+      emitEvent: (event: string, data: Record<string, unknown>) => context.emit?.(event, { node, ...data }),
     };
 
     // Real blockchain minting via Zora Protocol
@@ -540,10 +540,10 @@ async function mintCoin(
 }
 
 async function createCollection(
-  node: any,
+  node: Record<string, unknown>,
   state: ZoraCoinsState,
   config: ZoraCoinsConfig,
-  context: any,
+  context: { emit?: (event: string, data: Record<string, unknown>) => void },
   params: { name: string; description: string; coinIds: string[] }
 ): Promise<void> {
   const collection: Collection = {
@@ -566,7 +566,7 @@ async function createCollection(
 async function claimRewards(
   state: ZoraCoinsState,
   config: ZoraCoinsConfig,
-  context: any
+  context: { emit?: (event: string, data: Record<string, unknown>) => void }
 ): Promise<void> {
   const amount = state.rewardsBalance;
   state.rewardsBalance = '0';
@@ -578,10 +578,10 @@ async function claimRewards(
 }
 
 function handleSecondarySale(
-  node: any,
+  node: Record<string, unknown>,
   state: ZoraCoinsState,
   config: ZoraCoinsConfig,
-  context: any,
+  context: { emit?: (event: string, data: Record<string, unknown>) => void },
   params: { coinId: string; price: string; buyer: string; seller: string }
 ): void {
   const coin = state.coins.find((c) => c.id === params.coinId);
@@ -705,7 +705,7 @@ async function checkMintStatus(
         error: mint.error,
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Transaction not yet confirmed or error fetching receipt
 
     // Check for timeout (5 minutes max)
@@ -728,7 +728,7 @@ async function checkMintStatus(
 }
 
 // Production API helpers
-async function executeZoraApiCall<T>(method: string, url: string, data?: any): Promise<T> {
+async function executeZoraApiCall<T>(method: string, url: string, data?: unknown): Promise<T> {
   const options: RequestInit = {
     method,
     headers: {
@@ -902,9 +902,9 @@ async function executeMinting(
       txHash,
       contractAddress,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle simulation or execution errors
-    const errorMessage = error.message || 'Unknown error during mint transaction';
+    const errorMessage = (error as Error).message || 'Unknown error during mint transaction';
 
     context.emitEvent('zora_transaction_failed', {
       mintId: mint.id,

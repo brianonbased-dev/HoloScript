@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -46,11 +46,19 @@ function startDaemon(): DaemonHarness {
     'utf-8'
   );
 
-  const runnerPath = path.resolve(__dirname, '../holoscript-runner.ts');
-  const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
-  const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
+  // Prefer pre-built JS (CI path, fast startup). Fall back to tsx for local dev.
+  const compiledRunnerPath = path.resolve(__dirname, '../../../dist/cli/holoscript-runner.js');
+  const useCompiled = existsSync(compiledRunnerPath);
 
-  const proc = spawn(process.execPath, [tsxCliPath, runnerPath, 'run', sourcePath, '--daemon'], {
+  const spawnArgs = useCompiled
+    ? [compiledRunnerPath, 'run', sourcePath, '--daemon']
+    : (() => {
+        const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
+        const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
+        return [tsxCliPath, path.resolve(__dirname, '../holoscript-runner.ts'), 'run', sourcePath, '--daemon'];
+      })();
+
+  const proc = spawn(process.execPath, spawnArgs, {
     cwd: path.resolve(__dirname, '../../../..'),
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -101,7 +109,8 @@ describe('holoscript-runner daemon mode', () => {
     };
 
     try {
-      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:ready'), 45000, 25, timeoutDetails);
+      // Allow up to 80s for daemon startup — tsx compilation on CI runners can take 30-60s.
+      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:ready'), 80000, 25, timeoutDetails);
 
       sendCommand(harness.proc, { op: 'stats' });
       await waitFor(() => harness.json.some((msg) => msg.op === 'stats' && msg.type === 'daemon:ok'), 45000, 25, timeoutDetails);
@@ -186,5 +195,5 @@ describe('holoscript-runner daemon mode', () => {
       }
       rmSync(harness.tempDir, { recursive: true, force: true });
     }
-  });
+  }, 120_000); // 120s: tsx startup on CI can take 30-60s; pre-built JS is much faster
 });

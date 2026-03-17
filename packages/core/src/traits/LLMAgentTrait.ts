@@ -166,6 +166,8 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
     escalation_conditions: [],
     rate_limit_ms: 1000,
     max_history_length: 50,
+    xr_context_limit: 4096,
+    enable_spatial_verification: false,
   },
 
   onAttach(node, config, context) {
@@ -179,6 +181,9 @@ export const llmAgentHandler: TraitHandler<LLMConfig> = {
       isEscalated: false,
       lastRequestTime: 0,
       tokenCount: 0,
+      currentContextTokens: 0,
+      spatialAssertions: new Map(),
+      compiledToolSchemas: null,
     };
 
     // Add system prompt to history

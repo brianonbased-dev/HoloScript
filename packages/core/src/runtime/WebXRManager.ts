@@ -13,17 +13,27 @@ import type { IWebGPUContext } from '../rendering/webgpu/WebGPUTypes';
 
 // Polyfill types for WebXR + WebGPU
 // These are often missing from standard @types/webxr
+export interface XRWebGPUBindingLike {
+  createProjectionLayer(config: { colorFormat: string; depthStencilFormat: string }): XRProjectionLayerLike;
+}
+
+export interface XRProjectionLayerLike {
+  readonly textureWidth: number;
+  readonly textureHeight: number;
+}
+
 export interface XRWebGPUTypes {
-  binding: any; // XRWebG binding
-  projectionLayer: any; // XRProjectionLayer
+  binding: XRWebGPUBindingLike;
+  projectionLayer: XRProjectionLayerLike;
 }
 
 // Minimal WebXR Type Definitions to satisfy TSC
 export interface XRSession {
-  addEventListener(type: string, listener: (event: any) => void): void;
-  removeEventListener(type: string, listener: (event: any) => void): void;
+  addEventListener(type: string, listener: (event: unknown) => void): void;
+  removeEventListener(type: string, listener: (event: unknown) => void): void;
   requestReferenceSpace(type: string): Promise<XRReferenceSpace>;
-  updateRenderState(state: any): Promise<void>;
+  requestAnimationFrame?(callback: (time: number, frame: XRFrame) => void): number;
+  updateRenderState(state: Record<string, unknown>): Promise<void>;
   end(): Promise<void>;
   inputSources: XRInputSource[];
   renderState: { baseLayer?: { space: XRSpace } };
@@ -50,11 +60,23 @@ export interface XRView {
   projectionMatrix: Float32Array;
 }
 
+export interface XRGamepad {
+  hapticActuators?: Array<{ pulse(intensity: number, duration: number): Promise<boolean> }>;
+  buttons: Array<{ pressed: boolean; touched: boolean; value: number }>;
+  axes: number[];
+}
+
 export interface XRInputSource {
   handedness: 'none' | 'left' | 'right';
   targetRayMode: 'gaze' | 'tracked-pointer' | 'screen';
   hand?: XRHand;
+  gamepad?: XRGamepad;
   profiles: string[];
+}
+
+/** Navigator with optional XR system */
+interface XRNavigator {
+  xr?: { isSessionSupported(mode: string): Promise<boolean>; requestSession(mode: string, init?: Record<string, unknown>): Promise<XRSession> };
 }
 
 export interface XRHand extends Map<string, XRJointSpace> {}
@@ -73,8 +95,8 @@ export interface WebXRConfig {
 export class WebXRManager {
   private session: XRSession | null = null;
   private referenceSpace: XRReferenceSpace | null = null;
-  private glBinding: any | null = null; // XRWebGPUTypes['binding']
-  private projectionLayer: any | null = null; // XRWebGPUTypes['projectionLayer']
+  private glBinding: XRWebGPUBindingLike | null = null;
+  private projectionLayer: XRProjectionLayerLike | null = null;
   private context: IWebGPUContext;
 
   public onSessionStart: ((session: XRSession) => void) | null = null;
@@ -91,7 +113,7 @@ export class WebXRManager {
    */
   static async isSupported(): Promise<boolean> {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
-      return await (navigator as any).xr.isSessionSupported('immersive-vr');
+      return await (navigator as unknown as XRNavigator).xr!.isSessionSupported('immersive-vr');
     }
     return false;
   }
@@ -101,7 +123,7 @@ export class WebXRManager {
    */
   async isSessionSupported(mode: string = 'immersive-vr'): Promise<boolean> {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
-      return await (navigator as any).xr.isSessionSupported(mode);
+      return await (navigator as unknown as XRNavigator).xr!.isSessionSupported(mode);
     }
     return false;
   }
@@ -114,7 +136,7 @@ export class WebXRManager {
 
     for (const source of this.session.inputSources) {
       if (source.handedness === hand && source.gamepad) {
-        const actuators = (source.gamepad as any).hapticActuators;
+        const actuators = source.gamepad.hapticActuators;
         if (actuators && actuators.length > 0) {
           actuators[0].pulse(intensity, duration);
         }
@@ -137,18 +159,18 @@ export class WebXRManager {
     };
 
     try {
-      this.session = await (navigator as any).xr.requestSession('immersive-vr', sessionInit);
+      this.session = await (navigator as unknown as XRNavigator).xr!.requestSession('immersive-vr', sessionInit);
 
       // Handle session end
       this.session!.addEventListener('end', this.handleSessionEnd);
-      this.session!.addEventListener('inputsourceschange', this.handleInputSourcesChange);
+      this.session!.addEventListener('inputsourceschange', this.handleInputSourcesChange as (event: unknown) => void);
 
       // Create WebGPU Binding
       // Note: This API is experimental and varies by browser
       // We check for global constructor existence
-      if (typeof XRWebGPUBinding !== 'undefined') {
-        // @ts-ignore
-        this.glBinding = new XRWebGPUBinding(this.session!, this.context.device);
+      if (typeof XRWebGLBinding !== 'undefined') {
+        // @ts-expect-error XRWebGPUBinding is experimental, not in standard typings
+        this.glBinding = new XRWebGPUBinding(this.session!, this.context.device) as XRWebGPUBindingLike;
       } else {
         console.warn('XRWebGPUBinding not found. Rendering may fail.');
       }
@@ -177,11 +199,11 @@ export class WebXRManager {
   /**
    * Set a callback to be invoked each XR frame.
    */
-  setAnimationLoop(callback: ((time: number, frame: any) => void) | null): void {
+  setAnimationLoop(callback: ((time: number, frame: XRFrame) => void) | null): void {
     this.animationLoopCallback = callback;
     // In a real implementation, this would hook into the XR session's requestAnimationFrame
     if (this.session && callback) {
-      const loop = (time: number, frame: any) => {
+      const loop = (time: number, frame: XRFrame) => {
         if (this.animationLoopCallback) {
           this.animationLoopCallback(time, frame);
           this.session?.requestAnimationFrame?.(loop);
@@ -191,7 +213,7 @@ export class WebXRManager {
     }
   }
 
-  private animationLoopCallback: ((time: number, frame: any) => void) | null = null;
+  private animationLoopCallback: ((time: number, frame: XRFrame) => void) | null = null;
 
   /**
    * End the current session
@@ -220,14 +242,14 @@ export class WebXRManager {
   /**
    * Get the WebGPU Binding
    */
-  getBinding(): any {
+  getBinding(): XRWebGPUBindingLike | null {
     return this.glBinding;
   }
 
   /**
    * Get the active Projection Layer
    */
-  getProjectionLayer(): any {
+  getProjectionLayer(): XRProjectionLayerLike | null {
     return this.projectionLayer;
   }
 

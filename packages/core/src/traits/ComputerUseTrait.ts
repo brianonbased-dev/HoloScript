@@ -19,6 +19,11 @@
  *  computer_use_error    { node, browserId, error }
  */
 
+/** Minimal trait context */
+interface TraitCtx { emit(event: string, data: Record<string, unknown>): void; }
+/** Node with dynamic computer use state */
+type ComputerUseNode = Record<string, unknown> & { __computerUseState?: ComputerUseState };
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type BrowserAction =
@@ -125,7 +130,7 @@ function isDomainAllowed(url: string, allowedDomains: string[]): boolean {
 export const computerUseHandler = {
   defaultConfig: DEFAULT_CONFIG,
 
-  onAttach(node: any, _config: ComputerUseConfig, ctx: any): void {
+  onAttach(node: ComputerUseNode, _config: ComputerUseConfig, ctx: TraitCtx): void {
     const state: ComputerUseState = {
       isReady: true,
       sessions: new Map(),
@@ -137,7 +142,7 @@ export const computerUseHandler = {
     ctx.emit('computer_use_ready', { node });
   },
 
-  onDetach(node: any, _config: ComputerUseConfig, ctx: any): void {
+  onDetach(node: ComputerUseNode, _config: ComputerUseConfig, ctx: TraitCtx): void {
     const state: ComputerUseState | undefined = node.__computerUseState;
     if (!state) return;
     // Close all open sessions
@@ -151,22 +156,25 @@ export const computerUseHandler = {
     delete node.__computerUseState;
   },
 
-  onEvent(node: any, config: ComputerUseConfig, ctx: any, event: any): void {
+  onEvent(node: ComputerUseNode, config: ComputerUseConfig, ctx: TraitCtx, event: { type: string; payload?: Record<string, unknown> }): void {
     const state: ComputerUseState | undefined = node.__computerUseState;
     if (!state?.isReady) return;
 
+    const payload = event.payload;
+
     switch (event.type) {
       case 'browser_open':
-        this._openBrowser(state, node, config, ctx, event.payload);
+        this._openBrowser(state, node, config, ctx, payload);
         break;
       case 'browser_action':
-        this._executeAction(state, node, config, ctx, event.payload);
+        this._executeAction(state, node, config, ctx, payload);
         break;
       case 'browser_run_sequence':
-        this._runSequence(state, node, config, ctx, event.payload);
+        this._runSequence(state, node, config, ctx, payload);
         break;
       case 'browser_close': {
-        const session = state.sessions.get(event.payload?.browserId);
+        const closeBrowserId = payload?.browserId as string | undefined;
+        const session = closeBrowserId ? state.sessions.get(closeBrowserId) : undefined;
         if (session) {
           session.page?.close().catch(() => {});
           state.sessions.delete(session.id);
@@ -187,23 +195,23 @@ export const computerUseHandler = {
         break;
       case 'computer_use_inject_factory':
         // For testing: inject a mock page factory
-        state.pageFactory = event.payload?.factory ?? null;
+        state.pageFactory = (payload?.factory as PageFactory) ?? null;
         break;
     }
   },
 
-  onUpdate(_node: any, _config: ComputerUseConfig, _ctx: any, _dt: number): void {
+  onUpdate(_node: ComputerUseNode, _config: ComputerUseConfig, _ctx: TraitCtx, _dt: number): void {
     /* async */
   },
 
   _openBrowser(
     state: ComputerUseState,
-    node: any,
+    node: ComputerUseNode,
     config: ComputerUseConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitCtx,
+    payload: Record<string, unknown> | undefined
   ): void {
-    const browserId = payload?.browserId ?? `browser_${Date.now()}`;
+    const browserId = (payload?.browserId as string) ?? `browser_${Date.now()}`;
     state.totalSessions++;
 
     const session: BrowserSession = {
@@ -222,7 +230,7 @@ export const computerUseHandler = {
         if (payload?.url) {
           this._executeAction(state, node, config, ctx, {
             browserId,
-            action: { type: 'navigate', url: payload.url },
+            action: { type: 'navigate', url: payload.url as string },
           });
         }
       })
@@ -262,16 +270,22 @@ export const computerUseHandler = {
 
   _executeAction(
     state: ComputerUseState,
-    node: any,
+    node: ComputerUseNode,
     config: ComputerUseConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitCtx,
+    payload: Record<string, unknown> | undefined
   ): void {
-    const session = state.sessions.get(payload?.browserId);
+    const browserId = payload?.browserId as string | undefined;
+    if (!browserId) {
+      ctx.emit('computer_use_error', { node, browserId: undefined, error: 'No browserId provided' });
+      return;
+    }
+    const action = payload?.action as BrowserAction | undefined;
+    const session = state.sessions.get(browserId);
     if (!session?.page) {
       ctx.emit('computer_use_error', {
         node,
-        browserId: payload?.browserId,
+        browserId,
         error: 'No open browser session',
       });
       return;
@@ -288,10 +302,10 @@ export const computerUseHandler = {
     session.actionCount++;
     state.totalActions++;
 
-    this._doAction(session.page, config, payload?.action ?? {})
+    this._doAction(session.page, config, action ?? ({ type: 'screenshot' } as BrowserAction))
       .then((result) => {
-        if ((payload?.action as BrowserAction)?.type === 'navigate') {
-          session.currentUrl = (payload.action as { url: string }).url;
+        if (action?.type === 'navigate') {
+          session.currentUrl = (action as { type: 'navigate'; url: string }).url;
           session.page!.title().then((title) => {
             ctx.emit('browser_navigated', {
               node,
@@ -304,7 +318,7 @@ export const computerUseHandler = {
           ctx.emit('action_executed', {
             node,
             browserId: session.id,
-            action: payload?.action?.type,
+            action: action?.type,
             result,
           });
         }
@@ -361,18 +375,23 @@ export const computerUseHandler = {
         await page.close();
         return { closed: true };
       default:
-        throw new Error(`Unknown action type: ${(action as any).type}`);
+        throw new Error(`Unknown action type: ${(action as BrowserAction).type}`);
     }
   },
 
   _runSequence(
     state: ComputerUseState,
-    node: any,
+    node: ComputerUseNode,
     config: ComputerUseConfig,
-    ctx: any,
-    payload: any
+    ctx: TraitCtx,
+    payload: Record<string, unknown> | undefined
   ): void {
-    const { browserId, actions = [] } = payload ?? {};
+    const browserId = payload?.browserId as string | undefined;
+    const actions = (payload?.actions ?? []) as BrowserAction[];
+    if (!browserId) {
+      ctx.emit('computer_use_error', { node, browserId: undefined, error: 'No browserId provided' });
+      return;
+    }
     const session = state.sessions.get(browserId);
     if (!session?.page) {
       ctx.emit('computer_use_error', { node, browserId, error: 'No open browser session' });

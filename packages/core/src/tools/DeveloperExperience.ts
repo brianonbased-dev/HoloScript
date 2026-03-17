@@ -6,17 +6,36 @@
 
 import * as readline from 'readline';
 
+/** Error object with optional location and suggestion */
+interface HoloScriptError {
+  message: string;
+  location?: { line: number; column: number };
+  suggestion?: string;
+  token?: string;
+  errors?: HoloScriptError[];
+}
+
+/** Parser interface for REPL */
+interface REPLParser {
+  parse(code: string): { ast: unknown; errors?: HoloScriptError[]; warnings?: unknown[] };
+}
+
+/** Runtime interface for REPL */
+interface REPLRuntime {
+  execute(ast: unknown): Promise<unknown>;
+}
+
 /**
  * Enhanced error formatter
  */
 export class ErrorFormatter {
   /**
    * Format error with source context and helpful visual indicators
-   * 
+   *
    * @param error - The error object containing message, location, and suggestion
    * @param sourceCode - Optional source code to show contextual error location
    * @returns Formatted error string with visual cues and source context
-   * 
+   *
    * @example
    * ```typescript
    * const formatted = ErrorFormatter.formatError({
@@ -26,7 +45,7 @@ export class ErrorFormatter {
    * }, sourceCode);
    * ```
    */
-  static formatError(error: any, sourceCode?: string): string {
+  static formatError(error: HoloScriptError, sourceCode?: string): string {
     const { message, location, suggestion, token: _token } = error;
 
     let formatted = `\n❌ Error: ${message}\n`;
@@ -54,11 +73,11 @@ export class ErrorFormatter {
 
   /**
    * Format multiple errors with summary and limit display to first 5
-   * 
+   *
    * @param errors - Array of error objects to format
    * @returns Formatted string with error count summary and individual error details
    */
-  static formatErrors(errors: any[]): string {
+  static formatErrors(errors: HoloScriptError[]): string {
     if (errors.length === 0) return '';
 
     let formatted = `\n❌ Found ${errors.length} error${errors.length !== 1 ? 's' : ''}:\n`;
@@ -77,7 +96,7 @@ export class ErrorFormatter {
   /**
    * Format success message
    */
-  static formatSuccess(message: string, details?: any): string {
+  static formatSuccess(message: string, details?: unknown): string {
     let formatted = `\n✅ ${message}\n`;
 
     if (details) {
@@ -127,13 +146,13 @@ For more info, visit: https://github.com/brianonbased-dev/holoscript
  */
 export class HoloScriptREPL {
   private rl: readline.Interface;
-  private variables: Map<string, any> = new Map();
-  private types: Map<string, any> = new Map();
+  private variables: Map<string, unknown> = new Map();
+  private types: Map<string, unknown> = new Map();
   private history: string[] = [];
-  private parser: any;
-  private runtime: any;
+  private parser: REPLParser;
+  private runtime: REPLRuntime;
 
-  constructor(parser: any, runtime: any) {
+  constructor(parser: REPLParser, runtime: REPLRuntime) {
     this.parser = parser;
     this.runtime = runtime;
 
@@ -215,8 +234,8 @@ export class HoloScriptREPL {
           if (result !== undefined && result !== null) {
             this.displayResult(result);
           }
-        } catch (error: any) {
-          console.error(ErrorFormatter.formatError(error));
+        } catch (error: unknown) {
+          console.error(ErrorFormatter.formatError(error as HoloScriptError));
         }
 
         prompt();
@@ -254,7 +273,7 @@ export class HoloScriptREPL {
   /**
    * Evaluate HoloScript code
    */
-  private async evaluate(code: string): Promise<any> {
+  private async evaluate(code: string): Promise<unknown> {
     try {
       const parseResult = this.parser.parse(code);
 
@@ -316,7 +335,7 @@ export class HoloScriptREPL {
   /**
    * Display result
    */
-  private displayResult(result: any): void {
+  private displayResult(result: unknown): void {
     const formatted = this.formatValue(result);
     console.log(`=> ${formatted}`);
   }
@@ -324,17 +343,17 @@ export class HoloScriptREPL {
   /**
    * Format value for display
    */
-  private formatValue(value: any): string {
+  private formatValue(value: unknown): string {
     if (value === null) return 'null';
     if (value === undefined) return 'undefined';
     if (typeof value === 'string') return `"${value}"`;
     if (typeof value === 'number') return `${value}`;
     if (typeof value === 'boolean') return `${value}`;
     if (Array.isArray(value)) {
-      return `[ ${value.map((v) => this.formatValue(v)).join(', ')} ]`;
+      return `[ ${value.map((v: unknown) => this.formatValue(v)).join(', ')} ]`;
     }
-    if (typeof value === 'object') {
-      const pairs = Object.entries(value)
+    if (typeof value === 'object' && value !== null) {
+      const pairs = Object.entries(value as Record<string, unknown>)
         .map(([k, v]) => `${k}: ${this.formatValue(v)}`)
         .join(', ');
       return `{ ${pairs} }`;
@@ -346,7 +365,7 @@ export class HoloScriptREPL {
 /**
  * Create and start REPL
  */
-export async function startREPL(parser: any, runtime: any): Promise<void> {
+export async function startREPL(parser: REPLParser, runtime: REPLRuntime): Promise<void> {
   const repl = new HoloScriptREPL(parser, runtime);
   await repl.start();
 }
@@ -355,7 +374,7 @@ export async function startREPL(parser: any, runtime: any): Promise<void> {
  * Hot reload watcher for development
  */
 export class HotReloadWatcher {
-  private watchers: Map<string, any> = new Map();
+  private watchers: Map<string, boolean> = new Map();
 
   /**
    * Watch file for changes
@@ -369,8 +388,8 @@ export class HotReloadWatcher {
         console.log(`\n🔄 Reloading: ${filePath}`);
         await callback();
         console.log('✅ Reload complete\n');
-      } catch (error: any) {
-        console.error(ErrorFormatter.formatError(error));
+      } catch (error: unknown) {
+        console.error(ErrorFormatter.formatError(error as HoloScriptError));
       }
     });
 
@@ -432,7 +451,7 @@ export class SourceMapGenerator {
   /**
    * Generate source map
    */
-  generate(sourceFile: string, generatedFile: string): any {
+  generate(sourceFile: string, generatedFile: string): Record<string, unknown> {
     return {
       version: 3,
       file: generatedFile,

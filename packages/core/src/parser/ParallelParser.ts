@@ -66,16 +66,21 @@ class SimpleEventEmitter {
   }
 }
 
-// Dynamic imports for Node.js modules (only executed in Node environment)
-const _WorkerPool: any = null;
-const _createWorkerPool: any = null;
+/** Minimal interface for dynamically-imported WorkerPool */
+interface DynamicWorkerPool {
+  initialize(): Promise<void>;
+  executeAll(type: string, tasks: unknown[]): Promise<ParseTaskResult[]>;
+  getStats(): WorkerPoolStats | null;
+  shutdown(): Promise<void>;
+}
 
+// Dynamic imports for Node.js modules (only executed in Node environment)
 async function loadNodeModules(): Promise<{
   cpuCount: number;
   path: typeof import('path');
   fileURLToPath: typeof import('url').fileURLToPath;
-  WorkerPool: any;
-  createWorkerPool: any;
+  WorkerPool: unknown;
+  createWorkerPool: (path: string, opts: { poolSize: number; debug: boolean }) => DynamicWorkerPool;
 } | null> {
   if (isBrowser) return null;
 
@@ -168,7 +173,7 @@ export interface ParseProgress {
  * Falls back to sequential parsing in browser environments
  */
 export class ParallelParser extends SimpleEventEmitter {
-  private workerPool: any = null;
+  private workerPool: DynamicWorkerPool | null = null;
   private options: Required<ParallelParserOptions>;
   private workerPath: string = '';
   private isInitialized: boolean = false;
@@ -253,8 +258,8 @@ export class ParallelParser extends SimpleEventEmitter {
       this.isInitialized = true;
       this.log(`Initialized with ${this.options.workerCount} workers`);
       return true;
-    } catch (error: any) {
-      this.log(`Failed to initialize workers: ${error.message}`);
+    } catch (error: unknown) {
+      this.log(`Failed to initialize workers: ${(error as Error).message}`);
 
       if (this.options.fallbackToSequential) {
         this.log('Falling back to sequential parsing');
@@ -434,8 +439,8 @@ export class ParallelParser extends SimpleEventEmitter {
     try {
       const results: ParseTaskResult[] = await this.workerPool.executeAll('parse', tasks);
       return results;
-    } catch (error: any) {
-      this.log(`Batch parse error: ${error.message}`);
+    } catch (error: unknown) {
+      this.log(`Batch parse error: ${(error as Error).message}`);
 
       // Return error results for all files in batch
       return tasks.map((task) => ({
@@ -445,7 +450,7 @@ export class ParallelParser extends SimpleEventEmitter {
         success: false,
         errors: [
           {
-            message: error.message,
+            message: (error as Error).message,
             line: 0,
             column: 0,
             code: 'WORKER_ERROR',
@@ -518,7 +523,7 @@ export class ParallelParser extends SimpleEventEmitter {
             percentage: ((successCount + failCount) / files.length) * 100,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         failCount++;
         results.set(file.path, {
           fileId: `file_${Date.now()}`,
@@ -527,7 +532,7 @@ export class ParallelParser extends SimpleEventEmitter {
           success: false,
           errors: [
             {
-              message: error.message,
+              message: (error as Error).message,
               line: 0,
               column: 0,
               code: 'PARSE_CRASH',
@@ -571,7 +576,7 @@ export class ParallelParser extends SimpleEventEmitter {
               line: 0,
               column: 0,
               code: 'UNRESOLVED_IMPORT',
-            } as any);
+            });
           }
         }
       }
@@ -581,21 +586,23 @@ export class ParallelParser extends SimpleEventEmitter {
   /**
    * Extract exports from AST
    */
-  private extractExports(ast: any): string[] {
+  private extractExports(ast: unknown): string[] {
     const exports: string[] = [];
 
     if (!ast) return exports;
 
-    const root = ast.root || ast;
-    const children = root.body || root.children || [];
+    const astObj = ast as Record<string, unknown>;
+    const root = (astObj.root || astObj) as Record<string, unknown>;
+    const children = (root.body || root.children || []) as Record<string, unknown>[];
 
     for (const node of children) {
       if (node.type === 'export') {
-        if (node.exports) exports.push(...node.exports);
-        if (node.declaration?.name) exports.push(node.declaration.name);
+        if (node.exports) exports.push(...(node.exports as string[]));
+        const decl = node.declaration as Record<string, unknown> | undefined;
+        if (decl?.name) exports.push(decl.name as string);
       }
-      if (node.name && ['orb', 'template', 'composition'].includes(node.type)) {
-        exports.push(node.name);
+      if (node.name && ['orb', 'template', 'composition'].includes(node.type as string)) {
+        exports.push(node.name as string);
       }
     }
 
@@ -605,22 +612,23 @@ export class ParallelParser extends SimpleEventEmitter {
   /**
    * Extract imports from AST
    */
-  private extractImports(ast: any): Array<{ path: string; symbols: string[] }> {
+  private extractImports(ast: unknown): Array<{ path: string; symbols: string[] }> {
     const imports: Array<{ path: string; symbols: string[] }> = [];
 
     if (!ast) return imports;
 
-    const root = ast.root || ast;
-    const children = root.body || root.children || [];
+    const astObj = ast as Record<string, unknown>;
+    const root = (astObj.root || astObj) as Record<string, unknown>;
+    const children = (root.body || root.children || []) as Record<string, unknown>[];
 
     for (const node of children) {
       if (node.type === 'import') {
         const importInfo = {
-          path: node.modulePath || node.from,
+          path: (node.modulePath || node.from) as string,
           symbols: [] as string[],
         };
-        if (node.imports) importInfo.symbols.push(...node.imports);
-        if (node.defaultImport) importInfo.symbols.push(node.defaultImport);
+        if (node.imports) importInfo.symbols.push(...(node.imports as string[]));
+        if (node.defaultImport) importInfo.symbols.push(node.defaultImport as string);
         imports.push(importInfo);
       }
     }

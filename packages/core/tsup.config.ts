@@ -13,6 +13,9 @@ try {
 
 export default defineConfig({
   entry: {
+    // CLI runner (compiled for bin + fast daemon test startup in CI)
+    'cli/holoscript-runner': 'src/cli/holoscript-runner.ts',
+
     // Core exports (always loaded)
     index: 'src/index.ts',
     parser: 'src/parser/HoloScriptPlusParser.ts',

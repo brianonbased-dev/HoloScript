@@ -301,7 +301,7 @@ export class CompilerStateMonitor {
     let nodeCount = 0;
     let sizeBytes = 0;
 
-    const traverse = (node: unknown) => {
+    const traverse = (node: unknown): void => {
       if (!node || typeof node !== 'object') {
         return;
       }
@@ -447,7 +447,7 @@ export class CompilerStateMonitor {
   private collectReferencedSymbols(node: unknown): Set<string> {
     const referenced = new Set<string>();
 
-    const traverse = (n: unknown) => {
+    const traverse = (n: unknown): void => {
       if (!n || typeof n !== 'object') {
         return;
       }
@@ -577,8 +577,8 @@ export class CompilerStateMonitor {
     this.incrementalCompiler.reset();
 
     // Force garbage collection if available
-    if (global.gc) {
-      global.gc();
+    if ((global as any).gc) {
+      (global as any).gc();
     }
   }
 

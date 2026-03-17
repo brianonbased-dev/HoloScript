@@ -1,5 +1,25 @@
-import type { ASTProgram, HSPlusNode } from '../types/AdvancedTypeSystem';
+import type { ASTProgram, PrimitiveTypeName } from '../types/AdvancedTypeSystem';
 import { AdvancedTypeChecker, HoloScriptType } from '../types/AdvancedTypeSystem';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
+
+/** Extended node that may have runtime-added traits */
+type SemanticNode = HSPlusNode & {
+  traits?: { has(value: string): boolean };
+};
+
+/** Loose method node from AST children */
+interface MethodLikeNode {
+  type?: string;
+  name?: string;
+  params?: Array<{ type?: string; typeAnnotation?: string }>;
+  returnType?: string;
+}
+
+/** Method config from semantic definition */
+interface MethodConfigEntry {
+  params?: string[];
+  returnType?: string;
+}
 
 export interface SemanticDefinition {
   name: string;
@@ -35,33 +55,33 @@ export class SemanticValidator {
     this.errors = [];
 
     // 1. Collect all @semantic definitions
-    this.extractDefinitions(ast.root);
+    this.extractDefinitions(ast.root as HSPlusNode);
 
     // 2. Validate all nodes with @semantic_ref
-    this.validateNodes(ast.root);
+    this.validateNodes(ast.root as HSPlusNode);
 
     return this.errors;
   }
 
   private extractDefinitions(node: HSPlusNode): void {
     if (node.directives) {
-      const directives = (node.directives as any[]) || [];
+      const directives = (node.directives ?? []) as Array<{ type: string; name?: string; args?: unknown[]; config?: Record<string, unknown> }>;
       for (const directive of directives) {
         if (directive.name === 'semantic' && directive.args?.[0]) {
-          const semanticName = directive.args[0];
-          const config = directive.config || {};
+          const semanticName = directive.args[0] as string;
+          const config = (directive.config || {}) as Record<string, unknown>;
 
           const definition: SemanticDefinition = {
             name: semanticName,
-            category: config.category,
-            type: config.type,
+            category: config.category as string | undefined,
+            type: config.type as string | undefined,
             requiredProperties: new Map(),
             requiredTraits: [],
             requiredMethods: new Map(),
           };
 
           if (config.properties) {
-            for (const [prop, typeSpec] of Object.entries(config.properties)) {
+            for (const [prop, typeSpec] of Object.entries(config.properties as Record<string, unknown>)) {
               // If it's an empty object or not a string, we still want to require the property
               const typeStr = typeof typeSpec === 'string' ? typeSpec : 'any';
               const type = this.resolveType(typeStr);
@@ -70,14 +90,14 @@ export class SemanticValidator {
           }
 
           if (config.traits) {
-            definition.requiredTraits = config.traits;
+            definition.requiredTraits = config.traits as string[];
           }
 
           if (config.methods) {
-            for (const [methodName, methodConfig] of Object.entries(config.methods)) {
-              const cfg = methodConfig as any;
+            for (const [methodName, methodConfig] of Object.entries(config.methods as Record<string, unknown>)) {
+              const cfg = methodConfig as MethodConfigEntry;
               definition.requiredMethods.set(methodName, {
-                params: (cfg.params || []).map((p: string) => this.resolveType(p)),
+                params: (cfg.params || []).map((p: string) => this.resolveType(p)).filter((t): t is HoloScriptType => t !== undefined),
                 returnType: this.resolveType(cfg.returnType || 'void') as HoloScriptType,
               });
             }
@@ -97,10 +117,10 @@ export class SemanticValidator {
 
   private validateNodes(node: HSPlusNode): void {
     if (node.directives) {
-      const directives = (node.directives as any[]) || [];
+      const directives = (node.directives ?? []) as Array<{ type: string; name?: string; args?: unknown[]; config?: Record<string, unknown> }>;
       for (const directive of directives) {
         if (directive.name === 'semantic_ref' && directive.args?.[0]) {
-          const refName = directive.args[0];
+          const refName = directive.args[0] as string;
           const definition = this.definitions.get(refName);
 
           if (!definition) {
@@ -149,7 +169,7 @@ export class SemanticValidator {
 
     // Check required traits
     for (const trait of definition.requiredTraits) {
-      if (!node.traits || !node.traits.has(trait as any)) {
+      if (!(node as SemanticNode).traits || !(node as SemanticNode).traits!.has(trait)) {
         this.addError(
           node,
           `Object "${node.id}" is missing required trait "@${trait}" defined in semantic "${definition.name}".`,
@@ -171,15 +191,15 @@ export class SemanticValidator {
       } else {
         // Convert signature to expected format
         const convertedSignature = {
-          params: signature.params.map((p: any, i: number) => ({
+          params: signature.params.map((p: HoloScriptType, i: number) => ({
             name: `param${i}`,
-            type: typeof p === 'string' ? p : p.kind === 'primitive' ? p.name : 'any',
+            type: typeof p === 'string' ? p : p.kind === 'primitive' ? (p.name as string) : 'any',
           })),
           returnType:
             typeof signature.returnType === 'string'
               ? signature.returnType
-              : (signature.returnType as any)?.kind === 'primitive'
-                ? (signature.returnType as any).name
+              : signature.returnType?.kind === 'primitive'
+                ? (signature.returnType.name as string)
                 : 'any',
         };
         // Deep method signature validation
@@ -195,26 +215,26 @@ export class SemanticValidator {
   }
 
   private resolveType(typeStr: string): HoloScriptType | undefined {
-    if (typeStr === 'any') return { kind: 'primitive', name: 'any' as any };
+    if (typeStr === 'any') return { kind: 'primitive', name: 'any' as PrimitiveTypeName };
 
     // Simple lookup in built-ins
     const builtIn = this.typeChecker.getType(typeStr);
     if (builtIn) return builtIn;
 
     if (['number', 'string', 'boolean', 'void'].includes(typeStr)) {
-      return { kind: 'primitive', name: typeStr as any };
+      return { kind: 'primitive', name: typeStr as PrimitiveTypeName };
     }
 
     return undefined;
   }
 
   private formatType(type: HoloScriptType): string {
-    return (this.typeChecker as any).formatType(type);
+    return (this.typeChecker as unknown as { formatType(t: HoloScriptType): string }).formatType(type);
   }
 
   private validateMethodSignature(
     node: HSPlusNode,
-    methodNode: any,
+    methodNode: MethodLikeNode,
     methodName: string,
     expectedSignature: { params: Array<{ name: string; type: string }>; returnType: string },
     semanticName: string
@@ -274,9 +294,12 @@ export class SemanticValidator {
     }
   }
 
-  private findMethod(node: HSPlusNode, name: string): any {
+  private findMethod(node: HSPlusNode, name: string): MethodLikeNode | undefined {
     // Check children for method nodes
-    return node.children?.find((c) => (c as any).type === 'method' && (c as any).name === name);
+    return node.children?.find((c) => {
+      const m = c as unknown as MethodLikeNode;
+      return m.type === 'method' && m.name === name;
+    }) as MethodLikeNode | undefined;
   }
 
   private addError(node: HSPlusNode, message: string, severity: 'error' | 'warning'): void {

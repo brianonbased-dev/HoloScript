@@ -29,6 +29,8 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Build core (pre-compile CLI runner for fast daemon startup)
+        run: pnpm --filter @holoscript/core build
       - run: |
           pnpm --filter @holoscript/core exec vitest run \
             src/cli/__tests__/holoscript-runner.daemon.test.ts \
