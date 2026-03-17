@@ -1,0 +1,172 @@
+name: Daemon Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: daemon-gate-${{ github.event.pull_request.number || github.ref_name || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  daemon-integration-tests:
+    name: Daemon Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          pnpm --filter @holoscript/core exec vitest run \
+            src/cli/__tests__/holoscript-runner.daemon.test.ts \
+            src/cli/__tests__/holoscript-daemon-integration.test.ts
+
+  daemon-pr-branch-run:
+    name: Daemon PR Branch Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: daemon-integration-tests
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && secrets.ANTHROPIC_API_KEY != '') || (github.event_name == 'push' && secrets.ANTHROPIC_API_KEY != '') }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @holoscript/core build
+
+      - name: Snapshot daemon state before run
+        run: |
+          mkdir -p .holoscript
+          if [ -f .holoscript/daemon-state.json ]; then
+            cp .holoscript/daemon-state.json .holoscript/daemon-state.before.json
+          else
+            cat > .holoscript/daemon-state.before.json << 'JSON'
+          {
+            "lastQuality": 0,
+            "totalInputTokens": 0,
+            "totalOutputTokens": 0
+          }
+          JSON
+          fi
+
+      - name: Run daemon (dry-run, 1 cycle)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          start_ts=$(date +%s)
+          pnpm --filter @holoscript/core exec tsx src/cli/holoscript-runner.ts daemon \
+            compositions/self-improve-daemon.hsplus \
+            --cycles 1 \
+            --model claude-3-5-haiku-20241022 \
+            --debug | tee .holoscript/daemon-run.log
+          end_ts=$(date +%s)
+          echo "DAEMON_DURATION_SEC=$((end_ts-start_ts))" >> $GITHUB_ENV
+
+      - name: Build daemon metrics
+        if: always()
+        run: |
+          node << 'NODE'
+          const fs = require('fs');
+          const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
+          const before = readJson('.holoscript/daemon-state.before.json', { lastQuality: 0, totalInputTokens: 0, totalOutputTokens: 0 });
+          const after = readJson('.holoscript/daemon-state.json', before);
+          const metrics = {
+            qualityDelta: Number((Number(after.lastQuality || 0) - Number(before.lastQuality || 0)).toFixed(6)),
+            qualityBefore: Number(before.lastQuality || 0),
+            qualityAfter: Number(after.lastQuality || 0),
+            cycleDurationSec: Number(process.env.DAEMON_DURATION_SEC || 0),
+            inputTokensUsed: Math.max(0, Number(after.totalInputTokens || 0) - Number(before.totalInputTokens || 0)),
+            outputTokensUsed: Math.max(0, Number(after.totalOutputTokens || 0) - Number(before.totalOutputTokens || 0)),
+          };
+          fs.writeFileSync('.holoscript/daemon-metrics.json', JSON.stringify(metrics, null, 2));
+          NODE
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: daemon-metrics-${{ github.event.pull_request.number || github.run_id }}
+          path: |
+            .holoscript/daemon-state.json
+            .holoscript/daemon-state.before.json
+            .holoscript/daemon-metrics.json
+            .holoscript/daemon-run.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Comment PR with daemon metrics
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- daemon-pr-metrics -->';
+            let metrics = { qualityDelta: 0, qualityBefore: 0, qualityAfter: 0, cycleDurationSec: 0, inputTokensUsed: 0, outputTokensUsed: 0 };
+            try { metrics = JSON.parse(fs.readFileSync('.holoscript/daemon-metrics.json', 'utf8')); } catch {}
+            const body = `${marker}
+            ## Daemon Metrics (PR Branch Dry-Run)
+            - Quality delta: ${metrics.qualityDelta}
+            - Quality: ${metrics.qualityBefore} -> ${metrics.qualityAfter}
+            - Cycle duration: ${metrics.cycleDurationSec}s
+            - Token usage: in=${metrics.inputTokensUsed}, out=${metrics.outputTokensUsed}
+            - Composition: \`compositions/self-improve-daemon.hsplus\`
+            - Mode: dry-run (no commit)`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.user?.type === 'Bot' && c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  daemon-pr-branch-run-skipped:
+    name: Daemon PR Branch Run Skipped
+    runs-on: ubuntu-latest
+    needs: daemon-integration-tests
+    if: ${{ (github.event_name == 'pull_request' && (github.event.pull_request.head.repo.fork == true || secrets.ANTHROPIC_API_KEY == '')) || (github.event_name == 'push' && secrets.ANTHROPIC_API_KEY == '') }}
+    steps:
+      - run: |
+          echo "Daemon branch run skipped (fork PR or missing ANTHROPIC_API_KEY)."
+
+  daemon-pr-gate:
+    name: Daemon PR Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - daemon-integration-tests
+      - daemon-pr-branch-run
+      - daemon-pr-branch-run-skipped
+    steps:
+      - name: Validate daemon checks
+        run: |
+          echo "integration=${{ needs.daemon-integration-tests.result }}"
+          echo "branch_run=${{ needs.daemon-pr-branch-run.result }}"
+          echo "branch_run_skipped=${{ needs.daemon-pr-branch-run-skipped.result }}"
+          if [ "${{ needs.daemon-integration-tests.result }}" != "success" ]; then
+            exit 1
+          fi
+          if [ "${{ needs.daemon-pr-branch-run.result }}" = "success" ] || [ "${{ needs.daemon-pr-branch-run-skipped.result }}" = "success" ]; then
+            exit 0
+          fi
+          exit 1
