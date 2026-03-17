@@ -4,16 +4,13 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-  push:
-    branches-ignore:
-      - main
 
 permissions:
   contents: read
   pull-requests: write
 
 concurrency:
-  group: daemon-gate-${{ github.event.pull_request.number || github.ref_name || github.run_id }}
+  group: daemon-gate-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -41,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: daemon-integration-tests
-    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && secrets.ANTHROPIC_API_KEY != '') || (github.event_name == 'push' && secrets.ANTHROPIC_API_KEY != '') }}
+    if: ${{ github.event.pull_request.head.repo.fork == false && secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -104,7 +101,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: daemon-metrics-${{ github.event.pull_request.number || github.run_id }}
+          name: daemon-metrics-${{ github.event.pull_request.number }}
           path: |
             .holoscript/daemon-state.json
             .holoscript/daemon-state.before.json
@@ -144,7 +141,7 @@ jobs:
     name: Daemon PR Branch Run Skipped
     runs-on: ubuntu-latest
     needs: daemon-integration-tests
-    if: ${{ (github.event_name == 'pull_request' && (github.event.pull_request.head.repo.fork == true || secrets.ANTHROPIC_API_KEY == '')) || (github.event_name == 'push' && secrets.ANTHROPIC_API_KEY == '') }}
+    if: ${{ github.event.pull_request.head.repo.fork == true || secrets.ANTHROPIC_API_KEY == '' }}
     steps:
       - run: |
           echo "Daemon branch run skipped (fork PR or missing ANTHROPIC_API_KEY)."
