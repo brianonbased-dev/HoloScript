@@ -84,7 +84,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
   },
 
   onAttach(node, _config, _context) {
-    const position = (node as any).position || { x: 0, y: 0, z: 0 };
+    const position = node.position || { x: 0, y: 0, z: 0 };
     const state: BuoyancyState = {
       isSubmerged: false,
       submersionRatio: 0,
@@ -104,8 +104,8 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
     const state = node.__buoyancyState as BuoyancyState;
     if (!state) return;
 
-    const position = (node as any).position || { x: 0, y: 0, z: 0 };
-    const scale = (node as any).scale || { x: 1, y: 1, z: 1 };
+    const position = node.position || { x: 0, y: 0, z: 0 };
+    const scale = node.scale || { x: 1, y: 1, z: 1 };
     const objectHeight = scale.y;
 
     // Calculate velocity from position change

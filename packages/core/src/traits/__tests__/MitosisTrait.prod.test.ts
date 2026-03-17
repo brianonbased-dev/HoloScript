@@ -190,8 +190,8 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
       parentId: node.id,
       result: { newProp: 42 },
     });
-    expect((node.properties as any).newProp).toBe(42);
-    expect((node.properties as any).existingProp).toBe('keep');
+    expect(node.properties!.newProp).toBe(42);
+    expect(node.properties!.existingProp).toBe('keep');
   });
 
   it('non-collaborative: does NOT merge result into node.properties', () => {
@@ -206,7 +206,7 @@ describe("mitosisHandler.onEvent 'mitosis_child_complete'", () => {
       parentId: node.id,
       result: { injected: true },
     });
-    expect((node.properties as any).injected).toBeUndefined();
+    expect(node.properties!.injected).toBeUndefined();
   });
 
   it('no-op when parentId !== node.id', () => {

@@ -14,14 +14,14 @@
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 export interface Logger {
-  error(message: string, context?: Record<string, any>): void;
-  fatal(message: string, context?: Record<string, any>): void;
-  warn(message: string, context?: Record<string, any>): void;
-  info(message: string, context?: Record<string, any>): void;
-  debug(message: string, context?: Record<string, any>): void;
-  build(message: string, buildId: string, stage?: string, context?: Record<string, any>): void;
-  request(message: string, requestId: string, context?: Record<string, any>): void;
-  performance(message: string, durationMs: number, context?: Record<string, any>): void;
+  error(message: string, context?: Record<string, unknown>): void;
+  fatal(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
+  info(message: string, context?: Record<string, unknown>): void;
+  debug(message: string, context?: Record<string, unknown>): void;
+  build(message: string, buildId: string, stage?: string, context?: Record<string, unknown>): void;
+  request(message: string, requestId: string, context?: Record<string, unknown>): void;
+  performance(message: string, durationMs: number, context?: Record<string, unknown>): void;
   readonly isDebugEnabled: boolean;
 }
 
@@ -38,7 +38,7 @@ export interface LogEntry {
   message: string;
   timestamp: number;
   logger: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 // =============================================================================
@@ -62,35 +62,35 @@ export class HoloLogger implements Logger {
     return this.shouldLog('debug');
   }
 
-  error(message: string, context?: Record<string, any>): void {
+  error(message: string, context?: Record<string, unknown>): void {
     this.log('error', message, context);
   }
 
-  fatal(message: string, context?: Record<string, any>): void {
+  fatal(message: string, context?: Record<string, unknown>): void {
     this.log('fatal', message, context);
   }
 
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     this.log('warn', message, context);
   }
 
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     this.log('info', message, context);
   }
 
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     this.log('debug', message, context);
   }
 
-  build(message: string, buildId: string, stage?: string, context?: Record<string, any>): void {
+  build(message: string, buildId: string, stage?: string, context?: Record<string, unknown>): void {
     this.log('info', message, { ...context, buildId, stage, type: 'build' });
   }
 
-  request(message: string, requestId: string, context?: Record<string, any>): void {
+  request(message: string, requestId: string, context?: Record<string, unknown>): void {
     this.log('info', message, { ...context, requestId, type: 'request' });
   }
 
-  performance(message: string, durationMs: number, context?: Record<string, any>): void {
+  performance(message: string, durationMs: number, context?: Record<string, unknown>): void {
     this.log('info', message, { ...context, durationMs, type: 'performance' });
   }
 
@@ -149,7 +149,7 @@ export class HoloLogger implements Logger {
     return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.level];
   }
 
-  private log(level: LogLevel, message: string, context?: Record<string, any>): void {
+  private log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
     if (!this.shouldLog(level)) return;
 
     const entry: LogEntry = {

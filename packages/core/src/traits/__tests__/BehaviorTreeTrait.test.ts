@@ -245,6 +245,38 @@ describe('BehaviorTreeTrait', () => {
       expect(state.nodeStates.size).toBe(0);
       expect(state.status).toBe('running');
     });
+
+    it('action nodes dispatch action:<name> and wait for action:result', () => {
+      const config = {
+        root: { type: 'action' as const, action: 'diagnose', params: { target: 'core' } },
+        tick_rate: 100,
+        restart_on_complete: false,
+      };
+
+      attachTrait(behaviorTreeHandler, node, config, ctx);
+
+      // First tick dispatches and stays running.
+      updateTrait(behaviorTreeHandler, node, config, ctx, 0.1);
+      expect(getEventCount(ctx, 'action:diagnose')).toBe(1);
+      expect(getEventCount(ctx, 'bt_complete')).toBe(0);
+
+      const actionPayload = getLastEvent(ctx, 'action:diagnose') as Record<string, unknown>;
+      expect(typeof actionPayload.requestId).toBe('string');
+      expect(actionPayload.params).toEqual({ target: 'core' });
+
+      // Action result arrives asynchronously.
+      sendEvent(behaviorTreeHandler, node, config, ctx, {
+        type: 'action:result',
+        requestId: actionPayload.requestId,
+        status: 'success',
+      });
+
+      updateTrait(behaviorTreeHandler, node, config, ctx, 0.1);
+      expect(getEventCount(ctx, 'bt_complete')).toBe(1);
+
+      const done = getLastEvent(ctx, 'bt_complete') as Record<string, unknown>;
+      expect(done.status).toBe('success');
+    });
   });
 
   // ===========================================================================

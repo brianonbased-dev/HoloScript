@@ -117,17 +117,17 @@ export const vpsHandler: TraitHandler<VPSConfig> = {
 
     // Apply VPS pose to node
     if (state.state === 'tracking' || state.state === 'localized') {
-      if ((node as any).position) {
-        (node as any).position.x = state.pose.position.x;
-        (node as any).position.y = state.pose.position.y;
-        (node as any).position.z = state.pose.position.z;
+      if (node.position) {
+        node.position.x = state.pose.position.x;
+        node.position.y = state.pose.position.y;
+        node.position.z = state.pose.position.z;
       }
-      if ((node as any).rotation) {
-        (node as any).rotation.x = state.pose.rotation.x;
-        (node as any).rotation.y = state.pose.rotation.y;
-        (node as any).rotation.z = state.pose.rotation.z;
-        if ((node as any).rotation.w !== undefined) {
-          (node as any).rotation.w = state.pose.rotation.w;
+      if (node.rotation) {
+        node.rotation.x = state.pose.rotation.x;
+        node.rotation.y = state.pose.rotation.y;
+        node.rotation.z = state.pose.rotation.z;
+        if (node.rotation.w !== undefined) {
+          node.rotation.w = state.pose.rotation.w;
         }
       }
     }

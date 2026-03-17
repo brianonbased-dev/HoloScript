@@ -10,7 +10,67 @@
  * @milestone v3.1 (March 2026)
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
+
+// =============================================================================
+// WEBXR MINIMAL INTERFACES (avoids @webxr typings dependency)
+// =============================================================================
+
+interface XRSessionLike {
+  simulated?: boolean;
+  end(): void;
+  requestAnimationFrame(callback: (time: number, frame: XRFrameLike) => void): number;
+  requestReferenceSpace(type: string): Promise<unknown>;
+  inputSources?: XRInputSourceLike[];
+  enabledFeatures?: string[];
+  updateTargetFrameRate?(rate: number): Promise<void>;
+  visibilityState?: string;
+  environmentBlendMode?: string;
+  renderState?: { layers?: unknown };
+  depthUsage?: unknown;
+  domOverlayState?: unknown;
+  requestHitTestSource?: unknown;
+  requestLightProbe?: unknown;
+  addEventListener(event: string, handler: (...args: unknown[]) => void): void;
+}
+
+interface XRPoseResult {
+  transform: {
+    position: { x: number; y: number; z: number };
+    orientation: { x: number; y: number; z: number; w: number };
+  };
+  radius?: number;
+}
+
+interface XRFrameLike {
+  getPose(space: unknown, referenceSpace: unknown): XRPoseResult | null;
+  getJointPose(joint: unknown, referenceSpace: unknown): XRPoseResult | null;
+}
+
+interface XRInputSourceLike {
+  handedness: string;
+  targetRayMode: string;
+  profiles?: string[];
+  gamepad?: {
+    hapticActuators?: Array<{ pulse(intensity: number, duration: number): void }>;
+    buttons: Array<{ pressed: boolean; touched: boolean; value: number }>;
+    axes: number[];
+  };
+  hand?: Map<string, unknown>;
+  gripSpace?: unknown;
+  targetRaySpace?: unknown;
+}
+
+interface XRSystemLike {
+  isSessionSupported(mode: string): Promise<boolean>;
+  requestSession(mode: string, init?: Record<string, string[]>): Promise<XRSessionLike>;
+}
+
+interface XRInputSourcesChangeEvent {
+  added: XRInputSourceLike[];
+  removed: XRInputSourceLike[];
+}
 
 // =============================================================================
 // TYPES
@@ -142,7 +202,7 @@ interface GazeRay {
 
 interface OpenXRHALState {
   isInitialized: boolean;
-  session: unknown | null;
+  session: XRSessionLike | null;
   deviceProfile: XRDeviceProfile | null;
   frameRate: number;
   isPassthroughActive: boolean;
@@ -150,9 +210,9 @@ interface OpenXRHALState {
   eyeTrackingActive: boolean;
   lastFrameTime: number;
   performanceLevel: 'low' | 'medium' | 'high' | 'max';
-  inputSourcesCache: unknown[]; // Cache of XRInputSource objects
+  inputSourcesCache: XRInputSourceLike[];
   referenceSpace: unknown | null; // XRReferenceSpace for pose calculations
-  currentFrame: unknown | null; // Latest XRFrame from session.requestAnimationFrame
+  currentFrame: XRFrameLike | null;
   // Phase 4: Session lifecycle tracking
   sessionVisible: boolean; // Track visibility state
   sessionInterrupted: boolean; // Track interruption state
@@ -400,7 +460,7 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
     }
 
     // Phase 4: Poll input sources with error handling
-    if (state.session && !(state.session as any).simulated) {
+    if (state.session && !state.session!.simulated) {
       try {
         pollInputSources(state, context, node);
       } catch (error) {
@@ -435,24 +495,26 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
 
     // Request to start XR session
     if (event.type === 'request_xr_session') {
+      const p = event.payload as Record<string, unknown> | undefined;
       const mode =
-        (event.payload?.mode as 'immersive-vr' | 'immersive-ar' | 'inline') || 'immersive-vr';
+        (p?.mode as 'immersive-vr' | 'immersive-ar' | 'inline') || 'immersive-vr';
       requestXRSession(state, config, context, node, mode);
     }
 
     // End XR session
     if (event.type === 'end_xr_session') {
-      if (state.session && (state.session as any).end) {
-        (state.session as any).end();
+      if (state.session) {
+        state.session.end();
       }
     }
 
     // Trigger haptic feedback
     if (event.type === 'trigger_haptic') {
-      const hand = (event.payload?.hand as 'left' | 'right') || 'right';
-      const intensity = (event.payload?.intensity as number) ?? 1.0;
-      const duration = (event.payload?.duration as number) ?? 100;
-      const actuatorIndex = (event.payload?.actuator_index as number) ?? 0; // Phase 2
+      const p = event.payload as Record<string, unknown> | undefined;
+      const hand = (p?.hand as 'left' | 'right') || 'right';
+      const intensity = (p?.intensity as number) ?? 1.0;
+      const duration = (p?.duration as number) ?? 100;
+      const actuatorIndex = (p?.actuator_index as number) ?? 0; // Phase 2
       const success = triggerHaptic(state, hand, intensity, duration, actuatorIndex);
       context.emit?.('haptic_triggered', {
         node,
@@ -461,12 +523,13 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
         duration,
         actuatorIndex, // Phase 2
         success,
-        simulated: (state.session as any)?.simulated === true,
+        simulated: state.session?.simulated === true,
       });
     }
 
     if (event.type === 'request_haptic_capability') {
-      const capability = event.payload?.capability as HapticCapability;
+      const p = event.payload as Record<string, unknown> | undefined;
+      const capability = p?.capability as HapticCapability;
       const supported = state.deviceProfile?.hapticCapabilities.includes(capability) ?? false;
       context.emit?.('haptic_capability_response', {
         node,
@@ -481,7 +544,7 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
       context.emit?.('device_profile_response', {
         node,
         deviceProfile: state.deviceProfile,
-        isSimulated: (state.session as any)?.simulated === true,
+        isSimulated: state.session?.simulated === true,
       });
     }
   },
@@ -497,8 +560,8 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
 async function requestXRSession(
   state: OpenXRHALState,
   config: OpenXRHALConfig,
-  context: any,
-  node: any,
+  context: TraitContext,
+  node: HSPlusNode,
   mode: 'immersive-vr' | 'immersive-ar' | 'inline' = 'immersive-vr'
 ): Promise<boolean> {
   if (typeof navigator === 'undefined' || !('xr' in navigator)) {
@@ -510,8 +573,8 @@ async function requestXRSession(
   }
 
   try {
-    const xr = (navigator as any).xr;
-    const sessionInit: any = {
+    const xr = (navigator as unknown as { xr?: XRSystemLike }).xr!;
+    const sessionInit: { optionalFeatures: string[] } = {
       optionalFeatures: [],
     };
 
@@ -549,10 +612,10 @@ async function requestXRSession(
 
     // Phase 4: Start frame loop to capture XRFrame for pose queries
     if (typeof session.requestAnimationFrame === 'function') {
-      const frameLoop = (_time: number, frame: unknown) => {
+      const frameLoop = (_time: number, frame: XRFrameLike) => {
         if (!state.session) return; // Session ended
         state.currentFrame = frame;
-        (state.session as any).requestAnimationFrame(frameLoop);
+        state.session.requestAnimationFrame(frameLoop);
       };
       session.requestAnimationFrame(frameLoop);
     }
@@ -582,11 +645,11 @@ async function requestXRSession(
  * Handles session lifecycle events, visibility changes, and input source changes
  */
 function setupSessionEventHandlers(
-  session: any,
+  session: XRSessionLike,
   state: OpenXRHALState,
   config: OpenXRHALConfig,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: HSPlusNode
 ): void {
   // Session end event
   session.addEventListener('end', () => {
@@ -620,9 +683,10 @@ function setupSessionEventHandlers(
   });
 
   // Input sources change event (controllers connected/disconnected)
-  session.addEventListener('inputsourceschange', (event: any) => {
+  session.addEventListener('inputsourceschange', (...args: unknown[]) => {
+    const event = args[0] as XRInputSourcesChangeEvent;
     // Update input sources cache
-    state.inputSourcesCache = Array.from(session.inputSources || []);
+    state.inputSourcesCache = Array.from(session.inputSources || []) as XRInputSourceLike[];
 
     const added = event.added || [];
     const removed = event.removed || [];
@@ -632,7 +696,7 @@ function setupSessionEventHandlers(
       added: added.length,
       removed: removed.length,
       totalSources: state.inputSourcesCache.length,
-      sources: state.inputSourcesCache.map((source: any) => ({
+      sources: state.inputSourcesCache.map((source: XRInputSourceLike) => ({
         handedness: source.handedness,
         targetRayMode: source.targetRayMode,
         profiles: source.profiles,
@@ -665,11 +729,11 @@ function setupSessionEventHandlers(
  * Provides feature detection for graceful degradation
  */
 function detectAvailableFeatures(
-  session: any,
+  session: XRSessionLike,
   state: OpenXRHALState,
   config: OpenXRHALConfig,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: HSPlusNode
 ): void {
   const features = new Set<string>();
 
@@ -687,7 +751,7 @@ function detectAvailableFeatures(
   }
 
   // Check for eye tracking support (gaze input)
-  const hasGazeInput = session.inputSources?.some((source: any) => source.targetRayMode === 'gaze');
+  const hasGazeInput = session.inputSources?.some((source: XRInputSourceLike) => source.targetRayMode === 'gaze');
   if (hasGazeInput || session.enabledFeatures?.includes('gaze')) {
     features.add('eye-tracking');
     state.eyeTrackingActive = true;
@@ -718,7 +782,7 @@ function detectAvailableFeatures(
   }
 
   // Check for anchors
-  if (session.requestAnimationFrame && session.environmentBlendMode) {
+  if (session.environmentBlendMode) {
     features.add('anchors');
   }
 
@@ -775,8 +839,8 @@ function detectAvailableFeatures(
 function handleFrameError(
   state: OpenXRHALState,
   config: OpenXRHALConfig,
-  context: any,
-  node: any,
+  context: TraitContext,
+  node: HSPlusNode,
   error: unknown
 ): void {
   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -808,9 +872,9 @@ function handleFrameError(
     });
 
     // End the session
-    if (state.session && typeof (state.session as any).end === 'function') {
+    if (state.session && typeof state.session!.end === 'function') {
       try {
-        (state.session as any).end();
+        state.session!.end();
       } catch {
         // Session already ended
       }
@@ -835,8 +899,8 @@ function handleFrameError(
 function attemptSessionRecovery(
   state: OpenXRHALState,
   config: OpenXRHALConfig,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: HSPlusNode
 ): void {
   state.reconnectAttempts++;
 
@@ -852,12 +916,10 @@ function attemptSessionRecovery(
   state.referenceSpace = null;
 
   // Request a new reference space
-  if (state.session && typeof (state.session as any).requestReferenceSpace === 'function') {
-    const session = state.session as any;
-
-    session
+  if (state.session && typeof state.session.requestReferenceSpace === 'function') {
+    state.session
       .requestReferenceSpace('local-floor')
-      .then((refSpace: any) => {
+      .then((refSpace: unknown) => {
         state.referenceSpace = refSpace;
         context.emit?.('openxr_recovery_success', {
           node,
@@ -879,7 +941,7 @@ function attemptSessionRecovery(
  */
 function detectDeviceFromSession(
   state: OpenXRHALState,
-  session: any,
+  session: XRSessionLike,
   config: OpenXRHALConfig
 ): void {
   const inputSources = session.inputSources || [];
@@ -943,10 +1005,9 @@ function triggerHaptic(
 ): boolean {
   if (!state.session || !state.isInitialized) return false;
 
-  const session = state.session as any;
-  if (session.simulated) return true; // Pretend it worked if simulated
+  if (state.session.simulated) return true; // Pretend it worked if simulated
 
-  const inputSources = session.inputSources || [];
+  const inputSources = state.session.inputSources || [];
 
   for (const source of inputSources) {
     if (source.handedness === hand && source.gamepad?.hapticActuators) {
@@ -974,8 +1035,8 @@ function triggerHaptic(
  * Extract gamepad button and axis state (Phase 2)
  */
 function pollGamepadState(
-  source: any, // XRInputSource
-  _hand: 'left' | 'right' | 'none'
+  source: XRInputSourceLike, // XRInputSource
+  _hand: string
 ): GamepadState | null {
   if (!source.gamepad) return null;
 
@@ -1097,7 +1158,7 @@ function calculateGripStrength(joints: Map<HandJoint, JointPose>): number {
  * Poll hand tracking joints per frame (Phase 3)
  * Requires XRHand API support (Quest Pro, Vision Pro)
  */
-function pollHandTracking(source: any, frame: any, referenceSpace: any): HandTrackingState | null {
+function pollHandTracking(source: XRInputSourceLike, frame: XRFrameLike | null, referenceSpace: unknown): HandTrackingState | null {
   if (!source.hand) return null;
 
   const joints = new Map<HandJoint, JointPose>();
@@ -1158,13 +1219,13 @@ function _calculateForwardVector(quaternion: { x: number; y: number; z: number; 
  * Poll eye tracking gaze vector (Phase 3)
  * Requires eye tracking permission (Vision Pro, Quest Pro)
  */
-function pollEyeTracking(session: any, state: OpenXRHALState, frame: any): GazeRay | null {
+function pollEyeTracking(session: XRSessionLike, state: OpenXRHALState, frame: XRFrameLike | null): GazeRay | null {
   if (!session.inputSources) return null;
 
   // Find gaze input source
   const gazeSource = Array.from(session.inputSources).find(
-    (source: any) => source.targetRayMode === 'gaze'
-  ) as any;
+    (source: XRInputSourceLike) => source.targetRayMode === 'gaze'
+  );
 
   if (!gazeSource) return null;
 
@@ -1200,18 +1261,17 @@ function pollEyeTracking(session: any, state: OpenXRHALState, frame: any): GazeR
 /**
  * Poll input sources per frame and emit updates
  */
-function pollInputSources(state: OpenXRHALState, context: any, node: any): void {
-  if (!state.session || (state.session as any).simulated) return;
+function pollInputSources(state: OpenXRHALState, context: TraitContext, node: HSPlusNode): void {
+  if (!state.session || state.session.simulated) return;
 
-  const session = state.session as any;
-  const inputSources = session.inputSources;
+  const inputSources = state.session.inputSources;
 
   if (!inputSources) return;
 
   // Update cache
-  state.inputSourcesCache = Array.from(inputSources);
+  state.inputSourcesCache = Array.from(inputSources) as XRInputSourceLike[];
 
-  const frame = state.currentFrame as any;
+  const frame = state.currentFrame;
 
   // Emit update for each input source
   for (const source of inputSources) {
@@ -1292,7 +1352,7 @@ function pollInputSources(state: OpenXRHALState, context: any, node: any): void 
 
   // Phase 3: Poll eye tracking (per-session, not per-source)
   if (state.eyeTrackingActive) {
-    const gazeRay = pollEyeTracking(session, state, frame);
+    const gazeRay = pollEyeTracking(state.session!, state, frame);
     if (gazeRay) {
       context.emit?.('eye_gaze_update', {
         node,
@@ -1305,14 +1365,14 @@ function pollInputSources(state: OpenXRHALState, context: any, node: any): void 
 }
 
 function initializeOpenXR(
-  node: any,
+  node: HSPlusNode,
   state: OpenXRHALState,
   config: OpenXRHALConfig,
-  context: any
+  context: TraitContext
 ): void {
   // Check for WebXR support
   if (typeof navigator !== 'undefined' && 'xr' in navigator) {
-    (navigator as any).xr?.isSessionSupported('immersive-vr').then((supported: boolean) => {
+    (navigator as unknown as { xr?: XRSystemLike }).xr?.isSessionSupported('immersive-vr').then((supported: boolean) => {
       if (supported) {
         context.emit?.('openxr_available', { node, mode: 'immersive-vr' });
       } else if (config.fallback_mode === 'simulate') {
@@ -1330,7 +1390,13 @@ function initializeOpenXR(
 
 function createSimulatedSession(state: OpenXRHALState, config: OpenXRHALConfig): void {
   state.isInitialized = true;
-  state.session = { simulated: true };
+  state.session = {
+    simulated: true,
+    end() { /* no-op */ },
+    requestAnimationFrame() { return 0; },
+    requestReferenceSpace() { return Promise.resolve(null); },
+    addEventListener() { /* no-op */ },
+  };
   state.deviceProfile = {
     type: 'generic_openxr',
     name: 'Simulated XR Device',
@@ -1424,10 +1490,10 @@ const REFERENCE_SPACE_CHAIN = [
  * Tries each space in order until one succeeds.
  */
 async function requestReferenceSpaceWithFallback(
-  session: any,
+  session: XRSessionLike,
   state: OpenXRHALState,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: HSPlusNode
 ): Promise<void> {
   if (typeof session.requestReferenceSpace !== 'function') return;
 

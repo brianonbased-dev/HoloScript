@@ -186,6 +186,7 @@ import { watcherHandler } from './WatcherTrait';
 import { taskQueueHandler } from './TaskQueueTrait';
 import { webhookHandler } from './WebhookTrait';
 import { shellHandler } from './ShellTrait';
+import { httpClientHandler } from './HttpClientTrait';
 import { SandboxExecutionTrait } from './SandboxExecutionTrait';
 import { retryHandler } from './RetryTrait';
 import { schedulerHandler } from './SchedulerTrait';
@@ -1522,6 +1523,7 @@ export class VRTraitRegistry {
     this.register(taskQueueHandler as TraitHandler);
     this.register(webhookHandler as TraitHandler);
     this.register(shellHandler as TraitHandler);
+    this.register(httpClientHandler as TraitHandler);
     this.register(SandboxExecutionTrait as TraitHandler);
     this.register(retryHandler as TraitHandler);
     this.register(schedulerHandler as TraitHandler);

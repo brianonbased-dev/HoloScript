@@ -173,7 +173,7 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const { node, ctx, config } = attach({ disable_camera_shake: true });
     const state = (node as any).__motionReducedState;
     state.isActive = true;
-    (node as any).position = { x: 0, y: 0, z: 0 };
+    node.position = { x: 0, y: 0, z: 0 };
     for (let i = 0; i < 15; i++) {
       motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     }

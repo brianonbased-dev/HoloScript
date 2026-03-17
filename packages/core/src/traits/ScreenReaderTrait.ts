@@ -67,8 +67,8 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
     node.__screenReaderState = state;
 
     // Store initial position
-    if ((node as any).position) {
-      state.lastPosition = { ...(node as any).position };
+    if (node.position) {
+      state.lastPosition = { ...node.position };
     }
 
     // Register with screen reader navigation system
@@ -103,8 +103,8 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
     }
 
     // Check for position changes and announce
-    if (config.announce_changes && state.isFocused && (node as any).position) {
-      const pos = (node as any).position;
+    if (config.announce_changes && state.isFocused && node.position) {
+      const pos = node.position;
       const dx = pos.x - state.lastPosition.x;
       const dy = pos.y - state.lastPosition.y;
       const dz = pos.z - state.lastPosition.z;
@@ -138,8 +138,8 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
       let announcement = getNodeAnnouncement(node, config.verbosity);
 
       // Add spatial information
-      if (config.reading_mode === 'spatial' && (node as any).position) {
-        const pos = (node as any).position;
+      if (config.reading_mode === 'spatial' && node.position) {
+        const pos = node.position;
         announcement += `. Position: ${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
       }
 
@@ -150,10 +150,10 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
       });
 
       // Sonify position
-      if (config.sonify_position && (node as any).position) {
+      if (config.sonify_position && node.position) {
         context.emit?.('screen_reader_sonify', {
           node,
-          position: (node as any).position,
+          position: node.position,
           pitchForHeight: config.pitch_for_height,
           panForPosition: config.pan_for_position,
         });
@@ -197,8 +197,8 @@ export const screenReaderHandler: TraitHandler<ScreenReaderConfig> = {
       // Provide detailed description
       let description = getNodeDescription(node, config.verbosity);
 
-      if ((node as any).position) {
-        const pos = (node as any).position;
+      if (node.position) {
+        const pos = node.position;
         description += ` Located at ${pos.x.toFixed(1)} meters right, ${pos.y.toFixed(1)} meters up, ${pos.z.toFixed(1)} meters forward.`;
       }
 

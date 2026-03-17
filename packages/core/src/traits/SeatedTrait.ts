@@ -124,7 +124,7 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
       const direction = (event as Record<string, unknown>).type === 'turn_left' ? -1 : 1;
       const currentRot = (node.properties?.rotation as any) || [0, 0, 0];
 
-      (node.properties as any).rotation = [
+      node.properties!.rotation = [
         currentRot[0],
         currentRot[1] + angle * direction,
         currentRot[2],

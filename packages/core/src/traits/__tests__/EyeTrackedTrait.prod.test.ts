@@ -102,17 +102,17 @@ describe('eyeTrackedHandler.onDetach', () => {
   it('restores originalScale on node.properties', () => {
     const { node, ctx, config } = attach();
     (node as any).__eyeTrackedState.originalScale = 2;
-    (node.properties as any).scale = 2.2;
+    node.properties!.scale = 2.2;
     eyeTrackedHandler.onDetach!(node as any, config, ctx as any);
-    expect((node.properties as any).scale).toBe(2);
+    expect(node.properties!.scale).toBe(2);
   });
 
   it('restores originalColor when present', () => {
     const { node, ctx, config } = attach();
     (node as any).__eyeTrackedState.originalColor = '#abc';
-    (node.properties as any).color = '#00ffff';
+    node.properties!.color = '#00ffff';
     eyeTrackedHandler.onDetach!(node as any, config, ctx as any);
-    expect((node.properties as any).color).toBe('#abc');
+    expect(node.properties!.color).toBe('#abc');
   });
 
   it('emits unregister_foveated', () => {
@@ -156,22 +156,22 @@ describe('eyeTrackedHandler.onUpdate — gaze enter', () => {
 
   it('applies highlight_color to node.properties.color when gaze_highlight=true', () => {
     const { node } = runGazeEnter({ gaze_highlight: true, highlight_color: '#00ffff' });
-    expect((node.properties as any).color).toBe('#00ffff');
+    expect(node.properties!.color).toBe('#00ffff');
   });
 
   it('does NOT change color when gaze_highlight=false', () => {
     const { node } = runGazeEnter({ gaze_highlight: false });
-    expect((node.properties as any).color).toBe('#fff');
+    expect(node.properties!.color).toBe('#fff');
   });
 
   it('applies gaze_scale multiplier to node.properties.scale', () => {
     const { node } = runGazeEnter({ gaze_scale: 1.1 });
-    expect((node.properties as any).scale).toBeCloseTo(1.1, 4);
+    expect(node.properties!.scale).toBeCloseTo(1.1, 4);
   });
 
   it('does NOT scale when gaze_scale=1', () => {
     const { node } = runGazeEnter({ gaze_scale: 1 });
-    expect((node.properties as any).scale).toBe(1);
+    expect(node.properties!.scale).toBe(1);
   });
 });
 
@@ -190,7 +190,7 @@ describe('eyeTrackedHandler.onUpdate — gaze exit', () => {
     const state = (node as any).__eyeTrackedState;
     state.isGazed = true;
     state.originalScale = 1;
-    (node.properties as any).scale = 1.1;
+    node.properties!.scale = 1.1;
 
     ctx.emit.mockClear();
     eyeTrackedHandler.onUpdate!(node as any, config, ctx as any, 0.016);

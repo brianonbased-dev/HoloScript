@@ -130,6 +130,9 @@ export class ReferenceGraph {
   private definitions: Map<string, SymbolDefinition> = new Map();
   private references: SymbolReference[] = [];
   private entryPoints: Set<string> = new Set();
+  private customEntryPoints: Set<string> = new Set();
+  private pendingDependencies: Array<{ source: string; target: string }> = [];
+  private dirty = false;
 
   constructor() {}
 
@@ -156,6 +159,7 @@ export class ReferenceGraph {
   addFile(ast: ASTNode, filePath: string): void {
     this.collectDefinitions(ast, filePath, null);
     this.collectReferences(ast, filePath, null);
+    this.dirty = true;
   }
 
   /**
@@ -164,6 +168,7 @@ export class ReferenceGraph {
   finalize(): void {
     this.buildEdges();
     this.identifyEntryPoints();
+    this.dirty = false;
   }
 
   /**
@@ -181,6 +186,7 @@ export class ReferenceGraph {
         line: node.loc?.start.line || 1,
         column: node.loc?.start.column || 1,
         isEntryPoint: true,
+          metadata: { fromAST: true },
       });
     }
 
@@ -194,6 +200,7 @@ export class ReferenceGraph {
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
           parent: parent ?? undefined,
+          metadata: { fromAST: true },
         });
       }
     }
@@ -208,6 +215,7 @@ export class ReferenceGraph {
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
           isExported: true, // Templates are typically available for use
+          metadata: { fromAST: true },
         });
       }
     }
@@ -223,6 +231,7 @@ export class ReferenceGraph {
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
           parent: parent ?? undefined,
+          metadata: { fromAST: true },
         });
       }
     }
@@ -237,6 +246,7 @@ export class ReferenceGraph {
           line: node.loc?.start.line || 1,
           column: node.loc?.start.column || 1,
           parent: nodeId,
+          metadata: { fromAST: true },
         });
       }
     }
@@ -253,6 +263,7 @@ export class ReferenceGraph {
             line: func.loc?.start.line || node.loc?.start.line || 1,
             column: func.loc?.start.column || node.loc?.start.column || 1,
             parent: parent ?? undefined,
+            metadata: { fromAST: true },
           });
         }
       }
@@ -455,6 +466,8 @@ export class ReferenceGraph {
    * Build graph edges from definitions and references
    */
   private buildEdges(): void {
+    this.nodes.clear();
+
     // Create nodes for all definitions
     for (const [id, def] of this.definitions) {
       this.nodes.set(id, {
@@ -483,24 +496,58 @@ export class ReferenceGraph {
         }
       }
     }
+
+    // Add explicit name-based dependencies used by legacy tests and programmatic callers.
+    for (const dep of this.pendingDependencies) {
+      const sourceId = this.findDefinitionId(dep.source, 'function') || this.findDefinitionIdByName(dep.source);
+      const targetId = this.findDefinitionId(dep.target, 'function') || this.findDefinitionIdByName(dep.target);
+      if (!sourceId || !targetId) continue;
+
+      const sourceNode = this.nodes.get(sourceId);
+      const targetNode = this.nodes.get(targetId);
+      if (!sourceNode || !targetNode) continue;
+
+      sourceNode.references.add(targetId);
+      targetNode.referencedBy.add(sourceId);
+    }
   }
 
   /**
    * Identify entry points
    */
   private identifyEntryPoints(): void {
+    this.entryPoints.clear();
+    const hasExplicitEntryPoints =
+      this.customEntryPoints.size > 0 ||
+      Array.from(this.nodes.values()).some(
+        (node) => node.definition.isEntryPoint || node.definition.type === 'composition'
+      );
+
     for (const [id, node] of this.nodes) {
       if (
         node.definition.isEntryPoint ||
-        node.definition.type === 'composition' ||
-        node.definition.isExported
+        node.definition.type === 'composition'
       ) {
         this.entryPoints.add(id);
       }
 
-      // Top-level orbs without parents are also entry points
-      if (node.definition.type === 'orb' && !node.definition.parent) {
+      // AST-derived top-level orbs are entry points only when the graph has no
+      // explicit root. Manually assembled graphs in tests should rely on
+      // setEntryPoint/addEntryPoint instead of making every orb reachable.
+      if (
+        !hasExplicitEntryPoints &&
+        node.definition.type === 'orb' &&
+        !node.definition.parent &&
+        node.definition.metadata?.fromAST === true
+      ) {
         this.entryPoints.add(id);
+      }
+    }
+
+    for (const entry of this.customEntryPoints) {
+      const entryId = this.nodes.has(entry) ? entry : this.findDefinitionIdByName(entry);
+      if (entryId) {
+        this.entryPoints.add(entryId);
       }
     }
   }
@@ -511,6 +558,7 @@ export class ReferenceGraph {
   addDefinition(def: SymbolDefinition): void {
     const id = `${def.type}:${def.name}:${def.filePath}:${def.line}`;
     this.definitions.set(id, def);
+    this.dirty = true;
   }
 
   /**
@@ -518,6 +566,43 @@ export class ReferenceGraph {
    */
   addReference(ref: SymbolReference): void {
     this.references.push(ref);
+    this.dirty = true;
+  }
+
+  /**
+   * Backward-compatible alias used by legacy tests.
+   */
+  addSymbol(def: SymbolDefinition & { startLine?: number; startColumn?: number; signature?: string; documentation?: string; hasTests?: boolean; isPublic?: boolean }): void {
+    this.addDefinition({
+      ...def,
+      line: def.line ?? def.startLine ?? 1,
+      column: def.column ?? def.startColumn ?? 1,
+      endLine: def.endLine,
+      endColumn: def.endColumn,
+      metadata: {
+        signature: def.signature,
+        documentation: def.documentation,
+        hasTests: def.hasTests,
+        isPublic: def.isPublic,
+        ...(def.metadata || {}),
+      },
+    });
+  }
+
+  /**
+   * Backward-compatible dependency helper used by tests.
+   */
+  addDependency(source: string, target: string): void {
+    this.pendingDependencies.push({ source, target });
+    this.dirty = true;
+  }
+
+  /**
+   * Backward-compatible entry point helper used by tests.
+   */
+  setEntryPoint(nameOrId: string): void {
+    this.customEntryPoints.add(nameOrId);
+    this.dirty = true;
   }
 
   /**
@@ -530,6 +615,25 @@ export class ReferenceGraph {
       }
     }
     return null;
+  }
+
+  private findDefinitionIdByName(name: string): string | null {
+    for (const [id, def] of this.definitions) {
+      if (def.name === name) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  private ensureBuilt(): void {
+    if (!this.dirty) {
+      return;
+    }
+
+    this.buildEdges();
+    this.identifyEntryPoints();
+    this.dirty = false;
   }
 
   /**
@@ -572,6 +676,7 @@ export class ReferenceGraph {
    * Get all nodes
    */
   getNodes(): Map<string, GraphNode> {
+    this.ensureBuilt();
     return this.nodes;
   }
 
@@ -593,6 +698,7 @@ export class ReferenceGraph {
    * Get entry points
    */
   getEntryPoints(): Set<string> {
+    this.ensureBuilt();
     return this.entryPoints;
   }
 
@@ -600,7 +706,8 @@ export class ReferenceGraph {
    * Add custom entry point
    */
   addEntryPoint(nodeId: string): void {
-    this.entryPoints.add(nodeId);
+    this.customEntryPoints.add(nodeId);
+    this.dirty = true;
   }
 
   /**

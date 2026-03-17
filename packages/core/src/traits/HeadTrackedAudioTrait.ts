@@ -94,8 +94,8 @@ export const headTrackedAudioHandler: TraitHandler<HeadTrackedAudioConfig> = {
     node.__headTrackedAudioState = state;
 
     // Get initial world position
-    if ((node as any).position) {
-      state.worldPosition = { ...(node as any).position };
+    if (node.position) {
+      state.worldPosition = { ...node.position };
     }
 
     // Load audio source

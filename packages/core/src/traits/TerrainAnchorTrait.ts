@@ -93,38 +93,38 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
 
     if (state.state === 'tracking' || state.state === 'resolved') {
       // Apply position
-      if ((node as any).position) {
+      if (node.position) {
         if (config.smoothing > 0) {
           const s = config.smoothing;
-          (node as any).position.x = (node as any).position.x * s + state.localPosition.x * (1 - s);
-          (node as any).position.y =
-            (node as any).position.y * s +
+          node.position.x = node.position.x * s + state.localPosition.x * (1 - s);
+          node.position.y =
+            node.position.y * s +
             (state.localPosition.y + config.elevation_offset) * (1 - s);
-          (node as any).position.z = (node as any).position.z * s + state.localPosition.z * (1 - s);
+          node.position.z = node.position.z * s + state.localPosition.z * (1 - s);
         } else {
-          (node as any).position.x = state.localPosition.x;
-          (node as any).position.y = state.localPosition.y + config.elevation_offset;
-          (node as any).position.z = state.localPosition.z;
+          node.position.x = state.localPosition.x;
+          node.position.y = state.localPosition.y + config.elevation_offset;
+          node.position.z = state.localPosition.z;
         }
       }
 
       // Apply surface normal alignment
-      if (config.surface_normal_alignment && (node as any).rotation) {
+      if (config.surface_normal_alignment && node.rotation) {
         if (config.smoothing > 0) {
           const s = config.smoothing;
-          (node as any).rotation.x = (node as any).rotation.x * s + state.localRotation.x * (1 - s);
-          (node as any).rotation.y = (node as any).rotation.y * s + state.localRotation.y * (1 - s);
-          (node as any).rotation.z = (node as any).rotation.z * s + state.localRotation.z * (1 - s);
-          if ((node as any).rotation.w !== undefined) {
-            (node as any).rotation.w =
-              (node as any).rotation.w * s + state.localRotation.w * (1 - s);
+          node.rotation.x = node.rotation.x * s + state.localRotation.x * (1 - s);
+          node.rotation.y = node.rotation.y * s + state.localRotation.y * (1 - s);
+          node.rotation.z = node.rotation.z * s + state.localRotation.z * (1 - s);
+          if (node.rotation.w !== undefined) {
+            node.rotation.w =
+              node.rotation.w * s + state.localRotation.w * (1 - s);
           }
         } else {
-          (node as any).rotation.x = state.localRotation.x;
-          (node as any).rotation.y = state.localRotation.y;
-          (node as any).rotation.z = state.localRotation.z;
-          if ((node as any).rotation.w !== undefined) {
-            (node as any).rotation.w = state.localRotation.w;
+          node.rotation.x = state.localRotation.x;
+          node.rotation.y = state.localRotation.y;
+          node.rotation.z = state.localRotation.z;
+          if (node.rotation.w !== undefined) {
+            node.rotation.w = state.localRotation.w;
           }
         }
       }

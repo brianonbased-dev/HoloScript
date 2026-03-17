@@ -11,6 +11,7 @@
  */
 
 import type { Vector3 } from '../types';
+import type { Vector3Tuple } from '../types/HoloScriptPlus';
 import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
@@ -44,8 +45,100 @@ interface EyeTrackedState {
   dwellProgress: number;
   originalScale: number;
   originalColor: string | null;
-  lastGazePosition: Vector3;
-  smoothPosition: Vector3;
+  lastGazePosition: Vector3Tuple;
+  smoothPosition: Vector3Tuple;
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function toTuple(v: Vector3): Vector3Tuple {
+  if (Array.isArray(v)) return v as Vector3Tuple;
+  return [v.x, v.y, v.z];
+}
+
+interface GazeRay {
+  origin: Vector3Tuple;
+  direction: Vector3Tuple;
+}
+
+function getEyeGazeRay(context: TraitContext): GazeRay | null {
+  // Get eye tracking data from headset
+  // This would integrate with device-specific eye tracking APIs
+  const headPos = toTuple(context.vr.headset.position);
+  const headRot = toTuple(context.vr.headset.rotation);
+
+  // Calculate forward direction from head rotation
+  const radY = (headRot[1] * Math.PI) / 180;
+  const radX = (headRot[0] * Math.PI) / 180;
+
+  const direction: Vector3Tuple = [
+    -Math.sin(radY) * Math.cos(radX),
+    -Math.sin(radX),
+    -Math.cos(radY) * Math.cos(radX),
+  ];
+
+  return {
+    origin: headPos,
+    direction,
+  };
+}
+
+function isPointGazedAt(
+  ray: GazeRay,
+  point: Vector3Tuple,
+  radius: number,
+  toleranceDegrees: number
+): boolean {
+  // Vector from ray origin to point
+  const toPoint: Vector3Tuple = [
+    point[0] - ray.origin[0],
+    point[1] - ray.origin[1],
+    point[2] - ray.origin[2],
+  ];
+
+  // Distance to point
+  const distance = Math.sqrt(
+    toPoint[0] * toPoint[0] +
+      toPoint[1] * toPoint[1] +
+      toPoint[2] * toPoint[2]
+  );
+
+  if (distance === 0) return true;
+
+  // Normalize
+  const toPointNorm: Vector3Tuple = [
+    toPoint[0] / distance,
+    toPoint[1] / distance,
+    toPoint[2] / distance,
+  ];
+
+  // Dot product with ray direction
+  const dot =
+    ray.direction[0] * toPointNorm[0] +
+    ray.direction[1] * toPointNorm[1] +
+    ray.direction[2] * toPointNorm[2];
+
+  // Angle in degrees
+  const angle = Math.acos(Math.min(1, Math.max(-1, dot))) * (180 / Math.PI);
+
+  // Add radius compensation (closer objects have more tolerance)
+  const radiusTolerance = Math.atan(radius / distance) * (180 / Math.PI);
+
+  return angle <= toleranceDegrees + radiusTolerance;
+}
+
+function rayPointAtDistance(ray: GazeRay, distance: number): Vector3Tuple {
+  return [
+    ray.origin[0] + ray.direction[0] * distance,
+    ray.origin[1] + ray.direction[1] * distance,
+    ray.origin[2] + ray.direction[2] * distance,
+  ];
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
 }
 
 // =============================================================================
@@ -68,15 +161,15 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
   },
 
   onAttach(node, config, context) {
-    const pos = ((node.properties as any)?.position as Vector3) || [0, 0, 0];
+    const pos = toTuple((node.properties?.position as Vector3) || [0, 0, 0]);
     const state: EyeTrackedState = {
       isGazed: false,
       gazeStartTime: 0,
       dwellProgress: 0,
-      originalScale: ((node.properties as any)?.scale as number) || 1,
-      originalColor: ((node.properties as any)?.color as string) || null,
-      lastGazePosition: [(pos as any)[0] || 0, (pos as any)[1] || 0, (pos as any)[2] || 0],
-      smoothPosition: [(pos as any)[0] || 0, (pos as any)[1] || 0, (pos as any)[2] || 0],
+      originalScale: (node.properties?.scale as number) || 1,
+      originalColor: (node.properties?.color as string) || null,
+      lastGazePosition: [pos[0] || 0, pos[1] || 0, pos[2] || 0],
+      smoothPosition: [pos[0] || 0, pos[1] || 0, pos[2] || 0],
     };
     node.__eyeTrackedState = state;
 
@@ -92,9 +185,9 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
 
     // Restore original properties
     if (state && node.properties) {
-      (node.properties as any).scale = state.originalScale;
+      node.properties.scale = state.originalScale;
       if (state.originalColor) {
-        (node.properties as any).color = state.originalColor;
+        node.properties.color = state.originalColor;
       }
     }
 
@@ -113,8 +206,8 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
     if (!gazeRay) return;
 
     // Check if object is being gazed at
-    const nodePos = ((node.properties as any)?.position as Vector3) || [0, 0, 0];
-    const nodeScale = ((node.properties as any)?.scale as number) || 1;
+    const nodePos = toTuple((node.properties?.position as Vector3) || [0, 0, 0]);
+    const nodeScale = (node.properties?.scale as number) || 1;
     const isGazed = isPointGazedAt(gazeRay, nodePos, nodeScale * 0.5, config.gaze_tolerance);
 
     // Handle gaze enter
@@ -125,14 +218,14 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
 
       // Apply gaze highlight
       if (config.gaze_highlight && node.properties) {
-        state.originalColor = ((node.properties as any).color as string) || null;
-        (node.properties as any).color = config.highlight_color;
+        state.originalColor = (node.properties.color as string) || null;
+        node.properties.color = config.highlight_color;
       }
 
       // Apply gaze scale
       if (config.gaze_scale !== 1 && node.properties) {
-        state.originalScale = ((node.properties as any).scale as number) || 1;
-        (node.properties as any).scale = state.originalScale * config.gaze_scale;
+        state.originalScale = (node.properties.scale as number) || 1;
+        node.properties.scale = state.originalScale * config.gaze_scale;
       }
 
       context.emit('gaze_enter', { node });
@@ -145,11 +238,11 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
 
       // Restore original properties
       if (config.gaze_highlight && state.originalColor && node.properties) {
-        (node.properties as any).color = state.originalColor;
+        node.properties.color = state.originalColor;
       }
 
       if (config.gaze_scale !== 1 && node.properties) {
-        (node.properties as any).scale = state.originalScale;
+        node.properties.scale = state.originalScale;
       }
 
       context.emit('gaze_exit', { node });
@@ -186,13 +279,13 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
       const smoothSpeed = 5 * delta;
 
       state.smoothPosition = [
-        lerp((state.smoothPosition as any)[0], (gazePoint as any)[0], smoothSpeed),
-        lerp((state.smoothPosition as any)[1], (gazePoint as any)[1], smoothSpeed),
-        lerp((state.smoothPosition as any)[2], (gazePoint as any)[2], smoothSpeed),
+        lerp(state.smoothPosition[0], gazePoint[0], smoothSpeed),
+        lerp(state.smoothPosition[1], gazePoint[1], smoothSpeed),
+        lerp(state.smoothPosition[2], gazePoint[2], smoothSpeed),
       ];
 
       if (node.properties) {
-        (node.properties as any).position = state.smoothPosition;
+        node.properties.position = state.smoothPosition;
       }
     }
   },
@@ -202,106 +295,19 @@ export const eyeTrackedHandler: TraitHandler<EyeTrackedTrait> = {
     if (!state) return;
 
     // Handle manual gaze simulation (for testing/accessibility)
-    if ((event as Record<string, unknown>).type === 'simulate_gaze') {
-      state.isGazed = (event as Record<string, unknown>).active;
+    if (event.type === 'simulate_gaze') {
+      state.isGazed = event.active as boolean;
       if (state.isGazed) {
         state.gazeStartTime = Date.now();
       }
     }
 
     // Handle dwell cancel
-    if ((event as Record<string, unknown>).type === 'cancel_dwell') {
+    if (event.type === 'cancel_dwell') {
       state.dwellProgress = 0;
       state.gazeStartTime = Date.now();
     }
   },
 };
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-interface GazeRay {
-  origin: Vector3;
-  direction: Vector3;
-}
-
-function getEyeGazeRay(context: TraitContext): GazeRay | null {
-  // Get eye tracking data from headset
-  // This would integrate with device-specific eye tracking APIs
-  const headPos = context.vr.headset.position;
-  const headRot = context.vr.headset.rotation;
-
-  // Calculate forward direction from head rotation
-  const radY = ((headRot as any)[1] * Math.PI) / 180;
-  const radX = ((headRot as any)[0] * Math.PI) / 180;
-
-  const direction: Vector3 = [
-    -Math.sin(radY) * Math.cos(radX),
-    -Math.sin(radX),
-    -Math.cos(radY) * Math.cos(radX),
-  ];
-
-  return {
-    origin: headPos,
-    direction,
-  };
-}
-
-function isPointGazedAt(
-  ray: GazeRay,
-  point: Vector3,
-  radius: number,
-  toleranceDegrees: number
-): boolean {
-  // Vector from ray origin to point
-  const toPoint: Vector3 = [
-    (point as any)[0] - (ray.origin as any)[0],
-    (point as any)[1] - (ray.origin as any)[1],
-    (point as any)[2] - (ray.origin as any)[2],
-  ];
-
-  // Distance to point
-  const distance = Math.sqrt(
-    (toPoint as any)[0] * (toPoint as any)[0] +
-      (toPoint as any)[1] * (toPoint as any)[1] +
-      (toPoint as any)[2] * (toPoint as any)[2]
-  );
-
-  if (distance === 0) return true;
-
-  // Normalize
-  const toPointNorm: Vector3 = [
-    (toPoint as any)[0] / distance,
-    (toPoint as any)[1] / distance,
-    (toPoint as any)[2] / distance,
-  ];
-
-  // Dot product with ray direction
-  const dot =
-    (ray.direction as any)[0] * (toPointNorm as any)[0] +
-    (ray.direction as any)[1] * (toPointNorm as any)[1] +
-    (ray.direction as any)[2] * (toPointNorm as any)[2];
-
-  // Angle in degrees
-  const angle = Math.acos(Math.min(1, Math.max(-1, dot))) * (180 / Math.PI);
-
-  // Add radius compensation (closer objects have more tolerance)
-  const radiusTolerance = Math.atan(radius / distance) * (180 / Math.PI);
-
-  return angle <= toleranceDegrees + radiusTolerance;
-}
-
-function rayPointAtDistance(ray: GazeRay, distance: number): Vector3 {
-  return [
-    (ray.origin as any)[0] + (ray.direction as any)[0] * distance,
-    (ray.origin as any)[1] + (ray.direction as any)[1] * distance,
-    (ray.origin as any)[2] + (ray.direction as any)[2] * distance,
-  ];
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
 
 export default eyeTrackedHandler;

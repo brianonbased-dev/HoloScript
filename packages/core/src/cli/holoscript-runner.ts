@@ -772,7 +772,15 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   const repoRoot = findGitRoot(path.dirname(filePath));
   const source = fs.readFileSync(filePath, 'utf-8');
-  const compositionAST = parse(source);
+  const parseResult = parse(source);
+
+  if (!parseResult.success || !parseResult.ast) {
+    const errors = parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
+    console.error(`[daemon] Parse failed: ${errors}`);
+    process.exit(1);
+  }
+
+  const compositionAST = parseResult.ast as Record<string, unknown>;
 
   console.log(`[daemon] Composition: ${path.basename(filePath)}`);
   console.log(`[daemon] Repo root: ${repoRoot}`);
@@ -932,7 +940,9 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} ===`);
 
     // Fresh AST per cycle (deep clone for clean BT state)
+    // Note: JSON clone strips Maps, so materializeTraits must run after clone
     const cycleAST = JSON.parse(JSON.stringify(compositionAST));
+    materializeTraits(cycleAST);
 
     // Set focus in AST blackboard before runtime creation
     setASTBlackboard(cycleAST, {
@@ -1022,6 +1032,50 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     `Total cost: $${daemonState.totalCostUSD.toFixed(3)} | ` +
     `Total cycles: ${daemonState.totalCycles}`,
   );
+}
+
+/**
+ * Convert parsed directives to traits Map on each node.
+ * The parser stores @trait directives in the directives[] array,
+ * but HeadlessRuntime expects node.traits as a Map<string, unknown>.
+ * This mirrors R3FCompiler's conversion (R3FCompiler.ts:2208-2219).
+ */
+function materializeTraits(ast: unknown): void {
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    const n = node as Record<string, unknown>;
+
+    // Rebuild traits Map from directives (Maps don't survive JSON clone)
+    const traits = new Map<string, unknown>();
+    if (Array.isArray(n.directives)) {
+      for (const directive of n.directives) {
+        const d = directive as Record<string, unknown>;
+        if (d.type === 'trait' && typeof d.name === 'string') {
+          traits.set(d.name, d.config ?? {});
+        }
+      }
+    }
+
+    // Replace traits: always set a Map (empty or populated) to avoid
+    // plain {} left by JSON.parse(JSON.stringify(Map)) being non-iterable
+    if (traits.size > 0) {
+      n.traits = traits;
+    } else if (n.traits && !(n.traits instanceof Map)) {
+      // Plain {} from JSON clone of empty Map — remove to prevent iteration errors
+      delete n.traits;
+    }
+
+    // Recurse into all child collections
+    for (const key of ['body', 'children', 'nodes', 'members']) {
+      if (Array.isArray(n[key])) {
+        (n[key] as unknown[]).forEach(walk);
+      }
+    }
+    if (n.root && typeof n.root === 'object') {
+      walk(n.root);
+    }
+  };
+  walk(ast);
 }
 
 /**

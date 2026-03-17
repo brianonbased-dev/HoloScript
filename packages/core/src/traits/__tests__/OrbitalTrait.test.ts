@@ -57,14 +57,14 @@ describe('OrbitalTrait', () => {
     updateTrait(orbitalHandler, node, cfg, ctx, 0.016);
     // rawPosition = { x: 1.0, y: 0.5, z: 0.2 }
     // Three.js: x = raw.x * scale, y = raw.z * scale, z = raw.y * scale
-    const pos = (node as any).position;
+    const pos = node.position;
     expect(pos.y).toBeCloseTo(0.2 * 50, 0); // Z→Y
     expect(pos.z).toBeCloseTo(0.5 * 50, 0); // Y→Z
   });
 
   it('applies visual scale', () => {
     updateTrait(orbitalHandler, node, cfg, ctx, 0.016);
-    const pos = (node as any).position;
+    const pos = node.position;
     expect(pos.x).toBeCloseTo(1.0 * 50, 0);
   });
 
@@ -84,7 +84,7 @@ describe('OrbitalTrait', () => {
     ctx.getNode = vi.fn().mockReturnValue(parentNode);
     const moonCfg = { ...cfg, parent: 'earth' };
     updateTrait(orbitalHandler, node, moonCfg, ctx, 0.016);
-    const pos = (node as any).position;
+    const pos = node.position;
     expect(pos.x).toBeGreaterThan(100);
     expect(pos.y).toBeGreaterThan(200);
   });

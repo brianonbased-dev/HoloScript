@@ -25,8 +25,8 @@ describe('PersistentAnchorTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('pa');
-    (node as any).position = { x: 0, y: 0, z: 0 };
-    (node as any).rotation = { x: 0, y: 0, z: 0, w: 1 };
+    node.position = { x: 0, y: 0, z: 0 };
+    node.rotation = { x: 0, y: 0, z: 0, w: 1 };
     ctx = createMockContext();
     attachTrait(persistentAnchorHandler, node, cfg, ctx);
   });

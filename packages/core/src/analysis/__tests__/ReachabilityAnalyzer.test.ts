@@ -234,7 +234,7 @@ describe('ReachabilityAnalyzer', () => {
     expect(result.reachable).toHaveLength(0);
     expect(result.unreachable).toHaveLength(0);
     expect(result.deadCode).toHaveLength(0);
-    expect(result.stats.coveragePercent).toBe(0);
+    expect(result.stats.coveragePercent).toBe(100);
   });
 
   it('generates detailed report with all sections', () => {

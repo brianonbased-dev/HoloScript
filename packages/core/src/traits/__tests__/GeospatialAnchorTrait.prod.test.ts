@@ -178,7 +178,7 @@ describe('geospatialAnchorHandler.onUpdate', () => {
     state.state = 'tracking';
     state.localPosition = { x: 1, y: 2, z: 3 };
     geospatialAnchorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect((node as any).position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(node.position).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('applies localPosition to node.position when state=resolved', () => {
@@ -187,7 +187,7 @@ describe('geospatialAnchorHandler.onUpdate', () => {
     state.state = 'resolved';
     state.localPosition = { x: 5, y: 6, z: 7 };
     geospatialAnchorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect((node as any).position).toEqual({ x: 5, y: 6, z: 7 });
+    expect(node.position).toEqual({ x: 5, y: 6, z: 7 });
   });
 
   it('does NOT apply localPosition when state=unresolved', () => {
@@ -195,9 +195,9 @@ describe('geospatialAnchorHandler.onUpdate', () => {
     const state = (node as any).__geospatialAnchorState;
     state.state = 'unresolved';
     state.localPosition = { x: 9, y: 9, z: 9 };
-    (node as any).position = { x: 0, y: 0, z: 0 };
+    node.position = { x: 0, y: 0, z: 0 };
     geospatialAnchorHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect((node as any).position).toEqual({ x: 0, y: 0, z: 0 });
+    expect(node.position).toEqual({ x: 0, y: 0, z: 0 });
   });
 });
 

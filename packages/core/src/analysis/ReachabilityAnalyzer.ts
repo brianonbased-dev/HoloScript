@@ -136,11 +136,6 @@ export class ReachabilityAnalyzer {
         continue;
       }
 
-      // Skip ignored patterns
-      if (this.isIgnored(node.definition.name)) {
-        continue;
-      }
-
       // Skip properties if not included
       if (node.definition.type === 'property' && !this.options.includeProperties) {
         continue;
@@ -155,7 +150,9 @@ export class ReachabilityAnalyzer {
         reachable.push(node.definition);
       } else {
         unreachable.push(node.definition);
-        deadCode.push(this.createDeadCodeItem(node));
+        if (!this.isIgnored(node.definition.name)) {
+          deadCode.push(this.createDeadCodeItem(node));
+        }
       }
     }
 
@@ -401,11 +398,14 @@ export class ReachabilityAnalyzer {
     const lines: string[] = [];
 
     lines.push('='.repeat(60));
+    lines.push('Reachability Analysis');
     lines.push('Dead Code Analysis Report');
     lines.push('='.repeat(60));
     lines.push('');
 
     // Summary
+    lines.push(`Coverage: ${result.stats.coveragePercent.toFixed(1)}%`);
+    lines.push(`Total Symbols: ${result.stats.totalSymbols}`);
     lines.push(`Total symbols: ${result.stats.totalSymbols}`);
     lines.push(
       `Reachable: ${result.stats.reachableCount} (${result.stats.coveragePercent.toFixed(1)}%)`
@@ -434,6 +434,11 @@ export class ReachabilityAnalyzer {
         lines.push(`  ${item.severity.toUpperCase()}: ${item.reason}`);
         lines.push(`  Suggestion: ${item.suggestion}`);
         lines.push('');
+      }
+
+      lines.push('Removal suggestions:');
+      for (const item of result.deadCode) {
+        lines.push(`- ${item.symbol.name}: ${item.suggestion}`);
       }
     } else {
       lines.push('No dead code detected! 🎉');

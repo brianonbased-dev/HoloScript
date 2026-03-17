@@ -169,8 +169,8 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
 
       // Calculate spatial direction if enabled
       let direction: { x: number; y: number; z: number } | undefined;
-      if (config.spatial_direction && (node as any).position) {
-        const pos = (node as any).position;
+      if (config.spatial_direction && node.position) {
+        const pos = node.position;
         const len = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
         if (len > 0) {
           direction = { x: pos.x / len, y: pos.y / len, z: pos.z / len };

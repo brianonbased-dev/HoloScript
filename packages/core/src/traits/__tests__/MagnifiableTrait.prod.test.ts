@@ -70,13 +70,13 @@ describe('magnifiableHandler.onDetach', () => {
   it('restores originalScale on node.scale', () => {
     const { node, cfg, ctx } = attachNode({}, { x: 3, y: 2, z: 1 });
     // Simulate magnification applied by dirtying scale
-    (node as any).scale.x = 9;
-    (node as any).scale.y = 6;
-    (node as any).scale.z = 3;
+    node.scale.x = 9;
+    node.scale.y = 6;
+    node.scale.z = 3;
     magnifiableHandler.onDetach!(node, cfg, ctx);
-    expect((node as any).scale.x).toBe(3);
-    expect((node as any).scale.y).toBe(2);
-    expect((node as any).scale.z).toBe(1);
+    expect(node.scale.x).toBe(3);
+    expect(node.scale.y).toBe(2);
+    expect(node.scale.z).toBe(1);
   });
   it('emits magnifiable_unregister', () => {
     const { node, cfg, ctx } = attachNode();

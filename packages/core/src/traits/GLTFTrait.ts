@@ -543,7 +543,7 @@ function createMockGLTFData(config: GLTFConfig): {
 }
 
 function calculateCameraDistance(node: HSPlusNode, context: TraitContext): number {
-  const nodePos = (node as any).position || [0, 0, 0];
+  const nodePos = node.position || [0, 0, 0];
   const cameraPos = context.vr.headset.position;
 
   const dx = nodePos[0] - (cameraPos as any)[0];

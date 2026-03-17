@@ -71,7 +71,7 @@ describe('buoyancyHandler.onUpdate — velocity', () => {
   it('computes velocity from position change / delta', () => {
     const { node, cfg, ctx } = attachNode({}, 0);
     (node as any).__buoyancyState.lastPosition = { x: 0, y: 0, z: 0 };
-    (node as any).position = { x: 0, y: 2, z: 0 };
+    node.position = { x: 0, y: 2, z: 0 };
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.5);
     // velocity.y = (2 - 0) / 0.5 = 4
     expect((node as any).__buoyancyState.velocity.y).toBeCloseTo(4, 5);
@@ -79,7 +79,7 @@ describe('buoyancyHandler.onUpdate — velocity', () => {
   it('updates lastPosition to current position', () => {
     const { node, cfg, ctx } = attachNode({}, 5);
     (node as any).__buoyancyState.lastPosition = { x: 0, y: 0, z: 0 };
-    (node as any).position = { x: 0, y: 5, z: 0 };
+    node.position = { x: 0, y: 5, z: 0 };
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     expect((node as any).__buoyancyState.lastPosition).toEqual({ x: 0, y: 5, z: 0 });
   });
@@ -131,7 +131,7 @@ describe('buoyancyHandler.onUpdate — submersion & Archimedes force', () => {
   it('emits drag force opposing velocity when submerged', () => {
     const { node, cfg, ctx } = attachNode({ fluid_level: 0, drag: 2 }, -5, 2);
     (node as any).__buoyancyState.lastPosition = { x: 2, y: -5, z: 0 };
-    (node as any).position = { x: 2, y: -5, z: 0 };
+    node.position = { x: 2, y: -5, z: 0 };
     ctx.emit.mockClear();
     buoyancyHandler.onUpdate!(node, cfg, ctx, 0.016);
     const dragCalls = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'apply_force');

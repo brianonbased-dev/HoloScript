@@ -311,8 +311,8 @@ export function generateSplineGeometry(
   // End caps
   const startCenter = positions.length / 3;
   const sp = pathPoints[0];
-  const startTangent = vec3Sub(pathPoints[1], pathPoints[0]);
-  vec3Normalize(startTangent);
+  const startTangent = vec3SubArray(pathPoints[1], pathPoints[0]);
+  vec3NormalizeInPlace(startTangent);
   positions.push(sp[0], sp[1], sp[2]);
   normals.push(-startTangent[0], -startTangent[1], -startTangent[2]);
   uvs.push(0.5, 0);
@@ -322,8 +322,8 @@ export function generateSplineGeometry(
 
   const endCenter = positions.length / 3;
   const ep = pathPoints[totalRings - 1];
-  const endTangent = vec3Sub(pathPoints[totalRings - 1], pathPoints[totalRings - 2]);
-  vec3Normalize(endTangent);
+  const endTangent = vec3SubArray(pathPoints[totalRings - 1], pathPoints[totalRings - 2]);
+  vec3NormalizeInPlace(endTangent);
   positions.push(ep[0], ep[1], ep[2]);
   normals.push(endTangent[0], endTangent[1], endTangent[2]);
   uvs.push(0.5, 1);
@@ -745,7 +745,7 @@ export function generateHullGeometry(
     const gradEps = Math.min(dx, dy, dz) * 0.5;
     const grad = evalGradient(x, y, z, gradEps);
     const n = [-grad[0], -grad[1], -grad[2]];
-    vec3Normalize(n);
+    vec3NormalizeInPlace(n);
 
     const vertIdx = positions.length / 3;
     positions.push(x, y, z);

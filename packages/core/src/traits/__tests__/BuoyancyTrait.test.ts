@@ -27,8 +27,8 @@ describe('BuoyancyTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('buoy');
-    (node as any).position = { x: 0, y: 5, z: 0 };
-    (node as any).scale = { x: 1, y: 1, z: 1 };
+    node.position = { x: 0, y: 5, z: 0 };
+    node.scale = { x: 1, y: 1, z: 1 };
     ctx = createMockContext();
     attachTrait(buoyancyHandler, node, cfg, ctx);
   });
@@ -45,7 +45,7 @@ describe('BuoyancyTrait', () => {
   });
 
   it('applies buoyancy force when partially submerged', () => {
-    (node as any).position = { x: 0, y: -0.25, z: 0 }; // 75% submerged (height=1, fluid=0)
+    node.position = { x: 0, y: -0.25, z: 0 }; // 75% submerged (height=1, fluid=0)
     (node as any).__buoyancyState.lastPosition = { x: 0, y: -0.25, z: 0 };
     updateTrait(buoyancyHandler, node, cfg, ctx, 0.016);
     expect(getEventCount(ctx, 'apply_force')).toBeGreaterThanOrEqual(1);
@@ -53,18 +53,18 @@ describe('BuoyancyTrait', () => {
 
   it('splash on entering water', () => {
     // Start above water
-    (node as any).position = { x: 0, y: 5, z: 0 };
+    node.position = { x: 0, y: 5, z: 0 };
     (node as any).__buoyancyState.lastPosition = { x: 0, y: 5, z: 0 };
     updateTrait(buoyancyHandler, node, cfg, ctx, 0.016);
 
     // Move below surface
-    (node as any).position = { x: 0, y: 0.2, z: 0 };
+    node.position = { x: 0, y: 0.2, z: 0 };
     updateTrait(buoyancyHandler, node, cfg, ctx, 0.016);
     expect(getEventCount(ctx, 'on_splash')).toBe(1);
   });
 
   it('fully submerged emits on_submerge', () => {
-    (node as any).position = { x: 0, y: -5, z: 0 };
+    node.position = { x: 0, y: -5, z: 0 };
     (node as any).__buoyancyState.lastPosition = { x: 0, y: -5, z: 0 };
     updateTrait(buoyancyHandler, node, cfg, ctx, 0.016);
     expect((node as any).__buoyancyState.isSubmerged).toBe(true);
@@ -73,7 +73,7 @@ describe('BuoyancyTrait', () => {
 
   it('flow force applied when in water', () => {
     const flowCfg = { ...cfg, flow_direction: [1, 0, 0], flow_strength: 10 };
-    (node as any).position = { x: 0, y: -0.5, z: 0 };
+    node.position = { x: 0, y: -0.5, z: 0 };
     (node as any).__buoyancyState.lastPosition = { x: 0, y: -0.5, z: 0 };
     updateTrait(buoyancyHandler, node, flowCfg, ctx, 0.016);
     expect(getEventCount(ctx, 'apply_force')).toBeGreaterThanOrEqual(3); // buoyancy + drag + flow

@@ -88,7 +88,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     // Register wind zone with physics system via event
     context.emit?.('register_wind_zone', {
       node,
-      position: (node as any).position || { x: 0, y: 0, z: 0 },
+      position: node.position || { x: 0, y: 0, z: 0 },
       radius: config.radius,
     });
   },
@@ -136,7 +136,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     state.currentStrength = config.strength * pulseMultiplier * gustMultiplier;
 
     // Request objects in radius and apply wind force via events
-    const windPos = (node as any).position || { x: 0, y: 0, z: 0 };
+    const windPos = node.position || { x: 0, y: 0, z: 0 };
 
     // Emit wind zone update for physics system to apply forces
     context.emit?.('wind_zone_update', {

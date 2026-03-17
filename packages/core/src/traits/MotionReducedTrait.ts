@@ -116,7 +116,7 @@ export const motionReducedHandler: TraitHandler<MotionReducedConfig> = {
     }
 
     // Camera shake detection and suppression
-    if (config.disable_camera_shake && (node as any).position) {
+    if (config.disable_camera_shake && node.position) {
       state.velocityBuffer.push(Date.now());
       if (state.velocityBuffer.length > 10) {
         state.velocityBuffer.shift();

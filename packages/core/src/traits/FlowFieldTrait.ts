@@ -7,7 +7,8 @@
 
 import type { TraitHandler } from './TraitTypes';
 import { getNavigationEngine } from '../runtime/NavigationEngine';
-import { Vector3 } from '../types/HoloScriptPlus';
+import type { Vector3 } from '../types/HoloScriptPlus';
+import type { Vector3Tuple } from '../types/HoloScriptPlus';
 
 export interface FlowFieldConfig {
   /** ID of the destination to follow */
@@ -24,8 +25,13 @@ export interface FlowFieldConfig {
 }
 
 interface FlowFieldState {
-  currentDirection: Vector3;
+  currentDirection: Vector3Tuple;
   isMoving: boolean;
+}
+
+function toTuple(v: Vector3): Vector3Tuple {
+  if (Array.isArray(v)) return v as Vector3Tuple;
+  return [v.x, v.y, v.z];
 }
 
 export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
@@ -57,10 +63,10 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
     const navEngine = getNavigationEngine('gpu_flowfield') || getNavigationEngine('default');
     if (!navEngine) return;
 
-    const currentPos = (node.properties?.position as Vector3) || [0, 0, 0];
+    const currentPos = toTuple((node.properties?.position as Vector3) || [0, 0, 0]);
 
     // Sample direction from flow field
-    const flowDir = navEngine.sampleDirection(config.destinationId, currentPos);
+    const flowDir = toTuple(navEngine.sampleDirection(config.destinationId, currentPos));
 
     // Combine with current movement or apply directly
     const speed = config.speed ?? 3.0;
@@ -68,40 +74,40 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
 
     // Basic steering logic
     state.currentDirection = [
-      (state.currentDirection as any)[0] * (1 - steeringWeight) +
-        (flowDir as any)[0] * steeringWeight,
-      (state.currentDirection as any)[1] * (1 - steeringWeight) +
-        (flowDir as any)[1] * steeringWeight,
-      (state.currentDirection as any)[2] * (1 - steeringWeight) +
-        (flowDir as any)[2] * steeringWeight,
+      state.currentDirection[0] * (1 - steeringWeight) +
+        flowDir[0] * steeringWeight,
+      state.currentDirection[1] * (1 - steeringWeight) +
+        flowDir[1] * steeringWeight,
+      state.currentDirection[2] * (1 - steeringWeight) +
+        flowDir[2] * steeringWeight,
     ];
 
     // Normalize direction
     const mag = Math.sqrt(
-      (state.currentDirection as any)[0] ** 2 +
-        (state.currentDirection as any)[1] ** 2 +
-        (state.currentDirection as any)[2] ** 2
+      state.currentDirection[0] ** 2 +
+        state.currentDirection[1] ** 2 +
+        state.currentDirection[2] ** 2
     );
 
     if (mag > 0.001) {
-      const normalizedDir: Vector3 = [
-        (state.currentDirection as any)[0] / mag,
-        (state.currentDirection as any)[1] / mag,
-        (state.currentDirection as any)[2] / mag,
+      const normalizedDir: Vector3Tuple = [
+        state.currentDirection[0] / mag,
+        state.currentDirection[1] / mag,
+        state.currentDirection[2] / mag,
       ];
 
       // Update position
       if (node.properties) {
         node.properties.position = [
-          (currentPos as any)[0] + (normalizedDir as any)[0] * speed * delta,
-          (currentPos as any)[1] + (normalizedDir as any)[1] * speed * delta,
-          (currentPos as any)[2] + (normalizedDir as any)[2] * speed * delta,
+          currentPos[0] + normalizedDir[0] * speed * delta,
+          currentPos[1] + normalizedDir[1] * speed * delta,
+          currentPos[2] + normalizedDir[2] * speed * delta,
         ];
 
         // Face the direction of movement
         node.properties.rotation = [
           0,
-          Math.atan2((normalizedDir as any)[0], (normalizedDir as any)[2]) * (180 / Math.PI),
+          Math.atan2(normalizedDir[0], normalizedDir[2]) * (180 / Math.PI),
           0,
         ];
       }

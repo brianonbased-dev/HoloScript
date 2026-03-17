@@ -34,7 +34,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     menuSprings.set(node.id!, spring);
     if (node.properties) {
       node.properties.scale = { x: 0, y: 0, z: 0 };
-      (node.properties as any).opacity = 0;
+      node.properties!.opacity = 0;
     }
   },
 
@@ -61,7 +61,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
       if (node.properties) {
         const s = visibility * (config.scale || 1);
         node.properties.scale = { x: s, y: s, z: s };
-        (node.properties as any).opacity = visibility;
+        node.properties!.opacity = visibility;
       }
       return;
     }
@@ -80,7 +80,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
       node.properties.position = newPos;
       const s = visibility * (config.scale || 1);
       node.properties.scale = { x: s, y: s, z: s };
-      (node.properties as any).opacity = visibility;
+      node.properties!.opacity = visibility;
     }
   },
 };

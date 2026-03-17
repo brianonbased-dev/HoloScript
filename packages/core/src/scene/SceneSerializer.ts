@@ -18,14 +18,14 @@ export interface SerializedScene {
   timestamp: string;
   name: string;
   root: SerializedNode;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SerializedNode {
   id: string;
   type: string;
-  properties: Record<string, any>;
-  traits: Record<string, any>; // Map<string,T> → Object
+  properties: Record<string, unknown>;
+  traits: Record<string, unknown>; // Map<string,T> → Object
   children: SerializedNode[];
 }
 
@@ -48,8 +48,8 @@ export class SceneSerializer {
    */
   serialize(
     rootOrName?: HSPlusNode | string,
-    sceneNameOrMeta?: string | Record<string, any>,
-    metadata?: Record<string, any>
+    sceneNameOrMeta?: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): SerializedScene {
     // Detect node-based call: first arg is an object with a 'type' property
     if (rootOrName && typeof rootOrName === 'object' && 'type' in rootOrName) {
@@ -58,14 +58,14 @@ export class SceneSerializer {
       const meta =
         typeof sceneNameOrMeta === 'string'
           ? metadata
-          : (sceneNameOrMeta as Record<string, any> | undefined);
+          : (sceneNameOrMeta as Record<string, unknown> | undefined);
       return this.serializeFromNode(root, sceneName, meta);
     }
 
     // World-based serialization
     const sceneName = typeof rootOrName === 'string' ? rootOrName : 'untitled';
     const meta =
-      typeof sceneNameOrMeta === 'object' ? (sceneNameOrMeta as Record<string, any>) : metadata;
+      typeof sceneNameOrMeta === 'object' ? (sceneNameOrMeta as Record<string, unknown>) : metadata;
 
     if (!this.world) {
       return {
@@ -80,7 +80,7 @@ export class SceneSerializer {
     const entities = this.world.getAllEntities();
     const childEntities = new Set<Entity>();
     entities.forEach((e) => {
-      const t = this.world!.getComponent<any>(e, 'Transform');
+      const t = this.world!.getComponent<Record<string, unknown>>(e, 'Transform');
       if (t && t.parent !== undefined) childEntities.add(e);
     });
     const roots = entities.filter((e) => !childEntities.has(e));
@@ -110,7 +110,7 @@ export class SceneSerializer {
   private serializeFromNode(
     root: HSPlusNode,
     sceneName: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): SerializedScene {
     this.visitedIds.clear();
     return {
@@ -125,13 +125,13 @@ export class SceneSerializer {
   private serializeEntity(entity: Entity): SerializedNode {
     const id = `e_${entity}`;
 
-    const properties: Record<string, any> = {};
-    const traits: Record<string, any> = {};
+    const properties: Record<string, unknown> = {};
+    const traits: Record<string, unknown> = {};
 
     const compTypes = this.world!.getComponentTypes(entity);
 
     compTypes.forEach((type) => {
-      const data = this.world!.getComponent<any>(entity, type);
+      const data = this.world!.getComponent<Record<string, unknown>>(entity, type);
       if (!data) return;
 
       if (type === 'Transform') {
@@ -167,7 +167,7 @@ export class SceneSerializer {
     const children: SerializedNode[] = [];
     const all = this.world!.getAllEntities();
     all.forEach((other) => {
-      const t = this.world!.getComponent<any>(other, 'Transform');
+      const t = this.world!.getComponent<Record<string, unknown>>(other, 'Transform');
       // Strict check: t.parent === entity
       // Note: internal representation of parent matches entity ID or ref?
       // Since we use Entity (number) as ID, strict equality works if t.parent stored Entity.
@@ -184,7 +184,7 @@ export class SceneSerializer {
       id,
       type: 'entity',
       properties: this.sanitizeProperties(properties),
-      traits: this.sanitizeValue(traits),
+      traits: this.sanitizeValue(traits) as Record<string, unknown>,
       children,
     };
   }
@@ -200,7 +200,7 @@ export class SceneSerializer {
     }
     this.visitedIds.add(id);
 
-    const traits: Record<string, any> = {};
+    const traits: Record<string, unknown> = {};
     if (node.traits instanceof Map) {
       for (const [key, value] of node.traits) {
         traits[key] = this.sanitizeValue(value);
@@ -225,8 +225,8 @@ export class SceneSerializer {
     return JSON.stringify(scene, null, 2);
   }
 
-  private sanitizeProperties(props: any): Record<string, any> {
-    const result: Record<string, any> = {};
+  private sanitizeProperties(props: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(props)) {
       if (key.startsWith('_')) continue;
       if (key === '__holo_id') continue;
@@ -235,12 +235,12 @@ export class SceneSerializer {
     return result;
   }
 
-  private sanitizeValue(value: any): any {
+  private sanitizeValue(value: unknown): unknown {
     if (value === null || value === undefined) return value;
     if (typeof value === 'function') return undefined;
 
     if (value instanceof Map) {
-      const obj: Record<string, any> = {};
+      const obj: Record<string, unknown> = {};
       for (const [k, v] of value) {
         obj[String(k)] = this.sanitizeValue(v);
       }
@@ -256,8 +256,8 @@ export class SceneSerializer {
     }
 
     if (typeof value === 'object') {
-      const result: Record<string, any> = {};
-      for (const [k, v] of Object.entries(value)) {
+      const result: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         if (k.startsWith('_')) continue;
         const sanitized = this.sanitizeValue(v);
         if (sanitized !== undefined) {

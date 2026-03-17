@@ -17,7 +17,8 @@ describe('Absorb → Parse Validation', () => {
 state API_VERSION: dynamic = "2.1"`;
 
     const ast = parse(hsplus);
-    expect(ast).toBeDefined();\n    // Parser may treat state as property, not top-level node
+    expect(ast).toBeDefined();
+    // Parser may treat state as property, not top-level node
   });
 
   it('parses generated template with @agent trait', () => {

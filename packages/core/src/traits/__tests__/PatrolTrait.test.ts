@@ -22,7 +22,7 @@ describe('PatrolTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('patrol-guard');
-    (node as any).position = { x: 0, y: 0, z: 0 };
+    node.position = { x: 0, y: 0, z: 0 };
     ctx = createMockContext();
   });
 
@@ -47,7 +47,7 @@ describe('PatrolTrait', () => {
 
   describe('movement', () => {
     it('moves toward current waypoint', () => {
-      (node as any).position = { x: 0, y: 0, z: 0 };
+      node.position = { x: 0, y: 0, z: 0 };
       attachTrait(patrolHandler, node, { waypoints, speed: 100 }, ctx);
       ctx.clearEvents();
 
@@ -56,7 +56,7 @@ describe('PatrolTrait', () => {
     });
 
     it('emits patrol_waypoint_reached on arrival', () => {
-      (node as any).position = { x: 9.95, y: 0, z: 0 }; // Very close to wp[1]
+      node.position = { x: 9.95, y: 0, z: 0 }; // Very close to wp[1]
       attachTrait(patrolHandler, node, { waypoints, speed: 10 }, ctx);
       const state = (node as any).__patrolState;
       state.currentIndex = 1;

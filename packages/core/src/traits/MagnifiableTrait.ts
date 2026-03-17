@@ -67,8 +67,8 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
     node.__magnifiableState = state;
 
     // Store original scale
-    if ((node as any).scale) {
-      const s = (node as any).scale;
+    if (node.scale) {
+      const s = node.scale;
       state.originalScale = { x: s.x || 1, y: s.y || 1, z: s.z || 1 };
     }
 
@@ -83,10 +83,10 @@ export const magnifiableHandler: TraitHandler<MagnifiableConfig> = {
     const state = node.__magnifiableState as MagnifiableState;
 
     // Restore original scale
-    if (state && (node as any).scale) {
-      (node as any).scale.x = state.originalScale.x;
-      (node as any).scale.y = state.originalScale.y;
-      (node as any).scale.z = state.originalScale.z;
+    if (state && node.scale) {
+      node.scale.x = state.originalScale.x;
+      node.scale.y = state.originalScale.y;
+      node.scale.z = state.originalScale.z;
     }
 
     context.emit?.('magnifiable_unregister', { node });

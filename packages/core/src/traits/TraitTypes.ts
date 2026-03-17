@@ -33,6 +33,23 @@ export interface HostExecResult {
   stderr?: string;
 }
 
+export interface HostNetworkRequestOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeoutMs?: number;
+  credentials?: 'omit' | 'same-origin' | 'include';
+}
+
+export interface HostNetworkResponse {
+  status: number;
+  ok: boolean;
+  headers?: Record<string, string>;
+  body?: unknown;
+  text?: string;
+  json?: unknown;
+}
+
 export interface HostFileSystemCapabilities {
   readFile: (path: string) => Promise<string> | string;
   writeFile: (path: string, content: string) => Promise<void> | void;
@@ -49,9 +66,17 @@ export interface HostProcessCapabilities {
   kill?: (pid: number, signal?: string) => Promise<void> | void;
 }
 
+export interface HostNetworkCapabilities {
+  fetch: (
+    url: string,
+    options?: HostNetworkRequestOptions
+  ) => Promise<HostNetworkResponse> | HostNetworkResponse;
+}
+
 export interface HostCapabilities {
   fileSystem?: HostFileSystemCapabilities;
   process?: HostProcessCapabilities;
+  network?: HostNetworkCapabilities;
 }
 
 export interface TraitContext {
@@ -138,6 +163,14 @@ export interface RaycastHit {
 
 export type TraitEvent =
   | { type: string; [key: string]: unknown }
+  | {
+      type: 'action:result';
+      requestId: string;
+      status?: 'success' | 'failure' | 'running';
+      success?: boolean;
+      output?: unknown;
+      error?: string;
+    }
   | { type: 'grab_start'; hand: VRHand }
   | { type: 'grab_end'; hand: VRHand; velocity: ThrowVelocity }
   | { type: 'hover_enter'; hand: VRHand }

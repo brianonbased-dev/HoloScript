@@ -302,8 +302,8 @@ describe('gpuPhysicsHandler.onUpdate — rigid_body', () => {
       SyncBody: { isSleeping: false, position: [1, 2, 3], rotation: [0, 0, 0, 1] },
     });
     gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
-    expect((node as any).position).toEqual([1, 2, 3]);
-    expect((node as any).rotation).toEqual([0, 0, 0, 1]);
+    expect(node.position).toEqual([1, 2, 3]);
+    expect(node.rotation).toEqual([0, 0, 0, 1]);
   });
 
   it('does NOT update node when body is sleeping', () => {
@@ -313,7 +313,7 @@ describe('gpuPhysicsHandler.onUpdate — rigid_body', () => {
       SleepBody: { isSleeping: true, position: [1, 2, 3], rotation: [0, 0, 0, 1] },
     });
     gpuPhysicsHandler.onUpdate!(node as any, makeConfig(), makeCtx() as any, 0.016);
-    expect((node as any).position).toEqual([5, 5, 5]); // unchanged
+    expect(node.position).toEqual([5, 5, 5]); // unchanged
   });
 
   it('no-op when engine not available during update', () => {

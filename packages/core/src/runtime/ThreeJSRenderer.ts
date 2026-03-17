@@ -18,6 +18,107 @@ import {
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import { MATERIAL_PRESETS } from '../compiler/R3FCompiler';
 
+// =============================================================================
+// Minimal Three.js interfaces (avoids @types/three dependency)
+// =============================================================================
+
+interface ThreeVec3Like {
+  set(...args: number[]): void;
+  distanceTo(v: ThreeVec3Like): number;
+}
+
+interface ThreeObjectLike {
+  name: string;
+  position: ThreeVec3Like;
+  rotation: ThreeVec3Like;
+  scale: ThreeVec3Like;
+  castShadow: boolean;
+  receiveShadow: boolean;
+  visible: boolean;
+  frustumCulled: boolean;
+  matrixAutoUpdate: boolean;
+  geometry: { dispose(): void; index: unknown; attributes: Record<string, { array: ArrayLike<number>; needsUpdate: boolean }>; computeVertexNormals(): void };
+  material: { dispose(): void };
+}
+
+interface ThreeSceneLike {
+  add(obj: unknown): void;
+  remove(obj: unknown): void;
+  background: unknown;
+}
+
+interface ThreeRendererLike {
+  render(scene: ThreeSceneLike, camera: unknown): void;
+  setSize(w: number, h: number): void;
+  setPixelRatio(ratio: number): void;
+  dispose(): void;
+  shadowMap: { enabled: boolean; type: unknown };
+  physicallyCorrectLights: boolean;
+  toneMapping: unknown;
+  toneMappingExposure: number;
+  outputEncoding: unknown;
+  domElement: HTMLCanvasElement;
+  info: {
+    render: { calls: number; triangles: number; points: number; lines: number };
+    memory: { geometries: number; textures: number };
+    programs: unknown[];
+  };
+}
+
+interface ThreeCameraLike {
+  position: ThreeVec3Like;
+  lookAt(...args: number[]): void;
+  fov: number;
+  aspect: number;
+  updateProjectionMatrix(): void;
+}
+
+interface GeometrySpec {
+  type?: string;
+  size?: number | number[];
+  radius?: number;
+  height?: number;
+  tube?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  length?: number;
+  capSegments?: number;
+  radialSegments?: number;
+  tubularSegments?: number;
+  p?: number;
+  q?: number;
+  detail?: number;
+  path?: unknown;
+  segments?: number;
+  points?: number;
+  depth?: number;
+  teeth?: number;
+  toothDepth?: number;
+}
+
+interface MaterialSpec {
+  type?: string;
+  color?: string;
+  [key: string]: unknown;
+}
+
+interface TransformSpec {
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+}
+
+/** Minimal Three.js light interface (all Light subclasses extend Object3D) */
+interface ThreeLightLike {
+  name: string;
+  position: ThreeVec3Like;
+  castShadow: boolean;
+  shadow?: {
+    mapSize: { width: number; height: number };
+    camera: { near: number; far: number };
+  };
+}
+
 /**
  * Three.js Runtime Renderer
  *
@@ -25,24 +126,24 @@ import { MATERIAL_PRESETS } from '../compiler/R3FCompiler';
  * Extracts rendering knowledge from R3FCompiler for direct execution.
  */
 export class ThreeJSRenderer extends BaseRuntimeRenderer {
-  private scene: any; // THREE.Scene
-  private renderer: any; // THREE.WebGLRenderer
-  private activeCamera: any; // THREE.PerspectiveCamera
-  private meshes = new Map<string, any>(); // THREE.Mesh
-  private particleGeometries = new Map<string, any>(); // THREE.BufferGeometry
-  private particleMeshes = new Map<string, any>(); // THREE.Points
-  private lightObjects = new Map<string, any>(); // THREE.Light
+  private scene: ThreeSceneLike | null = null;
+  private renderer: ThreeRendererLike | null = null;
+  private activeCamera: ThreeCameraLike | null = null;
+  private meshes = new Map<string, ThreeObjectLike>();
+  private particleGeometries = new Map<string, ThreeObjectLike['geometry']>();
+  private particleMeshes = new Map<string, ThreeObjectLike>();
+  private lightObjects = new Map<string, ThreeLightLike>();
   private animationFrameId?: number;
-  private clock: any; // THREE.Clock
-  private composer: any; // EffectComposer
-  private renderPass: any; // RenderPass
-  private bloomPass: any; // UnrealBloomPass
-  private bokehPass: any; // BokehPass (DOF)
-  private ssaoPass: any; // SSAOPass (Screen-Space Ambient Occlusion)
-  private enabledEffects = new Set<string>(); // Track enabled effects
-  private instancedMeshes = new Map<string, any>(); // Geometry type → InstancedMesh
-  private instanceMatrices = new Map<string, Float32Array>(); // Geometry type → matrix data
-  private instanceCounts = new Map<string, number>(); // Geometry type → instance count
+  private clock: { start(): void; stop(): void; getDelta(): number } | null = null;
+  private composer: { render(): void; addPass(pass: unknown): void } | null = null;
+  private renderPass: unknown = null;
+  private bloomPass: unknown = null;
+  private bokehPass: unknown = null;
+  private ssaoPass: Record<string, unknown> | null = null;
+  private enabledEffects = new Set<string>();
+  private instancedMeshes = new Map<string, unknown>();
+  private instanceMatrices = new Map<string, Float32Array>();
+  private instanceCounts = new Map<string, number>();
   private maxInstancesPerType = 1000; // Max instances per geometry type
   private enableInstancing = true; // Enable instanced rendering for fragments
   private stats = {
@@ -84,67 +185,71 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       // const THREE = await import('three');
 
       // For now, assume THREE is available globally or via bundler
-      if (typeof (window as any).THREE === 'undefined') {
+      if (typeof ThreeJSRenderer.getThreeLib() === 'undefined') {
         console.error('[ThreeJSRenderer] THREE.js not loaded. Please include Three.js library.');
         return;
       }
 
-      const THREE = (window as any).THREE;
+      const THREE = ThreeJSRenderer.getThreeLib()!;
 
-      // Create scene
-      this.scene = new THREE.Scene();
-      this.scene.background = new THREE.Color(this.config.backgroundColor);
+      // Create scene (local var avoids repeated null-checks)
+      const scene: ThreeSceneLike = new THREE.Scene();
+      scene.background = new THREE.Color(this.config.backgroundColor);
+      this.scene = scene;
 
       // Create clock
       this.clock = new THREE.Clock();
 
       // Create camera
-      this.activeCamera = new THREE.PerspectiveCamera(
+      const camera: ThreeCameraLike = new THREE.PerspectiveCamera(
         60, // fov
         (this.config.width || 1920) / (this.config.height || 1080), // aspect
         0.1, // near
         10000 // far
       );
-      this.activeCamera.position.set(0, 20, 50);
-      this.activeCamera.lookAt(0, 10, 0);
+      camera.position.set(0, 20, 50);
+      camera.lookAt(0, 10, 0);
+      this.activeCamera = camera;
 
       // Create renderer
       const canvas = this.config.canvas || document.createElement('canvas');
-      this.renderer = new THREE.WebGLRenderer({
+      const renderer: ThreeRendererLike = new THREE.WebGLRenderer({
         canvas,
         antialias: this.config.antialias,
         alpha: true,
       });
-      this.renderer.setSize(this.config.width || 1920, this.config.height || 1080);
-      this.renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(this.config.width || 1920, this.config.height || 1080);
+      renderer.setPixelRatio(window.devicePixelRatio);
 
       // Configure renderer
       if (this.config.shadows) {
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       }
 
       if (this.config.physicallyCorrectLights) {
-        this.renderer.physicallyCorrectLights = true;
+        renderer.physicallyCorrectLights = true;
       }
 
       // Tone mapping
       if (this.config.toneMapping === 'ACESFilmic') {
-        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
       }
-      this.renderer.toneMappingExposure = this.config.toneMappingExposure || 1.0;
+      renderer.toneMappingExposure = this.config.toneMappingExposure || 1.0;
 
       // Output encoding
       if (this.config.outputEncoding === 'sRGB') {
-        this.renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.outputEncoding = THREE.sRGBEncoding;
       }
+
+      this.renderer = renderer;
 
       // Initialize post-processing composer
       this.initializePostProcessing();
 
       // Add canvas to DOM if not provided
       if (!this.config.canvas && document.body) {
-        document.body.appendChild(this.renderer.domElement);
+        document.body.appendChild(renderer.domElement);
       }
 
       // Load composition into scene
@@ -162,9 +267,23 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   private loadComposition(): void {
     if (!this.composition) return;
 
+    // Extended shape used by the runtime loader (entities/traits are from the runtime adapter)
+    interface RuntimeEntity {
+      name: string;
+      type?: string;
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+      traits?: Array<{ name: string; properties?: Record<string, unknown> }>;
+    }
+    const comp = this.composition as unknown as {
+      entities?: RuntimeEntity[];
+      traits?: Array<{ name: string; properties?: Record<string, unknown> }>;
+    };
+
     // Load entities as objects
-    if (this.composition.entities) {
-      for (const entity of this.composition.entities) {
+    if (comp.entities) {
+      for (const entity of comp.entities) {
         const renderableObject: RenderableObject = {
           id: entity.name,
           type: entity.type || 'box',
@@ -186,7 +305,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         if (fractTrait?.properties?.material) {
           renderableObject.material = {
             ...renderableObject.material,
-            ...fractTrait.properties.material,
+            ...(fractTrait.properties.material as Record<string, unknown>),
           };
         }
 
@@ -195,13 +314,13 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     }
 
     // Load camera from traits
-    const cameraTrait = this.composition.traits?.find((t) => t.name === 'camera');
+    const cameraTrait = comp.traits?.find((t) => t.name === 'camera');
     if (cameraTrait?.properties) {
-      const camProps = cameraTrait.properties;
+      const camProps = cameraTrait.properties as Record<string, unknown>;
       this.updateCamera({
-        position: camProps.position || [0, 20, 50],
-        target: camProps.target || [0, 10, 0],
-        fov: camProps.fov || 60,
+        position: (camProps.position as [number, number, number]) || [0, 20, 50],
+        target: (camProps.target as [number, number, number]) || [0, 10, 0],
+        fov: (camProps.fov as number) || 60,
       });
     }
 
@@ -303,9 +422,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * Add object to scene
    */
   addObject(object: RenderableObject): void {
-    if (!this.scene || typeof (window as any).THREE === 'undefined') return;
+    if (!this.scene || typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     try {
       // Create geometry
@@ -351,15 +470,20 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   /**
    * Create geometry from specification
    */
-  private createGeometry(spec: any): any {
-    const THREE = (window as any).THREE;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private static getThreeLib(): Record<string, any> | null {
+    return typeof window !== 'undefined' ? (window as unknown as Record<string, unknown>).THREE as Record<string, any> | null : null;
+  }
+
+  private createGeometry(spec: GeometrySpec): unknown {
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     const type = spec.type || 'box';
     const size = Array.isArray(spec.size)
       ? spec.size
       : [spec.size || 1, spec.size || 1, spec.size || 1];
 
-    const geometryMap: Record<string, any> = {
+    const geometryMap: Record<string, () => unknown> = {
       // ===== CORE PRIMITIVES (7) =====
       box: () => new THREE.BoxGeometry(...size),
       sphere: () => new THREE.SphereGeometry(spec.radius || size[0], 32, 32),
@@ -576,8 +700,8 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   /**
    * Create material using R3FCompiler presets
    */
-  private createMaterial(spec: any): any {
-    const THREE = (window as any).THREE;
+  private createMaterial(spec: MaterialSpec): unknown {
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     // Start with preset if specified
     const presetName = spec.type || 'plastic';
@@ -607,7 +731,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   removeObject(objectId: string): void {
     const mesh = this.meshes.get(objectId);
     if (mesh) {
-      this.scene.remove(mesh);
+      this.scene?.remove(mesh);
       mesh.geometry.dispose();
       mesh.material.dispose();
       this.meshes.delete(objectId);
@@ -622,7 +746,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   /**
    * Update object transform
    */
-  updateObjectTransform(objectId: string, transform: any): void {
+  updateObjectTransform(objectId: string, transform: TransformSpec): void {
     const mesh = this.meshes.get(objectId);
     if (mesh) {
       if (transform.position) {
@@ -641,9 +765,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * Add particle system
    */
   addParticleSystem(system: ParticleSystem): void {
-    if (!this.scene || typeof (window as any).THREE === 'undefined') return;
+    if (!this.scene || typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     try {
       // Create buffer geometry
@@ -707,7 +831,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
   removeParticleSystem(systemId: string): void {
     const points = this.particleMeshes.get(systemId);
     if (points) {
-      this.scene.remove(points);
+      this.scene?.remove(points);
       points.geometry.dispose();
       points.material.dispose();
       this.particleGeometries.delete(systemId);
@@ -724,12 +848,12 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * Add light to scene
    */
   addLight(light: RenderableLight): void {
-    if (!this.scene || typeof (window as any).THREE === 'undefined') return;
+    if (!this.scene || typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     try {
-      let lightObject: any;
+      let lightObject: ThreeLightLike;
 
       switch (light.type) {
         case 'ambient':
@@ -746,10 +870,10 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
           }
           if (light.castShadow) {
             lightObject.castShadow = true;
-            lightObject.shadow.mapSize.width = 2048;
-            lightObject.shadow.mapSize.height = 2048;
-            lightObject.shadow.camera.near = 0.5;
-            lightObject.shadow.camera.far = 500;
+            lightObject.shadow!.mapSize.width = 2048;
+            lightObject.shadow!.mapSize.height = 2048;
+            lightObject.shadow!.camera.near = 0.5;
+            lightObject.shadow!.camera.far = 500;
           }
           break;
 
@@ -819,12 +943,12 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * Initialize post-processing pipeline
    */
   private initializePostProcessing(): void {
-    if (typeof (window as any).THREE === 'undefined') return;
+    if (typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     // Check if EffectComposer is available (from three/examples/jsm/postprocessing)
-    if (typeof (window as any).THREE.EffectComposer === 'undefined') {
+    if (typeof THREE.EffectComposer === 'undefined') {
       if (this.config.debug) {
         console.warn('[ThreeJSRenderer] EffectComposer not available. Post-processing disabled.');
         console.warn('Include: three/examples/jsm/postprocessing/EffectComposer.js');
@@ -834,11 +958,12 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
     try {
       // Create EffectComposer
-      this.composer = new THREE.EffectComposer(this.renderer);
+      const composer: { render(): void; addPass(pass: unknown): void } = new THREE.EffectComposer(this.renderer);
 
       // Add render pass (always required)
       this.renderPass = new THREE.RenderPass(this.scene, this.activeCamera);
-      this.composer.addPass(this.renderPass);
+      composer.addPass(this.renderPass);
+      this.composer = composer;
 
       if (this.config.debug) {
         console.log('[ThreeJSRenderer] Post-processing pipeline initialized');
@@ -854,14 +979,14 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * Enable post-processing effect
    */
   enablePostProcessing(effect: PostProcessingEffect): void {
-    if (!this.composer || typeof (window as any).THREE === 'undefined') {
+    if (!this.composer || typeof ThreeJSRenderer.getThreeLib() === 'undefined') {
       if (this.config.debug) {
         console.warn(`[ThreeJSRenderer] Cannot enable ${effect.type}: Composer not initialized`);
       }
       return;
     }
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
 
     try {
       if (effect.type === 'bloom' && effect.enabled) {
@@ -878,7 +1003,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
           params.radius || 0.4, // Bloom radius
           params.threshold || 0.85 // Luminance threshold
         );
-        this.composer.addPass(this.bloomPass);
+        this.composer!.addPass(this.bloomPass);
         this.enabledEffects.add('bloom');
 
         if (this.config.debug) {
@@ -897,7 +1022,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
           aperture: params.aperture || 0.025, // Aperture size
           maxblur: params.maxblur || 0.01, // Max blur amount
         });
-        this.composer.addPass(this.bokehPass);
+        this.composer!.addPass(this.bokehPass);
         this.enabledEffects.add('dof');
 
         if (this.config.debug) {
@@ -912,7 +1037,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
         const params = effect.params || {};
         const afterimagePass = new THREE.AfterimagePass(params.damping || 0.96);
-        this.composer.addPass(afterimagePass);
+        this.composer!.addPass(afterimagePass);
         this.enabledEffects.add('motionBlur');
 
         if (this.config.debug) {
@@ -927,7 +1052,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         }
 
         const params = effect.params || {};
-        this.ssaoPass = new THREE.SSAOPass(
+        const ssaoPass: Record<string, unknown> = new THREE.SSAOPass(
           this.scene,
           this.activeCamera,
           this.config.width || 1920,
@@ -935,19 +1060,20 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         );
 
         // Configure SSAO parameters
-        this.ssaoPass.kernelRadius = params.kernelRadius || 16; // AO kernel radius
-        this.ssaoPass.minDistance = params.minDistance || 0.005; // Min occlusion distance
-        this.ssaoPass.maxDistance = params.maxDistance || 0.1; // Max occlusion distance
-        this.ssaoPass.output = THREE.SSAOPass.OUTPUT.Default; // Default output (combined)
+        ssaoPass.kernelRadius = params.kernelRadius || 16; // AO kernel radius
+        ssaoPass.minDistance = params.minDistance || 0.005; // Min occlusion distance
+        ssaoPass.maxDistance = params.maxDistance || 0.1; // Max occlusion distance
+        ssaoPass.output = THREE.SSAOPass.OUTPUT.Default; // Default output (combined)
 
-        this.composer.addPass(this.ssaoPass);
+        this.ssaoPass = ssaoPass;
+        this.composer!.addPass(ssaoPass);
         this.enabledEffects.add('ssao');
 
         if (this.config.debug) {
           console.log('[ThreeJSRenderer] SSAO (Screen-Space Ambient Occlusion) enabled:', params);
-          console.log('  kernelRadius:', this.ssaoPass.kernelRadius);
-          console.log('  minDistance:', this.ssaoPass.minDistance);
-          console.log('  maxDistance:', this.ssaoPass.maxDistance);
+          console.log('  kernelRadius:', ssaoPass.kernelRadius);
+          console.log('  minDistance:', ssaoPass.minDistance);
+          console.log('  maxDistance:', ssaoPass.maxDistance);
         }
       } else if (effect.type === 'ssr' && effect.enabled) {
         // Screen-Space Reflections
@@ -974,7 +1100,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
         ssrPass.maxDistance = params.maxDistance || 180; // Max reflection distance
         ssrPass.opacity = params.opacity || 0.5; // Reflection opacity
 
-        this.composer.addPass(ssrPass);
+        this.composer!.addPass(ssrPass);
         this.enabledEffects.add('ssr');
 
         if (this.config.debug) {
@@ -1005,9 +1131,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * This is a simple optimization that can reduce memory usage
    */
   public optimizeGeometries(): void {
-    if (typeof (window as any).THREE === 'undefined') return;
+    if (typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
     let optimizedCount = 0;
 
     for (const mesh of this.meshes.values()) {
@@ -1034,9 +1160,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    * Objects far from camera use simpler geometry
    */
   public updateLOD(): void {
-    if (!this.activeCamera || typeof (window as any).THREE === 'undefined') return;
+    if (!this.activeCamera || typeof ThreeJSRenderer.getThreeLib() === 'undefined') return;
 
-    const THREE = (window as any).THREE;
+    const THREE = ThreeJSRenderer.getThreeLib()!;
     const cameraPos = this.activeCamera.position;
 
     for (const [id, mesh] of this.meshes.entries()) {
@@ -1135,7 +1261,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     for (const mesh of this.meshes.values()) {
       mesh.geometry.dispose();
       mesh.material.dispose();
-      this.scene.remove(mesh);
+      this.scene?.remove(mesh);
     }
     this.meshes.clear();
 
@@ -1143,14 +1269,14 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     for (const points of this.particleMeshes.values()) {
       points.geometry.dispose();
       points.material.dispose();
-      this.scene.remove(points);
+      this.scene?.remove(points);
     }
     this.particleGeometries.clear();
     this.particleMeshes.clear();
 
     // Dispose lights
     for (const light of this.lightObjects.values()) {
-      this.scene.remove(light);
+      this.scene?.remove(light);
     }
     this.lightObjects.clear();
 

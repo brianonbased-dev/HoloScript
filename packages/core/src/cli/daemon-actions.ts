@@ -327,7 +327,7 @@ export function createDaemonActions(
     },
 
     // ── Reporting ──────────────────────────────────────────────────────
-    report: async (_params, bb) => {
+    report_results: async (_params, bb) => {
       const before = (bb.quality_before as number) || 0;
       const after = (bb.quality_after as number) || 0;
       const delta = after - before;

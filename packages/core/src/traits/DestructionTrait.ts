@@ -322,8 +322,8 @@ function triggerDestruction(
 
   state.isDestroyed = true;
 
-  const position = (node as any).position || { x: 0, y: 0, z: 0 };
-  const scale = (node as any).scale || { x: 1, y: 1, z: 1 };
+  const position = node.position || { x: 0, y: 0, z: 0 };
+  const scale = node.scale || { x: 1, y: 1, z: 1 };
 
   // Generate fragments
   state.fragments = generateFragments(

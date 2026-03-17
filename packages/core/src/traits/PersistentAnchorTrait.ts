@@ -117,17 +117,17 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
 
     // Apply position from resolved anchor
     if (state.state === 'tracking' || state.state === 'resolved') {
-      if ((node as any).position) {
-        (node as any).position.x = state.localPosition.x;
-        (node as any).position.y = state.localPosition.y;
-        (node as any).position.z = state.localPosition.z;
+      if (node.position) {
+        node.position.x = state.localPosition.x;
+        node.position.y = state.localPosition.y;
+        node.position.z = state.localPosition.z;
       }
-      if ((node as any).rotation) {
-        (node as any).rotation.x = state.localRotation.x;
-        (node as any).rotation.y = state.localRotation.y;
-        (node as any).rotation.z = state.localRotation.z;
-        if ((node as any).rotation.w !== undefined) {
-          (node as any).rotation.w = state.localRotation.w;
+      if (node.rotation) {
+        node.rotation.x = state.localRotation.x;
+        node.rotation.y = state.localRotation.y;
+        node.rotation.z = state.localRotation.z;
+        if (node.rotation.w !== undefined) {
+          node.rotation.w = state.localRotation.w;
         }
       }
     }
@@ -174,8 +174,8 @@ export const persistentAnchorHandler: TraitHandler<PersistentAnchorConfig> = {
       state.state = 'tracking';
     } else if (event.type === 'persistent_anchor_create') {
       // Create new anchor at current position
-      const pos = (node as any).position || { x: 0, y: 0, z: 0 };
-      const rot = (node as any).rotation || { x: 0, y: 0, z: 0, w: 1 };
+      const pos = node.position || { x: 0, y: 0, z: 0 };
+      const rot = node.rotation || { x: 0, y: 0, z: 0, w: 1 };
 
       context.emit?.('persistent_anchor_create_request', {
         node,

@@ -931,7 +931,6 @@ const TRAIT_COMPLETIONS: Record<string, { detail: string; documentation: string 
 
 
   // ── Auto-generated completions ──
-node.exe : npm warn Unknown project
 };
 
 // =============================================================================

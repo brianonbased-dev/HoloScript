@@ -148,7 +148,7 @@ export const hapticHandler: TraitHandler<HapticTrait> = {
 
     // Handle proximity haptics
     if (config.proximity_enabled && node.properties) {
-      const pos = (node.properties as any).position || [0, 0, 0];
+      const pos = node.properties!.position || [0, 0, 0];
       const dominantHand = context.vr.getDominantHand();
 
       if (dominantHand) {

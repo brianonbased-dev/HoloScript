@@ -82,6 +82,10 @@ export interface HSPlusNode extends ASTNode {
   directives?: HSPlusDirective[];
   args?: unknown;
   body?: unknown;
+  /** Scene-graph rotation set by spatial traits at runtime (euler or quaternion). */
+  rotation?: { x: number; y: number; z: number; w?: number };
+  /** Scene-graph scale set by spatial traits at runtime. */
+  scale?: { x: number; y: number; z: number };
   version?: string | number;
   migrations?: Array<{ type: string; fromVersion: number; body: string }>;
   migrationBlocks?: Record<number, string>;

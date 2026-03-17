@@ -11,8 +11,13 @@ import * as fs from 'fs';
 /**
  * Module resolver for TypeScript/JavaScript integration
  */
+interface ModuleInfo {
+  path: string;
+  exports: Record<string, unknown>;
+}
+
 export class ModuleResolver {
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, ModuleInfo> = new Map();
   private resolvedPaths: Map<string, string> = new Map();
   private basePath: string;
 
@@ -130,16 +135,16 @@ export class ModuleResolver {
   /**
    * Load module (with caching)
    */
-  loadModule(modulePath: string, fromPath?: string): any {
+  loadModule(modulePath: string, fromPath?: string): ModuleInfo {
     const resolved = this.resolveModule(modulePath, fromPath);
     const cacheKey = resolved;
 
     if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey);
+      return this.cache.get(cacheKey)!;
     }
 
     // For now, return module info (real implementation would execute)
-    const module = {
+    const module: ModuleInfo = {
       path: resolved,
       exports: {},
     };
@@ -161,12 +166,12 @@ export class ModuleResolver {
  * Named export/import handler
  */
 export class ExportImportHandler {
-  private exports: Map<string, Map<string, any>> = new Map();
+  private exports: Map<string, Map<string, unknown>> = new Map();
 
   /**
    * Define named export
    */
-  defineExport(modulePath: string, name: string, value: any): void {
+  defineExport(modulePath: string, name: string, value: unknown): void {
     if (!this.exports.has(modulePath)) {
       this.exports.set(modulePath, new Map());
     }
@@ -177,7 +182,7 @@ export class ExportImportHandler {
   /**
    * Get named export
    */
-  getExport(modulePath: string, name: string): any {
+  getExport(modulePath: string, name: string): unknown {
     const moduleExports = this.exports.get(modulePath);
 
     if (!moduleExports) {
@@ -194,14 +199,14 @@ export class ExportImportHandler {
   /**
    * Get all exports from module
    */
-  getAllExports(modulePath: string): Record<string, any> {
+  getAllExports(modulePath: string): Record<string, unknown> {
     const moduleExports = this.exports.get(modulePath);
 
     if (!moduleExports) {
       return {};
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
     for (const [name, value] of moduleExports) {
       result[name] = value;
@@ -225,8 +230,8 @@ export class AsyncFunctionHandler {
   /**
    * Wrap async function for HoloScript
    */
-  wrapAsyncFunction(fn: (...args: any[]) => Promise<any>): (...args: any[]) => Promise<any> {
-    return async (...args: any[]) => {
+  wrapAsyncFunction(fn: (...args: unknown[]) => Promise<unknown>): (...args: unknown[]) => Promise<unknown> {
+    return async (...args: unknown[]) => {
       try {
         return await fn(...args);
       } catch (error) {
@@ -238,7 +243,7 @@ export class AsyncFunctionHandler {
   /**
    * Check if function is async
    */
-  isAsync(fn: any): boolean {
+  isAsync(fn: unknown): boolean {
     if (typeof fn !== 'function') {
       return false;
     }
@@ -250,9 +255,9 @@ export class AsyncFunctionHandler {
   /**
    * Convert callback to promise
    */
-  callbackToPromise(fn: (callback: (err: any, result: any) => void) => void): Promise<any> {
+  callbackToPromise(fn: (callback: (err: unknown, result: unknown) => void) => void): Promise<unknown> {
     return new Promise((resolve, reject) => {
-      fn((err: any, result: any) => {
+      fn((err: unknown, result: unknown) => {
         if (err) {
           reject(err);
         } else {
@@ -265,7 +270,7 @@ export class AsyncFunctionHandler {
   /**
    * Normalize error from async function
    */
-  private normalizeError(error: any): Error {
+  private normalizeError(error: unknown): Error {
     if (error instanceof Error) {
       return error;
     }
@@ -292,21 +297,22 @@ export class ErrorBoundary {
   /**
    * Wrap function with error boundary
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wrap<T extends (...args: any[]) => any>(fn: T): T {
-    return ((...args: any[]) => {
+    return ((...args: unknown[]) => {
       try {
         const result = fn(...args);
 
         // Handle async functions
         if (result instanceof Promise) {
-          return result.catch((error: any) => {
+          return result.catch((error: unknown) => {
             this.handleError(error);
             throw error;
           });
         }
 
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.handleError(error);
         throw error;
       }
@@ -316,11 +322,12 @@ export class ErrorBoundary {
   /**
    * Wrap async function with error boundary
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wrapAsync<T extends (...args: any[]) => Promise<any>>(fn: T): T {
-    return (async (...args: any[]) => {
+    return (async (...args: unknown[]) => {
       try {
         return await fn(...args);
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.handleError(error);
         throw error;
       }
@@ -333,7 +340,7 @@ export class ErrorBoundary {
   execute<T>(fn: () => T): T {
     try {
       return fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleError(error);
       throw error;
     }
@@ -345,7 +352,7 @@ export class ErrorBoundary {
   async executeAsync<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleError(error);
       throw error;
     }
@@ -354,7 +361,7 @@ export class ErrorBoundary {
   /**
    * Handle error
    */
-  private handleError(error: any): void {
+  private handleError(error: unknown): void {
     const normalized = this.normalizeError(error);
     this.errors.push(normalized);
 
@@ -380,7 +387,7 @@ export class ErrorBoundary {
   /**
    * Normalize error
    */
-  private normalizeError(error: any): Error {
+  private normalizeError(error: unknown): Error {
     if (error instanceof Error) {
       return error;
     }
@@ -400,8 +407,8 @@ export class TypeScriptTypeLoader {
   /**
    * Load types from TypeScript declaration file
    */
-  loadTypes(_filePath: string): Map<string, any> {
-    const types = new Map<string, any>();
+  loadTypes(_filePath: string): Map<string, unknown> {
+    const types = new Map<string, unknown>();
 
     // In real implementation, would parse .d.ts file
     // For now, return empty map
@@ -411,7 +418,7 @@ export class TypeScriptTypeLoader {
   /**
    * Convert TypeScript type to HoloScript type
    */
-  convertType(tsType: any): any {
+  convertType(tsType: unknown): unknown {
     // Basic type mapping
     const mapping: Record<string, string> = {
       string: 'text',
@@ -438,12 +445,12 @@ export class TypeScriptTypeLoader {
     if (typeof tsType === 'object') {
       return {
         kind: 'object',
-        properties: Object.entries(tsType).reduce(
+        properties: Object.entries(tsType as Record<string, unknown>).reduce(
           (acc, [key, val]) => {
             acc[key] = this.convertType(val);
             return acc;
           },
-          {} as Record<string, any>
+          {} as Record<string, unknown>
         ),
       };
     }

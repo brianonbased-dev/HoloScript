@@ -30,6 +30,7 @@ import type {
   HoloUI,
   HoloTransition,
   HoloEffects,
+  HoloDomainBlock,
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { CompilerBase } from './CompilerBase';
@@ -169,7 +170,7 @@ export class BabylonCompiler extends CompilerBase {
   }
 
   private compileBabylonDomainBlocks(composition: HoloComposition): void {
-    const domainBlocks = (composition as any).domainBlocks ?? [];
+    const domainBlocks = ((composition as unknown as { domainBlocks?: HoloDomainBlock[] }).domainBlocks) ?? [];
     if (domainBlocks.length === 0) return;
 
     this.emit('');
@@ -255,7 +256,7 @@ export class BabylonCompiler extends CompilerBase {
         this.emit(`skyMat.disableLighting = true;`);
         this.emit(`skybox.material = skyMat; skybox.infiniteDistance = true;`);
       } else if (prop.key === 'fog' && typeof prop.value === 'object') {
-        const fog = prop.value as Record<string, any>;
+        const fog = prop.value as Record<string, unknown>;
         this.emit(`this.scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;`);
         if (fog.color) this.emit(`this.scene.fogColor = ${this.toBabylonColor3(fog.color)};`);
         if (fog.near !== undefined) this.emit(`this.scene.fogStart = ${fog.near};`);
@@ -269,7 +270,7 @@ export class BabylonCompiler extends CompilerBase {
           `const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, this.scene);`
         );
         if (typeof prop.value === 'object' && prop.value !== null) {
-          const g = prop.value as Record<string, any>;
+          const g = prop.value as Record<string, unknown>;
           if (g.color) {
             this.emit(`const groundMat = new BABYLON.PBRMaterial("groundMat", this.scene);`);
             this.emit(
@@ -291,8 +292,8 @@ export class BabylonCompiler extends CompilerBase {
     let geom = 'cube',
       modelSrc: string | undefined,
       textContent: string | undefined;
-    let position: any[] | undefined, rotation: any[] | undefined, scale: any, size: any;
-    const mat: Record<string, any> = {};
+    let position: unknown[] | undefined, rotation: unknown[] | undefined, scale: unknown, size: unknown;
+    const mat: Record<string, unknown> = {};
 
     for (const p of obj.properties) {
       switch (p.key) {
@@ -335,7 +336,7 @@ export class BabylonCompiler extends CompilerBase {
           break;
         case 'material':
           if (typeof p.value === 'object' && p.value !== null)
-            Object.assign(mat, p.value as Record<string, any>);
+            Object.assign(mat, p.value as Record<string, unknown>);
           break;
         case 'model':
         case 'src':
@@ -376,7 +377,7 @@ export class BabylonCompiler extends CompilerBase {
         if (mat.color) this.emit(`${v}Mat.albedoColor = ${this.toBabylonColor3(mat.color)};`);
         if (mat.roughness !== undefined) this.emit(`${v}Mat.roughness = ${mat.roughness};`);
         if (mat.metalness !== undefined) this.emit(`${v}Mat.metallic = ${mat.metalness};`);
-        if (mat.opacity !== undefined && mat.opacity < 1)
+        if (mat.opacity !== undefined && (mat.opacity as number) < 1)
           this.emit(`${v}Mat.alpha = ${mat.opacity};`);
         if (mat.emissive)
           this.emit(`${v}Mat.emissiveColor = ${this.toBabylonColor3(mat.emissive)};`);
@@ -441,7 +442,7 @@ export class BabylonCompiler extends CompilerBase {
         this.emit(`// @eye_hand_fusion — combine WebXR hand + eye tracking`);
       } else if (trait.name === 'controlnet') {
         this.emit(
-          `// @controlnet(model: "${(trait.config as any)?.model || 'canny'}") — route to inference API`
+          `// @controlnet(model: "${(trait.config as Record<string, unknown>)?.model || 'canny'}") — route to inference API`
         );
       } else if (trait.name === 'ai_texture_gen') {
         this.emit(`// @ai_texture_gen — apply generated texture to ${v}.material`);
@@ -449,7 +450,7 @@ export class BabylonCompiler extends CompilerBase {
         this.emit(`// @neural_animation — BabylonJS AnimationGroup + neural pose predictor`);
       } else if (trait.name === 'ai_npc_brain') {
         this.emit(
-          `// @ai_npc_brain(model: "${(trait.config as any)?.model || 'llm'}") — external LLM/NPC API`
+          `// @ai_npc_brain(model: "${(trait.config as Record<string, unknown>)?.model || 'llm'}") — external LLM/NPC API`
         );
       } else {
         this.emit(`// @${trait.name}: ${JSON.stringify(trait.config || {})}`);
@@ -460,7 +461,7 @@ export class BabylonCompiler extends CompilerBase {
     // Uses TraitCompositor for layer-ordered merge with suppression,
     // requirement, additive, and multi-trait merge rules.
     if (obj.traits && Array.isArray(obj.traits) && obj.traits.length > 0) {
-      const traitNames = obj.traits.map((t: any) => t.name as string);
+      const traitNames = obj.traits.map((t) => t.name);
       const compositor = new TraitCompositor();
       const composed = compositor.compose(traitNames);
       if (Object.keys(composed).length > 0) {
@@ -518,8 +519,8 @@ export class BabylonCompiler extends CompilerBase {
 
   private emitLight(light: HoloLight): void {
     const v = this.sanitizeName(light.name);
-    let pos: any[] | undefined, color: any, intensity: number | undefined;
-    let dir: any[] | undefined,
+    let pos: unknown[] | undefined, color: unknown, intensity: number | undefined;
+    let dir: unknown[] | undefined,
       castShadow = false,
       angle: number | undefined,
       dist: number | undefined;
@@ -582,7 +583,7 @@ export class BabylonCompiler extends CompilerBase {
   // --- Camera ---
 
   private emitCamera(cam: HoloCamera): void {
-    let fov: number | undefined, pos: any[] | undefined, lookAt: any[] | undefined;
+    let fov: number | undefined, pos: unknown[] | undefined, lookAt: unknown[] | undefined;
     let near: number | undefined, far: number | undefined;
     for (const p of cam.properties) {
       if (p.key === 'fov' || p.key === 'field_of_view') fov = p.value as number;
@@ -652,7 +653,7 @@ export class BabylonCompiler extends CompilerBase {
       volume = 1,
       loop = false,
       spatial = false;
-    let position: any[] | undefined, dist: number | undefined;
+    let position: unknown[] | undefined, dist: number | undefined;
     for (const p of audio.properties) {
       if (p.key === 'src' || p.key === 'source') src = String(p.value);
       else if (p.key === 'volume') volume = p.value as number;
@@ -678,8 +679,8 @@ export class BabylonCompiler extends CompilerBase {
   private emitZone(zone: HoloZone): void {
     const v = this.sanitizeName(zone.name);
     let shape = 'box',
-      position: any[] | undefined,
-      size: any,
+      position: unknown[] | undefined,
+      size: unknown,
       radius: number | undefined;
     for (const p of zone.properties) {
       if (p.key === 'shape') shape = String(p.value);
@@ -835,7 +836,7 @@ export class BabylonCompiler extends CompilerBase {
 
   // --- Value Conversion Helpers ---
 
-  private toBabylonColor3(value: any): string {
+  private toBabylonColor3(value: unknown): string {
     if (typeof value === 'string' && value.startsWith('#')) {
       const h = value.slice(1);
       const r = parseInt(h.substring(0, 2), 16) / 255;
@@ -844,15 +845,16 @@ export class BabylonCompiler extends CompilerBase {
       return `new BABYLON.Color3(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     if (typeof value === 'object' && value !== null && 'r' in value) {
-      const r = value.r > 1 ? value.r / 255 : value.r;
-      const g = value.g > 1 ? value.g / 255 : value.g;
-      const b = value.b > 1 ? value.b / 255 : value.b;
+      const c = value as { r: number; g: number; b: number };
+      const r = c.r > 1 ? c.r / 255 : c.r;
+      const g = c.g > 1 ? c.g / 255 : c.g;
+      const b = c.b > 1 ? c.b / 255 : c.b;
       return `new BABYLON.Color3(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
     }
     return 'BABYLON.Color3.White()';
   }
 
-  private toBabylonVector(arr: any[]): string {
+  private toBabylonVector(arr: unknown[]): string {
     if (arr.length >= 3) return `new BABYLON.Vector3(${arr[0]}, ${arr[1]}, ${arr[2]})`;
     if (arr.length === 2) return `new BABYLON.Vector2(${arr[0]}, ${arr[1]})`;
     return `new BABYLON.Vector3(${arr[0]}, ${arr[0]}, ${arr[0]})`;
@@ -862,7 +864,7 @@ export class BabylonCompiler extends CompilerBase {
     return SHAPE_TO_MESH[type] || 'CreateBox';
   }
 
-  private meshBuilderOptions(type: string, size: any): string {
+  private meshBuilderOptions(type: string, size: unknown): string {
     const s = typeof size === 'number' ? size : 1;
     switch (type) {
       case 'sphere':

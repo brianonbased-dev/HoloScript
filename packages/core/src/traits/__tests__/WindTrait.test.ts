@@ -28,7 +28,7 @@ describe('WindTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('wind');
-    (node as any).position = { x: 0, y: 0, z: 0 };
+    node.position = { x: 0, y: 0, z: 0 };
     ctx = createMockContext();
     attachTrait(windHandler, node, cfg, ctx);
   });

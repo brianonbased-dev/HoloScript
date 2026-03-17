@@ -24,7 +24,7 @@ export interface IParentRuntime {
   /**
    * Call a global function
    */
-  callFunction(functionName: string, args: any[]): ExecutionResult;
+  callFunction(functionName: string, args: HoloScriptValue[]): Promise<ExecutionResult>;
 
   /**
    * Get the root scope of the runtime
@@ -39,20 +39,20 @@ export interface IParentRuntime {
   /**
    * Execute a program/expression
    */
-  executeProgram(nodes: any, maxDepth: number): Promise<ExecutionResult[]>;
+  executeProgram(nodes: unknown, maxDepth: number): Promise<ExecutionResult[]>;
 
   /**
    * Emit an event
    */
-  emit(eventName: string, data: any): Promise<any>;
+  emit(eventName: string, data?: unknown): Promise<unknown>;
 
   /**
    * Execute a HoloScript program with a specific scope
    */
-  executeHoloProgram(program: any, scope: Scope): Promise<void>;
+  executeHoloProgram(program: unknown, scope?: Scope): Promise<ExecutionResult[]>;
 
   /**
    * Evaluate an expression
    */
-  evaluateExpression(expr: any): HoloScriptValue;
+  evaluateExpression(expr: unknown): HoloScriptValue;
 }

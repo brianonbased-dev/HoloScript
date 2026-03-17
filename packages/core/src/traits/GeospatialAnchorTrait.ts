@@ -135,10 +135,10 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
 
     // Apply local position from resolved anchor
     if (state.state === 'tracking' || state.state === 'resolved') {
-      if ((node as any).position) {
-        (node as any).position.x = state.localPosition.x;
-        (node as any).position.y = state.localPosition.y;
-        (node as any).position.z = state.localPosition.z;
+      if (node.position) {
+        node.position.x = state.localPosition.x;
+        node.position.y = state.localPosition.y;
+        node.position.z = state.localPosition.z;
       }
     }
   },

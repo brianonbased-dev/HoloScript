@@ -30,7 +30,7 @@ export interface RenderableObject {
     metalness?: number;
     opacity?: number;
     transparent?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   visible?: boolean;
   castShadow?: boolean;
@@ -88,7 +88,7 @@ export interface RenderableCamera {
 export interface PostProcessingEffect {
   type: string;
   enabled: boolean;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 /**
@@ -261,7 +261,14 @@ export abstract class BaseRuntimeRenderer implements RuntimeRenderer {
   abstract render(): void;
   abstract addObject(object: RenderableObject): void;
   abstract removeObject(objectId: string): void;
-  abstract updateObjectTransform(objectId: string, transform: any): void;
+  abstract updateObjectTransform(
+    objectId: string,
+    transform: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    }
+  ): void;
   abstract addParticleSystem(system: ParticleSystem): void;
   abstract updateParticleSystem(
     systemId: string,

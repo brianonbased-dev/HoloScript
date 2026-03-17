@@ -1715,6 +1715,33 @@ export class HoloScriptPlusParser {
     const name = nameToken.value;
 
     // =========================================================================
+    // Hot-Reload: @version(N) and @migrate from(N) { ... }
+    // Must run before generic trait handling because some trait catalogs also
+    // contain these names, which would otherwise consume the tokens incorrectly.
+    // =========================================================================
+    if (name === 'version') {
+      this.expect('LPAREN', 'Expected ( after @version');
+      const versionToken = this.expect('NUMBER', 'Expected version number');
+      const version = Number(versionToken.value);
+      this.expect('RPAREN', 'Expected ) after version number');
+      return { type: 'version' as const, version } as HSPlusDirective;
+    }
+
+    if (name === 'migrate') {
+      // @migrate from(N) { ... }
+      const fromToken = this.expect('IDENTIFIER', 'Expected "from" after @migrate');
+      if (fromToken.value !== 'from') {
+        this.error('Expected "from" after @migrate');
+      }
+      this.expect('LPAREN', 'Expected ( after from');
+      const fromVersionToken = this.expect('NUMBER', 'Expected version number');
+      const fromVersion = Number(fromVersionToken.value);
+      this.expect('RPAREN', 'Expected ) after version number');
+      const body = this.check('LBRACE') ? this.parseCodeBlock() : '';
+      return { type: 'migrate' as const, fromVersion, body } as HSPlusDirective;
+    }
+
+    // =========================================================================
     // VR Traits (with optional config)
     // =========================================================================
     if ((VR_TRAITS as readonly string[]).includes(name)) {
@@ -2161,31 +2188,6 @@ export class HoloScriptPlusParser {
         }
         return { type: 'hololand_event' as const, event: eventName, params } as HSPlusDirective;
       }
-    }
-
-    // =========================================================================
-    // Hot-Reload: @version(N) and @migrate from(N) { ... }
-    // =========================================================================
-    if (name === 'version') {
-      this.expect('LPAREN', 'Expected ( after @version');
-      const versionToken = this.expect('NUMBER', 'Expected version number');
-      const version = Number(versionToken.value);
-      this.expect('RPAREN', 'Expected ) after version number');
-      return { type: 'version' as const, version } as HSPlusDirective;
-    }
-
-    if (name === 'migrate') {
-      // @migrate from(N) { ... }
-      const fromToken = this.expect('IDENTIFIER', 'Expected "from" after @migrate');
-      if (fromToken.value !== 'from') {
-        this.error('Expected "from" after @migrate');
-      }
-      this.expect('LPAREN', 'Expected ( after from');
-      const fromVersionToken = this.expect('NUMBER', 'Expected version number');
-      const fromVersion = Number(fromVersionToken.value);
-      this.expect('RPAREN', 'Expected ) after version number');
-      const body = this.check('LBRACE') ? this.parseCodeBlock() : '';
-      return { type: 'migrate' as const, fromVersion, body } as HSPlusDirective;
     }
 
     // =========================================================================

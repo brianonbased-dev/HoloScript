@@ -47,6 +47,7 @@ interface BTNodeState {
   waitTimer: number;
   repeatCount: number;
   childStatuses: BTStatus[];
+  pendingActionId?: string;
 }
 
 interface BTState {
@@ -54,8 +55,20 @@ interface BTState {
   tickAccumulator: number;
   blackboard: Record<string, unknown>;
   nodeStates: Map<BTNode, BTNodeState>;
+  actionResults: Map<string, BTStatus>;
   isRunning: boolean;
   debug: { lastTick: number; nodesVisited: number };
+}
+
+function normalizeActionResult(result: unknown): BTStatus | null {
+  if (result === true || result === 'success') return 'success';
+  if (result === false || result === 'failure') return 'failure';
+  if (result === 'running') return 'running';
+  return null;
+}
+
+function createActionRequestId(actionName: string): string {
+  return `bt:${actionName}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
 }
 
 interface BTConfig {
@@ -300,17 +313,16 @@ function tickAction(
   // Try to execute action via context (pass blackboard so handlers can update conditions)
   if (context.executeAction) {
     const result = context.executeAction(owner, actionName, node.params || {}, state.blackboard);
-    if (result === true) return 'success';
-    if (result === false) return 'failure';
-    if (result === 'running') return 'running';
+    const normalized = normalizeActionResult(result);
+    if (normalized) return normalized;
   }
 
   // Try to call method on owner
   const method = (owner as any)[actionName];
   if (typeof method === 'function') {
     const result = method.call(owner, node.params || {});
-    if (result === true) return 'success';
-    if (result === false) return 'failure';
+    const normalized = normalizeActionResult(result);
+    if (normalized && normalized !== 'running') return normalized;
     if (result instanceof Promise) {
       // Async action - mark as running
       result
@@ -331,8 +343,32 @@ function tickAction(
     return 'success';
   }
 
-  context.emit?.('bt_action', { owner, action: actionName, params: node.params });
-  return 'success';
+  // Native action bridge: dispatch action events and wait for trait result.
+  if (!nodeState.pendingActionId) {
+    const requestId = createActionRequestId(actionName);
+    nodeState.pendingActionId = requestId;
+
+    const payload = {
+      owner,
+      action: actionName,
+      params: node.params || {},
+      blackboard: state.blackboard,
+      requestId,
+    };
+
+    context.emit?.(`action:${actionName}`, payload);
+    context.emit?.('bt_action', payload);
+    return 'running';
+  }
+
+  const pending = state.actionResults.get(nodeState.pendingActionId);
+  if (!pending || pending === 'running') {
+    return 'running';
+  }
+
+  state.actionResults.delete(nodeState.pendingActionId);
+  nodeState.pendingActionId = undefined;
+  return pending;
 }
 
 function tickWait(node: BTNode, nodeState: BTNodeState, delta: number): BTStatus {
@@ -367,6 +403,7 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
       tickAccumulator: 0,
       blackboard: { ...config.blackboard },
       nodeStates: new Map(),
+      actionResults: new Map(),
       isRunning: true,
       debug: { lastTick: 0, nodesVisited: 0 },
     };
@@ -420,6 +457,20 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
 
     if (event.type === 'bt_set_blackboard') {
       Object.assign(state.blackboard, event.values);
+    } else if (event.type === 'action:result') {
+      const requestId =
+        typeof event.requestId === 'string'
+          ? event.requestId
+          : typeof event.actionId === 'string'
+            ? event.actionId
+            : undefined;
+
+      if (requestId) {
+        const status = normalizeActionResult(event.status ?? event.success);
+        if (status) {
+          state.actionResults.set(requestId, status);
+        }
+      }
     } else if (event.type === 'bt_pause') {
       state.isRunning = false;
     } else if (event.type === 'bt_resume') {

@@ -104,8 +104,8 @@ export const altTextHandler: TraitHandler<AltTextConfig> = {
       }
 
       // Add spatial context if requested
-      if (config.include_spatial && (node as any).position) {
-        const pos = (node as any).position;
+      if (config.include_spatial && node.position) {
+        const pos = node.position;
         text += ` Located at ${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}.`;
       }
 

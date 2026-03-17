@@ -94,10 +94,10 @@ export const rooftopAnchorHandler: TraitHandler<RooftopAnchorConfig> = {
 
     // Apply position from resolved anchor
     if (state.state === 'tracking' || state.state === 'resolved') {
-      if ((node as any).position) {
-        (node as any).position.x = state.rooftopPosition.x;
-        (node as any).position.y = state.rooftopPosition.y + config.elevation_offset;
-        (node as any).position.z = state.rooftopPosition.z;
+      if (node.position) {
+        node.position.x = state.rooftopPosition.x;
+        node.position.y = state.rooftopPosition.y + config.elevation_offset;
+        node.position.z = state.rooftopPosition.z;
       }
     }
   },

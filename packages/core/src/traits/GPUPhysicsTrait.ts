@@ -135,8 +135,8 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
     if (bodyState && !bodyState.isSleeping) {
       // Sync GPU position/rotation back to the node
       // This allows HoloScript code and animations to track the physics
-      (node as any).position = bodyState.position as any;
-      (node as any).rotation = bodyState.rotation as any;
+      node.position = bodyState.position as any;
+      node.rotation = bodyState.rotation as any;
     }
   },
 

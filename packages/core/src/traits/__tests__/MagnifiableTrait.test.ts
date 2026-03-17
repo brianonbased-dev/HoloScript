@@ -27,7 +27,7 @@ describe('MagnifiableTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('magnify');
-    (node as any).scale = { x: 1, y: 1, z: 1 };
+    node.scale = { x: 1, y: 1, z: 1 };
     ctx = createMockContext();
     attachTrait(magnifiableHandler, node, cfg, ctx);
   });
@@ -72,7 +72,7 @@ describe('MagnifiableTrait', () => {
   it('applies scale to node on update', () => {
     sendEvent(magnifiableHandler, node, cfg, ctx, { type: 'magnify_set', magnification: 2 });
     for (let i = 0; i < 20; i++) updateTrait(magnifiableHandler, node, cfg, ctx, 0.1);
-    expect((node as any).scale.x).toBeCloseTo(2, 0);
+    expect(node.scale.x).toBeCloseTo(2, 0);
   });
 
   it('magnify_end emits event', () => {
@@ -87,10 +87,10 @@ describe('MagnifiableTrait', () => {
   });
 
   it('cleans up and restores scale on detach', () => {
-    (node as any).scale = { x: 2, y: 2, z: 2 };
+    node.scale = { x: 2, y: 2, z: 2 };
     magnifiableHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__magnifiableState).toBeUndefined();
     // Scale restored to original (1,1,1)
-    expect((node as any).scale.x).toBe(1);
+    expect(node.scale.x).toBe(1);
   });
 });

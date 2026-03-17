@@ -2206,6 +2206,86 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export interface StructuredLoggerConfig { min_level: LogLevel; max_entries: number; rotation_count: number; emit_events: boolean; console_output: boolean; default_fields: Record<string, unknown>; }
 export interface LogEntry { level: LogLevel; message: string; fields: Record<string, unknown>; timestamp: number; iso: string; }
 export declare const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig>;
+
+// ============================================================================
+// RUNTIME PROFILES & HEADLESS RUNTIME
+// ============================================================================
+
+export type RuntimeProfileName = 'headless' | 'minimal' | 'standard' | 'vr' | string;
+
+export interface RenderingConfig { enabled: boolean; [key: string]: any; }
+export interface ProfilePhysicsConfig { enabled: boolean; [key: string]: any; }
+export interface ProfileAudioConfig { enabled: boolean; [key: string]: any; }
+export interface ProfileNetworkConfig { enabled: boolean; [key: string]: any; }
+export interface ProfileInputConfig { enabled: boolean; [key: string]: any; }
+export interface ProtocolConfig { enabled: boolean; [key: string]: any; }
+
+export interface RuntimeProfile {
+  name: RuntimeProfileName;
+  rendering: RenderingConfig;
+  physics: ProfilePhysicsConfig;
+  audio: ProfileAudioConfig;
+  network: ProfileNetworkConfig;
+  input: ProfileInputConfig;
+  protocol: ProtocolConfig;
+  traits?: string[];
+  [key: string]: any;
+}
+
+export declare const HEADLESS_PROFILE: RuntimeProfile;
+export declare const MINIMAL_PROFILE: RuntimeProfile;
+export declare const STANDARD_PROFILE: RuntimeProfile;
+export declare const VR_PROFILE: RuntimeProfile;
+export declare function getProfile(name: RuntimeProfileName): RuntimeProfile;
+export declare function registerProfile(name: string, profile: RuntimeProfile): void;
+export declare function getAvailableProfiles(): RuntimeProfileName[];
+export declare function createCustomProfile(base: RuntimeProfileName, overrides: Partial<RuntimeProfile>): RuntimeProfile;
+
+export interface HeadlessRuntimeOptions {
+  tickRate?: number;
+  maxTicks?: number;
+  autoStart?: boolean;
+  hostCapabilities?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface HeadlessRuntimeStats {
+  tickCount: number;
+  elapsedMs: number;
+  nodeCount: number;
+  [key: string]: any;
+}
+
+export interface HeadlessNodeInstance {
+  id: string;
+  node: any;
+  children: HeadlessNodeInstance[];
+  destroyed: boolean;
+  [key: string]: any;
+}
+
+export type ActionHandler = (
+  params: Record<string, unknown>,
+  blackboard: Record<string, unknown>,
+  context: { emit: (event: string, payload?: unknown) => void; hostCapabilities?: Record<string, any> }
+) => Promise<boolean> | boolean;
+
+export declare class HeadlessRuntime {
+  constructor(ast: any, profile: RuntimeProfile, options?: HeadlessRuntimeOptions);
+  start(): void;
+  stop(): void;
+  tick(deltaMs?: number): void;
+  emit(event: string, payload?: unknown): void;
+  on(event: string, handler: (...args: any[]) => void): void;
+  off(event: string, handler: (...args: any[]) => void): void;
+  registerAction(name: string, handler: ActionHandler): void;
+  getStats(): HeadlessRuntimeStats;
+  getBlackboard(): Record<string, unknown>;
+  isRunning(): boolean;
+  [key: string]: any;
+}
+
+export declare function createHeadlessRuntime(ast: any, profile?: RuntimeProfile, options?: HeadlessRuntimeOptions): HeadlessRuntime;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

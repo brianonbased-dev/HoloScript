@@ -3,6 +3,7 @@
  */
 export const NETWORKING_AI_TRAITS = [
   'networked',
+  'http',
   'proactive',
   'ai_driven',
   'agent_protocol',

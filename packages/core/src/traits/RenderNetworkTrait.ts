@@ -17,8 +17,12 @@
  * @milestone v3.2 (June 2026)
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { TraitHandler, TraitContext } from './TraitTypes';
+import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { JobQueuePersistence } from './RenderJobPersistence';
+
+/** Node with dynamic render network state */
+type RenderNode = HSPlusNode & { __renderNetworkState?: RenderNetworkState };
 
 // =============================================================================
 // TYPES
@@ -244,7 +248,7 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
         priority = config.default_priority,
         frames = { start: 0, end: 0 },
       } = event.payload as {
-        scene: any;
+        scene: unknown;
         quality?: RenderQuality;
         engine?: RenderEngine;
         priority?: JobPriority;
@@ -341,10 +345,10 @@ async function callRenderNetworkAPI(
 }
 
 async function connectToRenderNetwork(
-  node: any,
+  node: RenderNode,
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any
+  context: TraitContext
 ): Promise<void> {
   try {
     // Select optimal region
@@ -392,12 +396,12 @@ async function connectToRenderNetwork(
 }
 
 async function submitRenderJob(
-  node: any,
+  node: RenderNode,
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any,
+  context: TraitContext,
   params: {
-    scene: any;
+    scene: unknown;
     quality: RenderQuality;
     engine: RenderEngine;
     priority: JobPriority;
@@ -472,10 +476,10 @@ async function submitRenderJob(
 }
 
 async function submitVolumetricJob(
-  node: any,
+  node: RenderNode,
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any,
+  context: TraitContext,
   params: { source: string; outputFormat: 'mp4' | 'webm' }
 ): Promise<void> {
   const job: RenderJob = {
@@ -504,10 +508,10 @@ async function submitVolumetricJob(
 }
 
 async function submitSplatBakeJob(
-  node: any,
+  node: RenderNode,
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any,
+  context: TraitContext,
   params: { source: string; targetSplatCount: number; quality: 'low' | 'medium' | 'high' }
 ): Promise<void> {
   const credits = params.quality === 'high' ? 3.0 : params.quality === 'medium' ? 1.5 : 0.5;
@@ -541,8 +545,8 @@ async function submitJobToAPI(
   job: RenderJob,
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: RenderNode
 ): Promise<void> {
   const maxRetries = 3;
   const backoffMs = [1000, 2000, 4000]; // Exponential backoff
@@ -593,8 +597,8 @@ function pollJobStatus(
   job: RenderJob,
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any,
-  node: any
+  context: TraitContext,
+  node: RenderNode
 ): void {
   if (!config.api_key) return;
 
@@ -631,7 +635,7 @@ function pollJobStatus(
         job.actualCredits = data.credits_used ?? job.estimatedCredits;
 
         if (data.outputs?.length) {
-          job.outputs = data.outputs.map((o: any) => ({
+          job.outputs = data.outputs.map((o: Record<string, unknown>) => ({
             type: o.type,
             url: o.url,
             format: o.format,
@@ -648,8 +652,8 @@ function pollJobStatus(
         }
 
         // Update cost tracking
-        state.totalCost += job.actualCredits;
-        state.costByQuality[job.quality] += job.actualCredits;
+        state.totalCost += job.actualCredits!;
+        state.costByQuality[job.quality] += job.actualCredits!;
 
         // Persist state changes
         if (state.persistence) {
@@ -701,7 +705,7 @@ function pollJobStatus(
   }, POLL_INTERVAL_MS);
 }
 
-function cancelRenderJob(state: RenderNetworkState, jobId: string, context: any): void {
+function cancelRenderJob(state: RenderNetworkState, jobId: string, context: TraitContext): void {
   const jobIndex = state.activeJobs.findIndex((j) => j.id === jobId);
   if (jobIndex !== -1) {
     const job = state.activeJobs[jobIndex];
@@ -717,7 +721,7 @@ function cancelRenderJob(state: RenderNetworkState, jobId: string, context: any)
 async function refreshCredits(
   state: RenderNetworkState,
   config: RenderNetworkConfig,
-  context: any
+  context: TraitContext
 ): Promise<void> {
   if (!config.api_key || !state.credits) return;
   try {
@@ -784,7 +788,7 @@ async function selectOptimalRegion(apiKey: string): Promise<string> {
 }
 
 async function uploadSceneAssets(
-  scene: any,
+  scene: { id: string; size?: number; slice: (start: number, end: number) => Blob },
   state: RenderNetworkState,
   apiKey: string
 ): Promise<string> {
@@ -822,9 +826,12 @@ async function uploadSceneAssets(
     );
     if (!response.ok) throw new Error('Failed to create upload session');
     const data = await response.json();
-    sessionId = data.session_id;
+    sessionId = data.session_id as string;
     state.uploadSessions.set(scene.id, sessionId);
   }
+
+  // At this point sessionId is guaranteed to be a string
+  const activeSessionId = sessionId!;
 
   // Upload remaining chunks
   while (uploadedBytes < totalSize) {
@@ -833,7 +840,7 @@ async function uploadSceneAssets(
     formData.append('chunk', chunk);
     formData.append('offset', String(uploadedBytes));
 
-    const response = await fetch(`${RENDER_NETWORK_API}/uploads/${sessionId}/chunk`, {
+    const response = await fetch(`${RENDER_NETWORK_API}/uploads/${activeSessionId}/chunk`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -845,7 +852,7 @@ async function uploadSceneAssets(
     uploadedBytes += chunk.size;
   }
 
-  return sessionId;
+  return activeSessionId;
 }
 
 // =============================================================================

@@ -323,6 +323,49 @@ export type HumanoidEventCallback = (event: {
 }) => void;
 
 // ============================================================================
+// MINIMAL THREE.JS INTERFACES (avoids importing full @types/three)
+// ============================================================================
+
+/** Minimal GLTF loader interface */
+interface GLTFLoaderLike {
+  register: (pluginFactory: (parser: unknown) => unknown) => void;
+  setDRACOLoader: (loader: unknown) => void;
+  load: (
+    url: string,
+    onLoad: (gltf: GLTFLoadResult) => void,
+    onProgress: (progress: { loaded: number; total: number }) => void,
+    onError: (error: { message?: string }) => void
+  ) => void;
+}
+
+/** Minimal GLTF load result */
+interface GLTFLoadResult {
+  scene: ThreeSceneObject;
+  animations: Array<{ name: string }>;
+  userData?: { vrm?: VRMInstanceData };
+}
+
+/** Minimal Three.js scene for traversal */
+interface ThreeSceneObject {
+  traverse?: (callback: (obj: ThreeTraversableObject) => void) => void;
+}
+
+/** Minimal Three.js object for bone/morph extraction */
+interface ThreeTraversableObject {
+  isBone?: boolean;
+  name: string;
+  morphTargetDictionary?: Record<string, number>;
+}
+
+/** Minimal VRM instance data */
+interface VRMInstanceData {
+  meta?: Partial<VRMMetadata>;
+  humanoid?: { humanBones?: Record<string, unknown> };
+  expressionManager?: { expressionMap?: Map<string, unknown> };
+  springBoneManager?: unknown;
+}
+
+// ============================================================================
 // HUMANOID LOADER
 // ============================================================================
 
@@ -370,7 +413,8 @@ export class HumanoidLoader {
       try {
         // @ts-ignore - VRM plugin is optional
         const { VRMLoaderPlugin } = await import('@pixiv/three-vrm');
-        (this.gltfLoader as any).register((parser: unknown) => new VRMLoaderPlugin(parser as any));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (this.gltfLoader as GLTFLoaderLike).register((parser: unknown) => new VRMLoaderPlugin(parser as any));
         this.vrmLoaderPlugin = VRMLoaderPlugin;
         console.log('[HumanoidLoader] VRM support enabled');
       } catch {
@@ -383,7 +427,7 @@ export class HumanoidLoader {
         const { DRACOLoader } = await import('three/examples/jsm/loaders/DRACOLoader.js');
         const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-        (this.gltfLoader as any).setDRACOLoader(dracoLoader);
+        (this.gltfLoader as GLTFLoaderLike).setDRACOLoader(dracoLoader);
         console.log('[HumanoidLoader] Draco compression support enabled');
       } catch {
         console.warn('[HumanoidLoader] Draco loader not available');
@@ -469,9 +513,9 @@ export class HumanoidLoader {
     }
 
     return new Promise((resolve, reject) => {
-      (this.gltfLoader as any).load(
+      (this.gltfLoader as GLTFLoaderLike).load(
         url,
-        (gltf: any) => {
+        (gltf: GLTFLoadResult) => {
           try {
             const result = this.processLoadedModel(gltf, state, config);
             resolve(result);
@@ -479,7 +523,7 @@ export class HumanoidLoader {
             reject(error);
           }
         },
-        (progress: any) => {
+        (progress: { loaded: number; total: number }) => {
           // Emit progress
           const percent = progress.total > 0 ? (progress.loaded / progress.total) * 100 : 0;
           this.emit('load-progress', state.id, {
@@ -488,7 +532,7 @@ export class HumanoidLoader {
             percent,
           });
         },
-        (error: any) => {
+        (error: { message?: string }) => {
           reject(new Error(`Failed to load avatar: ${error.message ?? error}`));
         }
       );
@@ -499,7 +543,7 @@ export class HumanoidLoader {
    * Process loaded model and extract humanoid data
    */
   private processLoadedModel(
-    gltf: any,
+    gltf: GLTFLoadResult,
     state: HumanoidState,
     config: HumanoidConfig
   ): HumanoidLoadResult {
@@ -531,9 +575,11 @@ export class HumanoidLoader {
     if (animations.length > 0) {
       try {
         // Dynamic import THREE for AnimationMixer
-        const THREE = (globalThis as any).THREE;
-        if (THREE?.AnimationMixer) {
-          mixer = new THREE.AnimationMixer(scene);
+        const threeLib = (globalThis as unknown as Record<string, unknown>).THREE as
+          | { AnimationMixer?: new (root: unknown) => unknown }
+          | undefined;
+        if (threeLib?.AnimationMixer) {
+          mixer = new threeLib.AnimationMixer(scene);
         }
       } catch {
         console.warn('[HumanoidLoader] Could not create animation mixer');
@@ -555,7 +601,7 @@ export class HumanoidLoader {
         updatedAt: Date.now(),
         estimatedGPUMemory: 0,
         estimatedCPUMemory: 0,
-      } as any as AssetMetadata,
+      } as unknown as AssetMetadata,
       data: scene,
       lodLevel: 0,
       quality: 'high',
@@ -565,7 +611,7 @@ export class HumanoidLoader {
       humanoidState: state,
       vrm: vrm,
       mixer: mixer,
-      animations: animations.map((a: any) => a.name),
+      animations: animations.map((a) => a.name),
     };
 
     return result;
@@ -748,7 +794,7 @@ export class HumanoidLoader {
   /**
    * Extract VRM metadata
    */
-  private extractVRMMetadata(vrm: any): VRMMetadata {
+  private extractVRMMetadata(vrm: VRMInstanceData): VRMMetadata {
     const meta = vrm.meta;
     if (!meta) return {};
 
@@ -778,7 +824,7 @@ export class HumanoidLoader {
   /**
    * Extract VRM bone names
    */
-  private extractVRMBones(vrm: any): string[] {
+  private extractVRMBones(vrm: VRMInstanceData): string[] {
     const humanoid = vrm.humanoid;
     if (!humanoid) return [];
 
@@ -797,7 +843,7 @@ export class HumanoidLoader {
   /**
    * Extract VRM expression names
    */
-  private extractVRMExpressions(vrm: any): string[] {
+  private extractVRMExpressions(vrm: VRMInstanceData): string[] {
     const expressionManager = vrm.expressionManager;
     if (!expressionManager) return [];
 
@@ -809,10 +855,10 @@ export class HumanoidLoader {
   /**
    * Extract GLTF skeleton bones
    */
-  private extractGLTFBones(scene: any): string[] {
+  private extractGLTFBones(scene: ThreeSceneObject): string[] {
     const bones: string[] = [];
 
-    scene.traverse?.((obj: any) => {
+    scene.traverse?.((obj: ThreeTraversableObject) => {
       if (obj.isBone) {
         bones.push(obj.name);
       }
@@ -824,10 +870,10 @@ export class HumanoidLoader {
   /**
    * Extract GLTF morph targets as expressions
    */
-  private extractGLTFMorphTargets(scene: any): string[] {
+  private extractGLTFMorphTargets(scene: ThreeSceneObject): string[] {
     const morphTargets: Set<string> = new Set();
 
-    scene.traverse?.((obj: any) => {
+    scene.traverse?.((obj: ThreeTraversableObject) => {
       if (obj.morphTargetDictionary) {
         for (const name of Object.keys(obj.morphTargetDictionary)) {
           morphTargets.add(name);
@@ -841,7 +887,7 @@ export class HumanoidLoader {
   /**
    * Extract Ready Player Me metadata
    */
-  private extractRPMMetadata(config: HumanoidConfig, _gltf: any): RPMMetadata {
+  private extractRPMMetadata(config: HumanoidConfig, _gltf: GLTFLoadResult): RPMMetadata {
     // Parse avatar ID from URL
     const match = config.url.match(/\/([a-f0-9-]+)\.glb/i);
 

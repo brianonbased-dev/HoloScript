@@ -168,7 +168,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
     if (!state || state.isPaused || state.completed) return;
     if (config.waypoints.length === 0) return;
 
-    const position = (node as any).position || { x: 0, y: 0, z: 0 };
+    const position = node.position || { x: 0, y: 0, z: 0 };
 
     // Handle alert state
     if (state.isAlerted) {

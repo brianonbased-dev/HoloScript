@@ -120,8 +120,8 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     if (!state) return;
 
     const now = Date.now();
-    const position = (node as any).position || { x: 0, y: 0, z: 0 };
-    const rotation = (node as any).rotation || { x: 0, y: 0, z: 0 };
+    const position = node.position || { x: 0, y: 0, z: 0 };
+    const rotation = node.rotation || { x: 0, y: 0, z: 0 };
     const forward = {
       x: Math.sin(rotation.y),
       z: Math.cos(rotation.y),
@@ -196,8 +196,8 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     const state = node.__perceptionState as PerceptionState;
     if (!state) return;
 
-    const position = (node as any).position || { x: 0, y: 0, z: 0 };
-    const rotation = (node as any).rotation || { x: 0, y: 0, z: 0 };
+    const position = node.position || { x: 0, y: 0, z: 0 };
+    const rotation = node.rotation || { x: 0, y: 0, z: 0 };
     const forward = {
       x: Math.sin(rotation.y),
       z: Math.cos(rotation.y),
