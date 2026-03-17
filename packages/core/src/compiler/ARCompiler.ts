@@ -48,7 +48,7 @@ export class ARCompiler extends CompilerBase {
     this.options = options;
   }
 
-  compile(
+  override compile(
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
