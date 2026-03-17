@@ -266,7 +266,7 @@ export const goalOrientedHandler: TraitHandler<GOAPConfig> = {
       // Trigger replan on state change
       selectGoalAndPlan(state, config, context, node);
     } else if (event.type === 'goap_add_goal') {
-      config.goals.push(event.goal);
+      config.goals.push(event.goal as GOAPGoal);
       selectGoalAndPlan(state, config, context, node);
     } else if (event.type === 'goap_cancel') {
       state.isExecuting = false;
