@@ -64,7 +64,15 @@ describe('holoscript daemon integration', () => {
     host = new MockHost();
     llm = {
       chat: vi.fn(async () => ({
-        text: 'export const fixed = true;\n',
+        text: JSON.stringify({
+          analysis: 'Fix literal type mismatch.',
+          patches: [
+            {
+              old: 'export const fixed = false;\n',
+              new: 'export const fixed = true;\n',
+            },
+          ],
+        }),
         inputTokens: 123,
         outputTokens: 45,
       })),
@@ -124,7 +132,7 @@ describe('holoscript daemon integration', () => {
     const ok = await actions.generate_fix({}, blackboard, context);
 
     expect(ok).toBe(true);
-    expect(host.readFile('packages/core/src/example.ts')).toBe('export const fixed = true;');
+    expect(host.readFile('packages/core/src/example.ts')).toBe('export const fixed = true;\n');
     expect(blackboard.fileEdited).toBe(true);
     expect(blackboard.inputTokens).toBe(123);
     expect(blackboard.outputTokens).toBe(45);
