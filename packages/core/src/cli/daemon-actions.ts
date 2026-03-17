@@ -12,6 +12,7 @@
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
 import {
   buildDaemonPromptContext,
+  getDaemonSystemPrompt,
   type DaemonProvider,
   type DaemonToolProfile,
 } from './daemon-prompt-profiles';
@@ -287,7 +288,7 @@ export function createDaemonActions(
     config.provider || 'anthropic',
     config.toolProfile || 'standard',
   );
-  const { provider, toolProfile, modelStyleGuide, toolGuide } = promptContext;
+  const { provider, toolProfile } = promptContext;
 
   log(`LLM provider=${provider} | toolProfile=${toolProfile} | model=${config.model}`);
 
@@ -457,14 +458,7 @@ export function createDaemonActions(
 
       // ── Coverage/Docs: full-file approach (generating new content) ────
       if (focus === 'coverage') {
-        const systemPrompt = [
-          'You are a TypeScript testing expert. Generate a comprehensive test file for the given source.',
-          modelStyleGuide,
-          toolGuide,
-          'Use vitest (import { describe, it, expect, vi } from "vitest").',
-          'Mock external dependencies with vi.mock(). Test exported functions and classes.',
-          'Return ONLY the complete test file content. No markdown fences, no explanations.',
-        ].join(' ');
+        const systemPrompt = getDaemonSystemPrompt('coverage', promptContext);
         try {
           const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
@@ -484,14 +478,7 @@ export function createDaemonActions(
       }
 
       if (focus === 'docs') {
-        const systemPrompt = [
-          'You are a TypeScript documentation expert. Add JSDoc comments to all exported symbols.',
-          modelStyleGuide,
-          toolGuide,
-          'Include @param, @returns, @throws, and @example where appropriate.',
-          'Return ONLY the complete file content with added JSDoc. No markdown fences, no explanations.',
-          'Do NOT change any code logic — only add documentation comments.',
-        ].join(' ');
+        const systemPrompt = getDaemonSystemPrompt('docs', promptContext);
         try {
           const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
@@ -538,35 +525,7 @@ export function createDaemonActions(
       // Dependency context from GraphRAG-lite
       const depContext = extractDependencyContext(content, file, host);
 
-      const systemPrompt = [
-        'You are a TypeScript expert fixing type errors in a large monorepo.',
-        'This is HoloScript — a DSL for VR/AR with traits, compilers, and parsers.',
-        modelStyleGuide,
-        toolGuide,
-        '',
-        'RULES — violations cause automatic rejection:',
-        '1. NEVER delete functions, classes, or code blocks to eliminate errors',
-        '2. NEVER use "as any" — use proper type annotations instead',
-        '3. NEVER remove or change export statements',
-        '4. NEVER restructure, refactor, or rename anything',
-        '5. Each patch "old" field must match the file EXACTLY (including whitespace/indentation)',
-        '6. Keep patches minimal — change only what fixes the specific type error',
-        '',
-        'Think through each error: what type is expected vs actual? What is the minimal fix?',
-        'Common fixes: add missing type annotations, fix import paths, add missing properties,',
-        'update generic parameters, add null checks, fix return types.',
-        '',
-        'Respond with ONLY valid JSON (no markdown fences):',
-        '{',
-        '  "analysis": "Brief reasoning about each error and your fix strategy",',
-        '  "patches": [',
-        '    { "old": "exact text to find in file", "new": "replacement text" }',
-        '  ]',
-        '}',
-        '',
-        'If you cannot fix an error safely, omit it and explain in analysis.',
-        'If no errors can be fixed safely, return: {"analysis": "...", "patches": []}',
-      ].join('\n');
+      const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
 
       const prompt = [
         `File: ${file}`,
