@@ -1,4 +1,8 @@
-import { HSPlusNode } from '../types/AdvancedTypeSystem';
+// HSPlusNode type - represents any AST node in the parse tree
+export interface HSPlusNode {
+  type: string;
+  [key: string]: any;
+}
 import * as crypto from 'crypto';
 
 /**
