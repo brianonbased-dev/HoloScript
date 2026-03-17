@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed - v2 (Memory Cluster Implemented)
+Implemented - v3 (All 6 Batch 1 atoms complete)
 
 ## Authors
 
@@ -344,13 +344,13 @@ Additions aligned with existing CLASS upgrade path:
 | `@memory_crystal` | `src/traits/MemoryCrystalTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
 | `@recall_trigger` | `src/traits/RecallTriggerTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
 | `@forget_policy` | `src/traits/ForgetPolicyTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
-| `@versioned_state` | — | — | — | Pending |
-| `@world_heartbeat` | — | — | — | Pending |
-| `@circuit_auto_reset` | — | — | — | Pending |
+| `@versioned_state` | `src/traits/VersionedStateTrait.ts` | Yes | 11,026 pass (no regressions) | Implemented |
+| `@world_heartbeat` | `src/traits/WorldHeartbeatTrait.ts` | Yes | 11,026 pass (no regressions) | Implemented |
+| `@circuit_auto_reset` | `src/traits/CircuitAutoResetTrait.ts` | Yes | 11,026 pass (no regressions) | Implemented |
 
 Reference composition: `examples/memory-atoms-showcase.holo`
 
-All three memory atoms compose with the existing `AgentMemoryTrait` via `node.__agentMemoryState`.
+All six Batch 1 atoms are implemented and registered. Memory atoms compose with `AgentMemoryTrait` via `node.__agentMemoryState`.
 
 ## Related Work
 

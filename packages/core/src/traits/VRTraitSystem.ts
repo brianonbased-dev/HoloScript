@@ -411,6 +411,10 @@ import { zoraCoinsHandler } from './ZoraCoinsTrait';
 import { memoryCrystalHandler } from './MemoryCrystalTrait';
 import { recallTriggerHandler } from './RecallTriggerTrait';
 import { forgetPolicyHandler } from './ForgetPolicyTrait';
+// Wisdom/Gotcha Atoms — Batch 1: State + Resilience
+import { versionedStateHandler } from './VersionedStateTrait';
+import { worldHeartbeatHandler } from './WorldHeartbeatTrait';
+import { circuitAutoResetHandler } from './CircuitAutoResetTrait';
 
 // =============================================================================
 // TRAIT STATE
@@ -1772,6 +1776,10 @@ export class VRTraitRegistry {
     this.register(memoryCrystalHandler as TraitHandler);
     this.register(recallTriggerHandler as TraitHandler);
     this.register(forgetPolicyHandler as TraitHandler);
+    // Wisdom/Gotcha Atoms — Batch 1: State + Resilience
+    this.register(versionedStateHandler as TraitHandler);
+    this.register(worldHeartbeatHandler as TraitHandler);
+    this.register(circuitAutoResetHandler as TraitHandler);
 
     // ── CLASS trait handlers (auto-generated wrappers) ──
     this.register(absorbHandler as TraitHandler);
@@ -2429,4 +2437,10 @@ export {
   memoryCrystalHandler,
   recallTriggerHandler,
   forgetPolicyHandler,
+};
+// Wisdom/Gotcha Atoms — Batch 1: State + Resilience exports
+export {
+  versionedStateHandler,
+  worldHeartbeatHandler,
+  circuitAutoResetHandler,
 };
