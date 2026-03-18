@@ -11,6 +11,12 @@ import type { TraitHandler } from '../traits/TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { AudioEngine } from './AudioEngine';
 
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 // =============================================================================
 // CONFIG
 // =============================================================================
@@ -59,7 +65,7 @@ const defaultConfig: AudioTraitConfig = {
 };
 
 export const audioTraitHandler: TraitHandler<AudioTraitConfig> = {
-  name: 'audio' as any,
+  name: 'audio' as const,
   defaultConfig,
 
   onAttach(node: HSPlusNode, config: AudioTraitConfig, _context: any) {
