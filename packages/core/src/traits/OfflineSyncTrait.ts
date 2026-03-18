@@ -5,13 +5,14 @@
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface OfflineSyncConfig { sync_interval_ms: number; }
+export interface SyncItem { type: string; payload?: unknown; timestamp?: number; }
 export const offlineSyncHandler: TraitHandler<OfflineSyncConfig> = {
   name: 'offline_sync', defaultConfig: { sync_interval_ms: 5000 },
-  onAttach(node: HSPlusNode): void { node.__syncState = { pending: [] as any[], synced: 0, online: true }; },
+  onAttach(node: HSPlusNode): void { node.__syncState = { pending: [] as SyncItem[], synced: 0, online: true }; },
   onDetach(node: HSPlusNode): void { delete node.__syncState; },
   onUpdate(): void {},
   onEvent(node: HSPlusNode, _config: OfflineSyncConfig, context: TraitContext, event: TraitEvent): void {
-    const state = node.__syncState as { pending: any[]; synced: number; online: boolean } | undefined;
+    const state = node.__syncState as { pending: SyncItem[]; synced: number; online: boolean } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {
