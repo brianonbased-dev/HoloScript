@@ -20,7 +20,7 @@ export interface EventTraitConfig {
 const nodeListenerIds = new Map<string, number[]>();
 
 export const eventTraitHandler: TraitHandler<EventTraitConfig> = {
-  name: 'events' as any,
+  name: 'events',
   defaultConfig: {},
 
   onAttach(node: HSPlusNode, config: EventTraitConfig, _context: any) {
@@ -32,7 +32,7 @@ export const eventTraitHandler: TraitHandler<EventTraitConfig> = {
       for (const [event, propName] of Object.entries(config.listen)) {
         const id = bus.on(event, (data) => {
           if (node.properties) {
-            (node.properties as any)[propName] = data;
+            (node.properties as Record<string, any>)[propName] = data;
           }
         });
         ids.push(id);
