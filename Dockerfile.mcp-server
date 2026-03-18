@@ -54,8 +54,9 @@ COPY packages/core/package.json packages/core/
 COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+# Install all dependencies (some externalized packages like jsonwebtoken aren't
+# declared as prod deps but are required at runtime via core's CJS bundle)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
