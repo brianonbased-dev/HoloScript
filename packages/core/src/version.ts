@@ -6,7 +6,7 @@
  *
  * Usage:
  *   import { HOLOSCRIPT_VERSION, GIT_COMMIT_SHA, getVersionString } from '@holoscript/core';
- *   console.log(getVersionString()); // "5.1.0+abc1234"
+ *   const version = getVersionString(); // "5.1.0+abc1234"
  */
 
 /** Injected at build time by tsup define */
