@@ -42,9 +42,11 @@ export class FriendList {
         type: 'entity',
         properties: { position: { x: -0.2, y: 0, z: 0.01 } },
         traits: new Map([['render', { type: 'sphere', radius: 0.015, color: dotColor }]]),
-      } as any);
+      });
 
-      (item.properties as any).onClickHandler = () => onSelect(friend.id);
+      if (item.properties) {
+        (item.properties as Record<string, unknown>).onClickHandler = () => onSelect(friend.id);
+      }
 
       scrollView.children?.push(item);
       currentY -= itemHeight + padding;
