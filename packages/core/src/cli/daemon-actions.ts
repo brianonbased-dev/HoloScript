@@ -10,6 +10,7 @@
  */
 
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
+import path from 'path';
 import {
   buildDaemonPromptContext,
   getDaemonSystemPrompt,
@@ -186,12 +187,13 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
 /**
  * Multi-file context: resolve base class and closely related files for coordinated patches.
  * Returns array of { path, content } for files the LLM can patch alongside the candidate.
+ * Paths are normalized to project-relative format for consistent matching in patch application.
  */
 interface RelatedFile { path: string; content: string; relation: string }
 
-function resolveRelatedFiles(content: string, file: string, host: DaemonHost, errorContext: string): RelatedFile[] {
+function resolveRelatedFiles(content: string, file: string, host: DaemonHost, errorContext: string, repoRoot: string): RelatedFile[] {
   const related: RelatedFile[] = [];
-  const dir = file.replace(/[/\\][^/\\]+$/, '');
+  const fileDir = path.dirname(file);
 
   // 1. Find base class — look for 'extends XXX' in the source
   const extendsMatch = content.match(/class\s+\w+\s+extends\s+(\w+)/);
@@ -205,10 +207,12 @@ function resolveRelatedFiles(content: string, file: string, host: DaemonHost, er
         const importMatch = line.match(importRe);
         if (importMatch) {
           for (const ext of ['.ts', '.tsx', '/index.ts']) {
-            const resolved = `${dir}/${importMatch[1]}${ext}`.replace(/\\/g, '/');
+            // Construct absolute path, then normalize back to project-relative
+            const absPath = path.resolve(fileDir, importMatch[1] + ext);
+            const relPath = path.relative(repoRoot, absPath).replace(/\\/g, '/');
             try {
-              if (host.exists(resolved)) {
-                related.push({ path: resolved, content: host.readFile(resolved), relation: `base class (${baseClass})` });
+              if (host.exists(relPath)) {
+                related.push({ path: relPath, content: host.readFile(relPath), relation: `base class (${baseClass})` });
                 break;
               }
             } catch { /* skip */ }
@@ -227,12 +231,14 @@ function resolveRelatedFiles(content: string, file: string, host: DaemonHost, er
     let im: RegExpExecArray | null;
     while ((im = importRe.exec(content))) {
       for (const ext of ['.ts', '.tsx', '/index.ts']) {
-        const resolved = `${dir}/${im[1]}${ext}`.replace(/\\/g, '/');
+        // Construct absolute path, then normalize back to project-relative
+        const absPath = path.resolve(fileDir, im[1] + ext);
+        const relPath = path.relative(repoRoot, absPath).replace(/\\/g, '/');
         try {
-          if (host.exists(resolved) && !related.some(r => r.path === resolved)) {
-            const depContent = host.readFile(resolved);
+          if (host.exists(relPath) && !related.some(r => r.path === relPath)) {
+            const depContent = host.readFile(relPath);
             if (depContent.includes(typeName)) {
-              related.push({ path: resolved, content: depContent, relation: `defines ${typeName}` });
+              related.push({ path: relPath, content: depContent, relation: `defines ${typeName}` });
               break;
             }
           }
@@ -243,6 +249,177 @@ function resolveRelatedFiles(content: string, file: string, host: DaemonHost, er
 
   // Cap at 2 related files to avoid token explosion
   return related.slice(0, 2);
+}
+
+// ── Symbol Investigation ────────────────────────────────────────────────────
+
+interface SymbolInvestigation {
+  symbol: string;
+  definition?: string;   // File + line range where symbol is defined
+  contract?: string;     // Interface/base class shape
+  importers: string[];   // Files that import this symbol (max 3)
+  recentDaemonTouches: string[]; // Recent daemon commits in this area
+}
+
+/**
+ * Investigate error symbols before patching. Extracts:
+ * - Where the symbol is defined
+ * - Its interface/class contract
+ * - Who imports it (co-change risk)
+ * - Whether the daemon recently touched this area
+ */
+function investigateSymbols(
+  errorContext: string,
+  content: string,
+  file: string,
+  host: DaemonHost,
+  repoRoot: string,
+): SymbolInvestigation[] {
+  const investigations: SymbolInvestigation[] = [];
+  const dir = file.replace(/[/\\][^/\\]+$/, '');
+
+  // Extract symbol names from TypeScript errors
+  const symbolPatterns = [
+    /Type '(\w+)' is not assignable/g,
+    /Property '(\w+)' does not exist/g,
+    /Cannot find name '(\w+)'/g,
+    /has no exported member '(\w+)'/g,
+    /missing.*from type '(\w+)'/g,
+    /Argument of type '(\w+)'/g,
+  ];
+
+  const symbols = new Set<string>();
+  for (const pattern of symbolPatterns) {
+    let m: RegExpExecArray | null;
+    while ((m = pattern.exec(errorContext))) {
+      if (m[1] && m[1].length > 2 && m[1] !== 'any' && m[1] !== 'void' && m[1] !== 'null') {
+        symbols.add(m[1]);
+      }
+    }
+  }
+
+  for (const symbol of [...symbols].slice(0, 3)) {
+    const investigation: SymbolInvestigation = { symbol, importers: [], recentDaemonTouches: [] };
+
+    // Find definition in imported files
+    const importRe = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+    let im: RegExpExecArray | null;
+    while ((im = importRe.exec(content))) {
+      for (const ext of ['.ts', '.tsx', '/index.ts']) {
+        const resolved = `${dir}/${im[1]}${ext}`.replace(/\\/g, '/');
+        try {
+          if (!host.exists(resolved)) continue;
+          const depContent = host.readFile(resolved);
+          // Find the symbol's definition block (interface, class, type, function)
+          const defRe = new RegExp(`(?:export\\s+)?(?:interface|class|type|function|const|enum)\\s+${symbol}[\\s<({]`, 'm');
+          const defMatch = defRe.exec(depContent);
+          if (defMatch) {
+            const lines = depContent.split('\n');
+            const defLine = depContent.slice(0, defMatch.index).split('\n').length - 1;
+            // Extract ±5 lines around definition
+            const start = Math.max(0, defLine - 1);
+            const end = Math.min(lines.length, defLine + 15);
+            investigation.definition = `${resolved}:${defLine + 1}`;
+            investigation.contract = lines.slice(start, end).join('\n');
+            break;
+          }
+        } catch { /* skip */ }
+      }
+    }
+
+    // Find importers of the candidate file by checking known candidates
+    // (avoids async fs scan — uses content already loaded during diagnose)
+    const candBaseName = file.split(/[/\\]/).pop()?.replace(/\.tsx?$/, '') || '';
+    const importPattern = new RegExp(`['"]\\./[^'"]*${candBaseName}['"]`);
+    // Scan imports in the candidate file's own content for reverse dependency hints
+    const importRe2 = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+    let im2: RegExpExecArray | null;
+    while ((im2 = importRe2.exec(content))) {
+      const importedBase = im2[1].split('/').pop()?.replace(/\.(ts|tsx|js)$/, '') || '';
+      if (importedBase && importPattern.test(im2[0])) {
+        investigation.importers.push(im2[1]);
+      }
+    }
+    // Cap importers
+    investigation.importers = investigation.importers.slice(0, 3);
+
+    investigations.push(investigation);
+  }
+
+  return investigations;
+}
+
+/** Format symbol investigations as context for the LLM prompt */
+function formatInvestigations(investigations: SymbolInvestigation[]): string {
+  if (investigations.length === 0) return '';
+  const parts = ['', '=== SYMBOL INVESTIGATION ==='];
+  for (const inv of investigations) {
+    parts.push(`Symbol: ${inv.symbol}`);
+    if (inv.definition) parts.push(`  Defined at: ${inv.definition}`);
+    if (inv.contract) {
+      parts.push('  Contract:');
+      parts.push(inv.contract.split('\n').map(l => `    ${l}`).join('\n'));
+    }
+    if (inv.importers.length > 0) parts.push(`  Imported by: ${inv.importers.join(', ')}`);
+  }
+  return parts.join('\n');
+}
+
+// ── Fix Provenance ──────────────────────────────────────────────────────────
+
+interface FixProvenanceRecord {
+  timestamp: string;
+  candidate: string;
+  focus: string;
+  errorsBefore: number;
+  errorsAfter: number;
+  fileErrorsBefore: number;
+  fileErrorsAfter: number;
+  symbolsTargeted: string[];
+  relatedFilesTouched: string[];
+  patchCount: number;
+  rollbackReason?: string;
+  commitSha?: string;
+  result: 'committed' | 'rolled_back' | 'skipped';
+}
+
+const provenanceLog: FixProvenanceRecord[] = [];
+
+function recordProvenance(record: FixProvenanceRecord, stateDir: string, host: DaemonHost): void {
+  provenanceLog.push(record);
+  try {
+    const ledgerPath = `${stateDir}/fix-ledger.json`;
+    let existing: FixProvenanceRecord[] = [];
+    if (host.exists(ledgerPath)) {
+      try { existing = JSON.parse(host.readFile(ledgerPath)); } catch { /* start fresh */ }
+    }
+    existing.push(record);
+    // Keep last 200 records
+    while (existing.length > 200) existing.shift();
+    host.writeFile(ledgerPath, JSON.stringify(existing, null, 2));
+  } catch { /* non-fatal */ }
+}
+
+// ── File-Local Error Delta ──────────────────────────────────────────────────
+
+/**
+ * Count type errors belonging to a specific file.
+ * Much faster than full tsc — just filters the error output.
+ */
+function countFileErrors(errorOutput: string, filePath: string): number {
+  const normalized = filePath.replace(/\\/g, '/');
+  const baseName = normalized.split('/').pop() || '';
+  return errorOutput.split('\n').filter(l => {
+    if (!/error TS\d{4}:/.test(l)) return false;
+    const m = l.match(/^(.+?)\(\d+,\d+\):/);
+    if (!m) return false;
+    const errFile = m[1].replace(/\\/g, '/');
+    return errFile === normalized || errFile.endsWith('/' + baseName);
+  }).length;
+}
+
+function normalizeRepoPath(filePath: string): string {
+  return filePath.replace(/\\/g, '/').replace(/^\.\//, '').trim();
 }
 
 // ── Feature Sweep Helpers ───────────────────────────────────────────────────
@@ -928,7 +1105,13 @@ export function createDaemonActions(
       try {
         bb.currentCandidate = filePath;
         bb.candidateContent = host.readFile(filePath);
-        log(`Read candidate: ${filePath}`);
+
+        // Store file-local error count before fix for delta scoring
+        const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
+        const fileErrs = perFileErrors[filePath] || perFileErrors[filePath.replace(/\\/g, '/')] || [];
+        bb.fileErrorsBefore = fileErrs.length;
+
+        log(`Read candidate: ${filePath} (${fileErrs.length} file-local errors)`);
         return true;
       } catch (err: unknown) {
         log(`Failed to read ${filePath}: ${(err as Error).message}`);
@@ -1159,13 +1342,20 @@ export function createDaemonActions(
       }
 
       // Multi-file context: resolve base class and related files
-      const relatedFiles = resolveRelatedFiles(content, file, host, errorContext);
+      const relatedFiles = resolveRelatedFiles(content, file, host, errorContext, config.repoRoot);
       const depContext = extractDependencyContext(content, file, host);
 
       const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
 
       // Extract relevant prior wisdom for this file (avoid repeating failed approaches)
       const priorWisdom = extractFileWisdom(bb.wisdom, file, focus);
+
+      // Investigate error symbols before building the prompt
+      const investigations = investigateSymbols(errorContext, content, file, host, config.repoRoot);
+      if (investigations.length > 0) {
+        bb.symbolsTargeted = investigations.map(i => i.symbol);
+        log(`Investigated ${investigations.length} symbols: ${investigations.map(i => i.symbol).join(', ')}`);
+      }
 
       // Build prompt — include related file content for coordinated patches
       const promptParts = [
@@ -1196,6 +1386,12 @@ export function createDaemonActions(
           ...priorWisdom,
           '',
         );
+      }
+
+      // Inject symbol investigation results (definitions, contracts)
+      const investigationCtx = formatInvestigations(investigations);
+      if (investigationCtx) {
+        promptParts.push(investigationCtx);
       }
 
       promptParts.push(
@@ -1287,8 +1483,14 @@ export function createDaemonActions(
         // Apply related file patches (multi-file)
         const relatedEdits: { path: string; original: string; patched: string }[] = [];
         for (const [relPath, relPatches] of relatedPatchGroups) {
-          // Find the related file by matching path
-          const rf = relatedFiles.find(r => r.path.replace(/\\/g, '/') === relPath);
+          // Match exact path first, then allow repo-relative suffix matching.
+          const requestedPath = normalizeRepoPath(relPath);
+          const rf = relatedFiles.find(r => {
+            const candidatePath = normalizeRepoPath(r.path);
+            return candidatePath === requestedPath
+              || candidatePath.endsWith(`/${requestedPath}`)
+              || requestedPath.endsWith(`/${candidatePath}`);
+          });
           if (!rf) { log(`Related file ${relPath} not found, skipping its patches`); continue; }
           const { result: relPatched, applied: relApplied } = applyPatches(rf.content, relPatches);
           if (relApplied > 0) {
@@ -1323,10 +1525,42 @@ export function createDaemonActions(
       const result = await host.exec('npx', tscCheckArgs(config.stateDir), {
         cwd: config.repoRoot, timeoutMs: 120_000,
       });
-      const errors = (result.stdout + result.stderr).split('\n').filter(l => /error TS\d{4}:/.test(l));
+      const errorOutput = result.stdout + result.stderr;
+      const errors = errorOutput.split('\n').filter(l => /error TS\d{4}:/.test(l));
       const baseline = (bb.typeErrorCount as number) ?? Infinity;
       bb.compilation_passed = errors.length === 0 || errors.length <= baseline;
       bb.compileErrors = errors.slice(0, 20);
+
+      // File-local error delta: count errors specific to the candidate file
+      const candidateFile = bb.currentCandidate as string;
+      if (candidateFile) {
+        bb.fileErrorsAfter = countFileErrors(errorOutput, candidateFile);
+        const before = (bb.fileErrorsBefore as number) ?? 0;
+        const after = bb.fileErrorsAfter as number;
+        if (before !== after) {
+          log(`File-local errors: ${before} → ${after} (delta: ${after - before})`);
+        }
+
+        // Multi-file delta: include candidate + any related files that were edited.
+        const relatedEdits = (bb.relatedEdits as { path: string }[] | undefined) || [];
+        const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
+        const touchedFiles = [candidateFile, ...relatedEdits.map(e => e.path)];
+        const touchedBefore = touchedFiles.reduce((sum, f) => {
+          const normalized = normalizeRepoPath(f);
+          const errs = perFileErrors[normalized]
+            || perFileErrors[f]
+            || perFileErrors[f.replace(/\\/g, '/')]
+            || [];
+          return sum + errs.length;
+        }, 0);
+        const touchedAfter = touchedFiles.reduce((sum, f) => sum + countFileErrors(errorOutput, f), 0);
+        bb.touchedErrorsBefore = touchedBefore;
+        bb.touchedErrorsAfter = touchedAfter;
+        if (touchedBefore !== touchedAfter) {
+          log(`Touched-file errors: ${touchedBefore} → ${touchedAfter} (delta: ${touchedAfter - touchedBefore})`);
+        }
+      }
+
       log(`Compilation: ${bb.compilation_passed ? 'PASS' : 'FAIL'} (${errors.length} errors)`);
       return true;
     },
@@ -1390,10 +1624,27 @@ export function createDaemonActions(
       // fixing 1–3 errors moves quality by <0.001 which rounds away.
       const errorsAtDiagnosis = (bb.typeErrorCount as number) || Infinity;
       const errorsReduced = result.typeErrors < errorsAtDiagnosis;
-      bb.quality_improved = result.score > qualityBefore || errorsReduced;
+
+      // File-local delta: additional commit signal when file's own errors decrease
+      const fileBefore = (bb.fileErrorsBefore as number) ?? 0;
+      const fileAfter = (bb.fileErrorsAfter as number) ?? 0;
+      const fileErrorsReduced = fileBefore > 0 && fileAfter < fileBefore;
+
+      // Multi-file delta: commit when candidate + related touched files improve.
+      const touchedBefore = (bb.touchedErrorsBefore as number) ?? 0;
+      const touchedAfter = (bb.touchedErrorsAfter as number) ?? 0;
+      const touchedErrorsReduced = touchedBefore > 0 && touchedAfter < touchedBefore;
+
+      bb.quality_improved = result.score > qualityBefore || errorsReduced || fileErrorsReduced || touchedErrorsReduced;
 
       if (errorsReduced) {
         log(`Error count reduced: ${errorsAtDiagnosis} → ${result.typeErrors} (committing even without quality delta)`);
+      }
+      if (fileErrorsReduced) {
+        log(`File-local errors reduced: ${fileBefore} → ${fileAfter} (committing on file-level improvement)`);
+      }
+      if (touchedErrorsReduced) {
+        log(`Touched-file errors reduced: ${touchedBefore} → ${touchedAfter} (committing on multi-file improvement)`);
       }
       log(`Quality: ${qualityBefore.toFixed(3)} -> ${result.score.toFixed(3)} | ` +
         `types: ${result.typeErrors} errors | tests: ${result.testsPassed}/${result.testsTotal} passed`);
@@ -1423,9 +1674,14 @@ export function createDaemonActions(
       const file = bb.currentCandidate as string;
       const testFile = bb.generatedTestFile as string | undefined;
       const focus = (bb.focus as string) || 'typefix';
+      const relatedEdits = (bb.relatedEdits as { path: string }[] | undefined) || [];
 
       // Stage modified/created files
-      const filesToAdd = testFile ? [file, testFile] : [file];
+      const filesToAdd = Array.from(new Set([
+        file,
+        ...(testFile ? [testFile] : []),
+        ...relatedEdits.map(e => e.path),
+      ]));
       for (const f of filesToAdd) {
         const addResult = await host.exec('git', ['add', f], { cwd: config.repoRoot });
         if (addResult.code !== 0) {
@@ -1444,7 +1700,26 @@ export function createDaemonActions(
         log(`Commit: FAILED (code=${result.code}, stderr=${(result.stderr || '').trim()})`);
       } else {
         committedFiles.add(file.replace(/\\/g, '/'));
-        log(`Commit: OK`);
+        // Extract commit SHA for provenance
+        const shaResult = await host.exec('git', ['rev-parse', '--short', 'HEAD'], { cwd: config.repoRoot });
+        const commitSha = shaResult.code === 0 ? shaResult.stdout.trim() : undefined;
+        log(`Commit: OK (${commitSha || 'unknown SHA'})`);
+
+        // Record fix provenance
+        recordProvenance({
+          timestamp: new Date().toISOString(),
+          candidate: file,
+          focus,
+          errorsBefore: (bb.typeErrorCount as number) || 0,
+          errorsAfter: (bb.quality_typeErrors as number) || 0,
+          fileErrorsBefore: (bb.fileErrorsBefore as number) || 0,
+          fileErrorsAfter: (bb.fileErrorsAfter as number) || 0,
+          symbolsTargeted: (bb.symbolsTargeted as string[]) || [],
+          relatedFilesTouched: (bb.relatedEdits as { path: string }[] || []).map(e => e.path),
+          patchCount: 1,
+          commitSha,
+          result: 'committed',
+        }, config.stateDir, host);
       }
 
       advanceCandidate(bb);
@@ -1484,6 +1759,30 @@ export function createDaemonActions(
           log(`Quarantined ${file} (${quarantineThreshold} failures)`);
         }
         log(`Rolled back ${file}`);
+
+        // Record rollback provenance
+        const focus = (bb.focus as string) || 'typefix';
+        const rollbackReason = !(bb.compilation_passed as boolean)
+          ? 'compilation_failed'
+          : !(bb.tests_passed as boolean)
+            ? 'tests_failed'
+            : !(bb.quality_improved as boolean)
+              ? 'no_quality_improvement'
+              : 'unknown';
+        recordProvenance({
+          timestamp: new Date().toISOString(),
+          candidate: file,
+          focus,
+          errorsBefore: (bb.typeErrorCount as number) || 0,
+          errorsAfter: (bb.quality_typeErrors as number) || 0,
+          fileErrorsBefore: (bb.fileErrorsBefore as number) || 0,
+          fileErrorsAfter: (bb.fileErrorsAfter as number) || 0,
+          symbolsTargeted: (bb.symbolsTargeted as string[]) || [],
+          relatedFilesTouched: (relatedEdits || []).map(e => e.path),
+          patchCount: 1,
+          rollbackReason,
+          result: 'rolled_back',
+        }, config.stateDir, host);
       }
       bb.generatedTestFile = undefined;
       return true;
