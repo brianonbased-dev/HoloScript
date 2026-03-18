@@ -50,7 +50,7 @@ export function loadConstraintsFromConfig(config: unknown): TraitConstraint[] {
   for (const entry of raw.traitConstraints) {
     if (!entry || typeof entry !== 'object') continue;
 
-    const { type, source, targets, message, suggestion } = entry as Record<string, unknown>;
+    const { type, source, targets, message, suggestion } = entry as unknown as Record<string, unknown>;
 
     if (
       (type === 'requires' || type === 'conflicts' || type === 'oneof') &&
