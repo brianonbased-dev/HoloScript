@@ -229,7 +229,7 @@ export class ChunkBasedIncrementalParser {
       const result = this.parser.parse(content);
 
       if (result.success && result.ast) {
-        return result.ast;
+        return result.ast as HSPlusNode;
       }
 
       return null;
