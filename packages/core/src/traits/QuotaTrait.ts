@@ -652,7 +652,6 @@ export const quotaHandler: TraitHandler<QuotaConfig> = {
             queryId: (event as Record<string, unknown>).queryId,
             node,
             tenantId: config.tenantId,
-            resource,
             ...limit,
             usagePercent:
               limit.hardLimit > 0
