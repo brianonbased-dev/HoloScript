@@ -1,11 +1,12 @@
 // @absorb: auto-generated from C:\Users\josep\Documents\GitHub\HoloScript\packages\core\src\cli\daemon-actions.ts
 // Source language: typescript
-// Generated at: 2026-03-17T22:11:58.526Z
+// Generated at: 2026-03-18T09:16:08.900Z
 
 state CONTAMINATION_SIGNATURES: dynamic = [
 state SWEEP_TARGETS: dynamic = ['node', 'python'] as const
 state PROFILE_MATRIX: dynamic = ['headless', 'minimal', 'full'] as const
-state QUARANTINE_THRESHOLD: dynamic = 2
+state CONTEXT_RADIUS: dynamic = 10
+state FEW_ERRORS_THRESHOLD: dynamic = 3
 
 fn isContaminatedEdit(content) -> boolean {
   // TODO: port isContaminatedEdit logic from typescript
@@ -29,6 +30,30 @@ fn computeDownstreamImpact(candidates, number]>, host) -> Map {
 
 fn extractDependencyContext(content, file, host) -> string {
   // TODO: port extractDependencyContext logic from typescript
+}
+
+fn resolveRelatedFiles(content, file, host, errorContext, repoRoot) -> RelatedFile {
+  // TODO: port resolveRelatedFiles logic from typescript
+}
+
+fn investigateSymbols(errorContext, content, file, host, repoRoot) -> SymbolInvestigation {
+  // TODO: port investigateSymbols logic from typescript
+}
+
+fn formatInvestigations(investigations) -> string {
+  // TODO: port formatInvestigations logic from typescript
+}
+
+fn recordProvenance(record, stateDir, host) -> void {
+  // TODO: port recordProvenance logic from typescript
+}
+
+fn countFileErrors(errorOutput, filePath) -> number {
+  // TODO: port countFileErrors logic from typescript
+}
+
+fn normalizeRepoPath(filePath) -> string {
+  // TODO: port normalizeRepoPath logic from typescript
 }
 
 fn sanitizeName(filePath) -> string {
@@ -63,8 +88,28 @@ fn validatePatchSafety(original, patched) {
   // TODO: port validatePatchSafety logic from typescript
 }
 
+fn extractFileWisdom(wisdom, filePath, focus) -> string {
+  // TODO: port extractFileWisdom logic from typescript
+}
+
+fn buildErrorFocusedContext(content, errorLines) -> string {
+  // TODO: port buildErrorFocusedContext logic from typescript
+}
+
 fn quarantineFile(filePath) -> boolean {
   // TODO: port quarantineFile logic from typescript
+}
+
+fn isQuarantined(filePath) -> boolean {
+  // TODO: port isQuarantined logic from typescript
+}
+
+fn isCommitted(filePath) -> boolean {
+  // TODO: port isCommitted logic from typescript
+}
+
+fn getDaemonFileState() {
+  // TODO: port getDaemonFileState logic from typescript
 }
 
 fn createDaemonActions(host, llm, config) -> Record {

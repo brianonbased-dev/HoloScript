@@ -284,4 +284,105 @@ describe('holoscript daemon integration', () => {
       compileOk: true,
     });
   });
+
+  it('blocks shell_exec when shell access is disabled by policy', async () => {
+    host.setExecResponses(() => ({ code: 0, stdout: 'ok', stderr: '' }));
+
+    const actions = createDaemonActions(host, llm, {
+      ...createConfig(),
+      toolPolicy: {
+        allowShell: false,
+      },
+    });
+
+    const ok = await actions.shell_exec({ command: 'echo', args: ['hello'] }, blackboard, context);
+    expect(ok).toBe(false);
+    expect(blackboard.shell_exec_error).toBe('shell_exec is disabled by policy');
+  });
+
+  it('enforces file_write path sandbox policy', async () => {
+    const actions = createDaemonActions(host, llm, {
+      ...createConfig(),
+      toolPolicy: {
+        allowedPaths: ['packages/core/src'],
+      },
+    });
+
+    const denied = await actions.file_write(
+      { path: 'scripts/outside.txt', content: 'blocked' },
+      blackboard,
+      context,
+    );
+    expect(denied).toBe(false);
+    expect(String(blackboard.file_write_error)).toContain('outside allowed roots');
+
+    const allowed = await actions.file_write(
+      { path: 'packages/core/src/allowed.txt', content: 'ok' },
+      blackboard,
+      context,
+    );
+    expect(allowed).toBe(true);
+    expect(host.readFile('packages/core/src/allowed.txt')).toBe('ok');
+  });
+
+  it('blocks web_fetch for non-allowlisted hosts', async () => {
+    const actions = createDaemonActions(host, llm, {
+      ...createConfig(),
+      toolPolicy: {
+        allowedHosts: ['api.openai.com'],
+      },
+    });
+
+    const ok = await actions.web_fetch({ url: 'https://example.com' }, blackboard, context);
+    expect(ok).toBe(false);
+    expect(String(blackboard.web_fetch_error)).toContain('not allowlisted');
+  });
+
+  it('creates a runtime skill file in the configured skills directory', async () => {
+    const actions = createDaemonActions(host, llm, {
+      ...createConfig(),
+      skillsDir: 'compositions/skills',
+      toolPolicy: {
+        allowedPaths: ['compositions/skills'],
+      },
+    });
+
+    const ok = await actions.create_skill(
+      {
+        name: 'My New Skill',
+        content: 'composition "my-new-skill" {\n  action "ping" { }\n}\n',
+      },
+      blackboard,
+      context,
+    );
+
+    expect(ok).toBe(true);
+    expect(blackboard.created_skill_path).toBe('compositions/skills/my-new-skill.hsplus');
+    expect(host.readFile('compositions/skills/my-new-skill.hsplus')).toContain('composition "my-new-skill"');
+  });
+
+  it('writes outbound channel messages to queue and ingests inbound messages', async () => {
+    const actions = createDaemonActions(host, llm, createConfig());
+
+    const sent = await actions.channel_send(
+      {
+        channel: 'discord',
+        message: 'hello world',
+        metadata: { source: 'test' },
+      },
+      blackboard,
+      context,
+    );
+    expect(sent).toBe(true);
+    const outbox = host.readFile('.holoscript/outbox.jsonl');
+    expect(outbox).toContain('hello world');
+
+    host.writeFile(
+      '.holoscript/inbox.jsonl',
+      `${JSON.stringify({ channel: 'discord', message: 'incoming', timestamp: new Date().toISOString() })}\n`,
+    );
+    const ingested = await actions.channel_ingest({}, blackboard, context);
+    expect(ingested).toBe(true);
+    expect((blackboard.channel_message as { message?: string })?.message).toBe('incoming');
+  });
 });

@@ -11,6 +11,7 @@
 
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
 import path from 'path';
+import { createHmac, timingSafeEqual } from 'crypto';
 import {
   buildDaemonPromptContext,
   getDaemonSystemPrompt,
@@ -44,6 +45,19 @@ export interface DaemonConfig {
   failedFiles?: Record<string, number>;
   /** Historical type error baseline for quality scoring (e.g., 3506 at first run) */
   typeErrorBaseline?: number;
+  /** Optional runtime tool policy for general-purpose daemon actions. */
+  toolPolicy?: {
+    allowShell?: boolean;
+    allowedShellCommands?: string[];
+    allowedPaths?: string[];
+    allowedHosts?: string[];
+    maxFileBytes?: number;
+    maxShellOutputBytes?: number;
+    requireSignedInbox?: boolean;
+    inboxSignatureSecret?: string;
+  };
+  /** Directory where runtime-created skills are persisted. */
+  skillsDir?: string;
 }
 
 export interface DaemonExecResult {
@@ -473,6 +487,107 @@ function normalizeRepoPath(filePath: string): string {
   return filePath.replace(/\\/g, '/').replace(/^\.\//, '').trim();
 }
 
+function truncateText(value: string, max: number): string {
+  if (!Number.isFinite(max) || max <= 0 || value.length <= max) return value;
+  return `${value.slice(0, max)}\n...[truncated ${value.length - max} chars]`;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map(entry => entry.trim())
+    .filter(Boolean);
+}
+
+function resolvePolicy(config: DaemonConfig) {
+  const policy = config.toolPolicy ?? {};
+  return {
+    allowShell: policy.allowShell ?? false,
+    allowedShellCommands: (policy.allowedShellCommands ?? []).map(c => c.trim()).filter(Boolean),
+    allowedPaths: (policy.allowedPaths ?? ['packages/core/src', 'packages/studio/src', 'compositions', '.holoscript'])
+      .map(p => p.replace(/\\/g, '/').replace(/^\.\//, '').trim())
+      .filter(Boolean),
+    allowedHosts: (policy.allowedHosts ?? ['api.anthropic.com', 'api.x.ai', 'api.openai.com', 'localhost', '127.0.0.1'])
+      .map(h => h.toLowerCase().trim())
+      .filter(Boolean),
+    maxFileBytes: Math.max(1_024, policy.maxFileBytes ?? 2 * 1024 * 1024),
+    maxShellOutputBytes: Math.max(1_024, policy.maxShellOutputBytes ?? 100_000),
+    requireSignedInbox: policy.requireSignedInbox ?? false,
+    inboxSignatureSecret: typeof policy.inboxSignatureSecret === 'string'
+      ? policy.inboxSignatureSecret
+      : '',
+  };
+}
+
+function resolveRepoRelativePath(targetPath: string, repoRoot: string): { ok: true; rel: string; abs: string } | { ok: false; error: string } {
+  const normalized = targetPath.replace(/\\/g, '/').replace(/^\.\//, '').trim();
+  if (!normalized) return { ok: false, error: 'Path is required' };
+  const abs = path.resolve(repoRoot, normalized);
+  const rel = path.relative(repoRoot, abs).replace(/\\/g, '/');
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+    return { ok: false, error: 'Path escapes repository root' };
+  }
+  return { ok: true, rel, abs };
+}
+
+function isPathAllowed(relPath: string, allowedRoots: string[]): boolean {
+  const normalized = relPath.replace(/\\/g, '/');
+  return allowedRoots.some(root => normalized === root || normalized.startsWith(`${root}/`));
+}
+
+function parseHostFromUrl(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableJson).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj).sort();
+    return `{${keys.map(k => `${JSON.stringify(k)}:${stableJson(obj[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function parseHexSignature(signature: string): Buffer | null {
+  const normalized = signature.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalized)) return null;
+  try {
+    return Buffer.from(normalized, 'hex');
+  } catch {
+    return null;
+  }
+}
+
+function verifyInboxEnvelopeSignature(
+  envelope: Record<string, unknown>,
+  signature: string,
+  secret: string,
+): boolean {
+  const signedPayload: Record<string, unknown> = {
+    timestamp: envelope.timestamp ?? null,
+    channel: envelope.channel ?? null,
+    authorId: envelope.authorId ?? null,
+    authorName: envelope.authorName ?? null,
+    message: envelope.message ?? null,
+    metadata: envelope.metadata ?? null,
+  };
+
+  const payload = stableJson(signedPayload);
+  const expectedHex = createHmac('sha256', secret).update(payload).digest('hex');
+  const provided = parseHexSignature(signature);
+  const expected = parseHexSignature(expectedHex);
+  if (!provided || !expected || provided.length !== expected.length) return false;
+  return timingSafeEqual(provided, expected);
+}
+
 // ── Feature Sweep Helpers ───────────────────────────────────────────────────
 
 const SWEEP_TARGETS = ['node', 'python'] as const;
@@ -890,6 +1005,7 @@ export function createDaemonActions(
     config.toolProfile || 'standard',
   );
   const { provider, toolProfile } = promptContext;
+  const policy = resolvePolicy(config);
 
   log(`LLM provider=${provider} | toolProfile=${toolProfile} | model=${config.model}`);
 
@@ -901,6 +1017,247 @@ export function createDaemonActions(
   };
 
   const actions: Record<string, ActionHandler> = {
+    // ── General-Purpose Host Tools ─────────────────────────────────────
+    shell_exec: async (params, bb, ctx) => {
+      if (!policy.allowShell) {
+        bb.shell_exec_error = 'shell_exec is disabled by policy';
+        return false;
+      }
+
+      const command = typeof params.command === 'string' ? params.command.trim() : '';
+      const args = toStringArray(params.args);
+      if (!command) {
+        bb.shell_exec_error = 'command is required';
+        return false;
+      }
+
+      if (policy.allowedShellCommands.length > 0) {
+        const executable = command.split(/\s+/)[0].toLowerCase();
+        const allowed = policy.allowedShellCommands.some(c => c.toLowerCase() === executable);
+        if (!allowed) {
+          bb.shell_exec_error = `command "${executable}" is not allowlisted`;
+          return false;
+        }
+      }
+
+      const timeoutMs = typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
+        ? Math.max(1_000, Math.min(300_000, Math.floor(params.timeoutMs)))
+        : 60_000;
+
+      const result = await host.exec(command, args, { cwd: config.repoRoot, timeoutMs });
+      bb.shell_exec_code = result.code ?? -1;
+      bb.shell_exec_stdout = truncateText(result.stdout, policy.maxShellOutputBytes);
+      bb.shell_exec_stderr = truncateText(result.stderr, policy.maxShellOutputBytes);
+      ctx.emit('daemon:tool:shell_exec', {
+        command,
+        code: result.code,
+        stdoutBytes: result.stdout.length,
+        stderrBytes: result.stderr.length,
+      });
+      return result.code === 0;
+    },
+
+    file_read: async (params, bb, ctx) => {
+      const filePath = typeof params.path === 'string' ? params.path : '';
+      const resolved = resolveRepoRelativePath(filePath, config.repoRoot);
+      if (!resolved.ok) {
+        bb.file_read_error = resolved.error;
+        return false;
+      }
+      if (!isPathAllowed(resolved.rel, policy.allowedPaths)) {
+        bb.file_read_error = `path "${resolved.rel}" is outside allowed roots`;
+        return false;
+      }
+      if (!host.exists(resolved.rel)) {
+        bb.file_read_error = `file not found: ${resolved.rel}`;
+        return false;
+      }
+      const content = host.readFile(resolved.rel);
+      if (Buffer.byteLength(content, 'utf-8') > policy.maxFileBytes) {
+        bb.file_read_error = `file exceeds max size (${policy.maxFileBytes} bytes)`;
+        return false;
+      }
+      bb.file_read_path = resolved.rel;
+      bb.file_read_content = content;
+      ctx.emit('daemon:tool:file_read', { path: resolved.rel, bytes: Buffer.byteLength(content, 'utf-8') });
+      return true;
+    },
+
+    file_write: async (params, bb, ctx) => {
+      const filePath = typeof params.path === 'string' ? params.path : '';
+      const content = typeof params.content === 'string' ? params.content : null;
+      const append = params.append === true;
+      if (content === null) {
+        bb.file_write_error = 'content is required';
+        return false;
+      }
+      if (Buffer.byteLength(content, 'utf-8') > policy.maxFileBytes) {
+        bb.file_write_error = `content exceeds max size (${policy.maxFileBytes} bytes)`;
+        return false;
+      }
+      const resolved = resolveRepoRelativePath(filePath, config.repoRoot);
+      if (!resolved.ok) {
+        bb.file_write_error = resolved.error;
+        return false;
+      }
+      if (!isPathAllowed(resolved.rel, policy.allowedPaths)) {
+        bb.file_write_error = `path "${resolved.rel}" is outside allowed roots`;
+        return false;
+      }
+      const current = append && host.exists(resolved.rel) ? host.readFile(resolved.rel) : '';
+      host.writeFile(resolved.rel, append ? `${current}${content}` : content);
+      bb.file_write_path = resolved.rel;
+      bb.file_write_bytes = Buffer.byteLength(content, 'utf-8');
+      ctx.emit('daemon:tool:file_write', { path: resolved.rel, append, bytes: Buffer.byteLength(content, 'utf-8') });
+      return true;
+    },
+
+    web_fetch: async (params, bb, ctx) => {
+      const url = typeof params.url === 'string' ? params.url.trim() : '';
+      if (!url) {
+        bb.web_fetch_error = 'url is required';
+        return false;
+      }
+      const hostName = parseHostFromUrl(url);
+      if (!hostName) {
+        bb.web_fetch_error = 'invalid url';
+        return false;
+      }
+      const allowed = policy.allowedHosts.includes(hostName) || policy.allowedHosts.some(h => hostName.endsWith(`.${h}`));
+      if (!allowed) {
+        bb.web_fetch_error = `host "${hostName}" is not allowlisted`;
+        return false;
+      }
+      try {
+        const response = await (globalThis.fetch as typeof fetch)(url, {
+          method: typeof params.method === 'string' ? params.method : 'GET',
+          headers: typeof params.headers === 'object' && params.headers
+            ? params.headers as Record<string, string>
+            : undefined,
+        });
+        const text = await response.text();
+        bb.web_fetch_status = response.status;
+        bb.web_fetch_body = truncateText(text, policy.maxShellOutputBytes);
+        bb.web_fetch_ok = response.ok;
+        ctx.emit('daemon:tool:web_fetch', { url, status: response.status, ok: response.ok });
+        return response.ok;
+      } catch (error) {
+        bb.web_fetch_error = (error as Error).message;
+        return false;
+      }
+    },
+
+    create_skill: async (params, bb, ctx) => {
+      const name = typeof params.name === 'string' ? params.name.trim() : '';
+      if (!name) {
+        bb.create_skill_error = 'name is required';
+        return false;
+      }
+      const safeName = name.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      if (!safeName) {
+        bb.create_skill_error = 'name must contain alphanumeric characters';
+        return false;
+      }
+
+      const skillsRoot = config.skillsDir
+        ? resolveRepoRelativePath(config.skillsDir, config.repoRoot)
+        : resolveRepoRelativePath('compositions/skills', config.repoRoot);
+      if (!skillsRoot.ok) {
+        bb.create_skill_error = skillsRoot.error;
+        return false;
+      }
+
+      const targetPath = `${skillsRoot.rel}/${safeName}.hsplus`;
+      const content = typeof params.content === 'string' && params.content.trim().length > 0
+        ? params.content
+        : `composition "${safeName}" {\n  // Generated by create_skill\n  action "${safeName}" {\n    // Fill implementation\n  }\n}\n`;
+
+      if (Buffer.byteLength(content, 'utf-8') > policy.maxFileBytes) {
+        bb.create_skill_error = `skill content exceeds max size (${policy.maxFileBytes} bytes)`;
+        return false;
+      }
+
+      host.writeFile(targetPath, content);
+      bb.created_skill_path = targetPath;
+      bb.created_skill_name = safeName;
+      ctx.emit('daemon:skill_created', { name: safeName, path: targetPath });
+      return true;
+    },
+
+    channel_send: async (params, bb, ctx) => {
+      const channel = typeof params.channel === 'string' ? params.channel.trim() : 'default';
+      const message = typeof params.message === 'string' ? params.message : '';
+      if (!message) {
+        bb.channel_send_error = 'message is required';
+        return false;
+      }
+      const outboxPath = `${config.stateDir}/outbox.jsonl`;
+      const entry = {
+        timestamp: new Date().toISOString(),
+        channel,
+        message,
+        metadata: typeof params.metadata === 'object' && params.metadata ? params.metadata : {},
+      };
+      const prev = host.exists(outboxPath) ? host.readFile(outboxPath) : '';
+      host.writeFile(outboxPath, `${prev}${JSON.stringify(entry)}\n`);
+      bb.channel_send_ok = true;
+      ctx.emit('daemon:channel:send', entry);
+      return true;
+    },
+
+    channel_ingest: async (_params, bb, ctx) => {
+      const inboxPath = `${config.stateDir}/inbox.jsonl`;
+      if (!host.exists(inboxPath)) {
+        bb.channel_ingest_ok = false;
+        return false;
+      }
+      const lines = host.readFile(inboxPath).split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        bb.channel_ingest_ok = false;
+        return false;
+      }
+      try {
+        const latest = JSON.parse(lines[lines.length - 1]) as Record<string, unknown>;
+
+        if (policy.requireSignedInbox) {
+          const secret = policy.inboxSignatureSecret;
+          if (!secret) {
+            bb.channel_ingest_error = 'Signed inbox required, but inboxSignatureSecret is not configured';
+            return false;
+          }
+
+          const metadata = latest.metadata && typeof latest.metadata === 'object'
+            ? latest.metadata as Record<string, unknown>
+            : {};
+          const signature = typeof metadata.signature === 'string' ? metadata.signature : '';
+          if (!signature) {
+            bb.channel_ingest_error = 'Inbox envelope missing metadata.signature';
+            return false;
+          }
+
+          const envelopeForVerification: Record<string, unknown> = {
+            ...latest,
+            metadata: { ...metadata },
+          };
+          delete (envelopeForVerification.metadata as Record<string, unknown>).signature;
+
+          const valid = verifyInboxEnvelopeSignature(envelopeForVerification, signature, secret);
+          if (!valid) {
+            bb.channel_ingest_error = 'Inbox envelope signature validation failed';
+            return false;
+          }
+        }
+
+        bb.channel_message = latest;
+        bb.channel_ingest_ok = true;
+        ctx.emit('user:message', latest);
+        return true;
+      } catch (error) {
+        bb.channel_ingest_error = (error as Error).message;
+        return false;
+      }
+    },
+
     // ── Identity & Wisdom ──────────────────────────────────────────────
     identity_intake: async (_params, bb) => {
       const wisdomPath = `${config.stateDir}/accumulated-wisdom.json`;

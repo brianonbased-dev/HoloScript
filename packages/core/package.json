@@ -130,6 +130,7 @@
     "zod": "^3.24.0"
   },
   "optionalDependencies": {
+    "discord.js": "^14.21.0",
     "@huggingface/transformers": "^3.8.1",
     "@noble/post-quantum": "^0.5.4",
     "tree-sitter": "0.21.1",

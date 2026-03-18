@@ -19,6 +19,7 @@ import * as readline from 'readline';
 import { spawn } from 'child_process';
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/HeadlessRuntime';
 import { createHeadlessRuntime as createProfileRuntime } from '../runtime/profiles/HeadlessRuntime';
+import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
 import { HEADLESS_PROFILE as PROFILES_HEADLESS } from '../runtime/profiles/RuntimeProfile';
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
@@ -51,6 +52,13 @@ interface CLIOptions {
   focus?: string; // override focus rotation with fixed focus
   enforceGotchas: boolean; // fail compile if critical @gotcha violations found
   providerRotation: boolean; // alternate providers per cycle (Claude→Grok→Claude→...)
+  alwaysOn: boolean;
+  cycleIntervalSec: number;
+  allowShell: boolean;
+  allowedShellCommands: string[];
+  allowedHosts: string[];
+  allowedPaths: string[];
+  skillsDir?: string;
 }
 
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
@@ -124,6 +132,12 @@ function parseArgs(argv: string[]): CLIOptions {
     commit: false,
     enforceGotchas: false,
     providerRotation: false,
+    alwaysOn: false,
+    cycleIntervalSec: 30,
+    allowShell: false,
+    allowedShellCommands: [],
+    allowedHosts: [],
+    allowedPaths: [],
     provider: envDefaults.provider,
     toolProfile: envDefaults.toolProfile,
     model: envDefaults.model,
@@ -197,6 +211,24 @@ function parseArgs(argv: string[]): CLIOptions {
     }
     if (args[i] === '--enforce-gotchas') opts.enforceGotchas = true;
     if (args[i] === '--provider-rotation') opts.providerRotation = true;
+    if (args[i] === '--always-on') opts.alwaysOn = true;
+    if (args[i] === '--allow-shell') opts.allowShell = true;
+    if (args[i] === '--skills-dir' && args[i + 1]) opts.skillsDir = args[++i];
+    if (args[i] === '--cycle-interval-sec' && args[i + 1]) {
+      const parsed = Number(args[++i]);
+      if (Number.isFinite(parsed) && parsed >= 1) {
+        opts.cycleIntervalSec = Math.floor(parsed);
+      }
+    }
+    if (args[i] === '--allow-shell-command' && args[i + 1]) {
+      opts.allowedShellCommands.push(args[++i]);
+    }
+    if (args[i] === '--allow-host' && args[i + 1]) {
+      opts.allowedHosts.push(args[++i]);
+    }
+    if (args[i] === '--allow-path' && args[i + 1]) {
+      opts.allowedPaths.push(args[++i]);
+    }
   }
 
   if (!modelExplicit) {
@@ -1069,6 +1101,86 @@ function findGitRoot(startDir: string): string {
   return startDir;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function loadRuntimeSkillActions(
+  skillsDir: string,
+  opts: CLIOptions,
+  host: DaemonHost,
+  repoRoot: string,
+  debug = false,
+): Record<string, ActionHandler> {
+  const actions: Record<string, ActionHandler> = {};
+  if (!fs.existsSync(skillsDir)) return actions;
+
+  const files = fs.readdirSync(skillsDir)
+    .filter(name => name.endsWith('.hsplus'))
+    .map(name => path.join(skillsDir, name));
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf-8');
+    const actionRe = /action\s+"([^"]+)"\s*\{([\s\S]*?)\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = actionRe.exec(content)) !== null) {
+      const actionName = match[1].trim();
+      const block = match[2];
+      const commandMatch = block.match(/command\s*:\s*["']([^"']+)["']/);
+      if (!commandMatch) continue;
+      const command = commandMatch[1].trim();
+
+      const argMatch = block.match(/args\s*:\s*\[([^\]]*)\]/);
+      const bakedArgs: string[] = [];
+      if (argMatch) {
+        const argValueRe = /["']([^"']+)["']/g;
+        let argToken: RegExpExecArray | null;
+        while ((argToken = argValueRe.exec(argMatch[1])) !== null) {
+          bakedArgs.push(argToken[1]);
+        }
+      }
+
+      actions[actionName] = async (params, bb, ctx) => {
+        if (!opts.allowShell) {
+          bb.skill_error = `Skill ${actionName} blocked: shell disabled`;
+          return false;
+        }
+        if (opts.allowedShellCommands.length > 0) {
+          const executable = command.split(/\s+/)[0].toLowerCase();
+          const allowed = opts.allowedShellCommands.some(c => c.toLowerCase() === executable);
+          if (!allowed) {
+            bb.skill_error = `Skill ${actionName} blocked: command ${executable} not allowlisted`;
+            return false;
+          }
+        }
+
+        const runtimeArgs = Array.isArray(params.args)
+          ? params.args.filter((v): v is string => typeof v === 'string')
+          : [];
+        const timeoutMs = typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
+          ? Math.max(1_000, Math.min(300_000, Math.floor(params.timeoutMs)))
+          : 60_000;
+
+        const result = await host.exec(command, [...bakedArgs, ...runtimeArgs], {
+          cwd: repoRoot,
+          timeoutMs,
+        });
+        bb.skill_last_action = actionName;
+        bb.skill_last_code = result.code ?? -1;
+        bb.skill_last_stdout = result.stdout.slice(0, 50_000);
+        bb.skill_last_stderr = result.stderr.slice(0, 50_000);
+        ctx.emit('daemon:skill:executed', { actionName, code: result.code, file });
+        return result.code === 0;
+      };
+    }
+  }
+
+  if (debug) {
+    console.log(`[daemon] Loaded ${Object.keys(actions).length} runtime skill action(s) from ${skillsDir}`);
+  }
+  return actions;
+}
+
 async function daemonScript(opts: CLIOptions): Promise<void> {
   if (!opts.file) {
     console.error('Error: No composition file specified');
@@ -1097,7 +1209,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   console.log(`[daemon] Repo root: ${repoRoot}`);
   console.log(
     `[daemon] Cycles: ${opts.cycles} | Commit: ${opts.commit} | Timeout: ${opts.timeout}min | ` +
-      `Provider: ${opts.provider} | Model: ${opts.model} | Tool profile: ${opts.toolProfile}`,
+      `Provider: ${opts.provider} | Model: ${opts.model} | Tool profile: ${opts.toolProfile} | ` +
+      `Always-on: ${opts.alwaysOn} | Cycle interval: ${opts.cycleIntervalSec}s`,
   );
 
   // State directory
@@ -1132,8 +1245,13 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     }
   }, 30_000);
 
+  const fileWatchers: fs.FSWatcher[] = [];
+
   const cleanup = () => {
     clearInterval(heartbeatTimer);
+    for (const watcher of fileWatchers) {
+      try { watcher.close(); } catch { /* best effort */ }
+    }
     try { fs.rmSync(lockFile, { force: true }); } catch { /* best effort */ }
   };
   process.once('SIGINT', cleanup);
@@ -1173,6 +1291,35 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       }),
   };
 
+  const skillsDirRel = opts.skillsDir || 'compositions/skills';
+  const skillsDirAbs = path.resolve(repoRoot, skillsDirRel);
+  if (!fs.existsSync(skillsDirAbs)) {
+    fs.mkdirSync(skillsDirAbs, { recursive: true });
+  }
+
+  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
+  let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null = null;
+
+  const reloadRuntimeSkills = () => {
+    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
+    if (activeRuntime) {
+      for (const [name, handler] of Object.entries(runtimeSkillActions)) {
+        activeRuntime.registerAction(name, handler);
+      }
+    }
+  };
+
+  try {
+    const watcher = fs.watch(skillsDirAbs, { persistent: false }, () => {
+      reloadRuntimeSkills();
+    });
+    fileWatchers.push(watcher);
+  } catch (error) {
+    if (opts.debug) {
+      console.warn(`[daemon] Skill watcher unavailable for ${skillsDirAbs}: ${(error as Error).message}`);
+    }
+  }
+
   // LLM provider (provider-aware)
   const llm = createDaemonLLMProvider(opts);
 
@@ -1199,6 +1346,13 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     focusRotation,
     stateDir,
     quarantineThreshold,
+    skillsDir: opts.skillsDir,
+    toolPolicy: {
+      allowShell: opts.allowShell,
+      allowedShellCommands: opts.allowedShellCommands,
+      allowedHosts: opts.allowedHosts,
+      allowedPaths: opts.allowedPaths,
+    },
   };
 
   // Load persisted daemon state
@@ -1249,7 +1403,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   let convergenceStreak = 0;
   const CONVERGENCE_THRESHOLD = 3; // early exit after N zero-delta cycles
 
-  for (let cycle = 0; cycle < opts.cycles; cycle++) {
+  let cycle = 0;
+  while (opts.alwaysOn || cycle < opts.cycles) {
     // Use the persisted focus index directly; do not add cycle offset here.
     // Adding cycle caused double-advancement and could bypass forced focuses.
     let focusIdx = daemonState.focusIndex % focusRotation.length;
@@ -1296,9 +1451,9 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       config.model = cycleModel;
       config.toolProfile = cycleToolProfile;
       actions = createDaemonActions(host, cycleLlm, config);
-      console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} | Provider: ${cycleProvider} (${cycleModel}) ===`);
+      console.log(`\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} | Provider: ${cycleProvider} (${cycleModel}) ===`);
     } else {
-      console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} ===`);
+      console.log(`\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} ===`);
     }
 
     // Fresh AST per cycle (deep clone for clean BT state)
@@ -1326,9 +1481,13 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       debug: opts.debug,
       hostCapabilities: createNodeHostCapabilities(repoRoot),
     });
+    activeRuntime = runtime as { registerAction: (name: string, handler: ActionHandler) => void };
 
     // Register all action handlers
     for (const [name, handler] of Object.entries(actions)) {
+      runtime.registerAction(name, handler);
+    }
+    for (const [name, handler] of Object.entries(runtimeSkillActions)) {
       runtime.registerAction(name, handler);
     }
 
@@ -1409,6 +1568,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     runtime.emit('feedback:update_metric', { name: 'regenerative_health', value: regenerativeHealth });
 
     runtime.stop();
+    activeRuntime = null;
 
     console.log(
       `[daemon] Cycle ${cycle + 1} done in ${durationSec}s | ` +
@@ -1477,11 +1637,18 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     } else {
       convergenceStreak = 0;
     }
+
+    cycle++;
+
+    if (opts.alwaysOn && opts.cycleIntervalSec > 0) {
+      console.log(`[daemon] Sleeping ${opts.cycleIntervalSec}s before next cycle...`);
+      await sleep(opts.cycleIntervalSec * 1000);
+    }
   }
 
   cleanup();
 
-  console.log(`\n[daemon] All ${opts.cycles} cycles complete.`);
+  console.log(`\n[daemon] Completed ${cycle} cycle(s).`);
   console.log(
     `[daemon] Best quality: ${daemonState.bestQuality.toFixed(3)} | ` +
     `Total cost: $${daemonState.totalCostUSD.toFixed(3)} | ` +
@@ -1611,7 +1778,7 @@ Usage:
   holoscript test <file>    [--debug]
   holoscript compile <file> [--target node|python] [--output <path>] [--enforce-gotchas]
   holoscript absorb <file>  [--output <path>] [--debug]
-  holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--provider-rotation] [--debug]
+  holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--provider-rotation] [--always-on] [--cycle-interval-sec <n>] [--skills-dir <path>] [--allow-shell] [--allow-shell-command <cmd>] [--allow-host <host>] [--allow-path <path>] [--debug]
 
 Environment defaults (daemon):
   HOLODAEMON_PROVIDER       anthropic|xai|openai|ollama
