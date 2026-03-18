@@ -116,8 +116,8 @@ export function truncate(s: string, maxLength: number, ellipsis = '...'): string
 export function truncateMiddle(s: string, maxLength: number, ellipsis = '...'): string {
   if (s.length <= maxLength) return s;
   const availableLength = maxLength - ellipsis.length;
-  const leftLength = Math.ceil(availableLength / 2);
-  const rightLength = Math.floor(availableLength / 2);
+    const leftLength = Math.floor(availableLength / 2);
+    const rightLength = Math.ceil(availableLength / 2);
   return s.slice(0, leftLength) + ellipsis + s.slice(-rightLength);
 }
 
@@ -144,7 +144,7 @@ export function count(s: string, substring: string): number {
   let pos = 0;
   while ((pos = s.indexOf(substring, pos)) !== -1) {
     count++;
-    pos += substring.length;
+     pos += 1;
   }
   return count;
 }
@@ -281,6 +281,7 @@ export function numberWithCommas(n: number): string {
 export function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
+    if (bytes < 0) return `${bytes} B`;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
@@ -293,13 +294,11 @@ export function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
   if (ms < 3600000) {
-    const mins = Math.floor(ms / 60000);
-    const secs = Math.floor((ms % 60000) / 1000);
-    return `${mins}m ${secs}s`;
+    return `${(ms / 60000).toFixed(1)}m`;
   }
   const hours = Math.floor(ms / 3600000);
   const mins = Math.floor((ms % 3600000) / 60000);
-  return `${hours}h ${mins}m`;
+  return `${(ms / 3600000).toFixed(1)}h`;
 }
 
 /**
@@ -495,22 +494,38 @@ export function levenshtein(a: string, b: string): number {
   return matrix[b.length][a.length];
 }
 
-/**
- * Check similarity between two strings (0-1)
- */
-export function similarity(a: string, b: string): number {
-  const maxLen = Math.max(a.length, b.length);
-  if (maxLen === 0) return 1;
-  return 1 - levenshtein(a, b) / maxLen;
+function lcsLength(a: string, b: string): number {
+  const n = b.length;
+  const dp: number[] = new Array(n + 1).fill(0);
+  for (let i = 0; i < a.length; i++) {
+    let prev = 0;
+    for (let j = 0; j < n; j++) {
+      const tmp = dp[j + 1];
+      dp[j + 1] = a[i] === b[j] ? prev + 1 : Math.max(dp[j + 1], dp[j]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
 }
 
 /**
- * Extract HoloScript traits (e.g., @grabbable) from a code string
+ * Check similarity between two strings (0-1) using Sorensen-Dice over LCS
+ */
+export function similarity(a: string, b: string): number {
+  const total = a.length + b.length;
+  if (total === 0) return 1;
+  return (2 * lcsLength(a, b)) / total;
+}
+
+/**
+ * Extract HoloScript trait annotations (@name) and JSX component names from code
  */
 export function extractTraits(code: string): string[] {
-  const re = /@([a-zA-Z_]\w*)/g;
   const traits = new Set<string>();
-  let m;
-  while ((m = re.exec(code)) !== null) traits.add(`@${m[1]}`);
+  let m: RegExpExecArray | null;
+  const atRe = /@([a-zA-Z_]\w*)/g;
+  while ((m = atRe.exec(code)) !== null) traits.add(`@${m[1]}`);
+  const tagRe = /<([A-Z][a-zA-Z0-9]*)\b/g;
+  while ((m = tagRe.exec(code)) !== null) traits.add(m[1]);
   return [...traits];
 }

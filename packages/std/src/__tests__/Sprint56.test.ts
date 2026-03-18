@@ -113,12 +113,12 @@ describe('formatDuration', () => {
     expect(formatDuration(2500)).toBe('2.5s');
   });
 
-  it('minutes and seconds', () => {
-    expect(formatDuration(90000)).toBe('1m 30s');
+  it('minutes', () => {
+    expect(formatDuration(90000)).toBe('1.5m');
   });
 
-  it('hours and minutes', () => {
-    expect(formatDuration(3900000)).toBe('1h 5m');
+  it('hours', () => {
+    expect(formatDuration(3900000)).toBe('1.1h');
   });
 });
 

@@ -424,33 +424,33 @@ export class SNNNetwork {
       `${config.from}-${config.to}-weights`
     );
 
-    // Current computation bind group
-    const currentBindGroup = this.pipelineFactory.createBindGroup(
-      'compute_synaptic_current',
-      [
-        synapticParamsBuffer.buffer,
-        weightsBuffer.buffer,
-        fromLayer.spikesBuffer.buffer,
-        toLayer.synapticInputBuffer.buffer,
-        toLayer.spikesBuffer.buffer, // post spikes (not used in current compute but needed for layout)
-      ],
-      `${config.from}-${config.to}-current-bind-group`
-    );
+      // Current computation bind group: compute_synaptic_current uses bindings 0,1,2,3 (not 4)
+      const currentBindGroup = this.pipelineFactory.createBindGroup(
+        'compute_synaptic_current',
+        [
+          synapticParamsBuffer.buffer,     // binding 0: params
+          weightsBuffer.buffer,            // binding 1: weights
+          fromLayer.spikesBuffer.buffer,   // binding 2: pre_spikes
+          toLayer.synapticInputBuffer.buffer, // binding 3: post_currents
+          // binding 4 (post_spikes) omitted — not accessed by compute_synaptic_current
+        ],
+        `${config.from}-${config.to}-current-bind-group`
+      );
 
     // STDP bind group (reuses same layout)
     let stdpBindGroup: GPUBindGroup | undefined;
     if (config.stdpEnabled) {
-      stdpBindGroup = this.pipelineFactory.createBindGroup(
-        'stdp_weight_update',
-        [
-          synapticParamsBuffer.buffer,
-          weightsBuffer.buffer,
-          fromLayer.spikesBuffer.buffer,
-          toLayer.synapticInputBuffer.buffer,
-          toLayer.spikesBuffer.buffer,
-        ],
-        `${config.from}-${config.to}-stdp-bind-group`
-      );
+        stdpBindGroup = this.pipelineFactory.createBindGroupWithIndices(
+          'stdp_weight_update',
+          [
+            synapticParamsBuffer.buffer,    // binding 0: params
+            weightsBuffer.buffer,           // binding 1: weights
+            fromLayer.spikesBuffer.buffer,  // binding 2: pre_spikes
+            toLayer.spikesBuffer.buffer,    // binding 4: post_spikes (binding 3 skipped)
+          ],
+          [0, 1, 2, 4],
+          `${config.from}-${config.to}-stdp-bind-group`
+        );
     }
 
     return {

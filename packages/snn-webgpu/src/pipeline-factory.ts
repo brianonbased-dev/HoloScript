@@ -146,6 +146,29 @@ export class PipelineFactory {
   }
 
   /**
+   * Create a bind group using explicit binding index entries.
+   * Use this overload when bindings are non-sequential (e.g., skipping unused bindings).
+   */
+  createBindGroupWithIndices(
+    entryPoint: ShaderEntryPoint,
+    buffers: GPUBuffer[],
+    indices: number[],
+    label?: string
+  ): GPUBindGroup {
+    const pipeline = this.getPipeline(entryPoint);
+
+    const entries: GPUBindGroupEntry[] = buffers.map((buffer, index) => ({
+      binding: indices[index],
+      resource: { buffer },
+    }));
+
+    return this.ctx.device.createBindGroup({
+      label: label ?? `bind-group-${entryPoint}`,
+      layout: pipeline.getBindGroupLayout(0),
+      entries,
+    });
+  }
+  /**
    * Encode a compute dispatch command.
    */
   encodeDispatch(
