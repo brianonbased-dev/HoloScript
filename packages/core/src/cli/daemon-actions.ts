@@ -1023,10 +1023,13 @@ export function createDaemonActions(
           if (isQuarantined(relF) || isCommitted(relF)) continue;
           try {
             const content = host.readFile(f);
+            // Strip block comments (JSDoc, /* */) before checking for console statements
+            // to avoid false positives from console.log in doc examples
+            const codeOnly = content.replace(/\/\*[\s\S]*?\*\//g, '');
             const hasLintIssues =
               /\bas\s+any\b/.test(content) ||
               /\/\/\s*@ts-ignore/.test(content) ||
-              /console\.(log|warn|error)\(/.test(content);
+              /console\.(log|warn|error)\(/.test(codeOnly);
             if (hasLintIssues) candidates.push(relF);
           } catch { /* skip unreadable */ }
         }
@@ -1237,8 +1240,15 @@ export function createDaemonActions(
         // Lint focus uses think→patch architecture (same as typefix)
         const lintErrors: string[] = [];
         const lines = content.split('\n');
+        let inBlockComment = false;
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
+          // Track block comment state to avoid false positives from JSDoc examples
+          if (inBlockComment) {
+            if (/\*\//.test(line)) inBlockComment = false;
+            continue;
+          }
+          if (/\/\*/.test(line) && !/\*\//.test(line)) { inBlockComment = true; continue; }
           if (/\bas\s+any\b/.test(line)) lintErrors.push(`${file}(${i + 1}): lint: unsafe 'as any' cast`);
           if (/\/\/\s*@ts-ignore/.test(line)) lintErrors.push(`${file}(${i + 1}): lint: @ts-ignore suppression`);
           if (/console\.(log|warn|error)\(/.test(line) && !file.includes('cli/')) lintErrors.push(`${file}(${i + 1}): lint: console statement in library code`);
@@ -1298,12 +1308,18 @@ export function createDaemonActions(
           ctx.emit('economy:spend', { action: 'generate_fix', focus: 'lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
           const patchResponse = parsePatchResponse(result.text);
           if (!patchResponse || patchResponse.patches.length === 0) {
+            // LLM analyzed but couldn't produce patches — mark as committed to skip in future cycles
+            committedFiles.add(file.replace(/\\/g, '/'));
             advanceCandidate(bb);
             return false;
           }
           if (patchResponse.analysis) log(`Analysis: ${patchResponse.analysis.slice(0, 200)}`);
           const { result: patched, applied } = applyPatches(content, patchResponse.patches);
-          if (applied === 0) { advanceCandidate(bb); return false; }
+          if (applied === 0) {
+            committedFiles.add(file.replace(/\\/g, '/'));
+            advanceCandidate(bb);
+            return false;
+          }
           const safety = validatePatchSafety(content, patched);
           if (!safety.safe) { log(`SAFETY REJECT: ${safety.reason}`); advanceCandidate(bb); return false; }
           if (isContaminatedEdit(patched)) { advanceCandidate(bb); return false; }
