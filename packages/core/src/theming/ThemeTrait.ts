@@ -26,7 +26,7 @@ export function setSharedStyleResolver(resolver: StyleResolver): void {
 }
 
 export const themeTraitHandler: TraitHandler<ThemeTraitConfig> = {
-  name: 'theme' as any,
+  name: 'theme',
   defaultConfig: {},
 
   onAttach(node: HSPlusNode, config: ThemeTraitConfig, _context: any) {
