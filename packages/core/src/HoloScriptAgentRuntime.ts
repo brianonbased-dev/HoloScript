@@ -11,17 +11,35 @@ import type { OrbNode, HoloScriptValue, ExecutionResult, MethodNode, ParameterNo
 import { ReactiveState } from './ReactiveState';
 import { MemoryConsolidator, EpisodicMemory, SemanticFact } from './learning/MemoryConsolidator';
 
-// Runtime shape of a directive found in OrbNode.directives at runtime.
-// The declared HSPlusDirective union doesn't cover 'method'/'lifecycle' with
-// full ParameterNode[] parameters, but the runtime data does include these.
+/**
+ * Runtime shape of a directive found in OrbNode.directives at runtime.
+ * The declared HSPlusDirective union doesn't cover 'method'/'lifecycle' with
+ * full ParameterNode[] parameters, but the runtime data does include these.
+ */
 interface RuntimeDirective {
+  /** The directive type identifier */
   type: string;
+  /** Optional directive name for method directives */
   name?: string;
+  /** Optional lifecycle hook name for lifecycle directives */
   hook?: string;
+  /** Optional parameters for methods and lifecycle hooks */
   parameters?: ParameterNode[];
+  /** The directive body content */
   body?: unknown;
 }
 
+/**
+ * Specialized runtime for individual HoloScript agents providing sandboxed execution,
+ * local state management, and autonomous behavior capabilities.
+ * 
+ * @example
+ * ```typescript
+ * const agentRuntime = new HoloScriptAgentRuntime(agentNode, parentRuntime);
+ * const result = await agentRuntime.executeAction('patrol', []);
+ * const decision = await agentRuntime.think('What should I do next?');
+ * ```
+ */
 export class HoloScriptAgentRuntime {
   private agentNode!: OrbNode;
   private parentRuntime!: IParentRuntime;
@@ -34,6 +52,17 @@ export class HoloScriptAgentRuntime {
   public semanticFacts: SemanticFact[] = [];
   private consolidationInterval: NodeJS.Timeout | null = null;
 
+  /**
+   * Creates a new HoloScript agent runtime instance.
+   * 
+   * @param agentNode - The OrbNode representing the agent template
+   * @param parentRuntime - The parent runtime providing global context
+   * 
+   * @example
+   * ```typescript
+   * const runtime = new HoloScriptAgentRuntime(miningAgentNode, mainRuntime);
+   * ```
+   */
   constructor(agentNode?: OrbNode, parentRuntime?: IParentRuntime) {
     if (!agentNode || !parentRuntime) {
       // Preallocation mode
@@ -46,9 +75,12 @@ export class HoloScriptAgentRuntime {
   }
 
   /**
-   * Reset for pooling
+   * Reset the runtime for pooling reuse with new agent configuration.
+   * 
+   * @param agentNode - New agent node to bind to this runtime
+   * @param parentRuntime - Parent runtime for global context
    */
-  public reset(agentNode: OrbNode, parentRuntime: IParentRuntime) {
+  public reset(agentNode: OrbNode, parentRuntime: IParentRuntime): void {
     this.agentNode = agentNode;
     this.parentRuntime = parentRuntime;
     this.localState = new ReactiveState(agentNode.properties || {});
@@ -57,7 +89,10 @@ export class HoloScriptAgentRuntime {
     this.initializeAgentContext();
   }
 
-  private initializeAgentContext() {
+  /**
+   * Initialize the agent's execution context and memory consolidation.
+   */
+  private initializeAgentContext(): void {
     // Create a proxy for 'this' that interacts with localState and node properties
     const _agentContext = {
       id: this.agentNode.id || this.agentNode.name,
@@ -79,8 +114,17 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Records a raw episodic event into the agent's short-term history queue.
+   * 
+   * @param action - The action that was performed
+   * @param outcome - The result or outcome of the action
+   * @param entitiesInvolved - List of entity IDs that were involved in the episode
+   * 
+   * @example
+   * ```typescript
+   * agentRuntime.recordEpisode('mine_ore', 'collected 5 iron ore', ['ore_deposit_1', 'inventory']);
+   * ```
    */
-  public recordEpisode(action: string, outcome: string, entitiesInvolved: string[]) {
+  public recordEpisode(action: string, outcome: string, entitiesInvolved: string[]): void {
     this.rawEpisodes.push({
       id: `ep_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       timestamp: Date.now(),
@@ -93,7 +137,7 @@ export class HoloScriptAgentRuntime {
   /**
    * Internal idle tick leveraging the MemoryConsolidator subsystem to offload processing constraints.
    */
-  private consolidateMemory() {
+  private consolidateMemory(): void {
     if (this.isDestroyed || this.rawEpisodes.length < 5) return;
 
     const { newFacts, prunedEpisodes } = MemoryConsolidator.compressEpisodes(this.rawEpisodes);
@@ -104,7 +148,20 @@ export class HoloScriptAgentRuntime {
   }
 
   /**
-   * Execute an action (method) defined on the agent template
+   * Execute an action (method) defined on the agent template.
+   * 
+   * @param actionName - Name of the action/method to execute
+   * @param args - Arguments to pass to the action method
+   * @returns Promise resolving to execution result
+   * @throws {Error} When agent is destroyed or action execution fails
+   * 
+   * @example
+   * ```typescript
+   * const result = await agentRuntime.executeAction('patrol', ['north_sector']);
+   * if (result.success) {
+   *   console.log('Patrol completed:', result.output);
+   * }
+   * ```
    */
   async executeAction(actionName: string, args: HoloScriptValue[] = []): Promise<ExecutionResult> {
     if (this.isDestroyed) return { success: false, error: 'Agent destroyed' };
@@ -190,7 +247,16 @@ export class HoloScriptAgentRuntime {
   }
 
   /**
-   * Autonomous 'thinking' cycle using LLM
+   * Autonomous 'thinking' cycle using LLM for decision making.
+   * 
+   * @param prompt - Optional specific prompt for the LLM, defaults to general decision prompt
+   * @returns Promise resolving to the LLM's decision as a string
+   * 
+   * @example
+   * ```typescript
+   * const decision = await agentRuntime.think('Should I retreat or continue attacking?');
+   * console.log('Agent decision:', decision);
+   * ```
    */
   async think(prompt?: string): Promise<string> {
     logger.info(`[Agent:${this.agentNode.name}] Thinking...`);
@@ -206,9 +272,20 @@ export class HoloScriptAgentRuntime {
   }
 
   /**
-   * Listen for events specifically for this agent
+   * Handle lifecycle events for this specific agent.
+   * 
+   * @param eventType - The type of event being handled
+   * @param data - Event data to bind to the execution scope
+   * 
+   * @example
+   * ```typescript
+   * await agentRuntime.onEvent('enemy_spotted', { 
+   *   enemy: 'orc_warrior', 
+   *   distance: 50 
+   * });
+   * ```
    */
-  async onEvent(eventType: string, data: unknown) {
+  async onEvent(eventType: string, data: unknown): Promise<void> {
     if (this.isDestroyed) return;
 
     // Search directives for lifecycle hooks (runtime shape may differ from declared types)
@@ -280,7 +357,10 @@ export class HoloScriptAgentRuntime {
     }
   }
 
-  destroy() {
+  /**
+   * Clean up the agent runtime, stopping all running processes and timers.
+   */
+  destroy(): void {
     this.isDestroyed = true;
     this.runningActions.clear();
 
@@ -292,14 +372,30 @@ export class HoloScriptAgentRuntime {
     logger.info(`[Agent:${this.agentNode.name}] Runtime destroyed.`);
   }
 
-  get id() {
+  /**
+   * Get the agent's unique identifier.
+   * 
+   * @returns The agent's ID or name
+   */
+  get id(): string {
     return this.agentNode.id || this.agentNode.name;
   }
-  get state() {
+
+  /**
+   * Get the agent's current reactive state proxy.
+   * 
+   * @returns Proxy object for the agent's state
+   */
+  get state(): HoloScriptValue {
     return this.localState.getProxy();
   }
 
-  getState() {
+  /**
+   * Get the agent's current reactive state proxy.
+   * 
+   * @returns Proxy object for the agent's state
+   */
+  getState(): HoloScriptValue {
     return this.localState.getProxy();
   }
 }
