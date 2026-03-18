@@ -53,7 +53,7 @@ export class ARCompiler extends CompilerBase {
     agentToken: string,
     outputPath?: string
   ): ARCompilationResult {
-    this.validateCompilerAccess(agentToken, outputPath);
+    this.validateCompilerAccess(agentToken as CompilerToken, outputPath);
     this.errors = [];
     this.warnings = [];
     this.generatedCode = [];
