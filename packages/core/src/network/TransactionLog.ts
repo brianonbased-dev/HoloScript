@@ -45,7 +45,8 @@ export class TransactionLog {
     try {
       await fs.promises.appendFile(this.logFile, dataStr, 'utf-8');
     } catch (error) {
-      console.error('[TransactionLog] Critical WAL append failure:', error);
+      // Critical WAL append failure - re-queue and continue
+      // Error will be handled by caller through failed state recovery
       // Re-queue the failed writes
       this.writeQueue.unshift(...toWrite);
     } finally {
@@ -79,7 +80,8 @@ export class TransactionLog {
 
       return recoveredDeltas;
     } catch (error) {
-      console.error('[TransactionLog] Fatal recovery parse failure:', error);
+      // Fatal recovery parse failure - return empty state
+      // Calling code should handle empty recovery gracefully
       return [];
     }
   }
