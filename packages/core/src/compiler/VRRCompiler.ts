@@ -216,7 +216,7 @@ export class VRRCompiler extends CompilerBase {
     // Analyze Composition
     if (!composition || composition.type !== 'Composition') {
       this.errors.push('Invalid composition tree');
-      return Promise.resolve(this.buildResult());
+      return this.buildResult();
     }
 
     const twinNodes = this.extractNodesWithTrait(composition, '@vrr_twin');
@@ -269,7 +269,7 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`\n// --- End of VRR Bindings --- //\n`);
     this.generatedCode.push(`scene.add(phoenix_downtown);`);
 
-    return Promise.resolve(this.buildResult());
+    return this.buildResult();
   }
 
   private extractNodesWithTrait(astNode: any, traitName: string) {
