@@ -5,7 +5,7 @@ Ready-to-post content for X/Twitter. Generated with Grok AI assistance.
 ## Quick Links (copy-paste into posts)
 
 - **Website**: <https://holoscript.net>
-- **GitHub**: <https://github.com/brianonbased-dev/Holoscript>
+- **GitHub**: <https://github.com/brianonbased-dev/HoloScript>
 - **Docs**: <https://holoscript.net/guides/>
 - **Quick Start**: <https://holoscript.net/guides/quick-start>
 

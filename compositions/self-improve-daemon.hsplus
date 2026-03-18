@@ -452,7 +452,8 @@ composition "SelfImproveDaemon" {
       restart_on_complete: false,
       blackboard: {
         // ── Strategy config (composition is source of truth) ──
-        focus_rotation: ["typefix", "coverage", "typefix", "lint", "target-sweep", "trait-sampling", "runtime-matrix", "absorb-roundtrip", "typefix", "all"],
+        // coverage disabled until baseline errors < 500 (generated tests can't compile against 3506-error codebase)
+        focus_rotation: ["typefix", "typefix", "typefix", "lint", "target-sweep", "trait-sampling", "runtime-matrix", "absorb-roundtrip", "typefix", "all"],
         provider_rotation: ["anthropic", "xai"],
         provider_rotation_enabled: false,
         quarantine_threshold: 3,

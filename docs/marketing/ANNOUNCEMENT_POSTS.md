@@ -65,7 +65,7 @@ holoscript compile gallery.holo --target threejs
 
 **Status:** v3.3 just released, MIT licensed
 
-GitHub: https://github.com/brianonbased-dev/Holoscript
+GitHub: https://github.com/brianonbased-dev/HoloScript
 Docs: https://holoscript.net
 
 Would love feedback from anyone building VR/AR experiences!
@@ -142,7 +142,7 @@ HoloScript abstracts this away. Write once, compile everywhere.
 
 ## Links
 
-- GitHub: https://github.com/brianonbased-dev/Holoscript
+- GitHub: https://github.com/brianonbased-dev/HoloScript
 - Docs: https://holoscript.net
 - npm: `npm install -g @holoscript/cli`
 
@@ -209,7 +209,7 @@ I was tired of rewriting the same VR interactions for different platforms. The s
 
 **Not trying to replace engines—just the boilerplate.**
 
-GitHub: https://github.com/brianonbased-dev/Holoscript
+GitHub: https://github.com/brianonbased-dev/HoloScript
 
 Happy to answer questions!
 
@@ -295,7 +295,7 @@ Includes an MCP server so Claude, Copilot, or any AI can generate valid .holo fi
 MIT licensed. Try it:
 npm install -g @holoscript/cli
 
-GitHub: https://github.com/brianonbased-dev/Holoscript
+GitHub: https://github.com/brianonbased-dev/HoloScript
 
 ```
 
@@ -326,9 +326,9 @@ holoscript compile scene.holo --target threejs
 
 ## Links
 
-📦 GitHub: https://github.com/brianonbased-dev/Holoscript
+📦 GitHub: https://github.com/brianonbased-dev/HoloScript
 📖 Docs: https://holoscript.net
-📝 Release Notes: https://github.com/brianonbased-dev/Holoscript/releases/tag/v3.3.0
+📝 Release Notes: https://github.com/brianonbased-dev/HoloScript/releases/tag/v3.3.0
 
 Let us know what you build! 🎮
 

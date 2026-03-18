@@ -765,7 +765,7 @@ Brittney will:
 ## Community & Support
 
 - **Discord**: [discord.gg/holoscript](https://discord.gg/holoscript)
-- **GitHub**: [github.com/brianonbased-dev/Holoscript](https://github.com/brianonbased-dev/Holoscript)
+- **GitHub**: [github.com/brianonbased-dev/HoloScript](https://github.com/brianonbased-dev/HoloScript)
 - **Docs**: [holoscript.net/guides](https://holoscript.net/guides)
 - **Studio Feedback**: [feedback.holoscript.net](https://feedback.holoscript.net)
 

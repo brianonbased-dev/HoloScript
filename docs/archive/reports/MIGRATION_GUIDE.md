@@ -499,7 +499,7 @@ npm test
 
 **Questions?** Open an issue:
 
-- GitHub: https://github.com/brianonbased-dev/Holoscript/issues
+- GitHub: https://github.com/brianonbased-dev/HoloScript/issues
 - Docs: [AUTONOMOUS_ENHANCEMENTS_2026-02-26.md](AUTONOMOUS_ENHANCEMENTS_2026-02-26.md)
 
 **Need help migrating?** Check the automated migration scripts above or contact the maintainers.

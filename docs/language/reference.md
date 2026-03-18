@@ -85,4 +85,4 @@ When generating HoloScript code:
 
 ## Source Code
 
-All examples are available in the [HoloScript repository](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/language-reference).
+All examples are available in the [HoloScript repository](https://github.com/brianonbased-dev/HoloScript/tree/main/examples/language-reference).

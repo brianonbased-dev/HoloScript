@@ -155,6 +155,22 @@ const NodeGraphEditor = dynamic(
 );
 
 const TemplatePicker = dynamic(
+  const CodebaseInspectorPanel = dynamic(
+    () =>
+      import('@/components/visualization/CodebaseInspectorPanel').then((m) => ({
+        default: m.CodebaseInspectorPanel,
+      })),
+    {
+      ssr: false,
+      loading: () => (
+        <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
+          Indexing workspace…
+        </div>
+      ),
+    }
+  );
+
+  const TemplatePicker = dynamic(
   () =>
     import('@/components/templates/TemplatePicker').then((m) => ({ default: m.TemplatePicker })),
   { ssr: false }
@@ -843,7 +859,7 @@ export default function CreatePage() {
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
 
   // Non-panel state (kept local — layout dimensions, left tab)
-  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
+  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>('scene');
   const [spatialBlameTooltip, setSpatialBlameTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
 
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
@@ -1015,6 +1031,17 @@ export default function CreatePage() {
               >
                 <GitGraph className="h-3.5 w-3.5" />
                 Graph
+                            <button
+                              onClick={() => setLeftTab('codebase')}
+                              className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
+                                leftTab === 'codebase'
+                                  ? 'border-b-2 border-studio-accent text-studio-accent'
+                                  : 'text-studio-muted hover:text-studio-text'
+                              }`}
+                            >
+                              <Network className="h-3.5 w-3.5" />
+                              Index
+                            </button>
               </button>
             </div>
 
@@ -1033,6 +1060,10 @@ export default function CreatePage() {
                 />
               ) : (
                 <HoloScriptEditor height="100%" />
+                            ) : leftTab === 'codebase' ? (
+                              <CodebaseInspectorPanel />
+                            ) : (
+                              <HoloScriptEditor height="100%" />
               )}
             </div>
           </div>

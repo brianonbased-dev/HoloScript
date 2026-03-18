@@ -62,8 +62,8 @@ Visit **[studio.holoscript.net](https://studio.holoscript.net)** in your browser
 
 ```bash
 # Clone repository
-git clone https://github.com/brianonbased-dev/Holoscript.git
-cd Holoscript/packages/studio
+git clone https://github.com/brianonbased-dev/HoloScript.git
+cd HoloScript/packages/studio
 
 # Install dependencies
 pnpm install
@@ -338,7 +338,7 @@ Want to use this scene in Unity, Unreal, or Godot?
 ## Community & Support
 
 - **Discord**: [discord.gg/holoscript](https://discord.gg/holoscript)
-- **GitHub Issues**: [github.com/brianonbased-dev/Holoscript/issues](https://github.com/brianonbased-dev/Holoscript/issues)
-- **Examples**: [github.com/brianonbased-dev/Holoscript/tree/main/examples](https://github.com/brianonbased-dev/Holoscript/tree/main/examples)
+- **GitHub Issues**: [github.com/brianonbased-dev/HoloScript/issues](https://github.com/brianonbased-dev/HoloScript/issues)
+- **Examples**: [github.com/brianonbased-dev/HoloScript/tree/main/examples](https://github.com/brianonbased-dev/HoloScript/tree/main/examples)
 
 Happy building! 🎨✨

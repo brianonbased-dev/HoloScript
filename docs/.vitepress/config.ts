@@ -666,7 +666,7 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [{ icon: 'github', link: 'https://github.com/brianonbased-dev/Holoscript' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/brianonbased-dev/HoloScript' }],
 
     footer: {
       message: 'Released under the MIT License.',
@@ -678,7 +678,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/brianonbased-dev/Holoscript/edit/master/docs/:path',
+      pattern: 'https://github.com/brianonbased-dev/HoloScript/edit/master/docs/:path',
       text: 'Edit this page on GitHub',
     },
   },

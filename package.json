@@ -91,7 +91,7 @@
   "author": "Brian X Base Team",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brianonbased-dev/Holoscript.git"
+    "url": "https://github.com/brianonbased-dev/HoloScript.git"
   },
   "dependencies": {
     "@coinbase/agentkit": "^0.10.4",

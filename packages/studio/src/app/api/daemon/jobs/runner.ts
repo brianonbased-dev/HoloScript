@@ -1,9 +1,14 @@
 /**
  * DaemonRunner — Real execution engine for daemon jobs.
  *
- * Replaces the former `simulateDaemonLifecycle` stub with an actual pipeline
- * that spawns isolated workspace directories, runs the self-improve toolchain
- * (absorb -> diagnose -> validate), and produces concrete patch proposals.
+ * Pipeline: absorb → diagnose → validate
+ *
+ * Phase 0  (absorb)    — CodebaseScanner builds dependency graph of the
+ *                        isolated workspace; leaf-first file ordering guides
+ *                        fix candidates so hub nodes are touched last.
+ * Phase 1  (diagnose)  — tsc + vitest + eslint baseline quality assessment.
+ * Phase 2  (validate)  — Fix cycles with graph-informed candidate ordering;
+ *                        re-assess after each cycle; stop on plateau.
  *
  * Safety: Each job runs in an isolated temp directory (a shallow copy of the
  * uploaded project). Patches are NEVER auto-applied; they are returned as
@@ -24,6 +29,66 @@ import type {
   DaemonProjectDNA,
   PatchProposal,
 } from '@/lib/daemon/types';
+
+// =============================================================================
+// ABSORB TYPES (mirrors CodebaseGraph serialized shape)
+// =============================================================================
+
+interface AbsorbSymbol {
+  name: string;
+  type: string;
+  filePath: string;
+  line: number;
+}
+
+interface AbsorbImport {
+  fromFile: string;
+  toModule: string;
+  resolvedPath?: string;
+}
+
+interface AbsorbFileResult {
+  path: string;
+  language: string;
+  symbols: AbsorbSymbol[];
+  imports: AbsorbImport[];
+  calls: unknown[];
+  loc: number;
+  sizeBytes: number;
+}
+
+interface AbsorbScanResult {
+  rootDir: string;
+  files: AbsorbFileResult[];
+  stats: {
+    totalFiles: number;
+    totalSymbols: number;
+    totalImports: number;
+    totalLoc: number;
+    durationMs: number;
+    errors: string[];
+    filesByLanguage: Record<string, number>;
+    symbolsByType: Record<string, number>;
+    totalCalls: number;
+  };
+}
+
+export interface AbsorbGraphData {
+  /** Files ordered leaf-first (lowest in-degree first — safest to fix) */
+  leafFirstOrder: string[];
+  /** In-degree per file: how many OTHER files import this one (high = hub = risky) */
+  inDegree: Record<string, number>;
+  /** Community assignment per file */
+  communities: Record<string, number>;
+  /** Total files scanned */
+  totalFiles: number;
+  /** Total symbols found */
+  totalSymbols: number;
+  /** Duration of absorb scan in ms */
+  durationMs: number;
+  /** Serialized graph JSON (for persistence / visualization) */
+  graphJson: string;
+}
 
 const execAsync = promisify(exec);
 
@@ -51,6 +116,8 @@ export interface DaemonRunResult {
   durationMs: number;
   /** Error message if failed */
   error?: string;
+  /** Absorb graph data (null when core unavailable) */
+  absorb: AbsorbGraphData | null;
 }
 
 const PROFILE_LIMITS: Record<DaemonProfile, DaemonJobLimits> = {
@@ -93,6 +160,92 @@ const GLOBAL_DENYLIST = [
   '.git/**',
   'node_modules/**',
 ];
+
+// =============================================================================
+// ABSORB PHASE — codebase graph intelligence
+// =============================================================================
+
+/**
+ * Phase 0: Build a dependency graph of the isolated workspace using
+ * CodebaseScanner + CodebaseGraph from @holoscript/core/codebase.
+ *
+ * Returns leaf-first file ordering and in-degree map so fix cycles
+ * can target the safest (lowest-dependency) files first.
+ *
+ * Gracefully degrades: if @holoscript/core/codebase is unavailable (e.g.
+ * build failure during CI), the function returns an empty AbsorbGraphData
+ * so the rest of the pipeline continues without the graph.
+ */
+async function runAbsorbPhase(
+  workDir: string,
+  depth: 'shallow' | 'medium' | 'deep' = 'shallow',
+): Promise<AbsorbGraphData> {
+  const absorbStart = Date.now();
+
+  const empty: AbsorbGraphData = {
+    leafFirstOrder: [],
+    inDegree: {},
+    communities: {},
+    totalFiles: 0,
+    totalSymbols: 0,
+    durationMs: 0,
+    graphJson: '{}',
+  };
+
+  try {
+    // Dynamic import so build failures in @holoscript/core don't crash the daemon
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const coreCb = require('@holoscript/core/codebase') as {
+      CodebaseScanner: { new(): { scan(opts: { rootDir: string; depth?: string }): Promise<AbsorbScanResult> } };
+      CodebaseGraph: {
+        new(): {
+          buildFromScanResult(r: AbsorbScanResult): void;
+          serialize(): string;
+          communities?: Record<string, number>;
+        };
+        deserialize(json: string): unknown;
+      };
+    };
+
+    const { CodebaseScanner, CodebaseGraph } = coreCb;
+
+    const scanner = new CodebaseScanner();
+    const scanResult: AbsorbScanResult = await scanner.scan({ rootDir: workDir, depth });
+
+    const graph = new CodebaseGraph();
+    graph.buildFromScanResult(scanResult);
+    const graphJson = graph.serialize();
+
+    // Build in-degree map: for each file, count how many other files import it
+    const inDegree: Record<string, number> = {};
+    for (const file of scanResult.files) {
+      if (!(file.path in inDegree)) inDegree[file.path] = 0;
+      for (const imp of file.imports) {
+        if (imp.resolvedPath) {
+          inDegree[imp.resolvedPath] = (inDegree[imp.resolvedPath] ?? 0) + 1;
+        }
+      }
+    }
+
+    // Leaf-first order: sort files by in-degree ascending (safest to fix first)
+    const leafFirstOrder = scanResult.files
+      .map((f) => f.path)
+      .sort((a, b) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
+
+    return {
+      leafFirstOrder,
+      inDegree,
+      communities: graph.communities ?? {},
+      totalFiles: scanResult.stats.totalFiles,
+      totalSymbols: scanResult.stats.totalSymbols,
+      durationMs: Date.now() - absorbStart,
+      graphJson,
+    };
+  } catch {
+    // Core not available or scan failed — continue without graph
+    return { ...empty, durationMs: Date.now() - absorbStart };
+  }
+}
 
 // =============================================================================
 // WORKSPACE MANAGEMENT
@@ -548,7 +701,24 @@ export async function runDaemonJob(
       summary: `Daemon failed: could not create isolated workspace. ${err.message}`,
       durationMs: Date.now() - startTime,
       error: err.message,
+      absorb: null,
     };
+  }
+
+  // Phase 0: Absorb — build codebase dependency graph (leaf-first ordering)
+  onProgress(7, 'Absorbing codebase graph...');
+  log('info', 'Phase 0: absorb — scanning dependency graph...');
+  let absorbData: AbsorbGraphData | null = null;
+  try {
+    absorbData = await runAbsorbPhase(workDir, 'shallow');
+    if (absorbData.totalFiles > 0) {
+      log('info', `Absorb complete: ${absorbData.totalFiles} files, ${absorbData.totalSymbols} symbols in ${absorbData.durationMs}ms`);
+      log('info', `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`);
+    } else {
+      log('warn', 'Absorb returned empty graph — continuing without graph intelligence');
+    }
+  } catch (err: any) {
+    log('warn', `Absorb phase failed (non-fatal): ${err.message}`);
   }
 
   // Step 2: Rollback snapshot
@@ -628,12 +798,32 @@ export async function runDaemonJob(
 
       // 4b. Apply safe automated fixes for common patterns
       // (Only in workspace -- never touches original project)
+      //
+      // Graph-informed ordering: if absorb produced a leaf-first order, use it
+      // to sort fix candidates so lowest-dependency (safest) files are fixed
+      // first. Hub files (high in-degree) are deprioritized within the batch.
+      let fixEntries = Object.entries(byFile);
+      if (absorbData && absorbData.leafFirstOrder.length > 0) {
+        const orderIndex = new Map(absorbData.leafFirstOrder.map((f, i) => [f, i]));
+        fixEntries = fixEntries.sort(([a], [b]) => {
+          const ai = orderIndex.get(a) ?? Number.MAX_SAFE_INTEGER;
+          const bi = orderIndex.get(b) ?? Number.MAX_SAFE_INTEGER;
+          return ai - bi;
+        });
+      }
+
       let fixesApplied = 0;
-      for (const [file, errors] of Object.entries(byFile)) {
+      for (const [file, errors] of fixEntries) {
         if (fixesApplied >= limits.maxFilesChanged) break;
         const fullPath = path.join(workDir, file);
         if (!fs.existsSync(fullPath)) continue;
         if (isPathProtected(file, allDenyPatterns)) continue;
+
+        // Warn when touching hub nodes (high in-degree = many dependents)
+        const inDeg = absorbData?.inDegree[file] ?? 0;
+        if (inDeg >= 5) {
+          log('warn', `Hub file (in-degree=${inDeg}): ${file} — fixing conservatively`);
+        }
 
         try {
           let content = fs.readFileSync(fullPath, 'utf-8');
@@ -660,7 +850,7 @@ export async function runDaemonJob(
           if (changed) {
             fs.writeFileSync(fullPath, content, 'utf-8');
             fixesApplied++;
-            log('info', `Applied type fixes to ${file}`);
+            log('info', `Applied type fixes to ${file}${inDeg > 0 ? ` (in-degree=${inDeg})` : ''}`);
           }
         } catch {
           // Skip files that can't be read/written
@@ -734,5 +924,6 @@ export async function runDaemonJob(
     logs,
     summary,
     durationMs,
+    absorb: absorbData,
   };
 }

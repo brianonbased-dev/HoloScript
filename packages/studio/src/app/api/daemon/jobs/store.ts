@@ -8,10 +8,12 @@
 
 import {
   runDaemonJob,
+  type AbsorbGraphData,
 } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import type {
   CreateDaemonJobInput,
+  DaemonAbsorbSnapshot,
   DaemonJob,
   DaemonJobLimits,
   DaemonLogEntry,
@@ -76,6 +78,25 @@ async function executeDaemonJob(jobId: string): Promise<void> {
     );
 
     const final = daemonJobs.get(jobId)!;
+
+    // Convert AbsorbGraphData → DaemonAbsorbSnapshot for persistence
+    const absorbSnapshot: DaemonAbsorbSnapshot | undefined = result.absorb
+      ? {
+          leafFirstOrder: result.absorb.leafFirstOrder,
+          inDegree: result.absorb.inDegree,
+          communities: result.absorb.communities,
+          totalFiles: result.absorb.totalFiles,
+          totalSymbols: result.absorb.totalSymbols,
+          durationMs: result.absorb.durationMs,
+          graphJson: result.absorb.graphJson,
+          hubFiles: Object.entries(result.absorb.inDegree)
+            .filter(([, deg]) => deg >= 3)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 20)
+            .map(([path, inDegree]) => ({ path, inDegree })),
+        }
+      : undefined;
+
     daemonJobs.set(jobId, {
       ...final,
       status: 'completed',
@@ -94,6 +115,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       },
       patches: result.patches,
       logs: result.logs,
+      absorb: absorbSnapshot,
     });
 
     emitTelemetry({ eventType: 'job_completed', jobId, timestamp: nowIso(), profile: job.profile, durationMs: result.durationMs, qualityDelta: result.qualityDelta, filesChanged: result.filesChanged, patchCount: result.patches.length });

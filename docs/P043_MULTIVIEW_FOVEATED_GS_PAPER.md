@@ -203,7 +203,7 @@ This would place the "magic number 7" alongside other universal constants (Benfo
 
 ## 6. Implementation Notes (HoloScript)
 
-SS-MFGS is implemented as a compile-time rendering strategy in [HoloScript](https://github.com/brianonbased-dev/Holoscript), a spatial computing DSL with 30+ compile targets. The compiler's Gaussian Budget Analyzer (`GaussianBudgetAnalyzer.ts`) enforces per-platform splat budgets and automatically selects shared-sort mode when:
+SS-MFGS is implemented as a compile-time rendering strategy in [HoloScript](https://github.com/brianonbased-dev/HoloScript), a spatial computing DSL with 30+ compile targets. The compiler's Gaussian Budget Analyzer (`GaussianBudgetAnalyzer.ts`) enforces per-platform splat budgets and automatically selects shared-sort mode when:
 
 - Scene contains `@gaussian_splat` entities
 - Composition is marked `@multiplayer`

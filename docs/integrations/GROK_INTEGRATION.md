@@ -331,6 +331,6 @@ hs = HoloScript(api_url="https://api.holoscript.net")
 
 ## Support
 
-- GitHub Issues: [github.com/brianonbased-dev/Holoscript](https://github.com/brianonbased-dev/Holoscript/issues)
+- GitHub Issues: [github.com/brianonbased-dev/HoloScript](https://github.com/brianonbased-dev/HoloScript/issues)
 - X: [@HoloScriptDev](https://x.com/HoloScriptDev)
 - Discord: [HoloScript Community](https://discord.gg/holoscript)

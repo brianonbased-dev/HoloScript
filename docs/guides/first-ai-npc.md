@@ -656,8 +656,8 @@ Keep conversation history reasonable:
 
 Browse real AI NPC implementations:
 
-- [AI Quest Giver](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/ai-quest-giver)
-- [AI Combat Narrator](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/ai-narrator)
-- [AI Puzzle Helper](https://github.com/brianonbased-dev/Holoscript/tree/main/examples/ai-puzzle-helper)
+- [AI Quest Giver](https://github.com/brianonbased-dev/HoloScript/tree/main/examples/ai-quest-giver)
+- [AI Combat Narrator](https://github.com/brianonbased-dev/HoloScript/tree/main/examples/ai-narrator)
+- [AI Puzzle Helper](https://github.com/brianonbased-dev/HoloScript/tree/main/examples/ai-puzzle-helper)
 
 Happy NPC building! 🤖✨

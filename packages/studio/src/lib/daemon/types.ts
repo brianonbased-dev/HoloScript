@@ -114,6 +114,26 @@ export interface DaemonJobMetrics {
   durationMs: number;
 }
 
+/** Snapshot of the codebase graph built during Phase 0 (absorb). */
+export interface DaemonAbsorbSnapshot {
+  /** Leaf-first file order (lowest in-degree = safest to edit first) */
+  leafFirstOrder: string[];
+  /** In-degree per file (higher = more files depend on it = riskier to change) */
+  inDegree: Record<string, number>;
+  /** Community assignment per file */
+  communities: Record<string, number>;
+  /** Total files scanned */
+  totalFiles: number;
+  /** Total symbols found */
+  totalSymbols: number;
+  /** Absorb scan duration in ms */
+  durationMs: number;
+  /** Serialized CodebaseGraph JSON (compatible with MCP holo_absorb_repo format) */
+  graphJson: string;
+  /** Top hub files (highest in-degree) */
+  hubFiles: Array<{ path: string; inDegree: number }>;
+}
+
 export interface DaemonJob {
   id: string;
   projectId: string;
@@ -132,6 +152,8 @@ export interface DaemonJob {
   limits?: DaemonJobLimits;
   projectPath?: string;
   error?: string;
+  /** Codebase graph snapshot from Phase 0 absorb. Available once job completes. */
+  absorb?: DaemonAbsorbSnapshot;
 }
 
 export interface CreateDaemonJobInput {

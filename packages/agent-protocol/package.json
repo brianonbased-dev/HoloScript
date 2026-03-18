@@ -41,7 +41,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/agent-protocol"
   }
 }

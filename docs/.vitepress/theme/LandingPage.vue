@@ -43,7 +43,7 @@ onMounted(() => {
           <a href="/examples/">Examples</a>
           <a href="/traits/">Traits</a>
           <a href="https://studio.holoscript.net" class="nav-studio">Studio</a>
-          <a href="https://github.com/brianonbased-dev/Holoscript" class="nav-github">GitHub</a>
+          <a href="https://github.com/brianonbased-dev/HoloScript" class="nav-github">GitHub</a>
         </div>
       </div>
     </nav>
@@ -78,7 +78,7 @@ onMounted(() => {
         <div class="hero-buttons">
           <a href="https://studio.holoscript.net" class="btn btn-studio">Try Studio</a>
           <a href="/guides/quick-start" class="btn btn-primary">Get Started Free</a>
-          <a href="https://github.com/brianonbased-dev/Holoscript" class="btn btn-outline"
+          <a href="https://github.com/brianonbased-dev/HoloScript" class="btn btn-outline"
             >View on GitHub</a
           >
         </div>
@@ -586,7 +586,7 @@ animate();</code></pre>
     <footer class="landing-footer">
       <div class="container footer-content">
         <div class="footer-links">
-          <a href="https://github.com/brianonbased-dev/Holoscript">GitHub</a>
+          <a href="https://github.com/brianonbased-dev/HoloScript">GitHub</a>
           <a href="/guides/">Docs</a>
           <a href="/guides/quick-start">Quick Start</a>
           <a href="/examples/">Examples</a>

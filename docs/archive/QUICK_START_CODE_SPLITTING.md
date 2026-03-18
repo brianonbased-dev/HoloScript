@@ -114,7 +114,7 @@ import { HoloScriptTypeChecker } from '@holoscript/core/type-checker';
 
 - **Full Guide**: [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)
 - **Troubleshooting**: [MIGRATION_GUIDE.md#troubleshooting](MIGRATION_GUIDE.md#troubleshooting)
-- **Issues**: https://github.com/brianonbased-dev/Holoscript/issues
+- **Issues**: https://github.com/brianonbased-dev/HoloScript/issues
 
 ---
 

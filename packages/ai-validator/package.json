@@ -37,7 +37,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brianonbased-dev/Holoscript.git",
+    "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/ai-validator"
   },
   "author": "Brian X Base Team"
