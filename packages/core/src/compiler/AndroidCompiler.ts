@@ -66,15 +66,15 @@ export class AndroidCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): Promise<AndroidCompileResult> {
+  ): AndroidCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
-    return Promise.resolve({
+    return {
       activityFile: this.generateActivityFile(composition),
       stateFile: this.generateStateFile(composition),
       nodeFactoryFile: this.generateNodeFactoryFile(composition),
       manifestFile: this.generateManifestFile(composition),
       buildGradle: this.generateBuildGradle(composition),
-    });
+    };
   }
 
   private generateActivityFile(composition: HoloComposition): string {

@@ -81,7 +81,7 @@ describe('Math utilities', () => {
   describe('calculateStandardDeviation', () => {
     it('calculates standard deviation for simple cases', () => {
       expect(calculateStandardDeviation([1, 2, 3, 4, 5])).toBeCloseTo(1.58113883);
-      expect(calculateStandardDeviation([10, 12, 23, 23, 16, 23, 21, 16])).toBeCloseTo(4.898979);
+      expect(calculateStandardDeviation([10, 12, 23, 23, 16, 23, 21, 16])).toBeCloseTo(5.23722937);
     });
 
     it('returns 0 for identical values', () => {

@@ -699,7 +699,7 @@ export class ReferenceGraph {
    */
   getEntryPoints(): Set<string> {
     this.ensureBuilt();
-    return this.entryPoints;
+    return new Set([...this.entryPoints, ...this.customEntryPoints]);
   }
 
   /**

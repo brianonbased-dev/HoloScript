@@ -113,7 +113,7 @@ export class VRChatCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): Promise<VRChatCompileResult> {
+  ): VRChatCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.udonScripts.clear();
@@ -132,12 +132,12 @@ export class VRChatCompiler extends CompilerBase {
     // Generate world descriptor
     const worldDescriptor = this.generateWorldDescriptor(composition);
 
-    return Promise.resolve({
+    return {
       mainScript,
       udonScripts: this.udonScripts,
       prefabHierarchy,
       worldDescriptor,
-    });
+    };
   }
 
   private generateMainScript(composition: HoloComposition): string {

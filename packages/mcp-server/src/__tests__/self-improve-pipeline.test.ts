@@ -143,7 +143,9 @@ describe('Self-Improve Tools', () => {
     it('should export selfImproveTools array', async () => {
       const { selfImproveTools } = await import('../self-improve-tools.js');
       expect(Array.isArray(selfImproveTools)).toBe(true);
-      expect(selfImproveTools.length).toBe(2);
+      expect(selfImproveTools.length).toBeGreaterThanOrEqual(2);
+      expect(selfImproveTools.some((t: any) => t.name === 'holo_self_diagnose')).toBe(true);
+      expect(selfImproveTools.some((t: any) => t.name === 'holo_validate_quality')).toBe(true);
     });
 
     it('holo_self_diagnose should have correct schema', async () => {

@@ -31,7 +31,7 @@ export function calculateStandardDeviation(numbers: number[]): number {
   if (numbers.length <= 1) return 0;
   const avg = calculateAverage(numbers);
   const squaredDifferences = numbers.map(n => Math.pow(n - avg, 2));
-  const avgSquaredDiff = calculateAverage(squaredDifferences);
+  const avgSquaredDiff = squaredDifferences.reduce((sum, n) => sum + n, 0) / (numbers.length - 1);
   return Math.sqrt(avgSquaredDiff);
 }
 

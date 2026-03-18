@@ -65,7 +65,7 @@ describe('Math Utilities', () => {
 
   describe('calculateStandardDeviation', () => {
     it('calculates standard deviation correctly', () => {
-      expect(calculateStandardDeviation([1, 2, 3, 4, 5])).toBeCloseTo(1.4142, 3);
+      expect(calculateStandardDeviation([1, 2, 3, 4, 5])).toBeCloseTo(1.5811, 3);
       expect(calculateStandardDeviation([10, 10, 10, 10])).toBe(0);
     });
 
@@ -78,7 +78,7 @@ describe('Math Utilities', () => {
     });
 
     it('handles negative numbers', () => {
-      expect(calculateStandardDeviation([-2, -1, 0, 1, 2])).toBeCloseTo(1.4142, 3);
+      expect(calculateStandardDeviation([-2, -1, 0, 1, 2])).toBeCloseTo(1.5811, 3);
     });
   });
 
