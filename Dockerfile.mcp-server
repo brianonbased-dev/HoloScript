@@ -63,9 +63,6 @@ COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 
-# Copy mcp-server start script (bin entry point)
-COPY --from=builder /app/packages/mcp-server/start.js packages/mcp-server/start.js
-
 # Set ownership
 RUN chown -R nodejs:nodejs /app
 
