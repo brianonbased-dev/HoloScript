@@ -418,7 +418,7 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     // TODO: integrate with x402PaymentService for actual payment
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
     return {
-      downloadUrl: `/api/skills/${skillId}/download`,
+      url: `/api/skills/${skillId}/download`,
       expiresAt,
     };
   }

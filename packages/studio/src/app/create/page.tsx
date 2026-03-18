@@ -154,23 +154,22 @@ const NodeGraphEditor = dynamic(
   }
 );
 
-const TemplatePicker = dynamic(
-  const CodebaseInspectorPanel = dynamic(
-    () =>
-      import('@/components/visualization/CodebaseInspectorPanel').then((m) => ({
-        default: m.CodebaseInspectorPanel,
-      })),
-    {
-      ssr: false,
-      loading: () => (
-        <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
-          Indexing workspace…
-        </div>
-      ),
-    }
-  );
+const CodebaseInspectorPanel = dynamic(
+  () =>
+    import('@/components/visualization/CodebaseInspectorPanel').then((m) => ({
+      default: m.CodebaseInspectorPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
+        Indexing workspace…
+      </div>
+    ),
+  }
+);
 
-  const TemplatePicker = dynamic(
+const TemplatePicker = dynamic(
   () =>
     import('@/components/templates/TemplatePicker').then((m) => ({ default: m.TemplatePicker })),
   { ssr: false }

@@ -8,6 +8,9 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/studio/package.json packages/studio/
 COPY packages/core/package.json packages/core/
+COPY packages/r3f-renderer/package.json packages/r3f-renderer/
+COPY packages/std/package.json packages/std/
+COPY packages/studio-plugin-sdk/package.json packages/studio-plugin-sdk/
 
 RUN pnpm install --frozen-lockfile
 
@@ -17,6 +20,9 @@ WORKDIR /app
 
 COPY --from=deps /app/ ./
 COPY packages/core/ packages/core/
+COPY packages/r3f-renderer/ packages/r3f-renderer/
+COPY packages/std/ packages/std/
+COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
 COPY packages/studio/ packages/studio/
 
 # Build core (Studio depends on it via transpilePackages)
