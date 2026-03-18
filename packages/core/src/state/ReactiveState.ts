@@ -199,7 +199,7 @@ export class ReactiveState<T extends StateDeclaration> implements IReactiveState
     if (oldValue === value) return;
 
     // 1. Update Proxy/State
-    this.proxy[key] = value;
+    (this.proxy as any)[key] = value;
 
     // 2. Create and reconcile local CRDT operation
     const redoOp = this.crdt.createOperation(key as string, value);
