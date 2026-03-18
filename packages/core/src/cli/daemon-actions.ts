@@ -33,6 +33,14 @@ export interface DaemonConfig {
   cycleFocus?: string;
   /** Path to the daemon composition file */
   daemonFile?: string;
+  /** Failure count before permanent skip — from composition blackboard */
+  quarantineThreshold?: number;
+  /** Quality score from previous cycle (carried forward) */
+  qualityBefore?: number;
+  /** Files already committed in previous cycles (skip in diagnose) */
+  committedFiles?: string[];
+  /** Failure counts from previous cycles (restore quarantine state) */
+  failedFiles?: Record<string, number>;
 }
 
 export interface DaemonExecResult {
@@ -173,6 +181,68 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
     }
   }
   return exports.length > 0 ? `\n\nImported type signatures:\n${exports.join('\n')}` : '';
+}
+
+/**
+ * Multi-file context: resolve base class and closely related files for coordinated patches.
+ * Returns array of { path, content } for files the LLM can patch alongside the candidate.
+ */
+interface RelatedFile { path: string; content: string; relation: string }
+
+function resolveRelatedFiles(content: string, file: string, host: DaemonHost, errorContext: string): RelatedFile[] {
+  const related: RelatedFile[] = [];
+  const dir = file.replace(/[/\\][^/\\]+$/, '');
+
+  // 1. Find base class — look for 'extends XXX' in the source
+  const extendsMatch = content.match(/class\s+\w+\s+extends\s+(\w+)/);
+  if (extendsMatch) {
+    const baseClass = extendsMatch[1];
+    // Find which import provides this base class
+    const importRe = new RegExp(`import[^'"]*['"](\\.[\\/][^'"]+)['"]`);
+    const lines = content.split('\n');
+    for (const line of lines) {
+      if (line.includes(baseClass) && importRe.test(line)) {
+        const importMatch = line.match(importRe);
+        if (importMatch) {
+          for (const ext of ['.ts', '.tsx', '/index.ts']) {
+            const resolved = `${dir}/${importMatch[1]}${ext}`.replace(/\\/g, '/');
+            try {
+              if (host.exists(resolved)) {
+                related.push({ path: resolved, content: host.readFile(resolved), relation: `base class (${baseClass})` });
+                break;
+              }
+            } catch { /* skip */ }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  // 2. If errors mention a type from another file, include that file
+  const errorTypeMatch = errorContext.match(/Type '(\w+)' is not assignable|missing.*from type '(\w+)'/);
+  if (errorTypeMatch) {
+    const typeName = errorTypeMatch[1] || errorTypeMatch[2];
+    const importRe = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+    let im: RegExpExecArray | null;
+    while ((im = importRe.exec(content))) {
+      for (const ext of ['.ts', '.tsx', '/index.ts']) {
+        const resolved = `${dir}/${im[1]}${ext}`.replace(/\\/g, '/');
+        try {
+          if (host.exists(resolved) && !related.some(r => r.path === resolved)) {
+            const depContent = host.readFile(resolved);
+            if (depContent.includes(typeName)) {
+              related.push({ path: resolved, content: depContent, relation: `defines ${typeName}` });
+              break;
+            }
+          }
+        } catch { /* skip */ }
+      }
+    }
+  }
+
+  // Cap at 2 related files to avoid token explosion
+  return related.slice(0, 2);
 }
 
 // ── Feature Sweep Helpers ───────────────────────────────────────────────────
@@ -379,6 +449,8 @@ async function runAbsorbRoundtrip(
 interface Patch {
   old: string;
   new: string;
+  /** Optional file path for multi-file patches. If omitted, applies to primary candidate. */
+  file?: string;
 }
 
 interface PatchResponse {
@@ -401,7 +473,7 @@ function parsePatchResponse(text: string): PatchResponse | null {
     const patches: Patch[] = [];
     for (const p of parsed.patches) {
       if (typeof p.old === 'string' && typeof p.new === 'string' && p.old !== p.new) {
-        patches.push({ old: p.old, new: p.new });
+        patches.push({ old: p.old, new: p.new, file: typeof p.file === 'string' ? p.file : undefined });
       }
     }
 
@@ -467,13 +539,36 @@ function validatePatchSafety(original: string, patched: string): { safe: boolean
 
 // ── Quarantine ───────────────────────────────────────────────────────────────
 
-const QUARANTINE_THRESHOLD = 2;
+/** Threshold read from composition blackboard (default 3) */
+let quarantineThreshold = 3;
 const failureCounts = new Map<string, number>();
+const committedFiles = new Set<string>();
 
+/** Returns true if the file should be permanently skipped */
 function quarantineFile(filePath: string): boolean {
-  const count = (failureCounts.get(filePath) || 0) + 1;
-  failureCounts.set(filePath, count);
-  return count >= QUARANTINE_THRESHOLD;
+  const normalized = filePath.replace(/\\/g, '/');
+  const count = (failureCounts.get(normalized) || 0) + 1;
+  failureCounts.set(normalized, count);
+  return count >= quarantineThreshold;
+}
+
+/** Check if a file is already quarantined without incrementing */
+function isQuarantined(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  return (failureCounts.get(normalized) || 0) >= quarantineThreshold;
+}
+
+/** Check if a file was already committed this daemon run */
+function isCommitted(filePath: string): boolean {
+  return committedFiles.has(filePath.replace(/\\/g, '/'));
+}
+
+/** Get serializable file tracking state for persistence */
+export function getDaemonFileState(): { committed: string[]; failures: Record<string, number> } {
+  return {
+    committed: [...committedFiles],
+    failures: Object.fromEntries(failureCounts),
+  };
 }
 
 // ── Action Handler Factory ───────────────────────────────────────────────────
@@ -483,6 +578,21 @@ export function createDaemonActions(
   llm: LLMProvider,
   config: DaemonConfig,
 ): Record<string, ActionHandler> {
+  // Apply composition-driven quarantine threshold
+  if (config.quarantineThreshold !== undefined) {
+    quarantineThreshold = config.quarantineThreshold;
+  }
+
+  // Restore persisted file tracking from previous cycles
+  if (config.committedFiles) {
+    for (const f of config.committedFiles) committedFiles.add(f);
+  }
+  if (config.failedFiles) {
+    for (const [f, count] of Object.entries(config.failedFiles)) {
+      failureCounts.set(f, Math.max(failureCounts.get(f) || 0, count));
+    }
+  }
+
   const log = (msg: string) => {
     if (config.verbose) console.log(`[daemon] ${msg}`);
   };
@@ -560,7 +670,8 @@ export function createDaemonActions(
         // Then remove quarantined files
         const filtered = [...errorCounts.entries()]
           .filter(([f]) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
-          .filter(([f]) => (failureCounts.get(f) || 0) < QUARANTINE_THRESHOLD);
+          .filter(([f]) => !isCommitted(f))
+          .filter(([f]) => !isQuarantined(f));
 
         // Rank by downstream impact × error tractability
         // Files imported by many others AND with few errors = highest value
@@ -598,7 +709,7 @@ export function createDaemonActions(
 
         for (const f of sourceFiles) {
           const testFile = f.replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
-          if (!host.exists(testFile) && (failureCounts.get(f) || 0) < QUARANTINE_THRESHOLD) {
+          if (!host.exists(testFile) && !isQuarantined(f) && !isCommitted(f)) {
             candidates.push(f);
           }
         }
@@ -609,8 +720,8 @@ export function createDaemonActions(
           } catch { return 0; }
         });
         bb.typeErrorCount = 0;
-      } else if (focus === 'docs') {
-        // Find exported functions/classes without JSDoc
+      } else if (focus === 'lint') {
+        // Find files with common lint issues: unused imports, any casts, console.log
         const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
           cwd: config.repoRoot, timeoutMs: 120_000,
         });
@@ -620,14 +731,47 @@ export function createDaemonActions(
           .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
 
         for (const f of sourceFiles) {
-          if ((failureCounts.get(f) || 0) >= QUARANTINE_THRESHOLD) continue;
+          if (isQuarantined(f) || isCommitted(f)) continue;
           try {
             const content = host.readFile(f);
-            const hasUndocumented = /^export\s+(function|class|const|interface|type)\s+/m.test(content) &&
-              !/\/\*\*[\s\S]*?\*\/\s*\nexport\s/m.test(content);
-            if (hasUndocumented) candidates.push(f);
+            const hasLintIssues =
+              /\bas\s+any\b/.test(content) ||
+              /\/\/\s*@ts-ignore/.test(content) ||
+              /console\.(log|warn|error)\(/.test(content);
+            if (hasLintIssues) candidates.push(f);
           } catch { /* skip unreadable */ }
         }
+        // Sort by file size (smaller = easier to lint-fix)
+        candidates.sort((a, b) => {
+          try { return host.readFile(a).length - host.readFile(b).length; }
+          catch { return 0; }
+        });
+        bb.typeErrorCount = 0;
+      } else if (focus === 'docs') {
+        // Find exported functions/classes missing JSDoc descriptions
+        const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
+          cwd: config.repoRoot, timeoutMs: 120_000,
+        });
+        const sourceFiles = (result.stdout + result.stderr).split('\n')
+          .map(l => l.trim())
+          .filter(f => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
+
+        for (const f of sourceFiles) {
+          if (isQuarantined(f) || isCommitted(f)) continue;
+          try {
+            const content = host.readFile(f);
+            // Check for undocumented exports (export without preceding JSDoc)
+            if (/^export\s+(function|class|const|interface|type|enum)\s/m.test(content) &&
+                !/\/\*\*[\s\S]*?\*\/\s*\nexport\s/m.test(content)) {
+              candidates.push(f);
+            }
+          } catch { /* skip unreadable */ }
+        }
+        candidates.sort((a, b) => {
+          try { return host.readFile(a).length - host.readFile(b).length; }
+          catch { return 0; }
+        });
         bb.typeErrorCount = 0;
       } else if (focus === 'target-sweep') {
         if (!daemonCompositionFile) {
@@ -726,7 +870,7 @@ export function createDaemonActions(
     // ── Generate Fix (LLM Call) ────────────────────────────────────────
     // Think→Patch architecture: LLM reasons about errors, proposes JSON patches,
     // patches are applied programmatically. Prevents file truncation/deletion.
-    generate_fix: async (_params, bb) => {
+    generate_fix: async (_params, bb, ctx) => {
       const file = bb.currentCandidate as string;
       const content = bb.candidateContent as string;
       const focus = (bb.focus as string) || 'typefix';
@@ -738,6 +882,7 @@ export function createDaemonActions(
           const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
+          ctx.emit('economy:spend', { action: 'generate_fix', focus, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
           const edited = result.text.trim();
           if (edited.length > 10 && !isContaminatedEdit(edited)) {
             const testPath = file.replace(/\\/g, '/').replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
@@ -792,19 +937,116 @@ export function createDaemonActions(
         return roundtrip.absorbOk && roundtrip.compileOk;
       }
 
-      if (focus === 'docs') {
-        const systemPrompt = getDaemonSystemPrompt('docs', promptContext);
+      if (focus === 'lint') {
+        // Lint focus uses think→patch architecture (same as typefix)
+        const lintErrors: string[] = [];
+        const lines = content.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (/\bas\s+any\b/.test(line)) lintErrors.push(`${file}(${i + 1}): lint: unsafe 'as any' cast`);
+          if (/\/\/\s*@ts-ignore/.test(line)) lintErrors.push(`${file}(${i + 1}): lint: @ts-ignore suppression`);
+          if (/console\.(log|warn|error)\(/.test(line) && !file.includes('cli/')) lintErrors.push(`${file}(${i + 1}): lint: console statement in library code`);
+        }
+        if (lintErrors.length === 0) {
+          advanceCandidate(bb);
+          return false;
+        }
+        const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
+        const compileErrors = bb.compileErrors as string[] | undefined;
+        const lintPromptParts = [
+          `File: ${file}`,
+          '',
+          'Lint issues to fix (replace unsafe casts with proper types, remove @ts-ignore, remove console statements from library code):',
+          lintErrors.join('\n'),
+        ];
+        if (compileErrors && compileErrors.length > 0) {
+          lintPromptParts.push(
+            '',
+            'IMPORTANT: A previous fix attempt caused these compile errors (do NOT introduce these again):',
+            compileErrors.slice(0, 10).join('\n'),
+            '',
+            'Only fix lint issues where you can provide a type-safe replacement. Skip issues where removing `as any` would require changes to external type definitions.',
+          );
+        }
+        lintPromptParts.push('', `Source (${lines.length} lines):`, content);
+        const lintPrompt = lintPromptParts.join('\n');
         try {
-          const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
+          const result = await llm.chat({ system: systemPrompt, prompt: lintPrompt, maxTokens: 4096 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
-          const edited = result.text.trim();
-          if (edited !== content && edited.length > 10 && !isContaminatedEdit(edited)) {
-            host.writeFile(file, edited);
-            bb.fileEdited = true;
-            log(`Applied docs to ${file}`);
-            return true;
+          ctx.emit('economy:spend', { action: 'generate_fix', focus: 'lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          const patchResponse = parsePatchResponse(result.text);
+          if (!patchResponse || patchResponse.patches.length === 0) {
+            advanceCandidate(bb);
+            return false;
           }
+          if (patchResponse.analysis) log(`Analysis: ${patchResponse.analysis.slice(0, 200)}`);
+          const { result: patched, applied } = applyPatches(content, patchResponse.patches);
+          if (applied === 0) { advanceCandidate(bb); return false; }
+          const safety = validatePatchSafety(content, patched);
+          if (!safety.safe) { log(`SAFETY REJECT: ${safety.reason}`); advanceCandidate(bb); return false; }
+          if (isContaminatedEdit(patched)) { advanceCandidate(bb); return false; }
+          host.writeFile(file, patched);
+          bb.fileEdited = true;
+          log(`Applied ${applied} lint fixes to ${file.split(/[/\\]/).pop()}`);
+          return true;
+        } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
+        advanceCandidate(bb);
+        return false;
+      }
+
+      if (focus === 'docs') {
+        // Docs focus: add plain JSDoc descriptions via think→patch
+        // CRITICAL: Only add /** description */ comments — never @param/@returns
+        // with type annotations, as those conflict with TypeScript signatures.
+        const lines = content.split('\n');
+        const undocumented: string[] = [];
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (/^export\s+(function|class|const|interface|type|enum)\s/.test(line)) {
+            // Check if preceding line has JSDoc
+            const prev = i > 0 ? lines[i - 1].trim() : '';
+            if (!prev.endsWith('*/')) {
+              undocumented.push(`${file}(${i + 1}): missing JSDoc for: ${line.trim().slice(0, 80)}`);
+            }
+          }
+        }
+        if (undocumented.length === 0) { advanceCandidate(bb); return false; }
+
+        const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
+        const docsPrompt = [
+          `File: ${file}`,
+          '',
+          'Add brief JSDoc comments (/** one-line description */) above these undocumented exports.',
+          'RULES:',
+          '- Only add /** description */ comments, nothing else',
+          '- Do NOT add @param, @returns, @throws, or any other JSDoc tags',
+          '- Do NOT change any code, types, or signatures',
+          '- Keep descriptions concise (1 sentence max)',
+          '',
+          undocumented.join('\n'),
+          '',
+          `Source (${lines.length} lines):`,
+          content,
+        ].join('\n');
+
+        try {
+          const result = await llm.chat({ system: systemPrompt, prompt: docsPrompt, maxTokens: 4096 });
+          bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
+          bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
+          ctx.emit('economy:spend', { action: 'generate_fix', focus: 'docs', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          const patchResponse = parsePatchResponse(result.text);
+          if (!patchResponse || patchResponse.patches.length === 0) { advanceCandidate(bb); return false; }
+          if (patchResponse.analysis) log(`Analysis: ${patchResponse.analysis.slice(0, 200)}`);
+          const { result: patched, applied } = applyPatches(content, patchResponse.patches);
+          if (applied === 0) { advanceCandidate(bb); return false; }
+          const safety = validatePatchSafety(content, patched);
+          if (!safety.safe) { log(`SAFETY REJECT: ${safety.reason}`); advanceCandidate(bb); return false; }
+          if (isContaminatedEdit(patched)) { advanceCandidate(bb); return false; }
+          host.writeFile(file, patched);
+          bb.fileEdited = true;
+          log(`Applied docs to ${file.split(/[/\\]/).pop()}`);
+          return true;
         } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
         advanceCandidate(bb);
         return false;
@@ -837,13 +1079,15 @@ export function createDaemonActions(
         return false;
       }
 
-      // Dependency context from GraphRAG-lite
+      // Multi-file context: resolve base class and related files
+      const relatedFiles = resolveRelatedFiles(content, file, host, errorContext);
       const depContext = extractDependencyContext(content, file, host);
 
       const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
 
-      const prompt = [
-        `File: ${file}`,
+      // Build prompt — include related file content for coordinated patches
+      const promptParts = [
+        `Primary file: ${file}`,
         '',
         'Type errors to fix:',
         errorContext || '(no specific errors — check file for type issues)',
@@ -851,12 +1095,29 @@ export function createDaemonActions(
         '',
         `Source (${content.split('\n').length} lines):`,
         content,
-      ].join('\n');
+      ];
+
+      // Add related files (base classes, type definitions)
+      if (relatedFiles.length > 0) {
+        promptParts.push('', '=== RELATED FILES (you may also patch these) ===');
+        for (const rf of relatedFiles) {
+          promptParts.push(
+            '',
+            `Related file (${rf.relation}): ${rf.path}`,
+            `Source (${rf.content.split('\n').length} lines):`,
+            rf.content,
+          );
+        }
+        promptParts.push('', 'NOTE: To patch a related file, add "file": "<path>" to the patch object. Patches without a "file" field apply to the primary file.');
+      }
+
+      const prompt = promptParts.join('\n');
 
       try {
-        const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: 4096 });
+        const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: relatedFiles.length > 0 ? 6144 : 4096 });
         bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
         bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
+        ctx.emit('economy:spend', { action: 'generate_fix', focus, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
 
         // Parse structured response
         const patchResponse = parsePatchResponse(result.text);
@@ -876,16 +1137,30 @@ export function createDaemonActions(
           return false;
         }
 
-        // Apply patches via exact string matching
-        const { result: patched, applied, failed } = applyPatches(content, patchResponse.patches);
-        if (applied === 0) {
+        // Group patches by file (multi-file support)
+        const primaryPatches = patchResponse.patches.filter(p => !p.file);
+        const relatedPatchGroups = new Map<string, Patch[]>();
+        for (const p of patchResponse.patches) {
+          if (p.file) {
+            const key = p.file.replace(/\\/g, '/');
+            if (!relatedPatchGroups.has(key)) relatedPatchGroups.set(key, []);
+            relatedPatchGroups.get(key)!.push(p);
+          }
+        }
+
+        // Apply primary file patches
+        let totalApplied = 0;
+        const { result: patched, applied, failed } = applyPatches(content, primaryPatches.length > 0 ? primaryPatches : patchResponse.patches.filter(p => !p.file));
+        totalApplied += applied;
+
+        if (applied === 0 && relatedPatchGroups.size === 0) {
           log(`All ${failed.length} patches failed to match in ${baseName}`);
           for (const f of failed.slice(0, 3)) log(`  ${f}`);
           advanceCandidate(bb);
           return false;
         }
         if (failed.length > 0) {
-          log(`${applied}/${patchResponse.patches.length} patches applied (${failed.length} failed) in ${baseName}`);
+          log(`${applied}/${primaryPatches.length || patchResponse.patches.length} patches applied (${failed.length} failed) in ${baseName}`);
         }
 
         // Safety validation — reject destructive edits
@@ -896,17 +1171,37 @@ export function createDaemonActions(
           return false;
         }
 
-        // Contamination check
         if (isContaminatedEdit(patched)) {
           log(`Contaminated edit detected for ${baseName}, skipping`);
           advanceCandidate(bb);
           return false;
         }
 
-        // Write patched file
-        host.writeFile(file, patched);
+        // Apply related file patches (multi-file)
+        const relatedEdits: { path: string; original: string; patched: string }[] = [];
+        for (const [relPath, relPatches] of relatedPatchGroups) {
+          // Find the related file by matching path
+          const rf = relatedFiles.find(r => r.path.replace(/\\/g, '/') === relPath);
+          if (!rf) { log(`Related file ${relPath} not found, skipping its patches`); continue; }
+          const { result: relPatched, applied: relApplied } = applyPatches(rf.content, relPatches);
+          if (relApplied > 0) {
+            const relSafety = validatePatchSafety(rf.content, relPatched);
+            if (relSafety.safe && !isContaminatedEdit(relPatched)) {
+              relatedEdits.push({ path: rf.path, original: rf.content, patched: relPatched });
+              totalApplied += relApplied;
+              log(`Applied ${relApplied} patches to related file ${rf.path.split(/[/\\]/).pop()}`);
+            }
+          }
+        }
+
+        // Write all files atomically
+        if (applied > 0) host.writeFile(file, patched);
+        for (const edit of relatedEdits) host.writeFile(edit.path, edit.patched);
+        // Track related files for rollback
+        bb.relatedEdits = relatedEdits.map(e => ({ path: e.path, original: e.original }));
+
         bb.fileEdited = true;
-        log(`Applied ${applied} patches to ${baseName}`);
+        log(`Applied ${totalApplied} patches to ${baseName}${relatedEdits.length > 0 ? ` + ${relatedEdits.length} related file(s)` : ''}`);
         return true;
       } catch (err: unknown) {
         log(`LLM error: ${(err as Error).message}`);
@@ -976,7 +1271,7 @@ export function createDaemonActions(
     validate_quality: async (_params, bb) => {
       const baselineErrors = (bb.typeErrorBaseline as number) || (bb.typeErrorCount as number) || undefined;
       const result = await computeQuality(host, config.repoRoot, config.stateDir, baselineErrors);
-      const qualityBefore = (bb.quality_before as number) || 0;
+      const qualityBefore = config.qualityBefore ?? (bb.quality_before as number) ?? 0;
 
       bb.quality_after = result.score;
       bb.quality_typeErrors = result.typeErrors;
@@ -1032,6 +1327,7 @@ export function createDaemonActions(
       if (!bb.committed) {
         log(`Commit: FAILED (code=${result.code}, stderr=${(result.stderr || '').trim()})`);
       } else {
+        committedFiles.add(file.replace(/\\/g, '/'));
         log(`Commit: OK`);
       }
 
@@ -1056,9 +1352,20 @@ export function createDaemonActions(
         if (testFile) {
           await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
         }
-        const isQuarantined = quarantineFile(file);
-        if (isQuarantined) {
-          log(`Quarantined ${file} (${QUARANTINE_THRESHOLD} failures)`);
+
+        // Rollback related files from multi-file patches
+        const relatedEdits = bb.relatedEdits as { path: string; original: string }[] | undefined;
+        if (relatedEdits && relatedEdits.length > 0) {
+          for (const edit of relatedEdits) {
+            host.writeFile(edit.path, edit.original);
+            log(`Rolled back related file ${edit.path.split(/[/\\]/).pop()}`);
+          }
+          bb.relatedEdits = undefined;
+        }
+
+        const nowQuarantined = quarantineFile(file);
+        if (nowQuarantined) {
+          log(`Quarantined ${file} (${quarantineThreshold} failures)`);
         }
         log(`Rolled back ${file}`);
       }
@@ -1128,11 +1435,56 @@ export function createDaemonActions(
     // ── Motivation ─────────────────────────────────────────────────────
     praise_improvement: async (_params, _bb, ctx) => {
       ctx.emit('motivation:cycle_complete', { energy_level: 1.2 });
+      ctx.emit('feedback:update_metric', { name: 'positive_energy', value: 1.0 });
       return true;
     },
 
     integrate_shadow: async (_params, _bb, ctx) => {
       ctx.emit('motivation:cycle_complete', { energy_level: 0.9 });
+      ctx.emit('feedback:update_metric', { name: 'positive_energy', value: 0.6 });
+      return true;
+    },
+
+    // ── Scheduler Job Handlers ──────────────────────────────────────────
+    // These fire when @scheduler unpauses and triggers periodic jobs.
+    // The scheduler emits the job's `action` event; these handlers
+    // are registered via runtime.registerAction() to respond.
+
+    'daemon:quality_heartbeat': async (_params, _bb, ctx) => {
+      const tsc = await host.exec('npx', tscCheckArgs(config.stateDir),
+        { cwd: config.repoRoot, timeoutMs: 120_000 });
+      const errors = (tsc.stdout + tsc.stderr).split('\n')
+        .filter(l => /error TS\d{4}:/.test(l)).length;
+      ctx.emit('daemon:raw_quality', { value: errors === 0 ? 1 : Math.max(0, 1 - errors / 3500), source: 'heartbeat' });
+      log(`Quality heartbeat: ${errors} type errors`);
+      return true;
+    },
+
+    'daemon:test_watchdog': async (_params, _bb, ctx) => {
+      const test = await host.exec('npx',
+        ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'],
+        { cwd: config.repoRoot, timeoutMs: 120_000 });
+      let passed = 0, total = 0;
+      try {
+        const json = JSON.parse(test.stdout);
+        total = json.numTotalTests || 0;
+        passed = json.numPassedTests || 0;
+      } catch { /* parse failure */ }
+      ctx.emit('daemon:test_watchdog_result', { passed, total, exitCode: test.code });
+      log(`Test watchdog: ${passed}/${total} passed`);
+      return true;
+    },
+
+    'daemon:evaluate_consciousness': async (_params, bb, ctx) => {
+      const cycleCount = (bb.cycleNumber as number) || 0;
+      const quality = (bb.quality_after as number) || 0;
+      ctx.emit('daemon:consciousness_eval_result', {
+        cycles: cycleCount,
+        quality,
+        wisdom_count: Array.isArray(bb.wisdom) ? (bb.wisdom as unknown[]).length : 0,
+        timestamp: Date.now(),
+      });
+      log(`Consciousness eval: cycle=${cycleCount}, quality=${quality.toFixed(3)}`);
       return true;
     },
   };

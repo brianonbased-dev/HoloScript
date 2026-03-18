@@ -624,6 +624,60 @@ export class HeadlessRuntime {
         const requestId = p?.requestId as string | undefined;
         const blackboard = (p?.blackboard as Record<string, unknown>) ?? {};
         const params = (p?.params as Record<string, unknown>) ?? {};
+
+        // Rate limiter middleware: if @rate_limiter trait is active on root node,
+        // consume a token before dispatching. Reject if bucket empty.
+        if (this.rootInstance?.node?.__rateLimiterState) {
+          const rlState = this.rootInstance.node.__rateLimiterState as {
+            buckets: Map<string, { tokens: number; lastRefillAt: number }>;
+            totalAllowed: number;
+            totalRejected: number;
+          };
+          const key = actionName;
+          let bucket = rlState.buckets.get(key);
+          if (!bucket) {
+            // Initialize from trait config (max_tokens default: 10)
+            const rlConfig = this.rootInstance.node.traits?.get('rate_limiter') as
+              { max_tokens?: number } | undefined;
+            bucket = { tokens: rlConfig?.max_tokens ?? 10, lastRefillAt: Date.now() };
+            rlState.buckets.set(key, bucket);
+          }
+          if (bucket.tokens < 1) {
+            rlState.totalRejected++;
+            this.emit('action:result', { requestId, status: 'failure', reason: 'rate_limited' });
+            return;
+          }
+          bucket.tokens -= 1;
+          rlState.totalAllowed++;
+        }
+
+        // Circuit breaker middleware: if @circuit_breaker trait is active on root node,
+        // check circuit state before dispatching. Record result after handler completes.
+        let cbId: string | undefined;
+        if (this.rootInstance?.node?.__circuitBreakerState) {
+          const cbState = this.rootInstance.node.__circuitBreakerState as {
+            state: 'closed' | 'open' | 'half-open';
+            openedAt: number;
+            halfOpenSuccesses: number;
+            requestLog: { timestamp: number; success: boolean }[];
+            totalRequests: number;
+            pendingActions: Map<string, { action: string; startedAt: number }>;
+            actionCounter: number;
+          };
+          if (cbState.state === 'open') {
+            const cbConfig = this.rootInstance.node.traits?.get('circuit_breaker') as
+              { reset_timeout_ms?: number } | undefined;
+            const remainingMs = Math.max(0,
+              (cbConfig?.reset_timeout_ms ?? 60000) - (Date.now() - cbState.openedAt));
+            this.emit('action:result', { requestId, status: 'failure', reason: 'circuit_open', remainingMs });
+            return;
+          }
+          cbId = `cb_${cbState.actionCounter++}`;
+          cbState.pendingActions.set(cbId, { action: actionName, startedAt: Date.now() });
+          cbState.totalRequests++;
+        }
+
+        const cbIdCapture = cbId;
         Promise.resolve(
           handler(params, blackboard, {
             emit: this.emit.bind(this),
@@ -631,9 +685,16 @@ export class HeadlessRuntime {
           })
         )
           .then((result) => {
+            // Record result with circuit breaker
+            if (cbIdCapture) {
+              this.emit('circuit_breaker:result', { cbId: cbIdCapture, success: result });
+            }
             this.emit('action:result', { requestId, status: result ? 'success' : 'failure' });
           })
           .catch(() => {
+            if (cbIdCapture) {
+              this.emit('circuit_breaker:result', { cbId: cbIdCapture, success: false, error: 'exception' });
+            }
             this.emit('action:result', { requestId, status: 'failure' });
           });
       }

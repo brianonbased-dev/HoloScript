@@ -322,6 +322,33 @@ const BUILTIN_TRAITS: { name: string; detail: string; docs: string }[] = [
     detail: 'Tilemap',
     docs: 'Creates 2D/3D tile-based maps with auto-tiling rules.',
   },
+  // Meta-traits (Wisdom/Gotcha)
+  {
+    name: '@wisdom',
+    detail: 'Wisdom meta-trait',
+    docs: 'Declares a battle-tested insight that applies to one or more traits. Queryable by Studio, LSP, and MCP agents.\n\nProperties: `description`, `source`, `applies_to: [...]`, `examples: [...]`',
+  },
+  {
+    name: '@gotcha',
+    detail: 'Gotcha meta-trait',
+    docs: 'Declares a known failure mode with severity and mitigation. Critical gotchas block `--enforce-gotchas` builds.\n\nProperties: `warning`, `severity: "info"|"warning"|"critical"`, `mitigation`, `triggers_on: [...]`',
+  },
+  // State & Resilience (Batch 1 atoms)
+  {
+    name: '@versioned_state',
+    detail: 'Branchable state',
+    docs: 'Fork/merge state history with CRDT or manual merge strategy. Enables collaborative editing and undo trees.',
+  },
+  {
+    name: '@world_heartbeat',
+    detail: 'World heartbeat',
+    docs: 'Global pulse emitter for distributed synchronization. Provisions redundant emitters to avoid single-point-of-failure.',
+  },
+  {
+    name: '@circuit_auto_reset',
+    detail: 'Circuit breaker',
+    docs: 'Exponential backoff retry with circuit breaker pattern (closed/open/half-open). Auto-resets after cooldown and successful probe.',
+  },
 ];
 
 const BUILTIN_FUNCTIONS = [
@@ -541,15 +568,44 @@ function registerHoloScript(monaco: Monaco) {
         const traitName = `@${traitMatch[1]}`;
         const trait = BUILTIN_TRAITS.find((t) => t.name === traitName);
         if (trait) {
-          return {
-            range: {
-              startLineNumber: position.lineNumber,
-              startColumn: lineText.indexOf(traitName) + 1,
-              endLineNumber: position.lineNumber,
-              endColumn: lineText.indexOf(traitName) + traitName.length + 1,
-            },
-            contents: [{ value: `**${trait.name}** â€” *${trait.detail}*` }, { value: trait.docs }],
+          const hoverRange = {
+            startLineNumber: position.lineNumber,
+            startColumn: lineText.indexOf(traitName) + 1,
+            endLineNumber: position.lineNumber,
+            endColumn: lineText.indexOf(traitName) + traitName.length + 1,
           };
+          const contents: { value: string }[] = [
+            { value: `**${trait.name}** — *${trait.detail}*` },
+            { value: trait.docs },
+          ];
+
+          // Extract inline wisdom/gotcha content from the surrounding block
+          if (traitName === '@wisdom' || traitName === '@gotcha') {
+            const totalLines = model.getLineCount();
+            let blockText = '';
+            for (let ln = position.lineNumber; ln <= Math.min(position.lineNumber + 10, totalLines); ln++) {
+              blockText += model.getLineContent(ln) + '\n';
+              if (model.getLineContent(ln).includes('}')) break;
+            }
+            if (traitName === '@wisdom') {
+              const descMatch = blockText.match(/description:\s*"([^"]*)"/);
+              const sourceMatch = blockText.match(/source:\s*"([^"]*)"/);
+              if (descMatch) {
+                contents.push({ value: `---\n**Insight:** ${descMatch[1]}${sourceMatch ? `\n\n*Source: ${sourceMatch[1]}*` : ''}` });
+              }
+            } else {
+              const warnMatch = blockText.match(/warning:\s*"([^"]*)"/);
+              const sevMatch = blockText.match(/severity:\s*"([^"]*)"/);
+              const mitMatch = blockText.match(/mitigation:\s*"([^"]*)"/);
+              if (warnMatch) {
+                const sev = sevMatch?.[1] || 'warning';
+                const icon = sev === 'critical' ? '🔴' : sev === 'warning' ? '🟡' : '🔵';
+                contents.push({ value: `---\n${icon} **${sev.toUpperCase()}:** ${warnMatch[1]}${mitMatch ? `\n\n*Mitigation: ${mitMatch[1]}*` : ''}` });
+              }
+            }
+          }
+
+          return { range: hoverRange, contents };
         }
       }
 

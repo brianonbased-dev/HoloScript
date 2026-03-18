@@ -127,7 +127,21 @@ function TraitCard({
         ) : (
           <ChevronRight className="h-3.5 w-3.5 text-studio-muted shrink-0" />
         )}
-        <span className="flex-1 text-xs font-semibold text-studio-accent">@{trait.name}</span>
+        <span
+          className="flex-1 text-xs font-semibold text-studio-accent"
+          title={
+            trait.name === 'wisdom'
+              ? `@wisdom — Battle-tested insight. Properties: description, source, applies_to, examples.${trait.properties.description ? `\n\nInsight: ${trait.properties.description}` : ''}`
+              : trait.name === 'gotcha'
+                ? `@gotcha — Known failure mode.${trait.properties.severity ? ` Severity: ${trait.properties.severity}.` : ''}${trait.properties.warning ? `\n\nWarning: ${trait.properties.warning}` : ''}${trait.properties.mitigation ? `\nMitigation: ${trait.properties.mitigation}` : ''}`
+                : `@${trait.name}`
+          }
+        >
+          @{trait.name}
+          {trait.name === 'gotcha' && trait.properties.severity === 'critical' && (
+            <span className="ml-1 text-red-400 text-[10px]" title="Critical gotcha — blocks --enforce-gotchas builds">CRIT</span>
+          )}
+        </span>
         {isMaterial && onOpenShaderEditor && (
           <button
             onClick={(e) => {

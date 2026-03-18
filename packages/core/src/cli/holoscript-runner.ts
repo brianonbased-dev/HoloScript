@@ -26,7 +26,7 @@ import { ScriptTestRunner } from '../traits/ScriptTestTrait';
 import { AbsorbProcessor } from '../traits/AbsorbTrait';
 import { HotReloadWatcher } from '../traits/HotReloadTrait';
 import type { HostCapabilities } from '../traits/TraitTypes';
-import { createDaemonActions } from './daemon-actions';
+import { createDaemonActions, getDaemonFileState } from './daemon-actions';
 import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
@@ -49,6 +49,8 @@ interface CLIOptions {
   model: string;
   timeout: number; // per-cycle timeout in minutes
   focus?: string; // override focus rotation with fixed focus
+  enforceGotchas: boolean; // fail compile if critical @gotcha violations found
+  providerRotation: boolean; // alternate providers per cycle (Claude→Grok→Claude→...)
 }
 
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
@@ -120,6 +122,8 @@ function parseArgs(argv: string[]): CLIOptions {
     ticks: 100,
     cycles: 15,
     commit: false,
+    enforceGotchas: false,
+    providerRotation: false,
     provider: envDefaults.provider,
     toolProfile: envDefaults.toolProfile,
     model: envDefaults.model,
@@ -191,6 +195,8 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--focus' && args[i + 1]) {
       opts.focus = args[++i];
     }
+    if (args[i] === '--enforce-gotchas') opts.enforceGotchas = true;
+    if (args[i] === '--provider-rotation') opts.providerRotation = true;
   }
 
   if (!modelExplicit) {
@@ -900,6 +906,36 @@ function compileScript(opts: CLIOptions): void {
   }
 
   const source = fs.readFileSync(filePath, 'utf-8');
+
+  // --enforce-gotchas: scan for critical @gotcha violations before compiling
+  if (opts.enforceGotchas) {
+    const gotchaRe = /@gotcha\s*\{([^}]+)\}/g;
+    let gMatch: RegExpExecArray | null;
+    const criticals: { warning: string; mitigation: string }[] = [];
+    while ((gMatch = gotchaRe.exec(source)) !== null) {
+      const block = gMatch[1];
+      const sevMatch = block.match(/severity:\s*"([^"]*)"/i);
+      const severity = sevMatch?.[1] || 'warning';
+      if (severity === 'critical') {
+        const warnMatch = block.match(/warning:\s*"([^"]*)"/i);
+        const mitMatch = block.match(/mitigation:\s*"([^"]*)"/i);
+        criticals.push({
+          warning: warnMatch?.[1] || 'Unknown critical gotcha',
+          mitigation: mitMatch?.[1] || 'No mitigation specified',
+        });
+      }
+    }
+    if (criticals.length > 0) {
+      console.error(`[holoscript compile] BLOCKED by ${criticals.length} critical @gotcha violation(s):`);
+      for (const g of criticals) {
+        console.error(`  ✗ ${g.warning}`);
+        console.error(`    mitigation: ${g.mitigation}`);
+      }
+      process.exit(1);
+    }
+    console.log(`[holoscript compile] @gotcha check passed (no critical violations)`);
+  }
+
   const ast = parse(source);
   const outputPath = opts.output || filePath.replace(/\.(hs|hsplus|holo)$/, `.${opts.target === 'python' ? 'py' : 'js'}`);
 
@@ -1108,7 +1144,11 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   // Create host capabilities
   const host: DaemonHost = {
     readFile: (p) => fs.readFileSync(path.resolve(repoRoot, p), 'utf-8'),
-    writeFile: (p, c) => fs.writeFileSync(path.resolve(repoRoot, p), c, 'utf-8'),
+    writeFile: (p, c) => {
+      const resolved = path.resolve(repoRoot, p);
+      fs.mkdirSync(path.dirname(resolved), { recursive: true });
+      fs.writeFileSync(resolved, c, 'utf-8');
+    },
     exists: (p) => fs.existsSync(path.resolve(repoRoot, p)),
     exec: (cmd, args = [], execOpts = {}) =>
       new Promise((resolve, reject) => {
@@ -1136,19 +1176,18 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   // LLM provider (provider-aware)
   const llm = createDaemonLLMProvider(opts);
 
-  // Daemon configuration
-  const focusRotation = [
-    'typefix',
-    'coverage',
-    'typefix',
-    'docs',
-    'target-sweep',
-    'trait-sampling',
-    'runtime-matrix',
-    'absorb-roundtrip',
-    'typefix',
-    'all',
-  ];
+  // Daemon configuration — read strategy from composition blackboard (source of truth)
+  const defaultFocusRotation = ['typefix', 'coverage', 'typefix', 'lint', 'target-sweep',
+    'trait-sampling', 'runtime-matrix', 'absorb-roundtrip', 'typefix', 'all'];
+  const focusRotation = (getASTBlackboardValue(compositionAST, 'focus_rotation') as string[] | undefined)
+    ?? defaultFocusRotation;
+  const providerRotationEnabled = (getASTBlackboardValue(compositionAST, 'provider_rotation_enabled') as boolean | undefined)
+    ?? opts.providerRotation;
+  const rotationProviders = (getASTBlackboardValue(compositionAST, 'provider_rotation') as string[] | undefined)
+    ?? ['anthropic', 'xai'];
+  const quarantineThreshold = (getASTBlackboardValue(compositionAST, 'quarantine_threshold') as number | undefined)
+    ?? 3;
+
   const config: DaemonConfig = {
     repoRoot,
     commit: opts.commit,
@@ -1159,10 +1198,11 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     trial: opts.trial,
     focusRotation,
     stateDir,
+    quarantineThreshold,
   };
 
-  // Create action handlers
-  const actions = createDaemonActions(host, llm, config);
+  // Create action handlers (rebuilt per cycle if provider rotation enabled)
+  let actions = createDaemonActions(host, llm, config);
 
   // Load persisted daemon state
   const stateFile = path.join(stateDir, 'daemon-state.json');
@@ -1173,6 +1213,16 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   if (fs.existsSync(stateFile)) {
     try {
       daemonState = { ...daemonState, ...JSON.parse(fs.readFileSync(stateFile, 'utf-8')) };
+    } catch { /* use defaults */ }
+  }
+
+  // Load persisted file tracking (committed + quarantined files across cycles)
+  const fileStateFile = path.join(stateDir, 'daemon-file-state.json');
+  if (fs.existsSync(fileStateFile)) {
+    try {
+      const fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8'));
+      config.committedFiles = fileState.committed || [];
+      config.failedFiles = fileState.failures || {};
     } catch { /* use defaults */ }
   }
 
@@ -1193,9 +1243,25 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     const focus = opts.focus || focusRotation[focusIdx];
     config.cycleFocus = focus;
     config.daemonFile = filePath;
+    config.qualityBefore = daemonState.lastQuality;
     const cycleStart = Date.now();
 
-    console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} ===`);
+    // Provider rotation: rebuild LLM + actions for alternating providers
+    // (reads provider_rotation_enabled + provider_rotation from composition blackboard)
+    if (providerRotationEnabled) {
+      const cycleProvider = rotationProviders[cycle % rotationProviders.length] as CLIOptions['provider'];
+      const cycleModel = defaultModelForProvider(cycleProvider);
+      const cycleToolProfile = defaultToolProfileForProvider(cycleProvider);
+      const cycleOpts = { ...opts, provider: cycleProvider, model: cycleModel, toolProfile: cycleToolProfile };
+      const cycleLlm = createDaemonLLMProvider(cycleOpts);
+      config.provider = cycleProvider;
+      config.model = cycleModel;
+      config.toolProfile = cycleToolProfile;
+      actions = createDaemonActions(host, cycleLlm, config);
+      console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} | Provider: ${cycleProvider} (${cycleModel}) ===`);
+    } else {
+      console.log(`\n[daemon] === Cycle ${cycle + 1}/${opts.cycles} | Focus: ${focus} ===`);
+    }
 
     // Fresh AST per cycle (deep clone for clean BT state)
     // Note: JSON clone strips Maps, so materializeTraits must run after clone
@@ -1255,17 +1321,56 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       runtime.start();
     });
 
-    runtime.stop();
-
+    // Extract results before stopping (so traits can still process events)
     const btStatus = btResult.status;
     const btBlackboard = btResult.blackboard;
-
-    // Extract results
     const durationSec = ((Date.now() - cycleStart) / 1000).toFixed(1);
     const stats = runtime.getStats();
     const inputTokens = (btBlackboard.inputTokens as number) || 0;
     const outputTokens = (btBlackboard.outputTokens as number) || 0;
     const qualityAfter = (btBlackboard.quality_after as number) || daemonState.lastQuality;
+    const costUSD = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
+    const committed = (btBlackboard.committed_count as number) || 0;
+
+    // Emit cycle telemetry for @transform → @buffer trait pipeline
+    // @transform picks fields + computes qualityDelta/tokensPerDollar
+    // @buffer batches into daemon:telemetry_batch_flushed
+    runtime.emit('daemon:cycle_raw_telemetry', {
+      focus,
+      ticks: stats.updateCount,
+      inputTokens,
+      outputTokens,
+      qualityBefore: daemonState.lastQuality,
+      qualityAfter,
+      costUSD,
+      committed: committed > 0,
+    });
+
+    // Emit raw quality for @transform quality_clamp → feedback:update_metric
+    runtime.emit('daemon:raw_quality', { value: qualityAfter, focus });
+
+    // Emit remaining @feedback_loop metrics
+    // cost_efficiency: quality achieved per dollar spent (normalized 0-1)
+    const totalTokens = inputTokens + outputTokens;
+    const costEfficiency = costUSD > 0
+      ? Math.min(1, qualityAfter * totalTokens / (costUSD * 500_000))
+      : qualityAfter;
+    runtime.emit('feedback:update_metric', { name: 'cost_efficiency', value: costEfficiency });
+
+    // emergence_ratio: fraction of candidates that got committed
+    const candidateCount = Array.isArray(btBlackboard.candidates)
+      ? (btBlackboard.candidates as unknown[]).length : 0;
+    const emergenceRatio = candidateCount > 0
+      ? Math.min(1, committed / candidateCount)
+      : 0;
+    runtime.emit('feedback:update_metric', { name: 'emergence_ratio', value: emergenceRatio });
+
+    // regenerative_health: wisdom accumulation relative to cap (200)
+    const wisdomCount = (btBlackboard.wisdomCount as number) || 0;
+    const regenerativeHealth = Math.min(1, wisdomCount / 200);
+    runtime.emit('feedback:update_metric', { name: 'regenerative_health', value: regenerativeHealth });
+
+    runtime.stop();
 
     console.log(
       `[daemon] Cycle ${cycle + 1} done in ${durationSec}s | ` +
@@ -1281,11 +1386,13 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     }
     daemonState.totalInputTokens += inputTokens;
     daemonState.totalOutputTokens += outputTokens;
-
-    const costUSD = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
     daemonState.totalCostUSD += costUSD;
 
     fs.writeFileSync(stateFile, JSON.stringify(daemonState, null, 2), 'utf-8');
+
+    // Persist file tracking (committed + quarantined files)
+    const fileState = getDaemonFileState();
+    fs.writeFileSync(fileStateFile, JSON.stringify(fileState, null, 2), 'utf-8');
   }
 
   cleanup();
@@ -1382,6 +1489,35 @@ function setASTBlackboard(ast: unknown, values: Record<string, unknown>): void {
   walk(ast);
 }
 
+/** Read a value from the AST's blackboard (composition is source of truth) */
+function getASTBlackboardValue(ast: unknown, key: string): unknown {
+  const visited = new WeakSet<object>();
+  let result: unknown = undefined;
+
+  const walk = (node: unknown): void => {
+    if (result !== undefined || !node || typeof node !== 'object') return;
+    const obj = node as Record<string, unknown>;
+    if (visited.has(obj)) return;
+    visited.add(obj);
+
+    if (obj.blackboard && typeof obj.blackboard === 'object' && !Array.isArray(obj.blackboard)) {
+      const bb = obj.blackboard as Record<string, unknown>;
+      if (key in bb) { result = bb[key]; return; }
+    }
+
+    for (const k of Object.keys(obj)) {
+      const val = obj[k];
+      if (val && typeof val === 'object') {
+        if (Array.isArray(val)) { for (const item of val) walk(item); }
+        else if (!(val instanceof Map)) { walk(val); }
+      }
+      if (result !== undefined) return;
+    }
+  };
+  walk(ast);
+  return result;
+}
+
 function showHelp(): void {
   console.log(`
 HoloScript CLI — Headless Runner v5.0
@@ -1389,9 +1525,9 @@ HoloScript CLI — Headless Runner v5.0
 Usage:
   holoscript run <file>     [--target node|python|ros2] [--profile headless|minimal|full] [--ticks <n>] [--daemon] [--debug]
   holoscript test <file>    [--debug]
-  holoscript compile <file> [--target node|python] [--output <path>]
+  holoscript compile <file> [--target node|python] [--output <path>] [--enforce-gotchas]
   holoscript absorb <file>  [--output <path>] [--debug]
-  holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--debug]
+  holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--provider-rotation] [--debug]
 
 Environment defaults (daemon):
   HOLODAEMON_PROVIDER       anthropic|xai|openai|ollama
@@ -1408,10 +1544,12 @@ Examples:
   holoscript run agent.hs --daemon
   holoscript test tests.hs
   holoscript compile service.hsplus --target python --output service.py
+  holoscript compile world.holo --enforce-gotchas
   holoscript absorb legacy.py --output agent.hsplus
   holoscript daemon compositions/self-improve-daemon.hsplus --cycles 15 --commit
   holoscript daemon compositions/self-improve-daemon.hsplus --provider xai --model grok-3
   holoscript daemon compositions/self-improve-daemon.hsplus --provider anthropic --tool-profile claude-hsplus
+  holoscript daemon compositions/self-improve-daemon.hsplus --provider-rotation --cycles 10
 `);
 }
 

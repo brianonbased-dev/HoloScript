@@ -451,6 +451,14 @@ composition "SelfImproveDaemon" {
       tick_rate: 1,
       restart_on_complete: false,
       blackboard: {
+        // ── Strategy config (composition is source of truth) ──
+        focus_rotation: ["typefix", "coverage", "typefix", "lint", "target-sweep", "trait-sampling", "runtime-matrix", "absorb-roundtrip", "typefix", "all"],
+        provider_rotation: ["anthropic", "xai"],
+        provider_rotation_enabled: false,
+        quarantine_threshold: 3,
+        max_candidates_per_cycle: 3,
+
+        // ── Runtime state ──
         intake_loaded: false,
         has_candidates: false,
         validation_focus: false,
@@ -550,7 +558,7 @@ composition "SelfImproveDaemon" {
           params: {},
           mode: "repeat",
           max_executions: 0,
-          paused: true
+          paused: false
         },
         {
           id: "test_watchdog",

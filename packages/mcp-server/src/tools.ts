@@ -15,6 +15,7 @@ import { graphRagTools } from './graph-rag-tools';
 import { selfImproveTools } from './self-improve-tools';
 import { gltfImportTools } from './gltf-import-tools';
 import { editHoloTools } from './edit-holo-tools';
+import { wisdomGotchaTools } from './wisdom-gotcha-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -597,6 +598,7 @@ export const tools: Tool[] = [
   ...codebaseTools,
   ...graphRagTools,
   ...selfImproveTools,
+  ...wisdomGotchaTools,
   ...gltfImportTools,
   ...editHoloTools,
   ...PluginManager.getTools(),

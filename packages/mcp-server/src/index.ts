@@ -39,6 +39,7 @@ import { handleGraphRagTool } from './graph-rag-tools';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
+import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 
 // Create MCP server
 const server = new Server(
@@ -136,6 +137,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    // Check Wisdom/Gotcha tools (query_wisdom, list_gotchas, check_gotchas)
+    const wisdomGotchaResult = await handleWisdomGotchaTool(name, args || {});
+    if (wisdomGotchaResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(wisdomGotchaResult, null, 2) }],
+      };
+    }
+
     // Check GLTF Import/Export tools (import_gltf, compile_to_gltf)
     const gltfResult = await handleGltfTool(name, args || {});
     if (gltfResult !== null) {
@@ -195,3 +204,4 @@ export * from './ide-tools';
 export * from './brittney-lite';
 export * from './compiler-tools';
 export * from './gltf-import-tools';
+export * from './wisdom-gotcha-tools';
