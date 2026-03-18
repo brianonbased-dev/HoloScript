@@ -207,7 +207,7 @@ export class VRRCompiler extends CompilerBase {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): Promise<VRRCompilationResult> {
+  ): VRRCompilationResult {
     this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
