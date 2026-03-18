@@ -17,6 +17,7 @@ import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type { GLTFExportResult } from './GLTFPipeline';
 import type { ARCompilationResult } from './ARCompiler';
+import type { VRRCompilationResult } from './VRRCompiler';
 import {
   CapabilityRBAC,
   getCapabilityRBAC,
@@ -147,7 +148,7 @@ export interface ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult;
+  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult;
 }
 
 /**
@@ -226,7 +227,7 @@ export abstract class CompilerBase implements ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult;
+  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support

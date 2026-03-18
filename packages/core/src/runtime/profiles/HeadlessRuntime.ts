@@ -115,6 +115,7 @@ export class HeadlessRuntime {
   private running: boolean = false;
   private builtins: Record<string, unknown>;
   private actionRegistry: Map<string, ActionHandler> = new Map();
+  private _routingEvent = false;
 
   constructor(ast: HSPlusAST, options: HeadlessRuntimeOptions = {}) {
     this.ast = ast;
@@ -702,11 +703,17 @@ export class HeadlessRuntime {
 
     // Route events to trait onEvent() handlers on all nodes.
     // This activates @shell, @file_system, @llm_agent, @scheduler, etc. in headless mode.
-    if (this.profile.traits && this.rootInstance) {
-      const traitEvent: TraitEvent = typeof payload === 'object' && payload !== null
-        ? { type: event, ...(payload as object) }
-        : { type: event, payload };
-      this.routeEventToTraits(this.rootInstance, traitEvent);
+    // Guard against infinite recursion: trait handlers may call context.emit() which re-enters here.
+    if (this.profile.traits && this.rootInstance && !this._routingEvent) {
+      this._routingEvent = true;
+      try {
+        const traitEvent: TraitEvent = typeof payload === 'object' && payload !== null
+          ? { type: event, ...(payload as object) }
+          : { type: event, payload };
+        this.routeEventToTraits(this.rootInstance, traitEvent);
+      } finally {
+        this._routingEvent = false;
+      }
     }
   }
 

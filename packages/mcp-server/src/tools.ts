@@ -121,6 +121,7 @@ export const coreTools: Tool[] = [
             'iot',
             'web3',
             'advanced',
+            'social',
             'all',
           ],
           description: 'Filter by category. Defaults to all.',

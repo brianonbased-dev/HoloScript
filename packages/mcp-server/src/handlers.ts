@@ -81,6 +81,9 @@ const TRAIT_CATEGORIES: Record<string, string[]> = {
     '@lod', '@hand_tracking', '@haptic', '@portal', '@mirror',
     '@ray_traced', '@compute_shader', '@lod_managed',
   ],
+  social: [
+    '@shareable', '@collaborative', '@tweetable',
+  ],
 };
 
 // All 1,800+ traits from @holoscript/core

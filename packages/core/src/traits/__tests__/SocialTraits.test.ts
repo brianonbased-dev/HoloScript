@@ -186,6 +186,25 @@ describe('collaborativeHandler', () => {
       expect((event as Record<string, unknown>).edit).toEqual({ type: 'move', position: [1, 2, 3] });
     });
 
+    it('should emit on_voice_stream event when voice_stream_received', () => {
+      const node = createMockNode('collab-node');
+      const ctx = createMockContext();
+      const mockStream = { id: 'mock-stream' };
+
+      attachTrait(collaborativeHandler, node, {}, ctx);
+      sendEvent(collaborativeHandler, node, {}, ctx, {
+        type: 'voice_stream_received',
+        peerId: 'peer-42',
+        stream: mockStream,
+      });
+
+      const event = getLastEvent(ctx, 'on_voice_stream');
+      expect(event).toBeDefined();
+      expect((event as Record<string, unknown>).peerId).toBe('peer-42');
+      expect((event as Record<string, unknown>).stream).toBe(mockStream);
+      expect((event as Record<string, unknown>).node).toBe(node);
+    });
+
     it('should not emit events when state not initialized', () => {
       const node = createMockNode('collab-node');
       const ctx = createMockContext();
