@@ -28,10 +28,11 @@ COPY packages/core/ packages/core/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/mcp-server/ packages/mcp-server/
 
-# Build in dependency order (skip DTS for core — server only needs JS runtime)
-RUN cd packages/crdt && pnpm build
+# Build in dependency order
+# Skip DTS for all packages — server only needs JS runtime, not type declarations
+RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
-RUN cd packages/llm-provider && pnpm build
+RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/mcp-server && pnpm build
 
 # --- Production stage ---
