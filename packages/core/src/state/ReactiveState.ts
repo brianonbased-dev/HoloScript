@@ -127,7 +127,7 @@ function createReactiveProxy<T extends object>(
 
       // Deep reactivity for nested objects
       if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-        return createReactiveProxy(value, onMutation);
+        return createReactiveProxy(value as object, onMutation);
       }
 
       return value;
