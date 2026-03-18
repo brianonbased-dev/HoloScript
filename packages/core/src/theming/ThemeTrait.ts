@@ -9,6 +9,10 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { ThemeEngine } from './ThemeEngine';
 import { StyleResolver } from './StyleResolver';
 
+interface NodeWithStyle {
+  properties?: Record<string, any> & { _style?: any };
+}
+
 export interface ThemeTraitConfig {
   classes?: string[];
   states?: string[];
