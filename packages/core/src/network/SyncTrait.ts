@@ -30,7 +30,7 @@ export function setSharedNetworkManager(nm: NetworkManager): void {
 }
 
 export const syncTraitHandler: TraitHandler<SyncTraitConfig> = {
-  name: 'sync' as any,
+  name: 'sync',
   defaultConfig: {
     syncProperties: ['position', 'rotation'],
     syncRate: 20,
@@ -60,8 +60,8 @@ export const syncTraitHandler: TraitHandler<SyncTraitConfig> = {
       // Gather sync data
       const syncData: Record<string, any> = { nodeId };
       for (const prop of config.syncProperties) {
-        if (node.properties && (node.properties as any)[prop] !== undefined) {
-          syncData[prop] = (node.properties as any)[prop];
+        if (node.properties && node.properties[prop] !== undefined) {
+          syncData[prop] = node.properties[prop];
         }
       }
 
