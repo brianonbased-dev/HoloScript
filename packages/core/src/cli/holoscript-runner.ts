@@ -1238,9 +1238,37 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   // ── Cycle loop ──────────────────────────────────────────────────────────
 
+  let convergenceStreak = 0;
+  const CONVERGENCE_THRESHOLD = 3; // early exit after N zero-delta cycles
+
   for (let cycle = 0; cycle < opts.cycles; cycle++) {
-    const focusIdx = (daemonState.focusIndex + cycle) % focusRotation.length;
-    const focus = opts.focus || focusRotation[focusIdx];
+    let focusIdx = (daemonState.focusIndex + cycle) % focusRotation.length;
+    let focus = opts.focus || focusRotation[focusIdx];
+
+    // Skip stale focuses: if last 3 wisdom entries for this focus all had delta=0, advance
+    if (!opts.focus) {
+      const wisdomFile = path.join(stateDir, 'accumulated-wisdom.json');
+      let wisdomEntries: Array<{ focus?: string; delta?: number }> = [];
+      try {
+        if (fs.existsSync(wisdomFile)) {
+          wisdomEntries = JSON.parse(fs.readFileSync(wisdomFile, 'utf-8'));
+        }
+      } catch { /* ignore */ }
+
+      const STALE_THRESHOLD = 3;
+      let attempts = 0;
+      while (attempts < focusRotation.length) {
+        const focusHistory = wisdomEntries.filter(w => w.focus === focus);
+        const lastN = focusHistory.slice(-STALE_THRESHOLD);
+        const isStale = lastN.length >= STALE_THRESHOLD && lastN.every(w => (w.delta || 0) === 0);
+        if (!isStale) break;
+        console.log(`[daemon] Skipping stale focus "${focus}" (${STALE_THRESHOLD} consecutive zero-delta cycles)`);
+        focusIdx = (focusIdx + 1) % focusRotation.length;
+        focus = focusRotation[focusIdx];
+        attempts++;
+      }
+    }
+
     config.cycleFocus = focus;
     config.daemonFile = filePath;
     config.qualityBefore = daemonState.lastQuality;
@@ -1393,6 +1421,44 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     // Persist file tracking (committed + quarantined files)
     const fileState = getDaemonFileState();
     fs.writeFileSync(fileStateFile, JSON.stringify(fileState, null, 2), 'utf-8');
+
+    // Convergence detection: escalate strategy when quality plateaus
+    const qualityDelta = qualityAfter - (config.qualityBefore || 0);
+    if (qualityDelta <= 0 && committed === 0) {
+      convergenceStreak++;
+      if (convergenceStreak >= CONVERGENCE_THRESHOLD) {
+        // Strategy escalation instead of giving up:
+        // 1. Force next cycle to 'typefix' (most productive focus)
+        // 2. Increase quarantine threshold to try harder on stuck files
+        // 3. Clear committed-file tracking to retry with accumulated wisdom
+        console.log(
+          `[daemon] Plateau detected — ${convergenceStreak} consecutive zero-delta cycles. Escalating strategy.`,
+        );
+        convergenceStreak = 0; // reset streak after escalation
+
+        // Bump quarantine threshold so files get more attempts
+        const oldThreshold = config.quarantineThreshold || 3;
+        config.quarantineThreshold = oldThreshold + 2;
+        console.log(`[daemon] Raised quarantine threshold: ${oldThreshold} → ${config.quarantineThreshold}`);
+
+        // Force typefix focus for the next cycle (skip unproductive focuses)
+        if (!opts.focus) {
+          const typefixIdx = focusRotation.indexOf('typefix');
+          if (typefixIdx >= 0) {
+            daemonState.focusIndex = typefixIdx;
+            console.log(`[daemon] Forcing next cycle to 'typefix' focus`);
+          }
+        }
+
+        // If we've escalated twice already (threshold >= original+4), then truly stop
+        if (config.quarantineThreshold >= (quarantineThreshold + 4)) {
+          console.log(`[daemon] Escalated twice with no progress. Stopping to avoid wasting tokens.`);
+          break;
+        }
+      }
+    } else {
+      convergenceStreak = 0;
+    }
   }
 
   cleanup();

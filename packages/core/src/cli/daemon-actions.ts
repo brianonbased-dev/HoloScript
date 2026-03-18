@@ -537,6 +537,29 @@ function validatePatchSafety(original: string, patched: string): { safe: boolean
   return { safe: true };
 }
 
+// ── Wisdom Readback ──────────────────────────────────────────────────────────
+
+/** Extract relevant prior wisdom entries for a specific file + focus */
+function extractFileWisdom(
+  wisdom: unknown,
+  filePath: string,
+  focus: string,
+): string[] {
+  if (!Array.isArray(wisdom)) return [];
+  const normalized = filePath.replace(/\\/g, '/');
+  const baseName = normalized.split('/').pop() || '';
+  const relevant = (wisdom as Array<Record<string, unknown>>).filter(w => {
+    const candidate = String(w.candidate || '').replace(/\\/g, '/');
+    return (candidate.includes(baseName) || candidate === normalized) &&
+           (w.focus === focus || w.focus === 'all');
+  });
+  if (relevant.length === 0) return [];
+  // Summarize: show last 3 attempts with their delta
+  return relevant.slice(-3).map(w =>
+    `- ${w.focus} attempt (delta: ${w.delta}): ${w.candidate || 'unknown file'}`,
+  );
+}
+
 // ── Quarantine ───────────────────────────────────────────────────────────────
 
 /** Threshold read from composition blackboard (default 3) */
@@ -1043,6 +1066,16 @@ export function createDaemonActions(
           const safety = validatePatchSafety(content, patched);
           if (!safety.safe) { log(`SAFETY REJECT: ${safety.reason}`); advanceCandidate(bb); return false; }
           if (isContaminatedEdit(patched)) { advanceCandidate(bb); return false; }
+
+          // Docs-specific guard: verify only comment lines were added (no code changes)
+          const origCode = content.split('\n').filter(l => !l.trim().startsWith('*') && !l.trim().startsWith('/**') && !l.trim().startsWith('*/') && l.trim() !== '');
+          const patchedCode = patched.split('\n').filter(l => !l.trim().startsWith('*') && !l.trim().startsWith('/**') && !l.trim().startsWith('*/') && l.trim() !== '');
+          if (origCode.join('\n') !== patchedCode.join('\n')) {
+            log(`DOCS SAFETY: LLM changed code lines, not just comments. Rejecting.`);
+            advanceCandidate(bb);
+            return false;
+          }
+
           host.writeFile(file, patched);
           bb.fileEdited = true;
           log(`Applied docs to ${file.split(/[/\\]/).pop()}`);
@@ -1085,6 +1118,9 @@ export function createDaemonActions(
 
       const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
 
+      // Extract relevant prior wisdom for this file (avoid repeating failed approaches)
+      const priorWisdom = extractFileWisdom(bb.wisdom, file, focus);
+
       // Build prompt — include related file content for coordinated patches
       const promptParts = [
         `Primary file: ${file}`,
@@ -1092,10 +1128,24 @@ export function createDaemonActions(
         'Type errors to fix:',
         errorContext || '(no specific errors — check file for type issues)',
         depContext,
+      ];
+
+      // Inject wisdom context if this file has been attempted before
+      if (priorWisdom.length > 0) {
+        promptParts.push(
+          '',
+          '=== PRIOR ATTEMPTS ON THIS FILE ===',
+          'The daemon has already attempted fixes on this file. Avoid repeating the same approach:',
+          ...priorWisdom,
+          '',
+        );
+      }
+
+      promptParts.push(
         '',
         `Source (${content.split('\n').length} lines):`,
         content,
-      ];
+      );
 
       // Add related files (base classes, type definitions)
       if (relatedFiles.length > 0) {
