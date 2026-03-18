@@ -83,9 +83,11 @@ function isContaminatedEdit(content: string): boolean {
 
 // ── Quality Scorer ───────────────────────────────────────────────────────────
 
-/** Count type errors from tsc output */
-function countTypeErrors(output: string): number {
-  return output.split('\n').filter(l => /error TS\d{4}:/.test(l)).length;
+/** Count type errors from tsc output, optionally scoped to a path prefix */
+function countTypeErrors(output: string, scopeFilter?: RegExp): number {
+  const lines = output.split('\n').filter(l => /error TS\d{4}:/.test(l));
+  if (!scopeFilter) return lines.length;
+  return lines.filter(l => scopeFilter.test(l)).length;
 }
 
 /**
@@ -99,17 +101,26 @@ async function computeQuality(
   repoRoot: string,
   stateDir: string,
   baselineErrors?: number,
+  /** Only count type errors matching this pattern (e.g., /packages\/core\/src\//) */
+  errorScopeFilter?: RegExp,
+  /** Current cycle focus — affects type score calculation */
+  focus?: string,
 ): Promise<{ score: number; typeErrors: number; testsPassed: number; testsTotal: number }> {
   const [tsc, test] = await Promise.all([
     host.exec('npx', tscCheckArgs(stateDir), { cwd: repoRoot, timeoutMs: 120_000 }),
     host.exec('npx', ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'], { cwd: repoRoot, timeoutMs: 120_000 }),
   ]);
 
-  const typeErrors = countTypeErrors(tsc.stdout + tsc.stderr);
+  const typeErrors = countTypeErrors(tsc.stdout + tsc.stderr, errorScopeFilter);
   // Use provided baseline (historical reference, e.g. 3506 from first run).
   // Fall back to current count only when no baseline exists (first-ever run).
   const baseline = baselineErrors && baselineErrors > 0 ? baselineErrors : typeErrors;
-  const typeScore = baseline === 0 ? 1 : Math.max(0, Math.min(1, 1 - typeErrors / Math.max(baseline, 1)));
+  const isTypefixFocus = !focus || focus === 'typefix' || focus === 'all';
+  // For typefix: measure improvement (1 - errors/baseline).
+  // For lint/coverage/other: maintaining type safety = full marks (no regressions).
+  const typeScore = isTypefixFocus
+    ? (baseline === 0 ? 1 : Math.max(0, Math.min(1, 1 - typeErrors / Math.max(baseline, 1))))
+    : (typeErrors <= baseline ? 1 : 0);
 
   let testsPassed = 0;
   let testsTotal = 0;
@@ -889,7 +900,7 @@ export function createDaemonActions(
     bb.has_candidates = idx < ((bb.candidates as string[])?.length || 0);
   };
 
-  return {
+  const actions: Record<string, ActionHandler> = {
     // ── Identity & Wisdom ──────────────────────────────────────────────
     identity_intake: async (_params, bb) => {
       const wisdomPath = `${config.stateDir}/accumulated-wisdom.json`;
@@ -1033,10 +1044,23 @@ export function createDaemonActions(
             if (hasLintIssues) candidates.push(relF);
           } catch { /* skip unreadable */ }
         }
-        // Sort by file size (smaller = easier to lint-fix)
+        // Sort by fix-type priority: console.log removals (~100% success) first,
+        // then @ts-ignore removals (~90%), then as any casts (~50%).
+        // Within each tier, smaller files first (easier to patch).
         candidates.sort((a, b) => {
-          try { return host.readFile(a).length - host.readFile(b).length; }
-          catch { return 0; }
+          try {
+            const ca = host.readFile(a);
+            const cb = host.readFile(b);
+            const caCode = ca.replace(/\/\*[\s\S]*?\*\//g, '');
+            const cbCode = cb.replace(/\/\*[\s\S]*?\*\//g, '');
+            // Tier: 0 = console-only, 1 = ts-ignore, 2 = as any
+            const tierA = /console\.(log|warn|error)\(/.test(caCode) && !/\bas\s+any\b/.test(ca) ? 0
+              : /\/\/\s*@ts-ignore/.test(ca) && !/\bas\s+any\b/.test(ca) ? 1 : 2;
+            const tierB = /console\.(log|warn|error)\(/.test(cbCode) && !/\bas\s+any\b/.test(cb) ? 0
+              : /\/\/\s*@ts-ignore/.test(cb) && !/\bas\s+any\b/.test(cb) ? 1 : 2;
+            if (tierA !== tierB) return tierA - tierB;
+            return ca.length - cb.length;
+          } catch { return 0; }
         });
         bb.typeErrorCount = 0;
       } else if (focus === 'docs') {
@@ -1694,8 +1718,52 @@ export function createDaemonActions(
       } catch {
         return false;
       }
-      // Re-use the generate_fix handler which reads compileErrors from blackboard
-      const actions = createDaemonActions(host, llm, config);
+
+      // Enrich compile errors with type context: extract referenced type names
+      // from error messages and resolve their definitions so the LLM knows exactly
+      // what interface/type it needs to satisfy.
+      const compileErrors = (bb.compileErrors as string[]) || [];
+      const enrichedErrors: string[] = [...compileErrors];
+      try {
+        // Extract type names from common error patterns:
+        // "not assignable to parameter of type 'X'"
+        // "Property 'X' does not exist on type 'Y'"
+        // "Argument of type 'X' is not assignable to type 'Y'"
+        const typeRefs = new Set<string>();
+        for (const err of compileErrors) {
+          const typeMatches = err.match(/type '([A-Z]\w+)'/g);
+          if (typeMatches) {
+            for (const m of typeMatches) {
+              const name = m.slice(6, -1);
+              if (name.length > 2 && name.length < 50) typeRefs.add(name);
+            }
+          }
+        }
+        // Resolve type definitions from related files
+        if (typeRefs.size > 0) {
+          const content = bb.candidateContent as string;
+          const relatedFiles = resolveRelatedFiles(content, file, host, '', config.repoRoot);
+          for (const rel of relatedFiles) {
+            for (const typeName of typeRefs) {
+              const defRegex = new RegExp(`(export\\s+)?(interface|type|class)\\s+${typeName}[\\s{<]`);
+              if (defRegex.test(rel.content)) {
+                // Extract the definition (up to 15 lines)
+                const lines = rel.content.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                  if (defRegex.test(lines[i])) {
+                    const defLines = lines.slice(i, i + 15).join('\n');
+                    enrichedErrors.push(`\n// Type definition for ${typeName} (from ${rel.path.split('/').pop()}):\n${defLines}`);
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch { /* type resolution failed, continue with original errors */ }
+
+      bb.compileErrors = enrichedErrors;
+      // Invoke generate_fix with the enriched compile error context
       return actions.generate_fix(_params, bb, ctx);
     },
 
@@ -1758,7 +1826,11 @@ export function createDaemonActions(
         || (bb.typeErrorBaseline as number)
         || (bb.typeErrorCount as number)
         || undefined;
-      const result = await computeQuality(host, config.repoRoot, config.stateDir, baselineErrors);
+      // Scope quality scoring to packages the daemon works on (avoids counting
+      // errors from examples/, marketplace-web/, etc. that inflate the denominator).
+      const scopeFilter = /packages\/(core|studio)\/src\//;
+      const focus = config.cycleFocus || (bb.focus as string) || 'typefix';
+      const result = await computeQuality(host, config.repoRoot, config.stateDir, baselineErrors, scopeFilter, focus);
       const qualityBefore = config.qualityBefore ?? (bb.quality_before as number) ?? 0;
 
       bb.quality_after = result.score;
@@ -2090,4 +2162,5 @@ export function createDaemonActions(
       return true;
     },
   };
+  return actions;
 }
