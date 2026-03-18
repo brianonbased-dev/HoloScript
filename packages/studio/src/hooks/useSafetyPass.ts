@@ -9,15 +9,13 @@
  */
 
 import { useState, useCallback } from 'react';
-import {
-  runSafetyPass,
-  quickSafetyCheck,
-  type SafetyPassResult,
-  type SafetyPassConfig as SafetyPassOptions,
-  type EffectASTNode,
-  type SafetyReport,
-  type SafetyVerdict,
-} from '@holoscript/core';
+import { runSafetyPass, quickSafetyCheck } from '@holoscript/core';
+
+type SafetyPassResult = ReturnType<typeof runSafetyPass>;
+type SafetyPassOptions = NonNullable<Parameters<typeof runSafetyPass>[1]>;
+type EffectASTNode = Parameters<typeof runSafetyPass>[0][number];
+type SafetyReport = SafetyPassResult extends { report: infer R } ? R : Record<string, unknown>;
+type SafetyVerdict = SafetyReport extends { verdict: infer V } ? V : string;
 
 // ═══════════════════════════════════════════════════════════════════
 

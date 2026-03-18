@@ -11,9 +11,13 @@ import {
   ActionNode,
   ConditionNode,
   WaitNode,
-  type BTStatus,
-  type BTTreeDef,
 } from '@holoscript/core';
+
+type BehaviorTreeInstance = InstanceType<typeof BehaviorTree>;
+type BTStatus = ReturnType<BehaviorTreeInstance['tick']>;
+type BTTreeDef = ReturnType<BehaviorTreeInstance['createTree']>;
+type SequenceNodeInstance = InstanceType<typeof SequenceNode>;
+type SelectorNodeInstance = InstanceType<typeof SelectorNode>;
 
 export interface BTTraceEntry {
   tree: string;
@@ -23,7 +27,7 @@ export interface BTTraceEntry {
 }
 
 export interface UseBehaviorTreeReturn {
-  bt: BehaviorTree;
+  bt: BehaviorTreeInstance;
   trees: BTTreeDef[];
   trace: BTTraceEntry[];
   lastStatus: BTStatus;
@@ -36,7 +40,7 @@ export interface UseBehaviorTreeReturn {
 }
 
 /** Build a demo patrol tree */
-function buildPatrolTree(): SequenceNode {
+function buildPatrolTree(): SequenceNodeInstance {
   return new SequenceNode('patrol-root', [
     new ActionNode('move-to-waypoint', () => 'success'),
     new WaitNode('wait-at-waypoint', 2),
@@ -45,7 +49,7 @@ function buildPatrolTree(): SequenceNode {
 }
 
 /** Build a demo guard tree */
-function buildGuardTree(): SelectorNode {
+function buildGuardTree(): SelectorNodeInstance {
   return new SelectorNode('guard-root', [
     new SequenceNode('chase-intruder', [
       new ConditionNode('see-intruder', () => Math.random() > 0.7),
@@ -56,14 +60,14 @@ function buildGuardTree(): SelectorNode {
 }
 
 /** Build a demo idle tree */
-function buildIdleTree(): SelectorNode {
+function buildIdleTree(): SelectorNodeInstance {
   return new SelectorNode('idle-root', [
     new ActionNode('wander', () => 'success'),
     new WaitNode('rest', 3),
   ]);
 }
 
-const TREE_BUILDERS: Record<string, () => SequenceNode | SelectorNode> = {
+const TREE_BUILDERS: Record<string, () => SequenceNodeInstance | SelectorNodeInstance> = {
   patrol: buildPatrolTree,
   guard: buildGuardTree,
   idle: buildIdleTree,

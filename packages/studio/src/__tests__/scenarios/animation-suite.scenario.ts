@@ -31,7 +31,7 @@ import {
   interpolatePoses,
   type ViralPose,
 } from '@/lib/poseLibrary';
-import { IKSolver, type IKJoint } from '@/lib/ikSolver';
+import { IKSolver, type IKJoint } from '@/lib/sculpt/ikSolver';
 import type { RecordedClip, BoneFrame } from '@/lib/animationBuilder';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

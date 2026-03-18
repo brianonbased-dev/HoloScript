@@ -186,7 +186,7 @@ describe('useShaderGraph', () => {
     it('should update node properties', () => {
       const { result } = renderHook(() => useShaderGraph());
 
-      let nodeId: string;
+      let nodeId!: string;
       act(() => {
         const node = result.current.createNode('TestNode', { x: 0, y: 0 });
         nodeId = node!.id;
@@ -197,7 +197,7 @@ describe('useShaderGraph', () => {
       });
 
       const node = result.current.graph.getNode(nodeId);
-      expect(node?.name).toBe('Updated Name');
+      expect((node as Record<string, unknown>)?.['name']).toBe('Updated Name');
     });
 
     it('should handle updating non-existent node', () => {
@@ -216,7 +216,7 @@ describe('useShaderGraph', () => {
     it('should set node property', () => {
       const { result } = renderHook(() => useShaderGraph());
 
-      let nodeId: string;
+      let nodeId!: string;
       act(() => {
         const node = result.current.createNode('TestNode', { x: 0, y: 0 });
         nodeId = node!.id;
@@ -251,13 +251,11 @@ describe('useShaderGraph', () => {
     it('should set node position', () => {
       const { result } = renderHook(() => useShaderGraph());
 
-      let nodeId: string;
+      let nodeId!: string;
       act(() => {
         const node = result.current.createNode('TestNode', { x: 0, y: 0 });
         nodeId = node!.id;
-      });
 
-      act(() => {
         result.current.setNodePosition(nodeId, 500, 600);
       });
 

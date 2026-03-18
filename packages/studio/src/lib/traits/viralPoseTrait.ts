@@ -16,7 +16,6 @@ import * as THREE from 'three';
 import {
   type ViralPose,
   type BonePose,
-  type PoseCategory,
   getAllPoses,
   getPoseById,
   getPosesByCategory,
@@ -24,6 +23,7 @@ import {
   interpolatePoses,
   applyEasing,
 } from '../poseLibrary';
+import type { PoseCategory } from '../character/poseLibrary';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
