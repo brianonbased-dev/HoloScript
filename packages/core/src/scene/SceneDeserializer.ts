@@ -27,7 +27,7 @@ export class SceneDeserializer {
     const scene: SerializedScene = JSON.parse(json);
 
     if (scene.version !== 1) {
-      console.warn(`[SceneDeserializer] Unknown version: ${scene.version}, attempting load.`);
+      // Unknown version, attempting load
     }
 
     return {
@@ -46,7 +46,7 @@ export class SceneDeserializer {
         properties: { _isRef: true },
         traits: new Map(),
         children: [],
-      } as any;
+      };
     }
 
     // Rebuild traits as Map
@@ -66,6 +66,6 @@ export class SceneDeserializer {
       properties: { ...serialized.properties },
       traits,
       children,
-    } as any;
+    };
   }
 }
