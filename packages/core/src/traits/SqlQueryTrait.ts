@@ -7,7 +7,7 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 export interface SqlQueryConfig { max_results: number; }
 export const sqlQueryHandler: TraitHandler<SqlQueryConfig> = {
   name: 'sql_query', defaultConfig: { max_results: 1000 },
-  onAttach(node: HSPlusNode): void { node.__sqlState = { queries: 0, results: [] as any[] }; },
+  onAttach(node: HSPlusNode): void { node.__sqlState = { queries: 0, results: [] as unknown[] }; },
   onDetach(node: HSPlusNode): void { delete node.__sqlState; },
   onUpdate(): void {},
   onEvent(node: HSPlusNode, config: SqlQueryConfig, context: TraitContext, event: TraitEvent): void {
