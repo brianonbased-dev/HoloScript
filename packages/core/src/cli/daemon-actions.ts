@@ -560,6 +560,43 @@ function extractFileWisdom(
   );
 }
 
+/**
+ * Build a focused context snippet for the LLM: only the lines around each
+ * error (±CONTEXT_RADIUS lines), with the error line annotated.
+ * Sending a windowed view rather than the whole file reduces hallucination
+ * and steers the LLM to patch exactly the failing span.
+ */
+function buildErrorFocusedContext(content: string, errorLines: string[]): string {
+  const lines = content.split('\n');
+  const errorLineNums = new Set<number>();
+  for (const err of errorLines) {
+    const m = err.match(/\((\d+),\d+\):/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n >= 1 && n <= lines.length) errorLineNums.add(n);
+    }
+  }
+  if (errorLineNums.size === 0) return '(no specific line numbers found)';
+
+  const CONTEXT_RADIUS = 10;
+  const contextSet = new Set<number>();
+  for (const n of errorLineNums) {
+    for (let i = Math.max(1, n - CONTEXT_RADIUS); i <= Math.min(lines.length, n + CONTEXT_RADIUS); i++) {
+      contextSet.add(i);
+    }
+  }
+
+  const sorted = [...contextSet].sort((a, b) => a - b);
+  const out: string[] = [];
+  let prev = -1;
+  for (const ln of sorted) {
+    if (prev !== -1 && ln > prev + 1) out.push('  ... omitted ...');
+    out.push(`${String(ln).padStart(4)}: ${lines[ln - 1]}${errorLineNums.has(ln) ? '  // ← ERROR' : ''}`);
+    prev = ln;
+  }
+  return out.join('\n');
+}
+
 // ── Quarantine ───────────────────────────────────────────────────────────────
 
 /** Threshold read from composition blackboard (default 3) */
@@ -697,11 +734,20 @@ export function createDaemonActions(
           .filter(([f]) => !isQuarantined(f));
 
         // Rank by downstream impact × error tractability
-        // Files imported by many others AND with few errors = highest value
+        // Tier 1: files with ≤3 errors (highest elimination chance) go first.
+        // Within each tier: impact × tractability score breaks ties.
+        const FEW_ERRORS_THRESHOLD = 3;
         const impact = computeDownstreamImpact(filtered, host);
         filtered.sort((a, b) => {
-          const scoreA = (1 + (impact.get(a[0]) || 0)) / (1 + a[1]);
-          const scoreB = (1 + (impact.get(b[0]) || 0)) / (1 + b[1]);
+          const errorsA = a[1];
+          const errorsB = b[1];
+          // Tier-based bucketing: few-error files are promoted to the front
+          const aTier = errorsA <= FEW_ERRORS_THRESHOLD ? 0 : 1;
+          const bTier = errorsB <= FEW_ERRORS_THRESHOLD ? 0 : 1;
+          if (aTier !== bTier) return aTier - bTier;
+          // Within tier: impact × tractability score
+          const scoreA = (1 + (impact.get(a[0]) || 0)) / (1 + errorsA);
+          const scoreB = (1 + (impact.get(b[0]) || 0)) / (1 + errorsB);
           return scoreB - scoreA;
         });
 
@@ -1130,6 +1176,17 @@ export function createDaemonActions(
         depContext,
       ];
 
+      // Error-focused context: only the lines around each error (±10 lines).
+      // This steers the LLM to patch the exact failing span instead of making
+      // unrelated changes across the whole file.
+      const focusedCtx = buildErrorFocusedContext(content, fileErrors.length > 0 ? fileErrors : errorContext.split('\n'));
+      promptParts.push(
+        '',
+        '=== ERROR-FOCUSED CONTEXT (error lines ± 10 lines each) ===',
+        'Your patches MUST target the lines marked with ← ERROR.',
+        focusedCtx,
+      );
+
       // Inject wisdom context if this file has been attempted before
       if (priorWisdom.length > 0) {
         promptParts.push(
@@ -1143,7 +1200,7 @@ export function createDaemonActions(
 
       promptParts.push(
         '',
-        `Source (${content.split('\n').length} lines):`,
+        `Full source reference (${content.split('\n').length} lines):`,
         content,
       );
 
@@ -1327,8 +1384,17 @@ export function createDaemonActions(
       bb.quality_typeErrors = result.typeErrors;
       bb.quality_testsPassed = result.testsPassed;
       bb.quality_testsTotal = result.testsTotal;
-      bb.quality_improved = result.score > qualityBefore;
 
+      // Commit if quality improved OR if raw error count strictly decreased.
+      // Quality delta alone is too coarse at 3500+ baseline errors —
+      // fixing 1–3 errors moves quality by <0.001 which rounds away.
+      const errorsAtDiagnosis = (bb.typeErrorCount as number) || Infinity;
+      const errorsReduced = result.typeErrors < errorsAtDiagnosis;
+      bb.quality_improved = result.score > qualityBefore || errorsReduced;
+
+      if (errorsReduced) {
+        log(`Error count reduced: ${errorsAtDiagnosis} → ${result.typeErrors} (committing even without quality delta)`);
+      }
       log(`Quality: ${qualityBefore.toFixed(3)} -> ${result.score.toFixed(3)} | ` +
         `types: ${result.typeErrors} errors | tests: ${result.testsPassed}/${result.testsTotal} passed`);
       return bb.quality_improved as boolean;
