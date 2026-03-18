@@ -1242,7 +1242,9 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   const CONVERGENCE_THRESHOLD = 3; // early exit after N zero-delta cycles
 
   for (let cycle = 0; cycle < opts.cycles; cycle++) {
-    let focusIdx = (daemonState.focusIndex + cycle) % focusRotation.length;
+    // Use the persisted focus index directly; do not add cycle offset here.
+    // Adding cycle caused double-advancement and could bypass forced focuses.
+    let focusIdx = daemonState.focusIndex % focusRotation.length;
     let focus = opts.focus || focusRotation[focusIdx];
 
     // Skip stale focuses: if last 3 wisdom entries for this focus all had delta=0, advance
@@ -1407,7 +1409,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
     // Update persisted state
     daemonState.totalCycles++;
-    daemonState.focusIndex = focusIdx + 1;
+    daemonState.focusIndex = (focusIdx + 1) % focusRotation.length;
     daemonState.lastQuality = qualityAfter;
     if (qualityAfter > daemonState.bestQuality) {
       daemonState.bestQuality = qualityAfter;
