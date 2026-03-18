@@ -227,6 +227,10 @@ export default function HomePage() {
           Workspace
         </Link>
         <span className="footer-sep">·</span>
+        <Link href="/holodaemon" className="footer-link">
+          HoloDaemon
+        </Link>
+        <span className="footer-sep">·</span>
         <span className="footer-hint">
           Press <kbd>?</kbd> for help
         </span>

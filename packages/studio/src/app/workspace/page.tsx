@@ -29,6 +29,7 @@ import {
   Shield,
   Code,
   Sparkles,
+  Cog,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -325,6 +326,12 @@ export default function WorkspacePage() {
         <div className="mb-8">
           <h2 className="mb-4 text-lg font-semibold text-white/80">Quick Actions</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <QuickAction
+              icon={Cog}
+              label="HoloDaemon Dashboard"
+              href="/holodaemon"
+              color="text-sky-400"
+            />
             <QuickAction
               icon={Zap}
               label="Build a Claude Skill"
