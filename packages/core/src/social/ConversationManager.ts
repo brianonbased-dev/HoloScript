@@ -28,7 +28,7 @@ export class ConversationManager {
 
       // Check blocking
       if (this.friendManager.isBlocked(senderId)) {
-        console.warn(`Blocked message from ${senderId}`);
+        this.emit('message_blocked', { senderId });
         return;
       }
 
