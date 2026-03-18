@@ -247,8 +247,44 @@ function resolveRelatedFiles(content: string, file: string, host: DaemonHost, er
     }
   }
 
-  // Cap at 2 related files to avoid token explosion
-  return related.slice(0, 2);
+  // 3. Sibling class discovery — if this file extends a base class that was found,
+  // find other subclasses in the same directory that were recently committed by the daemon.
+  // This gives the LLM evidence of the "correct" approach (what the sibling did to match the base).
+  if (extendsMatch && related.length > 0) {
+    const baseClass = extendsMatch[1];
+    const baseRelated = related.find(r => r.relation.includes('base class'));
+    if (baseRelated) {
+      const siblingDir = path.dirname(file);
+      try {
+        // List .ts files in the same directory
+        const lsResult = host.exists(siblingDir) ? true : false;
+        if (lsResult) {
+          const importRe2 = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+          // Check recently committed siblings by scanning the provenance log
+          for (const record of provenanceLog) {
+            if (record.result !== 'committed') continue;
+            const siblingPath = normalizeRepoPath(record.candidate);
+            if (siblingPath === normalizeRepoPath(file)) continue;
+            // Sibling must be in same directory and not already in related
+            if (path.dirname(siblingPath) !== path.dirname(normalizeRepoPath(file))) continue;
+            if (related.some(r => normalizeRepoPath(r.path) === siblingPath)) continue;
+            try {
+              if (!host.exists(siblingPath)) continue;
+              const sibContent = host.readFile(siblingPath);
+              // Verify it extends the same base class
+              if (sibContent.includes(`extends ${baseClass}`)) {
+                related.push({ path: siblingPath, content: sibContent, relation: `sibling (also extends ${baseClass}, recently fixed by daemon)` });
+                break; // One sibling is enough
+              }
+            } catch { /* skip */ }
+          }
+        }
+      } catch { /* skip directory listing */ }
+    }
+  }
+
+  // Cap at 3 related files (base + error type + sibling)
+  return related.slice(0, 3);
 }
 
 // ── Symbol Investigation ────────────────────────────────────────────────────
@@ -1398,6 +1434,28 @@ export function createDaemonActions(
         promptParts.push(investigationCtx);
       }
 
+      // Graph-RAG: test-aware retry — if a previous fix attempt passed compilation
+      // but failed tests, include the test file content and failure output.
+      // This lets the LLM understand what the tests expect and produce a fix
+      // that satisfies BOTH type safety AND test assertions.
+      const testCtx = bb.testFailureContext as { testFile: string; testContent: string; failOutput: string } | undefined;
+      if (testCtx) {
+        promptParts.push(
+          '',
+          '=== TEST FAILURE CONTEXT (previous attempt compiled but tests failed) ===',
+          `Test file: ${testCtx.testFile}`,
+          'IMPORTANT: Your fix must satisfy these test assertions. Do NOT just cast types —',
+          'ensure the runtime behavior matches what the tests expect.',
+          '',
+          'Test source:',
+          testCtx.testContent,
+          '',
+          'Test failure output:',
+          testCtx.failOutput,
+        );
+        log(`Test-aware: injected ${testCtx.testFile.split('/').pop()} context into prompt`);
+      }
+
       promptParts.push(
         '',
         `Full source reference (${content.split('\n').length} lines):`,
@@ -1623,6 +1681,27 @@ export function createDaemonActions(
       });
       bb.tests_passed = result.code === 0;
       log(`Tests: ${bb.tests_passed ? 'PASS' : 'FAIL'} (${testFile.split('/').pop()})`);
+
+      // Graph-RAG: on test failure, capture test context for test-aware retry.
+      // Stores the test file content + failure output so the next generate_fix
+      // attempt can include assertions the LLM must satisfy.
+      if (!bb.tests_passed) {
+        try {
+          const testContent = host.readFile(testFile);
+          // Extract just the failing test output (last 80 lines, avoid noise)
+          const failOutput = (result.stdout + '\n' + result.stderr)
+            .split('\n').slice(-80).join('\n');
+          bb.testFailureContext = {
+            testFile,
+            testContent: testContent.slice(0, 4000), // Cap at 4K chars
+            failOutput: failOutput.slice(0, 2000),
+          };
+          log(`Test-aware: captured ${testFile.split('/').pop()} (${testContent.split('\n').length} lines) for retry context`);
+        } catch { /* test file unreadable, skip context */ }
+      } else {
+        bb.testFailureContext = undefined;
+      }
+
       return bb.tests_passed as boolean;
     },
 
@@ -1738,8 +1817,48 @@ export function createDaemonActions(
           commitSha,
           result: 'committed',
         }, config.stateDir, host);
+
+        // Graph-RAG: cascade un-quarantine — if we just committed a root-cause file
+        // (base class, shared type definition), re-enable quarantined files that
+        // depend on it. This lets subclasses retry after their base class is fixed.
+        const committedNorm = normalizeRepoPath(file);
+        const committedBase = committedNorm.split('/').pop()?.replace(/\.tsx?$/, '') || '';
+        const unquarantined: string[] = [];
+        for (const [quarantinedFile, count] of failureCounts) {
+          if (count < quarantineThreshold) continue; // not quarantined
+          if (quarantinedFile === committedNorm) continue; // same file
+          try {
+            if (!host.exists(quarantinedFile)) continue;
+            const qContent = host.readFile(quarantinedFile);
+            // Check if the quarantined file imports or extends the committed file
+            const importsCommitted = qContent.includes(`'${committedBase}'`) ||
+              qContent.includes(`"${committedBase}"`) ||
+              qContent.includes(`/${committedBase}'`) ||
+              qContent.includes(`/${committedBase}"`);
+            if (importsCommitted) {
+              // Reset failure count to allow retry
+              failureCounts.set(quarantinedFile, 0);
+              unquarantined.push(quarantinedFile);
+            }
+          } catch { /* skip unreadable */ }
+        }
+        if (unquarantined.length > 0) {
+          log(`Cascade un-quarantine: ${unquarantined.length} files re-enabled after fixing ${baseName}`);
+          for (const f of unquarantined) {
+            log(`  Re-enabled: ${f.split('/').pop()}`);
+          }
+          // Inject un-quarantined files back into candidates list for this cycle
+          const candidates = (bb.candidates as string[]) || [];
+          for (const f of unquarantined) {
+            if (!candidates.includes(f)) candidates.push(f);
+          }
+          bb.candidates = candidates;
+          bb.has_candidates = true;
+        }
       }
 
+      // Clear test failure context on successful commit
+      bb.testFailureContext = undefined;
       advanceCandidate(bb);
       return bb.committed as boolean;
     },
