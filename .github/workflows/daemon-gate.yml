@@ -126,6 +126,34 @@ jobs:
           fs.writeFileSync('.holoscript/daemon-metrics.json', JSON.stringify(metrics, null, 2));
           NODE
 
+      - name: Daemon metrics summary
+        if: steps.gate.outputs.can_run == 'true'
+        run: |
+          node << 'NODE'
+          const fs = require('fs');
+          let metrics = {
+            qualityDelta: 0,
+            qualityBefore: 0,
+            qualityAfter: 0,
+            cycleDurationSec: 0,
+            inputTokensUsed: 0,
+            outputTokensUsed: 0,
+          };
+          try {
+            metrics = JSON.parse(fs.readFileSync('.holoscript/daemon-metrics.json', 'utf8'));
+          } catch {
+            // best effort summary
+          }
+          const lines = [
+            '## Daemon Gate Metrics',
+            '',
+            `- Quality: ${metrics.qualityBefore} -> ${metrics.qualityAfter} (delta ${metrics.qualityDelta})`,
+            `- Duration: ${metrics.cycleDurationSec}s`,
+            `- Tokens: in=${metrics.inputTokensUsed}, out=${metrics.outputTokensUsed}`,
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+          NODE
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:

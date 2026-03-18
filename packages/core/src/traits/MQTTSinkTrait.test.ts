@@ -154,6 +154,9 @@ describe('MQTTSinkTrait', () => {
       payload: { value: 100 },
     } as any);
 
-    expect(mockClient.publish).toHaveBeenCalledWith('data', { value: 100 }, expect.any(Object));
+    expect(mockClient.publish).toHaveBeenCalledWith('data', { value: 100 }, {
+      qos: 0,
+      retain: false,
+    });
   });
 });

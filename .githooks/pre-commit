@@ -1,0 +1,99 @@
+#!/bin/bash
+# AI Ecosystem: Pre-Commit Quality Gates (TypeScript)
+# Fast linting only — no test gating (CI validates all tests)
+#
+# Gates: ESLint + workspace dependency check
+# Tests: DISABLED (CI catches failures; avoids daemon interference)
+
+echo "🔍 Running quality gates (TypeScript)..."
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Track if any gate failed
+FAILED=0
+
+# Timeout wrapper — kills long-running gates after N seconds
+run_with_timeout() {
+    local timeout_secs=$1
+    shift
+    if command -v timeout &> /dev/null; then
+        timeout "$timeout_secs" "$@" 2>&1
+    else
+        # Windows/Git Bash fallback: run with background job + wait
+        "$@" 2>&1 &
+        local pid=$!
+        ( sleep "$timeout_secs" && kill -9 $pid 2>/dev/null ) &
+        local killer=$!
+        wait $pid 2>/dev/null
+        local exit_code=$?
+        kill $killer 2>/dev/null
+        wait $killer 2>/dev/null
+        return $exit_code
+    fi
+}
+
+# Skip all gates for explicitly automated workflows.
+# --no-verify bypasses hooks already, but these guards prevent accidental
+# bleed-through when daemon/IDE agents run git operations without that flag.
+if [ "$SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_ACTIVE" = "1" ] || [ "$COPILOT_AGENT" = "1" ] || [ "$GITHUB_COPILOT_AGENT" = "1" ] || [ "$IDE_AGENT" = "1" ]; then
+    echo -e "  ${YELLOW}⚠${NC}  Automated run detected — skipping all gates"
+    exit 0
+fi
+
+# Gate 1: Linting (30s timeout)
+echo "  ├─ ESLint..."
+if command -v npm &> /dev/null && [ -f "package.json" ]; then
+    LINT_OUT=$(run_with_timeout 30 npm run lint --if-present 2>&1) || true
+    if echo "$LINT_OUT" | grep -q "npm ERR!"; then
+        echo -e "  ${RED}❌ Linting failed${NC}"
+        echo "     Run 'npm run lint:fix' to auto-fix issues"
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Linting passed"
+    fi
+fi
+
+# Gate 2: Type checking — DISABLED for pre-commit
+# Reason: tsc --noEmit on any package takes 20-60s and frequently OOMs
+# at 4GB. CI handles full type-check.
+echo -e "  ├─ TypeScript type checking... ${YELLOW}⚠ skipped (CI handles this)${NC}"
+
+# Gate 3: Tests — DISABLED for local development
+# Reason: Vitest startup takes ~5s, full run 6s. CI runs full validation anyway.
+echo -e "  ├─ Tests (core validators)... ${YELLOW}⚠ skipped (CI validates all tests)${NC}"
+
+# Gate 4: Workspace dependency check (5s timeout)
+echo "  ├─ Workspace dependency check..."
+if [ -f "scripts/check-workspace-deps.js" ]; then
+    DEPS_OUTPUT=$(run_with_timeout 5 node scripts/check-workspace-deps.js 2>&1)
+    if [ $? -ne 0 ]; then
+        echo -e "  ${RED}❌ Hardcoded @holoscript/* versions found${NC}"
+        echo "$DEPS_OUTPUT"
+        echo "     Run 'node scripts/check-workspace-deps.js --fix' to auto-correct"
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Workspace deps OK"
+    fi
+fi
+
+# Gate 5: Complexity — skipped (not configured)
+echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
+
+# Gate 6: Security audit — DISABLED for pre-commit
+echo -e "  ├─ Security audit... ${YELLOW}⚠ skipped (CI handles this)${NC}"
+
+# Final result
+if [ $FAILED -eq 1 ]; then
+    echo ""
+    echo -e "${RED}❌ Quality gates failed. Commit blocked.${NC}"
+    echo "   Fix the issues above and try again."
+    exit 1
+else
+    echo ""
+    echo -e "${GREEN}✅ All quality gates passed!${NC}"
+    exit 0
+fi

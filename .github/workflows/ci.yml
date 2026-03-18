@@ -48,6 +48,10 @@ jobs:
       - name: Check version lane policy
         run: pnpm version:check
 
+      - name: Repository health summary
+        if: always()
+        run: node scripts/repo-health.js --summary-only
+
   test:
     name: Test
     runs-on: ubuntu-latest
