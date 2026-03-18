@@ -104,19 +104,30 @@ print(f"QR: {link.qr_code}")
 
 ### Using REST API
 
+**Live hosted endpoint:** `https://mcp.holoscript.net`
+
 ```bash
-# Start the MCP server
-cd packages/mcp-server && PORT=3000 node dist/http-server.js
+# Health check
+curl https://mcp.holoscript.net/api/health
 
 # Render a scene
-curl -X POST http://localhost:3000/api/render \
+curl -X POST https://mcp.holoscript.net/api/render \
   -H "Content-Type: application/json" \
   -d '{"code": "composition \"Art\" { object \"Gem\" @shareable { geometry: \"sphere\" } }"}'
 
 # Create X share link
-curl -X POST http://localhost:3000/api/share \
+curl -X POST https://mcp.holoscript.net/api/share \
   -H "Content-Type: application/json" \
   -d '{"code": "...", "title": "My VR Art", "platform": "x"}'
+```
+
+**Local development:**
+
+```bash
+# Start the MCP server locally
+cd packages/mcp-server && PORT=3000 node dist/http-server.js
+
+# Use http://localhost:3000 instead of the hosted URL
 ```
 
 See [`grok-rest-pipeline.py`](grok-rest-pipeline.py) for the full SDK + REST pipeline demo.

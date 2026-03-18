@@ -14,7 +14,62 @@ The MCP server provides tools that AI assistants (Claude, GPT, Cursor) can use t
 
 ---
 
-## Installation
+## Quick Start (Hosted — No Install)
+
+A live MCP server is available at **`https://mcp.holoscript.net`**. Use it directly from any MCP client:
+
+```bash
+# Verify it's running
+curl https://mcp.holoscript.net/health
+```
+
+### For Claude Desktop (remote)
+
+Add to Claude config (`~/.claude/settings.json` or Claude Desktop settings):
+
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "url": "https://mcp.holoscript.net/mcp"
+    }
+  }
+}
+```
+
+### For VS Code + Copilot (remote)
+
+Add to `.vscode/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "url": "https://mcp.holoscript.net/mcp"
+    }
+  }
+}
+```
+
+### For Cursor (remote)
+
+Add to Cursor settings or `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "url": "https://mcp.holoscript.net/mcp"
+    }
+  }
+}
+```
+
+---
+
+## Local Installation (Alternative)
+
+If you prefer running the server locally:
 
 ### For Claude Desktop
 
@@ -24,7 +79,7 @@ The MCP server provides tools that AI assistants (Claude, GPT, Cursor) can use t
 npm install -g @holoscript/mcp-server
 ```
 
-2. Add to Claude config (`~/.claude/settings.json` or Claude Desktop settings):
+2. Add to Claude config:
 
 ```json
 {

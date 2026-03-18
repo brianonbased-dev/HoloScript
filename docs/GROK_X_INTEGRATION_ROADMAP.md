@@ -133,9 +133,11 @@ Enhanced error messages for LLM consumption:
 }
 ```
 
-### 2.3 Remote Rendering API — ✅ Complete
+### 2.3 Remote Rendering API — ✅ Complete & Deployed
 
 REST API endpoints on the MCP HTTP server (`http-server.ts`):
+
+**Live endpoint:** `https://mcp.holoscript.net`
 
 ```text
 GET  /api/health  → { status, capabilities: ['render', 'share', 'mcp'] }
@@ -144,15 +146,22 @@ POST /api/share   → createShareLink() with skipRemote guard
 ```
 
 ```bash
-# Render a scene
-curl -X POST http://localhost:3000/api/render \
+# Render a scene (live)
+curl -X POST https://mcp.holoscript.net/api/render \
   -H "Content-Type: application/json" \
   -d '{"code": "composition \"T\" { object \"C\" { geometry: \"cube\" } }", "format": "png"}'
 
-# Create share link for X
-curl -X POST http://localhost:3000/api/share \
+# Create share link for X (live)
+curl -X POST https://mcp.holoscript.net/api/share \
   -H "Content-Type: application/json" \
   -d '{"code": "...", "title": "My Scene", "platform": "x"}'
+
+# Health check
+curl https://mcp.holoscript.net/api/health
+
+# Local development (start server first)
+# cd packages/mcp-server && PORT=3000 node dist/http-server.js
+# curl http://localhost:3000/api/health
 ```
 
 Railway auto-detection: `RAILWAY_PUBLIC_DOMAIN` env var builds the public URL automatically.
@@ -245,7 +254,20 @@ object Art @tweetable {
 
 ### 4.2 Public Demo Endpoints
 
-Hosted API for immediate agent access:
+Hosted MCP server (live now):
+
+```text
+Base URL: https://mcp.holoscript.net
+
+REST Endpoints (live):
+GET  /health                - Server health + tool count
+GET  /api/health            - Extended health with capabilities
+POST /api/render            - Render preview image
+POST /api/share             - Create X share link + QR code
+POST /mcp                   - Full MCP protocol (65+ tools)
+```
+
+Future public API (dedicated service):
 
 ```text
 Base URL: https://api.holoscript.net
@@ -315,16 +337,16 @@ print(link.qr_code)
 **REST API (no SDK required):**
 
 ```bash
-# Health check
-curl http://localhost:3000/api/health
+# Health check (live hosted)
+curl https://mcp.holoscript.net/api/health
 
 # Render preview
-curl -X POST http://localhost:3000/api/render \
+curl -X POST https://mcp.holoscript.net/api/render \
   -H "Content-Type: application/json" \
   -d '{"code": "composition \"Crystal\" { object \"Gem\" @glowing { geometry: \"sphere\", color: \"#00ffff\" } }"}'
 
 # Create X share link
-curl -X POST http://localhost:3000/api/share \
+curl -X POST https://mcp.holoscript.net/api/share \
   -H "Content-Type: application/json" \
   -d '{"code": "...", "title": "Glowing Crystal", "platform": "x"}'
 ```

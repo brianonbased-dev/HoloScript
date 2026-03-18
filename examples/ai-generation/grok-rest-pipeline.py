@@ -8,11 +8,12 @@ Chains a natural-language prompt through the HoloScript REST API:
   4. POST /api/share   -> get X share link, tweet text, QR code
 
 Usage:
-    # Start the MCP server first:
-    cd packages/mcp-server && PORT=3000 node dist/http-server.js
-
-    # Then run this script:
+    # Use the live hosted server (default):
     python examples/ai-generation/grok-rest-pipeline.py
+
+    # Or use a local server:
+    cd packages/mcp-server && PORT=3000 node dist/http-server.js
+    python examples/ai-generation/grok-rest-pipeline.py --base-url http://localhost:3000
 
     # Or use the SDK only (no server required):
     python examples/ai-generation/grok-rest-pipeline.py --sdk-only
@@ -68,7 +69,7 @@ def sdk_pipeline():
 
 # --- REST API pipeline (requires running server) ---
 
-def rest_pipeline(base_url="http://localhost:3000"):
+def rest_pipeline(base_url="https://mcp.holoscript.net"):
     """Full pipeline using the REST API endpoints."""
     import requests
 
@@ -83,7 +84,8 @@ def rest_pipeline(base_url="http://localhost:3000"):
         print(f"   Capabilities: {health['capabilities']}")
     except requests.ConnectionError:
         print(f"   ERROR: Cannot connect to {base_url}")
-        print("   Start the server: cd packages/mcp-server && PORT=3000 node dist/http-server.js")
+        print("   Live server: https://mcp.holoscript.net")
+        print("   Local server: cd packages/mcp-server && PORT=3000 node dist/http-server.js")
         return
 
     # 1. Generate scene code via SDK
@@ -131,11 +133,17 @@ def rest_pipeline(base_url="http://localhost:3000"):
 
 
 if __name__ == "__main__":
+    # Parse --base-url argument
+    base_url = "https://mcp.holoscript.net"
+    for i, arg in enumerate(sys.argv):
+        if arg == "--base-url" and i + 1 < len(sys.argv):
+            base_url = sys.argv[i + 1]
+
     if "--sdk-only" in sys.argv:
         sdk_pipeline()
     elif "--rest-only" in sys.argv:
-        rest_pipeline()
+        rest_pipeline(base_url)
     else:
         sdk_pipeline()
         print("\n" + "=" * 60 + "\n")
-        rest_pipeline()
+        rest_pipeline(base_url)

@@ -10,9 +10,45 @@ Model Context Protocol (MCP) server for HoloScript AI assistance. **43+ tools** 
 npm install @holoscript/mcp-server
 ```
 
+## Hosted Server
+
+A live instance is available at **`https://mcp.holoscript.net`** — no installation required.
+
+```bash
+# Health check
+curl https://mcp.holoscript.net/health
+
+# REST API
+curl https://mcp.holoscript.net/api/health
+curl -X POST https://mcp.holoscript.net/api/render -H "Content-Type: application/json" \
+  -d '{"code": "composition \"T\" { object \"C\" { geometry: \"cube\" } }"}'
+curl -X POST https://mcp.holoscript.net/api/share -H "Content-Type: application/json" \
+  -d '{"code": "...", "title": "My Scene", "platform": "x"}'
+
+# MCP protocol
+curl -X POST https://mcp.holoscript.net/mcp -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+```
+
 ## Configuration
 
-Add to your MCP configuration (Claude Code, Cursor, Copilot, etc.):
+### Option 1: Remote (hosted)
+
+Use the hosted MCP server — no local installation needed:
+
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "url": "https://mcp.holoscript.net/mcp"
+    }
+  }
+}
+```
+
+### Option 2: Local (npx)
+
+Run the server locally via stdio:
 
 ```json
 {
