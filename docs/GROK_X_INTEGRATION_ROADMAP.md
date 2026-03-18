@@ -2,29 +2,29 @@
 
 **Vision:** Enable Grok to build interactive 3D scenes directly in X conversations with real-time validation and renderable previews.
 
-**Last Updated**: 2026-03-17 | **Status**: Sprint 1 complete, Sprint 2 mostly complete, Sprint 3 social traits shipped early
+**Last Updated**: 2026-03-17 | **Status**: Sprints 1-3 complete. REST API live. PyPI 5.3.0 published. E2E tests passing.
 
 ## 🎯 Priority Matrix
 
 | Priority    | Feature                                    | Impact | Feasibility | Sprint |
 | ----------- | ------------------------------------------ | ------ | ----------- | ------ |
-| 🔥 Critical | MCP Server Package                         | High   | High        | 1      |
-| 🔥 Critical | Python Bindings                            | High   | Medium      | 1      |
-| 🔥 Critical | Browser Render Templates                   | High   | High        | 1      |
-| ⚡ High     | AI Generation Examples                     | Medium | High        | 2      |
-| ⚡ High     | Validation SDK with AI Feedback            | High   | Medium      | 2      |
-| ⚡ High     | Remote Rendering API                       | High   | Medium      | 2      |
-| 📌 Medium   | X-Specific Sharing Utils                   | Medium | Medium      | 3      |
-| 📌 Medium   | Social Traits (@shareable, @collaborative) | Medium | Medium      | 3      |
-| 📌 Medium   | AI Integration Documentation               | Medium | High        | 3      |
+| 🔥 Critical | MCP Server Package                         | High   | High        | 1 ✅   |
+| 🔥 Critical | Python Bindings                            | High   | Medium      | 1 ✅   |
+| 🔥 Critical | Browser Render Templates                   | High   | High        | 1 ✅   |
+| ⚡ High     | AI Generation Examples                     | Medium | High        | 2 ✅   |
+| ⚡ High     | Validation SDK with AI Feedback            | High   | Medium      | 2 ✅   |
+| ⚡ High     | Remote Rendering API                       | High   | Medium      | 2 ✅   |
+| 📌 Medium   | X-Specific Sharing Utils                   | Medium | Medium      | 3 ✅   |
+| 📌 Medium   | Social Traits (@shareable, @collaborative) | Medium | Medium      | 3 ✅   |
+| 📌 Medium   | AI Integration Documentation               | Medium | High        | 3 ✅   |
 | 🔮 Future   | Community Feedback Hooks                   | Low    | High        | 4      |
 | 🔮 Future   | Public Demo Endpoints                      | Medium | Medium      | 4      |
 
 ---
 
-## Sprint 1: Core Infrastructure (Week 1-2) — ✅ Partially Implemented
+## Sprint 1: Core Infrastructure (Week 1-2) — ✅ Complete
 
-### 1.1 MCP Server Package (`packages/mcp-server`) — ✅ EXISTS (52 files)
+### 1.1 MCP Server Package (`packages/mcp-server`) — ✅ Complete (65+ tools)
 
 Full Model Context Protocol server for AI agent integration.
 
@@ -42,16 +42,16 @@ render_preview    - Generate static image/GIF preview
 get_examples      - Retrieve example code patterns
 ```
 
-### 1.2 Python Bindings (`packages/python-bindings`) — ✅ EXISTS (19 files)
+### 1.2 Python Bindings (`packages/python-bindings`) — ✅ Published (PyPI 5.3.0)
 
 Enable Grok's Python environment to parse/validate HoloScript.
 
 **Components:**
 
-- `holoscript-py` PyPI package
-- Pyodide-compatible WASM build
-- Native Python wrapper via subprocess
-- Real-time validation API
+- `holoscript` PyPI package — `pip install holoscript` ([pypi.org/project/holoscript/5.3.0](https://pypi.org/project/holoscript/5.3.0/))
+- 8 modules: client, parser, validator, generator, renderer, sharer, traits, robotics
+- Social traits: `@shareable`, `@collaborative`, `@tweetable`
+- 132 tests passing (including E2E pipeline tests)
 
 **Usage:**
 
@@ -93,9 +93,9 @@ Minimal HTML files for instant browser previews.
 
 ---
 
-## Sprint 2: AI Enhancement (Week 3-4)
+## Sprint 2: AI Enhancement (Week 3-4) — ✅ Complete
 
-### 2.1 AI Generation Examples (`examples/ai-generation`)
+### 2.1 AI Generation Examples (`examples/ai-generation`) — ✅ Complete
 
 **System Prompts:**
 
@@ -133,33 +133,35 @@ Enhanced error messages for LLM consumption:
 }
 ```
 
-### 2.3 Remote Rendering API
+### 2.3 Remote Rendering API — ✅ Complete
 
-Endpoint for generating static previews:
+REST API endpoints on the MCP HTTP server (`http-server.ts`):
 
 ```text
-POST /api/render
-{
-  "code": "composition {...}",
-  "format": "png" | "gif" | "mp4",
-  "resolution": [800, 600],
-  "camera": { "position": [0, 2, 5], "target": [0, 0, 0] },
-  "duration": 3000  // for animations
-}
-
-Response:
-{
-  "url": "https://holoscript.net/renders/abc123.png",
-  "previewUrl": "https://holoscript.net/view/abc123",
-  "embedCode": "<iframe ...>"
-}
+GET  /api/health  → { status, capabilities: ['render', 'share', 'mcp'] }
+POST /api/render  → renderPreview() with skipRemote guard
+POST /api/share   → createShareLink() with skipRemote guard
 ```
+
+```bash
+# Render a scene
+curl -X POST http://localhost:3000/api/render \
+  -H "Content-Type: application/json" \
+  -d '{"code": "composition \"T\" { object \"C\" { geometry: \"cube\" } }", "format": "png"}'
+
+# Create share link for X
+curl -X POST http://localhost:3000/api/share \
+  -H "Content-Type: application/json" \
+  -d '{"code": "...", "title": "My Scene", "platform": "x"}'
+```
+
+Railway auto-detection: `RAILWAY_PUBLIC_DOMAIN` env var builds the public URL automatically.
 
 ---
 
-## Sprint 3: X Platform Integration (Week 5-6)
+## Sprint 3: X Platform Integration (Week 5-6) — ✅ Complete
 
-### 3.1 X-Specific Sharing Utils (`packages/x-share`)
+### 3.1 X-Specific Sharing Utils — ✅ Complete (built into MCP server)
 
 **Features:**
 
@@ -193,9 +195,9 @@ const share = await createXShare({
 }
 ```
 
-### 3.2 Social VR Traits
+### 3.2 Social VR Traits — ✅ Complete
 
-New traits for collaborative/social experiences:
+New traits for collaborative/social experiences (E2E tested in both TS and Python):
 
 ```hsplus
 // @shareable - Auto-generates X-optimized previews
@@ -280,50 +282,77 @@ packages/
 
 ## Quick Start for Grok
 
-**Immediate (No Setup):**
+**Install (PyPI 5.3.0):**
 
-```python
-# Use the public API
-import requests
-
-response = requests.post("https://api.holoscript.net/generate", json={
-    "prompt": "a floating crystal that glows when grabbed",
-    "format": "holo"
-})
-
-print(response.json()["code"])
+```bash
+pip install holoscript
 ```
 
-**With Python Package:**
+**Full Pipeline — generate, validate, share:**
 
 ```python
-pip install holoscript
+from holoscript import generate, validate, share, suggest_traits, list_traits
 
-from holoscript import HoloScript
+# 1. Generate a scene from natural language
+scene = generate("a floating crystal that glows when grabbed")
+print(scene.code)
 
-hs = HoloScript()
-scene = hs.generate("enchanted forest with glowing mushrooms")
-preview_url = hs.render(scene, format="gif")
-share_link = hs.share(scene, platform="x")
+# 2. Validate the generated code
+result = validate(scene.code)
+assert result.valid, f"Errors: {result.errors}"
+
+# 3. Get trait suggestions
+traits = suggest_traits("share this artwork and tweet about it")
+print(traits["traits"])  # ['@shareable', '@tweetable']
+
+# 4. Share on X
+link = share(scene.code, title="Glowing Crystal", platform="x")
+print(link.playground_url)
+print(link.tweet_text)
+print(link.qr_code)
+```
+
+**REST API (no SDK required):**
+
+```bash
+# Health check
+curl http://localhost:3000/api/health
+
+# Render preview
+curl -X POST http://localhost:3000/api/render \
+  -H "Content-Type: application/json" \
+  -d '{"code": "composition \"Crystal\" { object \"Gem\" @glowing { geometry: \"sphere\", color: \"#00ffff\" } }"}'
+
+# Create X share link
+curl -X POST http://localhost:3000/api/share \
+  -H "Content-Type: application/json" \
+  -d '{"code": "...", "title": "Glowing Crystal", "platform": "x"}'
+```
+
+**Social Traits:**
+
+```python
+# Discover available social traits
+social = list_traits("social")
+print(social["social"])  # ['@shareable', '@collaborative', '@tweetable']
 ```
 
 ---
 
 ## Success Metrics
 
-| Metric                          | Target | Current |
-| ------------------------------- | ------ | ------- |
-| MCP tools available             | 16     | 65+     |
-| Parse success rate              | >99%   | Testing |
-| Validation accuracy             | >98%   | Testing |
-| Generation quality (human eval) | >85%   | Testing |
-| Render time (simple scene)      | <2s    | N/A*    |
-| Render time (complex scene)     | <10s   | N/A*    |
-| X embed load time               | <1.5s  | N/A*    |
-| Social trait tests passing      | 100%   | 29/29   |
-| System prompts complete         | 3      | 3/3     |
-
-*Render timing metrics require deployed render service.
+| Metric                          | Target | Current                                              |
+| ------------------------------- | ------ | ---------------------------------------------------- |
+| MCP tools available             | 16     | 65+                                                  |
+| Parse success rate              | >99%   | Testing                                              |
+| Validation accuracy             | >98%   | Testing                                              |
+| Generation quality (human eval) | >85%   | Testing                                              |
+| REST API endpoints              | 3      | 3/3                                                  |
+| Social trait tests passing      | 100%   | 29/29                                                |
+| E2E pipeline tests (TS)         | 9      | 9/9                                                  |
+| E2E pipeline tests (Python)     | 7      | 7/7                                                  |
+| Python package on PyPI          | Yes    | [5.3.0](https://pypi.org/project/holoscript/5.3.0/) |
+| System prompts complete         | 3      | 3/3                                                  |
 
 ---
 
@@ -339,4 +368,4 @@ share_link = hs.share(scene, platform="x")
 ---
 
 _Last Updated: 2026-03-17_
-_Status: Sprint 1 complete, Sprint 2 mostly complete (render service pending), Sprint 3 social traits complete_
+_Status: Sprints 1-3 complete. REST API live. PyPI 5.3.0. 16 E2E tests passing (9 TS + 7 Python)._

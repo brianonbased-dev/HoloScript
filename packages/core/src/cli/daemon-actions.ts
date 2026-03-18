@@ -977,14 +977,17 @@ export function createDaemonActions(
           .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
 
         for (const f of sourceFiles) {
-          if (isQuarantined(f) || isCommitted(f)) continue;
+          // tsc --listFiles emits absolute paths on Windows; normalise to relative for consistent
+          // quarantine/committed checks, git operations, and ledger recording.
+          const relF = path.isAbsolute(f) ? path.relative(config.repoRoot, f).replace(/\\/g, '/') : f;
+          if (isQuarantined(relF) || isCommitted(relF)) continue;
           try {
             const content = host.readFile(f);
             const hasLintIssues =
               /\bas\s+any\b/.test(content) ||
               /\/\/\s*@ts-ignore/.test(content) ||
               /console\.(log|warn|error)\(/.test(content);
-            if (hasLintIssues) candidates.push(f);
+            if (hasLintIssues) candidates.push(relF);
           } catch { /* skip unreadable */ }
         }
         // Sort by file size (smaller = easier to lint-fix)
@@ -1004,13 +1007,14 @@ export function createDaemonActions(
           .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
 
         for (const f of sourceFiles) {
-          if (isQuarantined(f) || isCommitted(f)) continue;
+          const relF = path.isAbsolute(f) ? path.relative(config.repoRoot, f).replace(/\\/g, '/') : f;
+          if (isQuarantined(relF) || isCommitted(relF)) continue;
           try {
             const content = host.readFile(f);
             // Check for undocumented exports (export without preceding JSDoc)
             if (/^export\s+(function|class|const|interface|type|enum)\s/m.test(content) &&
                 !/\/\*\*[\s\S]*?\*\/\s*\nexport\s/m.test(content)) {
-              candidates.push(f);
+              candidates.push(relF);
             }
           } catch { /* skip unreadable */ }
         }
@@ -1527,19 +1531,33 @@ export function createDaemonActions(
       });
       const errorOutput = result.stdout + result.stderr;
       const errors = errorOutput.split('\n').filter(l => /error TS\d{4}:/.test(l));
-      const baseline = (bb.typeErrorCount as number) ?? Infinity;
-      bb.compilation_passed = errors.length === 0 || errors.length <= baseline;
       bb.compileErrors = errors.slice(0, 20);
 
-      // File-local error delta: count errors specific to the candidate file
+      // File-local error delta: must be computed BEFORE compilation_passed for non-typefix modes.
       const candidateFile = bb.currentCandidate as string;
+      const fileErrorsBeforeCount = (bb.fileErrorsBefore as number) ?? 0;
+      let fileErrorsAfterCount = 0;
       if (candidateFile) {
-        bb.fileErrorsAfter = countFileErrors(errorOutput, candidateFile);
-        const before = (bb.fileErrorsBefore as number) ?? 0;
-        const after = bb.fileErrorsAfter as number;
-        if (before !== after) {
-          log(`File-local errors: ${before} → ${after} (delta: ${after - before})`);
+        fileErrorsAfterCount = countFileErrors(errorOutput, candidateFile);
+        bb.fileErrorsAfter = fileErrorsAfterCount;
+        if (fileErrorsBeforeCount !== fileErrorsAfterCount) {
+          log(`File-local errors: ${fileErrorsBeforeCount} → ${fileErrorsAfterCount} (delta: ${fileErrorsAfterCount - fileErrorsBeforeCount})`);
         }
+      }
+
+      // compilation_passed: typefix checks global count; other modes only check for file-local regressions.
+      // In non-typefix modes bb.typeErrorCount is 0 (lint count), so comparing against global tsc errors
+      // (~3500) would always fail — we gate on file-local delta instead.
+      const isTypefixFocus = !config.cycleFocus || config.cycleFocus === 'typefix' || config.cycleFocus === 'all';
+      if (isTypefixFocus) {
+        const baseline = (bb.typeErrorCount as number) ?? Infinity;
+        bb.compilation_passed = errors.length === 0 || errors.length <= baseline;
+      } else {
+        // Pass if the fix didn't introduce new type errors in the candidate file.
+        bb.compilation_passed = fileErrorsAfterCount <= fileErrorsBeforeCount;
+      }
+
+      if (candidateFile) {
 
         // Multi-file delta: include candidate + any related files that were edited.
         const relatedEdits = (bb.relatedEdits as { path: string }[] | undefined) || [];

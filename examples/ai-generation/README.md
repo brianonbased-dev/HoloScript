@@ -2,23 +2,27 @@
 
 System prompts, templates, and examples for AI agents (Grok, Claude, Copilot) to generate HoloScript code.
 
+**Python package:** `pip install holoscript` ([PyPI 5.3.0](https://pypi.org/project/holoscript/5.3.0/))
+
 ## Directory Structure
 
 ```
 ai-generation/
 ├── prompts/
-│   ├── scene-builder.md     # Scene composition prompts
-│   ├── object-generator.md  # Object creation prompts
-│   └── trait-advisor.md     # Trait recommendation prompts
+│   ├── scene-builder.md          # Scene composition prompts
+│   ├── object-generator.md       # Object creation prompts
+│   └── trait-advisor.md          # Trait recommendation prompts
 ├── integrations/
-│   ├── xai-grok.ts          # xAI/Grok integration
-│   ├── anthropic-claude.ts  # Anthropic Claude integration
-│   ├── openai-gpt.ts        # OpenAI GPT-4 with function calling
-│   ├── google-gemini.ts     # Google Gemini multimodal
-│   ├── ollama-local.ts      # Local Ollama models
-│   └── mcp-client.ts        # MCP client example
+│   ├── xai-grok.ts               # xAI/Grok integration
+│   ├── anthropic-claude.ts       # Anthropic Claude integration
+│   ├── openai-gpt.ts             # OpenAI GPT-4 with function calling
+│   ├── google-gemini.ts          # Google Gemini multimodal
+│   ├── ollama-local.ts           # Local Ollama models
+│   └── mcp-client.ts             # MCP client example
+├── grok-rest-pipeline.py         # Full REST API + SDK pipeline demo
 └── examples/
     ├── enchanted-forest.holo
+    ├── social-gallery.holo       # Social traits (@shareable, @collaborative, @tweetable)
     ├── sci-fi-station.holo
     └── multiplayer-arena.holo
 ```
@@ -71,23 +75,51 @@ const share = await mcp.call('create_share_link', {
 });
 ```
 
-### Using Python Bindings
+### Using Python SDK (v5.3.0)
 
 ```python
-from holoscript import HoloScript
-
-hs = HoloScript()
+from holoscript import generate, validate, share, suggest_traits, list_traits
 
 # Generate from natural language
-scene = hs.generate("a floating castle in the clouds")
+scene = generate("a floating castle in the clouds")
 
 # Validate
-if hs.validate(scene.code).valid:
-    # Share on X
-    share = hs.share(scene.code, platform="x")
-    print(f"Tweet: {share.tweet_text}")
-    print(f"Playground: {share.playground_url}")
+result = validate(scene.code)
+assert result.valid
+
+# Suggest social traits
+traits = suggest_traits("share this artwork and tweet about it")
+print(traits["traits"])  # ['@shareable', '@tweetable']
+
+# List available social traits
+social = list_traits("social")
+print(social["social"])  # ['@shareable', '@collaborative', '@tweetable']
+
+# Share on X
+link = share(scene.code, title="Cloud Castle", platform="x")
+print(f"Tweet: {link.tweet_text}")
+print(f"Playground: {link.playground_url}")
+print(f"QR: {link.qr_code}")
 ```
+
+### Using REST API
+
+```bash
+# Start the MCP server
+cd packages/mcp-server && PORT=3000 node dist/http-server.js
+
+# Render a scene
+curl -X POST http://localhost:3000/api/render \
+  -H "Content-Type: application/json" \
+  -d '{"code": "composition \"Art\" { object \"Gem\" @shareable { geometry: \"sphere\" } }"}'
+
+# Create X share link
+curl -X POST http://localhost:3000/api/share \
+  -H "Content-Type: application/json" \
+  -d '{"code": "...", "title": "My VR Art", "platform": "x"}'
+```
+
+See [`grok-rest-pipeline.py`](grok-rest-pipeline.py) for the full SDK + REST pipeline demo.
 
 ## System Prompts
 
@@ -102,6 +134,7 @@ See individual prompt files for detailed system prompts optimized for:
 
 1. **Always validate** generated code before sharing
 2. **Use trait suggestions** for interactive objects
-3. **Include physics** for realistic object behavior
-4. **Add audio** for immersive experiences
-5. **Consider networking** for multiplayer scenes
+3. **Use social traits** (`@shareable`, `@collaborative`, `@tweetable`) for X integration
+4. **Include physics** for realistic object behavior
+5. **Add audio** for immersive experiences
+6. **Consider networking** for multiplayer scenes
