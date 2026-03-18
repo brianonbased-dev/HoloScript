@@ -1,6 +1,7 @@
 # HoloScript MCP Server - Monorepo Build
 #
-# Builds from the pnpm workspace root to resolve @holoscript/core dependency
+# Builds from the pnpm workspace root to resolve workspace dependencies
+# Dependency chain: mcp-server → core + llm-provider, core → crdt
 
 FROM node:20-alpine AS builder
 
@@ -12,21 +13,24 @@ WORKDIR /app
 # Copy workspace config
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# Copy the packages we need
+# Copy the packages we need (full dependency chain)
+COPY packages/crdt/package.json packages/crdt/
 COPY packages/core/package.json packages/core/
 COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
-# Install dependencies
+# Install dependencies (--ignore-scripts prevents tsup from running before source is copied)
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
+COPY packages/crdt/ packages/crdt/
 COPY packages/core/ packages/core/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/mcp-server/ packages/mcp-server/
 
-# Build core first, then llm-provider, then mcp-server
-RUN cd packages/core && pnpm build
+# Build in dependency order (skip DTS for core — server only needs JS runtime)
+RUN cd packages/crdt && pnpm build
+RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN cd packages/llm-provider && pnpm build
 RUN cd packages/mcp-server && pnpm build
 
@@ -44,6 +48,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy workspace config
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/crdt/package.json packages/crdt/
 COPY packages/core/package.json packages/core/
 COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
@@ -52,9 +57,13 @@ COPY packages/mcp-server/package.json packages/mcp-server/
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy built artifacts
+COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
+
+# Copy mcp-server start script (bin entry point)
+COPY --from=builder /app/packages/mcp-server/start.js packages/mcp-server/start.js
 
 # Set ownership
 RUN chown -R nodejs:nodejs /app

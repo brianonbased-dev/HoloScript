@@ -121,10 +121,10 @@ coverage-output.txt
 coverage_phase*.txt
 err.txt
 
-# Root debug files
-debug-*.ts
-debug-*.js
-debug-*.d.ts
+# Root debug files (anchored to root with /)
+/debug-*.ts
+/debug-*.js
+/debug-*.d.ts
 
 # Build logs at root
 build.log

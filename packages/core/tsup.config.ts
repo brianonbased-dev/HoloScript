@@ -99,6 +99,9 @@ export default defineConfig({
     'jsonwebtoken',
     'jws',
     'safe-buffer',
+    // Externalize React (peer dependency for UI components like DegradedModeBanner)
+    'react',
+    'react-dom',
     // Externalize tree-sitter (native bindings, loaded at runtime)
     'tree-sitter',
     'tree-sitter-typescript',
