@@ -35,6 +35,8 @@
     "build:wasm:win": "powershell -File scripts/build/wasm-build.ps1 -Sizes",
     "types:generate": "bash scripts/generate-types.sh",
     "types:generate:win": "powershell -File scripts/generate-types.ps1",
+    "version:check": "node scripts/check-version-policy.js",
+    "version:check:strict": "node scripts/check-version-policy.js --strict",
     "version:patch": "node scripts/sync-versions.js patch",
     "version:minor": "node scripts/sync-versions.js minor",
     "version:major": "node scripts/sync-versions.js major",

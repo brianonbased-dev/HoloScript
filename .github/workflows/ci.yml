@@ -45,6 +45,9 @@ jobs:
       - name: Check roadmap drift markers
         run: pnpm docs:roadmap:drift
 
+      - name: Check version lane policy
+        run: pnpm version:check
+
   test:
     name: Test
     runs-on: ubuntu-latest
