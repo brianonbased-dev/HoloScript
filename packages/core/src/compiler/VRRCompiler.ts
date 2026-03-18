@@ -203,7 +203,7 @@ export class VRRCompiler extends CompilerBase {
     this.options = options;
   }
 
-  compile(
+  override compile(
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
