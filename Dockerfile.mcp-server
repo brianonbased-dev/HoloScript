@@ -12,19 +12,22 @@ WORKDIR /app
 # Copy workspace config
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
-# Copy the two packages we need
+# Copy the packages we need
 COPY packages/core/package.json packages/core/
+COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
 COPY packages/core/ packages/core/
+COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/mcp-server/ packages/mcp-server/
 
-# Build core first, then mcp-server
+# Build core first, then llm-provider, then mcp-server
 RUN cd packages/core && pnpm build
+RUN cd packages/llm-provider && pnpm build
 RUN cd packages/mcp-server && pnpm build
 
 # --- Production stage ---
@@ -42,13 +45,15 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy workspace config
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/core/package.json packages/core/
+COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Copy built artifacts
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 
 # Set ownership
