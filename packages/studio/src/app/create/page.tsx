@@ -1030,17 +1030,17 @@ export default function CreatePage() {
               >
                 <GitGraph className="h-3.5 w-3.5" />
                 Graph
-                            <button
-                              onClick={() => setLeftTab('codebase')}
-                              className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
-                                leftTab === 'codebase'
-                                  ? 'border-b-2 border-studio-accent text-studio-accent'
-                                  : 'text-studio-muted hover:text-studio-text'
-                              }`}
-                            >
-                              <Network className="h-3.5 w-3.5" />
-                              Index
-                            </button>
+              </button>
+              <button
+                onClick={() => setLeftTab('codebase')}
+                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
+                  leftTab === 'codebase'
+                    ? 'border-b-2 border-studio-accent text-studio-accent'
+                    : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Network className="h-3.5 w-3.5" />
+                Index
               </button>
             </div>
 
@@ -1057,12 +1057,10 @@ export default function CreatePage() {
                     console.log('[NodeGraph] compiled GLSL', glsl.slice(0, 60));
                   }}
                 />
+              ) : leftTab === 'codebase' ? (
+                <CodebaseInspectorPanel />
               ) : (
                 <HoloScriptEditor height="100%" />
-                            ) : leftTab === 'codebase' ? (
-                              <CodebaseInspectorPanel />
-                            ) : (
-                              <HoloScriptEditor height="100%" />
               )}
             </div>
           </div>
