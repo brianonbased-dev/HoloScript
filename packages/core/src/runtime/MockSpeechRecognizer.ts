@@ -15,7 +15,7 @@ export class MockSpeechRecognizer implements SpeechRecognizer {
 
   async initialize(config: SpeechRecognizerConfig): Promise<void> {
     this.config = config;
-    console.log(`[MockSpeechRecognizer] Initialized with backend: ${config.backend}`);
+    // Mock initialization complete
   }
 
   async transcribe(
@@ -25,9 +25,7 @@ export class MockSpeechRecognizer implements SpeechRecognizer {
       timestamps?: boolean;
     }
   ): Promise<TranscriptionSegment[]> {
-    console.log(
-      `[MockSpeechRecognizer] Transcribing audio... (phonemeMode: ${options?.phonemeMode})`
-    );
+    // Mock transcription in progress
 
     // Simulate a 2-second sentence: "Hello HoloLand"
     const segments: TranscriptionSegment[] = [
@@ -52,11 +50,11 @@ export class MockSpeechRecognizer implements SpeechRecognizer {
   }
 
   stop(): void {
-    console.log('[MockSpeechRecognizer] Stopped.');
+    // Mock recognizer stopped
   }
 
   dispose(): void {
-    console.log('[MockSpeechRecognizer] Disposed.');
+    // Mock recognizer disposed
   }
 
   /**
