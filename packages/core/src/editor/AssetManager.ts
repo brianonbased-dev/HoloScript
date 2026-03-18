@@ -91,7 +91,7 @@ export class AssetManager {
   }
 
   getAssetsByType(type: string): any[] {
-    const registryAssets = this.registry.findByType(type);
+    const registryAssets = this.registry.findByType(type as any);
     const sessionAssets = Array.from(this.sessionAssets.values()).filter(
       (a) => a.assetType === type
     );
