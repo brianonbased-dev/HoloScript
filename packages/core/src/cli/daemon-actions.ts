@@ -42,6 +42,8 @@ export interface DaemonConfig {
   committedFiles?: string[];
   /** Failure counts from previous cycles (restore quarantine state) */
   failedFiles?: Record<string, number>;
+  /** Historical type error baseline for quality scoring (e.g., 3506 at first run) */
+  typeErrorBaseline?: number;
 }
 
 export interface DaemonExecResult {
@@ -104,7 +106,9 @@ async function computeQuality(
   ]);
 
   const typeErrors = countTypeErrors(tsc.stdout + tsc.stderr);
-  const baseline = baselineErrors ?? typeErrors;
+  // Use provided baseline (historical reference, e.g. 3506 from first run).
+  // Fall back to current count only when no baseline exists (first-ever run).
+  const baseline = baselineErrors && baselineErrors > 0 ? baselineErrors : typeErrors;
   const typeScore = baseline === 0 ? 1 : Math.max(0, Math.min(1, 1 - typeErrors / Math.max(baseline, 1)));
 
   let testsPassed = 0;
@@ -939,10 +943,10 @@ export function createDaemonActions(
           }
         }
 
-        // Filter: only packages/core/src/ (skip examples/, benchmarks, external packages)
+        // Filter: packages/core/src/ and packages/studio/src/ (skip examples/, benchmarks, external packages)
         // Then remove quarantined files
         const filtered = [...errorCounts.entries()]
-          .filter(([f]) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(([f]) => /packages\/(core|studio)\/src\//.test(f.replace(/\\/g, '/')))
           .filter(([f]) => !isCommitted(f))
           .filter(([f]) => !isQuarantined(f));
 
@@ -1245,12 +1249,37 @@ export function createDaemonActions(
         }
         const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
         const compileErrors = bb.compileErrors as string[] | undefined;
+
+        // Extract type context from imports and interfaces so the LLM can choose correct types.
+        const typeContext: string[] = [];
+        const importLines = lines.filter(l => /^\s*(import\s|export\s+type|interface\s|type\s+\w+\s*=)/.test(l));
+        if (importLines.length > 0) {
+          typeContext.push('Available types (from file imports/declarations):', ...importLines.slice(0, 30));
+        }
+        // Check related files for type declarations used by this file
+        try {
+          const relatedFiles = resolveRelatedFiles(content, file, host, '', config.repoRoot);
+          const relatedTypes: string[] = [];
+          for (const rel of relatedFiles) {
+            const relLines = rel.content.split('\n')
+              .filter(l => /^\s*(export\s+)?(interface|type|enum)\s+\w+/.test(l));
+            if (relLines.length > 0) {
+              relatedTypes.push(`// From ${rel.path.split('/').pop()} (${rel.relation}):`);
+              relatedTypes.push(...relLines.slice(0, 15));
+            }
+          }
+          if (relatedTypes.length > 0) typeContext.push('', ...relatedTypes);
+        } catch { /* skip related type resolution if it fails */ }
+
         const lintPromptParts = [
           `File: ${file}`,
           '',
           'Lint issues to fix (replace unsafe casts with proper types, remove @ts-ignore, remove console statements from library code):',
           lintErrors.join('\n'),
         ];
+        if (typeContext.length > 0) {
+          lintPromptParts.push('', ...typeContext);
+        }
         if (compileErrors && compileErrors.length > 0) {
           lintPromptParts.push(
             '',
@@ -1707,7 +1736,12 @@ export function createDaemonActions(
 
     // ── Validate Quality ───────────────────────────────────────────────
     validate_quality: async (_params, bb) => {
-      const baselineErrors = (bb.typeErrorBaseline as number) || (bb.typeErrorCount as number) || undefined;
+      // Use persistent baseline from config (historical reference, e.g. 3506).
+      // Fall back to cycle-level baseline, then to per-diagnosis count.
+      const baselineErrors = config.typeErrorBaseline
+        || (bb.typeErrorBaseline as number)
+        || (bb.typeErrorCount as number)
+        || undefined;
       const result = await computeQuality(host, config.repoRoot, config.stateDir, baselineErrors);
       const qualityBefore = config.qualityBefore ?? (bb.quality_before as number) ?? 0;
 

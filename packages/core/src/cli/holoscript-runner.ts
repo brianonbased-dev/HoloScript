@@ -1201,14 +1201,12 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     quarantineThreshold,
   };
 
-  // Create action handlers (rebuilt per cycle if provider rotation enabled)
-  let actions = createDaemonActions(host, llm, config);
-
   // Load persisted daemon state
   const stateFile = path.join(stateDir, 'daemon-state.json');
   let daemonState = {
     totalCycles: 0, focusIndex: 0, bestQuality: 0, lastQuality: 0,
     totalCostUSD: 0, totalInputTokens: 0, totalOutputTokens: 0,
+    typeErrorBaseline: 0,
   };
   if (fs.existsSync(stateFile)) {
     try {
@@ -1217,6 +1215,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   }
 
   // Load persisted file tracking (committed + quarantined files across cycles)
+  // Must load BEFORE createDaemonActions so committedFiles/failedFiles are available.
   const fileStateFile = path.join(stateDir, 'daemon-file-state.json');
   if (fs.existsSync(fileStateFile)) {
     try {
@@ -1225,6 +1224,15 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       config.failedFiles = fileState.failures || {};
     } catch { /* use defaults */ }
   }
+
+  // Set historical baseline for quality scoring (persists across sessions).
+  // First run: baseline will be measured and stored. Subsequent runs reuse it.
+  if (daemonState.typeErrorBaseline > 0) {
+    config.typeErrorBaseline = daemonState.typeErrorBaseline;
+  }
+
+  // Create action handlers (rebuilt per cycle if provider rotation enabled)
+  let actions = createDaemonActions(host, llm, config);
 
   // API credit pre-check (W.090: 1-token validation call)
   try {
@@ -1417,6 +1425,14 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     daemonState.totalInputTokens += inputTokens;
     daemonState.totalOutputTokens += outputTokens;
     daemonState.totalCostUSD += costUSD;
+
+    // Persist type error baseline on first measurement (used for quality scoring)
+    const cycleTypeErrors = (btBlackboard.typeErrorBaseline as number) || (btBlackboard.typeErrorCount as number) || 0;
+    if (daemonState.typeErrorBaseline === 0 && cycleTypeErrors > 0) {
+      daemonState.typeErrorBaseline = cycleTypeErrors;
+      config.typeErrorBaseline = cycleTypeErrors;
+      console.log(`[daemon] Established type error baseline: ${cycleTypeErrors}`);
+    }
 
     fs.writeFileSync(stateFile, JSON.stringify(daemonState, null, 2), 'utf-8');
 
