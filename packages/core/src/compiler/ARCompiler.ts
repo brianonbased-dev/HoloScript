@@ -8,7 +8,7 @@
  */
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
-import { CompilerBase } from './CompilerBase';
+import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 export interface ARCompilerOptions {
