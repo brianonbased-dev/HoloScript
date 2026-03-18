@@ -19,11 +19,17 @@ export interface StateTraitConfig {
   machine: StateMachineConfig;
 }
 
+// Extended properties interface for state-aware nodes
+interface StateAwareProperties {
+  _state?: string;
+  [key: string]: any;
+}
+
 // Per-node state machines
 const nodeStateMachines = new Map<string, StateMachine>();
 
 export const stateTraitHandler: TraitHandler<StateTraitConfig> = {
-  name: 'state' as any,
+  name: 'state' as const,
   defaultConfig: { machine: { initialState: 'idle', states: [], transitions: [] } },
 
   onAttach(node: HSPlusNode, config: StateTraitConfig, _context: any) {
@@ -33,7 +39,7 @@ export const stateTraitHandler: TraitHandler<StateTraitConfig> = {
 
     // Surface state on node properties
     if (node.properties) {
-      (node.properties as any)._state = sm.getCurrentState();
+      (node.properties as StateAwareProperties)._state = sm.getCurrentState();
     }
   },
 
@@ -48,7 +54,7 @@ export const stateTraitHandler: TraitHandler<StateTraitConfig> = {
     sm.update(delta);
 
     if (node.properties) {
-      (node.properties as any)._state = sm.getCurrentState();
+      (node.properties as StateAwareProperties)._state = sm.getCurrentState();
     }
   },
 };
