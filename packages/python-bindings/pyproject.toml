@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "holoscript"
-version = "1.0.0"
+version = "5.3.0"
 description = "Python bindings for HoloScript - VR scene description language"
 readme = "README.md"
 license = "MIT"

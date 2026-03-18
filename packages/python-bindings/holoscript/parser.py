@@ -155,7 +155,9 @@ def parse_hsplus(code: str) -> ParseResult:
         "attachable", "equippable", "consumable", "destructible", "anchor",
         "tracked", "world_locked", "hand_tracked", "eye_tracked",
         "spatial_audio", "ambient", "voice_activated", "state", "reactive",
-        "observable", "computed"
+        "observable", "computed",
+        # Social
+        "shareable", "collaborative", "tweetable",
     }
     
     for trait in traits:

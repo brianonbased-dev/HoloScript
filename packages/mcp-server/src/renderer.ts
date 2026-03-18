@@ -14,6 +14,7 @@ interface RenderOptions {
   };
   duration?: number;
   quality?: 'draft' | 'preview' | 'production';
+  skipRemote?: boolean;
 }
 
 interface ShareOptions {
@@ -21,6 +22,7 @@ interface ShareOptions {
   title?: string;
   description?: string;
   platform?: 'x' | 'generic' | 'codesandbox' | 'stackblitz';
+  skipRemote?: boolean;
 }
 
 interface RenderResult {
@@ -42,10 +44,13 @@ interface ShareResult {
 }
 
 // Base URL for hosted services (configurable)
+const RAILWAY_DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN;
 const RENDER_SERVICE_URL =
-  process.env.HOLOSCRIPT_RENDER_URL || 'https://holoscript-render.onrender.com';
+  process.env.HOLOSCRIPT_RENDER_URL ||
+  (RAILWAY_DOMAIN ? `https://${RAILWAY_DOMAIN}` : 'http://localhost:3000');
 const PLAYGROUND_URL =
-  process.env.HOLOSCRIPT_PLAYGROUND_URL || 'https://holoscript-render.onrender.com';
+  process.env.HOLOSCRIPT_PLAYGROUND_URL ||
+  (RAILWAY_DOMAIN ? `https://${RAILWAY_DOMAIN}` : 'http://localhost:3000');
 
 /**
  * Generate a static preview render of HoloScript code
@@ -69,8 +74,8 @@ export async function renderPreview(options: RenderOptions): Promise<RenderResul
     };
   }
 
-  // Check if configured for remote rendering
-  if (RENDER_SERVICE_URL && RENDER_SERVICE_URL !== 'http://localhost:3000') {
+  // Check if configured for remote rendering (skip when serving locally to avoid recursion)
+  if (!options.skipRemote && RENDER_SERVICE_URL && RENDER_SERVICE_URL !== 'http://localhost:3000') {
     try {
       // Use /share endpoint to store scene and get URLs
       const response = await fetch(`${RENDER_SERVICE_URL}/share`, {
@@ -124,8 +129,8 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
     platform = 'x',
   } = options;
 
-  // Try to use the remote render service
-  if (RENDER_SERVICE_URL && RENDER_SERVICE_URL !== 'http://localhost:3000') {
+  // Try to use the remote render service (skip when serving locally to avoid recursion)
+  if (!options.skipRemote && RENDER_SERVICE_URL && RENDER_SERVICE_URL !== 'http://localhost:3000') {
     try {
       const response = await fetch(`${RENDER_SERVICE_URL}/share`, {
         method: 'POST',

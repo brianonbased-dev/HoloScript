@@ -18,6 +18,7 @@ import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
+import { renderPreview, createShareLink } from './renderer';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -35,6 +36,25 @@ function checkAuth(req: http.IncomingMessage): boolean {
   const auth = req.headers['authorization'] || '';
   const key = req.headers['x-api-key'] || '';
   return auth === `Bearer ${MCP_API_KEY}` || key === MCP_API_KEY;
+}
+
+/**
+ * Parse JSON body from incoming request (native http has no built-in body parsing)
+ */
+function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      try {
+        const body = Buffer.concat(chunks).toString('utf-8');
+        resolve(body ? JSON.parse(body) : {});
+      } catch {
+        reject(new Error('Invalid JSON body'));
+      }
+    });
+    req.on('error', reject);
+  });
 }
 
 /**
@@ -193,6 +213,78 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // === REST API Endpoints (public, no MCP session required) ===
+
+  // Extended health check with render capabilities
+  if (url === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'healthy',
+      service: SERVICE_NAME,
+      version: SERVICE_VERSION,
+      uptime: process.uptime(),
+      capabilities: ['render', 'share', 'mcp'],
+      render_url: process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`,
+    }));
+    return;
+  }
+
+  // POST /api/render — render HoloScript to preview
+  if (url === '/api/render' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body.code || typeof body.code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
+        return;
+      }
+      const result = await renderPreview({
+        code: body.code as string,
+        format: (body.format as 'png' | 'gif' | 'mp4' | 'webp') || 'png',
+        resolution: (body.resolution as number[]) || [800, 600],
+        camera: body.camera as { position?: number[]; target?: number[] },
+        duration: (body.duration as number) || 3000,
+        quality: (body.quality as 'draft' | 'preview' | 'production') || 'preview',
+        skipRemote: true,
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /api/share — create share links for X/social platforms
+  if (url === '/api/share' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body.code || typeof body.code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
+        return;
+      }
+      const result = await createShareLink({
+        code: body.code as string,
+        title: (body.title as string) || 'HoloScript Scene',
+        description: (body.description as string) || 'Interactive 3D scene built with HoloScript',
+        platform: (body.platform as 'x' | 'generic' | 'codesandbox' | 'stackblitz') || 'x',
+        skipRemote: true,
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
   // 404 for everything else
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not Found' }));
@@ -206,10 +298,13 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`   Auth: ${MCP_API_KEY ? 'API key required' : 'OPEN (dev mode)'}`);
   console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
   console.log(`   Endpoints:`);
-  console.log(`     GET  /health - Health check (public)`);
-  console.log(`     POST /mcp    - MCP Streamable HTTP (authenticated)`);
-  console.log(`     GET  /mcp    - MCP session messages (authenticated)`);
-  console.log(`     DELETE /mcp  - Close session (authenticated)`);
+  console.log(`     GET  /health     - Health check (public)`);
+  console.log(`     POST /mcp        - MCP Streamable HTTP (authenticated)`);
+  console.log(`     GET  /mcp        - MCP session messages (authenticated)`);
+  console.log(`     DELETE /mcp      - Close session (authenticated)`);
+  console.log(`     GET  /api/health - API health + capabilities (public)`);
+  console.log(`     POST /api/render - Render HoloScript preview (public)`);
+  console.log(`     POST /api/share  - Create share links (public)`);
 });
 
 // Graceful shutdown

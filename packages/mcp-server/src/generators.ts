@@ -83,6 +83,11 @@ const TRAIT_KEYWORDS: Record<string, string[]> = {
   react: ['@reactive'],
   observe: ['@observable'],
   compute: ['@computed'],
+
+  // Social keywords
+  share: ['@shareable'],
+  collaborate: ['@collaborative'],
+  tweet: ['@tweetable'],
 };
 
 // Geometry keywords

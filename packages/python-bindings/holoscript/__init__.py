@@ -22,7 +22,7 @@ from holoscript.robotics import (
     ROSLaunchResult,
 )
 
-__version__ = "1.0.0"
+__version__ = "5.3.0"
 __all__ = [
     # Main client
     "HoloScript",
