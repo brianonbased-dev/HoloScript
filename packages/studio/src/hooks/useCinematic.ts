@@ -3,10 +3,14 @@
  * useCinematic — Hook for cinematic scene direction
  */
 import { useState, useCallback, useRef } from 'react';
-import { CinematicDirector, type CinematicScene, type CuePoint } from '@holoscript/core';
+import { CinematicDirector } from '@holoscript/core';
+
+type CinematicDirectorInstance = InstanceType<typeof CinematicDirector>;
+type CinematicScene = NonNullable<ReturnType<CinematicDirectorInstance['getActiveScene']>>;
+type CuePoint = ReturnType<CinematicDirectorInstance['getFiredCues']>[number];
 
 export interface UseCinematicReturn {
-  director: CinematicDirector;
+  director: CinematicDirectorInstance;
   activeScene: CinematicScene | null;
   isPlaying: boolean;
   elapsed: number;

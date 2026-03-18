@@ -14,12 +14,14 @@ import {
   agentBudgetFor,
   hasCapability,
   resolvePlatforms,
-  type XRPlatformTarget,
-  type XRPlatformCategory,
-  type XRPlatformCapabilities,
-  type EmbodimentType,
-  type PlatformCondition,
 } from '@holoscript/core';
+
+type XRPlatformTarget = keyof typeof XR_PLATFORM_CAPABILITIES;
+type XRPlatformCategory = keyof typeof XR_PLATFORM_CATEGORIES;
+type XRPlatformCapabilities =
+  (typeof XR_PLATFORM_CAPABILITIES)[keyof typeof XR_PLATFORM_CAPABILITIES];
+type EmbodimentType = ReturnType<typeof embodimentFor>;
+type PlatformCondition = Parameters<typeof resolvePlatforms>[0];
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -45,7 +47,7 @@ export interface UsePlatformTargetsReturn {
 function buildInfo(target: XRPlatformTarget): PlatformInfo {
   return {
     target,
-    category: platformCategory(target),
+    category: platformCategory(target) as XRPlatformCategory,
     capabilities: XR_PLATFORM_CAPABILITIES[target],
     embodiment: embodimentFor(target),
     agentBudgetMs: agentBudgetFor(target),
@@ -59,9 +61,9 @@ export function usePlatformTargets(initial: XRPlatformTarget = 'quest3'): UsePla
   const selectedInfo = useMemo(() => buildInfo(selected), [selected]);
 
   const grouped = useMemo(() => {
-    const groups: Record<string, PlatformInfo[]> = {};
+    const groups: Partial<Record<XRPlatformCategory, PlatformInfo[]>> = {};
     for (const cat of Object.keys(XR_PLATFORM_CATEGORIES)) {
-      groups[cat] = (XR_PLATFORM_CATEGORIES[cat as XRPlatformCategory] as XRPlatformTarget[]).map(
+      groups[cat as XRPlatformCategory] = (XR_PLATFORM_CATEGORIES[cat as XRPlatformCategory] as XRPlatformTarget[]).map(
         buildInfo
       );
     }

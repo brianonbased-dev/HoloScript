@@ -13,7 +13,7 @@ export interface LODObjectState {
 }
 
 export interface UseLODReturn {
-  manager: LODManager;
+  manager: InstanceType<typeof LODManager>;
   objects: LODObjectState[];
   cameraPos: [number, number, number];
   setCameraPos: (pos: [number, number, number]) => void;

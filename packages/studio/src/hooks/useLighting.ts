@@ -3,10 +3,10 @@
  * useLighting — Hook for scene lighting management
  */
 import { useState, useCallback, useRef } from 'react';
-import { LightingModel, type Light, type LightType, type AmbientConfig } from '@holoscript/core';
+import { LightingModel } from '@holoscript/core';
 
 export interface UseLightingReturn {
-  model: LightingModel;
+  model: InstanceType<typeof LightingModel>;
   lights: Light[];
   ambient: AmbientConfig;
   addLight: (type: LightType, name?: string) => Light;
@@ -17,6 +17,33 @@ export interface UseLightingReturn {
   reset: () => void;
 }
 
+type LightType = 'directional' | 'point' | 'spot' | 'area' | 'probe';
+
+interface Light {
+  id: string;
+  type: LightType;
+  enabled?: boolean;
+  color: [number, number, number];
+  intensity: number;
+  position?: [number, number, number] | { x: number; y: number; z: number };
+  direction?: [number, number, number];
+  castShadow?: boolean;
+  range?: number;
+  angle?: number;
+  spotAngle?: number;
+  penumbra?: number;
+  width?: number;
+  height?: number;
+}
+
+interface AmbientConfig {
+  enabled?: boolean;
+  color: number[];
+  intensity: number;
+  skyColor?: number[];
+  groundColor?: number[];
+  useHemisphere?: boolean;
+}
 export function useLighting(): UseLightingReturn {
   const modelRef = useRef(new LightingModel());
   const [lights, setLights] = useState<Light[]>([]);

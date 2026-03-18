@@ -3,7 +3,29 @@
  * useParticles — Hook for particle system preview and editing
  */
 import { useState, useCallback, useRef } from 'react';
-import { ParticleSystem, type EmitterConfig, type Particle, type Color4 } from '@holoscript/core';
+import { ParticleSystem } from '@holoscript/core';
+
+interface Color4 {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+interface EmitterConfig {
+  shape: 'point' | 'cone' | 'box' | 'sphere';
+  rate: number;
+  maxParticles: number;
+  lifetime: [number, number];
+  speed: [number, number];
+  size: [number, number];
+  sizeEnd: [number, number];
+  colorStart: Color4;
+  colorEnd: Color4;
+  position: { x: number; y: number; z: number };
+  direction?: { x: number; y: number; z: number };
+  coneAngle?: number;
+}
 
 const PRESETS: Record<string, Partial<EmitterConfig>> = {
   fire: {
@@ -72,7 +94,7 @@ const DEFAULT_CONFIG: EmitterConfig = {
 };
 
 export interface UseParticlesReturn {
-  system: ParticleSystem;
+  system: InstanceType<typeof ParticleSystem>;
   activeCount: number;
   isEmitting: boolean;
   presetNames: string[];
@@ -103,7 +125,15 @@ export function useParticles(): UseParticlesReturn {
     setActiveCount(sysRef.current.getActiveCount());
     setIsEmitting(sysRef.current.isEmitting());
     setParticles(
-      alive.map((p) => ({
+      alive.map((p: {
+        x: number;
+        y: number;
+        z: number;
+        size: number;
+        color: Color4;
+        age: number;
+        lifetime: number;
+      }) => ({
         x: p.x,
         y: p.y,
         z: p.z,

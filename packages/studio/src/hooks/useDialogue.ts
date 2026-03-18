@@ -3,14 +3,13 @@
  * useDialogue — Hook for dialogue graph editing and playback
  */
 import { useState, useCallback, useRef } from 'react';
-import {
-  DialogueGraph,
-  type DialogueGraphNode,
-  type DialogueGraphNodeType,
-} from '@holoscript/core';
+import { DialogueGraph } from '@holoscript/core';
+
+type DialogueGraphInstance = InstanceType<typeof DialogueGraph>;
+type DialogueGraphNode = ReturnType<DialogueGraphInstance['getCurrentNode']>;
 
 export interface UseDialogueReturn {
-  graph: DialogueGraph;
+  graph: DialogueGraphInstance;
   currentNode: DialogueGraphNode | null;
   choices: Array<{ text: string; nextId: string }>;
   history: string[];

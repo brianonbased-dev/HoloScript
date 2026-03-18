@@ -3,15 +3,63 @@
  * useECSInspector — Hook for ECS world inspection and entity management
  */
 import { useState, useCallback, useRef } from 'react';
-import {
-  ECSWorld,
-  type TransformComponent,
-  type VelocityComponent,
-  type ColliderComponent,
-  type RenderableComponent,
-  type AgentComponent,
-  type SystemStats,
-} from '@holoscript/core';
+import { ECSWorld } from '@holoscript/core';
+
+interface TransformComponent {
+  x: number;
+  y: number;
+  z: number;
+  rx: number;
+  ry: number;
+  rz: number;
+  sx: number;
+  sy: number;
+  sz: number;
+}
+
+interface VelocityComponent {
+  vx: number;
+  vy: number;
+  vz: number;
+  angularX: number;
+  angularY: number;
+  angularZ: number;
+}
+
+interface ColliderComponent {
+  type?: string;
+  radius?: number;
+  halfExtentX?: number;
+  halfExtentY?: number;
+  halfExtentZ?: number;
+  isTrigger?: boolean;
+  [key: string]: unknown;
+}
+
+interface RenderableComponent {
+  meshId: string;
+  materialId: string;
+  visible: boolean;
+  lodLevel: number;
+}
+
+interface AgentComponent {
+  state: string;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+  speed: number;
+  traitMask: number;
+}
+
+interface SystemStats {
+  entityCount: number;
+  systemCount: number;
+  lastFrameMs: number;
+  avgFrameMs: number;
+  peakFrameMs: number;
+  totalFrames: number;
+}
 
 // Local numeric constants matching ComponentType const enum (cannot cross isolatedModules boundary)
 const CT_Transform  = 0b00001; // ComponentType.Transform
@@ -32,7 +80,7 @@ export interface EntityInfo {
 }
 
 export interface UseECSInspectorReturn {
-  world: ECSWorld;
+  world: InstanceType<typeof ECSWorld>;
   entities: EntityInfo[];
   stats: SystemStats;
   selectedEntity: EntityInfo | null;

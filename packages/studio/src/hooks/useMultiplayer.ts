@@ -7,7 +7,19 @@
  * for the Studio panel.
  */
 import { useState, useCallback, useRef } from 'react';
-import { ECSWorld, type TransformComponent } from '@holoscript/core';
+import { ECSWorld } from '@holoscript/core';
+
+interface TransformComponent {
+  x: number;
+  y: number;
+  z: number;
+  rx: number;
+  ry: number;
+  rz: number;
+  sx: number;
+  sy: number;
+  sz: number;
+}
 
 // Local numeric constants matching ComponentType const enum (cannot cross isolatedModules boundary)
 const CT_Transform = 0b00001; // ComponentType.Transform

@@ -3,7 +3,11 @@
  * useCulture — Hook for culture runtime simulation
  */
 import { useState, useCallback, useRef } from 'react';
-import { CultureRuntime, type CultureEvent } from '@holoscript/core';
+import { CultureRuntime } from '@holoscript/core';
+
+type CultureRuntimeInstance = InstanceType<typeof CultureRuntime>;
+type CultureDashboard = ReturnType<CultureRuntimeInstance['dashboard']>;
+type CultureEvent = CultureDashboard['recentEvents'][number];
 
 export interface UseCultureReturn {
   health: number;

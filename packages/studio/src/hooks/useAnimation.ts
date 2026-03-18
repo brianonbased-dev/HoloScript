@@ -3,7 +3,11 @@
  * useAnimation — Hook for animation timeline editing and playback
  */
 import { useState, useCallback, useRef } from 'react';
-import { AnimationEngine, Easing, type AnimationClip, type EasingFn } from '@holoscript/core';
+import { AnimationEngine, Easing } from '@holoscript/core';
+
+type AnimationEngineInstance = InstanceType<typeof AnimationEngine>;
+type AnimationClip = Parameters<AnimationEngineInstance['play']>[0];
+type EasingFn = typeof Easing.linear;
 
 export interface AnimationInfo {
   id: string;
@@ -27,7 +31,7 @@ const EASING_NAMES: [string, EasingFn][] = [
 ];
 
 export interface UseAnimationReturn {
-  engine: AnimationEngine;
+  engine: AnimationEngineInstance;
   animations: AnimationInfo[];
   easingFunctions: string[];
   isRunning: boolean;

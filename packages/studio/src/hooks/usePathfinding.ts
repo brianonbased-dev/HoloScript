@@ -3,11 +3,25 @@
  * usePathfinding — Hook for A* pathfinding visualization
  */
 import { useState, useCallback, useRef } from 'react';
-import { NavMesh, AStarPathfinder, type NavPoint, type PathResult } from '@holoscript/core';
+import { NavMesh, AStarPathfinder } from '@holoscript/core';
+
+interface NavPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface PathResult {
+  found: boolean;
+  path: NavPoint[];
+  cost: number;
+  polygonsVisited: number;
+  timeMs: number;
+}
 
 export interface UsePathfindingReturn {
-  pathfinder: AStarPathfinder;
-  mesh: NavMesh;
+  pathfinder: InstanceType<typeof AStarPathfinder>;
+  mesh: InstanceType<typeof NavMesh>;
   lastResult: PathResult | null;
   obstacles: Array<{ id: string; position: NavPoint; radius: number }>;
   findPath: (start: NavPoint, goal: NavPoint) => PathResult;
@@ -17,7 +31,7 @@ export interface UsePathfindingReturn {
   reset: () => void;
 }
 
-function createGridMesh(cols: number, rows: number, cellSize: number): NavMesh {
+function createGridMesh(cols: number, rows: number, cellSize: number): InstanceType<typeof NavMesh> {
   const mesh = new NavMesh();
   const polyIds: string[][] = [];
 

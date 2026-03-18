@@ -10,10 +10,14 @@ import { useCollabStore } from '@/lib/collabStore';
 
 // ─── Old session-based hook (used by CollaborationPanel) ───────────────────
 import { useState } from 'react';
-import { CollaborationSession, type SessionPeer, type SessionStats } from '@holoscript/core';
+import { CollaborationSession } from '@holoscript/core';
+
+type CollaborationSessionInstance = InstanceType<typeof CollaborationSession>;
+type SessionPeer = ReturnType<CollaborationSessionInstance['getPeers']>[number];
+type SessionStats = ReturnType<CollaborationSessionInstance['getStats']>;
 
 export interface UseCollaborationSessionReturn {
-  session: CollaborationSession;
+  session: CollaborationSessionInstance;
   peers: SessionPeer[];
   documents: string[];
   stats: SessionStats | null;

@@ -3,7 +3,10 @@
  * useCombat — Hook for combat system editing and simulation
  */
 import { useState, useCallback, useRef } from 'react';
-import { CombatManager, type HitBox, type HurtBox, type ComboChain } from '@holoscript/core';
+import { CombatManager } from '@holoscript/core';
+
+type CombatManagerInstance = InstanceType<typeof CombatManager>;
+type ComboChain = ReturnType<CombatManagerInstance['registerCombo']>;
 
 export interface CombatEntity {
   id: string;
@@ -16,7 +19,7 @@ export interface CombatEntity {
 }
 
 export interface UseCombatReturn {
-  manager: CombatManager;
+  manager: CombatManagerInstance;
   entities: CombatEntity[];
   combos: ComboChain[];
   hitLog: Array<{ hitboxId: string; hurtboxId: string; time: number }>;

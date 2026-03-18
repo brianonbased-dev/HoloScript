@@ -3,10 +3,15 @@
  * useProcGen — Hook for procedural generation with TileMap
  */
 import { useState, useCallback, useRef } from 'react';
-import { TileMap, TileFlags, type TileData } from '@holoscript/core';
+import { TileMap, TileFlags } from '@holoscript/core';
+
+interface TileData {
+  id: number;
+  flags: number;
+}
 
 export interface UseProcGenReturn {
-  tilemap: TileMap;
+  tilemap: InstanceType<typeof TileMap>;
   grid: (TileData | null)[][];
   width: number;
   height: number;
@@ -21,7 +26,7 @@ export interface UseProcGenReturn {
   resize: (w: number, h: number) => void;
 }
 
-function readGrid(tm: TileMap, w: number, h: number): (TileData | null)[][] {
+function readGrid(tm: InstanceType<typeof TileMap>, w: number, h: number): (TileData | null)[][] {
   const g: (TileData | null)[][] = [];
   for (let y = 0; y < h; y++) {
     const row: (TileData | null)[] = [];

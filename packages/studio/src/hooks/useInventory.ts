@@ -3,13 +3,27 @@
  * useInventory — Hook for item inventory management
  */
 import { useState, useCallback, useRef } from 'react';
-import {
-  InventorySystem,
-  type ItemDef,
-  type ItemCategory,
-  type ItemRarity,
-  type InventorySlot,
-} from '@holoscript/core';
+import { InventorySystem } from '@holoscript/core';
+
+type ItemCategory = 'weapon' | 'armor' | 'consumable' | 'material' | 'quest' | 'misc' | string;
+type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | string;
+
+interface ItemDef {
+  id: string;
+  name: string;
+  category: ItemCategory;
+  rarity: ItemRarity;
+  weight: number;
+  maxStack: number;
+  value: number;
+  properties: Record<string, unknown>;
+}
+
+interface InventorySlot {
+  item: ItemDef;
+  quantity: number;
+  [key: string]: unknown;
+}
 
 const SAMPLE_ITEMS: ItemDef[] = [
   {
@@ -75,7 +89,7 @@ const SAMPLE_ITEMS: ItemDef[] = [
 ];
 
 export interface UseInventoryReturn {
-  inventory: InventorySystem;
+  inventory: InstanceType<typeof InventorySystem>;
   slots: InventorySlot[];
   weight: number;
   maxWeight: number;

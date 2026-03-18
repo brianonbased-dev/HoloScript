@@ -7,17 +7,19 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   MarketplaceRegistry,
-  type PackageListing,
-  type MarketplaceSearchFilters,
-  type MarketplaceSearchResult,
-  type InstallManifest,
   createSubmission,
   verifySubmission,
   publishSubmission,
-  type MarketplacePackage,
-  type MarketplaceSubmissionType,
 } from '@holoscript/core';
 import { seedMarketplace } from '../data/marketplace-seeds';
+
+type MarketplaceRegistryInstance = InstanceType<typeof MarketplaceRegistry>;
+type PackageListing = NonNullable<ReturnType<MarketplaceRegistryInstance['get']>>;
+type MarketplaceSearchFilters = Parameters<MarketplaceRegistryInstance['search']>[0];
+type MarketplaceSearchResult = ReturnType<MarketplaceRegistryInstance['search']>;
+type InstallManifest = ReturnType<MarketplaceRegistryInstance['install']>;
+type MarketplacePackage = Parameters<typeof createSubmission>[0];
+type MarketplaceSubmissionType = ReturnType<typeof createSubmission>;
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -25,7 +27,7 @@ export interface UseMarketplaceReturn {
   results: MarketplaceSearchResult | null;
   selected: PackageListing | null;
   installed: InstallManifest[];
-  stats: ReturnType<MarketplaceRegistry['stats']>;
+  stats: ReturnType<MarketplaceRegistryInstance['stats']>;
   search: (filters?: MarketplaceSearchFilters) => MarketplaceSearchResult;
   select: (packageId: string) => PackageListing | undefined;
   install: (packageId: string, worldId: string) => InstallManifest;
@@ -35,10 +37,10 @@ export interface UseMarketplaceReturn {
   getInstalled: (worldId: string) => InstallManifest[];
 }
 
-let _registry: MarketplaceRegistry | null = null;
-function getRegistry(): MarketplaceRegistry {
+let _registry: MarketplaceRegistryInstance | null = null;
+function getRegistry(): MarketplaceRegistryInstance {
   if (!_registry) _registry = seedMarketplace(); // Auto-seed on first access
-  return _registry;
+  return _registry!;
 }
 
 export function useMarketplace(worldId: string = 'default'): UseMarketplaceReturn {

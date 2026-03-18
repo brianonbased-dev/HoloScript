@@ -3,10 +3,14 @@
  * useAudioSpatial — Hook for 3D spatial audio management
  */
 import { useState, useCallback, useRef } from 'react';
-import { AudioEngine, type AudioSource, type ListenerState } from '@holoscript/core';
+import { AudioEngine } from '@holoscript/core';
+
+type AudioEngineInstance = InstanceType<typeof AudioEngine>;
+type AudioSource = ReturnType<AudioEngineInstance['getActiveSources']>[number];
+type ListenerState = ReturnType<AudioEngineInstance['getListener']>;
 
 export interface UseAudioSpatialReturn {
-  engine: AudioEngine;
+  engine: AudioEngineInstance;
   sources: AudioSource[];
   listener: ListenerState;
   masterVolume: number;
