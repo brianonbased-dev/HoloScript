@@ -37,7 +37,7 @@ export const mitosisHandler: TraitHandler<MitosisConfig> = {
 
   onAttach(node, config, context) {
     const state: MitosisState = {
-      parent_id: (config as any).parent_id || null,
+      parent_id: ('parent_id' in config ? (config as any).parent_id : null) || null,
       active_children: [],
       tasks_delegated: 0,
       completed_tasks: 0,
@@ -76,7 +76,9 @@ export const mitosisHandler: TraitHandler<MitosisConfig> = {
         context.emit?.('on_mitosis_spawned', { childId, parentId: node.id });
       }
     } else if (event.type === 'mitosis_child_complete') {
-      const { childId, parentId, result } = event as any;
+      const childId = 'childId' in event ? event.childId as string : '';
+      const parentId = 'parentId' in event ? event.parentId as string : '';
+      const result = 'result' in event ? event.result : undefined;
 
       if (node.id === parentId) {
         state.completed_tasks++;
