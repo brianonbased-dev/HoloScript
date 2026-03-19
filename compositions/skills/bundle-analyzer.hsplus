@@ -34,4 +34,26 @@ composition "bundle-analyzer" {
       // Blackboard: totalSizeKB, jsChunks, largestChunkKB, regressionDetected
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "total size starts at zero"
+    assert: { $totalSizeKB == 0 }
+  }
+
+  @test {
+    name: "size threshold defaults to 5000"
+    assert: { $sizeThresholdKB == 5000 }
+  }
+
+  @test {
+    name: "regression not detected initially"
+    assert: { $regressionDetected == false }
+  }
 }

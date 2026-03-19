@@ -30,4 +30,26 @@ composition "dependency-audit" {
       // Blackboard: outdatedCount, cveCount
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "outdated count starts at zero"
+    assert: { $outdatedCount == 0 }
+  }
+
+  @test {
+    name: "CVE count starts at zero"
+    assert: { $cveCount == 0 }
+  }
+
+  @test {
+    name: "last audit starts empty"
+    assert: { $lastAuditAt == "" }
+  }
 }

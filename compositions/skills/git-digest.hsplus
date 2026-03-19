@@ -33,4 +33,26 @@ composition "git-digest" {
       // Blackboard: commitCount, authors, filesChanged
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "period defaults to 24h"
+    assert: { $period == "24h" }
+  }
+
+  @test {
+    name: "commit count starts at zero"
+    assert: { $commitCount == 0 }
+  }
+
+  @test {
+    name: "authors starts at zero"
+    assert: { $authors == 0 }
+  }
+
+  @test {
+    name: "files changed starts at zero"
+    assert: { $filesChanged == 0 }
+  }
 }

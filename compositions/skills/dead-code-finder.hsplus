@@ -25,4 +25,26 @@ composition "dead-code-finder" {
       // Blackboard: unusedExports, filesScanned, bytesReclaimable
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "unused exports starts at zero"
+    assert: { $unusedExports == 0 }
+  }
+
+  @test {
+    name: "files scanned starts at zero"
+    assert: { $filesScanned == 0 }
+  }
+
+  @test {
+    name: "bytes reclaimable starts at zero"
+    assert: { $bytesReclaimable == 0 }
+  }
 }
