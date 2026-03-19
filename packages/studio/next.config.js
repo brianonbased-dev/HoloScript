@@ -8,6 +8,15 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
+  serverExternalPackages: [
+    'tree-sitter',
+    'tree-sitter-javascript',
+    'tree-sitter-typescript',
+    'tree-sitter-python',
+    'tree-sitter-rust',
+    'tree-sitter-go',
+    'web-tree-sitter',
+  ],
   transpilePackages: ['@holoscript/core', '@holoscript/std', '@holoscript/studio-plugin-sdk', 'three'],
   webpack: (config, { isServer }) => {
     config.module.rules.push({

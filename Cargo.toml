@@ -7,6 +7,7 @@ members = [
     "packages/spatial-engine",
     "packages/holoscript-component",
     "packages/shader-preview-wgpu",
+    "packages/tauri-app/src-tauri",
 ]
 resolver = "2"
 

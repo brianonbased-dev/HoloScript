@@ -54,13 +54,18 @@ export class QuestGenerator {
 
     try {
       const completion = await this.llmManager.complete({
-        prompt,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
         temperature: 0.7,
         maxTokens: 500,
       });
 
       // Simple extraction of JSON from Markdown blocks if present
-      let content = completion.text;
+      let content = completion.content;
       const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (jsonMatch) {
         content = jsonMatch[1];

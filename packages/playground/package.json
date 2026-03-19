@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
+    "@holoscript/std": "workspace:*",
     "monaco-editor": "^0.45.0"
   }
 }

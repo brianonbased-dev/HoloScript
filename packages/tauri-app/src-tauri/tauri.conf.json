@@ -3,13 +3,12 @@
   "version": "0.1.0",
   "identifier": "com.holoscript.studio",
   "build": {
-    "beforeDevCommand": "cd ../../../packages/studio && pnpm dev",
+    "beforeDevCommand": "cd ../studio && pnpm dev",
     "devUrl": "http://localhost:3100",
-    "beforeBuildCommand": "cd ../../../packages/studio && pnpm build",
-    "frontendDist": "../../../packages/studio/out"
+    "beforeBuildCommand": "cd ../studio && pnpm build",
+    "frontendDist": "../../studio/out"
   },
   "app": {
-    "title": "HoloScript Studio",
     "windows": [
       {
         "title": "HoloScript Studio",

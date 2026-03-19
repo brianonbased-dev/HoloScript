@@ -9,7 +9,7 @@ export default defineConfig({
     'adapters/gemini': 'src/adapters/gemini.ts',
   },
   format: ['esm', 'cjs'],
-  dts: true,
+  dts: false,
   sourcemap: true,
   clean: true,
   splitting: false,
