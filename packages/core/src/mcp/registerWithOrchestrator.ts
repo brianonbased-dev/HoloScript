@@ -2,14 +2,16 @@
  * MCP Orchestrator Registration Script
  *
  * Registers the five HoloScript MCP tools with the central MCP Mesh Orchestrator
- * running at mcp.holoscript.net. The orchestrator provides cross-workspace tool discovery
- * and knowledge federation.
+ * running at mcp-orchestrator-production-45f9.up.railway.app. The orchestrator provides
+ * cross-workspace tool discovery and knowledge federation.
+ *
+ * The HoloScript MCP server itself is hosted at https://mcp.holoscript.net (37+ tools).
  *
  * Usage:
  *   npx tsx packages/core/src/mcp/registerWithOrchestrator.ts
  *
  * Environment variables:
- *   MCP_ORCHESTRATOR_URL  - Orchestrator base URL (default: https://mcp.holoscript.net)
+ *   MCP_ORCHESTRATOR_URL  - Orchestrator base URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)
  *   MCP_API_KEY           - API key for orchestrator auth (default: dev-key-12345)
  *   MCP_SERVER_NAME       - Server name to register as (default: holoscript-tools)
  *

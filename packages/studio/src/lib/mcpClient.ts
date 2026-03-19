@@ -351,7 +351,7 @@ export class MCPClient {
 // FACTORY & UTILITIES
 // ============================================================================
 
-/** Default MCP configuration */
+/** Default MCP configuration (orchestrator — tool routing + knowledge federation) */
 export const DEFAULT_MCP_CONFIG: MCPServerConfig = {
   name: 'default',
   url: 'https://mcp-orchestrator-production-45f9.up.railway.app',
@@ -369,6 +369,9 @@ export const DEFAULT_MCP_CONFIG: MCPServerConfig = {
     resourceManagement: true,
   },
 };
+
+/** HoloScript MCP direct access (37+ tools — parse, compile, graph, render, share) */
+export const HOLOSCRIPT_MCP_URL = 'https://mcp.holoscript.net';
 
 /** Create MCP client with default config */
 export function createMCPClient(overrides?: Partial<MCPServerConfig>): MCPClient {
