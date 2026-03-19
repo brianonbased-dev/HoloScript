@@ -74,7 +74,7 @@ export class GlobalEventBus {
       try {
         promises.push(handler(data));
       } catch (error) {
-        logger.error(`[EventBus] Error in handler for ${event}`, error as any);
+        logger.error(`[EventBus] Error in handler for ${event}`, { error: error instanceof Error ? error.message : String(error) });
       }
     });
 

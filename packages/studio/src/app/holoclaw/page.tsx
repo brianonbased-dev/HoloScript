@@ -430,47 +430,78 @@ function CreateSkillPanel({ onCreated }: { onCreated: () => void }) {
 function ActivityPanel() {
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [streaming, setStreaming] = useState(false);
 
+  // Initial fetch of recent activity
   useEffect(() => {
-    // Activity is read from the daemon's outbox — a future API endpoint.
-    // For now, show placeholder.
-    setLoading(false);
-    setEntries([]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/holoclaw/activity?limit=50');
+        const data = await res.json();
+        if (!cancelled) {
+          setEntries((data.entries || []).reverse());
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // SSE streaming for live updates
+  useEffect(() => {
+    const eventSource = new EventSource('/api/holoclaw/activity?stream=true');
+    eventSource.onopen = () => setStreaming(true);
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as ActivityEntry & { type?: string };
+        if (data.type === 'connected') return;
+        setEntries((prev) => [data, ...prev].slice(0, 200));
+      } catch { /* skip */ }
+    };
+    eventSource.onerror = () => setStreaming(false);
+    return () => eventSource.close();
   }, []);
 
   if (loading) {
     return <div className="text-sm text-studio-muted animate-pulse">Loading activity...</div>;
   }
 
-  if (entries.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="text-4xl mb-3 opacity-40">&#x1f4e1;</div>
-        <p className="text-sm text-studio-muted">No activity yet</p>
-        <p className="mt-1 text-xs text-studio-muted/60">
-          Skill executions and channel messages will appear here
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-1">
-      {entries.map((e, i) => (
-        <div key={i} className="flex items-start gap-3 rounded-lg bg-[#0f172a] p-3">
-          <div className="shrink-0 text-[10px] text-studio-muted font-mono">
-            {new Date(e.timestamp).toLocaleTimeString()}
-          </div>
-          <div className="flex-1 min-w-0">
-            {e.channel && (
-              <span className="rounded bg-studio-panel px-1.5 py-0.5 text-[10px] text-studio-muted mr-2">
-                #{e.channel}
-              </span>
-            )}
-            <span className="text-xs text-studio-text">{e.message || '(empty)'}</span>
-          </div>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-[10px] text-studio-muted">
+        <div className={`h-2 w-2 rounded-full ${streaming ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
+        {streaming ? 'Live' : 'Disconnected'}
+        <span className="ml-auto">{entries.length} entries</span>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="text-4xl mb-3 opacity-40">&#x1f4e1;</div>
+          <p className="text-sm text-studio-muted">No activity yet</p>
+          <p className="mt-1 text-xs text-studio-muted/60">
+            Skill executions and channel messages will appear here
+          </p>
         </div>
-      ))}
+      ) : (
+        <div className="flex flex-col gap-1">
+          {entries.map((e, i) => (
+            <div key={`${e.timestamp}-${i}`} className="flex items-start gap-3 rounded-lg bg-[#0f172a] p-3">
+              <div className="shrink-0 text-[10px] text-studio-muted font-mono">
+                {new Date(e.timestamp).toLocaleTimeString()}
+              </div>
+              <div className="flex-1 min-w-0">
+                {e.channel && (
+                  <span className="rounded bg-studio-panel px-1.5 py-0.5 text-[10px] text-studio-muted mr-2">
+                    #{e.channel}
+                  </span>
+                )}
+                <span className="text-xs text-studio-text">{e.message || '(empty)'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

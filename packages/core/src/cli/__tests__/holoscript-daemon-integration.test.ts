@@ -385,4 +385,32 @@ describe('holoscript daemon integration', () => {
     expect(ingested).toBe(true);
     expect((blackboard.channel_message as { message?: string })?.message).toBe('incoming');
   });
+
+  it('enforces economy budget ceiling on generate_fix', async () => {
+    host.writeFile('packages/core/src/test.ts', 'console.log("x");');
+    host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
+
+    // With a positive budget, first call goes through (no prior spend)
+    const actions = createDaemonActions(host, llm, {
+      ...createConfig(),
+      economyConfig: { budget: 5.00 },
+    });
+
+    blackboard.currentCandidate = 'packages/core/src/test.ts';
+    blackboard.candidateContent = 'console.log("x");';
+    blackboard.focus = 'lint';
+    const first = await actions.generate_fix({}, blackboard, context);
+    expect(typeof first).toBe('boolean');
+    expect(blackboard.budget_exhausted).toBeUndefined();
+
+    // With budget=0 (unlimited), should also proceed
+    const unlimitedActions = createDaemonActions(host, llm, {
+      ...createConfig(),
+      economyConfig: { budget: 0 },
+    });
+    blackboard.budget_exhausted = undefined;
+    const unlimited = await unlimitedActions.generate_fix({}, blackboard, context);
+    expect(typeof unlimited).toBe('boolean');
+    expect(blackboard.budget_exhausted).toBeUndefined();
+  });
 });

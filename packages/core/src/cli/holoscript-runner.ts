@@ -1105,6 +1105,53 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/** Extract @economy trait config from composition AST (walks body/children). */
+function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; default_spend_limit?: number; initial_balance?: number } | undefined {
+  const result: { budget?: number; default_spend_limit?: number; initial_balance?: number } = {};
+  let found = false;
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const obj = node as Record<string, unknown>;
+
+    // Check traits array on this node
+    if (Array.isArray(obj.traits)) {
+      for (const trait of obj.traits) {
+        const t = trait as Record<string, unknown>;
+        if (t.name === 'economy' && typeof t.config === 'object' && t.config) {
+          const cfg = t.config as Record<string, unknown>;
+          if (typeof cfg.budget === 'number') result.budget = cfg.budget;
+          if (typeof cfg.default_spend_limit === 'number') result.default_spend_limit = cfg.default_spend_limit;
+          if (typeof cfg.initial_balance === 'number') result.initial_balance = cfg.initial_balance;
+          found = true;
+        }
+      }
+    }
+
+    // Check directives for @economy
+    if (Array.isArray(obj.directives)) {
+      for (const dir of obj.directives) {
+        const d = dir as Record<string, unknown>;
+        if ((d.type === 'trait' || d.type === 'ObjectTrait') && d.name === 'economy' && typeof d.config === 'object' && d.config) {
+          const cfg = d.config as Record<string, unknown>;
+          if (typeof cfg.budget === 'number') result.budget = cfg.budget;
+          if (typeof cfg.default_spend_limit === 'number') result.default_spend_limit = cfg.default_spend_limit;
+          if (typeof cfg.initial_balance === 'number') result.initial_balance = cfg.initial_balance;
+          found = true;
+        }
+      }
+    }
+
+    // Recurse into body, children, objects
+    if (Array.isArray(obj.body)) obj.body.forEach(walk);
+    if (Array.isArray(obj.children)) obj.children.forEach(walk);
+    if (Array.isArray(obj.objects)) obj.objects.forEach(walk);
+  }
+
+  walk(ast);
+  return found ? result : undefined;
+}
+
 function loadRuntimeSkillActions(
   skillsDir: string,
   opts: CLIOptions,
@@ -1335,6 +1382,12 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   const quarantineThreshold = (getASTBlackboardValue(compositionAST, 'quarantine_threshold') as number | undefined)
     ?? 3;
 
+  // Extract @economy trait config from composition AST
+  const economyConfig = extractEconomyConfig(compositionAST);
+  if (economyConfig && opts.debug) {
+    console.log(`[daemon] Economy config from composition:`, economyConfig);
+  }
+
   const config: DaemonConfig = {
     repoRoot,
     commit: opts.commit,
@@ -1353,6 +1406,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       allowedHosts: opts.allowedHosts,
       allowedPaths: opts.allowedPaths,
     },
+    economyConfig,
   };
 
   // Load persisted daemon state

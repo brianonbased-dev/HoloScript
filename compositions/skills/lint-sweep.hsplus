@@ -1,0 +1,75 @@
+// Lint Sweep — focused lint fix cycle
+// Finds console.log, @ts-ignore, and `as any` in source files.
+// Uses the daemon's generate_fix action to auto-fix each candidate.
+// Prioritizes by fix type: console.log (tier 0) > @ts-ignore (tier 1) > as any (tier 2).
+
+composition "lint-sweep" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.50)
+  @rbac
+  @timeout_guard
+
+  state focus: string = "lint"
+  state candidatesFound: number = 0
+  state candidatesFixed: number = 0
+  state candidatesFailed: number = 0
+  state currentFile: string = ""
+
+  sequence "sweep-cycle" {
+    action "identity_intake" {
+      // Load accumulated wisdom
+    }
+
+    action "diagnose" {
+      // Find lint candidates, sorted by tier
+    }
+
+    sequence "fix-loop" {
+      action "read_candidate" {
+        // Read next unfixed file
+      }
+
+      action "generate_fix" {
+        // LLM generates lint fix patches
+      }
+
+      action "verify_compilation" {
+        // Ensure fix doesn't break types
+      }
+
+      selector "handle-result" {
+        sequence "success-path" {
+          action "validate_quality" {
+            // Confirm quality maintained or improved
+          }
+
+          action "commit_changes" {
+            // Git commit the fix
+          }
+
+          action "advance_candidate" {
+            // Move to next candidate
+          }
+        }
+
+        sequence "failure-path" {
+          action "rollback_changes" {
+            // Revert broken fix
+          }
+
+          action "advance_candidate" {
+            // Skip and move on
+          }
+        }
+      }
+    }
+
+    action "compress_knowledge" {
+      // Save what was learned this cycle
+    }
+
+    action "report" {
+      // Summary: fixed/failed/remaining
+    }
+  }
+}

@@ -40,7 +40,7 @@ export class ExtensionRegistry {
       this.extensions.set(extension.id, extension);
       logger.info(`Extension loaded: ${extension.id} v${extension.version}`);
     } catch (error) {
-      logger.error(`Failed to load extension ${extension.id}:`, error as any);
+      logger.error(`Failed to load extension ${extension.id}:`, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -62,7 +62,7 @@ export class ExtensionRegistry {
       };
       extension.onUnload(context);
     } catch (e) {
-      logger.error(`Error unloading extension ${id}`, e as any);
+      logger.error(`Error unloading extension ${id}`, { error: e instanceof Error ? e.message : String(e) });
     }
 
     this.extensions.delete(id);

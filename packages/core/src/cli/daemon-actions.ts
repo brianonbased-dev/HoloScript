@@ -58,6 +58,12 @@ export interface DaemonConfig {
   };
   /** Directory where runtime-created skills are persisted. */
   skillsDir?: string;
+  /** Economy trait config extracted from composition AST. */
+  economyConfig?: {
+    budget?: number;
+    default_spend_limit?: number;
+    initial_balance?: number;
+  };
 }
 
 export interface DaemonExecResult {
@@ -502,6 +508,14 @@ function toStringArray(value: unknown): string[] {
 
 function resolvePolicy(config: DaemonConfig) {
   const policy = config.toolPolicy ?? {};
+  const econ = config.economyConfig ?? {};
+  // Economy budget: @economy { budget: X } sets a per-cycle spend ceiling in USD.
+  // default_spend_limit from the trait config is the fallback.
+  const budgetUSD = typeof econ.budget === 'number' && econ.budget > 0
+    ? econ.budget
+    : typeof econ.default_spend_limit === 'number' && econ.default_spend_limit > 0
+      ? econ.default_spend_limit
+      : 0; // 0 = unlimited
   return {
     allowShell: policy.allowShell ?? false,
     allowedShellCommands: (policy.allowedShellCommands ?? []).map(c => c.trim()).filter(Boolean),
@@ -517,6 +531,8 @@ function resolvePolicy(config: DaemonConfig) {
     inboxSignatureSecret: typeof policy.inboxSignatureSecret === 'string'
       ? policy.inboxSignatureSecret
       : '',
+    budgetUSD,
+    spentUSD: 0,
   };
 }
 
@@ -1006,6 +1022,21 @@ export function createDaemonActions(
   );
   const { provider, toolProfile } = promptContext;
   const policy = resolvePolicy(config);
+
+  // Economy: track spend across LLM calls and enforce budget ceiling
+  const trackSpend = (inputTokens: number, outputTokens: number) => {
+    // Approximate cost: $3/M input, $15/M output (Sonnet pricing)
+    const cost = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
+    policy.spentUSD += cost;
+    return cost;
+  };
+  const isBudgetExhausted = () => {
+    return policy.budgetUSD > 0 && policy.spentUSD >= policy.budgetUSD;
+  };
+
+  if (policy.budgetUSD > 0) {
+    log(`Economy: budget ceiling $${policy.budgetUSD.toFixed(2)} per cycle`);
+  }
 
   log(`LLM provider=${provider} | toolProfile=${toolProfile} | model=${config.model}`);
 
@@ -1551,6 +1582,12 @@ export function createDaemonActions(
     // Think→Patch architecture: LLM reasons about errors, proposes JSON patches,
     // patches are applied programmatically. Prevents file truncation/deletion.
     generate_fix: async (_params, bb, ctx) => {
+      // Economy budget gate: refuse to generate if budget exhausted
+      if (isBudgetExhausted()) {
+        log(`Economy: budget exhausted ($${policy.spentUSD.toFixed(3)} / $${policy.budgetUSD.toFixed(2)})`);
+        bb.budget_exhausted = true;
+        return false;
+      }
       const file = bb.currentCandidate as string;
       const content = bb.candidateContent as string;
       const focus = (bb.focus as string) || 'typefix';
@@ -1562,7 +1599,8 @@ export function createDaemonActions(
           const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
-          ctx.emit('economy:spend', { action: 'generate_fix', focus, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          const spendCost = trackSpend(result.inputTokens, result.outputTokens);
+          ctx.emit('economy:spend', { action: 'generate_fix', focus, inputTokens: result.inputTokens, outputTokens: result.outputTokens, costUSD: spendCost, totalSpentUSD: policy.spentUSD });
           const edited = result.text.trim();
           if (edited.length > 10 && !isContaminatedEdit(edited)) {
             const testPath = file.replace(/\\/g, '/').replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
@@ -1686,7 +1724,8 @@ export function createDaemonActions(
           const result = await llm.chat({ system: systemPrompt, prompt: lintPrompt, maxTokens: 4096 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
-          ctx.emit('economy:spend', { action: 'generate_fix', focus: 'lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          const lintSpendCost = trackSpend(result.inputTokens, result.outputTokens);
+          ctx.emit('economy:spend', { action: 'generate_fix', focus: 'lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens, costUSD: lintSpendCost, totalSpentUSD: policy.spentUSD });
           const patchResponse = parsePatchResponse(result.text);
           if (!patchResponse || patchResponse.patches.length === 0) {
             // LLM analyzed but couldn't produce patches — mark as committed to skip in future cycles

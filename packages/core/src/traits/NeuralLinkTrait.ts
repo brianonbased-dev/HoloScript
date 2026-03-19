@@ -47,7 +47,7 @@ export const neuralLinkHandler: TraitHandler<NeuralLinkConfig> = {
       last_response: null,
     };
     node.__neuralLinkState = state;
-    context.emit('neural_link_ready', { nodeId: (node as any).id, model: config.model });
+    context.emit('neural_link_ready', { nodeId: node.id, model: config.model });
   },
 
   onDetach(node) {
@@ -68,22 +68,24 @@ export const neuralLinkHandler: TraitHandler<NeuralLinkConfig> = {
     const state = node.__neuralLinkState;
     if (!state) return;
 
-    if ((event as Record<string, unknown>).type === 'neural_link_execute') {
+    const data = (event as Record<string, unknown>).data as Record<string, unknown> | undefined;
+
+    if (event.type === 'neural_link_execute') {
       state.neural_status = 'inferring';
       context.emit('on_neural_inference_start', {
-        nodeId: (node as any).id,
+        nodeId: node.id,
         model: config.model,
-        prompt: (event as Record<string, unknown>).data?.prompt,
+        prompt: data?.prompt,
       });
     }
 
-    if ((event as Record<string, unknown>).type === 'neural_link_response') {
+    if (event.type === 'neural_link_response') {
       state.neural_status = 'idle';
-      state.last_response = (event as Record<string, unknown>).data?.text;
-      state.last_inference_time = (event as Record<string, unknown>).data?.generationTime ?? 0;
+      state.last_response = data?.text;
+      state.last_inference_time = (data?.generationTime as number) ?? 0;
       context.emit('on_neural_response', {
-        nodeId: (node as any).id,
-        text: (event as Record<string, unknown>).data?.text,
+        nodeId: node.id,
+        text: data?.text,
       });
     }
   },
