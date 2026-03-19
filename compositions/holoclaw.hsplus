@@ -1,0 +1,342 @@
+/**
+ * HoloClaw — Always-On Autonomous Agent Composition
+ *
+ * The HoloScript-native equivalent of OpenClaw: an autonomous, always-on
+ * agent that runs general-purpose tasks, routes messages, hot-reloads
+ * skills, and self-improves.
+ *
+ * Architecture:
+ *   1. Always-on loop — restart_on_complete: true keeps the BT cycling
+ *   2. Work router — selector tries inbox first, then proactive tasks,
+ *      then falls back to an idle heartbeat
+ *   3. Skill hot-reload — compositions/skills/*.hsplus are loaded at
+ *      startup and watched for changes via the daemon runner
+ *   4. Economy tracking — every action is budgeted via @economy
+ *   5. Safety traits — rate limiter, circuit breaker, timeout guard
+ *
+ * Run with:
+ *   holoscript daemon compositions/holoclaw.hsplus --always-on --debug
+ *
+ * Or via the self-improve bridge:
+ *   npx tsx scripts/self-improve-bridge.ts --composition compositions/holoclaw.hsplus
+ *
+ * Skills are loaded from compositions/skills/ and hot-reloaded on change.
+ * Messages arrive via .holoscript/inbox.jsonl, responses go to outbox.jsonl.
+ * The /holoclaw Studio page shows live activity via SSE.
+ *
+ * @version 0.1.0
+ * @format .hsplus (behavior + state)
+ * @experiment HoloClaw MVP — OpenClaw-like autonomous agent on HoloScript
+ * @see holodaemon.hsplus (daemon dashboard + UI surface)
+ * @see self-improve-daemon.hsplus (self-improvement BT model)
+ */
+
+composition "HoloClaw" {
+
+  // ========================================================================
+  // STATE — agent identity and runtime metrics
+  // ========================================================================
+
+  state {
+    // ── Identity ──
+    agentName: "HoloClaw"
+    agentVersion: "0.1.0"
+    agentStatus: "idle"
+
+    // ── Cycle Tracking ──
+    cycleCount: 0
+    lastCycleAt: ""
+    uptimeStartedAt: ""
+
+    // ── Message Stats ──
+    messagesReceived: 0
+    messagesSent: 0
+    lastMessageAt: ""
+
+    // ── Health Stats ──
+    lastHealthCheck: ""
+    healthScore: 1.0
+    typeErrorCount: 0
+
+    // ── Economy ──
+    costUSD: 0
+    tokensBurned: 0
+    budgetRemaining: 10
+
+    // ── Skills ──
+    skillsLoaded: 0
+    lastSkillReload: ""
+  }
+
+  // ========================================================================
+  // COMPUTED — derived values
+  // ========================================================================
+
+  computed {
+    isRunning: $agentStatus == "running"
+    cycleLabel: "Cycle #" + String($cycleCount)
+    costLabel: "$" + $costUSD.toFixed(4)
+    healthPercent: Math.round($healthScore * 100)
+  }
+
+  // ========================================================================
+  // BEHAVIOR TREE — the always-on agent loop
+  // ========================================================================
+  //
+  // Structure:
+  //   root (sequence "holoclaw_cycle")
+  //   ├── identity_intake              [load wisdom, first tick only]
+  //   ├── selector "work_router"       [pick highest-priority work]
+  //   │   ├── sequence "inbox_path"    [messages waiting? handle them]
+  //   │   │   ├── channel_ingest       [read from inbox.jsonl]
+  //   │   │   └── channel_send         [acknowledge receipt]
+  //   │   ├── sequence "health_path"   [health check due? run it]
+  //   │   │   ├── condition: health_check_due
+  //   │   │   ├── shell_exec           [tsc --noEmit]
+  //   │   │   └── channel_send         [report health]
+  //   │   └── sequence "heartbeat"     [nothing else? just pulse]
+  //   │       └── channel_send         [alive ping]
+  //   └── (restart_on_complete loops back to top)
+
+  object "ClawBrain" {
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "holoclaw_cycle",
+        children: [
+
+          // ── Phase 0: Load Wisdom ──
+          // On first tick, loads accumulated wisdom from previous sessions.
+          // Subsequent ticks skip if wisdom already loaded (blackboard check).
+          {
+            type: "selector",
+            name: "wisdom_gate",
+            children: [
+              {
+                type: "condition",
+                name: "wisdom_loaded",
+                condition: "wisdom_loaded"
+              },
+              {
+                type: "action",
+                name: "load_wisdom",
+                action: "identity_intake"
+              }
+            ]
+          },
+
+          // ── Phase 1: Work Router ──
+          // Selector tries each path in priority order.
+          // First success wins; if all fail, the cycle still completes.
+          {
+            type: "selector",
+            name: "work_router",
+            children: [
+
+              // Path A: Inbox — check for messages from Discord/Slack/manual
+              {
+                type: "sequence",
+                name: "inbox_path",
+                children: [
+                  {
+                    type: "action",
+                    name: "check_inbox",
+                    action: "channel_ingest"
+                  },
+                  {
+                    type: "action",
+                    name: "ack_message",
+                    action: "channel_send",
+                    params: {
+                      channel: "inbox-ack",
+                      message: "holoclaw: message received and queued for processing"
+                    }
+                  }
+                ]
+              },
+
+              // Path B: Health Check — proactive codebase monitoring
+              // The condition checks if enough time has passed since last check.
+              // If health_check_due is false on the blackboard, the selector
+              // skips to Path C.
+              {
+                type: "sequence",
+                name: "health_path",
+                children: [
+                  {
+                    type: "condition",
+                    name: "health_check_due",
+                    condition: "health_check_due"
+                  },
+                  {
+                    type: "action",
+                    name: "run_typecheck",
+                    action: "shell_exec",
+                    params: {
+                      command: "npx",
+                      args: ["tsc", "--noEmit", "--pretty", "false"],
+                      timeoutMs: 90000
+                    }
+                  },
+                  {
+                    type: "action",
+                    name: "report_health",
+                    action: "channel_send",
+                    params: {
+                      channel: "health",
+                      message: "holoclaw: health check complete"
+                    }
+                  }
+                ]
+              },
+
+              // Path C: Heartbeat — default fallback, just prove we're alive
+              {
+                type: "action",
+                name: "heartbeat",
+                action: "channel_send",
+                params: {
+                  channel: "heartbeat",
+                  message: "holoclaw: alive"
+                }
+              }
+            ]
+          }
+        ]
+      },
+
+      tick_rate: 1,
+      restart_on_complete: true,
+
+      blackboard: {
+        // Wisdom tracking
+        wisdom_loaded: false,
+        wisdom: null,
+        wisdomCount: 0,
+
+        // Inbox state
+        channel_message: null,
+        channel_ingest_ok: false,
+
+        // Health check scheduling
+        health_check_due: false,
+        last_health_check_tick: 0,
+        health_check_interval_ticks: 300,
+
+        // Shell exec results
+        shell_exec_code: -1,
+        shell_exec_stdout: "",
+        shell_exec_stderr: "",
+
+        // Cycle counter
+        cycle_number: 0
+      }
+    }
+
+    // ── Safety: Rate Limiter ──
+    @rate_limiter {
+      strategy: "token_bucket",
+      max_tokens: 20,
+      refill_rate: 5,
+      window_ms: 60000,
+      per_key: false
+    }
+
+    // ── Safety: Timeout Guard ──
+    @timeout_guard {
+      default_timeout_ms: 120000,
+      fallback_action: "abort"
+    }
+
+    // ── Safety: Circuit Breaker ──
+    @circuit_breaker {
+      failure_threshold: 5,
+      window_ms: 300000,
+      reset_timeout_ms: 60000,
+      success_threshold: 1,
+      failure_rate_threshold: 0,
+      min_requests: 5
+    }
+
+    // ── Economy: Budget Tracking ──
+    @economy {
+      initial_balance: 10,
+      default_spend_limit: 2,
+      spend_limit_period: 3600000,
+      max_transaction_history: 200,
+      escrow_enabled: false,
+      task_completion_reward: 0.01
+    }
+
+    // ── Telemetry: Structured Logging ──
+    @structured_logger {
+      min_level: "info",
+      max_entries: 1000,
+      rotation_count: 200,
+      emit_events: true,
+      console_output: false,
+      default_fields: {}
+    }
+
+    // ── Scheduler: Proactive Jobs ──
+    @scheduler {
+      jobs: [
+        {
+          id: "health_check_flag",
+          interval_ms: 300000,
+          action: "set_health_due",
+          params: {},
+          mode: "repeat",
+          max_executions: 0,
+          paused: false
+        }
+      ],
+      max_jobs: 10,
+      poll_interval_ms: 5000
+    }
+  }
+
+  // ========================================================================
+  // LOGIC — event handlers for state updates
+  // ========================================================================
+
+  logic {
+    on_start() {
+      $agentStatus = "running"
+      $uptimeStartedAt = new Date().toISOString()
+      emit("holoclaw:started", {
+        version: $agentVersion,
+        startedAt: $uptimeStartedAt
+      })
+    }
+
+    on_event("daemon:tool:shell_exec", event) {
+      // Track shell execution results
+      if (event.command == "npx") {
+        $lastHealthCheck = new Date().toISOString()
+      }
+    }
+
+    on_event("daemon:channel:send", event) {
+      $messagesSent = $messagesSent + 1
+    }
+
+    on_event("user:message", event) {
+      $messagesReceived = $messagesReceived + 1
+      $lastMessageAt = new Date().toISOString()
+    }
+
+    on_event("daemon:skill_created", event) {
+      $skillsLoaded = $skillsLoaded + 1
+      $lastSkillReload = new Date().toISOString()
+    }
+
+    on_event("scheduler:job_triggered", event) {
+      // When the scheduler fires health_check_flag, set the blackboard flag
+      // so the BT condition node picks it up on the next tick
+      if (event.jobId == "health_check_flag") {
+        // Blackboard flag is set via the action dispatch
+      }
+    }
+  }
+}

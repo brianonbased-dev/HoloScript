@@ -164,9 +164,96 @@ The daemon should be rewritten as a `.hs` + `.hsplus` composition: `scripts/daem
 
 If HoloScript cannot run its own improvement loop, the "HoloScript-first" thesis has no credibility.
 
+## Exhibit B: The Studio Frontend (14 Pages of Evidence)
+
+The Studio frontend (`packages/studio`) is the second major instantiation of G.ARCH.001. While Exhibit A demonstrates the self-hosting deficit in daemon orchestration, Exhibit B demonstrates it in the product's own user interface.
+
+### Quantitative Record (2026-03-18)
+
+| Metric | Value |
+|---|---|
+| Total page routes | 14 |
+| Total API routes | 51 |
+| Total React components | 100+ |
+| Total hooks | 110+ |
+| Pages driven by .holo/.hsplus compositions | 0 (prior to remediation) |
+| Lines of hand-coded React UI | ~8,000 |
+| Lines of .hsplus UI surface already written | ~775 (holodaemon.hsplus alone) |
+| Missing pages (404 from live links) | 7 |
+| Shared navigation/auth system | None |
+
+### The HoloDaemon Case Study
+
+The most damning evidence is the `/holodaemon` page.
+
+**`compositions/holodaemon.hsplus`** (775 lines) already defines:
+- Complete UI surface: panels, text, metric cards, progress bars, agent pool, event feed
+- Reactive state with 30+ variables (`$qualityScore`, `$daemonStatus`, `$costUSD`, etc.)
+- Computed values (`$qualityPercent`, `$statusColor`, `$costLabel`)
+- Templates (`MetricCard`, `AgentBadge`, `EventRow`) for reusable UI blocks
+- Event handlers for state transitions (`daemon:job_created` → `$daemonStatus = "running"`)
+- Behavior tree for daemon orchestration
+- Safety traits (`@circuit_breaker`, `@rate_limiter`, `@economy`, `@timeout_guard`)
+
+**`packages/studio/src/app/holodaemon/page.tsx`** (651 lines) manually recreated every widget:
+- `MetricCard`, `StatusDot`, `AgentCard`, `EventRow`, `JobRow` — all hand-coded React components
+- Zustand + React Query for state that the composition already declares
+- Tailwind CSS classes duplicating the composition's `backgroundColor`, `color`, `fontSize`
+- `DAEMON_AGENTS` array hardcoded in TypeScript, duplicating the composition's `agents` state
+
+The composition was loaded and displayed in a `<pre>` tag on the "HoloScript" tab. The page did not use it as a source of truth for rendering.
+
+### Failure-to-Symptom Map
+
+Each frontend gap traces directly to an observable symptom from this document:
+
+**Symptom #1 — Self-hosting deficit:**
+14 studio pages, 0 use native HoloScript rendering. Every page is a hand-coded React component with imperative state management. The language that defines 3D worlds cannot define its own dashboard.
+
+**Symptom #2 — Wrapper-pattern standard library:**
+UI components (`MetricCard`, `StatusDot`, `AgentCard`) are pure React wrappers with no connection to the trait system. The `@panel`, `@text` UI primitives that `.hsplus` already describes are not recognized as renderable elements.
+
+**Symptom #3 — Config split-brain:**
+Page layout lives in TSX. Daemon configuration lives in `.hsplus`. Shared state lives in Zustand stores. Three sources of truth for the same page. When the composition's `agents` array changes, the React page's `DAEMON_AGENTS` constant is stale.
+
+**Symptom #4 — Testing authority outside the language:**
+Vitest tests validate React components in isolation. No test validates that the composition's UI surface matches what the page renders. No native test asserts that `$qualityPercent` computes correctly.
+
+### What Native Primitives Would Have Prevented
+
+| Frontend Gap | Missing Primitive | Effect If Present |
+|---|---|---|
+| 651 lines duplicating 775 lines | `HoloSurfaceRenderer` | `.hsplus` UI surface → DOM directly |
+| No shared navigation across 14 pages | `@layout` trait | Composition-level nav bar and breadcrumbs |
+| 7 missing pages (404 from live links) | `@route` trait | Compositions self-declare their URL routes |
+| No auth continuity (Studio ↔ Marketplace) | `@auth` trait | Composition-level identity and session |
+| `NEXT_PUBLIC_APP_URL` hardcoded in SSR page | `@env` trait | Native environment variable binding |
+| Agent pool state duplicated in TS constant | Composition as source of truth | Single `state { agents: [...] }` block |
+
+### Resolution
+
+The remediation follows a phased approach:
+
+**Phase 1 (implemented 2026-03-18):** Built `HoloSurfaceRenderer` — a React component that walks `.hsplus` UI surface AST nodes and renders them as DOM elements. The `/holodaemon` page was migrated from 651 lines of hand-coded React to ~80 lines that hydrate from `holodaemon.hsplus`.
+
+**Phase 2 (planned):** Migrate `/holoclaw` + add `@api` and `@event_source` traits for declarative data fetching.
+
+**Phase 3 (planned):** Archive the TypeScript daemon control arm. The `.hsplus` bridge is the only entry point.
+
+**Phase 4 (planned):** Migrate `/templates`, `/registry`, `/projects` (list/card pages).
+
+**Phase 5 (planned):** Native `@test` trait for headless composition validation.
+
+After Phase 4: 5 of 14 studio pages will hydrate from native compositions.
+
+### The Frontend Corollary to the Dogfooding Mandate
+
+If HoloScript cannot render its own dashboard from its own compositions, the "HoloScript-first" thesis has no credibility on the frontend. The language defines 3D worlds with panels, text, and reactive state. It should define 2D dashboards the same way.
+
 ## Compliance Note
 This document supersedes informal transcript-style notes for this gotcha and serves as the formal architectural record for G.ARCH.001.
 
 ## Revision History
 - 2026-03-12: Initial formal record (G.ARCH.001)
 - 2026-03-14: Added Exhibit A (daemon 25-cycle evidence), failure-to-symptom map, trait resolution table, script-layer resolution path, dogfooding mandate
+- 2026-03-18: Added Exhibit B (studio frontend 14-page evidence), HoloDaemon case study, implemented Phase 1 (HoloSurfaceRenderer), migrated /holodaemon page
