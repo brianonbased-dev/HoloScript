@@ -11,6 +11,7 @@ function randomQuat(): [number, number, number, number] {
   const z = Math.random() * 2 - 1;
   const w = Math.random() * 2 - 1;
   const len = Math.sqrt(x * x + y * y + z * z + w * w);
+  if (len === 0) return [0, 0, 0, 1]; // fallback to identity quaternion
   return [x / len, y / len, z / len, w / len];
 }
 
@@ -37,10 +38,10 @@ describe('Sync Benchmark Utilities', () => {
         expect(w).not.toBeNaN();
         
         // Verify finite values
-        expect(x).toBeFinite();
-        expect(y).toBeFinite();
-        expect(z).toBeFinite();
-        expect(w).toBeFinite();
+        expect(Number.isFinite(x)).toBe(true);
+        expect(Number.isFinite(y)).toBe(true);
+        expect(Number.isFinite(z)).toBe(true);
+        expect(Number.isFinite(w)).toBe(true);
       }
     });
 
