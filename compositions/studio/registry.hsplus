@@ -93,4 +93,49 @@ composition "Registry" {
       }
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "initial page title is HoloScript Registry"
+    assert: { $pageTitle == "HoloScript Registry" }
+  }
+
+  @test {
+    name: "initial pack count is zero"
+    assert: { $packCount == 0 }
+  }
+
+  @test {
+    name: "pack count label pluralizes for zero"
+    assert: { $packCountLabel == "0 packs found" }
+  }
+
+  @test {
+    name: "pack count label singular for 1"
+    setup: { $packCount = 1 }
+    assert: { $packCountLabel == "1 pack found" }
+  }
+
+  @test {
+    name: "pack count label plural for many"
+    setup: { $packCount = 42 }
+    assert: { $packCountLabel == "42 packs found" }
+  }
+
+  @test {
+    name: "loading starts true"
+    assert: { $isLoading == true }
+  }
+
+  @test {
+    name: "hasActiveTag is false when empty"
+    assert: { $hasActiveTag == false }
+  }
+
+  @test {
+    name: "hasActiveTag is true when tag set"
+    setup: { $activeTag = "vr" }
+    assert: { $hasActiveTag == true }
+  }
 }

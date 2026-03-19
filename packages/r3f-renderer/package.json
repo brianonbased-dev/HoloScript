@@ -14,7 +14,8 @@
   "files": ["dist", "src"],
   "scripts": {
     "build": "tsup && node scripts/generate-types.mjs",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test": "vitest run"
   },
   "dependencies": {
     "@holoscript/core": "workspace:*"
@@ -33,7 +34,8 @@
     "react": "^18.2.0",
     "three": "^0.182.0",
     "tsup": "^8.0.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
   },
   "author": "Brian Joseph",
   "license": "MIT"

@@ -242,4 +242,32 @@ composition "TemplateGallery" {
       }
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "initial page title is Templates"
+    assert: { $pageTitle == "Templates" }
+  }
+
+  @test {
+    name: "initial template count is 5"
+    assert: { $templateCount == 5 }
+  }
+
+  @test {
+    name: "count label pluralizes correctly"
+    assert: { $countLabel == "5 scenes" }
+  }
+
+  @test {
+    name: "selected template starts empty"
+    assert: { $selectedTemplate == "" }
+  }
+
+  @test {
+    name: "count label updates on templateCount change"
+    setup: { $templateCount = 1 }
+    assert: { $countLabel == "1 scenes" }
+  }
 }

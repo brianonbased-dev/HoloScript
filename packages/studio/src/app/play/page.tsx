@@ -10,6 +10,7 @@ import {
   Suspense,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
 import {
   OrbitControls,
@@ -2056,6 +2057,9 @@ function SceneContent({
 // ═══════════════════════════════════════════════════════════════════
 
 export default function PlayPage() {
+  // ── Native composition surface (header chrome) ──
+  const composition = useHoloComposition('/api/surface/play');
+
   const [objects, setObjects] = useState<SceneObject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<(typeof ALL_TOOLS)[number]>(PRIMITIVES[0]);
@@ -2069,6 +2073,20 @@ export default function PlayPage() {
   const [harvestCount, setHarvestCount] = useState(0);
   const [computeStats, setComputeStats] = useState<ProofOfPlayStats | null>(null);
   const orbitRef = useRef<any>(null);
+
+  // ── Bridge React state → composition surface ──
+  useEffect(() => {
+    if (!composition.loading) {
+      composition.setState({
+        objectCount: objects.length,
+        physicsEnabled,
+        transformMode,
+        activeTool: activeTool.type,
+        gardenActive,
+        harvestCount,
+      });
+    }
+  }, [objects.length, physicsEnabled, transformMode, activeTool.type, gardenActive, harvestCount, composition.loading]);
 
   const selectedObj = selectedId ? objects.find((o) => o.id === selectedId) : null;
   const lighting = LIGHTING_PRESETS[lightingIdx];
@@ -2288,11 +2306,17 @@ export default function PlayPage() {
         <Link href="/" className="play-home-btn" title="Go Home">
           🏠
         </Link>
-        <div className="play-title">
-          <span className="play-title-emoji">🎨</span>
-          <span>Play Mode</span>
-          <span className="play-subtitle">3D Scene Builder</span>
-        </div>
+        {/* Native composition surface renders title + status labels */}
+        {!composition.loading && (
+          <HoloSurfaceRenderer
+            nodes={composition.nodes}
+            state={composition.state}
+            computed={composition.computed}
+            templates={composition.templates}
+            onEmit={composition.emit}
+            className="play-holo-surface"
+          />
+        )}
         <div className="play-header-actions">
           <button
             className={`play-physics-toggle ${physicsEnabled ? 'active' : ''}`}

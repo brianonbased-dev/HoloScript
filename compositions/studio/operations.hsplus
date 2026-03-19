@@ -350,4 +350,41 @@ composition "StudioOperationsDashboard" {
       color: "'#cbd5e1'"
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "workspace name defaults to legacy-repo"
+    assert: { $workspaceName == "legacy-repo" }
+  }
+
+  @test {
+    name: "branch name defaults to main"
+    assert: { $branchName == "main" }
+  }
+
+  @test {
+    name: "daemon health is 0.92"
+    assert: { $daemonHealth == 0.92 }
+  }
+
+  @test {
+    name: "pending reviews count is 3"
+    assert: { $pendingReviews == 3 }
+  }
+
+  @test {
+    name: "open alerts count is 2"
+    assert: { $openAlerts == 2 }
+  }
+
+  @test {
+    name: "sync status is synced"
+    assert: { $syncStatus == "synced" }
+  }
+
+  @test {
+    name: "selected job defaults to job-1024"
+    assert: { $selectedJobId == "job-1024" }
+  }
 }
