@@ -13,7 +13,8 @@
  * @packageDocumentation
  */
 
-import { parseHolo, parseHoloScriptPlus } from '../HoloScriptParser';
+import { parseHolo } from '../parser/HoloCompositionParser';
+import { parse as parseHoloScriptPlus } from '../parser/HoloScriptPlusParser';
 import type {
   HoloComposition,
   HoloEnvironment,

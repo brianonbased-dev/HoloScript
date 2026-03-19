@@ -10,7 +10,7 @@
  * @version 4.2.0
  */
 
-import type { HoloDomainBlock, HoloDomainType } from '../parser/HoloCompositionTypes';
+import type { HoloDomainBlock, HoloDomainType, HoloValue } from '../parser/HoloCompositionTypes';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 // =============================================================================
@@ -611,12 +611,13 @@ export function physicsToURDF(physics: CompiledPhysics): string {
   if (physics.keyword === 'articulation') {
     const joints = (physics.joints || []).map((j) => {
       const props = j.properties;
+      const limitsValues = Array.isArray(props.limits) ? props.limits : undefined;
       return [
         `  <joint name="${j.name}" type="${jointKeywordToURDF(j.keyword)}">`,
         props.axis
           ? `    <axis xyz="${Array.isArray(props.axis) ? props.axis.join(' ') : '0 0 1'}"/>`
           : '',
-        props.limits ? `    <limit lower="${props.limits[0]}" upper="${props.limits[1]}"/>` : '',
+        limitsValues ? `    <limit lower="${limitsValues[0]}" upper="${limitsValues[1]}"/>` : '',
         props.damping ? `    <dynamics damping="${props.damping}"/>` : '',
         `  </joint>`,
       ]
@@ -1010,7 +1011,7 @@ export function audioSourceToUnreal(audio: CompiledAudioSource, varPrefix: strin
     lines.push(`${varPrefix}Audio->SetVolumeMultiplier(${audio.properties.volume}f);`);
   if (audio.properties.loop !== undefined)
     lines.push(`${varPrefix}Audio->bIsLooping = ${audio.properties.loop ? 'true' : 'false'};`);
-  if (audio.traits.includes('spatial') || audio.properties.spatial_blend > 0) {
+  if (audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0)) {
     lines.push(`${varPrefix}Audio->bOverrideAttenuation = true;`);
     if (audio.properties.max_distance)
       lines.push(
@@ -1184,7 +1185,7 @@ export function postProcessingToGodot(pp: CompiledPostProcessing): string {
 export function audioSourceToGodot(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`# Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  const isSpatial = audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
   const nodeType = isSpatial ? 'AudioStreamPlayer3D' : 'AudioStreamPlayer';
   lines.push(`var ${varPrefix}_audio = ${nodeType}.new()`);
   lines.push(`${varPrefix}_audio.name = "${audio.name}"`);
@@ -1324,7 +1325,7 @@ export function particlesToVisionOS(ps: CompiledParticleSystem, varPrefix: strin
 export function audioSourceToVisionOS(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  const isSpatial = audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
   if (isSpatial) {
     lines.push(`let ${varPrefix}Audio = Entity()`);
     lines.push(`${varPrefix}Audio.spatialAudio = SpatialAudioComponent()`);
@@ -1512,7 +1513,7 @@ export function audioSourceToAndroidXR(audio: CompiledAudioSource, varPrefix: st
   const isSpatial =
     audio.traits.includes('spatial') ||
     audio.traits.includes('hrtf') ||
-    audio.properties.spatial_blend > 0;
+    (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
 
   if (audio.keyword === 'reverb_zone') {
     lines.push(`// Reverb zone: "${audio.name}" — implement via AudioEffect.EFFECT_TYPE_REVERB`);
@@ -1731,8 +1732,9 @@ export function particlesToBabylon(ps: CompiledParticleSystem, varPrefix: string
     }
   }
   if (ps.properties.gravity_modifier !== undefined) {
+    const gravMod = typeof ps.properties.gravity_modifier === 'number' ? ps.properties.gravity_modifier : 1;
     lines.push(
-      `${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * ps.properties.gravity_modifier}, 0);`
+      `${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * gravMod}, 0);`
     );
   }
   lines.push(`${varPrefix}PS.start();`);
@@ -1775,7 +1777,7 @@ export function postProcessingToBabylon(pp: CompiledPostProcessing): string {
 export function audioSourceToBabylon(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  const isSpatial = audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
   lines.push(
     `const ${varPrefix}Sound = new BABYLON.Sound("${audio.name}", "${audio.properties.clip || ''}", scene, null, {`
   );
@@ -1878,7 +1880,7 @@ export function audioSourceToPlayCanvas(audio: CompiledAudioSource, varPrefix: s
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
   lines.push(`${varPrefix}Entity.addComponent("sound", {`);
   lines.push(
-    `  positional: ${audio.traits.includes('spatial') || audio.properties.spatial_blend > 0},`
+    `  positional: ${audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0)},`
   );
   if (audio.properties.volume !== undefined) lines.push(`  volume: ${audio.properties.volume},`);
   if (audio.properties.max_distance) lines.push(`  maxDistance: ${audio.properties.max_distance},`);
@@ -1969,8 +1971,9 @@ export function physicsToSDF(physics: CompiledPhysics): string {
         lines.push(`  <axis><xyz>${axis.join(' ')}</xyz></axis>`);
       }
       if (j.properties.limits) {
-        lines.push(
-          `  <axis><limit><lower>${j.properties.limits[0]}</lower><upper>${j.properties.limits[1]}</upper></limit></axis>`
+        const limVals = Array.isArray(j.properties.limits) ? j.properties.limits : undefined;
+        if (limVals) lines.push(
+          `  <axis><limit><lower>${limVals[0]}</lower><upper>${limVals[1]}</upper></limit></axis>`
         );
       }
       lines.push('</joint>');
@@ -2249,7 +2252,7 @@ export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative
     type: narrativeType,
     chapters,
     startChapter: (props.start_chapter || props.startChapter) as string | undefined,
-    variables: props.variables as Record<string, unknown> | undefined,
+    variables: props.variables as Record<string, HoloValue> | undefined,
   };
 }
 
@@ -3436,7 +3439,7 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
     axes = { x: props.x_axis as string, y: props.y_axis as string, z: props.z_axis as string };
   } else if (props.axes && typeof props.axes === 'object') {
     const a = props.axes as Record<string, unknown>;
-    axes = { x: a.x, y: a.y, z: a.z };
+    axes = { x: a.x as string | undefined, y: a.y as string | undefined, z: a.z as string | undefined };
   }
   let dimensions: CompiledDataViz['dimensions'];
   if (props.width != null || props.height != null) {
@@ -3545,7 +3548,7 @@ export function compileEducationBlock(block: HoloDomainBlock): CompiledEducation
   let questions: CompiledEducation['questions'];
   if (Array.isArray(props.questions)) {
     questions = (props.questions as unknown[]).map((q) =>
-      typeof q === 'string' ? { question: q } : q
+      typeof q === 'string' ? { question: q } : (q as { question: string; options?: string[]; answer?: string })
     );
   }
   // Extract questions from children (quiz sub-blocks)
@@ -3975,10 +3978,10 @@ export function compileProceduralBlock(block: HoloDomainBlock): CompiledProcedur
   } else if (props.noise && typeof props.noise === 'object') {
     const n = props.noise as Record<string, unknown>;
     noise = {
-      type: n.type ?? 'perlin',
-      octaves: n.octaves ?? 4,
-      frequency: n.frequency ?? 1.0,
-      amplitude: n.amplitude ?? 1.0,
+      type: (n.type as string) ?? 'perlin',
+      octaves: (n.octaves as number) ?? 4,
+      frequency: (n.frequency as number) ?? 1.0,
+      amplitude: (n.amplitude as number) ?? 1.0,
     };
   }
   return {
@@ -4090,7 +4093,7 @@ export function compileRenderingBlock(block: HoloDomainBlock): CompiledRendering
   let lodLevels: CompiledRendering['lodLevels'];
   if (Array.isArray(props.levels)) {
     lodLevels = (props.levels as unknown[]).map((l) =>
-      typeof l === 'object' ? l : { distance: l }
+      typeof l === 'object' && l !== null ? (l as { distance: number; mesh?: string; detail?: number }) : { distance: l as number }
     );
   }
   // Extract LOD levels from children

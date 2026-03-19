@@ -1932,7 +1932,7 @@ export class R3FCompiler {
     for (const [key, value] of Object.entries(props)) {
       if (key.startsWith('__spread_')) {
         spreadKeys.push(key);
-      } else if (value && typeof value === 'object' && value.type === 'spread') {
+      } else if (value && typeof value === 'object' && (value as Record<string, unknown>).type === 'spread') {
         // Handle spread stored as a regular property value
         spreadKeys.push(key);
       } else {
@@ -1944,7 +1944,7 @@ export class R3FCompiler {
           !('__ref' in value) &&
           !('__expr' in value)
         ) {
-          result[key] = this.expandSpreads(value, context);
+          result[key] = this.expandSpreads(value as Record<string, unknown>, context);
         } else if (Array.isArray(value)) {
           // Handle arrays - expand spreads within array items
           result[key] = this.expandArraySpreads(value, context);
@@ -1957,11 +1957,11 @@ export class R3FCompiler {
     // Second pass: expand and merge spreads in order
     for (const spreadKey of spreadKeys) {
       const spreadValue = props[spreadKey];
-      if (spreadValue && typeof spreadValue === 'object' && spreadValue.type === 'spread') {
-        const resolved = this.resolveSpreadArgument(spreadValue.argument, context);
+      if (spreadValue && typeof spreadValue === 'object' && (spreadValue as Record<string, unknown>).type === 'spread') {
+        const resolved = this.resolveSpreadArgument((spreadValue as Record<string, unknown>).argument, context);
         if (resolved && typeof resolved === 'object' && !Array.isArray(resolved)) {
           // Merge spread properties - spread comes first, explicit props override
-          Object.assign(result, this.expandSpreads(resolved, context));
+          Object.assign(result, this.expandSpreads(resolved as Record<string, unknown>, context));
         }
       }
     }
@@ -1970,7 +1970,7 @@ export class R3FCompiler {
     for (const [key, value] of Object.entries(props)) {
       if (
         !key.startsWith('__spread_') &&
-        !(value && typeof value === 'object' && value.type === 'spread')
+        !(value && typeof value === 'object' && (value as Record<string, unknown>).type === 'spread')
       ) {
         if (
           value &&
@@ -1979,7 +1979,7 @@ export class R3FCompiler {
           !('__ref' in value) &&
           !('__expr' in value)
         ) {
-          result[key] = this.expandSpreads(value, context);
+          result[key] = this.expandSpreads(value as Record<string, unknown>, context);
         } else if (Array.isArray(value)) {
           result[key] = this.expandArraySpreads(value, context);
         } else {
@@ -2002,8 +2002,8 @@ export class R3FCompiler {
     const result: unknown[] = [];
 
     for (const item of arr) {
-      if (item && typeof item === 'object' && item.type === 'spread') {
-        const resolved = this.resolveSpreadArgument(item.argument, context);
+      if (item && typeof item === 'object' && (item as Record<string, unknown>).type === 'spread') {
+        const resolved = this.resolveSpreadArgument((item as Record<string, unknown>).argument, context);
         if (Array.isArray(resolved)) {
           result.push(...resolved);
         } else if (resolved !== undefined && resolved !== null) {
@@ -2012,7 +2012,7 @@ export class R3FCompiler {
         }
       } else if (item && typeof item === 'object' && !Array.isArray(item)) {
         // Recursively expand spreads in nested objects
-        result.push(this.expandSpreads(item, context));
+        result.push(this.expandSpreads(item as Record<string, unknown>, context));
       } else {
         result.push(item);
       }
@@ -2096,7 +2096,7 @@ export class R3FCompiler {
   public compile(ast: HSPlusAST, agentToken?: string, outputPath?: string): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
 
-    const root = this.compileNode(ast.root);
+    const root = this.compileNode(ast.root as ASTNode);
 
     if (this.hasPostProcessing(root)) {
       root.children?.unshift({
@@ -2111,7 +2111,7 @@ export class R3FCompiler {
     // v4.2: Compile domain blocks (materials, physics, particles, post-fx, audio, weather)
     const domainBlocks = ((ast as unknown as Record<string, unknown>).domainBlocks ?? []) as Array<Record<string, unknown>>;
     if (domainBlocks.length > 0) {
-      const compiled = compileDomainBlocks(domainBlocks as unknown as import('./DomainBlockCompilerMixin').HoloDomainBlock[], {
+      const compiled = compileDomainBlocks(domainBlocks as unknown as import('../parser/HoloCompositionTypes').HoloDomainBlock[], {
         material: (block) => {
           const mat = compileMaterialBlock(block);
           return {
@@ -2196,10 +2196,10 @@ export class R3FCompiler {
   public compileNode(node: ASTNode): R3FNode {
     // Dispatch to dedicated methods for rich node types
     if (node.type === 'system') {
-      return this.compileSystemNode(node);
+      return this.compileSystemNode(node as unknown as Record<string, unknown>);
     }
     if (node.type === 'component') {
-      return this.compileComponentNode(node);
+      return this.compileComponentNode(node as unknown as Record<string, unknown>);
     }
 
     const rawProps = (node as unknown as Record<string, unknown>).properties as Record<string, unknown> || {};
@@ -2223,7 +2223,7 @@ export class R3FCompiler {
 
     const enhanced = node as unknown as Record<string, unknown>;
     if (enhanced.graphics) {
-      this.applyGraphicsConfig(r3fNode, enhanced.graphics);
+      this.applyGraphicsConfig(r3fNode, enhanced.graphics as Record<string, unknown>);
     }
 
     if (enhanced.children && Array.isArray(enhanced.children)) {
@@ -2240,7 +2240,7 @@ export class R3FCompiler {
 
     const root = r3fNodePool.acquire();
     root.type = 'group';
-    root.id = composition.name;
+    root.id = composition.name as string | undefined;
     root.props = {};
     root.children = [];
     root.traits = new Map();
@@ -2248,9 +2248,9 @@ export class R3FCompiler {
 
     // Build template map for trait merging
     const templateMap = new Map<string, Record<string, unknown>>();
-    if (composition.templates) {
-      for (const tmpl of composition.templates) {
-        templateMap.set(tmpl.name, tmpl);
+    if (Array.isArray(composition.templates)) {
+      for (const tmpl of composition.templates as Record<string, unknown>[]) {
+        templateMap.set(tmpl.name as string, tmpl);
       }
     }
 
@@ -2277,41 +2277,41 @@ export class R3FCompiler {
     }
 
     // Compile first-class light blocks
-    if (composition.lights) {
-      for (const light of composition.lights) {
+    if (Array.isArray(composition.lights)) {
+      for (const light of composition.lights as Record<string, unknown>[]) {
         root.children!.push(this.compileLightBlock(light));
       }
     }
 
-    if (composition.objects) {
-      for (const obj of composition.objects) {
+    if (Array.isArray(composition.objects)) {
+      for (const obj of composition.objects as Record<string, unknown>[]) {
         root.children!.push(this.compileObjectDecl(obj, templateMap));
       }
     }
 
-    if (composition.spatialGroups) {
-      for (const group of composition.spatialGroups) {
+    if (Array.isArray(composition.spatialGroups)) {
+      for (const group of composition.spatialGroups as Record<string, unknown>[]) {
         root.children!.push(this.compileSpatialGroup(group, templateMap));
       }
     }
 
     // Compile timelines
-    if (composition.timelines) {
-      for (const timeline of composition.timelines) {
+    if (Array.isArray(composition.timelines)) {
+      for (const timeline of composition.timelines as Record<string, unknown>[]) {
         root.children!.push(this.compileTimelineBlock(timeline));
       }
     }
 
     // Compile audio blocks
-    if (composition.audio) {
-      for (const audio of composition.audio) {
+    if (Array.isArray(composition.audio)) {
+      for (const audio of composition.audio as Record<string, unknown>[]) {
         root.children!.push(this.compileAudioBlock(audio));
       }
     }
 
     // Compile zones
-    if (composition.zones) {
-      for (const zone of composition.zones) {
+    if (Array.isArray(composition.zones)) {
+      for (const zone of composition.zones as Record<string, unknown>[]) {
         root.children!.push(this.compileZoneBlock(zone));
       }
     }
@@ -2322,34 +2322,34 @@ export class R3FCompiler {
     }
 
     // Compile transitions
-    if (composition.transitions) {
-      for (const transition of composition.transitions) {
+    if (Array.isArray(composition.transitions)) {
+      for (const transition of composition.transitions as Record<string, unknown>[]) {
         root.children!.push(this.compileTransitionBlock(transition));
       }
     }
 
     // Compile conditional blocks
-    if (composition.conditionals) {
-      for (const cond of composition.conditionals) {
+    if (Array.isArray(composition.conditionals)) {
+      for (const cond of composition.conditionals as Record<string, unknown>[]) {
         root.children!.push(this.compileConditionalBlock(cond, templateMap));
       }
     }
 
     // Compile for-each blocks
-    if (composition.iterators) {
-      for (const iter of composition.iterators) {
+    if (Array.isArray(composition.iterators)) {
+      for (const iter of composition.iterators as Record<string, unknown>[]) {
         root.children!.push(this.compileForEachBlock(iter, templateMap));
       }
     }
 
     // Compile first-class camera block
     if (composition.camera) {
-      root.children!.push(this.compileCameraBlock(composition.camera));
+      root.children!.push(this.compileCameraBlock(composition.camera as Record<string, unknown>));
     }
 
     // Compile first-class effects block OR auto-detect post-processing
     if (composition.effects) {
-      root.children!.unshift(this.compileEffectsBlock(composition.effects));
+      root.children!.unshift(this.compileEffectsBlock(composition.effects as Record<string, unknown>));
     } else if (this.hasPostProcessing(root)) {
       root.children!.unshift({
         type: 'EffectComposer',
@@ -2374,9 +2374,9 @@ export class R3FCompiler {
     const type = lightMapping[light.lightType] || 'directionalLight';
     const props: Record<string, unknown> = {};
 
-    if (light.properties) {
-      for (const prop of light.properties) {
-        const key = prop.key;
+    if (Array.isArray(light.properties)) {
+      for (const prop of light.properties as Record<string, unknown>[]) {
+        const key = prop.key as string;
         const value = prop.value;
         if (key === 'cast_shadow' || key === 'castShadow') {
           props.castShadow = value;
@@ -2400,7 +2400,7 @@ export class R3FCompiler {
 
     const r3fNode = r3fNodePool.acquire();
     r3fNode.type = type;
-    r3fNode.id = light.name;
+    r3fNode.id = light.name as string | undefined;
     r3fNode.props = props;
     r3fNode.children = [];
     r3fNode.traits = new Map();
@@ -2410,8 +2410,8 @@ export class R3FCompiler {
 
   private compileEffectsBlock(effects: Record<string, unknown>): R3FNode {
     const children: R3FNode[] = [];
-    if (effects.effects) {
-      for (const effect of effects.effects) {
+    if (Array.isArray(effects.effects)) {
+      for (const effect of effects.effects as Record<string, unknown>[]) {
         const effectMapping: Record<string, string> = {
           bloom: 'Bloom',
           ssao: 'SSAO',
@@ -2421,8 +2421,9 @@ export class R3FCompiler {
           tone_mapping: 'ToneMapping',
           noise: 'Noise',
         };
-        const type = effectMapping[effect.effectType] || effect.effectType;
-        children.push(this.createNode(type, { ...effect.properties }));
+        const effectType = effect.effectType as string;
+        const type = effectMapping[effectType] || effectType;
+        children.push(this.createNode(type, { ...(effect.properties as Record<string, unknown> || {}) }));
       }
     }
     const composer = this.createNode('EffectComposer', {});
@@ -2432,14 +2433,14 @@ export class R3FCompiler {
 
   private compileCameraBlock(camera: Record<string, unknown>): R3FNode {
     const props: Record<string, unknown> = {};
-    if (camera.properties) {
-      for (const prop of camera.properties) {
+    if (Array.isArray(camera.properties)) {
+      for (const prop of camera.properties as Record<string, unknown>[]) {
         if (prop.key === 'field_of_view' || prop.key === 'fov') {
           props.fov = prop.value;
         } else if (prop.key === 'look_at' || prop.key === 'lookAt') {
           props.lookAt = prop.value;
         } else {
-          props[prop.key] = prop.value;
+          props[prop.key as string] = prop.value;
         }
       }
     }
@@ -2464,14 +2465,15 @@ export class R3FCompiler {
       if (preset) {
         nodes.push(this.createNode('Environment', { background: true, preset: preset.envPreset || presetName }));
 
-        if (preset.lighting?.ambient) {
+        const lighting = preset.lighting as Record<string, Record<string, unknown>> | undefined;
+        if (lighting?.ambient) {
           nodes.push(this.createNode('ambientLight', {
-            color: preset.lighting.ambient.color,
-            intensity: preset.lighting.ambient.intensity,
+            color: lighting.ambient.color,
+            intensity: lighting.ambient.intensity,
           }));
         }
-        if (preset.lighting?.directional) {
-          const dl = preset.lighting.directional;
+        if (lighting?.directional) {
+          const dl = lighting.directional;
           nodes.push(this.createNode('directionalLight', {
             color: dl.color,
             intensity: dl.intensity,
@@ -2480,8 +2482,8 @@ export class R3FCompiler {
             'shadow-mapSize': [2048, 2048],
           }));
         }
-        if (preset.lighting?.points) {
-          for (const pl of preset.lighting.points) {
+        if (Array.isArray(lighting?.points)) {
+          for (const pl of (lighting!.points as unknown[]) as Record<string, unknown>[]) {
             nodes.push(this.createNode('pointLight', {
               color: pl.color,
               intensity: pl.intensity,

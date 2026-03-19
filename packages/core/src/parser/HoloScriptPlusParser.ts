@@ -818,7 +818,7 @@ class Lexer {
   }
 
   private isIdentifierStart(char: string): boolean {
-    return this.isAlpha(char) || char === '_';
+    return this.isAlpha(char) || char === '_' || char === '$';
   }
 
   private isIdentifierPart(char: string): boolean {
@@ -1655,10 +1655,11 @@ export class HoloScriptPlusParser {
                 children.push(this.parseNode());
               } else {
                 properties[name] = true;
-                // Skip function call or member access chain following the name:
-                // e.g., channel("dev-team").broadcast({...}) or this.state.foo = bar
-                while (this.check('LPAREN') || this.check('DOT')) {
+                // Skip function call, member access chain, or block body following the name:
+                // e.g., channel("dev-team").broadcast({...}), on_start() { ... }, on_event("...", e) { ... }
+                while (this.check('LPAREN') || this.check('DOT') || this.check('LBRACE')) {
                   if (this.check('LPAREN')) this.skipParens();
+                  else if (this.check('LBRACE')) this.skipBraces();
                   else {
                     this.advance(); // consume .
                     if (this.check('IDENTIFIER')) this.advance(); // consume property name
@@ -2728,9 +2729,54 @@ export class HoloScriptPlusParser {
           const body = this.parseCodeBlock();
           result.eventHandlers.push({ event: eventName, params, body });
         }
+        // Parse on_start handler: on_start() { ... }
+        else if (keyword === 'on_start') {
+          this.advance(); // on_start
+          const params: string[] = [];
+          if (this.check('LPAREN')) {
+            this.advance();
+            while (!this.check('RPAREN') && !this.check('EOF')) {
+              params.push(this.expect('IDENTIFIER', 'Expected parameter').value);
+              if (this.check('COMMA')) this.advance();
+            }
+            this.expect('RPAREN', 'Expected )');
+          }
+          const body = this.parseCodeBlock();
+          result.eventHandlers.push({ event: 'start', params, body });
+        }
+        // Parse on_event handler: on_event("event_name", param) { ... }
+        else if (keyword === 'on_event') {
+          this.advance(); // on_event
+          let eventName = '';
+          const params: string[] = [];
+          if (this.check('LPAREN')) {
+            this.advance();
+            // First arg is the event name (string)
+            if (this.check('STRING')) {
+              eventName = this.advance().value;
+            } else {
+              eventName = this.expect('IDENTIFIER', 'Expected event name').value;
+            }
+            if (this.check('COMMA')) {
+              this.advance();
+              // Remaining args are params
+              while (!this.check('RPAREN') && !this.check('EOF')) {
+                params.push(this.expect('IDENTIFIER', 'Expected parameter').value);
+                if (this.check('COMMA')) this.advance();
+              }
+            }
+            this.expect('RPAREN', 'Expected )');
+          }
+          const body = this.parseCodeBlock();
+          result.eventHandlers.push({ event: eventName, params, body });
+        }
         // Skip other identifiers (might be comments or unknown constructs)
         else {
-          // Try to skip until next meaningful construct
+          // Skip past parens and braces to handle unknown function-like constructs
+          this.advance();
+          if (this.check('LPAREN')) this.skipParens();
+          if (this.check('LBRACE')) this.skipBraces();
+          // Also skip to next newline for safety
           while (!this.check('RBRACE') && !this.check('EOF') && !this.check('NEWLINE')) {
             this.advance();
           }
@@ -3318,13 +3364,37 @@ export class HoloScriptPlusParser {
 
   /** Parse comparison: a < b, a > b, a <= b, a >= b */
   private parseComparison(): unknown {
-    let left = this.parseUnary();
+    let left = this.parseAdditive();
     while (
       this.check('LESS_THAN') ||
       this.check('GREATER_THAN') ||
       this.check('LESS_EQUAL') ||
       this.check('GREATER_EQUAL')
     ) {
+      const operator = this.current().value;
+      this.advance();
+      const right = this.parseAdditive();
+      left = { type: 'binary', operator, left, right };
+    }
+    return left;
+  }
+
+  /** Parse additive: a + b, a - b */
+  private parseAdditive(): unknown {
+    let left = this.parseMultiplicative();
+    while (this.check('PLUS') || this.check('MINUS')) {
+      const operator = this.current().value;
+      this.advance();
+      const right = this.parseMultiplicative();
+      left = { type: 'binary', operator, left, right };
+    }
+    return left;
+  }
+
+  /** Parse multiplicative: a * b, a / b, a % b */
+  private parseMultiplicative(): unknown {
+    let left = this.parseUnary();
+    while (this.check('ASTERISK') || this.check('SLASH') || this.check('PERCENT')) {
       const operator = this.current().value;
       this.advance();
       const right = this.parseUnary();
@@ -4028,6 +4098,17 @@ export class HoloScriptPlusParser {
     while (depth > 0 && !this.check('EOF')) {
       if (this.check('LPAREN')) depth++;
       if (this.check('RPAREN')) depth--;
+      this.advance();
+    }
+  }
+
+  private skipBraces(): void {
+    if (!this.check('LBRACE')) return;
+    this.advance(); // {
+    let depth = 1;
+    while (depth > 0 && !this.check('EOF')) {
+      if (this.check('LBRACE')) depth++;
+      if (this.check('RBRACE')) depth--;
       this.advance();
     }
   }

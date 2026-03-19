@@ -151,3 +151,139 @@ describe('HoloScriptPlusParser - Environment & Lighting', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('HoloScriptPlusParser - Expression Parsing', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('Parses string concatenation with +', () => {
+    const source = `composition "Test" {
+      greeting: "hello" + " world"
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.greeting).toEqual({
+      type: 'binary',
+      operator: '+',
+      left: 'hello',
+      right: ' world',
+    });
+  });
+
+  it('Parses arithmetic with correct precedence (* before +)', () => {
+    const source = `composition "Test" {
+      result: 3 + 4 * 2
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.result).toEqual({
+      type: 'binary',
+      operator: '+',
+      left: 3,
+      right: { type: 'binary', operator: '*', left: 4, right: 2 },
+    });
+  });
+
+  it('Parses $stateVar identifier with $ prefix', () => {
+    const source = `composition "Test" {
+      total: $counter + 1
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.total).toEqual({
+      type: 'binary',
+      operator: '+',
+      left: { __ref: '$counter' },
+      right: 1,
+    });
+  });
+
+  it('Parses method call on $stateVar', () => {
+    const source = `composition "Test" {
+      label: $cost.toFixed(2)
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.label).toEqual({
+      type: 'call',
+      callee: '$cost.toFixed',
+      args: 2,
+    });
+  });
+
+  it('Parses ternary with comparison', () => {
+    const source = `composition "Test" {
+      color: $score > 70 ? "green" : "red"
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.color).toEqual({
+      type: 'ternary',
+      condition: {
+        type: 'binary',
+        operator: '>',
+        left: { __ref: '$score' },
+        right: 70,
+      },
+      trueValue: 'green',
+      falseValue: 'red',
+    });
+  });
+
+  it('Parses compound expression: string + method call', () => {
+    const source = `composition "Test" {
+      label: "$" + $cost.toFixed(2)
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.label).toEqual({
+      type: 'binary',
+      operator: '+',
+      left: '$',
+      right: { type: 'call', callee: '$cost.toFixed', args: 2 },
+    });
+  });
+
+  it('Parses division and modulo', () => {
+    const source = `composition "Test" {
+      half: $total / 2
+      remainder: $count % 3
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    expect(props.half).toEqual({
+      type: 'binary',
+      operator: '/',
+      left: { __ref: '$total' },
+      right: 2,
+    });
+    expect(props.remainder).toEqual({
+      type: 'binary',
+      operator: '%',
+      left: { __ref: '$count' },
+      right: 3,
+    });
+  });
+
+  it('Parses unary minus in expression', () => {
+    const source = `composition "Test" {
+      neg: -3 + 5
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const props = result.ast.root.properties;
+    // -3 is folded into the number literal, then + 5
+    expect(props.neg).toEqual({
+      type: 'binary',
+      operator: '+',
+      left: -3,
+      right: 5,
+    });
+  });
+});
