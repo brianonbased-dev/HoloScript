@@ -380,12 +380,27 @@ export class CompositionTestRunner {
    * Handles nested objects { ... } and arrays [ ... ].
    */
   static extractStateFromSource(source: string): Record<string, unknown> {
-    const stateMatch = source.match(/\bstate\s*\{/);
-    if (!stateMatch) return {};
+    const result: Record<string, unknown> = {};
 
-    const startIdx = stateMatch.index! + stateMatch[0].length;
-    const body = extractBracedBody(source, startIdx);
-    return parseNestedBlock(body);
+    // 1. Block format: state { key: value, ... }
+    const stateMatch = source.match(/\bstate\s*\{/);
+    if (stateMatch) {
+      const startIdx = stateMatch.index! + stateMatch[0].length;
+      const body = extractBracedBody(source, startIdx);
+      Object.assign(result, parseNestedBlock(body));
+    }
+
+    // 2. Inline format: state name: type = value
+    const inlineRegex = /^\s*state\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*\w+\s*=\s*(.+)$/gm;
+    let inlineMatch;
+    while ((inlineMatch = inlineRegex.exec(source)) !== null) {
+      const key = inlineMatch[1];
+      if (!(key in result)) {
+        result[key] = parseStateValue(inlineMatch[2].trim());
+      }
+    }
+
+    return result;
   }
 
   /**

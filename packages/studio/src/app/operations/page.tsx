@@ -12,7 +12,18 @@
 
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
+
+const displayFont = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+});
+
+const dataFont = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['500', '700'],
+});
 
 export default function OperationsPage() {
   const composition = useHoloComposition('/api/surface/operations');
@@ -44,8 +55,8 @@ export default function OperationsPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
       <div className="pointer-events-none absolute inset-0 opacity-60">
-        <div className="absolute left-[-120px] top-[-100px] h-[360px] w-[360px] rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute bottom-[-120px] right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="orb-one absolute left-[-120px] top-[-100px] h-[360px] w-[360px] rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="orb-two absolute bottom-[-120px] right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-500/20 blur-3xl" />
       </div>
 
       <header className="relative border-b border-white/10 bg-[#0b1220]/70 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
@@ -55,7 +66,7 @@ export default function OperationsPage() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-base font-semibold tracking-tight sm:text-lg">Studio Operations</h1>
+              <h1 className={`${displayFont.className} text-base font-semibold tracking-tight sm:text-lg`}>Studio Operations</h1>
               <p className="text-[11px] text-white/50 sm:text-xs">Hydrated from native composition surface</p>
             </div>
           </div>
@@ -68,6 +79,7 @@ export default function OperationsPage() {
               {branchName}
             </span>
             <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/70 sm:px-3">
+              <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 align-middle" />
               sync: {syncStatus}
             </span>
           </div>
@@ -76,25 +88,25 @@ export default function OperationsPage() {
 
       <main className="relative mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
         <section className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3 lg:grid-cols-5">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+          <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Daemon Health</p>
-            <p className={`mt-1.5 font-mono text-lg font-semibold sm:text-xl ${healthTone}`}>{healthLabel}</p>
+            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold sm:text-xl ${healthTone}`}>{healthLabel}</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+          <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Running Jobs</p>
-            <p className="mt-1.5 font-mono text-lg font-semibold text-white sm:text-xl">{runningJobs}</p>
+            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}>{runningJobs}</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+          <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Pending Reviews</p>
-            <p className="mt-1.5 font-mono text-lg font-semibold text-white sm:text-xl">{pendingReviews}</p>
+            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}>{pendingReviews}</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+          <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Open Alerts</p>
-            <p className="mt-1.5 font-mono text-lg font-semibold text-white sm:text-xl">{openAlerts}</p>
+            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}>{openAlerts}</p>
           </div>
-          <div className="col-span-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:col-span-1 sm:p-3.5 lg:col-span-1">
+          <div className="metric-card col-span-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:col-span-1 sm:p-3.5 lg:col-span-1">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Surface Endpoint</p>
-            <p className="mt-1.5 truncate font-mono text-xs text-cyan-300 sm:text-sm">/api/surface/operations</p>
+            <p className={`${dataFont.className} mt-1.5 truncate text-xs text-cyan-300 sm:text-sm`}>/api/surface/operations</p>
           </div>
         </section>
 
@@ -150,6 +162,34 @@ export default function OperationsPage() {
       </main>
 
       <style jsx>{`
+        .orb-one {
+          animation: driftA 16s ease-in-out infinite;
+        }
+
+        .orb-two {
+          animation: driftB 18s ease-in-out infinite;
+        }
+
+        .metric-card {
+          animation: riseFade 480ms ease both;
+        }
+
+        .metric-card:nth-child(2) {
+          animation-delay: 60ms;
+        }
+
+        .metric-card:nth-child(3) {
+          animation-delay: 110ms;
+        }
+
+        .metric-card:nth-child(4) {
+          animation-delay: 160ms;
+        }
+
+        .metric-card:nth-child(5) {
+          animation-delay: 210ms;
+        }
+
         .holo-surface-operations {
           position: relative;
           min-height: 58vh;
@@ -158,6 +198,40 @@ export default function OperationsPage() {
           background: linear-gradient(180deg, rgba(15, 23, 42, 0.66), rgba(2, 6, 23, 0.66));
           overflow: auto;
           padding: 2px;
+        }
+
+        @keyframes riseFade {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes driftA {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          50% {
+            transform: translate3d(16px, 12px, 0) scale(1.05);
+          }
+        }
+
+        @keyframes driftB {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          50% {
+            transform: translate3d(-18px, -10px, 0) scale(0.97);
+          }
         }
 
         @media (max-width: 640px) {
