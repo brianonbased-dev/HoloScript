@@ -196,9 +196,77 @@ const httpServer = http.createServer(async (req, res) => {
     // Requests with session ID = existing session
     if (sessionId) {
       let transport = transports.get(sessionId);
-      if (!transport && req.method !== 'DELETE') {
-        transport = await createAndStoreSessionTransport(sessionId);
-        console.log(`[MCP] Recovered missing session transport (${req.method}): ${sessionId}`);
+      if (!transport && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const method = typeof body.method === 'string' ? body.method : '';
+
+        if (method === 'notifications/initialized') {
+          // Clients may send this to a different instance in non-sticky environments.
+          // Accept it as a no-op so the session can continue.
+          res.writeHead(202);
+          res.end();
+          return;
+        }
+
+        if (method === 'tools/list') {
+          const id = (body.id as string | number | null | undefined) ?? null;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id,
+              result: {
+                tools: [...tools, ...PluginManager.getTools()],
+              },
+            })
+          );
+          return;
+        }
+
+        if (method === 'tools/call') {
+          const id = (body.id as string | number | null | undefined) ?? null;
+          const params = (body.params as Record<string, unknown>) || {};
+          const name = params.name as string;
+          const args = (params.arguments as Record<string, unknown>) || {};
+
+          try {
+            const pluginResult = await PluginManager.handleTool(name, args);
+            const result =
+              pluginResult !== null ? pluginResult : await handleTool(name, args);
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                result: {
+                  content: [
+                    {
+                      type: 'text',
+                      text:
+                        typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+                    },
+                  ],
+                },
+              })
+            );
+            return;
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                result: {
+                  content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+                  isError: true,
+                },
+              })
+            );
+            return;
+          }
+        }
       }
       if (transport) {
         await transport.handleRequest(req, res);
