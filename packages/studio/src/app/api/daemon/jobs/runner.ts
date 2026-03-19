@@ -193,9 +193,8 @@ async function runAbsorbPhase(
   };
 
   try {
-    // Dynamic import so build failures in @holoscript/core don't crash the daemon
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const coreCb = require('@holoscript/core/codebase') as {
+    // Runtime import with webpackIgnore keeps optional deep deps out of the Studio bundle.
+    const coreCb = await import(/* webpackIgnore: true */ '@holoscript/core/codebase') as {
       CodebaseScanner: { new(): { scan(opts: { rootDir: string; depth?: string }): Promise<AbsorbScanResult> } };
       CodebaseGraph: {
         new(): {
