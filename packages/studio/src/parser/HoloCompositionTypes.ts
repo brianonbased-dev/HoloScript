@@ -20,4 +20,4 @@ export type {
   HoloParseResult,
   HoloParseError,
   HoloParseWarning,
-} from '@holoscript/core';
+} from '@holoscript/core' as any;
