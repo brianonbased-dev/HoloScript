@@ -16,41 +16,158 @@ import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surfa
 
 export default function OperationsPage() {
   const composition = useHoloComposition('/api/surface/operations');
+  const state = (composition.state ?? {}) as Record<string, unknown>;
+
+  const daemonHealth = typeof state.daemonHealth === 'number' ? state.daemonHealth : null;
+  const openAlerts = typeof state.openAlerts === 'number' ? state.openAlerts : 0;
+  const pendingReviews = typeof state.pendingReviews === 'number' ? state.pendingReviews : 0;
+  const syncStatus = typeof state.syncStatus === 'string' ? state.syncStatus : 'unknown';
+  const workspaceName = typeof state.workspaceName === 'string' ? state.workspaceName : 'workspace';
+  const branchName = typeof state.branchName === 'string' ? state.branchName : 'main';
+  const jobs = Array.isArray(state.jobs) ? state.jobs as Array<Record<string, unknown>> : [];
+  const runningJobs = jobs.filter((job) => job.status === 'running').length;
+
+  const healthLabel =
+    daemonHealth === null
+      ? 'n/a'
+      : `${Math.round(daemonHealth * 100)}%`;
+
+  const healthTone =
+    daemonHealth === null
+      ? 'text-white/60'
+      : daemonHealth >= 0.9
+        ? 'text-emerald-300'
+        : daemonHealth >= 0.75
+          ? 'text-amber-300'
+          : 'text-rose-300';
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white">
-      <header className="border-b border-white/10 bg-[#0b1220]/80 px-6 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3">
-          <Link href="/" className="text-white/60 transition hover:text-white" aria-label="Back to Studio">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-lg font-semibold">Studio Operations</h1>
-            <p className="text-xs text-white/50">Hydrated from native composition surface</p>
+    <div className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
+      <div className="pointer-events-none absolute inset-0 opacity-60">
+        <div className="absolute left-[-120px] top-[-100px] h-[360px] w-[360px] rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="absolute bottom-[-120px] right-[-120px] h-[420px] w-[420px] rounded-full bg-indigo-500/20 blur-3xl" />
+      </div>
+
+      <header className="relative border-b border-white/10 bg-[#0b1220]/70 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-white/60 transition hover:text-white" aria-label="Back to Studio">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-base font-semibold tracking-tight sm:text-lg">Studio Operations</h1>
+              <p className="text-[11px] text-white/50 sm:text-xs">Hydrated from native composition surface</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] sm:gap-2 sm:text-xs">
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/70 sm:px-3">
+              {workspaceName}
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/70 sm:px-3">
+              {branchName}
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/70 sm:px-3">
+              sync: {syncStatus}
+            </span>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
-        {!composition.loading && !composition.error ? (
-          <HoloSurfaceRenderer
-            nodes={composition.nodes}
-            state={composition.state}
-            computed={composition.computed}
-            templates={composition.templates}
-            onEmit={composition.emit}
-            className="holo-surface-operations"
-          />
-        ) : (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            {composition.error ? (
-              <p className="text-sm text-red-300">Failed to load operations composition: {composition.error}</p>
-            ) : (
-              <p className="text-sm text-white/60">Loading operations dashboard...</p>
-            )}
+      <main className="relative mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
+        <section className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3 lg:grid-cols-5">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Daemon Health</p>
+            <p className={`mt-1.5 font-mono text-lg font-semibold sm:text-xl ${healthTone}`}>{healthLabel}</p>
           </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Running Jobs</p>
+            <p className="mt-1.5 font-mono text-lg font-semibold text-white sm:text-xl">{runningJobs}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Pending Reviews</p>
+            <p className="mt-1.5 font-mono text-lg font-semibold text-white sm:text-xl">{pendingReviews}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Open Alerts</p>
+            <p className="mt-1.5 font-mono text-lg font-semibold text-white sm:text-xl">{openAlerts}</p>
+          </div>
+          <div className="col-span-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:col-span-1 sm:p-3.5 lg:col-span-1">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Surface Endpoint</p>
+            <p className="mt-1.5 truncate font-mono text-xs text-cyan-300 sm:text-sm">/api/surface/operations</p>
+          </div>
+        </section>
+
+        {!composition.loading && !composition.error ? (
+          <section className="rounded-2xl border border-white/10 bg-[#0a1222]/80 p-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_16px_50px_rgba(2,6,23,0.6)] sm:p-3">
+            <HoloSurfaceRenderer
+              nodes={composition.nodes}
+              state={composition.state}
+              computed={composition.computed}
+              templates={composition.templates}
+              onEmit={composition.emit}
+              className="holo-surface-operations"
+            />
+          </section>
+        ) : (
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
+            {composition.error ? (
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-rose-300">Failed to load operations composition</p>
+                  <p className="mt-1 text-xs text-white/60">{composition.error}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/[0.08]"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-white/70">Loading operations dashboard...</p>
+                <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-white/10" />
+                <div className="h-56 animate-pulse rounded-xl border border-white/10 bg-white/[0.02]" />
+              </div>
+            )}
+          </section>
         )}
+
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-white/50 sm:mt-4 sm:gap-2 sm:text-xs">
+          <Link href="/workspace" className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3">
+            Open Workspace
+          </Link>
+          <Link href="/projects" className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3">
+            Open Projects
+          </Link>
+          <Link href="/holodaemon" className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3">
+            HoloDaemon
+          </Link>
+        </div>
       </main>
+
+      <style jsx>{`
+        .holo-surface-operations {
+          position: relative;
+          min-height: 58vh;
+          max-height: calc(100vh - 270px);
+          border-radius: 14px;
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0.66), rgba(2, 6, 23, 0.66));
+          overflow: auto;
+          padding: 2px;
+        }
+
+        @media (max-width: 640px) {
+          .holo-surface-operations {
+            min-height: 52vh;
+            max-height: calc(100vh - 300px);
+            border-radius: 12px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

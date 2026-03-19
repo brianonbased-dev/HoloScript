@@ -191,9 +191,19 @@ codebase.holo
 core-graph.json
 .holo_audits/
 
-# Daemon local runtime artifacts
-.holoscript/.daemon-tsbuildinfo
+# Daemon local runtime artifacts (entire directory is runtime state)
+.holoscript/
 tmp-daemon-run.txt
+
+# Deploy artifacts (ephemeral)
+deploy_logs.json
+deploy_result.json
+
+# Tauri auto-generated code
+packages/tauri-app/src-tauri/gen/
+
+# Build temp files (tsup generates with random hashes)
+tsup.config.bundled_*.mjs
 
 # Core debug/investigation scripts (not source)
 packages/core/check-fork-heap.cjs
