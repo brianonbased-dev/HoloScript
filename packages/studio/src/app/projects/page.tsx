@@ -1,9 +1,20 @@
 'use client';
 
+/**
+ * Projects — /projects
+ *
+ * Native HoloScript-driven project manager. The header is defined in
+ * compositions/studio/projects.hsplus and rendered by HoloSurfaceRenderer.
+ * Project list, open/delete handlers, and IndexedDB integration stay in React.
+ *
+ * @module projects/page
+ */
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trash2, FolderOpen } from 'lucide-react';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { listProjects, deleteProject } from '@/lib/storage';
 import { useSceneStore } from '@/lib/stores';
 import type { Project } from '@/types';
@@ -14,6 +25,7 @@ export default function ProjectsPage() {
   const router = useRouter();
   const setCode = useSceneStore((s) => s.setCode);
   const setMetadata = useSceneStore((s) => s.setMetadata);
+  const composition = useHoloComposition('/api/surface/projects');
 
   useEffect(() => {
     listProjects().then((p) => {
@@ -21,6 +33,13 @@ export default function ProjectsPage() {
       setLoading(false);
     });
   }, []);
+
+  // Bridge project count into composition state
+  useEffect(() => {
+    if (!composition.loading) {
+      composition.setState({ projectCount: projects.length, loading });
+    }
+  }, [projects.length, loading, composition.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleOpen(project: Project) {
     setCode(project.code);
@@ -40,12 +59,24 @@ export default function ProjectsPage() {
           <Link href="/" className="text-studio-muted transition hover:text-studio-text">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">My Projects</h1>
-            <p className="text-sm text-studio-muted">
-              {projects.length} saved project{projects.length !== 1 ? 's' : ''}
-            </p>
-          </div>
+          {/* Native composition header */}
+          {!composition.loading && !composition.error ? (
+            <HoloSurfaceRenderer
+              nodes={composition.nodes}
+              state={composition.state}
+              computed={composition.computed}
+              templates={composition.templates}
+              onEmit={composition.emit}
+              className="holo-surface-projects-header"
+            />
+          ) : (
+            <div>
+              <h1 className="text-2xl font-bold">My Projects</h1>
+              <p className="text-sm text-studio-muted">
+                {projects.length} saved project{projects.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+          )}
         </div>
 
         {loading && (

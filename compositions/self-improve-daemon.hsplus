@@ -661,5 +661,38 @@ composition "SelfImproveDaemon" {
         }
       ]
     }
+
+    // ── Native Tests: Composition State Validation ──
+    // Run with: holoscript test compositions/self-improve-daemon.hsplus
+
+    @test {
+      name: "initial energy level is full"
+      assert: { $energy.level == 1.0 }
+    }
+
+    @test {
+      name: "economy budget is $50"
+      assert: { $regenerative_level == "conventional" }
+    }
+
+    @test {
+      name: "identity starts at zero cycles"
+      assert: { $identity.cycles_completed == 0 }
+    }
+
+    @test {
+      name: "consciousness starts at orange stage"
+      assert: { $identity.consciousness_stage == "orange" }
+    }
+
+    @test {
+      name: "energy momentum starts stable"
+      assert: { $energy.momentum == "stable" }
+    }
+
+    @test {
+      name: "all principles start at 0.5 baseline"
+      assert: { $principles.emergence == 0.5; $principles.biomimicry == 0.5; $principles.regeneration == 0.5 }
+    }
   }
 }

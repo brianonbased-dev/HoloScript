@@ -597,7 +597,6 @@ export {
   type DuplicateInfo,
   type TreeshakingOpportunity,
   type SplittingRecommendation,
-  type PerformanceMetrics,
   type BundleAnalysisReport,
   type AnalysisWarning,
   type BundleAnalyzerOptions,
@@ -1524,8 +1523,6 @@ export type {
   ForEachLoopNode,
 
   // Phase 2: Module Nodes
-  ImportNode,
-  ExportNode,
   ImportLoader,
 
   // Phase 2: Variable Nodes
@@ -2290,7 +2287,6 @@ export {
   getCachedASTSubtree,
   type SemanticCacheEntryType,
   type SemanticCacheEntry,
-  type CacheLookupResult,
   type SemanticCacheStats,
   type SemanticCacheOptions,
   type RedisClient,
@@ -2641,7 +2637,6 @@ export {
 export type {
   CapabilityScope,
   CapabilityRequirement,
-  CapabilityCheckResult,
 } from './compiler/safety/CapabilityTypes';
 
 export { runSafetyPass, quickSafetyCheck } from './compiler/safety/CompilerSafetyPass';
@@ -2750,7 +2745,6 @@ export type {
   UserPreferences,
   SpatialContext,
   EvidenceEntry,
-  DeviceCapabilities,
   HandoffNegotiation,
 } from './agents/CrossRealityHandoff';
 
@@ -2922,8 +2916,7 @@ export type {
 } from './rendering/ShaderGraph';
 
 // ── Particles (value re-export) ────────────────────────────────────
-export { ParticleSystem } from './particles/ParticleSystem';
-export type { Particle, EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';
+export type { EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';
 
 // ── Camera ─────────────────────────────────────────────────────────
 export { CameraController } from './camera/CameraController';
@@ -2944,7 +2937,7 @@ export type {
 
 // ── Lighting ───────────────────────────────────────────────────────
 export { LightingModel } from './rendering/LightingModel';
-export type { Light, LightType, AmbientConfig, GIProbe } from './rendering/LightingModel';
+export type { Light, AmbientConfig, GIProbe } from './rendering/LightingModel';
 
 // ── Cinematic ──────────────────────────────────────────────────────
 export { CinematicDirector } from './cinematic/CinematicDirector';
@@ -2977,7 +2970,7 @@ export type { SaveSlot, SaveConfig } from './persistence/SaveManager';
 
 // ── Debug / Profiler ───────────────────────────────────────────────
 export { Profiler } from './debug/Profiler';
-export type { ProfileScope, FrameProfile, MemorySnapshot, ProfileSummary } from './debug/Profiler';
+export type { ProfileScope, FrameProfile, ProfileSummary } from './debug/Profiler';
 
 // ── LOD ────────────────────────────────────────────────────────────
 export { LODManager } from './lod/LODManager';
@@ -3015,7 +3008,6 @@ export { AssetRegistry } from './assets/AssetRegistry';
 export type {
   AssetEvent,
   AssetEventType,
-  CacheEntry,
   RegistryConfig,
 } from './assets/AssetRegistry';
 
@@ -3033,7 +3025,6 @@ export type {
   MaterialDefinition,
   HoloMaterialType,
   TextureMapDef,
-  TextureChannel,
   ShaderPassDef,
 } from './parser/MaterialTypes';
 
@@ -3179,6 +3170,13 @@ export {
   type ScriptTestBlock,
   type ScriptTestRunnerOptions,
 } from './traits/ScriptTestTrait';
+
+export {
+  CompositionTestRunner,
+  testHandler,
+  TEST_TRAIT,
+  type CompositionTestConfig,
+} from './traits/TestTrait';
 
 // ── Python/JS Interop Binding Generator ─────────────────────────────────────
 export {

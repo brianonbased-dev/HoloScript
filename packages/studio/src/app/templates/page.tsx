@@ -1,8 +1,19 @@
 'use client';
 
+/**
+ * Templates — /templates
+ *
+ * Native HoloScript-driven template gallery. The header and card layout
+ * are defined in compositions/studio/templates.hsplus and rendered by
+ * HoloSurfaceRenderer. Template selection and navigation stay in React.
+ *
+ * @module templates/page
+ */
+
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { TemplateGrid } from '@/components/templates/TemplateGrid';
 import { useSceneStore } from '@/lib/stores';
 import type { TemplateInfo } from '@/types';
@@ -49,6 +60,7 @@ export default function TemplatesPage() {
   const router = useRouter();
   const setCode = useSceneStore((s) => s.setCode);
   const setMetadata = useSceneStore((s) => s.setMetadata);
+  const composition = useHoloComposition('/api/surface/templates');
 
   async function handleSelect(template: TemplateInfo) {
     try {
@@ -69,12 +81,24 @@ export default function TemplatesPage() {
           <Link href="/" className="text-studio-muted transition hover:text-studio-text">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Templates</h1>
-            <p className="text-sm text-studio-muted">
-              Start from a pre-built scene and customize it with AI
-            </p>
-          </div>
+          {/* Native composition header */}
+          {!composition.loading && !composition.error ? (
+            <HoloSurfaceRenderer
+              nodes={composition.nodes}
+              state={composition.state}
+              computed={composition.computed}
+              templates={composition.templates}
+              onEmit={composition.emit}
+              className="holo-surface-templates-header"
+            />
+          ) : (
+            <div>
+              <h1 className="text-2xl font-bold">Templates</h1>
+              <p className="text-sm text-studio-muted">
+                Start from a pre-built scene and customize it with AI
+              </p>
+            </div>
+          )}
         </div>
 
         <TemplateGrid templates={TEMPLATES} onSelect={handleSelect} />

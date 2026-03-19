@@ -1,0 +1,63 @@
+/**
+ * Projects — Studio Page Composition
+ *
+ * Defines the UI surface for the /projects page. The header and empty state
+ * render natively via HoloSurfaceRenderer. The project list is bridged
+ * from React (IndexedDB data).
+ *
+ * @format .hsplus (state + UI surface)
+ * @page /projects
+ */
+
+composition "Projects" {
+
+  state {
+    pageTitle: "My Projects"
+    projectCount: 0
+    loading: true
+  }
+
+  computed {
+    projectCountLabel: String($projectCount) + " saved project" + ($projectCount == 1 ? "" : "s")
+    isEmpty: $projectCount == 0
+    isLoading: $loading == true
+  }
+
+  object "ProjectsShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 768
+    height: 100
+    backgroundColor: "#020617"
+    cornerRadius: 0
+
+    // ── Header ──
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      width: 768
+      height: 80
+      position: [0, 0]
+      backgroundColor: "#020617"
+
+      object "Title" {
+        type: "ui"
+        uiType: "text"
+        text: $pageTitle
+        fontSize: 24
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [16, 16]
+      }
+
+      object "ProjectCount" {
+        type: "ui"
+        uiType: "text"
+        text: $projectCountLabel
+        fontSize: 14
+        color: "#94a3b8"
+        position: [16, 48]
+      }
+    }
+  }
+}

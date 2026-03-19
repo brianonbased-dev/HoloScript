@@ -1,14 +1,19 @@
 'use client';
 
 /**
- * /registry — public browse page for community HoloScript asset packs.
+ * Registry — /registry
  *
- * Full-page grid with search, tag filters, and import flow.
+ * Native HoloScript-driven registry page. The header and stats bar are
+ * defined in compositions/studio/registry.hsplus and rendered by
+ * HoloSurfaceRenderer. Search, filtering, and pack grid stay in React.
+ *
+ * @module registry/page
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Package, Search, Download, Globe, Star, Tag, Loader2, ArrowLeft } from 'lucide-react';
+import { Search, Download, Globe, Star, Tag, Loader2, ArrowLeft } from 'lucide-react';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 
 interface RegistryPack {
   packId: string;
@@ -30,15 +35,8 @@ function humanBytes(bytes: number) {
 }
 
 const ALL_TAGS = [
-  'fantasy',
-  'sci-fi',
-  'nature',
-  'interior',
-  'architecture',
-  'modular',
-  'vegetation',
-  'outdoor',
-  'medieval',
+  'fantasy', 'sci-fi', 'nature', 'interior', 'architecture',
+  'modular', 'vegetation', 'outdoor', 'medieval',
 ];
 
 export default function RegistryPage() {
@@ -47,6 +45,7 @@ export default function RegistryPage() {
   const [activeTag, setActiveTag] = useState('');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const composition = useHoloComposition('/api/surface/registry');
 
   const fetchPacks = useCallback(async (q = '', tag = '') => {
     setLoading(true);
@@ -66,6 +65,13 @@ export default function RegistryPage() {
     fetchPacks();
   }, [fetchPacks]);
 
+  // Bridge pack count into composition state
+  useEffect(() => {
+    if (!composition.loading) {
+      composition.setState({ packCount: packs.length, loading });
+    }
+  }, [packs.length, loading, composition.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchPacks(query, activeTag);
@@ -80,7 +86,6 @@ export default function RegistryPage() {
   const handleDownload = async (pack: RegistryPack) => {
     setDownloading(pack.packId);
     await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch(() => {});
-    // For demo: copy previewCode to clipboard
     if (pack.previewCode) {
       await navigator.clipboard.writeText(pack.previewCode).catch(() => {});
     }
@@ -89,30 +94,27 @@ export default function RegistryPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a12] text-white">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-[#0d0d1a]/80 px-6 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition"
-          >
-            <ArrowLeft className="h-4 w-4" /> Studio
-          </Link>
-          <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-violet-400" />
-            <h1 className="text-lg font-bold">HoloScript Registry</h1>
-          </div>
-          <p className="text-sm text-white/40 ml-1">Community asset packs</p>
-          <div className="ml-auto">
-            <Link
-              href="/create"
-              className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold hover:bg-violet-500 transition"
-            >
-              Open Studio
+      {/* Native composition header + stats */}
+      {!composition.loading && !composition.error ? (
+        <HoloSurfaceRenderer
+          nodes={composition.nodes}
+          state={composition.state}
+          computed={composition.computed}
+          templates={composition.templates}
+          onEmit={composition.emit}
+          className="holo-surface-registry"
+        />
+      ) : (
+        <header className="border-b border-white/10 bg-[#0d0d1a]/80 px-6 py-4 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center gap-4">
+            <Link href="/" className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition">
+              <ArrowLeft className="h-4 w-4" /> Studio
             </Link>
+            <h1 className="text-lg font-bold">HoloScript Registry</h1>
+            <p className="text-sm text-white/40 ml-1">Community asset packs</p>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {/* Search + tag filters */}
@@ -123,7 +125,7 @@ export default function RegistryPage() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search packs by name, description, or author…"
+                placeholder="Search packs by name, description, or author..."
                 className="flex-1 bg-transparent text-sm text-white outline-none placeholder-white/30"
               />
             </div>
@@ -135,7 +137,6 @@ export default function RegistryPage() {
             </button>
           </form>
 
-          {/* Tag pills */}
           <div className="flex flex-wrap gap-2">
             {ALL_TAGS.map((tag) => (
               <button
@@ -154,12 +155,7 @@ export default function RegistryPage() {
           </div>
         </div>
 
-        {/* Results count */}
-        <div className="mb-4 text-sm text-white/40">
-          {loading ? 'Loading…' : `${packs.length} pack${packs.length !== 1 ? 's' : ''} found`}
-        </div>
-
-        {/* Grid */}
+        {/* Results */}
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
@@ -183,31 +179,23 @@ export default function RegistryPage() {
                     </span>
                   </div>
 
-                  {/* Tags */}
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {pack.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-white/40"
-                      >
+                      <span key={t} className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-white/40">
                         {t}
                       </span>
                     ))}
                   </div>
 
-                  {/* Meta */}
                   <div className="mt-3 flex items-center gap-3 text-[11px] text-white/35">
                     <span>{pack.author}</span>
-                    <span>
-                      {pack.files.length} files · {humanBytes(totalSize)}
-                    </span>
+                    <span>{pack.files.length} files &middot; {humanBytes(totalSize)}</span>
                     <span className="flex items-center gap-1">
                       <Star className="h-3 w-3" />
                       {pack.downloads.toLocaleString()}
                     </span>
                   </div>
 
-                  {/* Action */}
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => handleDownload(pack)}

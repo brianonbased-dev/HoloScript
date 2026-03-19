@@ -236,15 +236,15 @@ The remediation follows a phased approach:
 
 **Phase 1 (implemented 2026-03-18):** Built `HoloSurfaceRenderer` — a React component that walks `.hsplus` UI surface AST nodes and renders them as DOM elements. The `/holodaemon` page was migrated from 651 lines of hand-coded React to ~80 lines that hydrate from `holodaemon.hsplus`.
 
-**Phase 2 (planned):** Migrate `/holoclaw` + add `@api` and `@event_source` traits for declarative data fetching.
+**Phase 2 (implemented 2026-03-18):** Migrated `/holoclaw` — added UI surface to `holoclaw.hsplus` (stat cards, header, status indicators) and rewrote the page as a hybrid: HoloSurfaceRenderer for the dashboard, React for interactive tabs (skill shelf, create form, SSE activity feed).
 
-**Phase 3 (planned):** Archive the TypeScript daemon control arm. The `.hsplus` bridge is the only entry point.
+**Phase 3 (implemented 2026-03-18):** Archived the TypeScript daemon control arm to `scripts/archive/self-improve-control-arm.ts`. The `.hsplus` bridge (`scripts/self-improve.ts`) is now the only entry point. All npm scripts point to the native bridge.
 
-**Phase 4 (planned):** Migrate `/templates`, `/registry`, `/projects` (list/card pages).
+**Phase 4 (implemented 2026-03-18):** Migrated `/templates`, `/registry`, `/projects` — created `.hsplus` compositions in `compositions/studio/`, generic `/api/surface/[slug]` route, and hybrid pages with HoloSurfaceRenderer headers + React interactive elements.
 
-**Phase 5 (planned):** Native `@test` trait for headless composition validation.
+**Phase 5 (implemented 2026-03-18):** Native `@test` trait for headless composition validation. `CompositionTestRunner` in `TestTrait.ts` evaluates `$stateVar` syntax against composition state + computed values. `holoscript test` CLI now runs both `@script_test` and `@test` blocks. Tests added to `self-improve-daemon.hsplus` (6 tests) and `holoclaw.hsplus` (8 tests).
 
-After Phase 4: 5 of 14 studio pages will hydrate from native compositions.
+All 5 phases complete. 5 of 14 studio pages hydrate from native compositions. The language's own test surface validates its own compositions.
 
 ### The Frontend Corollary to the Dogfooding Mandate
 

@@ -7,7 +7,7 @@
  * outputs (VR, VRR, AR) based on trait awareness and layer targets.
  */
 
-import type { HoloComposition, TraitInvocation } from '../parser/HoloCompositionTypes.js';
+import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { VRRCompiler, type VRRCompilationResult } from './VRRCompiler.js';
 import { ARCompiler, type ARCompilationResult } from './ARCompiler.js';
 import { BabylonCompiler } from './BabylonCompiler.js'; // Assuming standard VR target

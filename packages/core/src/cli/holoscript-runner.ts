@@ -24,6 +24,7 @@ import { HEADLESS_PROFILE as PROFILES_HEADLESS } from '../runtime/profiles/Runti
 import { InteropContext } from '../interop/Interoperability';
 import { parse } from '../parser/HoloScriptPlusParser';
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
+import { CompositionTestRunner } from '../traits/TestTrait';
 import { AbsorbProcessor } from '../traits/AbsorbTrait';
 import { HotReloadWatcher } from '../traits/HotReloadTrait';
 import type { HostCapabilities } from '../traits/TraitTypes';
@@ -902,7 +903,17 @@ async function testScript(opts: CLIOptions): Promise<void> {
     debug: opts.debug,
     runtimeState: runtime.getAllState(),
   });
-  const results = runner.runTestsFromSource(source, filePath);
+  const scriptResults = runner.runTestsFromSource(source, filePath);
+
+  // Also run @test blocks (native composition tests with $stateVar syntax)
+  const compositionState = CompositionTestRunner.extractStateFromSource(source);
+  const computedDefs = CompositionTestRunner.extractComputedFromSource(source);
+  const compositionRunner = new CompositionTestRunner(compositionState, computedDefs, {
+    debug: opts.debug,
+  });
+  const compositionResults = compositionRunner.runTestsFromSource(source);
+
+  const results = [...scriptResults, ...compositionResults];
 
   // Report
   const passed = results.filter((r) => r.status === 'passed').length;

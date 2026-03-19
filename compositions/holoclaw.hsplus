@@ -579,4 +579,55 @@ composition "HoloClaw" {
       $lastCycleAt = new Date().toISOString()
     }
   }
+
+  // ========================================================================
+  // TESTS — native composition validation
+  // ========================================================================
+  // Run with: holoscript test compositions/holoclaw.hsplus
+
+  @test {
+    name: "status color is amber when idle"
+    assert: { $statusColor == "#f59e0b" }
+  }
+
+  @test {
+    name: "status color is green when running"
+    setup: { $agentStatus = "running" }
+    assert: { $statusColor == "#22c55e" }
+  }
+
+  @test {
+    name: "status color is red on error"
+    setup: { $agentStatus = "error" }
+    assert: { $statusColor == "#ef4444" }
+  }
+
+  @test {
+    name: "skill count label formats correctly"
+    setup: { $skillsLoaded = 7 }
+    assert: { $skillCountLabel == "7 installed" }
+  }
+
+  @test {
+    name: "budget label shows remaining"
+    setup: { $budgetRemaining = 8.50 }
+    assert: { $budgetLabel == "$8.50 remaining" }
+  }
+
+  @test {
+    name: "cost label formats to 2 decimals"
+    setup: { $costUSD = 1.5 }
+    assert: { $costLabel == "$1.50" }
+  }
+
+  @test {
+    name: "health percent rounds correctly"
+    setup: { $healthScore = 0.85 }
+    assert: { $healthPercent == 85 }
+  }
+
+  @test {
+    name: "initial state is idle with zero counters"
+    assert: { $agentStatus == "idle"; $cycleCount == 0; $messagesReceived == 0 }
+  }
 }

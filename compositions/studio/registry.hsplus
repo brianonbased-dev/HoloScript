@@ -1,0 +1,96 @@
+/**
+ * Registry — Studio Page Composition
+ *
+ * Defines the UI surface for the /registry page. The header, search area,
+ * and stats render natively via HoloSurfaceRenderer. The dynamic pack grid
+ * is handled by React (API data).
+ *
+ * @format .hsplus (state + UI surface)
+ * @page /registry
+ */
+
+composition "Registry" {
+
+  state {
+    pageTitle: "HoloScript Registry"
+    pageSubtitle: "Community asset packs"
+    packCount: 0
+    searchQuery: ""
+    activeTag: ""
+    loading: true
+    downloading: ""
+  }
+
+  computed {
+    packCountLabel: String($packCount) + " pack" + ($packCount == 1 ? "" : "s") + " found"
+    isLoading: $loading == true
+    hasActiveTag: $activeTag != ""
+  }
+
+  template "TagPill" {
+    type: "ui"
+    uiType: "panel"
+    height: 28
+    padding: 8
+    backgroundColor: "#1e293b"
+    cornerRadius: 14
+  }
+
+  object "RegistryShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 1200
+    height: 120
+    backgroundColor: "#0a0a12"
+    cornerRadius: 0
+
+    // ── Header ──
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      width: 1200
+      height: 64
+      position: [0, 0]
+      backgroundColor: "#0d0d1a"
+      borderColor: "#1e293b"
+
+      object "Title" {
+        type: "ui"
+        uiType: "text"
+        text: $pageTitle
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [56, 20]
+      }
+
+      object "Subtitle" {
+        type: "ui"
+        uiType: "text"
+        text: $pageSubtitle
+        fontSize: 12
+        color: "#64748b"
+        position: [230, 24]
+      }
+    }
+
+    // ── Stats Bar ──
+    object "StatsBar" {
+      type: "ui"
+      uiType: "panel"
+      width: 1200
+      height: 36
+      position: [0, 80]
+      backgroundColor: "#0a0a12"
+
+      object "PackCount" {
+        type: "ui"
+        uiType: "text"
+        text: $packCountLabel
+        fontSize: 12
+        color: "#64748b"
+        position: [24, 8]
+      }
+    }
+  }
+}

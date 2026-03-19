@@ -41,7 +41,6 @@
 export {
   // Core types
   type LODStrategy,
-  type LODTransition,
   type SimplificationAlgorithm,
   type LODFeature,
 

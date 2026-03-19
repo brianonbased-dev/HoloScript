@@ -564,7 +564,7 @@ export class HoloScriptTypeChecker {
     const valueType = node.value ? this.inferType(node.value) : 'unknown';
 
     // Assign the union of target and value types
-    this.typeMap.set(targetStr, targetType || { type: valueType as any, nullable: false });
+    this.typeMap.set(targetStr, (targetType || { type: valueType as any, nullable: false }) as any);
   }
 
   private checkSpread(node: SpreadExpression): void {
