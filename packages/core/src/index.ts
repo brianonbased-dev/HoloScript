@@ -35,6 +35,9 @@
 import { HoloScriptParser } from './HoloScriptParser';
 import { HoloScriptRuntime } from './HoloScriptRuntime';
 
+// Composition Parser (Tier 3 migration from Hololand — pure language-level AST traversal)
+export * from './composition/CompositionParser';
+
 // Constants (New)
 export * from './constants';
 
