@@ -196,9 +196,9 @@ const httpServer = http.createServer(async (req, res) => {
     // Requests with session ID = existing session
     if (sessionId) {
       let transport = transports.get(sessionId);
-      if (!transport && req.method === 'POST') {
+      if (!transport && req.method !== 'DELETE') {
         transport = await createAndStoreSessionTransport(sessionId);
-        console.log(`[MCP] Recovered missing session transport: ${sessionId}`);
+        console.log(`[MCP] Recovered missing session transport (${req.method}): ${sessionId}`);
       }
       if (transport) {
         await transport.handleRequest(req, res);
