@@ -46,7 +46,7 @@ export class EditorPersistence {
       // For now, localStorage is safe for web demos
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(`${this.STORAGE_PREFIX}${name}`, json);
-        console.log(`[Editor] Saved scene: ${name}`);
+        // Scene saved successfully
         return true;
       }
       // Mock environment (node tests) support
@@ -54,7 +54,7 @@ export class EditorPersistence {
       // If localStorage is mocked in global (test env), it works.
       return true;
     } catch (e) {
-      console.error('[Editor] Save failed:', e);
+      // Save operation failed
       return false;
     }
   }
@@ -73,7 +73,7 @@ export class EditorPersistence {
       }
 
       if (!json) {
-        console.warn(`[Editor] Scene not found: ${name}`);
+        // Scene not found, return false
         return false;
       }
 
@@ -111,10 +111,10 @@ export class EditorPersistence {
         this.builder.spawn(result.node);
       }
 
-      console.log(`[Editor] Loaded scene: ${name}`);
+      // Scene loaded successfully
       return true;
     } catch (e) {
-      console.error('[Editor] Load failed:', e);
+      // Load operation failed
       return false;
     }
   }
