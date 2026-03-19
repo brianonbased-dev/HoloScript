@@ -21,7 +21,7 @@ export class SpatialWebSocketTransport extends NetworkTransport {
       this.ws.onopen = () => {
         this.isConnected = true;
         super.connect(peerId); // Register backend as a peer
-        console.log(`[WebSocket] Connected to Spatial Engine at ${this.url}`);
+
       };
 
       this.ws.onmessage = (event) => {
@@ -58,23 +58,23 @@ export class SpatialWebSocketTransport extends NetworkTransport {
             this.onInboundState(data);
           }
         } catch (e) {
-          console.error('[WebSocket] Failed to parse incoming message', e);
+
         }
       };
 
       this.ws.onclose = () => {
         this.isConnected = false;
         super.disconnect(peerId);
-        console.log(`[WebSocket] Disconnected from ${this.url}`);
+
       };
 
       this.ws.onerror = (error) => {
-        console.error(`[WebSocket] Error:`, error);
+
       };
 
       return true;
     } catch (e) {
-      console.error(`[WebSocket] Connection Failed:`, e);
+
       return false;
     }
   }
@@ -96,7 +96,7 @@ export class SpatialWebSocketTransport extends NetworkTransport {
       this.ws.send(payloadStr);
       return true;
     } catch (error) {
-      console.error('[WebSocket] Error sending message', error);
+
       return false;
     }
   }
