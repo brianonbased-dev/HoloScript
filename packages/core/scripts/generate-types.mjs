@@ -2286,6 +2286,38 @@ export declare class HeadlessRuntime {
 }
 
 export declare function createHeadlessRuntime(ast: any, profile?: RuntimeProfile, options?: HeadlessRuntimeOptions): HeadlessRuntime;
+
+// ============================================================================
+// STDLIB (General-Purpose I/O Action Handlers)
+// ============================================================================
+
+export interface StdlibPolicy {
+  allowedPaths: string[];
+  maxFileBytes: number;
+  allowShell: boolean;
+  allowedShellCommands: string[];
+  maxShellOutputBytes: number;
+  shellTimeoutMs: number;
+  allowNetwork: boolean;
+  allowedHosts: string[];
+  rootDir: string;
+}
+
+export interface StdlibOptions {
+  policy: StdlibPolicy;
+  hostCapabilities?: HostCapabilities;
+  debug?: boolean;
+}
+
+export declare const DEFAULT_STDLIB_POLICY: StdlibPolicy;
+
+export declare function createStdlibActions(options: StdlibOptions): Record<string, (params: Record<string, any>, bb: Record<string, any>, ctx: any) => Promise<boolean> | boolean>;
+export declare function registerStdlib(runtime: { registerAction: (name: string, handler: any) => void }, options: StdlibOptions): void;
+export declare function resolveRepoRelativePath(targetPath: string, rootDir: string): { rel: string; abs: string } | null;
+export declare function isPathAllowed(relPath: string, allowedRoots: string[]): boolean;
+export declare function parseHostFromUrl(url: string): string | null;
+export declare function truncateText(value: any, max: number): string;
+export declare function toStringArray(value: any): string[];
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

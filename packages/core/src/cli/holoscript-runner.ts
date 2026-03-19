@@ -28,6 +28,7 @@ import { ScriptTestRunner } from '../traits/ScriptTestTrait';
 import { CompositionTestRunner } from '../traits/TestTrait';
 import { AbsorbProcessor } from '../traits/AbsorbTrait';
 import { HotReloadWatcher } from '../traits/HotReloadTrait';
+import { registerStdlib } from '../stdlib';
 import type { HostCapabilities } from '../traits/TraitTypes';
 import { createDaemonActions, getDaemonFileState } from './daemon-actions';
 import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
@@ -809,6 +810,22 @@ async function runScript(opts: CLIOptions): Promise<void> {
     profile,
     tickRate: 10,
     debug: opts.debug,
+    hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
+  });
+
+  // Register stdlib I/O actions (G.ARCH.003)
+  registerStdlib(runtime as unknown as { registerAction: (name: string, handler: ActionHandler) => void }, {
+    policy: {
+      rootDir: path.dirname(filePath),
+      allowedPaths: opts.allowedPaths.length > 0 ? opts.allowedPaths : ['compositions', 'data', 'src', 'packages'],
+      maxFileBytes: 2 * 1024 * 1024,
+      allowShell: opts.allowShell,
+      allowedShellCommands: opts.allowedShellCommands,
+      maxShellOutputBytes: 100 * 1024,
+      shellTimeoutMs: 60_000,
+      allowNetwork: opts.allowedHosts.length > 0,
+      allowedHosts: opts.allowedHosts,
+    },
     hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
   });
 

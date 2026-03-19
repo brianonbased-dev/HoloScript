@@ -249,7 +249,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service holoscript-mcp --detach
+          railway up --service mcp-server --detach
 
       - name: Wait for deployment
         run: sleep 60

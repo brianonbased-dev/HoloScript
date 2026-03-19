@@ -3166,6 +3166,19 @@ export {
   HOLOSCHEMA_PROPERTIES,
 } from './parser/ErrorRecovery';
 
+// ── Stdlib (General-Purpose I/O Action Handlers for BehaviorTree) ───────────
+export {
+  createStdlibActions,
+  registerStdlib,
+  DEFAULT_STDLIB_POLICY,
+  resolveRepoRelativePath,
+  isPathAllowed,
+  parseHostFromUrl,
+  truncateText,
+  toStringArray,
+} from './stdlib';
+export type { StdlibPolicy, StdlibOptions } from './stdlib';
+
 // ── @script_test Trait (Headless Unit Testing for .hs Logic) ────────────────
 export {
   ScriptTestRunner,
