@@ -4,7 +4,9 @@
  */
 
 import type { ReactNode } from 'react';
-import type { ContentType } from '@/lib/marketplace/types';
+
+// ContentType enum for marketplace content
+type ContentType = 'asset' | 'template' | 'component' | 'scene' | 'behavior' | 'plugin' | 'shader' | 'material' | 'texture' | 'model' | 'audio' | 'script';
 
 // ── Plugin Metadata ───────────────────────────────────────────────────────
 
