@@ -55,6 +55,7 @@ const DEFAULT_EXCLUDE = [
 
 const DEFAULT_MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const DEFAULT_MAX_FILES = 10_000;
+const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
 
 export class CodebaseScanner {
   private adapterManager: AdapterManager;
@@ -72,7 +73,7 @@ export class CodebaseScanner {
     const rootDir = path.resolve(options.rootDir);
     const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
-    const exclude = this.buildExcludeSet(options.exclude);
+    const exclude = this.buildExcludeSet(options.exclude, options.includeBuildArtifacts ?? false);
     const readFile = options.readFile ?? ((p: string) => fs.promises.readFile(p, 'utf-8'));
     const onProgress = options.onProgress;
 
@@ -217,11 +218,12 @@ export class CodebaseScanner {
     return files;
   }
 
-  private buildExcludeSet(userExclude?: string[]): Set<string> {
+  private buildExcludeSet(userExclude?: string[], includeBuildArtifacts = false): Set<string> {
     const set = new Set<string>();
     for (const pattern of DEFAULT_EXCLUDE) {
       // Simple name matching (not full glob -- covers 90% of cases)
       const name = pattern.replace(/^\*\./, '').replace(/\*/g, '');
+      if (includeBuildArtifacts && BUILD_ARTIFACT_DIRS.has(name)) continue;
       set.add(name);
     }
     if (userExclude) {

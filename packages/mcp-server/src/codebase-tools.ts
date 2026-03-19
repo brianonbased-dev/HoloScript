@@ -147,7 +147,11 @@ function getCacheAge(): {
   }
 }
 
-function buildAbsorbDiagnostics(rootDir: string, scanResult: any): AbsorbDiagnostics {
+function buildAbsorbDiagnostics(
+  rootDir: string,
+  scanResult: any,
+  includeBuildArtifacts: boolean
+): AbsorbDiagnostics {
   const resolvedRootDir = path.resolve(rootDir);
   const processCwd = process.cwd();
   const resolvedDirExists = fs.existsSync(resolvedRootDir);
@@ -190,9 +194,15 @@ function buildAbsorbDiagnostics(rootDir: string, scanResult: any): AbsorbDiagnos
   const entries = rootEntriesSample ?? [];
   const hasDist = entries.includes('dist');
   const hasSrc = entries.includes('src');
-  if (hasDist && !hasSrc) {
+  if (hasDist && !hasSrc && !includeBuildArtifacts) {
     hints.push(
       'Directory appears dist-only. Scanner excludes dist/build/out by default, so scans may return zero files in production images that omit src.'
+    );
+  }
+
+  if (hasDist && !hasSrc && includeBuildArtifacts) {
+    hints.push(
+      'Directory appears dist-only and includeBuildArtifacts=true is set. If totalFiles is still zero, verify file extensions/language filters and runtime visibility of compiled files.'
     );
   }
 
@@ -266,6 +276,11 @@ export const codebaseTools: Tool[] = [
           type: 'boolean',
           description:
             'When false (default), skips re-scanning if a disk cache already exists and is younger than 24 hours. Set to true to force a fresh scan regardless of cache age.',
+        },
+        includeBuildArtifacts: {
+          type: 'boolean',
+          description:
+            'When true, includes build output folders (dist/build/out) in scanning. Useful in production containers that only ship compiled output. Defaults to false.',
         },
       },
       required: ['rootDir'],
@@ -482,6 +497,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const maxFiles = args.maxFiles as number | undefined;
   const interactive = (args.interactive as boolean) ?? false;
   const force = (args.force as boolean) ?? false;
+  const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
 
   // -------------------------------------------------------------------
   // Cache-first: if force=false and a fresh disk cache exists for this
@@ -534,6 +550,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     rootDir,
     languages,
     maxFiles,
+    includeBuildArtifacts,
   });
 
   const graph = new CodebaseGraph();
@@ -561,7 +578,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   }
 
   const stats = graph.getStats();
-  const diagnostics = stats.totalFiles === 0 ? buildAbsorbDiagnostics(rootDir, scanResult) : undefined;
+  const diagnostics =
+    stats.totalFiles === 0
+      ? buildAbsorbDiagnostics(rootDir, scanResult, includeBuildArtifacts)
+      : undefined;
   const communities: Map<string, string[]> = graph.detectCommunities();
 
   const communityList = Array.from(communities.entries()).map(

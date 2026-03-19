@@ -186,6 +186,8 @@ export interface ScanOptions {
   parallel?: boolean;
   /** Filter to specific languages */
   languages?: SupportedLanguage[];
+  /** Include build output directories like dist/build/out (default: false) */
+  includeBuildArtifacts?: boolean;
   /** Injectable file reader (for testing / browser) */
   readFile?: (path: string) => Promise<string>;
   /** Progress callback, called after each file is parsed */
