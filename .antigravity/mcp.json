@@ -2,8 +2,14 @@
   "$schema": "https://modelcontextprotocol.io/schemas/mcp-config.json",
   "mcpServers": {
     "holoscript": {
-      "name": "HoloScript Language",
-      "description": "Parsing, validation, code generation for .hs/.hsplus/.holo",
+      "name": "HoloScript Language (Hosted)",
+      "description": "Parsing, validation, code generation for .hs/.hsplus/.holo — Railway hosted",
+      "type": "http",
+      "url": "https://mcp.holoscript.net/mcp"
+    },
+    "holoscript-local": {
+      "name": "HoloScript Language (Local)",
+      "description": "Parsing, validation, code generation for .hs/.hsplus/.holo — local dev",
       "type": "stdio",
       "command": "node",
       "args": ["packages/mcp-server/start.js"],
