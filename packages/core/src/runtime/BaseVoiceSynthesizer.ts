@@ -98,17 +98,14 @@ export class BaseVoiceSynthesizer implements VoiceSynthesizer {
 
   private async callElevenLabs(request: VoiceRequest): Promise<ArrayBuffer> {
     // In a real implementation, this would use fetch() with the API key
-    console.log(`[BaseVoiceSynthesizer] Calling ElevenLabs for: ${request.text}`);
     return new ArrayBuffer(1024); // Return dummy buffer
   }
 
   private async callAzure(request: VoiceRequest): Promise<ArrayBuffer> {
-    console.log(`[BaseVoiceSynthesizer] Calling Azure Neural for: ${request.text}`);
     return new ArrayBuffer(1024);
   }
 
   private async generateLocal(request: VoiceRequest): Promise<ArrayBuffer> {
-    console.log(`[BaseVoiceSynthesizer] Generating Local TTS for: ${request.text}`);
     return new ArrayBuffer(1024);
   }
 }
