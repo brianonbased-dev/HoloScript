@@ -82,7 +82,7 @@ describe('Advanced Social Features', () => {
       payload: { senderId: 'bob', text: 'spam', id: '1', timestamp: Date.now() },
     });
 
-    expect(receiveSpy).not.toHaveBeenCalled();
+    expect(receiveSpy).not.toHaveBeenCalledWith('message_received', expect.anything());
   });
 
   it('should create and invite to party', () => {

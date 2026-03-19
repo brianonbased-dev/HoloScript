@@ -15,7 +15,7 @@ export class MockSpeechRecognizer implements SpeechRecognizer {
 
   async initialize(config: SpeechRecognizerConfig): Promise<void> {
     this.config = config;
-    // Mock initialization complete
+    console.log(`MockSpeechRecognizer initialized with ${config.backend}`);
   }
 
   async transcribe(
