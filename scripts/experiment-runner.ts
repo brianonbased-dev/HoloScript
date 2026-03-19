@@ -145,9 +145,9 @@ async function runTrial(arm: 'control' | 'treatment', trial: number, config: Exp
   resetState();
 
   // Run the appropriate daemon
-  const script = arm === 'control'
-    ? 'scripts/self-improve.ts'
-    : 'scripts/self-improve-bridge.ts';
+  // Both arms now use the same entry point (control arm archived)
+  // Treatment arm uses .hsplus composition via --composition flag
+  const script = 'scripts/self-improve.ts';
 
   const commitFlag = config.commit ? '--commit' : '';
   const verboseFlag = config.verbose ? '--verbose' : '';

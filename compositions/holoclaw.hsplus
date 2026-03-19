@@ -17,8 +17,8 @@
  * Run with:
  *   holoscript daemon compositions/holoclaw.hsplus --always-on --debug
  *
- * Or via the self-improve bridge:
- *   npx tsx scripts/self-improve-bridge.ts --composition compositions/holoclaw.hsplus
+ * Or via the daemon bridge:
+ *   npx tsx scripts/self-improve.ts --composition compositions/holoclaw.hsplus
  *
  * Skills are loaded from compositions/skills/ and hot-reloaded on change.
  * Messages arrive via .holoscript/inbox.jsonl, responses go to outbox.jsonl.
@@ -66,6 +66,12 @@ composition "HoloClaw" {
     // ── Skills ──
     skillsLoaded: 0
     lastSkillReload: ""
+
+    // ── UI Surface State ──
+    activeTab: "shelf"
+    selectedSkillIndex: -1
+    activityCount: 0
+    streamingConnected: false
   }
 
   // ========================================================================
@@ -75,8 +81,264 @@ composition "HoloClaw" {
   computed {
     isRunning: $agentStatus == "running"
     cycleLabel: "Cycle #" + String($cycleCount)
-    costLabel: "$" + $costUSD.toFixed(4)
+    costLabel: "$" + $costUSD.toFixed(2)
     healthPercent: Math.round($healthScore * 100)
+    skillCountLabel: String($skillsLoaded) + " installed"
+    budgetLabel: "$" + $budgetRemaining.toFixed(2) + " remaining"
+    statusColor: $agentStatus == "running" ? "#22c55e" : $agentStatus == "error" ? "#ef4444" : "#f59e0b"
+  }
+
+  // ========================================================================
+  // TEMPLATES — reusable UI building blocks
+  // ========================================================================
+
+  template "StatCard" {
+    type: "ui"
+    uiType: "panel"
+    width: 200
+    height: 90
+    padding: 12
+    backgroundColor: "#111827"
+    borderColor: "#1e293b"
+    cornerRadius: 10
+  }
+
+  // ========================================================================
+  // UI SURFACE — the holoclaw dashboard layout
+  // ========================================================================
+
+  object "ClawShell" {
+    type: "ui"
+    uiType: "panel"
+    width: 1440
+    height: 860
+    backgroundColor: "#020617"
+    borderColor: "#1e293b"
+    cornerRadius: 0
+
+    // ── Header ──
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      width: 1440
+      height: 72
+      position: [0, 0]
+      backgroundColor: "#0d0d14"
+      borderColor: "#1e293b"
+
+      object "Title" {
+        type: "ui"
+        uiType: "text"
+        text: "HoloClaw"
+        fontSize: 18
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [56, 14]
+      }
+
+      object "Subtitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Skill shelf"
+        fontSize: 12
+        color: "#64748b"
+        position: [56, 38]
+      }
+
+      object "SkillCount" {
+        type: "ui"
+        uiType: "text"
+        text: $skillCountLabel
+        fontSize: 12
+        color: "#94a3b8"
+        position: [130, 38]
+      }
+
+      object "StatusDot" {
+        type: "ui"
+        uiType: "panel"
+        width: 10
+        height: 10
+        position: [1350, 31]
+        backgroundColor: $statusColor
+        cornerRadius: 5
+      }
+
+      object "StatusLabel" {
+        type: "ui"
+        uiType: "text"
+        text: $agentStatus
+        fontSize: 12
+        color: $statusColor
+        position: [1366, 27]
+      }
+    }
+
+    // ── Stats Row ──
+    object "SkillsCard" using "StatCard" {
+      position: [20, 92]
+
+      object "SkillsLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Skills Loaded"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 10]
+      }
+
+      object "SkillsValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($skillsLoaded)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 32]
+      }
+    }
+
+    object "MessagesCard" using "StatCard" {
+      position: [240, 92]
+
+      object "MsgLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Messages"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 10]
+      }
+
+      object "MsgValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($messagesReceived)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 32]
+      }
+
+      object "MsgSent" {
+        type: "ui"
+        uiType: "text"
+        text: String($messagesSent) + " sent"
+        fontSize: 11
+        color: "#22c55e"
+        position: [12, 68]
+      }
+    }
+
+    object "HealthCard" using "StatCard" {
+      position: [460, 92]
+
+      object "HealthLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Health"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 10]
+      }
+
+      object "HealthValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($healthPercent) + "%"
+        fontSize: 28
+        fontWeight: "bold"
+        color: $healthScore > 0.7 ? "#22c55e" : "#f59e0b"
+        position: [12, 32]
+      }
+    }
+
+    object "CyclesCard" using "StatCard" {
+      position: [680, 92]
+
+      object "CyclesLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Cycles"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 10]
+      }
+
+      object "CyclesValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($cycleCount)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 32]
+      }
+    }
+
+    object "BudgetCard" using "StatCard" {
+      position: [900, 92]
+
+      object "BudgetLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Budget"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 10]
+      }
+
+      object "BudgetValue" {
+        type: "ui"
+        uiType: "text"
+        text: $costLabel
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 32]
+      }
+
+      object "BudgetRemaining" {
+        type: "ui"
+        uiType: "text"
+        text: $budgetLabel
+        fontSize: 11
+        color: "#64748b"
+        position: [12, 68]
+      }
+    }
+
+    object "ActivityCard" using "StatCard" {
+      position: [1120, 92]
+
+      object "ActivityLabel" {
+        type: "ui"
+        uiType: "text"
+        text: "Activity"
+        fontSize: 10
+        color: "#94a3b8"
+        position: [12, 10]
+      }
+
+      object "ActivityValue" {
+        type: "ui"
+        uiType: "text"
+        text: String($activityCount)
+        fontSize: 28
+        fontWeight: "bold"
+        color: "#e2e8f0"
+        position: [12, 32]
+      }
+
+      object "StreamStatus" {
+        type: "ui"
+        uiType: "text"
+        text: $streamingConnected ? "Live" : "Disconnected"
+        fontSize: 11
+        color: $streamingConnected ? "#22c55e" : "#64748b"
+        position: [12, 68]
+      }
+    }
   }
 
   // ========================================================================
@@ -90,11 +352,10 @@ composition "HoloClaw" {
   //   │   ├── sequence "inbox_path"    [messages waiting? handle them]
   //   │   │   ├── channel_ingest       [read from inbox.jsonl]
   //   │   │   └── channel_send         [acknowledge receipt]
-  //   │   ├── sequence "health_path"   [health check due? run it]
-  //   │   │   ├── condition: health_check_due
+  //   │   ├── sequence "health_path"   [no messages? run health check]
   //   │   │   ├── shell_exec           [tsc --noEmit]
   //   │   │   └── channel_send         [report health]
-  //   │   └── sequence "heartbeat"     [nothing else? just pulse]
+  //   │   └── action "heartbeat"       [tsc failed? just pulse]
   //   │       └── channel_send         [alive ping]
   //   └── (restart_on_complete loops back to top)
 
@@ -156,18 +417,14 @@ composition "HoloClaw" {
               },
 
               // Path B: Health Check — proactive codebase monitoring
-              // The condition checks if enough time has passed since last check.
-              // If health_check_due is false on the blackboard, the selector
-              // skips to Path C.
+              // Runs when no inbox messages (channel_ingest failed above).
+              // Rate limiter throttles frequency. If tsc exits non-zero
+              // (type errors exist), shell_exec returns false and the
+              // selector falls through to the heartbeat.
               {
                 type: "sequence",
                 name: "health_path",
                 children: [
-                  {
-                    type: "condition",
-                    name: "health_check_due",
-                    condition: "health_check_due"
-                  },
                   {
                     type: "action",
                     name: "run_typecheck",
@@ -217,11 +474,6 @@ composition "HoloClaw" {
         // Inbox state
         channel_message: null,
         channel_ingest_ok: false,
-
-        // Health check scheduling
-        health_check_due: false,
-        last_health_check_tick: 0,
-        health_check_interval_ticks: 300,
 
         // Shell exec results
         shell_exec_code: -1,
@@ -279,18 +531,10 @@ composition "HoloClaw" {
     }
 
     // ── Scheduler: Proactive Jobs ──
+    // Health checks run naturally via the BT selector fallback.
+    // Add scheduled jobs here when scheduler→blackboard bridge is built.
     @scheduler {
-      jobs: [
-        {
-          id: "health_check_flag",
-          interval_ms: 300000,
-          action: "set_health_due",
-          params: {},
-          mode: "repeat",
-          max_executions: 0,
-          paused: false
-        }
-      ],
+      jobs: [],
       max_jobs: 10,
       poll_interval_ms: 5000
     }
@@ -311,14 +555,13 @@ composition "HoloClaw" {
     }
 
     on_event("daemon:tool:shell_exec", event) {
-      // Track shell execution results
-      if (event.command == "npx") {
-        $lastHealthCheck = new Date().toISOString()
-      }
+      $lastHealthCheck = new Date().toISOString()
     }
 
     on_event("daemon:channel:send", event) {
       $messagesSent = $messagesSent + 1
+      $cycleCount = $cycleCount + 1
+      $lastCycleAt = new Date().toISOString()
     }
 
     on_event("user:message", event) {
@@ -331,12 +574,9 @@ composition "HoloClaw" {
       $lastSkillReload = new Date().toISOString()
     }
 
-    on_event("scheduler:job_triggered", event) {
-      // When the scheduler fires health_check_flag, set the blackboard flag
-      // so the BT condition node picks it up on the next tick
-      if (event.jobId == "health_check_flag") {
-        // Blackboard flag is set via the action dispatch
-      }
+    on_event("daemon:channel:send:heartbeat", event) {
+      $cycleCount = $cycleCount + 1
+      $lastCycleAt = new Date().toISOString()
     }
   }
 }
