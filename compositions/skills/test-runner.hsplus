@@ -30,4 +30,26 @@ composition "test-runner" {
       // Reports failure details
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "target defaults to packages/core"
+    assert: { $target == "packages/core" }
+  }
+
+  @test {
+    name: "passed starts at zero"
+    assert: { $passed == 0 }
+  }
+
+  @test {
+    name: "failed starts at zero"
+    assert: { $failed == 0 }
+  }
+
+  @test {
+    name: "lastResult starts as pending"
+    assert: { $lastResult == "pending" }
+  }
 }

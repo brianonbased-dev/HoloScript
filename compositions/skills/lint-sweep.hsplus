@@ -72,4 +72,31 @@ composition "lint-sweep" {
       // Summary: fixed/failed/remaining
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "focus is lint"
+    assert: { $focus == "lint" }
+  }
+
+  @test {
+    name: "candidates found starts at zero"
+    assert: { $candidatesFound == 0 }
+  }
+
+  @test {
+    name: "candidates fixed starts at zero"
+    assert: { $candidatesFixed == 0 }
+  }
+
+  @test {
+    name: "candidates failed starts at zero"
+    assert: { $candidatesFailed == 0 }
+  }
+
+  @test {
+    name: "current file starts empty"
+    assert: { $currentFile == "" }
+  }
 }

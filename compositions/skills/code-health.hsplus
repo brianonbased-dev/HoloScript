@@ -35,4 +35,26 @@ composition "code-health" {
       // Message populated by BT blackboard: typeErrors, testsPassed, healthScore
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "type errors start at zero"
+    assert: { $typeErrors == 0 }
+  }
+
+  @test {
+    name: "health score defaults to 1.0"
+    assert: { $healthScore == 1.0 }
+  }
+
+  @test {
+    name: "tests passed starts at zero"
+    assert: { $testsPassed == 0 }
+  }
 }

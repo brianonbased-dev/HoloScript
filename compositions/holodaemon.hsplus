@@ -772,4 +772,86 @@ composition "HoloDaemon" {
       $testPassRate = event.testPassRate ?? $testPassRate
     }
   }
+
+  // ========================================================================
+  // TESTS — validate state defaults and computed derivations
+  // ========================================================================
+
+  @test {
+    name: "daemon name is HoloDaemon"
+    assert: { $daemonName == "HoloDaemon" }
+  }
+
+  @test {
+    name: "daemon starts idle"
+    assert: { $daemonStatus == "idle" }
+  }
+
+  @test {
+    name: "isRunning false when idle"
+    assert: { $isRunning == false }
+  }
+
+  @test {
+    name: "isRunning true when running"
+    setup: { $daemonStatus = "running" }
+    assert: { $isRunning == true }
+  }
+
+  @test {
+    name: "hasActiveJob false when null"
+    assert: { $hasActiveJob == false }
+  }
+
+  @test {
+    name: "qualityPercent rounds correctly"
+    setup: { $qualityScore = 0.856 }
+    assert: { $qualityPercent == 86 }
+  }
+
+  @test {
+    name: "qualityDeltaLabel positive format"
+    setup: { $qualityDelta = 0.05 }
+    assert: { $qualityDeltaLabel == "+5%" }
+  }
+
+  @test {
+    name: "qualityDeltaLabel negative format"
+    setup: { $qualityDelta = -0.12 }
+    assert: { $qualityDeltaLabel == "-12%" }
+  }
+
+  @test {
+    name: "costLabel formats to dollars"
+    setup: { $costUSD = 1.5 }
+    assert: { $costLabel == "$1.50" }
+  }
+
+  @test {
+    name: "statusColor green when running"
+    setup: { $daemonStatus = "running" }
+    assert: { $statusColor == "#22c55e" }
+  }
+
+  @test {
+    name: "statusColor red when error"
+    setup: { $daemonStatus = "error" }
+    assert: { $statusColor == "#ef4444" }
+  }
+
+  @test {
+    name: "statusColor amber when idle"
+    assert: { $statusColor == "#f59e0b" }
+  }
+
+  @test {
+    name: "progressPercent rounds progress"
+    setup: { $activeJobProgress = 67.8 }
+    assert: { $progressPercent == 68 }
+  }
+
+  @test {
+    name: "maxCycles defaults to 3"
+    assert: { $maxCycles == 3 }
+  }
 }

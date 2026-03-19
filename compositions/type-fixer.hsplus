@@ -267,4 +267,16 @@ composition "TypeFixer" {
       min_requests: 3
     }
   }
+
+  // ── Tests ──
+
+  @test {
+    name: "identity statement is set"
+    assert: { $identity.statement == "I fix type errors. One file at a time. Every fix counts." }
+  }
+
+  @test {
+    name: "cycles completed starts at zero"
+    assert: { $identity.cycles_completed == 0 }
+  }
 }
