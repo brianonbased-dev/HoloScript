@@ -334,8 +334,8 @@ export default function WorkspacePage() {
             />
             <QuickAction
               icon={Zap}
-              label="Build a Claude Skill"
-              href="/workspace/skills"
+              label="HoloClaw Shelf"
+              href="/holoclaw"
               color="text-amber-400"
             />
             <QuickAction

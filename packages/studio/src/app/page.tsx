@@ -231,6 +231,10 @@ export default function HomePage() {
           HoloDaemon
         </Link>
         <span className="footer-sep">·</span>
+        <Link href="/holoclaw" className="footer-link">
+          HoloClaw
+        </Link>
+        <span className="footer-sep">·</span>
         <span className="footer-hint">
           Press <kbd>?</kbd> for help
         </span>
