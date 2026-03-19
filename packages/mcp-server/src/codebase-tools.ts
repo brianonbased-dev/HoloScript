@@ -77,9 +77,9 @@ function saveGraphCache(graph: any, rootDir: string, stats: Record<string, unkno
     };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
     console.log(`[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir}`);
-  } catch {
+  } catch (err) {
     // Best-effort — don't break absorb if persistence fails
-    console.warn(`[CacheDebug][codebase] save miss path=${CACHE_FILE}`);
+    console.warn(`[CacheDebug][codebase] save miss path=${CACHE_FILE} error=${(err as Error)?.message ?? String(err)}`);
   }
 }
 
