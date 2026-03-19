@@ -65,12 +65,13 @@ const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..')
 
 loadEnvFile(REPO_ROOT);
 
-// Force bm25 embeddings for the experiment bridge — free, fast, no API cost.
-// OpenAI embeddings are higher quality but take 10+ minutes on the full repo
-// and cost money. bm25 is sufficient for code symbol matching in self-diagnose.
-// Override AFTER loadEnvFile so .env's EMBEDDING_PROVIDER=openai is overridden.
-if (!process.argv.includes('--openai-embeddings')) {
+// Default to OpenAI embeddings (higher quality, persists index to disk).
+// Use --bm25 flag to force free/fast BM25 (no API cost, no persistence).
+// Override AFTER loadEnvFile so .env values are respected unless flagged.
+if (process.argv.includes('--bm25')) {
   process.env.EMBEDDING_PROVIDER = 'bm25';
+} else if (!process.env.EMBEDDING_PROVIDER) {
+  process.env.EMBEDDING_PROVIDER = 'openai';
 }
 
 const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
@@ -1746,9 +1747,8 @@ async function main() {
   const bridgeState = loadBridgeState();
   bridgeStateRef.current = bridgeState;
 
-  // Pre-load GraphRAG using bm25 embeddings (forced at startup, no API cost).
-  // EMBEDDING_PROVIDER=bm25 is set above loadEnvFile to override .env's openai.
-  // Use --openai-embeddings flag for higher quality at the cost of speed + API $.
+  // Pre-load GraphRAG embeddings (default: OpenAI for quality + disk persistence).
+  // Use --bm25 flag for free/fast BM25 (no persistence, rebuilds each run).
   console.log(`Pre-loading GraphRAG (provider: ${process.env.EMBEDDING_PROVIDER})...`);
   let graphRAGReady = false;
   try {
@@ -1760,7 +1760,7 @@ async function main() {
       graphRAGReady = true;
     } else {
       // Absorb with force=false — uses disk cache if fresh (<24h), otherwise re-scans.
-      // bm25 embedding rebuild from cached graph takes ~2s vs 10+ min for OpenAI.
+      // BM25 rebuild from cache ~2s. OpenAI persists index to disk, reloads in ~5s.
       const label = status.diskCache?.fresh
         ? `Loading from disk cache (${status.diskCache.ageHuman})...`
         : 'Scanning codebase (first run)...';
@@ -1769,8 +1769,11 @@ async function main() {
       const absorbPromise = callTool(handlers, 'holo_absorb_repo', {
         rootDir: config.rootDir, outputFormat: 'stats',
       });
+      // OpenAI embeddings can take 3-5 min on first run (full repo scan + API calls).
+      // BM25 rebuilds in ~2s from disk cache. 300s timeout covers both.
+      const absorbTimeoutMs = process.env.EMBEDDING_PROVIDER === 'bm25' ? 120_000 : 300_000;
       const timeoutPromise = new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error('Absorb timed out after 120s')), 120_000),
+        setTimeout(() => reject(new Error(`Absorb timed out after ${absorbTimeoutMs / 1000}s`)), absorbTimeoutMs),
       );
       const absorbResult = await Promise.race([absorbPromise, timeoutPromise]);
       const parsed = JSON.parse(absorbResult);
@@ -1793,6 +1796,35 @@ async function main() {
   console.log('');
 
   for (let i = 0; i < config.cycles; i++) {
+    // G.ARCH.003: Pre-cycle budget gate — estimate next cycle cost BEFORE running it
+    const remainingBudget = config.maxSpendUSD - bridgeState.totalCostUSD;
+    if (remainingBudget <= 0) {
+      console.warn(`\n[Budget] Already at $${bridgeState.totalCostUSD.toFixed(3)} (cap: $${config.maxSpendUSD.toFixed(2)}). Stopping.`);
+      break;
+    }
+    const completedCycles = bridgeState.totalCycles;
+    const avgCostPerCycle = completedCycles > 0
+      ? bridgeState.totalCostUSD / completedCycles
+      : 1.50;  // Conservative first-cycle estimate ($1.50)
+    // Use 1.5x the average as safety margin (cycles vary in cost)
+    const estimatedNextCost = avgCostPerCycle * 1.5;
+    if (estimatedNextCost > remainingBudget) {
+      console.warn(`\n[Budget] Estimated next cycle: ~$${estimatedNextCost.toFixed(3)}, remaining: $${remainingBudget.toFixed(3)}. Stopping to avoid overshoot.`);
+      appendQualityHistory({
+        timestamp: new Date().toISOString(),
+        cycle: bridgeState.totalCycles + 1,
+        composite: bridgeState.lastQuality,
+        grade: 'BUDGET_GATE',
+        focus: 'pre_cycle_gate',
+        summary: `Pre-cycle budget gate: est $${estimatedNextCost.toFixed(3)} > remaining $${remainingBudget.toFixed(3)}`,
+        costUSD: 0,
+        arm: 'treatment',
+        trial: config.trial,
+      });
+      break;
+    }
+    console.log(`  [Budget] Remaining: $${remainingBudget.toFixed(3)}, est next cycle: ~$${estimatedNextCost.toFixed(3)}`);
+
     const startTime = Date.now();
 
     try {
