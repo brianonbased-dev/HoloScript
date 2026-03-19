@@ -72,11 +72,15 @@ class TelemetryRegistry {
       });
       if (this.measurements.length > this.maxHistory) this.measurements.shift();
 
-      // SLA alert for severe lag
+      // SLA alert for severe lag - emit as metric instead of console logging
       if (duration > 500) {
-        console.warn(
-          `[SLO VIOLATION] ${name} exceeded 500ms latency threshold! (${duration.toFixed(2)}ms)`
-        );
+        this.measurements.push({
+          name: 'slo_violation_count',
+          type: 'counter',
+          value: 1,
+          labels: { ...labels, metric_name: name, threshold: '500ms' },
+          timestamp: Date.now(),
+        });
       }
     }
   }
