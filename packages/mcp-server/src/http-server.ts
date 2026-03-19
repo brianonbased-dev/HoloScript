@@ -11,7 +11,6 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  isInitializeRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'crypto';
 import http from 'http';
@@ -27,6 +26,24 @@ const SERVICE_VERSION = '3.6.1';
 
 // Store active transports by session ID
 const transports = new Map<string, StreamableHTTPServerTransport>();
+
+async function createAndStoreSessionTransport(sessionId?: string): Promise<StreamableHTTPServerTransport> {
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => sessionId || randomUUID(),
+  });
+
+  const server = createMcpServer();
+  await server.connect(transport);
+
+  const sid = transport.sessionId!;
+  transports.set(sid, transport);
+
+  transport.onclose = () => {
+    console.log(`[MCP] Session closed: ${sid}`);
+  };
+
+  return transport;
+}
 
 /**
  * Check authentication
@@ -168,34 +185,27 @@ const httpServer = http.createServer(async (req, res) => {
 
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    // POST without session ID = new session initialization
-    if (req.method === 'POST' && !sessionId && isInitializeRequest) {
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-      });
-
-      const server = createMcpServer();
-      await server.connect(transport);
-
-      const sid = transport.sessionId!;
-      transports.set(sid, transport);
-
-      // Cleanup on close
-      transport.onclose = () => {
-        transports.delete(sid);
-        console.log(`[MCP] Session closed: ${sid}`);
-      };
-
-      console.log(`[MCP] New session: ${sid}`);
+    // POST without session ID = create a new session transport
+    if (req.method === 'POST' && !sessionId) {
+      const transport = await createAndStoreSessionTransport();
+      console.log(`[MCP] New session: ${transport.sessionId!}`);
       await transport.handleRequest(req, res);
       return;
     }
 
     // Requests with session ID = existing session
     if (sessionId) {
-      const transport = transports.get(sessionId);
+      let transport = transports.get(sessionId);
+      if (!transport && req.method === 'POST') {
+        transport = await createAndStoreSessionTransport(sessionId);
+        console.log(`[MCP] Recovered missing session transport: ${sessionId}`);
+      }
       if (transport) {
         await transport.handleRequest(req, res);
+        if (req.method === 'DELETE') {
+          transports.delete(sessionId);
+          console.log(`[MCP] Session removed: ${sessionId}`);
+        }
         return;
       }
       res.writeHead(404, { 'Content-Type': 'application/json' });

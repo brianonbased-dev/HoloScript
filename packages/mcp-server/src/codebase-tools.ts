@@ -51,6 +51,10 @@ const CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.
 const CACHE_FILE = path.join(CACHE_DIR, 'graph-cache.json');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+console.log(
+  `[CacheDebug][codebase] cacheDir=${CACHE_DIR} cacheFile=${CACHE_FILE} exists=${fs.existsSync(CACHE_FILE)}`
+);
+
 interface GraphCacheEnvelope {
   version: 1;
   rootDir: string;
@@ -72,20 +76,33 @@ function saveGraphCache(graph: any, rootDir: string, stats: Record<string, unkno
       graphJson: graph.serialize(),
     };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
+    console.log(`[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir}`);
   } catch {
     // Best-effort — don't break absorb if persistence fails
+    console.warn(`[CacheDebug][codebase] save miss path=${CACHE_FILE}`);
   }
 }
 
 function loadGraphCache(): GraphCacheEnvelope | null {
   try {
-    if (!fs.existsSync(CACHE_FILE)) return null;
+    if (!fs.existsSync(CACHE_FILE)) {
+      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=file-not-found`);
+      return null;
+    }
     const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
     const envelope: GraphCacheEnvelope = JSON.parse(raw);
-    if (envelope.version !== 1) return null;
-    if (Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) return null;
+    if (envelope.version !== 1) {
+      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=version-mismatch`);
+      return null;
+    }
+    if (Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) {
+      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=expired`);
+      return null;
+    }
+    console.log(`[CacheDebug][codebase] load hit path=${CACHE_FILE} rootDir=${envelope.rootDir}`);
     return envelope;
   } catch {
+    console.warn(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=parse-or-io-error`);
     return null;
   }
 }
