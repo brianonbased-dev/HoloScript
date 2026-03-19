@@ -246,10 +246,11 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy HoloScript MCP Server
+        working-directory: packages/mcp-server
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up packages/mcp-server --service mcp-server --environment production --detach
+          railway up --service mcp-server --environment production --detach
 
       - name: Wait for deployment
         run: sleep 60
