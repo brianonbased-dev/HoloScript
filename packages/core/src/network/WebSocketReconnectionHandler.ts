@@ -97,9 +97,7 @@ export class WebSocketReconnectionHandler {
       this.isReconnecting = true;
       this.lastReconnectTime = Date.now();
 
-      console.log(
-        `[WebSocket] Scheduling reconnect attempt ${this.reconnectCount + 1} in ${delay}ms`
-      );
+
 
       this.reconnectTimer = setTimeout(async () => {
         this.reconnectTimer = null;
@@ -134,7 +132,7 @@ export class WebSocketReconnectionHandler {
   reset(): void {
     this.reconnectCount = 0;
     this.isReconnecting = false;
-    console.log('[WebSocket] Connection restored, reconnect counter reset');
+
   }
 
   /**
