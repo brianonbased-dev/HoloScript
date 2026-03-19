@@ -10,6 +10,7 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
+  outputFileTracingRoot: path.join(__dirname, '..', '..'),
   serverExternalPackages: [
     'tree-sitter',
     'tree-sitter-javascript',
@@ -54,8 +55,19 @@ const nextConfig = {
       ioredis: false,
       puppeteer: false,
       playwright: false,
+      '@aztec/bb.js': false,
+      '@xenova/transformers': false,
       // Externalize blockchain/wallet packages that don't work in browser
       '@coinbase/agentkit': false,
+      '@holoscript/mcp-server': false,
+      '@holoscript/mcp-server/compiler-tools': false,
+      '@holoscript/mcp-server/networking-tools': false,
+      '@holoscript/mcp-server/snapshot-tools': false,
+      '@holoscript/mcp-server/monitoring-tools': false,
+      '@holoscript/mcp-server/codebase-tools': false,
+      '@holoscript/mcp-server/graph-rag-tools': false,
+      '@holoscript/mcp-server/self-improve-tools': false,
+      '@holoscript/mcp-server/gltf-import-tools': false,
       viem: false,
       'viem/accounts': false,
       '@privy-io/server-auth': false,
