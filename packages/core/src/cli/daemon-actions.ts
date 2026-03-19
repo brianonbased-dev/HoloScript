@@ -63,6 +63,7 @@ export interface DaemonConfig {
     budget?: number;
     default_spend_limit?: number;
     initial_balance?: number;
+    task_completion_reward?: number;
   };
 }
 
@@ -992,11 +993,20 @@ export function getDaemonFileState(): { committed: string[]; failures: Record<st
 
 // ── Action Handler Factory ───────────────────────────────────────────────────
 
+export interface DaemonActionsResult {
+  actions: Record<string, ActionHandler>;
+  /** Wire trait event listeners (call after runtime.on() is available) */
+  wireTraitListeners: (runtime: {
+    on: (event: string, handler: (payload: unknown) => void) => void;
+    emit: (event: string, payload?: unknown) => void;
+  }) => void;
+}
+
 export function createDaemonActions(
   host: DaemonHost,
   llm: LLMProvider,
   config: DaemonConfig,
-): Record<string, ActionHandler> {
+): DaemonActionsResult {
   // Apply composition-driven quarantine threshold
   if (config.quarantineThreshold !== undefined) {
     quarantineThreshold = config.quarantineThreshold;
@@ -1012,8 +1022,13 @@ export function createDaemonActions(
     }
   }
 
-  const log = (msg: string) => {
+  // Emit-based logging: routes through @structured_logger trait when attached.
+  // Falls back to console.log for CLI visibility.
+  let _emitFn: ((event: string, payload?: unknown) => void) | null = null;
+  const log = (msg: string, level: 'info' | 'debug' | 'warn' | 'error' = 'info') => {
     if (config.verbose) console.log(`[daemon] ${msg}`);
+    // Also emit to @structured_logger trait (captures telemetry natively)
+    _emitFn?.(`logger:${level}`, { message: msg, source: 'daemon' });
   };
 
   const promptContext = buildDaemonPromptContext(
@@ -1023,16 +1038,19 @@ export function createDaemonActions(
   const { provider, toolProfile } = promptContext;
   const policy = resolvePolicy(config);
 
-  // Economy: track spend across LLM calls and enforce budget ceiling
+  // Economy: delegate budget tracking to @economy trait.
+  // The trait handles balance, spend limits, and emits rejection events.
+  // We track spend locally only for cost reporting (console output).
   const trackSpend = (inputTokens: number, outputTokens: number) => {
-    // Approximate cost: $3/M input, $15/M output (Sonnet pricing)
     const cost = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
     policy.spentUSD += cost;
     return cost;
   };
-  const isBudgetExhausted = () => {
-    return policy.budgetUSD > 0 && policy.spentUSD >= policy.budgetUSD;
-  };
+  // Budget exhaustion is now driven by the @economy trait:
+  // When economy:spend_limit_exceeded or economy:insufficient_funds fires,
+  // the listener below sets _budgetExhausted = true.
+  let _budgetExhausted = false;
+  const isBudgetExhausted = () => _budgetExhausted;
 
   if (policy.budgetUSD > 0) {
     log(`Economy: budget ceiling $${policy.budgetUSD.toFixed(2)} per cycle`);
@@ -1600,7 +1618,7 @@ export function createDaemonActions(
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
           const spendCost = trackSpend(result.inputTokens, result.outputTokens);
-          ctx.emit('economy:spend', { action: 'generate_fix', focus, inputTokens: result.inputTokens, outputTokens: result.outputTokens, costUSD: spendCost, totalSpentUSD: policy.spentUSD });
+          ctx.emit('economy:spend', { agentId: 'daemon', amount: spendCost, reason: `generate_fix:${focus}`, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
           const edited = result.text.trim();
           if (edited.length > 10 && !isContaminatedEdit(edited)) {
             const testPath = file.replace(/\\/g, '/').replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
@@ -1725,7 +1743,7 @@ export function createDaemonActions(
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
           const lintSpendCost = trackSpend(result.inputTokens, result.outputTokens);
-          ctx.emit('economy:spend', { action: 'generate_fix', focus: 'lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens, costUSD: lintSpendCost, totalSpentUSD: policy.spentUSD });
+          ctx.emit('economy:spend', { agentId: 'daemon', amount: lintSpendCost, reason: 'generate_fix:lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
           const patchResponse = parsePatchResponse(result.text);
           if (!patchResponse || patchResponse.patches.length === 0) {
             // LLM analyzed but couldn't produce patches — mark as committed to skip in future cycles
@@ -1791,7 +1809,7 @@ export function createDaemonActions(
           const result = await llm.chat({ system: systemPrompt, prompt: docsPrompt, maxTokens: 4096 });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
-          ctx.emit('economy:spend', { action: 'generate_fix', focus: 'docs', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          ctx.emit('economy:spend', { agentId: 'daemon', amount: trackSpend(result.inputTokens, result.outputTokens), reason: 'generate_fix:docs', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
           const patchResponse = parsePatchResponse(result.text);
           if (!patchResponse || patchResponse.patches.length === 0) { advanceCandidate(bb); return false; }
           if (patchResponse.analysis) log(`Analysis: ${patchResponse.analysis.slice(0, 200)}`);
@@ -1947,7 +1965,8 @@ export function createDaemonActions(
         const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: relatedFiles.length > 0 ? 6144 : 4096 });
         bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
         bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
-        ctx.emit('economy:spend', { action: 'generate_fix', focus, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+        const typefixSpendCost = trackSpend(result.inputTokens, result.outputTokens);
+        ctx.emit('economy:spend', { agentId: 'daemon', amount: typefixSpendCost, reason: `generate_fix:${focus}`, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
 
         // Parse structured response
         const patchResponse = parsePatchResponse(result.text);
@@ -2215,7 +2234,7 @@ export function createDaemonActions(
     },
 
     // ── Validate Quality ───────────────────────────────────────────────
-    validate_quality: async (_params, bb) => {
+    validate_quality: async (_params, bb, ctx) => {
       // Use persistent baseline from config (historical reference, e.g. 3506).
       // Fall back to cycle-level baseline, then to per-diagnosis count.
       const baselineErrors = config.typeErrorBaseline
@@ -2252,6 +2271,9 @@ export function createDaemonActions(
 
       bb.quality_improved = result.score > qualityBefore || errorsReduced || fileErrorsReduced || touchedErrorsReduced;
 
+      // Emit quality metrics to @feedback_loop trait (native telemetry pipeline)
+      ctx.emit('feedback:update_metric', { name: 'quality_score', value: result.score });
+
       if (errorsReduced) {
         log(`Error count reduced: ${errorsAtDiagnosis} → ${result.typeErrors} (committing even without quality delta)`);
       }
@@ -2267,7 +2289,7 @@ export function createDaemonActions(
     },
 
     // ── Commit Changes ─────────────────────────────────────────────────
-    commit_changes: async (_params, bb) => {
+    commit_changes: async (_params, bb, ctx) => {
       if (!bb.fileEdited) {
         log('No edits produced — skipping commit');
         bb.committed = false;
@@ -2319,6 +2341,10 @@ export function createDaemonActions(
         const shaResult = await host.exec('git', ['rev-parse', '--short', 'HEAD'], { cwd: config.repoRoot });
         const commitSha = shaResult.code === 0 ? shaResult.stdout.trim() : undefined;
         log(`Commit: OK (${commitSha || 'unknown SHA'})`);
+
+        // Reward via @economy trait: task_completion_reward from composition config
+        const reward = config.economyConfig?.task_completion_reward ?? 0.10;
+        ctx.emit('economy:earn', { agentId: 'daemon', amount: reward, reason: 'task_completion' });
 
         // Record fix provenance
         recordProvenance({
@@ -2558,5 +2584,41 @@ export function createDaemonActions(
       return true;
     },
   };
-  return actions;
+
+  return {
+    actions,
+    wireTraitListeners: (runtime) => {
+      // Capture emit function for log() → @structured_logger routing
+      _emitFn = runtime.emit.bind(runtime);
+
+      // Listen for @economy trait rejection events → set budget gate
+      runtime.on('economy:spend_limit_exceeded', () => {
+        _budgetExhausted = true;
+        log('Economy trait: spend limit exceeded — halting LLM calls', 'warn');
+      });
+      runtime.on('economy:insufficient_funds', () => {
+        _budgetExhausted = true;
+        log('Economy trait: insufficient funds — halting LLM calls', 'warn');
+      });
+
+      // Initialize daemon economy account via trait
+      runtime.emit('economy:earn', {
+        agentId: 'daemon',
+        amount: config.economyConfig?.initial_balance ?? 50,
+        reason: 'initial_balance',
+      });
+
+      // Emit quality metrics to @feedback_loop trait
+      runtime.on('daemon:cycle_telemetry', (payload: unknown) => {
+        const p = payload as Record<string, unknown>;
+        if (typeof p?.qualityAfter === 'number') {
+          runtime.emit('feedback:update_metric', { name: 'quality_score', value: p.qualityAfter });
+        }
+        if (typeof p?.costUSD === 'number' && typeof p?.qualityAfter === 'number') {
+          const efficiency = p.qualityAfter > 0 ? (p.qualityAfter as number) / Math.max(0.001, p.costUSD as number) : 0;
+          runtime.emit('feedback:update_metric', { name: 'cost_efficiency', value: Math.min(1, efficiency) });
+        }
+      });
+    },
+  };
 }

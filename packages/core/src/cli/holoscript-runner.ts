@@ -1106,8 +1106,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 /** Extract @economy trait config from composition AST (walks body/children). */
-function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; default_spend_limit?: number; initial_balance?: number } | undefined {
-  const result: { budget?: number; default_spend_limit?: number; initial_balance?: number } = {};
+function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; default_spend_limit?: number; initial_balance?: number; task_completion_reward?: number } | undefined {
+  const result: { budget?: number; default_spend_limit?: number; initial_balance?: number; task_completion_reward?: number } = {};
   let found = false;
 
   function walk(node: unknown): void {
@@ -1123,6 +1123,7 @@ function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; 
           if (typeof cfg.budget === 'number') result.budget = cfg.budget;
           if (typeof cfg.default_spend_limit === 'number') result.default_spend_limit = cfg.default_spend_limit;
           if (typeof cfg.initial_balance === 'number') result.initial_balance = cfg.initial_balance;
+          if (typeof cfg.task_completion_reward === 'number') result.task_completion_reward = cfg.task_completion_reward;
           found = true;
         }
       }
@@ -1137,6 +1138,7 @@ function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; 
           if (typeof cfg.budget === 'number') result.budget = cfg.budget;
           if (typeof cfg.default_spend_limit === 'number') result.default_spend_limit = cfg.default_spend_limit;
           if (typeof cfg.initial_balance === 'number') result.initial_balance = cfg.initial_balance;
+          if (typeof cfg.task_completion_reward === 'number') result.task_completion_reward = cfg.task_completion_reward;
           found = true;
         }
       }
@@ -1440,7 +1442,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
   }
 
   // Create action handlers (rebuilt per cycle if provider rotation enabled)
-  let actions = createDaemonActions(host, llm, config);
+  let daemonResult = createDaemonActions(host, llm, config);
+  let actions = daemonResult.actions;
 
   // API credit pre-check (W.090: 1-token validation call)
   try {
@@ -1504,7 +1507,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       config.provider = cycleProvider;
       config.model = cycleModel;
       config.toolProfile = cycleToolProfile;
-      actions = createDaemonActions(host, cycleLlm, config);
+      daemonResult = createDaemonActions(host, cycleLlm, config);
+      actions = daemonResult.actions;
       console.log(`\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} | Provider: ${cycleProvider} (${cycleModel}) ===`);
     } else {
       console.log(`\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} ===`);
@@ -1544,6 +1548,11 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     for (const [name, handler] of Object.entries(runtimeSkillActions)) {
       runtime.registerAction(name, handler);
     }
+
+    // Wire trait event listeners: @economy budget enforcement, @feedback_loop metrics,
+    // @structured_logger routing. This connects daemon-actions.ts to the native traits
+    // declared in the composition (economy:spend → EconomyTrait, logger:* → StructuredLoggerTrait).
+    daemonResult.wireTraitListeners(runtime);
 
     // Wait for BT completion or timeout
     const maxWaitMs = opts.timeout * 60 * 1000;
