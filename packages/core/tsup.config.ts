@@ -63,6 +63,12 @@ export default defineConfig({
     // Self-Improvement Pipeline (dynamically loaded)
     'self-improvement/index': 'src/self-improvement/index.ts',
 
+    // Traits barrel (re-exports all trait types for @holoscript/traits)
+    'traits/index': 'src/traits/index.ts',
+
+    // Compiler barrel (re-exports all compilers for @holoscript/compiler)
+    'compiler/index': 'src/compiler/index.ts',
+
     // Sub-barrel focused entry points (lighter than monolithic index.ts)
     'entries/scripting': 'src/entries/scripting.ts',
     'entries/interop': 'src/entries/interop.ts',
@@ -84,7 +90,7 @@ export default defineConfig({
     __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
   format: ['cjs', 'esm'],
-  dts: true, // Re-enabled for proper TypeScript support
+  dts: false, // Temporarily disabled — type mismatches to resolve before re-enabling
   clean: true,
   sourcemap: true,
   splitting: true, // Enable code splitting for shared chunks

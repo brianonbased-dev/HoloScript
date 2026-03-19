@@ -2344,6 +2344,394 @@ const debuggerDTS = `export class HoloScriptDebugger {
 const wotDTS = `export interface WoT {}
 `;
 
+// ============================================================================
+// SUBPATH BARREL DECLARATIONS
+// ============================================================================
+
+const traitsDTS = `/**
+ * @holoscript/core/traits — Trait System Type Declarations
+ */
+
+export interface Trait {
+  name: string;
+  [key: string]: any;
+}
+
+export interface TraitHandler<TConfig = unknown> {
+  name: string;
+  defaults?: TConfig;
+  schema?: Record<string, any>;
+  onAttach?(node: any, config: TConfig, ctx: TraitContext): void;
+  onDetach?(node: any, ctx: TraitContext): void;
+  onTick?(node: any, dt: number, ctx: TraitContext): void;
+  onEvent?(node: any, ctx: TraitContext, event: TraitEvent): void;
+}
+
+export interface HostCapabilities {
+  fileSystem?: HostFileSystemCapabilities;
+  process?: HostProcessCapabilities;
+  network?: HostNetworkCapabilities;
+}
+
+export interface HostFileSystemCapabilities {
+  readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
+  listDir(path: string): Promise<string[]>;
+  exists(path: string): Promise<boolean>;
+}
+
+export interface HostProcessCapabilities {
+  exec(command: string, options?: HostExecOptions): Promise<HostExecResult>;
+}
+
+export interface HostExecOptions {
+  cwd?: string;
+  timeout?: number;
+  env?: Record<string, string>;
+}
+
+export interface HostExecResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+
+export interface HostNetworkCapabilities {
+  fetch(url: string, options?: HostNetworkRequestOptions): Promise<HostNetworkResponse>;
+}
+
+export interface HostNetworkRequestOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeout?: number;
+}
+
+export interface HostNetworkResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export interface TraitContext {
+  node: any;
+  emit(event: string, payload?: any): void;
+  getState(): Record<string, any>;
+  setState(updates: Record<string, any>): void;
+  hostCapabilities?: HostCapabilities;
+  [key: string]: any;
+}
+
+export type TraitEvent = {
+  type: string;
+  [key: string]: any;
+};
+
+export interface AccessibilityContext {
+  screenReader?: boolean;
+  highContrast?: boolean;
+  motionReduced?: boolean;
+}
+
+export interface VRContext {
+  headset?: string;
+  controllers?: any[];
+  handTracking?: boolean;
+}
+
+export class VRTraitRegistry {
+  register(handler: TraitHandler): void;
+  unregister(name: string): void;
+  get(name: string): TraitHandler | undefined;
+  getAll(): TraitHandler[];
+  handleEventForAllTraits(node: any, ctx: TraitContext, event: TraitEvent): void;
+}
+
+export const vrTraitRegistry: VRTraitRegistry;
+
+export interface TraitPlatformSupport {
+  platform: string;
+  supported: boolean;
+  notes?: string;
+}
+
+export interface TraitMatrixEntry {
+  traitName: string;
+  platforms: TraitPlatformSupport[];
+}
+
+export interface TraitSupportMatrixData {
+  entries: TraitMatrixEntry[];
+  generatedAt: string;
+}
+
+export function generateTraitSupportMatrix(traitDir: string): Promise<TraitSupportMatrixData>;
+export function matrixToJSON(matrix: TraitSupportMatrixData): string;
+export function matrixToYAML(matrix: TraitSupportMatrixData): string;
+
+export class TraitCompositor {
+  [key: string]: any;
+}
+
+export declare const COMPOSITION_RULES: any;
+
+export class ECSWorld {
+  [key: string]: any;
+}
+
+export declare const ComponentType: any;
+
+export class MoMETraitDatabase {
+  [key: string]: any;
+}
+`;
+
+const compilerDTS = `/**
+ * @holoscript/core/compiler — Multi-Target Compiler Type Declarations
+ */
+
+export interface CapabilityTokenCredential {
+  token: string;
+  scope: string[];
+  issuedAt: number;
+  expiresAt: number;
+  issuer: string;
+}
+
+export type CompilerToken = string | CapabilityTokenCredential;
+
+export function isCapabilityTokenCredential(token: CompilerToken): token is CapabilityTokenCredential;
+export function createTestCompilerToken(): string;
+
+export interface ICompiler {
+  compile(ast: any, token: CompilerToken): any;
+  [key: string]: any;
+}
+
+export class UnauthorizedCompilerAccessError extends Error {
+  constructor(message: string);
+}
+
+export abstract class CompilerBase implements ICompiler {
+  compile(ast: any, token: CompilerToken): any;
+  [key: string]: any;
+}
+
+export interface R3FNode {
+  type: string;
+  [key: string]: any;
+}
+
+export class R3FCompiler extends CompilerBase {
+  compile(ast: any, token: CompilerToken): R3FNode[];
+}
+
+export declare const ENVIRONMENT_PRESETS: Record<string, any>;
+
+export class UnityCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class GodotCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class BabylonCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class PlayCanvasCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class ARCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class OpenXRCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class VRChatCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class VisionOSCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class AndroidCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class AndroidXRCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class IOSCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class WASMCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class WebGPUCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class SDFCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class DTDLCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class URDFCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class USDPhysicsCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class StateCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class TraitCompositionCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class IncrementalCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class MultiLayerCompiler extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+export class COCOExporter { [key: string]: any; }
+export class GLTFPipelineMCPTool { [key: string]: any; }
+export class NodeToyMapping { [key: string]: any; }
+export class RemotionBridge { [key: string]: any; }
+export class ReproducibilityMode { [key: string]: any; }
+export class SemanticSceneGraph { [key: string]: any; }
+export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
+
+export interface GeometryData { vertices: Float32Array; indices?: Uint32Array; normals?: Float32Array; uvs?: Float32Array; }
+export interface BlobDef { center: [number, number, number]; radius: number; }
+export function generateSplineGeometry(points: number[][], opts?: any): GeometryData;
+export function generateHullGeometry(points: number[][]): GeometryData;
+export function generateMembraneGeometry(blobs: BlobDef[], resolution?: number): GeometryData;
+
+export function runSafetyPass(ast: any, config?: SafetyPassConfig): SafetyPassResult;
+export function quickSafetyCheck(ast: any): boolean;
+export interface SafetyPassResult { passed: boolean; violations: any[]; }
+export interface SafetyPassConfig { [key: string]: any; }
+export interface SafetyReport { [key: string]: any; }
+export type SafetyVerdict = 'safe' | 'unsafe' | 'unknown';
+export interface LinearCheckerConfig { [key: string]: any; }
+export interface InferredEffects { [key: string]: any; }
+export type CompilePlatformTarget = string;
+
+export class USDZPipeline { [key: string]: any; }
+export interface USDZPipelineOptions { [key: string]: any; }
+
+export class CompilerBridge { [key: string]: any; }
+`;
+
+const selfImprovementDTS = `/**
+ * @holoscript/core/self-improvement — Self-Improvement Pipeline Type Declarations
+ */
+
+export interface PipelineConfig { [key: string]: any; }
+export interface PipelineStats { total: number; succeeded: number; failed: number; [key: string]: any; }
+export interface FailedGeneration { source: string; error: string; [key: string]: any; }
+export type FailureCategory = 'parse' | 'type' | 'runtime' | 'logic' | 'unknown';
+export type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'expert';
+export interface TrainingExample { prompt: string; completion: string; [key: string]: any; }
+export class SelfImprovementPipeline {
+  constructor(config?: PipelineConfig);
+  process(failures: FailedGeneration[]): Promise<TrainingExample[]>;
+  getStats(): PipelineStats;
+}
+
+export interface QualityMetrics { [key: string]: number; }
+export type QualityDimension = string;
+export interface QualityReport { score: number; dimensions: Record<string, number>; [key: string]: any; }
+export declare const QUALITY_WEIGHTS: Record<string, number>;
+export function calculateQualityScore(metrics: QualityMetrics): QualityReport;
+
+export interface ConvergenceConfig { windowSize?: number; threshold?: number; [key: string]: any; }
+export interface ConvergenceStatus { converged: boolean; delta: number; trend: string; }
+export interface ConvergenceSnapshot { values: number[]; status: ConvergenceStatus; }
+export class ConvergenceDetector {
+  constructor(config?: ConvergenceConfig);
+  addSample(value: number): ConvergenceStatus;
+  getSnapshot(): ConvergenceSnapshot;
+  reset(): void;
+}
+
+export interface SelfImproveIO { [key: string]: any; }
+export interface SelfImproveConfig { [key: string]: any; }
+export interface SelfImproveResult { iterations: IterationRecord[]; finalQuality: number; [key: string]: any; }
+export interface IterationRecord { [key: string]: any; }
+export interface AbsorbResult { [key: string]: any; }
+export interface UntestedTarget { [key: string]: any; }
+export interface GeneratedTest { [key: string]: any; }
+export interface VitestResult { passed: boolean; [key: string]: any; }
+export interface VitestSuiteResult { [key: string]: any; }
+export interface LintResult { [key: string]: any; }
+export class SelfImproveCommand {
+  constructor(io: SelfImproveIO, config?: SelfImproveConfig);
+  run(): Promise<SelfImproveResult>;
+}
+
+export interface HarvestEntry { [key: string]: any; }
+export interface HarvesterConfig { [key: string]: any; }
+export interface FileWriter { write(path: string, content: string): Promise<void>; }
+export interface AcceptedExample { [key: string]: any; }
+export class SelfImproveHarvester {
+  constructor(config?: HarvesterConfig);
+  harvest(): Promise<HarvestEntry[]>;
+}
+
+export function computeRougeL(reference: string, candidate: string): number;
+
+export interface ASTSegment { [key: string]: any; }
+export type SegmentKind = string;
+export interface DPOPair { chosen: string; rejected: string; [key: string]: any; }
+export interface DPOPairMetadata { [key: string]: any; }
+export type DegradationStrategy = string;
+export interface FocusedDPOConfig { [key: string]: any; }
+export interface SplitterStats { [key: string]: any; }
+export class FocusedDPOSplitter {
+  constructor(config?: FocusedDPOConfig);
+  split(source: string): DPOPair[];
+  getStats(): SplitterStats;
+}
+
+export interface GRPORewardFunction { (response: string, context: any): number; }
+export interface RewardFunctionOptions { [key: string]: any; }
+export interface RewardEvaluation { score: number; [key: string]: any; }
+export interface RewardToolRunner { [key: string]: any; }
+export declare const GRPO_REWARD_WEIGHTS: Record<string, number>;
+export function createGRPORewardFunctions(options?: RewardFunctionOptions): Record<string, GRPORewardFunction>;
+
+export interface GRPOOrchestratorConfig { [key: string]: any; }
+export interface RewardStatistics { [key: string]: any; }
+export interface RewardFunctionResult { [key: string]: any; }
+export interface OrchestratorResult { score: number; [key: string]: any; }
+export interface OrchestratorStats { [key: string]: any; }
+export class GRPORewardOrchestrator {
+  constructor(config?: GRPOOrchestratorConfig);
+  evaluate(response: string, context: any): Promise<OrchestratorResult>;
+  getStats(): OrchestratorStats;
+}
+
+export interface GRPOTrainingConfig { [key: string]: any; }
+export interface GRPOHyperparameters { [key: string]: any; }
+export interface VLLMConfig { [key: string]: any; }
+export interface OPLoRAConfig { [key: string]: any; }
+export interface TrainingSchedule { [key: string]: any; }
+export interface HardwareConfig { [key: string]: any; }
+export declare const RECOMMENDED_GRPO_CONFIG: GRPOTrainingConfig;
+export function buildGRPOConfig(overrides?: Partial<GRPOTrainingConfig>): GRPOTrainingConfig;
+export function exportGRPOConfigAsPython(config: GRPOTrainingConfig): string;
+
+export interface GRPOPrompt { [key: string]: any; }
+export interface TRLPromptRecord { [key: string]: any; }
+export interface PromptExtractorConfig { [key: string]: any; }
+export interface ExtractionStats { [key: string]: any; }
+export interface PromptExtractorFS { [key: string]: any; }
+export type PromptDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
+export type PromptSource = string;
+export type DomainTag = string;
+export class GRPOPromptExtractor {
+  constructor(fs: PromptExtractorFS, config?: PromptExtractorConfig);
+  extract(): Promise<GRPOPrompt[]>;
+  getStats(): ExtractionStats;
+}
+export function createNodeFS(): PromptExtractorFS;
+export function inferDomainTags(source: string): DomainTag[];
+export function estimateDifficulty(source: string): PromptDifficulty;
+export function extractPackageName(path: string): string;
+
+export interface ExtendedOPLoRAConfig { [key: string]: any; }
+export interface ValidatedOPLoRAConfig { [key: string]: any; }
+export interface OPLoRAValidationError { field: string; message: string; }
+export declare const DEFAULT_OPLORA_CONFIG: ExtendedOPLoRAConfig;
+export function validateOPLoRAConfig(config: any): OPLoRAValidationError[];
+export function buildOPLoRAConfig(overrides?: Partial<ExtendedOPLoRAConfig>): ExtendedOPLoRAConfig;
+export function exportOPLoRAConfigAsPython(config: ExtendedOPLoRAConfig): string;
+
+export type BenchmarkName = string;
+export interface BenchmarkScore { [key: string]: any; }
+export interface ModuleWeightRatio { [key: string]: any; }
+export interface ConstraintSatisfaction { [key: string]: any; }
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+export interface MonitorAlert { severity: AlertSeverity; message: string; [key: string]: any; }
+export interface OPLoRAMonitorConfig { [key: string]: any; }
+export interface MonitorStats { [key: string]: any; }
+export interface MonitorSnapshot { [key: string]: any; }
+export class OPLoRAMonitor {
+  constructor(config?: OPLoRAMonitorConfig);
+  addScore(benchmark: BenchmarkName, score: number): void;
+  getAlerts(): MonitorAlert[];
+  getStats(): MonitorStats;
+  getSnapshot(): MonitorSnapshot;
+}
+
+export interface ForgettingDetectorConfig { [key: string]: any; }
+export type ForgettingSeverity = 'none' | 'mild' | 'moderate' | 'severe';
+export interface ForgettingResult { severity: ForgettingSeverity; [key: string]: any; }
+export interface AggregateDetectionResult { [key: string]: any; }
+export class ForgettingDetector {
+  constructor(config?: ForgettingDetectorConfig);
+  addSample(benchmark: string, score: number): ForgettingResult;
+  getAggregate(): AggregateDetectionResult;
+}
+`;
+
 // Write type declaration files
 const files = [
   { path: path.join(distDir, 'index.d.ts'), content: mainDTS },
@@ -2362,17 +2750,25 @@ for (const file of files) {
   }
 }
 
-// Create wot directory if needed
-const wotDir = path.join(distDir, 'wot');
-if (!fs.existsSync(wotDir)) {
-  fs.mkdirSync(wotDir, { recursive: true });
-}
+// Create subdirectory declaration files
+const subdirDeclarations = [
+  { dir: 'wot', content: wotDTS },
+  { dir: 'traits', content: traitsDTS },
+  { dir: 'compiler', content: compilerDTS },
+  { dir: 'self-improvement', content: selfImprovementDTS },
+];
 
-try {
-  fs.writeFileSync(path.join(wotDir, 'index.d.ts'), wotDTS, 'utf8');
-  console.log(`✓ Created wot/index.d.ts`);
-} catch (err) {
-  console.error(`✗ Failed to create wot/index.d.ts:`, err.message);
+for (const { dir, content } of subdirDeclarations) {
+  const subDir = path.join(distDir, dir);
+  if (!fs.existsSync(subDir)) {
+    fs.mkdirSync(subDir, { recursive: true });
+  }
+  try {
+    fs.writeFileSync(path.join(subDir, 'index.d.ts'), content, 'utf8');
+    console.log(`✓ Created ${dir}/index.d.ts`);
+  } catch (err) {
+    console.error(`✗ Failed to create ${dir}/index.d.ts:`, err.message);
+  }
 }
 
 console.log('\n✓ Type declaration files generated successfully');

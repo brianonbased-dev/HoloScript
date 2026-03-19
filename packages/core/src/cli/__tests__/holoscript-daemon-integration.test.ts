@@ -87,7 +87,7 @@ describe('holoscript daemon integration', () => {
     host.seedFile('.holoscript/accumulated-wisdom.json', JSON.stringify([{ pattern: 'typefix' }]));
     host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const ok = await actions.identity_intake({}, blackboard, context);
 
     expect(ok).toBe(true);
@@ -110,7 +110,7 @@ describe('holoscript daemon integration', () => {
       return { code: 0, stdout: '', stderr: '' };
     });
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
 
@@ -135,7 +135,7 @@ describe('holoscript daemon integration', () => {
       ],
     };
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const ok = await actions.generate_fix({}, blackboard, context);
 
     expect(ok).toBe(true);
@@ -166,7 +166,7 @@ describe('holoscript daemon integration', () => {
       })),
     };
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const ok = await actions.generate_fix({}, blackboard, context);
 
     expect(ok).toBe(false);
@@ -186,7 +186,7 @@ describe('holoscript daemon integration', () => {
     blackboard.focus = 'target-sweep';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -218,7 +218,7 @@ describe('holoscript daemon integration', () => {
     blackboard.focus = 'trait-sampling';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -244,7 +244,7 @@ describe('holoscript daemon integration', () => {
     blackboard.focus = 'runtime-matrix';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -271,7 +271,7 @@ describe('holoscript daemon integration', () => {
     blackboard.focus = 'absorb-roundtrip';
     blackboard.daemon_file = 'compositions/self-improve-daemon.hsplus';
 
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
     const diagnosed = await actions.diagnose({}, blackboard, context);
     const read = await actions.read_candidate({}, blackboard, context);
     const fixed = await actions.generate_fix({}, blackboard, context);
@@ -288,7 +288,7 @@ describe('holoscript daemon integration', () => {
   it('blocks shell_exec when shell access is disabled by policy', async () => {
     host.setExecResponses(() => ({ code: 0, stdout: 'ok', stderr: '' }));
 
-    const actions = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host, llm, {
       ...createConfig(),
       toolPolicy: {
         allowShell: false,
@@ -301,7 +301,7 @@ describe('holoscript daemon integration', () => {
   });
 
   it('enforces file_write path sandbox policy', async () => {
-    const actions = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host, llm, {
       ...createConfig(),
       toolPolicy: {
         allowedPaths: ['packages/core/src'],
@@ -326,7 +326,7 @@ describe('holoscript daemon integration', () => {
   });
 
   it('blocks web_fetch for non-allowlisted hosts', async () => {
-    const actions = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host, llm, {
       ...createConfig(),
       toolPolicy: {
         allowedHosts: ['api.openai.com'],
@@ -339,7 +339,7 @@ describe('holoscript daemon integration', () => {
   });
 
   it('creates a runtime skill file in the configured skills directory', async () => {
-    const actions = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host, llm, {
       ...createConfig(),
       skillsDir: 'compositions/skills',
       toolPolicy: {
@@ -362,7 +362,7 @@ describe('holoscript daemon integration', () => {
   });
 
   it('writes outbound channel messages to queue and ingests inbound messages', async () => {
-    const actions = createDaemonActions(host, llm, createConfig());
+    const { actions } = createDaemonActions(host, llm, createConfig());
 
     const sent = await actions.channel_send(
       {
@@ -391,7 +391,7 @@ describe('holoscript daemon integration', () => {
     host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
 
     // With a positive budget, first call goes through (no prior spend)
-    const actions = createDaemonActions(host, llm, {
+    const { actions } = createDaemonActions(host, llm, {
       ...createConfig(),
       economyConfig: { budget: 5.00 },
     });
@@ -404,7 +404,7 @@ describe('holoscript daemon integration', () => {
     expect(blackboard.budget_exhausted).toBeUndefined();
 
     // With budget=0 (unlimited), should also proceed
-    const unlimitedActions = createDaemonActions(host, llm, {
+    const { actions: unlimitedActions } = createDaemonActions(host, llm, {
       ...createConfig(),
       economyConfig: { budget: 0 },
     });

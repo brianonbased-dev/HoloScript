@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "sideEffects": false,
+  "sideEffects": ["./src/traits/visual/index.ts", "./dist/traits/index.js"],
   "files": [
     "dist"
   ],
@@ -55,6 +55,11 @@
       "types": "./dist/self-improvement/index.d.ts",
       "import": "./dist/self-improvement/index.js",
       "require": "./dist/self-improvement/index.cjs"
+    },
+    "./compiler/index": {
+      "types": "./dist/compiler/index.d.ts",
+      "import": "./dist/compiler/index.js",
+      "require": "./dist/compiler/index.cjs"
     },
     "./compiler/*": {
       "types": "./dist/compiler/*.d.ts",
