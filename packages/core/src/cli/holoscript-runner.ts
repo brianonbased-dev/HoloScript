@@ -906,7 +906,11 @@ async function testScript(opts: CLIOptions): Promise<void> {
   const scriptResults = runner.runTestsFromSource(source, filePath);
 
   // Also run @test blocks (native composition tests with $stateVar syntax)
-  const compositionState = CompositionTestRunner.extractStateFromSource(source);
+  // Prefer runtime state (properly parses nested objects) over raw text extraction
+  const runtimeState = runtime.getAllState();
+  const compositionState = Object.keys(runtimeState).length > 0
+    ? runtimeState
+    : CompositionTestRunner.extractStateFromSource(source);
   const computedDefs = CompositionTestRunner.extractComputedFromSource(source);
   const compositionRunner = new CompositionTestRunner(compositionState, computedDefs, {
     debug: opts.debug,

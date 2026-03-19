@@ -376,37 +376,16 @@ export class CompositionTestRunner {
   // ─── Static helpers ──────────────────────────────────────────────────────────
 
   /**
-   * Extract state block from .hsplus source
+   * Extract state block from .hsplus source.
+   * Handles nested objects { ... } and arrays [ ... ].
    */
   static extractStateFromSource(source: string): Record<string, unknown> {
-    const state: Record<string, unknown> = {};
     const stateMatch = source.match(/\bstate\s*\{/);
-    if (!stateMatch) return state;
+    if (!stateMatch) return {};
 
     const startIdx = stateMatch.index! + stateMatch[0].length;
-    let depth = 1;
-    let endIdx = startIdx;
-    while (depth > 0 && endIdx < source.length) {
-      if (source[endIdx] === '{') depth++;
-      if (source[endIdx] === '}') depth--;
-      endIdx++;
-    }
-
-    const body = source.substring(startIdx, endIdx - 1);
-    // Parse key: value lines (skip comments)
-    const lines = body.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('//')) continue;
-
-      const kvMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.+?)\s*$/);
-      if (kvMatch) {
-        const [, key, rawValue] = kvMatch;
-        state[key] = parseStateValue(rawValue);
-      }
-    }
-
-    return state;
+    const body = extractBracedBody(source, startIdx);
+    return parseNestedBlock(body);
   }
 
   /**
@@ -444,9 +423,86 @@ export class CompositionTestRunner {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Find the matching closing brace and return the body between braces */
+function extractBracedBody(source: string, startIdx: number): string {
+  let depth = 1;
+  let i = startIdx;
+  while (depth > 0 && i < source.length) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}') depth--;
+    i++;
+  }
+  return source.substring(startIdx, i - 1);
+}
+
+/** Parse a nested block body into a Record, handling nested { } objects */
+function parseNestedBlock(body: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  let i = 0;
+
+  while (i < body.length) {
+    // Skip whitespace and comments
+    while (i < body.length && /\s/.test(body[i])) i++;
+    if (i >= body.length) break;
+
+    // Skip // comments
+    if (body[i] === '/' && body[i + 1] === '/') {
+      while (i < body.length && body[i] !== '\n') i++;
+      continue;
+    }
+
+    // Parse key
+    const keyMatch = body.slice(i).match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*/);
+    if (!keyMatch) { i++; continue; }
+
+    const key = keyMatch[1];
+    i += keyMatch[0].length;
+
+    // Skip whitespace after colon
+    while (i < body.length && /\s/.test(body[i])) i++;
+
+    // Parse value
+    if (body[i] === '{') {
+      // Nested object
+      i++; // skip opening {
+      const nestedBody = extractBracedBody(body, i);
+      i += nestedBody.length + 1; // +1 for closing }
+      result[key] = parseNestedBlock(nestedBody);
+    } else if (body[i] === '[') {
+      // Array — find matching ]
+      const arrStart = i;
+      let depth = 1;
+      i++;
+      while (depth > 0 && i < body.length) {
+        if (body[i] === '[') depth++;
+        if (body[i] === ']') depth--;
+        i++;
+      }
+      const arrStr = body.substring(arrStart, i).trim();
+      try {
+        result[key] = JSON.parse(arrStr);
+      } catch {
+        result[key] = arrStr;
+      }
+    } else {
+      // Scalar value — read until newline, comma, or end
+      const valMatch = body.slice(i).match(/^(.+?)(?:\n|$)/);
+      if (valMatch) {
+        const raw = valMatch[1].trim().replace(/,\s*$/, ''); // strip trailing comma
+        result[key] = parseStateValue(raw);
+        i += valMatch[0].length;
+      } else {
+        i++;
+      }
+    }
+  }
+
+  return result;
+}
+
 /** Parse a state value string to a JS primitive */
 function parseStateValue(raw: string): unknown {
-  const v = raw.trim();
+  const v = raw.trim().replace(/,\s*$/, ''); // strip trailing comma
   if (v === 'true') return true;
   if (v === 'false') return false;
   if (v === 'null') return null;
