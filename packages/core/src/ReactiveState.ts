@@ -105,7 +105,7 @@ export class ExpressionEvaluator {
 
     for (const pattern of dangerousPatterns) {
       if (pattern.test(expression)) {
-        console.warn(`[ExpressionEvaluator] Security: blocked expression: ${expression}`);
+        // Security: blocked dangerous expression pattern
         return undefined;
       }
     }
