@@ -1,7 +1,7 @@
 /**
  * MCP Client - HTTP client for MCP Mesh Orchestrator
  *
- * Communicates with MCP orchestrator at http://localhost:5567
+ * Communicates with MCP Mesh Orchestrator (production Railway)
  * Handles authentication, rate limiting, and health checks.
  *
  * Based on patterns from AI Ecosystem:
@@ -354,7 +354,7 @@ export class MCPClient {
 /** Default MCP configuration */
 export const DEFAULT_MCP_CONFIG: MCPServerConfig = {
   name: 'default',
-  url: 'http://localhost:5567',
+  url: 'https://mcp-orchestrator-production-45f9.up.railway.app',
   apiKey: 'dev-key-12345',
   enabled: true,
   healthCheckInterval: 30000, // 30 seconds

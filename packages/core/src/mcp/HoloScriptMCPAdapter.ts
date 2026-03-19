@@ -2,7 +2,7 @@
  * HoloScript MCP Tool Adapter
  *
  * Exposes five core HoloScript capabilities as MCP-compatible tools
- * for registration with the MCP Mesh Orchestrator at localhost:5567.
+ * for registration with the MCP Mesh Orchestrator (production Railway).
  *
  * Tools:
  *   1. holo_compile_nir    - Compile a .holo composition to NIR graph JSON

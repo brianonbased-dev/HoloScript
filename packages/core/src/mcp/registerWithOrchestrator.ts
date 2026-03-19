@@ -2,14 +2,14 @@
  * MCP Orchestrator Registration Script
  *
  * Registers the five HoloScript MCP tools with the central MCP Mesh Orchestrator
- * running at localhost:5567. The orchestrator provides cross-workspace tool discovery
+ * running at mcp.holoscript.net. The orchestrator provides cross-workspace tool discovery
  * and knowledge federation.
  *
  * Usage:
  *   npx tsx packages/core/src/mcp/registerWithOrchestrator.ts
  *
  * Environment variables:
- *   MCP_ORCHESTRATOR_URL  - Orchestrator base URL (default: http://localhost:5567)
+ *   MCP_ORCHESTRATOR_URL  - Orchestrator base URL (default: https://mcp.holoscript.net)
  *   MCP_API_KEY           - API key for orchestrator auth (default: dev-key-12345)
  *   MCP_SERVER_NAME       - Server name to register as (default: holoscript-tools)
  *
@@ -49,7 +49,7 @@ export interface RegistrationResult {
 // =============================================================================
 
 const DEFAULT_CONFIG: RegistrationConfig = {
-  orchestratorUrl: process.env.MCP_ORCHESTRATOR_URL ?? 'http://localhost:5567',
+  orchestratorUrl: process.env.MCP_ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app',
   apiKey: process.env.MCP_API_KEY ?? 'dev-key-12345',
   serverName: process.env.MCP_SERVER_NAME ?? 'holoscript-tools',
   serverDescription:
@@ -252,7 +252,7 @@ async function main(): Promise<void> {
       console.log('Usage: npx tsx registerWithOrchestrator.ts [options]');
       console.log();
       console.log('Options:');
-      console.log('  --url <url>            Orchestrator URL (default: http://localhost:5567)');
+      console.log('  --url <url>            Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)');
       console.log('  --api-key <key>        API key (default: dev-key-12345)');
       console.log('  --server-name <name>   Server name (default: holoscript-tools)');
       console.log('  --unregister           Remove registration instead of registering');
