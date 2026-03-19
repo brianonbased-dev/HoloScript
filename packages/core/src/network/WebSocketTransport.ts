@@ -12,6 +12,8 @@
  * - Room-based isolation
  */
 
+import { logger } from '../logger';
+
 export interface WebSocketTransportConfig {
   /** Server URL (e.g., 'ws://localhost:8080') */
   serverUrl: string;
@@ -76,7 +78,7 @@ export class WebSocketTransport {
         this.ws = new WebSocket(this.config.serverUrl);
 
         this.ws.onopen = () => {
-          console.log(`✓ WebSocket connected to ${this.config.serverUrl}`);
+          logger.info(`WebSocket connected to ${this.config.serverUrl}`);
           this.isConnected = true;
           this.reconnectAttempts = 0;
 
@@ -101,17 +103,17 @@ export class WebSocketTransport {
             const handler = this.messageHandlers.get(msg.type);
             if (handler) handler(msg);
           } catch (err) {
-            console.error('Failed to parse WebSocket message:', err);
+            logger.error('Failed to parse WebSocket message', { error: err instanceof Error ? err.message : String(err) });
           }
         };
 
-        this.ws.onerror = (evt) => {
-          console.error('WebSocket error:', evt);
+        this.ws.onerror = () => {
+          logger.error('WebSocket error');
           reject(new Error('WebSocket connection failed'));
         };
 
         this.ws.onclose = () => {
-          console.warn('WebSocket disconnected');
+          logger.warn('WebSocket disconnected');
           this.isConnected = false;
           this.stopHeartbeat();
           this.attemptReconnect();
@@ -175,7 +177,7 @@ export class WebSocketTransport {
 
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
-      console.error('Max reconnection attempts exceeded');
+      logger.error('Max reconnection attempts exceeded');
       return;
     }
 
@@ -185,13 +187,13 @@ export class WebSocketTransport {
     );
 
     this.reconnectAttempts++;
-    console.log(
+    logger.info(
       `Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts}/${this.config.maxReconnectAttempts})`
     );
 
     setTimeout(() => {
       this.connect().catch((err) => {
-        console.error('Reconnection failed:', err);
+        logger.error('Reconnection failed', { error: err instanceof Error ? err.message : String(err) });
         this.attemptReconnect();
       });
     }, backoff);

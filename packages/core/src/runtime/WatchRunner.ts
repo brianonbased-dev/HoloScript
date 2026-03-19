@@ -19,6 +19,7 @@ import { HotReloadWatcher, type HotReloadConfig } from '../traits/HotReloadTrait
 import { ScriptTestRunner } from '../traits/ScriptTestTrait';
 import { createHeadlessRuntime, type HeadlessRuntime } from './HeadlessRuntime';
 import * as fs from 'fs';
+import { logger } from '../logger';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export class WatchRunner {
     this.running = true;
 
     if (this.options.debug) {
-      console.log(`[WatchRunner] Watching: ${this.options.watchPaths.join(', ')}`);
+      logger.debug(`[WatchRunner] Watching: ${this.options.watchPaths.join(', ')}`);
     }
 
     // Create a minimal runtime for state binding
@@ -110,7 +111,7 @@ export class WatchRunner {
     }
 
     if (this.options.debug) {
-      console.log('[WatchRunner] Stopped');
+      logger.debug('[WatchRunner] Stopped');
     }
   }
 
@@ -144,7 +145,7 @@ export class WatchRunner {
     });
 
     if (this.options.debug) {
-      console.log(`[WatchRunner] Reload: ${filePath}`);
+      logger.debug(`[WatchRunner] Reload: ${filePath}`);
     }
 
     // Auto-run @script_test blocks if enabled
@@ -175,8 +176,8 @@ export class WatchRunner {
           if (this.options.debug) {
             for (const r of results) {
               const icon = r.status === 'passed' ? '✓' : r.status === 'failed' ? '✗' : '○';
-              console.log(`  ${icon} ${r.name} (${r.durationMs}ms)`);
-              if (r.error) console.log(`    ${r.error}`);
+              logger.debug(`  ${icon} ${r.name} (${r.durationMs}ms)`);
+              if (r.error) logger.debug(`    ${r.error}`);
             }
           }
         }
