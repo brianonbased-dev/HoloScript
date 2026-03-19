@@ -16,6 +16,7 @@ import type {
   ScanStats,
   ScanError,
   SupportedLanguage,
+  ImportEdge,
 } from './types';
 import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
@@ -119,6 +120,7 @@ export class CodebaseScanner {
 
       // Parse with tree-sitter
       let tree;
+      const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
       try {
         tree = await this.adapterManager.parse(content, language);
         if (!tree) {
@@ -127,12 +129,33 @@ export class CodebaseScanner {
         }
       } catch (e: any) {
         errors.push({ file: filePath, error: e.message, phase: 'parse' });
+        if (!(options.includeBuildArtifacts ?? false)) {
+          continue;
+        }
+
+        // Dist-safe fallback for environments where parser bindings fail.
+        const fallbackImports = this.extractLooseImports(content, relPath);
+        const loc = content.split('\n').length;
+        files.push({
+          path: relPath,
+          language,
+          symbols: [],
+          imports: fallbackImports,
+          calls: [],
+          loc,
+          sizeBytes,
+          docComment: undefined,
+        });
+
+        filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
+        totalImports += fallbackImports.length;
+        totalLoc += loc;
+        onProgress?.(files.length, filePaths.length, relPath);
         continue;
       }
 
       // Extract symbols, imports, calls
       try {
-        const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
         const symbols = adapter.extractSymbols(tree, relPath);
         const imports = adapter.extractImports(tree, relPath);
         const calls = adapter.extractCalls(tree, relPath);
@@ -232,5 +255,28 @@ export class CodebaseScanner {
       }
     }
     return set;
+  }
+
+  private extractLooseImports(content: string, filePath: string): ImportEdge[] {
+    const imports: ImportEdge[] = [];
+    const lines = content.split('\n');
+    const esmImport = /\bimport\s+(?:[^'";]+\s+from\s+)?['"]([^'"]+)['"]/;
+    const dynamicImport = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/;
+    const commonJs = /\brequire\(\s*['"]([^'"]+)['"]\s*\)/;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const matches = [line.match(esmImport), line.match(dynamicImport), line.match(commonJs)];
+      for (const m of matches) {
+        if (!m?.[1]) continue;
+        imports.push({
+          fromFile: filePath,
+          toModule: m[1],
+          line: i + 1,
+        });
+      }
+    }
+
+    return imports;
   }
 }
