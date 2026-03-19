@@ -249,7 +249,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway up --service mcp-server --detach
+          railway up packages/mcp-server --service mcp-server --environment production --detach
 
       - name: Wait for deployment
         run: sleep 60
