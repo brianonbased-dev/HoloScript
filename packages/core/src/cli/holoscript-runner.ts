@@ -17,6 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { spawn } from 'child_process';
+import { randomUUID } from 'crypto';
 import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../runtime/HeadlessRuntime';
 import { createHeadlessRuntime as createProfileRuntime } from '../runtime/profiles/HeadlessRuntime';
 import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
@@ -60,6 +61,8 @@ interface CLIOptions {
   allowedHosts: string[];
   allowedPaths: string[];
   skillsDir?: string;
+  /** G.ARCH.002: Session identity for daemon state isolation */
+  sessionId?: string;
 }
 
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
@@ -143,6 +146,7 @@ function parseArgs(argv: string[]): CLIOptions {
     toolProfile: envDefaults.toolProfile,
     model: envDefaults.model,
     timeout: 30,
+    sessionId: randomUUID(),
   };
   let modelExplicit = false;
   let toolProfileExplicit = false;
@@ -1424,6 +1428,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       allowedPaths: opts.allowedPaths,
     },
     economyConfig,
+    sessionId: opts.sessionId,
   };
 
   // Load persisted daemon state

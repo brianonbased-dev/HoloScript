@@ -18,6 +18,11 @@ import {
   type DaemonProvider,
   type DaemonToolProfile,
 } from './daemon-prompt-profiles';
+import {
+  parseTscOutput,
+  aggregatePatterns,
+  type ErrorCategory,
+} from './daemon-error-taxonomy';
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -58,6 +63,8 @@ export interface DaemonConfig {
   };
   /** Directory where runtime-created skills are persisted. */
   skillsDir?: string;
+  /** G.ARCH.002: Unique session identifier (UUID) for this daemon invocation */
+  sessionId?: string;
   /** Economy trait config extracted from composition AST. */
   economyConfig?: {
     budget?: number;
@@ -453,6 +460,14 @@ interface FixProvenanceRecord {
   rollbackReason?: string;
   commitSha?: string;
   result: 'committed' | 'rolled_back' | 'skipped';
+  /** G.ARCH.002: Semantic error categories encountered */
+  errorCategories?: string[];
+  /** G.ARCH.002: Specific symbols involved in errors */
+  errorSymbols?: string[];
+  /** G.ARCH.002: Most common error category (enables systemic pattern detection) */
+  dominantFailure?: string;
+  /** G.ARCH.002: Links record to daemon invocation */
+  sessionId?: string;
 }
 
 const provenanceLog: FixProvenanceRecord[] = [];
@@ -1400,6 +1415,18 @@ export function createDaemonActions(
           }
         }
         bb.perFileErrors = perFileErrors;
+
+        // G.ARCH.002: Semantic error categorization — enables pattern-aware learning
+        const tscOutput = (result.stdout + result.stderr);
+        const semanticErrors = parseTscOutput(tscOutput);
+        const failurePatterns = aggregatePatterns(semanticErrors);
+        bb.errorCategories = failurePatterns.map(p => p.category);
+        bb.errorSymbols = failurePatterns.flatMap(p => p.symbols).slice(0, 10);
+        bb.dominantFailure = failurePatterns[0]?.category;
+        bb.failurePatterns = failurePatterns.slice(0, 5);
+        if (failurePatterns.length > 0) {
+          log(`Error taxonomy: ${failurePatterns.map(p => `${p.category}(${p.count})`).join(', ')}`);
+        }
       } else if (focus === 'coverage') {
         // Find source files that lack corresponding test files
         const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
@@ -1567,6 +1594,29 @@ export function createDaemonActions(
       bb.candidateIndex = 0;
       bb.has_candidates = candidates.length > 0;
       log(`Found ${candidates.length} candidates (focus: ${focus})`);
+
+      // G.ARCH.002: Systemic pattern detection — load recent provenance to detect
+      // recurring failure categories across candidates (e.g., "all IOSCompiler
+      // subclasses fail with 'missing_member'").
+      try {
+        const ledgerPath = `${config.stateDir}/fix-ledger.json`;
+        if (host.exists(ledgerPath)) {
+          const allRecords = JSON.parse(host.readFile(ledgerPath)) as FixProvenanceRecord[];
+          const recentRollbacks = allRecords.filter(r => r.result === 'rolled_back').slice(-20);
+          const categoryFreq = new Map<string, number>();
+          for (const r of recentRollbacks) {
+            if (r.dominantFailure) {
+              categoryFreq.set(r.dominantFailure, (categoryFreq.get(r.dominantFailure) || 0) + 1);
+            }
+          }
+          for (const [cat, count] of categoryFreq) {
+            if (count >= 3) {
+              log(`SYSTEMIC: ${count} recent rollbacks share failure category '${cat}' — consider addressing root cause`, 'warn');
+            }
+          }
+        }
+      } catch { /* non-fatal — ledger may not exist yet */ }
+
       return true;
     },
 
@@ -2360,6 +2410,11 @@ export function createDaemonActions(
           patchCount: 1,
           commitSha,
           result: 'committed',
+          // G.ARCH.002: Semantic error data
+          errorCategories: Array.isArray(bb.errorCategories) ? bb.errorCategories as string[] : undefined,
+          errorSymbols: Array.isArray(bb.errorSymbols) ? bb.errorSymbols as string[] : undefined,
+          dominantFailure: bb.dominantFailure as string | undefined,
+          sessionId: config.sessionId,
         }, config.stateDir, host);
 
         // Graph-RAG: cascade un-quarantine — if we just committed a root-cause file
@@ -2463,6 +2518,11 @@ export function createDaemonActions(
           patchCount: 1,
           rollbackReason,
           result: 'rolled_back',
+          // G.ARCH.002: Semantic error data
+          errorCategories: Array.isArray(bb.errorCategories) ? bb.errorCategories as string[] : undefined,
+          errorSymbols: Array.isArray(bb.errorSymbols) ? bb.errorSymbols as string[] : undefined,
+          dominantFailure: bb.dominantFailure as string | undefined,
+          sessionId: config.sessionId,
         }, config.stateDir, host);
       }
       bb.generatedTestFile = undefined;
@@ -2514,12 +2574,22 @@ export function createDaemonActions(
       const delta = ((bb.quality_after as number) || 0) - ((bb.quality_before as number) || 0);
 
       if (delta !== 0 || bb.fileEdited) {
+        // G.ARCH.002: Include semantic failure data in wisdom entries
+        const errorCategories = Array.isArray(bb.errorCategories) ? bb.errorCategories as string[] : [];
+        const errorSymbols = Array.isArray(bb.errorSymbols) ? bb.errorSymbols as string[] : [];
+
         wisdom.push({
           cycle: bb.cycleNumber,
           focus: bb.focus,
           delta,
           candidate: bb.currentCandidate,
           timestamp: new Date().toISOString(),
+          // G.ARCH.002: Semantic fields — enable pattern-aware learning
+          errorCategories: errorCategories.length > 0 ? errorCategories : undefined,
+          errorSymbols: errorSymbols.length > 0 ? errorSymbols : undefined,
+          dominantFailure: bb.dominantFailure as string | undefined,
+          rollbackReason: bb.rollbackReason as string | undefined,
+          sessionId: config.sessionId,
         });
         while (wisdom.length > 200) wisdom.shift();
         host.writeFile(wisdomPath, JSON.stringify(wisdom, null, 2));

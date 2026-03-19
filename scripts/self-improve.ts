@@ -27,6 +27,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { randomUUID } from 'crypto';
 
 // ─── HoloScript Runtime Imports ──────────────────────────────────────────────
 // These are the REAL HoloScript primitives. The treatment arm uses them natively.
@@ -84,6 +85,9 @@ const HEARTBEAT_INTERVAL_MS = 30_000;   // Refresh lock file every 30s
 const HEARTBEAT_STALE_MS = 120_000;     // Lock is stale if not refreshed in 2min
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
+// G.ARCH.002: Session identity — unique per daemon invocation
+const SESSION_ID = randomUUID();
+
 // ─── Safeguard: Candidate Sanitizer ──────────────────────────────────────────
 // Reject LLM edits that contain terminal/log output injected into source code.
 // These indicate the LLM confused stdout with code, producing compiling but broken files.
@@ -115,6 +119,8 @@ interface BridgeConfig {
   rootDir: string;
   verbose: boolean;
   trial?: number;
+  /** G.ARCH.002: Per-session budget cap in USD (default $5.00) */
+  maxSpendUSD: number;
 }
 
 interface Blackboard {
@@ -162,6 +168,8 @@ interface BridgeState {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCostUSD: number;
+  /** G.ARCH.002: UUID of the last daemon session that wrote this state */
+  lastSessionId?: string;
 }
 
 interface QualityEntry {
@@ -179,12 +187,31 @@ interface QualityEntry {
   durationSeconds?: number;
   arm?: 'control' | 'treatment';
   trial?: number;
+  /** G.ARCH.002: Links this entry to a specific daemon invocation */
+  sessionId?: string;
 }
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
 
 function ensureStateDir(): void {
   if (!fs.existsSync(STATE_DIR)) fs.mkdirSync(STATE_DIR, { recursive: true });
+}
+
+/** G.ARCH.002: Schema validation — detects corrupted state files */
+function validateBridgeState(obj: unknown): obj is BridgeState {
+  if (!obj || typeof obj !== 'object') return false;
+  const s = obj as Record<string, unknown>;
+  return typeof s.totalCycles === 'number'
+    && typeof s.bestQuality === 'number'
+    && typeof s.lastQuality === 'number'
+    && Array.isArray(s.attemptedFiles);
+}
+
+/** G.ARCH.002: Atomic write — write to tmp then rename (prevents partial JSON on crash) */
+function atomicWriteFileSync(filePath: string, content: string): void {
+  const tmpFile = filePath + `.${process.pid}.tmp`;
+  fs.writeFileSync(tmpFile, content, 'utf-8');
+  fs.renameSync(tmpFile, filePath);
 }
 
 function loadBridgeState(): BridgeState {
@@ -203,18 +230,27 @@ function loadBridgeState(): BridgeState {
   };
   try {
     if (fs.existsSync(BRIDGE_STATE_FILE)) {
-      const loaded = JSON.parse(fs.readFileSync(BRIDGE_STATE_FILE, 'utf-8'));
+      const raw = fs.readFileSync(BRIDGE_STATE_FILE, 'utf-8');
+      const loaded = JSON.parse(raw);
+      // G.ARCH.002: Validate schema before trusting persisted state
+      if (!validateBridgeState(loaded)) {
+        console.warn(`[G.ARCH.002] bridge-state.json failed schema validation — using defaults`);
+        return defaults;
+      }
       // Merge with defaults so new fields added after initial state creation
       // don't crash with "Cannot read properties of undefined"
       return { ...defaults, ...loaded };
     }
-  } catch { /* start fresh */ }
+  } catch (err) {
+    console.warn(`[G.ARCH.002] Failed to load bridge-state.json: ${err instanceof Error ? err.message : err} — using defaults`);
+  }
   return defaults;
 }
 
 function saveBridgeState(state: BridgeState): void {
   ensureStateDir();
-  fs.writeFileSync(BRIDGE_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+  state.lastSessionId = SESSION_ID;
+  atomicWriteFileSync(BRIDGE_STATE_FILE, JSON.stringify(state, null, 2));
 }
 
 function appendQualityHistory(entry: QualityEntry): void {
@@ -225,9 +261,10 @@ function appendQualityHistory(entry: QualityEntry): void {
       history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
     }
   } catch { /* start fresh */ }
+  entry.sessionId = SESSION_ID;
   history.push(entry);
   if (history.length > 500) history = history.slice(-500);
-  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf-8');
+  atomicWriteFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
 }
 
 // ─── File Lock (W.090 Safeguards: heartbeat + staleness detection) ───────────
@@ -256,8 +293,11 @@ function acquireLock(): boolean {
     }
     fs.writeFileSync(LOCK_FILE, JSON.stringify({
       pid: process.pid,
+      sessionId: SESSION_ID,
       time: Date.now(),
       heartbeat: Date.now(),
+      spentUSD: 0,
+      startedAt: new Date().toISOString(),
     }), 'utf-8');
     return true;
   } catch {
@@ -265,13 +305,15 @@ function acquireLock(): boolean {
   }
 }
 
-function startHeartbeat(): void {
+/** G.ARCH.002: Heartbeat now persists cumulative spend for external monitoring */
+function startHeartbeat(getSpentUSD?: () => number): void {
   heartbeatTimer = setInterval(() => {
     try {
       if (fs.existsSync(LOCK_FILE)) {
         const lockData = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8'));
         if (lockData.pid === process.pid) {
           lockData.heartbeat = Date.now();
+          if (getSpentUSD) lockData.spentUSD = getSpentUSD();
           fs.writeFileSync(LOCK_FILE, JSON.stringify(lockData), 'utf-8');
         }
       }
@@ -1576,6 +1618,7 @@ function parseArgs(): BridgeConfig {
     cycles: 1,
     rootDir: REPO_ROOT,
     verbose: args.includes('--verbose') || args.includes('-v'),
+    maxSpendUSD: 5.00,
   };
 
   const cyclesIdx = args.indexOf('--cycles');
@@ -1591,6 +1634,13 @@ function parseArgs(): BridgeConfig {
   const rootIdx = args.indexOf('--root');
   if (rootIdx !== -1 && args[rootIdx + 1]) {
     config.rootDir = path.resolve(args[rootIdx + 1]);
+  }
+
+  // G.ARCH.002: Per-session budget cap (default $5.00)
+  const maxSpendIdx = args.indexOf('--max-spend');
+  if (maxSpendIdx !== -1 && args[maxSpendIdx + 1]) {
+    const parsed = parseFloat(args[maxSpendIdx + 1]);
+    if (!isNaN(parsed) && parsed > 0) config.maxSpendUSD = parsed;
   }
 
   return config;
@@ -1613,7 +1663,9 @@ async function main() {
   }
 
   // W.090 Safeguard 1: Start heartbeat to keep lock file fresh
-  startHeartbeat();
+  // G.ARCH.002: Pass spend getter so lock file shows cumulative cost
+  const bridgeStateRef = { current: null as BridgeState | null };
+  startHeartbeat(() => bridgeStateRef.current?.totalCostUSD ?? 0);
 
   // W.090 Safeguard 3: Robust process cleanup — catch ALL exit paths
   const cleanup = () => { releaseLock(); };
@@ -1671,6 +1723,8 @@ async function main() {
   console.log(`  Commit:   ${config.commit ? 'YES' : 'NO (dry run)'}`);
   console.log(`  Model:    ${MODEL}`);
   console.log(`  Trial:    ${config.trial ?? 'unset'}`);
+  console.log(`  Session:  ${SESSION_ID}`);
+  console.log(`  Budget:   $${config.maxSpendUSD.toFixed(2)}`);
   console.log('');
 
   // Load tools (same handlers as control daemon)
@@ -1690,6 +1744,7 @@ async function main() {
 
   const anthropic = new Anthropic();
   const bridgeState = loadBridgeState();
+  bridgeStateRef.current = bridgeState;
 
   // Pre-load GraphRAG using bm25 embeddings (forced at startup, no API cost).
   // EMBEDDING_PROVIDER=bm25 is set above loadEnvFile to override .env's openai.
@@ -1760,6 +1815,23 @@ async function main() {
       bridgeState.totalCostUSD += costUSD;
 
       saveBridgeState(bridgeState);
+
+      // G.ARCH.002: Per-session budget cap enforcement
+      if (bridgeState.totalCostUSD >= config.maxSpendUSD) {
+        console.warn(`\n[G.ARCH.002] Budget cap reached: $${bridgeState.totalCostUSD.toFixed(3)} >= $${config.maxSpendUSD.toFixed(2)}. Stopping.`);
+        appendQualityHistory({
+          timestamp: new Date().toISOString(),
+          cycle: bridgeState.totalCycles + 1,
+          composite: result.qualityAfter,
+          grade: 'BUDGET_CAP',
+          focus: 'budget_stop',
+          summary: `Budget cap reached at $${bridgeState.totalCostUSD.toFixed(3)} (limit: $${config.maxSpendUSD.toFixed(2)})`,
+          costUSD,
+          arm: 'treatment',
+          trial: config.trial,
+        });
+        break;
+      }
 
       // Log to shared quality history (same format as control)
       appendQualityHistory({
