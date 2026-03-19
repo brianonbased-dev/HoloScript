@@ -16,7 +16,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Allowed slugs — prevents path traversal
-const ALLOWED_SLUGS = new Set(['templates', 'registry', 'projects', 'operations']);
+const ALLOWED_SLUGS = new Set(['templates', 'registry', 'projects', 'operations', 'home', 'workspace']);
 
 function resolveCompositionsDir(): string {
   // Walk up from packages/studio/src/app/api/surface/[slug] to repo root

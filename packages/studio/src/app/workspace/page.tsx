@@ -3,10 +3,12 @@
 /**
  * Creator Workspace Hub — /workspace
  *
- * Central place for creators to manage all their publishable content:
- * scenes, traits, skills, agents, and plugins.
+ * Native HoloScript-driven workspace hub. The header and stats bar are
+ * defined in compositions/studio/workspace.hsplus and rendered by
+ * HoloSurfaceRenderer. Content type grid, search, and quick actions
+ * stay in React (require icons + Link components).
  *
- * Each content type has: Create → Edit → Test → Publish flow.
+ * @module workspace/page
  */
 
 import { useState } from 'react';
@@ -22,8 +24,6 @@ import {
   Plus,
   Search,
   TrendingUp,
-  Star,
-  Clock,
   ArrowRight,
   Zap,
   Shield,
@@ -31,6 +31,7 @@ import {
   Sparkles,
   Cog,
 } from 'lucide-react';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,30 +154,6 @@ const CONTENT_TYPES: ContentTypeConfig[] = [
   },
 ];
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
-
-function WorkspaceStat({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | number;
-  icon: typeof TrendingUp;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5">
-        <Icon className="h-4 w-4 text-white/50" />
-      </div>
-      <div>
-        <p className="text-xs text-white/40">{label}</p>
-        <p className="text-lg font-semibold text-white">{value}</p>
-      </div>
-    </div>
-  );
-}
-
 // ─── Content Type Card ───────────────────────────────────────────────────────
 
 function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
@@ -186,11 +163,9 @@ function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
     <div
       className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br ${config.gradient} p-6 transition-all hover:border-white/10 hover:shadow-xl hover:shadow-black/20`}
     >
-      {/* Glow effect */}
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/5 blur-3xl transition group-hover:bg-white/10" />
 
       <div className="relative">
-        {/* Header */}
         <div className="mb-4 flex items-start justify-between">
           <div
             className={`flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 ${config.color}`}
@@ -207,11 +182,9 @@ function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
           </div>
         </div>
 
-        {/* Content */}
         <h3 className="mb-1 text-lg font-semibold text-white">{config.label}</h3>
         <p className="mb-4 text-sm text-white/50">{config.description}</p>
 
-        {/* Revenue */}
         {config.revenue > 0 && (
           <div className="mb-4 flex items-center gap-1.5 text-sm">
             <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
@@ -220,7 +193,6 @@ function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2">
           <Link
             href={config.createUrl}
@@ -266,8 +238,8 @@ function QuickAction({
 
 export default function WorkspacePage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const composition = useHoloComposition('/api/surface/workspace');
 
-  // Filter content types by search
   const filteredTypes = searchQuery
     ? CONTENT_TYPES.filter(
         (ct) =>
@@ -276,30 +248,29 @@ export default function WorkspacePage() {
       )
     : CONTENT_TYPES;
 
-  const totalContent = CONTENT_TYPES.reduce((sum, ct) => sum + ct.count, 0);
-  const totalPublished = CONTENT_TYPES.reduce((sum, ct) => sum + ct.published, 0);
-  const totalRevenue = CONTENT_TYPES.reduce((sum, ct) => sum + ct.revenue, 0);
-
   return (
     <div className="min-h-screen bg-[#0a0a12] text-white">
       <div className="mx-auto max-w-7xl px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold tracking-tight">Creator Workspace</h1>
-          <p className="text-white/50">Build, experiment, and ship to the HoloScript marketplace</p>
-        </div>
-
-        {/* Stats Bar */}
-        <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <WorkspaceStat icon={Package} label="Total Content" value={totalContent} />
-          <WorkspaceStat icon={Star} label="Published" value={totalPublished} />
-          <WorkspaceStat
-            icon={TrendingUp}
-            label="Revenue"
-            value={`$${(totalRevenue / 100).toFixed(2)}`}
-          />
-          <WorkspaceStat icon={Clock} label="Last Updated" value="Just now" />
-        </div>
+        {/* Native composition header + stats */}
+        {!composition.loading && !composition.error ? (
+          <div className="mb-8">
+            <HoloSurfaceRenderer
+              nodes={composition.nodes}
+              state={composition.state}
+              computed={composition.computed}
+              templates={composition.templates}
+              onEmit={composition.emit}
+              className="holo-surface-workspace-header"
+            />
+          </div>
+        ) : (
+          <div className="mb-8">
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">Creator Workspace</h1>
+            <p className="text-white/50">
+              Build, experiment, and ship to the HoloScript marketplace
+            </p>
+          </div>
+        )}
 
         {/* Search */}
         <div className="mb-6 flex items-center gap-3">
@@ -326,54 +297,14 @@ export default function WorkspacePage() {
         <div className="mb-8">
           <h2 className="mb-4 text-lg font-semibold text-white/80">Quick Actions</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <QuickAction
-              icon={Cog}
-              label="HoloDaemon Dashboard"
-              href="/holodaemon"
-              color="text-sky-400"
-            />
-            <QuickAction
-              icon={Zap}
-              label="HoloClaw Shelf"
-              href="/holoclaw"
-              color="text-amber-400"
-            />
-            <QuickAction
-              icon={Shield}
-              label="Create RBAC Policy"
-              href="/workspace/skills?category=rbac_policy"
-              color="text-blue-400"
-            />
-            <QuickAction
-              icon={Code}
-              label="New MCP Tool Bundle"
-              href="/workspace/skills?category=mcp_bundle"
-              color="text-emerald-400"
-            />
-            <QuickAction
-              icon={Sparkles}
-              label="AI Prompt Template"
-              href="/workspace/skills?category=prompt_template"
-              color="text-violet-400"
-            />
-            <QuickAction
-              icon={Database}
-              label="Forge Training Data"
-              href="/workspace/training-data/new"
-              color="text-purple-400"
-            />
-            <QuickAction
-              icon={Bot}
-              label="Train an Agent"
-              href="/workspace/agents/new"
-              color="text-cyan-400"
-            />
-            <QuickAction
-              icon={Layers}
-              label="Browse Marketplace"
-              href="/registry"
-              color="text-rose-400"
-            />
+            <QuickAction icon={Cog} label="HoloDaemon Dashboard" href="/holodaemon" color="text-sky-400" />
+            <QuickAction icon={Zap} label="HoloClaw Shelf" href="/holoclaw" color="text-amber-400" />
+            <QuickAction icon={Shield} label="Create RBAC Policy" href="/workspace/skills?category=rbac_policy" color="text-blue-400" />
+            <QuickAction icon={Code} label="New MCP Tool Bundle" href="/workspace/skills?category=mcp_bundle" color="text-emerald-400" />
+            <QuickAction icon={Sparkles} label="AI Prompt Template" href="/workspace/skills?category=prompt_template" color="text-violet-400" />
+            <QuickAction icon={Database} label="Forge Training Data" href="/workspace/training-data/new" color="text-purple-400" />
+            <QuickAction icon={Bot} label="Train an Agent" href="/workspace/agents/new" color="text-cyan-400" />
+            <QuickAction icon={Layers} label="Browse Marketplace" href="/registry" color="text-rose-400" />
           </div>
         </div>
       </div>

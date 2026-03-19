@@ -3,12 +3,16 @@
 /**
  * HoloScript Studio — Universal Point of Entry
  *
- * The front door for every user: ages 5-100+, all industries.
- * Animated hero, 4 adaptive mode cards, 9 industry portals.
+ * Native HoloScript-driven landing page. The hero section (title, tagline,
+ * stats strip) is defined in compositions/studio/home.hsplus and rendered
+ * by HoloSurfaceRenderer. Mode cards, industry chips, and footer stay in React.
+ *
+ * @module page
  */
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 
 // ── Mode Data ────────────────────────────────────────────────────────────────
 
@@ -78,11 +82,9 @@ const INDUSTRIES = [
 function MeshBackground() {
   return (
     <div className="mesh-bg" aria-hidden="true">
-      {/* Floating orbs */}
       <div className="mesh-orb mesh-orb-1" />
       <div className="mesh-orb mesh-orb-2" />
       <div className="mesh-orb mesh-orb-3" />
-      {/* Grid overlay */}
       <div className="mesh-grid" />
     </div>
   );
@@ -104,17 +106,12 @@ function ModeCard({ mode, index }: { mode: (typeof MODES)[number]; index: number
       }
     >
       <div className="mode-card-inner">
-        {/* Emoji badge */}
         <div className={`mode-emoji bg-gradient-to-br ${mode.gradient}`}>
           <span>{mode.emoji}</span>
         </div>
-
-        {/* Text */}
         <h3 className="mode-title">{mode.title}</h3>
         <span className="mode-subtitle">{mode.subtitle}</span>
         <p className="mode-description">{mode.description}</p>
-
-        {/* Arrow */}
         <div className="mode-arrow">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path
@@ -146,24 +143,13 @@ function IndustryChip({ industry }: { industry: (typeof INDUSTRIES)[number] }) {
   );
 }
 
-// ── Stat Counter ─────────────────────────────────────────────────────────────
-
-function StatBadge({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="stat-badge">
-      <span className="stat-value">{value}</span>
-      <span className="stat-label">{label}</span>
-    </div>
-  );
-}
-
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const [loaded, setLoaded] = useState(false);
+  const composition = useHoloComposition('/api/surface/home');
 
   useEffect(() => {
-    // Trigger entrance animations after mount
     const t = setTimeout(() => setLoaded(true), 50);
     return () => clearTimeout(t);
   }, []);
@@ -172,27 +158,30 @@ export default function HomePage() {
     <main className={`home-root ${loaded ? 'home-loaded' : ''}`}>
       <MeshBackground />
 
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      {/* ── Hero (native composition) ─────────────────────────────────── */}
       <section className="hero">
-        <div className="hero-badge">
-          <span className="hero-badge-dot" />
-          Open Platform for Spatial Computing
-        </div>
-
-        <h1 className="hero-title">
-          <span className="hero-word hero-word-1">HoloScript</span>{' '}
-          <span className="hero-word hero-word-2">Studio</span>
-        </h1>
-
-        <p className="hero-tagline">Create anything in 3D — no code required</p>
-
-        {/* Stats strip */}
-        <div className="hero-stats">
-          <StatBadge value="18" label="Compile Targets" />
-          <StatBadge value="1,525+" label="Traits" />
-          <StatBadge value="43" label="Panels" />
-          <StatBadge value="26" label="Scenarios" />
-        </div>
+        {!composition.loading && !composition.error ? (
+          <HoloSurfaceRenderer
+            nodes={composition.nodes}
+            state={composition.state}
+            computed={composition.computed}
+            templates={composition.templates}
+            onEmit={composition.emit}
+            className="holo-surface-hero"
+          />
+        ) : (
+          <>
+            <div className="hero-badge">
+              <span className="hero-badge-dot" />
+              Open Platform for Spatial Computing
+            </div>
+            <h1 className="hero-title">
+              <span className="hero-word hero-word-1">HoloScript</span>{' '}
+              <span className="hero-word hero-word-2">Studio</span>
+            </h1>
+            <p className="hero-tagline">Create anything in 3D — no code required</p>
+          </>
+        )}
       </section>
 
       {/* ── Mode Cards ────────────────────────────────────────────────── */}
