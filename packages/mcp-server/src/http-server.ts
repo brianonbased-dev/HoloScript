@@ -23,7 +23,7 @@ import { renderPreview, createShareLink } from './renderer';
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
-const SERVICE_VERSION = '3.0.0';
+const SERVICE_VERSION = '3.6.1';
 
 // Store active transports by session ID
 const transports = new Map<string, StreamableHTTPServerTransport>();

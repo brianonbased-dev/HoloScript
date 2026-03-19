@@ -260,8 +260,13 @@ jobs:
 
       - name: Verify version
         run: |
+          EXPECTED_VERSION=3.6.1
           VERSION=$(curl -sf https://mcp.holoscript.net/health | jq -r '.version')
           echo "Deployed MCP server version: $VERSION"
+          if [ "$VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Expected MCP version $EXPECTED_VERSION but got $VERSION"
+            exit 1
+          fi
 
       - name: Notify deployment success
         if: success()
