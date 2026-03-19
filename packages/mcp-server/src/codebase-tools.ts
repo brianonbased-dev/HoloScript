@@ -47,7 +47,7 @@ async function createDynamicEmbeddingIndex(mod: any): Promise<any> {
 // GRAPH PERSISTENCE
 // =============================================================================
 
-const CACHE_DIR = path.join(os.homedir(), '.holoscript');
+const CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const CACHE_FILE = path.join(CACHE_DIR, 'graph-cache.json');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 

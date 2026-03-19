@@ -64,6 +64,9 @@ COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 
+# Create persistent cache directory (Railway volume mount point)
+RUN mkdir -p /app/.holoscript
+
 # Set ownership
 RUN chown -R nodejs:nodejs /app
 
@@ -72,6 +75,7 @@ USER nodejs
 
 # Environment
 ENV NODE_ENV=production
+ENV HOLOSCRIPT_CACHE_DIR=/app/.holoscript
 
 # Expose port
 EXPOSE 3000

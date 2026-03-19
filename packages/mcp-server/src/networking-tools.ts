@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-const HOLO_DIR = path.join(os.homedir(), '.holoscript');
+const HOLO_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const STATE_AUTHORITY_FILE = path.join(HOLO_DIR, 'state-authority.json');
 
 // ---------------------------------------------------------------------------

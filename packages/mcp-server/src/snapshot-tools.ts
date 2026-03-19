@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-const HOLO_DIR = path.join(os.homedir(), '.holoscript');
+const HOLO_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const SNAPSHOTS_FILE = path.join(HOLO_DIR, 'snapshots.json');
 
 export interface TemporalSnapshot {
