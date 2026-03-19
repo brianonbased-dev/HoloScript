@@ -70,7 +70,6 @@ export class SocialUIPanel {
     // Render Friend List into Content Area
     const friends = this.graph.getFriends();
     const listNode = this.friendListRenderer.create(friends, (userId) => {
-      console.log('Selected user:', userId);
       // Logic to swap contentArea to ProfileCard would go here
       // For a declarative scene graph, we'd regenerate the tree or use a reactive binding.
       // Since we are generating a static tree snapshot here for the runtime:
