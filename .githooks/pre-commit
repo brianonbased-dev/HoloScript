@@ -44,6 +44,14 @@ if [ "$SKIP_HOOKS" = "1" ] || [ "$HOLODAEMON_SKIP_HOOKS" = "1" ] || [ "$HOLODAEM
     exit 0
 fi
 
+# Multi-agent safety: warn when staged + unstaged changes coexist
+STAGED_COUNT=$(git diff --cached --name-only | wc -l)
+UNSTAGED_COUNT=$(git diff --name-only | wc -l)
+if [ "$STAGED_COUNT" -gt 0 ] && [ "$UNSTAGED_COUNT" -gt 0 ]; then
+    echo -e "  ${YELLOW}⚠${NC}  Multi-agent: $STAGED_COUNT staged, $UNSTAGED_COUNT unstaged files coexist"
+    echo "     Only staged files will be committed. Unstaged changes are from other contexts."
+fi
+
 # Gate 1: Linting (30s timeout)
 echo "  ├─ ESLint..."
 if command -v npm &> /dev/null && [ -f "package.json" ]; then

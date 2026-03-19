@@ -2286,6 +2286,15 @@ export function createDaemonActions(
       const focus = (bb.focus as string) || 'typefix';
       const relatedEdits = (bb.relatedEdits as { path: string }[] | undefined) || [];
 
+      // Multi-agent safety: if another agent has staged files, stash them
+      // so our commit only includes the daemon's own edits.
+      const preStagedResult = await host.exec('git', ['diff', '--cached', '--name-only'], { cwd: config.repoRoot });
+      const previouslyStaged = (preStagedResult.stdout || '').split('\n').map(f => f.trim()).filter(Boolean);
+      if (previouslyStaged.length > 0) {
+        log(`Multi-agent guard: ${previouslyStaged.length} files already staged by another agent — stashing`);
+        await host.exec('git', ['stash', 'push', '--staged', '-m', 'daemon-commit-guard'], { cwd: config.repoRoot });
+      }
+
       // Stage modified/created files
       const filesToAdd = Array.from(new Set([
         file,
@@ -2306,6 +2315,12 @@ export function createDaemonActions(
         'commit', '--no-verify', '-m', `"${msg}"`,
       ], { cwd: config.repoRoot });
       bb.committed = result.code === 0;
+
+      // Multi-agent safety: restore other agent's staged work
+      if (previouslyStaged.length > 0) {
+        log(`Multi-agent guard: restoring ${previouslyStaged.length} previously staged files`);
+        await host.exec('git', ['stash', 'pop'], { cwd: config.repoRoot });
+      }
       if (!bb.committed) {
         log(`Commit: FAILED (code=${result.code}, stderr=${(result.stderr || '').trim()})`);
       } else {

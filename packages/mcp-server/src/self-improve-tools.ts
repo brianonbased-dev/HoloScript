@@ -467,13 +467,17 @@ async function handleGitCommit(args: Record<string, unknown>): Promise<unknown> 
     return { error: 'Commit message is required' };
   }
 
+  // Multi-agent safety: never stage all files (git add -A). Each agent must
+  // explicitly declare which files it wants to commit. Without this guard,
+  // a daemon commit can sweep in unrelated dirty files from other agents.
+  if (files.length === 0) {
+    return { error: 'files array is required — refusing to stage all (git add -A is disabled for multi-agent safety)' };
+  }
+
   try {
-    // Stage files
-    if (files.length > 0) {
-      const fileArgs = files.map((f) => `"${f}"`).join(' ');
-      await execAsync(`git add ${fileArgs}`, { cwd: rootDir, timeout: 30_000 });
-    } else {
-      await execAsync('git add -A', { cwd: rootDir, timeout: 30_000 });
+    // Stage only the explicitly specified files
+    for (const f of files) {
+      await execAsync(`git add "${f}"`, { cwd: rootDir, timeout: 30_000 });
     }
 
     // Commit
