@@ -11,6 +11,10 @@ on:
       - 'services/render-service/**'
       - 'services/llm-service/**'
       - 'packages/core/**'
+      - 'packages/mcp-server/**'
+      - 'packages/crdt/**'
+      - 'packages/llm-provider/**'
+      - 'Dockerfile.mcp-server'
       - '.github/workflows/deploy-railway.yml'
   workflow_dispatch:
     inputs:
@@ -26,6 +30,7 @@ on:
           - marketplace-api
           - render-service
           - llm-service
+          - mcp-server
 
 concurrency:
   group: railway-deploy-${{ github.ref }}
@@ -40,6 +45,7 @@ jobs:
       marketplace-api: ${{ steps.filter.outputs.marketplace-api }}
       render-service: ${{ steps.filter.outputs.render-service }}
       llm-service: ${{ steps.filter.outputs.llm-service }}
+      mcp-server: ${{ steps.filter.outputs.mcp-server }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -63,6 +69,12 @@ jobs:
             llm-service:
               - 'services/llm-service/**'
               - 'packages/core/**'
+            mcp-server:
+              - 'packages/mcp-server/**'
+              - 'packages/core/**'
+              - 'packages/crdt/**'
+              - 'packages/llm-provider/**'
+              - 'Dockerfile.mcp-server'
 
   deploy-studio:
     needs: detect-changes
@@ -216,6 +228,47 @@ jobs:
       - name: Wait for deployment
         run: sleep 30
 
+  deploy-mcp-server:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.mcp-server == 'true' ||
+      github.event.inputs.service == 'all' ||
+      github.event.inputs.service == 'mcp-server'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-mcp-server
+      url: https://mcp.holoscript.net
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy HoloScript MCP Server
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service holoscript-mcp --detach
+
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Health check
+        run: |
+          curl -f https://mcp.holoscript.net/health || exit 1
+
+      - name: Verify version
+        run: |
+          VERSION=$(curl -sf https://mcp.holoscript.net/health | jq -r '.version')
+          echo "Deployed MCP server version: $VERSION"
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ HoloScript MCP Server deployed successfully"
+          echo "URL: https://mcp.holoscript.net"
+
   notify-deployment:
     needs:
       - deploy-studio
@@ -223,6 +276,7 @@ jobs:
       - deploy-marketplace-api
       - deploy-render-service
       - deploy-llm-service
+      - deploy-mcp-server
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -237,3 +291,4 @@ jobs:
           echo "| Marketplace API | ${{ needs.deploy-marketplace-api.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Render Service | ${{ needs.deploy-render-service.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| LLM Service | ${{ needs.deploy-llm-service.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MCP Server | ${{ needs.deploy-mcp-server.result }} |" >> $GITHUB_STEP_SUMMARY
