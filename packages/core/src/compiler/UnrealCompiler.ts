@@ -25,7 +25,7 @@ import type {
   HoloTransition,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
-import { CompilerBase } from './CompilerBase';
+import { CompilerBase, createTestCompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
