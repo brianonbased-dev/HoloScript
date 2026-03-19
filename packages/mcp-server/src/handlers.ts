@@ -12,6 +12,7 @@ import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './tra
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
+import { handleCodebaseTool } from './codebase-tools';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
 import { handleBrittneyLiteTool } from './brittney-lite';
@@ -140,8 +141,13 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
   }
 
-  // Graph understanding tools (migrated from Hololand)
+  // Route codebase-intelligence tools first, then graph-understanding tools.
+  // Both share the `holo_` prefix.
   if (name.startsWith('holo_')) {
+    const codebaseResult = await handleCodebaseTool(name, args);
+    if (codebaseResult !== null) {
+      return codebaseResult;
+    }
     return handleGraphTool(name, args);
   }
 
