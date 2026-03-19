@@ -56,19 +56,14 @@ jobs:
           filters: |
             studio:
               - 'packages/studio/**'
-              - 'packages/core/**'
             marketplace-web:
               - 'packages/marketplace-web/**'
-              - 'packages/core/**'
             marketplace-api:
               - 'packages/marketplace-api/**'
-              - 'packages/core/**'
             render-service:
               - 'services/render-service/**'
-              - 'packages/core/**'
             llm-service:
               - 'services/llm-service/**'
-              - 'packages/core/**'
             mcp-server:
               - 'packages/mcp-server/**'
               - 'packages/core/**'
