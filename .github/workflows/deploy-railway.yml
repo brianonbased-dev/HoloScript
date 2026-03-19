@@ -79,9 +79,11 @@ jobs:
   deploy-studio:
     needs: detect-changes
     if: |
-      needs.detect-changes.outputs.studio == 'true' ||
-      github.event.inputs.service == 'all' ||
-      github.event.inputs.service == 'studio'
+      (github.event_name == 'push' && needs.detect-changes.outputs.studio == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'studio'
+      ))
     runs-on: ubuntu-latest
     environment:
       name: production-studio
@@ -115,9 +117,11 @@ jobs:
   deploy-marketplace-web:
     needs: detect-changes
     if: |
-      needs.detect-changes.outputs.marketplace-web == 'true' ||
-      github.event.inputs.service == 'all' ||
-      github.event.inputs.service == 'marketplace-web'
+      (github.event_name == 'push' && needs.detect-changes.outputs.marketplace-web == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'marketplace-web'
+      ))
     runs-on: ubuntu-latest
     environment:
       name: production-marketplace-web
@@ -145,9 +149,11 @@ jobs:
   deploy-marketplace-api:
     needs: detect-changes
     if: |
-      needs.detect-changes.outputs.marketplace-api == 'true' ||
-      github.event.inputs.service == 'all' ||
-      github.event.inputs.service == 'marketplace-api'
+      (github.event_name == 'push' && needs.detect-changes.outputs.marketplace-api == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'marketplace-api'
+      ))
     runs-on: ubuntu-latest
     environment:
       name: production-marketplace-api
@@ -181,9 +187,11 @@ jobs:
   deploy-render-service:
     needs: detect-changes
     if: |
-      needs.detect-changes.outputs.render-service == 'true' ||
-      github.event.inputs.service == 'all' ||
-      github.event.inputs.service == 'render-service'
+      (github.event_name == 'push' && needs.detect-changes.outputs.render-service == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'render-service'
+      ))
     runs-on: ubuntu-latest
     environment:
       name: production-render-service
@@ -206,9 +214,11 @@ jobs:
   deploy-llm-service:
     needs: detect-changes
     if: |
-      needs.detect-changes.outputs.llm-service == 'true' ||
-      github.event.inputs.service == 'all' ||
-      github.event.inputs.service == 'llm-service'
+      (github.event_name == 'push' && needs.detect-changes.outputs.llm-service == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'llm-service'
+      ))
     runs-on: ubuntu-latest
     environment:
       name: production-llm-service
@@ -231,9 +241,11 @@ jobs:
   deploy-mcp-server:
     needs: detect-changes
     if: |
-      needs.detect-changes.outputs.mcp-server == 'true' ||
-      github.event.inputs.service == 'all' ||
-      github.event.inputs.service == 'mcp-server'
+      (github.event_name == 'push' && needs.detect-changes.outputs.mcp-server == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (
+        github.event.inputs.service == 'all' ||
+        github.event.inputs.service == 'mcp-server'
+      ))
     runs-on: ubuntu-latest
     environment:
       name: production-mcp-server
