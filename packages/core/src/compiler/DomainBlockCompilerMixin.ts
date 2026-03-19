@@ -377,7 +377,9 @@ export function postProcessingToR3F(pp: CompiledPostProcessing): string {
 
 /** Generate R3F/Three.js audio source JSX */
 export function audioSourceToR3F(audio: CompiledAudioSource): string {
-  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  const spatialBlend =
+    typeof audio.properties.spatial_blend === 'number' ? audio.properties.spatial_blend : 0;
+  const isSpatial = audio.traits.includes('spatial') || spatialBlend > 0;
   const tag = isSpatial ? 'PositionalAudio' : 'Audio';
 
   const props: string[] = [];
@@ -590,11 +592,12 @@ function colliderToURDF(collider: CompiledCollider): string {
 /** Generate URDF inertial element from rigidbody */
 function rigidbodyToURDF(rb: CompiledRigidbody): string {
   const mass = rb.properties.mass ?? 1.0;
+  const inertiaValues = Array.isArray(rb.properties.inertia) ? rb.properties.inertia : undefined;
   return [
     '  <inertial>',
     `    <mass value="${mass}"/>`,
-    rb.properties.inertia
-      ? `    <inertia ixx="${rb.properties.inertia[0] || 0}" iyy="${rb.properties.inertia[1] || 0}" izz="${rb.properties.inertia[2] || 0}" ixy="0" ixz="0" iyz="0"/>`
+    inertiaValues
+      ? `    <inertia ixx="${inertiaValues[0] || 0}" iyy="${inertiaValues[1] || 0}" izz="${inertiaValues[2] || 0}" ixy="0" ixz="0" iyz="0"/>`
       : `    <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>`,
     '  </inertial>',
   ].join('\n');

@@ -2916,6 +2916,7 @@ export type {
 } from './rendering/ShaderGraph';
 
 // ── Particles (value re-export) ────────────────────────────────────
+export { ParticleSystem } from './particles/ParticleSystem';
 export type { EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';
 
 // ── Camera ─────────────────────────────────────────────────────────

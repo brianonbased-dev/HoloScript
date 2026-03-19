@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { HoloScriptPlusParser } from '@holoscript/core';
+import { HoloScriptPlusParser } from '@holoscript/core/parser';
 import type { DaemonJob, DaemonTelemetrySummary } from '@/lib/daemon/types';
 
 export type DaemonSurfaceKind = 'dashboard' | 'orchestration';

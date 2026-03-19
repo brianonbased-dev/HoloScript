@@ -17,7 +17,7 @@ const nextConfig = {
     'tree-sitter-go',
     'web-tree-sitter',
   ],
-  transpilePackages: ['@holoscript/core', '@holoscript/std', '@holoscript/studio-plugin-sdk', 'three'],
+  transpilePackages: ['@holoscript/studio-plugin-sdk', 'three'],
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,

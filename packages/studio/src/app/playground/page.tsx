@@ -15,6 +15,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Play, Copy, CheckCircle, ExternalLink, Globe, Code2, AlertTriangle } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -114,6 +115,7 @@ function ParseTreeNode({ node, depth = 0 }: { node: ParseNode; depth?: number })
 
 export default function PlaygroundPage() {
   const searchParams = useSearchParams();
+  const composition = useHoloComposition('/api/surface/playground');
   const [code, setCode] = useState(() => {
     const enc = searchParams.get('code');
     if (enc) {
@@ -135,6 +137,18 @@ export default function PlaygroundPage() {
     return () => clearTimeout(t);
   }, [code]);
 
+  // Sync local state to composition
+  useEffect(() => {
+    if (!composition.loading) {
+      composition.setState({
+        lineCount: code.split('\n').length,
+        charCount: code.length,
+        parseOk: parseResult.ok,
+        copied,
+      });
+    }
+  }, [code, parseResult.ok, copied, composition.loading]);
+
   const shareUrl = useCallback(() => {
     const encoded = btoa(code);
     return `${window.location.origin}/playground?code=${encoded}`;
@@ -152,20 +166,33 @@ export default function PlaygroundPage() {
 
   return (
     <div className="flex h-screen flex-col bg-[#0a0a12] text-studio-text">
-      {/* Top bar */}
+      {/* Top bar — native composition chrome + React interactive buttons */}
       <header className="flex shrink-0 items-center gap-2 sm:gap-3 border-b border-studio-border bg-studio-panel/80 px-2 sm:px-4 py-2.5 backdrop-blur">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-studio-muted hover:text-studio-text transition"
-        >
-          <Globe className="h-4 w-4 text-studio-accent" />
-          <span className="text-xs font-bold hidden sm:inline">HoloScript</span>
-        </Link>
-        <span className="text-studio-border hidden sm:inline">/</span>
-        <div className="flex items-center gap-1.5">
-          <Code2 className="h-3.5 w-3.5 text-studio-accent" />
-          <span className="text-xs font-semibold">Playground</span>
-        </div>
+        {!composition.loading && !composition.error ? (
+          <HoloSurfaceRenderer
+            nodes={composition.nodes}
+            state={composition.state}
+            computed={composition.computed}
+            templates={composition.templates}
+            onEmit={composition.emit}
+            className="holo-surface-playground-header flex items-center gap-2"
+          />
+        ) : (
+          <>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-studio-muted hover:text-studio-text transition"
+            >
+              <Globe className="h-4 w-4 text-studio-accent" />
+              <span className="text-xs font-bold hidden sm:inline">HoloScript</span>
+            </Link>
+            <span className="text-studio-border hidden sm:inline">/</span>
+            <div className="flex items-center gap-1.5">
+              <Code2 className="h-3.5 w-3.5 text-studio-accent" />
+              <span className="text-xs font-semibold">Playground</span>
+            </div>
+          </>
+        )}
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <span className="text-[10px] text-studio-muted hidden sm:inline">
