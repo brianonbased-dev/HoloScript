@@ -63,7 +63,26 @@ interface GraphCacheEnvelope {
   graphJson: string;
 }
 
+interface AbsorbDiagnostics {
+  requestedRootDir: string;
+  resolvedRootDir: string;
+  processCwd: string;
+  resolvedDirExists: boolean;
+  resolvedDirReadable: boolean;
+  rootEntriesSample?: string[];
+  scanErrorCount: number;
+  scanErrorSample: Array<{ file: string; phase: string; error: string }>;
+  hints: string[];
+}
+
 function saveGraphCache(graph: any, rootDir: string, stats: Record<string, unknown>): void {
+  const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
+  if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
+    console.log(
+      `[CacheDebug][codebase] save skip path=${CACHE_FILE} reason=empty-scan rootDir=${rootDir}`
+    );
+    return;
+  }
   try {
     if (!fs.existsSync(CACHE_DIR)) {
       fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -126,6 +145,78 @@ function getCacheAge(): {
   } catch {
     return { exists: false };
   }
+}
+
+function buildAbsorbDiagnostics(rootDir: string, scanResult: any): AbsorbDiagnostics {
+  const resolvedRootDir = path.resolve(rootDir);
+  const processCwd = process.cwd();
+  const resolvedDirExists = fs.existsSync(resolvedRootDir);
+  let resolvedDirReadable = false;
+  let rootEntriesSample: string[] | undefined;
+
+  if (resolvedDirExists) {
+    try {
+      fs.accessSync(resolvedRootDir, fs.constants.R_OK);
+      resolvedDirReadable = true;
+    } catch {
+      resolvedDirReadable = false;
+    }
+
+    if (resolvedDirReadable) {
+      try {
+        rootEntriesSample = fs.readdirSync(resolvedRootDir).slice(0, 20);
+      } catch {
+        rootEntriesSample = undefined;
+      }
+    }
+  }
+
+  const errors = Array.isArray(scanResult?.stats?.errors)
+    ? scanResult.stats.errors
+    : [];
+  const scanErrorSample = errors.slice(0, 5).map((e: any) => ({
+    file: String(e?.file ?? ''),
+    phase: String(e?.phase ?? ''),
+    error: String(e?.error ?? ''),
+  }));
+
+  const hints: string[] = [];
+  if (!resolvedDirExists) {
+    hints.push('Resolved rootDir does not exist in runtime container.');
+  } else if (!resolvedDirReadable) {
+    hints.push('Resolved rootDir exists but is not readable by the running process.');
+  }
+
+  const entries = rootEntriesSample ?? [];
+  const hasDist = entries.includes('dist');
+  const hasSrc = entries.includes('src');
+  if (hasDist && !hasSrc) {
+    hints.push(
+      'Directory appears dist-only. Scanner excludes dist/build/out by default, so scans may return zero files in production images that omit src.'
+    );
+  }
+
+  if (errors.length > 0) {
+    hints.push('Scanner reported parse/read/extract errors. See scanErrorSample for details.');
+  }
+
+  if (hints.length === 0) {
+    hints.push(
+      'No supported source files were found after exclusions and language filters. Verify rootDir, languages filter, and runtime filesystem contents.'
+    );
+  }
+
+  return {
+    requestedRootDir: rootDir,
+    resolvedRootDir,
+    processCwd,
+    resolvedDirExists,
+    resolvedDirReadable,
+    rootEntriesSample,
+    scanErrorCount: errors.length,
+    scanErrorSample,
+    hints,
+  };
 }
 
 // =============================================================================
@@ -470,6 +561,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   }
 
   const stats = graph.getStats();
+  const diagnostics = stats.totalFiles === 0 ? buildAbsorbDiagnostics(rootDir, scanResult) : undefined;
   const communities: Map<string, string[]> = graph.detectCommunities();
 
   const communityList = Array.from(communities.entries()).map(
@@ -485,6 +577,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       stats,
       communities: communityList,
       errors: scanResult.stats.errors,
+      diagnostics,
     };
   }
 
@@ -492,6 +585,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     return {
       stats,
       graph: graph.serialize(),
+      diagnostics,
     };
   }
 
@@ -516,6 +610,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         holoSource,
         interactiveScene: scene,
         communities: communityList,
+        diagnostics,
       };
     } catch {
       // Fall through to non-interactive output
@@ -526,6 +621,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     stats,
     holoSource,
     communities: communityList,
+    diagnostics,
   };
 }
 
