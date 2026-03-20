@@ -249,6 +249,10 @@ function loadBridgeState(): BridgeState {
         merged.totalCostUSD = 0;
         merged.totalInputTokens = 0;
         merged.totalOutputTokens = 0;
+        // Reset totalCycles so avgCostPerCycle isn't 0/N = $0.00 (bypasses budget gate).
+        // The first-cycle fallback ($1.50) will correctly prevent overcommitting.
+        // focusIndex is NOT reset — daemon continues rotating focus from where it left off.
+        merged.totalCycles = 0;
       }
 
       return merged;
