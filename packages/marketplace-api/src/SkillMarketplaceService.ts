@@ -418,13 +418,14 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
     // TODO: integrate with x402PaymentService for actual payment
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
     return {
-      url: `/api/skills/${skillId}/download`,
+      downloadUrl: `/api/skills/${skillId}/download`,
       expiresAt,
     };
   }
 
   async getDownloadUrl(skillId: string, _token: string): Promise<{ url: string; expiresAt: Date }> {
-    return this.purchaseSkill(skillId, _token);
+    const purchase = await this.purchaseSkill(skillId, _token);
+    return { url: purchase.downloadUrl, expiresAt: purchase.expiresAt };
   }
 
   // ─── Install ─────────────────────────────────────────────────────────────────

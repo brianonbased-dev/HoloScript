@@ -30,8 +30,9 @@ import type {
   SignatureVerificationResult,
   PluginSignature,
 } from './PluginPackageSpec.js';
-import type { SandboxPermission } from '@holoscript/studio-plugin-sdk/sandbox/types';
 import { PluginSignatureService } from './PluginSignatureService.js';
+
+type SandboxPermission = string;
 
 // =============================================================================
 // INSTALL PIPELINE EVENTS

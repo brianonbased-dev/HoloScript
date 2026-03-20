@@ -30,13 +30,13 @@ import type {
   PricingEstimate,
   TransactionStatus,
   Network,
-} from './types/Film3DDTypes';
+} from './types/Film3DTypes';
 import {
   CreatorMonetizationError,
   InsufficientBalanceError,
   IPFSUploadError,
   ZoraAPIError,
-} from './types/Film3DDTypes';
+} from './types/Film3DTypes';
 
 // =============================================================================
 // CONSTANTS

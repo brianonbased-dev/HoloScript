@@ -18,8 +18,14 @@
  * @module marketplace-api/PluginPackageSpec
  */
 
-import type { SandboxPermission, NetworkPolicy } from '@holoscript/studio-plugin-sdk/sandbox/types';
 import type { TraitCategory, Platform, LicenseType, Author } from './types.js';
+
+type SandboxPermission = string;
+
+interface NetworkPolicy {
+  allowedDomains: string[];
+  allowLocalhost?: boolean;
+}
 
 // =============================================================================
 // PLUGIN PACKAGE MANIFEST (plugin.manifest.json)

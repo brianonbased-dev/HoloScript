@@ -8,6 +8,6 @@
  *   import { World, Entity, System } from '@holoscript/engine';
  */
 
-// Re-export runtime subsystem from core subpath
-// Phase 2: runtime/network/rendering/physics/spatial/ecs source files will be moved here
-export * from '@holoscript/core/runtime';
+// Re-export from the core package entrypoint.
+// DTS build cannot resolve private subpath imports like '@holoscript/core/runtime'.
+export * from '@holoscript/core';

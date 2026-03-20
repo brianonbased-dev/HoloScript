@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use shader_preview_wgpu::{FrameResult, RenderConfig, ShaderPreviewPipeline};
+use shader_preview_wgpu::{EncodeMode, FrameResult, RenderConfig, ShaderPreviewPipeline};
 
 // ═══════════════════════════════════════════════════════════════════
 // Data Types
@@ -142,6 +142,7 @@ fn shader_preview_init(
         height: height.unwrap_or(720),
         target_fps: 30,
         encode_base64: true,
+        encode_mode: EncodeMode::PngDataUri,
         soft_budget: true,
     };
 

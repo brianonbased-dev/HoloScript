@@ -75,7 +75,7 @@ export function createApp(
   );
 
   // Compression
-  app.use(compression());
+  app.use(compression() as any);
 
   // Body parsing
   app.use(express.json({ limit: '5mb' }));

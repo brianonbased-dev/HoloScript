@@ -24,7 +24,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
     "remotion": "^4.0.0",
-    "shiki": "^1.22.0"
+    "shiki": "^1.22.0",
+    "zod": "3.22.3"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

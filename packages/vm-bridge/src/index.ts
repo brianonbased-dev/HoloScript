@@ -229,10 +229,10 @@ export class SpatialCognitiveAgent {
     this.cognitiveVM.registerHandler(
       UAALOpCode.OP_SPATIAL_ANCHOR,
       async (proxy: VMProxy, operands?: UAALOperand[]) => {
-        const name = (operands[0] as string) ?? 'anchor';
-        const x = (operands[1] as number) ?? 0;
-        const y = (operands[2] as number) ?? 0;
-        const z = (operands[3] as number) ?? 0;
+        const name = (operands?.[0] as string) ?? 'anchor';
+        const x = (operands?.[1] as number) ?? 0;
+        const y = (operands?.[2] as number) ?? 0;
+        const z = (operands?.[3] as number) ?? 0;
         const id = this.world.spawn(name);
         this.world.setComponent(id, 0x01, {
           // ComponentType.Transform

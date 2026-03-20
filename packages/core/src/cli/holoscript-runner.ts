@@ -35,7 +35,7 @@ import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'help';
+  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'daemon-status' | 'help';
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
   profile: string;
@@ -161,7 +161,12 @@ function parseArgs(argv: string[]): CLIOptions {
   }
 
   // Second arg is file path
-  if (args[1] && !args[1].startsWith('--')) {
+  // Detect 'holoscript daemon status' sub-subcommand before treating args[1] as a file
+  if (opts.command === 'daemon' && args[1] === 'status') {
+    opts.command = 'daemon-status';
+  }
+
+  if (args[1] && !args[1].startsWith('--') && opts.command !== 'daemon-status') {
     opts.file = args[1];
   }
 
@@ -1450,11 +1455,17 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   // Load persisted daemon state
   const stateFile = path.join(stateDir, 'daemon-state.json');
-  let daemonState = {
+  interface DaemonPersistedState {
+    totalCycles: number; focusIndex: number; bestQuality: number; lastQuality: number;
+    totalCostUSD: number; totalInputTokens: number; totalOutputTokens: number;
+    typeErrorBaseline: number; lastFocus: string; lastCycleTimeISO: string;
+  }
+  const daemonStateDefaults: DaemonPersistedState = {
     totalCycles: 0, focusIndex: 0, bestQuality: 0, lastQuality: 0,
     totalCostUSD: 0, totalInputTokens: 0, totalOutputTokens: 0,
-    typeErrorBaseline: 0,
+    typeErrorBaseline: 0, lastFocus: '', lastCycleTimeISO: '',
   };
+  let daemonState: DaemonPersistedState = { ...daemonStateDefaults };
   if (fs.existsSync(stateFile)) {
     try {
       daemonState = { ...daemonState, ...JSON.parse(fs.readFileSync(stateFile, 'utf-8')) };
@@ -1685,6 +1696,8 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     daemonState.totalInputTokens += inputTokens;
     daemonState.totalOutputTokens += outputTokens;
     daemonState.totalCostUSD += costUSD;
+    daemonState.lastFocus = focus;
+    daemonState.lastCycleTimeISO = new Date().toISOString();
 
     // Persist type error baseline on first measurement (used for quality scoring)
     const cycleTypeErrors = (btBlackboard.typeErrorBaseline as number) || (btBlackboard.typeErrorCount as number) || 0;
@@ -1869,6 +1882,118 @@ function getASTBlackboardValue(ast: unknown, key: string): unknown {
   return result;
 }
 
+async function daemonStatus(): Promise<void> {
+  const repoRoot = findGitRoot(process.cwd());
+  const stateDir = path.join(repoRoot, '.holoscript');
+
+  if (!fs.existsSync(stateDir)) {
+    console.log('[daemon status] No state directory found. Run a daemon cycle first.');
+    return;
+  }
+
+  // Is daemon running? Check lock file heartbeat
+  const lockFile = path.join(stateDir, 'daemon.lock');
+  let isRunning = false;
+  let lockPid = 0;
+  let lastHeartbeat = 0;
+  if (fs.existsSync(lockFile)) {
+    try {
+      const lock = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+      lockPid = lock.pid;
+      lastHeartbeat = lock.heartbeat;
+      isRunning = Date.now() - lastHeartbeat < 120_000;
+    } catch { /* corrupt lock */ }
+  }
+
+  // Load daemon-state.json
+  const stateFile = path.join(stateDir, 'daemon-state.json');
+  let ds: Record<string, unknown> = {};
+  if (fs.existsSync(stateFile)) {
+    try { ds = JSON.parse(fs.readFileSync(stateFile, 'utf-8')); } catch { /* */ }
+  }
+
+  // Load file state
+  const fileStateFile = path.join(stateDir, 'daemon-file-state.json');
+  let fileState: { committed: string[]; failures: Record<string, number> } = { committed: [], failures: {} };
+  if (fs.existsSync(fileStateFile)) {
+    try { fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8')); } catch { /* */ }
+  }
+
+  // Wisdom count
+  const wisdomFile = path.join(stateDir, 'accumulated-wisdom.json');
+  let wisdomCount = 0;
+  if (fs.existsSync(wisdomFile)) {
+    try { wisdomCount = (JSON.parse(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[]).length; } catch { /* */ }
+  }
+
+  // Fix ledger — last 5 entries
+  const ledgerFile = path.join(stateDir, 'fix-ledger.json');
+  let ledger: Array<{ timestamp?: string; candidate?: string; focus?: string; result?: string; commitSha?: string; errorsAfter?: number }> = [];
+  if (fs.existsSync(ledgerFile)) {
+    try { ledger = JSON.parse(fs.readFileSync(ledgerFile, 'utf-8')); } catch { /* */ }
+  }
+
+  const G = '\x1b[32m';
+  const Y = '\x1b[33m';
+  const R = '\x1b[0m';
+  const B = '\x1b[1m';
+
+  const runStatus = isRunning
+    ? `${G}● RUNNING${R} (PID ${lockPid}, heartbeat ${Math.round((Date.now() - lastHeartbeat) / 1000)}s ago)`
+    : `${Y}○ IDLE${R}`;
+
+  console.log(`\n${B}HoloDaemon Status${R}  ${runStatus}`);
+  console.log(`  State dir:  ${stateDir}\n`);
+
+  const totalCycles = (ds.totalCycles as number) || 0;
+  const lastFocus = (ds.lastFocus as string) || 'n/a';
+  const lastCycleTime = ds.lastCycleTimeISO ? new Date(ds.lastCycleTimeISO as string).toLocaleString() : 'never';
+  console.log(`${B}Session${R}`);
+  console.log(`  Total cycles:  ${totalCycles}`);
+  console.log(`  Last focus:    ${lastFocus}`);
+  console.log(`  Last cycle:    ${lastCycleTime}`);
+
+  const bestQ = ((ds.bestQuality as number) || 0).toFixed(3);
+  const lastQ = ((ds.lastQuality as number) || 0).toFixed(3);
+  const baseline = ds.typeErrorBaseline ? `${ds.typeErrorBaseline} type errors` : 'not yet measured';
+  console.log(`\n${B}Quality${R}`);
+  console.log(`  Best:      ${bestQ}`);
+  console.log(`  Last:      ${lastQ}`);
+  console.log(`  Baseline:  ${baseline}`);
+
+  const totalCost = ((ds.totalCostUSD as number) || 0).toFixed(4);
+  const tokIn = ((ds.totalInputTokens as number) || 0).toLocaleString();
+  const tokOut = ((ds.totalOutputTokens as number) || 0).toLocaleString();
+  console.log(`\n${B}Cost${R}`);
+  console.log(`  Total:      $${totalCost}`);
+  console.log(`  Tokens in:  ${tokIn}`);
+  console.log(`  Tokens out: ${tokOut}`);
+
+  const quarantined = Object.values(fileState.failures).filter((n) => n >= 3).length;
+  console.log(`\n${B}Files${R}`);
+  console.log(`  Committed:   ${fileState.committed.length}`);
+  console.log(`  Quarantined: ${quarantined}`);
+  console.log(`  Wisdom:      ${wisdomCount} entries`);
+
+  const recent = ledger.slice(-5);
+  if (recent.length > 0) {
+    console.log(`\n${B}Recent Ledger Entries${R} (last ${recent.length})`);
+    for (const entry of recent) {
+      const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '?';
+      const file = entry.candidate ? path.basename(entry.candidate) : '?';
+      const result = entry.result === 'committed'
+        ? `${G}committed${R}`
+        : entry.result === 'rolled_back'
+          ? `${Y}rolled_back${R}`
+          : entry.result || '?';
+      const sha = entry.commitSha ? ` (${entry.commitSha.slice(0, 7)})` : '';
+      console.log(`  ${ts}  ${file}  ${result}${sha}  focus:${entry.focus || '?'}`);
+    }
+  }
+
+  console.log('');
+}
+
 function showHelp(): void {
   console.log(`
 HoloScript CLI — Headless Runner v5.0
@@ -1901,6 +2026,7 @@ Examples:
   holoscript daemon compositions/self-improve-daemon.hsplus --provider xai --model grok-3
   holoscript daemon compositions/self-improve-daemon.hsplus --provider anthropic --tool-profile claude-hsplus
   holoscript daemon compositions/self-improve-daemon.hsplus --provider-rotation --cycles 10
+  holoscript daemon status
 `);
 }
 
@@ -1925,6 +2051,9 @@ async function main(): Promise<void> {
     case 'daemon':
     case 'holodaemon':
       await daemonScript(opts);
+      break;
+    case 'daemon-status':
+      await daemonStatus();
       break;
     case 'help':
     default:

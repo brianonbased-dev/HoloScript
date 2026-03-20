@@ -198,6 +198,7 @@ export default defineConfig({
             { text: 'Python Bindings', link: '/guides/python-bindings' },
             { text: 'Working Tree Triage', link: '/guides/working-tree-triage' },
             { text: 'Release Slice (v5.0.1)', link: '/guides/release-slice-v5-0-1' },
+            { text: 'HoloDaemon Demo', link: '/guides/holodaemon-demo' },
           ],
         },
         {
