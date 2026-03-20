@@ -75,7 +75,8 @@ if (process.argv.includes('--bm25')) {
 }
 
 const STATE_DIR = path.join(REPO_ROOT, '.holoscript');
-const BRIDGE_STATE_FILE = path.join(STATE_DIR, 'bridge-state.json');
+// Unified state file — shared with `holoscript daemon` (holoscript-runner.ts)
+const DAEMON_STATE_FILE = path.join(STATE_DIR, 'daemon-state.json');
 const HISTORY_FILE = path.join(STATE_DIR, 'quality-history.json');
 const LOCK_FILE = path.join(STATE_DIR, 'bridge.lock');
 const COMPOSITION_FILE = path.join(REPO_ROOT, 'compositions', 'self-improve-daemon.hsplus');
@@ -154,7 +155,7 @@ interface Blackboard {
   __candidateIndex?: number;
 }
 
-interface BridgeState {
+interface DaemonState {
   totalCycles: number;
   bestQuality: number;
   lastQuality: number;
@@ -171,6 +172,12 @@ interface BridgeState {
   totalCostUSD: number;
   /** G.ARCH.002: UUID of the last daemon session that wrote this state */
   lastSessionId?: string;
+  /** Shared with holoscript-runner.ts daemon — baseline for quality scoring */
+  typeErrorBaseline?: number;
+  /** Last focus mode used by holoscript daemon */
+  lastFocus?: string;
+  /** ISO timestamp of last cycle completion */
+  lastCycleTimeISO?: string;
 }
 
 interface QualityEntry {
@@ -199,7 +206,7 @@ function ensureStateDir(): void {
 }
 
 /** G.ARCH.002: Schema validation — detects corrupted state files */
-function validateBridgeState(obj: unknown): obj is BridgeState {
+function validateDaemonState(obj: unknown): obj is DaemonState {
   if (!obj || typeof obj !== 'object') return false;
   const s = obj as Record<string, unknown>;
   return typeof s.totalCycles === 'number'
@@ -215,8 +222,8 @@ function atomicWriteFileSync(filePath: string, content: string): void {
   fs.renameSync(tmpFile, filePath);
 }
 
-function loadBridgeState(): BridgeState {
-  const defaults: BridgeState = {
+function loadDaemonState(): DaemonState {
+  const defaults: DaemonState = {
     totalCycles: 0,
     bestQuality: 0,
     lastQuality: 0,
@@ -230,12 +237,12 @@ function loadBridgeState(): BridgeState {
     totalCostUSD: 0,
   };
   try {
-    if (fs.existsSync(BRIDGE_STATE_FILE)) {
-      const raw = fs.readFileSync(BRIDGE_STATE_FILE, 'utf-8');
+    if (fs.existsSync(DAEMON_STATE_FILE)) {
+      const raw = fs.readFileSync(DAEMON_STATE_FILE, 'utf-8');
       const loaded = JSON.parse(raw);
       // G.ARCH.002: Validate schema before trusting persisted state
-      if (!validateBridgeState(loaded)) {
-        console.warn(`[G.ARCH.002] bridge-state.json failed schema validation — using defaults`);
+      if (!validateDaemonState(loaded)) {
+        console.warn(`[G.ARCH.002] daemon-state.json failed schema validation — using defaults`);
         return defaults;
       }
       // Merge with defaults so new fields added after initial state creation
@@ -258,15 +265,15 @@ function loadBridgeState(): BridgeState {
       return merged;
     }
   } catch (err) {
-    console.warn(`[G.ARCH.002] Failed to load bridge-state.json: ${err instanceof Error ? err.message : err} — using defaults`);
+    console.warn(`[G.ARCH.002] Failed to load daemon-state.json: ${err instanceof Error ? err.message : err} — using defaults`);
   }
   return defaults;
 }
 
-function saveBridgeState(state: BridgeState): void {
+function saveDaemonState(state: DaemonState): void {
   ensureStateDir();
   state.lastSessionId = SESSION_ID;
-  atomicWriteFileSync(BRIDGE_STATE_FILE, JSON.stringify(state, null, 2));
+  atomicWriteFileSync(DAEMON_STATE_FILE, JSON.stringify(state, null, 2));
 }
 
 function appendQualityHistory(entry: QualityEntry): void {
@@ -559,7 +566,7 @@ async function dispatchActionAsync(
   config: BridgeConfig,
   metrics: { inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number },
   runtimeEmit?: (event: string, data: Record<string, unknown>) => void,
-  bridgeState?: BridgeState,
+  daemonState?: DaemonState,
 ): Promise<boolean> {
   // Cast the BT blackboard to our typed interface for safe property access.
   // The BT passes its blackboard as Record<string, unknown> but we store
@@ -938,17 +945,17 @@ async function dispatchActionAsync(
       // Track per-file failure counts across cycles. Auto-quarantine (blacklist)
       // after QUARANTINE_THRESHOLD failures. This covers both compile failures
       // AND test regressions — any rollback increments the counter.
-      if (blackboard.current_file && bridgeState) {
+      if (blackboard.current_file && daemonState) {
         const file = blackboard.current_file;
-        const counts = bridgeState.fileFailureCounts;
+        const counts = daemonState.fileFailureCounts;
         counts[file] = (counts[file] ?? 0) + 1;
         const failCount = counts[file];
 
-        if (failCount >= QUARANTINE_THRESHOLD && !bridgeState.blacklistedFiles.includes(file)) {
-          bridgeState.blacklistedFiles.push(file);
+        if (failCount >= QUARANTINE_THRESHOLD && !daemonState.blacklistedFiles.includes(file)) {
+          daemonState.blacklistedFiles.push(file);
           const limitation = `${blackboard.focus}: ${path.basename(file)} quarantined after ${failCount} failures (compile-only success with test regression)`;
-          if (!bridgeState.knownLimitations.includes(limitation)) {
-            bridgeState.knownLimitations.push(limitation);
+          if (!daemonState.knownLimitations.includes(limitation)) {
+            daemonState.knownLimitations.push(limitation);
           }
           console.log(`  [quarantine] ${path.basename(file)} auto-blacklisted after ${failCount} failures`);
           if (runtimeEmit) {
@@ -958,7 +965,7 @@ async function dispatchActionAsync(
             });
           }
         }
-        saveBridgeState(bridgeState);
+        saveDaemonState(daemonState);
       }
 
       blackboard.files_edited = [];
@@ -1057,7 +1064,7 @@ async function dispatchActionAsync(
         // Sync identity state to runtime composition state
         runtimeEmit('state:update', {
           path: 'identity.cycles_completed',
-          value: bridgeState?.totalCycles ?? 0,
+          value: daemonState?.totalCycles ?? 0,
         });
         runtimeEmit('state:update', {
           path: 'identity.wisdom_accumulated',
@@ -1231,11 +1238,11 @@ async function runBridgeCycle(
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   toolDefs: any[],
   config: BridgeConfig,
-  bridgeState: BridgeState,
+  daemonState: DaemonState,
 ): Promise<{ qualityBefore: number; qualityAfter: number; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number; filesEdited: string[] }> {
   const FOCUS_ROTATION = ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'];
-  const focus = FOCUS_ROTATION[bridgeState.focusIndex % FOCUS_ROTATION.length];
-  const cycleNumber = bridgeState.totalCycles + 1;
+  const focus = FOCUS_ROTATION[daemonState.focusIndex % FOCUS_ROTATION.length];
+  const cycleNumber = daemonState.totalCycles + 1;
 
   console.log(`\n━━━ BT Cycle ${cycleNumber} (focus: ${focus}) ━━━━━━━━━━━━━━━━━━━━━━`);
 
@@ -1268,8 +1275,8 @@ async function runBridgeCycle(
     }
     // Always sync bridge state into blackboard so actions can check it
     blackboard.__circuitOpen = circuitOpen;
-    blackboard.__attemptedFiles = bridgeState.attemptedFiles;
-    blackboard.__blacklistedFiles = bridgeState.blacklistedFiles;
+    blackboard.__attemptedFiles = daemonState.attemptedFiles;
+    blackboard.__blacklistedFiles = daemonState.blacklistedFiles;
 
     // Check if a previously started async action has resolved
     const pending = pendingActions.get(actionName);
@@ -1283,7 +1290,7 @@ async function runBridgeCycle(
 
     // Start a new async action via dispatchActionAsync
     const entry = { resolved: false, result: false };
-    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics, runtimeEmit, bridgeState)
+    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics, runtimeEmit, daemonState)
       .then((result) => {
         entry.resolved = true;
         entry.result = result;
@@ -1599,18 +1606,18 @@ async function runBridgeCycle(
 
   // Mark attempted files
   for (const f of filesEdited) {
-    if (!bridgeState.attemptedFiles.includes(f)) {
-      bridgeState.attemptedFiles.push(f);
+    if (!daemonState.attemptedFiles.includes(f)) {
+      daemonState.attemptedFiles.push(f);
     }
   }
-  if (bridgeState.attemptedFiles.length > 50) {
-    bridgeState.attemptedFiles = bridgeState.attemptedFiles.slice(-50);
+  if (daemonState.attemptedFiles.length > 50) {
+    daemonState.attemptedFiles = daemonState.attemptedFiles.slice(-50);
   }
 
   // Apply feedback signal actions to bridge state for next cycle
   if (feedbackSignalAction === 'switch_focus') {
     // Skip ahead in focus rotation to avoid repeating a declining focus
-    bridgeState.focusIndex += 1;
+    daemonState.focusIndex += 1;
     console.log(`  [feedback] Focus rotation advanced due to quality decline signal`);
   }
 
@@ -1680,8 +1687,8 @@ async function main() {
 
   // W.090 Safeguard 1: Start heartbeat to keep lock file fresh
   // G.ARCH.002: Pass spend getter so lock file shows cumulative cost
-  const bridgeStateRef = { current: null as BridgeState | null };
-  startHeartbeat(() => bridgeStateRef.current?.totalCostUSD ?? 0);
+  const daemonStateRef = { current: null as DaemonState | null };
+  startHeartbeat(() => daemonStateRef.current?.totalCostUSD ?? 0);
 
   // W.090 Safeguard 3: Robust process cleanup — catch ALL exit paths
   const cleanup = () => { releaseLock(); };
@@ -1759,8 +1766,8 @@ async function main() {
   }
 
   const anthropic = new Anthropic();
-  const bridgeState = loadBridgeState();
-  bridgeStateRef.current = bridgeState;
+  const daemonState = loadDaemonState();
+  daemonStateRef.current = daemonState;
 
   // Pre-load GraphRAG embeddings (default: OpenAI for quality + disk persistence).
   // Use --bm25 flag for free/fast BM25 (no persistence, rebuilds each run).
@@ -1807,19 +1814,19 @@ async function main() {
     console.warn('  GraphRAG unavailable — non-typefix cycles may return 0 candidates.');
   }
 
-  console.log(`Resuming from cycle ${bridgeState.totalCycles}, best quality: ${bridgeState.bestQuality.toFixed(3)}`);
+  console.log(`Resuming from cycle ${daemonState.totalCycles}, best quality: ${daemonState.bestQuality.toFixed(3)}`);
   console.log('');
 
   for (let i = 0; i < config.cycles; i++) {
     // G.ARCH.003: Pre-cycle budget gate — estimate next cycle cost BEFORE running it
-    const remainingBudget = config.maxSpendUSD - bridgeState.totalCostUSD;
+    const remainingBudget = config.maxSpendUSD - daemonState.totalCostUSD;
     if (remainingBudget <= 0) {
-      console.warn(`\n[Budget] Already at $${bridgeState.totalCostUSD.toFixed(3)} (cap: $${config.maxSpendUSD.toFixed(2)}). Stopping.`);
+      console.warn(`\n[Budget] Already at $${daemonState.totalCostUSD.toFixed(3)} (cap: $${config.maxSpendUSD.toFixed(2)}). Stopping.`);
       break;
     }
-    const completedCycles = bridgeState.totalCycles;
+    const completedCycles = daemonState.totalCycles;
     const avgCostPerCycle = completedCycles > 0
-      ? bridgeState.totalCostUSD / completedCycles
+      ? daemonState.totalCostUSD / completedCycles
       : 1.50;  // Conservative first-cycle estimate ($1.50)
     // Use 1.5x the average as safety margin (cycles vary in cost)
     const estimatedNextCost = avgCostPerCycle * 1.5;
@@ -1827,8 +1834,8 @@ async function main() {
       console.warn(`\n[Budget] Estimated next cycle: ~$${estimatedNextCost.toFixed(3)}, remaining: $${remainingBudget.toFixed(3)}. Stopping to avoid overshoot.`);
       appendQualityHistory({
         timestamp: new Date().toISOString(),
-        cycle: bridgeState.totalCycles + 1,
-        composite: bridgeState.lastQuality,
+        cycle: daemonState.totalCycles + 1,
+        composite: daemonState.lastQuality,
         grade: 'BUDGET_GATE',
         focus: 'pre_cycle_gate',
         summary: `Pre-cycle budget gate: est $${estimatedNextCost.toFixed(3)} > remaining $${remainingBudget.toFixed(3)}`,
@@ -1843,36 +1850,36 @@ async function main() {
     const startTime = Date.now();
 
     try {
-      const result = await runBridgeCycle(compositionAST, anthropic, handlers, toolDefs, config, bridgeState);
+      const result = await runBridgeCycle(compositionAST, anthropic, handlers, toolDefs, config, daemonState);
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
       // Update state
-      bridgeState.totalCycles++;
-      bridgeState.focusIndex++;
-      bridgeState.lastQuality = result.qualityAfter;
-      bridgeState.totalInputTokens += result.inputTokens;
-      bridgeState.totalOutputTokens += result.outputTokens;
+      daemonState.totalCycles++;
+      daemonState.focusIndex++;
+      daemonState.lastQuality = result.qualityAfter;
+      daemonState.totalInputTokens += result.inputTokens;
+      daemonState.totalOutputTokens += result.outputTokens;
 
-      if (result.qualityAfter > bridgeState.bestQuality) {
-        bridgeState.bestQuality = result.qualityAfter;
+      if (result.qualityAfter > daemonState.bestQuality) {
+        daemonState.bestQuality = result.qualityAfter;
         console.log(`  New best quality: ${result.qualityAfter.toFixed(3)}`);
       }
 
       const costUSD = calculateCostUSD(result.inputTokens, result.outputTokens);
-      bridgeState.totalCostUSD += costUSD;
+      daemonState.totalCostUSD += costUSD;
 
-      saveBridgeState(bridgeState);
+      saveDaemonState(daemonState);
 
       // G.ARCH.002: Per-session budget cap enforcement
-      if (bridgeState.totalCostUSD >= config.maxSpendUSD) {
-        console.warn(`\n[G.ARCH.002] Budget cap reached: $${bridgeState.totalCostUSD.toFixed(3)} >= $${config.maxSpendUSD.toFixed(2)}. Stopping.`);
+      if (daemonState.totalCostUSD >= config.maxSpendUSD) {
+        console.warn(`\n[G.ARCH.002] Budget cap reached: $${daemonState.totalCostUSD.toFixed(3)} >= $${config.maxSpendUSD.toFixed(2)}. Stopping.`);
         appendQualityHistory({
           timestamp: new Date().toISOString(),
-          cycle: bridgeState.totalCycles + 1,
+          cycle: daemonState.totalCycles + 1,
           composite: result.qualityAfter,
           grade: 'BUDGET_CAP',
           focus: 'budget_stop',
-          summary: `Budget cap reached at $${bridgeState.totalCostUSD.toFixed(3)} (limit: $${config.maxSpendUSD.toFixed(2)})`,
+          summary: `Budget cap reached at $${daemonState.totalCostUSD.toFixed(3)} (limit: $${config.maxSpendUSD.toFixed(2)})`,
           costUSD,
           arm: 'treatment',
           trial: config.trial,
@@ -1883,11 +1890,11 @@ async function main() {
       // Log to shared quality history (same format as control)
       appendQualityHistory({
         timestamp: new Date().toISOString(),
-        cycle: bridgeState.totalCycles,
+        cycle: daemonState.totalCycles,
         composite: result.qualityAfter,
         grade: result.qualityAfter >= 0.9 ? 'A' : result.qualityAfter >= 0.8 ? 'B' : result.qualityAfter >= 0.7 ? 'C' : result.qualityAfter >= 0.5 ? 'D' : 'F',
-        focus: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'][(bridgeState.focusIndex - 1) % 7],
-        summary: `Bridge cycle ${bridgeState.totalCycles}: quality ${result.qualityBefore.toFixed(3)} → ${result.qualityAfter.toFixed(3)}`,
+        focus: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'][(daemonState.focusIndex - 1) % 7],
+        summary: `Bridge cycle ${daemonState.totalCycles}: quality ${result.qualityBefore.toFixed(3)} → ${result.qualityAfter.toFixed(3)}`,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         costUSD,
@@ -1900,8 +1907,8 @@ async function main() {
 
       const delta = result.qualityAfter - result.qualityBefore;
       console.log(`\nCycle ${i + 1}/${config.cycles} (${durationSec}s) — quality: ${result.qualityAfter.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) — $${costUSD.toFixed(3)}`);
-      if (bridgeState.blacklistedFiles?.length > 0) {
-        console.log(`  Blacklisted files: ${bridgeState.blacklistedFiles.map(f => path.basename(f)).join(', ')}`)
+      if (daemonState.blacklistedFiles?.length > 0) {
+        console.log(`  Blacklisted files: ${daemonState.blacklistedFiles.map(f => path.basename(f)).join(', ')}`)
       }
     } catch (err: any) {
       console.error(`Cycle ${i + 1} failed: ${err.message}`);
@@ -1910,10 +1917,10 @@ async function main() {
   }
 
   console.log(`\nExperiment summary:`);
-  console.log(`  Total cycles: ${bridgeState.totalCycles}`);
-  console.log(`  Best quality: ${bridgeState.bestQuality.toFixed(3)}`);
-  console.log(`  Total cost: $${bridgeState.totalCostUSD.toFixed(3)}`);
-  console.log(`  Total tokens: ${bridgeState.totalInputTokens} in / ${bridgeState.totalOutputTokens} out`);
+  console.log(`  Total cycles: ${daemonState.totalCycles}`);
+  console.log(`  Best quality: ${daemonState.bestQuality.toFixed(3)}`);
+  console.log(`  Total cost: $${daemonState.totalCostUSD.toFixed(3)}`);
+  console.log(`  Total tokens: ${daemonState.totalInputTokens} in / ${daemonState.totalOutputTokens} out`);
 
   releaseLock();
   console.log('Bridge session complete.');

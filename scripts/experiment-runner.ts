@@ -84,21 +84,15 @@ function git(cmd: string): string {
 
 function resetState(): void {
   const stateFile = path.join(STATE_DIR, 'daemon-state.json');
-  const bridgeStateFile = path.join(STATE_DIR, 'bridge-state.json');
   const historyFile = path.join(STATE_DIR, 'quality-history.json');
 
-  // Reset daemon state
+  // Reset unified daemon state (shared by holoscript-runner.ts and self-improve.ts)
   fs.writeFileSync(stateFile, JSON.stringify({
     totalCycles: 0, lastCycleAt: '', lastQuality: 0, bestQuality: 0,
     focusRotation: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'],
     currentFocusIndex: 0, convergenceStreak: 0, backoffMultiplier: 1,
     improvements: [], attemptedFiles: [], lastErrorCounts: {},
-  }, null, 2), 'utf-8');
-
-  // Reset bridge state
-  fs.writeFileSync(bridgeStateFile, JSON.stringify({
-    totalCycles: 0, bestQuality: 0, lastQuality: 0, focusIndex: 0,
-    attemptedFiles: [], totalInputTokens: 0, totalOutputTokens: 0, totalCostUSD: 0,
+    focusIndex: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostUSD: 0,
   }, null, 2), 'utf-8');
 
   // Reset quality history
@@ -114,10 +108,8 @@ function archiveResults(arm: string, trial: number): void {
     console.log(`  Archived: ${destFile}`);
   }
 
-  // Also save the state file
-  const stateFile = arm === 'control'
-    ? path.join(STATE_DIR, 'daemon-state.json')
-    : path.join(STATE_DIR, 'bridge-state.json');
+  // Also save the unified state file
+  const stateFile = path.join(STATE_DIR, 'daemon-state.json');
   const stateDestFile = path.join(RESULTS_DIR, `${arm}-trial-${trial}-state.json`);
   if (fs.existsSync(stateFile)) {
     fs.copyFileSync(stateFile, stateDestFile);

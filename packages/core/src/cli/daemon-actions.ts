@@ -123,7 +123,9 @@ function isContaminatedEdit(content: string): boolean {
 
 /** Count type errors from tsc output, optionally scoped to a path prefix */
 function countTypeErrors(output: string, scopeFilter?: RegExp): number {
-  const lines = output.split('\n').filter(l => /error TS\d{4}:/.test(l));
+  const lines = output.split('\n').filter(l =>
+    /error TS\d{4}:/.test(l) && !l.includes('node_modules')
+  );
   if (!scopeFilter) return lines.length;
   return lines.filter(l => scopeFilter.test(l)).length;
 }
