@@ -41,7 +41,7 @@ export interface SandboxResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
-    type: 'validation' | 'runtime' | 'timeout' | 'memory';
+    type: 'validation' | 'runtime' | 'timeout' | 'memory' | 'syntax';
     message: string;
     stack?: string;
   };
@@ -289,18 +289,24 @@ export class HoloScriptSandbox {
         };
       }
 
-      // Valid HoloScript that isn't executable as JavaScript
+      // Valid HoloScript that isn't executable as JavaScript — not a security
+      // issue, but callers should not treat this as successfully executed.
       if (isSyntaxError) {
         this.log({
           source: meta.source,
-          action: 'execute',
-          success: true,
+          action: 'reject',
+          success: false,
+          reason: `Syntax: ${errorMessage}`,
           codeHash,
         });
 
         return {
-          success: true,
-          data: undefined as T,
+          success: false,
+          error: {
+            type: 'syntax',
+            message: errorMessage,
+            stack: errorStack,
+          },
           metadata: {
             executionTime: Date.now() - startTime,
             validated: true,

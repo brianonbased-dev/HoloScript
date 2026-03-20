@@ -22,7 +22,7 @@ describe('HoloScriptSandbox', () => {
   });
 
   describe('Valid Code Execution', () => {
-    it('should execute valid HoloScript code successfully', async () => {
+    it('should validate and report valid HoloScript that is not executable JS', async () => {
       const validCode = `
         cube {
           @color(red)
@@ -32,8 +32,9 @@ describe('HoloScriptSandbox', () => {
 
       const result = await sandbox.executeHoloScript(validCode, { source: 'user' });
 
-      expect(result.success).toBe(true);
-      expect(result.error).toBeUndefined();
+      // Valid HoloScript passes validation but is not executable as JavaScript
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe('syntax');
       expect(result.metadata.validated).toBe(true);
       expect(result.metadata.executionTime).toBeGreaterThan(0);
     });
