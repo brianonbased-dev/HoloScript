@@ -16,6 +16,14 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./math/vec3": {
+      "import": "./dist/math/vec3.js",
+      "require": "./dist/math/vec3.cjs"
+    },
+    "./math/vec3.js": {
+      "import": "./dist/math/vec3.js",
+      "require": "./dist/math/vec3.cjs"
+    },
     "./parser": {
       "types": "./dist/parser.d.ts",
       "import": "./dist/parser.js",

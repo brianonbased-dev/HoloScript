@@ -15,6 +15,7 @@ export default defineConfig({
   entry: {
     // Core exports (always loaded)
     index: 'src/index.ts',
+    'math/vec3': 'src/math/vec3.ts',
     parser: 'src/parser/HoloScriptPlusParser.ts',
     runtime: 'src/HoloScriptRuntime.ts',
     'type-checker': 'src/HoloScriptTypeChecker.ts',

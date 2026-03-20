@@ -422,9 +422,9 @@ describe('AIValidator', () => {
     });
 
     it('should track validation time', async () => {
-      const start = Date.now();
+      const start = performance.now();
       const result = await validator.validate('cube { @color(red) }');
-      const end = Date.now();
+      const end = performance.now();
 
       expect(result.metadata.validationTime).toBeLessThanOrEqual(end - start);
     });

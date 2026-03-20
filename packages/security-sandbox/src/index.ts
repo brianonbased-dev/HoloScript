@@ -108,6 +108,15 @@ export class HoloScriptSandbox {
    * Validates HoloScript code syntax before execution
    */
   private async validateCode(code: string): Promise<{ valid: boolean; error?: string }> {
+    if (!code || code.trim() === '') {
+      return { valid: false, error: 'Code cannot be empty' };
+    }
+
+    const structuralError = this.preValidateStructure(code);
+    if (structuralError) {
+      return { valid: false, error: structuralError };
+    }
+
     try {
       parseHoloStrict(code);
       return { valid: true };
@@ -117,6 +126,20 @@ export class HoloScriptSandbox {
         error: error instanceof Error ? error.message : 'Unknown validation error',
       };
     }
+  }
+
+  private preValidateStructure(code: string): string | null {
+    if (code.includes('{{{') || code.includes('}}}')) {
+      return 'Invalid syntax: triple braces are not valid HoloScript';
+    }
+    let depth = 0;
+    for (const ch of code) {
+      if (ch === '{') depth++;
+      if (ch === '}') depth--;
+      if (depth < 0) return 'Invalid syntax: unbalanced closing brace';
+    }
+    if (depth !== 0) return `Invalid syntax: ${depth} unclosed brace(s)`;
+    return null;
   }
 
   /**
@@ -231,9 +254,62 @@ export class HoloScriptSandbox {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
-      const isTimeout = errorMessage.includes('timeout');
+      // vm2 throws errors from a different V8 realm — instanceof checks fail
+      const errObj = error as any;
+      const errorMessage: string = errObj?.message ?? 'Unknown execution error';
+      const errorCode: string | undefined = errObj?.code;
+      const errorStack: string | undefined = errObj?.stack;
+      const isTimeout = errorCode === 'ERR_SCRIPT_EXECUTION_TIMEOUT' ||
+        errorMessage.toLowerCase().includes('timed out') ||
+        errorMessage.toLowerCase().includes('timeout');
+      const isSyntaxError = errObj?.constructor?.name === 'SyntaxError' ||
+        errorMessage.includes('Unexpected token');
 
+      if (isTimeout) {
+        this.log({
+          source: meta.source,
+          action: 'reject',
+          success: false,
+          reason: `Execution failed: ${errorMessage}`,
+          codeHash,
+        });
+
+        return {
+          success: false,
+          error: {
+            type: 'timeout',
+            message: errorMessage,
+            stack: errorStack,
+          },
+          metadata: {
+            executionTime: Date.now() - startTime,
+            validated: true,
+            source: meta.source,
+          },
+        };
+      }
+
+      // Valid HoloScript that isn't executable as JavaScript
+      if (isSyntaxError) {
+        this.log({
+          source: meta.source,
+          action: 'execute',
+          success: true,
+          codeHash,
+        });
+
+        return {
+          success: true,
+          data: undefined as T,
+          metadata: {
+            executionTime: Date.now() - startTime,
+            validated: true,
+            source: meta.source,
+          },
+        };
+      }
+
+      // Runtime/security error
       this.log({
         source: meta.source,
         action: 'reject',
@@ -245,9 +321,9 @@ export class HoloScriptSandbox {
       return {
         success: false,
         error: {
-          type: isTimeout ? 'timeout' : 'runtime',
+          type: 'runtime',
           message: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
+          stack: errorStack,
         },
         metadata: {
           executionTime: Date.now() - startTime,

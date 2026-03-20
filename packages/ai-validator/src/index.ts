@@ -97,7 +97,7 @@ const HALLUCINATION_PATTERNS = [
   },
   { pattern: /\/\/\s*(TODO|FIXME|NOTE|EXAMPLE)/i, score: 20, message: 'Incomplete code detected' },
   // Mixing languages
-  { pattern: /<\w+>.*?<\/\w+>/, score: 35, message: 'HTML/XML syntax in HoloScript' },
+  { pattern: /<\/?[a-zA-Z]\w*>/, score: 35, message: 'HTML/XML syntax in HoloScript' },
   { pattern: /\bfunction\s+\w+\s*\(/, score: 35, message: 'JavaScript function syntax' },
   // Invalid property formats
   { pattern: /@\w+\([^)]*["\']\$\{/, score: 45, message: 'Template literal in trait (invalid)' },
@@ -224,10 +224,20 @@ export class AIValidator {
    * Validates AI-generated HoloScript code
    */
   public async validate(code: string): Promise<ValidationResult> {
-    const startTime = Date.now();
+    const startTime = performance.now();
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
     let hallucinationScore = 0;
+
+    // Step 0: Triple-brace detection (explicit syntax error)
+    if (code.includes('{{{') || code.includes('}}}')) {
+      errors.push({
+        type: 'syntax',
+        severity: 'critical',
+        message: 'Invalid syntax: triple braces are not valid HoloScript',
+        suggestion: 'Use single braces { } for block delimiters',
+      });
+    }
 
     // Step 1: Syntax validation
     try {
@@ -290,7 +300,7 @@ export class AIValidator {
       metadata: {
         provider: this.config.provider,
         validatedAt: Date.now(),
-        validationTime: Date.now() - startTime,
+        validationTime: performance.now() - startTime,
         hallucinationScore,
       },
     };
@@ -426,6 +436,22 @@ export class AIValidator {
           totalScore += score;
         }
       });
+    }
+
+    // Cross-line trait repetition detection (same trait used 5+ times across lines)
+    const traitCounts = new Map<string, number>();
+    const traitMatcher = /@(\w+)\(/g;
+    let m;
+    while ((m = traitMatcher.exec(code)) !== null) {
+      const name = m[1];
+      traitCounts.set(name, (traitCounts.get(name) || 0) + 1);
+    }
+    for (const [, count] of traitCounts) {
+      if (count >= 5) {
+        detected.push({ message: 'Excessive trait repetition' });
+        totalScore += 25;
+        break;
+      }
     }
 
     // Normalize score to 0-100
