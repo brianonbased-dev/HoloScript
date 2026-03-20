@@ -194,6 +194,14 @@ composition "SelfImproveDaemon" {
                                     action: "read_candidate"
                                   },
 
+                              // Step 3.5: Fetch relevant docs/type context via GraphRAG
+                              // Sets blackboard: docsContext (string, may be empty)
+                              {
+                                type: "action",
+                                name: "fetch_docs",
+                                action: "fetch_docs"
+                              },
+
                               // Step 4: Generate a fix via focused LLM micro-call
                               // Sets blackboard: files_edited
                               {

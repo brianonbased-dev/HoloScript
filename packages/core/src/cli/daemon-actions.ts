@@ -1569,6 +1569,80 @@ export function createDaemonActions(
       }
     },
 
+    // ── Fetch Docs (Pre-Generate Context) ────────────────────────────
+    // Extracts external package imports from the candidate file and resolves
+    // their type declarations so generate_fix has richer context for fixes.
+    fetch_docs: async (_params, bb) => {
+      const file = bb.currentCandidate as string;
+      const content = bb.candidateContent as string;
+      if (!file || !content) { bb.docsContext = ''; return true; }
+
+      const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
+      const fileErrors = perFileErrors[file] || perFileErrors[file.replace(/\\/g, '/')] || [];
+      if (fileErrors.length === 0) { bb.docsContext = ''; return true; }
+
+      // Extract external (non-relative) imports
+      const externalImports = new Map<string, string[]>();
+      const importRe = /import\s+(?:type\s+)?{([^}]+)}\s+from\s+['"]([^'"]+)['"]/g;
+      let im: RegExpExecArray | null;
+      while ((im = importRe.exec(content))) {
+        const pkg = im[2];
+        if (pkg.startsWith('.') || pkg.startsWith('@holoscript')) continue;
+        const names = im[1].split(',').map(n => n.trim().replace(/\s+as\s+\w+/, '')).filter(Boolean);
+        externalImports.set(pkg, [...(externalImports.get(pkg) || []), ...names]);
+      }
+
+      if (externalImports.size === 0) { bb.docsContext = ''; return true; }
+
+      // Find which external symbols appear in error messages
+      const errorText = fileErrors.join('\n');
+      const relevantDocs: string[] = [];
+
+      for (const [pkg, names] of externalImports) {
+        const relevantNames = names.filter(n => errorText.includes(n));
+        if (relevantNames.length === 0) continue;
+
+        // Try to find the package's type definitions in node_modules
+        for (const typesPath of [
+          `node_modules/${pkg}/dist/index.d.ts`,
+          `node_modules/${pkg}/index.d.ts`,
+          `node_modules/@types/${pkg}/index.d.ts`,
+        ]) {
+          try {
+            const fullPath = `${config.repoRoot}/${typesPath}`;
+            if (!host.exists(fullPath)) continue;
+            const dtsContent = host.readFile(fullPath);
+            const lines = dtsContent.split('\n');
+
+            // Extract definitions for the relevant symbols (±5 lines)
+            for (const name of relevantNames) {
+              const defRe = new RegExp(`(?:export\\s+)?(?:interface|class|type|function|declare)\\s+${name}[\\s<({]`, 'm');
+              const match = defRe.exec(dtsContent);
+              if (match) {
+                const defLine = dtsContent.slice(0, match.index).split('\n').length - 1;
+                const start = Math.max(0, defLine - 1);
+                const end = Math.min(lines.length, defLine + 20);
+                relevantDocs.push(
+                  `// From ${pkg} (${typesPath}):`,
+                  lines.slice(start, end).join('\n'),
+                  '',
+                );
+              }
+            }
+            break; // Found types for this package
+          } catch { /* skip */ }
+        }
+      }
+
+      if (relevantDocs.length > 0) {
+        bb.docsContext = relevantDocs.join('\n').slice(0, 3000); // Cap at 3KB
+        log(`Fetched docs for ${externalImports.size} packages (${relevantDocs.length} symbol defs)`);
+      } else {
+        bb.docsContext = '';
+      }
+      return true;
+    },
+
     // ── Generate Fix (LLM Call) ────────────────────────────────────────
     // Think→Patch architecture: LLM reasons about errors, proposes JSON patches,
     // patches are applied programmatically. Prevents file truncation/deletion.
@@ -1888,6 +1962,17 @@ export function createDaemonActions(
       const investigationCtx = formatInvestigations(investigations);
       if (investigationCtx) {
         promptParts.push(investigationCtx);
+      }
+
+      // Inject external package docs context (from fetch_docs BT node)
+      const docsContext = bb.docsContext as string | undefined;
+      if (docsContext) {
+        promptParts.push(
+          '',
+          '=== EXTERNAL PACKAGE TYPE DEFINITIONS ===',
+          'Use these type definitions to ensure correct usage of external APIs:',
+          docsContext,
+        );
       }
 
       // Graph-RAG: test-aware retry — if a previous fix attempt passed compilation
