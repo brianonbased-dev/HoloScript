@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/agent-protocol",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "uAA2++ Agent Protocol — 7-Phase lifecycle, BaseService, PWG knowledge format, and task decomposition",
   "type": "module",
   "main": "./dist/index.cjs",

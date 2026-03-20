@@ -6,6 +6,42 @@ All notable changes to HoloScript are documented here.
 
 ## [Unreleased]
 
+### Week Of 2026-03-12 To 2026-03-19
+
+#### MCP Server Reliability, Deployment, And Cache Persistence
+
+- Added build-artifact opt-in scanning for `holo_absorb_repo` via `includeBuildArtifacts`.
+- Added parse-fallback ingestion for dist/build files when parser bindings fail, preventing empty scans.
+- Hardened cache persistence startup and diagnostics for Railway deployment environments.
+- Added session recovery hardening for stateless/streamable HTTP MCP method flows.
+- Improved absorb diagnostics and cache debug logging for production triage.
+- Suppressed fallback-path parse noise by reporting parse errors only when fallback is disabled.
+
+#### Daemon And Codebase Intelligence Improvements
+
+- Added daemon pre-generation `fetch_docs` step to resolve relevant external type definitions from `node_modules`.
+- Injected resolved external type context into `generate_fix` prompts for higher fix precision.
+- Added per-session budget gate and event-loop yielding for long embedding runs to prevent hanging/timeouts.
+- Validated large embedding runs (batch progression and daemon cycle resume behavior).
+
+#### Quality, Correctness, And Contract Fixes
+
+- Updated security sandbox execution contract to return `success: false` with `error.type: 'syntax'` for valid HoloScript that is not executable JavaScript.
+- Added `syntax` to sandbox error union and aligned tests with explicit non-success semantics.
+- Fixed hallucination detection double-scoring by deduplicating rule contributions in AI validator pattern scoring.
+- Improved structural brace validation behavior and regression coverage in validator/sandbox suites.
+
+#### CI/CD And Release Operations
+
+- Refined Railway/GHCR MCP deployment flow with targeted deploy gating and service-specific routing.
+- Added deploy/path filter refinements to reduce unintended workflow fan-out.
+- Published MCP image pipeline updates and deployment version gating checks.
+
+#### Version Alignment
+
+- Aligned `platform-v5` lane package versions with `@holoscript/core` at `5.1.0`.
+- Updated monorepo root version to `5.1.0` to match current platform release line.
+
 ### Codebase Intelligence — EmbeddingProvider abstraction + `query` CLI command
 
 **`holoscript absorb` / `holoscript query`** now form a complete, provider-agnostic codebase intelligence pipeline.
