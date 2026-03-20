@@ -308,27 +308,74 @@ export class AIValidator {
 
   /**
    * Validates structural integrity (balanced braces, nesting)
+   * Note: This implementation is context-aware to avoid false positives
+   * from braces inside strings or comments.
    */
   private validateStructure(code: string): ValidationError[] {
     const errors: ValidationError[] = [];
 
-    // Check balanced braces
+    // Check balanced braces while skipping content inside strings
     let braceCount = 0;
     let line = 1;
-    for (let i = 0; i < code.length; i++) {
-      if (code[i] === '\n') line++;
-      if (code[i] === '{') braceCount++;
-      if (code[i] === '}') braceCount--;
+    let inString = false;
+    let stringChar = '';
+    let inLineComment = false;
+    let inBlockComment = false;
 
-      if (braceCount < 0) {
-        errors.push({
-          type: 'structural',
-          severity: 'error',
-          message: 'Unbalanced closing brace',
-          line,
-          suggestion: 'Check brace matching',
-        });
-        break;
+    for (let i = 0; i < code.length; i++) {
+      const char = code[i];
+      const nextChar = code[i + 1];
+
+      if (char === '\n') {
+        line++;
+        inLineComment = false;
+      }
+
+      // Handle string detection
+      if ((char === '"' || char === "'" || char === '`') && !inLineComment && !inBlockComment) {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar && code[i - 1] !== '\\') {
+          inString = false;
+          stringChar = '';
+        }
+      }
+
+      // Handle comments
+      if (!inString && !inLineComment && !inBlockComment && char === '/' && nextChar === '/') {
+        inLineComment = true;
+        i++; // Skip the second /
+        continue;
+      }
+
+      if (!inString && !inLineComment && char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        i++; // Skip the *
+        continue;
+      }
+
+      if (inBlockComment && char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        i++; // Skip the /
+        continue;
+      }
+
+      // Only count braces outside of strings and comments
+      if (!inString && !inLineComment && !inBlockComment) {
+        if (char === '{') braceCount++;
+        if (char === '}') braceCount--;
+
+        if (braceCount < 0) {
+          errors.push({
+            type: 'structural',
+            severity: 'error',
+            message: 'Unbalanced closing brace',
+            line,
+            suggestion: 'Check brace matching',
+          });
+          break;
+        }
       }
     }
 
@@ -420,37 +467,52 @@ export class AIValidator {
 
   /**
    * Detects common AI hallucination patterns
+   * Uses deduplication by rule-id to prevent double-scoring on overlapping patterns.
    */
   private detectHallucinationPatterns(code: string): {
     patterns: { message: string; line?: number }[];
     score: number;
   } {
     const detected: { message: string; line?: number }[] = [];
+    const ruleScores = new Map<string, number>(); // Track which rules have contributed
     let totalScore = 0;
 
+    // Per-line pattern matching (catches same-line repetition and lang-mixing)
     for (const { pattern, score, message } of HALLUCINATION_PATTERNS) {
+      const ruleId = message; // Use message as unique rule identifier
       const lines = code.split('\n');
       lines.forEach((line, idx) => {
         if (pattern.test(line)) {
-          detected.push({ message, line: idx + 1 });
-          totalScore += score;
+          // Only add score once per rule (deduplicate)
+          if (!ruleScores.has(ruleId)) {
+            detected.push({ message, line: idx + 1 });
+            ruleScores.set(ruleId, score);
+            totalScore += score;
+          }
         }
       });
     }
 
-    // Cross-line trait repetition detection (same trait used 5+ times across lines)
-    const traitCounts = new Map<string, number>();
-    const traitMatcher = /@(\w+)\(/g;
-    let m;
-    while ((m = traitMatcher.exec(code)) !== null) {
-      const name = m[1];
-      traitCounts.set(name, (traitCounts.get(name) || 0) + 1);
-    }
-    for (const [, count] of traitCounts) {
-      if (count >= 5) {
-        detected.push({ message: 'Excessive trait repetition' });
-        totalScore += 25;
-        break;
+    // Cross-line trait repetition detection (complementary to per-line checks)
+    // Only triggers if no per-line repetition already detected
+    const repetitionRuleId = 'Excessive trait repetition';
+    if (!ruleScores.has(repetitionRuleId)) {
+      // Count all traits (with or without parentheses) for comprehensive detection
+      const traitCounts = new Map<string, number>();
+      const traitMatcher = /@(\w+)/g; // Match @trait with or without ()
+      let m;
+      while ((m = traitMatcher.exec(code)) !== null) {
+        const name = m[1];
+        traitCounts.set(name, (traitCounts.get(name) || 0) + 1);
+      }
+      // Detect if any single trait appears 5+ times
+      for (const [, count] of traitCounts) {
+        if (count >= 5) {
+          detected.push({ message: repetitionRuleId });
+          ruleScores.set(repetitionRuleId, 25);
+          totalScore += 25;
+          break; // Count once, not for each excessive trait
+        }
       }
     }
 
