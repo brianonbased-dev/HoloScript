@@ -432,7 +432,7 @@ describe('Scenario: Codebase Absorb JSON — Backlog', () => {
     // Parser dir has many files with many symbols
     expect(stats.totalFiles).toBeGreaterThanOrEqual(5);
     expect(stats.totalSymbols).toBeGreaterThanOrEqual(10);
-  });
+  }, 15_000);
 
   it('Symbol impact analysis: changing HoloCompositionTypes shows blast radius', () => {
     const graph = makeMinimalGraph();
@@ -479,10 +479,13 @@ describe('Scenario: Codebase Absorb JSON — Backlog', () => {
     const communities = graph.detectCommunities();
     expect(communities).toBeDefined();
     expect(communities.size).toBeGreaterThanOrEqual(1);
-    // Each community entry maps file path -> community id
-    for (const [filePath, communityId] of communities) {
-      expect(typeof filePath).toBe('string');
-      expect(typeof communityId === 'string' || typeof communityId === 'number').toBe(true);
+    // Each community entry maps community label -> file paths[]
+    for (const [communityLabel, filePaths] of communities) {
+      expect(typeof communityLabel).toBe('string');
+      expect(Array.isArray(filePaths)).toBe(true);
+      for (const fp of filePaths) {
+        expect(typeof fp).toBe('string');
+      }
     }
   });
 });

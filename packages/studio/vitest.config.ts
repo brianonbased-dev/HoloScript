@@ -51,6 +51,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       // Route idb → in-memory mock that works in Node without IndexedDB
       idb: path.resolve(__dirname, 'src/__mocks__/idb.ts'),
+      // Route @aztec/bb.js → stub (WASM bindings fail in Node/jsdom test env)
+      '@aztec/bb.js': path.resolve(__dirname, 'src/__mocks__/aztec-bb.ts'),
     },
   },
 });

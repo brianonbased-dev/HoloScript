@@ -46,19 +46,17 @@ const createMockCanvas = () => {
   } as any;
 };
 
-// Override document.createElement to return our mock
-vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-  if (tagName === 'canvas') {
-    return createMockCanvas();
-  }
-  // For non-canvas elements, create them normally using the real DOM
-  const element = global.document.implementation.createHTMLDocument().createElement(tagName);
-  return element as any;
-});
-
 describe('useTexturePaint', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    // Apply createElement mock fresh each test (vi.clearAllMocks resets spy implementations)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'canvas') {
+        return createMockCanvas();
+      }
+      const element = global.document.implementation.createHTMLDocument().createElement(tagName);
+      return element as any;
+    });
     mockCanvasContext.fillStyle = '';
     mockCanvasContext.globalCompositeOperation = 'source-over';
     mockCanvasContext.globalAlpha = 1;
@@ -66,7 +64,7 @@ describe('useTexturePaint', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Initial State', () => {
@@ -435,7 +433,9 @@ describe('useTexturePaint', () => {
         result.current.ensureCanvas();
       });
 
-      vi.clearAllMocks();
+      // Clear only context mock tracking (not the document.createElement spy)
+      mockCanvasContext.fillRect.mockClear();
+      mockCanvasContext.fillStyle = '';
 
       act(() => {
         result.current.clearCanvas();
