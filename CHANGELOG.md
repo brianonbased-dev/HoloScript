@@ -8,6 +8,11 @@ All notable changes to HoloScript are documented here.
 
 ### Week Of 2026-03-12 To 2026-03-19
 
+#### Package Release Alignment (npm + PyPI)
+
+- **npm:** Bumped `@holoscript/mcp-server` from `3.6.1` to `3.7.0` to reflect shipped MCP reliability, cache, and daemon-context improvements from this week.
+- **PyPI:** Bumped `holoscript` Python bindings from `5.3.0` to `5.3.1` to publish synchronized release metadata for the current maintenance window.
+
 #### MCP Server Reliability, Deployment, And Cache Persistence
 
 - Added build-artifact opt-in scanning for `holo_absorb_repo` via `includeBuildArtifacts`.

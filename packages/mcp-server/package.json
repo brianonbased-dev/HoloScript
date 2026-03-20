@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/mcp-server",
-  "version": "3.6.1",
+  "version": "3.7.0",
   "description": "Model Context Protocol server for HoloScript - enables AI agents to parse, validate, and generate HoloScript code",
   "license": "MIT",
   "main": "./dist/index.js",
