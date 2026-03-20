@@ -144,7 +144,7 @@ describe('HoloScriptAgentAPI', () => {
       const data = result.data as any;
       expect(data.code).toBeDefined();
       expect(typeof data.code).toBe('string');
-      expect(data.objectName).toBe('ARedBall' || 'ARed');
+      expect(['ARedBall', 'ARed']).toContain(data.objectName);
     });
 
     it('should default to hsplus format', async () => {

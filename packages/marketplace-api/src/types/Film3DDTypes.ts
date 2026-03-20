@@ -138,19 +138,23 @@ export class InsufficientBalanceError extends CreatorMonetizationError {
   constructor(required: string, balance: string, shortfall: string) {
     super(
       `Insufficient balance. Required: ${required}, Balance: ${balance}, Shortfall: ${shortfall}`,
-      'INSUFFICIENT_BALANCE'
+      'INSUFFICIENT_BALANCE',
+      { required, balance, shortfall }
     );
+    this.name = 'InsufficientBalanceError';
   }
 }
 
 export class IPFSUploadError extends CreatorMonetizationError {
   constructor(message: string, provider: string) {
-    super(message, 'IPFS_UPLOAD_ERROR', { provider });
+    super(message, 'IPFS_UPLOAD_FAILED', { provider });
+    this.name = 'IPFSUploadError';
   }
 }
 
 export class ZoraAPIError extends CreatorMonetizationError {
-  constructor(message: string) {
-    super(message, 'ZORA_API_ERROR');
+  constructor(message: string, statusCode?: number) {
+    super(message, 'ZORA_API_ERROR', { statusCode });
+    this.name = 'ZoraAPIError';
   }
 }

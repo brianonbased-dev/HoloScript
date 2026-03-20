@@ -463,7 +463,7 @@ describe('Client registry', () => {
   it('createMCPClient() creates a client with DEFAULT_MCP_CONFIG', () => {
     const client = createMCPClient();
     expect(client).toBeInstanceOf(MCPClient);
-    expect(client.getConfig().url).toBe('http://localhost:5567');
+    expect(client.getConfig().url).toBe('https://mcp-orchestrator-production-45f9.up.railway.app');
   });
 
   it('createMCPClient() accepts config overrides', () => {
@@ -505,8 +505,8 @@ describe('Client registry', () => {
 // ── 14. DEFAULT_MCP_CONFIG ────────────────────────────────────────────────────
 
 describe('DEFAULT_MCP_CONFIG', () => {
-  it('points to localhost:5567', () => {
-    expect(DEFAULT_MCP_CONFIG.url).toBe('http://localhost:5567');
+  it('points to production orchestrator', () => {
+    expect(DEFAULT_MCP_CONFIG.url).toBe('https://mcp-orchestrator-production-45f9.up.railway.app');
   });
 
   it('has sensible timeout and retry defaults', () => {

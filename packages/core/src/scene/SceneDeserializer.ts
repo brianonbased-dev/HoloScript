@@ -27,7 +27,7 @@ export class SceneDeserializer {
     const scene: SerializedScene = JSON.parse(json);
 
     if (scene.version !== 1) {
-      // Unknown version, attempting load
+      console.warn(`Unknown version ${scene.version}, attempting load`);
     }
 
     return {

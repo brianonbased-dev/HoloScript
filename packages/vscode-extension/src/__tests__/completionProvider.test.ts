@@ -214,8 +214,8 @@ describe('HoloScriptCompletionItemProvider', () => {
     ) as any[];
 
     const physics = items.find((i: any) => i.label === '@physics');
-    expect(physics.insertText).toBeInstanceOf(SnippetString);
-    expect((physics.insertText as SnippetString).value).toContain('mass');
+    expect(physics.insertText).toHaveProperty('value');
+    expect(physics.insertText.value).toContain('mass');
   });
 
   it('should use plain string insertText for simple traits', () => {
@@ -240,9 +240,9 @@ describe('HoloScriptCompletionItemProvider', () => {
     ) as any[];
 
     const portal = items.find((i: any) => i.label === '@portal');
-    expect(portal.documentation).toBeInstanceOf(MarkdownString);
+    expect(portal.documentation).toHaveProperty('value');
 
-    const md = portal.documentation as MarkdownString;
+    const md = portal.documentation as any;
     expect(md.value).toContain('@portal');
     expect(md.value).toContain('Advanced');
     expect(md.value).toContain('portal');

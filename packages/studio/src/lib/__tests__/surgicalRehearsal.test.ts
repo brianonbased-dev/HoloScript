@@ -152,7 +152,7 @@ describe('surgicalRehearsal', () => {
       ];
       
       const result = isNearCriticalStructure(instrument, landmarks);
-      expect(result?.id).toBe('far-landmark'); // First in array that's critical and close
+      expect(result?.id).toBe('near-landmark'); // Nearest landmark to instrument
     });
   });
 

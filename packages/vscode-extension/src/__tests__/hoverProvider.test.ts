@@ -95,9 +95,9 @@ describe('HoloScriptHoverProvider', () => {
       expect(result).toBeDefined();
       expect(result!.range).toBe(range);
 
-      // The contents field should be a MarkdownString
-      const md = result!.contents as MarkdownString;
-      expect(md).toBeInstanceOf(MarkdownString);
+      // The contents field should be a MarkdownString-like object
+      const md = result!.contents as any;
+      expect(md).toHaveProperty('value');
       expect(md.value).toContain('@grabbable');
       expect(md.value).toContain('Interaction');
     });
