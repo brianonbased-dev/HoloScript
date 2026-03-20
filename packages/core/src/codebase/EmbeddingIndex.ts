@@ -93,9 +93,17 @@ export class EmbeddingIndex {
       symbolRefs.push(sym);
     }
 
-    // Batch embed
+    // Batch embed — yield to event loop between batches so timers/signals can fire
+    const totalBatches = Math.ceil(texts.length / this.batchSize);
     for (let i = 0; i < texts.length; i += this.batchSize) {
       const batch = texts.slice(i, i + this.batchSize);
+      const batchNum = Math.floor(i / this.batchSize) + 1;
+
+      if (batchNum > 1) {
+        // Yield to the event loop so setTimeout/signals aren't starved
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      }
+
       const embeddings = await this.getEmbeddings(batch);
 
       for (let j = 0; j < embeddings.length; j++) {
@@ -104,6 +112,10 @@ export class EmbeddingIndex {
           text: batch[j],
           embedding: new Float32Array(embeddings[j]),
         });
+      }
+
+      if (totalBatches > 5 && batchNum % 10 === 0) {
+        console.error(`[EmbeddingIndex] batch ${batchNum}/${totalBatches} (${this.entries.length} symbols indexed)`);
       }
     }
   }
@@ -176,6 +188,10 @@ export class EmbeddingIndex {
     const texts = symbols.map((s) => this.symbolToText(s));
 
     for (let i = 0; i < texts.length; i += this.batchSize) {
+      if (i > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      }
+
       const batch = texts.slice(i, i + this.batchSize);
       const embeddings = await this.getEmbeddings(batch);
 

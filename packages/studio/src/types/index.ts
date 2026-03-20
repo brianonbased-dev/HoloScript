@@ -1,11 +1,5 @@
-export interface R3FNode {
-  id?: string;
-  type: string;
-  props?: Record<string, unknown>;
-  traits?: Set<string>;
-  children?: R3FNode[];
-  assetMaturity?: 'draft' | 'production';
-}
+// Re-export canonical R3FNode from @holoscript/core to avoid type duplication
+export type { R3FNode } from '@holoscript/core';
 
 export interface SceneMetadata {
   id: string;

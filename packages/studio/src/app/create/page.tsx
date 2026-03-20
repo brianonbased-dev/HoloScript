@@ -1556,12 +1556,7 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* RIGHT RAIL: Trait Registry */}
-          {registryOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <TraitRegistryPanel onClose={() => setRegistryOpen(false)} />
-            </div>
-          )}
+          {/* RIGHT RAIL: Trait Registry (removed — was misnamed duplicate of RemotePreviewPanel) */}
 
           {/* RIGHT RAIL: Remote Preview */}
           {remoteOpen && (

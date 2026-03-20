@@ -240,7 +240,18 @@ function loadBridgeState(): BridgeState {
       }
       // Merge with defaults so new fields added after initial state creation
       // don't crash with "Cannot read properties of undefined"
-      return { ...defaults, ...loaded };
+      const merged = { ...defaults, ...loaded };
+
+      // Per-session budget tracking: reset cost accumulators on new session
+      // so --max-spend is truly per-run, not cumulative across all runs
+      if (merged.lastSessionId && merged.lastSessionId !== SESSION_ID) {
+        console.log(`[Budget] New session — resetting cost accumulators (prev session: ${merged.lastSessionId.slice(0, 8)}…)`);
+        merged.totalCostUSD = 0;
+        merged.totalInputTokens = 0;
+        merged.totalOutputTokens = 0;
+      }
+
+      return merged;
     }
   } catch (err) {
     console.warn(`[G.ARCH.002] Failed to load bridge-state.json: ${err instanceof Error ? err.message : err} — using defaults`);

@@ -112,6 +112,7 @@ export interface DaemonJobMetrics {
   filesAnalyzed: number;
   cycles: number;
   durationMs: number;
+  typeErrors?: number;
 }
 
 /** Snapshot of the codebase graph built during Phase 0 (absorb). */
@@ -191,6 +192,7 @@ export interface DaemonTelemetrySummary {
   appliedPatches: number;
   avgQualityDelta: number;
   avgDurationMs: number;
+  totalCostUSD?: number;
   profileUsage: Record<DaemonProfile, number>;
   recentEvents: DaemonTelemetryEvent[];
 }
