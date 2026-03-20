@@ -128,8 +128,8 @@ export class CodebaseScanner {
           continue;
         }
       } catch (e: any) {
-        errors.push({ file: filePath, error: e.message, phase: 'parse' });
         if (!(options.includeBuildArtifacts ?? false)) {
+          errors.push({ file: filePath, error: e.message, phase: 'parse' });
           continue;
         }
 
