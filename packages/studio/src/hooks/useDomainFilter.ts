@@ -198,8 +198,17 @@ export interface UseDomainFilterReturn {
   matchesSearch: (label: string, title: string) => boolean;
 }
 
+function loadDomainProfile(): DomainProfile {
+  try {
+    if (typeof window === 'undefined') return 'all';
+    const saved = localStorage.getItem('holoscript-domain-profile') as DomainProfile | null;
+    if (saved && ['all', 'game', 'vr', 'iot', 'film'].includes(saved)) return saved;
+  } catch {}
+  return 'all';
+}
+
 export function useDomainFilter(): UseDomainFilterReturn {
-  const [domain, setDomain] = useState<DomainProfile>('all');
+  const [domain, setDomain] = useState<DomainProfile>(loadDomainProfile);
   const [favorites, setFavorites] = useState<Set<PanelTab>>(loadFavorites);
   const [search, setSearch] = useState('');
 

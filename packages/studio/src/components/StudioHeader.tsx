@@ -27,6 +27,7 @@ import {
   Paintbrush,
   Download,
   FolderOpen,
+  Settings2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -40,6 +41,13 @@ import dynamic from 'next/dynamic';
 import { useGlobalHotkeys } from '@/hooks/useGlobalHotkeys';
 import { useOrchestrationKeyboard } from '@/hooks/useOrchestrationKeyboard';
 import { useOrchestrationAutoSave } from '@/hooks/useOrchestrationAutoSave';
+import { useStudioPresetStore } from '@/lib/stores/studioPresetStore';
+import { STUDIO_PRESETS } from '@/lib/presets/studioPresets';
+
+const StudioSetupWizard = dynamic(
+  () => import('@/components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
+  { ssr: false }
+);
 
 const PublishPanel = dynamic(
   () => import('@/components/publish/PublishPanel').then((m) => ({ default: m.PublishPanel })),
@@ -316,6 +324,11 @@ export function StudioHeader() {
   const cloudDeployOpen = usePanelVisibilityStore((s) => s.cloudDeployOpen);
   const setCloudDeployOpen = usePanelVisibilityStore((s) => s.setCloudDeployOpen);
 
+  // ── Studio Setup Wizard ────────────────────────────────────────────────────
+  const activePresetId = useStudioPresetStore((s) => s.activePresetId);
+  const activePreset = activePresetId ? STUDIO_PRESETS.find((p) => p.id === activePresetId) : null;
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+
   // ── First-launch detection ──────────────────────────────────────────────────
   useEffect(() => {
     try {
@@ -519,6 +532,19 @@ export function StudioHeader() {
           >
             <ShoppingBag className="h-3.5 w-3.5" />
             <span className="hidden lg:inline">Marketplace</span>
+          </button>
+
+          {/* ── Customize Studio button ────────────────────────── */}
+          <button
+            onClick={() => setShowSetupWizard(true)}
+            title="Customize Studio"
+            className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-emerald-500/40 hover:text-emerald-400"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            {activePreset && (
+              <span className="hidden lg:inline text-emerald-400">{activePreset.emoji} {activePreset.label}</span>
+            )}
+            {!activePreset && <span className="hidden lg:inline">Setup</span>}
           </button>
 
           {/* ── Help / Tour button ─────────────────────────────── */}
@@ -1133,6 +1159,11 @@ export function StudioHeader() {
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
           <StudioOperationsHub onClose={() => usePanelVisibilityStore.getState().setOperationsHubOpen(false)} />
         </div>
+      )}
+
+      {/* Studio Setup Wizard (re-open from header button) */}
+      {showSetupWizard && (
+        <StudioSetupWizard onClose={() => setShowSetupWizard(false)} />
       )}
     </>
   );

@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
  * Returns paginated HoloScript scene templates organized by category.
  */
 
-type TemplateCategory = 'environment' | 'architecture' | 'sci-fi' | 'fantasy' | 'minimal' | 'game';
+type TemplateCategory = 'environment' | 'architecture' | 'sci-fi' | 'fantasy' | 'minimal' | 'game' | 'film' | 'art' | 'iot' | 'education';
 
 interface SceneTemplate {
   id: string;

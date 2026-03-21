@@ -1,11 +1,20 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode, createContext, useContext, useCallback } from 'react';
+import { SessionProvider } from 'next-auth/react';
+import { useState, useEffect, type ReactNode, createContext, useContext, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { initAnalytics, identifyUser } from '../lib/analytics';
+import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import dynamic from 'next/dynamic';
 import { DevToolsInit } from '../components/DevToolsInit';
+
+const StudioSetupWizard = dynamic(
+  () => import('../components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
+  { ssr: false }
+);
 
 const AppShell = dynamic(
   () => import('../components/AppShell').then((m) => ({ default: m.AppShell })),
@@ -90,6 +99,23 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 export function Providers({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
 
+  // Analytics initialization
+  const { data: session } = useSession();
+  useEffect(() => {
+    const userId = session?.user?.email ?? undefined;
+    initAnalytics(userId);
+    if (userId) {
+      identifyUser(userId, { name: session?.user?.name });
+    }
+  }, [session]);
+
+  // Studio Setup Wizard — show on first visit
+  const wizardCompleted = useStudioPresetStore((s) => s.wizardCompleted);
+  const [showWizard, setShowWizard] = useState(false);
+  useEffect(() => {
+    if (!wizardCompleted) setShowWizard(true);
+  }, [wizardCompleted]);
+
   // Theme
   const [theme, setTheme] = useState<Theme>('dark');
   const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);
@@ -124,18 +150,23 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
-        <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
-          <ErrorBoundary>
-            <PluginHostProvider>
-              <AppShell>{children}</AppShell>
-            </PluginHostProvider>
-          </ErrorBoundary>
-          <ToastContainer toasts={toasts} onRemove={removeToast} />
-          <DevToolsInit />
-        </ToastContext.Provider>
-      </ThemeContext.Provider>
-    </QueryClientProvider>
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
+          <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+            <ErrorBoundary>
+              <PluginHostProvider>
+                <AppShell>{children}</AppShell>
+              </PluginHostProvider>
+            </ErrorBoundary>
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
+            {showWizard && (
+              <StudioSetupWizard onClose={() => setShowWizard(false)} />
+            )}
+            <DevToolsInit />
+          </ToastContext.Provider>
+        </ThemeContext.Provider>
+      </QueryClientProvider>
+    </SessionProvider>
   );
 }
