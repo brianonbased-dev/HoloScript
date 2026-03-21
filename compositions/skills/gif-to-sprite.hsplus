@@ -1,0 +1,90 @@
+// GIF-to-Sprite — Convert animated GIFs into holographic sprites
+// Installed via HoloClaw Shelf. Handles all 4 GIF disposal methods.
+//
+// Pipeline: @animated_texture → @segment → @depth_estimation → @holographic_sprite
+// Temporal smoothing via EMA (alpha=0.8) eliminates depth flicker.
+//
+// @see W.150: GIF temporal coherence requires EMA smoothing
+// @see G.149.01: GIF Disposal Methods Break Frame Extraction
+
+composition "gif-to-sprite" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.05)
+  @timeout_guard
+
+  state phase: string = "idle"
+  state gifSrc: string = ""
+  state frameCount: number = 0
+  state currentFrame: number = 0
+  state depthScale: number = 0.5
+  state temporalAlpha: number = 0.8
+  state renderMode: string = "displacement"
+  state playing: boolean = true
+
+  environment {
+    skybox: "studio"
+    ambient_light: 0.7
+  }
+
+  object "HolographicSprite" {
+    @animated_texture {
+      src: $gifSrc
+      fps: 24
+      max_frames: 500
+    }
+    @segment { model: "rembg", remove_background: true }
+    @depth_estimation {
+      model: "depth-anything-v2-small"
+      backend: "webgpu"
+      temporal_smoothing: $temporalAlpha
+    }
+    @holographic_sprite {
+      depth_scale: $depthScale
+      render_mode: $renderMode
+    }
+    @billboard { mode: "camera-facing" }
+
+    position: [0, 1.5, -2]
+    scale: [2, 2, 1]
+  }
+
+  sequence "process-gif" {
+    action "decompose_gif" {
+      src: $gifSrc
+      max_frames: 500
+      into: "frames"
+    }
+
+    action "estimate_depth_sequence" {
+      frames: $frames_content
+      temporal_alpha: $temporalAlpha
+      into: "depth_sequence"
+    }
+
+    action "channel_send" {
+      channel: "hologram"
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "temporal alpha default is 0.8"
+    assert: { $temporalAlpha == 0.8 }
+  }
+
+  @test {
+    name: "render mode default is displacement"
+    assert: { $renderMode == "displacement" }
+  }
+
+  @test {
+    name: "playing starts true"
+    assert: { $playing == true }
+  }
+}

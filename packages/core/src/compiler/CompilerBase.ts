@@ -130,6 +130,8 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   DomainBlockCompilerMixin: 'domain-block',
   NIRCompiler: 'nir',
   URDFToUSDZConverter: 'urdf',
+  QuiltCompiler: 'quilt',
+  MVHEVCCompiler: 'mv-hevc',
 };
 
 /**

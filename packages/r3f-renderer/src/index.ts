@@ -18,6 +18,18 @@ export {
 export { ProgressiveLoader } from './components/ProgressiveLoader';
 export type { ProgressiveLoaderProps, LoadingEntity } from './components/ProgressiveLoader';
 
+// Hologram Components (2D-to-3D pipeline)
+export { HologramImage } from './components/HologramImage';
+export type { HologramImageProps } from './components/HologramImage';
+export { HologramGif } from './components/HologramGif';
+export type { HologramGifProps } from './components/HologramGif';
+export { HologramVideo } from './components/HologramVideo';
+export type { HologramVideoProps } from './components/HologramVideo';
+export { QuiltViewer } from './components/QuiltViewer';
+export type { QuiltViewerProps } from './components/QuiltViewer';
+export { GaussianSplatViewer } from './components/GaussianSplatViewer';
+export type { GaussianSplatViewerProps } from './components/GaussianSplatViewer';
+
 // Utilities
 export {
   getGeometry,
@@ -37,3 +49,5 @@ export type {
   UsePerformanceRegressionOptions,
   UsePerformanceRegressionResult,
 } from './hooks/usePerformanceRegression';
+export { useGpuSplatSort } from './hooks/useGpuSplatSort';
+export type { GpuSplatSortOptions, GpuSplatSortResult } from './hooks/useGpuSplatSort';

@@ -2,13 +2,13 @@
 /**
  * useDomainFilter — Domain-aware panel visibility filter
  *
- * Defines 5 domain profiles (All, Game, VR, IoT, Film) that show/hide
- * panels based on relevance. Also manages favorites and search.
+ * Defines 8 domain profiles (All, Game, VR, IoT, Film, Science, Robotics, Creator)
+ * that show/hide panels based on relevance. Also manages favorites and search.
  */
 import { useState, useCallback, useMemo } from 'react';
 import type { PanelTab } from '../types/panels';
 
-export type DomainProfile = 'all' | 'game' | 'vr' | 'iot' | 'film';
+export type DomainProfile = 'all' | 'game' | 'vr' | 'iot' | 'film' | 'science' | 'robotics' | 'creator' | 'hologram';
 
 const STORAGE_KEY = 'holoscript-studio-favorites';
 
@@ -59,6 +59,8 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'models',
     'templates',
     'diagnostics',
+    'behavior',
+    'pipeline',
   ]),
   game: new Set<PanelTab>([
     'safety',
@@ -90,6 +92,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'models',
     'templates',
     'diagnostics',
+    'behavior',
   ]),
   vr: new Set<PanelTab>([
     'safety',
@@ -157,14 +160,94 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'templates',
     'diagnostics',
   ]),
+  science: new Set<PanelTab>([
+    'safety',
+    'physics',
+    'particles',
+    'shader',
+    'scene',
+    'assets',
+    'compiler',
+    'profiler',
+    'saveload',
+    'traits',
+    'animation',
+    'camera',
+    'templates',
+    'diagnostics',
+    'behavior',
+    'pipeline',
+  ]),
+  robotics: new Set<PanelTab>([
+    'safety',
+    'physics',
+    'ai',
+    'pathfinding',
+    'ecs',
+    'scene',
+    'assets',
+    'compiler',
+    'profiler',
+    'saveload',
+    'traits',
+    'network',
+    'state',
+    'behavior',
+    'templates',
+    'diagnostics',
+    'statemachine',
+    'input',
+  ]),
+  creator: new Set<PanelTab>([
+    'safety',
+    'traits',
+    'animation',
+    'shader',
+    'lighting',
+    'camera',
+    'scene',
+    'assets',
+    'compiler',
+    'profiler',
+    'saveload',
+    'marketplace',
+    'collaboration',
+    'models',
+    'templates',
+    'diagnostics',
+    'network',
+    'procgen',
+  ]),
+  hologram: new Set<PanelTab>([
+    'safety',
+    'traits',
+    'shader',
+    'lighting',
+    'camera',
+    'scene',
+    'assets',
+    'compiler',
+    'profiler',
+    'saveload',
+    'models',
+    'templates',
+    'diagnostics',
+    'pipeline',
+    'animation',
+    'lod',
+  ]),
 };
 
 const DOMAIN_INFO: Record<DomainProfile, { icon: string; label: string; description: string }> = {
-  all: { icon: '🌐', label: 'All', description: 'Show all 43 panels' },
+  all: { icon: '🌐', label: 'All', description: 'Show all panels' },
   game: { icon: '🎮', label: 'Game', description: 'Game development focus (28 panels)' },
   vr: { icon: '🥽', label: 'VR', description: 'VR/XR development focus (21 panels)' },
   iot: { icon: '📡', label: 'IoT', description: 'IoT/Digital Twin focus (17 panels)' },
   film: { icon: '🎬', label: 'Film', description: 'Film/Cinematic focus (19 panels)' },
+  science: { icon: '🔬', label: 'Science', description: 'Science/Medical focus (16 panels)' },
+  robotics: { icon: '🦾', label: 'Robotics', description: 'Robotics/Automation focus (18 panels)' },
+  creator: { icon: '🎭', label: 'Creator', description: 'Creator Economy focus (18 panels)' },
+  hologram: { icon: '🔮', label: 'Hologram', description: '2D-to-3D holographic media (16 panels)' },
 };
 
 function loadFavorites(): Set<PanelTab> {
@@ -202,7 +285,7 @@ function loadDomainProfile(): DomainProfile {
   try {
     if (typeof window === 'undefined') return 'all';
     const saved = localStorage.getItem('holoscript-domain-profile') as DomainProfile | null;
-    if (saved && ['all', 'game', 'vr', 'iot', 'film'].includes(saved)) return saved;
+    if (saved && ['all', 'game', 'vr', 'iot', 'film', 'science', 'robotics', 'creator', 'hologram'].includes(saved)) return saved;
   } catch {}
   return 'all';
 }

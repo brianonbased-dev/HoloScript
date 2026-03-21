@@ -95,6 +95,96 @@ export declare function useProceduralTexture(
   type: string | null,
   options?: { size?: number; tiling?: [number, number] }
 ): Record<string, any>;
+
+// ── Hologram Components (2D-to-3D pipeline) ─────────────────────────────────
+
+export interface HologramImageProps {
+  src: string;
+  depthScale?: number;
+  segments?: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+  billboard?: boolean;
+  onLoad?: () => void;
+  onError?: (error: Error) => void;
+}
+export declare function HologramImage(props: HologramImageProps): any;
+
+export interface HologramGifProps {
+  src: string;
+  fps?: number;
+  maxFrames?: number;
+  depthScale?: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+  onLoad?: (frameCount: number) => void;
+  onError?: (error: Error) => void;
+}
+export declare function HologramGif(props: HologramGifProps): any;
+
+export interface HologramVideoProps {
+  src: string;
+  autoplay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+  depthScale?: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+  onLoad?: () => void;
+  onError?: (error: Error) => void;
+}
+export declare function HologramVideo(props: HologramVideoProps): any;
+
+export interface QuiltViewerProps {
+  src: string;
+  columns?: number;
+  rows?: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+  onLoad?: () => void;
+  onError?: (error: Error) => void;
+}
+export declare function QuiltViewer(props: QuiltViewerProps): any;
+
+export interface GaussianSplatViewerProps {
+  src: string;
+  maxSplats?: number;
+  splatScale?: number;
+  depthSort?: boolean;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number];
+  onProgress?: (progress: number) => void;
+  onLoad?: (splatCount: number) => void;
+  onError?: (error: Error) => void;
+}
+export declare function GaussianSplatViewer(props: GaussianSplatViewerProps): any;
+
+// ── Hooks ────────────────────────────────────────────────────────────────────
+
+export interface UseLODBridgeResult {
+  detail: LODDetail;
+  setDetail: (detail: LODDetail) => void;
+}
+export declare function useLODBridge(nodeId: string): UseLODBridgeResult;
+export declare function resetLODBridge(): void;
+
+export interface UsePerformanceRegressionOptions {
+  sampleSize?: number;
+  threshold?: number;
+}
+export interface UsePerformanceRegressionResult {
+  fps: number;
+  isRegressed: boolean;
+  baseline: number;
+}
+export declare function usePerformanceRegression(
+  options?: UsePerformanceRegressionOptions
+): UsePerformanceRegressionResult;
 `;
 
 writeFileSync(join(distDir, 'index.d.ts'), dts, 'utf8');

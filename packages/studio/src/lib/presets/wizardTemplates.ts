@@ -457,7 +457,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Cinematic set with camera positions, key lighting, and backdrop',
     thumbnail: '🎥',
     tags: ['film', 'cinematic', 'camera', 'lighting'],
-    category: 'cinematic',
+    category: 'film',
     code: `composition "Short Film Set" {
   environment {
     skybox: "sunset"
@@ -541,7 +541,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Concert stage with particle effects and audio-reactive lights',
     thumbnail: '🎶',
     tags: ['film', 'music', 'stage', 'particles', 'audio'],
-    category: 'cinematic',
+    category: 'film',
     code: `composition "Music Video Stage" {
   environment {
     skybox: "night"
@@ -646,7 +646,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Clean studio setup for product visualization and turntables',
     thumbnail: '📦',
     tags: ['film', 'product', 'showcase', 'studio'],
-    category: 'minimal',
+    category: 'film',
     code: `composition "Product Showcase" {
   environment {
     skybox: "studio"
@@ -730,7 +730,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'In-game cinematic with character marks, cameras, and mood lighting',
     thumbnail: '🎭',
     tags: ['film', 'cutscene', 'game', 'cinematic'],
-    category: 'cinematic',
+    category: 'film',
     code: `composition "Game Cutscene" {
   environment {
     skybox: "night"
@@ -802,7 +802,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Rigging-ready character template with T-pose reference and lighting',
     thumbnail: '🧑‍🎨',
     tags: ['art', 'character', 'design', 'avatar'],
-    category: 'character',
+    category: 'art',
     code: `composition "Character Studio" {
   environment {
     skybox: "studio"
@@ -889,7 +889,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Lush landscape with terrain, vegetation, and atmospheric fog',
     thumbnail: '🏔️',
     tags: ['art', 'environment', 'landscape', 'nature'],
-    category: 'environment',
+    category: 'art',
     code: `composition "Environment Art" {
   environment {
     skybox: "sunset"
@@ -976,7 +976,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'PBR material comparison with varied metalness, roughness, and emission',
     thumbnail: '✨',
     tags: ['art', 'material', 'shader', 'pbr'],
-    category: 'environment',
+    category: 'art',
     code: `composition "Material Study" {
   environment {
     skybox: "studio"
@@ -1063,7 +1063,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Audio-reactive rings and orbs with glow effects',
     thumbnail: '🎵',
     tags: ['art', 'audio', 'visualizer', 'particles'],
-    category: 'environment',
+    category: 'art',
     code: `composition "Audio Visualizer" {
   environment {
     skybox: "night"
@@ -1164,6 +1164,84 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
 }`,
   },
 
+  'ai-composer': {
+    id: 'wizard-ai-composer',
+    name: 'AI Scene Composer',
+    description: 'Prompt-driven 3D scene with AI-generated objects and smart layout',
+    thumbnail: '🤖',
+    tags: ['ai', 'generative', 'smart', 'composer'],
+    category: 'art',
+    code: `composition "AI Composed Scene" {
+  environment {
+    skybox: "studio"
+    ambient_light: 0.7
+    shadows: true
+  }
+
+  object "GeneratedPlatform" {
+    @collidable
+    @static
+    geometry: "cylinder"
+    position: [0, -0.05, 0]
+    scale: [6, 0.1, 6]
+    color: "#1a1a2e"
+    emissive: "#2244aa"
+    emissiveIntensity: 0.15
+  }
+
+  object "AISubjectA" {
+    @glowing
+    geometry: "sphere"
+    position: [-1.5, 1, 0]
+    scale: [0.8, 0.8, 0.8]
+    color: "#6633ff"
+    emissive: "#6633ff"
+    emissiveIntensity: 0.6
+
+    animation float {
+      property: "position.y"
+      from: 1.0
+      to: 1.3
+      duration: 2000
+      loop: infinite
+      easing: "easeInOut"
+    }
+  }
+
+  object "AISubjectB" {
+    @glowing
+    geometry: "box"
+    position: [1.5, 1, 0]
+    scale: [0.7, 0.7, 0.7]
+    color: "#00ccff"
+    emissive: "#00ccff"
+    emissiveIntensity: 0.5
+
+    animation spin {
+      property: "rotation.y"
+      from: 0
+      to: 360
+      duration: 8000
+      loop: infinite
+      easing: "linear"
+    }
+  }
+
+  object "ConnectionBeam" {
+    @glowing
+    geometry: "cylinder"
+    position: [0, 1.15, 0]
+    rotation: [0, 0, 90]
+    scale: [0.02, 3, 0.02]
+    color: "#ff66aa"
+    emissive: "#ff66aa"
+    emissiveIntensity: 1.5
+    opacity: 0.6
+    material: "glass"
+  }
+}`,
+  },
+
   // ─── Web ───────────────────────────────────────────────────────────────────
 
   'portfolio': {
@@ -1172,7 +1250,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Interactive 3D portfolio with floating project cards and navigation',
     thumbnail: '💼',
     tags: ['web', 'portfolio', 'gallery', 'interactive'],
-    category: 'minimal',
+    category: 'web',
     code: `composition "3D Portfolio" {
   environment {
     skybox: "studio"
@@ -1246,7 +1324,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Branching narrative scene with choice points and atmosphere',
     thumbnail: '📖',
     tags: ['web', 'story', 'narrative', 'interactive'],
-    category: 'fantasy',
+    category: 'web',
     code: `composition "Interactive Story" {
   environment {
     skybox: "night"
@@ -1327,7 +1405,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Spatial data visualization with bar charts and status panels',
     thumbnail: '📊',
     tags: ['web', 'data', 'dashboard', 'visualization'],
-    category: 'minimal',
+    category: 'web',
     code: `composition "Data Dashboard" {
   environment {
     skybox: "night"
@@ -1406,7 +1484,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: '3D product viewer with rotation, color variants, and option panels',
     thumbnail: '🔧',
     tags: ['web', 'product', 'configurator', 'ecommerce'],
-    category: 'minimal',
+    category: 'web',
     code: `composition "Product Configurator" {
   environment {
     skybox: "studio"
@@ -1490,7 +1568,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Live sensor monitoring with gauges, status indicators, and data panels',
     thumbnail: '📡',
     tags: ['iot', 'sensor', 'dashboard', 'monitoring'],
-    category: 'minimal',
+    category: 'iot',
     code: `composition "Sensor Dashboard" {
   environment {
     skybox: "night"
@@ -1581,7 +1659,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Factory floor digital twin with machines, conveyors, and status indicators',
     thumbnail: '🏭',
     tags: ['iot', 'twin', 'factory', 'industrial'],
-    category: 'minimal',
+    category: 'iot',
     code: `composition "Factory Digital Twin" {
   environment {
     skybox: "studio"
@@ -1676,7 +1754,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Smart home / IoT control interface with switches and status displays',
     thumbnail: '🎛️',
     tags: ['iot', 'control', 'smart-home', 'devices'],
-    category: 'minimal',
+    category: 'iot',
     code: `composition "Control Panel" {
   environment {
     skybox: "night"
@@ -1760,7 +1838,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Step-by-step learning module with interactive examples',
     thumbnail: '📝',
     tags: ['education', 'tutorial', 'learning', 'interactive'],
-    category: 'Starter',
+    category: 'education',
     code: `composition "Tutorial Module" {
   environment {
     skybox: "studio"
@@ -1848,7 +1926,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Safe experimentation space with pre-placed objects to modify',
     thumbnail: '🎓',
     tags: ['education', 'sandbox', 'beginner', 'experiment'],
-    category: 'Starter',
+    category: 'education',
     code: `composition "Student Sandbox" {
   environment {
     skybox: "studio"
@@ -1923,7 +2001,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     description: 'Interactive science demo with animated solar system and physics',
     thumbnail: '🏫',
     tags: ['education', 'classroom', 'demo', 'science'],
-    category: 'Starter',
+    category: 'education',
     code: `composition "Classroom Demo" {
   environment {
     skybox: "stars"
@@ -3972,6 +4050,321 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
     emissive: "#2211aa"
     emissiveIntensity: 0.5
     label: "LIVE"
+  }
+}`,
+  },
+
+  // ─── Hologram ─────────────────────────────────────────────────────────────────────
+
+  'holographic-gallery': {
+    id: 'wizard-holographic-gallery',
+    name: 'Holographic Gallery',
+    description: 'Arrange photos as depth-displaced 3D panels in immersive gallery space',
+    thumbnail: '🖼️',
+    tags: ['hologram', 'gallery', 'depth', '3d', 'photo'],
+    category: 'hologram',
+    code: `composition "Holographic Gallery" {
+  environment {
+    skybox: "night"
+    ambient_light: 0.15
+    fog: { color: "#050510", density: 0.03 }
+  }
+
+  object "GalleryFloor" {
+    @collidable
+    @static
+    geometry: "plane"
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [20, 20, 1]
+    color: "#0a0a12"
+    material: { roughness: 0.1, metalness: 0.6 }
+  }
+
+  object "Photo1" {
+    @image src:"gallery/photo1.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.3, segments: 128 }
+    @depth_to_normal
+    geometry: "plane"
+    position: [-3, 1.8, -4]
+    rotation: [0, 15, 0]
+    scale: [2, 1.5, 1]
+  }
+
+  object "Photo2" {
+    @image src:"gallery/photo2.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.3, segments: 128 }
+    @depth_to_normal
+    geometry: "plane"
+    position: [0, 2, -5]
+    scale: [2.5, 1.8, 1]
+  }
+
+  object "Photo3" {
+    @image src:"gallery/photo3.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.3, segments: 128 }
+    @depth_to_normal
+    geometry: "plane"
+    position: [3, 1.8, -4]
+    rotation: [0, -15, 0]
+    scale: [2, 1.5, 1]
+  }
+
+  object "SpotLeft" {
+    @glowing
+    geometry: "cone"
+    position: [-3, 4.5, -3]
+    rotation: [-10, 0, 5]
+    scale: [0.3, 2, 0.3]
+    color: "#6633ff"
+    emissive: "#6633ff"
+    emissiveIntensity: 2.5
+    material: { opacity: 0.25 }
+  }
+
+  object "SpotCenter" {
+    @glowing
+    geometry: "cone"
+    position: [0, 5, -4]
+    rotation: [-5, 0, 0]
+    scale: [0.4, 2.5, 0.4]
+    color: "#ffffff"
+    emissive: "#aaaaff"
+    emissiveIntensity: 2.0
+    material: { opacity: 0.2 }
+  }
+
+  object "SpotRight" {
+    @glowing
+    geometry: "cone"
+    position: [3, 4.5, -3]
+    rotation: [-10, 0, -5]
+    scale: [0.3, 2, 0.3]
+    color: "#ff33aa"
+    emissive: "#ff33aa"
+    emissiveIntensity: 2.5
+    material: { opacity: 0.25 }
+  }
+
+  object "GalleryTitle" {
+    @billboard
+    @glowing
+    geometry: "plane"
+    position: [0, 4, -5.5]
+    scale: [6, 0.8, 0.01]
+    color: "#0a0a20"
+    emissive: "#4422cc"
+    emissiveIntensity: 1.2
+    label: "HOLOGRAPHIC GALLERY"
+  }
+}`,
+  },
+
+  'memory-wall': {
+    id: 'wizard-memory-wall',
+    name: 'Memory Wall',
+    description: 'Grid of personal photos as mini-holograms on interactive wall',
+    thumbnail: '🧱',
+    tags: ['hologram', 'photo', 'grid', 'memory', 'interactive'],
+    category: 'hologram',
+    code: `composition "Memory Wall" {
+  environment {
+    skybox: "dusk"
+    ambient_light: 0.25
+  }
+
+  object "WallBackground" {
+    @static
+    geometry: "box"
+    position: [0, 2, -3]
+    scale: [10, 5, 0.1]
+    color: "#12121a"
+    material: { roughness: 0.9 }
+  }
+
+  object "Memory1" {
+    @image src:"memories/photo1.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [-3, 3.2, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "Memory2" {
+    @image src:"memories/photo2.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [-1, 3.2, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "Memory3" {
+    @image src:"memories/photo3.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [1, 3.2, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "Memory4" {
+    @image src:"memories/photo4.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [3, 3.2, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "Memory5" {
+    @image src:"memories/photo5.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [-3, 1.5, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "Memory6" {
+    @animated_texture src:"memories/moment.gif" fps:12
+    @holographic_sprite
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [-1, 1.5, -2.9]
+    scale: [1.2, 1.2, 1]
+    emissive: "#4400ff"
+    emissiveIntensity: 0.4
+  }
+
+  object "Memory7" {
+    @image src:"memories/photo7.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [1, 1.5, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "Memory8" {
+    @image src:"memories/photo8.jpg"
+    @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
+    @displacement { scale: 0.2, segments: 64 }
+    @hoverable
+    geometry: "plane"
+    position: [3, 1.5, -2.9]
+    scale: [1.2, 1.2, 1]
+  }
+
+  object "AmbientGlow" {
+    @glowing
+    geometry: "sphere"
+    position: [0, 2.3, -1]
+    scale: [0.01, 0.01, 0.01]
+    color: "#2200aa"
+    emissive: "#3311cc"
+    emissiveIntensity: 4.0
+    material: { opacity: 0 }
+  }
+}`,
+  },
+
+  'video-portal': {
+    id: 'wizard-video-portal',
+    name: 'Video Portal',
+    description: 'Video on depth-displaced surface with parallax effect',
+    thumbnail: '🌀',
+    tags: ['hologram', 'video', 'depth', 'portal', 'immersive'],
+    category: 'hologram',
+    code: `composition "Video Portal" {
+  environment {
+    skybox: "space"
+    ambient_light: 0.1
+    fog: { color: "#020208", density: 0.015 }
+  }
+
+  object "PortalFrame" {
+    @glowing
+    geometry: "torus"
+    position: [0, 2, -4]
+    scale: [2.5, 2.5, 0.15]
+    color: "#1a0033"
+    emissive: "#7700ff"
+    emissiveIntensity: 2.0
+    material: { metalness: 0.9, roughness: 0.1 }
+
+    state {
+      pulse: 0
+    }
+
+    logic {
+      on_update(dt) {
+        state.pulse = state.pulse + dt * 1.5
+        self.emissiveIntensity = 1.5 + Math.sin(state.pulse) * 0.8
+      }
+    }
+  }
+
+  object "VideoSurface" {
+    @video src:"portal/video.mp4" loop:true autoplay:true
+    @depth_estimation {
+      model: "depth-anything-v2-small"
+      backend: "webgpu"
+      temporal_smoothing: 0.8
+    }
+    @displacement { scale: 0.4, segments: 128 }
+    geometry: "plane"
+    position: [0, 2, -4.05]
+    scale: [3.2, 2.4, 1]
+  }
+
+  object "PortalParticles" {
+    @gpu_particle count:2000 lifetime:3.0 emissive:true
+    position: [0, 2, -3.8]
+
+    state {
+      time: 0
+    }
+
+    logic {
+      on_update(dt) {
+        state.time = state.time + dt
+        self.rotation_y = state.time * 15
+      }
+    }
+  }
+
+  object "FloorReflection" {
+    @static
+    geometry: "plane"
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [12, 12, 1]
+    color: "#050510"
+    material: { roughness: 0.05, metalness: 0.95 }
+  }
+
+  object "PortalLight" {
+    @glowing
+    geometry: "sphere"
+    position: [0, 2, -2]
+    scale: [0.01, 0.01, 0.01]
+    color: "#7700ff"
+    emissive: "#9933ff"
+    emissiveIntensity: 5.0
+    material: { opacity: 0 }
   }
 }`,
   },

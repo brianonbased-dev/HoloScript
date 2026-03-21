@@ -30,6 +30,7 @@ import {
   Building2,
   Leaf,
   Crown,
+  Layers,
 } from 'lucide-react';
 import {
   STUDIO_PRESETS,
@@ -130,6 +131,12 @@ const CATEGORIES: CategoryCard[] = [
     label: 'Creator Economy',
     description: 'NFT galleries, avatars, live stages',
     icon: <Crown className="h-6 w-6" />,
+  },
+  {
+    id: 'hologram',
+    label: 'Hologram / 3D Media',
+    description: 'Photos, GIFs, and videos as 3D holograms',
+    icon: <Layers className="h-6 w-6" />,
   },
 ];
 
@@ -483,7 +490,7 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
             <div className="flex flex-col gap-4 max-h-[260px] overflow-y-auto pr-1">
               {questions.map((q) => {
                 if (q.type === 'card-select' && q.options) {
-                  const value = getSpecificValue(q.id);
+                  const value = getSpecificValue(q.stateKey ?? q.id);
                   return (
                     <div key={q.id}>
                       <label className="text-xs font-medium text-studio-text mb-1.5 block">
@@ -493,7 +500,7 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
                         {q.options.map((opt) => (
                           <button
                             key={opt.value}
-                            onClick={() => setSpecificValue(q.id, opt.value)}
+                            onClick={() => setSpecificValue(q.stateKey ?? q.id, opt.value)}
                             className={`flex-1 flex items-center gap-1.5 rounded-lg border px-3 py-2 text-left transition-all duration-200 ${
                               value === opt.value
                                 ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-300'
@@ -539,12 +546,12 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
                 }
 
                 if (q.type === 'toggle') {
-                  const checked = getToggleValue(q.id);
+                  const checked = getToggleValue(q.stateKey ?? q.id);
                   return (
                     <div key={q.id} className="flex items-center justify-between">
                       <label className="text-xs font-medium text-studio-text">{q.label}</label>
                       <button
-                        onClick={() => setToggleValue(q.id, !checked)}
+                        onClick={() => setToggleValue(q.stateKey ?? q.id, !checked)}
                         className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${
                           checked ? 'bg-emerald-500' : 'bg-studio-border'
                         }`}

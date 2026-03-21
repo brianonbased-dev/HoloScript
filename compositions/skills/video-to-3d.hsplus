@@ -1,0 +1,126 @@
+// Video-to-3D — Convert video to volumetric 3D representation
+// Installed via HoloClaw Shelf. Progressive: displacement → point cloud → Gaussian splat.
+//
+// Pipeline: @video → @depth_sequence → progressive reconstruction
+// Tier 1: Real-time depth overlay (instant, 2.5D parallax)
+// Tier 2: Point cloud accumulation (seconds)
+// Tier 3: 3D Gaussian Splatting (minutes, highest quality)
+//
+// @see W.152: 3D Gaussian Splatting has won the reconstruction quality war
+// @see W.149: Five-tier progressive quality pipeline
+
+composition "video-to-3d" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.25)
+  @timeout_guard
+
+  state phase: string = "idle"
+  state videoSrc: string = ""
+  state qualityTier: string = "displacement"
+  state depthScale: number = 0.2
+  state temporalAlpha: number = 0.8
+  state maxDurationSec: number = 30
+  state processing: boolean = false
+  state progress: number = 0
+  state frameRate: number = 30
+
+  environment {
+    skybox: "studio"
+    ambient_light: 0.6
+  }
+
+  object "VideoHologram" {
+    @video {
+      src: $videoSrc
+      autoplay: true
+      loop: true
+      muted: true
+    }
+    @depth_sequence {
+      model: "depth-anything-v2-small"
+      backend: "webgpu"
+      consistency: "temporal"
+      temporal_smoothing: $temporalAlpha
+    }
+    @displacement {
+      scale: $depthScale
+      segments: 64
+    }
+
+    position: [0, 1.5, -2]
+    scale: [3, 1.7, 1]
+  }
+
+  selector "quality-strategy" {
+    // Choose processing strategy based on quality tier
+
+    sequence "tier-1-displacement" {
+      // Real-time: depth estimation per frame + displacement
+      // ~30fps at 720p, instant results
+      condition: { $qualityTier == "displacement" }
+
+      action "start_realtime_depth" {
+        model: "depth-anything-v2-small"
+        temporal_alpha: $temporalAlpha
+        into: "realtime"
+      }
+    }
+
+    sequence "tier-2-pointcloud" {
+      // Offline: accumulate depth frames into point cloud
+      condition: { $qualityTier == "pointcloud" }
+
+      action "extract_depth_sequence" {
+        max_frames: 90
+        into: "depth_seq"
+      }
+
+      action "build_point_cloud" {
+        into: "pointcloud"
+      }
+    }
+
+    sequence "tier-3-splatting" {
+      // Best quality: 3D Gaussian Splatting from video
+      condition: { $qualityTier == "gaussian" }
+
+      action "extract_frames" {
+        max_frames: 300
+        into: "video_frames"
+      }
+
+      action "gaussian_splatting" {
+        quality: "high"
+        viewer: "webgpu"
+        into: "splat"
+      }
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "default quality tier is displacement"
+    assert: { $qualityTier == "displacement" }
+  }
+
+  @test {
+    name: "default depth scale is 0.2"
+    assert: { $depthScale == 0.2 }
+  }
+
+  @test {
+    name: "default temporal alpha is 0.8"
+    assert: { $temporalAlpha == 0.8 }
+  }
+
+  @test {
+    name: "not processing initially"
+    assert: { $processing == false }
+  }
+}

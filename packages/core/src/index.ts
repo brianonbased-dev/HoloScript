@@ -3179,6 +3179,36 @@ export {
 } from './stdlib';
 export type { StdlibPolicy, StdlibOptions } from './stdlib';
 
+// ── Hologram Media Pipeline (2D-to-3D) ─────────────────────────────────────
+export {
+  DepthEstimationService,
+  TemporalSmoother,
+  GIFDecomposer,
+  ModelCache,
+  depthToNormalMap,
+  detectBestBackend,
+  GIFDisposalMethod,
+  QuiltCompiler,
+  MVHEVCCompiler,
+  WebCodecsDepthPipeline,
+} from './hologram';
+export type {
+  DepthBackend,
+  DepthEstimationConfig,
+  DepthResult,
+  DepthSequenceConfig,
+  GIFFrame,
+  GIFDecomposerConfig,
+  QuiltConfig,
+  QuiltTile,
+  QuiltCompilationResult,
+  MVHEVCConfig,
+  MVHEVCStereoView,
+  MVHEVCCompilationResult,
+  WebCodecsDepthConfig,
+  WebCodecsDepthStats,
+} from './hologram';
+
 // ── @script_test Trait (Headless Unit Testing for .hs Logic) ────────────────
 export {
   ScriptTestRunner,

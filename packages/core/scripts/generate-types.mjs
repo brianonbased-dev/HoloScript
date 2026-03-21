@@ -2318,6 +2318,172 @@ export declare function isPathAllowed(relPath: string, allowedRoots: string[]): 
 export declare function parseHostFromUrl(url: string): string | null;
 export declare function truncateText(value: any, max: number): string;
 export declare function toStringArray(value: any): string[];
+
+// ============================================================================
+// HOLOGRAM MEDIA PIPELINE (2D-to-3D)
+// ============================================================================
+
+export type DepthBackend = 'webgpu' | 'wasm' | 'cpu';
+
+export interface DepthEstimationConfig {
+  backend: DepthBackend;
+  maxResolution: number;
+  enableCache: boolean;
+  modelId: string;
+  onProgress: (progress: number) => void;
+}
+
+export interface DepthResult {
+  depthMap: Float32Array;
+  normalMap: Float32Array;
+  width: number;
+  height: number;
+  backend: DepthBackend;
+  inferenceMs: number;
+}
+
+export interface DepthSequenceConfig {
+  temporalAlpha: number;
+  maxFrames: number;
+}
+
+export interface GIFFrame {
+  imageData: ImageData;
+  delay: number;
+  disposalMethod: number;
+}
+
+export interface GIFDecomposerConfig {
+  maxFrames: number;
+  targetSize: number;
+}
+
+export declare class DepthEstimationService {
+  static getInstance(config?: Partial<DepthEstimationConfig>): DepthEstimationService;
+  static resetInstance(): void;
+  initialize(config?: Partial<DepthEstimationConfig>): Promise<void>;
+  estimateDepth(imageData: ImageData): Promise<DepthResult>;
+  estimateDepthSequence(frames: ImageData[], config?: Partial<DepthSequenceConfig>): Promise<DepthResult[]>;
+  dispose(): void;
+}
+
+export declare class TemporalSmoother {
+  constructor(alpha?: number);
+  smooth(current: Float32Array): Float32Array;
+  reset(): void;
+}
+
+export declare class GIFDecomposer {
+  decompose(buffer: ArrayBuffer, config?: Partial<GIFDecomposerConfig>): GIFFrame[];
+}
+
+export declare class ModelCache {
+  open(): Promise<void>;
+  close(): void;
+  get(key: string): Promise<ArrayBuffer | null>;
+  set(key: string, data: ArrayBuffer): Promise<void>;
+}
+
+export declare function depthToNormalMap(depthMap: Float32Array, width: number, height: number): Float32Array;
+export declare function detectBestBackend(): Promise<DepthBackend>;
+
+export declare const GIFDisposalMethod: {
+  readonly UNSPECIFIED: 0;
+  readonly NONE: 1;
+  readonly RESTORE_BACKGROUND: 2;
+  readonly RESTORE_PREVIOUS: 3;
+};
+
+export interface QuiltConfig {
+  columns: number;
+  rows: number;
+  tileWidth: number;
+  tileHeight: number;
+  fov: number;
+  viewCone: number;
+  depthiness: number;
+  device: string;
+}
+
+export interface QuiltTile {
+  viewIndex: number;
+  column: number;
+  row: number;
+  cameraAngle: number;
+  viewOffset: number;
+}
+
+export interface QuiltCompilationResult {
+  config: QuiltConfig;
+  tiles: QuiltTile[];
+  shaderCode: string;
+  metadata: Record<string, any>;
+}
+
+export declare class QuiltCompiler {
+  compile(composition: any, agentToken: string): string;
+  compileQuilt(composition: any, overrides?: Partial<QuiltConfig>): QuiltCompilationResult;
+}
+
+export interface MVHEVCConfig {
+  ipd: number;
+  resolution: [number, number];
+  fps: number;
+  convergenceDistance: number;
+  fovDegrees: number;
+  quality: 'low' | 'medium' | 'high';
+  container: 'mov' | 'mp4';
+  disparityScale: number;
+}
+
+export interface MVHEVCStereoView {
+  eye: 'left' | 'right';
+  cameraOffset: number;
+  viewShear: number;
+  layerIndex: number;
+}
+
+export interface MVHEVCCompilationResult {
+  config: MVHEVCConfig;
+  views: MVHEVCStereoView[];
+  swiftCode: string;
+  muxCommand: string;
+  metadata: Record<string, any>;
+}
+
+export declare class MVHEVCCompiler {
+  compile(composition: any, agentToken: string, outputPath?: string): string;
+  compileMVHEVC(composition: any, overrides?: Partial<MVHEVCConfig>): MVHEVCCompilationResult;
+}
+
+export interface WebCodecsDepthConfig {
+  maxFps: number;
+  maxDepthResolution: number;
+  temporalAlpha: number;
+  codec: 'h264' | 'vp9' | 'av1';
+  onFrame?: (result: DepthResult, frameIndex: number, timestamp: number) => void;
+  onError?: (error: Error) => void;
+}
+
+export interface WebCodecsDepthStats {
+  framesDecoded: number;
+  framesProcessed: number;
+  framesSkipped: number;
+  avgDecodeMs: number;
+  avgInferenceMs: number;
+  running: boolean;
+}
+
+export declare class WebCodecsDepthPipeline {
+  constructor(config?: Partial<WebCodecsDepthConfig>);
+  static isSupported(): boolean;
+  initialize(config?: Partial<WebCodecsDepthConfig>): Promise<void>;
+  feedChunk(chunk: EncodedVideoChunk): void;
+  processFrame(frame: VideoFrame): Promise<DepthResult | null>;
+  get stats(): WebCodecsDepthStats;
+  flush(): Promise<void>;
+  dispose(): void;
+}
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

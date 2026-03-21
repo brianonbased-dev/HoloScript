@@ -18,7 +18,7 @@ export interface StudioPreset {
   label: string;
   emoji: string;
   description: string;
-  category: 'game' | 'film' | 'art' | 'web' | 'iot' | 'education' | 'ai' | 'robotics' | 'science' | 'healthcare' | 'architecture' | 'agriculture' | 'creator';
+  category: 'game' | 'film' | 'art' | 'web' | 'iot' | 'education' | 'robotics' | 'science' | 'healthcare' | 'architecture' | 'agriculture' | 'creator' | 'hologram';
   studioMode: StudioMode;
   domainProfile: DomainProfile;
   openPanels: PanelKey[];
@@ -140,7 +140,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     label: 'AI Scene Composer',
     emoji: '🤖',
     description: 'Use AI to generate and iterate on 3D scenes with natural language',
-    category: 'ai',
+    category: 'art',
     studioMode: 'creator',
     domainProfile: 'all',
     openPanels: ['chat', 'generator'],
@@ -202,8 +202,8 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     description: 'Design, simulate, and export robots with URDF, ROS2, and Gazebo',
     category: 'robotics',
     studioMode: 'creator',
-    domainProfile: 'all',
-    openPanels: ['chat', 'physics', 'inspector'],
+    domainProfile: 'robotics',
+    openPanels: ['chat', 'physics', 'inspector', 'robotDeploy'],
     sidebarTabs: [
       'traits', 'physics', 'behavior', 'ai', 'pathfinding',
       'scene', 'assets', 'compiler', 'saveload',
@@ -217,8 +217,8 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     description: 'Visualize molecules, run simulations, and design drugs with Narupa',
     category: 'science',
     studioMode: 'creator',
-    domainProfile: 'all',
-    openPanels: ['chat', 'inspector', 'particles'],
+    domainProfile: 'science',
+    openPanels: ['chat', 'inspector', 'particles', 'molecularViewer'],
     sidebarTabs: [
       'traits', 'scene', 'physics', 'particles', 'shader',
       'assets', 'compiler', 'saveload',
@@ -247,8 +247,8 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     description: 'Therapeutic VR, rehabilitation, patient education, and clinical visualization',
     category: 'healthcare',
     studioMode: 'creator',
-    domainProfile: 'vr',
-    openPanels: ['chat', 'physics', 'inspector'],
+    domainProfile: 'science',
+    openPanels: ['chat', 'physics', 'inspector', 'dnaSequencer'],
     sidebarTabs: [
       'traits', 'physics', 'behavior', 'animation', 'audio',
       'scene', 'assets', 'lighting', 'camera', 'saveload',
@@ -292,13 +292,28 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     description: 'NFT galleries, social avatars, token forges, and live streaming stages',
     category: 'creator',
     studioMode: 'creator',
-    domainProfile: 'all',
+    domainProfile: 'creator',
     openPanels: ['chat', 'export', 'assetLib'],
     sidebarTabs: [
       'traits', 'animation', 'shader', 'lighting', 'camera',
       'scene', 'assets', 'compiler', 'saveload',
     ],
     suggestedTemplateCategory: 'art',
+  },
+  {
+    id: 'hologram-studio',
+    label: 'Hologram Studio',
+    emoji: '🔮',
+    description: 'Convert photos, GIFs, and videos into depth-displaced 3D holograms',
+    category: 'hologram',
+    studioMode: 'creator',
+    domainProfile: 'hologram',
+    openPanels: ['chat', 'material', 'inspector'],
+    sidebarTabs: [
+      'traits', 'shader', 'lighting', 'camera', 'animation',
+      'pipeline', 'scene', 'assets', 'compiler', 'saveload',
+    ],
+    suggestedTemplateCategory: 'hologram',
   },
 ];
 
@@ -321,6 +336,7 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'environment-art': '3d-artist',
   'material-study': '3d-artist',
   'music-visualizer': 'music-viz',
+  'ai-composer': 'ai-composer',
   // Web
   'portfolio': 'web-experience',
   'interactive-story': 'web-experience',
@@ -330,6 +346,7 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'sensor-dashboard': 'iot-dashboard',
   'digital-twin': 'iot-dashboard',
   'control-panel': 'iot-dashboard',
+  'smart-home': 'iot-dashboard',
   // Education
   'tutorial-creator': 'educator',
   'student-sandbox': 'educator',
@@ -353,7 +370,6 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'building-walkthrough': 'architecture-viz',
   'interior-design': 'architecture-viz',
   'urban-planning': 'architecture-viz',
-  'smart-home': 'iot-dashboard',
   // Agriculture
   'farm-twin': 'agri-tech',
   'greenhouse-monitor': 'agri-tech',
@@ -363,6 +379,10 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'token-forge': 'creator-economy',
   'social-avatar': 'creator-economy',
   'live-stage': 'creator-economy',
+  // Hologram
+  'holographic-gallery': 'hologram-studio',
+  'memory-wall': 'hologram-studio',
+  'video-portal': 'hologram-studio',
 };
 
 // ─── Category → Sub-categories ───────────────────────────────────────────────
@@ -393,6 +413,7 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
     { id: 'environment-art', label: 'Environment Art', emoji: '🏔️', description: 'Worlds and landscapes' },
     { id: 'material-study', label: 'Material Study', emoji: '✨', description: 'Shaders and materials' },
     { id: 'music-visualizer', label: 'Music Visualizer', emoji: '🎵', description: 'Audio-reactive art' },
+    { id: 'ai-composer', label: 'AI Scene Composer', emoji: '🤖', description: 'AI-generated 3D scenes' },
   ],
   web: [
     { id: 'portfolio', label: 'Portfolio', emoji: '💼', description: 'Showcase your work in 3D' },
@@ -404,6 +425,7 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
     { id: 'sensor-dashboard', label: 'Sensor Dashboard', emoji: '📡', description: 'Live sensor monitoring' },
     { id: 'digital-twin', label: 'Digital Twin', emoji: '🏭', description: 'Physical system mirror' },
     { id: 'control-panel', label: 'Control Panel', emoji: '🎛️', description: 'Device management UI' },
+    { id: 'smart-home', label: 'Smart Home', emoji: '🏠', description: 'IoT-connected home dashboard' },
   ],
   education: [
     { id: 'tutorial-creator', label: 'Tutorial Creator', emoji: '📝', description: 'Build learning modules' },
@@ -432,7 +454,6 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
     { id: 'building-walkthrough', label: 'Building Walkthrough', emoji: '🏗️', description: 'First-person building tours' },
     { id: 'interior-design', label: 'Interior Design', emoji: '🛋️', description: 'Room layouts and furnishing' },
     { id: 'urban-planning', label: 'Urban Planning', emoji: '🏙️', description: 'City-scale visualization' },
-    { id: 'smart-home', label: 'Smart Home', emoji: '🏠', description: 'IoT-connected home dashboard' },
   ],
   agriculture: [
     { id: 'farm-twin', label: 'Farm Digital Twin', emoji: '🚜', description: 'Real-time farm monitoring' },
@@ -445,12 +466,19 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
     { id: 'social-avatar', label: 'Social Avatar', emoji: '🧑‍🎤', description: 'Custom avatar creator' },
     { id: 'live-stage', label: 'Live Stage', emoji: '🎤', description: 'Virtual concert and streaming' },
   ],
+  hologram: [
+    { id: 'holographic-gallery', label: 'Holographic Gallery', emoji: '🖼️', description: 'Depth-displaced photo gallery' },
+    { id: 'memory-wall', label: 'Memory Wall', emoji: '🧱', description: 'Interactive photo grid holograms' },
+    { id: 'video-portal', label: 'Video Portal', emoji: '🌀', description: 'Video with depth parallax effect' },
+  ],
 };
 
 // ─── Category-specific Questions ─────────────────────────────────────────────
 
 export interface WizardQuestion {
   id: string;
+  /** Maps to a ProjectSpecifics field when id differs (e.g. 'platforms-science' → stateKey 'platforms'). */
+  stateKey?: string;
   label: string;
   type: 'card-select' | 'toggle' | 'multi-select';
   options?: { value: string; label: string; emoji?: string }[];
@@ -468,7 +496,7 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
       { value: 'small', label: 'Small project', emoji: '📁' },
       { value: 'production', label: 'Full production', emoji: '🏗️' },
     ],
-    categories: ['game', 'film', 'art', 'web', 'iot', 'education', 'robotics', 'science', 'healthcare', 'architecture', 'agriculture', 'creator'],
+    categories: ['game', 'film', 'art', 'web', 'iot', 'education', 'robotics', 'science', 'healthcare', 'architecture', 'agriculture', 'creator', 'hologram'],
   },
   {
     id: 'artStyle',
@@ -546,13 +574,15 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
   },
   // Robotics-specific
   {
-    id: 'needsAI',
+    id: 'needsAI-robotics',
+    stateKey: 'needsAI',
     label: 'Need AI behavior / path planning?',
     type: 'toggle',
     categories: ['robotics'],
   },
   {
-    id: 'exportFormat',
+    id: 'exportFormat-robotics',
+    stateKey: 'exportFormat',
     label: 'Export target?',
     type: 'card-select',
     options: [
@@ -564,7 +594,8 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
   },
   // Science-specific
   {
-    id: 'platforms',
+    id: 'platforms-science',
+    stateKey: 'platforms',
     label: 'Target platform?',
     type: 'multi-select',
     options: [
@@ -576,7 +607,8 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
   },
   // Healthcare-specific
   {
-    id: 'platforms',
+    id: 'platforms-healthcare',
+    stateKey: 'platforms',
     label: 'Deployment target?',
     type: 'multi-select',
     options: [
@@ -588,7 +620,8 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
   },
   // Architecture-specific
   {
-    id: 'artStyle',
+    id: 'artStyle-architecture',
+    stateKey: 'artStyle',
     label: 'Rendering style?',
     type: 'card-select',
     options: [
@@ -599,7 +632,8 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
     categories: ['architecture'],
   },
   {
-    id: 'platforms',
+    id: 'platforms-architecture',
+    stateKey: 'platforms',
     label: 'View in?',
     type: 'multi-select',
     options: [
@@ -611,13 +645,15 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
   },
   // Creator Economy-specific
   {
-    id: 'needsDeployment',
+    id: 'needsDeployment-creator',
+    stateKey: 'needsDeployment',
     label: 'Deploy to web?',
     type: 'toggle',
     categories: ['creator'],
   },
   {
-    id: 'exportFormat',
+    id: 'exportFormat-creator',
+    stateKey: 'exportFormat',
     label: 'Export format?',
     type: 'card-select',
     options: [

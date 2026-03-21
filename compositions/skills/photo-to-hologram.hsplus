@@ -1,0 +1,102 @@
+// Photo-to-Hologram — Convert any image into a 3D holographic panel
+// Installed via HoloClaw Shelf. Uses depth estimation + displacement.
+//
+// Pipeline: @image → @segment → @depth_estimation → @displacement → @billboard
+// Progressive: instant flat image → depth-displaced 3D in <1s
+//
+// @see W.148: Browser-native depth estimation is production-ready
+// @see P.148.01: Progressive Hologram Enhancement
+
+composition "photo-to-hologram" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.05)
+  @timeout_guard
+
+  state phase: string = "idle"
+  state imageSrc: string = ""
+  state depthScale: number = 0.3
+  state segments: number = 128
+  state depthReady: boolean = false
+  state inferenceMs: number = 0
+  state backend: string = "detecting"
+
+  environment {
+    skybox: "studio"
+    ambient_light: 0.7
+  }
+
+  object "HologramPanel" {
+    @image { src: $imageSrc }
+    @segment { model: "rembg", remove_background: true }
+    @depth_estimation {
+      model: "depth-anything-v2-small"
+      backend: "webgpu"
+      max_resolution: 512
+      cache: true
+    }
+    @displacement {
+      scale: $depthScale
+      segments: $segments
+      auto_segments: true
+    }
+    @depth_to_normal
+    @billboard { mode: "camera-facing" }
+
+    position: [0, 1.5, -2]
+    scale: [2, 2, 1]
+  }
+
+  sequence "process-image" {
+    action "detect_backend" {
+      // Auto-detect WebGPU > WASM > CPU
+    }
+
+    action "load_image" {
+      path: $imageSrc
+      into: "image"
+    }
+
+    action "segment_foreground" {
+      // Remove background for clean holographic sprite
+      into: "segmented"
+    }
+
+    action "estimate_depth" {
+      model: "depth-anything-v2-small"
+      into: "depth"
+    }
+
+    action "apply_displacement" {
+      depth_map: $depth_content
+      scale: $depthScale
+      into: "displaced"
+    }
+
+    action "channel_send" {
+      channel: "hologram"
+      // Sends: depthReady, inferenceMs, backend
+    }
+  }
+
+  // ── Tests ──
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "default depth scale is 0.3"
+    assert: { $depthScale == 0.3 }
+  }
+
+  @test {
+    name: "default segments is 128"
+    assert: { $segments == 128 }
+  }
+
+  @test {
+    name: "depth not ready initially"
+    assert: { $depthReady == false }
+  }
+}
