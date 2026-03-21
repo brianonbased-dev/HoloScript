@@ -763,5 +763,5 @@ export function compileToVRChat(
   options?: VRChatCompilerOptions
 ): Promise<VRChatCompileResult> {
   const compiler = new VRChatCompiler(options);
-  return compiler.compile(composition, '');
+  return Promise.resolve(compiler.compile(composition, ''));
 }
