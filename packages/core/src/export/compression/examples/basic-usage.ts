@@ -22,9 +22,7 @@ export async function basicCompression() {
 
   // Get compression statistics
   const stats = compressor.getStats();
-  console.log(`Original size: ${AdvancedCompression.formatBytes(stats.originalSize)}`);
-  console.log(`Compressed size: ${AdvancedCompression.formatBytes(stats.compressedSize)}`);
-  console.log(`Reduction: ${((1 - stats.compressionRatio) * 100).toFixed(1)}%`);
+  // Compression statistics available via compressor.getStats()
 
   return compressed;
 }
@@ -55,9 +53,7 @@ export async function qualityPresetCompression() {
   const balancedResult = await balancedCompressor.compress({ ...gltfDoc });
   const bestResult = await bestCompressor.compress({ ...gltfDoc });
 
-  console.log('Fast:', fastCompressor.getStats().compressionRatio);
-  console.log('Balanced:', balancedCompressor.getStats().compressionRatio);
-  console.log('Best:', bestCompressor.getStats().compressionRatio);
+  // Compare compression ratios via getStats() method
 
   return { fastResult, balancedResult, bestResult };
 }
@@ -87,8 +83,7 @@ export async function customCompression() {
 
   const result = await compressor.compress(gltfDoc);
 
-  // Print detailed report
-  console.log(compressor.getCompressionReport());
+  // Detailed report available via compressor.getCompressionReport()
 
   return result;
 }
@@ -109,8 +104,7 @@ export async function textureOnlyCompression() {
   const result = await compressor.compress(gltfDoc);
   const stats = compressor.getStats();
 
-  console.log(`Textures compressed: ${stats.texturesCompressed}`);
-  console.log(`Texture reduction: ${AdvancedCompression.formatBytes(stats.textureReduction)}`);
+  // Texture compression stats available via getStats()
 
   return result;
 }
@@ -132,8 +126,7 @@ export async function meshOnlyCompression() {
   const result = await compressor.compress(gltfDoc);
   const stats = compressor.getStats();
 
-  console.log(`Meshes compressed: ${stats.meshesCompressed}`);
-  console.log(`Mesh reduction: ${AdvancedCompression.formatBytes(stats.meshReduction)}`);
+  // Mesh compression stats available via getStats()
 
   return result;
 }
@@ -155,14 +148,7 @@ export async function exportWithCompression(sceneGraph: ISceneGraph) {
   // Get compression stats
   const compressionStats = exporter.getCompressionStats();
   if (compressionStats) {
-    console.log('Compression applied:');
-    console.log(`- Textures: ${compressionStats.texturesCompressed}`);
-    console.log(`- Meshes: ${compressionStats.meshesCompressed}`);
-    console.log(
-      `- Total reduction: ${AdvancedCompression.formatBytes(
-        compressionStats.textureReduction + compressionStats.meshReduction
-      )}`
-    );
+    // Compression stats available in compressionStats object
   }
 
   return result;
@@ -184,14 +170,7 @@ export async function monitorCompressionPerformance() {
 
   const stats = compressor.getStats();
 
-  console.log('Performance Report:');
-  console.log(`- Total time: ${(endTime - startTime).toFixed(2)}ms`);
-  console.log(`- Compression time: ${stats.compressionTime.toFixed(2)}ms`);
-  console.log(
-    `- Throughput: ${(stats.originalSize / (stats.compressionTime / 1000) / 1024 / 1024).toFixed(
-      2
-    )} MB/s`
-  );
+  // Performance metrics available via stats and timing calculations
 
   return result;
 }
@@ -220,16 +199,7 @@ export async function batchCompression(documents: any[]) {
   const totalCompressed = allStats.reduce((sum, s) => sum + s.compressedSize, 0);
   const avgTime = allStats.reduce((sum, s) => sum + s.compressionTime, 0) / allStats.length;
 
-  console.log('Batch Compression Results:');
-  console.log(`- Documents processed: ${documents.length}`);
-  console.log(`- Total original size: ${AdvancedCompression.formatBytes(totalOriginal)}`);
-  console.log(`- Total compressed size: ${AdvancedCompression.formatBytes(totalCompressed)}`);
-  console.log(
-    `- Overall reduction: ${(((totalOriginal - totalCompressed) / totalOriginal) * 100).toFixed(
-      1
-    )}%`
-  );
-  console.log(`- Average compression time: ${avgTime.toFixed(2)}ms`);
+  // Batch compression statistics calculated above
 
   return results;
 }
