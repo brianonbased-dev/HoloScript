@@ -57,13 +57,15 @@ export function forceDirectedLayout(
     return nodes;
   }
 
-  // Initialize positions in a sphere
+  // Initialize positions in a sphere (skip if node already has a position for warm-start)
   for (let i = 0; i < nodes.length; i++) {
-    const phi = Math.acos(1 - (2 * (i + 0.5)) / nodes.length);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    nodes[i].x = spread * Math.sin(phi) * Math.cos(theta);
-    nodes[i].y = spread * Math.sin(phi) * Math.sin(theta);
-    nodes[i].z = spread * Math.cos(phi);
+    if (nodes[i].x === 0 && nodes[i].y === 0 && nodes[i].z === 0) {
+      const phi = Math.acos(1 - (2 * (i + 0.5)) / nodes.length);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+      nodes[i].x = spread * Math.sin(phi) * Math.cos(theta);
+      nodes[i].y = spread * Math.sin(phi) * Math.sin(theta);
+      nodes[i].z = spread * Math.cos(phi);
+    }
   }
 
   // Build edge lookup

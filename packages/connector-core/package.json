@@ -1,0 +1,18 @@
+{
+  "name": "@holoscript/connector-core",
+  "version": "1.0.0",
+  "description": "Foundational abstract interfaces and MCP Registrar for the Studio Integration Hub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0"
+  }
+}

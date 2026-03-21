@@ -196,7 +196,156 @@ export class CodebaseScanner {
     return { rootDir, files, stats };
   }
 
+  /**
+   * Scan a specific set of files (for incremental updates).
+   * Does NOT walk the directory -- only processes the provided file paths.
+   */
+  async scanFiles(
+    rootDir: string,
+    filePaths: string[],
+    options?: Pick<ScanOptions, 'maxFileSize' | 'readFile' | 'onProgress' | 'includeBuildArtifacts'>
+  ): Promise<ScanResult> {
+    const startTime = Date.now();
+    const resolvedRootDir = path.resolve(rootDir);
+    const maxFileSize = options?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
+    const readFile = options?.readFile ?? ((p: string) => fs.promises.readFile(p, 'utf-8'));
+    const onProgress = options?.onProgress;
+    const includeBuildArtifacts = options?.includeBuildArtifacts ?? false;
+
+    // Detect languages and preload grammars
+    const detectedLanguages = new Set<SupportedLanguage>();
+    for (const fp of filePaths) {
+      const lang = detectLanguage(fp);
+      if (lang) detectedLanguages.add(lang);
+    }
+    await this.adapterManager.preload(Array.from(detectedLanguages));
+
+    const files: ScannedFile[] = [];
+    const errors: ScanError[] = [];
+    const filesByLanguage: Record<string, number> = {};
+    const symbolsByType: Record<string, number> = {};
+    let totalSymbols = 0;
+    let totalImports = 0;
+    let totalCalls = 0;
+    let totalLoc = 0;
+
+    // Parallel batching for I/O efficiency
+    const BATCH_SIZE = 8;
+    for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+      const batch = filePaths.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(fp => this.parseOneFile(fp, resolvedRootDir, maxFileSize, readFile, includeBuildArtifacts))
+      );
+
+      for (const result of results) {
+        if (result.error) {
+          errors.push(result.error);
+        } else if (result.file) {
+          files.push(result.file);
+          filesByLanguage[result.file.language] = (filesByLanguage[result.file.language] ?? 0) + 1;
+          totalSymbols += result.file.symbols.length;
+          totalImports += result.file.imports.length;
+          totalCalls += result.file.calls.length;
+          totalLoc += result.file.loc;
+
+          for (const sym of result.file.symbols) {
+            symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
+          }
+
+          onProgress?.(files.length, filePaths.length, result.file.path);
+        }
+      }
+    }
+
+    const stats: ScanStats = {
+      totalFiles: files.length,
+      filesByLanguage,
+      totalSymbols,
+      symbolsByType,
+      totalImports,
+      totalCalls,
+      totalLoc,
+      durationMs: Date.now() - startTime,
+      errors,
+    };
+
+    return { rootDir: resolvedRootDir, files, stats };
+  }
+
   // ── Private helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Parse a single file and return either the scanned file or an error.
+   */
+  private async parseOneFile(
+    filePath: string,
+    rootDir: string,
+    maxFileSize: number,
+    readFile: (p: string) => Promise<string>,
+    includeBuildArtifacts: boolean
+  ): Promise<{ file?: ScannedFile; error?: ScanError }> {
+    const language = detectLanguage(filePath);
+    if (!language) return {};
+
+    const adapter = getAdapterForFile(filePath);
+    if (!adapter) return {};
+
+    // Read file
+    let content: string;
+    let sizeBytes: number;
+    try {
+      content = await readFile(filePath);
+      sizeBytes = Buffer.byteLength(content, 'utf-8');
+      if (sizeBytes > maxFileSize) return {};
+    } catch (e: any) {
+      return { error: { file: filePath, error: e.message, phase: 'read' } };
+    }
+
+    // Parse with tree-sitter
+    const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
+    let tree;
+    try {
+      tree = await this.adapterManager.parse(content, language);
+      if (!tree) {
+        return { error: { file: filePath, error: `No parser for ${language}`, phase: 'parse' } };
+      }
+    } catch (e: any) {
+      if (!includeBuildArtifacts) {
+        return { error: { file: filePath, error: e.message, phase: 'parse' } };
+      }
+
+      // Dist-safe fallback
+      const fallbackImports = this.extractLooseImports(content, relPath);
+      const loc = content.split('\n').length;
+      return {
+        file: {
+          path: relPath,
+          language,
+          symbols: [],
+          imports: fallbackImports,
+          calls: [],
+          loc,
+          sizeBytes,
+          docComment: undefined,
+        },
+      };
+    }
+
+    // Extract symbols, imports, calls
+    try {
+      const symbols = adapter.extractSymbols(tree, relPath);
+      const imports = adapter.extractImports(tree, relPath);
+      const calls = adapter.extractCalls(tree, relPath);
+      const loc = content.split('\n').length;
+      const docComment = extractFileDocComment(tree.rootNode);
+
+      return {
+        file: { path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment },
+      };
+    } catch (e: any) {
+      return { error: { file: filePath, error: e.message, phase: 'extract' } };
+    }
+  }
 
   private collectFiles(
     rootDir: string,

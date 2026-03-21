@@ -9,7 +9,7 @@
  */
 
 import type { CodebaseGraph, CodebaseGraphStats } from '../CodebaseGraph';
-import type { ExternalSymbolDefinition, ImportEdge, CallEdge } from '../types';
+import type { ExternalSymbolDefinition } from '../types';
 import type { LayoutNode, LayoutEdge } from '../layouts/ForceDirectedLayout';
 import { forceDirectedLayout } from '../layouts/ForceDirectedLayout';
 import { layeredLayout } from '../layouts/LayeredLayout';
@@ -107,6 +107,8 @@ export interface SceneCompilerOptions {
   interactive?: boolean;
   /** Graph RAG highlight hints (node IDs to visually emphasize) */
   ragHighlights?: { nodeIds: string[]; type: 'search' | 'impact' | 'trace' };
+  /** Previous positions for incremental warm-start layout */
+  lastPositions?: Map<string, [number, number, number]>;
 }
 
 const VISIBILITY_ORDER = { public: 0, protected: 1, internal: 2, private: 3 };
@@ -153,9 +155,10 @@ export class CodebaseSceneCompiler {
     }
 
     // 3. Build layout
-    const { layoutNodes, layoutEdges } = this.buildLayoutGraph(graph, communitySymbols);
+    const { layoutNodes, layoutEdges } = this.buildLayoutGraph(graph, communitySymbols, options.lastPositions);
 
-    if (options.layout === 'layered') {
+    const layout = options.layout ?? 'force';
+    if (layout === 'layered') {
       layeredLayout(layoutNodes, layoutEdges);
     } else {
       forceDirectedLayout(layoutNodes, layoutEdges);
@@ -346,7 +349,8 @@ export class CodebaseSceneCompiler {
 
   private buildLayoutGraph(
     graph: CodebaseGraph,
-    communitySymbols: Map<string, ExternalSymbolDefinition[]>
+    communitySymbols: Map<string, ExternalSymbolDefinition[]>,
+    lastPositions?: Map<string, [number, number, number]>
   ): { layoutNodes: LayoutNode[]; layoutEdges: LayoutEdge[] } {
     const layoutNodes: LayoutNode[] = [];
     const nodeIds = new Set<string>();
@@ -356,7 +360,8 @@ export class CodebaseSceneCompiler {
         const id = this.makeObjectId(sym);
         if (!nodeIds.has(id)) {
           nodeIds.add(id);
-          layoutNodes.push({ id, x: 0, y: 0, z: 0, weight: sym.loc ?? 1 });
+          const pos = lastPositions?.get(id) || [0, 0, 0];
+          layoutNodes.push({ id, x: pos[0], y: pos[1], z: pos[2], weight: sym.loc ?? 1 });
         }
       }
     }

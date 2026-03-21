@@ -68,6 +68,10 @@ export interface EmitOptions {
   changeImpact?: string[];
   /** Git ref used for --since display (e.g. "HEAD~1") */
   sinceRef?: string;
+  /** Whether to only emit changed files and their immediate impact (incremental update) */
+  incremental?: boolean;
+  /** Previous positions for layout warm-start */
+  lastPositions?: Map<string, [number, number, number]>;
 }
 
 // Visibility ordering for filtering
@@ -138,6 +142,12 @@ export class HoloEmitter {
     for (const [community, files] of communities) {
       const symbols: ExternalSymbolDefinition[] = [];
       for (const file of files) {
+        // If incremental, only include changed files and their community
+        if (options.incremental && options.changedFiles && !options.changedFiles.includes(file)) {
+          // Check if any symbols in this file are in changeImpact?
+          // For now, let's keep it simple: if incremental, only show changed files.
+          continue;
+        }
         for (const sym of graph.getSymbolsInFile(file)) {
           if (VISIBILITY_ORDER[sym.visibility] <= minVis) {
             symbols.push(sym);
@@ -157,7 +167,9 @@ export class HoloEmitter {
     if (layout === 'layered') {
       layeredLayout(layoutNodes, layoutEdges);
     } else {
-      forceDirectedLayout(layoutNodes, layoutEdges);
+      forceDirectedLayout(layoutNodes, layoutEdges, {
+        iterations: options.incremental ? 50 : 200, // Faster delta resolution if incremental
+      });
     }
 
     // Build position lookup
@@ -692,11 +704,12 @@ export class HoloEmitter {
         const id = this.makeObjectId(sym);
         if (!nodeIds.has(id)) {
           nodeIds.add(id);
+          const pos = options.lastPositions?.get(id) || [0, 0, 0];
           layoutNodes.push({
             id,
-            x: 0,
-            y: 0,
-            z: 0,
+            x: pos[0],
+            y: pos[1],
+            z: pos[2],
             weight: sym.loc ?? 1,
           });
         }

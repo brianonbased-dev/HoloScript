@@ -18,21 +18,77 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { setGraphRAGState } from './graph-rag-tools';
 
 // =============================================================================
-// DYNAMIC EMBEDDING PROVIDER
+// SMART EMBEDDING PROVIDER AUTO-DETECTION
 // =============================================================================
 
+let cachedProviderName: string | null = null;
+
 /**
- * Create an EmbeddingIndex with the provider selected by env vars.
+ * Auto-detect the best available embedding provider.
+ * Cached for the session (only probes once).
  *
- * Reads EMBEDDING_PROVIDER (bm25 | xenova | openai | ollama, default: bm25)
- * and passes relevant config (OPENAI_API_KEY, OLLAMA_URL, OLLAMA_MODEL, XENOVA_MODEL).
+ * Priority:
+ * 1. Explicit EMBEDDING_PROVIDER env var (user override)
+ * 2. OPENAI_API_KEY set → 'openai'
+ * 3. Ollama running (probe with 2s timeout) → 'ollama'
+ * 4. Fallback → 'bm25'
  */
-async function createDynamicEmbeddingIndex(mod: any): Promise<any> {
+async function detectBestEmbeddingProvider(): Promise<string> {
+  if (cachedProviderName) return cachedProviderName;
+
+  // 1. Explicit env override
+  if (process.env.EMBEDDING_PROVIDER) {
+    cachedProviderName = process.env.EMBEDDING_PROVIDER;
+    console.error(`[EmbeddingProvider] Using explicit env: ${cachedProviderName}`);
+    return cachedProviderName;
+  }
+
+  // 2. OpenAI API key available
+  if (process.env.OPENAI_API_KEY) {
+    cachedProviderName = 'openai';
+    console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (API key found)`);
+    return cachedProviderName;
+  }
+
+  // 3. Probe Ollama
+  try {
+    const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+
+    const response = await fetch(`${ollamaUrl}/api/tags`, {
+      signal: controller.signal,
+      method: 'GET',
+    });
+    clearTimeout(timeout);
+
+    if (response.ok) {
+      cachedProviderName = 'ollama';
+      console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (running at ${ollamaUrl})`);
+      return cachedProviderName;
+    }
+  } catch {
+    // Ollama not running or unreachable
+  }
+
+  // 4. Fallback to BM25
+  cachedProviderName = 'bm25';
+  console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (fallback, no API or Ollama found)`);
+  return cachedProviderName;
+}
+
+/**
+ * Create an EmbeddingIndex with auto-detected or explicitly configured provider.
+ */
+async function createDynamicEmbeddingIndex(mod: { 
+  EmbeddingIndex: new (provider: any) => any; 
+  createEmbeddingProvider: (opts: any) => Promise<any> 
+}): Promise<any> {
   const { EmbeddingIndex, createEmbeddingProvider } = mod;
-  const providerName = (process.env.EMBEDDING_PROVIDER ?? 'bm25') as any;
-  console.error(`[EmbeddingProvider] Using provider: ${providerName}${providerName === 'openai' ? ' (API key: ' + (process.env.OPENAI_API_KEY ? 'set' : 'MISSING') + ')' : ''}`);
+  const providerName = await detectBestEmbeddingProvider();
+
   const provider = await createEmbeddingProvider({
-    provider: providerName,
+    provider: providerName as any,
     ollamaUrl: process.env.OLLAMA_URL,
     ollamaModel: process.env.OLLAMA_MODEL,
     openaiApiKey: process.env.OPENAI_API_KEY,
@@ -56,11 +112,15 @@ console.log(
 );
 
 interface GraphCacheEnvelope {
-  version: 1;
+  version: 1 | 2;
   rootDir: string;
   timestamp: number;
   stats: Record<string, unknown>;
   graphJson: string;
+  // v2 fields (incremental absorb)
+  gitCommitHash?: string;
+  fileHashes?: Record<string, string>;
+  embeddingProvider?: string;
 }
 
 interface AbsorbDiagnostics {
@@ -75,7 +135,14 @@ interface AbsorbDiagnostics {
   hints: string[];
 }
 
-function saveGraphCache(graph: any, rootDir: string, stats: Record<string, unknown>): void {
+function saveGraphCache(
+  graph: any,
+  rootDir: string,
+  stats: Record<string, unknown>,
+  gitCommitHash?: string,
+  fileHashes?: Record<string, string>,
+  embeddingProvider?: string
+): void {
   const totalFiles = Number((stats as { totalFiles?: unknown })?.totalFiles ?? 0);
   if (!Number.isFinite(totalFiles) || totalFiles <= 0) {
     console.log(
@@ -88,14 +155,17 @@ function saveGraphCache(graph: any, rootDir: string, stats: Record<string, unkno
       fs.mkdirSync(CACHE_DIR, { recursive: true });
     }
     const envelope: GraphCacheEnvelope = {
-      version: 1,
+      version: 2,
       rootDir,
       timestamp: Date.now(),
       stats,
       graphJson: graph.serialize(),
+      gitCommitHash,
+      fileHashes,
+      embeddingProvider,
     };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
-    console.log(`[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir}`);
+    console.log(`[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir} version=2 git=${gitCommitHash?.slice(0, 7)}`);
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(`[CacheDebug][codebase] save miss path=${CACHE_FILE} error=${(err as Error)?.message ?? String(err)}`);
@@ -110,15 +180,21 @@ function loadGraphCache(): GraphCacheEnvelope | null {
     }
     const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
     const envelope: GraphCacheEnvelope = JSON.parse(raw);
-    if (envelope.version !== 1) {
+
+    // Accept both v1 and v2
+    if (envelope.version !== 1 && envelope.version !== 2) {
       console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=version-mismatch`);
       return null;
     }
-    if (Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) {
-      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=expired`);
+
+    // v2 caches use content-based invalidation (no TTL check)
+    // v1 caches still use 24h TTL
+    if (envelope.version === 1 && Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) {
+      console.log(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=v1-expired`);
       return null;
     }
-    console.log(`[CacheDebug][codebase] load hit path=${CACHE_FILE} rootDir=${envelope.rootDir}`);
+
+    console.log(`[CacheDebug][codebase] load hit path=${CACHE_FILE} rootDir=${envelope.rootDir} version=${envelope.version}`);
     return envelope;
   } catch {
     console.warn(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=parse-or-io-error`);
@@ -149,7 +225,7 @@ function getCacheAge(): {
 
 function buildAbsorbDiagnostics(
   rootDir: string,
-  scanResult: any,
+  scanResult: { files: any[]; stats?: any } | null,
   includeBuildArtifacts: boolean
 ): AbsorbDiagnostics {
   const resolvedRootDir = path.resolve(rootDir);
@@ -176,7 +252,7 @@ function buildAbsorbDiagnostics(
   }
 
   const errors = Array.isArray(scanResult?.stats?.errors)
-    ? scanResult.stats.errors
+    ? scanResult?.stats?.errors
     : [];
   const scanErrorSample = errors.slice(0, 5).map((e: any) => ({
     file: String(e?.file ?? ''),
@@ -381,6 +457,34 @@ export const codebaseTools: Tool[] = [
       properties: {},
     },
   },
+  {
+    name: 'holo_detect_drift',
+    description:
+      'Fast drift detection: checks if the current knowledge graph is out of sync with the filesystem content hashes (without a full scan). Returns a list of drifted files.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Absolute path to the root directory',
+        },
+      },
+      required: ['rootDir'],
+    },
+  },
+  {
+    name: 'holo_resolve_symbol',
+    description:
+      'Federated symbol resolution: searches for a symbol across the entire absorbed knowledge mesh.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbolName: { type: 'string', description: 'Name of the symbol to resolve' },
+        limit: { type: 'number', description: 'Maximum results to return', default: 5 },
+      },
+      required: ['symbolName'],
+    },
+  },
 ];
 
 // =============================================================================
@@ -392,7 +496,7 @@ export const codebaseTools: Tool[] = [
 let cachedGraph: any = null;
 let cachedRootDir = '';
 let cacheAutoLoaded = false;
-let cacheProvenance: 'fresh-scan' | 'disk-cache' | null = null;
+let cacheProvenance: 'fresh-scan' | 'disk-cache' | 'incremental-patch' | null = null;
 let cacheTimestamp = 0;
 
 /**
@@ -479,6 +583,10 @@ export async function handleCodebaseTool(
       return handleDetectChanges(args);
     case 'holo_graph_status':
       return handleGraphStatus();
+    case 'holo_detect_drift':
+      return handleDetectDrift(args);
+    case 'holo_resolve_symbol':
+      return handleResolveSymbol(args);
     default:
       return null;
   }
@@ -486,65 +594,31 @@ export async function handleCodebaseTool(
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
-async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
-  const mod = await loadCodebaseModule();
-  const { CodebaseScanner, CodebaseGraph, HoloEmitter } = mod;
+/**
+ * Run a full codebase scan (non-incremental path).
+ */
+async function runFullScan(
+  mod: { 
+    CodebaseScanner: any; 
+    CodebaseGraph: any; 
+    HoloEmitter: any; 
+    CodebaseSceneCompiler: any; 
+    GitChangeDetector: any;
+    GraphRAGEngine: any;
+    EmbeddingIndex: any;
+    createEmbeddingProvider: any;
+  },
+  rootDir: string,
+  languages: string[] | undefined,
+  maxFiles: number | undefined,
+  includeBuildArtifacts: boolean,
+  outputFormat: string,
+  layout: string,
+  interactive: boolean
+): Promise<unknown> {
+  const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } = mod;
 
-  const rootDir = args.rootDir as string;
-  const outputFormat = (args.outputFormat as string) ?? 'holo';
-  const layout = (args.layout as string) ?? 'force';
-  const languages = args.languages as string[] | undefined;
-  const maxFiles = args.maxFiles as number | undefined;
-  const interactive = (args.interactive as boolean) ?? false;
-  const force = (args.force as boolean) ?? false;
-  const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
-
-  // -------------------------------------------------------------------
-  // Cache-first: if force=false and a fresh disk cache exists for this
-  // rootDir, skip re-scanning and return the cached result.
-  // -------------------------------------------------------------------
-  if (!force) {
-    const envelope = loadGraphCache();
-    const ageMs = envelope ? Date.now() - envelope.timestamp : undefined;
-    const isFresh = envelope && ageMs !== undefined && ageMs < CACHE_MAX_AGE_MS;
-    const sameRoot = envelope && envelope.rootDir === rootDir;
-
-    if (isFresh && sameRoot) {
-      // Ensure it's in session memory too
-      if (!cachedGraph) {
-        try {
-          cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
-          cachedRootDir = rootDir;
-          cacheProvenance = 'disk-cache';
-          cacheTimestamp = envelope.timestamp;
-          try {
-            const { GraphRAGEngine } = mod;
-            const idx = await createDynamicEmbeddingIndex(mod);
-            await idx.buildIndex(cachedGraph);
-            setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-          } catch { /* Embedding provider may not be available */ }
-        } catch { /* corrupt cache — fall through to fresh scan */ }
-      }
-
-      if (cachedGraph) {
-        const ageHuman = ageMs! < 3600000
-          ? `${Math.round(ageMs! / 60000)}m`
-          : `${(ageMs! / 3600000).toFixed(1)}h`;
-        return {
-          cached: true,
-          cacheAge: ageHuman,
-          cacheAgeMs: ageMs,
-          rootDir,
-          stats: envelope!.stats,
-          message: `Returned from disk cache (${ageHuman} old, rootDir matches). Pass force=true to re-scan.`,
-        };
-      }
-    }
-  }
-
-  // -------------------------------------------------------------------
-  // Fresh scan
-  // -------------------------------------------------------------------
+  const startTime = Date.now();
   const scanner = new CodebaseScanner();
   const scanResult = await scanner.scan({
     rootDir,
@@ -556,48 +630,58 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
 
+  // Compute git commit hash and file hashes for v2 cache
+  const detector = new GitChangeDetector(rootDir);
+  let gitCommitHash: string | undefined;
+  let fileHashes: Record<string, string> | undefined;
+
+  if (detector.isGitRepo()) {
+    gitCommitHash = detector.getHeadCommit() ?? undefined;
+    const filePaths = (scanResult as { files: any[] }).files.map((f: any) => f.path);
+    const hashes = detector.computeFileHashes(filePaths);
+    fileHashes = Object.fromEntries(hashes.map((h: any) => [h.filePath, h.hash]));
+  }
+
+  graph.gitCommitHash = gitCommitHash;
+  graph.fileHashes = fileHashes;
+
   // Cache for subsequent queries
   cachedGraph = graph;
   cachedRootDir = rootDir;
   cacheProvenance = 'fresh-scan';
   cacheTimestamp = Date.now();
 
-  // Persist graph to disk for cross-session reuse
+  // Persist graph to disk
   const graphStats = graph.getStats();
-  saveGraphCache(graph, rootDir, graphStats);
+  const embeddingProvider = await detectBestEmbeddingProvider();
+  saveGraphCache(graph, rootDir, graphStats, gitCommitHash, fileHashes, embeddingProvider);
 
-  // Build embedding index for Graph RAG (async, best-effort)
+  // Build embedding index
   try {
     const { GraphRAGEngine } = mod;
     const embeddingIndex = await createDynamicEmbeddingIndex(mod);
     await embeddingIndex.buildIndex(graph);
-    const ragEngine = new GraphRAGEngine(graph, embeddingIndex);
-    setGraphRAGState(embeddingIndex, ragEngine);
+    setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
   } catch {
-    // Embedding provider may not be available; Graph RAG tools will return helpful errors
+    // Embedding provider may not be available
   }
+
+  // Sync with mesh (Phase 9)
+  await syncWithMesh(graph, rootDir);
 
   const stats = graph.getStats();
   const diagnostics =
     stats.totalFiles === 0
       ? buildAbsorbDiagnostics(rootDir, scanResult, includeBuildArtifacts)
       : undefined;
-  const communities: Map<string, string[]> = graph.detectCommunities();
-
-  const communityList = Array.from(communities.entries()).map(
-    ([name, files]: [string, string[]]) => ({
-      name,
-      fileCount: files.length,
-    })
-  );
 
   if (outputFormat === 'stats') {
     return {
       rootDir,
       stats,
-      communities: communityList,
-      errors: scanResult.stats.errors,
+      gitCommitHash,
       diagnostics,
+      durationMs: Date.now() - startTime,
     };
   }
 
@@ -605,7 +689,9 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     return {
       stats,
       graph: graph.serialize(),
+      gitCommitHash,
       diagnostics,
+      durationMs: Date.now() - startTime,
     };
   }
 
@@ -614,35 +700,289 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const holoSource = emitter.emit(graph, {
     name: rootDir.split(/[/\\]/).pop() ?? 'codebase',
     layout: layout as 'force' | 'layered',
+    lastPositions: graph.nodePositions,
   });
 
-  // When interactive mode requested, compile an interactive 3D scene
-  if (interactive) {
-    try {
-      const { CodebaseSceneCompiler } = mod;
-      const sceneCompiler = new CodebaseSceneCompiler();
-      const scene = sceneCompiler.compile(graph, {
-        layout: layout as 'force' | 'layered',
-        interactive: true,
-      });
-      return {
-        stats,
-        holoSource,
-        interactiveScene: scene,
-        communities: communityList,
-        diagnostics,
-      };
-    } catch {
-      // Fall through to non-interactive output
-    }
+  // Extract positions from AST via SceneCompiler (since emitter doesn't expose them directly)
+  const sceneCompiler = new CodebaseSceneCompiler();
+  const scene = sceneCompiler.compile(graph, {
+    layout: layout as 'force' | 'layered',
+    interactive,
+    lastPositions: graph.nodePositions,
+  });
+
+  // Save new positions to graph
+  for (const obj of scene.objects) {
+    graph.nodePositions.set(obj.name, obj.position);
   }
 
   return {
     stats,
     holoSource,
-    communities: communityList,
+    interactiveScene: scene,
+    gitCommitHash,
     diagnostics,
+    durationMs: Date.now() - startTime,
   };
+}
+
+/**
+ * Run an incremental patch (reuse cached graph, only rescan changed files).
+ */
+async function runIncrementalPatch(
+  mod: { 
+    CodebaseScanner: any; 
+    CodebaseGraph: any; 
+    GitChangeDetector: any; 
+    HoloEmitter: any; 
+    CodebaseSceneCompiler: any; 
+    GraphRAGEngine: any;
+    EmbeddingIndex: any;
+    createEmbeddingProvider: any;
+  },
+  rootDir: string,
+  envelope: GraphCacheEnvelope,
+  changes: { added: string[]; modified: string[]; deleted: string[]; headCommit: string },
+  includeBuildArtifacts: boolean,
+  outputFormat: string,
+  layout: string,
+  interactive: boolean
+): Promise<unknown> {
+  const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
+  const startTime = Date.now();
+
+  // Deserialize cached graph
+  let graph: any;
+  try {
+    graph = CodebaseGraph.deserialize(envelope.graphJson);
+  } catch {
+    console.warn('[AbsorbIncremental] deserialization failed → full scan');
+    return await runFullScan(mod, rootDir, undefined, undefined, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  // Content-hash verification
+  const detector = new GitChangeDetector(rootDir);
+  const modifiedFiltered = detector.filterByContentHash(
+    changes.modified,
+    envelope.fileHashes ?? {}
+  );
+
+  const filesToRemove = [...changes.deleted, ...modifiedFiltered.trulyChanged];
+  const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged];
+
+  console.log(`[AbsorbIncremental] removing ${filesToRemove.length}, rescanning ${filesToRescan.length}`);
+
+  // Rescan changed files
+  const scanner = new CodebaseScanner();
+  const rescanResult = await scanner.scanFiles(rootDir, filesToRescan.map(f => path.join(rootDir, f)), {
+    includeBuildArtifacts,
+  });
+
+  // Patch graph
+  graph.patchFiles(filesToRemove, rescanResult.files);
+
+  // Update git metadata
+  graph.gitCommitHash = changes.headCommit;
+  const allFilePaths = graph.getFilePaths();
+  const newHashes = detector.computeFileHashes(allFilePaths);
+  graph.fileHashes = Object.fromEntries(newHashes.map((h: any) => [h.filePath, h.hash]));
+
+    // Update embedding index
+    try {
+      const { GraphRAGEngine } = mod;
+      const embeddingIndex = await createDynamicEmbeddingIndex(mod);
+
+      // Load existing embeddings if available
+      if (cachedGraph && cachedGraph === graph) {
+        // Use cached embedding index
+      } else {
+        // Remove stale embeddings
+        for (const file of filesToRemove) {
+          embeddingIndex.removeSymbols(file);
+        }
+        // Add fresh embeddings
+        const newSymbols = (rescanResult as any).files.flatMap((f: any) => f.symbols);
+        if (newSymbols.length > 0) {
+          await embeddingIndex.addSymbols(newSymbols);
+        }
+      }
+
+      setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
+    } catch {
+      // Embedding provider may not be available
+    }
+
+  // Cache updated graph
+  cachedGraph = graph;
+  cachedRootDir = rootDir;
+  cacheProvenance = 'incremental-patch';
+  cacheTimestamp = Date.now();
+
+  const graphStats = graph.getStats();
+  const embeddingProvider = await detectBestEmbeddingProvider();
+  
+  // Layout and Emission (Phase 8: Incremental Spatial)
+  let holoSource = '';
+  let interactiveScene: any = null;
+
+  if (outputFormat === 'holo' || interactive) {
+    const { HoloEmitter, CodebaseSceneCompiler } = mod;
+    const emitter = new HoloEmitter();
+    holoSource = emitter.emit(graph, {
+      name: rootDir.split(/[/\\]/).pop() ?? 'codebase',
+      layout: layout as 'force' | 'layered',
+      incremental: true,
+      lastPositions: graph.nodePositions,
+      changedFiles: filesToRescan,
+    });
+
+    const sceneCompiler = new CodebaseSceneCompiler();
+    interactiveScene = sceneCompiler.compile(graph, {
+      layout: layout as 'force' | 'layered',
+      interactive: true,
+      lastPositions: graph.nodePositions,
+    });
+
+    // Save positions back for next time
+    for (const obj of interactiveScene.objects) {
+      graph.nodePositions.set(obj.name, obj.position);
+    }
+  }
+
+  saveGraphCache(graph, rootDir, graphStats, graph.gitCommitHash, graph.fileHashes, embeddingProvider);
+
+  // Sync with mesh if truly changed (Phase 9)
+  if (filesToRescan.length > 0) {
+    await syncWithMesh(graph, rootDir);
+  }
+
+  const patchDurationMs = Date.now() - startTime;
+
+  return {
+    incremental: true,
+    filesChanged: filesToRescan.length,
+    filesAdded: changes.added.length,
+    filesModified: modifiedFiltered.trulyChanged.length,
+    filesDeleted: changes.deleted.length,
+    patchDurationMs,
+    rootDir,
+    stats: graphStats,
+    holoSource,
+    interactiveScene,
+    gitCommitHash: changes.headCommit,
+    message: `Incremental update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${graphStats.totalFiles} total)`,
+  };
+}
+
+async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
+  const mod = (await loadCodebaseModule()) as { 
+    CodebaseScanner: any; 
+    CodebaseGraph: any; 
+    GitChangeDetector: any; 
+    HoloEmitter: any; 
+    CodebaseSceneCompiler: any; 
+    GraphRAGEngine: any;
+    EmbeddingIndex: any;
+    createEmbeddingProvider: any;
+  };
+  const { CodebaseGraph, GitChangeDetector } = mod;
+
+  const rootDir = args.rootDir as string;
+  const outputFormat = (args.outputFormat as string) ?? 'holo';
+  const layout = (args.layout as string) ?? 'force';
+  const languages = args.languages as string[] | undefined;
+  const maxFiles = args.maxFiles as number | undefined;
+  const interactive = (args.interactive as boolean) ?? false;
+  const force = (args.force as boolean) ?? false;
+  const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PATH 1: force=true → FULL SCAN
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (force) {
+    console.log('[AbsorbIncremental] force=true → full scan');
+    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PATH 2: Load cache checks
+  // ═══════════════════════════════════════════════════════════════════════════
+  const envelope = loadGraphCache();
+  if (!envelope) {
+    console.log('[AbsorbIncremental] no cache → full scan');
+    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  if (envelope.version === 1) {
+    console.log('[AbsorbIncremental] v1 cache (no git data) → full scan');
+    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  if (envelope.rootDir !== rootDir) {
+    console.log('[AbsorbIncremental] different rootDir → full scan');
+    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PATH 3: Git change detection
+  // ═══════════════════════════════════════════════════════════════════════════
+  const detector = new GitChangeDetector(rootDir);
+  if (!detector.isGitRepo()) {
+    console.log('[AbsorbIncremental] not a git repo → full scan');
+    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  const changes = detector.detectChanges(envelope.gitCommitHash ?? null);
+  if (changes.storedCommitMissing) {
+    console.log('[AbsorbIncremental] stored commit missing (force push?) → full scan');
+    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+  }
+
+  const totalChanges = changes.added.length + changes.modified.length + changes.deleted.length;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PATH 4: FAST PATH - Zero changes
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (totalChanges === 0) {
+    console.log('[AbsorbIncremental] 0 changes → fast path (return cached)');
+    // Ensure cached graph is in session memory
+    if (!cachedGraph) {
+      try {
+        cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+        cachedRootDir = rootDir;
+        cacheProvenance = 'disk-cache';
+        cacheTimestamp = envelope.timestamp;
+      } catch {
+        console.warn('[AbsorbIncremental] deserialization failed → full scan');
+        return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+      }
+    }
+
+    return {
+      cached: true,
+      incremental: false,
+      filesChanged: 0,
+      rootDir,
+      stats: envelope.stats,
+      gitCommitHash: changes.headCommit,
+      message: `No changes since last scan (${changes.headCommit.slice(0, 7)})`,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PATH 5: INCREMENTAL PATCH
+  // ═══════════════════════════════════════════════════════════════════════════
+  console.log(`[AbsorbIncremental] ${totalChanges} changes → incremental patch`);
+  return await runIncrementalPatch(
+    mod,
+    rootDir,
+    envelope,
+    changes,
+    includeBuildArtifacts,
+    outputFormat,
+    layout,
+    interactive
+  );
 }
 
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
@@ -803,12 +1143,14 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   const symbolOwner = args.symbolOwner as string | undefined;
 
   if (changedFiles && changedFiles.length > 0) {
-    const affected: Set<string> = cachedGraph.getImpactSet(changedFiles);
+    const communityImpact = cachedGraph.getCommunityAwareImpact(changedFiles);
+    const affectedCount = Array.from(communityImpact.values()).reduce((acc: number, files: any) => acc + (files as string[]).length, 0);
+    
     return {
       changedFiles,
-      affectedFiles: Array.from(affected),
-      affectedCount: affected.size,
-      blastRadius: `${affected.size} files affected by changes to ${changedFiles.length} files`,
+      impactByCommunity: Object.fromEntries(communityImpact),
+      affectedCount,
+      blastRadius: `${affectedCount} files across ${communityImpact.size} communities affected by changes to ${changedFiles.length} files`,
       ...(cacheNote && { cacheNote }),
     };
   }
@@ -887,6 +1229,34 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
   };
 }
 
+async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown> {
+  const graphState = await ensureCachedGraph();
+  if (!graphState.loaded) {
+    return { error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.' };
+  }
+
+  const rootDir = args.rootDir as string;
+  const mod = await loadCodebaseModule();
+  const { GitChangeDetector } = mod;
+
+  const detector = new GitChangeDetector(rootDir);
+  const filePaths = cachedGraph.getFilePaths();
+  const currentHashes = detector.computeFileHashes(filePaths);
+  const hashMap = Object.fromEntries(currentHashes.map((h: any) => [h.filePath, h.hash]));
+
+  const drifted = cachedGraph.detectDrift(hashMap);
+
+  return {
+    rootDir,
+    driftedFiles: drifted,
+    driftCount: drifted.length,
+    inSync: drifted.length === 0,
+    summary: drifted.length === 0 
+      ? 'Knowledge graph is perfectly in sync with filesystem.' 
+      : `Detected ${drifted.length} drifted files. Recommend running holo_absorb_repo.`,
+  };
+}
+
 // ── Graph Status ─────────────────────────────────────────────────────────────
 
 async function handleGraphStatus(): Promise<unknown> {
@@ -962,4 +1332,94 @@ function extractFileFromQuery(query: string): string {
   if (pathMatch) return pathMatch[1];
 
   return query.split(/\s+/).pop() ?? '';
+}
+
+/**
+ * Handle federated symbol resolution via MCP Orchestrator.
+ */
+async function handleResolveSymbol(args: Record<string, unknown>): Promise<unknown> {
+  const symbolName = args.symbolName as string;
+  const limit = (args.limit as number) ?? 5;
+  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
+  const apiKey = process.env.MCP_API_KEY;
+
+  try {
+    const response = await fetch(`${orchestratorUrl}/knowledge/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-mcp-api-key': apiKey || ''
+      },
+      body: JSON.stringify({
+        search: symbolName,
+        type: 'symbol',
+        limit
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Orchestrator error: ${response.status}`);
+    }
+
+    const data = (await response.json()) as { results: any[] };
+    return {
+      symbolName,
+      results: (data.results || []).map((r: any) => ({
+        repo: r.workspace_id,
+        filePath: r.metadata?.filePath,
+        type: r.metadata?.symbolType,
+        content: r.content,
+        relevance: r.relevance
+      }))
+    };
+  } catch (err) {
+    return { error: `Federated lookup failed: ${err}` };
+  }
+}
+
+/**
+ * Sync codebase symbols with the MCP Orchestrator for federated discovery.
+ */
+export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
+  const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:5566';
+  const apiKey = process.env.MCP_API_KEY;
+  const workspaceId = rootDir.split(/[/\\]/).pop() || 'unknown';
+
+  const symbols = graph.getAllSymbols().filter((s: any) => s.visibility === 'public');
+  const entries = symbols.slice(0, 1000).map((s: any) => ({
+    id: `symbol-${workspaceId}-${s.name}`,
+    workspace_id: workspaceId,
+    type: 'symbol',
+    content: `Symbol: ${s.name}\nType: ${s.type}\nFile: ${s.filePath}\nLanguage: ${s.language}\nSignature: ${s.signature || ''}\nDoc: ${s.docComment || ''}`,
+    metadata: {
+      symbolName: s.name,
+      symbolType: s.type,
+      filePath: s.filePath,
+      repo: workspaceId
+    }
+  }));
+
+  if (entries.length === 0) return;
+
+  try {
+    const response = await fetch(`${orchestratorUrl}/knowledge/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-mcp-api-key': apiKey || ''
+      },
+      body: JSON.stringify({
+        workspace_id: workspaceId,
+        entries
+      })
+    });
+
+    if (response.ok) {
+      console.log(`[MeshSync] Synchronized ${entries.length} symbols with orchestrator`);
+    } else {
+      console.warn(`[MeshSync] Orchestrator sync failed: ${response.status}`);
+    }
+  } catch (err) {
+    console.warn(`[MeshSync] Could not reach orchestrator: ${err}`);
+  }
 }

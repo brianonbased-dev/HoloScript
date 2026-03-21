@@ -37,6 +37,8 @@ import { HoloScriptInlineDebugAdapterFactory, HoloScriptDebugConfigurationProvid
 import { HololandServices } from './services/HololandServices';
 import { registerHololandCommands } from './services/HololandCommands';
 import { registerHololandWebviews } from './webview/HololandWebviews';
+import { ServiceConnectorPanel } from './webview/ServiceConnectorPanel';
+import { FirstRunWizard } from './webview/FirstRunWizard';
 
 let client: LanguageClient | undefined;
 let traitTreeProvider: TraitCompositionTreeProvider | undefined;
@@ -109,6 +111,33 @@ export function activate(context: ExtensionContext) {
       }
     })
   );
+
+  // Service Hub and Wizard commands
+  context.subscriptions.push(
+    commands.registerCommand('holoscript.openServiceHub', () => {
+      ServiceConnectorPanel.createOrShow(context.extensionUri, mcpClient);
+    })
+  );
+
+  context.subscriptions.push(
+    commands.registerCommand('holoscript.runSetupWizard', () => {
+      FirstRunWizard.createOrShow(context.extensionUri, mcpClient);
+    })
+  );
+
+  context.subscriptions.push(
+    commands.registerCommand('holoscript.completeSetup', async () => {
+      await context.globalState.update('holoscript.hasCompletedSetup', true);
+      await commands.executeCommand('setContext', 'holoscript.setupCompleted', true);
+      window.showInformationMessage('HoloScript Setup Complete! Jump into the Service Hub to connect Railway.');
+    })
+  );
+
+  // Trigger setup wizard for new users
+  const hasCompletedSetup = context.globalState.get('holoscript.hasCompletedSetup', false);
+  if (!hasCompletedSetup) {
+    commands.executeCommand('holoscript.runSetupWizard');
+  }
 
   // Register Open Examples command
   context.subscriptions.push(

@@ -1,0 +1,19 @@
+{
+  "name": "@holoscript/connector-railway",
+  "version": "1.0.0",
+  "description": "Railway MCP Connector for HoloScript Studio Integration Hub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@holoscript/connector-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0"
+  }
+}

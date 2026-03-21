@@ -75,6 +75,10 @@ export type { ThemeOptions, VisualStyle } from './visualization/CodebaseTheme';
 export { EdgeRenderer } from './visualization/EdgeRenderer';
 export type { RenderedEdge, EdgeRenderOptions } from './visualization/EdgeRenderer';
 
+// Git Change Detection (incremental absorb)
+export { GitChangeDetector } from './GitChangeDetector';
+export type { GitChangeResult, FileContentHash } from './GitChangeDetector';
+
 // Graph RAG
 export { EmbeddingIndex } from './EmbeddingIndex';
 export type { EmbeddingIndexOptions, IndexedSymbol, SearchResult } from './EmbeddingIndex';

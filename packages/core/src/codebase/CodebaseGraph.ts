@@ -51,6 +51,10 @@ interface SerializedGraph {
   rootDir: string;
   files: ScannedFile[];
   communities: Record<string, string[]>;
+  // v2 fields (incremental absorb)
+  gitCommitHash?: string;
+  fileHashes?: Record<string, string>;
+  nodePositions?: Record<string, [number, number, number]>;
 }
 
 // =============================================================================
@@ -75,6 +79,9 @@ export class CodebaseGraph {
   private importedByFile: Map<string, Set<string>> = new Map();
   private callerIndex: Map<string, CallEdge[]> = new Map(); // calleeName -> edges
   private calleeIndex: Map<string, CallEdge[]> = new Map(); // callerId -> edges
+  
+  /** 3D Node positions for spatial persistence (makeObjectId(sym) -> [x,y,z]) */
+  public nodePositions: Map<string, [number, number, number]> = new Map();
 
   // Communities (lazily computed)
   private _communities: Map<string, string[]> | null = null;
@@ -289,6 +296,34 @@ export class CodebaseGraph {
   }
 
   /**
+   * Group the impact set by architectural communities.
+   * Returns a map of community label -> list of affected files.
+   */
+  getCommunityAwareImpact(changedFiles: string[]): Map<string, string[]> {
+    const affected = this.getImpactSet(changedFiles);
+    const communities = this.detectCommunities();
+
+    const communityImpact: Map<string, string[]> = new Map();
+
+    for (const file of affected) {
+      let foundComm = 'unknown';
+      for (const [comm, fileList] of communities) {
+        if (fileList.includes(file)) {
+          foundComm = comm;
+          break;
+        }
+      }
+
+      if (!communityImpact.has(foundComm)) {
+        communityImpact.set(foundComm, []);
+      }
+      communityImpact.get(foundComm)!.push(file);
+    }
+
+    return communityImpact;
+  }
+
+  /**
    * Compute the blast radius of changing a specific symbol:
    * returns all files containing callers of that symbol, transitively.
    */
@@ -326,6 +361,24 @@ export class CodebaseGraph {
   }
 
   /**
+   * Detect "drift" between the graph state and the filesystem.
+   * Compares stored content hashes with current filesystem hashes.
+   * Returns a list of files that are out of sync.
+   */
+  detectDrift(fileHashesOnDisk: Record<string, string>): string[] {
+    if (!this.fileHashes) return [];
+
+    const drifted: string[] = [];
+    for (const [filePath, currentHash] of Object.entries(fileHashesOnDisk)) {
+      if (this.fileHashes[filePath] && this.fileHashes[filePath] !== currentHash) {
+        drifted.push(filePath);
+      }
+    }
+
+    return drifted;
+  }
+
+  /**
    * Trace a call chain from a symbol to a target (BFS shortest path).
    * Returns the path of symbol names, or null if no path exists.
    */
@@ -359,6 +412,47 @@ export class CodebaseGraph {
     return null;
   }
 
+  // ── Incremental Patching ─────────────────────────────────────────────────
+
+  /**
+   * Remove a file and all its associated symbols, imports, and calls.
+   * Call `buildIndexes()` after all add/remove operations are complete.
+   * Returns true if the file existed and was removed.
+   */
+  removeFile(filePath: string): boolean {
+    const file = this.files.get(filePath);
+    if (!file) return false;
+
+    this.files.delete(filePath);
+
+    // Remove symbols belonging to this file
+    for (const sym of file.symbols) {
+      const id = this.makeSymbolId(sym);
+      this.symbols.delete(id);
+    }
+
+    // Filter out imports and calls originating from this file
+    this.imports = this.imports.filter(imp => imp.fromFile !== filePath);
+    this.calls = this.calls.filter(call => call.filePath !== filePath);
+
+    this._communities = null;
+    return true;
+  }
+
+  /**
+   * Patch the graph by removing stale files and adding fresh ones.
+   * Rebuilds indexes once after all mutations.
+   */
+  patchFiles(removed: string[], added: ScannedFile[]): void {
+    for (const filePath of removed) {
+      this.removeFile(filePath);
+    }
+    for (const file of added) {
+      this.addFile(file);
+    }
+    this.buildIndexes();
+  }
+
   // ── Community Detection ──────────────────────────────────────────────────
 
   /**
@@ -374,23 +468,31 @@ export class CodebaseGraph {
     return this._communities;
   }
 
-  // ── Serialization ────────────────────────────────────────────────────────
+  // ── Serialization (v2 — incremental absorb) ─────────────────────────────
+
+  /** Git commit hash at time of last scan (set externally for v2 caching) */
+  gitCommitHash?: string;
+
+  /** Per-file content hashes for incremental invalidation */
+  fileHashes?: Record<string, string>;
 
   /**
-   * Serialize the graph to JSON for persistence.
+   * Serialize the graph to JSON for persistence (v2 format).
    */
   serialize(): string {
     const data: SerializedGraph = {
-      version: 1,
+      version: 2,
       rootDir: this.rootDir,
       files: Array.from(this.files.values()),
       communities: this._communities ? Object.fromEntries(this._communities) : {},
+      gitCommitHash: this.gitCommitHash,
+      fileHashes: this.fileHashes,
     };
     return JSON.stringify(data);
   }
 
   /**
-   * Deserialize a graph from JSON.
+   * Deserialize a graph from JSON. Accepts both v1 and v2 formats.
    */
   static deserialize(json: string): CodebaseGraph {
     const data: Partial<SerializedGraph> = JSON.parse(json);
@@ -404,6 +506,13 @@ export class CodebaseGraph {
 
     if (data.communities && Object.keys(data.communities).length > 0) {
       graph._communities = new Map(Object.entries(data.communities));
+    }
+
+    // v2 fields
+    graph.gitCommitHash = data.gitCommitHash;
+    graph.fileHashes = data.fileHashes;
+    if (data.nodePositions) {
+      graph.nodePositions = new Map(Object.entries(data.nodePositions));
     }
 
     return graph;

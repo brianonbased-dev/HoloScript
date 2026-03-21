@@ -298,12 +298,19 @@
       "holohub": [
         {
           "id": "holohub.assets",
-          "name": "Marketplace"
+          "name": "Marketplace",
+          "icon": "media/icon.png"
+        },
+        {
+          "id": "holoscript.serviceHub",
+          "name": "Service Connectors",
+          "icon": "media/icon.png"
         },
         {
           "id": "holoscript.diffVisualization",
           "name": "Diff Preview",
-          "type": "webview"
+          "type": "webview",
+          "icon": "media/icon.png"
         }
       ],
       "explorer": [
@@ -542,6 +549,18 @@
         "command": "holoscript.mcp.status",
         "title": "MCP: Show Connectivity Status",
         "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.openServiceHub",
+        "title": "Open Service Connector Hub",
+        "category": "HoloScript",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "holoscript.runSetupWizard",
+        "title": "Run Setup Wizard",
+        "category": "HoloScript",
+        "icon": "$(zap)"
       },
       {
         "command": "holoscript.createFirstScene",

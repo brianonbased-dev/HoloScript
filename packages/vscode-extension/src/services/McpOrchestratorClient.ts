@@ -129,8 +129,40 @@ export class McpOrchestratorClient {
         'holoscript.openPreview',
         'holoscript.openPreviewToSide',
         'holoscript.validate',
+        'holoscript.openServiceHub',
+        'holoscript.runSetupWizard',
       ],
-    };
+      metadata: {
+        type: 'ide-hub',
+        capabilities: ['service-discovery', 'deployment-control']
+      }
+    } as any;
+  }
+
+  /**
+   * Facilitates connecting to a specific service connector discovered via the mesh.
+   */
+  async connectToService(serverId: string): Promise<boolean> {
+    this.log(`Attempting to bind link to service: ${serverId}`);
+    try {
+      const config = this.getConfig();
+      const response = await fetch(`${config.url}/servers/${encodeURIComponent(serverId)}/enable`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mcp-api-key': config.apiKey,
+        },
+      });
+      
+      if (response.ok) {
+        this.log(`Successfully connected/enabled service: ${serverId}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      this.log(`Failed to connect to service ${serverId}: ${error}`);
+      return false;
+    }
   }
 
   private async register(config: ReturnType<McpOrchestratorClient['getConfig']>): Promise<void> {
