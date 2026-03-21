@@ -124,11 +124,10 @@ class RuntimeRegistryClass {
    */
   register(runtime: RuntimeModule): void {
     if (this.runtimes.has(runtime.id)) {
-      console.warn(`[RuntimeRegistry] Runtime '${runtime.id}' is already registered. Overwriting.`);
+      // Runtime already registered, overwriting
     }
 
     this.runtimes.set(runtime.id, runtime);
-    console.log(`[RuntimeRegistry] Registered runtime: ${runtime.id} v${runtime.version}`);
   }
 
   /**
@@ -138,7 +137,7 @@ class RuntimeRegistryClass {
     const existed = this.runtimes.delete(runtimeId);
 
     if (existed) {
-      console.log(`[RuntimeRegistry] Unregistered runtime: ${runtimeId}`);
+      // Runtime unregistered
     }
 
     return existed;
@@ -215,16 +214,13 @@ class RuntimeRegistryClass {
     const compatibleRuntimes = this.findByType(composition.type || 'scene');
 
     if (compatibleRuntimes.length === 0) {
-      console.error(`[RuntimeRegistry] No runtime found for composition type: ${composition.type}`);
       return null;
     }
 
     // Use first compatible runtime (could be smarter about selection)
     const runtime = compatibleRuntimes[0];
 
-    console.log(
-      `[RuntimeRegistry] Executing composition '${composition.name}' with runtime '${runtime.id}'`
-    );
+
 
     return runtime.initialize(composition, config);
   }
@@ -250,7 +246,6 @@ class RuntimeRegistryClass {
    */
   clear(): void {
     this.runtimes.clear();
-    console.log('[RuntimeRegistry] Cleared all runtimes');
   }
 }
 
