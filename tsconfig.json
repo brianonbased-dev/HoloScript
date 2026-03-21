@@ -24,7 +24,8 @@
     "packages/marketplace-api/src/**/*",
     "packages/auth/src/**/*",
     "packages/llm-provider/src/**/*",
-    "packages/studio/src/**/*",
+    // packages/studio has its own tsconfig with @/ path aliases — exclude from root
+    // "packages/studio/src/**/*",
     "packages/formatter/src/**/*",
     "packages/linter/src/**/*",
     "packages/partner-sdk/src/**/*",
