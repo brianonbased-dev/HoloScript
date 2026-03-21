@@ -157,9 +157,13 @@ export class WASMCompiler extends CompilerBase {
    */
   compile(
     composition: HoloComposition,
-    agentToken: string,
+    agentToken: CompilerToken,
     outputPath?: string
   ): WASMCompileResult {
+    // Ensure the agentToken is handled as per base class expectations
+    this.validateCompilerAccess(agentToken, outputPath);
+    this.reset();
+
     this.validateCompilerAccess(agentToken, outputPath);
     this.reset();
 
