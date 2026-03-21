@@ -293,6 +293,51 @@ const httpServer = http.createServer(async (req, res) => {
 
   // === REST API Endpoints (public, no MCP session required) ===
 
+  // .well-known/mcp discovery endpoint (MCP specification)
+  if (url === '/.well-known/mcp' || url === '/.well-known/mcp.json') {
+    const allTools = [...tools, ...PluginManager.getTools()];
+    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : `http://localhost:${PORT}`;
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    res.end(JSON.stringify({
+      mcpVersion: '2025-03-26',
+      name: SERVICE_NAME,
+      version: SERVICE_VERSION,
+      description: 'HoloScript language tooling — parse, validate, compile, and render .hs/.hsplus/.holo compositions across 27 backend targets.',
+      transport: {
+        type: 'streamable-http',
+        url: `${baseUrl}/mcp`,
+        authentication: MCP_API_KEY
+          ? { type: 'bearer', header: 'Authorization' }
+          : null,
+      },
+      capabilities: {
+        tools: { count: allTools.length },
+        resources: false,
+        prompts: false,
+      },
+      tools: allTools.map(t => ({
+        name: t.name,
+        description: t.description,
+      })),
+      endpoints: {
+        mcp: `${baseUrl}/mcp`,
+        health: `${baseUrl}/health`,
+        render: `${baseUrl}/api/render`,
+        share: `${baseUrl}/api/share`,
+      },
+      contact: {
+        repository: 'https://github.com/buildwithholoscript/HoloScript',
+      },
+    }));
+    return;
+  }
+
   // Extended health check with render capabilities
   if (url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -376,13 +421,14 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`   Auth: ${MCP_API_KEY ? 'API key required' : 'OPEN (dev mode)'}`);
   console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
   console.log(`   Endpoints:`);
-  console.log(`     GET  /health     - Health check (public)`);
-  console.log(`     POST /mcp        - MCP Streamable HTTP (authenticated)`);
-  console.log(`     GET  /mcp        - MCP session messages (authenticated)`);
-  console.log(`     DELETE /mcp      - Close session (authenticated)`);
-  console.log(`     GET  /api/health - API health + capabilities (public)`);
-  console.log(`     POST /api/render - Render HoloScript preview (public)`);
-  console.log(`     POST /api/share  - Create share links (public)`);
+  console.log(`     GET  /health            - Health check (public)`);
+  console.log(`     GET  /.well-known/mcp   - MCP discovery (public)`);
+  console.log(`     POST /mcp               - MCP Streamable HTTP (authenticated)`);
+  console.log(`     GET  /mcp               - MCP session messages (authenticated)`);
+  console.log(`     DELETE /mcp             - Close session (authenticated)`);
+  console.log(`     GET  /api/health        - API health + capabilities (public)`);
+  console.log(`     POST /api/render        - Render HoloScript preview (public)`);
+  console.log(`     POST /api/share         - Create share links (public)`);
 });
 
 // Graceful shutdown

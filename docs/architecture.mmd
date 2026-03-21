@@ -1,0 +1,139 @@
+---
+title: HoloScript Platform Architecture
+---
+%%{init: {'theme': 'dark', 'themeVariables': {'fontSize': '14px'}}}%%
+
+graph TB
+    subgraph STUDIO["<b>Layer 6: Studio & Frontend</b> — Next.js App"]
+        direction LR
+        PAGES["18 Routes<br/><i>home, create, holoclaw,<br/>holodaemon, playground, ...</i>"]
+        SURFACE["HoloSurfaceRenderer<br/><i>.hsplus → React DOM</i>"]
+        R3F_RENDER["R3F Renderer<br/><i>Three.js in browser</i>"]
+        API["65 API Routes<br/><i>assets, daemon, mcp,<br/>brittney, stripe, social</i>"]
+    end
+
+    subgraph MCP["<b>Layer 5: MCP & Communications</b> — mcp.holoscript.net"]
+        direction LR
+        MCP_SERVER["MCP Server v3.6.1<br/><i>Streamable HTTP transport</i>"]
+        TOOLS["72+ Tools<br/><i>parse, validate, compile,<br/>graph-rag, browser, gltf</i>"]
+        ORCH["Orchestrator<br/><i>Cross-workspace discovery</i>"]
+        A2A["Agent-to-Agent<br/><i>HoloClaw marketplace</i>"]
+        WELLKNOWN["/.well-known/mcp<br/><i>Discovery endpoint</i>"]
+    end
+
+    subgraph SECURITY["<b>Layer 4: Security & Identity</b>"]
+        direction LR
+        RBAC["RBAC<br/><i>JWT + UCAN tokens</i>"]
+        ED25519["Ed25519 Signing<br/><i>Composition provenance</i>"]
+        SANDBOX["Content Sandbox<br/><i>vm.createContext</i>"]
+        CORRIDOR["Corridor<br/><i>LLM output validation</i>"]
+        ZONES["Spatial Memory Zones<br/><i>Zone-based access</i>"]
+    end
+
+    subgraph RUNTIME["<b>Layer 3: Runtime & Trait System</b>"]
+        direction LR
+        HEADLESS["HeadlessRuntime<br/><i>CLI/daemon, no VR deps</i>"]
+        HSPLUS_RT["HSPlus Runtime<br/><i>State machines</i>"]
+        TRAITS["1,020+ Traits<br/><i>@grabbable, @physics,<br/>@networked, @llm_agent, ...</i>"]
+        BT["Behavior Trees<br/><i>Daemon self-improvement</i>"]
+        STDLIB["Stdlib I/O<br/><i>fs, process, net_fetch</i>"]
+    end
+
+    subgraph COMPILER["<b>Layer 2: Compiler Backends</b> — 26 verified targets"]
+        direction LR
+
+        subgraph ENGINES["Game Engines & XR"]
+            R3F_C["R3F<br/>3,619 LOC"]
+            UNITY_C["Unity"]
+            GODOT_C["Godot"]
+            UNREAL_C["Unreal"]
+            BABYLON_C["Babylon.js"]
+            PLAYCANVAS_C["PlayCanvas"]
+            VRCHAT_C["VRChat"]
+        end
+
+        subgraph PLATFORMS["Platforms"]
+            OPENXR_C["OpenXR"]
+            VISIONOS_C["visionOS"]
+            ANDROID_C["Android"]
+            ANDROIDXR_C["Android XR<br/>2,154 LOC"]
+            IOS_C["iOS"]
+            GLASSES_C["AI Glasses"]
+            AR_C["AR/WebAR"]
+        end
+
+        subgraph INDUSTRIAL["Industrial & IoT"]
+            URDF_C["URDF/ROS 2<br/>2,009 LOC"]
+            DTDL_C["DTDL<br/><i>Azure Digital Twins</i>"]
+            SDF_C["SDF<br/><i>Gazebo Physics</i>"]
+            USD_C["USD Physics<br/><i>OpenUSD</i>"]
+        end
+
+        subgraph COMPUTE["Compute & Shaders"]
+            WASM_C["WASM"]
+            WEBGPU_C["WebGPU"]
+            NIR_C["NIR"]
+            WGSL_C["NIR→WGSL"]
+            TSL_C["TSL"]
+            SHADER_C["Shader Graph"]
+        end
+
+        subgraph SPECIALIZED["Specialized"]
+            NFT_C["NFT Marketplace"]
+            A2A_C["A2A Agent Cards"]
+            SCM_C["Causal Models"]
+        end
+
+        BASE["CompilerBase<br/><i>RBAC + Identity</i>"]
+    end
+
+    subgraph PARSER["<b>Layer 1: Parser</b> — Three-Format Architecture"]
+        direction LR
+        HS[".hs<br/><i>Process scripts</i>"]
+        HSPLUS[".hsplus<br/><i>Behavior & state machines</i><br/>90 token types"]
+        HOLO[".holo<br/><i>Declarative scenes</i><br/>1,800+ LOC parser"]
+        MATERIAL["Material Parser"]
+        INCR["Incremental Parser"]
+        VALIDATOR["HSPlus Validator"]
+    end
+
+    subgraph CLI["<b>Layer 0: CLI</b> — holoscript command"]
+        direction LR
+        BUILD["build"]
+        RUN["run"]
+        TEST["test"]
+        DAEMON["daemon"]
+        EXPORT["export"]
+        LINT["lint"]
+    end
+
+    %% Data flow connections
+    CLI --> PARSER
+    PARSER --> COMPILER
+    COMPILER --> RUNTIME
+    RUNTIME --> SECURITY
+    SECURITY --> MCP
+    MCP --> STUDIO
+
+    %% Cross-layer connections
+    TOOLS --> COMPILER
+    TOOLS --> PARSER
+    BT --> MCP_SERVER
+    HEADLESS --> CLI
+    SURFACE --> HSPLUS_RT
+    A2A --> TRAITS
+    CORRIDOR --> SANDBOX
+
+    %% Styling
+    classDef layer fill:#1a1a2e,stroke:#e94560,stroke-width:2px,color:#eee
+    classDef engine fill:#16213e,stroke:#0f3460,stroke-width:1px,color:#ddd
+    classDef parser fill:#1a1a2e,stroke:#53d769,stroke-width:1px,color:#ddd
+    classDef security fill:#2d1b4e,stroke:#9b59b6,stroke-width:1px,color:#ddd
+    classDef mcp fill:#1b2838,stroke:#3498db,stroke-width:1px,color:#ddd
+
+    class STUDIO,MCP,SECURITY,RUNTIME,COMPILER,PARSER,CLI layer
+    class R3F_C,UNITY_C,GODOT_C,UNREAL_C,BABYLON_C,PLAYCANVAS_C,VRCHAT_C engine
+    class OPENXR_C,VISIONOS_C,ANDROID_C,ANDROIDXR_C,IOS_C,GLASSES_C,AR_C engine
+    class URDF_C,DTDL_C,SDF_C,USD_C engine
+    class WASM_C,WEBGPU_C,NIR_C,WGSL_C,TSL_C,SHADER_C engine
+    class NFT_C,A2A_C,SCM_C engine
