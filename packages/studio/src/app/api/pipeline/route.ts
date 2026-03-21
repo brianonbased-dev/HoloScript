@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { detectLLMProviderName } from '@/lib/recursive/llmProvider';
 
 // Pipeline state is managed client-side in pipelineStore.
 // These routes provide a server-side coordination point for multi-tab scenarios
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
     targetProject,
     status: 'running',
     startedAt: run.startedAt,
+    llmProvider: detectLLMProviderName(),
     hint: `GET /api/pipeline/${id} for status. POST /api/pipeline/${id} to control.`,
   });
 }
