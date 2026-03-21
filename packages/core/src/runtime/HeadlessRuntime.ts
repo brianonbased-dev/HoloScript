@@ -110,9 +110,7 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
     this.running = true;
     this.startTime = Date.now();
     
-    if (this.options.debug) {
-      console.log('[HeadlessRuntime] Starting with profile:', this.options.profile?.name);
-    }
+    // Debug logging removed per lint rules
 
     // Start tick loop
     if (this.options.tickRate && this.options.tickRate > 0) {
@@ -131,9 +129,7 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
       this.intervalId = undefined;
     }
 
-    if (this.options.debug) {
-      console.log('[HeadlessRuntime] Stopped after', this.tickCount, 'ticks');
-    }
+    // Debug logging removed per lint rules
   }
 
   tick(): void {
@@ -143,9 +139,7 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
     
     // Process AST nodes (simplified)
     // In a real implementation, this would execute the scene graph
-    if (this.options.debug && this.tickCount % 100 === 0) {
-      console.log(`[HeadlessRuntime] Tick ${this.tickCount}`);
-    }
+    // Debug logging removed per lint rules
   }
 
   getStats(): RuntimeStats {
