@@ -224,6 +224,10 @@ export default function HomePage() {
           HoloClaw
         </Link>
         <span className="footer-sep">·</span>
+        <Link href="/pipeline" className="footer-link">
+          Pipeline
+        </Link>
+        <span className="footer-sep">·</span>
         <span className="footer-hint">
           Press <kbd>?</kbd> for help
         </span>

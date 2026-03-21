@@ -167,6 +167,12 @@ export default function HoloDaemonPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link href="/holoclaw" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
+            HoloClaw
+          </Link>
+          <Link href="/pipeline" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-purple-500/40 transition-colors">
+            Pipeline
+          </Link>
           <select
             value={daemonMode}
             onChange={(e) => setDaemonMode(e.target.value as DaemonProfile)}

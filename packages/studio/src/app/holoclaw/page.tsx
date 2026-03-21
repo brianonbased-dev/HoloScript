@@ -416,6 +416,9 @@ export default function HoloClawPage() {
             <Link href="/holodaemon" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
               Daemon
             </Link>
+            <Link href="/pipeline" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-purple-500/40 transition-colors">
+              Pipeline
+            </Link>
             <Link href="/" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
               Home
             </Link>
@@ -473,6 +476,8 @@ export default function HoloClawPage() {
           <span>HoloClaw v0.1 — Skills hot-reload from compositions/skills/ — Native Surface</span>
           <span>
             <Link href="/holodaemon" className="hover:text-studio-text">Daemon</Link>
+            {' \u2022 '}
+            <Link href="/pipeline" className="hover:text-studio-text">Pipeline</Link>
             {' \u2022 '}
             <Link href="/create" className="hover:text-studio-text">Create</Link>
           </span>

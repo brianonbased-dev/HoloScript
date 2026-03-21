@@ -30,6 +30,7 @@ import {
   Code,
   Sparkles,
   Cog,
+  RefreshCw,
 } from 'lucide-react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 
@@ -299,6 +300,7 @@ export default function WorkspacePage() {
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <QuickAction icon={Cog} label="HoloDaemon Dashboard" href="/holodaemon" color="text-sky-400" />
             <QuickAction icon={Zap} label="HoloClaw Shelf" href="/holoclaw" color="text-amber-400" />
+            <QuickAction icon={RefreshCw} label="Recursive Pipeline" href="/pipeline" color="text-purple-400" />
             <QuickAction icon={Shield} label="Create RBAC Policy" href="/workspace/skills?category=rbac_policy" color="text-blue-400" />
             <QuickAction icon={Code} label="New MCP Tool Bundle" href="/workspace/skills?category=mcp_bundle" color="text-emerald-400" />
             <QuickAction icon={Sparkles} label="AI Prompt Template" href="/workspace/skills?category=prompt_template" color="text-violet-400" />
