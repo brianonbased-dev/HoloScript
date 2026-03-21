@@ -12,6 +12,7 @@
  */
 
 import type { SceneNode } from '@/lib/stores';
+import { getAllWizardTemplates } from '../presets/wizardTemplates';
 
 export interface SceneTemplate {
   id: string;
@@ -32,7 +33,7 @@ function id() {
 
 // ─── Templates ───────────────────────────────────────────────────────────────
 
-export const SCENE_TEMPLATES: SceneTemplate[] = [
+const BASE_SCENE_TEMPLATES: SceneTemplate[] = [
   // ── Blank Canvas ──────────────────────────────────────────────────────────
   {
     id: 'blank',
@@ -691,6 +692,12 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   }
 }`,
   },
+];
+
+/** All scene templates: built-in + wizard starter templates merged. */
+export const SCENE_TEMPLATES: SceneTemplate[] = [
+  ...BASE_SCENE_TEMPLATES,
+  ...getAllWizardTemplates(),
 ];
 
 // ─── Search ───────────────────────────────────────────────────────────────────

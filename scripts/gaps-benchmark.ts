@@ -77,16 +77,26 @@ async function main() {
 
     // Parse
     const parseStart = performance.now();
-    const ast = parser.parse(source);
+    const parseResult = parser.parse(source);
     const parseTime = performance.now() - parseStart;
     console.log(`\n=== ${file} — parsed in ${parseTime.toFixed(1)}ms ===`);
+
+    if (!parseResult.ast) {
+      console.error(`  Parse failed: ${parseResult.errors.map(e => e.message).join(', ')}`);
+      continue;
+    }
+
+    const composition = parseResult.ast;
 
     for (const [target, CompilerClass] of Object.entries(COMPILERS)) {
       try {
         const compiler = new CompilerClass();
         const start = performance.now();
+        // R3FCompiler.compile() expects HSPlusAST, use compileComposition() for .holo
         // Pass undefined to skip RBAC (CompilerBase line 541)
-        const output = compiler.compile(ast, undefined);
+        const output = typeof compiler.compileComposition === 'function'
+          ? compiler.compileComposition(composition, undefined)
+          : compiler.compile(composition, undefined);
         const elapsed = performance.now() - start;
 
         const outputStr = typeof output === 'string' ? output : JSON.stringify(output, null, 2);

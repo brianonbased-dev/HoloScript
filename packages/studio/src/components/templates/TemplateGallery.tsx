@@ -35,6 +35,16 @@ const CATEGORY_EMOJI: Record<string, string> = {
   minimal: '⬜',
   game: '🎮',
   architecture: '🏛️',
+  film: '🎬',
+  art: '🎨',
+  iot: '📡',
+  education: '🎓',
+  robotics: '🦾',
+  science: '🔬',
+  web: '🌐',
+  healthcare: '💊',
+  agriculture: '🌾',
+  creator: '🎭',
 };
 
 interface TemplateGalleryProps {

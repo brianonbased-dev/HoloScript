@@ -18,7 +18,7 @@ export interface StudioPreset {
   label: string;
   emoji: string;
   description: string;
-  category: 'game' | 'film' | 'art' | 'web' | 'iot' | 'education' | 'ai' | 'robotics' | 'science';
+  category: 'game' | 'film' | 'art' | 'web' | 'iot' | 'education' | 'ai' | 'robotics' | 'science' | 'healthcare' | 'architecture' | 'agriculture' | 'creator';
   studioMode: StudioMode;
   domainProfile: DomainProfile;
   openPanels: PanelKey[];
@@ -240,6 +240,66 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     ],
     suggestedTemplateCategory: 'science',
   },
+  {
+    id: 'healthcare-vr',
+    label: 'Healthcare VR',
+    emoji: '💊',
+    description: 'Therapeutic VR, rehabilitation, patient education, and clinical visualization',
+    category: 'healthcare',
+    studioMode: 'creator',
+    domainProfile: 'vr',
+    openPanels: ['chat', 'physics', 'inspector'],
+    sidebarTabs: [
+      'traits', 'physics', 'behavior', 'animation', 'audio',
+      'scene', 'assets', 'lighting', 'camera', 'saveload',
+    ],
+    suggestedTemplateCategory: 'science',
+  },
+  {
+    id: 'architecture-viz',
+    label: 'Architecture Viz',
+    emoji: '🏛️',
+    description: 'Building walkthroughs, interior design, urban planning, and BIM visualization',
+    category: 'architecture',
+    studioMode: 'creator',
+    domainProfile: 'all',
+    openPanels: ['chat', 'inspector', 'material'],
+    sidebarTabs: [
+      'traits', 'lighting', 'camera', 'shader', 'animation',
+      'scene', 'assets', 'models', 'saveload',
+    ],
+    suggestedTemplateCategory: 'architecture',
+  },
+  {
+    id: 'agri-tech',
+    label: 'Agriculture Tech',
+    emoji: '🌾',
+    description: 'Farm digital twins, greenhouse monitoring, precision agriculture, and crop visualization',
+    category: 'agriculture',
+    studioMode: 'creator',
+    domainProfile: 'iot',
+    openPanels: ['chat', 'inspector'],
+    sidebarTabs: [
+      'traits', 'state', 'network', 'terrain', 'scene',
+      'assets', 'compiler', 'saveload',
+    ],
+    suggestedTemplateCategory: 'iot',
+  },
+  {
+    id: 'creator-economy',
+    label: 'Creator Economy',
+    emoji: '🎭',
+    description: 'NFT galleries, social avatars, token forges, and live streaming stages',
+    category: 'creator',
+    studioMode: 'creator',
+    domainProfile: 'all',
+    openPanels: ['chat', 'export', 'assetLib'],
+    sidebarTabs: [
+      'traits', 'animation', 'shader', 'lighting', 'camera',
+      'scene', 'assets', 'compiler', 'saveload',
+    ],
+    suggestedTemplateCategory: 'art',
+  },
 ];
 
 // ─── Sub-category → Preset Mapping ──────────────────────────────────────────
@@ -284,6 +344,25 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'narupa-sim': 'molecular-lab',
   'anatomy-explorer': 'medical-sim',
   'surgical-training': 'medical-sim',
+  // Healthcare
+  'therapy-vr': 'healthcare-vr',
+  'rehab-sim': 'healthcare-vr',
+  'clinical-training': 'medical-sim',
+  'patient-education': 'healthcare-vr',
+  // Architecture
+  'building-walkthrough': 'architecture-viz',
+  'interior-design': 'architecture-viz',
+  'urban-planning': 'architecture-viz',
+  'smart-home': 'iot-dashboard',
+  // Agriculture
+  'farm-twin': 'agri-tech',
+  'greenhouse-monitor': 'agri-tech',
+  'precision-agriculture': 'agri-tech',
+  // Creator Economy
+  'nft-gallery': 'creator-economy',
+  'token-forge': 'creator-economy',
+  'social-avatar': 'creator-economy',
+  'live-stage': 'creator-economy',
 };
 
 // ─── Category → Sub-categories ───────────────────────────────────────────────
@@ -343,6 +422,29 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
     { id: 'anatomy-explorer', label: 'Anatomy Explorer', emoji: '🫀', description: 'Medical 3D visualization' },
     { id: 'surgical-training', label: 'Surgical Training', emoji: '🏥', description: 'VR procedure practice' },
   ],
+  healthcare: [
+    { id: 'therapy-vr', label: 'Therapy VR', emoji: '🧘', description: 'Therapeutic virtual environments' },
+    { id: 'rehab-sim', label: 'Rehab Simulation', emoji: '🏋️', description: 'Physical rehabilitation exercises' },
+    { id: 'clinical-training', label: 'Clinical Training', emoji: '🩺', description: 'Medical procedure practice' },
+    { id: 'patient-education', label: 'Patient Education', emoji: '📋', description: 'Visual health explanations' },
+  ],
+  architecture: [
+    { id: 'building-walkthrough', label: 'Building Walkthrough', emoji: '🏗️', description: 'First-person building tours' },
+    { id: 'interior-design', label: 'Interior Design', emoji: '🛋️', description: 'Room layouts and furnishing' },
+    { id: 'urban-planning', label: 'Urban Planning', emoji: '🏙️', description: 'City-scale visualization' },
+    { id: 'smart-home', label: 'Smart Home', emoji: '🏠', description: 'IoT-connected home dashboard' },
+  ],
+  agriculture: [
+    { id: 'farm-twin', label: 'Farm Digital Twin', emoji: '🚜', description: 'Real-time farm monitoring' },
+    { id: 'greenhouse-monitor', label: 'Greenhouse', emoji: '🌱', description: 'Climate-controlled growth tracking' },
+    { id: 'precision-agriculture', label: 'Precision Ag', emoji: '🛰️', description: 'Drone and satellite crop analysis' },
+  ],
+  creator: [
+    { id: 'nft-gallery', label: 'NFT Gallery', emoji: '🖼️', description: 'Virtual art exhibition space' },
+    { id: 'token-forge', label: 'Token Forge', emoji: '🔥', description: 'Mint and display 3D tokens' },
+    { id: 'social-avatar', label: 'Social Avatar', emoji: '🧑‍🎤', description: 'Custom avatar creator' },
+    { id: 'live-stage', label: 'Live Stage', emoji: '🎤', description: 'Virtual concert and streaming' },
+  ],
 };
 
 // ─── Category-specific Questions ─────────────────────────────────────────────
@@ -366,7 +468,7 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
       { value: 'small', label: 'Small project', emoji: '📁' },
       { value: 'production', label: 'Full production', emoji: '🏗️' },
     ],
-    categories: ['game', 'film', 'art', 'web', 'iot', 'education', 'robotics', 'science'],
+    categories: ['game', 'film', 'art', 'web', 'iot', 'education', 'robotics', 'science', 'healthcare', 'architecture', 'agriculture', 'creator'],
   },
   {
     id: 'artStyle',
@@ -471,6 +573,58 @@ export const PROJECT_QUESTIONS: WizardQuestion[] = [
       { value: 'desktop', label: 'Desktop', emoji: '🖥️' },
     ],
     categories: ['science'],
+  },
+  // Healthcare-specific
+  {
+    id: 'platforms',
+    label: 'Deployment target?',
+    type: 'multi-select',
+    options: [
+      { value: 'web', label: 'Web browser', emoji: '🌐' },
+      { value: 'vr', label: 'VR headset', emoji: '🥽' },
+      { value: 'mobile', label: 'Tablet/Mobile', emoji: '📱' },
+    ],
+    categories: ['healthcare'],
+  },
+  // Architecture-specific
+  {
+    id: 'artStyle',
+    label: 'Rendering style?',
+    type: 'card-select',
+    options: [
+      { value: 'realistic', label: 'Photorealistic', emoji: '📷' },
+      { value: 'stylized', label: 'Stylized', emoji: '🎨' },
+      { value: 'abstract', label: 'Schematic', emoji: '📐' },
+    ],
+    categories: ['architecture'],
+  },
+  {
+    id: 'platforms',
+    label: 'View in?',
+    type: 'multi-select',
+    options: [
+      { value: 'web', label: 'Web browser', emoji: '🌐' },
+      { value: 'vr', label: 'VR walkthrough', emoji: '🥽' },
+      { value: 'desktop', label: 'Desktop', emoji: '🖥️' },
+    ],
+    categories: ['architecture'],
+  },
+  // Creator Economy-specific
+  {
+    id: 'needsDeployment',
+    label: 'Deploy to web?',
+    type: 'toggle',
+    categories: ['creator'],
+  },
+  {
+    id: 'exportFormat',
+    label: 'Export format?',
+    type: 'card-select',
+    options: [
+      { value: 'gltf', label: 'glTF', emoji: '📦' },
+      { value: 'usd', label: 'USD', emoji: '🎬' },
+    ],
+    categories: ['creator'],
   },
 ];
 

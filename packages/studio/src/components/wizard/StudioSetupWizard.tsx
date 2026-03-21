@@ -26,6 +26,10 @@ import {
   GraduationCap,
   Wrench,
   FlaskConical,
+  Heart,
+  Building2,
+  Leaf,
+  Crown,
 } from 'lucide-react';
 import {
   STUDIO_PRESETS,
@@ -43,6 +47,7 @@ import type {
   ProjectSpecifics,
   StudioPreset,
 } from '@/lib/presets/studioPresets';
+import { StudioEvents } from '@/lib/analytics';
 
 // ─── Category cards ──────────────────────────────────────────────────────────
 
@@ -101,6 +106,30 @@ const CATEGORIES: CategoryCard[] = [
     label: 'Science / Medical',
     description: 'Molecular design, Narupa, anatomy',
     icon: <FlaskConical className="h-6 w-6" />,
+  },
+  {
+    id: 'healthcare',
+    label: 'Healthcare',
+    description: 'Therapy VR, rehab, patient education',
+    icon: <Heart className="h-6 w-6" />,
+  },
+  {
+    id: 'architecture',
+    label: 'Architecture',
+    description: 'Walkthroughs, interiors, urban planning',
+    icon: <Building2 className="h-6 w-6" />,
+  },
+  {
+    id: 'agriculture',
+    label: 'Agriculture',
+    description: 'Farm twins, greenhouses, precision ag',
+    icon: <Leaf className="h-6 w-6" />,
+  },
+  {
+    id: 'creator',
+    label: 'Creator Economy',
+    description: 'NFT galleries, avatars, live stages',
+    icon: <Crown className="h-6 w-6" />,
   },
 ];
 
@@ -318,6 +347,8 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
     if (wizardTemplate) {
       setCode(wizardTemplate.code);
     }
+    StudioEvents.wizardCompleted(selectedPresetId, category ?? '', subCategory ?? '', experienceLevel);
+    StudioEvents.presetApplied(selectedPresetId, 'wizard');
     setCreated(true);
     setTimeout(onClose, 800);
   }, [selectedPresetId, specifics, experienceLevel, applyPreset, onClose, wizardTemplate, setCode]);

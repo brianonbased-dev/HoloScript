@@ -1,16 +1,17 @@
 import { NextRequest } from 'next/server';
+import { getAllWizardTemplates } from '@/lib/presets/wizardTemplates';
 
 /**
  * GET /api/templates?category=&q=
  * Returns paginated HoloScript scene templates organized by category.
  */
 
-type TemplateCategory = 'environment' | 'architecture' | 'sci-fi' | 'fantasy' | 'minimal' | 'game' | 'film' | 'art' | 'iot' | 'education';
+type TemplateCategory = 'environment' | 'architecture' | 'sci-fi' | 'fantasy' | 'minimal' | 'game' | 'film' | 'art' | 'iot' | 'education' | 'robotics' | 'science' | 'healthcare' | 'agriculture' | 'creator';
 
 interface SceneTemplate {
   id: string;
   name: string;
-  category: TemplateCategory;
+  category: TemplateCategory | string;
   tags: string[];
   description: string;
   thumbnail: string;
@@ -111,10 +112,31 @@ const TEMPLATES: SceneTemplate[] = [
   },
 ];
 
+// Map wizard templates into API format (add objectCount + complexity estimate)
+function wizardToApiTemplates(): SceneTemplate[] {
+  return getAllWizardTemplates().map((wt) => {
+    const objectMatches = wt.code.match(/object\s+"/g);
+    const objectCount = objectMatches ? objectMatches.length : 1;
+    const complexity: 'simple' | 'medium' | 'complex' =
+      objectCount <= 3 ? 'simple' : objectCount <= 7 ? 'medium' : 'complex';
+    return {
+      id: wt.id,
+      name: wt.name,
+      category: wt.category,
+      tags: wt.tags,
+      description: wt.description,
+      thumbnail: wt.thumbnail,
+      code: wt.code,
+      objectCount,
+      complexity,
+    };
+  });
+}
+
 declare global {
   var __templateCatalog__: SceneTemplate[] | undefined;
 }
-const catalog = globalThis.__templateCatalog__ ?? (globalThis.__templateCatalog__ = [...TEMPLATES]);
+const catalog = globalThis.__templateCatalog__ ?? (globalThis.__templateCatalog__ = [...TEMPLATES, ...wizardToApiTemplates()]);
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

@@ -11,12 +11,12 @@
 | Compositions tested | 3 (healthcare, gaming, robotics) |
 | Backends tested | 17 |
 | Total compilations | 51 |
-| **Passed** | **39 (76.5%)** |
-| Failed | 12 (4 compilers need AST `.name` fix) |
-| Average compile time | **0.2ms** |
-| Total output generated | **126.1 KB** |
-| Parse time (cold) | 5.7ms |
-| Parse time (warm) | ~2.0ms |
+| **Passed** | **51 (100%)** |
+| Failed | 0 |
+| Average compile time | **0.7ms** |
+| Total output generated | **223.5 KB** |
+| Parse time (cold) | 8.1ms |
+| Parse time (warm) | ~2.5ms |
 
 ## Results Matrix
 
@@ -24,25 +24,25 @@ Legend: time in ms / output size in bytes
 
 | Backend | Healthcare | Gaming | Robotics | Language |
 |---------|-----------|--------|----------|----------|
-| **Unity** | 0.7ms / 322B | 0.0ms / 322B | 0.0ms / 322B | C# |
-| **Unreal** | 0.9ms / 2,553B | 0.1ms / 2,553B | 0.1ms / 2,553B | C++ |
-| **Godot** | 0.4ms / 213B | 0.0ms / 213B | 0.0ms / 213B | GDScript |
-| **Babylon** | 0.3ms / 1,380B | 0.0ms / 1,380B | 0.0ms / 1,380B | TypeScript |
-| **VRChat** | 0.7ms / 1,978B | 0.1ms / 1,978B | 0.0ms / 1,978B | UdonSharp |
-| **visionOS** | 0.5ms / 418B | 0.0ms / 418B | 0.0ms / 418B | Swift |
-| **iOS** | 0.7ms / 9,330B | 0.1ms / 9,330B | 0.1ms / 9,330B | SwiftUI |
-| **Android** | 0.6ms / 9,754B | 0.1ms / 9,754B | 0.1ms / 9,754B | Kotlin |
-| **URDF** | 0.9ms / 569B | 0.0ms / 569B | 0.1ms / 569B | XML |
-| **SDF** | 0.4ms / 1,702B | 0.0ms / 1,702B | 0.0ms / 1,702B | XML |
-| **WebGPU** | 0.5ms / 5,749B | 0.1ms / 5,749B | 0.1ms / 5,749B | JS + WGSL |
-| **WASM** | 0.9ms / 7,658B | 0.1ms / 7,658B | 0.1ms / 7,658B | WAT + JS |
-| **PlayCanvas** | 0.3ms / 1,417B | 0.0ms / 1,417B | 0.0ms / 1,417B | TypeScript |
-| R3F | fail | fail | fail | — |
-| OpenXR | fail | fail | fail | — |
-| AndroidXR | fail | fail | fail | — |
-| DTDL | fail | fail | fail | — |
+| **R3F** | 2.8ms / 1,580B | 0.3ms / 762B | 0.1ms / 668B | JSX |
+| **Unity** | 2.2ms / 1,391B | 0.2ms / 828B | 0.0ms / 379B | C# |
+| **Unreal** | 1.4ms / 3,750B | 0.3ms / 2,995B | 0.2ms / 2,545B | C++ |
+| **Godot** | 1.2ms / 910B | 0.2ms / 564B | 0.0ms / 247B | GDScript |
+| **Babylon** | 1.7ms / 2,586B | 0.2ms / 1,909B | 0.1ms / 1,394B | TypeScript |
+| **OpenXR** | 1.7ms / 18,340B | 0.3ms / 15,080B | 0.2ms / 14,638B | C++ |
+| **VRChat** | 0.9ms / 2,412B | 0.1ms / 2,356B | 0.0ms / 2,167B | UdonSharp |
+| **visionOS** | 1.5ms / 2,757B | 0.2ms / 1,272B | 0.1ms / 484B | Swift |
+| **AndroidXR** | 2.6ms / 10,705B | 0.3ms / 9,414B | 0.1ms / 9,009B | Kotlin |
+| **iOS** | 3.1ms / 10,380B | 0.2ms / 9,693B | 0.1ms / 9,366B | SwiftUI |
+| **Android** | 1.2ms / 10,397B | 0.1ms / 9,789B | 0.1ms / 9,799B | Kotlin |
+| **URDF** | 2.1ms / 1,349B | 0.1ms / 654B | 0.0ms / 634B | XML |
+| **SDF** | 1.0ms / 2,266B | 0.3ms / 1,926B | 0.0ms / 1,711B | XML |
+| **DTDL** | 0.6ms / 449B | 0.0ms / 594B | 0.0ms / 250B | JSON |
+| **WebGPU** | 1.6ms / 7,376B | 0.2ms / 6,028B | 0.1ms / 5,841B | JS + WGSL |
+| **WASM** | 1.6ms / 8,187B | 0.1ms / 7,658B | 0.1ms / 7,658B | WAT + JS |
+| **PlayCanvas** | 2.4ms / 2,780B | 0.3ms / 1,457B | 0.1ms / 1,431B | TypeScript |
 
-**4 failures**: R3F, OpenXR, AndroidXR, DTDL expect `ast.name` property. The parser returns the composition name inside `ast.composition.name`, not `ast.name`. These compilers work in test suites where the AST is pre-shaped.
+**All 51 compilations pass.** Zero failures across all 17 backends.
 
 ---
 
@@ -333,8 +333,9 @@ npx tsx scripts/gaps-benchmark.ts
 
 ## Performance Notes
 
-- **Cold parse** (first file): 5.7ms — includes JIT warmup
-- **Warm parse** (subsequent): ~2.0ms
+- **Cold parse** (first file): ~8ms — includes JIT warmup
+- **Warm parse** (subsequent): ~2.5ms
 - **Compilation** is sub-millisecond for all backends after warmup
 - **Zero API cost** — all compilation is local, no cloud calls
 - **Total wall time** for 51 compilations: <1 second
+- **100% pass rate** across all 17 backends and 3 compositions

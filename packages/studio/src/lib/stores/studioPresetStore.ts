@@ -12,6 +12,7 @@ import {
   filterByExperience,
 } from '../presets/studioPresets';
 import type { ExperienceLevel, ProjectSpecifics } from '../presets/studioPresets';
+import { StudioEvents } from '../analytics';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -95,7 +96,13 @@ export const useStudioPresetStore = create<StudioPresetState>()(
             );
           }
 
-          // 7. Persist in store
+          // 7. Track analytics
+          const prevPresetId = get().activePresetId;
+          if (prevPresetId && prevPresetId !== presetId) {
+            StudioEvents.presetSwitched(prevPresetId, presetId);
+          }
+
+          // 8. Persist in store
           set({
             activePresetId: presetId,
             projectSpecifics: specifics,
