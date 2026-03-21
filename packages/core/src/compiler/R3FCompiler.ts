@@ -2816,6 +2816,8 @@ export class R3FCompiler {
           if (!props.rigidBody) props.rigidBody = { type: 'dynamic' };
         } else if (name === 'fluid') {
           props.fluid = trait.config || { viscosity: 0.01 };
+          props.__gapsComponents = props.__gapsComponents || [];
+          (props.__gapsComponents as string[]).push('FluidRenderer');
         } else if (name === 'soft_body') {
           props.softBody = trait.config || { elasticity: 0.5 };
           if (!props.rigidBody) props.rigidBody = { type: 'dynamic' };
@@ -2831,6 +2833,39 @@ export class R3FCompiler {
           props.destruction = trait.config || { health: 100 };
           if (!props.rigidBody) props.rigidBody = { type: 'dynamic' };
           if (!props.collider) props.collider = { type: 'auto' };
+        }
+        // ── GAPS Physics Expansion (Phase 2-4) ───────────────────
+        else if (name === 'soft_body_pro') {
+          props.softBodyPro = trait.config || { tear_threshold: 0.5 };
+          if (!props.rigidBody) props.rigidBody = { type: 'dynamic' };
+        } else if (name === 'crowd_sim') {
+          props.crowdSim = trait.config || { max_agents: 1000 };
+        } else if (name === 'deformable_terrain') {
+          props.deformableTerrain = trait.config || { resolution: 256 };
+        } else if (name === 'volumetric_clouds') {
+          props.volumetricClouds = trait.config || { coverage: 0.5 };
+          // Emit CloudRenderer as sibling for weather visuals
+          props.__gapsComponents = props.__gapsComponents || [];
+          (props.__gapsComponents as string[]).push('CloudRenderer');
+        } else if (name === 'god_rays') {
+          props.godRays = trait.config || { intensity: 1.0 };
+          props.__gapsComponents = props.__gapsComponents || [];
+          (props.__gapsComponents as string[]).push('GodRaysEffect');
+        }
+        // ── GAPS Multiplayer & Social ────────────────────────────
+        else if (name === 'spatial_voice') {
+          props.spatialVoice = trait.config || { max_distance: 30 };
+          props.spatial = true;
+        } else if (name === 'ai_companion') {
+          props.aiCompanion = trait.config || { personality: 'friendly' };
+        } else if (name === 'moderation') {
+          props.moderation = trait.config || { sensitivity: 'medium' };
+        } else if (name === 'anti_grief') {
+          props.antiGrief = trait.config || { detection_window: 30 };
+        } else if (name === 'world_state') {
+          props.worldState = trait.config || { sync_rate: 10 };
+        } else if (name === 'token_gated') {
+          props.tokenGated = trait.config || { token_contract: '', min_balance: 1 };
         }
         // ── Advanced Spatial Audio ────────────────────────────────
         else if (name === 'ambisonics') {
@@ -3015,6 +3050,36 @@ export class R3FCompiler {
       for (const child of obj.children) {
         r3fNode.children!.push(this.compileObjectDecl(child));
       }
+    }
+
+    // ── GAPS: inject renderer components for physics/weather traits ──
+    if (props.__gapsComponents && Array.isArray(props.__gapsComponents)) {
+      for (const componentType of props.__gapsComponents as string[]) {
+        const componentProps: Record<string, unknown> = {};
+
+        if (componentType === 'CloudRenderer' && props.volumetricClouds) {
+          const vc = props.volumetricClouds as Record<string, unknown>;
+          componentProps.coverage = vc.coverage ?? 0.5;
+          componentProps.altitude = vc.altitude ?? 500;
+          componentProps.windOffset = vc.wind ?? [0, 0, 0];
+          componentProps.layers = vc.layers ?? 3;
+        } else if (componentType === 'GodRaysEffect' && props.godRays) {
+          const gr = props.godRays as Record<string, unknown>;
+          componentProps.intensity = gr.intensity ?? 1.0;
+          componentProps.decay = gr.decay ?? 0.96;
+          componentProps.lightColor = gr.color ?? '#fffde7';
+        } else if (componentType === 'FluidRenderer' && props.fluid) {
+          const fl = props.fluid as Record<string, unknown>;
+          componentProps.color = fl.color ?? '#1a6fc4';
+          componentProps.particleSize = fl.particle_radius ?? 0.02;
+          componentProps.renderMode = fl.render_mode ?? 'points';
+        }
+
+        r3fNode.children!.push(
+          this.createNode(componentType, componentProps, `${obj.name}-${componentType}`),
+        );
+      }
+      delete props.__gapsComponents;
     }
 
     return r3fNode;

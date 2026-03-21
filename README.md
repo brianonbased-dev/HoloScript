@@ -247,7 +247,57 @@ HoloScript's 2,000+ traits describe **any domain entity** — not just 3D:
 
 The trait system is a **semantic vocabulary**. The compiler translates it to platform-specific code.
 
-### 2. Three-Format Architecture
+### 2. Ecosystem Architecture
+
+```mermaid
+graph TD
+    %% Core Domains
+    Core["Core Language & Runtime"]
+    Tooling["Developer Tooling & Integrations"]
+    Spatial["Spatial Engineering & Rendering"]
+    App["Application Ecosystem"]
+
+    %% Flow
+    Core --> Tooling
+    Core --> Spatial
+    Tooling --> App
+    Spatial --> App
+
+    %% Subcomponents
+    subgraph Core_Runtime [Core Systems]
+        direction TB
+        C1("AST Parser & Compiler")
+        C2("uAA2++ Cognitive Runtime")
+        C3("CRDT State Synchronization")
+    end
+    Core --- Core_Runtime
+
+    subgraph Dev_Tools [Dev Tools]
+        direction TB
+        T1("HoloScript CLI")
+        T2("MCP Server & Orchestrator")
+        T3("LSP / Editor Extensions")
+    end
+    Tooling --- Dev_Tools
+
+    subgraph Render_Engine [Spatial Engine]
+        direction TB
+        S1("R3F Declarative Renderer")
+        S2("Native Spatial Computation")
+        S3("SNN WebGPU Pipeline")
+    end
+    Spatial --- Render_Engine
+
+    subgraph Ecosystem_Apps [Ecosystem]
+        direction TB
+        A1("HoloScript Studio IDE")
+        A2("Tauri Desktop Client")
+        A3("Infinite Marketplace API")
+    end
+    App --- Ecosystem_Apps
+```
+
+### 3. Three-Format Architecture
 
 HoloScript provides **three specialized languages** that work together:
 
