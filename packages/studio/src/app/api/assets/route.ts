@@ -1,10 +1,17 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '../../../db/client';
+import { assets } from '../../../db/schema';
+import { eq, desc, ilike, or, sql } from 'drizzle-orm';
+import { requireAuth } from '../../../lib/api-auth';
 
 /**
- * GET /api/assets?q=&category=&page=
+ * /api/assets — Asset catalog.
  *
- * Returns a paginated catalog of HDR environments and GLTF model assets.
- * Seeded with a curated list of public-domain / CC0 assets.
+ * GET  /api/assets?q=&category=&page=  → paginated catalog (seed + user uploads)
+ * POST /api/assets                     → confirm an uploaded asset (set final URL)
+ *
+ * Uses PostgreSQL via Drizzle when DATABASE_URL is set.
+ * Falls back to seed catalog for local dev without a database.
  */
 
 type AssetCategory = 'model' | 'hdr' | 'texture' | 'audio';
@@ -14,8 +21,8 @@ interface Asset {
   name: string;
   category: AssetCategory;
   tags: string[];
-  thumbnail: string; // URL or placeholder
-  url: string; // download / embed URL
+  thumbnail: string;
+  url: string;
   format: string;
   sizeKb: number;
   creator: string;
@@ -172,12 +179,6 @@ const SEED_ASSETS: Asset[] = [
   },
 ];
 
-declare global {
-  var __assetCatalog__: Asset[] | undefined;
-}
-const catalog: Asset[] =
-  globalThis.__assetCatalog__ ?? (globalThis.__assetCatalog__ = [...SEED_ASSETS]);
-
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const q = searchParams.get('q')?.toLowerCase() ?? '';
@@ -185,7 +186,62 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get('page') ?? '1', 10);
   const perPage = 12;
 
-  let results = catalog;
+  const db = getDb();
+  if (db) {
+    // Query user-uploaded assets from DB
+    const conditions = [];
+    if (q) {
+      conditions.push(ilike(assets.name, `%${q}%`));
+    }
+    if (category) {
+      conditions.push(eq(assets.type, category));
+    }
+
+    const whereClause = conditions.length > 0
+      ? conditions.length === 1 ? conditions[0] : sql`${conditions[0]} AND ${conditions[1]}`
+      : undefined;
+
+    const rows = await db
+      .select()
+      .from(assets)
+      .where(whereClause)
+      .orderBy(desc(assets.createdAt))
+      .limit(perPage)
+      .offset((page - 1) * perPage);
+
+    const dbItems = rows.map((r) => {
+      const meta = r.metadata as Record<string, string> | null;
+      return {
+        id: r.id,
+        name: r.name,
+        category: r.type as AssetCategory,
+        tags: (meta?.tags as unknown as string[]) ?? [],
+        thumbnail: r.thumbnailUrl ?? '',
+        url: r.url,
+        format: meta?.format ?? '',
+        sizeKb: parseInt(meta?.sizeKb ?? '0', 10),
+        creator: meta?.creator ?? '',
+        license: meta?.license ?? 'User Upload',
+      };
+    });
+
+    // Merge seed assets (always available) with user uploads
+    let seedFiltered = SEED_ASSETS;
+    if (q)
+      seedFiltered = seedFiltered.filter(
+        (a) => a.name.toLowerCase().includes(q) || a.tags.some((t) => t.includes(q))
+      );
+    if (category) seedFiltered = seedFiltered.filter((a) => a.category === category);
+
+    const allItems = [...dbItems, ...seedFiltered];
+    const total = allItems.length;
+    const items = allItems.slice((page - 1) * perPage, page * perPage);
+
+    return Response.json({ items, total, page, perPage, pages: Math.ceil(total / perPage) });
+  }
+
+  // Fallback: seed catalog only
+  let results: Asset[] = SEED_ASSETS;
   if (q)
     results = results.filter(
       (a) => a.name.toLowerCase().includes(q) || a.tags.some((t) => t.includes(q))
@@ -196,4 +252,59 @@ export async function GET(request: NextRequest) {
   const items = results.slice((page - 1) * perPage, page * perPage);
 
   return Response.json({ items, total, page, perPage, pages: Math.ceil(total / perPage) });
+}
+
+/**
+ * POST /api/assets — Confirm an uploaded asset (called after presigned upload completes).
+ *
+ * Body: { assetId, url, thumbnailUrl?, name?, metadata? }
+ *
+ * Updates the asset record with the final S3 URL after browser upload completes.
+ */
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
+  let body: {
+    assetId?: string;
+    url?: string;
+    thumbnailUrl?: string;
+    name?: string;
+    metadata?: Record<string, unknown>;
+  };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { assetId, url } = body;
+  if (!assetId || !url) {
+    return NextResponse.json({ error: 'assetId and url are required' }, { status: 400 });
+  }
+
+  const db = getDb();
+  if (!db) {
+    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+  }
+
+  const [updated] = await db
+    .update(assets)
+    .set({
+      url,
+      thumbnailUrl: body.thumbnailUrl ?? null,
+      name: body.name ?? undefined,
+      metadata: {
+        ...(body.metadata ?? {}),
+        status: 'ready',
+      },
+    })
+    .where(eq(assets.id, assetId))
+    .returning();
+
+  if (!updated) {
+    return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+  }
+
+  return NextResponse.json({ asset: updated });
 }

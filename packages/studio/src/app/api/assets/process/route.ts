@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { getDb } from '../../../../db/client';
+import { assets } from '../../../../db/schema';
+import { getSession } from '../../../../lib/api-auth';
+import { isStorageConfigured, uploadFile, makeAssetKey } from '../../../../lib/storage-s3';
 
 /**
  * POST /api/assets/process
  * Accepts a multipart/form-data file upload.
- * Reads the file as a Buffer and returns a basic asset manifest:
- *   { name, sizeKb, format, processingNote }
+ *
+ * When S3 is configured: uploads to S3, saves metadata to DB.
+ * When S3 is not configured: saves to local .uploads/ directory.
  *
  * Full GLTF parsing (Three.js GLTFLoader) requires a browser context;
  * server-side we return metadata only. The client-side AssetDropProcessor
  * handles in-browser GLTF parsing with the installed three package.
- *
- * Saves the raw file to .uploads/<filename> for future reference.
  */
 
 const UPLOAD_DIR = path.join(process.cwd(), '.uploads');
@@ -24,6 +27,42 @@ async function ensureUploadDir() {
   }
 }
 
+const ALLOWED = [
+  '.glb',
+  '.gltf',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.hdr',
+  '.exr',
+  '.mp3',
+  '.wav',
+  '.ogg',
+];
+
+const MIME_MAP: Record<string, string> = {
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.hdr': 'image/vnd.radiance',
+  '.exr': 'image/x-exr',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+};
+
+function getCategory(ext: string): string {
+  if (['.glb', '.gltf'].includes(ext)) return 'model';
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'texture';
+  if (['.hdr', '.exr'].includes(ext)) return 'hdri';
+  if (['.mp3', '.wav', '.ogg'].includes(ext)) return 'audio';
+  return 'other';
+}
+
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get('content-type') ?? '';
@@ -31,30 +70,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Expected multipart/form-data' }, { status: 400 });
     }
 
-    await ensureUploadDir();
-
     const formData = await req.formData();
     const file = formData.get('file');
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate extension
     const name = file.name;
     const ext = path.extname(name).toLowerCase();
-    const ALLOWED = [
-      '.glb',
-      '.gltf',
-      '.jpg',
-      '.jpeg',
-      '.png',
-      '.webp',
-      '.hdr',
-      '.exr',
-      '.mp3',
-      '.wav',
-      '.ogg',
-    ];
     if (!ALLOWED.includes(ext)) {
       return NextResponse.json({ error: `Unsupported file type: ${ext}` }, { status: 400 });
     }
@@ -64,35 +87,76 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `File too large (max ${MAX_MB}MB)` }, { status: 413 });
     }
 
-    // Save to disk
     const buffer = Buffer.from(await file.arrayBuffer());
+    const category = getCategory(ext);
+    const is3D = ['.glb', '.gltf'].includes(ext);
+
+    // Try S3 upload when configured
+    if (isStorageConfigured()) {
+      const session = await getSession();
+      const userId = session?.user?.id ?? 'anonymous';
+      const key = makeAssetKey(userId, name);
+      const mime = MIME_MAP[ext] ?? 'application/octet-stream';
+
+      const url = await uploadFile(key, buffer, mime);
+
+      // Save metadata to DB if available
+      const db = getDb();
+      let assetId = `asset_${Date.now()}`;
+      if (db) {
+        const [row] = await db
+          .insert(assets)
+          .values({
+            ownerId: session?.user?.id ?? undefined!,
+            name,
+            type: category,
+            url,
+            metadata: {
+              key,
+              contentType: mime,
+              format: ext.slice(1).toUpperCase(),
+              sizeKb: Math.round(file.size / 1024),
+              status: 'ready',
+            },
+          })
+          .returning();
+        assetId = row.id;
+      }
+
+      return NextResponse.json({
+        ok: true,
+        asset: {
+          id: assetId,
+          name,
+          src: url,
+          sizeKb: Math.round(file.size / 1024),
+          format: ext.slice(1).toUpperCase(),
+          category,
+          is3D,
+          storage: 's3',
+        },
+      });
+    }
+
+    // Fallback: local disk storage
+    await ensureUploadDir();
     const safeName = `${Date.now()}_${name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     const savePath = path.join(UPLOAD_DIR, safeName);
     await writeFile(savePath, buffer);
-
-    // Determine asset category
-    const glbOrGltf = ['.glb', '.gltf'].includes(ext);
-    const isImage = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
-    const isHDRI = ['.hdr', '.exr'].includes(ext);
-    const isAudio = ['.mp3', '.wav', '.ogg'].includes(ext);
-
-    let category = 'model';
-    if (isImage) category = 'texture';
-    else if (isHDRI) category = 'hdri';
-    else if (isAudio) category = 'audio';
 
     return NextResponse.json({
       ok: true,
       asset: {
         id: `asset_${Date.now()}`,
         name,
-        src: `/api/uploads/${safeName}`,
+        src: `/api/assets/process?file=${safeName}`,
         savedAs: safeName,
         sizeKb: Math.round(file.size / 1024),
         format: ext.slice(1).toUpperCase(),
         category,
-        is3D: glbOrGltf,
-        processingNote: glbOrGltf
+        is3D,
+        storage: 'local',
+        processingNote: is3D
           ? 'GLB/GLTF: parsed client-side for mesh extraction'
           : `${category} asset saved`,
       },
@@ -103,7 +167,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Serve uploaded files
+// Serve locally uploaded files
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const filename = searchParams.get('file');
@@ -116,23 +180,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'File not found' }, { status: 404 });
   }
 
-  const buffer = await readFile(filePath);
+  const fileBuffer = await readFile(filePath);
   const ext = path.extname(filename).toLowerCase();
-  const mimeMap: Record<string, string> = {
-    '.glb': 'model/gltf-binary',
-    '.gltf': 'model/gltf+json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.webp': 'image/webp',
-    '.hdr': 'image/vnd.radiance',
-    '.mp3': 'audio/mpeg',
-    '.wav': 'audio/wav',
-    '.ogg': 'audio/ogg',
-  };
-  const mime = mimeMap[ext] ?? 'application/octet-stream';
+  const mime = MIME_MAP[ext] ?? 'application/octet-stream';
 
-  return new NextResponse(buffer, {
+  return new NextResponse(fileBuffer, {
     headers: {
       'Content-Type': mime,
       'Content-Disposition': `inline; filename="${filename}"`,
