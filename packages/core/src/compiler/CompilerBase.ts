@@ -227,7 +227,7 @@ export abstract class CompilerBase implements ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult;
+  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support
