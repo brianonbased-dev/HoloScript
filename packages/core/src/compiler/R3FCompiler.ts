@@ -1847,7 +1847,43 @@ export const UI_COMPONENT_PRESETS: Record<
  * Handles both HSPlusAST (from HoloScriptPlusParser) and HoloComposition AST
  * (from HoloCompositionParser/.holo files).
  */
+/** Quality tier controls particle counts, shader complexity, and LOD. */
+export type QualityTier = 'low' | 'med' | 'high' | 'ultra';
+
+export interface R3FCompilerOptions {
+  /** Quality tier (default: 'high') */
+  qualityTier?: QualityTier;
+  /** Inject default ambient + directional light (default: true) */
+  defaultLighting?: boolean;
+}
+
+/** Scale factors per quality tier for runtime tuning. */
+export const QUALITY_TIER_SCALES: Record<QualityTier, {
+  particleScale: number;
+  lodLevel: 'draft' | 'mesh' | 'final';
+  maxLights: number;
+  shadowMapSize: number;
+  shaderComplexity: 'basic' | 'standard' | 'physical';
+}> = {
+  low:   { particleScale: 0.25, lodLevel: 'draft', maxLights: 2,  shadowMapSize: 512,  shaderComplexity: 'basic' },
+  med:   { particleScale: 0.6,  lodLevel: 'mesh',  maxLights: 4,  shadowMapSize: 1024, shaderComplexity: 'standard' },
+  high:  { particleScale: 1.0,  lodLevel: 'final', maxLights: 8,  shadowMapSize: 2048, shaderComplexity: 'physical' },
+  ultra: { particleScale: 1.5,  lodLevel: 'final', maxLights: 16, shadowMapSize: 4096, shaderComplexity: 'physical' },
+};
+
 export class R3FCompiler {
+  // ─── Options & Quality Tier ────────────────────────────────────────────
+
+  public readonly qualityTier: QualityTier;
+  public readonly tierScales: typeof QUALITY_TIER_SCALES[QualityTier];
+  private readonly _defaultLighting: boolean;
+
+  constructor(options: R3FCompilerOptions = {}) {
+    this.qualityTier = options.qualityTier ?? 'high';
+    this.tierScales = QUALITY_TIER_SCALES[this.qualityTier];
+    this._defaultLighting = options.defaultLighting ?? true;
+  }
+
   // ─── RBAC Enforcement ─────────────────────────────────────────────────
 
   private readonly compilerName = 'R3FCompiler';
@@ -2116,7 +2152,7 @@ export class R3FCompiler {
           const mat = compileMaterialBlock(block);
           return {
             type: 'DomainBlockOutput',
-            props: { __raw: materialToR3F(mat), __domain: 'material', __name: mat.name },
+            props: { __raw: materialToR3F(mat, this.tierScales), __domain: 'material', __name: mat.name },
             children: [],
           } as R3FNode;
         },
@@ -2136,7 +2172,7 @@ export class R3FCompiler {
           const ps = compileParticleBlock(block);
           return {
             type: 'DomainBlockOutput',
-            props: { __raw: particlesToR3F(ps), __domain: 'vfx', __name: ps.name },
+            props: { __raw: particlesToR3F(ps, this.tierScales), __domain: 'vfx', __name: ps.name },
             children: [],
           } as R3FNode;
         },
@@ -3330,14 +3366,16 @@ export class R3FCompiler {
   // ─── Shared Helpers ───────────────────────────────────────────────────
 
   private injectDefaultLighting(root: R3FNode): void {
+    if (!this._defaultLighting) return;
     if (!this.treeHasLights(root)) {
+      const shadowSize = this.tierScales.shadowMapSize;
       root.children?.unshift(
         this.createNode('ambientLight', { intensity: 0.4, color: '#ffffff' }),
         this.createNode('directionalLight', {
           intensity: 1.0,
           position: [5, 10, 5],
           castShadow: true,
-          'shadow-mapSize': [2048, 2048],
+          'shadow-mapSize': [shadowSize, shadowSize],
           color: '#ffffff',
         })
       );

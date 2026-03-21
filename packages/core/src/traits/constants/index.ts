@@ -109,6 +109,8 @@ import { SPATIAL_ALGORITHMS_TRAITS } from './spatial-algorithms';
 import { DEBUG_CINEMATIC_TRAITS } from './debug-cinematic';
 import { FFI_OS_TRAITS } from './ffi-os';
 import { CONCURRENCY_TRAITS } from './concurrency';
+import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
+import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
@@ -292,6 +294,12 @@ export const VR_TRAITS = [
 
   // Formal Verification / Concurrency (4 traits)
   ...CONCURRENCY_TRAITS,
+
+  // Hologram Media Pipeline (13 traits)
+  ...HOLOGRAM_MEDIA_TRAITS,
+
+  // GAPS Feature Roadmap — Phase 1 (14 traits)
+  ...GAPS_PHYSICS_TRAITS,
 ] as const;
 
 /**
@@ -584,3 +592,9 @@ export {
   CONCURRENCY_TRAITS,
   type ConcurrencyTraitName,
 } from './concurrency';
+
+// Hologram Media Pipeline
+export { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
+
+// GAPS Feature Roadmap — Phase 1
+export { GAPS_PHYSICS_TRAITS } from './gaps-physics';

@@ -49,5 +49,15 @@ export {
 // LoroWebSocketProvider - WebSocket sync transport
 export { LoroWebSocketProvider } from './LoroWebSocketProvider.js';
 
+// WorldState - Full world state CRDT document (objects, terrain, NPC memory, inventory)
+export {
+  WorldState,
+  type ObjectState,
+  type NPCMemoryEntry,
+  type InventoryItem,
+  type VersionEntry,
+  type WorldMetadata,
+} from './WorldState.js';
+
 // React hook for R3F integration (requires React as peer dependency)
 export { useSpatialSync } from './useSpatialSync.js';

@@ -700,6 +700,47 @@ export function defaultMaterial(): IPhysicsMaterial {
 }
 
 // ============================================================================
+// Unified Particle Types (GAPS Phase 1)
+// ============================================================================
+
+/**
+ * Particle type enum for the unified particle buffer.
+ *
+ * All physics entities (fluid, cloth, rigid, debris, crowd) share a single
+ * particle buffer in the PBD solver. This type tag determines which
+ * constraint shaders apply to each particle.
+ *
+ * @see docs/specs/pbd-solver-upgrade.md
+ */
+export enum ParticleType {
+  /** Cloth/soft-body mesh vertices — distance, volume, bending constraints */
+  CLOTH = 0,
+  /** MLS-MPM fluid particles — density constraints, P2G/G2P exchange */
+  FLUID = 1,
+  /** Rigid body sample points — shape-matching constraints */
+  RIGID = 2,
+  /** Destruction fragments — one-way: spawned from fracture, no inter-fragment constraints */
+  DEBRIS = 3,
+  /** Crowd agent proxies — collision avoidance constraints only */
+  CROWD = 4,
+}
+
+/**
+ * Extended particle attributes stored alongside positions/velocities.
+ * GPU buffer layout: vec4(type, phase, density, pressure) = 16 bytes/particle.
+ */
+export interface IParticleAttributes {
+  /** ParticleType enum value */
+  type: ParticleType;
+  /** Phase group (particles in same phase don't self-collide) */
+  phase: number;
+  /** Current density (for fluid SPH/MPM, 0 for non-fluid) */
+  density: number;
+  /** Current pressure (derived from density, 0 for non-fluid) */
+  pressure: number;
+}
+
+// ============================================================================
 // Soft-Body / PBD Types
 // ============================================================================
 
@@ -709,9 +750,9 @@ export function defaultMaterial(): IPhysicsMaterial {
 export type SoftBodyPreset = 'rubber' | 'cloth' | 'jelly' | 'flesh' | 'paper';
 
 /**
- * PBD constraint types
+ * PBD constraint types (extended with density for unified fluid coupling)
  */
-export type PBDConstraintType = 'distance' | 'volume' | 'collision' | 'attachment' | 'bending';
+export type PBDConstraintType = 'distance' | 'volume' | 'collision' | 'attachment' | 'bending' | 'density';
 
 /**
  * PBD distance constraint — maintains rest length between two vertices

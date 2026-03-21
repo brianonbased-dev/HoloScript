@@ -28,6 +28,18 @@ export interface StdlibPolicy {
   allowNetwork: boolean;
   allowedHosts: string[];
   rootDir: string;
+  /** Allow GIF/video frame decoding and media processing. Default: false */
+  allowMediaDecode?: boolean;
+  /** Allow ML model inference (depth estimation, segmentation). Default: false */
+  allowDepthInference?: boolean;
+  /** Allow WebGPU compute shader access. Default: false */
+  allowGpuCompute?: boolean;
+  /** Max GIF frames to process. Default: 500 */
+  maxGifFrames?: number;
+  /** Max video duration in seconds. Default: 300 */
+  maxVideoDurationSec?: number;
+  /** Max image/depth resolution (width or height). Default: 4096 */
+  maxMediaResolution?: number;
 }
 
 export interface StdlibOptions {
@@ -46,6 +58,12 @@ export const DEFAULT_STDLIB_POLICY: StdlibPolicy = {
   allowNetwork: false,
   allowedHosts: [],
   rootDir: '.',
+  allowMediaDecode: false,
+  allowDepthInference: false,
+  allowGpuCompute: false,
+  maxGifFrames: 500,
+  maxVideoDurationSec: 300,
+  maxMediaResolution: 4096,
 };
 
 // ── Shared Utilities ──────────────────────────────────────────────────────────

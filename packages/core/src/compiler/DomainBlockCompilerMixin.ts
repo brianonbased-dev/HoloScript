@@ -317,11 +317,21 @@ export function compileWeatherBlock(block: HoloDomainBlock): CompiledWeather {
 // Target-Specific Code Generation Helpers
 // =============================================================================
 
+/** Quality tier context for scaling particle counts, materials, etc. */
+export interface TierContext {
+  particleScale: number;
+  lodLevel: 'draft' | 'mesh' | 'final';
+  maxLights: number;
+  shadowMapSize: number;
+  shaderComplexity: 'basic' | 'standard' | 'physical';
+}
+
 /** Generate R3F/Three.js particle system JSX */
-export function particlesToR3F(ps: CompiledParticleSystem): string {
+export function particlesToR3F(ps: CompiledParticleSystem, tier?: TierContext): string {
+  const scale = tier?.particleScale ?? 1.0;
   const props: string[] = [];
-  if (ps.properties.rate) props.push(`rate={${ps.properties.rate}}`);
-  if (ps.properties.max_particles) props.push(`maxParticles={${ps.properties.max_particles}}`);
+  if (ps.properties.rate) props.push(`rate={${Math.round((ps.properties.rate as number) * scale)}}`);
+  if (ps.properties.max_particles) props.push(`maxParticles={${Math.round((ps.properties.max_particles as number) * scale)}}`);
   if (ps.properties.start_lifetime) {
     const lt = ps.properties.start_lifetime;
     props.push(Array.isArray(lt) ? `lifetime={[${lt.join(', ')}]}` : `lifetime={${lt}}`);
@@ -426,7 +436,17 @@ export function weatherToUSD(weather: CompiledWeather): string {
 }
 
 /** Generate R3F/Three.js material JSX */
-export function materialToR3F(mat: CompiledMaterial): string {
+export function materialToR3F(mat: CompiledMaterial, tier?: TierContext): string {
+  // Tier-based material downgrade: basic tier uses meshBasicMaterial for all
+  const shaderLevel = tier?.shaderComplexity ?? 'physical';
+  if (shaderLevel === 'basic' && mat.type !== 'unlit') {
+    const props = [
+      mat.baseColor ? `color="${mat.baseColor}"` : '',
+      mat.opacity !== undefined ? `opacity={${mat.opacity}} transparent` : '',
+    ].filter(Boolean).join(' ');
+    return `<meshBasicMaterial ${props} />`;
+  }
+
   if (mat.type === 'unlit') {
     const props = [
       mat.emissiveColor ? `emissive="${mat.emissiveColor}"` : '',

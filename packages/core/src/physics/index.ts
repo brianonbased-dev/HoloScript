@@ -132,6 +132,30 @@ export {
   SOFT_BODY_PRESETS,
 } from './PhysicsTypes';
 
+// MLS-MPM Fluid Simulation (GPU)
+export { MLSMPMFluid, type MLSMPMConfig, type MLSMPMStats } from './MLSMPMFluid';
+
+// Unified Particle Buffer (MLS-MPM ↔ PBD coupling)
+export {
+  UnifiedParticleBuffer,
+  type ParticleRange,
+  type BoundaryCoupling,
+  type UnifiedBufferStats,
+} from './UnifiedParticleBuffer';
+
+// Physics Sync Protocol (WebRTC binary, Tier 2)
+export {
+  PhysicsSyncSender,
+  PhysicsSyncReceiver,
+  parsePacketHeader,
+  type PhysicsSyncConfig,
+  type SyncPacketHeader,
+  type SyncStats,
+} from './PhysicsSyncProtocol';
+
+// Particle types (GAPS unified buffer)
+export { ParticleType, type IParticleAttributes } from './PhysicsTypes';
+
 // PID Controller (generic cascade controller for robotics/VR)
 export {
   PIDController,

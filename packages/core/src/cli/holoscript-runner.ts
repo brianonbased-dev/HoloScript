@@ -65,6 +65,8 @@ interface CLIOptions {
   skillsDir?: string;
   /** G.ARCH.002: Session identity for daemon state isolation */
   sessionId?: string;
+  /** Quality tier for compilation (controls particle counts, LOD, shader complexity) */
+  qualityTier?: 'low' | 'med' | 'high' | 'ultra';
 }
 
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
@@ -177,6 +179,12 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--target' && args[i + 1]) opts.target = args[++i] as CLIOptions['target'];
     if (args[i] === '--profile' && args[i + 1]) opts.profile = args[++i];
     if (args[i] === '--output' && args[i + 1]) opts.output = args[++i];
+    if (args[i] === '--tier' && args[i + 1]) {
+      const tier = args[++i].toLowerCase();
+      if (['low', 'med', 'high', 'ultra'].includes(tier)) {
+        opts.qualityTier = tier as CLIOptions['qualityTier'];
+      }
+    }
     if (args[i] === '--debug' || args[i] === '--verbose') opts.debug = true;
     if (args[i] === '--watch' || args[i] === '-w') opts.watch = true;
     if (args[i] === '--daemon') opts.daemon = true;

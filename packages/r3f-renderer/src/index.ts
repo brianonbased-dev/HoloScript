@@ -30,6 +30,14 @@ export type { QuiltViewerProps } from './components/QuiltViewer';
 export { GaussianSplatViewer } from './components/GaussianSplatViewer';
 export type { GaussianSplatViewerProps } from './components/GaussianSplatViewer';
 
+// GAPS Physics Components (Phase 3)
+export { FluidRenderer } from './components/FluidRenderer';
+export type { FluidRendererProps } from './components/FluidRenderer';
+export { CloudRenderer } from './components/CloudRenderer';
+export type { CloudRendererProps } from './components/CloudRenderer';
+export { GodRaysEffect } from './components/GodRaysEffect';
+export type { GodRaysEffectProps } from './components/GodRaysEffect';
+
 // Utilities
 export {
   getGeometry,

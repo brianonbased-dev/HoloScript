@@ -677,6 +677,144 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 `;
 
 // =============================================================================
+// Density Constraint Shader (Fluid-PBD Coupling)
+// =============================================================================
+
+/**
+ * WGSL: Solve density constraints (SPH-style).
+ * Each fluid particle computes local density from neighbors and projects
+ * towards the rest density using XPBD compliance.
+ *
+ * Buffer layout:
+ *   binding(0) params       — uniform: dt, numConstraints, restDensity, kernelRadius
+ *   binding(1) predicted    — read/write predicted positions (flat xyz)
+ *   binding(2) masses       — read per-vertex masses
+ *   binding(3) particleIdx  — read: which vertices are fluid particles
+ *   binding(4) neighborList — read: flattened neighbor indices (maxNeighbors per particle)
+ *   binding(5) neighborCnt  — read: neighbor count per particle
+ */
+export const PBD_DENSITY_SHADER = /* wgsl */ `
+struct DensityParams {
+  dt: f32,
+  numParticles: u32,
+  restDensity: f32,
+  kernelRadius: f32,
+  compliance: f32,
+  maxNeighbors: u32,
+  _pad0: u32,
+  _pad1: u32,
+}
+
+@group(0) @binding(0) var<uniform> params: DensityParams;
+@group(0) @binding(1) var<storage, read_write> predicted: array<f32>;
+@group(0) @binding(2) var<storage, read> masses: array<f32>;
+@group(0) @binding(3) var<storage, read> particleIdx: array<u32>;
+@group(0) @binding(4) var<storage, read> neighborList: array<u32>;
+@group(0) @binding(5) var<storage, read> neighborCnt: array<u32>;
+@group(0) @binding(6) var<storage, read_write> lambdas: array<f32>;
+
+// Poly6 kernel
+fn poly6(r2: f32, h: f32) -> f32 {
+  let h2 = h * h;
+  if (r2 >= h2) { return 0.0; }
+  let diff = h2 - r2;
+  return 315.0 / (64.0 * 3.14159265 * pow(h, 9.0)) * diff * diff * diff;
+}
+
+// Spiky gradient magnitude / r (to multiply with direction)
+fn spikyGrad(r: f32, h: f32) -> f32 {
+  if (r >= h || r < 1e-7) { return 0.0; }
+  let diff = h - r;
+  return -45.0 / (3.14159265 * pow(h, 6.0)) * diff * diff;
+}
+
+fn loadPos(idx: u32) -> vec3f {
+  let i = idx * 3u;
+  return vec3f(predicted[i], predicted[i + 1u], predicted[i + 2u]);
+}
+
+@compute @workgroup_size(256)
+fn cs_compute_density_lambda(@builtin(global_invocation_id) gid: vec3u) {
+  let pIdx = gid.x;
+  if (pIdx >= params.numParticles) { return; }
+
+  let vi = particleIdx[pIdx];
+  let pi = loadPos(vi);
+  let h = params.kernelRadius;
+  let nCount = min(neighborCnt[pIdx], params.maxNeighbors);
+  let nBase = pIdx * params.maxNeighbors;
+
+  // Compute density
+  var density = poly6(0.0, h) * masses[vi]; // self-contribution
+  for (var n = 0u; n < nCount; n++) {
+    let nj = neighborList[nBase + n];
+    let pj = loadPos(nj);
+    let diff = pi - pj;
+    let r2 = dot(diff, diff);
+    density += poly6(r2, h) * masses[nj];
+  }
+
+  // Constraint: C = density / restDensity - 1
+  let C = density / params.restDensity - 1.0;
+  if (C <= 0.0) { lambdas[pIdx] = 0.0; return; }
+
+  // Compute denominator: sum of squared gradient magnitudes
+  var gradSumSq: f32 = 0.0;
+  var gradI = vec3f(0.0);
+
+  for (var n = 0u; n < nCount; n++) {
+    let nj = neighborList[nBase + n];
+    let pj = loadPos(nj);
+    let diff = pi - pj;
+    let r = length(diff);
+    let s = spikyGrad(r, h) / params.restDensity;
+    if (r > 1e-7) {
+      let gradJ = diff * (s / r);
+      gradSumSq += dot(gradJ, gradJ);
+      gradI += gradJ;
+    }
+  }
+
+  gradSumSq += dot(gradI, gradI);
+
+  let alpha = params.compliance / (params.dt * params.dt);
+  lambdas[pIdx] = -C / (gradSumSq + alpha);
+}
+
+@compute @workgroup_size(256)
+fn cs_apply_density(@builtin(global_invocation_id) gid: vec3u) {
+  let pIdx = gid.x;
+  if (pIdx >= params.numParticles) { return; }
+
+  let vi = particleIdx[pIdx];
+  let pi = loadPos(vi);
+  let h = params.kernelRadius;
+  let nCount = min(neighborCnt[pIdx], params.maxNeighbors);
+  let nBase = pIdx * params.maxNeighbors;
+  let lambdaI = lambdas[pIdx];
+
+  var correction = vec3f(0.0);
+  for (var n = 0u; n < nCount; n++) {
+    let nj = neighborList[nBase + n];
+    // Find lambda for neighbor (it's also a fluid particle)
+    let pj = loadPos(nj);
+    let diff = pi - pj;
+    let r = length(diff);
+    let s = spikyGrad(r, h) / params.restDensity;
+    if (r > 1e-7) {
+      // Use lambdaI for simplicity (symmetric correction)
+      correction += diff * ((lambdaI + lambdaI) * s / r);
+    }
+  }
+
+  let i3 = vi * 3u;
+  predicted[i3]      += correction.x;
+  predicted[i3 + 1u] += correction.y;
+  predicted[i3 + 2u] += correction.z;
+}
+`;
+
+// =============================================================================
 // Self-Collision Shaders (Spatial Hash Build + Resolve)
 // =============================================================================
 
@@ -1383,6 +1521,11 @@ export class PBDSolverCPU {
   private volumeConstraints: IPBDVolumeConstraint[] = [];
   private bendingConstraints: IPBDBendingConstraint[] = [];
   private attachmentConstraints: IPBDAttachmentConstraint[] = [];
+  private densityParticles: number[] = [];
+  private densityNeighbors: number[][] = [];
+  private densityRestDensity: number = 1000;
+  private densityKernelRadius: number = 0.1;
+  private densityCompliance: number = 0.0001;
   private coloring: IConstraintColoring | null = null;
   private sdfColliders: ISDFCollider[] = [];
 
@@ -1629,6 +1772,11 @@ export class PBDSolverCPU {
       // Attachment constraints (XPBD compliance)
       for (const ac of this.attachmentConstraints) {
         this.solveAttachmentConstraint(ac, dt);
+      }
+
+      // Density constraints (fluid-PBD coupling)
+      if (this.densityParticles.length > 0) {
+        this.solveDensityConstraints(dt);
       }
 
       // Ground plane (y = 0) collision
@@ -1971,6 +2119,113 @@ export class PBDSolverCPU {
     pred[i3] = px + dx * scale;
     pred[i3 + 1] = py + dy * scale;
     pred[i3 + 2] = pz + dz * scale;
+  }
+
+  /**
+   * CPU density constraint solver (SPH-style for fluid-PBD coupling).
+   * Each fluid particle corrects toward rest density using neighbor kernel.
+   */
+  private solveDensityConstraints(dt: number): void {
+    const pred = this.state.predicted;
+    const masses = this.config.masses;
+    const h = this.densityKernelRadius;
+    const h2 = h * h;
+    const restDensity = this.densityRestDensity;
+    const alpha = this.densityCompliance / (dt * dt);
+
+    // Poly6 kernel
+    const poly6Coeff = 315.0 / (64.0 * Math.PI * Math.pow(h, 9));
+    const spikyCoeff = -45.0 / (Math.PI * Math.pow(h, 6));
+
+    const numParticles = this.densityParticles.length;
+    const lambdas = new Float32Array(numParticles);
+
+    // Phase 1: Compute lambdas
+    for (let p = 0; p < numParticles; p++) {
+      const vi = this.densityParticles[p];
+      const i3 = vi * 3;
+      const pix = pred[i3], piy = pred[i3 + 1], piz = pred[i3 + 2];
+      const neighbors = this.densityNeighbors[p];
+
+      // Compute density
+      let density = poly6Coeff * Math.pow(h2, 3) * masses[vi]; // self
+      for (const nj of neighbors) {
+        const j3 = nj * 3;
+        const dx = pix - pred[j3], dy = piy - pred[j3 + 1], dz = piz - pred[j3 + 2];
+        const r2 = dx * dx + dy * dy + dz * dz;
+        if (r2 < h2) {
+          const diff = h2 - r2;
+          density += poly6Coeff * diff * diff * diff * masses[nj];
+        }
+      }
+
+      const C = density / restDensity - 1;
+      if (C <= 0) { lambdas[p] = 0; continue; }
+
+      // Compute gradient denominator
+      let gradSumSq = 0;
+      let giX = 0, giY = 0, giZ = 0;
+      for (const nj of neighbors) {
+        const j3 = nj * 3;
+        const dx = pix - pred[j3], dy = piy - pred[j3 + 1], dz = piz - pred[j3 + 2];
+        const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (r > 1e-7 && r < h) {
+          const diff = h - r;
+          const s = spikyCoeff * diff * diff / (restDensity * r);
+          const gjX = dx * s, gjY = dy * s, gjZ = dz * s;
+          gradSumSq += gjX * gjX + gjY * gjY + gjZ * gjZ;
+          giX += gjX; giY += gjY; giZ += gjZ;
+        }
+      }
+      gradSumSq += giX * giX + giY * giY + giZ * giZ;
+
+      lambdas[p] = -C / (gradSumSq + alpha);
+    }
+
+    // Phase 2: Apply corrections
+    for (let p = 0; p < numParticles; p++) {
+      const vi = this.densityParticles[p];
+      const i3 = vi * 3;
+      const pix = pred[i3], piy = pred[i3 + 1], piz = pred[i3 + 2];
+      const neighbors = this.densityNeighbors[p];
+      const lambdaI = lambdas[p];
+
+      let corrX = 0, corrY = 0, corrZ = 0;
+      for (const nj of neighbors) {
+        const j3 = nj * 3;
+        const dx = pix - pred[j3], dy = piy - pred[j3 + 1], dz = piz - pred[j3 + 2];
+        const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (r > 1e-7 && r < h) {
+          const diff = h - r;
+          const s = spikyCoeff * diff * diff / (restDensity * r);
+          corrX += dx * (lambdaI + lambdaI) * s;
+          corrY += dy * (lambdaI + lambdaI) * s;
+          corrZ += dz * (lambdaI + lambdaI) * s;
+        }
+      }
+
+      pred[i3] += corrX;
+      pred[i3 + 1] += corrY;
+      pred[i3 + 2] += corrZ;
+    }
+  }
+
+  /**
+   * Configure density constraints for fluid particles in the unified buffer.
+   * Call this to enable fluid-PBD coupling.
+   */
+  public setDensityParticles(
+    particleIndices: number[],
+    neighbors: number[][],
+    restDensity = 1000,
+    kernelRadius = 0.1,
+    compliance = 0.0001,
+  ): void {
+    this.densityParticles = particleIndices;
+    this.densityNeighbors = neighbors;
+    this.densityRestDensity = restDensity;
+    this.densityKernelRadius = kernelRadius;
+    this.densityCompliance = compliance;
   }
 
   private solveSelfCollision(): void {
