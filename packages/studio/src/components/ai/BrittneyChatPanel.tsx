@@ -5,6 +5,7 @@ import { Send, Loader2, Zap, CheckCircle2, XCircle, Mic, MicOff, Trash2, Volume2
 import { streamBrittney, buildRichContext, executeTool } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
+import { StudioEvents } from '@/lib/analytics';
 import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
 import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
 
@@ -160,6 +161,8 @@ export function BrittneyChatPanel() {
     if (!text || isThinking) return;
     setInput('');
 
+    StudioEvents.brittneyPromptSent(text.length);
+
     // Add user message to chat
     const userMsgId = Date.now().toString();
     setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
@@ -205,6 +208,7 @@ export function BrittneyChatPanel() {
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
           const result = executeTool(tc.name, tc.arguments, storeActions);
+          StudioEvents.brittneyToolCalled(tc.name, result.success);
           toolResults.push(result);
           setChatMessages((m) =>
             m.map((msg) =>

@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
+import { StudioEvents } from '@/lib/analytics';
 
 export type ExportFormat = 'gltf' | 'usd' | 'usdz' | 'json';
 export type ExportStatus = 'idle' | 'exporting' | 'done' | 'error';
@@ -51,10 +52,13 @@ export function useSceneExport() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
+        StudioEvents.projectExported(format, sceneName);
         setStatus('done');
         setTimeout(() => setStatus('idle'), 2000);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        const errMsg = err instanceof Error ? err.message : String(err);
+        StudioEvents.exportFailed(format, errMsg);
+        setError(errMsg);
         setStatus('error');
       }
     },

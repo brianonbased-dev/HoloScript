@@ -18,6 +18,7 @@ import { Loader2, CheckCircle, UploadCloud, Grid3x3 } from 'lucide-react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import { useSceneGraphStore } from '@/lib/stores';
+import { StudioEvents } from '@/lib/analytics';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { useDragSnap } from '@/hooks/useDragSnap';
 import type { SceneNode } from '@/lib/stores';
@@ -139,6 +140,8 @@ export function useAssetDropProcessor() {
           tags: [],
         });
 
+        StudioEvents.assetUploaded(asset.category, asset.sizeKb);
+
         if (!asset.is3D) {
           setStatus({ state: 'done', fileName: file.name, meshCount: 0 });
           setTimeout(() => setStatus({ state: 'idle' }), 2000);
@@ -220,6 +223,7 @@ export function useAssetDropProcessor() {
           });
         }
 
+        StudioEvents.assetImported(file.name, meshCount, isCharacter);
         setStatus({
           state: 'done',
           fileName: file.name,
@@ -229,10 +233,12 @@ export function useAssetDropProcessor() {
         });
         setTimeout(() => setStatus({ state: 'idle' }), 3000);
       } catch (e) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        StudioEvents.assetImportFailed(file.name, errMsg);
         setStatus({
           state: 'error',
           fileName: file.name,
-          message: e instanceof Error ? e.message : String(e),
+          message: errMsg,
         });
         setTimeout(() => setStatus({ state: 'idle' }), 4000);
       }

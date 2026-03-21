@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { StudioEvents } from './analytics';
 
 /**
  * projectStore — multi-scene project management.
@@ -57,6 +58,7 @@ export const useProjectStore = create<ProjectState>()(
           createdAt: new Date().toISOString(),
         };
         set((s) => ({ scenes: [...s.scenes, scene], activeSceneId: scene.id }));
+        StudioEvents.sceneCreated(scene.name);
         return scene;
       },
 

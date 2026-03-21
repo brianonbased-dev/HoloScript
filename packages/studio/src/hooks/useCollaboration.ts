@@ -6,7 +6,9 @@
  * with remote peers. Uses useCollabStore for presence state management.
  */
 import { useEffect, useCallback, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { useCollabStore } from '@/lib/collabStore';
+import { StudioEvents } from '@/lib/analytics';
 
 // ─── Old session-based hook (used by CollaborationPanel) ───────────────────
 import { useState } from 'react';
@@ -169,6 +171,7 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
   const store = useCollabStore();
   const storeRef = useRef(store);
   storeRef.current = store;
+  const { data: session } = useSession();
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -178,12 +181,19 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
 
     const baseUrl = process.env.NEXT_PUBLIC_COLLAB_WS_URL || DEFAULT_WS_URL;
 
-    const ws = new WebSocket(`${baseUrl}?room=${roomId}`);
+    // Pass auth token in WebSocket URL when available
+    let wsUrl = `${baseUrl}?room=${roomId}`;
+    if ((session as any)?.accessToken) {
+      wsUrl += `&token=${(session as any).accessToken}`;
+    }
+
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
       const s = storeRef.current;
       s.setConnected(true);
+      StudioEvents.collabSessionJoined(roomId);
       ws.send(
         JSON.stringify({
           type: 'join',
@@ -209,6 +219,7 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
 
     ws.onclose = () => {
       storeRef.current.setConnected(false);
+      StudioEvents.collabSessionLeft(roomId);
     };
 
     ws.onerror = () => {
@@ -238,7 +249,7 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
       wsRef.current = null;
       storeRef.current.setConnected(false);
     };
-  }, [roomId]);
+  }, [roomId, session]);
 
   const sendCursorPosition = useCallback(
     (x: number, y: number, selectedId?: string) => {

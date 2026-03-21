@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getCloudClient } from './client';
+import { StudioEvents } from '@/lib/analytics';
 import type {
   Deployment,
   DeploymentConfig,
@@ -102,8 +103,10 @@ export function useDeploy() {
       const client = getCloudClient();
       const response = await client.deploy(config);
       setDeployment(response.deployment);
+      StudioEvents.projectDeployed(response.deployment.id, config.provider ?? 'default');
       return response;
     } catch (err: any) {
+      StudioEvents.deployFailed(err.message);
       setError(err.message);
       throw err;
     } finally {

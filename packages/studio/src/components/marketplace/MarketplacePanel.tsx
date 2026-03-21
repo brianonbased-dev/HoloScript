@@ -22,6 +22,7 @@ import {
   List,
 } from 'lucide-react';
 import { useMarketplace, useFavorites, useDownload } from '@/lib/marketplace/hooks';
+import { StudioEvents } from '@/lib/analytics';
 import type { ContentType, MarketplaceItem } from '@/lib/marketplace/types';
 import { ContentCard } from './ContentCard';
 import { ContentTypeFilter } from './ContentTypeFilter';
@@ -70,11 +71,13 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
 
   const handleFavoriteToggle = useCallback(
     async (itemId: string) => {
-      if (isFavorite(itemId)) {
+      const wasFavorited = isFavorite(itemId);
+      if (wasFavorited) {
         await removeFavorite(itemId);
       } else {
         await addFavorite(itemId);
       }
+      StudioEvents.marketplaceFavorite(itemId, !wasFavorited);
     },
     [isFavorite, addFavorite, removeFavorite]
   );
@@ -83,6 +86,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
     async (itemId: string) => {
       try {
         const content = await download(itemId);
+        StudioEvents.marketplaceDownload(itemId);
         console.log('Downloaded content:', content);
         // TODO: Handle different content types (import to scene, install plugin, etc.)
       } catch (err) {
@@ -93,6 +97,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
   );
 
   const handleRemix = useCallback((item: MarketplaceItem) => {
+    StudioEvents.marketplaceRemix(item.id);
     setRemixItem(item);
     setShowUploadWizard(true);
     setSelectedItem(null); // Close detail modal

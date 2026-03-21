@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react';
 import { X, Upload, Image, FileText, Eye, CheckCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { ContentType, CONTENT_TYPE_METADATA, ContentUpload } from '@/lib/marketplace/types';
 import { useUpload } from '@/lib/marketplace/hooks';
+import { StudioEvents } from '@/lib/analytics';
 import { useDaemonJobs, type DaemonProfile, type DaemonProjectDNA } from '@/hooks/useDaemonJobs';
 import { OperationsSurfacePanel } from '@/components/daemon/OperationsSurfacePanel';
 
@@ -167,6 +168,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
       };
 
       const result = await upload(uploadData);
+      StudioEvents.marketplacePublish(selectedType);
 
       if (enableDaemon && projectDNA) {
         const daemonJob = await createJob({

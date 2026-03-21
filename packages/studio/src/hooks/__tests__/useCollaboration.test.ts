@@ -57,6 +57,11 @@ vi.mock('@/lib/collabStore', () => ({
   useCollabStore: vi.fn(),
 }));
 
+// Mock next-auth/react
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
+}));
+
 describe('useCollaboration', () => {
   let mockSocket: MockWebSocket;
   const mockSetConnected = vi.fn();
