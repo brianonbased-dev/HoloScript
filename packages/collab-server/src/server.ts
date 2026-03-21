@@ -10,18 +10,68 @@
  *   → { type:'ping',   userId }
  *   ← same messages broadcast to all OTHER peers in the room
  *
- * URL format: ws://host:PORT/collab?room=<roomId>
+ * URL format: ws://host:PORT/collab?room=<roomId>&token=<jwt>
+ *
+ * Authentication:
+ *   When COLLAB_AUTH_SECRET is set, connections must provide a valid JWT
+ *   in the ?token= query parameter. The JWT is verified using the shared
+ *   secret (same as NEXTAUTH_SECRET in the Studio).
  *
  * Usage:
  *   npx tsx src/server.ts
- *   PORT=4999 npx tsx src/server.ts
+ *   PORT=4999 COLLAB_AUTH_SECRET=xxx npx tsx src/server.ts
  */
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'node:http';
 import { URL } from 'node:url';
+import { createHmac } from 'node:crypto';
 
 const PORT = Number(process.env.PORT ?? 4999);
+const AUTH_SECRET = process.env.COLLAB_AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
+// ─── Simple JWT verification ─────────────────────────────────────────────────
+
+interface TokenPayload {
+  sub?: string;
+  name?: string;
+  email?: string;
+  exp?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Verify a HS256 JWT token. Returns the payload if valid, null if not.
+ * This is a minimal implementation — does not depend on jsonwebtoken.
+ */
+function verifyToken(token: string, secret: string): TokenPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const [header64, payload64, sig64] = parts;
+
+    // Verify signature
+    const data = `${header64}.${payload64}`;
+    const expectedSig = createHmac('sha256', secret)
+      .update(data)
+      .digest('base64url');
+
+    if (sig64 !== expectedSig) return null;
+
+    // Decode payload
+    const payload = JSON.parse(
+      Buffer.from(payload64, 'base64url').toString('utf-8')
+    ) as TokenPayload;
+
+    // Check expiry
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Room registry ────────────────────────────────────────────────────────────
 
@@ -37,10 +87,9 @@ function getOrCreateRoom(id: string): Room {
   return room;
 }
 
-function getRoomId(req: IncomingMessage): string {
+function parseUrl(req: IncomingMessage) {
   const base = `ws://localhost:${PORT}`;
-  const url = new URL(req.url ?? '/', base);
-  return url.searchParams.get('room') ?? 'default';
+  return new URL(req.url ?? '/', base);
 }
 
 // ─── Server ───────────────────────────────────────────────────────────────────
@@ -48,15 +97,41 @@ function getRoomId(req: IncomingMessage): string {
 const wss = new WebSocketServer({ port: PORT, path: '/collab' });
 
 wss.on('listening', () => {
-  console.log(`[collab-server] Listening on ws://localhost:${PORT}/collab`);
+  const authMode = AUTH_SECRET ? 'JWT auth enabled' : 'no auth (open)';
+  console.log(`[collab-server] Listening on ws://localhost:${PORT}/collab (${authMode})`);
 });
 
 wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
-  const roomId = getRoomId(req);
+  const url = parseUrl(req);
+  const roomId = url.searchParams.get('room') ?? 'default';
+
+  // ─── Auth gate ────────────────────────────────────────────────────────
+  if (AUTH_SECRET) {
+    const token = url.searchParams.get('token');
+    if (!token) {
+      ws.close(1008, 'Authentication required');
+      console.log(`[collab-server] Rejected unauthenticated connection to room "${roomId}"`);
+      return;
+    }
+
+    const payload = verifyToken(token, AUTH_SECRET);
+    if (!payload) {
+      ws.close(1008, 'Invalid or expired token');
+      console.log(`[collab-server] Rejected invalid token for room "${roomId}"`);
+      return;
+    }
+
+    // Attach user info for logging
+    (ws as any)._userId = payload.sub ?? 'unknown';
+    (ws as any)._userName = payload.name ?? payload.email ?? 'Anonymous';
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const room = getOrCreateRoom(roomId);
   room.add(ws);
 
-  console.log(`[collab-server] Client joined room "${roomId}" (${room.size} peers)`);
+  const userLabel = (ws as any)._userName ?? 'anonymous';
+  console.log(`[collab-server] ${userLabel} joined room "${roomId}" (${room.size} peers)`);
 
   ws.on('message', (data) => {
     let msg: Record<string, unknown>;
@@ -80,9 +155,8 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
 
   ws.on('close', () => {
     room.delete(ws);
-    // Optionally clean up empty rooms
     if (room.size === 0) rooms.delete(roomId);
-    console.log(`[collab-server] Client left room "${roomId}" (${room.size} remaining)`);
+    console.log(`[collab-server] ${userLabel} left room "${roomId}" (${room.size} remaining)`);
   });
 
   ws.on('error', (err) => {
