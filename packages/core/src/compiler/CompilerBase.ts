@@ -18,6 +18,7 @@ import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type { GLTFExportResult } from './GLTFPipeline';
 import type { ARCompilationResult } from './ARCompiler';
 import type { VRRCompilationResult } from './VRRCompiler';
+import type { IOSCompileResult } from './IOSCompiler';
 import {
   CapabilityRBAC,
   getCapabilityRBAC,
@@ -227,7 +228,7 @@ export abstract class CompilerBase implements ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult;
+  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult | IOSCompileResult;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support
