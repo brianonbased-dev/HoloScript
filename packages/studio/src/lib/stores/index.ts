@@ -18,3 +18,7 @@ export { usePlayMode } from './playModeStore';
 export type { PlayState, GameState, PlayModeState } from './playModeStore';
 export { useAgentStore } from './agentStore';
 export type { AgentPhase, AgentCycleEntry } from './agentStore';
+export { useWorkspaceStore } from './workspaceStore';
+export type { Workspace, ProjectDNA, WorkspaceStatus, ProjectKind } from './workspaceStore';
+export { usePipelineStore } from './pipelineStore';
+export type { PipelineRun, LayerState } from '../recursive/types';

@@ -1,0 +1,157 @@
+// Recursive Self-Improvement Pipeline
+//
+// Native .hsplus composition for the 3-layer recursive pipeline.
+// L0 (Code Fixer) -> L1 (Strategy Optimizer) -> L2 (Meta-Strategist)
+
+composition "RecursivePipeline" {
+
+  state {
+    pipelineStatus: string = "idle"
+    mode: string = "single"
+    targetProject: string = "self"
+
+    layer0Status: string = "idle"
+    layer0Cycles: number = 0
+    layer0QualityDelta: number = 0
+    layer0CostUSD: number = 0
+    layer0PatchCount: number = 0
+
+    layer1Status: string = "idle"
+    layer1Cycles: number = 0
+    layer1LastAdjustment: string = "none"
+
+    layer2Status: string = "idle"
+    layer2Cycles: number = 0
+    layer2SkillsGenerated: number = 0
+    layer2WisdomEntries: number = 0
+
+    totalCostUSD: number = 0
+    totalCycles: number = 0
+    feedbackCount: number = 0
+    reviewsPending: number = 0
+    globalBudgetCap: number = 10.0
+  }
+
+  computed {
+    isRunning: $pipelineStatus == "running"
+    isPaused: $pipelineStatus == "paused"
+    budgetUsedPercent: Math.round(($totalCostUSD / $globalBudgetCap) * 100)
+    budgetRemaining: $globalBudgetCap - $totalCostUSD
+    allCycles: $layer0Cycles + $layer1Cycles + $layer2Cycles
+    hasReviews: $reviewsPending > 0
+  }
+
+  object "PipelineOrchestrator" {
+    @behavior_tree {
+      root: {
+        type: "sequence",
+        name: "recursive_pipeline",
+        children: [
+          { type: "condition", name: "budget_available", condition: "budget_remaining_check" },
+          {
+            type: "sequence",
+            name: "layer_0_pass",
+            children: [
+              { type: "condition", name: "l0_enabled", condition: "layer0_enabled" },
+              { type: "action", name: "run_l0", action: "pipeline_run_l0" },
+              { type: "action", name: "emit_l0_feedback", action: "emit_feedback_signals" }
+            ]
+          },
+          {
+            type: "selector",
+            name: "layer_1_gate",
+            children: [
+              {
+                type: "sequence",
+                name: "l1_ready",
+                children: [
+                  { type: "condition", name: "l1_enabled", condition: "layer1_enabled" },
+                  { type: "condition", name: "l0_has_history", condition: "l0_cycle_threshold" },
+                  { type: "action", name: "run_l1", action: "pipeline_run_l1" },
+                  { type: "action", name: "apply_strategy", action: "apply_l1_strategy" }
+                ]
+              },
+              { type: "action", name: "skip_l1", action: "noop" }
+            ]
+          },
+          {
+            type: "selector",
+            name: "layer_2_gate",
+            children: [
+              {
+                type: "sequence",
+                name: "l2_ready",
+                children: [
+                  { type: "condition", name: "l2_enabled", condition: "layer2_enabled" },
+                  { type: "condition", name: "l1_has_history", condition: "l1_cycle_threshold" },
+                  { type: "action", name: "run_l2", action: "pipeline_run_l2" },
+                  { type: "action", name: "install_skills", action: "install_generated_skills" }
+                ]
+              },
+              { type: "action", name: "skip_l2", action: "noop" }
+            ]
+          }
+        ]
+      }
+    }
+
+    @circuit_breaker {
+      failure_threshold: 3
+      window_ms: 600000
+      reset_timeout_ms: 120000
+    }
+
+    @economy {
+      initial_balance: 10.0
+      default_spend_limit: 4.50
+      spend_limit_period: 3600000
+    }
+  }
+
+  object "PipelineDashboard" {
+    @trait: "ui_panel"
+    position: [0, 0, 0]
+
+    object "Layer2Card" {
+      @trait: "ui_card"
+      label: "L2: Meta-Strategist"
+      value: $layer2Status
+    }
+
+    object "Layer1Card" {
+      @trait: "ui_card"
+      label: "L1: Strategy Optimizer"
+      value: $layer1Status
+    }
+
+    object "Layer0Card" {
+      @trait: "ui_card"
+      label: "L0: Code Fixer"
+      value: $layer0Status
+    }
+
+    object "BudgetBar" {
+      @trait: "ui_progress"
+      label: "Budget"
+      value: $budgetUsedPercent
+      max: 100
+    }
+  }
+
+  @test {
+    name: "pipeline starts idle"
+    assert: { $pipelineStatus == "idle" }
+  }
+
+  @test {
+    name: "budget tracking"
+    setup: { $totalCostUSD = 3.00 }
+    assert: { $budgetUsedPercent == 30 }
+  }
+
+  @test {
+    name: "all cycles computed"
+    setup: { $layer0Cycles = 3, $layer1Cycles = 2, $layer2Cycles = 1 }
+    assert: { $allCycles == 6 }
+  }
+}
