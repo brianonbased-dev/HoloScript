@@ -14,6 +14,17 @@ import {
 import type { ExperienceLevel, ProjectSpecifics } from '../presets/studioPresets';
 import { StudioEvents } from '../analytics';
 
+// ─── Export Format ────────────────────────────────────────────────────────────
+
+export interface PresetExportData {
+  version: 1;
+  presetId: string;
+  experienceLevel: ExperienceLevel;
+  projectSpecifics: ProjectSpecifics;
+  customPanelOverrides: PanelKey[];
+  exportedAt: string;
+}
+
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
 interface StudioPresetState {
@@ -34,6 +45,8 @@ interface StudioPresetState {
   addCustomPanel: (key: PanelKey) => void;
   removeCustomPanel: (key: PanelKey) => void;
   reset: () => void;
+  exportPreset: () => PresetExportData | null;
+  importPreset: (json: string) => { success: boolean; error?: string };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -138,6 +151,49 @@ export const useStudioPresetStore = create<StudioPresetState>()(
             wizardCompleted: false,
             customPanelOverrides: [],
           }),
+
+        exportPreset: () => {
+          const { activePresetId, experienceLevel, projectSpecifics, customPanelOverrides } = get();
+          if (!activePresetId || !projectSpecifics) return null;
+          return {
+            version: 1 as const,
+            presetId: activePresetId,
+            experienceLevel,
+            projectSpecifics,
+            customPanelOverrides,
+            exportedAt: new Date().toISOString(),
+          };
+        },
+
+        importPreset: (json: string) => {
+          try {
+            const data = JSON.parse(json);
+            if (data.version !== 1) return { success: false, error: 'Unsupported version' };
+            if (!data.presetId || typeof data.presetId !== 'string') {
+              return { success: false, error: 'Missing presetId' };
+            }
+            if (!STUDIO_PRESETS.find((p) => p.id === data.presetId)) {
+              return { success: false, error: `Unknown preset: ${data.presetId}` };
+            }
+            const validLevels = ['beginner', 'intermediate', 'advanced'];
+            if (!validLevels.includes(data.experienceLevel)) {
+              return { success: false, error: 'Invalid experience level' };
+            }
+            if (!data.projectSpecifics || typeof data.projectSpecifics !== 'object') {
+              return { success: false, error: 'Missing projectSpecifics' };
+            }
+            get().applyPreset(data.presetId, data.projectSpecifics, data.experienceLevel);
+            if (Array.isArray(data.customPanelOverrides)) {
+              for (const key of data.customPanelOverrides) {
+                get().addCustomPanel(key);
+                openPanel(key);
+              }
+            }
+            return { success: true };
+          } catch {
+            return { success: false, error: 'Invalid JSON' };
+          }
+        },
       }),
       {
         name: 'studio-preset-store',

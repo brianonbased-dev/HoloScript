@@ -27,6 +27,7 @@ import {
   Paintbrush,
   Download,
   FolderOpen,
+  FolderGit2,
   Settings2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -47,6 +48,11 @@ import { StudioEvents } from '@/lib/analytics';
 
 const StudioSetupWizard = dynamic(
   () => import('@/components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
+  { ssr: false }
+);
+
+const ImportRepoWizard = dynamic(
+  () => import('@/components/wizard/ImportRepoWizard').then((m) => ({ default: m.ImportRepoWizard })),
   { ssr: false }
 );
 
@@ -332,6 +338,7 @@ export function StudioHeader() {
   const applyPreset = useStudioPresetStore((s) => s.applyPreset);
   const activePreset = activePresetId ? STUDIO_PRESETS.find((p) => p.id === activePresetId) : null;
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showImportWizard, setShowImportWizard] = useState(false);
   const [presetDropdownOpen, setPresetDropdownOpen] = useState(false);
   const presetDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -617,13 +624,20 @@ export function StudioHeader() {
                     </button>
                   ))}
                 </div>
-                <div className="px-3 py-2 border-t border-studio-border">
+                <div className="px-3 py-2 border-t border-studio-border flex flex-col gap-1.5">
                   <button
                     onClick={() => { setShowSetupWizard(true); setPresetDropdownOpen(false); }}
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-studio-accent/20 px-3 py-1.5 text-[10px] font-semibold text-studio-accent transition hover:bg-studio-accent/30"
                   >
                     <Sparkles className="h-3 w-3" />
                     Full Setup Wizard
+                  </button>
+                  <button
+                    onClick={() => { setShowImportWizard(true); setPresetDropdownOpen(false); }}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-500/20 px-3 py-1.5 text-[10px] font-semibold text-blue-400 transition hover:bg-blue-500/30"
+                  >
+                    <FolderGit2 className="h-3 w-3" />
+                    Import GitHub Repo
                   </button>
                 </div>
               </div>
@@ -1247,6 +1261,11 @@ export function StudioHeader() {
       {/* Studio Setup Wizard (re-open from header button) */}
       {showSetupWizard && (
         <StudioSetupWizard onClose={() => setShowSetupWizard(false)} />
+      )}
+
+      {/* Import Repo Wizard */}
+      {showImportWizard && (
+        <ImportRepoWizard onClose={() => setShowImportWizard(false)} />
       )}
     </>
   );

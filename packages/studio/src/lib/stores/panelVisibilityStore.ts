@@ -4,11 +4,15 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 // ─── Panel Visibility Store ──────────────────────────────────────────────────
-// Centralises ~44 boolean useState() calls from create/page.tsx into a single
-// Zustand store.  Each panel gets:
+// Centralises boolean panel states into a single Zustand store. Each panel gets:
 //   • a boolean field       — `chatOpen`, `profilerOpen`, etc.
 //   • a setter              — `setChatOpen(v: boolean)`
 //   • a toggler             — `toggleChatOpen()`
+//
+// Panels are opened via 3 pathways:
+//   1. Preset openPanels — each StudioPreset lists its default open panels
+//   2. getExtraPanels/filterByExperience — project specifics add extras
+//   3. User interaction — toggles/buttons in the UI
 //
 // Panels that start open by default: chatOpen, minimapOpen
 // Everything else defaults to false.
@@ -81,7 +85,6 @@ export type PanelKey =
   | 'calibration'
   | 'dragonPreview'
   | 'holoDiff'
-  | 'responsiveLayout'
   | 'sliderInspector'
   | 'traitMatrix'
   | 'assetImport'
@@ -89,7 +92,10 @@ export type PanelKey =
   | 'syntheticData'
   | 'compilationPipeline'
   | 'confidenceXR'
-  | 'operationsHub';
+  | 'operationsHub'
+  | 'robotDeploy'
+  | 'molecularViewer'
+  | 'dnaSequencer';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -182,7 +188,6 @@ const PANEL_KEYS: PanelKey[] = [
   'calibration',
   'dragonPreview',
   'holoDiff',
-  'responsiveLayout',
   'sliderInspector',
   'traitMatrix',
   'assetImport',
@@ -191,6 +196,9 @@ const PANEL_KEYS: PanelKey[] = [
   'compilationPipeline',
   'confidenceXR',
   'operationsHub',
+  'robotDeploy',
+  'molecularViewer',
+  'dnaSequencer',
 ];
 
 /** Panels that default to *open*. */

@@ -503,6 +503,21 @@ const ScriptConsole = dynamic(
   { ssr: false }
 );
 
+const RobotDeployPanel = dynamic(
+  () => import('@/components/scenarios/RobotDeployPanel').then((m) => ({ default: m.RobotDeployPanel })),
+  { ssr: false }
+);
+
+const MolecularViewerPanel = dynamic(
+  () => import('@/components/scenarios/MolecularViewerPanel').then((m) => ({ default: m.MolecularViewerPanel })),
+  { ssr: false }
+);
+
+const DNASequencerPanel = dynamic(
+  () => import('@/components/scenarios/DNASequencerPanel').then((m) => ({ default: m.DNASequencerPanel })),
+  { ssr: false }
+);
+
 
 
 function ViewportSkeleton() {
@@ -856,6 +871,12 @@ export default function CreatePage() {
   const toggleExclusive = usePanelVisibilityStore((s) => s.toggleExclusive);
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
+  const robotDeployOpen = usePanelVisibilityStore((s) => s.robotDeployOpen);
+  const setRobotDeployOpen = usePanelVisibilityStore((s) => s.setRobotDeployOpen);
+  const molecularViewerOpen = usePanelVisibilityStore((s) => s.molecularViewerOpen);
+  const setMolecularViewerOpen = usePanelVisibilityStore((s) => s.setMolecularViewerOpen);
+  const dnaSequencerOpen = usePanelVisibilityStore((s) => s.dnaSequencerOpen);
+  const setDnaSequencerOpen = usePanelVisibilityStore((s) => s.setDnaSequencerOpen);
 
   // Non-panel state (kept local — layout dimensions, left tab)
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>('scene');
@@ -1606,6 +1627,27 @@ export default function CreatePage() {
                   setPluginsOpen(true);
                 }}
               />
+            </div>
+          )}
+
+          {/* RIGHT RAIL: Robot Deploy (Robotics Lab) */}
+          {robotDeployOpen && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+              <RobotDeployPanel />
+            </div>
+          )}
+
+          {/* RIGHT RAIL: Molecular Viewer (Science Lab) */}
+          {molecularViewerOpen && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+              <MolecularViewerPanel />
+            </div>
+          )}
+
+          {/* RIGHT RAIL: DNA Sequencer (Healthcare VR) */}
+          {dnaSequencerOpen && (
+            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+              <DNASequencerPanel />
             </div>
           )}
 

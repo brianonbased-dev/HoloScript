@@ -692,6 +692,476 @@ const BASE_SCENE_TEMPLATES: SceneTemplate[] = [
   }
 }`,
   },
+
+  // ── Desert Ruins ──────────────────────────────────────────────────────────
+  {
+    id: 'tpl-desert-ruins',
+    name: 'Desert Ruins',
+    description: 'Wind-worn sandstone columns rising from golden dunes at dusk',
+    thumbnail: '🏜️',
+    tags: ['outdoor', 'ancient', 'desert', 'ruins'],
+    category: 'environment',
+    code: `composition "Desert Ruins" {
+  environment {
+    skybox: "desert_dusk"
+    ambient_light: 0.4
+    fog: { color: "#c2956a", density: 0.02 }
+  }
+
+  object "Ground" {
+    @collidable
+    @static
+    geometry: "plane"
+    rotation: [-90, 0, 0]
+    scale: [20, 20, 1]
+    color: "#c2956a"
+  }
+
+  object "ColumnA" {
+    @static
+    geometry: "cylinder"
+    position: [3, 1.25, 0]
+    rotation: [0, 15, 0]
+    scale: [0.4, 2.5, 0.4]
+    color: "#b8865a"
+  }
+
+  object "ColumnB" {
+    @static
+    geometry: "cylinder"
+    position: [-2, 1, 4]
+    rotation: [0, -20, 3]
+    scale: [0.35, 2, 0.35]
+    color: "#c09070"
+  }
+
+  object "Arch" {
+    @static
+    geometry: "box"
+    position: [0, 1.5, -5]
+    scale: [3, 2, 0.6]
+    color: "#b07050"
+  }
+
+  object "SandDune" {
+    @static
+    geometry: "sphere"
+    position: [8, -0.5, 3]
+    scale: [4, 1.5, 3]
+    color: "#d4a872"
+  }
+}`,
+  },
+
+  // ── Cyberpunk Alley ────────────────────────────────────────────────────────
+  {
+    id: 'tpl-cyberpunk-alley',
+    name: 'Cyberpunk Alley',
+    description: 'Neon-lit back alley with rain puddles and holographic signs',
+    thumbnail: '🌆',
+    tags: ['urban', 'night', 'neon', 'cyberpunk', 'rain'],
+    category: 'environment',
+    code: `composition "Cyberpunk Alley" {
+  environment {
+    skybox: "night"
+    ambient_light: 0.1
+    fog: { color: "#0a0020", density: 0.05 }
+  }
+
+  object "Ground" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, -0.05, 0]
+    scale: [10, 0.1, 20]
+    color: "#1a1a2e"
+  }
+
+  object "LeftWall" {
+    @static
+    geometry: "box"
+    position: [-5, 3, 0]
+    scale: [0.2, 6, 20]
+    color: "#111122"
+  }
+
+  object "NeonSignA" {
+    @glowing
+    geometry: "box"
+    position: [-4.5, 4, -3]
+    rotation: [0, 90, 0]
+    scale: [1.5, 0.5, 0.05]
+    color: "#ff006e"
+    emissive: "#ff006e"
+    emissiveIntensity: 3.0
+  }
+
+  object "NeonSignB" {
+    @glowing
+    geometry: "box"
+    position: [-4.5, 2.5, -7]
+    rotation: [0, 90, 0]
+    scale: [1, 0.35, 0.05]
+    color: "#00f5ff"
+    emissive: "#00f5ff"
+    emissiveIntensity: 2.5
+  }
+
+  object "RainPuddle" {
+    @static
+    geometry: "plane"
+    rotation: [-90, 0, 0]
+    position: [0, 0.02, 0]
+    scale: [4, 6, 1]
+    color: "#0a0a1a"
+  }
+}`,
+  },
+
+  // ── Japanese Garden ────────────────────────────────────────────────────────
+  {
+    id: 'tpl-japanese-garden',
+    name: 'Japanese Garden',
+    description: 'Serene stone garden with cherry blossom tree and koi pond',
+    thumbnail: '🌸',
+    tags: ['nature', 'zen', 'outdoor', 'peaceful'],
+    category: 'environment',
+    code: `composition "Japanese Garden" {
+  environment {
+    skybox: "overcast"
+    ambient_light: 0.6
+  }
+
+  object "StoneGround" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, -0.025, 0]
+    scale: [12, 0.05, 12]
+    color: "#9e9e8e"
+  }
+
+  object "CherryTree" {
+    geometry: "sphere"
+    position: [-3, 1.5, -2]
+    scale: [2, 2.5, 2]
+    color: "#f4a5c0"
+  }
+
+  object "KoiPond" {
+    @static
+    geometry: "cylinder"
+    position: [2, 0, 1]
+    scale: [2.5, 0.1, 2.5]
+    color: "#2d4a6e"
+  }
+
+  object "StoneLantern" {
+    @static
+    geometry: "cylinder"
+    position: [0, 0.6, -4]
+    scale: [0.3, 1.2, 0.3]
+    color: "#888877"
+  }
+
+  object "WoodenBridge" {
+    @static
+    geometry: "box"
+    position: [2, 0.15, 1]
+    rotation: [0, 90, 0]
+    scale: [2, 0.1, 0.8]
+    color: "#6b4423"
+  }
+}`,
+  },
+
+  // ── Space Station Interior ────────────────────────────────────────────────
+  {
+    id: 'tpl-space-station',
+    name: 'Space Station Interior',
+    description: 'Modular corridor with glowing panels, airlock, and observation window',
+    thumbnail: '🚀',
+    tags: ['interior', 'space', 'futuristic', 'metal'],
+    category: 'environment',
+    code: `composition "Space Station Interior" {
+  environment {
+    skybox: "space"
+    ambient_light: 0.15
+  }
+
+  object "FloorPlate" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, -0.05, 0]
+    scale: [8, 0.1, 12]
+    color: "#1c2333"
+  }
+
+  object "WallLeft" {
+    @static
+    geometry: "box"
+    position: [-4, 2, 0]
+    scale: [0.1, 4, 12]
+    color: "#242d40"
+  }
+
+  object "GlowingStrip" {
+    @glowing
+    geometry: "box"
+    position: [0, 3.8, 0]
+    scale: [8, 0.1, 0.2]
+    color: "#4488ff"
+    emissive: "#4488ff"
+    emissiveIntensity: 2.0
+  }
+
+  object "AirlockDoor" {
+    @static
+    geometry: "box"
+    position: [0, 2, -6]
+    scale: [3, 4, 0.3]
+    color: "#2a3a50"
+  }
+
+  object "DisplayScreen" {
+    @glowing
+    geometry: "plane"
+    position: [-3.9, 2, -3]
+    rotation: [0, 90, 0]
+    scale: [2, 1.5, 1]
+    color: "#0a2040"
+    emissive: "#1a6aff"
+    emissiveIntensity: 0.5
+  }
+}`,
+  },
+
+  // ── Castle Courtyard ──────────────────────────────────────────────────────
+  {
+    id: 'tpl-medieval-castle',
+    name: 'Castle Courtyard',
+    description: 'Fortified courtyard with towers, torchlight, and a well',
+    thumbnail: '🏰',
+    tags: ['medieval', 'castle', 'stone', 'outdoor'],
+    category: 'game',
+    code: `composition "Castle Courtyard" {
+  environment {
+    skybox: "sunset"
+    ambient_light: 0.4
+  }
+
+  object "Cobblestones" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, -0.05, 0]
+    scale: [15, 0.1, 15]
+    color: "#776655"
+  }
+
+  object "TowerA" {
+    @static
+    geometry: "cylinder"
+    position: [6, 5, 6]
+    scale: [1.5, 10, 1.5]
+    color: "#887766"
+  }
+
+  object "TowerB" {
+    @static
+    geometry: "cylinder"
+    position: [-6, 5, 6]
+    scale: [1.5, 10, 1.5]
+    color: "#887766"
+  }
+
+  object "StoneWell" {
+    @static
+    geometry: "cylinder"
+    position: [0, 0.6, 0]
+    scale: [1.2, 1.2, 1.2]
+    color: "#665544"
+  }
+
+  object "Torch" {
+    @glowing
+    geometry: "cylinder"
+    position: [4, 1.5, 0]
+    scale: [0.08, 2, 0.08]
+    color: "#884422"
+    emissive: "#ff6600"
+    emissiveIntensity: 2.0
+  }
+}`,
+  },
+
+  // ── Minimal Showcase ──────────────────────────────────────────────────────
+  {
+    id: 'tpl-minimal-showcase',
+    name: 'Minimal Showcase',
+    description: 'Clean white studio environment for showcasing 3D objects',
+    thumbnail: '⚪',
+    tags: ['clean', 'product', 'studio', 'white'],
+    category: 'film',
+    code: `composition "Minimal Showcase" {
+  environment {
+    skybox: "studio"
+    ambient_light: 1.0
+  }
+
+  object "Platform" {
+    @static
+    geometry: "cylinder"
+    position: [0, -0.1, 0]
+    scale: [3, 0.2, 3]
+    color: "#f5f5f5"
+  }
+
+  object "Subject" {
+    @material metalness:0.9 roughness:0.05
+    geometry: "sphere"
+    position: [0, 0.5, 0]
+    scale: [1.2, 1.2, 1.2]
+    color: "#ffffff"
+  }
+}`,
+  },
+
+  // ── Platformer Level ──────────────────────────────────────────────────────
+  {
+    id: 'tpl-platformer-level',
+    name: 'Platformer Level',
+    description: 'Side-scrolling platformer stage with floating platforms and collectibles',
+    thumbnail: '🎮',
+    tags: ['game', 'platformer', 'level', 'blocks'],
+    category: 'game',
+    code: `composition "Platformer Level 1" {
+  environment {
+    skybox: "studio"
+    ambient_light: 0.8
+  }
+
+  object "GroundPlatform" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, -1, 0]
+    scale: [12, 0.5, 2]
+    color: "#4a8c3f"
+  }
+
+  object "PlatformA" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [-3, 1.5, 0]
+    scale: [2.5, 0.4, 2]
+    color: "#5a9c4f"
+  }
+
+  object "PlatformB" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [2, 3, 0]
+    scale: [3, 0.4, 2]
+    color: "#5a9c4f"
+  }
+
+  object "CoinA" {
+    @glowing
+    geometry: "cylinder"
+    position: [-3, 2.5, 0]
+    scale: [0.4, 0.1, 0.4]
+    color: "#ffd700"
+    emissive: "#ffaa00"
+    emissiveIntensity: 0.5
+
+    animation spin {
+      property: "rotation.y"
+      from: 0
+      to: 360
+      duration: 2000
+      loop: infinite
+      easing: "linear"
+    }
+  }
+
+  object "FlagPole" {
+    @static
+    geometry: "cylinder"
+    position: [5.5, 2, 0]
+    scale: [0.15, 4, 0.15]
+    color: "#cc3333"
+  }
+}`,
+  },
+
+  // ── Underwater Scene ──────────────────────────────────────────────────────
+  {
+    id: 'tpl-underwater',
+    name: 'Underwater Scene',
+    description: 'Deep-sea coral reef with bioluminescent plants and drifting particles',
+    thumbnail: '🐠',
+    tags: ['underwater', 'ocean', 'coral', 'nature'],
+    category: 'environment',
+    code: `composition "Underwater Reef" {
+  environment {
+    skybox: "underwater"
+    ambient_light: 0.3
+    fog: { color: "#003a5c", density: 0.08 }
+  }
+
+  object "SeaFloor" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, -3, 0]
+    scale: [15, 0.2, 15]
+    color: "#c8b89a"
+  }
+
+  object "CoralCluster" {
+    @glowing
+    geometry: "sphere"
+    position: [2, -2, -1]
+    scale: [1.5, 1.2, 1.5]
+    color: "#ff6b35"
+    emissive: "#ff3300"
+    emissiveIntensity: 0.3
+  }
+
+  object "SeaAnemone" {
+    @glowing
+    geometry: "cylinder"
+    position: [-2, -2.5, 2]
+    scale: [0.5, 0.8, 0.5]
+    color: "#ff1493"
+    emissive: "#ff0066"
+    emissiveIntensity: 0.8
+  }
+
+  object "GlowingOrb" {
+    @glowing
+    geometry: "sphere"
+    position: [-3, 0, -2]
+    scale: [0.3, 0.3, 0.3]
+    color: "#aaffee"
+    emissive: "#00ffcc"
+    emissiveIntensity: 3.0
+
+    animation float {
+      property: "position.y"
+      from: 0
+      to: 0.5
+      duration: 3000
+      loop: infinite
+      easing: "easeInOut"
+    }
+  }
+}`,
+  },
 ];
 
 /** All scene templates: built-in + wizard starter templates merged. */
