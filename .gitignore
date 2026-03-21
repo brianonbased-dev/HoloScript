@@ -261,3 +261,6 @@ packages/studio/final*.txt
 packages/studio/targeted*.txt
 packages/studio/full_final_out.txt
 packages/studio/useshader_out.txt
+
+packages/video-tutorials/build
+packages/vscode-extension/out/
