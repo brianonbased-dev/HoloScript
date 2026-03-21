@@ -36,6 +36,7 @@ import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
 // ── Argument parsing ────────────────────────────────────────────────────────
 interface CLIOptions {
   command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'daemon-status' | 'help';
+  json: boolean;
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
   profile: string;
@@ -127,6 +128,7 @@ function parseArgs(argv: string[]): CLIOptions {
   const envDefaults = daemonEnvDefaults();
   const opts: CLIOptions = {
     command: 'help',
+    json: false,
     target: 'headless',
     profile: 'headless',
     debug: false,
@@ -240,6 +242,7 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--allow-path' && args[i + 1]) {
       opts.allowedPaths.push(args[++i]);
     }
+    if (args[i] === '--json') opts.json = true;
   }
 
   if (!modelExplicit) {
@@ -1455,6 +1458,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
 
   // Load persisted daemon state
   const stateFile = path.join(stateDir, 'daemon-state.json');
+  const telemetryFile = path.join(stateDir, 'daemon-telemetry.jsonl');
   interface DaemonPersistedState {
     totalCycles: number; focusIndex: number; bestQuality: number; lastQuality: number;
     totalCostUSD: number; totalInputTokens: number; totalOutputTokens: number;
@@ -1639,6 +1643,7 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     const qualityAfter = (btBlackboard.quality_after as number) || daemonState.lastQuality;
     const costUSD = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
     const committed = (btBlackboard.committed_count as number) || 0;
+    const qualityDelta = qualityAfter - (config.qualityBefore || 0);
 
     // Emit cycle telemetry for @transform → @buffer trait pipeline
     // @transform picks fields + computes qualityDelta/tokensPerDollar
@@ -1681,6 +1686,29 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     runtime.stop();
     activeRuntime = null;
 
+    // Persist machine-readable cycle telemetry for observability and e2e verification.
+    const telemetryRecord = {
+      timestamp: new Date().toISOString(),
+      cycleNumber: daemonState.totalCycles + 1,
+      focus,
+      provider: config.provider,
+      model: config.model,
+      btStatus,
+      ticks: stats.updateCount,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      costUSD,
+      qualityBefore: config.qualityBefore || 0,
+      qualityAfter,
+      qualityDelta,
+      committedCount: committed,
+      candidateCount,
+      wisdomCount,
+      durationSec: Number(durationSec),
+    };
+    fs.appendFileSync(telemetryFile, `${JSON.stringify(telemetryRecord)}\n`, 'utf-8');
+
     console.log(
       `[daemon] Cycle ${cycle + 1} done in ${durationSec}s | ` +
       `${stats.updateCount} ticks | BT: ${btStatus} | quality: ${qualityAfter.toFixed(3)}`,
@@ -1714,7 +1742,6 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.writeFileSync(fileStateFile, JSON.stringify(fileState, null, 2), 'utf-8');
 
     // Convergence detection: escalate strategy when quality plateaus
-    const qualityDelta = qualityAfter - (config.qualityBefore || 0);
     if (qualityDelta <= 0 && committed === 0) {
       convergenceStreak++;
       if (convergenceStreak >= CONVERGENCE_THRESHOLD) {
@@ -1882,12 +1909,20 @@ function getASTBlackboardValue(ast: unknown, key: string): unknown {
   return result;
 }
 
-async function daemonStatus(): Promise<void> {
+async function daemonStatus(jsonOutput = false): Promise<void> {
   const repoRoot = findGitRoot(process.cwd());
   const stateDir = path.join(repoRoot, '.holoscript');
 
   if (!fs.existsSync(stateDir)) {
-    console.log('[daemon status] No state directory found. Run a daemon cycle first.');
+    if (jsonOutput) {
+      console.log(JSON.stringify({
+        status: 'missing_state_dir',
+        running: false,
+        stateDir,
+      }));
+    } else {
+      console.log('[daemon status] No state directory found. Run a daemon cycle first.');
+    }
     return;
   }
 
@@ -1933,6 +1968,73 @@ async function daemonStatus(): Promise<void> {
     try { ledger = JSON.parse(fs.readFileSync(ledgerFile, 'utf-8')); } catch { /* */ }
   }
 
+  // Telemetry stats from JSONL cycle records
+  const telemetryFile = path.join(stateDir, 'daemon-telemetry.jsonl');
+  let telemetryCount = 0;
+  let lastTelemetry: Record<string, unknown> | undefined;
+  if (fs.existsSync(telemetryFile)) {
+    try {
+      const lines = fs.readFileSync(telemetryFile, 'utf-8')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      telemetryCount = lines.length;
+      if (lines.length > 0) {
+        lastTelemetry = JSON.parse(lines[lines.length - 1]) as Record<string, unknown>;
+      }
+    } catch {
+      // ignore malformed telemetry file
+    }
+  }
+
+  const totalCycles = (ds.totalCycles as number) || 0;
+  const lastFocus = (ds.lastFocus as string) || 'n/a';
+  const lastCycleTime = ds.lastCycleTimeISO ? new Date(ds.lastCycleTimeISO as string).toLocaleString() : 'never';
+  const bestQ = (Number((ds.bestQuality as number) || 0)).toFixed(3);
+  const lastQ = (Number((ds.lastQuality as number) || 0)).toFixed(3);
+  const baseline = ds.typeErrorBaseline ? `${ds.typeErrorBaseline} type errors` : 'not yet measured';
+  const totalCost = Number((ds.totalCostUSD as number) || 0);
+  const tokIn = Number((ds.totalInputTokens as number) || 0);
+  const tokOut = Number((ds.totalOutputTokens as number) || 0);
+  const quarantined = Object.values(fileState.failures).filter((n) => n >= 3).length;
+
+  if (jsonOutput) {
+    console.log(JSON.stringify({
+      status: 'ok',
+      running: isRunning,
+      pid: lockPid || null,
+      heartbeatAgeSec: lastHeartbeat > 0 ? Math.round((Date.now() - lastHeartbeat) / 1000) : null,
+      stateDir,
+      session: {
+        totalCycles,
+        lastFocus,
+        lastCycleTimeISO: (ds.lastCycleTimeISO as string) || null,
+      },
+      quality: {
+        best: Number(bestQ),
+        last: Number(lastQ),
+        baselineTypeErrors: (ds.typeErrorBaseline as number) || 0,
+      },
+      cost: {
+        totalUSD: totalCost,
+        tokensIn: tokIn,
+        tokensOut: tokOut,
+      },
+      files: {
+        committed: fileState.committed.length,
+        quarantined,
+      },
+      wisdomCount,
+      telemetry: {
+        file: telemetryFile,
+        count: telemetryCount,
+        last: lastTelemetry || null,
+      },
+      recentLedger: ledger.slice(-5),
+    }));
+    return;
+  }
+
   const G = '\x1b[32m';
   const Y = '\x1b[33m';
   const R = '\x1b[0m';
@@ -1945,35 +2047,29 @@ async function daemonStatus(): Promise<void> {
   console.log(`\n${B}HoloDaemon Status${R}  ${runStatus}`);
   console.log(`  State dir:  ${stateDir}\n`);
 
-  const totalCycles = (ds.totalCycles as number) || 0;
-  const lastFocus = (ds.lastFocus as string) || 'n/a';
-  const lastCycleTime = ds.lastCycleTimeISO ? new Date(ds.lastCycleTimeISO as string).toLocaleString() : 'never';
   console.log(`${B}Session${R}`);
   console.log(`  Total cycles:  ${totalCycles}`);
   console.log(`  Last focus:    ${lastFocus}`);
   console.log(`  Last cycle:    ${lastCycleTime}`);
 
-  const bestQ = ((ds.bestQuality as number) || 0).toFixed(3);
-  const lastQ = ((ds.lastQuality as number) || 0).toFixed(3);
-  const baseline = ds.typeErrorBaseline ? `${ds.typeErrorBaseline} type errors` : 'not yet measured';
   console.log(`\n${B}Quality${R}`);
   console.log(`  Best:      ${bestQ}`);
   console.log(`  Last:      ${lastQ}`);
   console.log(`  Baseline:  ${baseline}`);
 
-  const totalCost = ((ds.totalCostUSD as number) || 0).toFixed(4);
-  const tokIn = ((ds.totalInputTokens as number) || 0).toLocaleString();
-  const tokOut = ((ds.totalOutputTokens as number) || 0).toLocaleString();
+  const totalCostDisplay = totalCost.toFixed(4);
+  const tokInDisplay = tokIn.toLocaleString();
+  const tokOutDisplay = tokOut.toLocaleString();
   console.log(`\n${B}Cost${R}`);
-  console.log(`  Total:      $${totalCost}`);
-  console.log(`  Tokens in:  ${tokIn}`);
-  console.log(`  Tokens out: ${tokOut}`);
+  console.log(`  Total:      $${totalCostDisplay}`);
+  console.log(`  Tokens in:  ${tokInDisplay}`);
+  console.log(`  Tokens out: ${tokOutDisplay}`);
 
-  const quarantined = Object.values(fileState.failures).filter((n) => n >= 3).length;
   console.log(`\n${B}Files${R}`);
   console.log(`  Committed:   ${fileState.committed.length}`);
   console.log(`  Quarantined: ${quarantined}`);
   console.log(`  Wisdom:      ${wisdomCount} entries`);
+  console.log(`  Telemetry:   ${telemetryCount} entries`);
 
   const recent = ledger.slice(-5);
   if (recent.length > 0) {
@@ -2004,6 +2100,7 @@ Usage:
   holoscript compile <file> [--target node|python] [--output <path>] [--enforce-gotchas]
   holoscript absorb <file>  [--output <path>] [--debug]
   holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--provider-rotation] [--always-on] [--cycle-interval-sec <n>] [--skills-dir <path>] [--allow-shell] [--allow-shell-command <cmd>] [--allow-host <host>] [--allow-path <path>] [--debug]
+  holoscript daemon status  [--json]
 
 Environment defaults (daemon):
   HOLODAEMON_PROVIDER       anthropic|xai|openai|ollama
@@ -2053,7 +2150,7 @@ async function main(): Promise<void> {
       await daemonScript(opts);
       break;
     case 'daemon-status':
-      await daemonStatus();
+      await daemonStatus(opts.json);
       break;
     case 'help':
     default:
