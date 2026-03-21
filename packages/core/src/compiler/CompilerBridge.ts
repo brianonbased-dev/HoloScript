@@ -46,7 +46,7 @@ export class CompilerBridge {
       this.initialized = true;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error('[CompilerBridge] Failed to initialize:', msg);
+      // Failed to initialize - error will be thrown below
       throw new Error('Failed to load HoloScript compiler modules');
     }
   }
