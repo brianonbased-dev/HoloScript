@@ -4,6 +4,14 @@ import { RailwayConnector } from '../RailwayConnector.js';
 // Mock fetch globally
 global.fetch = vi.fn();
 
+// Helper to create mock Headers object
+const mockHeaders = (entries: [string, string][]): any => ({
+    get: (key: string) => {
+        const entry = entries.find(([k]) => k === key);
+        return entry ? entry[1] : null;
+    }
+});
+
 describe('RailwayConnector', () => {
     let connector: RailwayConnector;
     const mockToken = 'test-railway-token';
@@ -119,7 +127,7 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: true,
                     status: 200,
-                    headers: new Map([['X-RateLimit-Remaining', '100']]),
+                    headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                     json: async () => mockResponse
                 });
 
@@ -153,7 +161,7 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: true,
                     status: 200,
-                    headers: new Map([['X-RateLimit-Remaining', '100']]),
+                    headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                     json: async () => mockResponse
                 });
 
@@ -182,7 +190,7 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: true,
                     status: 200,
-                    headers: new Map([['X-RateLimit-Remaining', '100']]),
+                    headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                     json: async () => mockResponse
                 });
 
@@ -200,7 +208,7 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: true,
                     status: 200,
-                    headers: new Map([['X-RateLimit-Remaining', '100']]),
+                    headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                     json: async () => ({ data: { variableUpsert: true } })
                 });
 
@@ -231,7 +239,7 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: true,
                     status: 200,
-                    headers: new Map([['X-RateLimit-Remaining', '100']]),
+                    headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                     json: async () => mockResponse
                 });
 
@@ -256,7 +264,7 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: true,
                     status: 200,
-                    headers: new Map([['X-RateLimit-Remaining', '100']]),
+                    headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                     json: async () => mockResponse
                 });
 
@@ -290,14 +298,14 @@ describe('RailwayConnector', () => {
                 ok: false,
                 status: 429,
                 statusText: 'Too Many Requests',
-                headers: new Map([['X-RateLimit-Remaining', '0']])
+                headers: mockHeaders([['X-RateLimit-Remaining', '0']])
             });
 
             // Second attempt: success
             (global.fetch as any).mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                headers: new Map([['X-RateLimit-Remaining', '50']]),
+                headers: mockHeaders([['X-RateLimit-Remaining', '50']]),
                 json: async () => ({ data: { projectCreate: { id: 'proj_123' } } })
             });
 
@@ -314,13 +322,13 @@ describe('RailwayConnector', () => {
             (global.fetch as any).mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                headers: new Map([['X-RateLimit-Remaining', '0']])
+                headers: mockHeaders([['X-RateLimit-Remaining', '0']])
             });
 
             (global.fetch as any).mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                headers: new Map([['X-RateLimit-Remaining', '100']]),
+                headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                 json: async () => ({ data: {} })
             });
 
@@ -335,7 +343,7 @@ describe('RailwayConnector', () => {
                     ok: false,
                     status: 429,
                     statusText: 'Too Many Requests',
-                    headers: new Map([['X-RateLimit-Remaining', '0']])
+                    headers: mockHeaders([['X-RateLimit-Remaining', '0']])
                 });
             }
 
@@ -345,7 +353,7 @@ describe('RailwayConnector', () => {
 
             // Should be 4 attempts (initial + 3 retries)
             expect(global.fetch).toHaveBeenCalledTimes(4);
-        });
+        }, 10000); // 10s timeout for test with real backoff delays
 
         it('should use exponential backoff (1s, 2s, 4s)', async () => {
             const delays: number[] = [];
@@ -362,14 +370,14 @@ describe('RailwayConnector', () => {
                 (global.fetch as any).mockResolvedValueOnce({
                     ok: false,
                     status: 429,
-                    headers: new Map([['X-RateLimit-Remaining', '0']])
+                    headers: mockHeaders([['X-RateLimit-Remaining', '0']])
                 });
             }
 
             (global.fetch as any).mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                headers: new Map([['X-RateLimit-Remaining', '100']]),
+                headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
                 json: async () => ({ data: {} })
             });
 
@@ -385,7 +393,7 @@ describe('RailwayConnector', () => {
                 ok: false,
                 status: 500,
                 statusText: 'Internal Server Error',
-                headers: new Map()
+                headers: mockHeaders([])
             });
 
             await expect(
