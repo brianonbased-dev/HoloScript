@@ -22,6 +22,16 @@ import { AdapterManager } from './AdapterManager';
 import { getAdapterForFile, detectLanguage } from './adapters';
 import { extractFileDocComment } from './adapters/BaseAdapter';
 
+// Dynamic import for worker pool (graceful degradation if not available)
+let WorkerPool: any;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  WorkerPool = require('./workers/WorkerPool').WorkerPool;
+} catch {
+  // Worker threads not available (browser, WASM, or old Node.js)
+  WorkerPool = null;
+}
+
 const DEFAULT_EXCLUDE = [
   'node_modules',
   '.git',
@@ -60,9 +70,34 @@ const BUILD_ARTIFACT_DIRS = new Set(['dist', 'build', 'out']);
 
 export class CodebaseScanner {
   private adapterManager: AdapterManager;
+  private workerPool?: any; // WorkerPool instance (if available)
+  private useWorkers: boolean;
 
-  constructor(adapterManager?: AdapterManager) {
+  constructor(adapterManager?: AdapterManager, useWorkers = true) {
     this.adapterManager = adapterManager ?? new AdapterManager();
+    this.useWorkers = useWorkers && WorkerPool !== null;
+
+    // Initialize worker pool (graceful degradation if unavailable)
+    if (this.useWorkers && WorkerPool) {
+      try {
+        const workerFile = path.join(__dirname, 'workers', 'parse-worker.js');
+        this.workerPool = new WorkerPool(workerFile);
+        console.log(`[CodebaseScanner] Worker pool initialized with ${this.workerPool.getPoolSize()} threads`);
+      } catch (err) {
+        console.warn('[CodebaseScanner] Worker threads unavailable, falling back to sequential:', err);
+        this.useWorkers = false;
+      }
+    }
+  }
+
+  /**
+   * Clean up resources (terminate worker pool if active).
+   */
+  async dispose(): Promise<void> {
+    if (this.workerPool) {
+      await this.workerPool.terminate();
+      this.workerPool = undefined;
+    }
   }
 
   /**

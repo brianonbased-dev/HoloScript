@@ -588,6 +588,41 @@ export async function POST(req: NextRequest) {
     : 'shallow') as 'shallow' | 'medium' | 'deep';
   const force = body.force === true;
 
+  // FAST PATH for git hooks: If force=false and cache is fresh (< 5 min), return cached instantly
+  // This prevents hook spam when making multiple rapid commits
+  if (!force) {
+    const key = cacheKey(projectPath, depth);
+    const cached = readCache(key);
+
+    if (cached && cached.gitCommitHash) {
+      const cacheAge = Date.now() - new Date(cached.absorbedAt).getTime();
+      if (cacheAge < 5 * 60 * 1000) {
+        // 5 minutes
+        // Check if git HEAD changed
+        try {
+          const coreCb = await import(/* webpackIgnore: true */ '@holoscript/core/codebase');
+          const { GitChangeDetector } = coreCb;
+          const detector = new GitChangeDetector(projectPath);
+          const headCommit = detector.getHeadCommit();
+
+          if (headCommit === cached.gitCommitHash) {
+            // Exact same commit, return cache in <50ms
+            return NextResponse.json({
+              cached: true,
+              incremental: false,
+              filesChanged: 0,
+              ...cached,
+              durationMs: 0,
+              message: `Cache hit: No changes since ${headCommit?.slice(0, 7)} (${Math.round(cacheAge / 1000)}s ago)`,
+            });
+          }
+        } catch {
+          // Git check failed, fall through to normal absorb
+        }
+      }
+    }
+  }
+
   // Basic path validation — must be absolute and must exist
   if (!path.isAbsolute(projectPath)) {
     return NextResponse.json({ error: 'projectPath must be an absolute path' }, { status: 400 });

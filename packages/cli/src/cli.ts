@@ -2759,6 +2759,39 @@ async function main(): Promise<void> {
       break;
     }
 
+    case 'setup-hooks': {
+      console.log('\n\x1b[1m🪝 Setting up Git Hooks\x1b[0m\n');
+
+      const projectPath = options.input || process.cwd();
+      const studioUrl = options.studioUrl || 'http://localhost:3000';
+
+      try {
+        const { setupGitHooks } = await import('./commands/setup-hooks');
+        await setupGitHooks({ projectPath, studioUrl });
+        process.exit(0);
+      } catch (err: any) {
+        console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'remove-hooks': {
+      console.log('\n\x1b[1m🪝 Removing Git Hooks\x1b[0m\n');
+
+      const projectPath = options.input || process.cwd();
+
+      try {
+        const { removeGitHooks } = await import('./commands/setup-hooks');
+        await removeGitHooks({ projectPath });
+        process.exit(0);
+      } catch (err: any) {
+        console.error(`\x1b[31mError: ${err.message}\x1b[0m`);
+        process.exit(1);
+      }
+      break;
+    }
+
     default:
       const cli = new HoloScriptCLI(options);
       const exitCode = await cli.run();

@@ -100,6 +100,81 @@ async function createDynamicEmbeddingIndex(mod: {
 }
 
 // =============================================================================
+// JOB TRACKING (PHASE 8: SSE Progress Streaming)
+// =============================================================================
+
+interface AbsorbJob {
+  jobId: string;
+  rootDir: string;
+  status: 'queued' | 'scanning' | 'analyzing' | 'indexing' | 'complete' | 'error';
+  progress: number; // 0-100
+  phase: string;
+  filesProcessed: number;
+  totalFiles: number;
+  startedAt: number;
+  completedAt?: number;
+  error?: string;
+  result?: unknown;
+}
+
+const absorbJobs = new Map<string, AbsorbJob>();
+
+/**
+ * Track absorb job progress. Updates the job state in the jobs map.
+ */
+function trackAbsorbProgress(
+  jobId: string,
+  phase: string,
+  progress: number,
+  filesProcessed: number = 0,
+  totalFiles: number = 0
+): void {
+  const job = absorbJobs.get(jobId);
+  if (job) {
+    job.phase = phase;
+    job.progress = Math.min(100, Math.max(0, progress));
+    job.filesProcessed = filesProcessed;
+    job.totalFiles = totalFiles;
+
+    // Auto-update status based on progress
+    if (progress >= 100) {
+      job.status = 'complete';
+      job.completedAt = Date.now();
+    } else if (progress >= 65) {
+      job.status = 'indexing';
+    } else if (progress >= 10) {
+      job.status = 'scanning';
+    } else {
+      job.status = 'queued';
+    }
+  }
+}
+
+/**
+ * Create a new absorb job and register it.
+ */
+function createAbsorbJob(rootDir: string): string {
+  const jobId = `absorb-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  absorbJobs.set(jobId, {
+    jobId,
+    rootDir,
+    status: 'queued',
+    progress: 0,
+    phase: 'Initializing',
+    filesProcessed: 0,
+    totalFiles: 0,
+    startedAt: Date.now(),
+  });
+
+  // Auto-cleanup after 1 hour
+  setTimeout(() => {
+    absorbJobs.delete(jobId);
+  }, 60 * 60 * 1000);
+
+  return jobId;
+}
+
+// =============================================================================
 // GRAPH PERSISTENCE
 // =============================================================================
 
@@ -485,6 +560,18 @@ export const codebaseTools: Tool[] = [
       required: ['symbolName'],
     },
   },
+  {
+    name: 'holo_get_absorb_status',
+    description:
+      'Get progress status of a running absorb job by jobId. Returns current progress, phase, files processed, and completion status.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        jobId: { type: 'string', description: 'Job ID returned from holo_absorb_repo' },
+      },
+      required: ['jobId'],
+    },
+  },
 ];
 
 // =============================================================================
@@ -587,6 +674,8 @@ export async function handleCodebaseTool(
       return handleDetectDrift(args);
     case 'holo_resolve_symbol':
       return handleResolveSymbol(args);
+    case 'holo_get_absorb_status':
+      return handleGetAbsorbStatus(args);
     default:
       return null;
   }
@@ -598,11 +687,11 @@ export async function handleCodebaseTool(
  * Run a full codebase scan (non-incremental path).
  */
 async function runFullScan(
-  mod: { 
-    CodebaseScanner: any; 
-    CodebaseGraph: any; 
-    HoloEmitter: any; 
-    CodebaseSceneCompiler: any; 
+  mod: {
+    CodebaseScanner: any;
+    CodebaseGraph: any;
+    HoloEmitter: any;
+    CodebaseSceneCompiler: any;
     GitChangeDetector: any;
     GraphRAGEngine: any;
     EmbeddingIndex: any;
@@ -614,18 +703,33 @@ async function runFullScan(
   includeBuildArtifacts: boolean,
   outputFormat: string,
   layout: string,
-  interactive: boolean
+  interactive: boolean,
+  jobId?: string
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } = mod;
 
   const startTime = Date.now();
+
+  if (jobId) trackAbsorbProgress(jobId, 'Discovering files', 5);
+
   const scanner = new CodebaseScanner();
+
+  if (jobId) trackAbsorbProgress(jobId, 'Scanning codebase', 10);
+
   const scanResult = await scanner.scan({
     rootDir,
     languages,
     maxFiles,
     includeBuildArtifacts,
+    onProgress: (processed: number, total: number, file: string) => {
+      if (jobId) {
+        const scanPercent = 10 + ((processed / total) * 50); // 10-60%
+        trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+      }
+    }
   });
+
+  if (jobId) trackAbsorbProgress(jobId, 'Building graph', 65);
 
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
@@ -656,6 +760,8 @@ async function runFullScan(
   const embeddingProvider = await detectBestEmbeddingProvider();
   saveGraphCache(graph, rootDir, graphStats, gitCommitHash, fileHashes, embeddingProvider);
 
+  if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
+
   // Build embedding index
   try {
     const { GraphRAGEngine } = mod;
@@ -675,67 +781,81 @@ async function runFullScan(
       ? buildAbsorbDiagnostics(rootDir, scanResult, includeBuildArtifacts)
       : undefined;
 
+  if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
+
+  let result: unknown;
+
   if (outputFormat === 'stats') {
-    return {
+    result = {
       rootDir,
       stats,
       gitCommitHash,
       diagnostics,
       durationMs: Date.now() - startTime,
     };
-  }
-
-  if (outputFormat === 'graph') {
-    return {
+  } else if (outputFormat === 'graph') {
+    result = {
       stats,
       graph: graph.serialize(),
       gitCommitHash,
       diagnostics,
       durationMs: Date.now() - startTime,
     };
+  } else {
+    // Default: holo
+    const emitter = new HoloEmitter();
+    const holoSource = emitter.emit(graph, {
+      name: rootDir.split(/[/\\]/).pop() ?? 'codebase',
+      layout: layout as 'force' | 'layered',
+      lastPositions: graph.nodePositions,
+    });
+
+    // Extract positions from AST via SceneCompiler (since emitter doesn't expose them directly)
+    const sceneCompiler = new CodebaseSceneCompiler();
+    const scene = sceneCompiler.compile(graph, {
+      layout: layout as 'force' | 'layered',
+      interactive,
+      lastPositions: graph.nodePositions,
+    });
+
+    // Save new positions to graph
+    for (const obj of scene.objects) {
+      graph.nodePositions.set(obj.name, obj.position);
+    }
+
+    result = {
+      stats,
+      holoSource,
+      interactiveScene: scene,
+      gitCommitHash,
+      diagnostics,
+      durationMs: Date.now() - startTime,
+    };
   }
 
-  // Default: holo
-  const emitter = new HoloEmitter();
-  const holoSource = emitter.emit(graph, {
-    name: rootDir.split(/[/\\]/).pop() ?? 'codebase',
-    layout: layout as 'force' | 'layered',
-    lastPositions: graph.nodePositions,
-  });
-
-  // Extract positions from AST via SceneCompiler (since emitter doesn't expose them directly)
-  const sceneCompiler = new CodebaseSceneCompiler();
-  const scene = sceneCompiler.compile(graph, {
-    layout: layout as 'force' | 'layered',
-    interactive,
-    lastPositions: graph.nodePositions,
-  });
-
-  // Save new positions to graph
-  for (const obj of scene.objects) {
-    graph.nodePositions.set(obj.name, obj.position);
+  // Store result in job
+  if (jobId) {
+    const job = absorbJobs.get(jobId);
+    if (job) {
+      job.result = result;
+      job.status = 'complete';
+      job.completedAt = Date.now();
+    }
   }
 
-  return {
-    stats,
-    holoSource,
-    interactiveScene: scene,
-    gitCommitHash,
-    diagnostics,
-    durationMs: Date.now() - startTime,
-  };
+  return result;
 }
 
 /**
  * Run an incremental patch (reuse cached graph, only rescan changed files).
  */
 async function runIncrementalPatch(
-  mod: { 
-    CodebaseScanner: any; 
-    CodebaseGraph: any; 
-    GitChangeDetector: any; 
-    HoloEmitter: any; 
-    CodebaseSceneCompiler: any; 
+  mod: {
+    CodebaseScanner: any;
+    CodebaseGraph: any;
+    GitChangeDetector: any;
+    HoloEmitter: any;
+    CodebaseSceneCompiler: any;
     GraphRAGEngine: any;
     EmbeddingIndex: any;
     createEmbeddingProvider: any;
@@ -746,10 +866,13 @@ async function runIncrementalPatch(
   includeBuildArtifacts: boolean,
   outputFormat: string,
   layout: string,
-  interactive: boolean
+  interactive: boolean,
+  jobId?: string
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
   const startTime = Date.now();
+
+  if (jobId) trackAbsorbProgress(jobId, 'Loading cached graph', 10);
 
   // Deserialize cached graph
   let graph: any;
@@ -757,8 +880,10 @@ async function runIncrementalPatch(
     graph = CodebaseGraph.deserialize(envelope.graphJson);
   } catch {
     console.warn('[AbsorbIncremental] deserialization failed → full scan');
-    return await runFullScan(mod, rootDir, undefined, undefined, includeBuildArtifacts, outputFormat, layout, interactive);
+    return await runFullScan(mod, rootDir, undefined, undefined, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
   }
+
+  if (jobId) trackAbsorbProgress(jobId, 'Detecting content changes', 20);
 
   // Content-hash verification
   const detector = new GitChangeDetector(rootDir);
@@ -772,11 +897,21 @@ async function runIncrementalPatch(
 
   console.log(`[AbsorbIncremental] removing ${filesToRemove.length}, rescanning ${filesToRescan.length}`);
 
+  if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);
+
   // Rescan changed files
   const scanner = new CodebaseScanner();
   const rescanResult = await scanner.scanFiles(rootDir, filesToRescan.map(f => path.join(rootDir, f)), {
     includeBuildArtifacts,
+    onProgress: (processed: number, total: number, file: string) => {
+      if (jobId) {
+        const scanPercent = 30 + ((processed / total) * 30); // 30-60%
+        trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+      }
+    }
   });
+
+  if (jobId) trackAbsorbProgress(jobId, 'Patching graph', 65);
 
   // Patch graph
   graph.patchFiles(filesToRemove, rescanResult.files);
@@ -787,30 +922,32 @@ async function runIncrementalPatch(
   const newHashes = detector.computeFileHashes(allFilePaths);
   graph.fileHashes = Object.fromEntries(newHashes.map((h: any) => [h.filePath, h.hash]));
 
-    // Update embedding index
-    try {
-      const { GraphRAGEngine } = mod;
-      const embeddingIndex = await createDynamicEmbeddingIndex(mod);
+  if (jobId) trackAbsorbProgress(jobId, 'Updating embeddings', 80);
 
-      // Load existing embeddings if available
-      if (cachedGraph && cachedGraph === graph) {
-        // Use cached embedding index
-      } else {
-        // Remove stale embeddings
-        for (const file of filesToRemove) {
-          embeddingIndex.removeSymbols(file);
-        }
-        // Add fresh embeddings
-        const newSymbols = (rescanResult as any).files.flatMap((f: any) => f.symbols);
-        if (newSymbols.length > 0) {
-          await embeddingIndex.addSymbols(newSymbols);
-        }
+  // Update embedding index
+  try {
+    const { GraphRAGEngine } = mod;
+    const embeddingIndex = await createDynamicEmbeddingIndex(mod);
+
+    // Load existing embeddings if available
+    if (cachedGraph && cachedGraph === graph) {
+      // Use cached embedding index
+    } else {
+      // Remove stale embeddings
+      for (const file of filesToRemove) {
+        embeddingIndex.removeSymbols(file);
       }
-
-      setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
-    } catch {
-      // Embedding provider may not be available
+      // Add fresh embeddings
+      const newSymbols = (rescanResult as any).files.flatMap((f: any) => f.symbols);
+      if (newSymbols.length > 0) {
+        await embeddingIndex.addSymbols(newSymbols);
+      }
     }
+
+    setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
+  } catch {
+    // Embedding provider may not be available
+  }
 
   // Cache updated graph
   cachedGraph = graph;
@@ -856,9 +993,11 @@ async function runIncrementalPatch(
     await syncWithMesh(graph, rootDir);
   }
 
+  if (jobId) trackAbsorbProgress(jobId, 'Complete', 100);
+
   const patchDurationMs = Date.now() - startTime;
 
-  return {
+  const result = {
     incremental: true,
     filesChanged: filesToRescan.length,
     filesAdded: changes.added.length,
@@ -872,15 +1011,27 @@ async function runIncrementalPatch(
     gitCommitHash: changes.headCommit,
     message: `Incremental update: patched ${filesToRescan.length} files in ${patchDurationMs}ms (${graphStats.totalFiles} total)`,
   };
+
+  // Store result in job
+  if (jobId) {
+    const job = absorbJobs.get(jobId);
+    if (job) {
+      job.result = result;
+      job.status = 'complete';
+      job.completedAt = Date.now();
+    }
+  }
+
+  return result;
 }
 
 async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
-  const mod = (await loadCodebaseModule()) as { 
-    CodebaseScanner: any; 
-    CodebaseGraph: any; 
-    GitChangeDetector: any; 
-    HoloEmitter: any; 
-    CodebaseSceneCompiler: any; 
+  const mod = (await loadCodebaseModule()) as {
+    CodebaseScanner: any;
+    CodebaseGraph: any;
+    GitChangeDetector: any;
+    HoloEmitter: any;
+    CodebaseSceneCompiler: any;
     GraphRAGEngine: any;
     EmbeddingIndex: any;
     createEmbeddingProvider: any;
@@ -896,12 +1047,16 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const force = (args.force as boolean) ?? false;
   const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
 
+  // Create job for progress tracking
+  const jobId = createAbsorbJob(rootDir);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PATH 1: force=true → FULL SCAN
   // ═══════════════════════════════════════════════════════════════════════════
   if (force) {
     console.log('[AbsorbIncremental] force=true → full scan');
-    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return { ...(result as Record<string, unknown>), jobId };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -910,17 +1065,20 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const envelope = loadGraphCache();
   if (!envelope) {
     console.log('[AbsorbIncremental] no cache → full scan');
-    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return { ...(result as Record<string, unknown>), jobId };
   }
 
   if (envelope.version === 1) {
     console.log('[AbsorbIncremental] v1 cache (no git data) → full scan');
-    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return { ...(result as Record<string, unknown>), jobId };
   }
 
   if (envelope.rootDir !== rootDir) {
     console.log('[AbsorbIncremental] different rootDir → full scan');
-    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return { ...(result as Record<string, unknown>), jobId };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -929,13 +1087,15 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const detector = new GitChangeDetector(rootDir);
   if (!detector.isGitRepo()) {
     console.log('[AbsorbIncremental] not a git repo → full scan');
-    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return { ...(result as Record<string, unknown>), jobId };
   }
 
   const changes = detector.detectChanges(envelope.gitCommitHash ?? null);
   if (changes.storedCommitMissing) {
     console.log('[AbsorbIncremental] stored commit missing (force push?) → full scan');
-    return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return { ...(result as Record<string, unknown>), jobId };
   }
 
   const totalChanges = changes.added.length + changes.modified.length + changes.deleted.length;
@@ -954,7 +1114,19 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         cacheTimestamp = envelope.timestamp;
       } catch {
         console.warn('[AbsorbIncremental] deserialization failed → full scan');
-        return await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive);
+        const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+        return { ...(result as Record<string, unknown>), jobId };
+      }
+    }
+
+    // Mark job as complete immediately (fast path)
+    if (jobId) {
+      const job = absorbJobs.get(jobId);
+      if (job) {
+        job.status = 'complete';
+        job.progress = 100;
+        job.phase = 'Complete (cached)';
+        job.completedAt = Date.now();
       }
     }
 
@@ -966,6 +1138,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
       stats: envelope.stats,
       gitCommitHash: changes.headCommit,
       message: `No changes since last scan (${changes.headCommit.slice(0, 7)})`,
+      jobId,
     };
   }
 
@@ -973,7 +1146,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // PATH 5: INCREMENTAL PATCH
   // ═══════════════════════════════════════════════════════════════════════════
   console.log(`[AbsorbIncremental] ${totalChanges} changes → incremental patch`);
-  return await runIncrementalPatch(
+  const result = await runIncrementalPatch(
     mod,
     rootDir,
     envelope,
@@ -981,8 +1154,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     includeBuildArtifacts,
     outputFormat,
     layout,
-    interactive
+    interactive,
+    jobId
   );
+  return { ...(result as Record<string, unknown>), jobId };
 }
 
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
@@ -1289,6 +1464,37 @@ async function handleGraphStatus(): Promise<unknown> {
           hint: 'No disk cache found. Call holo_absorb_repo to create one.',
         },
   };
+}
+
+// ── Absorb Status ────────────────────────────────────────────────────────────
+
+async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unknown> {
+  const jobId = args.jobId as string;
+  const job = absorbJobs.get(jobId);
+
+  if (!job) {
+    return { error: 'Job not found', jobId };
+  }
+
+  const response: Record<string, unknown> = {
+    jobId,
+    status: job.status,
+    progress: job.progress,
+    phase: job.phase,
+    filesProcessed: job.filesProcessed,
+    totalFiles: job.totalFiles,
+    durationMs: Date.now() - job.startedAt,
+  };
+
+  if (job.error) {
+    response.error = job.error;
+  }
+
+  if (job.result && job.status === 'complete') {
+    response.result = job.result;
+  }
+
+  return response;
 }
 
 // ── Query Helpers ────────────────────────────────────────────────────────────

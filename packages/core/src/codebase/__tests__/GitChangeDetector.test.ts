@@ -8,9 +8,10 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { GitChangeDetector } from '../GitChangeDetector';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 // Use HoloScript repo as test fixture (we're inside a git repo)
-const HOLOSCRIPT_ROOT = path.resolve(__dirname, '../../../../../..');
+const HOLOSCRIPT_ROOT = path.resolve(__dirname, '../../../../..');
 
 describe('GitChangeDetector', () => {
   let detector: GitChangeDetector;
@@ -25,11 +26,11 @@ describe('GitChangeDetector', () => {
     });
 
     it('returns false for non-git directory', () => {
-      const tempDir = path.join(__dirname, '__temp_not_git__');
+      const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
       fs.mkdirSync(tempDir, { recursive: true });
       const nonGitDetector = new GitChangeDetector(tempDir);
       expect(nonGitDetector.isGitRepo()).toBe(false);
-      fs.rmdirSync(tempDir);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
   });
 
@@ -63,12 +64,12 @@ describe('GitChangeDetector', () => {
     });
 
     it('returns notGitRepo=true for non-git directory', () => {
-      const tempDir = path.join(__dirname, '__temp_not_git__');
+      const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
       fs.mkdirSync(tempDir, { recursive: true });
       const nonGitDetector = new GitChangeDetector(tempDir);
       const result = nonGitDetector.detectChanges(null);
       expect(result.notGitRepo).toBe(true);
-      fs.rmdirSync(tempDir);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     });
   });
 
