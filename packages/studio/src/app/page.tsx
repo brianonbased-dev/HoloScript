@@ -228,6 +228,10 @@ export default function HomePage() {
           Pipeline
         </Link>
         <span className="footer-sep">·</span>
+        <Link href="/integrations" className="footer-link">
+          Integrations
+        </Link>
+        <span className="footer-sep">·</span>
         <span className="footer-hint">
           Press <kbd>?</kbd> for help
         </span>

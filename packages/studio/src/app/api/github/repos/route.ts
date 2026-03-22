@@ -1,133 +1,100 @@
 /**
- * GET /api/github/repos — List authenticated user's GitHub repositories.
+ * GET /api/github/repos — List authenticated user's GitHub repositories
  *
- * Requires GitHub OAuth session. Returns repos sorted by most recently pushed.
- * Supports ?q= search filter and ?per_page= pagination.
+ * Uses @holoscript/connector-github to fetch repos via GitHubConnector.
+ * Requires GITHUB_TOKEN environment variable (will be replaced by OAuth later).
+ *
+ * Query params:
+ *   - per_page: Number of repos per page (default: 50, max: 100)
+ *   - q: Search query (filters by repo name/description)
+ *
+ * @module api/github/repos
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
-interface GitHubRepo {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  html_url: string;
-  clone_url: string;
-  default_branch: string;
-  language: string | null;
-  stargazers_count: number;
-  updated_at: string;
-  pushed_at: string;
-  private: boolean;
-  fork: boolean;
-  size: number;
-}
-
-interface RepoListItem {
-  id: number;
-  name: string;
-  fullName: string;
-  description: string | null;
-  cloneUrl: string;
-  defaultBranch: string;
-  language: string | null;
-  stars: number;
-  pushedAt: string;
-  isPrivate: boolean;
-  isFork: boolean;
-  sizeKB: number;
-}
+import { GitHubConnector } from '@holoscript/connector-github';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Not authenticated. Sign in with GitHub first.' },
-      { status: 401 },
-    );
-  }
-
-  // Get the GitHub access token from the session/account
-  // NextAuth stores it via the GitHub provider
-  const accessToken = (session as any).accessToken;
-
-  if (!accessToken) {
-    // Fallback: list from GitHub API using server-side token if configured
-    const serverToken = process.env.GITHUB_TOKEN;
-    if (!serverToken) {
-      return NextResponse.json(
-        { error: 'No GitHub access token available. Re-authenticate with GitHub.' },
-        { status: 401 },
-      );
-    }
-    return fetchRepos(req, serverToken);
-  }
-
-  return fetchRepos(req, accessToken);
-}
-
-async function fetchRepos(req: NextRequest, token: string) {
-  const q = req.nextUrl.searchParams.get('q')?.toLowerCase() ?? '';
-  const perPage = Math.min(
-    parseInt(req.nextUrl.searchParams.get('per_page') ?? '30', 10),
-    100,
-  );
-
   try {
-    const res = await fetch(
-      `https://api.github.com/user/repos?sort=pushed&per_page=${perPage}&type=all`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-          'User-Agent': 'HoloScript-Studio',
-        },
-      },
-    );
-
-    if (!res.ok) {
-      const body = await res.text();
+    // Check if GitHub token is available
+    if (!process.env.GITHUB_TOKEN) {
       return NextResponse.json(
-        { error: `GitHub API error: ${res.status}`, detail: body },
-        { status: res.status },
+        { error: 'GitHub not connected. Set GITHUB_TOKEN environment variable.' },
+        { status: 401 }
       );
     }
 
-    const ghRepos = (await res.json()) as GitHubRepo[];
+    // Parse query params
+    const searchParams = req.nextUrl.searchParams;
+    const perPage = Math.min(parseInt(searchParams.get('per_page') || '50', 10), 100);
+    const searchQuery = searchParams.get('q') || '';
 
-    let repos: RepoListItem[] = ghRepos.map((r) => ({
-      id: r.id,
-      name: r.name,
-      fullName: r.full_name,
-      description: r.description,
-      cloneUrl: r.clone_url,
-      defaultBranch: r.default_branch,
-      language: r.language,
-      stars: r.stargazers_count,
-      pushedAt: r.pushed_at,
-      isPrivate: r.private,
-      isFork: r.fork,
-      sizeKB: r.size,
+    // Initialize GitHub connector
+    const github = new GitHubConnector();
+    await github.connect();
+
+    // Check health
+    const healthy = await github.health();
+    if (!healthy) {
+      return NextResponse.json(
+        { error: 'GitHub connector health check failed' },
+        { status: 503 }
+      );
+    }
+
+    // Fetch repositories
+    const result = await github.executeTool('github_repo_list', {
+      type: 'owner',
+      sort: 'updated',
+      per_page: perPage,
+    });
+
+    // Type guard
+    if (!result || typeof result !== 'object' || !('data' in result)) {
+      throw new Error('Invalid response from GitHub connector');
+    }
+
+    const data = result.data as any;
+    let repos = Array.isArray(data) ? data : [];
+
+    // Filter by search query if provided
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      repos = repos.filter(
+        (repo: any) =>
+          repo.name?.toLowerCase().includes(query) ||
+          repo.description?.toLowerCase().includes(query) ||
+          repo.full_name?.toLowerCase().includes(query)
+      );
+    }
+
+    // Transform to studio format
+    const transformedRepos = repos.map((repo: any) => ({
+      id: repo.id,
+      name: repo.name,
+      fullName: repo.full_name,
+      description: repo.description,
+      cloneUrl: repo.clone_url,
+      defaultBranch: repo.default_branch,
+      language: repo.language,
+      stars: repo.stargazers_count || 0,
+      pushedAt: repo.pushed_at,
+      isPrivate: repo.private,
+      isFork: repo.fork,
+      sizeKB: repo.size || 0,
     }));
 
-    if (q) {
-      repos = repos.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.fullName.toLowerCase().includes(q) ||
-          (r.description?.toLowerCase().includes(q) ?? false),
-      );
-    }
-
-    return NextResponse.json({ repos, total: repos.length });
-  } catch (err) {
+    return NextResponse.json({
+      repos: transformedRepos,
+      total: transformedRepos.length,
+    });
+  } catch (error) {
+    console.error('[api/github/repos] Error:', error);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to fetch repos' },
-      { status: 500 },
+      {
+        error: error instanceof Error ? error.message : 'Failed to fetch repositories',
+      },
+      { status: 500 }
     );
   }
 }

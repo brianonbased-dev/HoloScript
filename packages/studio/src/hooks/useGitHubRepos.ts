@@ -3,11 +3,16 @@
 /**
  * useGitHubRepos — Fetch authenticated user's GitHub repos for import wizard.
  *
+ * Now integrates with connectorStore — checks if GitHub is connected via
+ * the connector infrastructure. If connected, uses the connector; if not,
+ * prompts user to connect via /integrations.
+ *
  * Calls GET /api/github/repos with optional search query.
  * Returns typed repo list, loading state, and error.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useConnectorStore } from '@/lib/stores/connectorStore';
 
 export interface GitHubRepoItem {
   id: number;
@@ -31,6 +36,8 @@ export interface UseGitHubReposResult {
   search: string;
   setSearch: (q: string) => void;
   refresh: () => Promise<void>;
+  isConnected: boolean; // NEW: GitHub connection status
+  connectionError: string | null; // NEW: Connection error from store
 }
 
 export function useGitHubRepos(): UseGitHubReposResult {
@@ -40,7 +47,19 @@ export function useGitHubRepos(): UseGitHubReposResult {
   const [search, setSearch] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
+  // Check GitHub connection status from connector store
+  const githubConnection = useConnectorStore((s) => s.connections.github);
+  const isConnected = githubConnection?.status === 'connected';
+  const connectionError = githubConnection?.lastError || null;
+
   const fetchRepos = useCallback(async () => {
+    // Don't fetch if not connected
+    if (!isConnected) {
+      setError('GitHub not connected. Visit /integrations to connect.');
+      setRepos([]);
+      return;
+    }
+
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
@@ -68,7 +87,7 @@ export function useGitHubRepos(): UseGitHubReposResult {
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, [search, isConnected]);
 
   useEffect(() => {
     const timer = setTimeout(fetchRepos, search ? 300 : 0);
@@ -78,5 +97,14 @@ export function useGitHubRepos(): UseGitHubReposResult {
     };
   }, [fetchRepos]);
 
-  return { repos, isLoading, error, search, setSearch, refresh: fetchRepos };
+  return {
+    repos,
+    isLoading,
+    error,
+    search,
+    setSearch,
+    refresh: fetchRepos,
+    isConnected,
+    connectionError,
+  };
 }

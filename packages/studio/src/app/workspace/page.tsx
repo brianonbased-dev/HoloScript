@@ -31,8 +31,10 @@ import {
   Sparkles,
   Cog,
   RefreshCw,
+  Github,
 } from 'lucide-react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
+import { ImportRepoWizard } from '@/components/workspace/ImportRepoWizard';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -239,6 +241,7 @@ function QuickAction({
 
 export default function WorkspacePage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showImportWizard, setShowImportWizard] = useState(false);
   const composition = useHoloComposition('/api/surface/workspace');
 
   const filteredTypes = searchQuery
@@ -298,6 +301,16 @@ export default function WorkspacePage() {
         <div className="mb-8">
           <h2 className="mb-4 text-lg font-semibold text-white/80">Quick Actions</h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <button
+              onClick={() => setShowImportWizard(true)}
+              className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-left transition hover:border-white/10 hover:bg-white/[0.05]"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-indigo-400">
+                <Github className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-medium text-white/70">Import from GitHub</span>
+              <ArrowRight className="ml-auto h-4 w-4 text-white/20" />
+            </button>
             <QuickAction icon={Cog} label="HoloDaemon Dashboard" href="/holodaemon" color="text-sky-400" />
             <QuickAction icon={Zap} label="HoloClaw Shelf" href="/holoclaw" color="text-amber-400" />
             <QuickAction icon={RefreshCw} label="Recursive Pipeline" href="/pipeline" color="text-purple-400" />
@@ -309,6 +322,22 @@ export default function WorkspacePage() {
             <QuickAction icon={Layers} label="Browse Marketplace" href="/registry" color="text-rose-400" />
           </div>
         </div>
+
+        {/* Import Wizard Modal */}
+        {showImportWizard && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4 pt-20">
+            <div className="w-full max-w-5xl rounded-2xl border border-white/10 bg-[#0a0a12] p-8 shadow-2xl">
+              <ImportRepoWizard
+                onClose={() => setShowImportWizard(false)}
+                onImportComplete={(repoUrl) => {
+                  console.log('Import started for:', repoUrl);
+                  // TODO: Wire into absorbPipelineBridge
+                  setShowImportWizard(false);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
