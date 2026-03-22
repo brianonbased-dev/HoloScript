@@ -40,6 +40,7 @@ import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
+import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 
 // Create MCP server
 const server = new Server(
@@ -64,6 +65,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       ...snapshotTools,   // 3 temporal snapshot tools
       ...monitoringTools, // 1 telemetry tool
       ...holotestTools,   // 1 spatial testing tool (execute_holotest)
+      ...refactorCodegenTools, // 2 refactor/codegen tools (Phase 10)
     ],
   };
 });
@@ -158,6 +160,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (holotestResult !== null) {
       return {
         content: [{ type: 'text', text: JSON.stringify(holotestResult, null, 2) }],
+      };
+    }
+
+    // Check Refactor/CodeGen tools (Phase 10: refactor plan, scaffold)
+    const refactorResult = await handleRefactorCodegenTool(name, args || {});
+    if (refactorResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(refactorResult, null, 2) }],
       };
     }
 
