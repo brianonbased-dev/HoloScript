@@ -1,0 +1,32 @@
+{
+  "name": "@holoscript/connector-github",
+  "version": "1.0.0",
+  "description": "GitHub MCP Connector for HoloScript Studio Integration Hub - repo, issue, PR, and CI/CD operations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "holoscript",
+    "github",
+    "mcp",
+    "connector",
+    "ci-cd",
+    "actions"
+  ],
+  "dependencies": {
+    "@holoscript/connector-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@octokit/rest": "^21.0.0",
+    "@octokit/auth-token": "^5.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0",
+    "vitest": "^2.0.0"
+  }
+}
