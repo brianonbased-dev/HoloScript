@@ -27,6 +27,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { onAbsorbComplete, getBridgeConfig, type AbsorbCompletionEvent } from '@/lib/integrations/absorbPipelineBridge';
 
 interface AbsorbStreamState {
   jobId: string | null;
@@ -147,13 +148,31 @@ export function useAbsorbStream() {
                       currentFile: data.currentFile ?? prev.currentFile,
                     }));
                   } else if (data.type === 'complete') {
+                    const stats = data.stats || null;
                     setState((prev) => ({
                       ...prev,
                       phase: 'Complete',
                       progress: 100,
                       isRunning: false,
-                      stats: data.stats || null,
+                      stats,
                     }));
+
+                    // Auto-trigger pipeline if enabled
+                    if (stats && projectPath) {
+                      const event: AbsorbCompletionEvent = {
+                        projectPath,
+                        stats: {
+                          filesProcessed: stats.filesProcessed as number || 0,
+                          patternsDetected: stats.patternsDetected as number || 0,
+                          technologiesFound: (stats.technologiesFound as string[]) || [],
+                          confidence: stats.confidence as number || 0,
+                        },
+                      };
+                      const config = getBridgeConfig();
+                      onAbsorbComplete(event, config).catch((err) => {
+                        console.warn('[useAbsorbStream] Pipeline trigger failed:', err);
+                      });
+                    }
                   } else if (data.type === 'error') {
                     setState((prev) => ({
                       ...prev,

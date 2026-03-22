@@ -37,6 +37,7 @@ import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
 import type { Workspace, ProjectDNA } from '@/lib/stores/workspaceStore';
 import { detectProjectDNA } from '@/lib/workspace/projectDNA';
+import { useAbsorbPipelineBridge } from '@/hooks/useAbsorbPipelineBridge';
 
 // ─── Animated step (shared with StudioSetupWizard) ──────────────────────────
 
@@ -100,6 +101,7 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
   const addWorkspace = useWorkspaceStore((s) => s.addWorkspace);
   const updateWorkspace = useWorkspaceStore((s) => s.updateWorkspace);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
+  const { config, triggerPipeline, isTriggering } = useAbsorbPipelineBridge();
 
   const [step, setStep] = useState(0);
   const [prevStep, setPrevStep] = useState(0);
@@ -268,6 +270,23 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
       runImport();
     }
   }, [step, importStatus, runImport]);
+
+  // ── Handle Absorb & Improve ──
+  const handleAbsorbAndImprove = useCallback(async () => {
+    if (!absorbResult || !repoUrl) return;
+
+    const event = {
+      projectPath: repoUrl,
+      stats: {
+        filesProcessed: absorbResult.stats.totalFiles || 0,
+        patternsDetected: absorbResult.stats.totalSymbols || 0,
+        technologiesFound: dna?.languages || [],
+        confidence: dna?.confidence || 0,
+      },
+    };
+
+    await triggerPipeline(event);
+  }, [absorbResult, repoUrl, dna, triggerPipeline]);
 
   // ── Validation ──
 
@@ -817,13 +836,28 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <button
-              onClick={handleLaunch}
-              className="flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-1.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 hover:scale-[1.02] active:scale-95"
-            >
-              <BarChart2 className="h-4 w-4" />
-              Open Workspace
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAbsorbAndImprove}
+                disabled={isTriggering || !config.autoStart}
+                className="flex items-center gap-2 rounded-lg bg-purple-500/20 px-4 py-1.5 text-sm font-medium text-purple-400 transition hover:bg-purple-500/30 disabled:opacity-40"
+                title={config.autoStart ? 'Trigger recursive pipeline' : 'Enable auto-start in /integrations'}
+              >
+                {isTriggering ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+                Absorb & Improve
+              </button>
+              <button
+                onClick={handleLaunch}
+                className="flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-1.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 hover:scale-[1.02] active:scale-95"
+              >
+                <BarChart2 className="h-4 w-4" />
+                Open Workspace
+              </button>
+            </div>
           )}
         </div>
       </div>
