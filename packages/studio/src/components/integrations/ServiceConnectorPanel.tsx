@@ -29,6 +29,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useConnectorStore, type ServiceId as StoreServiceId } from '@/lib/stores/connectorStore';
+import { GitHubOAuthModal } from './GitHubOAuthModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,7 @@ function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
 
 function ServiceTabContent({ service }: { service: ServiceConfig }) {
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [showGitHubOAuth, setShowGitHubOAuth] = useState(false);
   const connect = useConnectorStore((s) => s.connect);
   const disconnect = useConnectorStore((s) => s.disconnect);
   const updateConfig = useConnectorStore((s) => s.updateConfig);
@@ -196,6 +198,16 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
       setShowDisconnectConfirm(false);
     } catch (err) {
       console.error(`[ServiceConnectorPanel] Disconnect failed:`, err);
+    }
+  };
+
+  const handleOAuthSuccess = async (accessToken: string) => {
+    try {
+      // Connect using the OAuth token
+      await connect(service.id as StoreServiceId, { token: accessToken });
+      setShowGitHubOAuth(false);
+    } catch (err) {
+      console.error(`[ServiceConnectorPanel] OAuth connect failed:`, err);
     }
   };
 
@@ -241,12 +253,23 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
       {/* Actions */}
       <div className="flex gap-2">
         {service.status === 'disconnected' ? (
-          <button
-            onClick={handleConnect}
-            className="flex-1 rounded bg-studio-accent px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-studio-accent/90"
-          >
-            Connect
-          </button>
+          <>
+            <button
+              onClick={handleConnect}
+              className="flex-1 rounded bg-studio-accent px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-studio-accent/90"
+            >
+              Connect
+            </button>
+            {/* GitHub OAuth button */}
+            {service.id === 'github' && (
+              <button
+                onClick={() => setShowGitHubOAuth(true)}
+                className="rounded border border-indigo-500/50 bg-indigo-500/10 px-4 py-2 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
+              >
+                OAuth
+              </button>
+            )}
+          </>
         ) : (
           <>
             <button
@@ -304,6 +327,14 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
         Open {service.name} Dashboard
         <ExternalLink className="h-3 w-3" />
       </a>
+
+      {/* GitHub OAuth Modal */}
+      {showGitHubOAuth && service.id === 'github' && (
+        <GitHubOAuthModal
+          onSuccess={handleOAuthSuccess}
+          onClose={() => setShowGitHubOAuth(false)}
+        />
+      )}
     </div>
   );
 }
