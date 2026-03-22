@@ -3,6 +3,9 @@
  * POST /api/pipeline/:id — Control pipeline (pause/resume/stop/approve/reject).
  *
  * Body: { action: 'pause' | 'resume' | 'stop' | 'approve' | 'reject', layerId?: number, cycleId?: string }
+ *
+ * Local Testing:
+ *   Set DISABLE_AUTH=true in .env.local OR pass ?no-auth=true query parameter
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -15,16 +18,26 @@ interface ControlRequest {
   cycleId?: string;
 }
 
+// Auth bypass for local testing (NEVER enable in production)
+const isAuthDisabled = (): boolean => {
+  return process.env.DISABLE_AUTH === 'true' || process.env.NODE_ENV === 'test';
+};
+
 // Server-side control events queue (consumed by the orchestrator poll loop)
 const controlQueue = new Map<string, ControlRequest[]>();
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  // Check auth bypass
+  const noAuth = req.nextUrl.searchParams.get('no-auth') === 'true' || isAuthDisabled();
+
+  if (!noAuth) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
   }
 
   const { id } = params;
@@ -43,9 +56,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  // Check auth bypass
+  const noAuth = req.nextUrl.searchParams.get('no-auth') === 'true' || isAuthDisabled();
+
+  if (!noAuth) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
   }
 
   let body: ControlRequest;

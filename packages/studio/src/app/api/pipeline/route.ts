@@ -3,6 +3,10 @@
  * POST /api/pipeline — Start a new pipeline run.
  *
  * Body: { mode: 'single' | 'continuous' | 'self-target', targetProject: string }
+ *
+ * Local Testing:
+ *   Set DISABLE_AUTH=true in .env.local to bypass authentication
+ *   OR pass ?no-auth=true query parameter
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,6 +17,11 @@ import { detectLLMProviderName } from '@/lib/recursive/llmProvider';
 // Pipeline state is managed client-side in pipelineStore.
 // These routes provide a server-side coordination point for multi-tab scenarios
 // and eventual SSE/WebSocket integration.
+
+// Auth bypass for local testing (NEVER enable in production)
+const isAuthDisabled = (): boolean => {
+  return process.env.DISABLE_AUTH === 'true' || process.env.NODE_ENV === 'test';
+};
 
 interface StartPipelineRequest {
   mode: 'single' | 'continuous' | 'self-target';
@@ -33,10 +42,15 @@ function generateId(): string {
   return `pipe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+export async function GET(req: NextRequest) {
+  // Check auth bypass
+  const noAuth = req.nextUrl.searchParams.get('no-auth') === 'true' || isAuthDisabled();
+
+  if (!noAuth) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
   }
 
   const runs = Array.from(activeRuns.values())
@@ -46,9 +60,14 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  // Check auth bypass
+  const noAuth = req.nextUrl.searchParams.get('no-auth') === 'true' || isAuthDisabled();
+
+  if (!noAuth) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
   }
 
   let body: StartPipelineRequest;

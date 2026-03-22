@@ -93,14 +93,12 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Root Providers
+// Analytics Provider (uses useSession, must be inside SessionProvider)
 // ═══════════════════════════════════════════════════════════════════
 
-export function Providers({ children }: { children: ReactNode }) {
-  useGlobalHotkeys();
-
-  // Analytics initialization
+function AnalyticsProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
+
   useEffect(() => {
     const userId = session?.user?.email ?? undefined;
     initAnalytics(userId);
@@ -108,6 +106,16 @@ export function Providers({ children }: { children: ReactNode }) {
       identifyUser(userId, { name: session?.user?.name });
     }
   }, [session]);
+
+  return <>{children}</>;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Root Providers
+// ═══════════════════════════════════════════════════════════════════
+
+export function Providers({ children }: { children: ReactNode }) {
+  useGlobalHotkeys();
 
   // Studio Setup Wizard — show on first visit
   const wizardCompleted = useStudioPresetStore((s) => s.wizardCompleted);
@@ -151,22 +159,24 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider>
-      <QueryClientProvider client={queryClient}>
-        <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
-          <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
-            <ErrorBoundary>
-              <PluginHostProvider>
-                <AppShell>{children}</AppShell>
-              </PluginHostProvider>
-            </ErrorBoundary>
-            <ToastContainer toasts={toasts} onRemove={removeToast} />
-            {showWizard && (
-              <StudioSetupWizard onClose={() => setShowWizard(false)} />
-            )}
-            <DevToolsInit />
-          </ToastContext.Provider>
-        </ThemeContext.Provider>
-      </QueryClientProvider>
+      <AnalyticsProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
+            <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
+              <ErrorBoundary>
+                <PluginHostProvider>
+                  <AppShell>{children}</AppShell>
+                </PluginHostProvider>
+              </ErrorBoundary>
+              <ToastContainer toasts={toasts} onRemove={removeToast} />
+              {showWizard && (
+                <StudioSetupWizard onClose={() => setShowWizard(false)} />
+              )}
+              <DevToolsInit />
+            </ToastContext.Provider>
+          </ThemeContext.Provider>
+        </QueryClientProvider>
+      </AnalyticsProvider>
     </SessionProvider>
   );
 }
