@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "@types/simple-peer": "^9.11.8",
-    "@types/uuid": "^10.0.0",
+    "@types/uuid": "^11.0.0",
     "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
