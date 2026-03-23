@@ -3367,3 +3367,26 @@ export type {
   HybridSignature,
   HybridCryptoConfig,
 } from './crypto/HybridCryptoProvider';
+
+// ── x402 Payment Protocol (HTTP 402 + USDC Settlement) ───────────────────
+export {
+  X402Facilitator,
+  MicroPaymentLedger,
+  creditTraitHandler,
+  X402_VERSION,
+  USDC_CONTRACTS,
+  MICRO_PAYMENT_THRESHOLD,
+} from './economy/x402-facilitator';
+export type {
+  X402PaymentRequired,
+  X402PaymentOption,
+  X402PaymentPayload,
+  X402SettlementResult,
+  X402VerificationResult,
+  X402FacilitatorConfig,
+  CreditTraitConfig,
+  LedgerEntry,
+  SettlementChain,
+  SettlementMode,
+  PaymentScheme,
+} from './economy/x402-facilitator';

@@ -119,7 +119,7 @@ import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
  * + 18 analytics & observability traits + 76 security & cryptography traits + 27 rendering traits
  * + 14 scripting & automation traits + 7 data & storage traits + 6 observability traits
  * + 7 communication traits + 6 ML/inference traits + 6 devops/CI traits
- * + 6 auth/identity traits + 5 payment traits + 4 media/content traits
+ * + 6 auth/identity traits + 8 payment traits (5 + 3 x402) + 4 media/content traits
  * + 5 testing/QA traits + 4 workflow/BPM traits + 4 i18n/localization traits
  * + 5 data pipeline/ETL traits + 3 notification/alerting traits + 3 search traits + 3 compliance/governance traits.
  */

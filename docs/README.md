@@ -25,6 +25,7 @@ Use this index for current, canonical documentation entry points.
 5. **[Internal MCP](./architecture/INTERNAL_MCP.md)** - Dual MCP system and 3-layer spatial protocol
 6. **[Platform Architecture](./architecture/PLATFORM_ARCHITECTURE.md)** - High-level platform design
 7. **[AI Architecture](./architecture/AI_ARCHITECTURE.md)** - AI/ML integration patterns
+8. **[Prophetic Intelligence](./architecture/prophetic-intelligence.md)** - Foresighted execution and SNN retrieval
 
 ## Guides
 
@@ -33,6 +34,7 @@ Use this index for current, canonical documentation entry points.
 3. **[Contributing a New Compiler](./guides/contributing-new-compiler.md)** - Step-by-step guide
 4. **[MCP Server](./guides/mcp-server.md)** - Configure AI agents to use HoloScript tools
 5. **[Codebase Intelligence](./guides/codebase-intelligence.md)** - GraphRAG semantic search
+6. **[Zero-Latency Creation](./guides/zero-latency-creation.md)** - Leveraging Prophetic Vision in Studio
 
 ## Learn and Build
 
