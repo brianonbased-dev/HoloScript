@@ -72,6 +72,19 @@ export const graphRagTools: Tool[] = [
           type: 'string',
           description: 'Filter context to specific symbol type',
         },
+        llmProvider: {
+          type: 'string',
+          enum: ['openai', 'anthropic', 'gemini', 'ollama'],
+          description: 'LLM provider for answer generation (default: ollama). Use "gemini" for Google Gemini, "openai" for GPT models, "anthropic" for Claude.',
+        },
+        llmApiKey: {
+          type: 'string',
+          description: 'API key for the LLM provider (required for openai/anthropic/gemini, not needed for ollama). Falls back to OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variables if not provided.',
+        },
+        llmModel: {
+          type: 'string',
+          description: 'Model name override (e.g., "gpt-4o-mini", "claude-3-haiku-20240307", "gemini-1.5-flash"). Defaults to provider-specific defaults.',
+        },
       },
       required: ['question'],
     },
@@ -163,7 +176,7 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 }
 
 async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
-  if (!cachedGraphRAGEngine) {
+  if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
     return {
       error: 'No Graph RAG engine initialized. Call holo_absorb_repo first.',
     };
@@ -173,9 +186,61 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const topK = (args.topK as number) ?? 20;
   const language = args.language as string | undefined;
   const type = args.type as string | undefined;
+  const llmProvider = args.llmProvider as string | undefined;
+  const llmApiKey = args.llmApiKey as string | undefined;
+  const llmModel = args.llmModel as string | undefined;
 
   try {
-    const answer = await cachedGraphRAGEngine.queryWithLLM(question, {
+    // If a custom LLM provider is specified, create a new engine with that provider
+    let engine = cachedGraphRAGEngine;
+    if (llmProvider && llmProvider !== 'ollama') {
+      try {
+        const llmPkg = await import('@holoscript/llm-provider');
+        const apiKey = llmApiKey || process.env[`${llmProvider.toUpperCase()}_API_KEY`] || '';
+
+        let llmAdapter: any;
+        switch (llmProvider) {
+          case 'openai':
+            llmAdapter = new llmPkg.OpenAIAdapter({
+              apiKey,
+              defaultModel: llmModel ?? 'gpt-4o-mini'
+            });
+            break;
+          case 'anthropic':
+            llmAdapter = new llmPkg.AnthropicAdapter({
+              apiKey,
+              defaultModel: llmModel ?? 'claude-3-haiku-20240307'
+            });
+            break;
+          case 'gemini':
+            llmAdapter = new llmPkg.GeminiAdapter({
+              apiKey,
+              defaultModel: llmModel ?? 'gemini-1.5-flash'
+            });
+            break;
+          default:
+            return {
+              error: `Unknown LLM provider: ${llmProvider}`,
+              hint: 'Supported providers: openai, anthropic, gemini, ollama',
+            };
+        }
+
+        // Create a temporary engine with the custom LLM provider
+        const { GraphRAGEngine } = await import('@holoscript/core/codebase');
+        const graph = cachedGraphRAGEngine.graph || (cachedGraphRAGEngine as any).constructor.graph;
+        engine = new GraphRAGEngine(graph, cachedEmbeddingIndex, {
+          llmProvider: llmAdapter,
+          llmModel: llmModel,
+        });
+      } catch (err: any) {
+        return {
+          error: `Failed to initialize ${llmProvider} provider: ${err.message}`,
+          hint: 'Ensure @holoscript/llm-provider is installed and API key is valid',
+        };
+      }
+    }
+
+    const answer = await engine.queryWithLLM(question, {
       topK,
       language,
       type,
@@ -196,11 +261,14 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         impactRadius: r.impactRadius,
         community: r.community ?? null,
       })),
+      llmProvider: llmProvider ?? 'ollama',
     };
   } catch (err: any) {
     return {
       error: `Graph RAG query failed: ${err.message}`,
-      hint: 'Ensure Ollama is running with both nomic-embed-text and a chat model.',
+      hint: llmProvider && llmProvider !== 'ollama'
+        ? `Ensure ${llmProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`
+        : 'Ensure Ollama is running with both nomic-embed-text and a chat model.',
     };
   }
 }

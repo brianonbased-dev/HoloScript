@@ -171,6 +171,9 @@ async function computeQuality(
     testsPassed = json.numPassedTests || 0;
     testScore = testsTotal > 0 ? testsPassed / testsTotal : (test.code === 0 ? 1 : 0.5);
   } catch {
+    // JSON parse failed — infer from exit code
+    testsPassed = test.code === 0 ? 1 : 0;
+    testsTotal = 1;
     testScore = test.code === 0 ? 0.8 : 0.3;
   }
 
@@ -513,7 +516,7 @@ function countFileErrors(errorOutput: string, filePath: string): number {
     const m = l.match(/^(.+?)\(\d+,\d+\):/);
     if (!m) return false;
     const errFile = m[1].replace(/\\/g, '/');
-    return errFile === normalized || errFile.endsWith('/' + baseName);
+    return errFile === normalized;
   }).length;
 }
 
@@ -1530,9 +1533,8 @@ export function createDaemonActions(
           const recentRollbacks = allRecords.filter(r => r.result === 'rolled_back').slice(-20);
           const categoryFreq = new Map<string, number>();
           for (const r of recentRollbacks) {
-            if (r.dominantFailure) {
-              categoryFreq.set(r.dominantFailure, (categoryFreq.get(r.dominantFailure) || 0) + 1);
-            }
+            const category = r.dominantFailure || r.rollbackReason || 'unclassified';
+            categoryFreq.set(category, (categoryFreq.get(category) || 0) + 1);
           }
           for (const [cat, count] of categoryFreq) {
             if (count >= 3) {
@@ -2152,8 +2154,16 @@ export function createDaemonActions(
       // (~3500) would always fail — we gate on file-local delta instead.
       const isTypefixFocus = !config.cycleFocus || config.cycleFocus === 'typefix' || config.cycleFocus === 'all';
       if (isTypefixFocus) {
+        // CRITICAL: Count only scoped errors (packages/core|studio/src/) to match diagnose baseline.
+        // Raw `errors` includes ALL repo errors (~3500) but baseline is scoped (~1490).
+        const scopedErrors = scopeFilter
+          ? errors.filter(l => scopeFilter.test(l))
+          : errors;
         const baseline = (bb.typeErrorCount as number) ?? Infinity;
-        bb.compilation_passed = errors.length === 0 || errors.length <= baseline;
+        bb.compilation_passed = scopedErrors.length === 0 || scopedErrors.length <= baseline;
+        if (!bb.compilation_passed) {
+          log(`Compilation: FAIL (${scopedErrors.length} scoped errors vs ${baseline} baseline)`);
+        }
       } else {
         // Pass if the fix didn't introduce new type errors in the candidate file.
         bb.compilation_passed = fileErrorsAfterCount <= fileErrorsBeforeCount;
@@ -2523,13 +2533,17 @@ export function createDaemonActions(
 
         // Record rollback provenance
         const focus = (bb.focus as string) || 'typefix';
-        const rollbackReason = !(bb.compilation_passed as boolean)
-          ? 'compilation_failed'
-          : !(bb.tests_passed as boolean)
-            ? 'tests_failed'
-            : !(bb.quality_improved as boolean)
-              ? 'no_quality_improvement'
-              : 'unknown';
+        const rollbackReason = (bb.compilation_passed === undefined)
+          ? 'stage_not_reached'
+          : !(bb.compilation_passed as boolean)
+            ? 'compilation_failed'
+            : !(bb.tests_passed as boolean)
+              ? 'tests_failed'
+              : !(bb.quality_improved as boolean)
+                ? 'no_quality_improvement'
+                : (bb.budget_exceeded as boolean)
+                  ? 'budget_exceeded'
+                  : 'unknown';
         recordProvenance({
           timestamp: new Date().toISOString(),
           candidate: file,
@@ -2556,12 +2570,11 @@ export function createDaemonActions(
 
     // ── Advance Candidate ──────────────────────────────────────────────
     advance_candidate: async (_params, bb) => {
+      advanceCandidate(bb);
       const candidates = bb.candidates as string[];
-      const idx = ((bb.candidateIndex as number) || 0) + 1;
-      bb.candidateIndex = idx;
-      bb.has_candidates = idx < (candidates?.length || 0);
+      const idx = bb.candidateIndex as number;
       if (bb.has_candidates) {
-        log(`Advanced to candidate ${idx + 1}/${candidates.length}`);
+        log(`Advanced to candidate ${idx + 1}/${candidates?.length || 0}`);
       } else {
         log(`All candidates exhausted`);
       }

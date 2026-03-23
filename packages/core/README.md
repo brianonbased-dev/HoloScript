@@ -172,6 +172,65 @@ effect(() => console.log('HP changed:', state.hp));
 }
 ```
 
+## Codebase Intelligence (GraphRAG)
+
+Built-in pipeline for semantic code analysis:
+
+```
+CodebaseScanner → CodebaseGraph → EmbeddingIndex → GraphRAGEngine
+```
+
+| Class | File | Purpose |
+|-------|------|---------|
+| `CodebaseScanner` | `src/codebase/CodebaseScanner.ts` | Scan repositories, extract symbols/imports/calls |
+| `CodebaseGraph` | `src/codebase/CodebaseGraph.ts` | Graph of nodes (symbols) + edges (dependencies), community detection |
+| `EmbeddingIndex` | `src/codebase/EmbeddingIndex.ts` | Vector index (OpenAI/BM25/Ollama), binary cache for 42x speedup |
+| `GraphRAGEngine` | `src/codebase/GraphRAGEngine.ts` | Graph traversal + semantic search + LLM synthesis |
+| `CodebaseSceneCompiler` | `src/codebase/visualization/` | 3D visualization of codebase graphs |
+
+```typescript
+import { CodebaseScanner, CodebaseGraph, EmbeddingIndex, GraphRAGEngine } from '@holoscript/core';
+
+const scanner = new CodebaseScanner();
+const graph = await scanner.scan('./src');
+const index = new EmbeddingIndex();
+await index.buildIndex(graph);
+const engine = new GraphRAGEngine(graph, index);
+const answer = await engine.queryWithLLM('How does the parser work?');
+```
+
+## Runtime & ECS
+
+| Class | File | Purpose |
+|-------|------|---------|
+| `SceneRunner` | `src/runtime/SceneRunner.ts` | Walks AST, spawns entities, runs compositions |
+| `HeadlessRuntime` | `src/runtime/profiles/HeadlessRuntime.ts` | No-GUI execution for tests/CI/servers |
+| `RuntimeBridge` | `src/runtime/RuntimeBridge.ts` | Connects SceneRunner to renderers |
+| `RuntimeRenderer` | `src/runtime/RuntimeRenderer.ts` | PBR materials, particle systems, post-FX |
+
+## MCP Integration
+
+Two MCP layers:
+
+- **External** (`packages/mcp-server`): Exposes `holo_absorb_repo`, `holo_query_codebase`, `holo_semantic_search` for AI agents
+- **Internal** (`src/mcp/` + `src/agents/spatial-comms/`): `MCPOrchestrator`, `Layer3MCPClient`, `SPATIAL_MCP_TOOLS` for agent-to-agent spatial comm
+
+## Smart Assets
+
+| Class | File | Purpose |
+|-------|------|---------|
+| `SmartAssetLoader` | `src/assets/SmartAssetLoader.ts` | Load/configure/bundle assets with `load()`, `doLoad()`, `getConfig()` |
+| `LoaderConfig` | `src/assets/SmartAssetLoader.ts` | Configuration interface for asset loading |
+
+## Extension System
+
+| Class | File | Purpose |
+|-------|------|---------|
+| `ExtensionRegistry` | `src/extensions/ExtensionRegistry.ts` | Register and load plugin extensions |
+| `ExtensionInterface` | `src/extensions/ExtensionInterface.ts` | Extension lifecycle context |
+
+> **Note**: "Extension" has multiple meanings in the codebase — plugin extensions (`ExtensionRegistry`), glTF extensions (`GLTFTrait`), LSP file extensions (`ImportResolver.EXTENSIONS`), and OpenXR required extensions. See [Extension System Architecture](../../docs/architecture/EXTENSION_SYSTEM.md).
+
 ## License
 
 MIT

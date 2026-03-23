@@ -3,6 +3,9 @@
  * HoloScript CLI entry point
  */
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import { HoloScriptCLI } from './HoloScriptCLI';
 import { parseArgs, printHelp } from './args';
 import { startREPL } from './repl';
@@ -2375,6 +2378,67 @@ async function main(): Promise<void> {
       break;
     }
 
+    case 'daemon': {
+      // Full BT-based daemon — spawns holoscript-runner as child process
+      // The runner has its own arg parser with all daemon-specific defaults
+      try {
+        const compositionFile = options.input || 'compositions/self-improve-daemon.hsplus';
+        const fs = await import('fs');
+        const path = await import('path');
+        const { spawn } = await import('child_process');
+
+        // Resolve composition file
+        const rootDir = process.cwd();
+        const compositionPath = path.resolve(rootDir, compositionFile);
+        if (!fs.existsSync(compositionPath)) {
+          console.error(`\x1b[31mComposition file not found: ${compositionPath}\x1b[0m`);
+          console.log('Usage: holoscript daemon [composition.hsplus] [options]');
+          console.log('  Default: compositions/self-improve-daemon.hsplus');
+          process.exit(1);
+        }
+
+        // Build runner args
+        const runnerArgs: string[] = ['daemon', compositionPath];
+        if (options.cycles) runnerArgs.push('--cycles', String(options.cycles));
+        if (options.autoCommit) runnerArgs.push('--commit');
+        if (options.daemonProvider) runnerArgs.push('--provider', options.daemonProvider);
+        if (options.daemonModel) runnerArgs.push('--model', options.daemonModel);
+        if (options.focus) runnerArgs.push('--focus', options.focus);
+        if (options.providerRotation) runnerArgs.push('--provider-rotation');
+        if (options.alwaysOn) runnerArgs.push('--always-on');
+        if (options.cycleIntervalSec) runnerArgs.push('--cycle-interval-sec', String(options.cycleIntervalSec));
+        if (options.verbose) runnerArgs.push('--debug');
+        if (options.timeout) runnerArgs.push('--timeout', String(options.timeout));
+
+        // Find the runner script
+        const runnerPath = path.resolve(rootDir, 'packages/core/dist/cli/holoscript-runner.js');
+        if (!fs.existsSync(runnerPath)) {
+          console.error(`\x1b[31mDaemon runner not found: ${runnerPath}\x1b[0m`);
+          console.error('Build it: cd packages/core && npx tsup');
+          process.exit(1);
+        }
+
+        const child = spawn('node', [runnerPath, ...runnerArgs], {
+          stdio: 'inherit',
+          cwd: rootDir,
+          env: process.env,
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          child.on('exit', (code) => {
+            if (code === 0 || code === null) resolve();
+            else reject(new Error(`Daemon exited with code ${code}`));
+          });
+          child.on('error', reject);
+        });
+      } catch (err: any) {
+        console.error(`\x1b[31mDaemon error: ${err.message}\x1b[0m`);
+        if (options.verbose && err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
     case 'absorb': {
       if (!options.input) {
         console.error('\x1b[31mError: No input directory specified.\x1b[0m');
@@ -2623,8 +2687,9 @@ async function main(): Promise<void> {
       if (!options.input) {
         console.error('\x1b[31mError: No question specified.\x1b[0m');
         console.log(
-          'Usage: holoscript query "<question>" [--provider bm25|xenova|openai|ollama] [--with-llm] [--llm openai|anthropic|gemini] [--model <name>] [--top-k <n>] [--json]'
+          'Usage: holoscript query "<question>" [--provider bm25|xenova|openai|ollama] [--with-llm] [--llm openai|anthropic|gemini] [--model <name>] [--top-k <n>] [--force] [--json]'
         );
+        console.log('  --force: Bypass cache and rescan the codebase');
         process.exit(1);
       }
 
@@ -2638,47 +2703,156 @@ async function main(): Promise<void> {
         const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
         const question = options.input;
         const providerName = options.queryProvider ?? 'bm25';
+        const forceRescan = options.force === true;
+        const queryStartTime = Date.now();
 
-        console.log(`\n\x1b[36m🔍 Query: ${question}\x1b[0m`);
-        console.log(`   Provider: ${providerName} | Dir: ${rootDir}\n`);
+        // ── Formatting helpers ───────────────────────────────────────────────
+        const DIM = '\x1b[2m';
+        const RESET = '\x1b[0m';
+        const BOLD = '\x1b[1m';
+        const CYAN = '\x1b[36m';
+        const GREEN = '\x1b[32m';
+        const YELLOW = '\x1b[33m';
+        const MAGENTA = '\x1b[35m';
+        const WHITE = '\x1b[37m';
+        const BG_BLUE = '\x1b[44m';
 
-        // ── 1. Scan ─────────────────────────────────────────────────────────
-        const scanner = new CodebaseScanner();
-        const scanStart = Date.now();
-        let qLastProgressLen = 0;
-        const scanResult = await scanner.scan({
-          rootDir,
-          onProgress(parsed, total, file) {
-            const pct = Math.round((parsed / total) * 100);
-            const msg = `  \x1b[36m  Parsing files... ${parsed}/${total} (${pct}%) — ${file}\x1b[0m`;
-            process.stdout.write('\r' + msg.padEnd(qLastProgressLen));
-            qLastProgressLen = msg.length;
-          },
-        });
-        if (qLastProgressLen > 0) {
-          process.stdout.write('\r' + ' '.repeat(qLastProgressLen + 4) + '\r');
+        const hrLine = (char = '─', len = 60) => DIM + char.repeat(len) + RESET;
+        const sectionHeader = (title: string) => `\n${DIM}┌${'─'.repeat(58)}┐${RESET}\n${DIM}│${RESET} ${BOLD}${title}${RESET}${' '.repeat(Math.max(0, 57 - title.length))}${DIM}│${RESET}\n${DIM}└${'─'.repeat(58)}┘${RESET}`;
+        const bullet = (icon: string, text: string) => `  ${icon} ${text}`;
+        const formatMs = (ms: number) => ms < 1000 ? `${ms}ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+
+        // ── Header ───────────────────────────────────────────────────────────
+        console.log(`\n${DIM}╔${'═'.repeat(58)}╗${RESET}`);
+        console.log(`${DIM}║${RESET} ${CYAN}🔍 HoloScript GraphRAG Query${RESET}${' '.repeat(30)}${DIM}║${RESET}`);
+        console.log(`${DIM}╠${'═'.repeat(58)}╣${RESET}`);
+        console.log(`${DIM}║${RESET}  ${BOLD}Q:${RESET} ${question.length > 52 ? question.slice(0, 49) + '...' : question}${' '.repeat(Math.max(0, 54 - Math.min(question.length, 52)))}${DIM}║${RESET}`);
+        console.log(`${DIM}║${RESET}  ${DIM}Provider:${RESET} ${YELLOW}${providerName}${RESET}  ${DIM}Top-K:${RESET} ${options.queryTopK ?? 10}  ${DIM}LLM:${RESET} ${options.queryLlm ? GREEN + options.queryLlm + RESET : DIM + 'off' + RESET}${' '.repeat(Math.max(0, 15 - (providerName.length + (options.queryLlm?.length ?? 3))))}${DIM}║${RESET}`);
+        console.log(`${DIM}║${RESET}  ${DIM}Dir:${RESET} ${rootDir.length > 50 ? '...' + rootDir.slice(-47) : rootDir}${' '.repeat(Math.max(0, 53 - Math.min(rootDir.length, 50)))}${DIM}║${RESET}`);
+        console.log(`${DIM}╚${'═'.repeat(58)}╝${RESET}\n`);
+
+        // ── 1. Try loading cached graph ──────────────────────────────────────
+        const crypto = await import('crypto');
+        const cacheKey = crypto
+          .createHash('sha256')
+          .update(rootDir + providerName)
+          .digest('hex')
+          .slice(0, 16);
+        const cacheDir = path.join(rootDir, '.holoscript');
+        const cachePath = path.join(cacheDir, `graph-${cacheKey}.json`);
+
+        let graph: InstanceType<typeof CodebaseGraph>;
+        let fromCache = false;
+        let graphSymbolCount = 0;
+
+        if (!forceRescan && fs.existsSync(cachePath)) {
+          try {
+            const cacheData = fs.readFileSync(cachePath, 'utf-8');
+            graph = CodebaseGraph.deserialize(cacheData);
+            fromCache = true;
+            graphSymbolCount = graph.getAllSymbols().length;
+            console.log(bullet(`${GREEN}✓${RESET}`, `Graph loaded from cache ${DIM}(${graphSymbolCount.toLocaleString()} symbols)${RESET}`));
+          } catch (err: any) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache load failed: ${err.message}. Rescanning...`));
+            fromCache = false;
+          }
         }
-        console.log(
-          `  \x1b[32m✓\x1b[0m Scanned ${scanResult.stats.totalFiles} files, ${scanResult.stats.totalSymbols} symbols (${Date.now() - scanStart}ms)`
-        );
 
-        // ── 2. Graph ─────────────────────────────────────────────────────────
-        const graph = new CodebaseGraph();
-        graph.buildFromScanResult(scanResult);
-        graph.detectCommunities();
+        // ── 2. Scan if no cache ──────────────────────────────────────────────
+        if (!fromCache) {
+          const scanner = new CodebaseScanner();
+          const scanStart = Date.now();
+          let qLastProgressLen = 0;
+          const scanResult = await scanner.scan({
+            rootDir,
+            onProgress(parsed, total, file) {
+              const pct = Math.round((parsed / total) * 100);
+              const bar = '█'.repeat(Math.floor(pct / 5)) + '░'.repeat(20 - Math.floor(pct / 5));
+              const msg = `  ${CYAN}${bar}${RESET} ${pct}% ${DIM}(${parsed}/${total})${RESET} ${DIM}${file.length > 30 ? '...' + file.slice(-27) : file}${RESET}`;
+              process.stdout.write('\r' + msg.padEnd(qLastProgressLen));
+              qLastProgressLen = msg.length;
+            },
+          });
+          if (qLastProgressLen > 0) {
+            process.stdout.write('\r' + ' '.repeat(qLastProgressLen + 4) + '\r');
+          }
+          graphSymbolCount = scanResult.stats.totalSymbols;
+          console.log(bullet(`${GREEN}✓${RESET}`, `Scanned ${BOLD}${scanResult.stats.totalFiles.toLocaleString()}${RESET} files → ${BOLD}${graphSymbolCount.toLocaleString()}${RESET} symbols ${DIM}(${formatMs(Date.now() - scanStart)})${RESET}`));
 
-        // ── 3. Embedding index ────────────────────────────────────────────────
-        const embedStart = Date.now();
+          graph = new CodebaseGraph();
+          graph.buildFromScanResult(scanResult);
+          graph.detectCommunities();
+
+          try {
+            if (!fs.existsSync(cacheDir)) {
+              fs.mkdirSync(cacheDir, { recursive: true });
+            }
+            fs.writeFileSync(cachePath, graph.serialize(), 'utf-8');
+            console.log(bullet(`${DIM}💾${RESET}`, `${DIM}Graph cached for future queries${RESET}`));
+          } catch (err: any) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache save failed: ${err.message}`));
+          }
+        }
+
+        // ── 3. Embedding index (with caching) ────────────────────────────────
+        // Use binary format (.bin) for efficient disk caching of large embedding indexes.
+        // JSON format crashes on OpenAI 1536-dim × 84K symbols (~1 GB string).
+        const indexCacheBin = path.join(cacheDir, `index-${cacheKey}.bin`);
+        const indexCacheJson = path.join(cacheDir, `index-${cacheKey}.json`); // legacy fallback
         const provider = await createEmbeddingProvider({
           provider: providerName,
-          ollamaUrl: undefined, // will use OllamaEmbeddingProvider default
+          ollamaUrl: undefined,
           openaiApiKey: options.queryLlmKey,
         });
-        const index = new EmbeddingIndex({ provider });
-        await index.buildIndex(graph);
-        console.log(
-          `  \x1b[32m✓\x1b[0m Indexed ${index.size} symbols with \x1b[33m${providerName}\x1b[0m (${Date.now() - embedStart}ms)`
-        );
+
+        let index: InstanceType<typeof EmbeddingIndex>;
+        let indexFromCache = false;
+
+        // Try binary cache first, then legacy JSON
+        if (!forceRescan && fs.existsSync(indexCacheBin)) {
+          try {
+            const buf = fs.readFileSync(indexCacheBin);
+            index = EmbeddingIndex.deserializeBinary(buf, { provider });
+            indexFromCache = true;
+            console.log(bullet(`${GREEN}✓${RESET}`, `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, binary)${RESET}`));
+          } catch (err: any) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Binary index cache load failed: ${err.message}. Rebuilding...`));
+            indexFromCache = false;
+          }
+        } else if (!forceRescan && fs.existsSync(indexCacheJson)) {
+          try {
+            const indexData = fs.readFileSync(indexCacheJson, 'utf-8');
+            index = EmbeddingIndex.deserialize(indexData, { provider });
+            indexFromCache = true;
+            console.log(bullet(`${GREEN}✓${RESET}`, `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, json-legacy)${RESET}`));
+          } catch (err: any) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache load failed: ${err.message}. Rebuilding...`));
+            indexFromCache = false;
+          }
+        }
+
+        if (!indexFromCache) {
+          const embedStart = Date.now();
+          index = new EmbeddingIndex({ provider });
+          await index.buildIndex(graph);
+          console.log(bullet(`${GREEN}✓${RESET}`, `Indexed ${BOLD}${index.size.toLocaleString()}${RESET} symbols with ${YELLOW}${providerName}${RESET} ${DIM}(${formatMs(Date.now() - embedStart)})${RESET}`));
+
+          try {
+            if (!fs.existsSync(cacheDir)) {
+              fs.mkdirSync(cacheDir, { recursive: true });
+            }
+            const binData = index.serializeBinary();
+            fs.writeFileSync(indexCacheBin, binData);
+            const sizeMB = (binData.length / (1024 * 1024)).toFixed(1);
+            console.log(bullet(`${DIM}💾${RESET}`, `${DIM}Index cached (${sizeMB} MB binary) for future queries${RESET}`));
+            // Clean up legacy JSON cache if it exists
+            if (fs.existsSync(indexCacheJson)) {
+              try { fs.unlinkSync(indexCacheJson); } catch { /* ignore */ }
+            }
+          } catch (err: any) {
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache save failed: ${err.message}`));
+          }
+        }
 
         // ── 4. LLM provider (optional) ───────────────────────────────────────
         let llmProvider: any = undefined;
@@ -2697,10 +2871,13 @@ async function main(): Promise<void> {
                 llmProvider = new llmPkg.GeminiAdapter({ apiKey: key || process.env['GEMINI_API_KEY'] || '', defaultModel: options.queryModel ?? 'gemini-1.5-flash' });
                 break;
               default:
-                console.warn(`\x1b[33m⚠ Unknown LLM provider: ${options.queryLlm}. Skipping LLM answer.\x1b[0m`);
+                console.warn(bullet(`${YELLOW}⚠${RESET}`, `Unknown LLM provider: ${options.queryLlm}. Skipping LLM answer.`));
+            }
+            if (llmProvider) {
+              console.log(bullet(`${GREEN}✓${RESET}`, `LLM ready ${DIM}(${options.queryLlm}/${options.queryModel ?? 'default'})${RESET}`));
             }
           } catch {
-            console.warn('\x1b[33m⚠ @holoscript/llm-provider not available. Skipping LLM answer.\x1b[0m');
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `@holoscript/llm-provider not available. Install it: ${CYAN}pnpm add @holoscript/llm-provider${RESET}`));
           }
         }
 
@@ -2709,44 +2886,85 @@ async function main(): Promise<void> {
         const topK = options.queryTopK ?? 10;
 
         if (options.queryWithLlm && llmProvider) {
+          console.log(bullet(`${CYAN}⏳${RESET}`, `Generating LLM answer...`));
           const answer = await engine.queryWithLLM(question, { topK });
+          const totalTime = Date.now() - queryStartTime;
 
           if (options.json) {
             console.log(JSON.stringify(answer, null, 2));
           } else {
-            console.log(`\n\x1b[1mAnswer:\x1b[0m\n${answer.answer}\n`);
+            // ── LLM Answer Card ──────────────────────────────────────────────
+            console.log(sectionHeader('💡 Answer'));
+            console.log('');
+            // Word-wrap answer text at ~76 chars
+            const answerLines = answer.answer.split('\n');
+            for (const line of answerLines) {
+              console.log(`  ${line}`);
+            }
+
             if (answer.citations.length > 0) {
-              console.log('\x1b[1mCitations:\x1b[0m');
-              for (const c of answer.citations) {
-                console.log(`  \x1b[36m${c.name}\x1b[0m  ${c.file}:${c.line}`);
+              console.log(sectionHeader(`📚 Citations (${answer.citations.length})`));
+              console.log('');
+              for (let i = 0; i < answer.citations.length; i++) {
+                const c = answer.citations[i];
+                const num = `${DIM}[${i + 1}]${RESET}`;
+                const name = `${CYAN}${c.name}${RESET}`;
+                const loc = `${DIM}${c.file}:${c.line}${RESET}`;
+                console.log(`  ${num} ${name}`);
+                console.log(`      ${loc}`);
               }
             }
+
+            // ── Footer ────────────────────────────────────────────────────────
+            console.log('');
+            console.log(hrLine());
+            console.log(`  ${DIM}⏱  ${formatMs(totalTime)}${RESET}  ${DIM}│${RESET}  ${DIM}${graphSymbolCount.toLocaleString()} symbols${RESET}  ${DIM}│${RESET}  ${DIM}${providerName} embeddings${RESET}  ${DIM}│${RESET}  ${DIM}${options.queryLlm} LLM${RESET}`);
+            console.log(hrLine());
           }
         } else {
           if (options.queryWithLlm && !llmProvider) {
-            console.log(
-              '\x1b[33m⚠ --with-llm requires --llm <provider>. Falling back to ranked results.\x1b[0m'
-            );
+            console.warn(bullet(`${YELLOW}⚠${RESET}`, `--with-llm requires --llm <provider>. Falling back to ranked results.`));
+            console.log(`  ${DIM}Usage: holoscript query "..." --with-llm --llm openai${RESET}`);
           }
           const result = await engine.query(question, { topK });
+          const totalTime = Date.now() - queryStartTime;
 
           if (options.json) {
             console.log(JSON.stringify(result, null, 2));
           } else {
-            console.log(
-              `\n\x1b[1mTop ${result.results.length} results\x1b[0m (of ${result.totalMatches} total):\n`
-            );
-            for (const r of result.results) {
-              const loc = `${path.relative(rootDir, r.file)}:${r.symbol.line}`;
-              const score = `\x1b[2m${(r.score * 100).toFixed(1)}%\x1b[0m`;
-              console.log(`  ${score}  \x1b[36m${r.symbol.type}\x1b[0m \x1b[1m${r.symbol.owner ? r.symbol.owner + '.' : ''}${r.symbol.name}\x1b[0m`);
-              console.log(`         ${loc}`);
-              if (r.symbol.signature) console.log(`         \x1b[2m${r.symbol.signature}\x1b[0m`);
-              if (r.callers.length > 0) console.log(`         \x1b[2mCalled by: ${r.callers.slice(0, 3).join(', ')}\x1b[0m`);
+            // ── Ranked Results ────────────────────────────────────────────────
+            console.log(sectionHeader(`📊 Top ${result.results.length} Results (${result.totalMatches} total)`));
+            console.log('');
+
+            for (let i = 0; i < result.results.length; i++) {
+              const r = result.results[i];
+              const rank = `${DIM}${String(i + 1).padStart(2)}.${RESET}`;
+              const score = `${MAGENTA}${(r.score * 100).toFixed(1)}%${RESET}`;
+              const typeBadge = `${DIM}[${r.symbol.type}]${RESET}`;
+              const name = `${BOLD}${r.symbol.owner ? r.symbol.owner + '.' : ''}${r.symbol.name}${RESET}`;
+              const loc = path.relative(rootDir, r.file) + ':' + r.symbol.line;
+
+              console.log(`  ${rank} ${score}  ${typeBadge} ${name}`);
+              console.log(`         ${DIM}${loc}${RESET}`);
+              if (r.symbol.signature) {
+                console.log(`         ${DIM}${r.symbol.signature.length > 60 ? r.symbol.signature.slice(0, 57) + '...' : r.symbol.signature}${RESET}`);
+              }
+              if (r.callers.length > 0) {
+                console.log(`         ${DIM}← ${r.callers.slice(0, 3).join(', ')}${r.callers.length > 3 ? ` +${r.callers.length - 3} more` : ''}${RESET}`);
+              }
+              if (i < result.results.length - 1) console.log('');
             }
+
             if (result.communities.length > 0) {
-              console.log(`\n  \x1b[2mModules touched: ${result.communities.join(', ')}\x1b[0m`);
+              console.log('');
+              console.log(bullet(`${DIM}🏘️${RESET}`, `${DIM}Modules: ${result.communities.join(' · ')}${RESET}`));
             }
+
+            // ── Footer ────────────────────────────────────────────────────────
+            console.log('');
+            console.log(hrLine());
+            console.log(`  ${DIM}⏱  ${formatMs(totalTime)}${RESET}  ${DIM}│${RESET}  ${DIM}${graphSymbolCount.toLocaleString()} symbols${RESET}  ${DIM}│${RESET}  ${DIM}${providerName} embeddings${RESET}  ${DIM}│${RESET}  ${DIM}top-${topK}${RESET}`);
+            console.log(hrLine());
           }
         }
 

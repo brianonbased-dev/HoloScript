@@ -80,22 +80,27 @@ async function detectBestEmbeddingProvider(): Promise<string> {
 /**
  * Create an EmbeddingIndex with auto-detected or explicitly configured provider.
  */
-async function createDynamicEmbeddingIndex(mod: { 
-  EmbeddingIndex: new (provider: any) => any; 
-  createEmbeddingProvider: (opts: any) => Promise<any> 
-}): Promise<any> {
+async function createDynamicEmbeddingIndex(
+  mod: {
+    EmbeddingIndex: new (provider: any) => any;
+    createEmbeddingProvider: (opts: any) => Promise<any>
+  },
+  embeddingProvider?: string,
+  embeddingApiKey?: string,
+  embeddingModel?: string
+): Promise<any> {
   const { EmbeddingIndex, createEmbeddingProvider } = mod;
-  const providerName = await detectBestEmbeddingProvider();
+  const providerName = embeddingProvider || await detectBestEmbeddingProvider();
 
   const provider = await createEmbeddingProvider({
     provider: providerName as any,
     ollamaUrl: process.env.OLLAMA_URL,
     ollamaModel: process.env.OLLAMA_MODEL,
-    openaiApiKey: process.env.OPENAI_API_KEY,
-    openaiModel: process.env.OPENAI_MODEL,
+    openaiApiKey: embeddingApiKey || process.env.OPENAI_API_KEY,
+    openaiModel: embeddingModel || process.env.OPENAI_MODEL,
     xenovaModel: process.env.XENOVA_MODEL,
   });
-  console.error(`[EmbeddingProvider] Created: ${provider.name}`);
+  console.error(`[EmbeddingProvider] Created: ${provider.name}${embeddingProvider ? ' (agent-specified)' : ''}`);
   return new EmbeddingIndex({ provider });
 }
 
@@ -433,6 +438,19 @@ export const codebaseTools: Tool[] = [
           description:
             'When true, includes build output folders (dist/build/out) in scanning. Useful in production containers that only ship compiled output. Defaults to false.',
         },
+        embeddingProvider: {
+          type: 'string',
+          enum: ['bm25', 'openai', 'ollama', 'xenova'],
+          description: 'Embedding provider for semantic search (default: bm25). "bm25" is fast keyword-based (no API needed), "openai" uses OpenAI embeddings (requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model.',
+        },
+        embeddingApiKey: {
+          type: 'string',
+          description: 'API key for embedding provider (required for openai, not needed for bm25/ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
+        },
+        embeddingModel: {
+          type: 'string',
+          description: 'Model name for embeddings (e.g., "text-embedding-3-small" for OpenAI). Uses provider defaults if not specified.',
+        },
       },
       required: ['rootDir'],
     },
@@ -704,7 +722,10 @@ async function runFullScan(
   outputFormat: string,
   layout: string,
   interactive: boolean,
-  jobId?: string
+  jobId?: string,
+  embeddingProvider?: string,
+  embeddingApiKey?: string,
+  embeddingModel?: string
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } = mod;
 
@@ -757,16 +778,32 @@ async function runFullScan(
 
   // Persist graph to disk
   const graphStats = graph.getStats();
-  const embeddingProvider = await detectBestEmbeddingProvider();
-  saveGraphCache(graph, rootDir, graphStats, gitCommitHash, fileHashes, embeddingProvider);
+  const detectedProvider = embeddingProvider || await detectBestEmbeddingProvider();
+  saveGraphCache(graph, rootDir, graphStats, gitCommitHash, fileHashes, detectedProvider);
 
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
 
-  // Build embedding index
+  // Build embedding index with granular progress (Phase 8 Extension)
   try {
     const { GraphRAGEngine } = mod;
-    const embeddingIndex = await createDynamicEmbeddingIndex(mod);
-    await embeddingIndex.buildIndex(graph);
+    const embeddingIndex = await createDynamicEmbeddingIndex(mod, embeddingProvider, embeddingApiKey, embeddingModel);
+
+    // Wire progress callback for granular embedding updates
+    await embeddingIndex.buildIndex(
+      graph,
+      jobId
+        ? (batchNum: number, totalBatches: number, symbolsProcessed: number) => {
+            // Map batch progress to 80-95% range (Phase 8 Extension)
+            const embeddingProgress = 80 + Math.floor((batchNum / totalBatches) * 15);
+            trackAbsorbProgress(
+              jobId,
+              `Embedding batch ${batchNum}/${totalBatches} (${symbolsProcessed} symbols)`,
+              embeddingProgress
+            );
+          }
+        : undefined
+    );
+
     setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
   } catch {
     // Embedding provider may not be available
@@ -867,7 +904,10 @@ async function runIncrementalPatch(
   outputFormat: string,
   layout: string,
   interactive: boolean,
-  jobId?: string
+  jobId?: string,
+  embeddingProvider?: string,
+  embeddingApiKey?: string,
+  embeddingModel?: string
 ): Promise<unknown> {
   const { CodebaseScanner, CodebaseGraph, GitChangeDetector } = mod;
   const startTime = Date.now();
@@ -880,7 +920,7 @@ async function runIncrementalPatch(
     graph = CodebaseGraph.deserialize(envelope.graphJson);
   } catch {
     console.warn('[AbsorbIncremental] deserialization failed → full scan');
-    return await runFullScan(mod, rootDir, undefined, undefined, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    return await runFullScan(mod, rootDir, undefined, undefined, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
   }
 
   if (jobId) trackAbsorbProgress(jobId, 'Detecting content changes', 20);
@@ -927,7 +967,7 @@ async function runIncrementalPatch(
   // Update embedding index
   try {
     const { GraphRAGEngine } = mod;
-    const embeddingIndex = await createDynamicEmbeddingIndex(mod);
+    const embeddingIndex = await createDynamicEmbeddingIndex(mod, embeddingProvider, embeddingApiKey, embeddingModel);
 
     // Load existing embeddings if available
     if (cachedGraph && cachedGraph === graph) {
@@ -956,7 +996,7 @@ async function runIncrementalPatch(
   cacheTimestamp = Date.now();
 
   const graphStats = graph.getStats();
-  const embeddingProvider = await detectBestEmbeddingProvider();
+  const detectedProvider = embeddingProvider || await detectBestEmbeddingProvider();
   
   // Layout and Emission (Phase 8: Incremental Spatial)
   let holoSource = '';
@@ -986,7 +1026,7 @@ async function runIncrementalPatch(
     }
   }
 
-  saveGraphCache(graph, rootDir, graphStats, graph.gitCommitHash, graph.fileHashes, embeddingProvider);
+  saveGraphCache(graph, rootDir, graphStats, graph.gitCommitHash, graph.fileHashes, detectedProvider);
 
   // Sync with mesh if truly changed (Phase 9)
   if (filesToRescan.length > 0) {
@@ -1046,6 +1086,9 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const interactive = (args.interactive as boolean) ?? false;
   const force = (args.force as boolean) ?? false;
   const includeBuildArtifacts = (args.includeBuildArtifacts as boolean) ?? false;
+  const embeddingProvider = args.embeddingProvider as string | undefined;
+  const embeddingApiKey = args.embeddingApiKey as string | undefined;
+  const embeddingModel = args.embeddingModel as string | undefined;
 
   // Create job for progress tracking
   const jobId = createAbsorbJob(rootDir);
@@ -1055,7 +1098,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   if (force) {
     console.log('[AbsorbIncremental] force=true → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
     return { ...(result as Record<string, unknown>), jobId };
   }
 
@@ -1065,19 +1108,19 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const envelope = loadGraphCache();
   if (!envelope) {
     console.log('[AbsorbIncremental] no cache → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   if (envelope.version === 1) {
     console.log('[AbsorbIncremental] v1 cache (no git data) → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   if (envelope.rootDir !== rootDir) {
     console.log('[AbsorbIncremental] different rootDir → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
     return { ...(result as Record<string, unknown>), jobId };
   }
 
@@ -1087,14 +1130,14 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const detector = new GitChangeDetector(rootDir);
   if (!detector.isGitRepo()) {
     console.log('[AbsorbIncremental] not a git repo → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   const changes = detector.detectChanges(envelope.gitCommitHash ?? null);
   if (changes.storedCommitMissing) {
     console.log('[AbsorbIncremental] stored commit missing (force push?) → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
     return { ...(result as Record<string, unknown>), jobId };
   }
 
@@ -1155,7 +1198,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     outputFormat,
     layout,
     interactive,
-    jobId
+    jobId,
+    embeddingProvider,
+    embeddingApiKey,
+    embeddingModel
   );
   return { ...(result as Record<string, unknown>), jobId };
 }

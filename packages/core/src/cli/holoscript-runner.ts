@@ -13,6 +13,8 @@
  * Supports .hs, .hsplus, and .holo files.
  */
 
+import 'dotenv/config';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
@@ -34,7 +36,7 @@ import { createDaemonActions, getDaemonFileState } from './daemon-actions';
 import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
-interface CLIOptions {
+export interface CLIOptions {
   command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'daemon-status' | 'help';
   json: boolean;
   file?: string;
@@ -224,7 +226,7 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--timeout' && args[i + 1]) {
       const parsed = Number(args[++i]);
       if (Number.isFinite(parsed) && parsed > 0) {
-        opts.timeout = Math.floor(parsed);
+        opts.timeout = Math.min(120, Math.max(1, Math.floor(parsed)));
       }
     }
     if (args[i] === '--focus' && args[i + 1]) {
@@ -1282,7 +1284,7 @@ function loadRuntimeSkillActions(
   return actions;
 }
 
-async function daemonScript(opts: CLIOptions): Promise<void> {
+export async function daemonScript(opts: CLIOptions): Promise<void> {
   if (!opts.file) {
     console.error('Error: No composition file specified');
     process.exit(1);
@@ -1710,6 +1712,9 @@ async function daemonScript(opts: CLIOptions): Promise<void> {
       qualityBefore: config.qualityBefore || 0,
       qualityAfter,
       qualityDelta,
+      typeErrors: (btBlackboard.quality_typeErrors as number) ?? null,
+      testsPassed: (btBlackboard.quality_testsPassed as number) ?? null,
+      testsTotal: (btBlackboard.quality_testsTotal as number) ?? null,
       committedCount: committed,
       candidateCount,
       wisdomCount,

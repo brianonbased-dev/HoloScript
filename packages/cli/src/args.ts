@@ -52,6 +52,9 @@ export interface CLIOptions {
     | 'absorb'
     | 'query'
     | 'self-improve'
+    | 'daemon'
+    | 'setup-hooks'
+    | 'remove-hooks'
     | 'help'
     | 'version';
   input?: string;
@@ -73,6 +76,18 @@ export interface CLIOptions {
   daemonMode?: boolean;
   /** Maximum consecutive failures before aborting self-improve (default: 3) */
   maxFailures?: number;
+  /** Focus mode for daemon: typefix, coverage, lint, target-sweep, etc. */
+  focus?: string;
+  /** Enable provider rotation between cycles */
+  providerRotation?: boolean;
+  /** LLM provider for daemon: anthropic, openai, xai, ollama */
+  daemonProvider?: string;
+  /** Model ID for daemon (e.g., claude-sonnet-4-20250514, grok-3) */
+  daemonModel?: string;
+  /** Always-on daemon mode (runs until interrupted) */
+  alwaysOn?: boolean;
+  /** Interval between daemon cycles in seconds (default: 30) */
+  cycleIntervalSec?: number;
   description?: string;
   brittneyUrl?: string;
   target?: string;
@@ -179,6 +194,8 @@ export interface CLIOptions {
   queryWithLlm?: boolean;
   /** Directory to scan for the query command (default: process.cwd()) */
   queryDir?: string;
+  /** Studio URL for setup-hooks command (default: http://localhost:3000) */
+  studioUrl?: string;
 }
 
 const DEFAULT_OPTIONS: CLIOptions = {
@@ -245,9 +262,12 @@ export function parseArgs(args: string[]): CLIOptions {
           'absorb',
           'query',
           'self-improve',
+          'daemon',
           'screenshot',
           'pdf',
           'prerender',
+          'setup-hooks',
+          'remove-hooks',
           'help',
           'version',
         ].includes(arg)
@@ -445,6 +465,30 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--max-failures':
         options.maxFailures = parseInt(args[++i], 10) || 3;
         break;
+      case '--focus':
+        options.focus = args[++i];
+        break;
+      case '--provider-rotation':
+        options.providerRotation = true;
+        break;
+      case '--provider': {
+        const providerArg = args[++i];
+        options.daemonProvider = providerArg;
+        options.queryProvider = providerArg as CLIOptions['queryProvider'];
+        break;
+      }
+      case '--model': {
+        const modelArg = args[++i];
+        options.daemonModel = modelArg;
+        options.queryModel = modelArg;
+        break;
+      }
+      case '--always-on':
+        options.alwaysOn = true;
+        break;
+      case '--cycle-interval-sec':
+        options.cycleIntervalSec = parseInt(args[++i], 10) || 30;
+        break;
       case '--for-agent':
         options.forAgent = true;
         break;
@@ -458,14 +502,8 @@ export function parseArgs(args: string[]): CLIOptions {
         options.impactFiles = args[++i];
         break;
       // ── query flags ──────────────────────────────────────────────────────
-      case '--provider':
-        options.queryProvider = args[++i] as CLIOptions['queryProvider'];
-        break;
       case '--llm':
         options.queryLlm = args[++i];
-        break;
-      case '--model':
-        options.queryModel = args[++i];
         break;
       case '--llm-key':
         options.queryLlmKey = args[++i];
@@ -478,6 +516,9 @@ export function parseArgs(args: string[]): CLIOptions {
         break;
       case '--dir':
         options.queryDir = args[++i];
+        break;
+      case '--studio-url':
+        options.studioUrl = args[++i];
         break;
     }
     i++;

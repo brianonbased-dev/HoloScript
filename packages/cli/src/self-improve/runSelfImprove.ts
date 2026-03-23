@@ -158,7 +158,7 @@ export async function runSelfImprove(options: CLIOptions): Promise<number> {
     });
 
     harvestingIO = harvester.wrapIO(io);
-    console.log(`  ${C.green}Harvester enabled${C.reset} -> ${harvester.getOutputFile()}`);
+    console.log(`  ${C.green}Harvester enabled${C.reset} -> ${datasetsDir}`);
     console.log('');
   }
 
@@ -199,7 +199,7 @@ export async function runSelfImprove(options: CLIOptions): Promise<number> {
     result.abortReason,
     result.finalQuality?.scorePercent ?? null,
     result.totalDuration,
-    harvester?.getOutputFile() ?? null
+    harvester ? path.join(rootDir, 'datasets') : null
   );
 
   return 0;
@@ -326,7 +326,7 @@ async function runDaemonMode(
     convergenceStreak >= MAX_CONVERGENCE_STREAK ? 'converged' : 'interrupted',
     lastQuality > 0 ? lastQuality * 100 : null,
     0,
-    harvester?.getOutputFile() ?? null
+    harvester ? path.join(rootDir, 'datasets') : null
   );
 
   return 0;
