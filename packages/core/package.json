@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/core",
   "version": "5.1.0",
-  "description": "HoloScript+: VR language with declarative syntax, state management, reactive traits, and VR interactions. Full backward compatible with original HoloScript.",
+  "description": "Core parser, AST, compiler infrastructure, trait system, and runtime for HoloScript — the open AI-spatial reality protocol for 3D/XR/IoT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -117,16 +117,27 @@
   "keywords": [
     "holoscript",
     "vr",
+    "ar",
+    "xr",
+    "webxr",
     "virtual-reality",
+    "spatial-computing",
     "parser",
     "ast",
+    "compiler",
     "runtime",
-    "spatial-programming",
-    "voice-commands",
-    "gesture-control"
+    "3d",
+    "threejs",
+    "digital-twin",
+    "iot",
+    "declarative"
   ],
   "author": "Brian X Base Team",
   "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
