@@ -23,12 +23,12 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
-    "@holoscript/traits": "workspace:*",
-    "@holoscript/parser": "workspace:*"
+    "@holoscript/parser": "workspace:*",
+    "@holoscript/traits": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }

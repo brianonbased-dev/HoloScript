@@ -16,9 +16,9 @@
   },
   "devDependencies": {
     "@types/ws": "^8.5.13",
+    "esbuild": "^0.25.4",
     "tsx": "^4.19.4",
     "typescript": "~5.9.3",
-    "esbuild": "^0.25.4",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }

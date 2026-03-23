@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@holoscript/fs",
   "version": "3.1.0",
   "description": "File system library for HoloScript Plus",
@@ -27,7 +27,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "dev": "tsc --watch",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
@@ -38,10 +38,10 @@
     "glob": "^13.0.6"
   },
   "devDependencies": {
-    "typescript": "~5.9.3",
     "@types/node": "^24.10.1",
     "rimraf": "^5.0.5",
-    "vitest": "^4.0.18"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
   },
   "peerDependencies": {
     "@holoscript/std": "workspace:^"

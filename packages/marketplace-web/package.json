@@ -19,7 +19,7 @@
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.314.0",
-    "next": "^15.5.10",
+    "next": "^15.5.14",
     "postcss": "^8.4.33",
     "react": "^19.2.0",
     "react-dom": "^19.2.4",
@@ -40,7 +40,7 @@
     "eslint-config-next": "^14.1.0",
     "jsdom": "^28.1.0",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   },
   "keywords": [
     "holoscript",

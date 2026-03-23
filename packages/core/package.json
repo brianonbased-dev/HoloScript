@@ -6,7 +6,10 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "sideEffects": ["./src/traits/visual/index.ts", "./dist/traits/index.js"],
+  "sideEffects": [
+    "./src/traits/visual/index.ts",
+    "./dist/traits/index.js"
+  ],
   "files": [
     "dist"
   ],
@@ -95,6 +98,10 @@
       "types": "./dist/entries/interop.d.ts",
       "import": "./dist/entries/interop.js",
       "require": "./dist/entries/interop.cjs"
+    },
+    "./cli/holoscript-runner": {
+      "import": "./dist/cli/holoscript-runner.js",
+      "require": "./dist/cli/holoscript-runner.cjs"
     }
   },
   "bin": {
@@ -132,9 +139,11 @@
     "@holoscript/crdt": "workspace:*",
     "@zoralabs/protocol-deployments": "^0.7.2",
     "basis_universal": "^1.0.0",
+    "dotenv": "^16.4.5",
     "draco3d": "^1.5.6",
     "ipfs-http-client": "^60.0.1",
     "jsonwebtoken": "^9.0.0",
+    "openai": "^6.32.0",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
     "three": "^0.182.0",
@@ -143,9 +152,9 @@
     "zod": "^3.24.0"
   },
   "optionalDependencies": {
-    "discord.js": "^14.21.0",
     "@huggingface/transformers": "^3.8.1",
     "@noble/post-quantum": "^0.5.4",
+    "discord.js": "^14.21.0",
     "tree-sitter": "0.21.1",
     "tree-sitter-go": "^0.25.0",
     "tree-sitter-javascript": "^0.25.0",
@@ -182,8 +191,8 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@webgpu/types": "^0.1.40",
     "tsup": "^8.0.1",
-    "typedoc": "^0.28.16",
+    "typedoc": "^0.28.17",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }

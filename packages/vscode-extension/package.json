@@ -44,6 +44,11 @@
           "default": true,
           "description": "Enable MCP orchestrator integration for IDE agents."
         },
+        "holoscript.mcp.holoscriptMcpEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable HoloScript MCP server (mcp.holoscript.net) for GitHub Copilot and AI agents."
+        },
         "holoscript.mcp.orchestratorUrl": {
           "type": "string",
           "default": "http://localhost:5567",
@@ -499,6 +504,12 @@
         "title": "Open Preview to the Side",
         "category": "HoloScript",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "holoscript.openStudioPreview",
+        "title": "Open Studio Live Preview",
+        "category": "HoloScript",
+        "icon": "$(preview)"
       },
       {
         "command": "holoscript.agent.createFile",
@@ -1018,6 +1029,12 @@
         ]
       }
     ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "holoscriptMcp",
+        "label": "HoloScript MCP Server"
+      }
+    ],
     "breakpoints": [
       {
         "language": "holoscript"
@@ -1151,16 +1168,16 @@
     "@vscode/vsce": "^2.32.0",
     "esbuild": "^0.27.3",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@holoscript/sdk": "workspace:^",
-    "@holoscript/lsp": "workspace:*",
     "@holoscript/formatter": "workspace:*",
+    "@holoscript/lsp": "workspace:*",
+    "@holoscript/sdk": "workspace:^",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",
     "vscode-languageclient": "^9.0.1",
-    "yjs": "^13.6.15",
-    "y-websocket": "^2.0.3"
+    "y-websocket": "^2.0.3",
+    "yjs": "^13.6.15"
   }
 }

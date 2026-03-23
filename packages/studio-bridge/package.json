@@ -48,10 +48,9 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/studio-bridge"
   },
-  "dependencies": {},
   "devDependencies": {
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }

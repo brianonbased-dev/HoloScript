@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@holoscript/marketplace-api",
   "version": "1.2.1",
   "description": "HoloScript Trait Marketplace API - publishing, discovery, and dependency resolution",
@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run --passWithNoTests",
@@ -17,19 +17,19 @@
     "@holoscript/auth": "workspace:*",
     "@holoscript/core": "workspace:*",
     "@holoscript/registry": "workspace:*",
-    "@zoralabs/protocol-sdk": "^0.13.18",
     "@zoralabs/protocol-deployments": "^0.7.2",
-    "viem": "^2.21.0",
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
+    "@zoralabs/protocol-sdk": "^0.13.18",
     "compression": "^1.7.4",
-    "rate-limiter-flexible": "^9.1.1",
-    "semver": "^7.7.4",
-    "zod": "^3.24.0",
-    "winston": "^3.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
     "pg": "^8.11.3",
-    "redis": "^4.6.12"
+    "rate-limiter-flexible": "^9.1.1",
+    "redis": "^4.6.12",
+    "semver": "^7.7.4",
+    "viem": "^2.21.0",
+    "winston": "^3.11.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/compression": "^1.7.5",
@@ -38,9 +38,9 @@
     "@types/node": "^24.10.1",
     "@types/pg": "^8.11.0",
     "@types/semver": "^7.5.6",
+    "tsx": "^4.7.0",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18",
-    "tsx": "^4.7.0"
+    "vitest": "^4.1.0"
   },
   "keywords": [
     "holoscript",

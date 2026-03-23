@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@holoscript/studio-plugin-sdk",
   "version": "1.0.0",
   "description": "Plugin SDK for extending HoloScript Studio with custom nodes, panels, and tools",
@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -61,16 +61,16 @@
   "author": "HoloScript Team",
   "license": "MIT",
   "dependencies": {
+    "chalk": "^5.3.0",
     "commander": "^12.0.0",
-    "prompts": "^2.4.2",
-    "chalk": "^5.3.0"
+    "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@types/prompts": "^2.4.9",
+    "jsdom": "^28.1.0",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18",
-    "jsdom": "^28.1.0"
+    "vitest": "^4.1.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",

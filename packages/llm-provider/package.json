@@ -43,12 +43,11 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^24.10.1",
     "tsup": "^8.0.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": "^0.36.0",

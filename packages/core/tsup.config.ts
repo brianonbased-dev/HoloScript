@@ -60,9 +60,14 @@ export default defineConfig({
 
     // Codebase Absorption Engine (dynamically loaded)
     'codebase/index': 'src/codebase/index.ts',
+    'codebase/workers/parse-worker': 'src/codebase/workers/parse-worker.ts',
+    'codebase/workers/embedding-worker': 'src/codebase/workers/embedding-worker.ts',
 
     // Self-Improvement Pipeline (dynamically loaded)
     'self-improvement/index': 'src/self-improvement/index.ts',
+
+    // CLI / Daemon runner (standalone executable)
+    'cli/holoscript-runner': 'src/cli/holoscript-runner.ts',
 
     // Traits barrel (re-exports all trait types for @holoscript/traits)
     'traits/index': 'src/traits/index.ts',
@@ -84,6 +89,9 @@ export default defineConfig({
 
     // Sprint 3: Agent inference export
     'compiler/agent-inference': 'src/compiler/AgentInferenceExportTarget.ts',
+
+    // Shared compiler utilities (used by @holoscript/compiler-utils)
+    'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
