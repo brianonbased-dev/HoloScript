@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/runtime",
-  "version": "3.1.1",
-  "description": "HoloScript browser runtime - React Three Fiber integration, event bus, storage, and device APIs",
+  "version": "3.1.2",
+  "description": "HoloScript browser runtime — React Three Fiber integration, physics, event system, and device APIs for spatial applications",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -99,10 +99,20 @@
     "react-three-fiber",
     "3d",
     "vr",
-    "spatial-programming"
+    "ar",
+    "xr",
+    "webxr",
+    "spatial-computing",
+    "threejs",
+    "physics",
+    "declarative"
   ],
   "author": "Brian X Base Team",
   "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",

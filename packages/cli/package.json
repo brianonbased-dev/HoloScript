@@ -1,7 +1,7 @@
 {
   "name": "@holoscript/cli",
   "version": "5.1.0",
-  "description": "Command-line interface for HoloScript",
+  "description": "Command-line interface for HoloScript — compile, validate, dev-serve, and analyze .holo files",
   "main": "./dist/index.js",
   "sideEffects": false,
   "files": [
@@ -20,12 +20,22 @@
   "keywords": [
     "holoscript",
     "cli",
+    "xr",
+    "webxr",
     "vr",
+    "ar",
+    "spatial-computing",
+    "compiler",
+    "3d",
     "metaverse",
-    "voice-commands"
+    "declarative"
   ],
   "author": "Brian X Base Team",
   "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
