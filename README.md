@@ -307,7 +307,7 @@ HoloScript provides **three specialized languages** that work together:
 
 **Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 30+ targets.
 
-### 3. Even Playing Field (Commons-Based)
+### 4. Even Playing Field (Commons-Based)
 
 We built [Hololand](https://github.com/brianonbased-dev/Hololand)—a full VR social platform—using **only public HoloScript APIs**.
 
@@ -319,7 +319,7 @@ This proves:
 
 Like Chromium (Chrome vs. Brave) or React (Instagram vs. Netflix)—**build your own Hololand**.
 
-### 3. Universal Compilation
+### 5. Universal Compilation
 
 Write **one** HoloScript file. Compile to:
 
@@ -330,7 +330,7 @@ Write **one** HoloScript file. Compile to:
 - **Social VR**: VRChat (Udon), Rec Room
 - **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Healthcare, Education, Music, Architecture, Web3
 
-### 4. Feature-Rich
+### 6. Feature-Rich
 
 - ✅ **2,000+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting

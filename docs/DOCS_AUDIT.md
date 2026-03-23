@@ -255,3 +255,51 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 ---
 
 **Audit Conclusion**: HoloScript v3.3.0 is now feature-complete for trait implementations. All 38 non-trivial trait handlers are fully implemented with comprehensive test coverage (122 dedicated trait tests). Objects using templates via the `using` keyword correctly inherit traits like `@grabbable`, `@physics`, etc. The remaining gaps are platform export wiring (VRChat/Unity) and module execution. A working demo is available at `examples/three-demo/index.html`.
+
+---
+
+## 9. Documentation Gap Fix (2026-03-22)
+
+A comprehensive documentation gap analysis and fix was performed using GraphRAG codebase absorption (84,831 symbols indexed).
+
+### Results
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Packages with READMEs | ~58/71 | **71/71 (100%)** |
+| Architecture docs | 6 | **13** |
+| Guides | 37 | **40** |
+| D2 architecture diagrams | 0 | **2** |
+| New files created | — | **27** |
+| Files modified | — | **5** |
+
+### New Architecture Documentation
+
+- `TRAIT_SYSTEM.md` — CrossRealityTraitRegistry flow
+- `PARSER_INTERNALS.md` — 5-parser hierarchy, AST types
+- `RUNTIME_ECS.md` — SceneRunner, HeadlessRuntime, entity lifecycle
+- `EXTENSION_SYSTEM.md` — 4 meanings of "extension"
+- `INTERNAL_MCP.md` — Dual MCP system (external + spatial agent comms)
+- `CONNECTOR_HUB.md` — McpRegistrar, CredentialVault, DeploymentPipeline
+- `holoscript-architecture.d2` — Full pipeline D2 diagram
+- `package-dependencies.d2` — 37-edge package dependency graph
+
+### New Guides
+
+- `testing.md` — Vitest framework, test categories, CI
+- `contributing-new-compiler.md` — 6-step guide with templates
+- `smart-assets.md` — SmartAssetLoader API
+
+### Code Quality Fixes
+
+- Renamed `ImportResolver.EXTENSIONS` → `FILE_EXTENSIONS` for disambiguation
+- Fixed `__dirname` ESM warning in `EmbeddingIndex.ts` and `CodebaseScanner.ts`
+- Updated `docs/README.md` index with Architecture and Guides sections
+- Created `docs/architecture/README.md` index
+
+### Version History Update
+
+| Date       | Version | Changes |
+|------------|---------|---------|
+| 2026-03-22 | 5.0+    | 100% README coverage, 7 new architecture docs, 3 guides, 2 D2 diagrams, ESM fixes |
+

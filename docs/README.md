@@ -16,6 +16,24 @@ Use this index for current, canonical documentation entry points.
 3. **[Agents](./agents/index.md)** - Agent protocol and orchestration docs
 4. **[Packages](./packages/index.md)** - Monorepo package map and APIs
 
+## Architecture
+
+1. **[Trait System](./architecture/TRAIT_SYSTEM.md)** - Registration, resolution, and compilation flow
+2. **[Parser Internals](./architecture/PARSER_INTERNALS.md)** - 5-parser hierarchy and AST types
+3. **[Runtime & ECS](./architecture/RUNTIME_ECS.md)** - SceneRunner, HeadlessRuntime, entity lifecycle
+4. **[Extension System](./architecture/EXTENSION_SYSTEM.md)** - 4 meanings of "extension" disambiguated
+5. **[Internal MCP](./architecture/INTERNAL_MCP.md)** - Dual MCP system and 3-layer spatial protocol
+6. **[Platform Architecture](./architecture/PLATFORM_ARCHITECTURE.md)** - High-level platform design
+7. **[AI Architecture](./architecture/AI_ARCHITECTURE.md)** - AI/ML integration patterns
+
+## Guides
+
+1. **[Testing](./guides/testing.md)** - Vitest setup, test categories, CI integration
+2. **[Smart Assets](./guides/smart-assets.md)** - SmartAssetLoader API and HSA format
+3. **[Contributing a New Compiler](./guides/contributing-new-compiler.md)** - Step-by-step guide
+4. **[MCP Server](./guides/mcp-server.md)** - Configure AI agents to use HoloScript tools
+5. **[Codebase Intelligence](./guides/codebase-intelligence.md)** - GraphRAG semantic search
+
 ## Learn and Build
 
 1. **[Academy](./academy/index.md)** - Structured learning path
@@ -26,3 +44,4 @@ Use this index for current, canonical documentation entry points.
 
 1. **[Contributing Guide](../CONTRIBUTING.md)** - Contribution workflow and standards
 2. **[Proposals Index](../proposals/README.md)** - Active RFCs and proposal templates
+
