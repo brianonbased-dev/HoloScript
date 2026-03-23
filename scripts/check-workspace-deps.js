@@ -34,7 +34,7 @@ for (const dir of WORKSPACE_DIRS) {
     const pkgJson = path.join(base, pkg, 'package.json');
     if (!fs.existsSync(pkgJson)) continue;
 
-    const content = fs.readFileSync(pkgJson, 'utf8');
+    const content = fs.readFileSync(pkgJson, 'utf8').replace(/^\uFEFF/, '');
     const json = JSON.parse(content);
     let dirty = false;
 
