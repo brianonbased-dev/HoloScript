@@ -207,7 +207,14 @@ export default defineConfig({
             { text: 'VS Code', link: '/guides/vscode' },
             { text: 'MCP Server', link: '/guides/mcp-server' },
             { text: 'AI Agents', link: '/guides/ai-agents' },
+            { text: 'Agent MCP Quickstart', link: '/guides/agent-mcp-quickstart' },
             { text: 'MCP Mesh Operations', link: '/guides/mcp-mesh-operations' },
+          ],
+        },
+        {
+          text: 'Community',
+          items: [
+            { text: 'Agent Bounty Program', link: '/BOUNTY' },
           ],
         },
         {
@@ -679,7 +686,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/brianonbased-dev/HoloScript/edit/master/docs/:path',
+      pattern: 'https://github.com/brianonbased-dev/HoloScript/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
   },
