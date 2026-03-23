@@ -820,6 +820,16 @@
             >Docs</a
           >
           <a
+            href="https://holoscript.net/guides/agent-mcp-quickstart"
+            style="color: #00ffff; text-decoration: none; font-size: 0.95rem; font-weight: 600"
+            >Agents</a
+          >
+          <a
+            href="https://holoscript.net/BOUNTY"
+            style="color: #fbbf24; text-decoration: none; font-size: 0.95rem; font-weight: 700"
+            >🏆$2,500 Bounty</a
+          >
+          <a
             href="https://holoscript.net/guides/quick-start"
             style="color: #a0a0b8; text-decoration: none; font-size: 0.95rem"
             >Quick Start</a
@@ -868,8 +878,8 @@
             <a href="https://holoscript.net/guides/quick-start" class="btn btn-primary"
               >Get Started Free</a
             >
-            <a href="https://github.com/brianonbased-dev/HoloScript" class="btn btn-outline"
-              >View on GitHub</a
+            <a href="https://holoscript.net/BOUNTY" class="btn btn-outline" style="border-color: #fbbf24; color: #fbbf24;"
+              >Join $2,500 Bounty Program</a
             >
           </div>
 
@@ -1214,6 +1224,59 @@ animate();</code></pre>
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- AGENTS SECTION -->
+    <section id="agents" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(0, 255, 255, 0.1)); border-radius: 24px; margin: 2rem;">
+      <div class="container">
+        <div class="grid-2" style="align-items: center;">
+          <div>
+            <h2 style="background: var(--gradient-hero); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Built for AI Agents</h2>
+            <p style="font-size: 1.25rem; margin-bottom: 2rem;">
+              Give any AI agent (Claude, Cursor, CrewAI) spatial and economic superpowers via our hosted MCP server. No human intervention required.
+            </p>
+            <ul style="list-style: none; color: var(--text-secondary); margin-bottom: 2.5rem;">
+              <li style="margin-bottom: 1rem;"><strong style="color: var(--accent-cyan);">✓ Discovery:</strong> Fully discoverable via <code>/.well-known/mcp.json</code></li>
+              <li style="margin-bottom: 1rem;"><strong style="color: var(--accent-cyan);">✓ Execution:</strong> 82+ tools for parsing, validating, and compiling</li>
+              <li style="margin-bottom: 1rem;"><strong style="color: var(--accent-cyan);">✓ Economy:</strong> Native x402 payment facilitation for autonomous trade</li>
+            </ul>
+            <a href="https://holoscript.net/guides/agent-mcp-quickstart" class="btn btn-primary">Agent Quickstart</a>
+          </div>
+          <div class="card" style="font-family: 'Courier New', monospace; font-size: 0.9rem; text-align: left; background: #000;">
+            <div style="color: #666; margin-bottom: 1rem;">// Give your agent spatial-awareness</div>
+            <div style="color: var(--accent-purple);">const</div> <span style="color: var(--accent-cyan);">holoscript</span> = <span style="color: var(--accent-purple);">new</span> <span style="color: #fbbf24;">McpTool</span>({
+              url: <span style="color: #34d399;">"https://mcp.holoscript.net/mcp"</span>
+            });
+            <br><br>
+            <div style="color: #666;">// Prompt your agent:</div>
+            <div style="color: #fbbf24;">"Use HoloScript MCP to design a persistent VR economy with @grabbable objects and x402 payment gates."</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOUNTY SECTION -->
+    <section id="bounty" style="background: rgba(251, 191, 36, 0.05); text-align: center; border: 1px dashed #fbbf24; border-radius: 24px; margin: 2rem; padding: 4rem 1rem;">
+      <h2 style="color: #fbbf24; margin-bottom: 2rem;">🏆 Join the $2,500 HoloScript Agent Bounty</h2>
+      <p style="font-size: 1.25rem; max-width: 800px; margin: 0 auto 3rem; color: var(--text-secondary);">
+        HoloScript empowers AI agents to build, own, and trade in 3D. We are breaking the visibility-adoption loop. Build an integration or demo that wows us and win your share of the prize pool.
+      </p>
+      <div class="grid-3 container" style="margin-bottom: 3rem;">
+        <div class="card" style="border-color: #fbbf24;">
+          <h3 style="color: #fbbf24;">$1,200</h3>
+          <p>First Place: Best Agent Swarm</p>
+        </div>
+        <div class="card">
+          <h3>$800</h3>
+          <p>Second Place: Best Tooling</p>
+        </div>
+        <div class="card">
+          <h3>$500</h3>
+          <p>Third Place: Community Choice</p>
+        </div>
+      </div>
+      <a href="https://holoscript.net/BOUNTY" class="btn btn-primary" style="background: #fbbf24; color: #000;">Enter the Bounty Program</a>
+      <p style="margin-top: 1.5rem; font-size: 0.9rem; color: #666;">Deadlines: Submissions close May 1st, 2026.</p>
     </section>
 
     <!-- SAMPLE CODE -->

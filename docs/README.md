@@ -4,10 +4,11 @@ Use this index for current, canonical documentation entry points.
 
 ## Start Here
 
-1. **[Guides Home](./guides/index.md)** - Main onboarding and core concepts
-2. **[Quick Start](./guides/quick-start.md)** - Build your first composition quickly
-3. **[Installation](./guides/installation.md)** - CLI and environment setup
-4. **[File Formats](./guides/file-formats.md)** - `.holo`, `.hs`, and `.hsplus`
+1. **[Agents MCP Quickstart](./guides/agent-mcp-quickstart.md)** - Give AI agents spatial + economic superpowers in 60s
+2. **[Guides Home](./guides/index.md)** - Main onboarding and core concepts
+3. **[Quick Start](./guides/quick-start.md)** - Build your first composition quickly
+4. **[Installation](./guides/installation.md)** - CLI and environment setup
+5. **[File Formats](./guides/file-formats.md)** - `.holo`, `.hs`, and `.hsplus`
 
 ## Reference
 
