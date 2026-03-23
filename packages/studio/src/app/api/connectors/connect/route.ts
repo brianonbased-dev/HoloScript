@@ -212,14 +212,34 @@ export async function POST(req: NextRequest) {
       }
 
       case 'vscode': {
-        // Not yet implemented
-        return NextResponse.json(
-          {
-            success: false,
-            error: `${serviceId} connector not yet implemented`,
+        const { bridgeUrl } = credentials;
+
+        // Set bridge URL in environment
+        if (bridgeUrl) {
+          process.env.VSCODE_BRIDGE_URL = bridgeUrl;
+        }
+
+        const { VSCodeConnector } = await import('@holoscript/connector-vscode');
+        const vscode = new VSCodeConnector();
+        await vscode.connect();
+
+        const healthy = await vscode.health();
+        if (!healthy) {
+          return NextResponse.json(
+            { success: false, error: 'VSCode extension not reachable. Is the extension running?' },
+            { status: 503 }
+          );
+        }
+
+        const status = await vscode.executeTool('vscode_extension_status', {});
+
+        return NextResponse.json({
+          success: true,
+          config: {
+            bridgeUrl: bridgeUrl || 'http://localhost:17420',
+            ...(status && typeof status === 'object' ? status as Record<string, unknown> : {}),
           },
-          { status: 501 }
-        );
+        });
       }
 
       default: {

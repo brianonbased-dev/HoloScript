@@ -87,14 +87,13 @@ export async function POST(req: NextRequest) {
       }
 
       case 'vscode': {
-        // Not yet implemented
-        return NextResponse.json(
-          {
-            success: false,
-            error: `${serviceId} connector not yet implemented`,
-          },
-          { status: 501 }
-        );
+        const { VSCodeConnector } = await import('@holoscript/connector-vscode');
+        const vscode = new VSCodeConnector();
+        await vscode.disconnect();
+
+        delete process.env.VSCODE_BRIDGE_URL;
+
+        return NextResponse.json({ success: true });
       }
 
       default: {
