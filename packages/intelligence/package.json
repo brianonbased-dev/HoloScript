@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/intelligence",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "HoloScript AI intelligence — agents, swarm, training, self-improvement",
   "type": "module",
   "main": "./dist/index.js",
