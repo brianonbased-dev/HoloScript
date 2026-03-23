@@ -226,3 +226,4 @@ export * from './compiler-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
 export * from './absorb-tools';
+export * from './a2a';

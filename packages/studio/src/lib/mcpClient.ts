@@ -354,7 +354,7 @@ export class MCPClient {
 /** Default MCP configuration (orchestrator — tool routing + knowledge federation) */
 export const DEFAULT_MCP_CONFIG: MCPServerConfig = {
   name: 'default',
-  url: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+  url: process.env.NEXT_PUBLIC_MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
   apiKey: 'dev-key-12345',
   enabled: true,
   healthCheckInterval: 30000, // 30 seconds

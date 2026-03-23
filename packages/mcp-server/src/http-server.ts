@@ -18,6 +18,18 @@ import { tools } from './tools';
 import { handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
 import { renderPreview, createShareLink, getScene, storeScene, generateBrowserTemplate } from './renderer';
+import {
+  buildAgentCard,
+  createTask,
+  getTask,
+  listTasks,
+  cancelTask,
+  executeTask,
+  taskToResponse,
+  type SendTaskRequest,
+  type TaskMessage,
+  type TaskState,
+} from './a2a';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -135,6 +147,16 @@ function createMcpServer(): Server {
   });
 
   return server;
+}
+
+/**
+ * Unified tool handler for A2A task execution.
+ * Routes through plugins first, then the main handler pipeline.
+ */
+async function handleToolForA2A(name: string, args: Record<string, unknown>): Promise<unknown> {
+  const pluginResult = await PluginManager.handleTool(name, args);
+  if (pluginResult !== null) return pluginResult;
+  return handleTool(name, args);
 }
 
 /**
@@ -330,11 +352,148 @@ const httpServer = http.createServer(async (req, res) => {
         health: `${baseUrl}/health`,
         render: `${baseUrl}/api/render`,
         share: `${baseUrl}/api/share`,
+        a2a: `${baseUrl}/a2a`,
+        agentCard: `${baseUrl}/.well-known/agent-card.json`,
       },
       contact: {
         repository: 'https://github.com/buildwithholoscript/HoloScript',
       },
     }));
+    return;
+  }
+
+  // === A2A Protocol Endpoints ===
+
+  // GET /.well-known/agent-card.json — A2A Agent Card discovery
+  if ((url === '/.well-known/agent-card.json' || url === '/.well-known/agent-card') && req.method === 'GET') {
+    const allTools = [...tools, ...PluginManager.getTools()];
+    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : `http://localhost:${PORT}`;
+
+    const card = buildAgentCard(allTools, baseUrl, !!MCP_API_KEY);
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    res.end(JSON.stringify(card, null, 2));
+    return;
+  }
+
+  // POST /a2a/tasks — Send/create a task (A2A tasks/send)
+  if (url === '/a2a/tasks' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+
+      // Build SendTaskRequest from body
+      const message: TaskMessage = (body.message as TaskMessage) || {
+        role: 'user',
+        parts: [{ type: 'text', text: JSON.stringify(body) }],
+        timestamp: new Date().toISOString(),
+      };
+
+      const request: SendTaskRequest = {
+        id: body.id as string | undefined,
+        sessionId: body.sessionId as string | undefined,
+        message,
+        skillId: body.skillId as string | undefined,
+        arguments: body.arguments as Record<string, unknown> | undefined,
+        metadata: {
+          ...(body.metadata as Record<string, unknown> || {}),
+          // Propagate skillId and arguments into metadata for task execution
+          ...(body.skillId ? { skillId: body.skillId } : {}),
+          ...(body.arguments ? { arguments: body.arguments } : {}),
+        },
+      };
+
+      // Create the task
+      const task = createTask(request);
+
+      // Execute the task asynchronously (non-blocking for the response)
+      // For synchronous execution, we await it here since A2A tasks/send
+      // expects the result in the response for non-streaming agents.
+      const executed = await executeTask(task, handleToolForA2A);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(taskToResponse(executed), null, 2));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // GET /a2a/tasks — List tasks (with optional query filters)
+  if (url === '/a2a/tasks' && req.method === 'GET') {
+    const queryString = req.url?.split('?')[1] || '';
+    const params = new URLSearchParams(queryString);
+    const filters: {
+      sessionId?: string;
+      state?: TaskState;
+      limit?: number;
+      offset?: number;
+    } = {};
+
+    if (params.get('sessionId')) filters.sessionId = params.get('sessionId')!;
+    if (params.get('state')) filters.state = params.get('state') as TaskState;
+    if (params.get('limit')) filters.limit = parseInt(params.get('limit')!, 10);
+    if (params.get('offset')) filters.offset = parseInt(params.get('offset')!, 10);
+
+    const result = listTasks(filters);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      tasks: result.tasks.map(taskToResponse),
+      total: result.total,
+    }, null, 2));
+    return;
+  }
+
+  // GET /a2a/tasks/:id — Get a specific task
+  const taskGetMatch = url?.match(/^\/a2a\/tasks\/([a-f0-9-]+)$/);
+  if (taskGetMatch && req.method === 'GET') {
+    const task = getTask(taskGetMatch[1]);
+    if (!task) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Task not found', id: taskGetMatch[1] }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(taskToResponse(task), null, 2));
+    return;
+  }
+
+  // DELETE /a2a/tasks/:id — Cancel a task
+  const taskDeleteMatch = url?.match(/^\/a2a\/tasks\/([a-f0-9-]+)$/);
+  if (taskDeleteMatch && req.method === 'DELETE') {
+    const task = cancelTask(taskDeleteMatch[1]);
+    if (!task) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Task not found', id: taskDeleteMatch[1] }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(taskToResponse(task), null, 2));
+    return;
+  }
+
+  // GET /a2a — A2A protocol info / discovery redirect
+  if (url === '/a2a' && req.method === 'GET') {
+    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : `http://localhost:${PORT}`;
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      protocol: 'a2a',
+      version: '1.0.0',
+      agentCard: `${baseUrl}/.well-known/agent-card.json`,
+      endpoints: {
+        tasks: `${baseUrl}/a2a/tasks`,
+        agentCard: `${baseUrl}/.well-known/agent-card.json`,
+      },
+      description: 'HoloScript A2A (Agent-to-Agent) protocol endpoint. See agent card for capabilities.',
+    }, null, 2));
     return;
   }
 
@@ -501,17 +660,23 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`   Auth: ${MCP_API_KEY ? 'API key required' : 'OPEN (dev mode)'}`);
   console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
   console.log(`   Endpoints:`);
-  console.log(`     GET  /health            - Health check (public)`);
-  console.log(`     GET  /.well-known/mcp   - MCP discovery (public)`);
-  console.log(`     POST /mcp               - MCP Streamable HTTP (authenticated)`);
-  console.log(`     GET  /mcp               - MCP session messages (authenticated)`);
-  console.log(`     DELETE /mcp             - Close session (authenticated)`);
-  console.log(`     GET  /api/health        - API health + capabilities (public)`);
-  console.log(`     POST /api/render        - Render HoloScript preview (public)`);
-  console.log(`     POST /api/share         - Create share links (public)`);
-  console.log(`     POST /api/scene         - Store scene, get short URL (public)`);
-  console.log(`     GET  /scene/:id         - View stored scene (public)`);
-  console.log(`     GET  /embed/:id         - Embed stored scene (public)`);
+  console.log(`     GET  /health                    - Health check (public)`);
+  console.log(`     GET  /.well-known/mcp           - MCP discovery (public)`);
+  console.log(`     GET  /.well-known/agent-card.json - A2A Agent Card (public)`);
+  console.log(`     POST /mcp                       - MCP Streamable HTTP (authenticated)`);
+  console.log(`     GET  /mcp                       - MCP session messages (authenticated)`);
+  console.log(`     DELETE /mcp                     - Close session (authenticated)`);
+  console.log(`     GET  /a2a                       - A2A protocol info (public)`);
+  console.log(`     POST /a2a/tasks                 - A2A send task (public)`);
+  console.log(`     GET  /a2a/tasks                 - A2A list tasks (public)`);
+  console.log(`     GET  /a2a/tasks/:id             - A2A get task (public)`);
+  console.log(`     DELETE /a2a/tasks/:id           - A2A cancel task (public)`);
+  console.log(`     GET  /api/health                - API health + capabilities (public)`);
+  console.log(`     POST /api/render                - Render HoloScript preview (public)`);
+  console.log(`     POST /api/share                 - Create share links (public)`);
+  console.log(`     POST /api/scene                 - Store scene, get short URL (public)`);
+  console.log(`     GET  /scene/:id                 - View stored scene (public)`);
+  console.log(`     GET  /embed/:id                 - Embed stored scene (public)`);
 });
 
 // Graceful shutdown

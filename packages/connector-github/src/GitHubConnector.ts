@@ -404,7 +404,8 @@ export class GitHubConnector extends ServiceConnector {
                     const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
 
                     // Call HoloScript MCP validation via orchestrator
-                    const validationResponse = await fetch('https://mcp-orchestrator-production-45f9.up.railway.app/tools/call', {
+                    const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
+                    const validationResponse = await fetch(`${orchestratorUrl}/tools/call`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

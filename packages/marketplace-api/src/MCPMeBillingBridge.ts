@@ -121,7 +121,7 @@ export class MCPMeBillingBridge {
       options.orchestratorUrl ||
       process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
       process.env.MCP_ORCHESTRATOR_URL ||
-      'http://localhost:5567';
+      'https://mcp-orchestrator-production-45f9.up.railway.app';
     this.apiKey = options.apiKey || process.env.MCPME_API_KEY || '';
   }
 

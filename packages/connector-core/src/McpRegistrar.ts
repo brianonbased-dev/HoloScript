@@ -5,7 +5,9 @@ export interface OrchestratorRegistration {
 }
 
 export class McpRegistrar {
-    private orchestrationEndpoint = 'https://mcp-orchestrator-production-45f9.up.railway.app/register';
+    private orchestrationEndpoint = process.env.MCP_ORCHESTRATOR_URL
+        ? `${process.env.MCP_ORCHESTRATOR_URL}/register`
+        : 'https://mcp-orchestrator-production-45f9.up.railway.app/register';
 
     /**
      * Auto-register the initialized service connector with the existing Quantum MCP Mesh Orchestrator.
