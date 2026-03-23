@@ -189,8 +189,8 @@ export class LocalVersionControl implements VersionControlClient {
       nodes: commit.snapshot.nodes,
       edges: commit.snapshot.edges,
       metadata: commit.snapshot.metadata,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
   }
 

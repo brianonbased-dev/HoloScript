@@ -5,6 +5,10 @@
  * Mocks browser-only APIs that don't exist in Node.js test environment.
  */
 
+// ── @testing-library/jest-dom ─────────────────────────────────────────────────
+// Custom matchers for DOM assertions (toBeInTheDocument, toHaveValue, etc.)
+import '@testing-library/jest-dom/vitest';
+
 // ── IndexedDB mock ─────────────────────────────────────────────────────────────
 // ShaderEditorService, MaterialLibrary use the `idb` library which wraps IndexedDB.
 // In Node.js (test env) there is no IndexedDB — we provide a minimal in-memory mock.
@@ -227,3 +231,7 @@ if (!(performance as any).memory) {
     writable: true,
   });
 }
+
+// ── scrollIntoView mock ────────────────────────────────────────────────────────
+// jsdom doesn't implement scrollIntoView
+Element.prototype.scrollIntoView = vi.fn();

@@ -1,23 +1,83 @@
 /**
- * Re-export HoloComposition types from @holoscript/core.
- * StudioBridge.ts imports from '../parser/HoloCompositionTypes',
- * so this shim resolves the path within the studio package.
+ * Studio-local HoloComposition type shim.
+ *
+ * The published @holoscript/core declarations expose only a subset of the
+ * parser surface StudioBridge expects, so this file re-exports the available
+ * public types and defines lightweight compatible interfaces for the rest.
  */
+
+import type {
+  HoloCamera as CoreHoloCamera,
+  HoloComposition,
+  HoloLight as CoreHoloLight,
+  HoloObjectDecl,
+  HoloObjectTrait,
+  HoloParseError,
+  HoloParseResult,
+  HoloSpatialGroup,
+  HoloValue,
+} from '@holoscript/core';
+
 export type {
   HoloComposition,
   HoloObjectDecl,
   HoloObjectTrait,
-  HoloObjectProperty,
-  HoloSpatialGroup,
-  HoloLight,
-  HoloCamera,
-  HoloTimeline,
-  HoloTimelineEntry,
-  HoloValue,
-  HoloGroupProperty,
-  HoloLightProperty,
-  HoloCameraProperty,
-  HoloParseResult,
   HoloParseError,
-  HoloParseWarning,
-} from '@holoscript/core';
+  HoloParseResult,
+  HoloSpatialGroup,
+  HoloValue,
+};
+
+export interface HoloObjectProperty {
+  type: 'ObjectProperty';
+  key: string;
+  value: HoloValue;
+}
+
+export interface HoloGroupProperty {
+  type: 'GroupProperty';
+  key: string;
+  value: HoloValue;
+}
+
+export interface HoloLightProperty {
+  type: 'LightProperty';
+  key: string;
+  value: HoloValue;
+}
+
+export interface HoloCameraProperty {
+  type: 'CameraProperty';
+  key: string;
+  value: HoloValue;
+}
+
+export interface HoloTimelineEntry {
+  type: 'TimelineEntry';
+  time: number;
+  action: unknown;
+}
+
+export interface HoloTimeline {
+  type: 'Timeline';
+  name: string;
+  entries: HoloTimelineEntry[];
+  autoplay?: boolean;
+  loop?: boolean;
+}
+
+export interface HoloCamera extends CoreHoloCamera {
+  name?: string;
+  properties?: HoloCameraProperty[];
+}
+
+export interface HoloLight extends CoreHoloLight {
+  name?: string;
+  properties?: HoloLightProperty[];
+}
+
+export interface HoloParseWarning {
+  message: string;
+  line?: number;
+  column?: number;
+}

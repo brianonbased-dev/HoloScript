@@ -59,7 +59,7 @@ function capitalize(s: string): string {
 function openPanel(key: PanelKey) {
   const setter = `set${capitalize(key)}Open` as keyof typeof usePanelVisibilityStore;
   const store = usePanelVisibilityStore.getState();
-  const fn = (store as Record<string, unknown>)[`set${capitalize(key)}Open`];
+  const fn = (store as unknown as Record<string, unknown>)[`set${capitalize(key)}Open`];
   if (typeof fn === 'function') {
     (fn as (v: boolean) => void)(true);
   }

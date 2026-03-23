@@ -1,3 +1,5 @@
+import type { R3FNode } from '@holoscript/core';
+
 // Re-export canonical R3FNode from @holoscript/core to avoid type duplication
 export type { R3FNode } from '@holoscript/core';
 

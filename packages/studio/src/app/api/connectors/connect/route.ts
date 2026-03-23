@@ -116,9 +116,102 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      case 'vscode':
-      case 'appstore':
       case 'upstash': {
+        const { redisUrl, redisToken, vectorUrl, vectorToken, qstashToken } = credentials;
+
+        // At least one subsystem must be configured
+        const hasRedis = redisUrl && redisToken;
+        const hasVector = vectorUrl && vectorToken;
+        const hasQStash = qstashToken;
+
+        if (!hasRedis && !hasVector && !hasQStash) {
+          return NextResponse.json(
+            { success: false, error: 'At least one Upstash subsystem required (Redis, Vector, or QStash)' },
+            { status: 400 }
+          );
+        }
+
+        // Set environment variables for available subsystems
+        if (hasRedis) {
+          process.env.UPSTASH_REDIS_URL = redisUrl;
+          process.env.UPSTASH_REDIS_TOKEN = redisToken;
+        }
+        if (hasVector) {
+          process.env.UPSTASH_VECTOR_URL = vectorUrl;
+          process.env.UPSTASH_VECTOR_TOKEN = vectorToken;
+        }
+        if (hasQStash) {
+          process.env.QSTASH_TOKEN = qstashToken;
+        }
+
+        // Dynamically import to avoid bundling issues
+        const { UpstashConnector } = await import('@holoscript/connector-upstash');
+        const upstash = new UpstashConnector();
+        await upstash.connect();
+
+        const healthy = await upstash.health();
+        if (!healthy) {
+          return NextResponse.json(
+            { success: false, error: 'All Upstash subsystems failed health check' },
+            { status: 503 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          config: {
+            redis: hasRedis ? { url: redisUrl.replace(/\/\/.*@/, '//***@'), connected: true } : null,
+            vector: hasVector ? { url: vectorUrl.replace(/\/\/.*@/, '//***@'), connected: true } : null,
+            qstash: hasQStash ? { connected: true } : null,
+          },
+        });
+      }
+
+      case 'appstore': {
+        const { appleKeyId, appleIssuerId, applePrivateKey, googleServiceAccount } = credentials;
+
+        const hasApple = appleKeyId && appleIssuerId && applePrivateKey;
+        const hasGoogle = googleServiceAccount;
+
+        if (!hasApple && !hasGoogle) {
+          return NextResponse.json(
+            { success: false, error: 'At least one platform required (Apple or Google)' },
+            { status: 400 }
+          );
+        }
+
+        // Set environment variables
+        if (hasApple) {
+          process.env.APPLE_KEY_ID = appleKeyId;
+          process.env.APPLE_ISSUER_ID = appleIssuerId;
+          process.env.APPLE_PRIVATE_KEY = applePrivateKey;
+        }
+        if (hasGoogle) {
+          process.env.GOOGLE_SERVICE_ACCOUNT = googleServiceAccount;
+        }
+
+        const { AppStoreConnector } = await import('@holoscript/connector-appstore');
+        const appstore = new AppStoreConnector();
+        await appstore.connect();
+
+        const healthy = await appstore.health();
+        if (!healthy) {
+          return NextResponse.json(
+            { success: false, error: 'App Store connector health check failed' },
+            { status: 503 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          config: {
+            apple: hasApple ? { keyId: appleKeyId, issuerId: appleIssuerId, connected: true } : null,
+            google: hasGoogle ? { connected: true } : null,
+          },
+        });
+      }
+
+      case 'vscode': {
         // Not yet implemented
         return NextResponse.json(
           {

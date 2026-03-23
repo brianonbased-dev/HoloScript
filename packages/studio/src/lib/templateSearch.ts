@@ -1,23 +1,23 @@
 /**
  * templateSearch.ts — Template Search Engine
  *
- * Fuzzy search, scoring, and filtering for scene templates.
+ * Fuzzy search, scoring, and filtering for studio templates.
  */
 
 // Re-export scene template search utilities
 export * from './scene/templateSearch';
 
-import { SCENE_TEMPLATES, type SceneTemplate, type TemplateCategory } from './sceneTemplates';
+import { STUDIO_TEMPLATES, type StudioTemplate, type TemplateCategory } from './sceneTemplates';
 
 export interface SearchResult {
-  template: SceneTemplate;
+  template: StudioTemplate;
   score: number; // 0..1 relevance score
   matchedFields: string[];
 }
 
 export interface SearchFilters {
   category?: TemplateCategory;
-  difficulty?: SceneTemplate['difficulty'];
+  difficulty?: StudioTemplate['difficulty'];
   minObjects?: number;
   maxObjects?: number;
   tags?: string[];
@@ -30,16 +30,18 @@ export function fuzzySearch(query: string, filters?: SearchFilters): SearchResul
   const q = query.toLowerCase().trim();
   const words = q.split(/\s+/).filter(Boolean);
 
-  let candidates = SCENE_TEMPLATES;
+  let candidates = STUDIO_TEMPLATES;
 
-  // Apply filters
   if (filters?.category) candidates = candidates.filter((t) => t.category === filters.category);
-  if (filters?.difficulty)
+  if (filters?.difficulty) {
     candidates = candidates.filter((t) => t.difficulty === filters.difficulty);
-  if (filters?.minObjects)
-    candidates = candidates.filter((t) => t.estimatedObjects >= filters.minObjects!);
-  if (filters?.maxObjects)
-    candidates = candidates.filter((t) => t.estimatedObjects <= filters.maxObjects!);
+  }
+  if (filters?.minObjects !== undefined) {
+    candidates = candidates.filter((t) => t.estimatedObjects >= filters.minObjects);
+  }
+  if (filters?.maxObjects !== undefined) {
+    candidates = candidates.filter((t) => t.estimatedObjects <= filters.maxObjects);
+  }
   if (filters?.tags?.length) {
     candidates = candidates.filter((t) => filters.tags!.some((ft) => t.tags.includes(ft)));
   }
@@ -67,7 +69,7 @@ export function fuzzySearch(query: string, filters?: SearchFilters): SearchResul
         score += 0.15;
         matched.push('category');
       }
-      if (template.tags.some((t) => t.includes(word))) {
+      if (template.tags.some((tag) => tag.includes(word))) {
         score += 0.15;
         matched.push('tags');
       }
@@ -77,7 +79,6 @@ export function fuzzySearch(query: string, filters?: SearchFilters): SearchResul
       }
     }
 
-    // Normalize by word count
     score = Math.min(1, score / words.length);
 
     if (score > 0) {
@@ -95,9 +96,9 @@ export function autocompleteSuggestions(partial: string, maxResults: number = 5)
   const p = partial.toLowerCase();
   const suggestions = new Set<string>();
 
-  for (const t of SCENE_TEMPLATES) {
-    if (t.name.toLowerCase().startsWith(p)) suggestions.add(t.name);
-    for (const tag of t.tags) {
+  for (const template of STUDIO_TEMPLATES) {
+    if (template.name.toLowerCase().startsWith(p)) suggestions.add(template.name);
+    for (const tag of template.tags) {
       if (tag.startsWith(p)) suggestions.add(tag);
     }
     if (suggestions.size >= maxResults) break;
@@ -111,8 +112,8 @@ export function autocompleteSuggestions(partial: string, maxResults: number = 5)
  */
 export function popularTags(limit: number = 10): Array<{ tag: string; count: number }> {
   const counts = new Map<string, number>();
-  for (const t of SCENE_TEMPLATES) {
-    for (const tag of t.tags) {
+  for (const template of STUDIO_TEMPLATES) {
+    for (const tag of template.tags) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
   }

@@ -57,9 +57,36 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
-      case 'vscode':
-      case 'appstore':
       case 'upstash': {
+        const { UpstashConnector } = await import('@holoscript/connector-upstash');
+        const upstash = new UpstashConnector();
+        await upstash.disconnect();
+
+        // Clear environment variables for all three subsystems
+        delete process.env.UPSTASH_REDIS_URL;
+        delete process.env.UPSTASH_REDIS_TOKEN;
+        delete process.env.UPSTASH_VECTOR_URL;
+        delete process.env.UPSTASH_VECTOR_TOKEN;
+        delete process.env.QSTASH_TOKEN;
+
+        return NextResponse.json({ success: true });
+      }
+
+      case 'appstore': {
+        const { AppStoreConnector } = await import('@holoscript/connector-appstore');
+        const appstore = new AppStoreConnector();
+        await appstore.disconnect();
+
+        // Clear environment variables for both platforms
+        delete process.env.APPLE_KEY_ID;
+        delete process.env.APPLE_ISSUER_ID;
+        delete process.env.APPLE_PRIVATE_KEY;
+        delete process.env.GOOGLE_SERVICE_ACCOUNT;
+
+        return NextResponse.json({ success: true });
+      }
+
+      case 'vscode': {
         // Not yet implemented
         return NextResponse.json(
           {

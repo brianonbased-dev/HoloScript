@@ -59,7 +59,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
 
     // Call onInstall hook
     if (plugin.onInstall) {
-      plugin.onInstall().catch((err) => {
+      Promise.resolve(plugin.onInstall()).catch((err) => {
         console.error(`Plugin ${plugin.metadata.id} onInstall failed:`, err);
       });
     }
@@ -78,7 +78,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
 
     // Call onUninstall hook
     if (entry.plugin.onUninstall) {
-      entry.plugin.onUninstall().catch((err) => {
+      Promise.resolve(entry.plugin.onUninstall()).catch((err) => {
         console.error(`Plugin ${id} onUninstall failed:`, err);
       });
     }
