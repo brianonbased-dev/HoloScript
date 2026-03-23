@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
-    "three": "^0.182.0",
+    "three": "^0.183.2",
     "ws": "^8.16.0"
   },
   "devDependencies": {
