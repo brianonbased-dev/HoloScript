@@ -2,6 +2,7 @@
  * CompilerDocumentationGenerator Tests
  *
  * Tests triple-output documentation generation (llms.txt, .well-known/mcp, markdown)
+ * Verifies conformance to SEP-1649 (serverInfo schema) and SEP-1960 (endpoints array)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -133,13 +134,23 @@ describe('CompilerDocumentationGenerator', () => {
       expect(result.llmsTxt).toContain('playerName');
     });
 
+    it('should include MCP tools summary', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.llmsTxt).toContain('MCP Tools');
+      expect(result.llmsTxt).toContain('compile_composition');
+      expect(result.llmsTxt).toContain('update_state');
+      expect(result.llmsTxt).toContain('list_traits');
+    });
+
     it('should respect max token limit', () => {
       const generator = new CompilerDocumentationGenerator({
         maxLlmsTxtTokens: 100, // Very small limit
       });
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
-      // Rough estimate: 1 token ≈ 4 characters
+      // Rough estimate: 1 token ~ 4 characters
       const maxChars = 100 * 4;
       expect(result.llmsTxt.length).toBeLessThanOrEqual(maxChars + 50); // Small buffer for truncation message
     });
@@ -159,41 +170,122 @@ describe('CompilerDocumentationGenerator', () => {
     });
   });
 
-  describe('.well-known/mcp generation', () => {
-    it('should conform to MCP server card schema (SEP-1649)', () => {
+  describe('.well-known/mcp generation — SEP-1649 conformance', () => {
+    it('should include serverInfo nested object (SEP-1649)', () => {
       const generator = new CompilerDocumentationGenerator({
         serviceUrl: 'https://test.example.com',
         serviceVersion: '1.2.3',
       });
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
-      expect(result.wellKnownMcp).toMatchObject({
-        mcpVersion: '2025-03-26',
-        name: expect.stringMatching(/^[a-z0-9-]+$/), // Sanitized name
+      expect(result.wellKnownMcp.serverInfo).toBeDefined();
+      expect(result.wellKnownMcp.serverInfo).toMatchObject({
+        name: expect.stringMatching(/^[a-z0-9-]+$/),
+        title: expect.stringContaining('HoloScript'),
         version: '1.2.3',
-        description: expect.any(String),
-        transport: {
-          type: 'streamable-http',
-          url: 'https://test.example.com/mcp',
-          authentication: null,
-        },
-        capabilities: {
-          tools: {
-            count: expect.any(Number),
-          },
-          resources: false,
-          prompts: false,
-        },
-        tools: expect.any(Array),
-        endpoints: {
-          mcp: 'https://test.example.com/mcp',
-          health: 'https://test.example.com/health',
-          render: 'https://test.example.com/api/render',
-        },
       });
     });
 
-    it('should include MCP tool manifest (SEP-1960)', () => {
+    it('should include protocolVersion field (SEP-1649)', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.protocolVersion).toBe('2025-06-18');
+    });
+
+    it('should use transport.endpoint instead of transport.url (SEP-1649)', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceUrl: 'https://test.example.com',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.transport.endpoint).toBe('https://test.example.com/mcp');
+      expect(result.wellKnownMcp.transport.type).toBe('streamable-http');
+    });
+
+    it('should include capabilities object with tools count (SEP-1649)', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.capabilities).toMatchObject({
+        tools: {
+          count: expect.any(Number),
+        },
+        resources: false,
+        prompts: false,
+      });
+    });
+
+    it('should maintain legacy name/version at root for backward compatibility', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceVersion: '2.0.0',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      // Legacy fields at root
+      expect(result.wellKnownMcp.name).toBe(result.wellKnownMcp.serverInfo.name);
+      expect(result.wellKnownMcp.version).toBe('2.0.0');
+    });
+  });
+
+  describe('.well-known/mcp generation — SEP-1960 conformance', () => {
+    it('should include endpoints object with transport URLs (SEP-1960)', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceUrl: 'https://test.example.com',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.endpoints).toBeDefined();
+      expect(result.wellKnownMcp.endpoints.streamable_http).toBe('https://test.example.com/mcp');
+      expect(result.wellKnownMcp.endpoints.health).toBe('https://test.example.com/health');
+      expect(result.wellKnownMcp.endpoints.render).toBe('https://test.example.com/api/render');
+    });
+
+    it('should map SSE transport type to sse endpoint key', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceUrl: 'https://test.example.com',
+        mcpTransportType: 'sse',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.endpoints.sse).toBe('https://test.example.com/mcp');
+      expect(result.wellKnownMcp.endpoints.streamable_http).toBeUndefined();
+    });
+
+    it('should include authentication section (SEP-1960)', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.authentication).toBeDefined();
+      expect(result.wellKnownMcp.authentication).toMatchObject({
+        required: false,
+        methods: ['none'],
+      });
+    });
+
+    it('should include capabilities with boolean flags (SEP-1960)', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      const caps = result.wellKnownMcp.capabilities;
+      expect(caps.resources).toBe(false);
+      expect(caps.prompts).toBe(false);
+      expect(caps.sampling).toBe(false);
+      expect(caps.roots).toBe(false);
+    });
+
+    it('should include documentation URL when provided', () => {
+      const generator = new CompilerDocumentationGenerator({
+        contactDocumentation: 'https://docs.test.com',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.wellKnownMcp.documentation).toBe('https://docs.test.com');
+    });
+  });
+
+  describe('.well-known/mcp generation — tool manifest', () => {
+    it('should include MCP tool manifest', () => {
       const generator = new CompilerDocumentationGenerator();
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
@@ -210,6 +302,38 @@ describe('CompilerDocumentationGenerator', () => {
         description: expect.any(String),
         inputSchema: expect.any(Object),
       });
+    });
+
+    it('should include render_preview tool', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      const renderTool = result.wellKnownMcp.tools.find(
+        (t: any) => t.name === 'render_preview'
+      );
+      expect(renderTool).toBeDefined();
+      expect(renderTool?.description).toContain('preview');
+    });
+
+    it('should include list_traits tool', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      const traitTool = result.wellKnownMcp.tools.find(
+        (t: any) => t.name === 'list_traits'
+      );
+      expect(traitTool).toBeDefined();
+    });
+
+    it('should include query_objects tool when objects exist', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      const queryTool = result.wellKnownMcp.tools.find(
+        (t: any) => t.name === 'query_objects'
+      );
+      expect(queryTool).toBeDefined();
+      expect(queryTool?.description).toContain('2 objects');
     });
 
     it('should include tools for templates', () => {
@@ -259,6 +383,7 @@ describe('CompilerDocumentationGenerator', () => {
       expect(result.wellKnownMcp.name).toMatch(/^[a-z0-9-]+$/);
       expect(result.wellKnownMcp.name).not.toContain(' ');
       expect(result.wellKnownMcp.name).not.toContain('!');
+      expect(result.wellKnownMcp.serverInfo.name).toMatch(/^[a-z0-9-]+$/);
     });
   });
 
@@ -283,6 +408,7 @@ describe('CompilerDocumentationGenerator', () => {
       expect(result.markdownDocs).toContain('[Overview](#overview)');
       expect(result.markdownDocs).toContain('[Scene Graph](#scene-graph)');
       expect(result.markdownDocs).toContain('[Traits](#traits)');
+      expect(result.markdownDocs).toContain('[MCP Tool Manifest](#mcp-tool-manifest)');
     });
 
     it('should render objects as markdown table', () => {
@@ -310,12 +436,52 @@ describe('CompilerDocumentationGenerator', () => {
       expect(result.markdownDocs).toMatch(/\*\*Generated:\*\* \d{4}-\d{2}-\d{2}T/);
     });
 
+    it('should include version info', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceVersion: '3.0.0',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.markdownDocs).toContain('**Version:** 3.0.0');
+    });
+
     it('should group traits by category', () => {
       const generator = new CompilerDocumentationGenerator();
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
       // Traits should be grouped into sections like ### Visual, ### Physics
       expect(result.markdownDocs).toMatch(/### (Visual|Physics|Animation|Interaction)/);
+    });
+
+    it('should include MCP tool manifest section', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.markdownDocs).toContain('## MCP Tool Manifest');
+      expect(result.markdownDocs).toContain('`compile_composition`');
+      expect(result.markdownDocs).toContain('`update_state`');
+      expect(result.markdownDocs).toContain('`list_traits`');
+      expect(result.markdownDocs).toContain('`render_preview`');
+    });
+
+    it('should include MCP discovery endpoint info', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceUrl: 'https://mcp.test.com',
+        serviceVersion: '1.0.0',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.markdownDocs).toContain('### Discovery');
+      expect(result.markdownDocs).toContain('https://mcp.test.com/.well-known/mcp');
+      expect(result.markdownDocs).toContain('"protocolVersion": "2025-06-18"');
+    });
+
+    it('should include lights section when lights exist', () => {
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      expect(result.markdownDocs).toContain('### Lights');
+      expect(result.markdownDocs).toContain('| sun |');
     });
   });
 
@@ -370,6 +536,26 @@ describe('CompilerDocumentationGenerator', () => {
       expect(result.markdownDocs).toContain('physics');
       expect(result.markdownDocs).toContain('collider');
     });
+
+    it('should categorize emissive as Visual (enhanced categorization)', () => {
+      const emissiveComposition = {
+        ...mockComposition,
+        objects: [
+          {
+            type: 'Object',
+            name: 'obj1',
+            shape: 'cube',
+            traits: new Map([['emissive', {}]]),
+          } as any,
+        ],
+      };
+
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(emissiveComposition, 'r3f', 'code');
+
+      expect(result.markdownDocs).toContain('### Visual');
+      expect(result.markdownDocs).toContain('emissive');
+    });
   });
 
   describe('configuration options', () => {
@@ -381,7 +567,8 @@ describe('CompilerDocumentationGenerator', () => {
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
       expect(result.wellKnownMcp.version).toBe('2.5.0');
-      expect(result.wellKnownMcp.endpoints.mcp).toBe('https://custom.example.com/mcp');
+      expect(result.wellKnownMcp.serverInfo.version).toBe('2.5.0');
+      expect(result.wellKnownMcp.endpoints.streamable_http).toBe('https://custom.example.com/mcp');
     });
 
     it('should use custom MCP transport type', () => {
@@ -391,6 +578,7 @@ describe('CompilerDocumentationGenerator', () => {
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
       expect(result.wellKnownMcp.transport.type).toBe('sse');
+      expect(result.wellKnownMcp.endpoints.sse).toBeDefined();
     });
 
     it('should include contact information when provided', () => {
@@ -464,6 +652,79 @@ describe('CompilerDocumentationGenerator', () => {
 
       expect(result.llmsTxt).toContain('HoloScript Composition');
       expect(result.markdownDocs).toContain('# HoloScript Composition');
+    });
+
+    it('should handle HoloObjectTrait[] format (canonical parser output)', () => {
+      const arrayTraitComposition = {
+        ...mockComposition,
+        objects: [
+          {
+            type: 'Object',
+            name: 'obj1',
+            shape: 'cube',
+            properties: [],
+            traits: [
+              { type: 'ObjectTrait', name: 'material', config: { color: 'red' } },
+              { type: 'ObjectTrait', name: 'physics', config: { mass: 1 } },
+            ],
+          } as any,
+        ],
+      };
+
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(arrayTraitComposition, 'r3f', 'code');
+
+      expect(result.llmsTxt).toContain('Traits Used');
+      expect(result.llmsTxt).toContain('material');
+      expect(result.llmsTxt).toContain('physics');
+    });
+
+    it('should not include query_objects when no objects exist', () => {
+      const emptyObjComposition = {
+        ...mockComposition,
+        objects: [],
+      };
+
+      const generator = new CompilerDocumentationGenerator();
+      const result = generator.generate(emptyObjComposition, 'r3f', 'code');
+
+      const queryTool = result.wellKnownMcp.tools.find((t: any) => t.name === 'query_objects');
+      expect(queryTool).toBeUndefined();
+    });
+  });
+
+  describe('SEP-1649 full server card structure', () => {
+    it('should produce a valid server card with all required fields', () => {
+      const generator = new CompilerDocumentationGenerator({
+        serviceUrl: 'https://mcp.holoscript.net',
+        serviceVersion: '5.1.0',
+        contactRepository: 'https://github.com/holoscript/holoscript',
+        contactDocumentation: 'https://docs.holoscript.net',
+      });
+      const result = generator.generate(mockComposition, 'r3f', 'code');
+
+      const card = result.wellKnownMcp;
+
+      // Required SEP-1649 fields
+      expect(card.mcpVersion).toBeDefined();
+      expect(card.protocolVersion).toBeDefined();
+      expect(card.serverInfo).toBeDefined();
+      expect(card.serverInfo.name).toBeDefined();
+      expect(card.serverInfo.version).toBeDefined();
+      expect(card.description).toBeDefined();
+      expect(card.transport).toBeDefined();
+      expect(card.transport.type).toBeDefined();
+      expect(card.transport.endpoint).toBeDefined();
+      expect(card.capabilities).toBeDefined();
+      expect(card.tools).toBeInstanceOf(Array);
+
+      // Required SEP-1960 fields
+      expect(card.endpoints).toBeDefined();
+      expect(card.authentication).toBeDefined();
+
+      // Optional but present
+      expect(card.contact?.repository).toBe('https://github.com/holoscript/holoscript');
+      expect(card.documentation).toBe('https://docs.holoscript.net');
     });
   });
 });

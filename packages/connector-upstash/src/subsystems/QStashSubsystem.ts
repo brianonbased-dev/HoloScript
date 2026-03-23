@@ -1,44 +1,13 @@
-import { Client } from '@upstash/qstash';
+import { Client, Receiver } from '@upstash/qstash';
+import type {
+    ScheduleConfig,
+    PublishConfig,
+    ScheduleSummary,
+    DLQMessage,
+    WebhookVerification
+} from '../types.js';
 
-/**
- * Schedule configuration for QStash cron jobs.
- */
-export interface ScheduleConfig {
-    /** Unique schedule identifier */
-    scheduleId?: string;
-    /** Cron expression (e.g., '0 2 * * *' for 2 AM daily) */
-    cron: string;
-    /** Webhook URL to call */
-    url: string;
-    /** Request body (JSON) */
-    body?: Record<string, unknown>;
-    /** HTTP headers */
-    headers?: Record<string, string>;
-    /** Retry configuration */
-    retries?: number;
-    /** Callback URL for success/failure notifications */
-    callback?: string;
-    /** Dead letter queue URL for failures */
-    failureCallback?: string;
-}
-
-/**
- * One-time message configuration.
- */
-export interface PublishConfig {
-    /** Webhook URL to call */
-    url: string;
-    /** Request body (JSON) */
-    body?: Record<string, unknown>;
-    /** HTTP headers */
-    headers?: Record<string, string>;
-    /** Delay in seconds before delivery */
-    delay?: number;
-    /** Retry configuration */
-    retries?: number;
-    /** Callback URL for success/failure notifications */
-    callback?: string;
-}
+export type { ScheduleConfig, PublishConfig } from '../types.js';
 
 /**
  * QStashSubsystem manages scheduled compilation triggers, health monitoring,
@@ -53,11 +22,14 @@ export interface PublishConfig {
  */
 export class QStashSubsystem {
     private client: Client | null = null;
+    private receiver: Receiver | null = null;
     private isConnected = false;
 
     /**
      * Connect to Upstash QStash using environment variables.
      * Requires QSTASH_TOKEN.
+     * Optionally initializes webhook signature verification with
+     * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.
      */
     async connect(): Promise<void> {
         const token = process.env.QSTASH_TOKEN;
@@ -69,6 +41,16 @@ export class QStashSubsystem {
         this.client = new Client({
             token
         });
+
+        // Initialize webhook signature receiver if signing keys are available
+        const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+        const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY;
+        if (currentSigningKey && nextSigningKey) {
+            this.receiver = new Receiver({
+                currentSigningKey,
+                nextSigningKey
+            });
+        }
 
         // Verify connection by listing schedules
         try {
@@ -85,6 +67,7 @@ export class QStashSubsystem {
      */
     async disconnect(): Promise<void> {
         this.client = null;
+        this.receiver = null;
         this.isConnected = false;
     }
 
@@ -131,13 +114,7 @@ export class QStashSubsystem {
      * List all scheduled jobs.
      * @returns Array of schedules with metadata
      */
-    async listSchedules(): Promise<Array<{
-        scheduleId: string;
-        cron: string;
-        destination: string;
-        createdAt: number;
-        isPaused: boolean;
-    }>> {
+    async listSchedules(): Promise<ScheduleSummary[]> {
         if (!this.client) {
             throw new Error('QStashSubsystem not connected');
         }
@@ -157,13 +134,7 @@ export class QStashSubsystem {
      * @param scheduleId - Schedule identifier
      * @returns Schedule configuration
      */
-    async getSchedule(scheduleId: string): Promise<{
-        scheduleId: string;
-        cron: string;
-        destination: string;
-        createdAt: number;
-        isPaused: boolean;
-    }> {
+    async getSchedule(scheduleId: string): Promise<ScheduleSummary> {
         if (!this.client) {
             throw new Error('QStashSubsystem not connected');
         }
@@ -241,14 +212,7 @@ export class QStashSubsystem {
      * These are messages that failed after all retries.
      * @returns Array of failed messages
      */
-    async listDLQ(): Promise<Array<{
-        messageId: string;
-        url: string;
-        body: string;
-        createdAt: number;
-        responseStatus: number;
-        responseBody: string;
-    }>> {
+    async listDLQ(): Promise<DLQMessage[]> {
         if (!this.client) {
             throw new Error('QStashSubsystem not connected');
         }
@@ -350,5 +314,52 @@ export class QStashSubsystem {
                 'X-HoloScript-Deployment': 'true'
             }
         });
+    }
+
+    /**
+     * Verify a QStash webhook signature.
+     * Requires QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.
+     *
+     * @param signature - The Upstash-Signature header value
+     * @param body - The raw request body string
+     * @param url - The webhook URL that received the request
+     * @returns WebhookVerification result
+     */
+    async verifyWebhookSignature(
+        signature: string,
+        body: string,
+        url?: string
+    ): Promise<WebhookVerification> {
+        if (!this.receiver) {
+            return {
+                isValid: false,
+                error: 'Webhook verification not configured. Set QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.'
+            };
+        }
+
+        try {
+            const isValid = await this.receiver.verify({
+                signature,
+                body,
+                url
+            });
+            return {
+                isValid,
+                body: isValid ? body : undefined
+            };
+        } catch (error) {
+            return {
+                isValid: false,
+                error: `Signature verification failed: ${error}`
+            };
+        }
+    }
+
+    /**
+     * Check if webhook verification is available.
+     * @returns true if signing keys are configured
+     */
+    isWebhookVerificationEnabled(): boolean {
+        return this.receiver !== null;
     }
 }

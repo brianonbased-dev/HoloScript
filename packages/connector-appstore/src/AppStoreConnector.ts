@@ -9,10 +9,15 @@ import {
     GoogleCredentials,
     BuildArtifact,
     AppleAppMetadata,
-    GoogleAppMetadata
+    GoogleAppMetadata,
+    ArtifactDetectionResult,
+    DetectedArtifact,
+    PublishResult,
+    PlatformPublishResult,
+    AppStoreLocalization
 } from './types.js';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync, existsSync, statSync, readdirSync } from 'fs';
+import { resolve, extname } from 'path';
 
 /**
  * Dual-platform App Store connector for HoloScript
@@ -23,10 +28,14 @@ import { resolve } from 'path';
  *
  * Supports:
  * - Build artifact upload from Unity/UnityCompiler output
- * - TestFlight beta distribution (Apple)
+ * - CI pipeline integration with automatic artifact detection
+ * - TestFlight beta distribution with beta group management (Apple)
  * - Internal/Alpha/Beta/Production tracks (Google)
- * - App metadata management
- * - Webhook notifications for build status
+ * - App Store version creation and review submission workflow
+ * - App metadata management (including localized descriptions)
+ * - Webhook notifications for build status changes
+ * - Deobfuscation file upload (Google)
+ * - Staged rollout control and halt (Google)
  *
  * Environment variables:
  * - APPLE_KEY_ID: App Store Connect API Key ID
@@ -240,8 +249,17 @@ export class AppStoreConnector extends ServiceConnector {
             }
 
             case 'apple_testflight_submit': {
-                await this.appleClient.submitToTestFlight(args.buildId as string);
+                await this.appleClient.submitToTestFlight(
+                    args.buildId as string,
+                    args.betaGroupIds as string[] | undefined
+                );
                 return { success: true, message: 'Build submitted to TestFlight' };
+            }
+
+            case 'apple_beta_groups_list': {
+                const app = await this.appleClient.getApp(args.bundleId as string);
+                const groups = await this.appleClient.listBetaGroups(app.appId);
+                return groups;
             }
 
             case 'apple_beta_review_status': {
@@ -256,6 +274,57 @@ export class AppStoreConnector extends ServiceConnector {
                     primaryLocale: args.primaryLocale as string | undefined
                 });
                 return { success: true, message: 'Metadata updated' };
+            }
+
+            case 'apple_version_create': {
+                const app = await this.appleClient.getApp(args.bundleId as string);
+                const version = await this.appleClient.createAppStoreVersion(
+                    app.appId,
+                    args.versionString as string,
+                    args.platform as any || 'IOS',
+                    args.releaseType as any || 'AFTER_APPROVAL',
+                    args.earliestReleaseDate as string | undefined
+                );
+                return version;
+            }
+
+            case 'apple_version_get': {
+                const app = await this.appleClient.getApp(args.bundleId as string);
+                const version = await this.appleClient.getAppStoreVersion(
+                    app.appId,
+                    args.platform as any || 'IOS'
+                );
+                return version;
+            }
+
+            case 'apple_version_attach_build': {
+                await this.appleClient.attachBuildToVersion(
+                    args.versionId as string,
+                    args.buildId as string
+                );
+                return { success: true, message: 'Build attached to version' };
+            }
+
+            case 'apple_version_submit': {
+                await this.appleClient.submitForReview(args.versionId as string);
+                return { success: true, message: 'Version submitted for App Store review' };
+            }
+
+            case 'apple_version_localization_update': {
+                const localization: AppStoreLocalization = {
+                    locale: args.locale as string,
+                    description: args.description as string | undefined,
+                    keywords: args.keywords as string | undefined,
+                    whatsNew: args.whatsNew as string | undefined,
+                    marketingUrl: args.marketingUrl as string | undefined,
+                    supportUrl: args.supportUrl as string | undefined,
+                    privacyPolicyUrl: args.privacyPolicyUrl as string | undefined
+                };
+                await this.appleClient.updateVersionLocalization(
+                    args.versionId as string,
+                    localization
+                );
+                return { success: true, message: `Localization updated for ${args.locale}` };
             }
 
             default:
@@ -332,6 +401,14 @@ export class AppStoreConnector extends ServiceConnector {
                 return { success: true, message: `Rollout updated to ${args.percentage}%` };
             }
 
+            case 'google_rollout_halt': {
+                await this.googleClient.haltRollout(
+                    args.packageName as string,
+                    args.versionCodes as number[]
+                );
+                return { success: true, message: 'Rollout halted' };
+            }
+
             case 'google_listing_update': {
                 await this.googleClient.updateListing(
                     args.packageName as string,
@@ -343,6 +420,15 @@ export class AppStoreConnector extends ServiceConnector {
                     }
                 );
                 return { success: true, message: 'Store listing updated' };
+            }
+
+            case 'google_deobfuscation_upload': {
+                await this.googleClient.uploadDeobfuscationFile(
+                    args.packageName as string,
+                    args.versionCode as number,
+                    args.mappingFilePath as string
+                );
+                return { success: true, message: 'Deobfuscation file uploaded' };
             }
 
             default:
@@ -366,18 +452,117 @@ export class AppStoreConnector extends ServiceConnector {
                 return this.publishUnityBuild(args);
             }
 
+            case 'appstore_detect_artifacts': {
+                return this.detectArtifacts(args.outputPath as string);
+            }
+
+            case 'appstore_webhook_apple': {
+                await this.webhookHandler.handleAppleWebhook(args.payload);
+                return { success: true, message: 'Apple webhook processed' };
+            }
+
+            case 'appstore_webhook_google': {
+                await this.webhookHandler.handleGoogleWebhook(args.payload);
+                return { success: true, message: 'Google webhook processed' };
+            }
+
             default:
                 throw new Error(`Unknown cross-platform tool: ${name}`);
         }
     }
 
+    // ── CI Pipeline: Artifact Detection ───────────────────────────────
+
+    /**
+     * Detect build artifacts in a Unity output directory.
+     *
+     * Scans for:
+     * - .ipa files (iOS)
+     * - .apk files (Android APK)
+     * - .aab files (Android App Bundle)
+     * - visionOS .ipa files (detected by directory name containing "visionos")
+     */
+    detectArtifacts(outputPath: string): ArtifactDetectionResult {
+        const resolvedPath = resolve(outputPath);
+
+        if (!existsSync(resolvedPath)) {
+            return { artifacts: [], scannedPath: resolvedPath };
+        }
+
+        const artifacts: DetectedArtifact[] = [];
+
+        // Scan directory recursively for build artifacts
+        this.scanForArtifacts(resolvedPath, resolvedPath, artifacts);
+
+        return {
+            artifacts,
+            scannedPath: resolvedPath
+        };
+    }
+
+    /**
+     * Recursively scan a directory for build artifact files
+     */
+    private scanForArtifacts(basePath: string, currentPath: string, artifacts: DetectedArtifact[]): void {
+        let entries: string[];
+        try {
+            entries = readdirSync(currentPath);
+        } catch {
+            return; // Skip unreadable directories
+        }
+
+        for (const entry of entries) {
+            const fullPath = resolve(currentPath, entry);
+
+            let stat;
+            try {
+                stat = statSync(fullPath);
+            } catch {
+                continue; // Skip inaccessible entries
+            }
+
+            if (stat.isDirectory()) {
+                // Recurse into subdirectories (max 3 levels deep to avoid runaway)
+                const depth = fullPath.replace(basePath, '').split(/[\\/]/).length - 1;
+                if (depth < 3) {
+                    this.scanForArtifacts(basePath, fullPath, artifacts);
+                }
+            } else if (stat.isFile()) {
+                const ext = extname(entry).toLowerCase();
+                const lowerPath = fullPath.toLowerCase();
+
+                if (ext === '.ipa') {
+                    // Detect visionOS vs iOS based on path or filename hints
+                    const isVisionOS = lowerPath.includes('visionos') || lowerPath.includes('vision_os');
+                    artifacts.push({
+                        filePath: fullPath,
+                        platform: isVisionOS ? 'visionos' : 'ios',
+                        extension: ext,
+                        sizeBytes: stat.size
+                    });
+                } else if (ext === '.apk' || ext === '.aab') {
+                    artifacts.push({
+                        filePath: fullPath,
+                        platform: 'android',
+                        extension: ext,
+                        sizeBytes: stat.size
+                    });
+                }
+            }
+        }
+    }
+
+    // ── CI Pipeline: Unity Build Publish ───────────────────────────────
+
     /**
      * Publish Unity build output to app stores
      *
      * Automatically detects build artifacts in Unity output directory
-     * and publishes to appropriate platforms
+     * and publishes to appropriate platforms.
+     *
+     * Pipeline: UnityCompiler output -> artifact detection -> store API upload
      */
-    private async publishUnityBuild(args: Record<string, unknown>): Promise<unknown> {
+    private async publishUnityBuild(args: Record<string, unknown>): Promise<PublishResult> {
         const unityOutputPath = args.unityOutputPath as string;
         const platforms = args.platforms as string[];
         const version = args.version as string;
@@ -386,7 +571,10 @@ export class AppStoreConnector extends ServiceConnector {
         const androidTrack = (args.androidTrack as string) || 'internal';
         const submitToTestFlight = args.submitToTestFlight !== false;
 
-        const results: Record<string, any> = {};
+        // Step 1: Auto-detect artifacts if no explicit file paths given
+        const detection = this.detectArtifacts(unityOutputPath);
+
+        const results: Record<string, PlatformPublishResult> = {};
 
         for (const platform of platforms) {
             try {
@@ -396,11 +584,26 @@ export class AppStoreConnector extends ServiceConnector {
                         continue;
                     }
 
-                    // Unity iOS builds output to .ipa file
-                    const ipaPath = resolve(unityOutputPath, `${platform}.ipa`);
+                    // Find the artifact for this platform from detection results
+                    let ipaPath: string;
+                    const detected = detection.artifacts.find(a => a.platform === platform);
 
-                    // You would need to configure bundle ID elsewhere
-                    // For now, assume it's passed in args
+                    if (detected) {
+                        ipaPath = detected.filePath;
+                    } else {
+                        // Fallback: check conventional Unity output paths
+                        const conventionalPath = resolve(unityOutputPath, `${platform}.ipa`);
+                        if (existsSync(conventionalPath)) {
+                            ipaPath = conventionalPath;
+                        } else {
+                            results[platform] = {
+                                success: false,
+                                error: `No .ipa artifact found for ${platform} in ${unityOutputPath}`
+                            };
+                            continue;
+                        }
+                    }
+
                     const bundleId = args.appleBundleId as string;
 
                     if (!bundleId) {
@@ -432,12 +635,36 @@ export class AppStoreConnector extends ServiceConnector {
                         continue;
                     }
 
-                    // Unity Android builds output to .aab or .apk
-                    const aabPath = resolve(unityOutputPath, 'android.aab');
-                    const apkPath = resolve(unityOutputPath, 'android.apk');
+                    // Find the artifact from detection results (prefer AAB over APK)
+                    let artifactPath: string;
+                    const detectedAab = detection.artifacts.find(
+                        a => a.platform === 'android' && a.extension === '.aab'
+                    );
+                    const detectedApk = detection.artifacts.find(
+                        a => a.platform === 'android' && a.extension === '.apk'
+                    );
 
-                    // Prefer AAB over APK
-                    const artifactPath = aabPath; // In production, check which exists
+                    if (detectedAab) {
+                        artifactPath = detectedAab.filePath;
+                    } else if (detectedApk) {
+                        artifactPath = detectedApk.filePath;
+                    } else {
+                        // Fallback: check conventional Unity output paths
+                        const aabPath = resolve(unityOutputPath, 'android.aab');
+                        const apkPath = resolve(unityOutputPath, 'android.apk');
+
+                        if (existsSync(aabPath)) {
+                            artifactPath = aabPath;
+                        } else if (existsSync(apkPath)) {
+                            artifactPath = apkPath;
+                        } else {
+                            results[platform] = {
+                                success: false,
+                                error: `No .aab or .apk artifact found in ${unityOutputPath}`
+                            };
+                            continue;
+                        }
+                    }
 
                     const packageName = args.googlePackageName as string;
 
@@ -472,8 +699,8 @@ export class AppStoreConnector extends ServiceConnector {
             platforms: results,
             summary: {
                 total: platforms.length,
-                successful: Object.values(results).filter((r: any) => r.success).length,
-                failed: Object.values(results).filter((r: any) => !r.success).length
+                successful: Object.values(results).filter((r) => r.success).length,
+                failed: Object.values(results).filter((r) => !r.success).length
             }
         };
     }

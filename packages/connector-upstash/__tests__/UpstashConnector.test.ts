@@ -3,61 +3,78 @@ import { UpstashConnector } from '../src/UpstashConnector';
 
 // Mock all subsystems
 vi.mock('../src/subsystems/RedisSubsystem', () => ({
-    RedisSubsystem: vi.fn().mockImplementation(() => ({
-        connect: vi.fn().mockResolvedValue(undefined),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-        health: vi.fn().mockResolvedValue(true),
-        getCachedScene: vi.fn().mockResolvedValue({ data: 'cached' }),
-        setCachedScene: vi.fn().mockResolvedValue(undefined),
-        deleteCachedScene: vi.fn().mockResolvedValue(1),
-        getSessionState: vi.fn().mockResolvedValue({ user: 'test' }),
-        setSessionState: vi.fn().mockResolvedValue(undefined),
-        getUserPreferences: vi.fn().mockResolvedValue({ theme: 'dark' }),
-        setUserPreferences: vi.fn().mockResolvedValue(undefined)
-    }))
+    RedisSubsystem: vi.fn().mockImplementation(function () {
+        return {
+            connect: vi.fn().mockResolvedValue(undefined),
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            health: vi.fn().mockResolvedValue(true),
+            getCachedScene: vi.fn().mockResolvedValue({ data: 'cached' }),
+            setCachedScene: vi.fn().mockResolvedValue(undefined),
+            deleteCachedScene: vi.fn().mockResolvedValue(1),
+            getSessionState: vi.fn().mockResolvedValue({ user: 'test' }),
+            setSessionState: vi.fn().mockResolvedValue(undefined),
+            getUserPreferences: vi.fn().mockResolvedValue({ theme: 'dark' }),
+            setUserPreferences: vi.fn().mockResolvedValue(undefined),
+            batchSetCachedScenes: vi.fn().mockResolvedValue({ successful: 3, failed: 0, errors: [] }),
+            batchDeleteCachedScenes: vi.fn().mockResolvedValue(2),
+            getCacheStatistics: vi.fn().mockResolvedValue({
+                sceneCount: 5, sessionCount: 2, prefsCount: 3, sceneKeys: ['scene:a', 'scene:b']
+            }),
+            flushSceneCache: vi.fn().mockResolvedValue(5)
+        };
+    })
 }));
 
 vi.mock('../src/subsystems/VectorSubsystem', () => ({
-    VectorSubsystem: vi.fn().mockImplementation(() => ({
-        connect: vi.fn().mockResolvedValue(undefined),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-        health: vi.fn().mockResolvedValue(true),
-        upsertComposition: vi.fn().mockResolvedValue(undefined),
-        searchSimilar: vi.fn().mockResolvedValue([{ id: 'comp-1', score: 0.95 }]),
-        searchByText: vi.fn().mockResolvedValue([{ id: 'comp-1', score: 0.95 }]),
-        fetchComposition: vi.fn().mockResolvedValue({ id: 'comp-1', vector: [0.1, 0.2] }),
-        deleteComposition: vi.fn().mockResolvedValue(undefined),
-        getInfo: vi.fn().mockResolvedValue({ vectorCount: 100, dimension: 1536 })
-    }))
+    VectorSubsystem: vi.fn().mockImplementation(function () {
+        return {
+            connect: vi.fn().mockResolvedValue(undefined),
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            health: vi.fn().mockResolvedValue(true),
+            upsertComposition: vi.fn().mockResolvedValue(undefined),
+            searchSimilar: vi.fn().mockResolvedValue([{ id: 'comp-1', score: 0.95 }]),
+            searchByText: vi.fn().mockResolvedValue([{ id: 'comp-1', score: 0.95 }]),
+            fetchComposition: vi.fn().mockResolvedValue({ id: 'comp-1', vector: [0.1, 0.2] }),
+            deleteComposition: vi.fn().mockResolvedValue(undefined),
+            getInfo: vi.fn().mockResolvedValue({ vectorCount: 100, dimension: 1536 }),
+            upsertCompositionWithData: vi.fn().mockResolvedValue(undefined),
+            batchUpsert: vi.fn().mockResolvedValue(undefined)
+        };
+    })
 }));
 
 vi.mock('../src/subsystems/QStashSubsystem', () => ({
-    QStashSubsystem: vi.fn().mockImplementation(() => ({
-        connect: vi.fn().mockResolvedValue(undefined),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-        health: vi.fn().mockResolvedValue(true),
-        createSchedule: vi.fn().mockResolvedValue('sched-1'),
-        listSchedules: vi.fn().mockResolvedValue([{ scheduleId: 'sched-1' }]),
-        getSchedule: vi.fn().mockResolvedValue({ scheduleId: 'sched-1' }),
-        deleteSchedule: vi.fn().mockResolvedValue(undefined),
-        pauseSchedule: vi.fn().mockResolvedValue(undefined),
-        resumeSchedule: vi.fn().mockResolvedValue(undefined),
-        publishMessage: vi.fn().mockResolvedValue('msg-1'),
-        listDLQ: vi.fn().mockResolvedValue([{ messageId: 'dlq-1' }]),
-        deleteDLQMessage: vi.fn().mockResolvedValue(undefined),
-        scheduleNightlyCompilation: vi.fn().mockResolvedValue('sched-1'),
-        scheduleHealthPing: vi.fn().mockResolvedValue('sched-1'),
-        triggerDeployment: vi.fn().mockResolvedValue('msg-1')
-    }))
+    QStashSubsystem: vi.fn().mockImplementation(function () {
+        return {
+            connect: vi.fn().mockResolvedValue(undefined),
+            disconnect: vi.fn().mockResolvedValue(undefined),
+            health: vi.fn().mockResolvedValue(true),
+            createSchedule: vi.fn().mockResolvedValue('sched-1'),
+            listSchedules: vi.fn().mockResolvedValue([{ scheduleId: 'sched-1' }]),
+            getSchedule: vi.fn().mockResolvedValue({ scheduleId: 'sched-1' }),
+            deleteSchedule: vi.fn().mockResolvedValue(undefined),
+            pauseSchedule: vi.fn().mockResolvedValue(undefined),
+            resumeSchedule: vi.fn().mockResolvedValue(undefined),
+            publishMessage: vi.fn().mockResolvedValue('msg-1'),
+            listDLQ: vi.fn().mockResolvedValue([{ messageId: 'dlq-1' }]),
+            deleteDLQMessage: vi.fn().mockResolvedValue(undefined),
+            scheduleNightlyCompilation: vi.fn().mockResolvedValue('sched-1'),
+            scheduleHealthPing: vi.fn().mockResolvedValue('sched-1'),
+            triggerDeployment: vi.fn().mockResolvedValue('msg-1'),
+            verifyWebhookSignature: vi.fn().mockResolvedValue({ isValid: true, body: '{"test":true}' })
+        };
+    })
 }));
 
 vi.mock('@holoscript/connector-core', () => ({
     ServiceConnector: class {
         protected isConnected = false;
     },
-    McpRegistrar: vi.fn().mockImplementation(() => ({
-        register: vi.fn().mockResolvedValue(undefined)
-    }))
+    McpRegistrar: vi.fn().mockImplementation(function () {
+        return {
+            register: vi.fn().mockResolvedValue(undefined)
+        };
+    })
 }));
 
 describe('UpstashConnector', () => {
@@ -100,13 +117,41 @@ describe('UpstashConnector', () => {
     });
 
     describe('listTools', () => {
-        it('should return all 25 MCP tools', async () => {
+        it('should return all 32 MCP tools', async () => {
             const tools = await connector.listTools();
-            expect(tools.length).toBe(25);
+            expect(tools.length).toBe(32);
+        });
+
+        it('should include all Redis tools', async () => {
+            const tools = await connector.listTools();
+            const redisTools = tools.filter(t => t.name.startsWith('upstash_redis_'));
+            expect(redisTools.length).toBe(11);
+        });
+
+        it('should include all Vector tools', async () => {
+            const tools = await connector.listTools();
+            const vectorTools = tools.filter(t => t.name.startsWith('upstash_vector_'));
+            expect(vectorTools.length).toBe(8);
+        });
+
+        it('should include all QStash tools', async () => {
+            const tools = await connector.listTools();
+            const qstashTools = tools.filter(t => t.name.startsWith('upstash_qstash_'));
+            expect(qstashTools.length).toBe(10);
+        });
+
+        it('should include all convenience tools', async () => {
+            const tools = await connector.listTools();
+            const convenienceTools = tools.filter(t =>
+                t.name === 'upstash_schedule_nightly_compilation' ||
+                t.name === 'upstash_schedule_health_ping' ||
+                t.name === 'upstash_trigger_deployment'
+            );
+            expect(convenienceTools.length).toBe(3);
         });
     });
 
-    describe('executeTool - Redis tools', () => {
+    describe('executeTool - Redis core tools', () => {
         beforeEach(async () => {
             await connector.connect();
         });
@@ -157,7 +202,45 @@ describe('UpstashConnector', () => {
         });
     });
 
-    describe('executeTool - Vector tools', () => {
+    describe('executeTool - Redis enhanced tools', () => {
+        beforeEach(async () => {
+            await connector.connect();
+        });
+
+        it('should execute upstash_redis_batch_set', async () => {
+            const result = await connector.executeTool('upstash_redis_batch_set', {
+                entries: [
+                    { key: 'scene:a', value: { data: 'a' } },
+                    { key: 'scene:b', value: { data: 'b' }, ttl: 7200 }
+                ]
+            });
+            expect(result).toEqual({ successful: 3, failed: 0, errors: [] });
+        });
+
+        it('should execute upstash_redis_batch_delete', async () => {
+            const result = await connector.executeTool('upstash_redis_batch_delete', {
+                keys: ['scene:a', 'scene:b']
+            });
+            expect(result).toEqual({ deleted: 2, success: true });
+        });
+
+        it('should execute upstash_redis_cache_stats', async () => {
+            const result = await connector.executeTool('upstash_redis_cache_stats', {});
+            expect(result).toEqual({
+                sceneCount: 5,
+                sessionCount: 2,
+                prefsCount: 3,
+                sceneKeys: ['scene:a', 'scene:b']
+            });
+        });
+
+        it('should execute upstash_redis_flush_scenes', async () => {
+            const result = await connector.executeTool('upstash_redis_flush_scenes', {});
+            expect(result).toEqual({ deleted: 5, success: true });
+        });
+    });
+
+    describe('executeTool - Vector core tools', () => {
         beforeEach(async () => {
             await connector.connect();
         });
@@ -204,7 +287,44 @@ describe('UpstashConnector', () => {
         });
     });
 
-    describe('executeTool - QStash tools', () => {
+    describe('executeTool - Vector enhanced tools', () => {
+        beforeEach(async () => {
+            await connector.connect();
+        });
+
+        it('should execute upstash_vector_upsert_text', async () => {
+            const result = await connector.executeTool('upstash_vector_upsert_text', {
+                id: 'comp-text-1',
+                data: 'object Cube { @physics position: [0,1,0] }',
+                snippet: 'object Cube { @physics }',
+                traits: ['@physics'],
+                namespace: 'user123'
+            });
+            expect(result).toEqual({ success: true });
+        });
+
+        it('should execute upstash_vector_batch_upsert', async () => {
+            const result = await connector.executeTool('upstash_vector_batch_upsert', {
+                compositions: [
+                    {
+                        id: 'comp-a',
+                        vector: [0.1, 0.2],
+                        snippet: 'object A {}',
+                        traits: ['@physics']
+                    },
+                    {
+                        id: 'comp-b',
+                        vector: [0.3, 0.4],
+                        snippet: 'object B {}',
+                        traits: ['@grabbable']
+                    }
+                ]
+            });
+            expect(result).toEqual({ success: true, count: 2 });
+        });
+    });
+
+    describe('executeTool - QStash core tools', () => {
         beforeEach(async () => {
             await connector.connect();
         });
@@ -258,6 +378,21 @@ describe('UpstashConnector', () => {
         it('should execute upstash_qstash_dlq_delete', async () => {
             const result = await connector.executeTool('upstash_qstash_dlq_delete', { messageId: 'dlq-1' });
             expect(result).toEqual({ success: true });
+        });
+    });
+
+    describe('executeTool - QStash enhanced tools', () => {
+        beforeEach(async () => {
+            await connector.connect();
+        });
+
+        it('should execute upstash_qstash_verify_webhook', async () => {
+            const result = await connector.executeTool('upstash_qstash_verify_webhook', {
+                signature: 'valid-sig',
+                body: '{"test":true}',
+                url: 'https://api.holoscript.net/webhook'
+            });
+            expect(result).toEqual({ isValid: true, body: '{"test":true}' });
         });
     });
 

@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import type { CacheStatistics, BatchCacheResult } from '../types.js';
 
 /**
  * RedisSubsystem manages scene caching, session state, and user preferences
@@ -8,6 +9,8 @@ import { Redis } from '@upstash/redis';
  * - Scene cache with configurable TTL (default 24h)
  * - Session state persistence across CLI commands
  * - User preferences storage
+ * - Batch cache operations (set/delete multiple keys)
+ * - Cache statistics (key counts per domain)
  * - Atomic operations with JSON serialization
  */
 export class RedisSubsystem {
@@ -233,5 +236,96 @@ export class RedisSubsystem {
         }
 
         return await this.redis.expire(key, ttl);
+    }
+
+    /**
+     * Batch set multiple cached scenes atomically.
+     * Uses Redis pipeline for efficiency.
+     * @param entries - Array of { key, value, ttl } entries
+     * @returns BatchCacheResult with success/failure counts
+     */
+    async batchSetCachedScenes(
+        entries: Array<{ key: string; value: unknown; ttl?: number }>
+    ): Promise<BatchCacheResult> {
+        if (!this.redis) {
+            throw new Error('RedisSubsystem not connected');
+        }
+
+        const result: BatchCacheResult = { successful: 0, failed: 0, errors: [] };
+        const pipeline = this.redis.pipeline();
+
+        for (const entry of entries) {
+            const ttl = entry.ttl ?? 86400;
+            pipeline.set(entry.key, entry.value, { ex: ttl });
+        }
+
+        try {
+            const results = await pipeline.exec();
+            for (let i = 0; i < results.length; i++) {
+                if (results[i] === 'OK') {
+                    result.successful++;
+                } else {
+                    result.failed++;
+                    result.errors.push(`Failed to set key: ${entries[i].key}`);
+                }
+            }
+        } catch (error) {
+            result.failed = entries.length;
+            result.errors.push(`Pipeline execution failed: ${error}`);
+        }
+
+        return result;
+    }
+
+    /**
+     * Batch delete multiple cached scenes.
+     * @param keys - Array of cache keys to delete
+     * @returns Number of keys actually deleted
+     */
+    async batchDeleteCachedScenes(keys: string[]): Promise<number> {
+        if (!this.redis) {
+            throw new Error('RedisSubsystem not connected');
+        }
+
+        if (keys.length === 0) return 0;
+        return await this.redis.del(...keys);
+    }
+
+    /**
+     * Get cache statistics: counts of scenes, sessions, and user preferences.
+     * WARNING: Uses KEYS command - use sparingly on large datasets.
+     * @returns CacheStatistics object
+     */
+    async getCacheStatistics(): Promise<CacheStatistics> {
+        if (!this.redis) {
+            throw new Error('RedisSubsystem not connected');
+        }
+
+        const [sceneKeys, sessionKeys, prefsKeys] = await Promise.all([
+            this.redis.keys('scene:*'),
+            this.redis.keys('session:*'),
+            this.redis.keys('prefs:*')
+        ]);
+
+        return {
+            sceneCount: sceneKeys.length,
+            sessionCount: sessionKeys.length,
+            prefsCount: prefsKeys.length,
+            sceneKeys
+        };
+    }
+
+    /**
+     * Flush all cached scenes (preserves sessions and preferences).
+     * @returns Number of scene keys deleted
+     */
+    async flushSceneCache(): Promise<number> {
+        if (!this.redis) {
+            throw new Error('RedisSubsystem not connected');
+        }
+
+        const sceneKeys = await this.redis.keys('scene:*');
+        if (sceneKeys.length === 0) return 0;
+        return await this.redis.del(...sceneKeys);
     }
 }

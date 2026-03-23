@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/connector-core",
   "version": "1.0.0",
   "description": "Foundational abstract interfaces and MCP Registrar for the Studio Integration Hub",
@@ -17,5 +17,19 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.1.9"
-  }
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "keywords": [
+    "holoscript",
+    "xr",
+    "webxr",
+    "vr",
+    "ar",
+    "spatial-computing"
+  ]
 }

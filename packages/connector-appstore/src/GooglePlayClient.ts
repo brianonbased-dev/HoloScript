@@ -382,6 +382,95 @@ export class GooglePlayClient {
     }
 
     /**
+     * Upload deobfuscation (ProGuard/R8 mapping) file for a specific version code.
+     *
+     * This enables readable crash reports in the Play Console.
+     * Should be called after uploadBuild with the resulting versionCode.
+     */
+    async uploadDeobfuscationFile(
+        packageName: string,
+        versionCode: number,
+        mappingFilePath: string
+    ): Promise<void> {
+        const editResponse = await this.publisher.edits.insert({
+            packageName
+        });
+
+        const editId = editResponse.data.id;
+
+        try {
+            await this.publisher.edits.deobfuscationfiles.upload({
+                packageName,
+                editId,
+                apkVersionCode: versionCode,
+                deobfuscationFileType: 'proguard',
+                media: {
+                    mimeType: 'application/octet-stream',
+                    body: createReadStream(mappingFilePath)
+                }
+            });
+
+            await this.publisher.edits.commit({
+                packageName,
+                editId
+            });
+        } catch (error) {
+            try {
+                await this.publisher.edits.delete({ packageName, editId });
+            } catch {
+                // Ignore rollback errors
+            }
+
+            throw error;
+        }
+    }
+
+    /**
+     * Halt a staged rollout on the production track.
+     *
+     * Stops the progressive rollout and prevents additional users from
+     * receiving the release. Existing users keep the update.
+     */
+    async haltRollout(
+        packageName: string,
+        versionCodes: number[]
+    ): Promise<void> {
+        const editResponse = await this.publisher.edits.insert({
+            packageName
+        });
+
+        const editId = editResponse.data.id;
+
+        try {
+            await this.publisher.edits.tracks.update({
+                packageName,
+                editId,
+                track: 'production',
+                requestBody: {
+                    track: 'production',
+                    releases: [{
+                        versionCodes: versionCodes.map(String),
+                        status: 'halted'
+                    }]
+                }
+            });
+
+            await this.publisher.edits.commit({
+                packageName,
+                editId
+            });
+        } catch (error) {
+            try {
+                await this.publisher.edits.delete({ packageName, editId });
+            } catch {
+                // Ignore
+            }
+
+            throw error;
+        }
+    }
+
+    /**
      * Get review status for the app
      */
     async getReviewStatus(packageName: string): Promise<any> {

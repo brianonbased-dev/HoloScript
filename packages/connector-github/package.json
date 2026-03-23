@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/connector-github",
   "version": "1.0.0",
   "description": "GitHub MCP Connector for HoloScript Studio Integration Hub - repo, issue, PR, and CI/CD operations",
@@ -28,5 +28,11 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.1.9"
-  }
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "author": "Brian X Base Team",
+  "license": "MIT"
 }

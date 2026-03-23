@@ -1,24 +1,7 @@
 import { Index } from '@upstash/vector';
+import type { CompositionMetadata, SimilarityResult, CompositionRecord, VectorIndexInfo } from '../types.js';
 
-/**
- * Metadata for composition embeddings.
- */
-export interface CompositionMetadata {
-    /** Composition file path or identifier */
-    id: string;
-    /** HoloScript code snippet (first 500 chars) */
-    snippet: string;
-    /** Traits used in composition */
-    traits: string[];
-    /** Compiler targets (unity, unreal, threejs, etc.) */
-    targets?: string[];
-    /** User-defined tags */
-    tags?: string[];
-    /** Namespace for multi-tenancy */
-    namespace?: string;
-    /** Timestamp of embedding creation */
-    timestamp: number;
-}
+export type { CompositionMetadata } from '../types.js';
 
 /**
  * VectorSubsystem extends semantic-search-hub on MCP orchestrator with
@@ -124,7 +107,7 @@ export class VectorSubsystem {
         topK = 10,
         filter?: string,
         includeMetadata = true
-    ): Promise<Array<{ id: string; score: number; metadata?: CompositionMetadata }>> {
+    ): Promise<SimilarityResult[]> {
         if (!this.index) {
             throw new Error('VectorSubsystem not connected');
         }
@@ -148,11 +131,7 @@ export class VectorSubsystem {
      * @param id - Composition identifier
      * @returns Vector and metadata or null if not found
      */
-    async fetchComposition(id: string): Promise<{
-        id: string;
-        vector: number[];
-        metadata: CompositionMetadata;
-    } | null> {
+    async fetchComposition(id: string): Promise<CompositionRecord | null> {
         if (!this.index) {
             throw new Error('VectorSubsystem not connected');
         }
@@ -201,13 +180,7 @@ export class VectorSubsystem {
     /**
      * Get index information (dimensions, count, etc.).
      */
-    async getInfo(): Promise<{
-        vectorCount: number;
-        pendingVectorCount: number;
-        indexSize: number;
-        dimension: number;
-        similarityFunction: string;
-    }> {
+    async getInfo(): Promise<VectorIndexInfo> {
         if (!this.index) {
             throw new Error('VectorSubsystem not connected');
         }
@@ -216,11 +189,13 @@ export class VectorSubsystem {
     }
 
     /**
-     * Search by text query (requires embedding generation).
-     * This is a convenience method that generates embeddings client-side
-     * using the MCP semantic-search-hub orchestrator.
+     * Search by text query using Upstash Vector's built-in embedding model.
      *
-     * @param query - Natural language query
+     * Requires the Upstash Vector index to be created with an embedding model
+     * (e.g., BAAI/bge-small-en-v1.5). When configured, Upstash Vector generates
+     * embeddings server-side from raw text queries.
+     *
+     * @param query - Natural language query (e.g., "physics simulation with rigidbody")
      * @param topK - Number of results
      * @param filter - Metadata filter
      * @returns Similar compositions
@@ -229,35 +204,79 @@ export class VectorSubsystem {
         query: string,
         topK = 10,
         filter?: string
-    ): Promise<Array<{ id: string; score: number; metadata?: CompositionMetadata }>> {
+    ): Promise<SimilarityResult[]> {
         if (!this.index) {
             throw new Error('VectorSubsystem not connected');
         }
 
-        // Call MCP orchestrator to generate embedding
-        const embeddingResponse = await fetch('https://mcp-orchestrator-production-45f9.up.railway.app/tools/call', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-mcp-api-key': process.env.MCP_API_KEY || 'dev-key-12345'
-            },
-            body: JSON.stringify({
-                server: 'semantic-search-hub',
-                tool: 'search_knowledge',
-                args: { query, limit: 1 }
-            })
+        // Use Upstash Vector's built-in text embedding (data field)
+        // The index must be created with an embedding model for this to work
+        const results = await this.index.query({
+            data: query,
+            topK,
+            filter,
+            includeMetadata: true
         });
 
-        if (!embeddingResponse.ok) {
-            throw new Error(`Failed to generate embedding: ${embeddingResponse.statusText}`);
+        return results.map((result) => ({
+            id: String(result.id),
+            score: result.score,
+            metadata: result.metadata as CompositionMetadata | undefined
+        }));
+    }
+
+    /**
+     * Upsert composition with text data for automatic embedding generation.
+     * Uses Upstash Vector's built-in embedding model instead of requiring
+     * pre-computed vectors.
+     *
+     * @param id - Unique composition identifier
+     * @param data - Raw text data (HoloScript source code) for embedding
+     * @param metadata - Composition metadata
+     */
+    async upsertCompositionWithData(
+        id: string,
+        data: string,
+        metadata: Omit<CompositionMetadata, 'id'>
+    ): Promise<void> {
+        if (!this.index) {
+            throw new Error('VectorSubsystem not connected');
         }
 
-        const embeddingData = await embeddingResponse.json() as any;
+        await this.index.upsert({
+            id,
+            data,
+            metadata: {
+                ...metadata,
+                id
+            }
+        });
+    }
 
-        // Extract embedding vector from response
-        // Note: This is a placeholder - actual implementation depends on semantic-search-hub response format
-        const vector = embeddingData.embedding || [];
+    /**
+     * Batch upsert multiple compositions.
+     * @param compositions - Array of { id, vector, metadata } entries
+     */
+    async batchUpsert(
+        compositions: Array<{
+            id: string;
+            vector: number[];
+            metadata: Omit<CompositionMetadata, 'id'>;
+        }>
+    ): Promise<void> {
+        if (!this.index) {
+            throw new Error('VectorSubsystem not connected');
+        }
 
-        return this.searchSimilar(vector, topK, filter);
+        const entries = compositions.map((comp) => ({
+            id: comp.id,
+            vector: comp.vector,
+            metadata: {
+                ...comp.metadata,
+                id: comp.id
+            }
+        }));
+
+        await this.index.upsert(entries);
     }
 }

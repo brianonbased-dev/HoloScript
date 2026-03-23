@@ -9,10 +9,16 @@
  *
  * Features:
  * - Build artifact upload from Unity/compiler output
- * - TestFlight beta distribution
+ * - CI pipeline integration with automatic artifact detection
+ * - TestFlight beta distribution with beta group management
  * - Internal/Alpha/Beta/Production release tracks
- * - App metadata management
- * - Webhook notifications for build status
+ * - App Store version creation and submission workflow
+ * - App metadata management (including localized descriptions)
+ * - Webhook notifications for build status changes
+ * - Deobfuscation file upload (Google Play)
+ * - Staged rollout control and halt
+ *
+ * MCP Tools: 27 tools (12 Apple + 10 Google + 5 cross-platform)
  */
 
 export { AppStoreConnector } from './AppStoreConnector.js';
@@ -28,7 +34,14 @@ export type {
     AppleAppMetadata,
     GoogleAppMetadata,
     TestFlightBuild,
+    BetaGroup,
+    AppStoreVersion,
+    AppStoreLocalization,
     GooglePlayTrack,
     WebhookNotification,
-    UploadProgress
+    UploadProgress,
+    ArtifactDetectionResult,
+    DetectedArtifact,
+    PublishResult,
+    PlatformPublishResult
 } from './types.js';

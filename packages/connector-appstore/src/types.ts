@@ -1,5 +1,8 @@
 /**
  * Type definitions for App Store connector
+ *
+ * Covers both Apple App Store Connect and Google Play Developer API
+ * data structures plus cross-platform CI pipeline types.
  */
 
 export interface AppleCredentials {
@@ -70,6 +73,54 @@ export interface TestFlightBuild {
     testFlightStatus?: 'READY_FOR_BETA_TESTING' | 'IN_BETA_TESTING' | 'EXPIRED';
 }
 
+/** Beta group for TestFlight distribution */
+export interface BetaGroup {
+    /** Beta group ID */
+    id: string;
+    /** Display name */
+    name: string;
+    /** Whether this is an internal group (Apple employees / team members) */
+    isInternal: boolean;
+    /** Number of testers in the group */
+    testerCount: number;
+}
+
+/** App Store version for submission workflow */
+export interface AppStoreVersion {
+    /** Version ID */
+    id: string;
+    /** Version string (e.g., 1.0.0) */
+    versionString: string;
+    /** App Store state */
+    appStoreState: 'PREPARE_FOR_SUBMISSION' | 'WAITING_FOR_REVIEW' | 'IN_REVIEW'
+        | 'PENDING_DEVELOPER_RELEASE' | 'READY_FOR_SALE' | 'DEVELOPER_REMOVED_FROM_SALE'
+        | 'REPLACED_WITH_NEW_VERSION' | 'REJECTED';
+    /** Platform */
+    platform: 'IOS' | 'VISION_OS';
+    /** Release type */
+    releaseType?: 'MANUAL' | 'AFTER_APPROVAL' | 'SCHEDULED';
+    /** Earliest release date (for scheduled releases) */
+    earliestReleaseDate?: string;
+}
+
+/** Localized App Store metadata (per-locale descriptions, keywords, etc.) */
+export interface AppStoreLocalization {
+    /** Locale code (e.g., en-US) */
+    locale: string;
+    /** App description */
+    description?: string;
+    /** Keywords (comma-separated) */
+    keywords?: string;
+    /** What's new text */
+    whatsNew?: string;
+    /** Marketing URL */
+    marketingUrl?: string;
+    /** Support URL */
+    supportUrl?: string;
+    /** Privacy policy URL */
+    privacyPolicyUrl?: string;
+}
+
 export interface GooglePlayTrack {
     /** Track name: internal, alpha, beta, production */
     track: 'internal' | 'alpha' | 'beta' | 'production';
@@ -101,4 +152,47 @@ export interface UploadProgress {
     percentage: number;
     /** Current status message */
     status: string;
+}
+
+/** Result from the CI pipeline artifact detection */
+export interface ArtifactDetectionResult {
+    /** Detected artifact file paths */
+    artifacts: DetectedArtifact[];
+    /** Unity project path that was scanned */
+    scannedPath: string;
+}
+
+/** A single detected build artifact from a Unity output directory */
+export interface DetectedArtifact {
+    /** Full path to the artifact file */
+    filePath: string;
+    /** Detected platform */
+    platform: 'ios' | 'visionos' | 'android';
+    /** File extension */
+    extension: string;
+    /** File size in bytes */
+    sizeBytes: number;
+}
+
+/** Result of a multi-platform publish operation */
+export interface PublishResult {
+    /** Per-platform results */
+    platforms: Record<string, PlatformPublishResult>;
+    /** Summary statistics */
+    summary: {
+        total: number;
+        successful: number;
+        failed: number;
+    };
+}
+
+/** Result for a single platform publish */
+export interface PlatformPublishResult {
+    success: boolean;
+    /** Build details on success */
+    build?: TestFlightBuild;
+    /** Google Play result on success */
+    result?: { versionCode: number; editId: string };
+    /** Error message on failure */
+    error?: string;
 }

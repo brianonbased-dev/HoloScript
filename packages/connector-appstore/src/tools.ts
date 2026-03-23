@@ -2,9 +2,14 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 /**
  * MCP tools for dual-platform app store operations
+ *
+ * 27 tools total:
+ * - 12 Apple App Store Connect tools (apple_*)
+ * - 10 Google Play Developer tools (google_*)
+ * - 5 Cross-platform tools (appstore_*)
  */
 export const appStoreTools: Tool[] = [
-    // Apple App Store Connect Tools
+    // ── Apple App Store Connect Tools ─────────────────────────────────
     {
         name: 'apple_app_get',
         description: 'Get Apple app information by bundle ID',
@@ -89,16 +94,35 @@ export const appStoreTools: Tool[] = [
     },
     {
         name: 'apple_testflight_submit',
-        description: 'Submit build to TestFlight beta testing',
+        description: 'Submit build to TestFlight beta testing with optional beta group targeting',
         inputSchema: {
             type: 'object',
             properties: {
                 buildId: {
                     type: 'string',
                     description: 'Build ID to submit'
+                },
+                betaGroupIds: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Optional: specific beta group IDs to distribute to. Defaults to internal group.'
                 }
             },
             required: ['buildId']
+        }
+    },
+    {
+        name: 'apple_beta_groups_list',
+        description: 'List all TestFlight beta groups for an app',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                bundleId: {
+                    type: 'string',
+                    description: 'App bundle identifier'
+                }
+            },
+            required: ['bundleId']
         }
     },
     {
@@ -137,8 +161,136 @@ export const appStoreTools: Tool[] = [
             required: ['bundleId']
         }
     },
+    {
+        name: 'apple_version_create',
+        description: 'Create a new App Store version for submission workflow',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                bundleId: {
+                    type: 'string',
+                    description: 'App bundle identifier'
+                },
+                versionString: {
+                    type: 'string',
+                    description: 'Version string (e.g., 1.2.0)'
+                },
+                platform: {
+                    type: 'string',
+                    enum: ['IOS', 'VISION_OS'],
+                    description: 'Platform',
+                    default: 'IOS'
+                },
+                releaseType: {
+                    type: 'string',
+                    enum: ['MANUAL', 'AFTER_APPROVAL', 'SCHEDULED'],
+                    description: 'When to release after approval',
+                    default: 'AFTER_APPROVAL'
+                },
+                earliestReleaseDate: {
+                    type: 'string',
+                    description: 'Earliest release date (ISO 8601) for scheduled releases'
+                }
+            },
+            required: ['bundleId', 'versionString']
+        }
+    },
+    {
+        name: 'apple_version_get',
+        description: 'Get the current App Store version for an app',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                bundleId: {
+                    type: 'string',
+                    description: 'App bundle identifier'
+                },
+                platform: {
+                    type: 'string',
+                    enum: ['IOS', 'VISION_OS'],
+                    description: 'Platform',
+                    default: 'IOS'
+                }
+            },
+            required: ['bundleId']
+        }
+    },
+    {
+        name: 'apple_version_attach_build',
+        description: 'Attach a processed build to an App Store version (required before submission)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                versionId: {
+                    type: 'string',
+                    description: 'App Store version ID'
+                },
+                buildId: {
+                    type: 'string',
+                    description: 'Build ID to attach'
+                }
+            },
+            required: ['versionId', 'buildId']
+        }
+    },
+    {
+        name: 'apple_version_submit',
+        description: 'Submit an App Store version for Apple review',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                versionId: {
+                    type: 'string',
+                    description: 'App Store version ID to submit'
+                }
+            },
+            required: ['versionId']
+        }
+    },
+    {
+        name: 'apple_version_localization_update',
+        description: 'Update localized metadata for an App Store version (description, keywords, what\'s new)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                versionId: {
+                    type: 'string',
+                    description: 'App Store version ID'
+                },
+                locale: {
+                    type: 'string',
+                    description: 'Locale code (e.g., en-US, ja, de-DE)'
+                },
+                description: {
+                    type: 'string',
+                    description: 'App description for this locale'
+                },
+                keywords: {
+                    type: 'string',
+                    description: 'Keywords (comma-separated)'
+                },
+                whatsNew: {
+                    type: 'string',
+                    description: 'What\'s new in this version'
+                },
+                marketingUrl: {
+                    type: 'string',
+                    description: 'Marketing URL'
+                },
+                supportUrl: {
+                    type: 'string',
+                    description: 'Support URL'
+                },
+                privacyPolicyUrl: {
+                    type: 'string',
+                    description: 'Privacy policy URL'
+                }
+            },
+            required: ['versionId', 'locale']
+        }
+    },
 
-    // Google Play Developer Tools
+    // ── Google Play Developer Tools ───────────────────────────────────
     {
         name: 'google_app_get',
         description: 'Get Google Play app information by package name',
@@ -277,6 +429,25 @@ export const appStoreTools: Tool[] = [
         }
     },
     {
+        name: 'google_rollout_halt',
+        description: 'Halt a staged rollout on the production track',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                packageName: {
+                    type: 'string',
+                    description: 'Android package name'
+                },
+                versionCodes: {
+                    type: 'array',
+                    items: { type: 'number' },
+                    description: 'Version codes to halt'
+                }
+            },
+            required: ['packageName', 'versionCodes']
+        }
+    },
+    {
         name: 'google_listing_update',
         description: 'Update Google Play store listing metadata',
         inputSchema: {
@@ -307,8 +478,30 @@ export const appStoreTools: Tool[] = [
             required: ['packageName', 'language']
         }
     },
+    {
+        name: 'google_deobfuscation_upload',
+        description: 'Upload ProGuard/R8 deobfuscation mapping file for crash report readability',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                packageName: {
+                    type: 'string',
+                    description: 'Android package name'
+                },
+                versionCode: {
+                    type: 'number',
+                    description: 'Version code the mapping file belongs to'
+                },
+                mappingFilePath: {
+                    type: 'string',
+                    description: 'Path to the ProGuard/R8 mapping.txt file'
+                }
+            },
+            required: ['packageName', 'versionCode', 'mappingFilePath']
+        }
+    },
 
-    // Cross-platform Tools
+    // ── Cross-platform Tools ──────────────────────────────────────────
     {
         name: 'appstore_health',
         description: 'Check health status of both Apple and Google API connections',
@@ -319,7 +512,7 @@ export const appStoreTools: Tool[] = [
     },
     {
         name: 'appstore_unity_publish',
-        description: 'Publish Unity build output to app stores (iOS to Apple, Android to Google)',
+        description: 'Publish Unity build output to app stores (iOS to Apple, Android to Google). Automatically detects artifacts in the output directory.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -357,9 +550,59 @@ export const appStoreTools: Tool[] = [
                     type: 'boolean',
                     default: true,
                     description: 'Submit iOS build to TestFlight'
+                },
+                appleBundleId: {
+                    type: 'string',
+                    description: 'Apple bundle ID (required for iOS/visionOS)'
+                },
+                googlePackageName: {
+                    type: 'string',
+                    description: 'Google package name (required for Android)'
                 }
             },
             required: ['unityOutputPath', 'platforms', 'version', 'buildNumber']
+        }
+    },
+    {
+        name: 'appstore_detect_artifacts',
+        description: 'Detect build artifacts (.ipa, .apk, .aab) in a Unity output directory',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                outputPath: {
+                    type: 'string',
+                    description: 'Path to Unity build output directory to scan'
+                }
+            },
+            required: ['outputPath']
+        }
+    },
+    {
+        name: 'appstore_webhook_apple',
+        description: 'Process an incoming Apple App Store Connect webhook notification',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                payload: {
+                    type: 'object',
+                    description: 'The webhook payload from Apple'
+                }
+            },
+            required: ['payload']
+        }
+    },
+    {
+        name: 'appstore_webhook_google',
+        description: 'Process an incoming Google Play Developer webhook notification (Pub/Sub)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                payload: {
+                    type: 'object',
+                    description: 'The Pub/Sub message payload from Google'
+                }
+            },
+            required: ['payload']
         }
     }
 ];

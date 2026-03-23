@@ -82,6 +82,7 @@ export default defineConfig({
       'packages/marketplace-api/vitest.config.ts',
       'packages/auth/vitest.config.ts',
       'packages/animation-presets/vitest.config.ts',
+      'packages/connector-upstash/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
       'packages/test/vitest.config.ts',

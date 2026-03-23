@@ -1,48 +1,55 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { QStashSubsystem } from '../src/subsystems/QStashSubsystem';
 
-// Mock @upstash/qstash
+// Mock @upstash/qstash -- use function() not arrow for constructor (W.011)
 vi.mock('@upstash/qstash', () => ({
-    Client: vi.fn().mockImplementation(() => ({
-        schedules: {
-            list: vi.fn().mockResolvedValue([
-                {
+    Client: vi.fn().mockImplementation(function () {
+        return {
+            schedules: {
+                list: vi.fn().mockResolvedValue([
+                    {
+                        scheduleId: 'sched-1',
+                        cron: '0 2 * * *',
+                        destination: 'https://api.holoscript.net/compile',
+                        createdAt: Date.now(),
+                        isPaused: false
+                    }
+                ]),
+                create: vi.fn().mockResolvedValue({ scheduleId: 'sched-1' }),
+                get: vi.fn().mockResolvedValue({
                     scheduleId: 'sched-1',
                     cron: '0 2 * * *',
                     destination: 'https://api.holoscript.net/compile',
                     createdAt: Date.now(),
                     isPaused: false
-                }
-            ]),
-            create: vi.fn().mockResolvedValue({ scheduleId: 'sched-1' }),
-            get: vi.fn().mockResolvedValue({
-                scheduleId: 'sched-1',
-                cron: '0 2 * * *',
-                destination: 'https://api.holoscript.net/compile',
-                createdAt: Date.now(),
-                isPaused: false
-            }),
-            delete: vi.fn().mockResolvedValue(undefined),
-            pause: vi.fn().mockResolvedValue(undefined),
-            resume: vi.fn().mockResolvedValue(undefined)
-        },
-        publishJSON: vi.fn().mockResolvedValue({ messageId: 'msg-1' }),
-        dlq: {
-            listMessages: vi.fn().mockResolvedValue({
-                messages: [
-                    {
-                        messageId: 'dlq-1',
-                        url: 'https://api.holoscript.net/webhook',
-                        body: '{"error": "timeout"}',
-                        createdAt: Date.now(),
-                        responseStatus: 500,
-                        responseBody: 'Internal Server Error'
-                    }
-                ]
-            }),
-            delete: vi.fn().mockResolvedValue(undefined)
-        }
-    }))
+                }),
+                delete: vi.fn().mockResolvedValue(undefined),
+                pause: vi.fn().mockResolvedValue(undefined),
+                resume: vi.fn().mockResolvedValue(undefined)
+            },
+            publishJSON: vi.fn().mockResolvedValue({ messageId: 'msg-1' }),
+            dlq: {
+                listMessages: vi.fn().mockResolvedValue({
+                    messages: [
+                        {
+                            messageId: 'dlq-1',
+                            url: 'https://api.holoscript.net/webhook',
+                            body: '{"error": "timeout"}',
+                            createdAt: Date.now(),
+                            responseStatus: 500,
+                            responseBody: 'Internal Server Error'
+                        }
+                    ]
+                }),
+                delete: vi.fn().mockResolvedValue(undefined)
+            }
+        };
+    }),
+    Receiver: vi.fn().mockImplementation(function () {
+        return {
+            verify: vi.fn().mockResolvedValue(true)
+        };
+    })
 }));
 
 describe('QStashSubsystem', () => {
@@ -63,6 +70,20 @@ describe('QStashSubsystem', () => {
             delete process.env.QSTASH_TOKEN;
             await expect(qstash.connect()).rejects.toThrow('QSTASH_TOKEN environment variable is required');
         });
+
+        it('should initialize webhook receiver when signing keys are provided', async () => {
+            process.env.QSTASH_CURRENT_SIGNING_KEY = 'current-key';
+            process.env.QSTASH_NEXT_SIGNING_KEY = 'next-key';
+            await qstash.connect();
+            expect(qstash.isWebhookVerificationEnabled()).toBe(true);
+        });
+
+        it('should not initialize webhook receiver without signing keys', async () => {
+            delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+            delete process.env.QSTASH_NEXT_SIGNING_KEY;
+            await qstash.connect();
+            expect(qstash.isWebhookVerificationEnabled()).toBe(false);
+        });
     });
 
     describe('disconnect', () => {
@@ -70,6 +91,15 @@ describe('QStashSubsystem', () => {
             await qstash.connect();
             await qstash.disconnect();
             expect(await qstash.health()).toBe(false);
+        });
+
+        it('should clear webhook receiver on disconnect', async () => {
+            process.env.QSTASH_CURRENT_SIGNING_KEY = 'current-key';
+            process.env.QSTASH_NEXT_SIGNING_KEY = 'next-key';
+            await qstash.connect();
+            expect(qstash.isWebhookVerificationEnabled()).toBe(true);
+            await qstash.disconnect();
+            expect(qstash.isWebhookVerificationEnabled()).toBe(false);
         });
     });
 
@@ -114,17 +144,14 @@ describe('QStashSubsystem', () => {
 
         it('should delete schedule', async () => {
             await qstash.deleteSchedule('sched-1');
-            // No error means success
         });
 
         it('should pause schedule', async () => {
             await qstash.pauseSchedule('sched-1');
-            // No error means success
         });
 
         it('should resume schedule', async () => {
             await qstash.resumeSchedule('sched-1');
-            // No error means success
         });
     });
 
@@ -165,7 +192,37 @@ describe('QStashSubsystem', () => {
 
         it('should delete DLQ message', async () => {
             await qstash.deleteDLQMessage('dlq-1');
-            // No error means success
+        });
+    });
+
+    describe('webhook signature verification', () => {
+        it('should verify valid webhook signature', async () => {
+            process.env.QSTASH_CURRENT_SIGNING_KEY = 'current-key';
+            process.env.QSTASH_NEXT_SIGNING_KEY = 'next-key';
+            await qstash.connect();
+
+            const result = await qstash.verifyWebhookSignature(
+                'valid-signature',
+                '{"event": "compilation_complete"}',
+                'https://api.holoscript.net/webhook'
+            );
+
+            expect(result.isValid).toBe(true);
+            expect(result.body).toBe('{"event": "compilation_complete"}');
+        });
+
+        it('should return error when verification is not configured', async () => {
+            delete process.env.QSTASH_CURRENT_SIGNING_KEY;
+            delete process.env.QSTASH_NEXT_SIGNING_KEY;
+            await qstash.connect();
+
+            const result = await qstash.verifyWebhookSignature(
+                'some-signature',
+                '{"data": "test"}'
+            );
+
+            expect(result.isValid).toBe(false);
+            expect(result.error).toContain('not configured');
         });
     });
 

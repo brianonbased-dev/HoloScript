@@ -13,15 +13,18 @@ import { upstashTools } from './tools.js';
  * 2. Vector - Composition embeddings for semantic "find similar" search
  * 3. QStash - Scheduled compilation triggers, health monitoring, deployments
  *
- * Provides 26 MCP tools for:
- * - Scene caching with TTL
+ * Provides 32 MCP tools for:
+ * - Scene caching with TTL (single + batch)
+ * - Cache statistics and flush operations
  * - Session persistence across CLI commands
  * - User preference storage
- * - Semantic similarity search for compositions
+ * - Semantic similarity search for compositions (vector + text)
+ * - Batch vector upsert and text-based auto-embedding
  * - Cron-based compilation schedules
  * - One-time delayed tasks
  * - Dead letter queue management
- * - CI/CD webhook integration
+ * - Webhook signature verification
+ * - CI/CD integration (nightly compilation, health pings, deployment triggers)
  *
  * Authentication via environment variables:
  * - UPSTASH_REDIS_URL, UPSTASH_REDIS_TOKEN
@@ -183,6 +186,26 @@ export class UpstashConnector extends ServiceConnector {
             return { success: true };
         }
 
+        if (name === 'upstash_redis_batch_set') {
+            return this.redis.batchSetCachedScenes(
+                args.entries as Array<{ key: string; value: unknown; ttl?: number }>
+            );
+        }
+
+        if (name === 'upstash_redis_batch_delete') {
+            const deleted = await this.redis.batchDeleteCachedScenes(args.keys as string[]);
+            return { deleted, success: true };
+        }
+
+        if (name === 'upstash_redis_cache_stats') {
+            return this.redis.getCacheStatistics();
+        }
+
+        if (name === 'upstash_redis_flush_scenes') {
+            const deleted = await this.redis.flushSceneCache();
+            return { deleted, success: true };
+        }
+
         // Vector Subsystem Tools
         if (name === 'upstash_vector_upsert') {
             await this.vector.upsertComposition(
@@ -228,6 +251,47 @@ export class UpstashConnector extends ServiceConnector {
 
         if (name === 'upstash_vector_info') {
             return this.vector.getInfo();
+        }
+
+        if (name === 'upstash_vector_upsert_text') {
+            await this.vector.upsertCompositionWithData(
+                args.id as string,
+                args.data as string,
+                {
+                    snippet: args.snippet as string,
+                    traits: args.traits as string[],
+                    targets: args.targets as string[] | undefined,
+                    tags: args.tags as string[] | undefined,
+                    namespace: args.namespace as string | undefined,
+                    timestamp: Date.now()
+                }
+            );
+            return { success: true };
+        }
+
+        if (name === 'upstash_vector_batch_upsert') {
+            const compositions = (args.compositions as Array<{
+                id: string;
+                vector: number[];
+                snippet: string;
+                traits: string[];
+                targets?: string[];
+                tags?: string[];
+                namespace?: string;
+            }>).map(comp => ({
+                id: comp.id,
+                vector: comp.vector,
+                metadata: {
+                    snippet: comp.snippet,
+                    traits: comp.traits,
+                    targets: comp.targets,
+                    tags: comp.tags,
+                    namespace: comp.namespace,
+                    timestamp: Date.now()
+                }
+            }));
+            await this.vector.batchUpsert(compositions);
+            return { success: true, count: compositions.length };
         }
 
         // QStash Subsystem Tools
@@ -284,6 +348,14 @@ export class UpstashConnector extends ServiceConnector {
         if (name === 'upstash_qstash_dlq_delete') {
             await this.qstash.deleteDLQMessage(args.messageId as string);
             return { success: true };
+        }
+
+        if (name === 'upstash_qstash_verify_webhook') {
+            return this.qstash.verifyWebhookSignature(
+                args.signature as string,
+                args.body as string,
+                args.url as string | undefined
+            );
         }
 
         // Convenience Tools

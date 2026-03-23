@@ -530,11 +530,179 @@ export const upstashTriggerDeployment: Tool = {
 };
 
 // ============================================================================
+// Enhanced Redis Tools
+// ============================================================================
+
+export const upstashRedisBatchSet: Tool = {
+    name: 'upstash_redis_batch_set',
+    description: 'Batch store multiple compiled scenes in Upstash Redis atomically via pipeline',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            entries: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        key: { type: 'string', description: 'Cache key' },
+                        value: { type: 'object', description: 'Scene data' },
+                        ttl: { type: 'number', description: 'TTL in seconds (default 86400)' }
+                    },
+                    required: ['key', 'value']
+                },
+                description: 'Array of cache entries to set'
+            }
+        },
+        required: ['entries']
+    }
+};
+
+export const upstashRedisBatchDelete: Tool = {
+    name: 'upstash_redis_batch_delete',
+    description: 'Batch delete multiple cached scenes from Upstash Redis',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            keys: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Array of cache keys to delete'
+            }
+        },
+        required: ['keys']
+    }
+};
+
+export const upstashRedisCacheStats: Tool = {
+    name: 'upstash_redis_cache_stats',
+    description: 'Get cache statistics: counts of scenes, sessions, and user preference keys',
+    inputSchema: {
+        type: 'object',
+        properties: {},
+        required: []
+    }
+};
+
+export const upstashRedisFlushScenes: Tool = {
+    name: 'upstash_redis_flush_scenes',
+    description: 'Flush all cached scenes while preserving sessions and user preferences',
+    inputSchema: {
+        type: 'object',
+        properties: {},
+        required: []
+    }
+};
+
+// ============================================================================
+// Enhanced Vector Tools
+// ============================================================================
+
+export const upstashVectorUpsertText: Tool = {
+    name: 'upstash_vector_upsert_text',
+    description: 'Add composition with automatic embedding generation from HoloScript source (requires embedding model on index)',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            id: {
+                type: 'string',
+                description: 'Unique composition identifier'
+            },
+            data: {
+                type: 'string',
+                description: 'Raw HoloScript source code for automatic embedding'
+            },
+            snippet: {
+                type: 'string',
+                description: 'HoloScript code snippet (first 500 chars)'
+            },
+            traits: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Traits used in composition'
+            },
+            targets: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Compiler targets',
+                default: []
+            },
+            tags: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'User-defined tags',
+                default: []
+            },
+            namespace: {
+                type: 'string',
+                description: 'Namespace for multi-tenancy',
+                default: 'default'
+            }
+        },
+        required: ['id', 'data', 'snippet', 'traits']
+    }
+};
+
+export const upstashVectorBatchUpsert: Tool = {
+    name: 'upstash_vector_batch_upsert',
+    description: 'Batch upsert multiple composition embeddings at once',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            compositions: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string' },
+                        vector: { type: 'array', items: { type: 'number' } },
+                        snippet: { type: 'string' },
+                        traits: { type: 'array', items: { type: 'string' } },
+                        targets: { type: 'array', items: { type: 'string' } },
+                        tags: { type: 'array', items: { type: 'string' } },
+                        namespace: { type: 'string' }
+                    },
+                    required: ['id', 'vector', 'snippet', 'traits']
+                },
+                description: 'Array of compositions to upsert'
+            }
+        },
+        required: ['compositions']
+    }
+};
+
+// ============================================================================
+// QStash Webhook Verification Tool
+// ============================================================================
+
+export const upstashQStashVerifyWebhook: Tool = {
+    name: 'upstash_qstash_verify_webhook',
+    description: 'Verify a QStash webhook signature to ensure request authenticity',
+    inputSchema: {
+        type: 'object',
+        properties: {
+            signature: {
+                type: 'string',
+                description: 'The Upstash-Signature header value'
+            },
+            body: {
+                type: 'string',
+                description: 'The raw request body string'
+            },
+            url: {
+                type: 'string',
+                description: 'The webhook URL that received the request (optional)'
+            }
+        },
+        required: ['signature', 'body']
+    }
+};
+
+// ============================================================================
 // Tool Registry
 // ============================================================================
 
 export const upstashTools: Tool[] = [
-    // Redis
+    // Redis - Core
     upstashRedisCacheGet,
     upstashRedisCacheSet,
     upstashRedisCacheDelete,
@@ -542,16 +710,24 @@ export const upstashTools: Tool[] = [
     upstashRedisSessionSet,
     upstashRedisPrefsGet,
     upstashRedisPrefsSet,
+    // Redis - Enhanced
+    upstashRedisBatchSet,
+    upstashRedisBatchDelete,
+    upstashRedisCacheStats,
+    upstashRedisFlushScenes,
 
-    // Vector
+    // Vector - Core
     upstashVectorUpsert,
     upstashVectorSearch,
     upstashVectorSearchText,
     upstashVectorFetch,
     upstashVectorDelete,
     upstashVectorInfo,
+    // Vector - Enhanced
+    upstashVectorUpsertText,
+    upstashVectorBatchUpsert,
 
-    // QStash
+    // QStash - Core
     upstashQStashSchedule,
     upstashQStashPublish,
     upstashQStashList,
@@ -561,6 +737,8 @@ export const upstashTools: Tool[] = [
     upstashQStashResume,
     upstashQStashDLQList,
     upstashQStashDLQDelete,
+    // QStash - Enhanced
+    upstashQStashVerifyWebhook,
 
     // Convenience
     upstashScheduleNightlyCompilation,

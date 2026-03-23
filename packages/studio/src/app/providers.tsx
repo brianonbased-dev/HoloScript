@@ -8,8 +8,14 @@ import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initAnalytics, identifyUser } from '../lib/analytics';
 import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
+import { useMagicMoment } from '../hooks/useMagicMoment';
 import dynamic from 'next/dynamic';
 import { DevToolsInit } from '../components/DevToolsInit';
+
+const MagicMomentWizard = dynamic(
+  () => import('../components/wizard/MagicMomentWizard').then((m) => ({ default: m.MagicMomentWizard })),
+  { ssr: false }
+);
 
 const StudioSetupWizard = dynamic(
   () => import('../components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
@@ -117,12 +123,25 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
 export function Providers({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
 
-  // Studio Setup Wizard — show on first visit
+  // Magic Moment Wizard — the "iPhone moment" first-run experience
+  const magicMomentComplete = useMagicMoment((s) => s.isComplete);
+  const showMagicMoment = useMagicMoment((s) => s.isVisible);
+  const magicMomentShow = useMagicMoment((s) => s.showWizard);
+  const magicMomentHide = useMagicMoment((s) => s.hideWizard);
+
+  // Studio Setup Wizard — shown AFTER MagicMoment completes (optional workspace config)
   const wizardCompleted = useStudioPresetStore((s) => s.wizardCompleted);
-  const [showWizard, setShowWizard] = useState(false);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+
   useEffect(() => {
-    if (!wizardCompleted) setShowWizard(true);
-  }, [wizardCompleted]);
+    if (!magicMomentComplete) {
+      // First visit: show MagicMomentWizard
+      magicMomentShow();
+    } else if (!wizardCompleted) {
+      // MagicMoment done but workspace not configured: show StudioSetupWizard
+      setShowSetupWizard(true);
+    }
+  }, [magicMomentComplete, wizardCompleted, magicMomentShow]);
 
   // Theme
   const [theme, setTheme] = useState<Theme>('dark');
@@ -169,8 +188,17 @@ export function Providers({ children }: { children: ReactNode }) {
                 </PluginHostProvider>
               </ErrorBoundary>
               <ToastContainer toasts={toasts} onRemove={removeToast} />
-              {showWizard && (
-                <StudioSetupWizard onClose={() => setShowWizard(false)} />
+              {showMagicMoment && (
+                <MagicMomentWizard onClose={() => {
+                  magicMomentHide();
+                  // After MagicMoment, optionally show setup wizard
+                  if (!wizardCompleted) {
+                    setShowSetupWizard(true);
+                  }
+                }} />
+              )}
+              {showSetupWizard && !showMagicMoment && (
+                <StudioSetupWizard onClose={() => setShowSetupWizard(false)} />
               )}
               <DevToolsInit />
             </ToastContext.Provider>

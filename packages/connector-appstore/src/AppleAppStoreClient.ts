@@ -1,7 +1,16 @@
 import jwt from 'jsonwebtoken';
 import FormData from 'form-data';
 import { createReadStream, statSync } from 'fs';
-import { AppleCredentials, AppleAppMetadata, TestFlightBuild, BuildArtifact, UploadProgress } from './types.js';
+import {
+    AppleCredentials,
+    AppleAppMetadata,
+    TestFlightBuild,
+    BuildArtifact,
+    UploadProgress,
+    BetaGroup,
+    AppStoreVersion,
+    AppStoreLocalization
+} from './types.js';
 
 /**
  * Apple App Store Connect REST API client
@@ -9,9 +18,12 @@ import { AppleCredentials, AppleAppMetadata, TestFlightBuild, BuildArtifact, Upl
  * Handles:
  * - JWT authentication with App Store Connect API
  * - Build artifact upload to App Store Connect
- * - TestFlight beta testing management
- * - App metadata management
+ * - TestFlight beta testing management (groups, submissions)
+ * - App Store version management and submission workflow
+ * - App metadata management (including localized descriptions)
  * - Build processing status monitoring
+ *
+ * API reference: https://developer.apple.com/documentation/appstoreconnectapi
  *
  * Requires:
  * - App Store Connect API Key (from https://appstoreconnect.apple.com/access/api)
@@ -308,17 +320,42 @@ export class AppleAppStoreClient {
         }));
     }
 
+    // ── TestFlight Beta Group Management ───────────────────────────────
+
     /**
-     * Submit build to TestFlight beta testing
+     * List all beta groups for an app
      */
-    async submitToTestFlight(buildId: string): Promise<void> {
+    async listBetaGroups(appId: string): Promise<BetaGroup[]> {
+        const response = await this.makeRequest<any>(
+            `/apps/${appId}/betaGroups`
+        );
+
+        return response.data.map((group: any) => ({
+            id: group.id,
+            name: group.attributes.name,
+            isInternal: group.attributes.isInternalGroup ?? false,
+            testerCount: group.attributes.testerCount ?? 0
+        }));
+    }
+
+    /**
+     * Submit build to TestFlight beta testing for specific beta groups
+     *
+     * @param buildId - Build ID to submit
+     * @param betaGroupIds - Beta group IDs to distribute to. If empty, uses all groups.
+     */
+    async submitToTestFlight(buildId: string, betaGroupIds?: string[]): Promise<void> {
+        const groupIds = betaGroupIds && betaGroupIds.length > 0
+            ? betaGroupIds
+            : ['internal'];
+
         await this.makeRequest(`/builds/${buildId}/relationships/betaGroups`, {
             method: 'POST',
             body: JSON.stringify({
-                data: [{
+                data: groupIds.map(id => ({
                     type: 'betaGroups',
-                    id: 'internal' // Internal testing group
-                }]
+                    id
+                }))
             })
         });
     }
@@ -330,6 +367,172 @@ export class AppleAppStoreClient {
         const response = await this.makeRequest<any>(`/builds/${buildId}/betaBuildLocalizations`);
         return response.data;
     }
+
+    // ── App Store Version & Submission Workflow ────────────────────────
+
+    /**
+     * Create a new App Store version for the app
+     * This is required before submitting an app for App Store review.
+     */
+    async createAppStoreVersion(
+        appId: string,
+        versionString: string,
+        platform: 'IOS' | 'VISION_OS' = 'IOS',
+        releaseType: 'MANUAL' | 'AFTER_APPROVAL' | 'SCHEDULED' = 'AFTER_APPROVAL',
+        earliestReleaseDate?: string
+    ): Promise<AppStoreVersion> {
+        const attributes: any = {
+            versionString,
+            platform,
+            releaseType
+        };
+
+        if (releaseType === 'SCHEDULED' && earliestReleaseDate) {
+            attributes.earliestReleaseDate = earliestReleaseDate;
+        }
+
+        const response = await this.makeRequest<any>('/appStoreVersions', {
+            method: 'POST',
+            body: JSON.stringify({
+                data: {
+                    type: 'appStoreVersions',
+                    attributes,
+                    relationships: {
+                        app: {
+                            data: { type: 'apps', id: appId }
+                        }
+                    }
+                }
+            })
+        });
+
+        const ver = response.data;
+        return {
+            id: ver.id,
+            versionString: ver.attributes.versionString,
+            appStoreState: ver.attributes.appStoreState,
+            platform: ver.attributes.platform,
+            releaseType: ver.attributes.releaseType,
+            earliestReleaseDate: ver.attributes.earliestReleaseDate
+        };
+    }
+
+    /**
+     * Get the current App Store version for an app
+     */
+    async getAppStoreVersion(appId: string, platform: 'IOS' | 'VISION_OS' = 'IOS'): Promise<AppStoreVersion | null> {
+        const response = await this.makeRequest<any>(
+            `/apps/${appId}/appStoreVersions?filter[platform]=${platform}&limit=1`
+        );
+
+        if (!response.data || response.data.length === 0) {
+            return null;
+        }
+
+        const ver = response.data[0];
+        return {
+            id: ver.id,
+            versionString: ver.attributes.versionString,
+            appStoreState: ver.attributes.appStoreState,
+            platform: ver.attributes.platform,
+            releaseType: ver.attributes.releaseType,
+            earliestReleaseDate: ver.attributes.earliestReleaseDate
+        };
+    }
+
+    /**
+     * Attach a build to an App Store version (required before submission)
+     */
+    async attachBuildToVersion(versionId: string, buildId: string): Promise<void> {
+        await this.makeRequest(`/appStoreVersions/${versionId}/relationships/build`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                data: { type: 'builds', id: buildId }
+            })
+        });
+    }
+
+    /**
+     * Submit an App Store version for review
+     */
+    async submitForReview(versionId: string): Promise<void> {
+        await this.makeRequest('/appStoreVersionSubmissions', {
+            method: 'POST',
+            body: JSON.stringify({
+                data: {
+                    type: 'appStoreVersionSubmissions',
+                    relationships: {
+                        appStoreVersion: {
+                            data: { type: 'appStoreVersions', id: versionId }
+                        }
+                    }
+                }
+            })
+        });
+    }
+
+    // ── Localized Metadata Management ─────────────────────────────────
+
+    /**
+     * Update localized metadata for an App Store version
+     * (description, keywords, what's new, URLs)
+     */
+    async updateVersionLocalization(
+        versionId: string,
+        localization: AppStoreLocalization
+    ): Promise<void> {
+        // First, get existing localizations to find the right ID
+        const response = await this.makeRequest<any>(
+            `/appStoreVersions/${versionId}/appStoreVersionLocalizations`
+        );
+
+        const existing = response.data?.find(
+            (loc: any) => loc.attributes.locale === localization.locale
+        );
+
+        const attributes: Record<string, string | undefined> = {};
+        if (localization.description !== undefined) attributes.description = localization.description;
+        if (localization.keywords !== undefined) attributes.keywords = localization.keywords;
+        if (localization.whatsNew !== undefined) attributes.whatsNew = localization.whatsNew;
+        if (localization.marketingUrl !== undefined) attributes.marketingUrl = localization.marketingUrl;
+        if (localization.supportUrl !== undefined) attributes.supportUrl = localization.supportUrl;
+        if (localization.privacyPolicyUrl !== undefined) attributes.privacyPolicyUrl = localization.privacyPolicyUrl;
+
+        if (existing) {
+            // Update existing localization
+            await this.makeRequest(`/appStoreVersionLocalizations/${existing.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    data: {
+                        type: 'appStoreVersionLocalizations',
+                        id: existing.id,
+                        attributes
+                    }
+                })
+            });
+        } else {
+            // Create new localization
+            await this.makeRequest('/appStoreVersionLocalizations', {
+                method: 'POST',
+                body: JSON.stringify({
+                    data: {
+                        type: 'appStoreVersionLocalizations',
+                        attributes: {
+                            locale: localization.locale,
+                            ...attributes
+                        },
+                        relationships: {
+                            appStoreVersion: {
+                                data: { type: 'appStoreVersions', id: versionId }
+                            }
+                        }
+                    }
+                })
+            });
+        }
+    }
+
+    // ── App-Level Metadata ────────────────────────────────────────────
 
     /**
      * Update app metadata (name, description, etc.)

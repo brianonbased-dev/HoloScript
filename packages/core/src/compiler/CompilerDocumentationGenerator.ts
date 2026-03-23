@@ -6,7 +6,20 @@
  * 2. .well-known/mcp - MCP server card conforming to SEP-1649/SEP-1960 schema
  * 3. Markdown documentation bundle - Auto-generated from composition metadata
  *
- * @version 1.0.0
+ * SEP-1649 Conformance:
+ *   - serverInfo nested object with name, title, version
+ *   - protocolVersion field
+ *   - transport with type + endpoint
+ *   - capabilities object
+ *   - tools as static array or ["dynamic"]
+ *
+ * SEP-1960 Conformance:
+ *   - endpoints object mapping transport types to URLs
+ *   - authentication section with methods
+ *   - capabilities as boolean flags
+ *   - documentation/terms_of_service links
+ *
+ * @version 2.0.0
  * @package @holoscript/core/compiler
  */
 
@@ -33,35 +46,57 @@ export interface TripleOutputResult {
 /**
  * MCP Server Card Schema (SEP-1649 serverInfo + SEP-1960 endpoints)
  *
- * Conforms to Model Context Protocol specification for server discovery.
+ * Conforms to both Model Context Protocol specification proposals for server discovery.
+ *
+ * SEP-1649: Server Cards — HTTP Server Discovery via .well-known
+ * SEP-1960: .well-known/mcp Discovery Endpoint for Server Metadata
+ *
  * Published at /.well-known/mcp to enable automated MCP server detection.
  *
- * @see https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/servers/
+ * @see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1649
+ * @see https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1960
  */
 export interface MCPServerCard {
-  /** MCP specification version (e.g., "2025-03-26") */
+  /** MCP specification version (SEP-1960: mcp_version) */
   mcpVersion: string;
 
-  /** Server name (unique identifier) */
-  name: string;
+  /**
+   * Protocol version identifier (SEP-1649: protocolVersion)
+   * e.g., "2025-06-18"
+   */
+  protocolVersion: string;
 
-  /** Server version (semver) */
-  version: string;
+  /**
+   * Server info object (SEP-1649: serverInfo)
+   * Contains name, title, and version as a nested object
+   */
+  serverInfo: MCPServerInfo;
 
-  /** Human-readable description */
+  /** Human-readable description (SEP-1649: description) */
   description: string;
 
   /** Transport configuration (SEP-1649) */
   transport: MCPTransportConfig;
 
-  /** Server capabilities */
+  /** Server capabilities (SEP-1649 nested object / SEP-1960 boolean flags) */
   capabilities: MCPCapabilities;
 
-  /** Tool manifest (SEP-1960) */
+  /**
+   * Tool manifest (SEP-1649/SEP-1960)
+   * Static array of tool definitions, or ["dynamic"] for runtime discovery
+   */
   tools: MCPToolManifest[];
 
-  /** Endpoint URLs for REST APIs */
-  endpoints: Record<string, string>;
+  /**
+   * Endpoint URLs by transport type (SEP-1960)
+   * Maps transport mechanism name to connection URL
+   */
+  endpoints: MCPEndpoints;
+
+  /**
+   * Authentication configuration (SEP-1960)
+   */
+  authentication?: MCPAuthentication;
 
   /** Contact information */
   contact?: {
@@ -69,6 +104,43 @@ export interface MCPServerCard {
     documentation?: string;
     support?: string;
   };
+
+  /** Documentation URL (SEP-1960) */
+  documentation?: string;
+
+  /** Icon URL for display (SEP-1649) */
+  iconUrl?: string;
+
+  /**
+   * Additional metadata (SEP-1649: _meta)
+   * Extension point for vendor-specific metadata
+   */
+  _meta?: Record<string, unknown>;
+
+  // ── Legacy compatibility aliases ──────────────────────────────────────────
+  // These fields are kept for backward compatibility with v1.0.0 consumers
+  // that read `name` / `version` directly off the card root.
+
+  /** @deprecated Use serverInfo.name instead */
+  name: string;
+
+  /** @deprecated Use serverInfo.version instead */
+  version: string;
+}
+
+/**
+ * MCP Server Info (SEP-1649)
+ * Nested object containing server identification metadata
+ */
+export interface MCPServerInfo {
+  /** Server name (unique, kebab-case identifier) */
+  name: string;
+
+  /** Human-readable title */
+  title?: string;
+
+  /** Server version (semver) */
+  version: string;
 }
 
 /**
@@ -78,8 +150,11 @@ export interface MCPTransportConfig {
   /** Transport type (e.g., "streamable-http", "stdio", "sse") */
   type: string;
 
-  /** Transport endpoint URL (for HTTP-based transports) */
-  url?: string;
+  /**
+   * Transport endpoint URL (SEP-1649: endpoint)
+   * For HTTP-based transports, the full URL to the MCP protocol endpoint
+   */
+  endpoint?: string;
 
   /** Authentication requirements */
   authentication?: {
@@ -89,13 +164,16 @@ export interface MCPTransportConfig {
 }
 
 /**
- * MCP Capabilities (SEP-1649)
+ * MCP Capabilities (SEP-1649 + SEP-1960)
+ *
+ * Supports both the SEP-1649 nested object format and SEP-1960 boolean flags.
+ * Consumers should check for both formats.
  */
 export interface MCPCapabilities {
-  /** Tool support */
+  /** Tool support (SEP-1649: { count: N }, SEP-1960: boolean) */
   tools?: {
     count: number;
-  };
+  } | boolean;
 
   /** Resource support */
   resources?: boolean;
@@ -105,10 +183,51 @@ export interface MCPCapabilities {
 
   /** Sampling support */
   sampling?: boolean;
+
+  /** Roots support (SEP-1960) */
+  roots?: boolean;
 }
 
 /**
- * MCP Tool Manifest Entry (SEP-1960)
+ * MCP Endpoints (SEP-1960)
+ *
+ * Maps transport mechanism names to their connection URLs.
+ * At least one endpoint must be present.
+ */
+export interface MCPEndpoints {
+  /** Streamable HTTP endpoint */
+  streamable_http?: string;
+
+  /** Server-Sent Events endpoint */
+  sse?: string;
+
+  /** WebSocket endpoint */
+  websocket?: string;
+
+  /** Allow additional custom transport endpoints */
+  [key: string]: string | undefined;
+}
+
+/**
+ * MCP Authentication Configuration (SEP-1960)
+ */
+export interface MCPAuthentication {
+  /** Whether authentication is required */
+  required: boolean;
+
+  /** Supported authentication methods */
+  methods?: ('oauth2' | 'api_key' | 'mtls' | 'bearer' | 'none')[];
+
+  /** OAuth2 configuration (if method is oauth2) */
+  oauth2?: {
+    authorization_endpoint?: string;
+    token_endpoint?: string;
+    scopes_supported?: string[];
+  };
+}
+
+/**
+ * MCP Tool Manifest Entry (SEP-1649 / SEP-1960)
  */
 export interface MCPToolManifest {
   /** Tool name (unique identifier) */
@@ -159,7 +278,7 @@ export interface DocumentationGeneratorOptions {
  *
  * This generator produces three standardized output formats:
  * 1. llms.txt - Concise AI-readable scene description
- * 2. .well-known/mcp - MCP server discovery card
+ * 2. .well-known/mcp - MCP server discovery card (SEP-1649 + SEP-1960)
  * 3. Markdown - Human-readable documentation bundle
  *
  * @example
@@ -229,6 +348,9 @@ export class CompilerDocumentationGenerator {
    * llms.txt is a standardized format for AI-readable project documentation.
    * It provides a concise overview optimized for LLM context windows.
    *
+   * Includes: scene description, trait list, export targets, API surface,
+   * MCP tool manifest summary, and state management.
+   *
    * @see https://llmstxt.org/
    */
   private generateLlmsTxt(
@@ -280,6 +402,20 @@ export class CompilerDocumentationGenerator {
       sections.push('');
     }
 
+    // MCP Tool Manifests (concise summary)
+    const mcpTools = this.extractMCPTools(composition, targetName);
+    if (mcpTools.length > 0) {
+      sections.push('## MCP Tools');
+      sections.push(`Available tools: ${mcpTools.length}`);
+      for (const tool of mcpTools.slice(0, 8)) { // Limit for token budget
+        sections.push(`- ${tool.name}: ${tool.description}`);
+      }
+      if (mcpTools.length > 8) {
+        sections.push(`- ... and ${mcpTools.length - 8} more`);
+      }
+      sections.push('');
+    }
+
     // State management
     if (composition.state) {
       const stateObj = composition.state as any;
@@ -316,7 +452,7 @@ export class CompilerDocumentationGenerator {
 
     const fullText = sections.join('\n');
 
-    // Truncate to approximate token limit (rough estimate: 1 token ≈ 4 characters)
+    // Truncate to approximate token limit (rough estimate: 1 token ~ 4 characters)
     const maxChars = this.options.maxLlmsTxtTokens * 4;
     if (fullText.length > maxChars) {
       return fullText.substring(0, maxChars) + '\n\n... (truncated to fit token limit)';
@@ -331,40 +467,95 @@ export class CompilerDocumentationGenerator {
 
   /**
    * Generate MCP server card conforming to SEP-1649 and SEP-1960
+   *
+   * Produces a server card that satisfies both specification proposals:
+   * - SEP-1649: serverInfo nested object, transport with endpoint, protocolVersion
+   * - SEP-1960: endpoints object, authentication, capabilities as booleans
+   *
+   * The card includes legacy compatibility fields (name, version at root)
+   * for backward compatibility with v1.0.0 consumers.
    */
   private generateMCPServerCard(
     composition: HoloComposition,
     targetName: string
   ): MCPServerCard {
     const tools = this.extractMCPTools(composition, targetName);
+    const sanitizedName = this.sanitizeServiceName(composition.name || 'holoscript-composition');
+    const compositionTitle = composition.name || 'Untitled';
+    const traitCount = this.extractTraits(composition).length;
+    const objectCount = composition.objects?.length || 0;
+
+    // Build the SEP-1960 endpoints object from transport type
+    const endpoints: MCPEndpoints = {};
+    const transportType = this.options.mcpTransportType;
+    const mcpUrl = `${this.options.serviceUrl}/mcp`;
+
+    // Map transport type to the canonical endpoint key
+    if (transportType === 'streamable-http' || transportType === 'http') {
+      endpoints.streamable_http = mcpUrl;
+    } else if (transportType === 'sse') {
+      endpoints.sse = mcpUrl;
+    } else if (transportType === 'websocket' || transportType === 'ws') {
+      endpoints.websocket = mcpUrl;
+    } else {
+      // Default: use streamable_http
+      endpoints.streamable_http = mcpUrl;
+    }
+
+    // Also register common utility endpoints
+    endpoints.health = `${this.options.serviceUrl}/health`;
+    endpoints.render = `${this.options.serviceUrl}/api/render`;
 
     return {
+      // SEP-1960 fields
       mcpVersion: '2025-03-26',
-      name: this.sanitizeServiceName(composition.name || 'holoscript-composition'),
-      version: this.options.serviceVersion,
-      description: `HoloScript composition "${composition.name || 'Untitled'}" compiled for ${targetName} — ${composition.objects?.length || 0} objects, ${this.extractTraits(composition).length} unique traits`,
-      transport: {
-        type: this.options.mcpTransportType,
-        url: `${this.options.serviceUrl}/mcp`,
-        authentication: null, // Can be extended to support auth
+
+      // SEP-1649 fields
+      protocolVersion: '2025-06-18',
+
+      serverInfo: {
+        name: sanitizedName,
+        title: `HoloScript: ${compositionTitle}`,
+        version: this.options.serviceVersion,
       },
+
+      description: `HoloScript composition "${compositionTitle}" compiled for ${targetName} — ${objectCount} objects, ${traitCount} unique traits`,
+
+      transport: {
+        type: transportType,
+        endpoint: mcpUrl,
+        authentication: null,
+      },
+
       capabilities: {
         tools: {
           count: tools.length,
         },
         resources: false,
         prompts: false,
+        sampling: false,
+        roots: false,
       },
+
       tools,
-      endpoints: {
-        mcp: `${this.options.serviceUrl}/mcp`,
-        health: `${this.options.serviceUrl}/health`,
-        render: `${this.options.serviceUrl}/api/render`,
+
+      endpoints,
+
+      authentication: {
+        required: false,
+        methods: ['none'],
       },
+
       contact: {
         repository: this.options.contactRepository || undefined,
         documentation: this.options.contactDocumentation || undefined,
       },
+
+      documentation: this.options.contactDocumentation || undefined,
+
+      // Legacy compatibility (v1.0.0)
+      name: sanitizedName,
+      version: this.options.serviceVersion,
     };
   }
 
@@ -388,6 +579,20 @@ export class CompilerDocumentationGenerator {
             type: 'object',
             description: 'Compiler options',
           },
+        },
+      },
+    });
+
+    // Render preview tool
+    tools.push({
+      name: 'render_preview',
+      description: `Render a preview of this composition as PNG/JPEG`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          width: { type: 'number', description: 'Image width in pixels' },
+          height: { type: 'number', description: 'Image height in pixels' },
+          format: { type: 'string', enum: ['png', 'jpeg', 'webp'] },
         },
       },
     });
@@ -437,6 +642,36 @@ export class CompilerDocumentationGenerator {
       });
     }
 
+    // Trait list tool
+    tools.push({
+      name: 'list_traits',
+      description: 'List all traits used in this composition with their configurations',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          category: {
+            type: 'string',
+            description: 'Filter by trait category (visual, physics, audio, etc.)',
+          },
+        },
+      },
+    });
+
+    // Object query tool
+    if (composition.objects && composition.objects.length > 0) {
+      tools.push({
+        name: 'query_objects',
+        description: `Query scene objects by name, type, or trait (${composition.objects.length} objects available)`,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Filter by object name (glob pattern)' },
+            trait: { type: 'string', description: 'Filter by trait name' },
+          },
+        },
+      });
+    }
+
     return tools;
   }
 
@@ -446,6 +681,9 @@ export class CompilerDocumentationGenerator {
 
   /**
    * Generate comprehensive markdown documentation bundle
+   *
+   * Includes: composition metadata, scene graph, trait documentation,
+   * state management, logic handlers, MCP tool manifests, and compilation output.
    */
   private generateMarkdownDocs(
     composition: HoloComposition,
@@ -459,6 +697,7 @@ export class CompilerDocumentationGenerator {
     sections.push('');
     sections.push(`**Target:** ${targetName}`);
     sections.push(`**Generated:** ${new Date().toISOString()}`);
+    sections.push(`**Version:** ${this.options.serviceVersion}`);
     sections.push('');
 
     // Table of contents
@@ -473,6 +712,7 @@ export class CompilerDocumentationGenerator {
     if (composition.logic) {
       sections.push('- [Logic Handlers](#logic-handlers)');
     }
+    sections.push('- [MCP Tool Manifest](#mcp-tool-manifest)');
     sections.push('- [Compilation Output](#compilation-output)');
     sections.push('');
 
@@ -480,6 +720,18 @@ export class CompilerDocumentationGenerator {
     sections.push('## Overview');
     sections.push('');
     sections.push(`This composition contains ${composition.objects?.length || 0} objects, ${composition.lights?.length || 0} lights, and ${composition.spatialGroups?.length || 0} spatial groups.`);
+    sections.push('');
+
+    // Composition metadata
+    if (composition.templates && composition.templates.length > 0) {
+      sections.push(`**Templates:** ${composition.templates.length}`);
+    }
+    if (composition.imports && composition.imports.length > 0) {
+      sections.push(`**Imports:** ${composition.imports.length}`);
+    }
+    if (composition.traitDefinitions && composition.traitDefinitions.length > 0) {
+      sections.push(`**Custom Traits:** ${composition.traitDefinitions.length}`);
+    }
     sections.push('');
 
     // Scene graph
@@ -494,11 +746,24 @@ export class CompilerDocumentationGenerator {
         const objAny = obj as any; // HoloObjectDecl position may be nested in properties
         const pos = objAny.position || objAny.transform?.position;
         const posStr = pos ? `(${pos.x}, ${pos.y}, ${pos.z})` : 'N/A';
-        const traitNames = obj.traits ? Array.from(obj.traits.keys()).join(', ') : 'none';
+        const traitNames = obj.traits ? this.extractTraitNames(obj.traits as any).join(', ') || 'none' : 'none';
         sections.push(`| ${obj.name} | ${this.getObjectType(obj)} | ${posStr} | ${traitNames} |`);
       }
       if (composition.objects.length > 20) {
         sections.push(`| ... | ... | ... | *${composition.objects.length - 20} more objects* |`);
+      }
+      sections.push('');
+    }
+
+    // Lights
+    if (composition.lights && composition.lights.length > 0) {
+      sections.push('### Lights');
+      sections.push('');
+      sections.push('| Name | Type |');
+      sections.push('|------|------|');
+      for (const light of composition.lights) {
+        const lightAny = light as any;
+        sections.push(`| ${light.name || 'unnamed'} | ${lightAny.lightType || 'unknown'} |`);
       }
       sections.push('');
     }
@@ -525,6 +790,17 @@ export class CompilerDocumentationGenerator {
         }
         sections.push('');
       }
+    }
+
+    // Custom trait definitions
+    if (composition.traitDefinitions && composition.traitDefinitions.length > 0) {
+      sections.push('### Custom Trait Definitions');
+      sections.push('');
+      for (const traitDef of composition.traitDefinitions) {
+        const extendsClause = (traitDef as any).extends ? ` extends ${(traitDef as any).extends}` : '';
+        sections.push(`- **${traitDef.name}**${extendsClause}`);
+      }
+      sections.push('');
     }
 
     // State management
@@ -571,8 +847,40 @@ export class CompilerDocumentationGenerator {
         sections.push('Executed every frame.');
         sections.push('');
       }
-      // Add more logic handler documentation as needed
     }
+
+    // MCP Tool Manifest documentation
+    const mcpTools = this.extractMCPTools(composition, targetName);
+    sections.push('## MCP Tool Manifest');
+    sections.push('');
+    sections.push(`This compilation exposes ${mcpTools.length} MCP tools for programmatic interaction:`);
+    sections.push('');
+    sections.push('| Tool | Description | Input Schema |');
+    sections.push('|------|-------------|-------------|');
+    for (const tool of mcpTools) {
+      const schemaStr = tool.inputSchema
+        ? '`' + JSON.stringify(Object.keys((tool.inputSchema as any).properties || {})) + '`'
+        : 'none';
+      sections.push(`| \`${tool.name}\` | ${tool.description} | ${schemaStr} |`);
+    }
+    sections.push('');
+
+    // MCP Discovery endpoint
+    sections.push('### Discovery');
+    sections.push('');
+    sections.push(`Server card available at: \`${this.options.serviceUrl}/.well-known/mcp\``);
+    sections.push('');
+    sections.push('```json');
+    sections.push(`{`);
+    sections.push(`  "mcpVersion": "2025-03-26",`);
+    sections.push(`  "protocolVersion": "2025-06-18",`);
+    sections.push(`  "serverInfo": {`);
+    sections.push(`    "name": "${this.sanitizeServiceName(composition.name || 'holoscript-composition')}",`);
+    sections.push(`    "version": "${this.options.serviceVersion}"`);
+    sections.push(`  }`);
+    sections.push(`}`);
+    sections.push('```');
+    sections.push('');
 
     // Compilation output
     sections.push('## Compilation Output');
@@ -593,7 +901,7 @@ export class CompilerDocumentationGenerator {
     // Footer
     sections.push('---');
     sections.push('');
-    sections.push('*Generated by HoloScript Compiler Documentation Generator*');
+    sections.push('*Generated by HoloScript Compiler Documentation Generator v2.0.0*');
     sections.push('');
 
     return sections.join('\n');
@@ -604,6 +912,33 @@ export class CompilerDocumentationGenerator {
   // ===========================================================================
 
   /**
+   * Extract trait names from a traits field.
+   *
+   * Handles both formats:
+   * - HoloObjectTrait[] (canonical parser output: array of { name, config })
+   * - Map<string, unknown> (R3F compiler output: Map with trait names as keys)
+   */
+  private extractTraitNames(
+    traits: HoloObjectDecl['traits'] | Map<string, unknown> | undefined
+  ): string[] {
+    if (!traits) return [];
+
+    // Map format (R3FCompiler, some test mocks)
+    if (traits instanceof Map) {
+      return Array.from(traits.keys());
+    }
+
+    // Array format (canonical HoloObjectTrait[])
+    if (Array.isArray(traits)) {
+      return traits
+        .map((t) => (typeof t === 'string' ? t : t?.name))
+        .filter((name): name is string => typeof name === 'string');
+    }
+
+    return [];
+  }
+
+  /**
    * Extract all unique traits from a composition
    */
   private extractTraits(composition: HoloComposition): string[] {
@@ -612,10 +947,8 @@ export class CompilerDocumentationGenerator {
     // Extract from objects
     if (composition.objects) {
       for (const obj of composition.objects) {
-        if (obj.traits) {
-          for (const trait of obj.traits) {
-            traitSet.add(trait.name);
-          }
+        for (const name of this.extractTraitNames(obj.traits as any)) {
+          traitSet.add(name);
         }
       }
     }
@@ -623,10 +956,8 @@ export class CompilerDocumentationGenerator {
     // Extract from templates
     if (composition.templates) {
       for (const template of composition.templates) {
-        if (template.traits) {
-          for (const trait of template.traits) {
-            traitSet.add(trait.name);
-          }
+        for (const name of this.extractTraitNames(template.traits as any)) {
+          traitSet.add(name);
         }
       }
     }
@@ -664,27 +995,28 @@ export class CompilerDocumentationGenerator {
    * Categorize a trait by name pattern
    */
   private categorizeTrait(trait: string): string {
+    if (!trait) return 'Other';
     const lower = trait.toLowerCase();
 
-    if (lower.includes('material') || lower.includes('color') || lower.includes('texture') || lower.includes('glow')) {
+    if (lower.includes('material') || lower.includes('color') || lower.includes('texture') || lower.includes('glow') || lower.includes('emissive') || lower.includes('shader') || lower.includes('pbr') || lower.includes('light') || lower.includes('shadow') || lower.includes('fog') || lower.includes('transparency') || lower.includes('opacity')) {
       return 'Visual';
     }
-    if (lower.includes('physics') || lower.includes('collider') || lower.includes('rigidbody')) {
+    if (lower.includes('physics') || lower.includes('collider') || lower.includes('rigidbody') || lower.includes('gravity') || lower.includes('fluid') || lower.includes('constraint') || lower.includes('joint')) {
       return 'Physics';
     }
-    if (lower.includes('audio') || lower.includes('sound')) {
+    if (lower.includes('audio') || lower.includes('sound') || lower.includes('music') || lower.includes('spatial_audio')) {
       return 'Audio';
     }
-    if (lower.includes('clickable') || lower.includes('draggable') || lower.includes('interactive')) {
+    if (lower.includes('clickable') || lower.includes('draggable') || lower.includes('interactive') || lower.includes('hover') || lower.includes('grab') || lower.includes('pointer') || lower.includes('selectable')) {
       return 'Interaction';
     }
-    if (lower.includes('ai') || lower.includes('npc') || lower.includes('behavior')) {
+    if (lower.includes('ai') || lower.includes('npc') || lower.includes('behavior') || lower.includes('pathfinding') || lower.includes('agent') || lower.includes('decision')) {
       return 'AI';
     }
-    if (lower.includes('anim') || lower.includes('rotate') || lower.includes('move')) {
+    if (lower.includes('anim') || lower.includes('rotate') || lower.includes('move') || lower.includes('orbit') || lower.includes('keyframe') || lower.includes('tween') || lower.includes('spring')) {
       return 'Animation';
     }
-    if (lower.includes('network') || lower.includes('sync') || lower.includes('multiplayer')) {
+    if (lower.includes('network') || lower.includes('sync') || lower.includes('multiplayer') || lower.includes('replicated') || lower.includes('authority') || lower.includes('lobby')) {
       return 'Network';
     }
 

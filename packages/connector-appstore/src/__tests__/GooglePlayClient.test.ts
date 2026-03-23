@@ -2,39 +2,69 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GooglePlayClient } from '../GooglePlayClient.js';
 import type { GoogleCredentials, BuildArtifact, GoogleAppMetadata } from '../types.js';
 
+// Mock fs module to prevent real filesystem access in tests
+vi.mock('fs', () => {
+    const { Readable } = require('stream');
+    return {
+        createReadStream: vi.fn().mockReturnValue(new Readable({ read() { this.push(null); } })),
+        statSync: vi.fn().mockReturnValue({ size: 1024 })
+    };
+});
+
+// Create mock functions with vi.hoisted so they survive vi.clearAllMocks
+const mockEditsInsert = vi.fn();
+const mockEditsGet = vi.fn();
+const mockEditsDelete = vi.fn();
+const mockEditsCommit = vi.fn();
+const mockApksUpload = vi.fn();
+const mockBundlesUpload = vi.fn();
+const mockTracksGet = vi.fn();
+const mockTracksList = vi.fn();
+const mockTracksUpdate = vi.fn();
+const mockListingsUpdate = vi.fn();
+const mockDeobfuscationUpload = vi.fn();
+const mockReviewsList = vi.fn();
+
 // Mock googleapis
 vi.mock('googleapis', () => ({
     google: {
         auth: {
-            GoogleAuth: vi.fn().mockImplementation(() => ({
-                getClient: vi.fn().mockResolvedValue({})
-            }))
-        },
-        androidpublisher: vi.fn().mockReturnValue({
-            edits: {
-                insert: vi.fn(),
-                get: vi.fn(),
-                delete: vi.fn(),
-                commit: vi.fn(),
-                apks: {
-                    upload: vi.fn()
-                },
-                bundles: {
-                    upload: vi.fn()
-                },
-                tracks: {
-                    get: vi.fn(),
-                    list: vi.fn(),
-                    update: vi.fn()
-                },
-                listings: {
-                    update: vi.fn()
-                }
-            },
-            reviews: {
-                list: vi.fn()
+            GoogleAuth: function() {
+                return {
+                    getClient: vi.fn().mockResolvedValue({})
+                };
             }
-        })
+        },
+        androidpublisher: function() {
+            return {
+                edits: {
+                    insert: mockEditsInsert,
+                    get: mockEditsGet,
+                    delete: mockEditsDelete,
+                    commit: mockEditsCommit,
+                    apks: {
+                        upload: mockApksUpload
+                    },
+                    bundles: {
+                        upload: mockBundlesUpload
+                    },
+                    tracks: {
+                        get: mockTracksGet,
+                        list: mockTracksList,
+                        update: mockTracksUpdate
+                    },
+                    listings: {
+                        update: mockListingsUpdate
+                    },
+                    deobfuscationfiles: {
+                        upload: mockDeobfuscationUpload
+                    }
+                },
+                reviews: {
+                    list: mockReviewsList
+                }
+            };
+        }
     }
 }));
 
@@ -42,7 +72,7 @@ describe('GooglePlayClient', () => {
     let client: GooglePlayClient;
     let mockCredentials: GoogleCredentials;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         mockCredentials = {
             clientEmail: 'test@example.iam.gserviceaccount.com',
             privateKey: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----'
@@ -50,7 +80,22 @@ describe('GooglePlayClient', () => {
 
         client = new GooglePlayClient(mockCredentials);
 
-        vi.clearAllMocks();
+        // Reset mock state but not the implementations
+        mockEditsInsert.mockReset();
+        mockEditsGet.mockReset();
+        mockEditsDelete.mockReset();
+        mockEditsCommit.mockReset();
+        mockApksUpload.mockReset();
+        mockBundlesUpload.mockReset();
+        mockTracksGet.mockReset();
+        mockTracksList.mockReset();
+        mockTracksUpdate.mockReset();
+        mockListingsUpdate.mockReset();
+        mockDeobfuscationUpload.mockReset();
+        mockReviewsList.mockReset();
+
+        // Initialize the client so publisher is set
+        await client.initialize();
     });
 
     describe('Initialization', () => {
@@ -59,15 +104,14 @@ describe('GooglePlayClient', () => {
         });
 
         it('should initialize with credentials', async () => {
-            await expect(client.initialize()).resolves.not.toThrow();
+            const freshClient = new GooglePlayClient(mockCredentials);
+            await expect(freshClient.initialize()).resolves.not.toThrow();
         });
     });
 
     describe('App Operations', () => {
         it('should get app details', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.get.mockResolvedValue({
+            mockEditsGet.mockResolvedValue({
                 data: {
                     id: 'com.test.app',
                     appName: 'Test App',
@@ -75,7 +119,6 @@ describe('GooglePlayClient', () => {
                 }
             });
 
-            await client.initialize();
             const app = await client.getApp('com.test.app');
 
             expect(app).toEqual({
@@ -87,46 +130,7 @@ describe('GooglePlayClient', () => {
     });
 
     describe('Build Upload', () => {
-        it('should upload AAB file', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.insert.mockResolvedValue({
-                data: { id: 'edit-123' }
-            });
-
-            mockPublisher.edits.bundles.upload.mockResolvedValue({
-                data: { versionCode: 42 }
-            });
-
-            mockPublisher.edits.commit.mockResolvedValue({});
-
-            await client.initialize();
-
-            const artifact: BuildArtifact = {
-                filePath: '/path/to/app.aab',
-                platform: 'android',
-                version: '1.0.0',
-                buildNumber: '42'
-            };
-
-            const appMetadata: GoogleAppMetadata = {
-                packageName: 'com.test.app',
-                appName: 'Test App',
-                defaultLanguage: 'en-US'
-            };
-
-            // Mock getApp call
-            mockPublisher.edits.get.mockResolvedValue({
-                data: appMetadata
-            });
-
-            // Note: This would fail without actual file system, but tests the flow
-            // In production, use proper mocking of fs module
-        });
-
         it('should validate platform for uploads', async () => {
-            await client.initialize();
-
             const artifact: BuildArtifact = {
                 filePath: '/path/to/build.ipa',
                 platform: 'ios', // Invalid for Google
@@ -146,16 +150,12 @@ describe('GooglePlayClient', () => {
         });
 
         it('should rollback edit on upload error', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.insert.mockResolvedValue({
+            mockEditsInsert.mockResolvedValue({
                 data: { id: 'edit-123' }
             });
 
-            mockPublisher.edits.bundles.upload.mockRejectedValue(new Error('Upload failed'));
-            mockPublisher.edits.delete.mockResolvedValue({});
-
-            await client.initialize();
+            mockBundlesUpload.mockRejectedValue(new Error('Upload failed'));
+            mockEditsDelete.mockResolvedValue({});
 
             const artifact: BuildArtifact = {
                 filePath: '/path/to/app.aab',
@@ -170,16 +170,12 @@ describe('GooglePlayClient', () => {
                 defaultLanguage: 'en-US'
             };
 
-            mockPublisher.edits.get.mockResolvedValue({
-                data: appMetadata
-            });
-
             await expect(
                 client.uploadBuild(artifact, appMetadata)
             ).rejects.toThrow();
 
             // Verify rollback was called
-            expect(mockPublisher.edits.delete).toHaveBeenCalledWith({
+            expect(mockEditsDelete).toHaveBeenCalledWith({
                 packageName: 'com.test.app',
                 editId: 'edit-123'
             });
@@ -188,9 +184,7 @@ describe('GooglePlayClient', () => {
 
     describe('Track Management', () => {
         it('should get track information', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.tracks.get.mockResolvedValue({
+            mockTracksGet.mockResolvedValue({
                 data: {
                     track: 'internal',
                     releases: [{
@@ -200,8 +194,6 @@ describe('GooglePlayClient', () => {
                     }]
                 }
             });
-
-            await client.initialize();
 
             const track = await client.getTrack('com.test.app', 'internal');
 
@@ -214,9 +206,7 @@ describe('GooglePlayClient', () => {
         });
 
         it('should list all tracks', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.tracks.list.mockResolvedValue({
+            mockTracksList.mockResolvedValue({
                 data: {
                     tracks: [
                         {
@@ -237,8 +227,6 @@ describe('GooglePlayClient', () => {
                 }
             });
 
-            await client.initialize();
-
             const tracks = await client.listTracks('com.test.app');
 
             expect(tracks).toHaveLength(2);
@@ -247,40 +235,33 @@ describe('GooglePlayClient', () => {
         });
 
         it('should promote release between tracks', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.insert.mockResolvedValue({
+            mockEditsInsert.mockResolvedValue({
                 data: { id: 'edit-123' }
             });
 
-            mockPublisher.edits.commit.mockResolvedValue({});
-
-            await client.initialize();
+            mockTracksUpdate.mockResolvedValue({});
+            mockEditsCommit.mockResolvedValue({});
 
             await expect(
                 client.promoteRelease('com.test.app', 'internal', 'alpha', [42, 43])
             ).resolves.not.toThrow();
 
-            expect(mockPublisher.edits.commit).toHaveBeenCalled();
+            expect(mockEditsCommit).toHaveBeenCalled();
         });
 
         it('should update rollout percentage', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.insert.mockResolvedValue({
+            mockEditsInsert.mockResolvedValue({
                 data: { id: 'edit-123' }
             });
 
-            mockPublisher.edits.tracks.update.mockResolvedValue({});
-            mockPublisher.edits.commit.mockResolvedValue({});
-
-            await client.initialize();
+            mockTracksUpdate.mockResolvedValue({});
+            mockEditsCommit.mockResolvedValue({});
 
             await expect(
                 client.updateRollout('com.test.app', [42], 0.5)
             ).resolves.not.toThrow();
 
-            expect(mockPublisher.edits.tracks.update).toHaveBeenCalledWith(
+            expect(mockTracksUpdate).toHaveBeenCalledWith(
                 expect.objectContaining({
                     requestBody: expect.objectContaining({
                         releases: expect.arrayContaining([
@@ -294,8 +275,6 @@ describe('GooglePlayClient', () => {
         });
 
         it('should validate rollout percentage bounds', async () => {
-            await client.initialize();
-
             await expect(
                 client.updateRollout('com.test.app', [42], 1.5)
             ).rejects.toThrow('userFraction must be between 0 and 1');
@@ -306,18 +285,109 @@ describe('GooglePlayClient', () => {
         });
     });
 
+    describe('Rollout Halt', () => {
+        it('should halt a staged rollout', async () => {
+            mockEditsInsert.mockResolvedValue({
+                data: { id: 'edit-halt' }
+            });
+
+            mockTracksUpdate.mockResolvedValue({});
+            mockEditsCommit.mockResolvedValue({});
+
+            await expect(
+                client.haltRollout('com.test.app', [42, 43])
+            ).resolves.not.toThrow();
+
+            expect(mockTracksUpdate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    track: 'production',
+                    requestBody: expect.objectContaining({
+                        releases: expect.arrayContaining([
+                            expect.objectContaining({
+                                status: 'halted'
+                            })
+                        ])
+                    })
+                })
+            );
+
+            expect(mockEditsCommit).toHaveBeenCalledWith({
+                packageName: 'com.test.app',
+                editId: 'edit-halt'
+            });
+        });
+
+        it('should rollback on halt error', async () => {
+            mockEditsInsert.mockResolvedValue({
+                data: { id: 'edit-halt' }
+            });
+
+            mockTracksUpdate.mockRejectedValue(new Error('Halt failed'));
+            mockEditsDelete.mockResolvedValue({});
+
+            await expect(
+                client.haltRollout('com.test.app', [42])
+            ).rejects.toThrow('Halt failed');
+
+            expect(mockEditsDelete).toHaveBeenCalledWith({
+                packageName: 'com.test.app',
+                editId: 'edit-halt'
+            });
+        });
+    });
+
+    describe('Deobfuscation File Upload', () => {
+        it('should upload deobfuscation file', async () => {
+            mockEditsInsert.mockResolvedValue({
+                data: { id: 'edit-deob' }
+            });
+
+            mockDeobfuscationUpload.mockResolvedValue({});
+            mockEditsCommit.mockResolvedValue({});
+
+            await expect(
+                client.uploadDeobfuscationFile('com.test.app', 42, '/path/to/mapping.txt')
+            ).resolves.not.toThrow();
+
+            expect(mockDeobfuscationUpload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    packageName: 'com.test.app',
+                    editId: 'edit-deob',
+                    apkVersionCode: 42,
+                    deobfuscationFileType: 'proguard'
+                })
+            );
+        });
+
+        it('should rollback on deobfuscation upload error', async () => {
+            mockEditsInsert.mockResolvedValue({
+                data: { id: 'edit-deob' }
+            });
+
+            mockDeobfuscationUpload.mockRejectedValue(
+                new Error('Deobfuscation upload failed')
+            );
+            mockEditsDelete.mockResolvedValue({});
+
+            await expect(
+                client.uploadDeobfuscationFile('com.test.app', 42, '/path/to/mapping.txt')
+            ).rejects.toThrow('Deobfuscation upload failed');
+
+            expect(mockEditsDelete).toHaveBeenCalledWith({
+                packageName: 'com.test.app',
+                editId: 'edit-deob'
+            });
+        });
+    });
+
     describe('Store Listing', () => {
         it('should update store listing', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.insert.mockResolvedValue({
+            mockEditsInsert.mockResolvedValue({
                 data: { id: 'edit-123' }
             });
 
-            mockPublisher.edits.listings.update.mockResolvedValue({});
-            mockPublisher.edits.commit.mockResolvedValue({});
-
-            await client.initialize();
+            mockListingsUpdate.mockResolvedValue({});
+            mockEditsCommit.mockResolvedValue({});
 
             await expect(
                 client.updateListing('com.test.app', 'en-US', {
@@ -327,7 +397,7 @@ describe('GooglePlayClient', () => {
                 })
             ).resolves.not.toThrow();
 
-            expect(mockPublisher.edits.listings.update).toHaveBeenCalledWith({
+            expect(mockListingsUpdate).toHaveBeenCalledWith({
                 packageName: 'com.test.app',
                 editId: 'edit-123',
                 language: 'en-US',
@@ -342,9 +412,7 @@ describe('GooglePlayClient', () => {
 
     describe('Review Status', () => {
         it('should get review status', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.reviews.list.mockResolvedValue({
+            mockReviewsList.mockResolvedValue({
                 data: {
                     reviews: [
                         {
@@ -356,8 +424,6 @@ describe('GooglePlayClient', () => {
                 }
             });
 
-            await client.initialize();
-
             const reviews = await client.getReviewStatus('com.test.app');
 
             expect(Array.isArray(reviews)).toBe(true);
@@ -366,11 +432,7 @@ describe('GooglePlayClient', () => {
 
     describe('Error Handling', () => {
         it('should handle API errors gracefully', async () => {
-            const mockPublisher = (client as any).publisher;
-
-            mockPublisher.edits.get.mockRejectedValue(new Error('API Error'));
-
-            await client.initialize();
+            mockEditsGet.mockRejectedValue(new Error('API Error'));
 
             await expect(client.getApp('com.test.app')).rejects.toThrow('API Error');
         });

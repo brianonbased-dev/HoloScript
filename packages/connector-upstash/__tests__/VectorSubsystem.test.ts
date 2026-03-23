@@ -1,46 +1,48 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VectorSubsystem } from '../src/subsystems/VectorSubsystem';
 
-// Mock @upstash/vector
+// Mock @upstash/vector -- use function() not arrow for constructor (W.011)
 vi.mock('@upstash/vector', () => ({
-    Index: vi.fn().mockImplementation(() => ({
-        info: vi.fn().mockResolvedValue({
-            vectorCount: 100,
-            pendingVectorCount: 0,
-            indexSize: 1024,
-            dimension: 1536,
-            similarityFunction: 'COSINE'
-        }),
-        upsert: vi.fn().mockResolvedValue(undefined),
-        query: vi.fn().mockResolvedValue([
-            {
-                id: 'comp-1',
-                score: 0.95,
-                metadata: {
+    Index: vi.fn().mockImplementation(function () {
+        return {
+            info: vi.fn().mockResolvedValue({
+                vectorCount: 100,
+                pendingVectorCount: 0,
+                indexSize: 1024,
+                dimension: 1536,
+                similarityFunction: 'COSINE'
+            }),
+            upsert: vi.fn().mockResolvedValue(undefined),
+            query: vi.fn().mockResolvedValue([
+                {
                     id: 'comp-1',
-                    snippet: 'object Cube { @physics }',
-                    traits: ['@physics'],
-                    targets: ['unity'],
-                    tags: ['3d', 'physics'],
-                    namespace: 'user123',
-                    timestamp: Date.now()
+                    score: 0.95,
+                    metadata: {
+                        id: 'comp-1',
+                        snippet: 'object Cube { @physics }',
+                        traits: ['@physics'],
+                        targets: ['unity'],
+                        tags: ['3d', 'physics'],
+                        namespace: 'user123',
+                        timestamp: Date.now()
+                    }
                 }
-            }
-        ]),
-        fetch: vi.fn().mockResolvedValue([
-            {
-                id: 'comp-1',
-                vector: [0.1, 0.2, 0.3],
-                metadata: {
+            ]),
+            fetch: vi.fn().mockResolvedValue([
+                {
                     id: 'comp-1',
-                    snippet: 'object Cube { @physics }',
-                    traits: ['@physics'],
-                    timestamp: Date.now()
+                    vector: [0.1, 0.2, 0.3],
+                    metadata: {
+                        id: 'comp-1',
+                        snippet: 'object Cube { @physics }',
+                        traits: ['@physics'],
+                        timestamp: Date.now()
+                    }
                 }
-            }
-        ]),
-        delete: vi.fn().mockResolvedValue(undefined)
-    }))
+            ]),
+            delete: vi.fn().mockResolvedValue(undefined)
+        };
+    })
 }));
 
 describe('VectorSubsystem', () => {
@@ -106,7 +108,6 @@ describe('VectorSubsystem', () => {
                     timestamp: Date.now()
                 }
             );
-            // No error means success
         });
 
         it('should search similar compositions by vector', async () => {
@@ -135,12 +136,10 @@ describe('VectorSubsystem', () => {
 
         it('should delete composition', async () => {
             await vector.deleteComposition('comp-1');
-            // No error means success
         });
 
         it('should delete by namespace', async () => {
             await vector.deleteByNamespace('user123');
-            // No error means success
         });
 
         it('should get index info', async () => {
@@ -154,6 +153,85 @@ describe('VectorSubsystem', () => {
             await vector.disconnect();
             await expect(vector.upsertComposition('comp-1', [0.1, 0.2], { snippet: 'test', traits: [], timestamp: Date.now() }))
                 .rejects.toThrow('VectorSubsystem not connected');
+        });
+    });
+
+    describe('text-based operations', () => {
+        beforeEach(async () => {
+            await vector.connect();
+        });
+
+        it('should search by text query using built-in embedding', async () => {
+            const results = await vector.searchByText('physics simulation with rigidbody');
+            expect(results).toHaveLength(1);
+            expect(results[0].id).toBe('comp-1');
+            expect(results[0].score).toBe(0.95);
+        });
+
+        it('should search by text with filter', async () => {
+            const results = await vector.searchByText(
+                'physics simulation',
+                5,
+                'namespace = "user123"'
+            );
+            expect(results).toHaveLength(1);
+        });
+
+        it('should upsert composition with text data for auto-embedding', async () => {
+            await vector.upsertCompositionWithData(
+                'comp-text-1',
+                'object Cube { @physics @rigidbody position: [0, 1, 0] }',
+                {
+                    snippet: 'object Cube { @physics @rigidbody }',
+                    traits: ['@physics', '@rigidbody'],
+                    namespace: 'user123',
+                    timestamp: Date.now()
+                }
+            );
+        });
+
+        it('should throw error for text upsert when not connected', async () => {
+            await vector.disconnect();
+            await expect(vector.upsertCompositionWithData('id', 'data', { snippet: 'test', traits: [], timestamp: Date.now() }))
+                .rejects.toThrow('VectorSubsystem not connected');
+        });
+    });
+
+    describe('batch operations', () => {
+        beforeEach(async () => {
+            await vector.connect();
+        });
+
+        it('should batch upsert multiple compositions', async () => {
+            await vector.batchUpsert([
+                {
+                    id: 'comp-a',
+                    vector: [0.1, 0.2, 0.3],
+                    metadata: {
+                        snippet: 'object A {}',
+                        traits: ['@physics'],
+                        timestamp: Date.now()
+                    }
+                },
+                {
+                    id: 'comp-b',
+                    vector: [0.4, 0.5, 0.6],
+                    metadata: {
+                        snippet: 'object B {}',
+                        traits: ['@grabbable'],
+                        timestamp: Date.now()
+                    }
+                }
+            ]);
+        });
+
+        it('should throw error for batch upsert when not connected', async () => {
+            await vector.disconnect();
+            await expect(vector.batchUpsert([{
+                id: 'a',
+                vector: [0.1],
+                metadata: { snippet: 'test', traits: [], timestamp: Date.now() }
+            }])).rejects.toThrow('VectorSubsystem not connected');
         });
     });
 });

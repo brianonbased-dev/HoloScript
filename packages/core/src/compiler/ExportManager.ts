@@ -620,7 +620,7 @@ export class ExportManager {
       const tripleOutput = docGen.generate(composition, target, outputStr);
       documentation = {
         llmsTxt: tripleOutput.llmsTxt,
-        wellKnownMcp: tripleOutput.wellKnownMcp as Record<string, unknown>,
+        wellKnownMcp: tripleOutput.wellKnownMcp as unknown as Record<string, unknown>,
         markdownDocs: tripleOutput.markdownDocs,
       };
     }
@@ -688,7 +688,7 @@ export class ExportManager {
         const tripleOutput = docGen.generate(composition, target, outputStr);
         documentation = {
           llmsTxt: tripleOutput.llmsTxt,
-          wellKnownMcp: tripleOutput.wellKnownMcp as Record<string, unknown>,
+          wellKnownMcp: tripleOutput.wellKnownMcp as unknown as Record<string, unknown>,
           markdownDocs: tripleOutput.markdownDocs,
         };
       }
