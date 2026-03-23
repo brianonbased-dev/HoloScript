@@ -70,18 +70,14 @@ function writeProjectPackageJson(projectDir: string, projectName: string): void 
     type: 'module',
     scripts: {
       dev: 'vite',
-      build: 'holoscript compile src/scene.holo --target webxr -o dist/',
+      build: 'vite build',
       preview: 'vite preview',
-      validate: 'holoscript validate src/scene.holo',
     },
     dependencies: {
       three: '^0.170.0',
-      '@holoscript/core': '^5.1.0',
-      '@holoscript/cli': '^5.1.0',
     },
     devDependencies: {
-      vite: '^6.3.0',
-      typescript: '^5.9.3',
+      vite: '^6.0.0',
     },
   };
   fs.writeFileSync(
