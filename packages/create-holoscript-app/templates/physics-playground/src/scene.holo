@@ -1,0 +1,147 @@
+// Physics Playground — HoloScript Template
+//
+// A sandbox with throwable objects and particle effects.
+// Grab objects and launch them around the arena!
+
+composition "Physics Playground" {
+
+  // Lighting
+  object "AmbientLight" {
+    type: "ambient_light"
+    intensity: 0.3
+    color: "#c8d0ff"
+  }
+
+  object "Sun" {
+    type: "directional_light"
+    intensity: 1.0
+    color: "#fff5e0"
+    position: [8, 15, 5]
+  }
+
+  // Arena floor
+  object "Arena" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    rotation: [-90, 0, 0]
+    scale: [30, 30, 1]
+    color: "#1a1a2e"
+  }
+
+  // Walls
+  object "WallBack" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2.5, -15]
+    scale: [30, 5, 0.3]
+    color: "#16213e"
+  }
+
+  object "WallLeft" {
+    @collidable
+    geometry: "cube"
+    position: [-15, 2.5, 0]
+    scale: [0.3, 5, 30]
+    color: "#16213e"
+  }
+
+  object "WallRight" {
+    @collidable
+    geometry: "cube"
+    position: [15, 2.5, 0]
+    scale: [0.3, 5, 30]
+    color: "#16213e"
+  }
+
+  // Heavy ball
+  object "HeavyBall" {
+    @grabbable
+    @throwable
+    @physics(mass: 5.0, restitution: 0.3)
+    @collidable
+    @hoverable
+
+    geometry: "sphere"
+    position: [0, 2, -3]
+    scale: [0.6, 0.6, 0.6]
+    color: "#e74c3c"
+  }
+
+  // Bouncy ball
+  object "BouncyBall" {
+    @grabbable
+    @throwable
+    @physics(mass: 0.5, restitution: 0.95)
+    @collidable
+    @hoverable
+    @glowing(intensity: 1.5, color: "#2ecc71")
+
+    geometry: "sphere"
+    position: [2, 2, -3]
+    scale: [0.35, 0.35, 0.35]
+    color: "#2ecc71"
+  }
+
+  // Stack of cubes
+  object "StackCube1" {
+    @grabbable
+    @throwable
+    @physics(mass: 1.0, restitution: 0.2)
+    @collidable
+
+    geometry: "cube"
+    position: [-3, 0.5, -5]
+    scale: [0.8, 0.8, 0.8]
+    color: "#3498db"
+  }
+
+  object "StackCube2" {
+    @grabbable
+    @throwable
+    @physics(mass: 1.0, restitution: 0.2)
+    @collidable
+
+    geometry: "cube"
+    position: [-3, 1.3, -5]
+    scale: [0.8, 0.8, 0.8]
+    color: "#2980b9"
+  }
+
+  object "StackCube3" {
+    @grabbable
+    @throwable
+    @physics(mass: 1.0, restitution: 0.2)
+    @collidable
+
+    geometry: "cube"
+    position: [-3, 2.1, -5]
+    scale: [0.8, 0.8, 0.8]
+    color: "#1abc9c"
+  }
+
+  // Spinning torus
+  object "Spinner" {
+    @physics(mass: 2.0)
+    @collidable
+    @glowing(intensity: 1.0, color: "#9b59b6")
+
+    geometry: "torus"
+    position: [4, 1.5, -6]
+    scale: [1, 1, 1]
+    color: "#9b59b6"
+  }
+
+  // Cone target
+  object "Target" {
+    @collidable
+    @clickable
+    @hoverable(highlight_color: "#f39c12")
+
+    geometry: "cone"
+    position: [0, 1, -8]
+    scale: [0.6, 1.2, 0.6]
+    color: "#f39c12"
+  }
+}
