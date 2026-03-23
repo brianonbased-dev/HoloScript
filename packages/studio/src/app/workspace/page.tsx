@@ -34,7 +34,7 @@ import {
   Github,
 } from 'lucide-react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
-import { ImportRepoWizard } from '@/components/workspace/ImportRepoWizard';
+import { ImportRepoWizard } from '@/components/wizard/ImportRepoWizard';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -323,18 +323,11 @@ export default function WorkspacePage() {
           </div>
         </div>
 
-        {/* Import Wizard Modal */}
+        {/* Import Wizard Modal — Full 5-step: Repo → Branch → Clone+Absorb → DNA → Ready */}
         {showImportWizard && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4 pt-20">
-            <div className="w-full max-w-5xl rounded-2xl border border-white/10 bg-[#0a0a12] p-8 shadow-2xl">
-              <ImportRepoWizard
-                onClose={() => setShowImportWizard(false)}
-                onImportComplete={(repoUrl) => {
-                  console.log('Import started for:', repoUrl);
-                  // TODO: Wire into absorbPipelineBridge
-                  setShowImportWizard(false);
-                }}
-              />
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4 pt-10">
+            <div className="w-full max-w-3xl rounded-2xl border border-white/10 bg-[#0a0a12] shadow-2xl">
+              <ImportRepoWizard onClose={() => setShowImportWizard(false)} />
             </div>
           </div>
         )}
