@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/marketplace-api",
   "version": "1.2.1",
   "description": "HoloScript Trait Marketplace API - publishing, discovery, and dependency resolution",
@@ -27,7 +27,7 @@
     "rate-limiter-flexible": "^9.1.1",
     "redis": "^4.6.12",
     "semver": "^7.7.4",
-    "viem": "^2.21.0",
+    "viem": "^2.47.6",
     "winston": "^3.11.0",
     "zod": "^3.24.0"
   },
