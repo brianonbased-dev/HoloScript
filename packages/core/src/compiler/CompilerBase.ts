@@ -15,14 +15,16 @@ import { WorkflowStep } from './identity/AgentIdentity';
 import type { CulturalProfileMetadata } from './identity/AgentIdentity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
-import type { GLTFExportResult } from './GLTFPipeline';
-import type { ARCompilationResult } from './ARCompiler';
-import type { VRRCompilationResult } from './VRRCompiler';
-import type { IOSCompileResult } from './IOSCompiler';
+import type {
+  GLTFExportResult,
+  ARCompilationResult,
+  AndroidXRCompileResult,
+  VRRCompilationResult,
+  IOSCompileResult,
+} from './CompilerTypes';
 import {
   CapabilityRBAC,
   getCapabilityRBAC,
-  type CapabilityAccessDecision,
 } from './identity/CapabilityRBAC';
 import type { CapabilityToken } from './identity/CapabilityToken';
 import {
@@ -37,6 +39,11 @@ import {
   SpatialPermission,
   getSpatialZoneEnforcer,
 } from './identity/SpatialMemoryZones';
+import {
+  CompilerDocumentationGenerator,
+  type TripleOutputResult,
+  type DocumentationGeneratorOptions,
+} from './CompilerDocumentationGenerator';
 
 // ---------------------------------------------------------------------------
 // Dual-mode token types (P3 Migration Bridge)
@@ -135,6 +142,33 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
 };
 
 /**
+ * Base compiler options (extended by specific compilers)
+ */
+export interface BaseCompilerOptions {
+  /**
+   * Generate triple-output documentation (llms.txt, .well-known/mcp, markdown)
+   * @default false
+   */
+  generateDocs?: boolean;
+
+  /**
+   * Documentation generator options (only used if generateDocs is true)
+   */
+  docsOptions?: DocumentationGeneratorOptions;
+}
+
+/**
+ * Compilation result with optional documentation outputs
+ */
+export interface CompilationResult {
+  /** Primary compilation output (code, GLTF, etc.) */
+  output: string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult | IOSCompileResult;
+
+  /** Optional documentation bundle (if generateDocs enabled) */
+  documentation?: TripleOutputResult;
+}
+
+/**
  * Compiler interface with agent identity enforcement
  */
 export interface ICompiler {
@@ -151,7 +185,7 @@ export interface ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult;
+  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult | IOSCompileResult;
 }
 
 /**
@@ -218,6 +252,12 @@ export abstract class CompilerBase implements ICompiler {
   private _spatialZoneEnforcer: SpatialZoneEnforcer | null = null;
 
   /**
+   * Lazy-initialized documentation generator for triple-output compilation.
+   * Only created when generateDocs option is enabled.
+   */
+  private _documentationGenerator: CompilerDocumentationGenerator | null = null;
+
+  /**
    * Compiler name (for error messages)
    */
   protected abstract readonly compilerName: string;
@@ -258,6 +298,57 @@ export abstract class CompilerBase implements ICompiler {
       this._spatialZoneEnforcer = getSpatialZoneEnforcer();
     }
     return this._spatialZoneEnforcer;
+  }
+
+  /**
+   * Get or create the CompilerDocumentationGenerator instance.
+   *
+   * Lazily initialized to avoid overhead when documentation generation is disabled.
+   *
+   * @param options - Documentation generator options
+   */
+  protected getDocumentationGenerator(
+    options?: DocumentationGeneratorOptions
+  ): CompilerDocumentationGenerator {
+    if (!this._documentationGenerator) {
+      this._documentationGenerator = new CompilerDocumentationGenerator(options);
+    }
+    return this._documentationGenerator;
+  }
+
+  /**
+   * Generate triple-output documentation for a compilation result.
+   *
+   * This is a utility method that subclasses can call after successful compilation
+   * to generate llms.txt, .well-known/mcp, and markdown documentation.
+   *
+   * @param composition - Parsed HoloScript composition AST
+   * @param compiledCode - The compiled output code
+   * @param options - Documentation generator options
+   * @returns Triple-output documentation bundle
+   *
+   * @example
+   * ```typescript
+   * compile(composition: HoloComposition, agentToken: string, options?: MyCompilerOptions): CompilationResult {
+   *   this.validateCompilerAccess(agentToken);
+   *   const code = this.performCompilation(composition);
+   *
+   *   if (options?.generateDocs) {
+   *     const docs = this.generateDocumentation(composition, code, options.docsOptions);
+   *     return { output: code, documentation: docs };
+   *   }
+   *
+   *   return { output: code };
+   * }
+   * ```
+   */
+  protected generateDocumentation(
+    composition: HoloComposition,
+    compiledCode: string | Record<string, string>,
+    options?: DocumentationGeneratorOptions
+  ): TripleOutputResult {
+    const generator = this.getDocumentationGenerator(options);
+    return generator.generate(composition, this.compilerName, compiledCode);
   }
 
   /**

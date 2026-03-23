@@ -51,6 +51,11 @@ export { CodebaseGraph } from './CodebaseGraph';
 export type { CodebaseGraphStats, SymbolQuery, CallChain } from './CodebaseGraph';
 export { CommunityDetector } from './CommunityDetector';
 
+// Worker Pool (Phase 9: Parallel scanning support)
+// Note: WorkerPool is automatically used by CodebaseScanner when available.
+// Export allows manual control for advanced use cases (e.g., disable workers, custom pool size)
+export { WorkerPool } from './workers/WorkerPool';
+
 // Emitter
 export { HoloEmitter } from './HoloEmitter';
 export type { EmitOptions, LayoutMode } from './HoloEmitter';
@@ -87,7 +92,7 @@ export type { GraphRAGOptions, GraphRAGResult, EnrichedResult, LLMAnswer, LLMPro
 
 // Embedding Providers
 export type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions } from './providers/EmbeddingProvider';
-export { createEmbeddingProvider } from './providers/EmbeddingProvider';
+export { createEmbeddingProvider } from './providers/EmbeddingProviderFactory';
 export { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
 export { XenovaEmbeddingProvider } from './providers/XenovaEmbeddingProvider';
 export { OllamaEmbeddingProvider } from './providers/OllamaEmbeddingProvider';

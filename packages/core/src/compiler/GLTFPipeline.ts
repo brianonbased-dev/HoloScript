@@ -104,29 +104,8 @@ export interface GLTFPipelineOptions {
   copyright?: string;
 }
 
-export interface GLTFExportResult {
-  /** Binary data (for GLB) or undefined (for gltf) */
-  binary?: Uint8Array;
-  /** JSON document (for gltf format) */
-  json?: object;
-  /** Separate binary buffer (for gltf format) */
-  buffer?: Uint8Array;
-  /** External resources (textures, etc.) */
-  resources?: Map<string, Uint8Array>;
-  /** Export statistics */
-  stats: GLTFExportStats;
-}
-
-export interface GLTFExportStats {
-  nodeCount: number;
-  meshCount: number;
-  materialCount: number;
-  textureCount: number;
-  animationCount: number;
-  totalVertices: number;
-  totalTriangles: number;
-  fileSizeBytes: number;
-}
+import type { GLTFExportResult, GLTFExportStats } from './CompilerTypes';
+export type { GLTFExportResult, GLTFExportStats } from './CompilerTypes';
 
 export interface GLTFNode {
   name: string;
@@ -1892,7 +1871,7 @@ export class GLTFPipeline extends CompilerBase {
     // 1. Named material preset (e.g., material: "glass")
     const namedMat = this.findProp(object, 'material');
     if (typeof namedMat === 'string' && MATERIAL_PRESETS[namedMat]) {
-      const preset = MATERIAL_PRESETS[namedMat];
+      const preset = MATERIAL_PRESETS[namedMat] as R3FMaterialProps;
       if (preset.color) color = this.parseColorString(preset.color);
       if (preset.metalness !== undefined) metallic = preset.metalness;
       if (preset.roughness !== undefined) roughness = preset.roughness;

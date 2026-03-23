@@ -21,15 +21,8 @@ export interface ARCompilerOptions {
   };
 }
 
-export interface ARCompilationResult {
-  success: boolean;
-  target: 'webxr' | 'ar.js';
-  code: string;
-  source_map?: string;
-  assets: Array<{ type: 'texture' | 'model' | 'audio'; url: string }>;
-  warnings: string[];
-  errors: string[];
-}
+import type { ARCompilationResult } from './CompilerTypes';
+export type { ARCompilationResult } from './CompilerTypes';
 
 export class ARCompiler extends CompilerBase {
   protected readonly compilerName = 'ARCompiler';

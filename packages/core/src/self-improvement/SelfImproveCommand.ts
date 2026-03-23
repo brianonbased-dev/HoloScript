@@ -190,6 +190,7 @@ export class SelfImproveCommand {
   private testsAdded = 0;
   private commits = 0;
   private running = false;
+  private attemptedTargets = new Set<string>();
 
   constructor(io: SelfImproveIO, config: Partial<SelfImproveConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -275,8 +276,18 @@ export class SelfImproveCommand {
           break;
         }
 
-        // Pick the highest-relevance target
-        const target = targets[0];
+        // Pick the highest-relevance target that hasn't been attempted this session
+        const target = targets.find(
+          (t) => !this.attemptedTargets.has(`${t.filePath}:${t.symbolName}`)
+        );
+        if (!target) {
+          this.io.log('info', 'All available targets already attempted this session.');
+          record.duration = Date.now() - iterStart;
+          this.iterations.push(record);
+          abortReason = 'no_targets';
+          break;
+        }
+        this.attemptedTargets.add(`${target.filePath}:${target.symbolName}`);
         record.target = target;
         this.io.log(
           'info',

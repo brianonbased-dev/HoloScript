@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import type { SceneComposition, SceneObject, SceneEdge } from './CodebaseSceneCompiler';
+import type { SceneComposition, SceneObject } from './CodebaseSceneTypes';
 
 // =============================================================================
 // TYPES

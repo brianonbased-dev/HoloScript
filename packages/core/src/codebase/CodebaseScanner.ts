@@ -9,6 +9,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-compatible __dirname
+const __filename_esm = fileURLToPath(import.meta.url);
+const __dirname_esm = path.dirname(__filename_esm);
 import type {
   ScanOptions,
   ScanResult,
@@ -80,7 +85,7 @@ export class CodebaseScanner {
     // Initialize worker pool (graceful degradation if unavailable)
     if (this.useWorkers && WorkerPool) {
       try {
-        const workerFile = path.join(__dirname, 'workers', 'parse-worker.js');
+        const workerFile = path.join(__dirname_esm, 'workers', 'parse-worker.js');
         this.workerPool = new WorkerPool(workerFile);
         console.log(`[CodebaseScanner] Worker pool initialized with ${this.workerPool.getPoolSize()} threads`);
       } catch (err) {
@@ -134,85 +139,156 @@ export class CodebaseScanner {
     let totalCalls = 0;
     let totalLoc = 0;
 
-    for (const filePath of filePaths) {
-      const language = detectLanguage(filePath);
-      if (!language) continue;
+    if (this.useWorkers && this.workerPool) {
+      // PARALLEL PATH: Use worker threads for 4-8x parsing speedup
+      const BATCH_SIZE = 16; // Larger batches since workers handle concurrency
 
-      const adapter = getAdapterForFile(filePath);
-      if (!adapter) continue;
+      for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
+        const batch = filePaths.slice(i, i + BATCH_SIZE);
 
-      // Read file
-      let content: string;
-      let sizeBytes: number;
-      try {
-        content = await readFile(filePath);
-        sizeBytes = Buffer.byteLength(content, 'utf-8');
-        if (sizeBytes > maxFileSize) continue;
-      } catch (e: any) {
-        errors.push({ file: filePath, error: e.message, phase: 'read' });
-        continue;
-      }
+        // Step 1: Read files in parallel (I/O bound)
+        const readPromises = batch.map(async (filePath) => {
+          const language = detectLanguage(filePath);
+          if (!language) return null;
 
-      // Parse with tree-sitter
-      let tree;
-      const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
-      try {
-        tree = await this.adapterManager.parse(content, language);
-        if (!tree) {
-          errors.push({ file: filePath, error: `No parser for ${language}`, phase: 'parse' });
-          continue;
-        }
-      } catch (e: any) {
-        if (!(options.includeBuildArtifacts ?? false)) {
-          errors.push({ file: filePath, error: e.message, phase: 'parse' });
-          continue;
-        }
+          const adapter = getAdapterForFile(filePath);
+          if (!adapter) return null;
 
-        // Dist-safe fallback for environments where parser bindings fail.
-        const fallbackImports = this.extractLooseImports(content, relPath);
-        const loc = content.split('\n').length;
-        files.push({
-          path: relPath,
-          language,
-          symbols: [],
-          imports: fallbackImports,
-          calls: [],
-          loc,
-          sizeBytes,
-          docComment: undefined,
+          try {
+            const content = await readFile(filePath);
+            const sizeBytes = Buffer.byteLength(content, 'utf-8');
+            if (sizeBytes > maxFileSize) return null;
+
+            return { filePath, content, language, sizeBytes };
+          } catch (e: any) {
+            errors.push({ file: filePath, error: e.message, phase: 'read' });
+            return null;
+          }
         });
 
-        filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
-        totalImports += fallbackImports.length;
-        totalLoc += loc;
-        onProgress?.(files.length, filePaths.length, relPath);
-        continue;
+        const fileData = (await Promise.all(readPromises)).filter(Boolean) as Array<{
+          filePath: string;
+          content: string;
+          language: SupportedLanguage;
+          sizeBytes: number;
+        }>;
+
+        // Step 2: Parse in parallel via worker pool (CPU bound)
+        const parsePromises = fileData.map((data) =>
+          this.workerPool!.execute({
+            filePath: data.filePath,
+            content: data.content,
+            language: data.language,
+            sizeBytes: data.sizeBytes,
+          })
+        );
+
+        const parseResults = await Promise.all(parsePromises);
+
+        // Step 3: Accumulate results
+        for (const result of parseResults) {
+          const relPath = result.file?.path || result.error?.file || '';
+
+          if (result.error) {
+            errors.push(result.error);
+          } else if (result.file) {
+            files.push(result.file);
+            filesByLanguage[result.file.language] = (filesByLanguage[result.file.language] ?? 0) + 1;
+            totalSymbols += result.file.symbols.length;
+            totalImports += result.file.imports.length;
+            totalCalls += result.file.calls.length;
+            totalLoc += result.file.loc;
+
+            for (const sym of result.file.symbols) {
+              symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
+            }
+          }
+
+          onProgress?.(files.length, filePaths.length, relPath);
+        }
       }
+    } else {
+      // SEQUENTIAL FALLBACK: Original implementation (no workers available)
+      for (const filePath of filePaths) {
+        const language = detectLanguage(filePath);
+        if (!language) continue;
 
-      // Extract symbols, imports, calls
-      try {
-        const symbols = adapter.extractSymbols(tree, relPath);
-        const imports = adapter.extractImports(tree, relPath);
-        const calls = adapter.extractCalls(tree, relPath);
-        const loc = content.split('\n').length;
-        const docComment = extractFileDocComment(tree.rootNode);
+        const adapter = getAdapterForFile(filePath);
+        if (!adapter) continue;
 
-        files.push({ path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment });
-
-        // Accumulate stats
-        filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
-        totalSymbols += symbols.length;
-        totalImports += imports.length;
-        totalCalls += calls.length;
-        totalLoc += loc;
-
-        for (const sym of symbols) {
-          symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
+        // Read file
+        let content: string;
+        let sizeBytes: number;
+        try {
+          content = await readFile(filePath);
+          sizeBytes = Buffer.byteLength(content, 'utf-8');
+          if (sizeBytes > maxFileSize) continue;
+        } catch (e: any) {
+          errors.push({ file: filePath, error: e.message, phase: 'read' });
+          continue;
         }
 
-        onProgress?.(files.length, filePaths.length, relPath);
-      } catch (e: any) {
-        errors.push({ file: filePath, error: e.message, phase: 'extract' });
+        // Parse with tree-sitter
+        let tree;
+        const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
+        try {
+          tree = await this.adapterManager.parse(content, language);
+          if (!tree) {
+            errors.push({ file: filePath, error: `No parser for ${language}`, phase: 'parse' });
+            continue;
+          }
+        } catch (e: any) {
+          if (!(options.includeBuildArtifacts ?? false)) {
+            errors.push({ file: filePath, error: e.message, phase: 'parse' });
+            continue;
+          }
+
+          // Dist-safe fallback for environments where parser bindings fail.
+          const fallbackImports = this.extractLooseImports(content, relPath);
+          const loc = content.split('\n').length;
+          files.push({
+            path: relPath,
+            language,
+            symbols: [],
+            imports: fallbackImports,
+            calls: [],
+            loc,
+            sizeBytes,
+            docComment: undefined,
+          });
+
+          filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
+          totalImports += fallbackImports.length;
+          totalLoc += loc;
+          onProgress?.(files.length, filePaths.length, relPath);
+          continue;
+        }
+
+        // Extract symbols, imports, calls
+        try {
+          const symbols = adapter.extractSymbols(tree, relPath);
+          const imports = adapter.extractImports(tree, relPath);
+          const calls = adapter.extractCalls(tree, relPath);
+          const loc = content.split('\n').length;
+          const docComment = extractFileDocComment(tree.rootNode);
+
+          files.push({ path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment });
+
+          // Accumulate stats
+          filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
+          totalSymbols += symbols.length;
+          totalImports += imports.length;
+          totalCalls += calls.length;
+          totalLoc += loc;
+
+          for (const sym of symbols) {
+            symbolsByType[sym.type] = (symbolsByType[sym.type] ?? 0) + 1;
+          }
+
+          onProgress?.(files.length, filePaths.length, relPath);
+        } catch (e: any) {
+          errors.push({ file: filePath, error: e.message, phase: 'extract' });
+        }
       }
     }
 

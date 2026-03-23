@@ -16,22 +16,16 @@ import type {
 } from './types/AdvancedTypeSystem';
 
 import type { HSPlusNode } from './types/HoloScriptPlus';
-import type { VRTraitName, ASTNode } from './types/base';
+import type { VRTraitName, ASTNode, SpatialPosition, HologramShape, HologramProperties } from './types/base';
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
 
 export type { TraitBehavior } from './types/index';
-export type { VRTraitName, ASTNode };
+export type { VRTraitName, ASTNode, SpatialPosition, HologramShape, HologramProperties };
 
 // ============================================================================
-// Spatial Types
+// Spatial Types (re-exported from types/base — canonical definitions live there)
 // ============================================================================
-
-export interface SpatialPosition {
-  x: number;
-  y: number;
-  z: number;
-}
 
 export interface Position2D {
   x: number;
@@ -41,31 +35,6 @@ export interface Position2D {
 export interface Size2D {
   width: number;
   height: number;
-}
-
-// ============================================================================
-// Hologram Types
-// ============================================================================
-
-export type HologramShape =
-  | 'orb'
-  | 'cube'
-  | 'cylinder'
-  | 'pyramid'
-  | 'sphere'
-  | 'function'
-  | 'gate'
-  | 'stream'
-  | 'server'
-  | 'database'
-  | 'fetch';
-
-export interface HologramProperties {
-  shape: HologramShape;
-  color: string;
-  size: number;
-  glow: boolean;
-  interactive: boolean;
 }
 
 // ============================================================================

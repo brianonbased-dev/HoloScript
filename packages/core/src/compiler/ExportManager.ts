@@ -73,6 +73,7 @@ import {
   type GaussianBudgetAnalysis,
   type GaussianBudgetWarning,
 } from './GaussianBudgetAnalyzer';
+import { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
 
 // =============================================================================
 // TYPES
@@ -104,6 +105,26 @@ export interface ExportOptions {
    * Allows callers to set stricter or looser budgets than the defaults.
    */
   gaussianBudgetOverrides?: Partial<Record<GaussianPlatform, number>>;
+  /**
+   * Generate triple-output documentation (llms.txt, .well-known/mcp, markdown).
+   * When enabled, each compilation will produce additional documentation outputs.
+   * @default false
+   */
+  generateDocs?: boolean;
+  /**
+   * Documentation generator options (service URL, version, etc.)
+   * Only used if generateDocs is true.
+   */
+  docsOptions?: {
+    serviceUrl?: string;
+    serviceVersion?: string;
+    maxLlmsTxtTokens?: number;
+    includeTraitDocs?: boolean;
+    includeExamples?: boolean;
+    mcpTransportType?: string;
+    contactRepository?: string;
+    contactDocumentation?: string;
+  };
 }
 
 export interface ExportResult {
@@ -120,6 +141,15 @@ export interface ExportResult {
   memoryStats?: MemoryStats;
   /** Gaussian primitive budget analysis (if budget warnings enabled and composition has gaussian_splat traits) */
   gaussianBudgetAnalysis?: GaussianBudgetAnalysis;
+  /**
+   * Triple-output documentation bundle (if generateDocs enabled)
+   * Contains llms.txt, .well-known/mcp server card, and markdown documentation
+   */
+  documentation?: {
+    llmsTxt: string;
+    wellKnownMcp: Record<string, unknown>;
+    markdownDocs: string;
+  };
 }
 
 export interface BatchExportResult {
@@ -293,6 +323,8 @@ export class ExportManager {
       memoryMonitorConfig: options.memoryMonitorConfig ?? {},
       enableGaussianBudgetWarnings: options.enableGaussianBudgetWarnings ?? true,
       gaussianBudgetOverrides: options.gaussianBudgetOverrides ?? {},
+      generateDocs: options.generateDocs ?? false,
+      docsOptions: options.docsOptions ?? {},
     };
 
     this.circuitRegistry = new CircuitBreakerRegistry({
@@ -578,6 +610,21 @@ export class ExportManager {
     // Run Gaussian budget analysis (W.034)
     const budgetResult = this.analyzeGaussianBudget(target, composition, options);
 
+    // Generate documentation if enabled
+    let documentation: ExportResult['documentation'] | undefined;
+    if (options.generateDocs && circuitResult.success && circuitResult.data) {
+      const docGen = new CompilerDocumentationGenerator(options.docsOptions);
+      const outputStr = typeof circuitResult.data === 'string'
+        ? circuitResult.data
+        : JSON.stringify(circuitResult.data);
+      const tripleOutput = docGen.generate(composition, target, outputStr);
+      documentation = {
+        llmsTxt: tripleOutput.llmsTxt,
+        wellKnownMcp: tripleOutput.wellKnownMcp as Record<string, unknown>,
+        markdownDocs: tripleOutput.markdownDocs,
+      };
+    }
+
     const result: ExportResult = {
       target,
       success: circuitResult.success,
@@ -590,6 +637,7 @@ export class ExportManager {
       executionTime: Date.now() - startTime,
       memoryStats,
       gaussianBudgetAnalysis: budgetResult?.analysis,
+      documentation,
     };
 
     if (circuitResult.success) {
@@ -632,6 +680,19 @@ export class ExportManager {
       // Run Gaussian budget analysis (W.034)
       const budgetResult = this.analyzeGaussianBudget(target, composition, options);
 
+      // Generate documentation if enabled
+      let documentation: ExportResult['documentation'] | undefined;
+      if (options.generateDocs && output) {
+        const docGen = new CompilerDocumentationGenerator(options.docsOptions);
+        const outputStr = typeof output === 'string' ? output : JSON.stringify(output);
+        const tripleOutput = docGen.generate(composition, target, outputStr);
+        documentation = {
+          llmsTxt: tripleOutput.llmsTxt,
+          wellKnownMcp: tripleOutput.wellKnownMcp as Record<string, unknown>,
+          markdownDocs: tripleOutput.markdownDocs,
+        };
+      }
+
       const result: ExportResult = {
         target,
         success: true,
@@ -643,6 +704,7 @@ export class ExportManager {
         executionTime: Date.now() - startTime,
         memoryStats,
         gaussianBudgetAnalysis: budgetResult?.analysis,
+        documentation,
       };
 
       this.emitEvent({

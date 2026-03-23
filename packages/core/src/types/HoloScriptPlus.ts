@@ -30,7 +30,11 @@ export interface VRHand {
   rotation: Vector3;
   velocity: Vector3;
   pinch?: number;
+  /** Normalized pinch strength 0-1 — alias for pinch */
+  pinchStrength?: number;
   grip: number;
+  /** Normalized grip strength 0-1 — alias for grip */
+  gripStrength?: number;
   trigger: number;
   pointing?: boolean;
 }

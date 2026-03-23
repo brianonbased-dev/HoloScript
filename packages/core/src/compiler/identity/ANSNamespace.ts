@@ -144,6 +144,8 @@ export type CompilerName =
   | 'ar'
   | 'android-xr'
   | 'ai-glasses'
+  | 'quilt'
+  | 'mv-hevc'
   // mobile
   | 'android'
   | 'ios'
@@ -340,6 +342,8 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   ar: ANSCapabilityPath.AR,
   'android-xr': ANSCapabilityPath.ANDROID_XR,
   'ai-glasses': ANSCapabilityPath.AI_GLASSES,
+  quilt: ANSCapabilityPath.VISIONOS,
+  'mv-hevc': ANSCapabilityPath.VISIONOS,
   android: ANSCapabilityPath.ANDROID,
   ios: ANSCapabilityPath.IOS,
   babylon: ANSCapabilityPath.BABYLON,

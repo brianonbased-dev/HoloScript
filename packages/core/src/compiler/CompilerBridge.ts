@@ -36,16 +36,20 @@ export class CompilerBridge {
     if (this.initialized) return;
 
     try {
-      // Dynamic import to avoid circular dependencies within @holoscript/core
-      const core = await import('../index');
+      // Direct imports to avoid circular dependency through index.ts barrel
+      const [tokenizer, parser, compiler] = await Promise.all([
+        import('../HoloScriptParser'),
+        import('../HoloScriptParser'),
+        import('../compiler/R3FCompiler'),
+      ]);
       this.modules = {
-        tokenize: (core as Record<string, unknown>).tokenize as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['tokenize'],
-        Parser: (core as Record<string, unknown>).Parser as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['Parser'],
-        R3FCompiler: (core as Record<string, unknown>).R3FCompiler as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['R3FCompiler'],
+        tokenize: (tokenizer as Record<string, unknown>).tokenize as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['tokenize'],
+        Parser: (parser as Record<string, unknown>).HoloScriptParser as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['Parser'],
+        R3FCompiler: (compiler as Record<string, unknown>).R3FCompiler as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['R3FCompiler'],
       };
       this.initialized = true;
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
+      const _msg = error instanceof Error ? error.message : String(error);
       // Failed to initialize - error will be thrown below
       throw new Error('Failed to load HoloScript compiler modules');
     }

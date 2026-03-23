@@ -273,10 +273,14 @@ export interface IRigidBodyConfig {
  */
 export interface IRigidBodyState {
   id: string;
+  /** Body motion type */
+  type?: BodyType;
   position: IVector3;
   rotation: IQuaternion;
   linearVelocity: IVector3;
   angularVelocity: IVector3;
+  /** Alias for linearVelocity — used by HoloScriptPlusRuntime shorthand */
+  velocity?: IVector3;
   isSleeping: boolean;
   isActive: boolean;
 }
@@ -543,6 +547,8 @@ export interface IPhysicsWorld {
 
   // Constraint management
   createConstraint(constraint: Constraint): string;
+  /** Alias for createConstraint — used by HoloScriptPlusRuntime */
+  addConstraint?(constraint: Constraint): string;
   removeConstraint(id: string): boolean;
   setConstraintEnabled(id: string, enabled: boolean): void;
 

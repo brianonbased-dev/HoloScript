@@ -96,16 +96,8 @@ export interface AndroidXRCompilerOptions {
   formFactor?: AndroidXRFormFactor;
 }
 
-export interface AndroidXRCompileResult {
-  activityFile: string;
-  stateFile: string;
-  nodeFactoryFile: string;
-  manifestFile: string;
-  buildGradle: string;
-  /** Present only in glasses mode — Glimmer composables file */
-  glimmerComponentsFile?: string;
-  [key: string]: string | undefined;
-}
+import type { AndroidXRCompileResult } from './CompilerTypes';
+export type { AndroidXRCompileResult } from './CompilerTypes';
 
 export class AndroidXRCompiler extends CompilerBase {
   protected readonly compilerName = 'AndroidXRCompiler';

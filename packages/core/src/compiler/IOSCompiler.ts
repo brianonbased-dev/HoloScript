@@ -34,12 +34,8 @@ export interface IOSCompilerOptions {
   useRealityKit?: boolean; // For newer iOS, RealityKit is preferred
 }
 
-export interface IOSCompileResult {
-  viewFile: string;
-  sceneFile: string;
-  stateFile: string;
-  infoPlist: string;
-}
+import type { IOSCompileResult } from './CompilerTypes';
+export type { IOSCompileResult } from './CompilerTypes';
 
 export class IOSCompiler extends CompilerBase {
   protected readonly compilerName = 'IOSCompiler';

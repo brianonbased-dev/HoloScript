@@ -5,7 +5,37 @@
  * @module types/base
  */
 import type { HSPlusDirective } from './AdvancedTypeSystem';
-import type { SpatialPosition, HologramProperties } from '../types';
+
+// ============================================================================
+// Spatial Types (canonical definitions — re-exported by types.ts)
+// ============================================================================
+
+export interface SpatialPosition {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export type HologramShape =
+  | 'orb'
+  | 'cube'
+  | 'cylinder'
+  | 'pyramid'
+  | 'sphere'
+  | 'function'
+  | 'gate'
+  | 'stream'
+  | 'server'
+  | 'database'
+  | 'fetch';
+
+export interface HologramProperties {
+  shape: HologramShape;
+  color: string;
+  size: number;
+  glow: boolean;
+  interactive: boolean;
+}
 
 // ============================================================================
 // VR Trait Names

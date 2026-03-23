@@ -43,6 +43,7 @@ const r3fNodePool = new ASTNodePool<R3FNode>(
 export interface R3FNode {
   type: string;
   id?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic React component props bag; full `unknown` refactor tracked separately
   props: Record<string, any>;
   children?: R3FNode[];
   traits?: Map<VRTraitName, Record<string, unknown>>;
@@ -2094,6 +2095,7 @@ export class R3FCompiler {
       // Try dotted path resolution in state
       if (context?.state && ref.includes('.')) {
         const parts = ref.split('.');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let value: any = context.state;
         for (const part of parts) {
           if (value && typeof value === 'object' && part in value) {
@@ -2484,8 +2486,10 @@ export class R3FCompiler {
     return this.createNode('Camera', props, '__camera');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private compileEnvironmentBlock(env: any): R3FNode[] {
     const nodes: R3FNode[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const envProps: Record<string, any> = {};
 
     if (env.properties) {
@@ -3644,6 +3648,7 @@ export class R3FCompiler {
   private applyGraphicsConfig(r3fNode: R3FNode, graphics: Record<string, unknown>): void {
     if (graphics.material) {
       const m = graphics.material;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const materialProps: Record<string, any> = {};
 
       if (m.preset && MATERIAL_PRESETS[m.preset]) {

@@ -3,8 +3,8 @@
  *
  * Union types, generics, type inference, exhaustiveness checking
  */
-import type { VRTraitName } from './base';
-export type { VRTraitName };
+// VRTraitName is exported from base.ts and re-exported by types.ts directly.
+// Do NOT import it here — that would create a circular dependency.
 
 export type HoloScriptType =
   | PrimitiveType

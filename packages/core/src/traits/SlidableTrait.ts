@@ -10,7 +10,7 @@
  */
 
 import { Trait } from './Trait';
-import { TraitContext } from './VRTraitSystem';
+import type { TraitContext } from './TraitTypes';
 
 export class SlidableTrait implements Trait {
   name = 'slidable';

@@ -8,7 +8,7 @@
  * @milestone v3.2 (June 2026)
  */
 
-import type { RenderJob, RenderNetworkState } from './RenderNetworkTrait';
+import type { RenderJob, RenderNetworkState } from './RenderNetworkTypes';
 
 const DB_NAME = 'holoscript_render_jobs';
 const DB_VERSION = 1;

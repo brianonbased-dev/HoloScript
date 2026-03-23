@@ -9,9 +9,8 @@
  * @version 1.0.0
  */
 
-import type { ISceneGraph, IMaterial, IMesh, ITexture, IAnimation } from '../SceneGraph';
-import type { IGLTFDocument, IGLTFExportResult } from '../gltf/GLTFTypes';
-import { GLTFExporter } from '../gltf/GLTFExporter';
+import type { ISceneGraph, IMaterial, IMesh, IAnimation } from '../SceneGraph';
+import type { IGLTFExportResult } from '../gltf/GLTFTypes';
 import type {
   IUSDStage,
   IUSDPrim,
@@ -27,82 +26,20 @@ import type {
   IUSDPreviewSurfaceInputs,
 } from './USDTypes';
 import {
-  createEmptyUSDStage,
   createUSDXform,
   createUSDPreviewSurfaceMaterial,
   quaternionToEuler,
   sanitizeUSDName,
-  isValidUSDPath,
 } from './USDTypes';
+import type { USDAttributeType } from './USDTypes';
 
 // ============================================================================
-// Export Options
+// Export Types (re-exported from USDTypes to break cycle with GLTFExporter)
 // ============================================================================
 
-/**
- * USDZ export options
- */
-export interface IUSDZExportOptions {
-  /** Include spatial audio */
-  includeAudio?: boolean;
+export type { IUSDZExportOptions, IUSDZExportResult, IUSDZExportStats } from './USDTypes';
+import type { IUSDZExportOptions, IUSDZExportResult, IUSDZExportStats } from './USDTypes';
 
-  /** AR Quick Look look-at behavior */
-  lookAtCamera?: boolean;
-
-  /** Placement mode for AR */
-  placementMode?: 'floor' | 'wall' | 'table' | 'any';
-
-  /** Material conversion quality */
-  materialQuality?: 'draft' | 'standard' | 'high';
-
-  /** Include animations */
-  includeAnimations?: boolean;
-
-  /** Reality Composer compatibility mode */
-  realityComposerMode?: boolean;
-
-  /** Meters per unit (scale) */
-  metersPerUnit?: number;
-
-  /** Up axis (Y or Z) */
-  upAxis?: 'Y' | 'Z';
-
-  /** Enable occlusion in AR */
-  enableOcclusion?: boolean;
-
-  /** Allow content scaling in AR */
-  allowContentScaling?: boolean;
-
-  /** Canonical camera distance */
-  canonicalCameraDistance?: number;
-}
-
-/**
- * USDZ export result
- */
-export interface IUSDZExportResult {
-  /** USDZ package as ArrayBuffer */
-  usdz: ArrayBuffer;
-
-  /** USD stage (for debugging) */
-  stage: IUSDStage;
-
-  /** Export statistics */
-  stats: IUSDZExportStats;
-}
-
-/**
- * USDZ export statistics
- */
-export interface IUSDZExportStats {
-  primCount: number;
-  meshCount: number;
-  materialCount: number;
-  textureCount: number;
-  fileCount: number;
-  usdzSize: number;
-  exportTime: number;
-}
 
 // ============================================================================
 // USDZExporter Class
@@ -171,7 +108,7 @@ export class USDZExporter {
   /**
    * Convert from GLTF intermediate representation
    */
-  async convertFromGLTF(gltfResult: IGLTFExportResult): Promise<ArrayBuffer> {
+  async convertFromGLTF(_gltfResult: IGLTFExportResult): Promise<ArrayBuffer> {
     // This method allows direct GLTF -> USD conversion
     // For now, we'll use the scene graph path
     throw new Error('Direct GLTF conversion not yet implemented. Use export() with scene graph.');
@@ -222,6 +159,7 @@ export class USDZExporter {
   // Private Methods - Node Conversion
   // ========================================================================
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested scene graph node access
   private convertNode(node: any, parentPrim: IUSDPrim, sceneGraph: ISceneGraph, depth = 0): void {
     if (!node || depth > 100) return; // Prevent infinite recursion
 
@@ -241,6 +179,7 @@ export class USDZExporter {
     parentPrim.children.push(xformPrim);
 
     // Check for mesh component
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const meshComp = node.components?.find((c: any) => c.type === 'mesh');
     if (meshComp?.meshRef) {
       const meshPath = this.meshMap.get(meshComp.meshRef);
@@ -263,6 +202,7 @@ export class USDZExporter {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested transform object access (position.x/y/z, rotation.x/y/z/w, scale.x/y/z)
   private addTransform(prim: IUSDPrim, transform: any): void {
     const ops: IUSDXformOp[] = [];
 
@@ -300,7 +240,7 @@ export class USDZExporter {
     if (ops.length > 0) {
       prim.attributes.push({
         name: 'xformOpOrder',
-        type: 'token[]',
+        type: 'token[]' as USDAttributeType,
         value: ops.map((op) => `xformOp:${op.type}`),
       });
 
@@ -314,7 +254,7 @@ export class USDZExporter {
     }
   }
 
-  private getXformOpType(opType: string): any {
+  private getXformOpType(opType: string): USDAttributeType {
     switch (opType) {
       case 'translate':
         return 'float3';
@@ -470,6 +410,7 @@ export class USDZExporter {
   }
 
   private async convertMeshPrimitive(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep nested mesh primitive access (attributes.POSITION, etc.)
     primitive: any,
     name: string,
     path: string,
@@ -638,7 +579,7 @@ export class USDZExporter {
   // Private Methods - Animation Conversion
   // ========================================================================
 
-  private convertAnimations(animations: IAnimation[]): void {
+  private convertAnimations(_animations: IAnimation[]): void {
     // Animation support would be implemented here
     // Would create SkelAnimation prims
     console.warn('Animation export not yet implemented');
@@ -756,7 +697,7 @@ export class USDZExporter {
     lines.push(`${ind}${attr.type} ${attr.name} = ${value}`);
   }
 
-  private serializeValue(value: any, type: string): string {
+  private serializeValue(value: unknown, type: string): string {
     if (Array.isArray(value)) {
       if (type.includes('[]')) {
         // Array type
@@ -775,7 +716,7 @@ export class USDZExporter {
     }
   }
 
-  private serializeScalar(value: any, type: string): string {
+  private serializeScalar(value: unknown, _type: string): string {
     if (typeof value === 'string') {
       return `"${value}"`;
     }

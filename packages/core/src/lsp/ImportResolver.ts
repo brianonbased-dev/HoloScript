@@ -145,7 +145,7 @@ const BUILTIN_PACKAGES: Record<string, { path: string; exports: string[] }> = {
 };
 
 // Supported file extensions in resolution order
-const EXTENSIONS = ['.hsplus', '.holo', '.hs', '.ts', '.js'];
+const FILE_EXTENSIONS = ['.hsplus', '.holo', '.hs', '.ts', '.js'];
 
 export class ImportResolver {
   private rootDir: string;
@@ -249,7 +249,7 @@ export class ImportResolver {
     const basePath = fromFile.replace(/[/\\][^/\\]+$/, '');
     const cleanSpec = specifier.replace(/^\.\//, '');
 
-    for (const ext of EXTENSIONS) {
+    for (const ext of FILE_EXTENSIONS) {
       const candidatePath = `${basePath}/${cleanSpec}${ext}`;
       return {
         path: candidatePath,

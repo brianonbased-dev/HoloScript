@@ -16,7 +16,20 @@ export type {
   ICompiler,
   CompilerToken,
   CapabilityTokenCredential,
+  BaseCompilerOptions,
+  CompilationResult,
 } from './CompilerBase';
+
+// Triple-output documentation generator
+export { CompilerDocumentationGenerator } from './CompilerDocumentationGenerator';
+export type {
+  TripleOutputResult,
+  MCPServerCard,
+  MCPTransportConfig,
+  MCPCapabilities,
+  MCPToolManifest,
+  DocumentationGeneratorOptions,
+} from './CompilerDocumentationGenerator';
 
 // R3F (React Three Fiber)
 export { R3FCompiler, ENVIRONMENT_PRESETS } from './R3FCompiler';

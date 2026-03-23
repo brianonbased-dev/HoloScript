@@ -33,23 +33,59 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
   /**
    * Embed all texts in a single batched OpenAI API request.
+   * Includes retry logic with exponential backoff for rate limit errors.
    *
    * @param texts - One or more strings to embed.
    * @returns A `Promise` resolving to one embedding vector per input text.
    *          Vector length is determined by the chosen model (1536 for default).
    * @throws If the `openai` package is not installed, the API key is missing,
-   *         or the OpenAI endpoint returns an error.
+   *         or the OpenAI endpoint returns an error after retries.
    */
   async getEmbeddings(texts: string[]): Promise<number[][]> {
     const client = await this.getClient();
+    const maxRetries = 5;
+    let lastError: Error | null = null;
 
-    // OpenAI accepts an array of strings in one request — more efficient.
-    const response = await client.embeddings.create({
-      model: this.model,
-      input: texts,
-    });
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // OpenAI accepts an array of strings in one request — more efficient.
+        const response = await client.embeddings.create({
+          model: this.model,
+          input: texts,
+        });
 
-    return (response.data as Array<{ embedding: number[] }>).map((d) => d.embedding);
+        return (response.data as Array<{ embedding: number[] }>).map((d) => d.embedding);
+      } catch (error: any) {
+        lastError = error;
+
+        // Check for rate limit error (429 or specific error codes)
+        const isRateLimit =
+          error?.status === 429 ||
+          error?.code === 'rate_limit_exceeded' ||
+          error?.message?.includes('rate limit') ||
+          error?.message?.includes('Rate limit');
+
+        if (!isRateLimit || attempt === maxRetries - 1) {
+          // Not a rate limit or final attempt - throw immediately
+          throw error;
+        }
+
+        // Exponential backoff: 2^attempt seconds (2s, 4s, 8s, 16s, 32s)
+        const backoffMs = Math.min(32000, Math.pow(2, attempt + 1) * 1000);
+        const retryAfter = error?.headers?.['retry-after']
+          ? parseInt(error.headers['retry-after']) * 1000
+          : backoffMs;
+
+        console.error(
+          `[OpenAI] Rate limit hit (attempt ${attempt + 1}/${maxRetries}). ` +
+          `Retrying in ${Math.round(retryAfter / 1000)}s...`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, retryAfter));
+      }
+    }
+
+    throw lastError || new Error('Failed to generate embeddings after retries');
   }
 
   // ---------------------------------------------------------------------------

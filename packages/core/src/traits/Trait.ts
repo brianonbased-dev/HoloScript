@@ -6,12 +6,12 @@
  * Class-based traits are used by GrabbableTrait, PressableTrait, SlidableTrait, etc.
  */
 
-import type { TraitContext } from './VRTraitSystem';
+import type { TraitContext } from './TraitTypes';
 
 export interface Trait {
   name: string;
-  onAttach?(node: any, context: TraitContext): void;
-  onUpdate?(node: any, context: TraitContext, delta: number): void;
-  onDetach?(node: any, context: TraitContext): void;
-  onEvent?(node: any, context: TraitContext, event: any): void;
+  onAttach?(node: Record<string, unknown>, context: TraitContext): void;
+  onUpdate?(node: Record<string, unknown>, context: TraitContext, delta: number): void;
+  onDetach?(node: Record<string, unknown>, context: TraitContext): void;
+  onEvent?(node: Record<string, unknown>, context: TraitContext, event: Record<string, unknown>): void;
 }

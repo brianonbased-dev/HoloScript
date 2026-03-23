@@ -685,3 +685,60 @@ export function sanitizeUSDName(name: string): string {
   // Replace invalid characters with underscores
   return name.replace(/[^a-zA-Z0-9_]/g, '_');
 }
+
+// ============================================================================
+// USDZ Export Types (shared between GLTFExporter and USDZExporter)
+// ============================================================================
+
+/**
+ * USDZ export options
+ */
+export interface IUSDZExportOptions {
+  /** Include spatial audio */
+  includeAudio?: boolean;
+  /** AR Quick Look look-at behavior */
+  lookAtCamera?: boolean;
+  /** Placement mode for AR */
+  placementMode?: 'floor' | 'wall' | 'table' | 'any';
+  /** Material conversion quality */
+  materialQuality?: 'draft' | 'standard' | 'high';
+  /** Include animations */
+  includeAnimations?: boolean;
+  /** Reality Composer compatibility mode */
+  realityComposerMode?: boolean;
+  /** Meters per unit (scale) */
+  metersPerUnit?: number;
+  /** Up axis (Y or Z) */
+  upAxis?: 'Y' | 'Z';
+  /** Enable occlusion in AR */
+  enableOcclusion?: boolean;
+  /** Allow content scaling in AR */
+  allowContentScaling?: boolean;
+  /** Canonical camera distance */
+  canonicalCameraDistance?: number;
+}
+
+/**
+ * USDZ export result
+ */
+export interface IUSDZExportResult {
+  /** USDZ package as ArrayBuffer */
+  usdz: ArrayBuffer;
+  /** USD stage (for debugging) */
+  stage: IUSDStage;
+  /** Export statistics */
+  stats: IUSDZExportStats;
+}
+
+/**
+ * USDZ export statistics
+ */
+export interface IUSDZExportStats {
+  primCount: number;
+  meshCount: number;
+  materialCount: number;
+  textureCount: number;
+  fileCount: number;
+  usdzSize: number;
+  exportTime: number;
+}

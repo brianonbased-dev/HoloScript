@@ -174,16 +174,8 @@ export interface VRRCompilerOptions {
   };
 }
 
-export interface VRRCompilationResult {
-  success: boolean;
-  target: 'threejs' | 'babylonjs';
-  code: string;
-  source_map?: string;
-  assets: Array<{ type: 'texture' | 'model' | 'audio'; url: string }>;
-  api_endpoints: Array<{ type: 'weather' | 'events' | 'inventory'; url: string }>;
-  warnings: string[];
-  errors: string[];
-}
+import type { VRRCompilationResult } from './CompilerTypes';
+export type { VRRCompilationResult } from './CompilerTypes';
 
 // Removed duplicate imports
 export class VRRCompiler extends CompilerBase {

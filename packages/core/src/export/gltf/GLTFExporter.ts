@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GLTF 2.0 Exporter
  *
  * Converts HoloScript scene graphs to GLTF/GLB format
@@ -52,6 +52,7 @@ import {
 
 import { AdvancedCompression } from '../compression/AdvancedCompression';
 import type { CompressionStats } from '../compression/CompressionTypes';
+import type { IUSDZExportOptions, IUSDZExportResult } from '../usdz/USDTypes';
 
 export class GLTFExporter {
   private options: Required<IGLTFExportOptions>;
@@ -852,8 +853,10 @@ export class GLTFExporter {
    */
   async exportToUSDZ(
     sceneGraph: ISceneGraph,
-    options?: import('../usdz/USDZExporter').IUSDZExportOptions
-  ): Promise<import('../usdz/USDZExporter').IUSDZExportResult> {
+    options?: IUSDZExportOptions
+  ): Promise<IUSDZExportResult> {
+    // Dynamic import to avoid circular dependency — only the class constructor
+    // is loaded at runtime; types come from USDTypes (no cycle).
     const { USDZExporter } = await import('../usdz/USDZExporter');
 
     // Create USDZ exporter with options
