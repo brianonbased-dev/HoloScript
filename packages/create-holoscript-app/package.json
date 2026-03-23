@@ -2,6 +2,7 @@
   "name": "create-holoscript-app",
   "version": "1.0.0",
   "description": "Create HoloScript apps with zero configuration — the open AI-spatial reality protocol",
+  "type": "module",
   "main": "./dist/index.js",
   "bin": {
     "create-holoscript-app": "./dist/index.js"
