@@ -1,0 +1,22 @@
+{
+  "name": "@holoscript/connector-vscode",
+  "version": "1.0.0",
+  "description": "VSCode extension connector — bidirectional sync, live preview, MCP bridge",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@holoscript/connector-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  }
+}
