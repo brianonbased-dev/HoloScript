@@ -113,6 +113,9 @@ export class MLSMPMFluid {
 
   private simParamsBuffer: GPUBuffer | null = null;
 
+  /** External force (wind) applied during grid update [x, y, z] in m/s² */
+  private externalForce: [number, number, number] = [0, 0, 0];
+
   // Pipelines
   private gridClearPipeline: GPUComputePipeline | null = null;
   private p2gPipeline: GPUComputePipeline | null = null;
@@ -338,6 +341,18 @@ export class MLSMPMFluid {
   }
 
   // ---------------------------------------------------------------------------
+  // External Forces
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Set an external force (e.g. wind) applied to the fluid during grid update.
+   * Force is in world-space acceleration (m/s²). Applied additively with gravity.
+   */
+  setExternalForce(x: number, y: number, z: number): void {
+    this.externalForce = [x, y, z];
+  }
+
+  // ---------------------------------------------------------------------------
   // Accessors
   // ---------------------------------------------------------------------------
 
@@ -511,7 +526,7 @@ export class MLSMPMFluid {
       restDensity,
       bulkModulus,
       viscosity,
-      0, 0, 0,         // padding
+      this.externalForce[0], this.externalForce[1], this.externalForce[2],  // wind xyz
     ]);
 
     // Write grid_res and num_particles as u32

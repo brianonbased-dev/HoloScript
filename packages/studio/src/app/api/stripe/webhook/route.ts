@@ -3,6 +3,8 @@ import { getDb } from '../../../../db/client';
 import { purchases, payouts, marketplaceListings, creatorProfiles } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
 import { constructWebhookEvent, calculateRevenueSplit, isStripeConfigured } from '../../../../lib/stripe';
+import { addCredits } from '../../../../lib/absorb/creditService';
+import { CREDIT_PACKAGES } from '../../../../lib/absorb/pricing';
 import type Stripe from 'stripe';
 
 /**
@@ -42,7 +44,14 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
-      await handleCheckoutCompleted(db, session);
+      const listingId = session.metadata?.listingId ?? '';
+
+      // Credit purchase flow (listingId starts with "credit-")
+      if (listingId.startsWith('credit-')) {
+        await handleCreditPurchase(session);
+      } else {
+        await handleCheckoutCompleted(db, session);
+      }
       break;
     }
 
@@ -143,6 +152,38 @@ async function handleCheckoutCompleted(
 
   console.log(
     `[stripe/webhook] Purchase ${purchase.id} completed: $${(purchase.amountCents / 100).toFixed(2)} → creator $${(creatorCents / 100).toFixed(2)} / platform $${(platformCents / 100).toFixed(2)} / agent $${(aiAgentCents / 100).toFixed(2)}`
+  );
+}
+
+async function handleCreditPurchase(session: Stripe.Checkout.Session) {
+  const buyerId = session.metadata?.buyerId;
+  const listingId = session.metadata?.listingId ?? '';
+  const packageId = listingId.replace('credit-', '');
+
+  if (!buyerId) {
+    console.error('[stripe/webhook] Credit purchase missing buyerId');
+    return;
+  }
+
+  const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+  if (!pkg) {
+    console.error(`[stripe/webhook] Unknown credit package: ${packageId}`);
+    return;
+  }
+
+  const result = await addCredits(
+    buyerId,
+    pkg.credits,
+    `Purchased ${pkg.label} package (${pkg.credits} credits)`,
+    {
+      type: 'purchase',
+      stripeSessionId: session.id,
+      metadata: { packageId, priceCents: pkg.priceCents },
+    },
+  );
+
+  console.log(
+    `[stripe/webhook] Credit purchase: ${pkg.label} (${pkg.credits} credits) for user ${buyerId}. New balance: ${result?.balanceCents ?? 'unknown'}`,
   );
 }
 

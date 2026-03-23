@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/formatter",
   "version": "3.1.0",
   "description": "Code formatting tool for HoloScript (.holo) and HoloScript+ (.hsplus) files",
@@ -43,5 +43,9 @@
     "rimraf": "^5.0.5",
     "typescript": "~5.9.3",
     "vitest": "^4.1.0"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }

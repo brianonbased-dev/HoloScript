@@ -41,15 +41,23 @@ export class BrowserPool {
     const mergedConfig = { ...DEFAULT_CONFIG, ...config };
     const sessionId = `holoscript-${Date.now()}-${++this.sessionCounter}`;
 
+    // Use system Chromium when available (Railway/Docker/CI)
+    const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+    const isServer = !!executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
+
     // Launch browser
     const browser = await chromium.launch({
-      headless: mergedConfig.headless,
+      headless: isServer ? true : mergedConfig.headless,
+      executablePath: executablePath || undefined,
       args: [
         '--enable-webgl',
         '--enable-accelerated-2d-canvas',
         '--enable-features=WebXR',
         '--no-sandbox', // Required for some CI environments
         '--allow-file-access-from-files', // Allow loading local files via XHR
+        '--disable-gpu-sandbox',
+        '--disable-setuid-sandbox',
+        ...(isServer ? ['--disable-dev-shm-usage', '--single-process'] : []),
       ],
     });
 

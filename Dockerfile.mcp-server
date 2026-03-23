@@ -33,13 +33,18 @@ COPY packages/mcp-server/ packages/mcp-server/
 RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN cd packages/llm-provider && npx tsup --no-dts
-RUN cd packages/mcp-server && pnpm build
+RUN cd packages/mcp-server && npx tsup
 
 # --- Production stage ---
 FROM node:20-alpine
 
 # Install su-exec for dropping privileges in entrypoint
-RUN apk add --no-cache su-exec
+# Install Chromium for Playwright browser-based screenshot rendering
+RUN apk add --no-cache su-exec chromium nss freetype harfbuzz ca-certificates ttf-freefont
+
+# Configure Playwright to use system Chromium instead of downloading its own
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate

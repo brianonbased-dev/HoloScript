@@ -4,9 +4,30 @@ All notable changes to HoloScript are documented here.
 
 ---
 
-## [Unreleased]
+### [Unreleased]
 
-### Week Of 2026-03-12 To 2026-03-19
+#### 13-Gap Critical & Feature Expansion
+
+**Critical Infrastructure & Reliability (C1-C5)**
+- **Automated Gotcha Routing:** Added explicit import and case routing for `holo_check_gotchas` in the central handler system.
+- **Railway/Docker Hardening:** Injected Playwright (Chromium + fonts) into `Dockerfile.mcp-server` for reliable server-side rendering.
+- **BrowserPool Enhancements:** Server-side screenshot rendering enabled with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` support, auto-headless detection, and Docker-optimized flags.
+- **Scene Persistence:** Implemented short-URL (8-char UUID) scene persistence with in-memory LRU eviction and `/scene/:id` + `/embed/:id` routing.
+- **Local Dev Server:** New `holoscript serve` command with hot-reload support, Three.js integration, and OrbitControls.
+
+**Core Engine & CLI (H1-H6)**
+- **Plugin API Dispatch:** Fixed `onAPICall` to correctly dispatch `scene.read/write/subscribe`, `editor.selection/viewport`, `ui.notification`, and `user.read`.
+- **CLI Intelligence:** New commands for JSON AST exports (`--export-ast`), JSON-to-Holo imports, and Mermaid dependency graph visualization.
+- **Physics Pipeline:** Wind-to-FluidTrait WGSL pipeline implementation (3 shaders: padding → wind_xyz), coupled with `MLSMPMFluid` and `WeatherBlackboard`.
+- **Three.js Compiler:** Enhanced with full material property support, all geometry types, shadows, and window resize handlers.
+
+**Ecosystem & Performance (M2-M7, L6)**
+- **Dynamic Plugin Installation:** Support for NPM (registry/esm.sh) and direct URL plugin imports via dynamic import.
+- **Daemon Lifecycle:** Graceful daemon stop support via POST actions to track and finalize running jobs.
+- **Parser Domain Blocks:** Validated and documented 80+ token types and 16 domain categories within the unified `parseDomainBlock()` system.
+- **Gallery Templates:** Added "The Sunken Temple" physics playground template to the showcase category, utilizing `@fluid`, `@soft_body_pro`, and `@volumetric_clouds`.
+
+---
 
 #### Package Release Alignment (npm + PyPI)
 

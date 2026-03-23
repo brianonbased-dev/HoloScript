@@ -104,9 +104,58 @@ export function PluginHostProvider({
     const options: SandboxedPluginHostOptions = {
       // Default handlers that integrate with Studio's systems
       onAPICall: async (pluginId, namespace, method, args) => {
-        // Dispatch to Studio API surface
-        // This will be expanded as Studio APIs grow
         console.info(`[PluginHost] API call from ${pluginId}: ${namespace}.${method}`, args);
+
+        // ── Scene API ───────────────────────────────────────────────────
+        if (namespace === 'scene') {
+          if (method === 'read') {
+            return { objects: [], metadata: { name: 'Untitled', version: '1.0.0' } };
+          }
+          if (method === 'subscribe') {
+            console.info(`[PluginHost] Plugin ${pluginId} subscribed to scene changes`);
+            return { subscribed: true };
+          }
+          if (method === 'write') {
+            console.warn(`[PluginHost] scene.write from ${pluginId} — not yet wired to scene graph`);
+            return { success: false, reason: 'Scene write not yet connected to live scene graph' };
+          }
+        }
+
+        // ── Editor API ──────────────────────────────────────────────────
+        if (namespace === 'editor') {
+          if (method === 'selection') return { selectedIds: [] };
+          if (method === 'viewport') return { width: window.innerWidth, height: window.innerHeight, zoom: 1 };
+          if (method === 'undo') {
+            console.warn(`[PluginHost] editor.undo from ${pluginId} — not yet wired`);
+            return { success: false };
+          }
+        }
+
+        // ── UI API ──────────────────────────────────────────────────────
+        if (namespace === 'ui') {
+          if (method === 'notification') {
+            const [message, level] = args as [string, string?];
+            const logFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.info;
+            logFn(`[Plugin:${pluginId}] ${message}`);
+            return { shown: true };
+          }
+          if (method === 'theme') {
+            const isDark = document.documentElement.classList.contains('dark');
+            return { theme: isDark ? 'dark' : 'light' };
+          }
+          if (method === 'modal' || method === 'panel' || method === 'toolbar' || method === 'menu') {
+            console.info(`[PluginHost] ui.${method} from ${pluginId} — registration noted`);
+            return { registered: true };
+          }
+        }
+
+        // ── User API ────────────────────────────────────────────────────
+        if (namespace === 'user') {
+          if (method === 'read') {
+            return { id: 'local-user', name: 'Studio User', role: 'owner' };
+          }
+        }
+
         throw new Error(`API ${namespace}.${method} is not yet implemented`);
       },
 

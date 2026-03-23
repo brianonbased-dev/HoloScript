@@ -52,5 +52,9 @@
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/vm-bridge"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }

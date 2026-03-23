@@ -24,9 +24,9 @@ struct SimParams {
   rest_density: f32,
   bulk_modulus: f32,
   viscosity: f32,
-  _pad0: f32,
-  _pad1: f32,
-  _pad2: f32,
+  wind_x: f32,
+  wind_y: f32,
+  wind_z: f32,
 }
 
 @group(0) @binding(0) var<uniform> params: SimParams;
@@ -77,8 +77,10 @@ fn cs_grid_update(@builtin(global_invocation_id) gid: vec3<u32>) {
     f32(grid_momentum_z_in[idx]) * FIXED_POINT_INV / mass,
   );
 
-  // Apply gravity
-  vel.y += params.gravity_y * params.dt;
+  // Apply gravity + wind external forces
+  vel.x += params.wind_x * params.dt;
+  vel.y += params.gravity_y * params.dt + params.wind_y * params.dt;
+  vel.z += params.wind_z * params.dt;
 
   // Boundary conditions (solid walls)
   // Decompose flat index to 3D

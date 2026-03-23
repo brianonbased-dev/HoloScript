@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/benchmark",
   "version": "3.1.0",
   "description": "Performance benchmarking suite for HoloScript parser, type checker, formatter, and LSP",
@@ -40,5 +40,9 @@
     "profiling"
   ],
   "author": "HoloScript Team",
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
 }

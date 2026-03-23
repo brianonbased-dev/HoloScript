@@ -170,19 +170,35 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
       let plugin: HoloScriptPlugin;
 
       if (type === 'npm') {
-        // Load plugin from npm package
-        // In production, this would use dynamic import or fetch
-        throw new Error('NPM plugin installation not yet implemented');
-      } else if (type === 'url') {
-        // Load plugin from URL
-        const response = await fetch(source);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch plugin from ${source}`);
+        // Load plugin from npm registry via dynamic import
+        // Vite/Webpack can resolve npm package names at build time;
+        // for runtime installs, fetch the package metadata then the entry point
+        const registryUrl = `https://registry.npmjs.org/${encodeURIComponent(source)}/latest`;
+        const metaRes = await fetch(registryUrl);
+        if (!metaRes.ok) {
+          throw new Error(`NPM package "${source}" not found (${metaRes.status})`);
         }
-        const code = await response.text();
-        // In production, this would safely evaluate the code
-        // For now, we'll throw an error
-        throw new Error('URL plugin installation not yet implemented');
+        const meta = await metaRes.json();
+        const tarball = meta.dist?.tarball;
+        if (!tarball) {
+          throw new Error(`No tarball URL found for "${source}"`);
+        }
+        // For browser environments, load via CDN (unpkg/esm.sh) instead of tarball
+        const cdnUrl = `https://esm.sh/${source}@${meta.version}`;
+        const mod = await import(/* @vite-ignore */ cdnUrl);
+        plugin = mod.default ?? mod;
+        if (!plugin?.metadata?.id) {
+          throw new Error(`Package "${source}" does not export a valid HoloScript plugin`);
+        }
+        (plugin as any).__source = 'npm';
+      } else if (type === 'url') {
+        // Load plugin from URL via dynamic import
+        const mod = await import(/* @vite-ignore */ source);
+        plugin = mod.default ?? mod;
+        if (!plugin?.metadata?.id) {
+          throw new Error(`Module at "${source}" does not export a valid HoloScript plugin`);
+        }
+        (plugin as any).__source = 'url';
       } else {
         // Local plugin (already loaded)
         throw new Error('Local plugin installation requires registerPlugin');

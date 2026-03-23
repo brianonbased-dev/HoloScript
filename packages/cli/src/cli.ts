@@ -2365,6 +2365,246 @@ async function main(): Promise<void> {
       break;
     }
 
+    // =========================================
+    // Local Dev Server
+    // =========================================
+
+    case 'serve': {
+      if (!options.input) {
+        console.error('\x1b[31mError: No input file specified.\x1b[0m');
+        console.log('Usage: holoscript serve <file.holo> [--port 8080]');
+        process.exit(1);
+      }
+
+      const fs = await import('fs');
+      const path = await import('path');
+      const http = await import('http');
+
+      const filePath = path.resolve(options.input);
+      if (!fs.existsSync(filePath)) {
+        console.error(`\x1b[31mError: File not found: ${filePath}\x1b[0m`);
+        process.exit(1);
+      }
+
+      const servePort = options.port || 8080;
+
+      const buildHtml = () => {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const title = path.basename(filePath, path.extname(filePath));
+        return `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title} - HoloScript</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a0a}#c{width:100%;height:100vh}</style>
+</head><body><div id="c"></div>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x1a1a2e);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);camera.position.set(0,5,15);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(devicePixelRatio);renderer.toneMapping=THREE.ACESFilmicToneMapping;
+document.getElementById('c').appendChild(renderer.domElement);
+const ctrl=new OrbitControls(camera,renderer.domElement);ctrl.enableDamping=true;
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+const sun=new THREE.DirectionalLight(0xffffff,1.5);sun.position.set(10,20,10);scene.add(sun);
+const code=${JSON.stringify(content)};
+const re=/object\\s+["']([^"']+)["'][^{]*\\{([^}]*(?:\\{[^}]*\\}[^}]*)*)\\}/gs;let m;
+while((m=re.exec(code))!==null){const b=m[2];
+const p=b.match(/position:\\s*\\[([^\\]]+)\\]/),c2=b.match(/color:\\s*["']([^"']+)["']/);
+const s=b.match(/scale:\\s*\\[([^\\]]+)\\]/),ge=b.match(/geometry:\\s*["']?(\\w+)["']?/);
+const t=ge?ge[1]:'sphere';let g;
+if(t==='cube'||t==='box')g=new THREE.BoxGeometry(1,1,1);
+else if(t==='plane')g=new THREE.PlaneGeometry(1,1);
+else if(t==='cylinder')g=new THREE.CylinderGeometry(.5,.5,1,32);
+else g=new THREE.SphereGeometry(.5,32,32);
+const mat=new THREE.MeshStandardMaterial({color:c2?c2[1]:'#00ffff',roughness:.5});
+const mesh=new THREE.Mesh(g,mat);
+if(p){const[x,y,z]=p[1].split(',').map(Number);mesh.position.set(x,y,z)}
+if(s){const[x,y,z]=s[1].split(',').map(Number);mesh.scale.set(x,y,z)}
+scene.add(mesh)}
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+(function a(){requestAnimationFrame(a);ctrl.update();renderer.render(scene,camera)})();
+</script></body></html>`;
+      };
+
+      const server = http.createServer((_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(buildHtml());
+      });
+
+      server.listen(servePort, () => {
+        console.log(`\n\x1b[32m✓ Serving ${options.input}\x1b[0m`);
+        console.log(`  \x1b[36mhttp://localhost:${servePort}\x1b[0m`);
+        console.log(`\x1b[2mPress Ctrl+C to stop\x1b[0m\n`);
+      });
+
+      await new Promise(() => {});
+      break;
+    }
+
+    // =========================================
+    // Import / Export / Visualize
+    // =========================================
+
+    case 'export': {
+      if (!options.input) {
+        console.error('\x1b[31mError: No input file specified.\x1b[0m');
+        console.log('Usage: holoscript export <file.holo> [-o output.json] [--json]');
+        process.exit(1);
+      }
+
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const filePath = path.resolve(options.input);
+      if (!fs.existsSync(filePath)) {
+        console.error(`\x1b[31mError: File not found: ${filePath}\x1b[0m`);
+        process.exit(1);
+      }
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      console.log(`\n\x1b[36mExporting ${options.input} as JSON AST...\x1b[0m\n`);
+
+      const { HoloCompositionParser } = await import('@holoscript/core');
+      const parser = new HoloCompositionParser();
+      const result = parser.parse(content);
+
+      if (!result.success) {
+        console.error('\x1b[31mParse errors:\x1b[0m');
+        result.errors.forEach((e: any) => console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`));
+        process.exit(1);
+      }
+
+      const exported = JSON.stringify(result.ast, null, 2);
+      const outputPath = options.output || options.input.replace(/\.(holo|hsplus)$/, '.json');
+
+      if (options.output) {
+        fs.writeFileSync(path.resolve(outputPath), exported);
+        console.log(`\x1b[32m✓ Exported to ${outputPath}\x1b[0m`);
+      } else {
+        console.log(exported);
+      }
+
+      console.log(`  Objects: ${result.ast?.objects?.length || 0}`);
+      console.log(`  Templates: ${result.ast?.templates?.length || 0}`);
+      process.exit(0);
+      break;
+    }
+
+    case 'import': {
+      if (!options.input) {
+        console.error('\x1b[31mError: No input file specified.\x1b[0m');
+        console.log('Usage: holoscript import <file.json> [-o output.holo]');
+        process.exit(1);
+      }
+
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const filePath = path.resolve(options.input);
+      if (!fs.existsSync(filePath)) {
+        console.error(`\x1b[31mError: File not found: ${filePath}\x1b[0m`);
+        process.exit(1);
+      }
+
+      console.log(`\n\x1b[36mImporting ${options.input} to HoloScript...\x1b[0m\n`);
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const ast = JSON.parse(content);
+      const name = ast.name || path.basename(filePath, path.extname(filePath));
+
+      let holo = `composition "${name}" {\n\n`;
+
+      if (ast.environment) {
+        holo += `  environment {\n`;
+        for (const [key, value] of Object.entries(ast.environment)) {
+          holo += `    ${key}: ${JSON.stringify(value)}\n`;
+        }
+        holo += `  }\n\n`;
+      }
+
+      for (const obj of (ast.objects || [])) {
+        const traits = (obj.traits || []).map((t: any) => ` @${typeof t === 'string' ? t : t.name}`).join('');
+        holo += `  object "${obj.name}"${traits} {\n`;
+        for (const prop of (obj.properties || [])) {
+          holo += `    ${prop.key}: ${JSON.stringify(prop.value)}\n`;
+        }
+        holo += `  }\n\n`;
+      }
+
+      holo += `}\n`;
+
+      const outputPath = options.output || options.input.replace(/\.(json|yaml)$/, '.holo');
+      fs.writeFileSync(path.resolve(outputPath), holo);
+      console.log(`\x1b[32m✓ Imported to ${outputPath}\x1b[0m`);
+      console.log(`  Objects: ${ast.objects?.length || 0}`);
+      process.exit(0);
+      break;
+    }
+
+    case 'visualize': {
+      if (!options.input) {
+        console.error('\x1b[31mError: No input file specified.\x1b[0m');
+        console.log('Usage: holoscript visualize <file.holo> [-o graph.mmd] [--json]');
+        process.exit(1);
+      }
+
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const filePath = path.resolve(options.input);
+      if (!fs.existsSync(filePath)) {
+        console.error(`\x1b[31mError: File not found: ${filePath}\x1b[0m`);
+        process.exit(1);
+      }
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      console.log(`\n\x1b[36mVisualizing ${options.input}...\x1b[0m\n`);
+
+      const { HoloCompositionParser } = await import('@holoscript/core');
+      const parser = new HoloCompositionParser();
+      const result = parser.parse(content);
+
+      if (!result.success) {
+        console.error('\x1b[31mParse errors:\x1b[0m');
+        result.errors.forEach((e: any) => console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`));
+        process.exit(1);
+      }
+
+      let graph = `graph TD\n`;
+      graph += `  ROOT["${result.ast?.name || 'Composition'}"]\n`;
+
+      for (const obj of (result.ast?.objects || [])) {
+        const id = obj.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const traits = (obj.traits || []).map((t: any) => `@${typeof t === 'string' ? t : t.name}`).join(' ');
+        graph += `  ${id}["${obj.name}${traits ? '\\n' + traits : ''}"]\n`;
+        graph += `  ROOT --> ${id}\n`;
+      }
+
+      for (const tmpl of (result.ast?.templates || [])) {
+        const id = 'T_' + tmpl.name.replace(/[^a-zA-Z0-9]/g, '_');
+        graph += `  ${id}{{"${tmpl.name} (template)"}}\n`;
+        graph += `  ROOT -.-> ${id}\n`;
+      }
+
+      if (options.output) {
+        const outputPath = path.resolve(options.output);
+        fs.writeFileSync(outputPath, graph);
+        console.log(`\x1b[32m✓ Graph written to ${outputPath}\x1b[0m`);
+      } else {
+        console.log(graph);
+      }
+
+      console.log(`  Objects: ${result.ast?.objects?.length || 0}`);
+      console.log(`  Templates: ${result.ast?.templates?.length || 0}`);
+      process.exit(0);
+      break;
+    }
+
     case 'self-improve': {
       try {
         const { runSelfImprove } = await import('./self-improve');

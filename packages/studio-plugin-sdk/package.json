@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/studio-plugin-sdk",
   "version": "1.0.0",
   "description": "Plugin SDK for extending HoloScript Studio with custom nodes, panels, and tools",
@@ -78,5 +78,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }

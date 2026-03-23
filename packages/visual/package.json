@@ -51,5 +51,10 @@
     "type": "git",
     "url": "https://github.com/holoscript/holoscript.git",
     "directory": "packages/visual"
-  }
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "author": "Brian X Base Team"
 }

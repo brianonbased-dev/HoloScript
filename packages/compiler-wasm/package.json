@@ -29,5 +29,9 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/compiler-wasm"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
 }

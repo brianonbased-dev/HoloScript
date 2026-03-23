@@ -22,9 +22,9 @@ struct SimParams {
   rest_density: f32,
   bulk_modulus: f32,
   viscosity: f32,
-  _pad0: f32,
-  _pad1: f32,
-  _pad2: f32,
+  wind_x: f32,
+  wind_y: f32,
+  wind_z: f32,
 }
 
 @group(0) @binding(0) var<uniform> params: SimParams;

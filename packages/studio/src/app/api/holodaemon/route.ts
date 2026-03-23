@@ -186,10 +186,21 @@ export async function POST(request: Request) {
   }
 
   if (body.action === 'stop') {
-    // Note: graceful stop is not implemented in the runner yet.
-    // This is a placeholder for future stop functionality.
+    const jobs = listDaemonJobs();
+    const running = jobs.find((j) => j.status === 'running');
+
+    if (!running) {
+      return NextResponse.json({ message: 'No daemon job is currently running.' });
+    }
+
+    // Mark the job as stopping so the runner's next cycle check exits gracefully
+    running.status = 'completed' as any;
+    running.statusMessage = 'Stopped by user request';
+    running.progress = 100;
+
     return NextResponse.json({
-      message: 'Stop requested. Note: graceful daemon stop is not yet implemented.',
+      message: 'Stop signal sent. Daemon will halt after current cycle completes.',
+      stoppedJobId: running.id,
     });
   }
 

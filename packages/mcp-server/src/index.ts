@@ -5,7 +5,7 @@
  * Enables AI agents (Grok, Claude, Copilot, etc.) to parse, validate,
  * generate, and COMPILE HoloScript code to 25+ platforms.
  *
- * 72+ tools across 14 categories:
+ * 82+ tools across 15 categories:
  * - Core (15): Parse, validate, generate, render, share, explain, analyze
  * - Graph (13): Parse-to-graph, visualize, design, diff, connections, node query
  * - IDE (9): Scan, diagnostics, autocomplete, refactor, docs, hover
@@ -20,6 +20,7 @@
  * - Snapshot (3): Temporal scene snapshots
  * - Monitoring (1): Telemetry and health
  * - HoloTest (1): Spatial scene testing
+ * - Absorb Service (10): Project mgmt, credits, absorb, improve, query, render, diff, pipeline
  * - Browser control (3), Training data (1) [included in Core tools above]
  */
 
@@ -41,6 +42,7 @@ import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
+import { handleAbsorbServiceTool } from './absorb-tools';
 
 // Create MCP server
 const server = new Server(
@@ -171,6 +173,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    // Check Absorb Service tools (project management, credit-gated operations)
+    const absorbServiceResult = await handleAbsorbServiceTool(name, args || {});
+    if (absorbServiceResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(absorbServiceResult, null, 2) }],
+      };
+    }
+
     const result = await handleTool(name, args || {});
     return {
       content: [
@@ -215,3 +225,4 @@ export * from './brittney-lite';
 export * from './compiler-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
+export * from './absorb-tools';

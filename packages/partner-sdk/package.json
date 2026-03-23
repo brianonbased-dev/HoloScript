@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/partner-sdk",
   "version": "3.1.1",
   "description": "Partner SDK for integrating with the HoloScript ecosystem",
@@ -53,5 +53,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }

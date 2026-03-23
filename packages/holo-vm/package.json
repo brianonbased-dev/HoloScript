@@ -61,5 +61,9 @@
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/holo-vm"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }

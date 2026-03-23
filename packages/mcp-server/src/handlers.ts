@@ -16,6 +16,7 @@ import { handleCodebaseTool } from './codebase-tools';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
 import { handleBrittneyLiteTool } from './brittney-lite';
+import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { PluginManager } from './PluginManager';
 import {
   browserLaunch,
@@ -141,12 +142,16 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
   }
 
-  // Route codebase-intelligence tools first, then graph-understanding tools.
-  // Both share the `holo_` prefix.
+  // Route codebase-intelligence tools first, then wisdom/gotcha tools, then graph tools.
+  // All share the `holo_` prefix.
   if (name.startsWith('holo_')) {
     const codebaseResult = await handleCodebaseTool(name, args);
     if (codebaseResult !== null) {
       return codebaseResult;
+    }
+    const wisdomResult = await handleWisdomGotchaTool(name, args);
+    if (wisdomResult !== null) {
+      return wisdomResult;
     }
     return handleGraphTool(name, args);
   }

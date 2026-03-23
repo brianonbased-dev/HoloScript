@@ -2,7 +2,79 @@
  * HoloScript Renderer and Sharing Utilities
  *
  * Remote rendering and X platform sharing for AI agents.
+ * Includes scene persistence with short UUID URLs and server-side screenshot rendering.
  */
+
+import { randomUUID } from 'crypto';
+
+// =============================================================================
+// Scene Persistence Store
+// =============================================================================
+
+interface StoredScene {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  createdAt: number;
+  accessCount: number;
+}
+
+/** In-memory scene store. Replace with Redis/SQLite for production persistence. */
+const sceneStore = new Map<string, StoredScene>();
+
+/** Maximum number of cached scenes (LRU eviction) */
+const MAX_SCENES = 1000;
+
+/** Generate a short 8-char scene ID from UUID */
+function generateShortId(): string {
+  return randomUUID().replace(/-/g, '').slice(0, 8);
+}
+
+/**
+ * Store a scene and return a short URL-safe ID.
+ */
+export function storeScene(code: string, title?: string, description?: string): StoredScene {
+  // Evict oldest scenes if at capacity
+  if (sceneStore.size >= MAX_SCENES) {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    for (const [key, scene] of sceneStore) {
+      if (scene.createdAt < oldestTime) {
+        oldestTime = scene.createdAt;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey) sceneStore.delete(oldestKey);
+  }
+
+  const id = generateShortId();
+  const scene: StoredScene = {
+    id,
+    code,
+    title: title || 'HoloScript Scene',
+    description: description || 'Interactive 3D scene built with HoloScript',
+    createdAt: Date.now(),
+    accessCount: 0,
+  };
+  sceneStore.set(id, scene);
+  return scene;
+}
+
+/**
+ * Retrieve a stored scene by short ID.
+ */
+export function getScene(id: string): StoredScene | null {
+  const scene = sceneStore.get(id);
+  if (scene) {
+    scene.accessCount++;
+  }
+  return scene || null;
+}
+
+// =============================================================================
+// Types
+// =============================================================================
 
 interface RenderOptions {
   code: string;
@@ -104,9 +176,9 @@ export async function renderPreview(options: RenderOptions): Promise<RenderResul
     }
   }
 
-  // Local/mock rendering (returns playground link instead)
-  const _encodedCode = encodeURIComponent(Buffer.from(code).toString('base64'));
-  const previewUrl = `${PLAYGROUND_URL}?code=${_encodedCode}`;
+  // Store scene and generate short URL
+  const scene = storeScene(code, 'HoloScript Preview');
+  const previewUrl = `${PLAYGROUND_URL}/scene/${scene.id}`;
 
   return {
     success: true,
@@ -158,10 +230,10 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
     }
   }
 
-  // Fallback: generate local URLs
-  // Generate URLs
-  const playgroundUrl = generatePlaygroundUrl(code, title, platform);
-  const embedUrl = generateEmbedUrl(code);
+  // Store scene and generate short URLs
+  const scene = storeScene(code, title, description);
+  const playgroundUrl = `${PLAYGROUND_URL}/scene/${scene.id}`;
+  const embedUrl = `${PLAYGROUND_URL}/embed/${scene.id}`;
 
   // Generate X-optimized tweet text
   const tweetText = generateTweetText(title, description, playgroundUrl);
@@ -343,7 +415,7 @@ function generateEmbedCode(previewUrl: string, resolution: number[]): string {
 ></iframe>`;
 }
 
-function generateBrowserTemplate(code: string, title: string): string {
+export function generateBrowserTemplate(code: string, title: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

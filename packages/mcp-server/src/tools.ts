@@ -16,6 +16,7 @@ import { selfImproveTools } from './self-improve-tools';
 import { gltfImportTools } from './gltf-import-tools';
 import { editHoloTools } from './edit-holo-tools';
 import { wisdomGotchaTools } from './wisdom-gotcha-tools';
+import { absorbServiceTools } from './absorb-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -585,7 +586,7 @@ export const hololandTrainingTools: Tool[] = [
 /**
  * All tools combined:
  * Core (19) + Graph (13) + IDE (9) + Brittney-Lite (4) + Codebase (5) + GraphRAG (2)
- * + Self-Improve (2) + GLTF (2) + EditHolo (1) = 57 language tools
+ * + Self-Improve (2) + GLTF (2) + EditHolo (1) + Absorb Service (10) = 67 language tools
  * (+ dynamic plugins; compiler/networking/snapshot/monitoring/holotest added separately in index.ts)
  */
 export const tools: Tool[] = [
@@ -602,6 +603,7 @@ export const tools: Tool[] = [
   ...wisdomGotchaTools,
   ...gltfImportTools,
   ...editHoloTools,
+  ...absorbServiceTools,
   ...PluginManager.getTools(),
 ];
 

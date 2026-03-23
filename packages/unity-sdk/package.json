@@ -41,5 +41,10 @@
       "description": "Voice command integration example",
       "path": "Samples~/VoiceCommands"
     }
-  ]
+  ],
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "license": "MIT"
 }

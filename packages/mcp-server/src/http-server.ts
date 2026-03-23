@@ -17,7 +17,7 @@ import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
-import { renderPreview, createShareLink } from './renderer';
+import { renderPreview, createShareLink, getScene, storeScene, generateBrowserTemplate } from './renderer';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -408,6 +408,86 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /scene/:id — serve stored scene as interactive HTML
+  const sceneMatch = url?.match(/^\/scene\/([a-f0-9]{8})$/);
+  if (sceneMatch && req.method === 'GET') {
+    const scene = getScene(sceneMatch[1]);
+    if (!scene) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Scene not found' }));
+      return;
+    }
+    // Return the full interactive HTML template
+    // generateBrowserTemplate imported at top of file
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(generateBrowserTemplate(scene.code, scene.title));
+    return;
+  }
+
+  // GET /embed/:id — same as /scene/:id for iframe embedding
+  const embedMatch = url?.match(/^\/embed\/([a-f0-9]{8})$/);
+  if (embedMatch && req.method === 'GET') {
+    const scene = getScene(embedMatch[1]);
+    if (!scene) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Scene not found' }));
+      return;
+    }
+    // generateBrowserTemplate imported at top of file
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Frame-Options': 'ALLOWALL',
+    });
+    res.end(generateBrowserTemplate(scene.code, scene.title));
+    return;
+  }
+
+  // GET /api/scene/:id — return scene metadata as JSON
+  const apiSceneMatch = url?.match(/^\/api\/scene\/([a-f0-9]{8})$/);
+  if (apiSceneMatch && req.method === 'GET') {
+    const scene = getScene(apiSceneMatch[1]);
+    if (!scene) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Scene not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(scene));
+    return;
+  }
+
+  // POST /api/scene — store a scene and get short URL
+  if (url === '/api/scene' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body.code || typeof body.code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
+        return;
+      }
+      const scene = storeScene(
+        body.code as string,
+        (body.title as string) || undefined,
+        (body.description as string) || undefined,
+      );
+      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`;
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        id: scene.id,
+        url: `${baseUrl}/scene/${scene.id}`,
+        embed: `${baseUrl}/embed/${scene.id}`,
+        api: `${baseUrl}/api/scene/${scene.id}`,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
   // 404 for everything else
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not Found' }));
@@ -429,6 +509,9 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`     GET  /api/health        - API health + capabilities (public)`);
   console.log(`     POST /api/render        - Render HoloScript preview (public)`);
   console.log(`     POST /api/share         - Create share links (public)`);
+  console.log(`     POST /api/scene         - Store scene, get short URL (public)`);
+  console.log(`     GET  /scene/:id         - View stored scene (public)`);
+  console.log(`     GET  /embed/:id         - Embed stored scene (public)`);
 });
 
 // Graceful shutdown

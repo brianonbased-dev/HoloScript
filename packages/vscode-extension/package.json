@@ -1151,7 +1151,6 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run esbuild-base -- --production",
     "esbuild-base": "node esbuild.js",
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",

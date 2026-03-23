@@ -41,5 +41,17 @@
     "vitest": "^4.1.0"
   },
   "author": "Brian Joseph",
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "keywords": [
+    "holoscript",
+    "xr",
+    "webxr",
+    "vr",
+    "ar",
+    "spatial-computing"
+  ]
 }

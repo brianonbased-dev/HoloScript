@@ -232,6 +232,10 @@ export default function HomePage() {
           Integrations
         </Link>
         <span className="footer-sep">·</span>
+        <Link href="/absorb" className="footer-link">
+          Absorb
+        </Link>
+        <span className="footer-sep">·</span>
         <span className="footer-hint">
           Press <kbd>?</kbd> for help
         </span>

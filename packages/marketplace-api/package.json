@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/marketplace-api",
   "version": "1.2.1",
   "description": "HoloScript Trait Marketplace API - publishing, discovery, and dependency resolution",
@@ -50,5 +50,9 @@
     "api"
   ],
   "author": "HoloScript Team",
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
 }

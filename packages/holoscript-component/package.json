@@ -52,5 +52,10 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  }
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  },
+  "author": "Brian X Base Team"
 }

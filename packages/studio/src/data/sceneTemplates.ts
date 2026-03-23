@@ -14,7 +14,8 @@ export interface SceneTemplate {
     | 'healthcare'
     | 'ecommerce'
     | 'industrial'
-    | 'sports';
+    | 'sports'
+    | 'showcase';
   desc: string;
   tags: string[];
   code: string;
@@ -721,6 +722,157 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
 }`,
   },
 
+  // ── SHOWCASE ──────────────────────────────────────────────────────────────
+  {
+    id: 'physics-playground',
+    name: 'The Sunken Temple',
+    emoji: '🏛️',
+    category: 'showcase',
+    desc: 'Physics playground — MLS-MPM fluid, PBD soft bodies, volumetric clouds, god rays, weather, spatial audio',
+    tags: ['Showcase', 'Physics', 'GAPS', 'Fluid', 'SoftBody', 'Weather'],
+    code: `scene "The Sunken Temple" {
+  @environment {
+    skybox: "sunset_ruins"
+    gravity: [0, -9.81, 0]
+    shadow_type: "pcf_soft"
+    shadow_resolution: 2048
+  }
+
+  // --- PBR Materials ---
+  material AncientStone { albedo: "#8B7D6B" roughness: 0.85 metallic: 0.0 }
+  material MossyStone { albedo: "#4A5D3A" roughness: 0.9 normal_scale: 1.5 }
+  material CrystalMaterial { albedo: "#88CCFF" roughness: 0.1 metallic: 0.7 emissive: "#2244AA" opacity: 0.6 }
+  material TempleWater { albedo: "#1A4A5A" roughness: 0.05 metallic: 0.3 opacity: 0.7 }
+  material AncientGold { albedo: "#D4A017" roughness: 0.3 metallic: 0.95 }
+  material MagicEmber { albedo: "#FF6600" roughness: 0.4 emissive: "#FF4400" emissive_intensity: 3.0 }
+
+  // --- Post-Processing ---
+  post_processing {
+    bloom { threshold: 0.8 intensity: 0.6 radius: 0.4 }
+    ssao { radius: 0.5 intensity: 1.2 bias: 0.025 }
+    color_grading { saturation: 1.1 contrast: 1.05 temperature: 300 }
+    depth_of_field { focus_distance: 15 aperture: 0.02 }
+    volumetric_fog { density: 0.02 color: "#9988AA" }
+    tone_mapping { type: "aces" exposure: 1.1 }
+  }
+
+  // --- Weather ---
+  weather TempleWeather @weather {
+    time_of_day: 17.5
+    cloud_type: "cumulus"
+    cloud_coverage: 0.4
+    wind_speed: 3.5
+    wind_direction: [0.7, 0, 0.3]
+    fog_density: 0.015
+  }
+
+  // --- Spatial Audio ---
+  audio_source WaterfallSound { src: "waterfall_loop.ogg" spatial: true position: [-8, 3, 0] volume: 0.8 rolloff: 5 }
+  audio_source WindChimes { src: "wind_chimes.ogg" spatial: true position: [12, 6, -5] volume: 0.4 rolloff: 8 }
+  ambience TempleAmbience { src: "jungle_ambient.ogg" volume: 0.3 }
+
+  // --- Particles ---
+  particles WaterfallMist { rate: 200 lifetime: 2.5 position: [-8, 2, 0] velocity: [0, 0.5, 0] color: "#FFFFFF80" size: 0.15 }
+  particles MagicFireflies { rate: 15 lifetime: 6 position: [0, 2, 0] spread: [20, 5, 20] color: "#FFEE66" emissive: true size: 0.08 }
+  particles CrystalSparks { rate: 30 lifetime: 1.5 position: [15, 5, -8] color: "#88CCFF" emissive: true size: 0.05 }
+  particles FloatingEmbers { rate: 10 lifetime: 8 position: [0, 0, 0] spread: [25, 2, 25] color: "#FF8844" size: 0.06 }
+
+  // --- Zone 1: Flooded Courtyard ---
+  object FloodedPool {
+    @fluid { particle_count: 80000 viscosity: 0.01 rest_density: 1000 bounds: [16, 4, 16] wind_sensitivity: 0.8 }
+    position: [0, -1, 0]
+    material: TempleWater
+  }
+  object Waterfall {
+    @fluid { particle_count: 5000 viscosity: 0.005 spawn_rate: 500 }
+    position: [-8, 5, 0]
+    material: TempleWater
+  }
+  template ThrowableStone {
+    geometry: sphere
+    radius: 0.3
+    material: AncientStone
+    @rigidbody { mass: 2.0 restitution: 0.3 }
+    @interactive { grab: true throw: true }
+  }
+  object Stones { using: ThrowableStone count: 8 scatter: [12, 0, 12] }
+
+  // --- Zone 2: Ruined Colonnade ---
+  template BreakablePillar {
+    geometry: cylinder
+    radius: 0.4
+    height: 5
+    material: MossyStone
+    @rigidbody { mass: 50 }
+    @destructible { fragments: 8 force_threshold: 100 }
+  }
+  object Pillars { using: BreakablePillar count: 6 spacing: [4, 0, 0] position: [-10, 0, -15] }
+  object WreckingOrb {
+    geometry: sphere
+    radius: 0.8
+    material: AncientGold
+    @rigidbody { mass: 80 restitution: 0.5 }
+    @interactive { grab: true throw: true }
+    position: [0, 2, -12]
+  }
+
+  // --- Zone 3: Soft-Body Menagerie ---
+  template SoftBodyCreature {
+    geometry: sphere
+    radius: 0.6
+    material: CrystalMaterial
+    @soft_body_pro { stiffness: 0.4 damping: 0.05 pressure: 1.2 gravity_scale: 0.5 }
+    @interactive { poke: true grab: true }
+  }
+  object JellyCreatures { using: SoftBodyCreature count: 4 scatter: [6, 0, 6] position: [12, 1, 0] }
+  object GelCube {
+    geometry: box
+    size: [1.5, 1.5, 1.5]
+    material: CrystalMaterial
+    @soft_body_pro { stiffness: 0.2 damping: 0.02 pressure: 0.8 }
+    @interactive { poke: true grab: true }
+    position: [14, 1, 3]
+  }
+
+  // --- Zone 4: Crystal Altar ---
+  object CloudLayer {
+    @volumetric_clouds { density: 0.3 altitude: 20 coverage: 0.5 wind_speed: 2 }
+    position: [15, 20, -8]
+  }
+  object SunRays {
+    @god_rays { density: 0.15 weight: 0.4 decay: 0.97 samples: 80 sun_position: [30, 40, -20] }
+  }
+  template FloatingCrystal {
+    geometry: cone
+    radius: 0.3
+    height: 1.2
+    material: CrystalMaterial
+    @rigidbody { mass: 0 }
+    @animate { hover: true amplitude: 0.5 speed: 0.8 }
+    @interactive { click: true }
+  }
+  object Crystals { using: FloatingCrystal count: 5 scatter: [4, 2, 4] position: [15, 4, -8] }
+
+  // --- Boundaries & Controls ---
+  object TempleWalls {
+    geometry: box
+    size: [50, 10, 50]
+    material: AncientStone
+    @collider { type: "box" }
+    position: [0, 5, 0]
+    visible: false
+  }
+  object ResetButton {
+    geometry: cylinder
+    radius: 0.5
+    height: 0.2
+    material: AncientGold
+    @interactive { click: true action: "reset_scene" }
+    position: [0, 0.5, 15]
+  }
+}`,
+  },
+
   // ── ART (Additional) ────────────────────────────────────────────────────
   {
     id: 'sculpture-garden',
@@ -903,6 +1055,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
 ];
 
 export const TEMPLATE_CATEGORIES = [
+  { id: 'showcase', label: 'Showcase', emoji: '🌟' },
   { id: 'game', label: 'Games', emoji: '🎮' },
   { id: 'social', label: 'Social', emoji: '🎉' },
   { id: 'art', label: 'Art', emoji: '🎨' },

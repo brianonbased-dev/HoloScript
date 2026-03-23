@@ -185,11 +185,18 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
 
     // GPU path: MLS-MPM
     if (state.mlsMpm && state.gpuReady) {
-      // Apply wind from @weather blackboard
+      // Apply wind from @weather blackboard as external force on the MLS-MPM grid
       if (config.wind_sensitivity > 0 && weatherBlackboard.wind_speed > 0) {
-        // Wind affects fluid as an additional force on the grid
-        // TODO: Pass wind_vector into WGSL uniform for grid-level forcing
-        // For now, wind coupling is noted but requires uniform extension
+        const s = config.wind_sensitivity;
+        const windDir = weatherBlackboard.wind_direction ?? { x: 0, y: 0, z: 0 };
+        const windSpeed = weatherBlackboard.wind_speed;
+        state.mlsMpm.setExternalForce(
+          windDir.x * windSpeed * s,
+          windDir.y * windSpeed * s,
+          windDir.z * windSpeed * s,
+        );
+      } else if (state.mlsMpm) {
+        state.mlsMpm.setExternalForce(0, 0, 0);
       }
 
       state.mlsMpm.step(delta);

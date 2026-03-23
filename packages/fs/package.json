@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/fs",
   "version": "3.1.0",
   "description": "File system library for HoloScript Plus",
@@ -58,5 +58,9 @@
     "type": "git",
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/fs"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }

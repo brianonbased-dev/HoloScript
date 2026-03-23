@@ -24,9 +24,9 @@ struct SimParams {
   rest_density: f32,      // Target density (e.g. 1000 for water)
   bulk_modulus: f32,      // Compressibility stiffness (e.g. 50)
   viscosity: f32,         // Dynamic viscosity
-  _pad0: f32,
-  _pad1: f32,
-  _pad2: f32,
+  wind_x: f32,           // External wind force X (m/s²)
+  wind_y: f32,           // External wind force Y (m/s²)
+  wind_z: f32,           // External wind force Z (m/s²)
 }
 
 @group(0) @binding(0) var<uniform> params: SimParams;

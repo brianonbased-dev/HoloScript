@@ -40,5 +40,9 @@
     "url": "git+https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/security-sandbox"
   },
-  "author": "Brian X Base Team"
+  "author": "Brian X Base Team",
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
+  }
 }

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@holoscript/adapter-postgres",
   "version": "0.2.0",
   "description": "PostgreSQL Database Adapter for HoloScript Runtime",
@@ -28,5 +28,9 @@
   },
   "peerDependencies": {
     "@holoscript/core": "workspace:^"
+  },
+  "homepage": "https://github.com/brianonbased-dev/HoloScript#readme",
+  "bugs": {
+    "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   }
 }
