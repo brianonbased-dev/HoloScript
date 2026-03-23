@@ -676,8 +676,8 @@ importers:
         specifier: ^0.23.2
         version: 0.23.2(tree-sitter@0.21.1)
       web-tree-sitter:
-        specifier: ^0.24.0
-        version: 0.24.7
+        specifier: ^0.26.7
+        version: 0.26.7
     devDependencies:
       '@types/pixelmatch':
         specifier: ^5.2.6
@@ -1337,8 +1337,8 @@ importers:
         specifier: ^0.23.2
         version: 0.23.2(tree-sitter@0.21.1)
       web-tree-sitter:
-        specifier: ^0.24.0
-        version: 0.24.7
+        specifier: ^0.26.7
+        version: 0.26.7
     devDependencies:
       tsup:
         specifier: ^8.0.1
@@ -29007,6 +29007,12 @@ packages:
     resolution: {integrity: sha512-CdC/TqVFbXqR+C51v38hv6wOPatKEUGxa39scAeFSm98wIhZxAYonhRQPSMmfZ2w7JDI0zQDdzdmgtNk06/krQ==}
     requiresBuild: true
     dev: false
+
+  /web-tree-sitter@0.26.7:
+    resolution: {integrity: sha512-KiZhelTvBA/ziUHEO7Emb75cGVAq8iGZNabYaZm53Zpy50NsXyOW+xSHlwHt5CVg/TRPZBfeVLTTobF0LjFJ1w==}
+    requiresBuild: true
+    dev: false
+    optional: true
 
   /web-vitals@5.1.0:
     resolution: {integrity: sha512-ArI3kx5jI0atlTtmV0fWU3fjpLmq/nD3Zr1iFFlJLaqa5wLBkUSzINwBPySCX/8jRyjlmy1Volw1kz1g9XE4Jg==}
