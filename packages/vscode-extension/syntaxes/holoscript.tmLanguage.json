@@ -67,39 +67,64 @@
     "traits": {
       "patterns": [
         {
-          "comment": "Interaction traits (11)",
+          "comment": "Interaction traits (grabbable, throwable, etc.)",
           "name": "entity.name.function.decorator.interaction.holoscript",
-          "match": "@(grabbable|throwable|collidable|physics|gravity|trigger|pointable|hoverable|clickable|draggable|scalable)\\b"
+          "match": "@(grabbable|throwable|collidable|physics|gravity|trigger|pointable|hoverable|clickable|draggable|scalable|resizable|attachable)\\b"
         },
         {
-          "comment": "Visual traits (10)",
+          "comment": "Visual traits (glowing, transparent, etc.)",
           "name": "entity.name.function.decorator.visual.holoscript",
-          "match": "@(glowing|transparent|spinning|floating|billboard|pulse|animated|look_at|outline|proximity)\\b"
+          "match": "@(glowing|transparent|spinning|floating|billboard|pulse|animated|look_at|outline|proximity|dissolve|fade|shimmer|holographic)\\b"
         },
         {
-          "comment": "AI/Behavior traits (5)",
+          "comment": "AI/Behavior traits (behavior_tree, emotion, etc.)",
           "name": "entity.name.function.decorator.ai.holoscript",
-          "match": "@(behavior_tree|emotion|goal_oriented|perception|memory)\\b"
+          "match": "@(behavior_tree|emotion|goal_oriented|perception|memory|decision_tree|state_machine|planning|learning)\\b"
         },
         {
-          "comment": "Physics traits (9)",
+          "comment": "Physics traits (cloth, soft_body, fluid, etc.)",
           "name": "entity.name.function.decorator.physics.holoscript",
-          "match": "@(cloth|soft_body|fluid|buoyancy|rope|wind|joint|rigidbody|destruction)\\b"
+          "match": "@(cloth|soft_body|fluid|buoyancy|rope|wind|joint|rigidbody|destruction|constraint|ragdoll|vehicle)\\b"
         },
         {
-          "comment": "Extended traits (11)",
-          "name": "entity.name.function.decorator.extended.holoscript",
-          "match": "@(rotatable|stackable|snappable|breakable|character|patrol|networked|anchor|spatial_audio|reverb_zone|voice_proximity)\\b"
+          "comment": "Spatial/XR traits (anchor, spatial_audio, hand_tracking, etc.)",
+          "name": "entity.name.function.decorator.spatial.holoscript",
+          "match": "@(anchor|spatial_audio|reverb_zone|voice_proximity|hand_tracking|haptic|eye_tracking|passthrough|spatial_mesh)\\b"
         },
         {
-          "comment": "Advanced traits (10)",
+          "comment": "Networking traits (networked, replication, etc.)",
+          "name": "entity.name.function.decorator.network.holoscript",
+          "match": "@(networked|replicated|authoritative|client_predicted|interpolated|owner_only|sync)\\b"
+        },
+        {
+          "comment": "Advanced traits (teleport, portal, weather, etc.)",
           "name": "entity.name.function.decorator.advanced.holoscript",
-          "match": "@(teleport|ui_panel|particle_system|weather|day_night|lod|hand_tracking|haptic|portal|mirror)\\b"
+          "match": "@(teleport|ui_panel|particle_system|weather|day_night|lod|portal|mirror|volumetric|hologram)\\b"
+        },
+        {
+          "comment": "Character/Animation traits",
+          "name": "entity.name.function.decorator.character.holoscript",
+          "match": "@(character|patrol|npc|dialog|voice|gesture|pose|expression|ik|motion_capture)\\b"
+        },
+        {
+          "comment": "Hologram media traits (depth_estimation, quilt, etc.)",
+          "name": "entity.name.function.decorator.hologram.holoscript",
+          "match": "@(depth_estimation|displacement|segment|animated_texture|holographic_sprite|quilt|gaussian_splatting|spatial_video|depth_sequence|temporal_smoothing|depth_to_normal)\\b"
+        },
+        {
+          "comment": "GAPS traits (fluid, volumetric_clouds, god_rays, etc.)",
+          "name": "entity.name.function.decorator.gaps.holoscript",
+          "match": "@(fluid|volumetric_clouds|god_rays|weather_hub|world_state|quality_tier|token_gated)\\b"
+        },
+        {
+          "comment": "Test trait",
+          "name": "entity.name.function.decorator.test.holoscript",
+          "match": "@test\\b"
         },
         {
           "comment": "Other decorator traits (state, import, etc.)",
           "name": "entity.name.function.decorator.holoscript",
-          "match": "@(state|import|export|external_api|generate|npc|dialog)\\b"
+          "match": "@(state|import|export|external_api|generate|wot_thing|snn)\\b"
         },
         {
           "comment": "Catch-all for unknown traits (future-proofing)",
@@ -128,7 +153,7 @@
       "patterns": [
         {
           "name": "support.type.primitive.holoscript",
-          "match": "\\b(orb|sphere|cube|box|cylinder|cone|plane|mesh|avatar|dna|splat|nerf|volumetric_video|light|camera|scene|group|text|panel|button|slider|zone|memory|SemanticMemory|EpisodicMemory|ProceduralMemory)\\b"
+          "match": "\\b(orb|sphere|cube|box|cylinder|cone|plane|torus|capsule|mesh|avatar|dna|splat|nerf|volumetric_video|point_cloud|light|camera|scene|group|text|panel|button|slider|zone|portal|trigger_zone|memory|SemanticMemory|EpisodicMemory|ProceduralMemory|BehaviorTree|Node|Sequence|Selector|Action|Condition)\\b"
         }
       ]
     },
@@ -136,7 +161,7 @@
       "patterns": [
         {
           "name": "keyword.control.holoscript",
-          "match": "\\b(function|connect|gate|stream|const|let|return|import|export|scale|focus|environment|semantic|episodic|procedural)\\b"
+          "match": "\\b(composition|object|function|connect|gate|stream|const|let|return|import|export|scale|focus|environment|semantic|episodic|procedural|behavior|logic|state|into|with|from)\\b"
         },
         {
           "name": "constant.language.holoscript",
@@ -145,6 +170,10 @@
         {
           "name": "support.type.scale.holoscript",
           "match": "\\b(atomic|nano|micro|macro|galactic|cosmic)\\b"
+        },
+        {
+          "name": "support.type.action.holoscript",
+          "match": "\\b(fs_read|fs_write|fs_exists|fs_delete|process_exec|net_fetch|read_candidate|generate_fix|apply_fix|write_result)\\b"
         }
       ]
     },

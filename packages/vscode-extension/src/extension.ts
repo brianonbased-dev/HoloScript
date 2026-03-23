@@ -39,6 +39,7 @@ import { registerHololandCommands } from './services/HololandCommands';
 import { registerHololandWebviews } from './webview/HololandWebviews';
 import { ServiceConnectorPanel } from './webview/ServiceConnectorPanel';
 import { FirstRunWizard } from './webview/FirstRunWizard';
+import { HoloScriptMcpProvider } from './services/HoloScriptMcpProvider';
 
 let client: LanguageClient | undefined;
 let traitTreeProvider: TraitCompositionTreeProvider | undefined;
@@ -69,6 +70,28 @@ export function activate(context: ExtensionContext) {
       } else {
         window.showWarningMessage('Open a HoloScript file (.holo or .hsplus) to preview.');
       }
+    })
+  );
+
+  // Register command to open Studio live preview in external browser
+  context.subscriptions.push(
+    commands.registerCommand('holoscript.openStudioPreview', async () => {
+      const editor = window.activeTextEditor;
+      if (!editor || !isHoloScriptFile(editor.document)) {
+        window.showWarningMessage('Open a HoloScript file (.holo or .hsplus) to preview.');
+        return;
+      }
+
+      const code = editor.document.getText();
+      const fileName = path.basename(editor.document.fileName);
+
+      // Open Studio preview with code
+      const studioUrl = 'https://holoscript.net/studio';
+      const encodedCode = encodeURIComponent(code);
+      const previewUrl = `${studioUrl}?preview=true&file=${encodeURIComponent(fileName)}&code=${encodedCode}`;
+
+      await vscode.env.openExternal(vscode.Uri.parse(previewUrl));
+      window.showInformationMessage(`Opened ${fileName} in HoloScript Studio live preview`);
     })
   );
 
@@ -652,6 +675,24 @@ export function activate(context: ExtensionContext) {
     console.log('HoloScript: Hololand Platform services initialized.');
   } catch (err) {
     console.warn('HoloScript: Hololand services initialization failed:', err);
+  }
+
+  // Register HoloScript MCP Server Definition Provider
+  // This enables GitHub Copilot and other AI agents to use HoloScript MCP tools
+  if (vscode.lm && vscode.lm.registerMcpServerDefinitionProvider) {
+    try {
+      const mcpProvider = new HoloScriptMcpProvider();
+      const mcpDisposable = vscode.lm.registerMcpServerDefinitionProvider(
+        'holoscriptMcp',
+        mcpProvider
+      );
+      context.subscriptions.push(mcpDisposable);
+      console.log('HoloScript: MCP Server Definition Provider registered (mcp.holoscript.net).');
+    } catch (err) {
+      console.warn('HoloScript: MCP Server Definition Provider registration failed:', err);
+    }
+  } else {
+    console.log('HoloScript: MCP Server Definition Provider API not available in this VS Code version.');
   }
 }
 
