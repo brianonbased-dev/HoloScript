@@ -387,3 +387,6 @@ export * from './visual/resolvers/Text3DAdapter';
 export * from './visual/resolvers/TextureResolver';
 export * from './visual/resolvers/types';
 export * from './Native2DTraits';
+
+// v6 Universal Semantic Platform traits
+export * from './v6';

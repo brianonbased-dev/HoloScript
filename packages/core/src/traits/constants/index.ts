@@ -111,6 +111,7 @@ import { FFI_OS_TRAITS } from './ffi-os';
 import { CONCURRENCY_TRAITS } from './concurrency';
 import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
+import { UNIVERSAL_V6_TRAITS } from './universal-service';
 
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
@@ -300,6 +301,9 @@ export const VR_TRAITS = [
 
   // GAPS Feature Roadmap — Phase 1 (14 traits)
   ...GAPS_PHYSICS_TRAITS,
+
+  // v6 Universal Semantic Platform (35 traits)
+  ...UNIVERSAL_V6_TRAITS,
 ] as const;
 
 /**
@@ -598,3 +602,17 @@ export { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 
 // GAPS Feature Roadmap — Phase 1
 export { GAPS_PHYSICS_TRAITS } from './gaps-physics';
+
+// v6 Universal Semantic Platform (35 traits)
+export {
+  UNIVERSAL_V6_TRAITS,
+  UNIVERSAL_SERVICE_TRAITS,
+  UNIVERSAL_CONTRACT_TRAITS,
+  UNIVERSAL_DATA_TRAITS,
+  UNIVERSAL_NETWORK_TRAITS,
+  UNIVERSAL_PIPELINE_TRAITS,
+  UNIVERSAL_METRIC_TRAITS,
+  UNIVERSAL_CONTAINER_TRAITS,
+  UNIVERSAL_RESILIENCE_TRAITS,
+  type UniversalV6TraitName,
+} from './universal-service';

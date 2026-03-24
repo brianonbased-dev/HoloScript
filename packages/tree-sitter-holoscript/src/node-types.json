@@ -36,7 +36,15 @@
         "named": true
       },
       {
+        "type": "contract_block",
+        "named": true
+      },
+      {
         "type": "custom_block",
+        "named": true
+      },
+      {
+        "type": "data_block",
         "named": true
       },
       {
@@ -128,6 +136,10 @@
         "named": true
       },
       {
+        "type": "pipeline_block",
+        "named": true
+      },
+      {
         "type": "post_processing_block",
         "named": true
       },
@@ -145,6 +157,10 @@
       },
       {
         "type": "robotics_block",
+        "named": true
+      },
+      {
+        "type": "service_block",
         "named": true
       },
       {
@@ -1181,7 +1197,15 @@
           "named": true
         },
         {
+          "type": "contract_block",
+          "named": true
+        },
+        {
           "type": "custom_block",
+          "named": true
+        },
+        {
+          "type": "data_block",
           "named": true
         },
         {
@@ -1269,6 +1293,10 @@
           "named": true
         },
         {
+          "type": "pipeline_block",
+          "named": true
+        },
+        {
           "type": "post_processing_block",
           "named": true
         },
@@ -1282,6 +1310,10 @@
         },
         {
           "type": "robotics_block",
+          "named": true
+        },
+        {
+          "type": "service_block",
           "named": true
         },
         {
@@ -1384,6 +1416,44 @@
     }
   },
   {
+    "type": "contract_block",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "object",
+          "named": true
+        },
+        {
+          "type": "property",
+          "named": true
+        },
+        {
+          "type": "trait_list",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "custom_block",
     "named": true,
     "fields": {
@@ -1426,6 +1496,44 @@
         },
         {
           "type": "platform_decorator",
+          "named": true
+        },
+        {
+          "type": "property",
+          "named": true
+        },
+        {
+          "type": "trait_list",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "data_block",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "object",
           "named": true
         },
         {
@@ -3279,6 +3387,48 @@
     }
   },
   {
+    "type": "pipeline_block",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "event_handler",
+          "named": true
+        },
+        {
+          "type": "object",
+          "named": true
+        },
+        {
+          "type": "property",
+          "named": true
+        },
+        {
+          "type": "trait_list",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "platform_decorator",
     "named": true,
     "fields": {},
@@ -3599,6 +3749,48 @@
     "type": "self",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "service_block",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "event_handler",
+          "named": true
+        },
+        {
+          "type": "object",
+          "named": true
+        },
+        {
+          "type": "property",
+          "named": true
+        },
+        {
+          "type": "trait_list",
+          "named": true
+        }
+      ]
+    }
   },
   {
     "type": "shader_connection",
@@ -5183,6 +5375,10 @@
     "named": false
   },
   {
+    "type": "asyncapi",
+    "named": false
+  },
+  {
     "type": "atmosphere",
     "named": false
   },
@@ -5404,6 +5600,10 @@
     "named": false
   },
   {
+    "type": "consumer",
+    "named": false
+  },
+  {
     "type": "contract",
     "named": false
   },
@@ -5464,7 +5664,27 @@
     "named": false
   },
   {
+    "type": "data_index",
+    "named": false
+  },
+  {
+    "type": "data_model",
+    "named": false
+  },
+  {
     "type": "data_source",
+    "named": false
+  },
+  {
+    "type": "data_trigger",
+    "named": false
+  },
+  {
+    "type": "data_view",
+    "named": false
+  },
+  {
+    "type": "dead_letter",
     "named": false
   },
   {
@@ -5564,6 +5784,10 @@
     "named": false
   },
   {
+    "type": "endpoint",
+    "named": false
+  },
+  {
     "type": "entity",
     "named": false
   },
@@ -5660,6 +5884,10 @@
     "named": false
   },
   {
+    "type": "gateway",
+    "named": false
+  },
+  {
     "type": "generate",
     "named": false
   },
@@ -5692,6 +5920,10 @@
     "named": false
   },
   {
+    "type": "graphql_schema",
+    "named": false
+  },
+  {
     "type": "gravity_zone",
     "named": false
   },
@@ -5705,6 +5937,10 @@
   },
   {
     "type": "hail",
+    "named": false
+  },
+  {
+    "type": "handler",
     "named": false
   },
   {
@@ -5824,6 +6060,10 @@
     "named": false
   },
   {
+    "type": "load_balancer",
+    "named": false
+  },
+  {
     "type": "lod",
     "named": false
   },
@@ -5856,7 +6096,15 @@
     "named": false
   },
   {
+    "type": "middleware",
+    "named": false
+  },
+  {
     "type": "midi_map",
+    "named": false
+  },
+  {
+    "type": "migration",
     "named": false
   },
   {
@@ -6068,6 +6316,10 @@
     "named": false
   },
   {
+    "type": "openapi",
+    "named": false
+  },
+  {
     "type": "option",
     "named": false
   },
@@ -6132,6 +6384,10 @@
     "named": false
   },
   {
+    "type": "pipeline",
+    "named": false
+  },
+  {
     "type": "pixelate",
     "named": false
   },
@@ -6176,11 +6432,27 @@
     "named": false
   },
   {
+    "type": "producer",
+    "named": false
+  },
+  {
     "type": "progress",
     "named": false
   },
   {
+    "type": "protobuf",
+    "named": false
+  },
+  {
+    "type": "proxy",
+    "named": false
+  },
+  {
     "type": "quaternion",
+    "named": false
+  },
+  {
+    "type": "queue",
     "named": false
   },
   {
@@ -6248,6 +6520,10 @@
     "named": false
   },
   {
+    "type": "route",
+    "named": false
+  },
+  {
     "type": "royalty_split",
     "named": false
   },
@@ -6264,7 +6540,19 @@
     "named": false
   },
   {
+    "type": "scheduler",
+    "named": false
+  },
+  {
+    "type": "schema",
+    "named": false
+  },
+  {
     "type": "screen_space_reflections",
+    "named": false
+  },
+  {
+    "type": "seed",
     "named": false
   },
   {
@@ -6285,6 +6573,14 @@
   },
   {
     "type": "sequence",
+    "named": false
+  },
+  {
+    "type": "serializer",
+    "named": false
+  },
+  {
+    "type": "service",
     "named": false
   },
   {
@@ -6368,11 +6664,19 @@
     "named": false
   },
   {
+    "type": "stage",
+    "named": false
+  },
+  {
     "type": "staking_pool",
     "named": false
   },
   {
     "type": "state",
+    "named": false
+  },
+  {
+    "type": "stored_procedure",
     "named": false
   },
   {
@@ -6536,6 +6840,10 @@
     "named": false
   },
   {
+    "type": "validator",
+    "named": false
+  },
+  {
     "type": "var",
     "named": false
   },
@@ -6613,6 +6921,10 @@
   },
   {
     "type": "wind_zone",
+    "named": false
+  },
+  {
+    "type": "worker",
     "named": false
   },
   {

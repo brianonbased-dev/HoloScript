@@ -105,6 +105,11 @@ module.exports = grammar({
         $.music_block,
         $.architecture_block,
         $.web3_block,
+        // v6 Universal Semantic Platform (v5.2 — March 2026)
+        $.service_block,
+        $.contract_block,
+        $.data_block,
+        $.pipeline_block,
         // Perception & simulation layer (v4.2 — March 2026)
         $.material_block,
         $.particle_block,
@@ -175,6 +180,11 @@ module.exports = grammar({
         $.music_block,
         $.architecture_block,
         $.web3_block,
+        // v6 Universal Semantic Platform inside compositions
+        $.service_block,
+        $.contract_block,
+        $.data_block,
+        $.pipeline_block,
         // Perception & simulation layer inside compositions
         $.material_block,
         $.particle_block,
@@ -658,6 +668,63 @@ module.exports = grammar({
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
         '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+      ),
+
+    // =========================================================================
+    // v6 UNIVERSAL SEMANTIC PLATFORM (v5.2 — March 2026)
+    // Backend services, API contracts, data models, pipelines — traits for
+    // everything beyond spatial/agent domains. Enables full-stack from .holo.
+    // =========================================================================
+
+    // ── Service & API ──────────────────────────────────────────────────────────
+    // service "UserAPI" { port: 3000 base_path: "/api/v1" }
+    // endpoint "ListUsers" { method: "GET" path: "/users" handler: "listUsers" }
+    // middleware "Auth" { type: "jwt" strategy: "bearer" }
+    service_block: ($) =>
+      seq(
+        choice('service', 'endpoint', 'route', 'handler', 'middleware',
+               'gateway', 'proxy', 'load_balancer'),
+        field('name', choice($.string, $.identifier)),
+        optional($.trait_list),
+        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
+      ),
+
+    // ── Contract & Schema ──────────────────────────────────────────────────────
+    // schema "User" { fields: { id: "uuid", name: "string" } required: ["id"] }
+    // validator "UserInput" { target: "User" rules: { email: "required|email" } }
+    contract_block: ($) =>
+      seq(
+        choice('schema', 'validator', 'serializer', 'openapi', 'asyncapi',
+               'protobuf', 'graphql_schema'),
+        field('name', choice($.string, $.identifier)),
+        optional($.trait_list),
+        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+      ),
+
+    // ── Data & Storage ─────────────────────────────────────────────────────────
+    // data_model "User" { table: "users" fields: { id: "uuid:pk", name: "string" } }
+    // migration "001_create_users" { action: "create_table" table: "users" }
+    // cache "UserCache" { strategy: "lru" max_size: 1000 ttl: 300 }
+    data_block: ($) =>
+      seq(
+        choice('data_model', 'migration', 'seed', 'data_view',
+               'data_index', 'stored_procedure', 'data_trigger'),
+        field('name', choice($.string, $.identifier)),
+        optional($.trait_list),
+        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+      ),
+
+    // ── Pipeline & Messaging ───────────────────────────────────────────────────
+    // pipeline "EventIngestion" { stages: ["validate", "transform", "store"] }
+    // queue "EmailQueue" { backend: "redis" max_retries: 3 }
+    // scheduler "Cleanup" { cron: "0 2 * * *" timezone: "UTC" }
+    pipeline_block: ($) =>
+      seq(
+        choice('pipeline', 'stage', 'queue', 'worker', 'scheduler',
+               'consumer', 'producer', 'dead_letter'),
+        field('name', choice($.string, $.identifier)),
+        optional($.trait_list),
+        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
       ),
 
     // =========================================================================
