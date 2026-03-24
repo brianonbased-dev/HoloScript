@@ -19,8 +19,9 @@
     "three": "^0.170.0"
   },
   "devDependencies": {
+    "@holoscript/core": "workspace:*",
+    "@holoscript/core-types": "workspace:*",
     "tsup": "^8.3.0",
-    "typescript": "^5.6.3",
-    "@holoscript/core": "workspace:*"
+    "typescript": "^5.6.3"
   }
 }

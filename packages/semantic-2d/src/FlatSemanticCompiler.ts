@@ -7,7 +7,7 @@
  */
 
 import { CompilerBase, type BaseCompilerOptions } from '@holoscript/core';
-import type { HoloComposition, HoloObjectDecl } from '@holoscript/core';
+import type { HoloComposition, HoloObjectDecl } from '@holoscript/core-types/composition';
 
 export interface FlatSemanticCompilerOptions extends BaseCompilerOptions {
   format?: 'react'; 

@@ -307,6 +307,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
+      '@holoscript/core-types':
+        specifier: workspace:^
+        version: link:../core-types
       '@holoscript/llm-provider':
         specifier: workspace:^
         version: link:../llm-provider
@@ -712,6 +715,8 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(@types/node@24.10.13)(jsdom@28.1.0)(vite@7.3.1)
+
+  packages/core-types: {}
 
   packages/crdt:
     dependencies:
@@ -1679,6 +1684,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../core
+      '@holoscript/core-types':
+        specifier: workspace:*
+        version: link:../core-types
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
@@ -2395,6 +2403,9 @@ importers:
       '@react-three/fiber':
         specifier: ^8.15.11
         version: 8.18.0(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)(three@0.160.1)
+      '@react-three/rapier':
+        specifier: ^2.2.0
+        version: 2.2.0(@react-three/fiber@8.18.0)(react@18.3.1)(three@0.160.1)
       compression:
         specifier: ^1.7.4
         version: 1.8.1
@@ -4495,6 +4506,10 @@ packages:
       gonzales-pe: 4.3.0
       node-source-walk: 7.0.1
     dev: true
+
+  /@dimforge/rapier3d-compat@0.19.2:
+    resolution: {integrity: sha512-AZHL1jqUF55QJkJyU1yKeh4ImX2J93bVLIezT1+o0FZqTix6O06MOaqpKoJ4MmbDCsoZmwO+qc471/SDMDm2AA==}
+    dev: false
 
   /@dimforge/rapier3d-compat@0.19.3:
     resolution: {integrity: sha512-mMVdSj1PRTT108s9Swbu2GQOmHbn8kbJANRV5xfczL3s0T4vkgZAuoMRgvBzQcHanpKusbC0ZJj6z3mC3aj3vg==}
@@ -9158,6 +9173,21 @@ packages:
       three: 0.182.0
     transitivePeerDependencies:
       - '@types/three'
+    dev: false
+
+  /@react-three/rapier@2.2.0(@react-three/fiber@8.18.0)(react@18.3.1)(three@0.160.1):
+    resolution: {integrity: sha512-mVsqbKXlGZoN+XrqdhzFZUQmy8pibEOVzl4k7LC+LHe84bQnYBSagy1Hvbda6bL1PJDdTFyiDiBk5buKFinNIQ==}
+    peerDependencies:
+      '@react-three/fiber': ^9.0.4
+      react: ^19
+      three: '>=0.159.0'
+    dependencies:
+      '@dimforge/rapier3d-compat': 0.19.2
+      '@react-three/fiber': 8.18.0(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)(three@0.160.1)
+      react: 18.3.1
+      suspend-react: 0.1.3(react@18.3.1)
+      three: 0.160.1
+      three-stdlib: 2.36.1(three@0.160.1)
     dev: false
 
   /@react-three/xr@6.6.29(@react-three/fiber@9.5.0)(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0):

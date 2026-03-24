@@ -2,7 +2,8 @@
  * Output formatters for CLI
  */
 
-import type { ASTNode, ExecutionResult } from '@holoscript/core';
+import type { ASTNode } from '@holoscript/core-types/ast';
+import type { ExecutionResult } from '@holoscript/core';
 
 export function formatAST(ast: ASTNode[], options: { json?: boolean } = {}): string {
   if (options.json) {
