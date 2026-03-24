@@ -19,6 +19,8 @@ import { wisdomGotchaTools } from './wisdom-gotcha-tools';
 import { absorbServiceTools } from './absorb-tools';
 import { serviceContractTools } from './service-contract-tools';
 import { validationTools } from './validation-tools';
+import { absorbTypescriptTools } from './absorb-typescript-tools';
+import { agentOrchestrationTools } from './agent-orchestration-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -666,6 +668,8 @@ export const tools: Tool[] = [
   ...absorbServiceTools,
   ...serviceContractTools,
   ...validationTools,
+  ...absorbTypescriptTools,
+  ...agentOrchestrationTools,
   ...PluginManager.getTools(),
 ];
 

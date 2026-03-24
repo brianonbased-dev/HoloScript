@@ -194,6 +194,18 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleValidationTool(name, args);
   }
 
+  // TypeScript absorb tool
+  if (name === 'absorb_typescript') {
+    const { handleAbsorbTypescriptTool } = await import('./absorb-typescript-tools');
+    return handleAbsorbTypescriptTool(name, args);
+  }
+
+  // Agent orchestration tools
+  if (name === 'discover_agents' || name === 'delegate_task' || name === 'get_task_status' || name === 'compose_workflow' || name === 'execute_workflow') {
+    const { handleAgentOrchestrationTool } = await import('./agent-orchestration-tools');
+    return handleAgentOrchestrationTool(name, args);
+  }
+
   // Handle plugins
   const pluginResult = await PluginManager.handleTool(name, args);
   if (pluginResult !== null) {

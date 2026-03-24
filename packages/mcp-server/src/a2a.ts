@@ -366,6 +366,12 @@ function deriveSkillTags(toolName: string): string[] {
   else if (toolName.includes('gltf')) {
     tags.push('gltf', 'import', 'export', '3d');
   }
+  // Agent orchestration
+  else if (toolName === 'discover_agents' || toolName === 'delegate_task' ||
+           toolName === 'get_task_status' || toolName === 'compose_workflow' ||
+           toolName === 'execute_workflow') {
+    tags.push('agent', 'orchestration', 'delegation', 'workflow');
+  }
   // Absorb service
   else if (toolName.startsWith('absorb_')) {
     tags.push('absorb', 'service', 'pipeline');
@@ -421,6 +427,8 @@ function deriveSkillExamples(tool: Tool): string[] {
     examples.push('Explain the contract structure of this .holo service composition');
   } else if (name === 'validate_composition') {
     examples.push('Validate this .holo composition for trait constraint violations');
+  } else if (name === 'absorb_typescript') {
+    examples.push('Convert this Express/TypeScript service to a .holo composition');
   } else if (name === 'generate_scene') {
     examples.push('Generate a multiplayer VR lobby with teleportation');
   } else if (name === 'compile_holoscript') {

@@ -53,6 +53,41 @@ export {
   resetDefaultRegistry,
 } from './AgentRegistry';
 
+// Federated Registry Adapter (v5.5 Cross-Composition Discovery)
+export {
+  FederatedRegistryAdapter,
+  type FederatedRegistryConfig,
+  type A2AAgentCard,
+  type A2ASkill,
+} from './FederatedRegistryAdapter';
+
+// Task Delegation Service (v5.5 Cross-Agent Task Forwarding)
+export {
+  TaskDelegationService,
+  type TaskDelegationConfig,
+  type DelegationRequest,
+  type DelegationResult,
+} from './TaskDelegationService';
+
+// Skill Workflow Engine (v5.5 Skill Composition/Chaining)
+export {
+  SkillWorkflowEngine,
+  type WorkflowDefinition,
+  type WorkflowStep,
+  type WorkflowInput,
+  type WorkflowValidation,
+  type WorkflowResult,
+  type StepResult,
+  type SkillExecutor,
+  type ProgressCallback,
+} from './SkillWorkflowEngine';
+
+// Orchestrator Agent (v5.5 First Concrete BaseAgent)
+export {
+  OrchestratorAgent,
+  type OrchestratorConfig,
+} from './OrchestratorAgent';
+
 // AgentKit Integration (Transactions/Wallets)
 export {
   AgentKitIntegration,

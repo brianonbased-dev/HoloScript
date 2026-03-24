@@ -241,19 +241,26 @@ function checkDomainCoherence(
 function validateComposition(code: string): ValidationResult {
   const diagnostics: ValidationDiagnostic[] = [];
 
-  // Step 1: Parse
+  // Step 1: Parse (tolerant mode — AST may exist even when success=false)
   const parseResult = parseHolo(code);
-  if (!parseResult.success || !parseResult.ast) {
+
+  // Add parse errors as diagnostics
+  if (parseResult.errors?.length) {
+    for (const e of parseResult.errors) {
+      diagnostics.push({
+        severity: 'error',
+        code: 'PARSE_ERROR',
+        message: e.message,
+        source: e.loc ? `line ${e.loc.line}` : undefined,
+      });
+    }
+  }
+
+  // If no AST at all, return early
+  if (!parseResult.ast) {
     return {
       valid: false,
-      diagnostics: [
-        ...parseResult.errors.map((e) => ({
-          severity: 'error' as const,
-          code: 'PARSE_ERROR',
-          message: e.message,
-          source: e.loc ? `line ${e.loc.line}` : undefined,
-        })),
-      ],
+      diagnostics,
       stats: {
         totalTraits: 0,
         totalObjects: 0,

@@ -211,7 +211,13 @@ async function main() {
   console.error('HoloScript MCP Server running on stdio');
 }
 
-main().catch(console.error);
+// Only auto-start the Stdio server if executed directly as a standalone process
+if (
+  process.env.START_MCP_STDIO === 'true' || 
+  process.argv.some(arg => arg.includes('mcp-server') && (arg.endsWith('index.ts') || arg.endsWith('index.js')))
+) {
+  main().catch(console.error);
+}
 
 // Also export for programmatic use
 export { server, tools, handleTool };
