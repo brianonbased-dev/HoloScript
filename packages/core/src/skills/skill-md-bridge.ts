@@ -9,15 +9,21 @@
  *   - Extracts composition metadata (name, description, version) as YAML frontmatter
  *   - Converts behavior tree sequences into Markdown instruction steps
  *   - Includes trait declarations, state schema, and runtime requirements
+ *   - Maps input_schema/output_schema to OpenClaw frontmatter fields
  *
  * Reverse bridge: SKILL.md -> .hsplus
  *   - Parses YAML frontmatter into composition metadata + trait declarations
  *   - Converts Markdown instructions into behavior tree sequence nodes
  *   - Wraps in full composition structure with @economy, @rate_limiter, @timeout_guard
+ *   - Parses input_schema/output_schema from frontmatter into typed schemas
  *
- * ClawHub CLI integration: publish/install skill packages
+ * HoloClaw Skill interop:
+ *   - toHoloClawSkill() converts ParsedSkill to the Skill interface from SkillRegistryTrait
+ *   - fromHoloClawSkill() converts Skill objects back to ParsedSkill for serialization
  *
- * @version 1.0.0
+ * ClawHub CLI integration: publish/install skill packages with registry URL support
+ *
+ * @version 1.1.0
  * @see compositions/skills/*.hsplus — HoloClaw native skill format
  * @see .claude/skills/ *\/SKILL.md — Claude Code SKILL.md format
  * @see https://docs.openclaw.ai/tools/skills — ClawHub specification
@@ -32,6 +38,23 @@
 // =============================================================================
 // TYPES
 // =============================================================================
+
+/**
+ * Schema field definition for input/output schemas.
+ * Compatible with OpenClaw SKILL.md frontmatter format and HoloClaw SkillInput/SkillOutput.
+ */
+export interface SchemaField {
+  /** Field name */
+  name: string;
+  /** Field type: string, number, boolean, object, array */
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  /** Whether this field is required (inputs only) */
+  required?: boolean;
+  /** Human-readable description */
+  description: string;
+  /** Default value (inputs only) */
+  default?: unknown;
+}
 
 /**
  * Metadata extracted from an .hsplus composition skill or SKILL.md frontmatter.
@@ -50,6 +73,10 @@ export interface SkillMetadata {
   category?: string;
   /** Tags for search/discovery */
   tags?: string[];
+  /** Input schema fields (OpenClaw input_schema frontmatter) */
+  inputSchema?: SchemaField[];
+  /** Output schema fields (OpenClaw output_schema frontmatter) */
+  outputSchema?: SchemaField[];
   /** Minimum HoloScript CLI version required */
   holoCliVersion?: string;
   /** Minimum Node.js version required */
@@ -150,12 +177,24 @@ export interface ClawHubManifest {
   description: string;
   author: string;
   license: string;
+  /** ClawHub registry URL for distribution */
+  registryUrl: string;
+  /** Tags for registry search/discovery */
+  tags?: string[];
+  /** Homepage URL */
+  homepage?: string;
+  /** Repository URL */
+  repository?: string;
   holoScript: {
     format: 'hsplus';
     minCliVersion: string;
     traits: string[];
     stateVars: string[];
     testCount: number;
+    /** Input schema field names */
+    inputFields: string[];
+    /** Output schema field names */
+    outputFields: string[];
   };
   files: string[];
   dependencies?: Record<string, string>;
@@ -215,6 +254,16 @@ export function parseHsplus(source: string): BridgeResult<ParsedSkill> {
   const economyTrait = traits.find(t => t.name === 'economy');
   const spendLimit = economyTrait?.config?.default_spend_limit as number | undefined;
 
+  // --- Extract input/output schemas ---
+  const inputSchema = extractSchemaFields(source, 'input_schema');
+  const outputSchema = extractSchemaFields(source, 'output_schema');
+
+  // --- Extract tags from leading comments (@tags ...) ---
+  const tagsMatch = source.match(/@tags\s+(.+)/);
+  const tags = tagsMatch
+    ? tagsMatch[1].split(',').map(t => t.trim()).filter(Boolean)
+    : undefined;
+
   const metadata: SkillMetadata = {
     name: compositionName,
     description: description || `HoloClaw skill: ${compositionName}`,
@@ -224,6 +273,9 @@ export function parseHsplus(source: string): BridgeResult<ParsedSkill> {
     nodeVersion: '20',
     spendLimit,
     userInvocable: true,
+    inputSchema: inputSchema.length > 0 ? inputSchema : undefined,
+    outputSchema: outputSchema.length > 0 ? outputSchema : undefined,
+    tags,
   };
 
   return {
@@ -286,6 +338,28 @@ export function toSkillMd(skill: ParsedSkill): BridgeResult<string> {
   if (skill.metadata.license) {
     lines.push(`license: ${skill.metadata.license}`);
   }
+  if (skill.metadata.repository) {
+    lines.push(`repository: ${skill.metadata.repository}`);
+  }
+  // --- input_schema / output_schema in frontmatter (OpenClaw format) ---
+  if (skill.metadata.inputSchema && skill.metadata.inputSchema.length > 0) {
+    lines.push('input_schema:');
+    for (const field of skill.metadata.inputSchema) {
+      lines.push(`  - name: ${field.name}`);
+      lines.push(`    type: ${field.type}`);
+      if (field.required !== undefined) lines.push(`    required: ${field.required}`);
+      lines.push(`    description: ${field.description}`);
+      if (field.default !== undefined) lines.push(`    default: ${JSON.stringify(field.default)}`);
+    }
+  }
+  if (skill.metadata.outputSchema && skill.metadata.outputSchema.length > 0) {
+    lines.push('output_schema:');
+    for (const field of skill.metadata.outputSchema) {
+      lines.push(`  - name: ${field.name}`);
+      lines.push(`    type: ${field.type}`);
+      lines.push(`    description: ${field.description}`);
+    }
+  }
   lines.push('---');
   lines.push('');
 
@@ -330,6 +404,32 @@ export function toSkillMd(skill: ParsedSkill): BridgeResult<string> {
     lines.push('|----------|------|---------|');
     for (const sv of skill.state) {
       lines.push(`| \`${sv.name}\` | ${sv.type} | \`${JSON.stringify(sv.defaultValue)}\` |`);
+    }
+    lines.push('');
+  }
+
+  // --- Input Schema ---
+  if (skill.metadata.inputSchema && skill.metadata.inputSchema.length > 0) {
+    lines.push('## Input Schema');
+    lines.push('');
+    lines.push('| Field | Type | Required | Description |');
+    lines.push('|-------|------|----------|-------------|');
+    for (const field of skill.metadata.inputSchema) {
+      const req = field.required ? 'yes' : 'no';
+      const defaultStr = field.default !== undefined ? ` (default: \`${JSON.stringify(field.default)}\`)` : '';
+      lines.push(`| \`${field.name}\` | ${field.type} | ${req} | ${field.description}${defaultStr} |`);
+    }
+    lines.push('');
+  }
+
+  // --- Output Schema ---
+  if (skill.metadata.outputSchema && skill.metadata.outputSchema.length > 0) {
+    lines.push('## Output Schema');
+    lines.push('');
+    lines.push('| Field | Type | Description |');
+    lines.push('|-------|------|-------------|');
+    for (const field of skill.metadata.outputSchema) {
+      lines.push(`| \`${field.name}\` | ${field.type} | ${field.description} |`);
     }
     lines.push('');
   }
@@ -473,6 +573,18 @@ export function parseSkillMd(markdown: string): BridgeResult<ParsedSkill> {
   const version = frontmatter.version || '1.0.0';
   const author = frontmatter.author || 'HoloScript';
 
+  // --- Parse body sections ---
+  const body = extractBody(markdown);
+
+  // --- Extract input/output schemas from frontmatter or body ---
+  const inputSchemaFm = parseFrontmatterSchemaList(frontmatter['input_schema']);
+  const outputSchemaFm = parseFrontmatterSchemaList(frontmatter['output_schema']);
+  const inputSchemaBody = extractInputSchemaFromMd(body);
+  const outputSchemaBody = extractOutputSchemaFromMd(body);
+  // Prefer frontmatter schemas; fall back to body tables
+  const inputSchema = inputSchemaFm.length > 0 ? inputSchemaFm : inputSchemaBody;
+  const outputSchema = outputSchemaFm.length > 0 ? outputSchemaFm : outputSchemaBody;
+
   const metadata: SkillMetadata = {
     name,
     description: typeof description === 'string' ? description.trim() : String(description),
@@ -480,15 +592,15 @@ export function parseSkillMd(markdown: string): BridgeResult<ParsedSkill> {
     author,
     category: frontmatter.category,
     tags: frontmatter.tags,
+    inputSchema: inputSchema.length > 0 ? inputSchema : undefined,
+    outputSchema: outputSchema.length > 0 ? outputSchema : undefined,
     holoCliVersion: frontmatter['holoscript-cli'] || '5.0.0',
     nodeVersion: frontmatter['node-version'] || '20',
     license: frontmatter.license,
     homepage: frontmatter.homepage,
+    repository: frontmatter.repository,
     userInvocable: frontmatter['user-invocable'] !== false,
   };
-
-  // --- Parse body sections ---
-  const body = extractBody(markdown);
 
   // --- Extract traits from Traits section ---
   const traits = extractTraitsFromMd(body);
@@ -636,19 +748,28 @@ export function skillMdToHsplus(markdown: string): BridgeResult<string> {
  * Generate a ClawHub package manifest from a ParsedSkill.
  * This manifest can be used for `clawhub publish` operations.
  */
-export function generateClawHubManifest(skill: ParsedSkill): ClawHubManifest {
+export function generateClawHubManifest(
+  skill: ParsedSkill,
+  registryUrl = 'https://registry.clawhub.com'
+): ClawHubManifest {
   return {
     name: `@holoscript/${skill.metadata.name}`,
     version: skill.metadata.version,
     description: skill.metadata.description,
     author: skill.metadata.author,
     license: skill.metadata.license || 'MIT',
+    registryUrl,
+    tags: skill.metadata.tags,
+    homepage: skill.metadata.homepage,
+    repository: skill.metadata.repository,
     holoScript: {
       format: 'hsplus',
       minCliVersion: skill.metadata.holoCliVersion || '5.0.0',
       traits: skill.traits.map(t => t.name),
       stateVars: skill.state.map(s => s.name),
       testCount: skill.tests.length,
+      inputFields: (skill.metadata.inputSchema || []).map(f => f.name),
+      outputFields: (skill.metadata.outputSchema || []).map(f => f.name),
     },
     files: [
       `${skill.metadata.name}.hsplus`,
@@ -952,6 +1073,53 @@ function extractObjectNames(source: string): string[] {
   return names;
 }
 
+/**
+ * Extract schema fields from .hsplus @input_schema or @output_schema blocks.
+ * Format:
+ *   @input_schema {
+ *     field_name: type (required) "description"
+ *     field_name: type = default "description"
+ *   }
+ */
+function extractSchemaFields(source: string, blockName: string): SchemaField[] {
+  const fields: SchemaField[] = [];
+  // Use brace-counting to extract the block
+  const startRegex = new RegExp(`@${blockName}\\s*\\{`);
+  const startMatch = startRegex.exec(source);
+  if (!startMatch) return fields;
+
+  const startIdx = startMatch.index! + startMatch[0].length;
+  let depth = 1;
+  let i = startIdx;
+  while (i < source.length && depth > 0) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}') depth--;
+    i++;
+  }
+  const block = source.slice(startIdx, i - 1);
+
+  // Parse each line: name: type [(required)] [= default] ["description"]
+  const lineRegex = /^\s*(\w+)\s*:\s*(\w+)(?:\s*\(required\))?(?:\s*=\s*([^\s"]+))?(?:\s*"([^"]*)")?/gm;
+  let lineMatch: RegExpExecArray | null;
+  while ((lineMatch = lineRegex.exec(block)) !== null) {
+    const name = lineMatch[1];
+    const type = lineMatch[2] as SchemaField['type'];
+    const isRequired = lineMatch[0].includes('(required)');
+    const defaultVal = lineMatch[3] ? parseConfigValue(lineMatch[3]) : undefined;
+    const description = lineMatch[4] || name;
+
+    fields.push({
+      name,
+      type,
+      required: isRequired || undefined,
+      description,
+      default: defaultVal,
+    });
+  }
+
+  return fields;
+}
+
 // =============================================================================
 // INTERNAL HELPERS: SKILL.md PARSING
 // =============================================================================
@@ -977,9 +1145,47 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
   let currentKey: string | null = null;
   let multilineValue: string[] = [];
   let inMultiline = false;
+  // State for list-of-objects parsing (input_schema / output_schema)
+  let inListOfObjects = false;
+  let listKey: string | null = null;
+  let currentListItem: Record<string, unknown> | null = null;
+  let listItems: Record<string, unknown>[] = [];
 
-  for (const line of lines) {
-    // Multi-line continuation (indented lines following "key: >")
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx];
+
+    // --- List-of-objects continuation ---
+    if (inListOfObjects && listKey) {
+      // New list item: "  - name: value"
+      const listItemStart = line.match(/^\s{2,}-\s+(\w[\w-]*)\s*:\s*(.*)/);
+      if (listItemStart) {
+        // Flush previous item
+        if (currentListItem) listItems.push(currentListItem);
+        currentListItem = {};
+        const key = listItemStart[1];
+        const val = listItemStart[2].trim();
+        currentListItem[key] = parseConfigValue(val);
+        continue;
+      }
+      // Continuation of current list item: "    key: value"
+      const listItemCont = line.match(/^\s{4,}(\w[\w-]*)\s*:\s*(.*)/);
+      if (listItemCont && currentListItem) {
+        const key = listItemCont[1];
+        const val = listItemCont[2].trim();
+        currentListItem[key] = parseConfigValue(val);
+        continue;
+      }
+      // End of list-of-objects (non-indented line or empty)
+      if (currentListItem) listItems.push(currentListItem);
+      result[listKey] = listItems;
+      inListOfObjects = false;
+      listKey = null;
+      currentListItem = null;
+      listItems = [];
+      // Fall through to process current line normally
+    }
+
+    // --- Multi-line continuation (indented lines following "key: >") ---
     if (inMultiline) {
       if (line.match(/^\s{2,}/) && !line.match(/^\S/)) {
         multilineValue.push(line.trim());
@@ -1007,6 +1213,23 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
         continue;
       }
 
+      // Empty value followed by "  - " lines = list-of-objects
+      if (rawVal === '') {
+        // Peek ahead to see if next non-empty line starts with "  -"
+        let peekIdx = lineIdx + 1;
+        while (peekIdx < lines.length && lines[peekIdx].trim() === '') peekIdx++;
+        if (peekIdx < lines.length && /^\s{2,}-\s/.test(lines[peekIdx])) {
+          inListOfObjects = true;
+          listKey = key;
+          currentListItem = null;
+          listItems = [];
+          continue;
+        }
+        // Otherwise treat as empty scalar
+        result[key] = '';
+        continue;
+      }
+
       // Array: [a, b, c]
       if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
         result[key] = rawVal
@@ -1025,6 +1248,12 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
   // Flush any remaining multi-line
   if (inMultiline && currentKey) {
     result[currentKey] = multilineValue.join(' ');
+  }
+
+  // Flush any remaining list-of-objects
+  if (inListOfObjects && listKey) {
+    if (currentListItem) listItems.push(currentListItem);
+    result[listKey] = listItems;
   }
 
   return result;
@@ -1154,6 +1383,84 @@ function extractSection(body: string, heading: string): string | null {
   return match ? match[1].trim() : null;
 }
 
+/**
+ * Parse a schema list from YAML frontmatter (input_schema / output_schema).
+ * The simple YAML parser stores these as raw strings; we parse them here.
+ *
+ * Frontmatter format:
+ *   input_schema:
+ *     - name: url
+ *       type: string
+ *       required: true
+ *       description: URL to fetch
+ */
+function parseFrontmatterSchemaList(raw: unknown): SchemaField[] {
+  if (!raw) return [];
+  // If already parsed as array (by enhanced YAML parser), use directly
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((item: unknown) => item && typeof item === 'object' && 'name' in (item as Record<string, unknown>))
+      .map((item: Record<string, unknown>) => ({
+        name: String(item.name || ''),
+        type: (String(item.type || 'string')) as SchemaField['type'],
+        required: item.required === true || item.required === 'true' || undefined,
+        description: String(item.description || item.name || ''),
+        default: item.default,
+      }));
+  }
+  return [];
+}
+
+/**
+ * Extract Input Schema from markdown body (## Input Schema table).
+ * Table format: | `name` | type | yes/no | description |
+ */
+function extractInputSchemaFromMd(body: string): SchemaField[] {
+  const fields: SchemaField[] = [];
+  const section = extractSection(body, 'Input Schema');
+  if (!section) return fields;
+
+  const rowRegex = /\|\s*`(\w+)`\s*\|\s*(\w+)\s*\|\s*(yes|no)\s*\|\s*([^|]+)\|/g;
+  let match: RegExpExecArray | null;
+  while ((match = rowRegex.exec(section)) !== null) {
+    const name = match[1];
+    const type = match[2] as SchemaField['type'];
+    const required = match[3] === 'yes';
+    let description = match[4].trim();
+    // Extract default if present: (default: `value`)
+    let defaultVal: unknown;
+    const defaultMatch = description.match(/\(default:\s*`([^`]+)`\)/);
+    if (defaultMatch) {
+      defaultVal = parseConfigValue(defaultMatch[1]);
+      description = description.replace(/\s*\(default:\s*`[^`]+`\)/, '').trim();
+    }
+    fields.push({ name, type, required: required || undefined, description, default: defaultVal });
+  }
+  return fields;
+}
+
+/**
+ * Extract Output Schema from markdown body (## Output Schema table).
+ * Table format: | `name` | type | description |
+ */
+function extractOutputSchemaFromMd(body: string): SchemaField[] {
+  const fields: SchemaField[] = [];
+  const section = extractSection(body, 'Output Schema');
+  if (!section) return fields;
+
+  const rowRegex = /\|\s*`(\w+)`\s*\|\s*(\w+)\s*\|\s*([^|]+)\|/g;
+  let match: RegExpExecArray | null;
+  while ((match = rowRegex.exec(section)) !== null) {
+    const name = match[1];
+    const type = match[2] as SchemaField['type'];
+    const description = match[3].trim();
+    // Skip header separator rows
+    if (name === '-------' || name === '------' || description === '---') continue;
+    fields.push({ name, type, description });
+  }
+  return fields;
+}
+
 // =============================================================================
 // INTERNAL HELPERS: .hsplus GENERATION
 // =============================================================================
@@ -1273,4 +1580,107 @@ function emitBTNode(lines: string[], node: BTTreeNode, indent: number): void {
     lines.push(`${pad}}`);
   }
   lines.push('');
+}
+
+// =============================================================================
+// HOLOCLAW SKILL INTEROP
+// =============================================================================
+
+/**
+ * HoloClaw Skill interface — mirrors SkillRegistryTrait.Skill without the
+ * execute function (which cannot be serialized). This is the shape used for
+ * registry listing and interchange.
+ */
+export interface HoloClawSkill {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  author: string;
+  inputs: HoloClawSkillInput[];
+  outputs: HoloClawSkillOutput[];
+  sandbox: boolean;
+}
+
+export interface HoloClawSkillInput {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  required: boolean;
+  description: string;
+  default?: unknown;
+}
+
+export interface HoloClawSkillOutput {
+  name: string;
+  type: string;
+  description: string;
+}
+
+/**
+ * Convert a ParsedSkill (bridge intermediate) to a HoloClaw Skill object.
+ * This enables skills parsed from SKILL.md to be registered in the HoloClaw
+ * SkillRegistry runtime (minus the execute function, which must be provided
+ * separately or wired via a BT executor).
+ */
+export function toHoloClawSkill(parsed: ParsedSkill): HoloClawSkill {
+  return {
+    id: parsed.metadata.name,
+    name: titleCase(parsed.metadata.name),
+    description: parsed.metadata.description,
+    version: parsed.metadata.version,
+    author: parsed.metadata.author,
+    inputs: (parsed.metadata.inputSchema || []).map(f => ({
+      name: f.name,
+      type: f.type,
+      required: f.required ?? false,
+      description: f.description,
+      default: f.default,
+    })),
+    outputs: (parsed.metadata.outputSchema || []).map(f => ({
+      name: f.name,
+      type: f.type,
+      description: f.description,
+    })),
+    sandbox: true,
+  };
+}
+
+/**
+ * Convert a HoloClaw Skill object to a ParsedSkill (bridge intermediate).
+ * This enables HoloClaw runtime skills to be serialized as SKILL.md or .hsplus
+ * for distribution via ClawHub.
+ */
+export function fromHoloClawSkill(skill: HoloClawSkill): ParsedSkill {
+  const inputSchema: SchemaField[] = skill.inputs.map(i => ({
+    name: i.name,
+    type: i.type,
+    required: i.required || undefined,
+    description: i.description,
+    default: i.default,
+  }));
+
+  const outputSchema: SchemaField[] = skill.outputs.map(o => ({
+    name: o.name,
+    type: o.type as SchemaField['type'],
+    description: o.description,
+  }));
+
+  return {
+    metadata: {
+      name: skill.id,
+      description: skill.description,
+      version: skill.version,
+      author: skill.author,
+      inputSchema: inputSchema.length > 0 ? inputSchema : undefined,
+      outputSchema: outputSchema.length > 0 ? outputSchema : undefined,
+      holoCliVersion: '5.0.0',
+      nodeVersion: '20',
+      userInvocable: true,
+    },
+    traits: getDefaultTraits(),
+    state: [],
+    steps: [],
+    tests: [],
+    sourceComments: [],
+  };
 }

@@ -20,14 +20,20 @@ import {
   getPublishCommand,
   getInstallCommand,
   getHsInstallCommand,
+  toHoloClawSkill,
+  fromHoloClawSkill,
 } from '../skill-md-bridge.js';
 import type {
   ParsedSkill,
   SkillMetadata,
+  SchemaField,
   SkillStateVar,
   SkillTraitDecl,
   SkillActionStep,
   SkillTest,
+  HoloClawSkill,
+  HoloClawSkillInput,
+  HoloClawSkillOutput,
 } from '../skill-md-bridge.js';
 
 // =============================================================================
@@ -210,6 +216,115 @@ A simple hello world skill that demonstrates the SKILL.md format for ClawHub com
 \`\`\`bash
 hs claw install hello-world
 \`\`\`
+`;
+
+const SKILL_MD_WITH_SCHEMAS = `---
+name: web-fetcher
+description: >
+  Fetches content from a URL and returns
+  the response body with metadata.
+version: 2.0.0
+author: HoloScript Team
+tags: [fetch, http, networking]
+license: Apache-2.0
+repository: https://github.com/holoscript/skills
+input_schema:
+  - name: url
+    type: string
+    required: true
+    description: URL to fetch
+  - name: format
+    type: string
+    required: false
+    description: Response format
+    default: "text"
+output_schema:
+  - name: content
+    type: string
+    description: Response body content
+  - name: status
+    type: number
+    description: HTTP status code
+---
+
+# Web Fetcher
+
+Fetches content from a URL and returns the response body with metadata.
+
+## Traits
+
+- \`@rate_limiter\` (max_tokens: 10)
+- \`@economy\` (default_spend_limit: 0.02)
+- \`@timeout_guard\`
+
+## Input Schema
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| \`url\` | string | yes | URL to fetch |
+| \`format\` | string | no | Response format (default: \`"text"\`) |
+
+## Output Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| \`content\` | string | Response body content |
+| \`status\` | number | HTTP status code |
+
+## Workflow
+
+### fetch-cycle
+
+1. **validate_url** (pattern: "https?://")
+   Validate the URL format
+2. **web_fetch** (timeout: 5000)
+   Fetch the URL content
+3. **format_response**
+   Format the response based on format parameter
+
+## Tests
+
+2 built-in assertions:
+
+- **url is required**: \`$url != ""\`
+- **default format is text**: \`$format == "text"\`
+`;
+
+const HSPLUS_WITH_SCHEMAS = `// Web Fetcher -- Fetches content from a URL
+// Installed via HoloClaw Shelf. Hot-reloads into running daemon.
+
+composition "web-fetcher" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.02)
+  @timeout_guard
+
+  @input_schema {
+    url: string (required) "URL to fetch"
+    format: string = text "Response format"
+  }
+
+  @output_schema {
+    content: string "Response body content"
+    status: number "HTTP status code"
+  }
+
+  state phase: string = "idle"
+
+  sequence "fetch-cycle" {
+    action "validate_url" {
+      pattern: "https?://"
+    }
+
+    action "web_fetch" {
+      timeout: 5000
+    }
+  }
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+}
 `;
 
 // =============================================================================
@@ -679,12 +794,30 @@ describe('ClawHub integration', () => {
     const manifest = generateClawHubManifest(parsed.data!);
     expect(manifest.name).toBe('@holoscript/code-health');
     expect(manifest.version).toBe('1.0.0');
+    expect(manifest.registryUrl).toBe('https://registry.clawhub.com');
     expect(manifest.holoScript.format).toBe('hsplus');
     expect(manifest.holoScript.traits).toContain('rate_limiter');
     expect(manifest.holoScript.testCount).toBe(4);
+    expect(manifest.holoScript.inputFields).toEqual([]);
+    expect(manifest.holoScript.outputFields).toEqual([]);
     expect(manifest.files).toContain('code-health.hsplus');
     expect(manifest.files).toContain('SKILL.md');
     expect(manifest.files).toContain('clawhub.json');
+  });
+
+  it('should generate manifest with custom registry URL', () => {
+    const parsed = parseHsplus(CODE_HEALTH_HSPLUS);
+    const manifest = generateClawHubManifest(parsed.data!, 'https://my-registry.example.com');
+    expect(manifest.registryUrl).toBe('https://my-registry.example.com');
+  });
+
+  it('should include input/output field names in manifest', () => {
+    const parsed = parseHsplus(HSPLUS_WITH_SCHEMAS);
+    const manifest = generateClawHubManifest(parsed.data!);
+    expect(manifest.holoScript.inputFields).toContain('url');
+    expect(manifest.holoScript.inputFields).toContain('format');
+    expect(manifest.holoScript.outputFields).toContain('content');
+    expect(manifest.holoScript.outputFields).toContain('status');
   });
 
   it('should generate complete ClawHub package', () => {
@@ -861,5 +994,383 @@ describe('type exports', () => {
       sourceComments: [],
     };
     expect(skill.metadata.name).toBe('t');
+  });
+
+  it('should export SchemaField type', () => {
+    const field: SchemaField = {
+      name: 'url',
+      type: 'string',
+      required: true,
+      description: 'URL to fetch',
+      default: 'https://example.com',
+    };
+    expect(field.type).toBe('string');
+    expect(field.required).toBe(true);
+  });
+
+  it('should export HoloClawSkill type', () => {
+    const skill: HoloClawSkill = {
+      id: 'test',
+      name: 'Test',
+      description: 'test',
+      version: '1.0.0',
+      author: 'tester',
+      inputs: [],
+      outputs: [],
+      sandbox: true,
+    };
+    expect(skill.id).toBe('test');
+  });
+
+  it('should export HoloClawSkillInput type', () => {
+    const input: HoloClawSkillInput = {
+      name: 'url',
+      type: 'string',
+      required: true,
+      description: 'URL to fetch',
+    };
+    expect(input.required).toBe(true);
+  });
+
+  it('should export HoloClawSkillOutput type', () => {
+    const output: HoloClawSkillOutput = {
+      name: 'content',
+      type: 'string',
+      description: 'Response content',
+    };
+    expect(output.type).toBe('string');
+  });
+});
+
+// =============================================================================
+// INPUT/OUTPUT SCHEMA: .hsplus -> ParsedSkill
+// =============================================================================
+
+describe('input/output schema from .hsplus', () => {
+  it('should extract input_schema fields from .hsplus', () => {
+    const result = parseHsplus(HSPLUS_WITH_SCHEMAS);
+    expect(result.success).toBe(true);
+    expect(result.data!.metadata.inputSchema).toBeDefined();
+    expect(result.data!.metadata.inputSchema).toHaveLength(2);
+
+    const urlField = result.data!.metadata.inputSchema!.find(f => f.name === 'url');
+    expect(urlField).toBeDefined();
+    expect(urlField!.type).toBe('string');
+    expect(urlField!.required).toBe(true);
+    expect(urlField!.description).toBe('URL to fetch');
+
+    const formatField = result.data!.metadata.inputSchema!.find(f => f.name === 'format');
+    expect(formatField).toBeDefined();
+    expect(formatField!.type).toBe('string');
+    expect(formatField!.description).toBe('Response format');
+  });
+
+  it('should extract output_schema fields from .hsplus', () => {
+    const result = parseHsplus(HSPLUS_WITH_SCHEMAS);
+    expect(result.success).toBe(true);
+    expect(result.data!.metadata.outputSchema).toBeDefined();
+    expect(result.data!.metadata.outputSchema).toHaveLength(2);
+
+    const contentField = result.data!.metadata.outputSchema!.find(f => f.name === 'content');
+    expect(contentField).toBeDefined();
+    expect(contentField!.type).toBe('string');
+
+    const statusField = result.data!.metadata.outputSchema!.find(f => f.name === 'status');
+    expect(statusField).toBeDefined();
+    expect(statusField!.type).toBe('number');
+  });
+
+  it('should have no schemas for skills without @input_schema/@output_schema', () => {
+    const result = parseHsplus(CODE_HEALTH_HSPLUS);
+    expect(result.success).toBe(true);
+    expect(result.data!.metadata.inputSchema).toBeUndefined();
+    expect(result.data!.metadata.outputSchema).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// INPUT/OUTPUT SCHEMA: SKILL.md -> ParsedSkill
+// =============================================================================
+
+describe('input/output schema from SKILL.md', () => {
+  it('should parse input_schema from SKILL.md frontmatter', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    expect(result.success).toBe(true);
+    expect(result.data!.metadata.inputSchema).toBeDefined();
+    expect(result.data!.metadata.inputSchema).toHaveLength(2);
+
+    const urlField = result.data!.metadata.inputSchema!.find(f => f.name === 'url');
+    expect(urlField).toBeDefined();
+    expect(urlField!.type).toBe('string');
+    expect(urlField!.required).toBe(true);
+    expect(urlField!.description).toBe('URL to fetch');
+
+    const formatField = result.data!.metadata.inputSchema!.find(f => f.name === 'format');
+    expect(formatField).toBeDefined();
+    expect(formatField!.type).toBe('string');
+    expect(formatField!.default).toBe('text');
+  });
+
+  it('should parse output_schema from SKILL.md frontmatter', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    expect(result.success).toBe(true);
+    expect(result.data!.metadata.outputSchema).toBeDefined();
+    expect(result.data!.metadata.outputSchema).toHaveLength(2);
+
+    const contentField = result.data!.metadata.outputSchema!.find(f => f.name === 'content');
+    expect(contentField).toBeDefined();
+    expect(contentField!.type).toBe('string');
+    expect(contentField!.description).toBe('Response body content');
+  });
+
+  it('should parse repository field from SKILL.md frontmatter', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    expect(result.success).toBe(true);
+    expect(result.data!.metadata.repository).toBe('https://github.com/holoscript/skills');
+  });
+
+  it('should include Input Schema section in SKILL.md output', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const md = toSkillMd(result.data!).data!;
+    expect(md).toContain('## Input Schema');
+    expect(md).toContain('`url`');
+    expect(md).toContain('`format`');
+    expect(md).toContain('yes'); // required
+  });
+
+  it('should include Output Schema section in SKILL.md output', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const md = toSkillMd(result.data!).data!;
+    expect(md).toContain('## Output Schema');
+    expect(md).toContain('`content`');
+    expect(md).toContain('`status`');
+  });
+
+  it('should include input/output_schema in SKILL.md frontmatter', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const md = toSkillMd(result.data!).data!;
+    expect(md).toContain('input_schema:');
+    expect(md).toContain('output_schema:');
+    expect(md).toContain('  - name: url');
+    expect(md).toContain('    type: string');
+    expect(md).toContain('    required: true');
+  });
+});
+
+// =============================================================================
+// HOLOCLAW SKILL INTEROP
+// =============================================================================
+
+describe('toHoloClawSkill', () => {
+  it('should convert ParsedSkill to HoloClawSkill', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const holoClaw = toHoloClawSkill(result.data!);
+
+    expect(holoClaw.id).toBe('web-fetcher');
+    expect(holoClaw.name).toBe('Web Fetcher');
+    expect(holoClaw.version).toBe('2.0.0');
+    expect(holoClaw.author).toBe('HoloScript Team');
+    expect(holoClaw.sandbox).toBe(true);
+  });
+
+  it('should map input schema to HoloClaw inputs', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const holoClaw = toHoloClawSkill(result.data!);
+
+    expect(holoClaw.inputs).toHaveLength(2);
+    const urlInput = holoClaw.inputs.find(i => i.name === 'url');
+    expect(urlInput).toBeDefined();
+    expect(urlInput!.type).toBe('string');
+    expect(urlInput!.required).toBe(true);
+    expect(urlInput!.description).toBe('URL to fetch');
+
+    const formatInput = holoClaw.inputs.find(i => i.name === 'format');
+    expect(formatInput).toBeDefined();
+    expect(formatInput!.required).toBe(false);
+    expect(formatInput!.default).toBe('text');
+  });
+
+  it('should map output schema to HoloClaw outputs', () => {
+    const result = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const holoClaw = toHoloClawSkill(result.data!);
+
+    expect(holoClaw.outputs).toHaveLength(2);
+    const contentOutput = holoClaw.outputs.find(o => o.name === 'content');
+    expect(contentOutput).toBeDefined();
+    expect(contentOutput!.type).toBe('string');
+  });
+
+  it('should handle skills with no schemas', () => {
+    const result = parseHsplus(CODE_HEALTH_HSPLUS);
+    const holoClaw = toHoloClawSkill(result.data!);
+
+    expect(holoClaw.inputs).toHaveLength(0);
+    expect(holoClaw.outputs).toHaveLength(0);
+  });
+});
+
+describe('fromHoloClawSkill', () => {
+  it('should convert HoloClawSkill to ParsedSkill', () => {
+    const holoClaw: HoloClawSkill = {
+      id: 'json-transform',
+      name: 'JSON Transform',
+      description: 'Parse, filter, or transform JSON data',
+      version: '1.0.0',
+      author: 'holoscript',
+      inputs: [
+        { name: 'json', type: 'string', required: true, description: 'JSON string to transform' },
+        { name: 'path', type: 'string', required: false, description: 'Dot-notation path to extract' },
+      ],
+      outputs: [
+        { name: 'result', type: 'object', description: 'Transformed result' },
+      ],
+      sandbox: false,
+    };
+
+    const parsed = fromHoloClawSkill(holoClaw);
+
+    expect(parsed.metadata.name).toBe('json-transform');
+    expect(parsed.metadata.description).toBe('Parse, filter, or transform JSON data');
+    expect(parsed.metadata.version).toBe('1.0.0');
+    expect(parsed.metadata.author).toBe('holoscript');
+  });
+
+  it('should map HoloClaw inputs to inputSchema', () => {
+    const holoClaw: HoloClawSkill = {
+      id: 'test-skill',
+      name: 'Test',
+      description: 'test',
+      version: '1.0.0',
+      author: 'test',
+      inputs: [
+        { name: 'data', type: 'string', required: true, description: 'Input data' },
+      ],
+      outputs: [
+        { name: 'result', type: 'string', description: 'Output result' },
+      ],
+      sandbox: true,
+    };
+
+    const parsed = fromHoloClawSkill(holoClaw);
+
+    expect(parsed.metadata.inputSchema).toBeDefined();
+    expect(parsed.metadata.inputSchema).toHaveLength(1);
+    expect(parsed.metadata.inputSchema![0].name).toBe('data');
+    expect(parsed.metadata.inputSchema![0].required).toBe(true);
+
+    expect(parsed.metadata.outputSchema).toBeDefined();
+    expect(parsed.metadata.outputSchema).toHaveLength(1);
+    expect(parsed.metadata.outputSchema![0].name).toBe('result');
+  });
+
+  it('should include default traits', () => {
+    const holoClaw: HoloClawSkill = {
+      id: 'minimal',
+      name: 'Minimal',
+      description: 'minimal',
+      version: '1.0.0',
+      author: 'test',
+      inputs: [],
+      outputs: [],
+      sandbox: true,
+    };
+
+    const parsed = fromHoloClawSkill(holoClaw);
+
+    expect(parsed.traits).toHaveLength(3);
+    expect(parsed.traits.map(t => t.name)).toContain('rate_limiter');
+    expect(parsed.traits.map(t => t.name)).toContain('economy');
+    expect(parsed.traits.map(t => t.name)).toContain('timeout_guard');
+  });
+
+  it('should produce valid SKILL.md when serialized', () => {
+    const holoClaw: HoloClawSkill = {
+      id: 'web-fetch',
+      name: 'Web Fetch',
+      description: 'Fetch content from a URL',
+      version: '1.0.0',
+      author: 'holoscript',
+      inputs: [
+        { name: 'url', type: 'string', required: true, description: 'URL to fetch' },
+      ],
+      outputs: [
+        { name: 'content', type: 'string', description: 'Response content' },
+      ],
+      sandbox: false,
+    };
+
+    const parsed = fromHoloClawSkill(holoClaw);
+    const md = toSkillMd(parsed);
+
+    expect(md.success).toBe(true);
+    expect(md.data).toContain('name: web-fetch');
+    expect(md.data).toContain('input_schema:');
+    expect(md.data).toContain('output_schema:');
+    expect(md.data).toContain('## Input Schema');
+    expect(md.data).toContain('## Output Schema');
+  });
+
+  it('should produce valid .hsplus when serialized', () => {
+    const holoClaw: HoloClawSkill = {
+      id: 'web-fetch',
+      name: 'Web Fetch',
+      description: 'Fetch content from a URL',
+      version: '1.0.0',
+      author: 'holoscript',
+      inputs: [
+        { name: 'url', type: 'string', required: true, description: 'URL to fetch' },
+      ],
+      outputs: [
+        { name: 'content', type: 'string', description: 'Response content' },
+      ],
+      sandbox: false,
+    };
+
+    const parsed = fromHoloClawSkill(holoClaw);
+    const hsplus = toHsplus(parsed);
+
+    expect(hsplus.success).toBe(true);
+    expect(hsplus.data).toContain('composition "web-fetch"');
+    expect(hsplus.data).toContain('@rate_limiter');
+  });
+});
+
+// =============================================================================
+// ROUND-TRIP: schemas through .hsplus -> SKILL.md -> .hsplus
+// =============================================================================
+
+describe('round-trip with schemas', () => {
+  it('should preserve input schema names through .hsplus -> SKILL.md -> ParsedSkill', () => {
+    const parsed1 = parseHsplus(HSPLUS_WITH_SCHEMAS);
+    const md = toSkillMd(parsed1.data!).data!;
+    const parsed2 = parseSkillMd(md);
+
+    expect(parsed2.data!.metadata.inputSchema).toBeDefined();
+    const names1 = parsed1.data!.metadata.inputSchema!.map(f => f.name).sort();
+    const names2 = parsed2.data!.metadata.inputSchema!.map(f => f.name).sort();
+    expect(names2).toEqual(names1);
+  });
+
+  it('should preserve output schema names through .hsplus -> SKILL.md -> ParsedSkill', () => {
+    const parsed1 = parseHsplus(HSPLUS_WITH_SCHEMAS);
+    const md = toSkillMd(parsed1.data!).data!;
+    const parsed2 = parseSkillMd(md);
+
+    expect(parsed2.data!.metadata.outputSchema).toBeDefined();
+    const names1 = parsed1.data!.metadata.outputSchema!.map(f => f.name).sort();
+    const names2 = parsed2.data!.metadata.outputSchema!.map(f => f.name).sort();
+    expect(names2).toEqual(names1);
+  });
+
+  it('should preserve schema through SKILL.md -> HoloClaw -> ParsedSkill -> SKILL.md', () => {
+    const parsed1 = parseSkillMd(SKILL_MD_WITH_SCHEMAS);
+    const holoClaw = toHoloClawSkill(parsed1.data!);
+    const parsed2 = fromHoloClawSkill(holoClaw);
+    const md = toSkillMd(parsed2).data!;
+
+    expect(md).toContain('input_schema:');
+    expect(md).toContain('output_schema:');
+    expect(md).toContain('  - name: url');
+    expect(md).toContain('  - name: content');
   });
 });
