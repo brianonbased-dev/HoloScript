@@ -325,6 +325,44 @@ type TokenType =
   | 'PAYMENT_GATE'
   | 'SUBSCRIPTION'
   | 'TIP_JAR'
+  // v6 Universal domains (v5.4 — Domains Unified)
+  | 'SERVICE_BLOCK'
+  | 'ENDPOINT_BLOCK'
+  | 'ROUTE_BLOCK'
+  | 'HANDLER_BLOCK'
+  | 'MIDDLEWARE_BLOCK'
+  | 'GATEWAY_BLOCK'
+  | 'CONTRACT_BLOCK'
+  | 'SCHEMA_BLOCK'
+  | 'VALIDATOR_BLOCK'
+  | 'SERIALIZER_BLOCK'
+  | 'DB_BLOCK'
+  | 'MODEL_BLOCK'
+  | 'QUERY_BLOCK'
+  | 'MIGRATION_BLOCK'
+  | 'CACHE_BLOCK'
+  | 'HTTP_BLOCK'
+  | 'WEBSOCKET_BLOCK'
+  | 'GRPC_BLOCK'
+  | 'GRAPHQL_BLOCK'
+  | 'PIPELINE_BLOCK'
+  | 'STREAM_BLOCK'
+  | 'QUEUE_BLOCK'
+  | 'WORKER_BLOCK'
+  | 'SCHEDULER_BLOCK'
+  | 'METRIC_BLOCK'
+  | 'TRACE_BLOCK'
+  | 'LOG_BLOCK'
+  | 'HEALTH_CHECK_BLOCK'
+  | 'CONTAINER_BLOCK'
+  | 'DEPLOYMENT_BLOCK'
+  | 'SCALING_BLOCK'
+  | 'SECRET_BLOCK'
+  | 'CIRCUIT_BREAKER_BLOCK'
+  | 'RETRY_BLOCK'
+  | 'TIMEOUT_BLOCK'
+  | 'FALLBACK_BLOCK'
+  | 'BULKHEAD_BLOCK'
   // Spatial primitives
   | 'SPAWN_GROUP'
   | 'WAYPOINTS'
@@ -593,6 +631,47 @@ const KEYWORDS: Record<string, TokenType> = {
   payment_gate: 'PAYMENT_GATE',
   subscription: 'SUBSCRIPTION',
   tip_jar: 'TIP_JAR',
+  // v6 Universal domains (v5.4 — Domains Unified)
+  // Note: 'contract' already maps to WEB3_CONTRACT (line 545), use service_contract for v6
+  // Note: 'metric' already maps to DATAVIZ_METRIC (line 502), use obs_metric for v6
+  // Note: 'model' conflicts with object kind, use data_model (matches tree-sitter grammar)
+  service: 'SERVICE_BLOCK',
+  endpoint: 'ENDPOINT_BLOCK',
+  route: 'ROUTE_BLOCK',
+  handler: 'HANDLER_BLOCK',
+  middleware: 'MIDDLEWARE_BLOCK',
+  gateway: 'GATEWAY_BLOCK',
+  service_contract: 'CONTRACT_BLOCK',
+  schema: 'SCHEMA_BLOCK',
+  validator: 'VALIDATOR_BLOCK',
+  serializer: 'SERIALIZER_BLOCK',
+  db: 'DB_BLOCK',
+  data_model: 'MODEL_BLOCK',
+  query: 'QUERY_BLOCK',
+  migration: 'MIGRATION_BLOCK',
+  cache: 'CACHE_BLOCK',
+  http: 'HTTP_BLOCK',
+  websocket: 'WEBSOCKET_BLOCK',
+  grpc: 'GRPC_BLOCK',
+  graphql: 'GRAPHQL_BLOCK',
+  pipeline: 'PIPELINE_BLOCK',
+  stream: 'STREAM_BLOCK',
+  queue: 'QUEUE_BLOCK',
+  worker: 'WORKER_BLOCK',
+  scheduler: 'SCHEDULER_BLOCK',
+  obs_metric: 'METRIC_BLOCK',
+  trace: 'TRACE_BLOCK',
+  log: 'LOG_BLOCK',
+  health_check: 'HEALTH_CHECK_BLOCK',
+  container: 'CONTAINER_BLOCK',
+  deployment: 'DEPLOYMENT_BLOCK',
+  scaling: 'SCALING_BLOCK',
+  secret: 'SECRET_BLOCK',
+  circuit_breaker: 'CIRCUIT_BREAKER_BLOCK',
+  retry: 'RETRY_BLOCK',
+  timeout: 'TIMEOUT_BLOCK',
+  fallback: 'FALLBACK_BLOCK',
+  bulkhead: 'BULKHEAD_BLOCK',
   // Process pipeline directives (.hs format — v5)
   connect: 'CONNECT',
   execute: 'EXECUTE',
@@ -5215,6 +5294,44 @@ export class HoloCompositionParser {
     'PAYMENT_GATE',
     'SUBSCRIPTION',
     'TIP_JAR',
+    // v6 Universal domains (v5.4 — Domains Unified)
+    'SERVICE_BLOCK',
+    'ENDPOINT_BLOCK',
+    'ROUTE_BLOCK',
+    'HANDLER_BLOCK',
+    'MIDDLEWARE_BLOCK',
+    'GATEWAY_BLOCK',
+    'CONTRACT_BLOCK',
+    'SCHEMA_BLOCK',
+    'VALIDATOR_BLOCK',
+    'SERIALIZER_BLOCK',
+    'DB_BLOCK',
+    'MODEL_BLOCK',
+    'QUERY_BLOCK',
+    'MIGRATION_BLOCK',
+    'CACHE_BLOCK',
+    'HTTP_BLOCK',
+    'WEBSOCKET_BLOCK',
+    'GRPC_BLOCK',
+    'GRAPHQL_BLOCK',
+    'PIPELINE_BLOCK',
+    'STREAM_BLOCK',
+    'QUEUE_BLOCK',
+    'WORKER_BLOCK',
+    'SCHEDULER_BLOCK',
+    'METRIC_BLOCK',
+    'TRACE_BLOCK',
+    'LOG_BLOCK',
+    'HEALTH_CHECK_BLOCK',
+    'CONTAINER_BLOCK',
+    'DEPLOYMENT_BLOCK',
+    'SCALING_BLOCK',
+    'SECRET_BLOCK',
+    'CIRCUIT_BREAKER_BLOCK',
+    'RETRY_BLOCK',
+    'TIMEOUT_BLOCK',
+    'FALLBACK_BLOCK',
+    'BULKHEAD_BLOCK',
   ]);
 
   /** Token → domain type mapping */
@@ -5305,6 +5422,44 @@ export class HoloCompositionParser {
     PAYMENT_GATE: 'payment',
     SUBSCRIPTION: 'payment',
     TIP_JAR: 'payment',
+    // v6 Universal domains (v5.4 — Domains Unified)
+    SERVICE_BLOCK: 'service',
+    ENDPOINT_BLOCK: 'service',
+    ROUTE_BLOCK: 'service',
+    HANDLER_BLOCK: 'service',
+    MIDDLEWARE_BLOCK: 'service',
+    GATEWAY_BLOCK: 'service',
+    CONTRACT_BLOCK: 'contract',
+    SCHEMA_BLOCK: 'contract',
+    VALIDATOR_BLOCK: 'contract',
+    SERIALIZER_BLOCK: 'contract',
+    DB_BLOCK: 'data',
+    MODEL_BLOCK: 'data',
+    QUERY_BLOCK: 'data',
+    MIGRATION_BLOCK: 'data',
+    CACHE_BLOCK: 'data',
+    HTTP_BLOCK: 'network',
+    WEBSOCKET_BLOCK: 'network',
+    GRPC_BLOCK: 'network',
+    GRAPHQL_BLOCK: 'network',
+    PIPELINE_BLOCK: 'pipeline',
+    STREAM_BLOCK: 'pipeline',
+    QUEUE_BLOCK: 'pipeline',
+    WORKER_BLOCK: 'pipeline',
+    SCHEDULER_BLOCK: 'pipeline',
+    METRIC_BLOCK: 'metric',
+    TRACE_BLOCK: 'metric',
+    LOG_BLOCK: 'metric',
+    HEALTH_CHECK_BLOCK: 'metric',
+    CONTAINER_BLOCK: 'container',
+    DEPLOYMENT_BLOCK: 'container',
+    SCALING_BLOCK: 'container',
+    SECRET_BLOCK: 'container',
+    CIRCUIT_BREAKER_BLOCK: 'resilience',
+    RETRY_BLOCK: 'resilience',
+    TIMEOUT_BLOCK: 'resilience',
+    FALLBACK_BLOCK: 'resilience',
+    BULKHEAD_BLOCK: 'resilience',
   };
 
   /** Check if current token is a domain block token */

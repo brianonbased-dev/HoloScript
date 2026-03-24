@@ -4,6 +4,11 @@
  * Animation clip management and playback with states,
  * transitions, and events.
  *
+ * Split into three modules:
+ * - AnimationTypes.ts   — shared type definitions
+ * - AnimationStateMachine.ts — state/transition/parameter/layer logic
+ * - AnimationTrait.ts   — coordinator: clips, playback, events, serialization
+ *
  * @example
  * ```hsplus
  * object "Character" {
@@ -25,305 +30,56 @@
  * ```
  */
 
-/**
- * Animation wrap mode
- */
-export type AnimationWrapMode = 'once' | 'loop' | 'ping-pong' | 'clamp';
+// Re-export all types for backwards-compatible imports
+export type {
+  AnimationWrapMode,
+  AnimationBlendMode,
+  AnimationClipDef,
+  AnimationEventDef,
+  AnimationStateDef,
+  TransitionCondition,
+  AnimationTransition,
+  AnimationParameter,
+  AnimationLayer,
+  AnimationEventType,
+  AnimationEvent,
+  AnimationConfig,
+  AnimationEventCallback,
+} from './AnimationTypes';
+
+import type {
+  ActiveAnimation,
+  AnimationClipDef,
+  AnimationConfig,
+  AnimationEvent,
+  AnimationEventCallback,
+  AnimationEventType,
+  AnimationParameter,
+  AnimationStateDef,
+  AnimationTransition,
+  CrossfadeState,
+} from './AnimationTypes';
+
+import { AnimationStateMachine } from './AnimationStateMachine';
 
 /**
- * Animation blend mode
- */
-export type AnimationBlendMode = 'override' | 'additive';
-
-/**
- * Animation clip definition
- */
-export interface AnimationClipDef {
-  /** Clip name */
-  name: string;
-
-  /** Asset path/ID */
-  asset?: string;
-
-  /** Duration in seconds */
-  duration: number;
-
-  /** Wrap mode */
-  wrapMode?: AnimationWrapMode;
-
-  /** Blend mode */
-  blendMode?: AnimationBlendMode;
-
-  /** Default speed */
-  speed?: number;
-
-  /** Events at specific times */
-  events?: AnimationEventDef[];
-
-  /** Start time offset */
-  startTime?: number;
-
-  /** End time offset */
-  endTime?: number;
-
-  /** Root motion */
-  rootMotion?: boolean;
-}
-
-/**
- * Animation event definition
- */
-export interface AnimationEventDef {
-  /** Event name */
-  name: string;
-
-  /** Time in clip (seconds) */
-  time: number;
-
-  /** Event data */
-  data?: Record<string, unknown>;
-
-  /** Function to call */
-  function?: string;
-}
-
-/**
- * Animation state definition
- */
-export interface AnimationStateDef {
-  /** State name */
-  name: string;
-
-  /** Single clip or blend tree */
-  clip?: string;
-
-  /** Multiple clips for blend tree */
-  clips?: string[];
-
-  /** Blend parameter name */
-  parameter?: string;
-
-  /** Thresholds for 1D blend tree */
-  thresholds?: number[];
-
-  /** Speed multiplier */
-  speed?: number;
-
-  /** Is this a sub-state machine */
-  isSubState?: boolean;
-
-  /** Entry state for sub-state machine */
-  entryState?: string;
-
-  /** Tags for this state */
-  tags?: string[];
-}
-
-/**
- * Transition condition
- */
-export interface TransitionCondition {
-  /** Parameter name */
-  parameter: string;
-
-  /** Comparison operator */
-  operator: '==' | '!=' | '>' | '<' | '>=' | '<=';
-
-  /** Value to compare */
-  value: number | boolean | string;
-
-  /** Logical chain */
-  chain?: 'and' | 'or';
-}
-
-/**
- * Animation transition
- */
-export interface AnimationTransition {
-  /** Source state (or 'any') */
-  from: string | 'any';
-
-  /** Destination state */
-  to: string;
-
-  /** Transition conditions */
-  conditions?: TransitionCondition[];
-
-  /** Transition duration (seconds) */
-  duration?: number;
-
-  /** Exit time (0-1, normalized) */
-  exitTime?: number;
-
-  /** Has exit time requirement */
-  hasExitTime?: boolean;
-
-  /** Offset into destination clip */
-  offset?: number;
-
-  /** Can transition to self */
-  canTransitionToSelf?: boolean;
-
-  /** Priority (higher = checked first) */
-  priority?: number;
-}
-
-/**
- * Active animation instance
- */
-interface ActiveAnimation {
-  clip: AnimationClipDef;
-  state: string;
-  time: number;
-  normalizedTime: number;
-  weight: number;
-  speed: number;
-  layer: number;
-}
-
-/**
- * Crossfade state
- */
-interface CrossfadeState {
-  from: ActiveAnimation;
-  to: ActiveAnimation;
-  progress: number;
-  duration: number;
-}
-
-/**
- * Animation parameter
- */
-export interface AnimationParameter {
-  /** Parameter name */
-  name: string;
-
-  /** Parameter type */
-  type: 'float' | 'int' | 'bool' | 'trigger';
-
-  /** Current value */
-  value: number | boolean;
-
-  /** Default value */
-  default?: number | boolean;
-}
-
-/**
- * Animation layer
- */
-export interface AnimationLayer {
-  /** Layer name */
-  name: string;
-
-  /** Layer weight (0-1) */
-  weight: number;
-
-  /** Blend mode */
-  blendMode: AnimationBlendMode;
-
-  /** Avatar mask (body parts affected) */
-  mask?: string[];
-
-  /** Is additive */
-  additive?: boolean;
-
-  /** Current state */
-  currentState?: string;
-}
-
-/**
- * Animation event types
- */
-export type AnimationEventType =
-  | 'clip-start'
-  | 'clip-end'
-  | 'clip-loop'
-  | 'state-enter'
-  | 'state-exit'
-  | 'transition-start'
-  | 'transition-end'
-  | 'event';
-
-/**
- * Animation event
- */
-export interface AnimationEvent {
-  /** Event type */
-  type: AnimationEventType;
-
-  /** Clip name */
-  clip?: string;
-
-  /** State name */
-  state?: string;
-
-  /** From state (for transitions) */
-  fromState?: string;
-
-  /** To state (for transitions) */
-  toState?: string;
-
-  /** Custom event name */
-  eventName?: string;
-
-  /** Event data */
-  data?: Record<string, unknown>;
-
-  /** Timestamp */
-  timestamp: number;
-}
-
-/**
- * Animation configuration
- */
-export interface AnimationConfig {
-  /** Animation clips */
-  clips?: AnimationClipDef[];
-
-  /** Animation states */
-  states?: AnimationStateDef[];
-
-  /** Transitions */
-  transitions?: AnimationTransition[];
-
-  /** Parameters */
-  parameters?: AnimationParameter[];
-
-  /** Layers */
-  layers?: AnimationLayer[];
-
-  /** Default state */
-  defaultState?: string;
-
-  /** Default layer */
-  defaultLayer?: string;
-
-  /** Root motion enabled */
-  applyRootMotion?: boolean;
-
-  /** Update mode */
-  updateMode?: 'normal' | 'unscaled' | 'fixed';
-}
-
-/**
- * Animation event callback
- */
-type AnimationEventCallback = (event: AnimationEvent) => void;
-
-/**
- * Animation Trait - Animation clips and state machine
+ * Animation Trait — clip playback coordinator with state machine delegate
  */
 export class AnimationTrait {
   private config: AnimationConfig;
   private clips: Map<string, AnimationClipDef> = new Map();
-  private states: Map<string, AnimationStateDef> = new Map();
-  private transitions: AnimationTransition[] = [];
-  private parameters: Map<string, AnimationParameter> = new Map();
-  private layers: Map<string, AnimationLayer> = new Map();
   private activeAnimations: Map<number, ActiveAnimation | null> = new Map();
   private crossfades: Map<number, CrossfadeState | null> = new Map();
   private eventListeners: Map<AnimationEventType, Set<AnimationEventCallback>> = new Map();
   private currentTime: number = 0;
+
+  /** Delegate: state machine, transitions, parameters, layers */
+  private readonly sm: AnimationStateMachine;
+
+  /** Expose parameters for internal/test access */
+  private get parameters(): Map<string, AnimationParameter> {
+    return this.sm.parameters;
+  }
 
   constructor(config: AnimationConfig = {}) {
     this.config = {
@@ -331,6 +87,9 @@ export class AnimationTrait {
       updateMode: 'normal',
       ...config,
     };
+
+    this.sm = new AnimationStateMachine();
+    this.sm.setCrossfadeCallback((state, dur, layer) => this.crossfade(state, dur, layer));
 
     // Initialize clips
     if (config.clips) {
@@ -342,31 +101,30 @@ export class AnimationTrait {
     // Initialize states
     if (config.states) {
       for (const state of config.states) {
-        this.addState(state);
+        this.sm.addState(state);
       }
     }
 
     // Initialize transitions
     if (config.transitions) {
-      this.transitions = [...config.transitions];
-      this.sortTransitions();
+      this.sm.transitions.push(...config.transitions);
+      this.sm.sortTransitions();
     }
 
     // Initialize parameters
     if (config.parameters) {
       for (const param of config.parameters) {
-        this.addParameter(param);
+        this.sm.addParameter(param);
       }
     }
 
     // Initialize layers
     if (config.layers) {
       for (const layer of config.layers) {
-        this.layers.set(layer.name, layer);
+        this.sm.layers.set(layer.name, layer);
       }
     } else {
-      // Default base layer
-      this.layers.set('Base Layer', {
+      this.sm.layers.set('Base Layer', {
         name: 'Base Layer',
         weight: 1,
         blendMode: 'override',
@@ -375,7 +133,7 @@ export class AnimationTrait {
 
     // Initialize active animations for each layer
     let layerIndex = 0;
-    for (const _layer of this.layers.keys()) {
+    for (const _layer of this.sm.layers.keys()) {
       this.activeAnimations.set(layerIndex, null);
       this.crossfades.set(layerIndex, null);
       layerIndex++;
@@ -391,16 +149,10 @@ export class AnimationTrait {
   // Core API
   // ============================================================================
 
-  /**
-   * Get configuration
-   */
   public getConfig(): AnimationConfig {
     return { ...this.config };
   }
 
-  /**
-   * Get current time
-   */
   public getCurrentTime(): number {
     return this.currentTime;
   }
@@ -409,9 +161,6 @@ export class AnimationTrait {
   // Clip Management
   // ============================================================================
 
-  /**
-   * Add an animation clip
-   */
   public addClip(clip: AnimationClipDef): void {
     this.clips.set(clip.name, {
       ...clip,
@@ -421,109 +170,69 @@ export class AnimationTrait {
     });
   }
 
-  /**
-   * Remove a clip
-   */
   public removeClip(name: string): void {
     this.clips.delete(name);
   }
 
-  /**
-   * Get a clip
-   */
   public getClip(name: string): AnimationClipDef | undefined {
     return this.clips.get(name);
   }
 
-  /**
-   * Get all clip names
-   */
   public getClipNames(): string[] {
     return Array.from(this.clips.keys());
   }
 
   // ============================================================================
-  // State Management
+  // State Management (delegates to AnimationStateMachine)
   // ============================================================================
 
-  /**
-   * Add a state
-   */
   public addState(state: AnimationStateDef): void {
-    this.states.set(state.name, state);
+    this.sm.addState(state);
   }
 
-  /**
-   * Remove a state
-   */
   public removeState(name: string): void {
-    this.states.delete(name);
+    this.sm.removeState(name);
   }
 
-  /**
-   * Get a state
-   */
   public getState(name: string): AnimationStateDef | undefined {
-    return this.states.get(name);
+    return this.sm.getState(name);
   }
 
-  /**
-   * Get all state names
-   */
   public getStateNames(): string[] {
-    return Array.from(this.states.keys());
+    return this.sm.getStateNames();
   }
 
-  /**
-   * Set current state (immediate)
-   */
   public setState(stateName: string, layer: number = 0): boolean {
-    const state = this.states.get(stateName);
-    if (!state) return false;
+    const resolved = this.sm.resolveClipForState(stateName, this.clips);
+    if (!resolved) return false;
 
-    const layerName = Array.from(this.layers.keys())[layer];
-    const layerObj = this.layers.get(layerName);
+    const layerName = Array.from(this.sm.layers.keys())[layer];
+    const layerObj = this.sm.layers.get(layerName);
     if (!layerObj) return false;
 
     const prevState = layerObj.currentState;
     layerObj.currentState = stateName;
 
-    // Get clip for this state
-    const clipName = state.clip ?? state.clips?.[0];
-    if (!clipName) return false;
-
-    const clip = this.clips.get(clipName);
-    if (!clip) return false;
-
     // Exit old state
     if (prevState) {
-      this.emit({
-        type: 'state-exit',
-        state: prevState,
-        timestamp: Date.now(),
-      });
+      this.emit({ type: 'state-exit', state: prevState, timestamp: Date.now() });
     }
 
     // Enter new state
     this.activeAnimations.set(layer, {
-      clip,
+      clip: resolved.clip,
       state: stateName,
       time: 0,
       normalizedTime: 0,
       weight: 1,
-      speed: state.speed ?? clip.speed ?? 1,
+      speed: resolved.state.speed ?? resolved.clip.speed ?? 1,
       layer,
     });
 
-    this.emit({
-      type: 'state-enter',
-      state: stateName,
-      timestamp: Date.now(),
-    });
-
+    this.emit({ type: 'state-enter', state: stateName, timestamp: Date.now() });
     this.emit({
       type: 'clip-start',
-      clip: clipName,
+      clip: resolved.clip.name,
       state: stateName,
       timestamp: Date.now(),
     });
@@ -531,33 +240,22 @@ export class AnimationTrait {
     return true;
   }
 
-  /**
-   * Crossfade to state
-   */
   public crossfade(stateName: string, duration: number = 0.25, layer: number = 0): boolean {
-    const state = this.states.get(stateName);
-    if (!state) return false;
-
-    const clipName = state.clip ?? state.clips?.[0];
-    if (!clipName) return false;
-
-    const clip = this.clips.get(clipName);
-    if (!clip) return false;
+    const resolved = this.sm.resolveClipForState(stateName, this.clips);
+    if (!resolved) return false;
 
     const currentAnim = this.activeAnimations.get(layer);
     if (!currentAnim) {
-      // No current animation, just set state
       return this.setState(stateName, layer);
     }
 
-    // Start crossfade
     const newAnim: ActiveAnimation = {
-      clip,
+      clip: resolved.clip,
       state: stateName,
       time: 0,
       normalizedTime: 0,
       weight: 0,
-      speed: state.speed ?? clip.speed ?? 1,
+      speed: resolved.state.speed ?? resolved.clip.speed ?? 1,
       layer,
     };
 
@@ -578,21 +276,15 @@ export class AnimationTrait {
     return true;
   }
 
-  /**
-   * Get current state for layer
-   */
   public getCurrentState(layer: number = 0): string | undefined {
-    const layerName = Array.from(this.layers.keys())[layer];
-    return this.layers.get(layerName)?.currentState;
+    const layerName = Array.from(this.sm.layers.keys())[layer];
+    return this.sm.layers.get(layerName)?.currentState;
   }
 
   // ============================================================================
   // Playback
   // ============================================================================
 
-  /**
-   * Play a clip directly
-   */
   public play(clipName: string, layer: number = 0): boolean {
     const clip = this.clips.get(clipName);
     if (!clip) return false;
@@ -607,18 +299,10 @@ export class AnimationTrait {
       layer,
     });
 
-    this.emit({
-      type: 'clip-start',
-      clip: clipName,
-      timestamp: Date.now(),
-    });
-
+    this.emit({ type: 'clip-start', clip: clipName, timestamp: Date.now() });
     return true;
   }
 
-  /**
-   * Stop animation on layer
-   */
   public stop(layer: number = 0): void {
     const anim = this.activeAnimations.get(layer);
     if (anim) {
@@ -629,389 +313,146 @@ export class AnimationTrait {
         timestamp: Date.now(),
       });
     }
-
     this.activeAnimations.set(layer, null);
     this.crossfades.set(layer, null);
   }
 
-  /**
-   * Stop all animations
-   */
   public stopAll(): void {
-    for (let i = 0; i < this.layers.size; i++) {
+    for (let i = 0; i < this.sm.layers.size; i++) {
       this.stop(i);
     }
   }
 
-  /**
-   * Pause animation
-   */
   public pause(layer: number = 0): void {
     const anim = this.activeAnimations.get(layer);
-    if (anim) {
-      anim.speed = 0;
-    }
+    if (anim) anim.speed = 0;
   }
 
-  /**
-   * Resume animation
-   */
   public resume(layer: number = 0): void {
     const anim = this.activeAnimations.get(layer);
-    if (anim) {
-      anim.speed = anim.clip.speed ?? 1;
-    }
+    if (anim) anim.speed = anim.clip.speed ?? 1;
   }
 
-  /**
-   * Set playback speed
-   */
   public setSpeed(speed: number, layer: number = 0): void {
     const anim = this.activeAnimations.get(layer);
-    if (anim) {
-      anim.speed = speed;
-    }
+    if (anim) anim.speed = speed;
   }
 
-  /**
-   * Get playback speed
-   */
   public getSpeed(layer: number = 0): number {
     return this.activeAnimations.get(layer)?.speed ?? 1;
   }
 
-  /**
-   * Is playing
-   */
   public isPlaying(layer?: number): boolean {
     if (layer !== undefined) {
       return this.activeAnimations.get(layer) !== null;
     }
-
     for (const anim of this.activeAnimations.values()) {
       if (anim !== null) return true;
     }
     return false;
   }
 
-  /**
-   * Get current clip name
-   */
   public getCurrentClip(layer: number = 0): string | undefined {
     return this.activeAnimations.get(layer)?.clip.name;
   }
 
-  /**
-   * Get normalized time (0-1)
-   */
   public getNormalizedTime(layer: number = 0): number {
     return this.activeAnimations.get(layer)?.normalizedTime ?? 0;
   }
 
   // ============================================================================
-  // Parameters
+  // Parameters (delegates to AnimationStateMachine)
   // ============================================================================
 
-  /**
-   * Add a parameter
-   */
   public addParameter(param: AnimationParameter): void {
-    this.parameters.set(param.name, {
-      ...param,
-      value: param.value ?? param.default ?? (param.type === 'bool' ? false : 0),
-    });
+    this.sm.addParameter(param);
   }
 
-  /**
-   * Set float parameter
-   */
   public setFloat(name: string, value: number): void {
-    const param = this.parameters.get(name);
-    if (param && param.type === 'float') {
-      param.value = value;
-      this.checkTransitions();
-    }
+    this.sm.setFloat(name, value);
   }
 
-  /**
-   * Get float parameter
-   */
   public getFloat(name: string): number {
-    const param = this.parameters.get(name);
-    return typeof param?.value === 'number' ? param.value : 0;
+    return this.sm.getFloat(name);
   }
 
-  /**
-   * Set integer parameter
-   */
   public setInteger(name: string, value: number): void {
-    const param = this.parameters.get(name);
-    if (param && param.type === 'int') {
-      param.value = Math.floor(value);
-      this.checkTransitions();
-    }
+    this.sm.setInteger(name, value);
   }
 
-  /**
-   * Get integer parameter
-   */
   public getInteger(name: string): number {
-    const param = this.parameters.get(name);
-    return typeof param?.value === 'number' ? Math.floor(param.value) : 0;
+    return this.sm.getInteger(name);
   }
 
-  /**
-   * Set bool parameter
-   */
   public setBool(name: string, value: boolean): void {
-    const param = this.parameters.get(name);
-    if (param && param.type === 'bool') {
-      param.value = value;
-      this.checkTransitions();
-    }
+    this.sm.setBool(name, value);
   }
 
-  /**
-   * Get bool parameter
-   */
   public getBool(name: string): boolean {
-    const param = this.parameters.get(name);
-    return typeof param?.value === 'boolean' ? param.value : false;
+    return this.sm.getBool(name);
   }
 
-  /**
-   * Set trigger parameter
-   */
   public setTrigger(name: string): void {
-    const param = this.parameters.get(name);
-    if (param && param.type === 'trigger') {
-      param.value = true;
-      this.checkTransitions();
-      // Triggers reset after being consumed
-      param.value = false;
-    }
+    this.sm.setTrigger(name);
   }
 
-  /**
-   * Reset trigger
-   */
   public resetTrigger(name: string): void {
-    const param = this.parameters.get(name);
-    if (param && param.type === 'trigger') {
-      param.value = false;
-    }
+    this.sm.resetTrigger(name);
   }
 
   // ============================================================================
-  // Transitions
+  // Transitions (delegates to AnimationStateMachine)
   // ============================================================================
 
-  /**
-   * Add a transition
-   */
   public addTransition(transition: AnimationTransition): void {
-    this.transitions.push(transition);
-    this.sortTransitions();
+    this.sm.addTransition(transition);
   }
 
-  /**
-   * Remove transitions
-   */
   public removeTransition(from: string, to: string): void {
-    this.transitions = this.transitions.filter((t) => !(t.from === from && t.to === to));
-  }
-
-  /**
-   * Sort transitions by priority
-   */
-  private sortTransitions(): void {
-    this.transitions.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-  }
-
-  /**
-   * Check transitions
-   */
-  private checkTransitions(): void {
-    let layerIndex = 0;
-    for (const layer of this.layers.values()) {
-      const currentState = layer.currentState;
-      if (!currentState) continue;
-
-      for (const transition of this.transitions) {
-        // Check if this transition is applicable
-        if (transition.from !== 'any' && transition.from !== currentState) continue;
-        if (!transition.canTransitionToSelf && transition.to === currentState) continue;
-
-        // Check conditions
-        if (this.evaluateConditions(transition.conditions ?? [])) {
-          this.crossfade(transition.to, transition.duration ?? 0.25, layerIndex);
-          break;
-        }
-      }
-
-      layerIndex++;
-    }
-  }
-
-  /**
-   * Evaluate transition conditions
-   */
-  private evaluateConditions(conditions: TransitionCondition[]): boolean {
-    if (conditions.length === 0) return true;
-
-    let result = this.evaluateCondition(conditions[0]);
-
-    for (let i = 1; i < conditions.length; i++) {
-      const prev = conditions[i - 1];
-      const curr = conditions[i];
-      const evalResult = this.evaluateCondition(curr);
-
-      if (prev.chain === 'or') {
-        result = result || evalResult;
-      } else {
-        result = result && evalResult;
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Evaluate single condition
-   */
-  private evaluateCondition(condition: TransitionCondition): boolean {
-    const param = this.parameters.get(condition.parameter);
-    if (!param) return false;
-
-    const value = param.value;
-    const target = condition.value;
-
-    switch (condition.operator) {
-      case '==':
-        return value === target;
-      case '!=':
-        return value !== target;
-      case '>':
-        return Number(value) > Number(target);
-      case '<':
-        return Number(value) < Number(target);
-      case '>=':
-        return Number(value) >= Number(target);
-      case '<=':
-        return Number(value) <= Number(target);
-      default:
-        return false;
-    }
+    this.sm.removeTransition(from, to);
   }
 
   // ============================================================================
-  // Layers
+  // Layers (delegates to AnimationStateMachine)
   // ============================================================================
 
-  /**
-   * Set layer weight
-   */
   public setLayerWeight(layerIndex: number, weight: number): void {
-    const layerName = Array.from(this.layers.keys())[layerIndex];
-    const layer = this.layers.get(layerName);
-    if (layer) {
-      layer.weight = Math.max(0, Math.min(1, weight));
-    }
+    this.sm.setLayerWeight(layerIndex, weight);
   }
 
-  /**
-   * Get layer weight
-   */
   public getLayerWeight(layerIndex: number): number {
-    const layerName = Array.from(this.layers.keys())[layerIndex];
-    return this.layers.get(layerName)?.weight ?? 0;
+    return this.sm.getLayerWeight(layerIndex);
   }
 
-  /**
-   * Get layer count
-   */
   public getLayerCount(): number {
-    return this.layers.size;
+    return this.sm.getLayerCount();
   }
 
-  /**
-   * Get layer name
-   */
   public getLayerName(index: number): string | undefined {
-    return Array.from(this.layers.keys())[index];
+    return this.sm.getLayerName(index);
   }
 
   // ============================================================================
   // Update
   // ============================================================================
 
-  /**
-   * Update animation state (call each frame)
-   */
   public update(deltaTime: number): void {
     this.currentTime += deltaTime;
 
-    // Update each layer
     let layerIndex = 0;
-    for (const _layer of this.layers.values()) {
-      this.updateLayer(layerIndex, deltaTime);
+    for (const _layer of this.sm.layers.values()) {
+      this.sm.updateLayer(
+        layerIndex,
+        deltaTime,
+        this.activeAnimations,
+        this.crossfades,
+        (anim, dt) => this.updateAnimation(anim, dt),
+        (event) => this.emit(event as AnimationEvent),
+      );
       layerIndex++;
     }
   }
 
-  /**
-   * Update a single layer
-   */
-  private updateLayer(layerIndex: number, deltaTime: number): void {
-    const crossfade = this.crossfades.get(layerIndex);
-
-    if (crossfade) {
-      // Update crossfade
-      crossfade.progress += deltaTime / crossfade.duration;
-
-      if (crossfade.progress >= 1) {
-        // Crossfade complete
-        const layerName = Array.from(this.layers.keys())[layerIndex];
-        const layer = this.layers.get(layerName);
-        if (layer) {
-          layer.currentState = crossfade.to.state;
-        }
-
-        this.activeAnimations.set(layerIndex, crossfade.to);
-        this.crossfades.set(layerIndex, null);
-
-        this.emit({
-          type: 'transition-end',
-          toState: crossfade.to.state,
-          timestamp: Date.now(),
-        });
-
-        this.emit({
-          type: 'state-enter',
-          state: crossfade.to.state,
-          timestamp: Date.now(),
-        });
-      } else {
-        // Update weights
-        crossfade.from.weight = 1 - crossfade.progress;
-        crossfade.to.weight = crossfade.progress;
-
-        // Update both animations
-        this.updateAnimation(crossfade.from, deltaTime);
-        this.updateAnimation(crossfade.to, deltaTime);
-      }
-    } else {
-      // Update active animation
-      const anim = this.activeAnimations.get(layerIndex);
-      if (anim) {
-        this.updateAnimation(anim, deltaTime);
-      }
-    }
-  }
-
-  /**
-   * Update a single animation
-   */
   private updateAnimation(anim: ActiveAnimation, deltaTime: number): void {
     const clip = anim.clip;
     const prevTime = anim.time;
@@ -1019,16 +460,13 @@ export class AnimationTrait {
     anim.time += deltaTime * anim.speed;
     anim.normalizedTime = anim.time / clip.duration;
 
-    // Check for events
     this.checkEvents(clip, prevTime, anim.time);
 
-    // Handle wrap mode
     if (anim.time >= clip.duration) {
       switch (clip.wrapMode) {
         case 'loop':
           anim.time %= clip.duration;
           anim.normalizedTime = anim.time / clip.duration;
-
           this.emit({
             type: 'clip-loop',
             clip: clip.name,
@@ -1048,7 +486,6 @@ export class AnimationTrait {
           break;
 
         default:
-          // once - stop at end
           this.emit({
             type: 'clip-end',
             clip: clip.name,
@@ -1060,9 +497,6 @@ export class AnimationTrait {
     }
   }
 
-  /**
-   * Check for animation events
-   */
   private checkEvents(clip: AnimationClipDef, prevTime: number, currTime: number): void {
     if (!clip.events) return;
 
@@ -1083,9 +517,6 @@ export class AnimationTrait {
   // Events
   // ============================================================================
 
-  /**
-   * Register event listener
-   */
   public on(event: AnimationEventType, callback: AnimationEventCallback): void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
@@ -1093,16 +524,10 @@ export class AnimationTrait {
     this.eventListeners.get(event)!.add(callback);
   }
 
-  /**
-   * Unregister event listener
-   */
   public off(event: AnimationEventType, callback: AnimationEventCallback): void {
     this.eventListeners.get(event)?.delete(callback);
   }
 
-  /**
-   * Emit event
-   */
   private emit(event: AnimationEvent): void {
     const listeners = this.eventListeners.get(event.type);
     if (listeners) {
@@ -1120,46 +545,28 @@ export class AnimationTrait {
   // Serialization
   // ============================================================================
 
-  /**
-   * Export current state
-   */
   public exportState(): {
     parameters: Record<string, number | boolean>;
     layerStates: Record<string, string | undefined>;
   } {
-    const parameters: Record<string, number | boolean> = {};
-    for (const [name, param] of this.parameters) {
-      parameters[name] = param.value;
-    }
-
-    const layerStates: Record<string, string | undefined> = {};
-    for (const [name, layer] of this.layers) {
-      layerStates[name] = layer.currentState;
-    }
-
-    return { parameters, layerStates };
+    return {
+      parameters: this.sm.exportParameters(),
+      layerStates: this.sm.exportLayerStates(),
+    };
   }
 
-  /**
-   * Import state
-   */
   public importState(data: {
     parameters?: Record<string, number | boolean>;
     layerStates?: Record<string, string>;
   }): void {
     if (data.parameters) {
-      for (const [name, value] of Object.entries(data.parameters)) {
-        const param = this.parameters.get(name);
-        if (param) {
-          param.value = value;
-        }
-      }
+      this.sm.importParameters(data.parameters);
     }
 
     if (data.layerStates) {
       let layerIndex = 0;
       for (const [layerName, stateName] of Object.entries(data.layerStates)) {
-        if (this.layers.has(layerName) && stateName) {
+        if (this.sm.layers.has(layerName) && stateName) {
           this.setState(stateName, layerIndex);
         }
         layerIndex++;
@@ -1171,9 +578,6 @@ export class AnimationTrait {
   // Cleanup
   // ============================================================================
 
-  /**
-   * Dispose resources
-   */
   public dispose(): void {
     this.stopAll();
     this.eventListeners.clear();

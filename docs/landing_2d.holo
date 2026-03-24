@@ -1,0 +1,21 @@
+object "HoloScript_Native_Landing" @responsive @theme(dark: true, className: "min-h-[100vh] bg-[#050510] flex items-center justify-center overflow-hidden [perspective:1200px]", style: "background-image: radial-gradient(circle at 50% 50%, #1a1a3a 0%, #050510 100%)") {
+
+  object "BackgroundGrid" @panel(tag: "div") @theme(className: "absolute inset-[-50%] pointer-events-none origin-top", style: "background-image: linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px); background-size: 80px 80px; transform: rotateX(60deg) translateY(-100px) translateZ(-200px)") {}
+
+  object "MainWindow" @panel(tag: "div") @theme(className: "w-[800px] h-[500px] bg-[rgba(10,20,40,0.6)] border border-[rgba(0,255,255,0.3)] rounded-3xl p-[60px] flex flex-col relative overflow-hidden z-10 [transform-style:preserve-3d]", style: "backdrop-filter: blur(20px); box-shadow: 0 20px 50px rgba(0,0,0,0.5)") {
+    
+    object "Animations" @panel(tag: "style") @text(content: "@keyframes sweep { from { top: -20% } to { top: 120% } }") {}
+
+    object "Scanline" @panel(tag: "div") @theme(className: "absolute left-0 right-0 h-[2px] z-20 pointer-events-none", style: "background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.8), transparent); box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); animation: sweep 4s linear infinite;") {}
+
+    object "FloatingContent" @panel(tag: "div") @theme(className: "flex flex-col flex-1 z-30", style: "transform: translateZ(60px)") {
+      object "Headline" @text(variant: "h1", content: "Holographic Web") @theme(className: "text-[3.5rem] font-black text-white mb-4 tracking-tight", style: "text-shadow: 0 0 30px rgba(0, 255, 255, 0.6)") {}
+      
+      object "Divider" @panel(tag: "div") @theme(className: "w-[80px] h-[4px] bg-[#0ff] mb-8", style: "box-shadow: 0 0 15px #0ff") {}
+
+      object "Description" @text(variant: "body", content: "Transforming legacy 2D interfaces into inventive, spatial experiences. The depth is simulated, the glow is native, and the payload is lightning-fast. An immersive UI aesthetic—no VR headset required.") @theme(className: "text-[rgba(255,255,255,0.8)] text-[1.3rem] leading-[1.7] max-w-[600px] font-normal") {}
+
+      object "CTA" @button(variant: "glow", content: "Initialize Core", size: "lg") @theme(className: "mt-auto self-start px-[40px] py-[16px] bg-transparent border-2 border-[#0ff] text-[#0ff] text-[1.1rem] rounded-lg tracking-[2px] font-semibold uppercase transition hover:bg-[rgba(0,255,255,0.1)] hover:scale-105", style: "box-shadow: 0 0 30px rgba(0, 255, 255, 0.4)") {}
+    }
+  }
+}

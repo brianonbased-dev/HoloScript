@@ -60,4 +60,126 @@ describe('CompletionProvider', () => {
   it('totalCompletions counts all categories', () => {
     expect(provider.totalCompletions).toBeGreaterThan(20); // traits + directives + types + properties
   });
+
+  // ==========================================================================
+  // v6 Universal Domain Completions (v5.4 — Domains Unified)
+  // ==========================================================================
+
+  describe('v6 trait completions', () => {
+    it('@end prefix returns endpoint trait', () => {
+      const items = provider.getCompletions({ prefix: '@end' });
+      expect(items.some((i) => i.label === 'endpoint')).toBe(true);
+    });
+
+    it('@circ prefix returns circuit_breaker trait', () => {
+      const items = provider.getCompletions({ prefix: '@circ' });
+      expect(items.some((i) => i.label === 'circuit_breaker')).toBe(true);
+    });
+
+    it('@pipe prefix returns pipeline trait', () => {
+      const items = provider.getCompletions({ prefix: '@pipe' });
+      expect(items.some((i) => i.label === 'pipeline')).toBe(true);
+    });
+
+    it('@mid prefix returns middleware trait', () => {
+      const items = provider.getCompletions({ prefix: '@mid' });
+      expect(items.some((i) => i.label === 'middleware')).toBe(true);
+    });
+
+    it('v6 traits appear in unfiltered @ trigger', () => {
+      const items = provider.getCompletions({ prefix: '', triggerChar: '@' });
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('endpoint');
+      expect(labels).toContain('circuit_breaker');
+      expect(labels).toContain('container');
+      expect(labels).toContain('migration');
+      expect(labels).toContain('queue');
+    });
+
+    it('v6 traits all have v6: detail prefix', () => {
+      const items = provider.getCompletions({ prefix: '', triggerChar: '@' });
+      const v6Items = items.filter((i) => i.detail?.startsWith('v6:'));
+      expect(v6Items.length).toBeGreaterThanOrEqual(72);
+    });
+
+    it('totalCompletions includes v6 traits', () => {
+      // Must be at least spatial traits (~100) + v6 traits (~72) + directives + types + blocks
+      expect(provider.totalCompletions).toBeGreaterThan(150);
+    });
+  });
+
+  describe('v6 domain context completions', () => {
+    it('service block context returns service-specific traits', () => {
+      const items = provider.getBlockSubBlockCompletions('service');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('endpoint');
+      expect(labels).toContain('handler');
+      expect(labels).toContain('middleware');
+      expect(labels).not.toContain('migration'); // data domain, not service
+    });
+
+    it('data block context returns data-specific traits', () => {
+      const items = provider.getBlockSubBlockCompletions('data');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('db');
+      expect(labels).toContain('model');
+      expect(labels).toContain('migration');
+      expect(labels).toContain('cache');
+      expect(labels).not.toContain('endpoint'); // service domain, not data
+    });
+
+    it('resilience block context returns resilience traits', () => {
+      const items = provider.getBlockSubBlockCompletions('resilience');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('circuit_breaker');
+      expect(labels).toContain('retry');
+      expect(labels).toContain('timeout');
+      expect(labels).toContain('fallback');
+      expect(labels).not.toContain('db'); // data domain, not resilience
+    });
+
+    it('pipeline block context returns pipeline traits', () => {
+      const items = provider.getBlockSubBlockCompletions('pipeline');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('stream');
+      expect(labels).toContain('queue');
+      expect(labels).toContain('worker');
+      expect(labels).toContain('scheduler');
+    });
+
+    it('container block context returns container traits', () => {
+      const items = provider.getBlockSubBlockCompletions('container');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('deployment');
+      expect(labels).toContain('scaling');
+      expect(labels).toContain('dockerfile');
+    });
+
+    it('network block context returns network traits', () => {
+      const items = provider.getBlockSubBlockCompletions('network');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('http');
+      expect(labels).toContain('websocket');
+      expect(labels).toContain('grpc');
+      expect(labels).toContain('tls_config');
+    });
+
+    it('obs_metric block context returns metric traits', () => {
+      const items = provider.getBlockSubBlockCompletions('obs_metric');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('metric');
+      expect(labels).toContain('trace');
+      expect(labels).toContain('health_check');
+      expect(labels).toContain('slo');
+    });
+
+    it('service_contract block context returns contract traits', () => {
+      const items = provider.getBlockSubBlockCompletions('service_contract');
+      const labels = items.map((i) => i.label);
+      expect(labels).toContain('contract');
+      expect(labels).toContain('schema');
+      expect(labels).toContain('validator');
+      expect(labels).toContain('dto');
+    });
+  });
 });

@@ -40,6 +40,19 @@ export interface ParseResult {
   warnings: any[];
 }
 
+export interface TraitHandler<T = any> {
+  name: string;
+  defaultConfig?: T;
+  onAttach?: (node: any, config: T) => void;
+  [key: string]: any;
+}
+
+export interface ParsedTrait {
+  name: string;
+  config: any;
+  [key: string]: any;
+}
+
 // ============================================================================
 // PARSERS
 // ============================================================================
@@ -511,6 +524,20 @@ export function compileForIsaacSim(composition: HoloComposition, options?: Parti
 // ============================================================================
 // COMPILERS & GENERATORS
 // ============================================================================
+
+export interface BaseCompilerOptions {
+  generateDocs?: boolean;
+  docsOptions?: any;
+  [key: string]: any;
+}
+
+export class CompilerBase {
+  protected compilerName: string;
+  validateCompilerAccess(agentToken: string, outputPath?: string): void;
+  generateDocumentation(composition: any, code: string, options?: any): any;
+  compile(composition: any, agentToken: string, outputPath?: string, options?: BaseCompilerOptions): any;
+  [key: string]: any;
+}
 
 export class HoloScriptCompiler {
   compile(ast: any, target: string): any;

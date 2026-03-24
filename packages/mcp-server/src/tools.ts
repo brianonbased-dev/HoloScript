@@ -18,6 +18,7 @@ import { editHoloTools } from './edit-holo-tools';
 import { wisdomGotchaTools } from './wisdom-gotcha-tools';
 import { absorbServiceTools } from './absorb-tools';
 import { serviceContractTools } from './service-contract-tools';
+import { validationTools } from './validation-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -191,6 +192,24 @@ export const coreTools: Tool[] = [
       required: ['description'],
     },
   },
+  {
+    name: 'suggest_2d_traits',
+    description: 'Suggest Semantic2D traits for a 2D UI element based on its description.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description: 'Description of the UI element (e.g., "a primary call to action button")',
+        },
+        context: {
+          type: 'string',
+          description: 'Additional context about the dashboard or app',
+        },
+      },
+      required: ['description'],
+    },
+  },
 
   // === CODE GENERATION ===
   {
@@ -235,6 +254,20 @@ export const coreTools: Tool[] = [
           type: 'array',
           items: { type: 'string' },
           description: 'Specific features to include (e.g., ["physics", "audio", "networking"])',
+        },
+      },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'generate_semantic_ui',
+    description: 'Generate a V6 Semantic2D UI composition from a natural language description.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description: 'Natural language description of the UI to create (e.g., "an admin dashboard with a sidebar and metric cards")',
         },
       },
       required: ['description'],
@@ -632,6 +665,7 @@ export const tools: Tool[] = [
   ...editHoloTools,
   ...absorbServiceTools,
   ...serviceContractTools,
+  ...validationTools,
   ...PluginManager.getTools(),
 ];
 

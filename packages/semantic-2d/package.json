@@ -1,0 +1,26 @@
+{
+  "name": "@holoscript/semantic-2d",
+  "version": "5.1.0",
+  "description": "HoloScript V6 2D UI Semantic Traits and Compiler",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^8.17.10"
+  },
+  "peerDependencies": {
+    "@holoscript/core": "workspace:*",
+    "react": "^18.0.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3",
+    "@holoscript/core": "workspace:*"
+  }
+}

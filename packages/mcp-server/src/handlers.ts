@@ -7,7 +7,7 @@
 
 import { HoloScriptPlusParser, parseHolo, parseHoloStrict, VR_TRAITS } from '@holoscript/core';
 
-import { generateObjectForMCP, generateSceneForMCP, suggestTraits, suggestUniversalTraits } from './generators';
+import { generateObjectForMCP, generateSceneForMCP, suggestTraits, suggestUniversalTraits, suggest2DTraits, generateSemanticUIForMCP } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
@@ -111,10 +111,14 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return handleSuggestTraits(args);
     case 'suggest_universal_traits':
       return handleSuggestUniversalTraits(args);
+    case 'suggest_2d_traits':
+      return suggest2DTraits(args.description as string, args.context as string);
     case 'generate_object':
       return handleGenerateObject(args);
     case 'generate_scene':
       return handleGenerateScene(args);
+    case 'generate_semantic_ui':
+      return generateSemanticUIForMCP(args.description as string, args);
     case 'get_syntax_reference':
       return handleGetSyntaxReference(args);
     case 'get_examples':
@@ -182,6 +186,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   if (name === 'generate_service_contract' || name === 'explain_service_contract') {
     const { handleServiceContractTool } = await import('./service-contract-tools');
     return handleServiceContractTool(name, args);
+  }
+
+  // Composition validation tool
+  if (name === 'validate_composition') {
+    const { handleValidationTool } = await import('./validation-tools');
+    return handleValidationTool(name, args);
   }
 
   // Handle plugins

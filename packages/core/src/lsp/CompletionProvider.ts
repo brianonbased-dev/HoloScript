@@ -130,6 +130,95 @@ const TRAIT_COMPLETIONS: CompletionItem[] = [
   { label: 'seed', kind: 'trait', detail: 'Procedural seed value', insertText: '@seed' },
 ];
 
+// =============================================================================
+// v6 UNIVERSAL DOMAIN TRAIT COMPLETIONS (v5.4 — Domains Unified)
+// Auto-generated from the 8 universal domains: service, contract, data,
+// network, pipeline, metric, container, resilience
+// =============================================================================
+
+const V6_TRAIT_COMPLETIONS: CompletionItem[] = [
+  // Service domain
+  { label: 'service', kind: 'trait', detail: 'v6: Service definition', insertText: '@service' },
+  { label: 'endpoint', kind: 'trait', detail: 'v6: HTTP endpoint', insertText: '@endpoint' },
+  { label: 'route', kind: 'trait', detail: 'v6: Route group', insertText: '@route' },
+  { label: 'handler', kind: 'trait', detail: 'v6: Request handler', insertText: '@handler' },
+  { label: 'middleware', kind: 'trait', detail: 'v6: Service middleware', insertText: '@middleware' },
+  { label: 'api_gateway', kind: 'trait', detail: 'v6: API gateway', insertText: '@api_gateway' },
+  { label: 'load_balancer', kind: 'trait', detail: 'v6: Load balancer', insertText: '@load_balancer' },
+  { label: 'service_discovery', kind: 'trait', detail: 'v6: Service discovery', insertText: '@service_discovery' },
+  { label: 'cors_policy', kind: 'trait', detail: 'v6: CORS policy', insertText: '@cors_policy' },
+  { label: 'rate_limiter', kind: 'trait', detail: 'v6: Rate limiter', insertText: '@rate_limiter' },
+  { label: 'rest_resource', kind: 'trait', detail: 'v6: REST resource', insertText: '@rest_resource' },
+  { label: 'health_endpoint', kind: 'trait', detail: 'v6: Health check endpoint', insertText: '@health_endpoint' },
+  { label: 'graphql_resolver', kind: 'trait', detail: 'v6: GraphQL resolver', insertText: '@graphql_resolver' },
+  { label: 'webhook_sender', kind: 'trait', detail: 'v6: Webhook sender', insertText: '@webhook_sender' },
+  { label: 'webhook_receiver', kind: 'trait', detail: 'v6: Webhook receiver', insertText: '@webhook_receiver' },
+  // Contract domain
+  { label: 'contract', kind: 'trait', detail: 'v6: Service contract', insertText: '@contract' },
+  { label: 'schema', kind: 'trait', detail: 'v6: Data schema', insertText: '@schema' },
+  { label: 'validator', kind: 'trait', detail: 'v6: Input validator', insertText: '@validator' },
+  { label: 'serializer', kind: 'trait', detail: 'v6: Data serializer', insertText: '@serializer' },
+  { label: 'json_schema', kind: 'trait', detail: 'v6: JSON Schema', insertText: '@json_schema' },
+  { label: 'openapi_path', kind: 'trait', detail: 'v6: OpenAPI path', insertText: '@openapi_path' },
+  { label: 'schema_evolution', kind: 'trait', detail: 'v6: Schema evolution', insertText: '@schema_evolution' },
+  { label: 'dto', kind: 'trait', detail: 'v6: Data transfer object', insertText: '@dto' },
+  // Data domain
+  { label: 'db', kind: 'trait', detail: 'v6: Database connection', insertText: '@db' },
+  { label: 'model', kind: 'trait', detail: 'v6: Data model', insertText: '@model' },
+  { label: 'query', kind: 'trait', detail: 'v6: Database query', insertText: '@query' },
+  { label: 'migration', kind: 'trait', detail: 'v6: DB migration', insertText: '@migration' },
+  { label: 'cache', kind: 'trait', detail: 'v6: Data cache', insertText: '@cache' },
+  { label: 'repository', kind: 'trait', detail: 'v6: Data repository', insertText: '@repository' },
+  { label: 'transaction', kind: 'trait', detail: 'v6: DB transaction', insertText: '@transaction' },
+  { label: 'event_store', kind: 'trait', detail: 'v6: Event store', insertText: '@event_store' },
+  { label: 'cursor_pagination', kind: 'trait', detail: 'v6: Cursor pagination', insertText: '@cursor_pagination' },
+  { label: 'soft_delete', kind: 'trait', detail: 'v6: Soft delete', insertText: '@soft_delete' },
+  { label: 'audit_column', kind: 'trait', detail: 'v6: Audit columns', insertText: '@audit_column' },
+  // Network domain
+  { label: 'http', kind: 'trait', detail: 'v6: HTTP protocol', insertText: '@http' },
+  { label: 'websocket', kind: 'trait', detail: 'v6: WebSocket protocol', insertText: '@websocket' },
+  { label: 'grpc', kind: 'trait', detail: 'v6: gRPC protocol', insertText: '@grpc' },
+  { label: 'graphql', kind: 'trait', detail: 'v6: GraphQL protocol', insertText: '@graphql' },
+  { label: 'tls_config', kind: 'trait', detail: 'v6: TLS configuration', insertText: '@tls_config' },
+  { label: 'jwt_config', kind: 'trait', detail: 'v6: JWT configuration', insertText: '@jwt_config' },
+  { label: 'oauth2_config', kind: 'trait', detail: 'v6: OAuth2 config', insertText: '@oauth2_config' },
+  // Pipeline domain
+  { label: 'pipeline', kind: 'trait', detail: 'v6: Data pipeline', insertText: '@pipeline' },
+  { label: 'stream', kind: 'trait', detail: 'v6: Data stream', insertText: '@stream' },
+  { label: 'queue', kind: 'trait', detail: 'v6: Message queue', insertText: '@queue' },
+  { label: 'worker', kind: 'trait', detail: 'v6: Pipeline worker', insertText: '@worker' },
+  { label: 'scheduler', kind: 'trait', detail: 'v6: Job scheduler', insertText: '@scheduler' },
+  { label: 'message_broker', kind: 'trait', detail: 'v6: Message broker', insertText: '@message_broker' },
+  { label: 'idempotent_consumer', kind: 'trait', detail: 'v6: Idempotent consumer', insertText: '@idempotent_consumer' },
+  { label: 'saga_orchestrator', kind: 'trait', detail: 'v6: Saga orchestrator', insertText: '@saga_orchestrator' },
+  // Metric/Observability domain
+  { label: 'metric', kind: 'trait', detail: 'v6: Metric definition', insertText: '@metric' },
+  { label: 'trace', kind: 'trait', detail: 'v6: Distributed trace', insertText: '@trace' },
+  { label: 'log', kind: 'trait', detail: 'v6: Logging config', insertText: '@log' },
+  { label: 'health_check', kind: 'trait', detail: 'v6: Health check', insertText: '@health_check' },
+  { label: 'structured_log', kind: 'trait', detail: 'v6: Structured logging', insertText: '@structured_log' },
+  { label: 'span', kind: 'trait', detail: 'v6: Trace span', insertText: '@span' },
+  { label: 'slo', kind: 'trait', detail: 'v6: Service Level Objective', insertText: '@slo' },
+  { label: 'alert_rule', kind: 'trait', detail: 'v6: Alert rule', insertText: '@alert_rule' },
+  // Container domain
+  { label: 'container', kind: 'trait', detail: 'v6: Container config', insertText: '@container' },
+  { label: 'deployment', kind: 'trait', detail: 'v6: Deployment config', insertText: '@deployment' },
+  { label: 'scaling', kind: 'trait', detail: 'v6: Auto-scaling', insertText: '@scaling' },
+  { label: 'secret', kind: 'trait', detail: 'v6: Secret management', insertText: '@secret' },
+  { label: 'dockerfile', kind: 'trait', detail: 'v6: Dockerfile', insertText: '@dockerfile' },
+  { label: 'kubernetes_pod', kind: 'trait', detail: 'v6: K8s pod', insertText: '@kubernetes_pod' },
+  { label: 'helm_chart', kind: 'trait', detail: 'v6: Helm chart', insertText: '@helm_chart' },
+  // Resilience domain
+  { label: 'circuit_breaker', kind: 'trait', detail: 'v6: Circuit breaker', insertText: '@circuit_breaker' },
+  { label: 'retry', kind: 'trait', detail: 'v6: Retry policy', insertText: '@retry' },
+  { label: 'timeout', kind: 'trait', detail: 'v6: Timeout policy', insertText: '@timeout' },
+  { label: 'fallback', kind: 'trait', detail: 'v6: Fallback handler', insertText: '@fallback' },
+  { label: 'bulkhead', kind: 'trait', detail: 'v6: Bulkhead isolation', insertText: '@bulkhead' },
+  { label: 'exponential_backoff', kind: 'trait', detail: 'v6: Exponential backoff', insertText: '@exponential_backoff' },
+  { label: 'canary_release', kind: 'trait', detail: 'v6: Canary release', insertText: '@canary_release' },
+  { label: 'blue_green_deploy', kind: 'trait', detail: 'v6: Blue-green deployment', insertText: '@blue_green_deploy' },
+];
+
 // Known directive names
 const DIRECTIVE_COMPLETIONS: CompletionItem[] = [
   { label: 'version', kind: 'directive', detail: 'Scene version', insertText: '@version("1.0")' },
@@ -2884,6 +2973,41 @@ const BLOCK_SUBBLOCK_MAP: Record<string, CompletionItem[]> = {
       insertText: 'level 0 {\n  mesh: "model.glb"\n}',
     },
   ],
+
+  // v6 Universal domain context completions (v5.4 — Domains Unified)
+  service: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['endpoint', 'route', 'handler', 'middleware', 'api_gateway', 'load_balancer',
+     'service_discovery', 'cors_policy', 'rate_limiter', 'rest_resource',
+     'health_endpoint', 'graphql_resolver', 'webhook_sender', 'webhook_receiver'].includes(c.label)
+  ),
+  data: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['db', 'model', 'query', 'migration', 'cache', 'repository', 'transaction',
+     'event_store', 'cursor_pagination', 'soft_delete', 'audit_column'].includes(c.label)
+  ),
+  service_contract: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['contract', 'schema', 'validator', 'serializer', 'json_schema',
+     'openapi_path', 'schema_evolution', 'dto'].includes(c.label)
+  ),
+  pipeline: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['stream', 'queue', 'worker', 'scheduler', 'message_broker',
+     'idempotent_consumer', 'saga_orchestrator'].includes(c.label)
+  ),
+  container: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['deployment', 'scaling', 'secret', 'dockerfile',
+     'kubernetes_pod', 'helm_chart'].includes(c.label)
+  ),
+  obs_metric: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['metric', 'trace', 'log', 'health_check', 'structured_log',
+     'span', 'slo', 'alert_rule'].includes(c.label)
+  ),
+  resilience: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['circuit_breaker', 'retry', 'timeout', 'fallback', 'bulkhead',
+     'exponential_backoff', 'canary_release', 'blue_green_deploy'].includes(c.label)
+  ),
+  network: V6_TRAIT_COMPLETIONS.filter((c) =>
+    ['http', 'websocket', 'grpc', 'graphql', 'tls_config',
+     'jwt_config', 'oauth2_config'].includes(c.label)
+  ),
 };
 
 export class CompletionProvider {
@@ -2915,7 +3039,7 @@ export class CompletionProvider {
     // @ trigger → show traits and directives
     if (context.triggerChar === '@' || prefix.startsWith('@')) {
       const search = prefix.replace('@', '');
-      return [...TRAIT_COMPLETIONS, ...DIRECTIVE_COMPLETIONS, ...this.customTraits].filter((c) =>
+      return [...TRAIT_COMPLETIONS, ...V6_TRAIT_COMPLETIONS, ...DIRECTIVE_COMPLETIONS, ...this.customTraits].filter((c) =>
         c.label.toLowerCase().startsWith(search)
       );
     }
@@ -3009,6 +3133,7 @@ export class CompletionProvider {
   get totalCompletions(): number {
     return (
       TRAIT_COMPLETIONS.length +
+      V6_TRAIT_COMPLETIONS.length +
       DIRECTIVE_COMPLETIONS.length +
       TYPE_COMPLETIONS.length +
       PROPERTY_COMPLETIONS.length +

@@ -1,0 +1,11 @@
+composition "HoloScriptLanding" {
+  object "Page" @layout(type: "block") {
+    object "Nav" @theme(className: "landing-nav", tag: "nav") {
+      object "NavContainer" @theme(className: "nav-container") {
+        object "LogoLink" @theme(className: "nav-logo", tag: "a") @link(href: "/") {
+          object "LogoImg" @theme(className: "nav-logo-img", tag: "img") @image(src: "/logo.svg", alt: "HoloScript")
+        }
+      }
+    }
+  }
+}

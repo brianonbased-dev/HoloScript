@@ -117,7 +117,7 @@ export { NodeServiceCompiler } from './NodeServiceCompiler';
 export type { NodeServiceCompilerOptions } from './NodeServiceCompiler';
 
 // MLIR-style dialect registry
-export { DialectRegistry } from './DialectRegistry';
+export { DialectRegistry, ensureDialectsBooted } from './DialectRegistry';
 export type {
   DialectDescriptor,
   DialectInfo,
@@ -128,3 +128,6 @@ export type {
   LoweringResult,
   LoweringDiagnostic,
 } from './DialectRegistry';
+
+// Dialect boot (registers all compilers as dialects)
+export { registerBuiltinDialects } from './registerBuiltinDialects';

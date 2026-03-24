@@ -1,0 +1,10 @@
+@trait {
+  name: "@agent_attention",
+  category: "ui",
+  description: "Agent-native interaction layer. Hover = agent attention, click = negotiation.",
+  props: {
+    swarm_size: number = 3,
+    bounty_threshold: number = 50,
+    response_trait: @intent_driven
+  }
+}

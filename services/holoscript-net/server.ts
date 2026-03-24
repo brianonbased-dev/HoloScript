@@ -3,9 +3,15 @@ import path from 'path';
 import compression from 'compression';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import http from 'http';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { tools, handleTool } from '@holoscript/mcp-server';
 
 const app = express();
 const port = process.env.PORT || 3001;
+const server = http.createServer(app);
 
 // Middleware
 app.use(morgan('combined'));
@@ -77,6 +83,60 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`HoloScript.net running on port ${port}`);
+// --- Live Spatial Presence (CRDT WebSocket Hub) ---
+import { WebSocketServer, WebSocket } from 'ws';
+const wss = new WebSocketServer({ server, path: '/socket/presence' });
+const clients = new Set<WebSocket>();
+
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  
+  ws.on('message', (message) => {
+    // Basic CRDT relay logic: Broadcast the cursor/action to all other peers
+    for (const client of clients) {
+      if (client !== ws && client.readyState === 1) { // 1 = OPEN
+        client.send(message);
+      }
+    }
+  });
+
+  ws.on('close', () => {
+    clients.delete(ws);
+  });
+});
+
+// --- Embedded MCP Brain ---
+const mcpTransports = new Map<string, SSEServerTransport>();
+
+function createMcpServer() {
+  const s = new Server({ name: 'holoscript-net', version: '6.0.0' }, { capabilities: { tools: {} } });
+  s.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+  s.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const { name, arguments: args } = req.params;
+    const result = await handleTool(name, args || {});
+    return { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result, null, 2) }] };
+  });
+  return s;
+}
+
+app.get('/api/mcp', async (req, res) => {
+  const transport = new SSEServerTransport('/api/mcp/message', res);
+  const mcp = createMcpServer();
+  await mcp.connect(transport);
+  mcpTransports.set(transport.sessionId, transport);
+  res.on('close', () => mcpTransports.delete(transport.sessionId));
+});
+
+app.post('/api/mcp/message', async (req, res) => {
+  const sessionId = req.query.sessionId as string;
+  const transport = mcpTransports.get(sessionId);
+  if (transport) {
+    await transport.handlePostMessage(req, res);
+  } else {
+    res.status(404).send('Session not found');
+  }
+});
+
+server.listen(port, () => {
+  console.log(`HoloScript.net Spatial Server running on port ${port}`);
 });

@@ -419,6 +419,8 @@ function deriveSkillExamples(tool: Tool): string[] {
     examples.push('Generate .holo composition from this OpenAPI spec');
   } else if (name === 'explain_service_contract') {
     examples.push('Explain the contract structure of this .holo service composition');
+  } else if (name === 'validate_composition') {
+    examples.push('Validate this .holo composition for trait constraint violations');
   } else if (name === 'generate_scene') {
     examples.push('Generate a multiplayer VR lobby with teleportation');
   } else if (name === 'compile_holoscript') {

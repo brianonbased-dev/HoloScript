@@ -30,6 +30,11 @@ const TEMPLATES: TemplateInfo[] = [
     description: 'Clickable art panels with portals and ambient audio',
     dir: 'interactive-gallery',
   },
+  {
+    name: '2d-revolution',
+    description: 'V6 Semantic2D hybrid UI using React Three Fiber',
+    dir: '2d-revolution',
+  },
 ];
 
 // ─── Package Manager Detection ────────────────────────────
@@ -62,8 +67,8 @@ function copyDir(src: string, dest: string): void {
   }
 }
 
-function writeProjectPackageJson(projectDir: string, projectName: string): void {
-  const pkg = {
+function writeProjectPackageJson(projectDir: string, projectName: string, templateName: string): void {
+  const pkg: any = {
     name: projectName,
     version: '0.1.0',
     private: true,
@@ -80,6 +85,16 @@ function writeProjectPackageJson(projectDir: string, projectName: string): void 
       vite: '^6.0.0',
     },
   };
+
+  if (templateName === '2d-revolution') {
+    pkg.dependencies['react'] = '^18.2.0';
+    pkg.dependencies['react-dom'] = '^18.2.0';
+    pkg.dependencies['@react-three/fiber'] = '^8.17.10';
+    pkg.dependencies['@react-three/drei'] = '^9.114.0';
+    pkg.dependencies['@holoscript/semantic-2d'] = 'workspace:*'; // Or published version
+    pkg.devDependencies['@vitejs/plugin-react'] = '^4.3.4';
+  }
+
   fs.writeFileSync(
     path.join(projectDir, 'package.json'),
     JSON.stringify(pkg, null, 2) + '\n'
@@ -184,7 +199,7 @@ async function main(): Promise<void> {
 
   // Write package.json — use basename for the npm package name
   const pkgName = path.basename(projectDir).toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-  writeProjectPackageJson(projectDir, pkgName);
+  writeProjectPackageJson(projectDir, pkgName, template.name);
   console.log(`  ${pc.green('✓')} Generated package.json`);
 
   // Write holoscript.config.json

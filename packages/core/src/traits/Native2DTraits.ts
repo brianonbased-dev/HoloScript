@@ -5,7 +5,7 @@
  * Allows compiling to HTML/CSS or React components.
  */
 
-import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
+import type { TraitHandler } from './TraitTypes';
 
 // ============================================================================
 // CONFIGURATION INTERFACES
@@ -104,6 +104,11 @@ export interface Native2DThemeConfig {
   dark?: boolean;
   className?: string;
   style?: string;
+  attributes?: string;
+}
+
+export interface Native2DTailwindConfig {
+  classes: string;
 }
 
 // ============================================================================
@@ -113,79 +118,85 @@ export interface Native2DThemeConfig {
 export const native2DPanelHandler: TraitHandler<Native2DPanelConfig> = {
   name: 'panel',
   defaultConfig: { tag: 'div' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DPanel = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DPanel = config; }
 };
 
 export const native2DLayoutHandler: TraitHandler<Native2DLayoutConfig> = {
   name: 'layout',
   defaultConfig: { flex: 'column', gap: 0 },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DLayout = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DLayout = config; }
 };
 
 export const native2DTextHandler: TraitHandler<Native2DTextConfig> = {
   name: 'text',
   defaultConfig: { variant: 'body', content: '' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DText = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DText = config; }
 };
 
 export const native2DButtonHandler: TraitHandler<Native2DButtonConfig> = {
   name: 'button',
   defaultConfig: { variant: 'primary', content: '' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DButton = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DButton = config; }
 };
 
 export const native2DImageHandler: TraitHandler<Native2DImageConfig> = {
   name: 'image',
   defaultConfig: { src: '', lazyLoad: true },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DImage = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DImage = config; }
 };
 
 export const native2DInputHandler: TraitHandler<Native2DInputConfig> = {
   name: 'input',
   defaultConfig: { type: 'text' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DInput = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DInput = config; }
 };
 
 export const native2DLinkHandler: TraitHandler<Native2DLinkConfig> = {
   name: 'link',
   defaultConfig: { href: '#' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DLink = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DLink = config; }
 };
 
 export const native2DIconHandler: TraitHandler<Native2DIconConfig> = {
   name: 'icon',
   defaultConfig: { name: 'star' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DIcon = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DIcon = config; }
 };
 
 export const native2DCardHandler: TraitHandler<Native2DCardConfig> = {
   name: 'card',
   defaultConfig: { hover: 'none', shadow: 'sm' },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DCard = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DCard = config; }
 };
 
 export const native2DListHandler: TraitHandler<Native2DListConfig> = {
   name: 'list',
   defaultConfig: { ordered: false },
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DList = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DList = config; }
 };
 
 export const native2DFormHandler: TraitHandler<Native2DFormConfig> = {
   name: 'form',
   defaultConfig: {},
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DForm = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DForm = config; }
 };
 
 export const native2DResponsiveHandler: TraitHandler<Native2DResponsiveConfig> = {
   name: 'responsive',
   defaultConfig: {},
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DResponsive = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DResponsive = config; }
 };
 
 export const native2DThemeHandler: TraitHandler<Native2DThemeConfig> = {
   name: 'theme',
   defaultConfig: {},
-  onAttach(node, config) { (node as any).__isNative2D = true; (node as any).__native2DTheme = config; }
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DTheme = config; }
+};
+
+export const native2DTailwindHandler: TraitHandler<Native2DTailwindConfig> = {
+  name: 'tailwind',
+  defaultConfig: { classes: '' },
+  onAttach(node, config) { (node as unknown as Record<string, unknown>).__isNative2D = true; (node as unknown as Record<string, unknown>).__native2DTailwind = config; }
 };
 
 // ============================================================================
@@ -205,5 +216,6 @@ export const NATIVE_2D_TRAIT_HANDLERS = [
   native2DListHandler,
   native2DFormHandler,
   native2DResponsiveHandler,
-  native2DThemeHandler
+  native2DThemeHandler,
+  native2DTailwindHandler
 ];

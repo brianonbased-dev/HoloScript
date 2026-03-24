@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useStudioBus } from './useStudioBus';
 
-export type ViewportMode = 'scene' | 'wireframe' | 'normals' | 'uv';
+export type ViewportMode = 'scene' | 'wireframe' | 'normals' | 'uv' | 'flat-semantic';
 
 export interface ViewportEntity {
   id: string;

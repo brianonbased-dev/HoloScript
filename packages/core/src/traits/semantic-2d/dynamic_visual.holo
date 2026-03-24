@@ -1,0 +1,11 @@
+@trait {
+  name: "@dynamic_visual",
+  category: "ui",
+  description: "Reactive visuals that respond to data, agents, or economy.",
+  props: {
+    color: @dynamic_hue | string,
+    scale: number | @live_stream,
+    opacity: number | @live_stream,
+    distortion: @procedural_field
+  }
+}

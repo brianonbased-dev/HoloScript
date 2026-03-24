@@ -912,3 +912,92 @@ function generateLogic(elements: SceneElement): string {
     }
   }`;
 }
+
+/**
+ * Suggest Semantic2D UI traits based on element description
+ */
+export function suggest2DTraits(
+  description: string,
+  context?: string
+): {
+  traits: string[];
+  reasoning: Record<string, string>;
+} {
+  const suggestedTraits = new Set<string>();
+  const reasoning: Record<string, string> = {};
+  const lowerDesc = (description + ' ' + (context || '')).toLowerCase();
+
+  const keywords: Record<string, string[]> = {
+    'button': ['@semantic_entity', '@particle_feedback'],
+    'click': ['@semantic_entity', '@particle_feedback'],
+    'layout': ['@semantic_layout'],
+    'flex': ['@semantic_layout'],
+    'grid': ['@semantic_layout'],
+    'color': ['@dynamic_visual'],
+    'theme': ['@dynamic_visual'],
+    'dashboard': ['@2d_canvas', '@semantic_layout'],
+    'screen': ['@2d_canvas'],
+    'agent': ['@agent_attention'],
+    'bounty': ['@agent_attention'],
+    'intent': ['@intent_driven'],
+    'action': ['@intent_driven'],
+    'metric': ['@live_metric'],
+    'data': ['@live_metric'],
+    'chart': ['@live_metric'],
+    'number': ['@live_metric']
+  };
+
+  for (const [key, traits] of Object.entries(keywords)) {
+    if (lowerDesc.includes(key)) {
+      for (const t of traits) {
+        suggestedTraits.add(t);
+        reasoning[t] = `Suggested because description mentions "${key}"`;
+      }
+    }
+  }
+
+  if (suggestedTraits.size === 0) {
+    suggestedTraits.add('@semantic_entity');
+    reasoning['@semantic_entity'] = 'Default trait for 2D semantic elements';
+  }
+
+  return { traits: Array.from(suggestedTraits), reasoning };
+}
+
+/**
+ * Generate a V6 Semantic2D composition from natural language
+ */
+export async function generateSemanticUIForMCP(
+  description: string,
+  options: any = {}
+): Promise<any> {
+    const aiPrompt = `Create a V6 Semantic2D composition for: ${description}. Use @2d_canvas, @semantic_layout, @semantic_entity, and other Semantic2D traits. Return only code.`;
+    const aiResult = await tryGenerateWithAI(aiPrompt, 'holo');
+    const code = aiResult ? normalizeSceneAIOutput(aiResult.code) : '';
+
+    if (aiResult && isUsableSceneCode(code)) {
+        return {
+            code,
+            format: 'holo',
+            source: 'ai',
+            provider: aiResult.provider,
+            traits: aiResult.detectedTraits,
+        };
+    }
+
+    return {
+        code: `composition "SemanticApp" {
+  object "Root" {
+    @2d_canvas { projection: "flat-semantic" }
+    @semantic_layout { flow: "column" }
+    
+    object "Element" {
+      @semantic_entity { type: "container" }
+      @dynamic_visual { color: "blue" }
+    }
+  }
+}`,
+        format: 'holo',
+        source: 'heuristic'
+    };
+}

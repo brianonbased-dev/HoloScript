@@ -11,6 +11,8 @@
     "start": "node dist/server/server.js"
   },
   "dependencies": {
+    "@holoscript/mcp-server": "workspace:*",
+    "ws": "^8.16.0",
     "@holoscript/core": "workspace:*",
     "@holoscript/r3f-renderer": "workspace:*",
     "@holoscript/runtime": "workspace:*",
@@ -32,6 +34,10 @@
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@types/three": "^0.160.0",
+    "@types/ws": "^8.18.1",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
     "tsup": "^8.0.1",
     "typescript": "^5.3.3",
     "vite-plugin-node-polyfills": "^0.25.0"

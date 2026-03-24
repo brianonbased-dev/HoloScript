@@ -704,7 +704,7 @@ export class HoloEmitter {
         const id = this.makeObjectId(sym);
         if (!nodeIds.has(id)) {
           nodeIds.add(id);
-          const pos = options.lastPositions?.get(id) || [0, 0, 0];
+          const pos = [0, 0, 0];
           layoutNodes.push({
             id,
             x: pos[0],

@@ -1,75 +1,176 @@
-composition "HoloScript Native" {
-  // Global Environment
-  environment {
-    skybox: "space_noir"
-    lighting: "studio"
-    ambient: "#050505"
-  }
+// HoloScript v5 Canonical Landing Page (Native 2D)
+composition "HoloScriptLanding" {
+  
+  // ============================================================================
+  // GLOBAL PRESENCE & NETWORKING
+  // ============================================================================
+  object "GlobalPresence" @networking(url: "wss://holoscript.net/socket/presence") @presence(sync: ["cursor", "viewport"])
 
-  // Hero Section
-  object "Hero" @glowing {
-    geometry: "text"
-    properties: {
-      text: "THE AI-NATIVE SPATIAL OS"
-      fontSize: 0.8
-      position: [0, 4, -10]
-      color: "#00ffff"
-    }
-  }
-
-  object "Tagline" {
-    geometry: "text"
-    properties: {
-      text: "Built for the Agentic Era. Cognitive. Perceptual. Economic."
-      fontSize: 0.3
-      position: [0, 3, -10]
-      color: "#ffffff"
-    }
-  }
-
-  // Main Documentation Viewport (Spatial 3D Window)
-  object "DocViewport" @spatial_text_layout {
-    geometry: "text"
-    properties: {
-      layout: "cylinder"
-      radius: 8
-      position: [0, 0, -15]
-      text: "# THE SPATIAL REVOLUTION\n\nWelcome to a new standard of interaction.\nText is no longer flat. It is volumetric.\nExplore the pillars of our AI-Native OS:\n\n1. Cognitive (uAAL)\n2. Perceptual (SNN-WebGPU)\n3. Economic (x402)\n\n[DRAG TO ROTATE WORLD]\n\n--------------------------\n\n## QUICKSTART\n\n- Install: npm install @holoscript/core\n- Initialize: hs init\n- Build: hs build --target webgpu"
-    }
-  }
-
-  // Floating Navigation Orbs
-  object "NavOrb_Home" @spatial_text_layout {
-    geometry: "sphere"
-    properties: {
-      radius: 1
-      position: [-10, 5, -10]
-      text: "HOME"
-      scale: [0.5, 0.5, 0.5]
-    }
-  }
-
-  object "NavOrb_Docs" @spatial_text_layout {
-    geometry: "sphere"
-    properties: {
-      radius: 1
-      position: [10, 5, -10]
-      text: "DOCS"
-      scale: [0.5, 0.5, 0.5]
-    }
-  }
-
-  // Global Interaction Logic
-  logic {
-    on("ui_drag", (event) => {
-      // Allow rotating the cylinder
-      emit("spatial:rotate", { target: "DocViewport", delta: event.deltaX });
-    })
-
-    on("spatial:click", (event) => {
-      if (event.target === "NavOrb_Home") {
-         emit("scene:navigate", { url: "/home" });
+  // ============================================================================
+  // NAVIGATION
+  // ============================================================================
+  object "Navbar" @panel(tag: "nav") @tailwind("fixed top-0 left-0 right-0 z-50 bg-[#0a0a1a]/80 backdrop-blur-md border-b border-white/10") {
+    object "NavContainer" @panel(tag: "div") @tailwind("max-w-7xl mx-auto px-6 h-16 flex items-center justify-between") {
+      object "LogoArea" @link(href: "/") @tailwind("flex items-center gap-2 text-xl font-bold tracking-tight text-white hover:text-white no-underline") {
+        object "LogoImg" @image(src: "/logo.svg", alt: "HoloScript") @tailwind("h-7 w-7")
+        object "LogoText" @text(variant: "body", content: "HoloScript") @tailwind("m-0")
       }
-    })
+      
+      object "NavLinks" @panel(tag: "div") @tailwind("hidden md:flex items-center gap-6 text-sm font-medium text-gray-300") {
+        object "Docs" @link(href: "/guides", content: "Docs") @tailwind("hover:text-cyan-400 transition-colors no-underline")
+        object "QuickStart" @link(href: "/guides/quick-start", content: "Quick Start") @tailwind("hover:text-cyan-400 transition-colors no-underline")
+        object "Examples" @link(href: "/examples", content: "Examples") @tailwind("hover:text-cyan-400 transition-colors no-underline")
+        object "Traits" @link(href: "/traits", content: "Traits") @tailwind("hover:text-cyan-400 transition-colors no-underline")
+        object "Studio" @link(href: "https://studio.holoscript.net", content: "Studio") @tailwind("text-purple-400 hover:text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-md transition-colors no-underline")
+        object "GitHub" @link(href: "https://github.com/brianonbased-dev/HoloScript", content: "GitHub") @tailwind("hover:text-cyan-400 transition-colors no-underline")
+      }
+    }
+  }
+
+  // ============================================================================
+  // HERO SECTION
+  // ============================================================================
+  object "HeroSection" @panel(tag: "section") @tailwind("relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden") {
+    
+    object "BackgroundGraphics" @panel(tag: "div") @tailwind("absolute inset-0 z-0 opacity-40") {
+      object "BgImg" @image(src: "/live_canonical_hero_1774370923293.png", alt: "Spatial OS Hero") @tailwind("w-full h-full object-cover")
+      object "BgGradient" @panel(tag: "div") @tailwind("absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/80 to-[#050505]")
+    }
+
+    object "HeroContent" @panel(tag: "div") @tailwind("relative z-10 max-w-7xl mx-auto px-6 text-center") {
+      object "Pill" @panel(tag: "div") @tailwind("inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-mono mb-8") {
+        object "Dot" @panel(tag: "span") @tailwind("w-2 h-2 rounded-full bg-cyan-400 animate-pulse")
+        object "PillText" @text(variant: "body", content: "The Open Platform for Spatial Worlds") @tailwind("m-0")
+      }
+
+      object "Headline" @text(variant: "h1", content: "Create with AI. Own what you build. Ship everywhere.") @tailwind("text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 max-w-5xl mx-auto leading-tight")
+      
+      object "Subhead" @text(variant: "body", content: "Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI, sell them on an open marketplace, and deploy autonomous agents — all from one platform. No engine lock-in. No code required. Open source and free forever.") @tailwind("max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed")
+
+      object "HeroButtons" @panel(tag: "div") @tailwind("flex flex-col sm:flex-row items-center justify-center gap-4") {
+        object "BtnStudio" @link(href: "https://studio.holoscript.net", content: "Try Studio") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] no-underline text-center")
+        object "BtnStart" @link(href: "/guides/quick-start", content: "Get Started Free") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors no-underline text-center")
+        object "BtnGitHub" @link(href: "https://github.com/brianonbased-dev/HoloScript", content: "View on GitHub") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-black/50 border border-white/10 text-gray-300 font-bold text-lg hover:text-white transition-colors no-underline text-center")
+      }
+    }
+  }
+
+  // ============================================================================
+  // PROBLEM & SOLUTION (split grid)
+  // ============================================================================
+  object "ProblemSolutionSection" @panel(tag: "section") @tailwind("py-24 bg-[#080812] relative border-y border-white/5") {
+    object "Grid" @panel(tag: "div") @tailwind("max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16") {
+      
+      // LEFT COLUMN: Problem
+      object "ProblemColumn" @panel(tag: "div") {
+        object "ProblemTitle" @text(variant: "h2", content: "The Problem with VR Development") @tailwind("text-3xl font-bold mb-8 text-white")
+        object "ProblemList" @panel(tag: "div") @tailwind("space-y-8") {
+          object "P1" @panel(tag: "div") @tailwind("bg-red-500/5 border border-red-500/10 p-6 rounded-xl") {
+            object "T1" @text(variant: "h3", content: "Steep Learning Curve") @tailwind("text-xl font-bold text-red-400 mb-2")
+            object "D1" @text(variant: "body", content: "Traditional VR tools like Unity or Unreal require months of study before you can build even simple experiences. Complex SDKs, engine-specific APIs, and verbose code block creativity.") @tailwind("text-gray-400 m-0")
+          }
+          object "P2" @panel(tag: "div") @tailwind("bg-red-500/5 border border-red-500/10 p-6 rounded-xl") {
+            object "T2" @text(variant: "h3", content: "Too Much Boilerplate") @tailwind("text-xl font-bold text-red-400 mb-2")
+            object "D2" @text(variant: "body", content: "Creating a simple 3D scene requires 200+ lines of setup code. Scene graphs, materials, renderers, cameras — endless configuration before you see results.") @tailwind("text-gray-400 m-0")
+          }
+          object "P3" @panel(tag: "div") @tailwind("bg-red-500/5 border border-red-500/10 p-6 rounded-xl") {
+            object "T3" @text(variant: "h3", content: "Platform Lock-in") @tailwind("text-xl font-bold text-red-400 mb-2")
+            object "D3" @text(variant: "body", content: "Build for Unity, can't use in Unreal. Target VR but can't reach robotics or IoT. No universal language means rewriting for every platform.") @tailwind("text-gray-400 m-0")
+          }
+        }
+      }
+
+      // RIGHT COLUMN: Solution
+      object "SolutionColumn" @panel(tag: "div") {
+        object "SolutionTitle" @text(variant: "h2", content: "The HoloScript Solution") @tailwind("text-3xl font-bold mb-8 text-cyan-400")
+        object "SolutionList" @panel(tag: "div") @tailwind("space-y-8") {
+          object "S1" @panel(tag: "div") @tailwind("bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl shadow-[0_0_15px_rgba(0,255,255,0.05)]") {
+            object "T1" @text(variant: "h3", content: "Write It") @tailwind("text-xl font-bold text-cyan-400 mb-2")
+            object "D1" @text(variant: "body", content: "Describe your VR world in plain .holo files using intuitive syntax. No complex APIs or framework knowledge required. Just write what you want to see.") @tailwind("text-gray-400 m-0")
+          }
+          object "S2" @panel(tag: "div") @tailwind("bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl shadow-[0_0_15px_rgba(0,255,255,0.05)]") {
+            object "T2" @text(variant: "h3", content: "See It") @tailwind("text-xl font-bold text-cyan-400 mb-2")
+            object "D2" @text(variant: "body", content: "Instant browser preview with WebXR support. See changes in real-time. Test on desktop, mobile, or VR headset without exports or compilation steps.") @tailwind("text-gray-400 m-0")
+          }
+          object "S3" @panel(tag: "div") @tailwind("bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl shadow-[0_0_15px_rgba(0,255,255,0.05)]") {
+            object "T3" @text(variant: "h3", content: "Ship It") @tailwind("text-xl font-bold text-cyan-400 mb-2")
+            object "D3" @text(variant: "body", content: "Compile to 25+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and more. Or share a link that runs in any browser. True write-once, deploy-anywhere.") @tailwind("text-gray-400 m-0")
+          }
+        }
+      }
+    }
+  }
+
+  // ============================================================================
+  // STUDIO MOCKUP SECTION
+  // ============================================================================
+  object "StudioSection" @panel(tag: "section") @tailwind("py-24 relative overflow-hidden") {
+    object "PurpleGlow" @panel(tag: "div") @tailwind("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/20 blur-[120px] rounded-full pointer-events-none")
+
+    object "StudioHeader" @panel(tag: "div") @tailwind("max-w-7xl mx-auto px-6 relative z-10 text-center mb-16") {
+      object "T1" @text(variant: "h2", content: "No Code? No Problem.") @tailwind("text-4xl md:text-5xl font-bold mb-6 text-white")
+      object "D1" @text(variant: "body", content: "HoloScript Studio lets you build 3D scenes just by describing them. Type what you want, see it in real-time. No install, no setup, no coding required.") @tailwind("text-xl text-gray-400 max-w-3xl mx-auto")
+      object "BtnStudio" @link(href: "https://studio.holoscript.net", content: "Open Studio →") @tailwind("mt-8 inline-block px-8 py-3 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors font-medium no-underline")
+    }
+
+    object "StudioImageContainer" @panel(tag: "div") @tailwind("max-w-5xl mx-auto px-6 mb-24 relative z-10") {
+      object "StudioImg" @image(src: "/feature_studio_1774370902505.png", alt: "HoloScript Studio") @tailwind("w-full rounded-2xl border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.2)]")
+    }
+  }
+
+  // ============================================================================
+  // MORE THAN A LANGUAGE
+  // ============================================================================
+  object "MoreThanLanguage" @panel(tag: "section") @tailwind("py-12 bg-[#080812]") {
+    object "Container" @panel(tag: "div") @tailwind("max-w-4xl mx-auto px-6 text-center") {
+      object "T" @text(variant: "h2", content: "More Than a Language") @tailwind("text-3xl font-bold mb-4 text-white")
+      object "D" @text(variant: "body", content: "HoloScript is a 6-layer open platform. holoscript absorb reveals 99 module communities, 68K symbols, and 298K call edges — in the core package alone.") @tailwind("text-gray-400 text-lg mb-8")
+      
+      object "Console" @panel(tag: "div") @tailwind("bg-[#0c0c16] border border-white/10 p-4 rounded-lg font-mono text-left max-w-md mx-auto text-sm") {
+         object "Line1" @text(variant: "body", content: "$ holoscript absorb") @tailwind("text-green-400 m-0")
+         object "Line2" @text(variant: "body", content: "Analyzing workspace...") @tailwind("text-gray-500 m-0")
+         object "Line3" @text(variant: "body", content: "✓ Graph compiled successfully") @tailwind("text-cyan-400 m-0 mt-2")
+      }
+    }
+  }
+
+  // ============================================================================
+  // TRAITS GRID
+  // ============================================================================
+  object "TraitsSection" @panel(tag: "section") @tailwind("py-24 relative") {
+    object "Container" @panel(tag: "div") @tailwind("max-w-7xl mx-auto px-6") {
+      object "Header" @panel(tag: "div") @tailwind("text-center mb-16") {
+        object "T" @text(variant: "h2", content: "1,800+ Semantic Traits") @tailwind("text-4xl font-bold mb-4 text-white")
+        object "D" @text(variant: "body", content: "99 module communities covering VR, robotics, IoT, AI agents, swarm intelligence, economy, physics, rendering, multiplayer, and more. Add powerful behaviors with simple decorators.") @tailwind("text-xl text-gray-400 max-w-3xl mx-auto")
+      }
+
+      object "Grid" @panel(tag: "div") @tailwind("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6") {
+        object "Card1" @panel(tag: "div") @tailwind("bg-white/5 border border-white/10 p-5 rounded-xl hover:bg-white/10 transition-colors") {
+           object "CT" @text(variant: "body", content: "@grabbable") @tailwind("text-cyan-400 font-mono text-sm mb-2 font-bold block")
+           object "CD" @text(variant: "body", content: "Pick up and move objects in VR") @tailwind("text-gray-400 text-sm m-0")
+        }
+        object "Card2" @panel(tag: "div") @tailwind("bg-white/5 border border-white/10 p-5 rounded-xl hover:bg-white/10 transition-colors") {
+           object "CT" @text(variant: "body", content: "@teleport") @tailwind("text-cyan-400 font-mono text-sm mb-2 font-bold block")
+           object "CD" @text(variant: "body", content: "Enable teleport movement targets") @tailwind("text-gray-400 text-sm m-0")
+        }
+        object "Card3" @panel(tag: "div") @tailwind("bg-white/5 border border-white/10 p-5 rounded-xl hover:bg-white/10 transition-colors") {
+           object "CT" @text(variant: "body", content: "@clickable") @tailwind("text-cyan-400 font-mono text-sm mb-2 font-bold block")
+           object "CD" @text(variant: "body", content: "Respond to user clicks and taps") @tailwind("text-gray-400 text-sm m-0")
+        }
+        object "Card4" @panel(tag: "div") @tailwind("bg-white/5 border border-white/10 p-5 rounded-xl hover:bg-white/10 transition-colors") {
+           object "CT" @text(variant: "body", content: "@glowing") @tailwind("text-cyan-400 font-mono text-sm mb-2 font-bold block")
+           object "CD" @text(variant: "body", content: "Add emissive glow effects") @tailwind("text-gray-400 text-sm m-0")
+        }
+      }
+    }
+  }
+
+  // ============================================================================
+  // FOOTER CTA
+  // ============================================================================
+  object "FooterCTA" @panel(tag: "footer") @tailwind("py-12 bg-[#050505] border-t border-white/10 text-center") {
+     object "T" @text(variant: "h2", content: "Ready to Build Your First VR World?") @tailwind("text-3xl font-bold mb-8 text-white")
+     object "Btn" @link(href: "/guides/quick-start", content: "Get Started") @tailwind("inline-block px-8 py-3 rounded-lg bg-cyan-500 text-black font-bold text-lg hover:bg-cyan-400 transition-colors shadow-[0_0_20px_rgba(0,255,255,0.2)] no-underline")
+     object "Copy" @text(variant: "body", content: "© 2026 HoloScript Foundation. Open Source (MIT).") @tailwind("mt-12 text-gray-500 text-sm")
   }
 }

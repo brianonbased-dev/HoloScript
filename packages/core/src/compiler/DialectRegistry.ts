@@ -38,11 +38,17 @@
  */
 
 import type { CompilerBase } from './CompilerBase';
-import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloDomainType } from '../parser/HoloCompositionTypes';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+/**
+ * Dialect domains extend HoloDomainType with compiler-fleet-specific categories.
+ * HoloDomainType covers all 31 spatial + universal domains.
+ * Additional dialect-only domains cover compiler target ecosystems.
+ */
 export type DialectDomain =
+  | HoloDomainType
   | 'gamedev'
   | 'social-vr'
   | 'xr'
@@ -50,19 +56,11 @@ export type DialectDomain =
   | 'web3d'
   | 'runtime'
   | 'shader'
-  | 'robotics'
   | 'interchange'
-  | 'iot'
-  | 'web3'
   | 'ai'
   | 'neuromorphic'
   | 'meta'
   | 'mixin'
-  // v6 Universal domains
-  | 'service'
-  | 'data'
-  | 'pipeline'
-  | 'container'
   | 'observability';
 
 export type DialectRiskTier = 'standard' | 'high' | 'critical';
@@ -320,3 +318,19 @@ class DialectRegistryImpl {
 
 /** Singleton dialect registry */
 export const DialectRegistry = new DialectRegistryImpl();
+
+// Auto-boot: register all built-in compiler backends on first import.
+let _autoBooted = false;
+
+/** Ensure all built-in dialects are registered. Idempotent. */
+export function ensureDialectsBooted(): void {
+  if (_autoBooted) return;
+  _autoBooted = true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { registerBuiltinDialects } = require('./registerBuiltinDialects');
+    registerBuiltinDialects();
+  } catch {
+    // Graceful: registry works without boot (e.g., in test isolation)
+  }
+}

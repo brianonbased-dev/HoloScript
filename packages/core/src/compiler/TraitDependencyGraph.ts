@@ -274,6 +274,61 @@ export class TraitDependencyGraph {
       requires: [],
       conflicts: [],
     });
+
+    // v6 Universal domain traits (v5.4 — Domains Unified)
+    this.registerV6Traits();
+  }
+
+  /**
+   * Register v6 universal service/data/pipeline/container/resilience traits
+   */
+  private registerV6Traits(): void {
+    // Service domain
+    this.registerTrait({ name: 'service', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'endpoint', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'handler', requires: ['http'], conflicts: [] });
+    this.registerTrait({ name: 'middleware', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'http', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'gateway', requires: [], conflicts: ['proxy'] });
+    this.registerTrait({ name: 'proxy', requires: [], conflicts: ['gateway'] });
+
+    // Data domain
+    this.registerTrait({ name: 'db', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'data_model', requires: ['db'], conflicts: [] });
+    this.registerTrait({ name: 'migration', requires: ['db'], conflicts: [] });
+    this.registerTrait({ name: 'query', requires: ['db'], conflicts: [] });
+    this.registerTrait({ name: 'cache', requires: [], conflicts: [] });
+
+    // Pipeline domain
+    this.registerTrait({ name: 'pipeline', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'stream', requires: ['pipeline'], conflicts: [] });
+    this.registerTrait({ name: 'queue', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'worker', requires: ['pipeline'], conflicts: ['scheduler'] });
+    this.registerTrait({ name: 'scheduler', requires: [], conflicts: ['worker'] });
+
+    // Container domain
+    this.registerTrait({ name: 'container', requires: [], conflicts: ['serverless'] });
+    this.registerTrait({ name: 'serverless', requires: [], conflicts: ['container'] });
+    this.registerTrait({ name: 'deployment', requires: [], conflicts: [] });
+
+    // Metric/Observability domain
+    this.registerTrait({ name: 'metric', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'trace', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'health_check', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'log', requires: [], conflicts: [] });
+
+    // Resilience domain
+    this.registerTrait({ name: 'circuit_breaker', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'retry', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'timeout', requires: ['service'], conflicts: [] });
+    this.registerTrait({ name: 'fallback', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'bulkhead', requires: ['service'], conflicts: [] });
+
+    // Contract domain
+    this.registerTrait({ name: 'schema', requires: [], conflicts: [] });
+    this.registerTrait({ name: 'validator', requires: ['schema'], conflicts: [] });
+    this.registerTrait({ name: 'serializer', requires: ['schema'], conflicts: [] });
+    this.registerTrait({ name: 'contract', requires: [], conflicts: [] });
   }
 
   // ===========================================================================

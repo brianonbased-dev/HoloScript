@@ -1164,6 +1164,15 @@ export type HoloDomainType =
   | 'payment' // paywall, payment_gate, subscription, tip_jar
   // Norm lifecycle / cultural engineering (v4.5)
   | 'norms' // norm, metanorm, norm_proposal, norm_voting, norm_adoption, norm_violation, norm_sanction
+  // v6 Universal domains (v5.4 — Domains Unified)
+  | 'service' // service, endpoint, route, handler, middleware, gateway
+  | 'contract' // contract, schema, validator, serializer
+  | 'data' // db, model, query, migration, cache
+  | 'network' // http, websocket, grpc, graphql
+  | 'pipeline' // pipeline, stream, queue, worker, scheduler
+  | 'metric' // metric, trace, log, health_check
+  | 'container' // container, deployment, scaling, secret
+  | 'resilience' // circuit_breaker, retry, timeout, fallback, bulkhead
   | 'custom'; // any user-defined block keyword
 
 export interface HoloDomainBlock extends HoloNode {

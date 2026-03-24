@@ -1,135 +1,413 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-export const App = () => {
-  const [hovered, setHovered] = useState(false);
+// Icons
+const IconCheck = () => (
+  <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+);
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#050510',
-      backgroundImage: 'radial-gradient(circle at 50% 50%, #1a1a3a 0%, #050510 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      perspective: '1200px'
-    }}>
+const IconX = () => (
+  <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+// --- Phase 6: Interactive Spatial Presence ---
+interface CursorState {
+  x: number;
+  y: number;
+  color: string;
+  label: string;
+}
+
+const COLORS = ['#00ffff', '#ff00ff', '#00ff88', '#ffaa00', '#8800ff'];
+const LABELS = ['👽', '🚀', '💎', '🦄', '👾', '👻', '🤖', '👑'];
+
+function usePresence() {
+  const [peers, setPeers] = useState<Record<string, CursorState>>({});
+  const [localColor, setLocalColor] = useState(COLORS[0]);
+  const [localLabel, setLocalLabel] = useState(LABELS[0]);
+  const wsRef = useRef<WebSocket | null>(null);
+  const myId = useRef(`peer_${Math.random().toString(36).substr(2, 9)}`);
+
+  useEffect(() => {
+    const wsUrl = window.location.hostname === 'localhost' 
+      ? `ws://localhost:3001/socket/presence` 
+      : `wss://${window.location.host}/socket/presence`;
       
-      {/* 3D Background Grid */}
-      <div style={{
-        position: 'absolute',
-        inset: '-50%',
-        backgroundImage: 'linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px)',
-        backgroundSize: '80px 80px',
-        transform: 'rotateX(60deg) translateY(-100px) translateZ(-200px)',
-        transformOrigin: 'top center',
-        pointerEvents: 'none'
-      }} />
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-      {/* Main Holographic Interactive Window */}
-      <motion.div
-        onHoverStart={() => setHovered(true)}
-        onHoverEnd={() => setHovered(false)}
-        animate={{
-          rotateX: hovered ? 0 : 10,
-          rotateY: hovered ? 0 : -10,
-          y: hovered ? -10 : 0,
-        }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        style={{
-          width: '800px',
-          height: '500px',
-          background: 'rgba(10, 20, 40, 0.6)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(0, 255, 255, 0.3)',
-          borderRadius: '24px',
-          boxShadow: hovered 
-            ? '0 0 80px rgba(0, 255, 255, 0.2), inset 0 0 30px rgba(0, 255, 255, 0.1)'
-            : '0 20px 50px rgba(0,0,0,0.5)',
-          padding: '60px',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden',
-          zIndex: 10,
-          transformStyle: 'preserve-3d'
-        }}
-      >
-        {/* Holographic scanline sweep animation */}
-        <motion.div
-          animate={{ top: ['-20%', '120%'] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            height: '2px',
-            background: 'linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.8), transparent)',
-            boxShadow: '0 0 15px rgba(0, 255, 255, 0.6)',
-            zIndex: 20,
-            pointerEvents: 'none'
-          }}
-        />
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'cursor' && data.id !== myId.current) {
+          setPeers(prev => ({
+            ...prev,
+            [data.id]: { x: data.x, y: data.y, color: data.color, label: data.label }
+          }));
+        }
+      } catch (e) {}
+    };
 
-        {/* Floating Content Layer (Pushed forward in 3D space) */}
-        <div style={{ transform: 'translateZ(60px)', zIndex: 30, display: 'flex', flexDirection: 'column', flex: 1 }}>
-            
-            <h1 style={{ 
-              fontSize: '3.5rem', 
-              color: '#fff', 
-              margin: '0 0 1rem 0',
-              fontWeight: 900,
-              letterSpacing: '-1px',
-              textShadow: '0 0 30px rgba(0, 255, 255, 0.6)'
-            }}>
-              Holographic Web
-            </h1>
-            
-            <div style={{
-              width: '80px',
-              height: '4px',
-              background: '#0ff',
-              marginBottom: '2rem',
-              boxShadow: '0 0 15px #0ff'
-            }} />
-            
-            <p style={{
-              color: 'rgba(255, 255, 255, 0.8)',
-              fontSize: '1.3rem',
-              lineHeight: 1.7,
-              maxWidth: '600px',
-              fontWeight: 400
-            }}>
-              Transforming legacy 2D interfaces into inventive, spatial experiences. 
-              The depth is simulated, the glow is native, and the payload is lightning-fast. 
-              An immersive UI aesthetic—no VR headset required.
-            </p>
+    // Cleanup stale peers could go here with a timeout system
 
-            {/* Glowing Action Button */}
-            <motion.button 
-              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(0, 255, 255, 0.6)', backgroundColor: 'rgba(0, 255, 255, 0.1)' }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                marginTop: 'auto',
-                alignSelf: 'flex-start',
-                padding: '16px 40px',
-                background: 'transparent',
-                border: '2px solid #0ff',
-                color: '#0ff',
-                fontSize: '1.1rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '2px',
-                fontWeight: 600,
-                transition: 'background-color 0.2s ease'
-              }}
-            >
-              Initialize Core
-            </motion.button>
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'cursor',
+        id: myId.current,
+        x: e.clientX,
+        y: e.clientY,
+        color: localColor,
+        label: localLabel
+      }));
+    }
+  }, [localColor, localLabel]);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove]);
+
+  return { peers, localColor, setLocalColor, localLabel, setLocalLabel };
+}
+
+function LiveCursors({ peers }: { peers: Record<string, CursorState> }) {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
+      {Object.entries(peers).map(([id, state]) => (
+        <div
+          key={id}
+          className="absolute transition-all duration-150 ease-linear flex flex-col items-center"
+          style={{ transform: `translate(${state.x}px, ${state.y}px)`, left: -12, top: -12 }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={state.color} stroke="white" strokeWidth="2" className="drop-shadow-md">
+            <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 01.35-.15h6.87c.45 0 .67-.54.35-.85L5.85 3.21a.5.5 0 00-.35-.15z" />
+          </svg>
+          <div 
+            className="mt-1 px-2 py-0.5 rounded text-xs font-bold text-white shadow-lg whitespace-nowrap"
+            style={{ backgroundColor: state.color }}
+          >
+            {state.label}
+          </div>
         </div>
-      </motion.div>
+      ))}
     </div>
   );
-};
+}
+
+export function HoloScriptLandingComponent() {
+  const [activeTab, setActiveTab] = useState('three');
+  const { peers, localColor, setLocalColor, localLabel, setLocalLabel } = usePresence();
+
+  return (
+    <div className="holoscript-2d-root w-full min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30">
+      <LiveCursors peers={peers} />
+      
+      {/* Identity Widget */}
+      <div className="fixed bottom-6 right-6 z-[90] bg-[#0c0c16]/90 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl flex flex-col gap-3">
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Customize Identity</div>
+        <div className="flex gap-2">
+          {COLORS.map(c => (
+            <button 
+              key={c} onClick={() => setLocalColor(c)}
+              className={`w-6 h-6 rounded-full transition-transform ${localColor === c ? 'scale-125 ring-2 ring-white' : 'hover:scale-110'}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+        <div className="flex gap-2 text-lg">
+          {LABELS.slice(0, 5).map(l => (
+            <button 
+              key={l} onClick={() => setLocalLabel(l)}
+              className={`hover:scale-125 transition-transform ${localLabel === l ? 'opacity-100 scale-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'opacity-40'}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a1a]/80 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <img src="/logo.svg" alt="HoloScript" className="h-7 w-7" />
+            <span>HoloScript</span>
+          </a>
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
+            <a href="/guides" className="hover:text-cyan-400 transition-colors">Docs</a>
+            <a href="/guides/quick-start" className="hover:text-cyan-400 transition-colors">Quick Start</a>
+            <a href="/examples" className="hover:text-cyan-400 transition-colors">Examples</a>
+            <a href="/traits" className="hover:text-cyan-400 transition-colors">Traits</a>
+            <a href="https://studio.holoscript.net" className="text-purple-400 hover:text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-md transition-colors">Studio</a>
+            <a href="https://github.com/brianonbased-dev/HoloScript" className="hover:text-cyan-400 transition-colors">GitHub</a>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        {/* Abstract Background */}
+        <div className="absolute inset-0 z-0 opacity-40">
+           <img src="/live_canonical_hero_1774370923293.png" alt="Spatial OS Hero" className="w-full h-full object-cover" />
+           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/80 to-[#050505]"></div>
+        </div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-mono mb-8">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            The Open Platform for Spatial Worlds
+          </div>
+          
+          <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500">
+            Create with AI.<br/>Own what you build.<br/>Ship everywhere.
+          </h1>
+          
+          <p className="max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed">
+            Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI, sell them on an open marketplace, and deploy autonomous agents — all from one platform. No engine lock-in. No code required. Open source and free forever.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="https://studio.holoscript.net" className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)]">
+              Try Studio
+            </a>
+            <a href="/guides/quick-start" className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors">
+              Get Started Free
+            </a>
+            <a href="https://github.com/brianonbased-dev/HoloScript" className="w-full sm:w-auto px-8 py-3.5 rounded-lg bg-black/50 border border-white/10 text-gray-300 font-bold text-lg hover:text-white transition-colors">
+              View on GitHub
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* The Problem & Solution */}
+      <section className="py-24 bg-[#080812] relative border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16">
+            
+            {/* The Problem */}
+            <div>
+              <h2 className="text-3xl font-bold mb-8 text-white flex items-center gap-3">
+                <span className="text-red-400">The Problem</span> with VR Development
+              </h2>
+              <div className="space-y-8">
+                <div className="bg-red-500/5 border border-red-500/10 p-6 rounded-xl">
+                  <h3 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2"><IconX /> Steep Learning Curve</h3>
+                  <p className="text-gray-400">Traditional VR tools like Unity or Unreal require months of study before you can build even simple experiences. Complex SDKs, engine-specific APIs, and verbose code block creativity.</p>
+                </div>
+                <div className="bg-red-500/5 border border-red-500/10 p-6 rounded-xl">
+                  <h3 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2"><IconX /> Too Much Boilerplate</h3>
+                  <p className="text-gray-400">Creating a simple 3D scene requires 200+ lines of setup code. Scene graphs, materials, renderers, cameras — endless configuration before you see results.</p>
+                </div>
+                <div className="bg-red-500/5 border border-red-500/10 p-6 rounded-xl">
+                  <h3 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2"><IconX /> Platform Lock-in</h3>
+                  <p className="text-gray-400">Build for Unity, can't use in Unreal. Target VR but can't reach robotics or IoT. No universal language means rewriting for every platform.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* The Solution */}
+            <div>
+              <h2 className="text-3xl font-bold mb-8 text-white flex items-center gap-3">
+                <span className="text-cyan-400">The HoloScript</span> Solution
+              </h2>
+              <div className="space-y-8">
+                <div className="bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl shadow-[0_0_15px_rgba(0,255,255,0.05)]">
+                  <h3 className="text-xl font-bold text-cyan-400 mb-2 flex items-center gap-2"><IconCheck /> Write It</h3>
+                  <p className="text-gray-400">Describe your VR world in plain .holo files using intuitive syntax. No complex APIs or framework knowledge required. Just write what you want to see.</p>
+                </div>
+                <div className="bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl shadow-[0_0_15px_rgba(0,255,255,0.05)]">
+                  <h3 className="text-xl font-bold text-cyan-400 mb-2 flex items-center gap-2"><IconCheck /> See It</h3>
+                  <p className="text-gray-400">Instant browser preview with WebXR support. See changes in real-time. Test on desktop, mobile, or VR headset without exports or compilation steps.</p>
+                </div>
+                <div className="bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl shadow-[0_0_15px_rgba(0,255,255,0.05)]">
+                  <h3 className="text-xl font-bold text-cyan-400 mb-2 flex items-center gap-2"><IconCheck /> Ship It</h3>
+                  <p className="text-gray-400">Compile to 25+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and more. Or share a link that runs in any browser. True write-once, deploy-anywhere.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Studio / More Than A Language */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/20 blur-[120px] rounded-full pointer-events-none"></div>
+        
+        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">No Code? No Problem.</h2>
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            HoloScript Studio lets you build 3D scenes just by describing them. Type what you want, see it in real-time. No install, no setup, no coding required.
+          </p>
+          <a href="https://studio.holoscript.net" className="mt-8 inline-block px-8 py-3 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors font-medium">
+            Open Studio →
+          </a>
+        </div>
+        
+        <div className="max-w-5xl mx-auto px-6 mb-24">
+          <img src="/feature_studio_1774370902505.png" alt="HoloScript Studio Mockup" className="w-full rounded-2xl border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.2)]" />
+        </div>
+
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold mb-4">More Than a Language</h2>
+          <p className="text-gray-400 text-lg mb-8">
+            HoloScript is a 6-layer open platform. <code className="text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded">holoscript absorb</code> reveals 99 module communities, 68K symbols, and 298K call edges — in the core package alone.
+          </p>
+          <div className="bg-[#0c0c16] border border-white/10 p-4 rounded-lg font-mono text-left max-w-md mx-auto text-sm">
+            <span className="text-green-400">$</span> holoscript absorb<br/>
+            <span className="text-gray-500">Analyzing workspace...</span><br/>
+            <span className="text-cyan-400">✓ Graph compiled successfully</span>
+          </div>
+        </div>
+      </section>
+
+      {/* See The Difference (Code Compare) */}
+      <section className="py-24 bg-[#080812] border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-6 text-center mb-12">
+          <h2 className="text-4xl font-bold mb-4">See the Difference</h2>
+          <p className="text-xl text-gray-400">Creating a simple 3D scene with a glowing, spinning sphere. Compare traditional Three.js with HoloScript.</p>
+        </div>
+
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="flex justify-center gap-4 mb-6">
+            <button onClick={() => setActiveTab('three')} className={`px-4 py-2 rounded-lg font-mono text-sm transition-all ${activeTab === 'three' ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-gray-500 hover:text-gray-300'} border border-transparent`}>Three.js (25 lines)</button>
+            <button onClick={() => setActiveTab('holo')} className={`px-4 py-2 rounded-lg font-mono text-sm transition-all ${activeTab === 'holo' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-[0_0_15px_rgba(0,255,255,0.2)]' : 'bg-transparent text-gray-500 hover:text-gray-300'} border border-transparent`}>HoloScript (8 lines)</button>
+          </div>
+
+          <div className="bg-[#050505] p-6 rounded-xl border border-white/10 overflow-x-auto text-sm font-mono text-left shadow-xl">
+            {activeTab === 'three' ? (
+              <pre className="text-gray-300">
+                <code>
+<span className="text-purple-400">import</span> * <span className="text-purple-400">as</span> THREE <span className="text-purple-400">from</span> <span className="text-green-400">'three'</span>;<br/>
+<br/>
+<span className="text-blue-400">const</span> scene = <span className="text-purple-400">new</span> THREE.Scene();<br/>
+<span className="text-blue-400">const</span> camera = <span className="text-purple-400">new</span> THREE.PerspectiveCamera( <span className="text-orange-400">75</span>, window.innerWidth / window.innerHeight, <span className="text-orange-400">0.1</span>, <span className="text-orange-400">1000</span> );<br/>
+<span className="text-blue-400">const</span> renderer = <span className="text-purple-400">new</span> THREE.WebGLRenderer();<br/>
+renderer.setSize(window.innerWidth, window.innerHeight);<br/>
+document.body.appendChild(renderer.domElement);<br/>
+<br/>
+<span className="text-blue-400">const</span> geometry = <span className="text-purple-400">new</span> THREE.SphereGeometry(<span className="text-orange-400">1</span>, <span className="text-orange-400">32</span>, <span className="text-orange-400">32</span>);<br/>
+<span className="text-blue-400">const</span> material = <span className="text-purple-400">new</span> THREE.MeshStandardMaterial(&#123; <br/>
+  color: <span className="text-orange-400">0x00ffff</span>,<br/>
+  emissive: <span className="text-orange-400">0x00ffff</span>,<br/>
+  emissiveIntensity: <span className="text-orange-400">0.5</span><br/>
+&#125;);<br/>
+<span className="text-blue-400">const</span> sphere = <span className="text-purple-400">new</span> THREE.Mesh(geometry, material);<br/>
+sphere.position.set(<span className="text-orange-400">0</span>, <span className="text-orange-400">2</span>, <span className="text-orange-400">-3</span>);<br/>
+scene.add(sphere);<br/>
+<br/>
+<span className="text-blue-400">const</span> light = <span className="text-purple-400">new</span> THREE.PointLight(<span className="text-orange-400">0xffffff</span>, <span className="text-orange-400">1</span>);<br/>
+light.position.set(<span className="text-orange-400">5</span>, <span className="text-orange-400">5</span>, <span className="text-orange-400">5</span>);<br/>
+scene.add(light);<br/>
+camera.position.z = <span className="text-orange-400">5</span>;<br/>
+<br/>
+<span className="text-purple-400">function</span> <span className="text-blue-300">animate</span>() &#123;<br/>
+  requestAnimationFrame(animate);<br/>
+  sphere.rotation.y += <span className="text-orange-400">0.01</span>;<br/>
+  renderer.render(scene, camera);<br/>
+&#125;<br/>
+animate();
+                </code>
+              </pre>
+            ) : (
+              <pre className="text-cyan-300">
+                <code>
+<span className="text-purple-400">composition</span> <span className="text-green-400">"My World"</span> &#123;<br/>
+  <span className="text-blue-400">object</span> <span className="text-green-400">"Crystal"</span> <span className="text-yellow-400">@spinning</span> <span className="text-yellow-400">@glowing</span> &#123;<br/>
+    geometry: <span className="text-green-400">"sphere"</span><br/>
+    color: <span className="text-green-400">"#00ffff"</span><br/>
+    position: [<span className="text-orange-400">0</span>, <span className="text-orange-400">2</span>, <span className="text-orange-400">-3</span>]<br/>
+  &#125;<br/>
+&#125;
+                </code>
+              </pre>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Traits */}
+      <section className="py-24 relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">1,800+ Semantic Traits</h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              99 module communities covering VR, robotics, IoT, AI agents, swarm intelligence, economy, physics, rendering, multiplayer, and more. Add powerful behaviors with simple decorators.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { t: '@grabbable', d: 'Pick up and move objects in VR' },
+              { t: '@teleport', d: 'Enable teleport movement targets' },
+              { t: '@clickable', d: 'Respond to user clicks and taps' },
+              { t: '@glowing', d: 'Add emissive glow effects' },
+              { t: '@particle_system', d: 'Generate particle effects and animations' },
+              { t: '@weather', d: 'Add rain, snow, or fog atmospherics' },
+              { t: '@physics', d: 'Enable realistic physics simulation' },
+              { t: '@cloth', d: 'Simulate fabric and soft body dynamics' },
+              { t: '@portal', d: 'Create portals between spaces' },
+              { t: '@behavior_tree', d: 'AI-driven object behaviors' },
+              { t: '@networked', d: 'Sync objects across multiplayer sessions' },
+              { t: '@hand_tracking', d: 'Interact with natural hand gestures' }
+            ].map((trait, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 p-5 rounded-xl hover:bg-white/10 transition-colors cursor-default">
+                <code className="text-cyan-400 font-mono text-sm mb-2 block">{trait.t}</code>
+                <p className="text-gray-400 text-sm">{trait.d}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <a href="/api/traits" className="text-cyan-400 hover:text-cyan-300 font-medium">See All 1,800+ Traits →</a>
+          </div>
+        </div>
+      </section>
+
+      {/* Verticals */}
+      <section className="py-24 bg-[#080812] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="text-4xl font-bold mb-16 text-center">Built for Every Creator</h2>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { t: 'Education', d: 'Virtual classrooms, interactive science labs, and historical recreations. Make learning immersive without technical barriers.' },
+              { t: 'Autonomous Intelligence', d: '43+ MCP tools, swarm intelligence, economy primitives, and Brittney — a model that writes native HoloScript. Your agents think and evolve.' },
+              { t: 'Gaming', d: 'Indie VR games, physics sandboxes, and interactive experiences. Rapid prototyping for game developers and hobbyists.' },
+              { t: 'Web3 & Creator Economy', d: 'Auto-mint scenes as Zora Coins on Base. Token-gated experiences, NFT-linked objects, bonding curve pricing, and royalties.' },
+              { t: 'Robotics', d: 'Compile scenes to URDF for ROS 2 robots or SDF for Gazebo simulation. Design environments in VR, then deploy to hardware.' },
+              { t: 'IoT & Digital Twins', d: 'Export to DTDL for Azure Digital Twins and W3C WoT for IoT devices. Live sensor data visualization dashboards.' }
+            ].map((v, i) => (
+              <div key={i} className="p-6">
+                <h3 className="text-xl font-bold text-white mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-400">{v.t}</h3>
+                <p className="text-gray-400">{v.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 bg-[#050505] border-t border-white/10 text-center">
+        <h2 className="text-3xl font-bold mb-8">Ready to Build Your First VR World?</h2>
+        <a href="/guides/quick-start" className="inline-block px-8 py-3 rounded-lg bg-cyan-500 text-black font-bold text-lg hover:bg-cyan-400 transition-colors shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+          Get Started
+        </a>
+        <div className="mt-12 text-gray-500 text-sm">
+          <p>© 2026 HoloScript Foundation. Open Source (MIT).</p>
+        </div>
+      </footer>
+
+    </div>
+  );
+}

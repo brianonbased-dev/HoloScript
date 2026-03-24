@@ -881,7 +881,8 @@ async function main(): Promise<void> {
         'openxr',
         'androidxr',
         'webgpu',
-        'native-2d',
+        'flat-semantic',
+        'web-2d',
       ];
 
       if (!validTargets.includes(target)) {
@@ -1150,6 +1151,43 @@ async function main(): Promise<void> {
           } else {
             console.log('\n--- DTDL Output ---\n');
             console.log(dtdlOutput);
+          }
+
+          process.exit(0);
+        }
+
+        // V6 2D UI Revolution - Flat Semantic Target
+        const isFlatSemantic = target === 'flat-semantic' || (target === 'web-2d' && (!options.projection || options.projection === 'flat-semantic'));
+        if (isFlatSemantic) {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: flat-semantic compilation requires .holo or .hsplus files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser } = await import('@holoscript/core');
+          const { FlatSemanticCompiler } = await import('@holoscript/semantic-2d');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for flat-semantic:\x1b[0m`);
+            parseResult.errors.forEach((e) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to Flat Semantic React (V6)...\x1b[0m`);
+          const compiler = new FlatSemanticCompiler();
+          const reactOutput = compiler.compile(parseResult.ast, '', undefined, { format: 'react' });
+
+          console.log(`\x1b[32m✓ Flat Semantic compilation successful!\x1b[0m`);
+          
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            fs.writeFileSync(outputPath, reactOutput);
+            console.log(`\x1b[32m✓ Component written to ${outputPath}\x1b[0m`);
+          } else {
+            console.log('\n--- React Code ---\n');
+            console.log(reactOutput.substring(0, 500) + '\\n... (truncated)');
           }
 
           process.exit(0);
@@ -1526,7 +1564,11 @@ async function main(): Promise<void> {
 
           console.log(`\x1b[2m[DEBUG] Compiling to Native 2D (HTML/React)...\x1b[0m`);
           const compiler = new Native2DCompiler();
-          const outputFormat = /* options format flag if needed, assume html for now */ 'html';
+          const parsedFormat = process.argv.includes('--format') 
+            ? process.argv[process.argv.indexOf('--format') + 1] 
+            : (options as any).format;
+          const outputFormat = parsedFormat === 'react' ? 'react' : 'html';
+          
           const output = compiler.compile(parseResult.ast, '', options.output, { format: outputFormat });
 
           console.log(`\x1b[32m✓ Native 2D compilation successful!\x1b[0m`);
@@ -1535,11 +1577,15 @@ async function main(): Promise<void> {
 
           if (options.output) {
             const outputPath = path.resolve(options.output);
-            const htmlPath = outputPath.endsWith('.html') ? outputPath : outputPath + '.html';
-            fs.writeFileSync(htmlPath, typeof output === 'string' ? output : (output as any).output);
-            console.log(`\x1b[32m✓ Native 2D HTML written to ${htmlPath}\x1b[0m`);
+            const ext = outputFormat === 'react' ? '.tsx' : '.html';
+            const finalPath = (outputPath.endsWith('.html') || outputPath.endsWith('.tsx') || outputPath.endsWith('.jsx')) 
+                ? outputPath 
+                : outputPath + ext;
+                
+            fs.writeFileSync(finalPath, typeof output === 'string' ? output : (output as any).output);
+            console.log(`\x1b[32m✓ Native 2D output written to ${finalPath}\x1b[0m`);
           } else {
-            console.log('\n--- Native 2D HTML/Tailwind Output ---\n');
+            console.log(`\n--- Native 2D Output (${outputFormat}) ---\n`);
             console.log(typeof output === 'string' ? output : (output as any).output);
           }
 
@@ -3288,6 +3334,30 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         process.exit(1);
       }
       break;
+    }
+
+    case 'rebuild-index': {
+      const fs = await import('fs');
+      const path = await import('path');
+      const rootDir = options.input || process.cwd();
+      const dirs = [
+        path.join(rootDir, '.holoscript'),
+        ...(options.all ? [path.join(rootDir, '.holoscript-cache')] : []),
+      ];
+      let cleaned = 0;
+      for (const dir of dirs) {
+        if (fs.existsSync(dir)) {
+          fs.rmSync(dir, { recursive: true });
+          console.log(`\x1b[32m✓\x1b[0m Removed ${path.relative(rootDir, dir) || dir}`);
+          cleaned++;
+        }
+      }
+      if (cleaned === 0) {
+        console.log('\x1b[33mNo index caches found to clean.\x1b[0m');
+      } else {
+        console.log(`\n\x1b[32mCleaned ${cleaned} cache director${cleaned === 1 ? 'y' : 'ies'}.\x1b[0m Run \x1b[36mholoscript query\x1b[0m to rebuild.`);
+      }
+      process.exit(0);
     }
 
     default:

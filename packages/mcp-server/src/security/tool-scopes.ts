@@ -35,8 +35,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
 
   // === Write / generative tools ===
   suggest_traits: ['tools:write'],
+  suggest_2d_traits: ['tools:write'],
   generate_object: ['tools:write'],
   generate_scene: ['tools:write'],
+  generate_semantic_ui: ['tools:write'],
   render_preview: ['tools:write'],
   create_share_link: ['tools:write'],
   convert_format: ['tools:write'],
@@ -166,8 +168,10 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
 
   // Medium risk: generates content but no side effects
   suggest_traits: 'medium',
+  suggest_2d_traits: 'medium',
   generate_object: 'medium',
   generate_scene: 'medium',
+  generate_semantic_ui: 'medium',
   convert_format: 'medium',
   compile_holoscript: 'medium',
 

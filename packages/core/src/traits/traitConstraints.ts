@@ -603,4 +603,81 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     message: 'Health checks require a service to monitor.',
     suggestion: 'Add @service to define the monitored service endpoint.',
   },
+
+  // =============================================================================
+  // v6 UNIVERSAL RESILIENCE DOMAIN CONSTRAINTS (v5.4)
+  // =============================================================================
+
+  // Circuit breaker requires service — wraps service calls
+  {
+    type: 'requires',
+    source: 'circuit_breaker',
+    targets: ['service'],
+    message: 'Circuit breakers wrap service calls to prevent cascade failures.',
+    suggestion: 'Add @service to define the protected service endpoint.',
+  },
+
+  // Retry requires service or pipeline — retries need a callable context
+  {
+    type: 'requires',
+    source: 'retry',
+    targets: ['service'],
+    message: 'Retry policies require a service or pipeline context.',
+    suggestion: 'Add @service to define the endpoint with retry behavior.',
+  },
+
+  // Timeout requires service — timeouts bound service call duration
+  {
+    type: 'requires',
+    source: 'timeout',
+    targets: ['service'],
+    message: 'Timeout policies require a service context to bound request duration.',
+    suggestion: 'Add @service to define the endpoint with timeout behavior.',
+  },
+
+  // Bulkhead requires service — isolates concurrent requests
+  {
+    type: 'requires',
+    source: 'bulkhead',
+    targets: ['service'],
+    message: 'Bulkhead isolation requires a service context for concurrency partitioning.',
+    suggestion: 'Add @service to define the endpoint with bulkhead isolation.',
+  },
+
+  // Middleware requires service — middleware wraps service endpoints
+  {
+    type: 'requires',
+    source: 'middleware',
+    targets: ['service'],
+    message: 'Middleware requires a service context to wrap endpoints.',
+    suggestion: 'Add @service to define the service where middleware is applied.',
+  },
+
+  // Migration requires db — database migrations need a connection
+  {
+    type: 'requires',
+    source: 'migration',
+    targets: ['db'],
+    message: 'Database migrations require a database connection (@db).',
+    suggestion: 'Add @db to define the database connection for migrations.',
+  },
+
+  // Saga requires db — distributed transactions need persistence
+  {
+    type: 'requires',
+    source: 'saga',
+    targets: ['db'],
+    message: 'Sagas require database access for transaction state management.',
+    suggestion: 'Add @db for the saga coordinator state store.',
+  },
+
+  // Circuit breaker conflicts with fallback at same level
+  {
+    type: 'conflicts',
+    source: 'circuit_breaker',
+    targets: ['bulkhead'],
+    message: 'Circuit breaker and bulkhead should be applied at different granularity levels.',
+    suggestion:
+      'Apply @circuit_breaker at the service level and @bulkhead at the endpoint level, or vice versa.',
+  },
 ];

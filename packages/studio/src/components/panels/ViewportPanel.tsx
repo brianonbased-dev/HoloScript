@@ -249,7 +249,7 @@ export function ViewportPanel() {
     useViewport();
   const { diffModeHash } = useEditorStore();
 
-  const modes: ViewportMode[] = ['scene', 'wireframe', 'normals'];
+  const modes = ['scene', 'wireframe', 'normals', 'flat-semantic'] as any[];
   const entityTypes = [
     { type: 'box' as const, icon: '📦', label: 'Box' },
     { type: 'sphere' as const, icon: '🔵', label: 'Sphere' },
@@ -270,11 +270,20 @@ export function ViewportPanel() {
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`px-1.5 py-0.5 rounded transition ${state.mode === m ? 'bg-studio-accent/20 text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+            className={`px-1.5 py-0.5 rounded transition ${state.mode === m ? 'bg-indigo-500/20 text-indigo-400' : 'text-studio-muted hover:text-studio-text'}`}
           >
-            {m === 'scene' ? '🎨' : m === 'wireframe' ? '🔲' : '🧭'} {m}
+            {m === 'scene' ? '🎨' : m === 'wireframe' ? '🔲' : m === 'normals' ? '🧭' : '🌌'} {m === 'flat-semantic' ? '2d-revolution' : m}
           </button>
         ))}
+
+        <div className="w-px h-3 bg-studio-border/30 mx-1" />
+
+        <button
+          onClick={() => alert("Absorb HTML into Semantic2D via Graph pipeline.")}
+          className="px-1.5 py-0.5 rounded text-fuchsia-400 hover:bg-fuchsia-500/20 transition ml-1 flex items-center gap-1"
+        >
+          ✨ Absorb HTML
+        </button>
 
         <div className="w-px h-3 bg-studio-border/30 mx-1" />
 
@@ -296,7 +305,8 @@ export function ViewportPanel() {
       <div className="flex-1 relative" style={{ minHeight: 300 }}>
         <Canvas
           shadows
-          camera={{ position: [8, 6, 8], fov: 50 }}
+          orthographic={state.mode === 'flat-semantic'}
+          camera={{ position: state.mode === 'flat-semantic' ? [0, 0, 10] : [8, 6, 8], fov: 50, zoom: state.mode === 'flat-semantic' ? 50 : 1 }}
           style={{ background: state.backgroundColor }}
           gl={{ antialias: true, alpha: false }}
         >

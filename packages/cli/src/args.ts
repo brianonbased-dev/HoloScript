@@ -91,6 +91,7 @@ export interface CLIOptions {
   description?: string;
   brittneyUrl?: string;
   target?: string;
+  projection?: string;
   watch: boolean;
   split: boolean;
   /** Runtime profile (headless, minimal, standard, vr) */
@@ -330,6 +331,9 @@ export function parseArgs(args: string[]): CLIOptions {
       case '-t':
       case '--target':
         options.target = args[++i];
+        break;
+      case '--projection':
+        options.projection = args[++i];
         break;
       case '-w':
       case '--watch':

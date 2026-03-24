@@ -82,23 +82,23 @@ export default ${safeName}Component;
 
   private generateReactNode(obj: any): string {
     const traits = this.extractTraits(obj);
-    let tag = traits.panel?.tag || obj.type?.toLowerCase() || 'div';
+    let tag = traits.theme?.tag || traits.panel?.tag || obj.type?.toLowerCase() || 'div';
     
     // Default mapping for custom semantic keywords used in HoloScript (nav, section, container)
-    if (['nav', 'section', 'main', 'footer', 'form'].includes(tag)) {
-      // Keep structural tags
+    if (['nav', 'section', 'main', 'footer', 'form', 'style', 'a', 'header', 'h1', 'h2', 'h3'].includes(tag)) {
+      // Keep structural and explicit tags
     } else if (tag === 'container') {
       tag = 'div';
-    } else if (traits.text || tag === 'text') {
-      tag = this.mapTextVariantToTag(traits.text?.variant || 'body');
+    } else if (traits.link || tag === 'link') {
+      tag = 'a';
     } else if (traits.button || tag === 'button') {
       tag = 'button';
     } else if (traits.image || tag === 'image') {
       tag = 'img';
     } else if (traits.input || tag === 'input') {
       tag = 'input';
-    } else if (traits.link || tag === 'link') {
-      tag = 'a';
+    } else if (traits.text || tag === 'text') {
+      tag = this.mapTextVariantToTag(traits.text?.variant || 'body');
     } else {
       tag = 'div';
     }
@@ -109,6 +109,9 @@ export default ${safeName}Component;
     
     if (traits.theme?.className) {
       classes.push(traits.theme.className);
+    }
+    if (traits.theme?.id) {
+      props += ` id="${traits.theme.id}"`;
     }
 
     let combinedStyles: Record<string, string> = { ...styles };
@@ -128,6 +131,14 @@ export default ${safeName}Component;
     }
     if (classes.length > 0) {
       props += ` className="${classes.join(' ')}"`;
+    }
+    if (traits.theme?.attributes) {
+      try {
+        const parsedAttrs = JSON.parse(traits.theme.attributes);
+        for (const [key, value] of Object.entries(parsedAttrs)) {
+          props += ` ${key}="${value}"`;
+        }
+      } catch(e) {}
     }
 
     // Interactive props
@@ -162,6 +173,10 @@ export default ${safeName}Component;
       .join('\n');
 
     const content = traits.text?.content || traits.button?.content || traits.link?.content || traits.icon?.name;
+    let safeContent = '';
+    if (content) {
+      safeContent = `{\`${content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`}`;
+    }
 
     if (tag === 'style') {
       const escapedStyle = (content || '').replace(/`/g, '\\`').replace(/\$/g, '\\$');
@@ -173,7 +188,7 @@ export default ${safeName}Component;
     }
 
     return `<${tag}${props}>
-      ${content ? content : ''}
+      ${safeContent}
       ${childrenMarkup}
     </${tag}>`;
   }
@@ -227,23 +242,23 @@ export default ${safeName}Component;
 
   private generateHTMLNode(obj: any): string {
     const traits = this.extractTraits(obj);
-    let tag = traits.panel?.tag || obj.type?.toLowerCase() || 'div';
+    let tag = traits.theme?.tag || traits.panel?.tag || obj.type?.toLowerCase() || 'div';
     
     // Keyword extraction for parsing output logic
-    if (['nav', 'section', 'main', 'footer', 'form', 'style'].includes(tag)) {
-      // Keep
+    if (['nav', 'section', 'main', 'footer', 'form', 'style', 'a', 'header', 'h1', 'h2', 'h3'].includes(tag)) {
+      // Keep structural and explicit tags
     } else if (tag === 'container') {
       tag = 'div';
-    } else if (traits.text || tag === 'text') {
-      tag = this.mapTextVariantToTag(traits.text?.variant || 'body');
+    } else if (traits.link || tag === 'link') {
+      tag = 'a';
     } else if (traits.button || tag === 'button') {
       tag = 'button';
     } else if (traits.image || tag === 'image') {
       tag = 'img';
     } else if (traits.input || tag === 'input') {
       tag = 'input';
-    } else if (traits.link || tag === 'link') {
-      tag = 'a';
+    } else if (traits.text || tag === 'text') {
+      tag = this.mapTextVariantToTag(traits.text?.variant || 'body');
     } else {
       tag = 'div';
     }
@@ -254,6 +269,9 @@ export default ${safeName}Component;
     
     if (traits.theme?.className) {
       classes.push(traits.theme.className);
+    }
+    if (traits.theme?.id) {
+      props += ` id="${traits.theme.id}"`;
     }
 
     if (Object.keys(styles).length > 0 || traits.theme?.style) {
@@ -266,6 +284,14 @@ export default ${safeName}Component;
     
     if (classes.length > 0) {
       props += ` class="${classes.join(' ')}"`;
+    }
+    if (traits.theme?.attributes) {
+      try {
+        const parsedAttrs = JSON.parse(traits.theme.attributes);
+        for (const [key, value] of Object.entries(parsedAttrs)) {
+          props += ` ${key}="${value}"`;
+        }
+      } catch(e) {}
     }
 
     // Input attributes
@@ -303,6 +329,12 @@ export default ${safeName}Component;
     if (!obj.traits) return map;
     for (const t of obj.traits) {
       map[t.name] = t.config || {};
+      
+      // Special case for primitive traits like @tailwind which might be passed as a single string 
+      // instead of an object if used like @tailwind("bg-black")
+      if (t.name === 'tailwind' && typeof t.config === 'string') {
+        map[t.name] = { classes: t.config };
+      }
     }
     return map;
   }
@@ -388,6 +420,10 @@ export default ${safeName}Component;
 
     if (traits.input) {
       classes.push('px-4 py-2 rounded-lg border border-gray-700 bg-gray-900 text-white focus:ring-2 focus:ring-indigo-500 outline-none');
+    }
+
+    if (traits.tailwind?.classes) {
+      classes.push(traits.tailwind.classes);
     }
 
     return classes;

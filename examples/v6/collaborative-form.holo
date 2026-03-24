@@ -1,0 +1,46 @@
+composition "CollaborativeForm" {
+
+  @2d_canvas(title: "Semantic Collab Form", projection: "flat-semantic")
+  @procedural_field(turbulence: 0.15, color: "#f3f4f6", intensity: 0.8)
+
+  object "FormContainer" {
+    @semantic_entity(id: "collab-form", type: "form-container")
+    @semantic_layout(flow: "priority", spacing: 20)
+    @agent_attention(swarm_size: 20, bounty_threshold: 100)
+
+    object "Title" {
+      @semantic_entity(type: "heading")
+      @spatial_text_layout(alignment: "center")
+    }
+
+    object "FieldGroup" {
+      @semantic_entity(type: "field-group")
+      @semantic_layout(flow: "semantic", spacing: 12)
+
+      object "FirstNameField" {
+        @semantic_entity(type: "text-input")
+        @intent_driven(intents: ["focus", "blur", "type"])
+        @dynamic_visual(color: "var(--color-focus)")
+      }
+
+      object "LastNameField" {
+        @semantic_entity(type: "text-input")
+        @intent_driven(intents: ["focus", "blur", "type"])
+        @particle_feedback(on: "validate", type: "success")
+      }
+    }
+
+    object "SubmitButton" {
+      @semantic_entity(type: "primary-button")
+      @intent_driven(intents: ["submit-form"])
+      @particle_feedback(on: "submit", type: "burst")
+      @agent_attention(swarm_size: 5, bounty_threshold: 20)
+    }
+
+    object "AIAssistance" {
+      @semantic_entity(type: "ai-copilot-widget")
+      @intent_driven(intents: ["auto-fill-request"])
+      @live_metric(stream: "confidence-score", format: "percent", adaptive_color: true)
+    }
+  }
+}

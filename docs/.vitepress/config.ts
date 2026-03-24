@@ -186,6 +186,7 @@ export default defineConfig({
             { text: 'Objects & Orbs', link: '/guides/objects' },
             { text: 'VR Traits', link: '/guides/traits' },
             { text: 'Compositions', link: '/guides/compositions' },
+            { text: 'Revolutionizing 2D UI (V6)', link: '/guides/2d-revolution' },
           ],
         },
         {
