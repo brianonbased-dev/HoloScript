@@ -1,37 +1,81 @@
 /**
  * A2A (Agent-to-Agent) Protocol Implementation for HoloScript MCP Server
  *
- * Implements the A2A specification (https://a2a-protocol.org/latest/specification/)
+ * Full implementation of the A2A specification (https://a2a-protocol.org/latest/specification/)
  * providing:
- * - Agent Card at /.well-known/agent-card.json
- * - Task lifecycle (create, get, list, cancel)
- * - Skill mapping from MCP tools to A2A AgentSkill objects
+ * - Agent Card at /.well-known/agent-card.json (spec-compliant with securitySchemes)
+ * - JSON-RPC 2.0 transport (a2a.sendMessage, a2a.getTask, a2a.listTasks, a2a.cancelTask)
+ * - Task lifecycle with full state machine (submitted -> working -> completed/failed/canceled/input-required/auth-required/rejected)
+ * - Skill mapping from MCP tools to A2A AgentSkill objects with inputSchema/outputSchema
+ * - REST fallback endpoints for backwards compatibility
  *
- * Tasks delegate to the existing MCP tool handler pipeline, bridging A2A
- * interoperability with the full 82+ HoloScript tool surface.
+ * Tasks delegate to the existing MCP tool handler pipeline via triple-gate security,
+ * bridging A2A interoperability with the full 82+ HoloScript tool surface.
  */
 
 import { randomUUID } from 'crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 // =============================================================================
-// A2A TYPES (per specification)
+// A2A TYPES (per specification — https://a2a-protocol.org/latest/specification/)
 // =============================================================================
+
+// ── Security Schemes ─────────────────────────────────────────────────────────
+
+export interface APIKeySecurityScheme {
+  type: 'apiKey';
+  description?: string;
+  name: string;
+  in: 'header' | 'query';
+}
+
+export interface HTTPAuthSecurityScheme {
+  type: 'http';
+  description?: string;
+  scheme: string; // e.g. 'bearer', 'basic'
+  bearerFormat?: string;
+}
+
+export interface OAuth2Flow {
+  authorizationUrl?: string;
+  tokenUrl?: string;
+  scopes: Record<string, string>;
+}
+
+export interface OAuth2SecurityScheme {
+  type: 'oauth2';
+  description?: string;
+  flows: {
+    authorizationCode?: OAuth2Flow;
+    clientCredentials?: OAuth2Flow;
+    implicit?: OAuth2Flow;
+  };
+}
+
+export interface OpenIdConnectSecurityScheme {
+  type: 'openIdConnect';
+  description?: string;
+  openIdConnectUrl: string;
+}
+
+export type SecurityScheme =
+  | APIKeySecurityScheme
+  | HTTPAuthSecurityScheme
+  | OAuth2SecurityScheme
+  | OpenIdConnectSecurityScheme;
+
+// ── Agent Card ───────────────────────────────────────────────────────────────
 
 export interface AgentProvider {
   organization: string;
   url: string;
 }
 
-export interface AgentAuthentication {
-  schemes: string[];
-  credentials?: string;
-}
-
 export interface AgentCapabilities {
   streaming: boolean;
   pushNotifications: boolean;
   stateTransitionHistory: boolean;
+  extendedAgentCard?: boolean;
 }
 
 export interface AgentSkill {
@@ -42,54 +86,117 @@ export interface AgentSkill {
   examples?: string[];
   inputModes: string[];
   outputModes: string[];
+  /** JSON Schema for skill input parameters (derived from MCP tool inputSchema) */
+  inputSchema?: Record<string, unknown>;
+  /** JSON Schema for skill output (derived from MCP tool output format) */
+  outputSchema?: Record<string, unknown>;
 }
 
 export interface AgentCard {
+  /** Unique agent identifier */
+  id: string;
+  /** Human-readable agent name */
   name: string;
+  /** Detailed agent description */
   description: string;
-  url: string;
+  /** Service endpoint URL (JSON-RPC 2.0 transport) */
+  endpoint: string;
+  /** Agent card version */
   version: string;
+  /** URL to documentation */
   documentationUrl?: string;
+  /** Agent provider information */
   provider: AgentProvider;
+  /** Declared capabilities */
   capabilities: AgentCapabilities;
-  authentication: AgentAuthentication;
+  /** Security scheme definitions (referenced by `security`) */
+  securitySchemes: Record<string, SecurityScheme>;
+  /** Default security requirements (references keys in securitySchemes) */
+  security: Record<string, string[]>[];
+  /** Default input content types accepted */
   defaultInputModes: string[];
+  /** Default output content types produced */
   defaultOutputModes: string[];
+  /** Skill declarations (mapped from MCP tools) */
   skills: AgentSkill[];
+
+  // ── Legacy compatibility fields (kept for backwards-compat) ──────────────
+  /** @deprecated Use `endpoint` instead. Kept for legacy consumers. */
+  url?: string;
+  /** @deprecated Use `securitySchemes` instead. */
+  authentication?: {
+    schemes: string[];
+    credentials?: string;
+  };
 }
 
-// Task states per A2A spec
+// ── Task Types ───────────────────────────────────────────────────────────────
+
+/**
+ * Full task state machine per A2A spec.
+ *
+ * Active states: submitted, working, input-required, auth-required
+ * Terminal states: completed, failed, canceled, rejected
+ */
 export type TaskState =
   | 'submitted'
   | 'working'
   | 'input-required'
+  | 'auth-required'
   | 'completed'
   | 'failed'
-  | 'canceled';
+  | 'canceled'
+  | 'rejected';
+
+/** Terminal states that cannot transition further */
+const TERMINAL_STATES: TaskState[] = ['completed', 'failed', 'canceled', 'rejected'];
+
+export interface TaskPart {
+  type: 'text' | 'data' | 'file';
+  /** Text content (when type = 'text') */
+  text?: string;
+  /** Structured data (when type = 'data') */
+  data?: unknown;
+  /** MIME type of the content */
+  mimeType?: string;
+  /** File reference (when type = 'file') */
+  fileReference?: {
+    url: string;
+    name?: string;
+    size?: number;
+    mimeType?: string;
+  };
+}
 
 export interface TaskMessage {
   role: 'user' | 'agent';
   parts: TaskPart[];
   timestamp: string;
-}
-
-export interface TaskPart {
-  type: 'text' | 'data' | 'file';
-  text?: string;
-  data?: unknown;
-  mimeType?: string;
+  /** Conversation context identifier for multi-turn */
+  contextId?: string;
+  /** Parent task reference */
+  taskId?: string;
+  /** Related task references */
+  referenceTaskIds?: string[];
 }
 
 export interface TaskArtifact {
+  /** Unique artifact identifier */
+  id: string;
   name: string;
   description?: string;
   parts: TaskPart[];
   index: number;
+  /** Primary media type */
+  mediaType?: string;
+  /** Additional artifact metadata */
+  metadata?: Record<string, unknown>;
 }
 
 export interface A2ATask {
   id: string;
   sessionId?: string;
+  contextId?: string;
   status: {
     state: TaskState;
     message?: TaskMessage;
@@ -102,9 +209,12 @@ export interface A2ATask {
   updatedAt: string;
 }
 
+// ── Request/Response Types ───────────────────────────────────────────────────
+
 export interface SendTaskRequest {
   id?: string;
   sessionId?: string;
+  contextId?: string;
   message: TaskMessage;
   /** Optional: specify which skill (MCP tool) to invoke */
   skillId?: string;
@@ -116,10 +226,41 @@ export interface SendTaskRequest {
 export interface SendTaskResponse {
   id: string;
   sessionId?: string;
+  contextId?: string;
   status: A2ATask['status'];
   artifacts: TaskArtifact[];
   history: TaskMessage[];
 }
+
+// ── JSON-RPC 2.0 Types ──────────────────────────────────────────────────────
+
+export interface JsonRpcRequest {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  method: string;
+  params?: Record<string, unknown>;
+}
+
+export interface JsonRpcResponse {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  result?: unknown;
+  error?: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+}
+
+// Standard JSON-RPC error codes
+const JSONRPC_PARSE_ERROR = -32700;
+const JSONRPC_INVALID_REQUEST = -32600;
+const JSONRPC_METHOD_NOT_FOUND = -32601;
+const JSONRPC_INVALID_PARAMS = -32602;
+const JSONRPC_INTERNAL_ERROR = -32603;
+// A2A-specific error codes (application layer: -32000 to -32099)
+const A2A_TASK_NOT_FOUND = -32001;
+const A2A_TASK_NOT_CANCELABLE = -32002;
 
 // =============================================================================
 // SKILL CATEGORY MAPPING
@@ -285,9 +426,12 @@ function deriveSkillExamples(tool: Tool): string[] {
 
 /**
  * Convert an MCP Tool definition into an A2A AgentSkill.
+ *
+ * Maps the full MCP inputSchema to A2A's inputSchema field, and generates
+ * a standard outputSchema describing the tool's return format.
  */
 export function mcpToolToA2ASkill(tool: Tool): AgentSkill {
-  return {
+  const skill: AgentSkill = {
     id: tool.name,
     name: tool.name
       .replace(/_/g, ' ')
@@ -300,10 +444,41 @@ export function mcpToolToA2ASkill(tool: Tool): AgentSkill {
     inputModes: ['text/plain', 'application/json'],
     outputModes: ['text/plain', 'application/json', 'application/holoscript'],
   };
+
+  // Map MCP tool inputSchema to A2A skill inputSchema
+  if (tool.inputSchema) {
+    skill.inputSchema = tool.inputSchema as Record<string, unknown>;
+  }
+
+  // Standard output schema for all HoloScript tools
+  skill.outputSchema = {
+    type: 'object',
+    properties: {
+      content: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['text'] },
+            text: { type: 'string' },
+          },
+        },
+      },
+    },
+  };
+
+  return skill;
 }
 
 /**
  * Build the complete A2A Agent Card from the current tool inventory.
+ *
+ * Generates a spec-compliant Agent Card with:
+ * - Unique `id` identifier
+ * - `endpoint` URL for JSON-RPC 2.0 transport
+ * - `securitySchemes` with API key, Bearer token, and OAuth2 definitions
+ * - `security` array referencing the scheme keys
+ * - All MCP tools mapped to AgentSkill objects with inputSchema/outputSchema
  */
 export function buildAgentCard(
   allTools: Tool[],
@@ -312,14 +487,66 @@ export function buildAgentCard(
 ): AgentCard {
   const skills = allTools.map(mcpToolToA2ASkill);
 
-  return {
+  // Build security schemes based on configuration
+  const securitySchemes: Record<string, SecurityScheme> = {};
+  const security: Record<string, string[]>[] = [];
+
+  if (apiKeyConfigured) {
+    securitySchemes['apiKey'] = {
+      type: 'apiKey',
+      description: 'API key passed via x-api-key header',
+      name: 'x-api-key',
+      in: 'header',
+    };
+    securitySchemes['bearerAuth'] = {
+      type: 'http',
+      description: 'Bearer token (API key or OAuth2 access token) via Authorization header',
+      scheme: 'bearer',
+    };
+    securitySchemes['oauth2'] = {
+      type: 'oauth2',
+      description: 'OAuth 2.1 with PKCE and client credentials flows',
+      flows: {
+        authorizationCode: {
+          authorizationUrl: `${baseUrl}/oauth/authorize`,
+          tokenUrl: `${baseUrl}/oauth/token`,
+          scopes: {
+            'tools:read': 'Read-only access to tool outputs',
+            'tools:write': 'Read-write access to tool operations',
+            'tools:admin': 'Administrative tool access',
+            'admin:*': 'Full administrative access',
+          },
+        },
+        clientCredentials: {
+          tokenUrl: `${baseUrl}/oauth/token`,
+          scopes: {
+            'tools:read': 'Read-only access to tool outputs',
+            'tools:write': 'Read-write access to tool operations',
+          },
+        },
+      },
+    };
+    securitySchemes['openIdConnect'] = {
+      type: 'openIdConnect',
+      description: 'OpenID Connect discovery for OAuth 2.1',
+      openIdConnectUrl: `${baseUrl}/.well-known/openid-configuration`,
+    };
+
+    // Any one of these schemes is sufficient
+    security.push({ 'apiKey': [] });
+    security.push({ 'bearerAuth': [] });
+    security.push({ 'oauth2': ['tools:read'] });
+  }
+
+  const card: AgentCard = {
+    id: 'holoscript-agent',
     name: 'HoloScript Agent',
     description:
       'HoloScript language tooling agent — parse, validate, compile, render, and generate ' +
       'spatial computing code (.hs/.hsplus/.holo) across 28+ export targets including Unity, ' +
       'Unreal, WebGPU, VisionOS, and more. Provides 82+ tools for codebase intelligence, ' +
       'AI-assisted code generation, graph analysis, multiplayer networking, and browser preview.',
-    url: `${baseUrl}/a2a`,
+    endpoint: `${baseUrl}/a2a`,
     version: '1.0.0',
     documentationUrl: 'https://github.com/buildwithholoscript/HoloScript',
     provider: {
@@ -330,7 +557,16 @@ export function buildAgentCard(
       streaming: false,
       pushNotifications: false,
       stateTransitionHistory: true,
+      extendedAgentCard: false,
     },
+    securitySchemes,
+    security,
+    defaultInputModes: ['text/plain', 'application/json'],
+    defaultOutputModes: ['text/plain', 'application/json', 'application/holoscript'],
+    skills,
+
+    // Legacy compatibility
+    url: `${baseUrl}/a2a`,
     authentication: apiKeyConfigured
       ? {
           schemes: ['Bearer', 'ApiKey'],
@@ -339,10 +575,9 @@ export function buildAgentCard(
       : {
           schemes: [],
         },
-    defaultInputModes: ['text/plain', 'application/json'],
-    defaultOutputModes: ['text/plain', 'application/json', 'application/holoscript'],
-    skills,
   };
+
+  return card;
 }
 
 // =============================================================================
@@ -373,9 +608,9 @@ export function createTask(request: SendTaskRequest): A2ATask {
 
   // Enforce max tasks
   if (taskStore.size >= MAX_TASKS) {
-    // Remove oldest completed/failed/canceled tasks first
+    // Remove oldest completed/failed/canceled/rejected tasks first
     const removable = [...taskStore.entries()]
-      .filter(([, t]) => ['completed', 'failed', 'canceled'].includes(t.status.state))
+      .filter(([, t]) => TERMINAL_STATES.includes(t.status.state))
       .sort((a, b) => new Date(a[1].createdAt).getTime() - new Date(b[1].createdAt).getTime());
 
     for (const [id] of removable) {
@@ -388,6 +623,7 @@ export function createTask(request: SendTaskRequest): A2ATask {
   const task: A2ATask = {
     id: request.id || randomUUID(),
     sessionId: request.sessionId,
+    contextId: request.contextId,
     status: {
       state: 'submitted',
       timestamp: now,
@@ -415,6 +651,7 @@ export function getTask(id: string): A2ATask | undefined {
  */
 export function listTasks(filters?: {
   sessionId?: string;
+  contextId?: string;
   state?: TaskState;
   limit?: number;
   offset?: number;
@@ -423,6 +660,9 @@ export function listTasks(filters?: {
 
   if (filters?.sessionId) {
     tasks = tasks.filter((t) => t.sessionId === filters.sessionId);
+  }
+  if (filters?.contextId) {
+    tasks = tasks.filter((t) => t.contextId === filters.contextId);
   }
   if (filters?.state) {
     tasks = tasks.filter((t) => t.status.state === filters.state);
@@ -447,7 +687,7 @@ export function cancelTask(id: string): A2ATask | undefined {
   if (!task) return undefined;
 
   // Only cancel if not already in a terminal state
-  if (['completed', 'failed', 'canceled'].includes(task.status.state)) {
+  if (TERMINAL_STATES.includes(task.status.state)) {
     return task; // Already terminal, return as-is
   }
 
@@ -492,7 +732,8 @@ export async function executeTask(
               type: 'text',
               text:
                 'Please specify a skillId (MCP tool name) to invoke. ' +
-                'You can discover available skills via GET /.well-known/agent-card.json',
+                'You can discover available skills via GET /.well-known/agent-card.json ' +
+                'or by calling the a2a.getExtendedAgentCard JSON-RPC method.',
             },
           ],
           timestamp: now(),
@@ -509,6 +750,7 @@ export async function executeTask(
     // Build artifact from result
     const resultText = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
     const artifact: TaskArtifact = {
+      id: randomUUID(),
       name: `${skillId}_result`,
       description: `Output from ${skillId} tool execution`,
       parts: [
@@ -519,6 +761,7 @@ export async function executeTask(
         },
       ],
       index: task.artifacts.length,
+      mediaType: typeof result === 'string' ? 'text/plain' : 'application/json',
     };
     task.artifacts.push(artifact);
 
@@ -527,6 +770,8 @@ export async function executeTask(
       role: 'agent',
       parts: [{ type: 'text', text: resultText }],
       timestamp: now(),
+      contextId: task.contextId,
+      taskId: task.id,
     };
     task.history.push(agentMessage);
 
@@ -544,6 +789,8 @@ export async function executeTask(
       role: 'agent',
       parts: [{ type: 'text', text: `Error: ${errorMessage}` }],
       timestamp: now(),
+      contextId: task.contextId,
+      taskId: task.id,
     };
     task.history.push(agentMessage);
 
@@ -564,7 +811,7 @@ export async function executeTask(
  * Supports multiple invocation patterns:
  * 1. Explicit skillId + arguments in the task metadata
  * 2. JSON payload in the first message part with { tool, arguments }
- * 3. Text-based skill routing via the first message
+ * 3. Data parts with tool invocation
  */
 function extractToolInvocation(task: A2ATask): {
   skillId: string | undefined;
@@ -613,6 +860,271 @@ function extractToolInvocation(task: A2ATask): {
 }
 
 // =============================================================================
+// JSON-RPC 2.0 TRANSPORT HANDLER
+// =============================================================================
+
+/**
+ * Handle a JSON-RPC 2.0 request per A2A specification.
+ *
+ * Supported methods:
+ * - a2a.sendMessage: Send a message to create/continue a task
+ * - a2a.getTask: Get task by ID
+ * - a2a.listTasks: List tasks with optional filters
+ * - a2a.cancelTask: Cancel a running task
+ * - a2a.getExtendedAgentCard: Get agent card (authenticated, may include extra info)
+ *
+ * @param request The parsed JSON-RPC request
+ * @param toolHandler Function to execute MCP tools (routed through triple-gate security)
+ * @param agentCardBuilder Function to build the agent card for getExtendedAgentCard
+ * @returns JSON-RPC response
+ */
+export async function handleJsonRpcRequest(
+  request: JsonRpcRequest,
+  toolHandler: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+  agentCardBuilder?: () => AgentCard,
+): Promise<JsonRpcResponse> {
+  const { id, method, params } = request;
+
+  switch (method) {
+    // ── a2a.sendMessage ────────────────────────────────────────────────────
+    case 'a2a.sendMessage': {
+      if (!params?.message) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: JSONRPC_INVALID_PARAMS,
+            message: 'Missing required parameter: message',
+          },
+        };
+      }
+
+      const message: TaskMessage = params.message as TaskMessage;
+      if (!message.parts || !Array.isArray(message.parts) || message.parts.length === 0) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: JSONRPC_INVALID_PARAMS,
+            message: 'message.parts must be a non-empty array',
+          },
+        };
+      }
+
+      // Ensure timestamp
+      if (!message.timestamp) {
+        message.timestamp = new Date().toISOString();
+      }
+      if (!message.role) {
+        message.role = 'user';
+      }
+
+      const taskRequest: SendTaskRequest = {
+        id: params.id as string | undefined,
+        sessionId: params.sessionId as string | undefined,
+        contextId: (params.contextId || message.contextId) as string | undefined,
+        message,
+        skillId: params.skillId as string | undefined,
+        arguments: params.arguments as Record<string, unknown> | undefined,
+        metadata: {
+          ...(params.metadata as Record<string, unknown> || {}),
+          ...(params.skillId ? { skillId: params.skillId } : {}),
+          ...(params.arguments ? { arguments: params.arguments } : {}),
+        },
+      };
+
+      const task = createTask(taskRequest);
+      const executed = await executeTask(task, toolHandler);
+
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: taskToResponse(executed),
+      };
+    }
+
+    // ── a2a.getTask ────────────────────────────────────────────────────────
+    case 'a2a.getTask': {
+      const taskId = params?.id as string;
+      if (!taskId) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: JSONRPC_INVALID_PARAMS,
+            message: 'Missing required parameter: id',
+          },
+        };
+      }
+
+      const task = getTask(taskId);
+      if (!task) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: A2A_TASK_NOT_FOUND,
+            message: `Task not found: ${taskId}`,
+          },
+        };
+      }
+
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: taskToResponse(task),
+      };
+    }
+
+    // ── a2a.listTasks ──────────────────────────────────────────────────────
+    case 'a2a.listTasks': {
+      const filters: {
+        sessionId?: string;
+        contextId?: string;
+        state?: TaskState;
+        limit?: number;
+        offset?: number;
+      } = {};
+
+      if (params?.sessionId) filters.sessionId = params.sessionId as string;
+      if (params?.contextId) filters.contextId = params.contextId as string;
+      if (params?.state) filters.state = params.state as TaskState;
+      if (params?.limit) filters.limit = params.limit as number;
+      if (params?.offset) filters.offset = params.offset as number;
+
+      const result = listTasks(filters);
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          tasks: result.tasks.map(taskToResponse),
+          total: result.total,
+        },
+      };
+    }
+
+    // ── a2a.cancelTask ─────────────────────────────────────────────────────
+    case 'a2a.cancelTask': {
+      const taskId = params?.id as string;
+      if (!taskId) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: JSONRPC_INVALID_PARAMS,
+            message: 'Missing required parameter: id',
+          },
+        };
+      }
+
+      const task = getTask(taskId);
+      if (!task) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: A2A_TASK_NOT_FOUND,
+            message: `Task not found: ${taskId}`,
+          },
+        };
+      }
+
+      if (TERMINAL_STATES.includes(task.status.state)) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: A2A_TASK_NOT_CANCELABLE,
+            message: `Task ${taskId} is already in terminal state: ${task.status.state}`,
+          },
+        };
+      }
+
+      const canceled = cancelTask(taskId)!;
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: taskToResponse(canceled),
+      };
+    }
+
+    // ── a2a.getExtendedAgentCard ───────────────────────────────────────────
+    case 'a2a.getExtendedAgentCard': {
+      if (agentCardBuilder) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: agentCardBuilder(),
+        };
+      }
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: JSONRPC_METHOD_NOT_FOUND,
+          message: 'Extended agent card not available',
+        },
+      };
+    }
+
+    // ── Unknown method ─────────────────────────────────────────────────────
+    default:
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: {
+          code: JSONRPC_METHOD_NOT_FOUND,
+          message: `Unknown method: ${method}. Supported: a2a.sendMessage, a2a.getTask, a2a.listTasks, a2a.cancelTask, a2a.getExtendedAgentCard`,
+        },
+      };
+  }
+}
+
+/**
+ * Validate a raw JSON body as a JSON-RPC 2.0 request.
+ * Returns the parsed request or an error response.
+ */
+export function parseJsonRpcRequest(
+  body: Record<string, unknown>
+): { request: JsonRpcRequest } | { error: JsonRpcResponse } {
+  // Validate JSON-RPC 2.0 envelope
+  if (body.jsonrpc !== '2.0') {
+    return {
+      error: {
+        jsonrpc: '2.0',
+        id: (body.id as string | number | null) ?? null,
+        error: {
+          code: JSONRPC_INVALID_REQUEST,
+          message: 'Invalid JSON-RPC: missing or incorrect "jsonrpc" field (must be "2.0")',
+        },
+      },
+    };
+  }
+
+  if (!body.method || typeof body.method !== 'string') {
+    return {
+      error: {
+        jsonrpc: '2.0',
+        id: (body.id as string | number | null) ?? null,
+        error: {
+          code: JSONRPC_INVALID_REQUEST,
+          message: 'Invalid JSON-RPC: missing or non-string "method" field',
+        },
+      },
+    };
+  }
+
+  return {
+    request: {
+      jsonrpc: '2.0',
+      id: (body.id as string | number | null) ?? null,
+      method: body.method as string,
+      params: (body.params as Record<string, unknown>) || undefined,
+    },
+  };
+}
+
+// =============================================================================
 // HTTP REQUEST/RESPONSE HELPERS
 // =============================================================================
 
@@ -623,6 +1135,7 @@ export function taskToResponse(task: A2ATask): SendTaskResponse {
   return {
     id: task.id,
     sessionId: task.sessionId,
+    contextId: task.contextId,
     status: task.status,
     artifacts: task.artifacts,
     history: task.history,

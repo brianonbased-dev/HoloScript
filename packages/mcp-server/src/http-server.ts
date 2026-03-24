@@ -35,9 +35,12 @@ import {
   cancelTask,
   executeTask,
   taskToResponse,
+  handleJsonRpcRequest,
+  parseJsonRpcRequest,
   type SendTaskRequest,
   type TaskMessage,
   type TaskState,
+  type AgentCard,
 } from './a2a';
 import {
   getOAuth21Service,
@@ -489,13 +492,71 @@ const httpServer = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       protocol: 'a2a',
       version: '1.0.0',
+      transport: 'json-rpc-2.0',
       agentCard: `${baseUrl}/.well-known/agent-card.json`,
       endpoints: {
+        jsonrpc: `${baseUrl}/a2a`,
         tasks: `${baseUrl}/a2a/tasks`,
         agentCard: `${baseUrl}/.well-known/agent-card.json`,
       },
-      description: 'HoloScript A2A (Agent-to-Agent) protocol endpoint. See agent card for capabilities.',
+      methods: [
+        'a2a.sendMessage',
+        'a2a.getTask',
+        'a2a.listTasks',
+        'a2a.cancelTask',
+        'a2a.getExtendedAgentCard',
+      ],
+      description: 'HoloScript A2A (Agent-to-Agent) protocol endpoint. ' +
+        'POST JSON-RPC 2.0 requests to this URL, or use the REST endpoints under /a2a/tasks. ' +
+        'See agent card for full capabilities.',
     }, null, 2));
+    return;
+  }
+
+  // POST /a2a — A2A JSON-RPC 2.0 transport (per A2A specification)
+  if (url === '/a2a' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+
+      // Validate JSON-RPC 2.0 envelope
+      const parsed = parseJsonRpcRequest(body);
+      if ('error' in parsed) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(parsed.error));
+        return;
+      }
+
+      // Build agent card builder for a2a.getExtendedAgentCard
+      const agentCardBuilder = (): AgentCard => {
+        const allTools = [...tools, ...PluginManager.getTools()];
+        const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+          ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+          : `http://localhost:${PORT}`;
+        return buildAgentCard(allTools, baseUrl, !!MCP_API_KEY);
+      };
+
+      // Handle the JSON-RPC request
+      const response = await handleJsonRpcRequest(
+        parsed.request,
+        handleToolForA2A,
+        agentCardBuilder,
+      );
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(response, null, 2));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // JSON-RPC spec: parse errors return -32700
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: -32700,
+          message: `Parse error: ${message}`,
+        },
+      }));
+    }
     return;
   }
 
@@ -881,6 +942,7 @@ const httpServer = http.createServer(async (req, res) => {
       const request: SendTaskRequest = {
         id: body.id as string | undefined,
         sessionId: body.sessionId as string | undefined,
+        contextId: body.contextId as string | undefined,
         message,
         skillId: body.skillId as string | undefined,
         arguments: body.arguments as Record<string, unknown> | undefined,
@@ -910,12 +972,14 @@ const httpServer = http.createServer(async (req, res) => {
     const params = new URLSearchParams(queryString);
     const filters: {
       sessionId?: string;
+      contextId?: string;
       state?: TaskState;
       limit?: number;
       offset?: number;
     } = {};
 
     if (params.get('sessionId')) filters.sessionId = params.get('sessionId')!;
+    if (params.get('contextId')) filters.contextId = params.get('contextId')!;
     if (params.get('state')) filters.state = params.get('state') as TaskState;
     if (params.get('limit')) filters.limit = parseInt(params.get('limit')!, 10);
     if (params.get('offset')) filters.offset = parseInt(params.get('offset')!, 10);
@@ -1155,7 +1219,8 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`     GET  /mcp                          - MCP session messages (authenticated)`);
   console.log(`     DELETE /mcp                        - Close session (authenticated)`);
   console.log(`     GET  /a2a                          - A2A protocol info (public)`);
-  console.log(`     POST /a2a/tasks                    - A2A send task`);
+  console.log(`     POST /a2a                          - A2A JSON-RPC 2.0 transport`);
+  console.log(`     POST /a2a/tasks                    - A2A send task (REST fallback)`);
   console.log(`     GET  /a2a/tasks                    - A2A list tasks`);
   console.log(`     GET  /a2a/tasks/:id                - A2A get task`);
   console.log(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
