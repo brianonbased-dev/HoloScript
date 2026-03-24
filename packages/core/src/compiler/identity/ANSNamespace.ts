@@ -216,6 +216,8 @@ export const ANSCapabilityPath = {
   AR: '/compile/xr/ar',
   ANDROID_XR: '/compile/xr/android-xr',
   AI_GLASSES: '/compile/xr/ai-glasses',
+  QUILT: '/compile/xr/quilt',
+  MV_HEVC: '/compile/xr/mv-hevc',
 
   // ── mobile ───────────────────────────────────────────────────────────
   ANDROID: '/compile/mobile/android',
@@ -289,6 +291,8 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   ar: ANSDomain.XR,
   'android-xr': ANSDomain.XR,
   'ai-glasses': ANSDomain.XR,
+  quilt: ANSDomain.XR,
+  'mv-hevc': ANSDomain.XR,
   // mobile
   android: ANSDomain.MOBILE,
   ios: ANSDomain.MOBILE,
@@ -345,8 +349,8 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   ar: ANSCapabilityPath.AR,
   'android-xr': ANSCapabilityPath.ANDROID_XR,
   'ai-glasses': ANSCapabilityPath.AI_GLASSES,
-  quilt: ANSCapabilityPath.VISIONOS,
-  'mv-hevc': ANSCapabilityPath.VISIONOS,
+  quilt: ANSCapabilityPath.QUILT,
+  'mv-hevc': ANSCapabilityPath.MV_HEVC,
   android: ANSCapabilityPath.ANDROID,
   ios: ANSCapabilityPath.IOS,
   babylon: ANSCapabilityPath.BABYLON,
