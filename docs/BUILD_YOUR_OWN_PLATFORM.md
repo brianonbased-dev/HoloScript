@@ -1,14 +1,14 @@
 # Build Your Own Platform with HoloScript
 
-**The React for Spatial Computing** — Build VR social platforms, training simulators, robotics platforms, and more.
+**The Spatial OS for the Agentic Era** — Build VR social platforms, autonomous agent habitats, robotics simulations, and more.
 
 ---
 
 ## Welcome
 
-HoloScript is a **commons-based meta-framework**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (VR social platform) to prove it works—now it's your turn.
+HoloScript is an **AI-Native Spatial Operating System**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (VR social platform) to prove it works—now it's your turn.
 
-This guide shows you how to build **production spatial computing platforms** using the same public APIs as Hololand.
+This guide shows you how to build **production spatial computing platforms** and **autonomous agent habitats** using the same public APIs as Hololand.
 
 ---
 
@@ -152,7 +152,7 @@ holoscript compile my-world.holo --target=r3f --output=./web-export
 
 ### Recommended Stack
 
-```
+```text
 ┌───────────────────────────────────────────────────┐
 │         YOUR PLATFORM (Application Layer)         │
 │  ├─ Branding, UI/UX, Features                    │
@@ -166,7 +166,8 @@ holoscript compile my-world.holo --target=r3f --output=./web-export
 │  ├─ Storage (worlds, assets, user data)          │
 │  └─ Auth (users, permissions, moderation)        │
 ├───────────────────────────────────────────────────┤
-│         HOLOSCRIPT (Meta-Framework)               │
+│    HOLOSCRIPT (AI-Native Spatial OS)              │
+│  ├─ Cognitive (uAAL), Perceptual (SNN), Economic (x402)│
 │  ├─ Parser, Compiler, Runtime                    │
 │  ├─ 2,000+ Traits (@grabbable, @physics, etc.)   │
 │  └─ Multi-target compilation (30+ platforms)     │
@@ -707,7 +708,7 @@ Optional: Sponsor the foundation to support development ([FUNDING.md](../FUNDING
 
 ## Ready to Build?
 
-**The React for spatial computing** is ready. Now it's your turn.
+**The AI-Native Spatial OS** is ready. Now it's your turn.
 
 Build the next Hololand. Build the next VRChat. Build something we can't imagine.
 

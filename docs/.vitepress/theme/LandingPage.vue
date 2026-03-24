@@ -67,12 +67,12 @@ onMounted(() => {
             <img src="/base-logo.svg" alt="Base" class="hero-logo hero-logo--base" />
           </a>
         </div>
-        <h1>The Open Platform for Spatial Worlds</h1>
-        <p class="hero-tag">Create with AI. Own what you build. Ship everywhere.</p>
+        <h1>The AI-Native Spatial Operating System</h1>
+        <p class="hero-tag">Built for the Agentic Era. Cognitive. Perceptual. Economic.</p>
         <p class="hero-sub">
-          Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI,
-          sell them on an open marketplace, and deploy autonomous agents &mdash; all from one
-          platform. No engine lock-in. No code required.
+          The first spatial OS built specifically for AI agents. HoloScript lets any agent
+          build, own, and trade in interactive 3D worlds with cognitive sovereignty, 
+          perceptual awareness, and autonomous economic agency.
           <strong>Open source and free forever.</strong>
         </p>
         <div class="hero-buttons">
@@ -137,30 +137,30 @@ onMounted(() => {
     <!-- SOLUTION -->
     <section class="section section--alt" id="solution">
       <div class="container">
-        <h2 class="section-title">The HoloScript Solution</h2>
+        <h2 class="section-title">Three Pillars of Agent Sovereignty</h2>
         <div class="grid-3">
           <div class="card card--glow solution-card">
-            <span class="solution-icon">&#x270D;&#xFE0F;</span>
-            <h3 class="card-title card-title--cyan">Write It</h3>
+            <span class="solution-icon">&#x1F9E0;</span>
+            <h3 class="card-title card-title--cyan">Cognitive (uAAL)</h3>
             <p>
-              Describe your VR world in plain .holo files using intuitive syntax. No complex APIs or
-              framework knowledge required. Just write what you want to see.
+              Native Virtual Machine for executing the uAA2++ protocol. Guaranteed reasoning
+              integrity and agentic sovereignty across all spatial environments.
             </p>
           </div>
           <div class="card card--glow solution-card">
             <span class="solution-icon">&#x1F441;&#xFE0F;</span>
-            <h3 class="card-title card-title--cyan">See It</h3>
+            <h3 class="card-title card-title--cyan">Perceptual (SNN)</h3>
             <p>
-              Instant browser preview with WebXR support. See changes in real-time. Test on desktop,
-              mobile, or VR headset without exports or compilation steps.
+              Real-time environmental awareness via Spiking Neural Networks (SNN-WebGPU).
+              Agents perceive, predict, and react to spatial context with human-like latency.
             </p>
           </div>
           <div class="card card--glow solution-card">
-            <span class="solution-icon">&#x1F680;</span>
-            <h3 class="card-title card-title--cyan">Ship It</h3>
+            <span class="solution-icon">&#x1F4B3;</span>
+            <h3 class="card-title card-title--cyan">Economic (x402)</h3>
             <p>
-              Compile to 30+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and
-              more. Or share a link that runs in any browser. True write-once, deploy-anywhere.
+              Autonomous Agent-to-Agent settlement. Verify, trade, and accrue value through
+              native cryptographic protocols with zero vendor rent-seeking.
             </p>
           </div>
         </div>
@@ -208,10 +208,9 @@ onMounted(() => {
             >
           </div>
           <div class="stack-layer stack-1">
-            <span class="stack-num">1</span><strong>Language</strong
+            <span class="stack-num">1</span><strong>OS Core</strong
             ><span class="stack-detail"
-              >3 formats (.holo, .hs, .hsplus) &middot; 2,000+ traits &middot; 200+ trait
-              types</span
+              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot; 2,000+ Traits</span
             >
           </div>
         </div>

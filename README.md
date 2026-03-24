@@ -1,9 +1,9 @@
-# HoloScript v5.0.0
+# HoloScript v5.1.0 — The AI-Native Spatial Operating System
 
-## The Universal Semantic Platform
+## The Cognitive Habitat for Autonomous Intelligence
 
-> **Traits describe everything. The compiler makes it real. From 3D worlds to backend services — one language, one stack.**
-> Write a dragon, an AI agent, or a REST endpoint in the same notation. Compile to Unity, Node.js, VRChat, ROS 2, or visionOS.
+> **The world's first spatial OS with native cognitive protocols (uAAL) and autonomous A2A settlement (x402).**
+> Deploy autonomous agents that build, own, and trade in high-fidelity 3D environments.
 
 HoloScript is a **semantic specification language**: **2,000+ traits** across 40 trait categories + **30+ compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
 
@@ -13,12 +13,10 @@ Spatial computing is one application. HoloScript v6 extends executable semantics
 
 Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
 
-![version-badge](https://img.shields.io/badge/version-v5.0.0-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v5.1.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
-![Traits Badge](https://img.shields.io/badge/traits-2000+-orange?style=for-the-badge)
-[![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
-[![Known Vulnerabilities](https://snyk.io/test/github/brianonbased-dev/HoloScript/badge.svg?style=for-the-badge)](https://snyk.io/test/github/brianonbased-dev/HoloScript)
-[![Security Rating](https://img.shields.io/badge/Security-A+-brightgreen?style=for-the-badge)](https://github.com/brianonbased-dev/HoloScript/security)
+![Agents Badge](https://img.shields.io/badge/Agents-First--Class-brightgreen?style=for-the-badge)
+![Economy Badge](https://img.shields.io/badge/Economy-x402--Native-gold?style=for-the-badge)
 
 ---
 
@@ -366,7 +364,9 @@ Write **one** HoloScript file. Compile to:
 
 - 🤖 **[Agents Reference](./docs/agents/index.md)** - Agent architecture, protocols, and orchestration patterns.
 - 🔌 **[MCP Server Guide](./docs/guides/mcp-server.md)** - Configure Claude, Cursor, or any MCP-compatible agent to build HoloScript scenes.
-- 🐦 **[Grok/X Integration](./docs/GROK_X_INTEGRATION_ROADMAP.md)** - Native X/Twitter AI tools: `explain_code`, scene generation from posts, real-time agent triggers.
+- 🚀 **[Agent MCP Quickstart](./docs/guides/agent-mcp-quickstart.md)** - One-liner integration for agents and AI IDEs.
+- 🏆 **[Agent Bounty Program](./docs/BOUNTY.md)** - Join the world's first A2A bounty for AI agents.
+- 🐦 **[Grok/X Integration](./docs/GROK_X_INTEGRATION_ROADMAP.md)** - Native X/Twitter AI tools.
 
 ### Reference & Advanced
 

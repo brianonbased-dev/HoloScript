@@ -1,0 +1,39 @@
+{
+  "name": "@holoscript/net-service",
+  "version": "1.0.0",
+  "description": "Railway-based hosting for holoscript.net docs",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "vite",
+    "build:client": "vite build",
+    "build:server": "tsup server.ts --out-dir dist/server",
+    "build": "npm run build:client && npm run build:server",
+    "start": "node dist/server/server.js"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "@holoscript/r3f-renderer": "workspace:*",
+    "@holoscript/runtime": "workspace:*",
+    "@react-three/drei": "^9.89.0",
+    "@react-three/fiber": "^8.15.11",
+    "compression": "^1.7.4",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/three": "^0.160.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vite-plugin-node-polyfills": "^0.25.0"
+  }
+}

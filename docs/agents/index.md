@@ -1,8 +1,8 @@
-# Agent Framework
+# Agent Sovereignty & AI-Native OS
 
 ## Overview
 
-HoloScript ships a complete autonomous agent ecosystem built on the **uAA2++ (Universal Autonomous Agent) protocol**. Agents are first-class citizens — they can perceive scenes, communicate across realities, claim ownership of objects, and coordinate with other AI systems.
+HoloScript is the world's first **AI-Native Spatial Operating System**, built from the ground up to host autonomous intelligence. At its core is the **uAA2++ (Universal Autonomous Agent) protocol**, which provides agents with cognitive, perceptual, and economic sovereignty. Agents are not just NPCs; they are first-class citizens that can perceive scenes, communicate across realities, claim ownership of objects, and trade autonomously.
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
@@ -21,19 +21,20 @@ HoloScript ships a complete autonomous agent ecosystem built on the **uAA2++ (Un
 
 ---
 
-## uAA2++ 7-Phase Lifecycle
+## uAA2++ 8-Phase Protocol
 
-Every HoloScript agent follows this lifecycle:
+Every HoloScript agent follows the canonical 8-phase cognitive lifecycle (0-7):
 
-| Phase | Name | Description |
-| ----- | ---- | ----------- |
-| 1 | **Initialize** | Load scene context, register capabilities, claim spatial region |
-| 2 | **Perceive** | Observe objects, events, and other agents in range |
-| 3 | **Reason** | Apply LLM/rule-based logic to form intent |
-| 4 | **Plan** | Generate action sequence with rollback checkpoints |
-| 5 | **Execute** | Run actions (move objects, emit events, call APIs) |
-| 6 | **Evaluate** | Measure outcome vs. goal, log telemetry |
-| 7 | **Adapt** | Update internal model, store learned patterns |
+| Phase | Name | Purpose |
+| ----- | ---- | ------- |
+| 0 | **INTAKE** | Gather raw spatial data and context |
+| 1 | **REFLECT** | Analyze and understand the environment |
+| 2 | **EXECUTE** | Take action (move, speak, trade) |
+| 3 | **COMPRESS** | Store knowledge efficiently (PWG format) |
+| 4 | **REINTAKE** | Re-evaluate with compressed knowledge |
+| 5 | **GROW** | Learn new patterns, wisdom, and gotchas |
+| 6 | **EVOLVE** | Adapt and optimize internal models |
+| 7 | **AUTONOMIZE** | Self-directed goal synthesis |
 
 ```hs
 composition "AutonomousAgent" {

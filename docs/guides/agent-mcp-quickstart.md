@@ -1,6 +1,6 @@
 # Agent MCP Quickstart: Spatial + Economic Superpowers in 60 Seconds
 
-Give any AI agent (Claude, Cursor, Windsurf, CrewAI) the ability to parse, validate, and generate **spatial compositions** and **economic protocols** across 27+ backend targets.
+Give any AI agent (Claude, Cursor, Windsurf, CrewAI) spatial and economic superpowers on the **HoloScript AI-Native Spatial Operating System**. Agents can parse, validate, and generate **spatial compositions** and **economic protocols** across 32+ backend targets.
 
 ## 1. Connect to the Hosted MCP Server
 

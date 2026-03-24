@@ -81,17 +81,12 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
       // Try the current package name first (@huggingface/transformers v3+)
       transformers = await import('@huggingface/transformers');
     } catch {
-      try {
-        // Fall back to the legacy package name (v2 era, @xenova/transformers)
-        transformers = await import('@xenova/transformers' as string);
-      } catch {
-        throw new Error(
-          'Xenova provider requires @huggingface/transformers. ' +
-            'Install it with:\n' +
-            '  pnpm add @huggingface/transformers --filter @holoscript/core\n' +
-            'or use --provider bm25 for zero-dependency operation.'
-        );
-      }
+      throw new Error(
+        'Xenova provider requires @huggingface/transformers. ' +
+          'Install it with:\n' +
+          '  pnpm add @huggingface/transformers --filter @holoscript/core\n' +
+          'or use --provider bm25 for zero-dependency operation.'
+      );
     }
 
     const { pipeline } = transformers;

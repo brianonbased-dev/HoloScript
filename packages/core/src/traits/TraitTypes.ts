@@ -7,6 +7,15 @@ import type {
   HSPlusNode,
 } from '../types/HoloScriptPlus';
 
+export type {
+  VRTraitName,
+  VRHand,
+  ThrowVelocity,
+  CollisionEvent,
+  Vector3,
+  HSPlusNode,
+};
+
 // =============================================================================
 // TRAIT HANDLER TYPES
 // =============================================================================

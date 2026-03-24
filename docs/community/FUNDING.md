@@ -1,6 +1,6 @@
 # Funding HoloScript
 
-HoloScript is a **commons-based meta-framework** for spatial computing, governed by the HoloScript Foundation. We need your support to sustain development, maintain 25+ compiler backends, and build the future of spatial computing infrastructure.
+HoloScript is an **AI-Native Spatial Operating System** for the agentic era, governed by the HoloScript Foundation. We need your support to sustain development, maintain 30+ compiler backends, and build the future of AI-native spatial infrastructure.
 
 ---
 
@@ -317,7 +317,7 @@ HoloScript's funding model is inspired by successful open-source foundations:
 - **Apache Foundation**: Meritocratic governance, project independence
 - **Rust Foundation**: Corporate sponsors fund language development
 
-We're building the **React of spatial computing**—let's build it together.
+We're building the **AI-Native Spatial OS**—let's build it together.
 
 ---
 

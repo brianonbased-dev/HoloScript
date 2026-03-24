@@ -472,13 +472,9 @@ export class DepthEstimationService {
       try {
         transformers = await import('@huggingface/transformers');
       } catch {
-        try {
-          transformers = await import('@xenova/transformers' as string);
-        } catch {
-          // Transformers.js not installed — fall back to luminance placeholder
-          this._initialized = true;
-          return;
-        }
+        // Transformers.js not installed — fall back to luminance placeholder
+        this._initialized = true;
+        return;
       }
 
       const { pipeline: createPipeline } = transformers;

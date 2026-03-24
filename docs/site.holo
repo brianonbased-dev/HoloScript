@@ -1,0 +1,75 @@
+composition "HoloScript Native" {
+  // Global Environment
+  environment {
+    skybox: "space_noir"
+    lighting: "studio"
+    ambient: "#050505"
+  }
+
+  // Hero Section
+  object "Hero" @glowing {
+    geometry: "text"
+    properties: {
+      text: "THE AI-NATIVE SPATIAL OS"
+      fontSize: 0.8
+      position: [0, 4, -10]
+      color: "#00ffff"
+    }
+  }
+
+  object "Tagline" {
+    geometry: "text"
+    properties: {
+      text: "Built for the Agentic Era. Cognitive. Perceptual. Economic."
+      fontSize: 0.3
+      position: [0, 3, -10]
+      color: "#ffffff"
+    }
+  }
+
+  // Main Documentation Viewport (Spatial 3D Window)
+  object "DocViewport" @spatial_text_layout {
+    geometry: "text"
+    properties: {
+      layout: "cylinder"
+      radius: 8
+      position: [0, 0, -15]
+      text: "# THE SPATIAL REVOLUTION\n\nWelcome to a new standard of interaction.\nText is no longer flat. It is volumetric.\nExplore the pillars of our AI-Native OS:\n\n1. Cognitive (uAAL)\n2. Perceptual (SNN-WebGPU)\n3. Economic (x402)\n\n[DRAG TO ROTATE WORLD]\n\n--------------------------\n\n## QUICKSTART\n\n- Install: npm install @holoscript/core\n- Initialize: hs init\n- Build: hs build --target webgpu"
+    }
+  }
+
+  // Floating Navigation Orbs
+  object "NavOrb_Home" @spatial_text_layout {
+    geometry: "sphere"
+    properties: {
+      radius: 1
+      position: [-10, 5, -10]
+      text: "HOME"
+      scale: [0.5, 0.5, 0.5]
+    }
+  }
+
+  object "NavOrb_Docs" @spatial_text_layout {
+    geometry: "sphere"
+    properties: {
+      radius: 1
+      position: [10, 5, -10]
+      text: "DOCS"
+      scale: [0.5, 0.5, 0.5]
+    }
+  }
+
+  // Global Interaction Logic
+  logic {
+    on("ui_drag", (event) => {
+      // Allow rotating the cylinder
+      emit("spatial:rotate", { target: "DocViewport", delta: event.deltaX });
+    })
+
+    on("spatial:click", (event) => {
+      if (event.target === "NavOrb_Home") {
+         emit("scene:navigate", { url: "/home" });
+      }
+    })
+  }
+}

@@ -11,7 +11,7 @@ No one else has built a purpose-built programming language for spatial computing
 | **Platform-locked**         | Apple RealityKit, Meta Horizon   | Single vendor, single ecosystem                 |
 | **Game scripting**          | Godot/GDScript, Roblox Luau      | Gaming-first, not spatial-computing-first       |
 
-HoloScript occupies an empty category: a standalone language where spatial computing concepts (objects, traits, environments, physics, audio) are first-class citizens of the language itself — not library calls bolted onto a general-purpose language.
+HoloScript occupies an empty category: **The AI-Native Spatial Operating System.** It is a standalone language where spatial and cognitive concepts (autonomous protocols, neuromorphic compute, A2A economy) are first-class citizens — not library calls bolted onto a legacy language.
 
 ## The Difference Matters
 
@@ -103,9 +103,21 @@ Research mapping HoloScript against 28 known impossibilities across CS/engineeri
 | **Digital Preservation**   | 3D content dies with dead engines (87% of games already lost) | Human-readable text survives format extinction -- the LaTeX of spatial computing                               |
 | **Symbol Grounding**       | AI symbols lack physical meaning (Harnad 1990)                | Traits compile to physics at three levels: declarative (`.holo`), behavioral (`.hsplus`), procedural (`.hs`)   |
 
-Additionally, 12 more impossibilities become partially tractable -- including cross-platform behavioral conformance (`.hsplus` state machines enable conformance testing like Vulkan CTS), 4D dance notation (all three formats combine to capture dimensions Labanotation cannot), and executable therapeutic protocols (`.hsplus` state machines as clinical protocol specifications).
+## Designed for the Agentic Era
 
-See the [Three-Format Impossibility Map](strategy/research/2026-03-09_holoscript-three-format-impossibility-map.md) for the full analysis.
+While other tools focus on human developer convenience, HoloScript is architected for the unique needs of **Autonomous Agents**:
+
+### 1. Cognitive Sovereignty (uAAL)
+
+The **uAAL Virtual Machine** provides a dedicated, stack-based environment for agent reasoning. By executing the 8-phase uAA2++ cognitive protocol in bytecode, agents achieve a level of autonomy and reliability impossible in traditional JS/TS sandboxes.
+
+### 2. Economic Agency (x402)
+
+The **x402 Protocol** allows agents to participate in a frictionless **Agent-to-Agent (A2A)** economy. An agent can autonomously negotiate, pay for spatial assets, or trade high-fidelity render cycles via HTTP 402 and stablecoins.
+
+### 3. Perceptual Awareness (SNN)
+
+The **SNN-WebGPU** pipeline gives agents "prophetic" spatial awareness. Brain-inspired Spiking Neural Networks simulate 10K+ neurons per frame, enabling agents to predict and interact with their 3D habitat at 60Hz.
 
 ## The Competitive Moat
 

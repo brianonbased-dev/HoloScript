@@ -2,15 +2,15 @@
 
 **Status**: In formation (Target: Q2 2026)
 
-The HoloScript Foundation is a **neutral, community-driven nonprofit** governing the HoloScript meta-framework for spatial computing.
+The HoloScript Foundation is a **neutral, community-driven nonprofit** governing the HoloScript AI-Native Spatial Operating System.
 
 ---
 
 ## Mission
 
-**Build the commons-based infrastructure for spatial computing.**
+**Build the AI-native infrastructure for the Agentic Era.**
 
-HoloScript provides neutral, open-source tools for VR, AR, robotics, and digital twins. The Foundation ensures:
+HoloScript provides neutral, open-source tools for autonomous agents, VR, AR, robotics, and digital twins. The Foundation ensures:
 
 - ✅ **No owner advantage** - Even Hololand uses public APIs only
 - ✅ **Community governance** - Major decisions via RFC process
@@ -43,27 +43,16 @@ HoloScript provides neutral, open-source tools for VR, AR, robotics, and digital
 
 ### Organizational Chart
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    BOARD OF DIRECTORS                    │
-│         (Fiduciary oversight, strategic direction)       │
-│                                                          │
-│  • 2 Platinum Sponsor Representatives                   │
-│  • 2 Gold Sponsor Representatives                       │
-│  • 1 Silver Sponsor Representative                      │
-│  • 2 Community-Elected Members                          │
-│  • 1 Executive Director (ex-officio, non-voting)        │
-│                                                          │
-│  Total: 8 members (7 voting, 1 non-voting)              │
-└─────────────────────────────────────────────────────────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-┌──────────▼────────┐ ┌───▼────────┐ ┌────▼──────────┐
-│  TECHNICAL        │ │  COMMUNITY │ │   OPERATIONS  │
-│  STEERING         │ │  COMMITTEE │ │   TEAM        │
-│  COMMITTEE (TSC)  │ │            │ │               │
-└───────────────────┘ └────────────┘ └───────────────┘
+```mermaid
+graph TD
+    Board["BOARD OF DIRECTORS (Fiduciary oversight, strategic direction)"]
+    TSC["TECHNICAL STEERING COMMITTEE (TSC)"]
+    Comm["COMMUNITY COMMITTEE"]
+    Ops["OPERATIONS TEAM"]
+
+    Board --> TSC
+    Board --> Comm
+    Board --> Ops
 ```
 
 ---
@@ -458,7 +447,7 @@ HoloScript Foundation is modeled after successful open-source foundations:
 | **LLVM Foundation**                          | Consortium model for compiler infrastructure, academic partnerships                 |
 | **Cloud Native Computing Foundation (CNCF)** | Vendor-neutral platform, clear project lifecycle (sandbox → incubating → graduated) |
 
-**Key Difference**: HoloScript Foundation governs a **single meta-framework** (not a portfolio), ensuring focus and API stability.
+**Key Difference**: HoloScript Foundation governs a **single AI-Native Spatial OS** (not a portfolio), ensuring focus and API stability.
 
 ---
 
