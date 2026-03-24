@@ -365,4 +365,242 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
       'Cultural traces (stigmergic markers) must be visible for other agents to perceive them.',
     suggestion: 'Remove @invisible from objects bearing @cultural_trace, or use a visible marker.',
   },
+
+  // =============================================================================
+  // v6 UNIVERSAL SERVICE DOMAIN CONSTRAINTS
+  // =============================================================================
+
+  // Endpoint requires service — endpoints belong to a service context
+  {
+    type: 'requires',
+    source: 'endpoint',
+    targets: ['service'],
+    message: 'Endpoints must belong to a service context.',
+    suggestion: 'Wrap this endpoint in a service block or add @service trait.',
+  },
+
+  // Handler requires http or route — handlers need an HTTP binding
+  {
+    type: 'requires',
+    source: 'handler',
+    targets: ['http'],
+    message: 'Handlers require an HTTP binding to receive requests.',
+    suggestion: 'Add @http trait with method and path properties.',
+  },
+
+  // CORS requires http — CORS is HTTP-specific
+  {
+    type: 'requires',
+    source: 'cors',
+    targets: ['http'],
+    message: 'CORS is an HTTP-specific concern and requires an HTTP binding.',
+    suggestion: 'Add @http to enable CORS headers on HTTP responses.',
+  },
+
+  // Rate limit requires http — rate limiting is HTTP-specific
+  {
+    type: 'requires',
+    source: 'rate_limit',
+    targets: ['http'],
+    message: 'Rate limiting requires HTTP request context.',
+    suggestion: 'Add @http to enable request-based rate limiting.',
+  },
+
+  // Auth requires service or http — auth middleware needs service context
+  {
+    type: 'requires',
+    source: 'auth',
+    targets: ['http'],
+    message: 'Auth middleware requires an HTTP context for token validation.',
+    suggestion: 'Add @http to enable authentication on HTTP endpoints.',
+  },
+
+  // Gateway conflicts with proxy — different service patterns
+  {
+    type: 'conflicts',
+    source: 'gateway',
+    targets: ['proxy'],
+    message: 'Gateway and proxy are mutually exclusive service patterns.',
+    suggestion: 'Use @gateway for API aggregation or @proxy for transparent forwarding, not both.',
+  },
+
+  // Load balancer conflicts with gateway — different infra layers
+  {
+    type: 'conflicts',
+    source: 'load_balancer',
+    targets: ['gateway'],
+    message: 'Load balancer and gateway operate at different infrastructure layers.',
+    suggestion:
+      'Use @load_balancer for L4/L7 traffic distribution or @gateway for API aggregation.',
+  },
+
+  // Service position mode — only one service architecture pattern
+  {
+    type: 'oneof',
+    source: 'service_architecture_mode',
+    targets: ['gateway', 'proxy', 'load_balancer', 'middleware'],
+    message: 'Only one service architecture pattern per entity.',
+    suggestion: 'Choose one: @gateway, @proxy, @load_balancer, or @middleware.',
+  },
+
+  // =============================================================================
+  // v6 UNIVERSAL DATA DOMAIN CONSTRAINTS
+  // =============================================================================
+
+  // Data index requires data_model — index needs a model to index
+  {
+    type: 'requires',
+    source: 'data_index',
+    targets: ['data_model'],
+    message: 'Data indexes require a data model to define the indexed columns.',
+    suggestion: 'Define a data_model block before creating indexes on it.',
+  },
+
+  // Data trigger requires data_model — trigger needs a model
+  {
+    type: 'requires',
+    source: 'data_trigger',
+    targets: ['data_model'],
+    message: 'Data triggers must reference a data model table.',
+    suggestion: 'Define a data_model block to provide the table for this trigger.',
+  },
+
+  // Stored procedure requires data_model — SP needs model context
+  {
+    type: 'requires',
+    source: 'stored_procedure',
+    targets: ['data_model'],
+    message: 'Stored procedures operate on data models.',
+    suggestion: 'Define a data_model block that this stored procedure targets.',
+  },
+
+  // Data view requires data_model — views derive from models
+  {
+    type: 'requires',
+    source: 'data_view',
+    targets: ['data_model'],
+    message: 'Data views are derived from data models.',
+    suggestion: 'Define a data_model block as the source for this view.',
+  },
+
+  // Migration conflicts with seed — different lifecycle phases
+  {
+    type: 'conflicts',
+    source: 'migration',
+    targets: ['seed'],
+    message: 'Migrations and seeds are different lifecycle phases and should be separate blocks.',
+    suggestion: 'Define migrations and seeds in separate blocks for clear ordering.',
+  },
+
+  // =============================================================================
+  // v6 UNIVERSAL PIPELINE DOMAIN CONSTRAINTS
+  // =============================================================================
+
+  // Consumer requires queue or topic — consumers need a message source
+  {
+    type: 'requires',
+    source: 'consumer',
+    targets: ['queue'],
+    message: 'Consumers require a queue or topic to consume messages from.',
+    suggestion: 'Define a queue block and reference it from this consumer.',
+  },
+
+  // Producer requires queue or topic — producers need a message target
+  {
+    type: 'requires',
+    source: 'producer',
+    targets: ['queue'],
+    message: 'Producers require a queue or topic to publish messages to.',
+    suggestion: 'Define a queue block and reference it from this producer.',
+  },
+
+  // Dead letter requires queue — DLQ needs a primary queue
+  {
+    type: 'requires',
+    source: 'dead_letter',
+    targets: ['queue'],
+    message: 'Dead letter queues require a primary queue to catch failed messages from.',
+    suggestion: 'Define a queue block as the source for this dead letter queue.',
+  },
+
+  // Stage requires pipeline — stages belong to pipelines
+  {
+    type: 'requires',
+    source: 'stage',
+    targets: ['pipeline'],
+    message: 'Stages must belong to a pipeline.',
+    suggestion: 'Wrap this stage in a pipeline block.',
+  },
+
+  // Worker conflicts with scheduler — different execution models
+  {
+    type: 'conflicts',
+    source: 'worker',
+    targets: ['scheduler'],
+    message: 'Workers process jobs continuously while schedulers trigger at intervals.',
+    suggestion: 'Use @worker for continuous processing or @scheduler for cron-based execution.',
+  },
+
+  // Consumer conflicts with producer on same entity — pick one direction
+  {
+    type: 'conflicts',
+    source: 'consumer',
+    targets: ['producer'],
+    message: 'An entity should be either a consumer or a producer, not both.',
+    suggestion:
+      'Split into separate consumer and producer blocks for clear message flow direction.',
+  },
+
+  // =============================================================================
+  // v6 UNIVERSAL CONTAINER/INFRA DOMAIN CONSTRAINTS
+  // =============================================================================
+
+  // Serverless conflicts with container — different deployment models
+  {
+    type: 'conflicts',
+    source: 'serverless',
+    targets: ['container'],
+    message: 'Serverless and container are mutually exclusive deployment models.',
+    suggestion: 'Choose @serverless for FaaS or @container for long-running services.',
+  },
+
+  // Horizontal scaling requires service — scaling needs a service to scale
+  {
+    type: 'requires',
+    source: 'horizontal_scaling',
+    targets: ['service'],
+    message: 'Horizontal scaling requires a service to replicate.',
+    suggestion: 'Add @service to define the scalable unit.',
+  },
+
+  // =============================================================================
+  // v6 UNIVERSAL OBSERVABILITY DOMAIN CONSTRAINTS
+  // =============================================================================
+
+  // Tracing requires service or handler — tracing needs a service context
+  {
+    type: 'requires',
+    source: 'tracing',
+    targets: ['service'],
+    message: 'Distributed tracing requires a service context for span propagation.',
+    suggestion: 'Add @service to enable trace context propagation.',
+  },
+
+  // Alerting requires metric — alerts need metrics to alert on
+  {
+    type: 'requires',
+    source: 'alerting',
+    targets: ['metric'],
+    message: 'Alerting rules require metrics to evaluate thresholds against.',
+    suggestion: 'Add @metric to define the values that trigger alerts.',
+  },
+
+  // Health check requires service — health checks monitor services
+  {
+    type: 'requires',
+    source: 'health_check',
+    targets: ['service'],
+    message: 'Health checks require a service to monitor.',
+    suggestion: 'Add @service to define the monitored service endpoint.',
+  },
 ];
