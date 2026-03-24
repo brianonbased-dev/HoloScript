@@ -54,9 +54,14 @@
     "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html",
     "self-improve": "tsx scripts/self-improve.ts --verbose",
     "self-improve:daemon": "tsx scripts/self-improve.ts --daemon --verbose",
-    "self-improve:commit": "tsx scripts/self-improve.ts --daemon --commit --verbose"
+    "self-improve:commit": "tsx scripts/self-improve.ts --daemon --commit --verbose",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "syncpack:check": "syncpack list-mismatches"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.4",
     "@anthropic-ai/sdk": "^0.78.0",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.56.1",

@@ -17,6 +17,7 @@ import { gltfImportTools } from './gltf-import-tools';
 import { editHoloTools } from './edit-holo-tools';
 import { wisdomGotchaTools } from './wisdom-gotcha-tools';
 import { absorbServiceTools } from './absorb-tools';
+import { serviceContractTools } from './service-contract-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -159,6 +160,32 @@ export const coreTools: Tool[] = [
         context: {
           type: 'string',
           description: 'Additional context about the scene or use case',
+        },
+      },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'suggest_universal_traits',
+    description:
+      'Suggest v6 universal platform traits for a service or infrastructure component. ' +
+      'Covers 8 domains: service, contract, data, network, pipeline, metric, container, resilience.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description:
+            'Description of the service or component (e.g., "REST API with JWT auth and Redis caching")',
+        },
+        domain: {
+          type: 'string',
+          enum: ['service', 'contract', 'data', 'network', 'pipeline', 'metric', 'container', 'resilience'],
+          description: 'Filter suggestions to a specific domain. Omit for cross-domain suggestions.',
+        },
+        context: {
+          type: 'string',
+          description: 'Additional context about the system architecture or use case',
         },
       },
       required: ['description'],
@@ -604,6 +631,7 @@ export const tools: Tool[] = [
   ...gltfImportTools,
   ...editHoloTools,
   ...absorbServiceTools,
+  ...serviceContractTools,
   ...PluginManager.getTools(),
 ];
 

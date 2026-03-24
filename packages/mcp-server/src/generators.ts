@@ -90,6 +90,136 @@ const TRAIT_KEYWORDS: Record<string, string[]> = {
   tweet: ['@tweetable'],
 };
 
+// Universal v6 trait keywords mapped by domain
+const UNIVERSAL_TRAIT_KEYWORDS: Record<string, { traits: string[]; domain: string }> = {
+  // Service domain
+  api: { traits: ['@service', '@endpoint', '@rest_resource'], domain: 'service' },
+  endpoint: { traits: ['@endpoint', '@route'], domain: 'service' },
+  route: { traits: ['@route', '@handler'], domain: 'service' },
+  rest: { traits: ['@rest_resource', '@endpoint'], domain: 'service' },
+  'http server': { traits: ['@service', '@endpoint', '@handler'], domain: 'service' },
+  middleware: { traits: ['@middleware'], domain: 'service' },
+  gateway: { traits: ['@api_gateway', '@ingress'], domain: 'service' },
+  proxy: { traits: ['@reverse_proxy'], domain: 'service' },
+  'load balance': { traits: ['@load_balancer'], domain: 'service' },
+  webhook: { traits: ['@webhook_receiver', '@webhook_sender'], domain: 'service' },
+  'graphql resolver': { traits: ['@graphql_resolver', '@service'], domain: 'service' },
+  cors: { traits: ['@cors_policy'], domain: 'service' },
+  'rate limit': { traits: ['@rate_limiter'], domain: 'service' },
+  'file upload': { traits: ['@file_upload', '@multipart_handler'], domain: 'service' },
+  sse: { traits: ['@sse_endpoint'], domain: 'service' },
+  batch: { traits: ['@batch_endpoint'], domain: 'service' },
+  rpc: { traits: ['@rpc_method', '@service'], domain: 'service' },
+  'health endpoint': { traits: ['@health_endpoint', '@service'], domain: 'service' },
+
+  // Contract domain
+  schema: { traits: ['@schema', '@contract'], domain: 'contract' },
+  validate: { traits: ['@validator', '@contract'], domain: 'contract' },
+  serialize: { traits: ['@serializer'], domain: 'contract' },
+  openapi: { traits: ['@openapi_path', '@openapi_response'], domain: 'contract' },
+  protobuf: { traits: ['@protobuf_message', '@serializer'], domain: 'contract' },
+  asyncapi: { traits: ['@asyncapi_channel', '@asyncapi_message'], domain: 'contract' },
+  'graphql type': { traits: ['@graphql_type', '@contract'], domain: 'contract' },
+  'json schema': { traits: ['@json_schema'], domain: 'contract' },
+  avro: { traits: ['@avro_schema', '@serializer'], domain: 'contract' },
+  dto: { traits: ['@dto', '@data_transformer'], domain: 'contract' },
+  'contract test': { traits: ['@contract_test', '@consumer_contract'], domain: 'contract' },
+  'schema evolution': { traits: ['@schema_evolution', '@backward_compatible'], domain: 'contract' },
+  sanitize: { traits: ['@input_sanitizer', '@output_filter'], domain: 'contract' },
+
+  // Data domain
+  database: { traits: ['@db', '@model', '@query'], domain: 'data' },
+  model: { traits: ['@model', '@db'], domain: 'data' },
+  query: { traits: ['@query', '@db'], domain: 'data' },
+  cache: { traits: ['@cache'], domain: 'data' },
+  migration: { traits: ['@migration', '@db'], domain: 'data' },
+  orm: { traits: ['@model', '@repository', '@data_mapper'], domain: 'data' },
+  repository: { traits: ['@repository', '@model'], domain: 'data' },
+  transaction: { traits: ['@transaction', '@db'], domain: 'data' },
+  cqrs: { traits: ['@cqrs_command', '@cqrs_query'], domain: 'data' },
+  'event store': { traits: ['@event_store', '@projection'], domain: 'data' },
+  postgres: { traits: ['@relational_db', '@db'], domain: 'data' },
+  mongodb: { traits: ['@document_db', '@db'], domain: 'data' },
+  redis: { traits: ['@key_value_store', '@cache'], domain: 'data' },
+  'full text search': { traits: ['@full_text_search', '@search_index'], domain: 'data' },
+  'vector db': { traits: ['@vector_db', '@search_index'], domain: 'data' },
+  paginate: { traits: ['@cursor_pagination'], domain: 'data' },
+  'soft delete': { traits: ['@soft_delete', '@audit_column'], domain: 'data' },
+  sharding: { traits: ['@sharding_key', '@db'], domain: 'data' },
+
+  // Network domain
+  websocket: { traits: ['@websocket'], domain: 'network' },
+  grpc: { traits: ['@grpc'], domain: 'network' },
+  graphql: { traits: ['@graphql'], domain: 'network' },
+  tcp: { traits: ['@tcp_server', '@tcp_client'], domain: 'network' },
+  tls: { traits: ['@tls_config'], domain: 'network' },
+  mtls: { traits: ['@mtls_config', '@tls_config'], domain: 'network' },
+  oauth: { traits: ['@oauth2_config'], domain: 'network' },
+  jwt: { traits: ['@jwt_config', '@jwt_verifier'], domain: 'network' },
+  session: { traits: ['@session_config'], domain: 'network' },
+  cdn: { traits: ['@cdn_config'], domain: 'network' },
+
+  // Pipeline domain
+  pipeline: { traits: ['@pipeline', '@stream'], domain: 'pipeline' },
+  stream: { traits: ['@stream', '@real_time_stream'], domain: 'pipeline' },
+  queue: { traits: ['@queue', '@worker'], domain: 'pipeline' },
+  worker: { traits: ['@worker', '@queue'], domain: 'pipeline' },
+  scheduler: { traits: ['@scheduler'], domain: 'pipeline' },
+  etl: { traits: ['@etl_pipeline', '@pipeline'], domain: 'pipeline' },
+  kafka: { traits: ['@message_broker', '@topic', '@subscription'], domain: 'pipeline' },
+  rabbitmq: { traits: ['@message_broker', '@queue'], domain: 'pipeline' },
+  'message broker': { traits: ['@message_broker', '@topic'], domain: 'pipeline' },
+  'dead letter': { traits: ['@dlq_handler', '@queue'], domain: 'pipeline' },
+  'event sourcing': { traits: ['@event_sourcing', '@message_broker'], domain: 'pipeline' },
+  workflow: { traits: ['@workflow_engine', '@state_machine'], domain: 'pipeline' },
+  saga: { traits: ['@saga_orchestrator', '@compensating_transaction'], domain: 'pipeline' },
+  cdc: { traits: ['@change_data_capture', '@stream'], domain: 'pipeline' },
+  fanout: { traits: ['@fanout', '@message_broker'], domain: 'pipeline' },
+
+  // Metric domain
+  metric: { traits: ['@metric', '@prometheus_exporter'], domain: 'metric' },
+  trace: { traits: ['@trace', '@span', '@trace_context'], domain: 'metric' },
+  tracing: { traits: ['@trace', '@span', '@trace_context'], domain: 'metric' },
+  log: { traits: ['@log', '@structured_log'], domain: 'metric' },
+  'health check': { traits: ['@health_check'], domain: 'metric' },
+  prometheus: { traits: ['@prometheus_exporter', '@metric'], domain: 'metric' },
+  grafana: { traits: ['@grafana_dashboard', '@metric'], domain: 'metric' },
+  alert: { traits: ['@alert_rule', '@alert_channel'], domain: 'metric' },
+  slo: { traits: ['@slo', '@sli', '@error_budget'], domain: 'metric' },
+  apm: { traits: ['@apm_agent', '@profiler'], domain: 'metric' },
+  monitoring: { traits: ['@availability_monitor', '@uptime_monitor'], domain: 'metric' },
+  'audit log': { traits: ['@audit_log', '@access_log'], domain: 'metric' },
+  telemetry: { traits: ['@metric', '@trace', '@log'], domain: 'metric' },
+
+  // Container domain
+  container: { traits: ['@container', '@dockerfile'], domain: 'container' },
+  docker: { traits: ['@dockerfile', '@docker_compose'], domain: 'container' },
+  kubernetes: { traits: ['@kubernetes_deployment', '@kubernetes_service'], domain: 'container' },
+  k8s: { traits: ['@kubernetes_deployment', '@kubernetes_service'], domain: 'container' },
+  deployment: { traits: ['@deployment', '@scaling'], domain: 'container' },
+  'auto scale': { traits: ['@scaling', '@kubernetes_hpa'], domain: 'container' },
+  helm: { traits: ['@helm_chart', '@helm_values'], domain: 'container' },
+  terraform: { traits: ['@terraform_resource', '@terraform_module'], domain: 'container' },
+  'config map': { traits: ['@kubernetes_configmap'], domain: 'container' },
+  secret: { traits: ['@secret'], domain: 'container' },
+  cronjob: { traits: ['@kubernetes_cronjob'], domain: 'container' },
+  ingress: { traits: ['@kubernetes_ingress'], domain: 'container' },
+
+  // Resilience domain
+  'circuit breaker': { traits: ['@circuit_breaker'], domain: 'resilience' },
+  retry: { traits: ['@retry', '@exponential_backoff'], domain: 'resilience' },
+  timeout: { traits: ['@timeout', '@deadline_propagation'], domain: 'resilience' },
+  fallback: { traits: ['@fallback', '@graceful_degradation'], domain: 'resilience' },
+  bulkhead: { traits: ['@bulkhead'], domain: 'resilience' },
+  backoff: { traits: ['@exponential_backoff', '@jitter_backoff'], domain: 'resilience' },
+  'rate limiting': { traits: ['@token_bucket', '@leaky_bucket'], domain: 'resilience' },
+  'load shedding': { traits: ['@load_shedding', '@adaptive_concurrency'], domain: 'resilience' },
+  'chaos engineering': { traits: ['@chaos_experiment', '@fault_injection'], domain: 'resilience' },
+  canary: { traits: ['@canary_release'], domain: 'resilience' },
+  'blue green': { traits: ['@blue_green_deploy'], domain: 'resilience' },
+  idempotent: { traits: ['@idempotency_key', '@idempotent_consumer'], domain: 'resilience' },
+};
+
 // Geometry keywords
 const GEOMETRY_KEYWORDS: Record<string, string> = {
   cube: 'cube',
@@ -424,6 +554,88 @@ export function suggestTraits(
   const confidence = Math.min(0.95, 0.5 + traits.length * 0.1);
 
   return { traits, reasoning, confidence };
+}
+
+/**
+ * Suggest universal v6 traits based on service/infrastructure description.
+ * Covers 8 domains: service, contract, data, network, pipeline, metric, container, resilience.
+ */
+export function suggestUniversalTraits(
+  description: string,
+  domain?: string,
+  context?: string
+): {
+  traits: string[];
+  domains: Record<string, string[]>;
+  reasoning: Record<string, string>;
+  confidence: number;
+} {
+  const lowerDesc = (description + ' ' + (context || '')).toLowerCase();
+  const suggestedTraits = new Set<string>();
+  const reasoning: Record<string, string> = {};
+  const domainTraits: Record<string, Set<string>> = {};
+
+  for (const [keyword, entry] of Object.entries(UNIVERSAL_TRAIT_KEYWORDS)) {
+    // If domain filter is set, skip non-matching domains
+    if (domain && entry.domain !== domain) continue;
+
+    if (lowerDesc.includes(keyword)) {
+      if (!domainTraits[entry.domain]) domainTraits[entry.domain] = new Set();
+
+      for (const trait of entry.traits) {
+        if (!suggestedTraits.has(trait)) {
+          suggestedTraits.add(trait);
+          domainTraits[entry.domain].add(trait);
+          reasoning[trait] = `Matched keyword "${keyword}" in ${entry.domain} domain`;
+        }
+      }
+    }
+  }
+
+  // Cross-domain inference: if service traits are present, suggest health_check
+  if (domainTraits['service']?.size && !suggestedTraits.has('@health_check')) {
+    suggestedTraits.add('@health_check');
+    if (!domainTraits['metric']) domainTraits['metric'] = new Set();
+    domainTraits['metric'].add('@health_check');
+    reasoning['@health_check'] = 'Auto-suggested: services should expose health checks';
+  }
+
+  // If pipeline traits but no resilience, suggest retry + circuit_breaker
+  if (domainTraits['pipeline']?.size && !domainTraits['resilience']?.size) {
+    for (const trait of ['@retry', '@circuit_breaker']) {
+      suggestedTraits.add(trait);
+      if (!domainTraits['resilience']) domainTraits['resilience'] = new Set();
+      domainTraits['resilience'].add(trait);
+      reasoning[trait] = 'Auto-suggested: pipelines benefit from resilience patterns';
+    }
+  }
+
+  // If data traits but no metric, suggest structured_log
+  if (domainTraits['data']?.size && !domainTraits['metric']?.size) {
+    suggestedTraits.add('@structured_log');
+    if (!domainTraits['metric']) domainTraits['metric'] = new Set();
+    domainTraits['metric'].add('@structured_log');
+    reasoning['@structured_log'] = 'Auto-suggested: data operations benefit from structured logging';
+  }
+
+  // Default if nothing matched
+  if (suggestedTraits.size === 0) {
+    suggestedTraits.add('@service');
+    suggestedTraits.add('@endpoint');
+    reasoning['@service'] = 'Default trait for service descriptions';
+    reasoning['@endpoint'] = 'Default trait for service descriptions';
+    domainTraits['service'] = new Set(['@service', '@endpoint']);
+  }
+
+  const traits = Array.from(suggestedTraits);
+  const domains: Record<string, string[]> = {};
+  for (const [d, set] of Object.entries(domainTraits)) {
+    domains[d] = Array.from(set);
+  }
+
+  const confidence = Math.min(0.95, 0.4 + traits.length * 0.05 + Object.keys(domains).length * 0.1);
+
+  return { traits, domains, reasoning, confidence };
 }
 
 /**

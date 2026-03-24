@@ -276,6 +276,14 @@ function deriveSkillTags(toolName: string): string[] {
   if (toolName.startsWith('parse_') || toolName === 'validate_holoscript') {
     tags.push('parsing', 'validation', 'language');
   }
+  // Universal traits (v6)
+  else if (toolName === 'suggest_universal_traits') {
+    tags.push('traits', 'universal', 'service', 'infrastructure');
+  }
+  // Service contracts
+  else if (toolName.includes('service_contract')) {
+    tags.push('contract', 'openapi', 'codegen', 'service');
+  }
   // Traits
   else if (toolName.includes('trait')) {
     tags.push('traits', 'spatial', 'vr');
@@ -405,6 +413,12 @@ function deriveSkillExamples(tool: Tool): string[] {
     examples.push('Validate my HoloScript composition for errors');
   } else if (name === 'suggest_traits') {
     examples.push('Suggest traits for a sword that can be picked up and thrown');
+  } else if (name === 'suggest_universal_traits') {
+    examples.push('Suggest universal traits for a REST API with Redis caching and JWT auth');
+  } else if (name === 'generate_service_contract') {
+    examples.push('Generate .holo composition from this OpenAPI spec');
+  } else if (name === 'explain_service_contract') {
+    examples.push('Explain the contract structure of this .holo service composition');
   } else if (name === 'generate_scene') {
     examples.push('Generate a multiplayer VR lobby with teleportation');
   } else if (name === 'compile_holoscript') {

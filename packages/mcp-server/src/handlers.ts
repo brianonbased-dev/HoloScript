@@ -7,7 +7,7 @@
 
 import { HoloScriptPlusParser, parseHolo, parseHoloStrict, VR_TRAITS } from '@holoscript/core';
 
-import { generateObjectForMCP, generateSceneForMCP, suggestTraits } from './generators';
+import { generateObjectForMCP, generateSceneForMCP, suggestTraits, suggestUniversalTraits } from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
@@ -109,6 +109,8 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return handleExplainTrait(args);
     case 'suggest_traits':
       return handleSuggestTraits(args);
+    case 'suggest_universal_traits':
+      return handleSuggestUniversalTraits(args);
     case 'generate_object':
       return handleGenerateObject(args);
     case 'generate_scene':
@@ -174,6 +176,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   // Hololand training data generation
   if (name === 'generate_hololand_training') {
     return handleGenerateHololandTraining(args);
+  }
+
+  // Service contract tools
+  if (name === 'generate_service_contract' || name === 'explain_service_contract') {
+    const { handleServiceContractTool } = await import('./service-contract-tools');
+    return handleServiceContractTool(name, args);
   }
 
   // Handle plugins
@@ -342,6 +350,14 @@ async function handleSuggestTraits(args: Record<string, unknown>) {
   const context = args.context as string | undefined;
 
   return suggestTraits(description, context);
+}
+
+async function handleSuggestUniversalTraits(args: Record<string, unknown>) {
+  const description = args.description as string;
+  const domain = args.domain as string | undefined;
+  const context = args.context as string | undefined;
+
+  return suggestUniversalTraits(description, domain, context);
 }
 
 // === GENERATION HANDLERS ===

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@holoscript/core",
+      "@holoscript/cli",
+      "@holoscript/agent-protocol",
+      "@holoscript/agent-sdk",
+      "@holoscript/holo-vm",
+      "@holoscript/snn-webgpu",
+      "@holoscript/uaal",
+      "@holoscript/vm-bridge"
+    ]
+  ],
+  "linked": [
+    [
+      "@holoscript/benchmark",
+      "@holoscript/formatter",
+      "@holoscript/fs",
+      "@holoscript/linter",
+      "@holoscript/lsp",
+      "@holoscript/mcp-server",
+      "@holoscript/partner-sdk",
+      "@holoscript/registry",
+      "@holoscript/runtime",
+      "@holoscript/sdk",
+      "@holoscript/std",
+      "@holoscript/test",
+      "@holoscript/visual",
+      "@holoscript/wasm"
+    ]
+  ],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "@holoscript/studio-desktop",
+    "@holoscript/video-tutorials",
+    "@holoscript/preview-component"
+  ]
+}
