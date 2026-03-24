@@ -233,5 +233,7 @@ if (!(performance as any).memory) {
 }
 
 // ── scrollIntoView mock ────────────────────────────────────────────────────────
-// jsdom doesn't implement scrollIntoView
-Element.prototype.scrollIntoView = vi.fn();
+// jsdom doesn't implement scrollIntoView; guard for Node env where Element is undefined
+if (typeof Element !== 'undefined') {
+  Element.prototype.scrollIntoView = vi.fn();
+}
