@@ -139,6 +139,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   URDFToUSDZConverter: 'urdf',
   QuiltCompiler: 'quilt',
   MVHEVCCompiler: 'mv-hevc',
+  NodeServiceCompiler: 'node-service',
 };
 
 /**

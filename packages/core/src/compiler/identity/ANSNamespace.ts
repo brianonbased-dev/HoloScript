@@ -156,6 +156,7 @@ export type CompilerName =
   | 'playcanvas'
   // runtime
   | 'wasm'
+  | 'node-service'
   // shader
   | 'tsl'
   // robotics
@@ -228,6 +229,7 @@ export const ANSCapabilityPath = {
 
   // ── runtime ──────────────────────────────────────────────────────────
   WASM: '/compile/runtime/wasm',
+  NODE_SERVICE: '/compile/runtime/node-service',
 
   // ── shader ───────────────────────────────────────────────────────────
   TSL: '/compile/shader/tsl',
@@ -297,6 +299,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   playcanvas: ANSDomain.WEB3D,
   // runtime
   wasm: ANSDomain.RUNTIME,
+  'node-service': ANSDomain.RUNTIME,
   // shader
   tsl: ANSDomain.SHADER,
   // robotics
@@ -351,6 +354,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   r3f: ANSCapabilityPath.R3F,
   playcanvas: ANSCapabilityPath.PLAYCANVAS,
   wasm: ANSCapabilityPath.WASM,
+  'node-service': ANSCapabilityPath.NODE_SERVICE,
   tsl: ANSCapabilityPath.TSL,
   urdf: ANSCapabilityPath.URDF,
   sdf: ANSCapabilityPath.SDF,

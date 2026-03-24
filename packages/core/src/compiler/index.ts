@@ -111,3 +111,20 @@ export type { USDZPipelineOptions } from './USDZPipeline';
 export { CompilerBridge } from './CompilerBridge';
 export { Native2DCompiler } from './Native2DCompiler';
 export type { Native2DCompilerOptions } from './Native2DCompiler';
+
+// v6 Service compilers (v5.2 experimental)
+export { NodeServiceCompiler } from './NodeServiceCompiler';
+export type { NodeServiceCompilerOptions } from './NodeServiceCompiler';
+
+// MLIR-style dialect registry
+export { DialectRegistry } from './DialectRegistry';
+export type {
+  DialectDescriptor,
+  DialectInfo,
+  DialectDomain,
+  DialectRiskTier,
+  LoweringPass,
+  LoweringContext,
+  LoweringResult,
+  LoweringDiagnostic,
+} from './DialectRegistry';
