@@ -49,6 +49,10 @@ import {
 } from './security/oauth21';
 import { runTripleGate } from './security/gates';
 import { getAuditLogger } from './security/audit-log';
+import {
+  getOAuth2Provider,
+  OAUTH2_SCOPES,
+} from './auth/oauth2-provider';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -57,6 +61,10 @@ const SERVICE_VERSION = '3.7.0';
 
 // Initialize security services
 const oauth = getOAuth21Service({
+  legacyApiKey: MCP_API_KEY,
+  migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
+});
+const oauth2 = getOAuth2Provider({
   legacyApiKey: MCP_API_KEY,
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
 });
@@ -418,9 +426,12 @@ const httpServer = http.createServer(async (req, res) => {
         authentication: {
           type: 'oauth2',
           flows: ['authorization_code', 'client_credentials'],
+          authorizationEndpoint: `${baseUrl}/oauth/authorize`,
           tokenEndpoint: `${baseUrl}/oauth/token`,
           registrationEndpoint: `${baseUrl}/oauth/register`,
-          scopes: Object.keys(SCOPE_CATEGORIES),
+          introspectionEndpoint: `${baseUrl}/oauth/introspect`,
+          scopes: Object.keys(OAUTH2_SCOPES),
+          legacyScopes: Object.keys(SCOPE_CATEGORIES),
           legacyBearerSupported: true,
         },
       },
@@ -442,6 +453,7 @@ const httpServer = http.createServer(async (req, res) => {
         agentCard: `${baseUrl}/.well-known/agent-card.json`,
         oauth: {
           openidConfiguration: `${baseUrl}/.well-known/openid-configuration`,
+          authorize: `${baseUrl}/oauth/authorize`,
           token: `${baseUrl}/oauth/token`,
           register: `${baseUrl}/oauth/register`,
           revoke: `${baseUrl}/oauth/revoke`,
@@ -607,17 +619,25 @@ const httpServer = http.createServer(async (req, res) => {
   // OAUTH 2.1 ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // POST /oauth/register — Dynamic client registration
+  // POST /oauth/register — Dynamic client registration (dual-register to both providers)
   if (url === '/oauth/register' && req.method === 'POST') {
     try {
       const body = await parseJsonBody(req);
+      const clientName = (body.client_name as string) || 'unnamed-client';
+      const redirectUris = (body.redirect_uris as string[]) || [];
+      const scopes = (body.scope as string)?.split(' ') || ['tools:read'];
+      const clientType = (body.token_endpoint_auth_method === 'none' ? 'public' : 'confidential') as 'confidential' | 'public';
+      const rateLimit = (body.rate_limit as number) || 60;
+
+      // Register with legacy provider (backwards compat)
       const { clientId, clientSecret } = oauth.registerClient({
-        clientName: (body.client_name as string) || 'unnamed-client',
-        redirectUris: (body.redirect_uris as string[]) || [],
-        scopes: (body.scope as string)?.split(' ') || ['tools:read'],
-        clientType: (body.token_endpoint_auth_method === 'none' ? 'public' : 'confidential') as 'confidential' | 'public',
-        rateLimit: (body.rate_limit as number) || 60,
+        clientName, redirectUris, scopes, clientType, rateLimit,
       });
+
+      // Also register with the new OAuth2Provider (token-store backed)
+      await oauth2.registerClient({
+        clientName, redirectUris, scopes, clientType, rateLimit,
+      }).catch(() => { /* non-fatal: new provider registration is additive */ });
 
       auditLog.logAuthEvent({
         event: 'client_registered',
@@ -633,11 +653,29 @@ const httpServer = http.createServer(async (req, res) => {
         token_endpoint_auth_method: 'client_secret_post',
         grant_types: ['authorization_code', 'client_credentials', 'refresh_token'],
         scope: (body.scope as string) || 'tools:read',
+        scopes_supported: Object.keys(OAUTH2_SCOPES),
       }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'invalid_client_metadata', error_description: message }));
+    }
+    return;
+  }
+
+  // GET /oauth/authorize — Authorization request (returns consent info / validates params)
+  if (url?.startsWith('/oauth/authorize') && req.method === 'GET') {
+    try {
+      const queryString = req.url?.split('?')[1] || '';
+      const params = new URLSearchParams(queryString);
+      const result = await oauth2.handleAuthorizeGet(params);
+
+      res.writeHead(result.status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result.body, null, 2));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
     }
     return;
   }
@@ -1201,8 +1239,11 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`   Transport: Streamable HTTP (MCP spec 2025-03-26)`);
   console.log(`   Port: ${PORT}`);
   console.log(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+  console.log(`   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`);
+  console.log(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
   console.log(`   Legacy API Key: ${MCP_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
   console.log(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
+  console.log(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
   console.log(`   Audit: EU AI Act compliant (Articles 12-14)`);
   console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
   console.log(`   Endpoints:`);
@@ -1211,10 +1252,11 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`     GET  /.well-known/openid-configuration - OAuth 2.1 discovery (public)`);
   console.log(`     GET  /.well-known/agent-card.json  - A2A Agent Card (public)`);
   console.log(`     POST /oauth/register               - Client registration`);
+  console.log(`     GET  /oauth/authorize               - Authorization request (PKCE)`);
   console.log(`     POST /oauth/authorize              - Authorization code (PKCE)`);
   console.log(`     POST /oauth/token                  - Token exchange`);
   console.log(`     POST /oauth/revoke                 - Token revocation`);
-  console.log(`     POST /oauth/introspect             - Token introspection`);
+  console.log(`     POST /oauth/introspect             - Token introspection (RFC 7662)`);
   console.log(`     POST /mcp                          - MCP Streamable HTTP (authenticated)`);
   console.log(`     GET  /mcp                          - MCP session messages (authenticated)`);
   console.log(`     DELETE /mcp                        - Close session (authenticated)`);

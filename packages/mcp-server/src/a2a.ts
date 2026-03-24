@@ -505,23 +505,30 @@ export function buildAgentCard(
     };
     securitySchemes['oauth2'] = {
       type: 'oauth2',
-      description: 'OAuth 2.1 with PKCE and client credentials flows',
+      description: 'OAuth 2.1 with PKCE (S256) and client credentials flows',
       flows: {
         authorizationCode: {
           authorizationUrl: `${baseUrl}/oauth/authorize`,
           tokenUrl: `${baseUrl}/oauth/token`,
           scopes: {
-            'tools:read': 'Read-only access to tool outputs',
-            'tools:write': 'Read-write access to tool operations',
-            'tools:admin': 'Administrative tool access',
-            'admin:*': 'Full administrative access',
+            'tools:read': 'Read-only access to tool outputs (parse, validate, list, explain)',
+            'tools:execute': 'Execute tools that produce output (compile, render, generate)',
+            'tasks:read': 'Read A2A task state and history',
+            'tasks:write': 'Create, send, and cancel A2A tasks',
+            'admin': 'Full administrative access to all tools and endpoints',
+            // Legacy scope aliases (backwards compatibility)
+            'tools:write': 'Legacy alias for tools:execute',
+            'tools:admin': 'Legacy alias for admin',
+            'admin:*': 'Legacy alias for admin',
           },
         },
         clientCredentials: {
           tokenUrl: `${baseUrl}/oauth/token`,
           scopes: {
             'tools:read': 'Read-only access to tool outputs',
-            'tools:write': 'Read-write access to tool operations',
+            'tools:execute': 'Execute tools that produce output',
+            'tasks:read': 'Read A2A task state and history',
+            'tasks:write': 'Create, send, and cancel A2A tasks',
           },
         },
       },
