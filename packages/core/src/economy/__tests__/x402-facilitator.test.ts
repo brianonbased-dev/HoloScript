@@ -17,13 +17,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   X402Facilitator,
   MicroPaymentLedger,
+  PaymentGateway,
   creditTraitHandler,
   X402_VERSION,
   USDC_CONTRACTS,
   MICRO_PAYMENT_THRESHOLD,
+  CHAIN_IDS,
+  CHAIN_ID_TO_NETWORK,
   type X402PaymentPayload,
   type X402FacilitatorConfig,
   type SettlementChain,
+  type SettlementEvent,
 } from '../x402-facilitator';
 import {
   createMockContext,
@@ -851,5 +855,473 @@ describe('creditTraitHandler', () => {
     creditTraitHandler.onDetach?.(node as any, fullConfig, ctx as any);
 
     expect((node as any).__creditState).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// CHAIN ID CONSTANTS
+// =============================================================================
+
+describe('Chain ID Constants', () => {
+  it('maps Base mainnet to chain ID 8453', () => {
+    expect(CHAIN_IDS['base']).toBe(8453);
+  });
+
+  it('maps Base Sepolia to chain ID 84532', () => {
+    expect(CHAIN_IDS['base-sepolia']).toBe(84532);
+  });
+
+  it('provides reverse lookup from chain ID to network name', () => {
+    expect(CHAIN_ID_TO_NETWORK[8453]).toBe('base');
+    expect(CHAIN_ID_TO_NETWORK[84532]).toBe('base-sepolia');
+  });
+});
+
+// =============================================================================
+// PAYMENT GATEWAY
+// =============================================================================
+
+describe('PaymentGateway', () => {
+  let gateway: PaymentGateway;
+
+  beforeEach(() => {
+    gateway = new PaymentGateway(createTestConfig());
+  });
+
+  afterEach(() => {
+    gateway.dispose();
+  });
+
+  // ===========================================================================
+  // Event Emitter (Audit Trail)
+  // ===========================================================================
+
+  describe('event emitter', () => {
+    it('emits events to specific listeners', () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('payment:authorization_created', (e) => events.push(e));
+
+      gateway.createPaymentAuthorization('/api/scene', 0.05);
+
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe('payment:authorization_created');
+      expect(events[0].amount).toBe('50000');
+      expect(events[0].eventId).toMatch(/^evt_/);
+      expect(events[0].timestamp).toBeTruthy();
+    });
+
+    it('emits events to wildcard listeners', () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('*', (e) => events.push(e));
+
+      gateway.createPaymentAuthorization('/api/scene', 0.05);
+
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe('payment:authorization_created');
+    });
+
+    it('returns unsubscribe function', () => {
+      const events: SettlementEvent[] = [];
+      const unsub = gateway.on('payment:authorization_created', (e) => events.push(e));
+
+      gateway.createPaymentAuthorization('/r1', 0.01);
+      expect(events.length).toBe(1);
+
+      unsub();
+
+      gateway.createPaymentAuthorization('/r2', 0.02);
+      expect(events.length).toBe(1); // No new event after unsub
+    });
+
+    it('supports off() to remove listeners', () => {
+      const events: SettlementEvent[] = [];
+      const listener = (e: SettlementEvent) => events.push(e);
+      gateway.on('payment:authorization_created', listener);
+
+      gateway.createPaymentAuthorization('/r1', 0.01);
+      expect(events.length).toBe(1);
+
+      gateway.off('payment:authorization_created', listener);
+
+      gateway.createPaymentAuthorization('/r2', 0.02);
+      expect(events.length).toBe(1);
+    });
+
+    it('swallows listener errors without breaking payment flow', () => {
+      gateway.on('payment:authorization_created', () => {
+        throw new Error('Listener crashed');
+      });
+
+      // Should not throw
+      const result = gateway.createPaymentAuthorization('/api/scene', 0.05);
+      expect(result.x402Version).toBe(X402_VERSION);
+    });
+  });
+
+  // ===========================================================================
+  // Payment Authorization
+  // ===========================================================================
+
+  describe('createPaymentAuthorization', () => {
+    it('generates a valid 402 response with chainId', () => {
+      const auth = gateway.createPaymentAuthorization('/api/premium', 0.05, 'Premium Scene');
+
+      expect(auth.x402Version).toBe(X402_VERSION);
+      expect(auth.chainId).toBe(8453); // Base mainnet
+      expect(auth.accepts).toHaveLength(1);
+      expect(auth.accepts[0].maxAmountRequired).toBe('50000');
+      expect(auth.accepts[0].description).toBe('Premium Scene');
+      expect(auth.error).toBe('X-PAYMENT header is required');
+    });
+
+    it('emits payment:authorization_created event', () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('payment:authorization_created', (e) => events.push(e));
+
+      gateway.createPaymentAuthorization('/api/premium', 1.00);
+
+      expect(events.length).toBe(1);
+      expect(events[0].amount).toBe('1000000');
+      expect(events[0].network).toBe('base');
+    });
+  });
+
+  // ===========================================================================
+  // Payment Verification
+  // ===========================================================================
+
+  describe('verifyPayment', () => {
+    it('verifies a valid payment payload', () => {
+      const payment = createTestPayment();
+      const result = gateway.verifyPayment(payment, '50000');
+
+      expect(result.isValid).toBe(true);
+      expect(result.decodedPayload).not.toBeNull();
+      expect(result.decodedPayload!.payload.authorization.from).toBe(payment.payload.authorization.from);
+    });
+
+    it('verifies a valid base64-encoded X-PAYMENT header', () => {
+      const payment = createTestPayment();
+      const encoded = X402Facilitator.encodeXPaymentHeader(payment);
+      const result = gateway.verifyPayment(encoded, '50000');
+
+      expect(result.isValid).toBe(true);
+      expect(result.decodedPayload).not.toBeNull();
+    });
+
+    it('rejects invalid base64 string', () => {
+      const result = gateway.verifyPayment('!!!invalid!!!', '50000');
+
+      expect(result.isValid).toBe(false);
+      expect(result.invalidReason).toContain('Failed to decode');
+      expect(result.decodedPayload).toBeNull();
+    });
+
+    it('emits verification events for valid payment', () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('*', (e) => events.push(e));
+
+      const payment = createTestPayment();
+      gateway.verifyPayment(payment, '50000');
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:verification_started');
+      expect(types).toContain('payment:verification_passed');
+    });
+
+    it('emits verification_failed event for invalid payment', () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('*', (e) => events.push(e));
+
+      const payment = createTestPayment({ value: '1' }); // Insufficient
+      gateway.verifyPayment(payment, '50000');
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:verification_started');
+      expect(types).toContain('payment:verification_failed');
+    });
+  });
+
+  // ===========================================================================
+  // Payment Settlement
+  // ===========================================================================
+
+  describe('settlePayment', () => {
+    it('settles a micro-payment via in-memory ledger', async () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('*', (e) => events.push(e));
+
+      const payment = createTestPayment({ value: '50000' });
+      const result = await gateway.settlePayment(payment, '/api/scene', '50000');
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe('in_memory');
+      expect(result.transaction).toMatch(/^micro_/);
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:settlement_started');
+      expect(types).toContain('payment:settlement_completed');
+    });
+
+    it('settles an on-chain payment with mocked facilitator', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, transaction: '0xSettled123' }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const g = new PaymentGateway(
+        createTestConfig({
+          facilitatorUrl: 'https://test.example.com',
+          optimisticExecution: false,
+        })
+      );
+
+      const events: SettlementEvent[] = [];
+      g.on('*', (e) => events.push(e));
+
+      const payment = createTestPayment({ value: '200000' });
+      const result = await g.settlePayment(payment, '/api/premium', '200000');
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe('on_chain');
+      expect(result.transaction).toBe('0xSettled123');
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:settlement_started');
+      expect(types).toContain('payment:settlement_completed');
+
+      g.dispose();
+      vi.unstubAllGlobals();
+    });
+
+    it('emits settlement_failed on error', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const g = new PaymentGateway(
+        createTestConfig({ optimisticExecution: false })
+      );
+
+      const events: SettlementEvent[] = [];
+      g.on('*', (e) => events.push(e));
+
+      const payment = createTestPayment({ value: '200000' });
+      const result = await g.settlePayment(payment, '/api/premium', '200000');
+
+      expect(result.success).toBe(false);
+      expect(result.errorReason).toContain('Network error');
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:settlement_failed');
+
+      g.dispose();
+      vi.unstubAllGlobals();
+    });
+
+    it('returns failure for undecodable base64 string', async () => {
+      const result = await gateway.settlePayment('!!!bad!!!', '/api/scene', '50000');
+
+      expect(result.success).toBe(false);
+      expect(result.errorReason).toContain('Failed to decode');
+    });
+
+    it('settles from a base64-encoded string', async () => {
+      const payment = createTestPayment({ value: '50000' });
+      const encoded = X402Facilitator.encodeXPaymentHeader(payment);
+
+      const result = await gateway.settlePayment(encoded, '/api/scene', '50000');
+
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe('in_memory');
+    });
+  });
+
+  // ===========================================================================
+  // Refund
+  // ===========================================================================
+
+  describe('refundPayment', () => {
+    it('returns failure for unknown nonce', async () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('*', (e) => events.push(e));
+
+      const result = await gateway.refundPayment({
+        originalNonce: 'nonexistent_nonce',
+        reason: 'Content unavailable',
+        partialAmount: null,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorReason).toContain('not found');
+      expect(result.refundId).toMatch(/^refund_/);
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:refund_initiated');
+      expect(types).toContain('payment:refund_failed');
+    });
+
+    it('emits refund_initiated event', async () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('payment:refund_initiated', (e) => events.push(e));
+
+      await gateway.refundPayment({
+        originalNonce: 'any_nonce',
+        reason: 'Test refund',
+        partialAmount: null,
+      });
+
+      expect(events.length).toBe(1);
+      expect(events[0].nonce).toBe('any_nonce');
+      expect(events[0].metadata).toHaveProperty('reason', 'Test refund');
+    });
+
+    it('stores refund results and allows lookup', async () => {
+      const result = await gateway.refundPayment({
+        originalNonce: 'lookup_test',
+        reason: 'Test lookup',
+        partialAmount: null,
+      });
+
+      const stored = gateway.getRefund(result.refundId);
+      expect(stored).toBeDefined();
+      expect(stored!.originalNonce).toBe('lookup_test');
+      expect(stored!.reason).toBe('Test lookup');
+    });
+
+    it('returns all refunds via getAllRefunds()', async () => {
+      await gateway.refundPayment({ originalNonce: 'n1', reason: 'r1', partialAmount: null });
+      await gateway.refundPayment({ originalNonce: 'n2', reason: 'r2', partialAmount: null });
+
+      const all = gateway.getAllRefunds();
+      expect(all.length).toBe(2);
+    });
+  });
+
+  // ===========================================================================
+  // Batch Settlement
+  // ===========================================================================
+
+  describe('batch settlement', () => {
+    it('emits batch settlement events', async () => {
+      const events: SettlementEvent[] = [];
+      gateway.on('*', (e) => events.push(e));
+
+      // Record micro-payments
+      for (let i = 0; i < 3; i++) {
+        const payment = createTestPayment({ value: '50000', nonce: `gw_batch_${i}` });
+        await gateway.settlePayment(payment, `/api/r/${i}`, '50000');
+      }
+
+      const batchResult = await gateway.runBatchSettlement();
+
+      expect(batchResult.settled).toBe(3);
+      expect(batchResult.totalVolume).toBe(150000);
+
+      const types = events.map((e) => e.type);
+      expect(types).toContain('payment:batch_settlement_started');
+      expect(types).toContain('payment:batch_settlement_completed');
+    });
+  });
+
+  // ===========================================================================
+  // Query / Status
+  // ===========================================================================
+
+  describe('query and status', () => {
+    it('returns the underlying facilitator', () => {
+      const facilitator = gateway.getFacilitator();
+      expect(facilitator).toBeInstanceOf(X402Facilitator);
+    });
+
+    it('returns the correct chain ID', () => {
+      expect(gateway.getChainId()).toBe(8453);
+    });
+
+    it('returns the correct USDC contract address', () => {
+      expect(gateway.getUSDCContract()).toBe(USDC_CONTRACTS['base']);
+    });
+
+    it('returns comprehensive stats', async () => {
+      const payment = createTestPayment({ value: '50000' });
+      await gateway.settlePayment(payment, '/api/scene', '50000');
+
+      const stats = gateway.getStats();
+      expect(stats.chainId).toBe(8453);
+      expect(stats.usdcContract).toBe(USDC_CONTRACTS['base']);
+      expect(stats.facilitator.usedNonces).toBe(1);
+      expect(stats.facilitator.ledger.totalEntries).toBe(1);
+      expect(stats.totalRefunds).toBe(0);
+      expect(stats.listenerCount).toBe(0);
+    });
+
+    it('counts active listeners in stats', () => {
+      gateway.on('payment:settlement_completed', () => {});
+      gateway.on('*', () => {});
+
+      const stats = gateway.getStats();
+      expect(stats.listenerCount).toBe(2);
+    });
+  });
+
+  // ===========================================================================
+  // Lifecycle
+  // ===========================================================================
+
+  describe('lifecycle', () => {
+    it('disposes cleanly', () => {
+      gateway.on('*', () => {});
+      gateway.dispose();
+
+      const stats = gateway.getStats();
+      expect(stats.facilitator.usedNonces).toBe(0);
+      expect(stats.totalRefunds).toBe(0);
+      expect(stats.listenerCount).toBe(0);
+    });
+  });
+
+  // ===========================================================================
+  // Full Payment Flow (Integration)
+  // ===========================================================================
+
+  describe('full payment flow', () => {
+    it('executes complete authorize -> verify -> settle flow', async () => {
+      const auditTrail: SettlementEvent[] = [];
+      gateway.on('*', (e) => auditTrail.push(e));
+
+      // Step 1: Create payment authorization (402 response)
+      const auth = gateway.createPaymentAuthorization('/api/premium-scene', 0.05, 'Premium VR Scene');
+      expect(auth.x402Version).toBe(X402_VERSION);
+      expect(auth.chainId).toBe(8453);
+      expect(auth.accepts[0].maxAmountRequired).toBe('50000');
+
+      // Step 2: Simulate agent creating a signed payment
+      const payment = createTestPayment({ value: '50000' });
+
+      // Step 3: Verify the payment
+      const verification = gateway.verifyPayment(payment, '50000');
+      expect(verification.isValid).toBe(true);
+      expect(verification.decodedPayload).not.toBeNull();
+
+      // Step 4: Settle the payment
+      const settlement = await gateway.settlePayment(payment, '/api/premium-scene', '50000');
+      expect(settlement.success).toBe(true);
+      expect(settlement.mode).toBe('in_memory');
+
+      // Verify audit trail has all events
+      const types = auditTrail.map((e) => e.type);
+      expect(types).toContain('payment:authorization_created');
+      expect(types).toContain('payment:verification_started');
+      expect(types).toContain('payment:verification_passed');
+      expect(types).toContain('payment:settlement_started');
+      expect(types).toContain('payment:settlement_completed');
+
+      // Verify all events have required fields
+      for (const event of auditTrail) {
+        expect(event.eventId).toMatch(/^evt_/);
+        expect(event.timestamp).toBeTruthy();
+        expect(event.type).toBeTruthy();
+      }
+    });
   });
 });

@@ -541,6 +541,16 @@ export class CompilerBridge {
 
 export function getCompilerBridge(): CompilerBridge;
 
+export interface Native2DCompilerOptions {
+  format?: 'html' | 'react';
+  minify?: boolean;
+}
+
+export class Native2DCompiler {
+  constructor(options?: Native2DCompilerOptions);
+  compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
+}
+
 // ============================================================================
 // RUNTIME & EXECUTION
 // ============================================================================
@@ -2124,6 +2134,217 @@ export declare class HybridCryptoProvider {
 
 export declare function getHybridCryptoProvider(): HybridCryptoProvider;
 export declare function resetHybridCryptoProvider(): void;
+
+// ============================================================================
+// x402 PAYMENT PROTOCOL (HTTP 402 + USDC Settlement)
+// ============================================================================
+
+export declare const X402_VERSION: number;
+export declare const MICRO_PAYMENT_THRESHOLD: number;
+export declare const USDC_CONTRACTS: Record<SettlementChain, string>;
+export declare const CHAIN_IDS: Record<string, number>;
+export declare const CHAIN_ID_TO_NETWORK: Record<number, SettlementChain>;
+
+export type SettlementChain = 'base' | 'base-sepolia' | 'solana' | 'solana-devnet';
+export type PaymentScheme = 'exact';
+export type SettlementMode = 'in_memory' | 'on_chain';
+export type SettlementEventType =
+  | 'payment:authorization_created'
+  | 'payment:verification_started'
+  | 'payment:verification_passed'
+  | 'payment:verification_failed'
+  | 'payment:settlement_started'
+  | 'payment:settlement_completed'
+  | 'payment:settlement_failed'
+  | 'payment:refund_initiated'
+  | 'payment:refund_completed'
+  | 'payment:refund_failed'
+  | 'payment:batch_settlement_started'
+  | 'payment:batch_settlement_completed';
+export type SettlementEventListener = (event: SettlementEvent) => void;
+
+export interface X402PaymentRequired {
+  x402Version: number;
+  accepts: X402PaymentOption[];
+  error: string;
+}
+
+export interface X402PaymentOption {
+  scheme: PaymentScheme;
+  network: SettlementChain;
+  maxAmountRequired: string;
+  resource: string;
+  description: string;
+  payTo: string;
+  asset: string;
+  maxTimeoutSeconds: number;
+}
+
+export interface X402PaymentPayload {
+  x402Version: number;
+  scheme: PaymentScheme;
+  network: SettlementChain;
+  payload: {
+    signature: string;
+    authorization: {
+      from: string;
+      to: string;
+      value: string;
+      validAfter: string;
+      validBefore: string;
+      nonce: string;
+    };
+  };
+}
+
+export interface X402SettlementResult {
+  success: boolean;
+  transaction: string | null;
+  network: SettlementChain | 'in_memory';
+  payer: string;
+  errorReason: string | null;
+  mode: SettlementMode;
+  settledAt: number;
+}
+
+export interface X402VerificationResult {
+  isValid: boolean;
+  invalidReason: string | null;
+}
+
+export interface X402FacilitatorConfig {
+  recipientAddress: string;
+  chain: SettlementChain;
+  secondaryChain?: SettlementChain;
+  microPaymentThreshold?: number;
+  maxTimeoutSeconds?: number;
+  optimisticExecution?: boolean;
+  batchSettlementIntervalMs?: number;
+  maxLedgerEntries?: number;
+  facilitatorUrl?: string;
+  resourceDescription?: string;
+}
+
+export interface CreditTraitConfig {
+  price: number;
+  chain: SettlementChain;
+  recipient: string;
+  description: string;
+  timeout: number;
+  secondary_chain?: SettlementChain;
+  optimistic: boolean;
+  micro_threshold?: number;
+}
+
+export interface LedgerEntry {
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  resource: string;
+  timestamp: number;
+  settled: boolean;
+  settlementTx: string | null;
+}
+
+export interface SettlementEvent {
+  type: SettlementEventType;
+  timestamp: string;
+  eventId: string;
+  nonce: string | null;
+  payer: string | null;
+  recipient: string | null;
+  amount: string | null;
+  network: SettlementChain | 'in_memory' | null;
+  transaction: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface RefundRequest {
+  originalNonce: string;
+  reason: string;
+  partialAmount: string | null;
+}
+
+export interface RefundResult {
+  success: boolean;
+  refundId: string;
+  amountRefunded: string;
+  originalNonce: string;
+  transaction: string | null;
+  originalMode: SettlementMode;
+  reason: string;
+  errorReason: string | null;
+  refundedAt: number;
+}
+
+export declare class MicroPaymentLedger {
+  constructor(maxEntries?: number);
+  record(from: string, to: string, amount: number, resource: string): LedgerEntry;
+  getUnsettled(): LedgerEntry[];
+  markSettled(entryIds: string[], txHash: string): void;
+  getBalance(address: string): number;
+  getUnsettledVolume(): number;
+  getEntriesForPayer(from: string): LedgerEntry[];
+  getStats(): {
+    totalEntries: number;
+    unsettledEntries: number;
+    unsettledVolume: number;
+    uniquePayers: number;
+    uniqueRecipients: number;
+  };
+  pruneSettled(): number;
+  reset(): void;
+}
+
+export declare class X402Facilitator {
+  constructor(config: X402FacilitatorConfig);
+  createPaymentRequired(resource: string, amountUSDC: number, description?: string): X402PaymentRequired;
+  verifyPayment(payment: X402PaymentPayload, requiredAmount: string): X402VerificationResult;
+  getSettlementMode(amountBaseUnits: number): SettlementMode;
+  processPayment(payment: X402PaymentPayload, resource: string, requiredAmount: string): Promise<X402SettlementResult>;
+  startBatchSettlement(): void;
+  stopBatchSettlement(): void;
+  runBatchSettlement(): Promise<{ settled: number; failed: number; totalVolume: number }>;
+  static decodeXPaymentHeader(header: string): X402PaymentPayload | null;
+  static encodeXPaymentHeader(payload: X402PaymentPayload): string;
+  static createPaymentResponseHeader(result: X402SettlementResult): string;
+  getSettlementStatus(nonce: string): X402SettlementResult | 'pending' | 'unknown';
+  getLedger(): MicroPaymentLedger;
+  getStats(): {
+    usedNonces: number;
+    pendingSettlements: number;
+    completedSettlements: number;
+    ledger: ReturnType<MicroPaymentLedger['getStats']>;
+  };
+  dispose(): void;
+}
+
+export declare class PaymentGateway {
+  constructor(config: X402FacilitatorConfig);
+  on(eventType: SettlementEventType | '*', listener: SettlementEventListener): () => void;
+  off(eventType: SettlementEventType | '*', listener: SettlementEventListener): void;
+  createPaymentAuthorization(resource: string, amountUSDC: number, description?: string): X402PaymentRequired & { chainId: number };
+  verifyPayment(payment: string | X402PaymentPayload, requiredAmount: string): X402VerificationResult & { decodedPayload: X402PaymentPayload | null };
+  settlePayment(payment: string | X402PaymentPayload, resource: string, requiredAmount: string): Promise<X402SettlementResult>;
+  refundPayment(request: RefundRequest): Promise<RefundResult>;
+  runBatchSettlement(): Promise<{ settled: number; failed: number; totalVolume: number }>;
+  getFacilitator(): X402Facilitator;
+  getChainId(): number;
+  getUSDCContract(): string;
+  getRefund(refundId: string): RefundResult | undefined;
+  getAllRefunds(): RefundResult[];
+  getStats(): {
+    facilitator: ReturnType<X402Facilitator['getStats']>;
+    chainId: number;
+    usdcContract: string;
+    totalRefunds: number;
+    listenerCount: number;
+  };
+  dispose(): void;
+}
+
+export declare const creditTraitHandler: any;
 
 // ============================================================================
 // CIRCUIT BREAKER SUITE

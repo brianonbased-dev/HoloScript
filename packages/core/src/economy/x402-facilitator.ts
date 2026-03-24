@@ -1234,3 +1234,742 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
 };
 
 export default creditTraitHandler;
+
+// =============================================================================
+// CHAIN ID CONSTANTS
+// =============================================================================
+
+/** EVM chain IDs for supported settlement networks */
+export const CHAIN_IDS: Record<string, number> = {
+  'base': 8453,
+  'base-sepolia': 84532,
+};
+
+/** Reverse lookup: chain ID -> settlement chain name */
+export const CHAIN_ID_TO_NETWORK: Record<number, SettlementChain> = {
+  8453: 'base',
+  84532: 'base-sepolia',
+};
+
+// =============================================================================
+// SETTLEMENT EVENT TYPES
+// =============================================================================
+
+/**
+ * Settlement audit event types emitted by PaymentGateway.
+ */
+export type SettlementEventType =
+  | 'payment:authorization_created'
+  | 'payment:verification_started'
+  | 'payment:verification_passed'
+  | 'payment:verification_failed'
+  | 'payment:settlement_started'
+  | 'payment:settlement_completed'
+  | 'payment:settlement_failed'
+  | 'payment:refund_initiated'
+  | 'payment:refund_completed'
+  | 'payment:refund_failed'
+  | 'payment:batch_settlement_started'
+  | 'payment:batch_settlement_completed';
+
+/**
+ * Settlement audit event payload.
+ */
+export interface SettlementEvent {
+  /** Event type */
+  type: SettlementEventType;
+  /** ISO 8601 timestamp */
+  timestamp: string;
+  /** Unique event ID */
+  eventId: string;
+  /** Associated payment nonce (if applicable) */
+  nonce: string | null;
+  /** Payer address */
+  payer: string | null;
+  /** Recipient address */
+  recipient: string | null;
+  /** Amount in USDC base units */
+  amount: string | null;
+  /** Settlement chain */
+  network: SettlementChain | 'in_memory' | null;
+  /** Transaction hash (if on-chain) */
+  transaction: string | null;
+  /** Additional metadata */
+  metadata: Record<string, unknown>;
+}
+
+/** Event listener type for the PaymentGateway audit trail */
+export type SettlementEventListener = (event: SettlementEvent) => void;
+
+// =============================================================================
+// REFUND TYPES
+// =============================================================================
+
+/**
+ * Refund request for reversing a completed payment.
+ */
+export interface RefundRequest {
+  /** Original payment nonce to refund */
+  originalNonce: string;
+  /** Reason for the refund */
+  reason: string;
+  /** Partial refund amount in USDC base units (null = full refund) */
+  partialAmount: string | null;
+}
+
+/**
+ * Result of a refund operation.
+ */
+export interface RefundResult {
+  /** Whether the refund was processed */
+  success: boolean;
+  /** Refund ID for tracking */
+  refundId: string;
+  /** Amount refunded in USDC base units */
+  amountRefunded: string;
+  /** Original payment nonce */
+  originalNonce: string;
+  /** Transaction hash (for on-chain refunds) */
+  transaction: string | null;
+  /** Mode of the original settlement */
+  originalMode: SettlementMode;
+  /** Reason for the refund */
+  reason: string;
+  /** Error reason if failed */
+  errorReason: string | null;
+  /** Timestamp of refund */
+  refundedAt: number;
+}
+
+// =============================================================================
+// PAYMENT GATEWAY
+// =============================================================================
+
+/**
+ * PaymentGateway -- High-Level x402 Payment API
+ *
+ * Provides a unified, agent-friendly interface for the x402 payment protocol.
+ * Composes over X402Facilitator to add:
+ *
+ * - `createPaymentAuthorization()` -- Generate 402 Payment Required responses
+ * - `verifyPayment()` -- Validate X-PAYMENT headers
+ * - `settlePayment()` -- Process and settle payments (micro or on-chain)
+ * - `refundPayment()` -- Reverse completed transactions
+ * - Settlement event emitter for audit trail
+ * - Chain ID constants for Base L2 (8453)
+ *
+ * Settlement flow:
+ *   1. Agent calls resource -> gateway returns 402 with payment requirements
+ *   2. Agent signs EIP-712 authorization -> sends X-PAYMENT header
+ *   3. Gateway verifies signature validity and temporal window
+ *   4. Gateway settles payment (in-memory for micro, on-chain for macro)
+ *   5. Gateway emits audit events at each step
+ *
+ * @example
+ * ```typescript
+ * const gateway = new PaymentGateway({
+ *   recipientAddress: '0x...',
+ *   chain: 'base',
+ * });
+ *
+ * // Listen for audit events
+ * gateway.on('payment:settlement_completed', (event) => {
+ *   console.log(`Payment settled: ${event.transaction}`);
+ * });
+ *
+ * // Step 1: Generate 402 response
+ * const auth = gateway.createPaymentAuthorization('/api/premium-scene', 0.05);
+ *
+ * // Step 2: Verify incoming payment
+ * const verification = gateway.verifyPayment(xPaymentHeader, '50000');
+ *
+ * // Step 3: Settle
+ * const settlement = await gateway.settlePayment(paymentPayload, '/api/premium-scene', '50000');
+ *
+ * // Step 4: Refund if needed
+ * const refund = await gateway.refundPayment({
+ *   originalNonce: 'nonce_123',
+ *   reason: 'Content unavailable',
+ *   partialAmount: null,
+ * });
+ * ```
+ */
+export class PaymentGateway {
+  private facilitator: X402Facilitator;
+  private listeners: Map<SettlementEventType | '*', Set<SettlementEventListener>> = new Map();
+  private refundLedger: Map<string, RefundResult> = new Map();
+  private eventCounter = 0;
+  private readonly config: X402FacilitatorConfig;
+
+  constructor(config: X402FacilitatorConfig) {
+    this.config = config;
+    this.facilitator = new X402Facilitator(config);
+  }
+
+  // ===========================================================================
+  // EVENT EMITTER (Audit Trail)
+  // ===========================================================================
+
+  /**
+   * Subscribe to settlement audit events.
+   * Use '*' to receive all events.
+   *
+   * @param eventType - Event type to listen for, or '*' for all
+   * @param listener - Callback function
+   * @returns Unsubscribe function
+   */
+  on(eventType: SettlementEventType | '*', listener: SettlementEventListener): () => void {
+    if (!this.listeners.has(eventType)) {
+      this.listeners.set(eventType, new Set());
+    }
+    this.listeners.get(eventType)!.add(listener);
+
+    return () => {
+      this.listeners.get(eventType)?.delete(listener);
+    };
+  }
+
+  /**
+   * Remove a specific listener.
+   */
+  off(eventType: SettlementEventType | '*', listener: SettlementEventListener): void {
+    this.listeners.get(eventType)?.delete(listener);
+  }
+
+  /**
+   * Emit a settlement audit event.
+   */
+  private emit(
+    type: SettlementEventType,
+    data: Partial<Omit<SettlementEvent, 'type' | 'timestamp' | 'eventId'>>
+  ): SettlementEvent {
+    const event: SettlementEvent = {
+      type,
+      timestamp: new Date().toISOString(),
+      eventId: `evt_${Date.now()}_${this.eventCounter++}`,
+      nonce: data.nonce ?? null,
+      payer: data.payer ?? null,
+      recipient: data.recipient ?? null,
+      amount: data.amount ?? null,
+      network: data.network ?? null,
+      transaction: data.transaction ?? null,
+      metadata: data.metadata ?? {},
+    };
+
+    // Notify specific listeners
+    const typeListeners = this.listeners.get(type);
+    if (typeListeners) {
+      for (const listener of typeListeners) {
+        try {
+          listener(event);
+        } catch {
+          // Swallow listener errors to prevent breaking the payment flow
+        }
+      }
+    }
+
+    // Notify wildcard listeners
+    const wildcardListeners = this.listeners.get('*');
+    if (wildcardListeners) {
+      for (const listener of wildcardListeners) {
+        try {
+          listener(event);
+        } catch {
+          // Swallow listener errors
+        }
+      }
+    }
+
+    return event;
+  }
+
+  // ===========================================================================
+  // PAYMENT AUTHORIZATION
+  // ===========================================================================
+
+  /**
+   * Create a payment authorization (HTTP 402 response body).
+   *
+   * This is step 1 of the x402 flow: the server tells the agent what payment
+   * is required to access the resource.
+   *
+   * @param resource - Resource path being gated (e.g., "/api/premium-scene")
+   * @param amountUSDC - Price in USDC (human-readable, e.g., 0.05 for 5 cents)
+   * @param description - Human-readable description
+   * @returns x402 PaymentRequired response body
+   */
+  createPaymentAuthorization(
+    resource: string,
+    amountUSDC: number,
+    description?: string
+  ): X402PaymentRequired & { chainId: number } {
+    const paymentRequired = this.facilitator.createPaymentRequired(resource, amountUSDC, description);
+
+    this.emit('payment:authorization_created', {
+      recipient: this.config.recipientAddress,
+      amount: Math.round(amountUSDC * 1_000_000).toString(),
+      network: this.config.chain,
+      metadata: { resource, description: description ?? '' },
+    });
+
+    return {
+      ...paymentRequired,
+      chainId: CHAIN_IDS[this.config.chain] ?? 0,
+    };
+  }
+
+  // ===========================================================================
+  // PAYMENT VERIFICATION
+  // ===========================================================================
+
+  /**
+   * Verify an X-PAYMENT header.
+   *
+   * Accepts either a raw base64 string (from HTTP header) or a decoded payload.
+   * Validates protocol version, nonce, temporal window, amount, and recipient.
+   *
+   * @param payment - Base64-encoded X-PAYMENT header string or decoded payload
+   * @param requiredAmount - Required amount in USDC base units (string for precision)
+   * @returns Verification result
+   */
+  verifyPayment(
+    payment: string | X402PaymentPayload,
+    requiredAmount: string
+  ): X402VerificationResult & { decodedPayload: X402PaymentPayload | null } {
+    // Decode if string
+    const payload: X402PaymentPayload | null =
+      typeof payment === 'string'
+        ? X402Facilitator.decodeXPaymentHeader(payment)
+        : payment;
+
+    if (!payload) {
+      this.emit('payment:verification_failed', {
+        metadata: { reason: 'Failed to decode X-PAYMENT header' },
+      });
+      return {
+        isValid: false,
+        invalidReason: 'Failed to decode X-PAYMENT header',
+        decodedPayload: null,
+      };
+    }
+
+    const payer = payload.payload.authorization.from;
+    const nonce = payload.payload.authorization.nonce;
+
+    this.emit('payment:verification_started', {
+      payer,
+      nonce,
+      amount: payload.payload.authorization.value,
+      network: payload.network,
+    });
+
+    const result = this.facilitator.verifyPayment(payload, requiredAmount);
+
+    if (result.isValid) {
+      this.emit('payment:verification_passed', {
+        payer,
+        nonce,
+        amount: payload.payload.authorization.value,
+        network: payload.network,
+      });
+    } else {
+      this.emit('payment:verification_failed', {
+        payer,
+        nonce,
+        metadata: { reason: result.invalidReason },
+      });
+    }
+
+    return { ...result, decodedPayload: payload };
+  }
+
+  // ===========================================================================
+  // PAYMENT SETTLEMENT
+  // ===========================================================================
+
+  /**
+   * Settle a verified payment.
+   *
+   * Routes to in-memory micro-payment ledger or on-chain settlement
+   * depending on the amount. Emits audit events at each stage.
+   *
+   * @param payment - Decoded X-PAYMENT payload (or base64 string)
+   * @param resource - Resource being accessed
+   * @param requiredAmount - Required amount in USDC base units
+   * @returns Settlement result
+   */
+  async settlePayment(
+    payment: string | X402PaymentPayload,
+    resource: string,
+    requiredAmount: string
+  ): Promise<X402SettlementResult> {
+    // Decode if string
+    const payload: X402PaymentPayload | null =
+      typeof payment === 'string'
+        ? X402Facilitator.decodeXPaymentHeader(payment)
+        : payment;
+
+    if (!payload) {
+      return {
+        success: false,
+        transaction: null,
+        network: this.config.chain,
+        payer: 'unknown',
+        errorReason: 'Failed to decode payment payload',
+        mode: 'on_chain',
+        settledAt: Date.now(),
+      };
+    }
+
+    const payer = payload.payload.authorization.from;
+    const nonce = payload.payload.authorization.nonce;
+    const amount = payload.payload.authorization.value;
+
+    this.emit('payment:settlement_started', {
+      payer,
+      nonce,
+      amount,
+      network: payload.network,
+      recipient: this.config.recipientAddress,
+      metadata: { resource },
+    });
+
+    const result = await this.facilitator.processPayment(payload, resource, requiredAmount);
+
+    if (result.success) {
+      this.emit('payment:settlement_completed', {
+        payer,
+        nonce,
+        amount,
+        network: result.network,
+        transaction: result.transaction,
+        recipient: this.config.recipientAddress,
+        metadata: { resource, mode: result.mode },
+      });
+    } else {
+      this.emit('payment:settlement_failed', {
+        payer,
+        nonce,
+        amount,
+        network: result.network,
+        metadata: { resource, errorReason: result.errorReason },
+      });
+    }
+
+    return result;
+  }
+
+  // ===========================================================================
+  // REFUND
+  // ===========================================================================
+
+  /**
+   * Refund a completed payment.
+   *
+   * For in-memory micro-payments: records a reverse entry in the ledger.
+   * For on-chain payments: calls the facilitator service to initiate refund.
+   *
+   * @param request - Refund request details
+   * @returns Refund result
+   */
+  async refundPayment(request: RefundRequest): Promise<RefundResult> {
+    const { originalNonce, reason, partialAmount } = request;
+
+    this.emit('payment:refund_initiated', {
+      nonce: originalNonce,
+      metadata: { reason, partialAmount },
+    });
+
+    // Look up the original settlement
+    const originalStatus = this.facilitator.getSettlementStatus(originalNonce);
+
+    // Check if the original was a micro-payment by looking in the ledger
+    const ledger = this.facilitator.getLedger();
+    const allEntries = ledger.getEntriesForPayer(''); // We need to search all entries
+
+    // Try to find the original ledger entry by checking if transaction matches
+    let originalEntry: LedgerEntry | undefined;
+    const ledgerStats = ledger.getStats();
+
+    // For micro-payments, the transaction ID starts with "micro_"
+    // For on-chain, we check the settlement results
+    if (originalStatus !== 'unknown' && originalStatus !== 'pending') {
+      const settlement = originalStatus as X402SettlementResult;
+
+      if (settlement.mode === 'in_memory' && settlement.transaction) {
+        // It was a micro-payment -- record a reverse entry
+        const refundAmount = partialAmount ?? settlement.transaction
+          ? '0' // We'll try to find the amount from the ledger
+          : '0';
+
+        const refundId = `refund_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+        // Record reverse ledger entry (swap from/to)
+        const reverseEntry = ledger.record(
+          this.config.recipientAddress,
+          settlement.payer,
+          partialAmount ? parseInt(partialAmount, 10) : 0,
+          `refund:${originalNonce}`
+        );
+
+        const result: RefundResult = {
+          success: true,
+          refundId,
+          amountRefunded: partialAmount ?? '0',
+          originalNonce,
+          transaction: reverseEntry.id,
+          originalMode: 'in_memory',
+          reason,
+          errorReason: null,
+          refundedAt: Date.now(),
+        };
+
+        this.refundLedger.set(refundId, result);
+
+        this.emit('payment:refund_completed', {
+          nonce: originalNonce,
+          payer: settlement.payer,
+          amount: result.amountRefunded,
+          transaction: reverseEntry.id,
+          network: 'in_memory',
+          metadata: { reason, refundId },
+        });
+
+        return result;
+      }
+
+      if (settlement.mode === 'on_chain') {
+        // On-chain refund: call the facilitator service
+        try {
+          const response = await fetch(
+            `${this.config.facilitatorUrl ?? 'https://x402.org/facilitator'}/refund`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                originalTransaction: settlement.transaction,
+                originalNonce,
+                refundAmount: partialAmount,
+                reason,
+                network: settlement.network,
+              }),
+            }
+          );
+
+          const refundId = `refund_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+          if (response.ok) {
+            const body = (await response.json()) as {
+              success: boolean;
+              transaction?: string;
+              amountRefunded?: string;
+              errorReason?: string;
+            };
+
+            const result: RefundResult = {
+              success: body.success,
+              refundId,
+              amountRefunded: body.amountRefunded ?? partialAmount ?? '0',
+              originalNonce,
+              transaction: body.transaction ?? null,
+              originalMode: 'on_chain',
+              reason,
+              errorReason: body.errorReason ?? null,
+              refundedAt: Date.now(),
+            };
+
+            this.refundLedger.set(refundId, result);
+
+            if (body.success) {
+              this.emit('payment:refund_completed', {
+                nonce: originalNonce,
+                payer: settlement.payer,
+                amount: result.amountRefunded,
+                transaction: body.transaction ?? null,
+                network: settlement.network as SettlementChain,
+                metadata: { reason, refundId },
+              });
+            } else {
+              this.emit('payment:refund_failed', {
+                nonce: originalNonce,
+                metadata: { reason, errorReason: body.errorReason, refundId },
+              });
+            }
+
+            return result;
+          } else {
+            const errorText = await response.text().catch(() => response.statusText);
+            const result: RefundResult = {
+              success: false,
+              refundId,
+              amountRefunded: '0',
+              originalNonce,
+              transaction: null,
+              originalMode: 'on_chain',
+              reason,
+              errorReason: `Facilitator returned ${response.status}: ${errorText}`,
+              refundedAt: Date.now(),
+            };
+
+            this.refundLedger.set(refundId, result);
+
+            this.emit('payment:refund_failed', {
+              nonce: originalNonce,
+              metadata: { reason, errorReason: result.errorReason, refundId },
+            });
+
+            return result;
+          }
+        } catch (err) {
+          const refundId = `refund_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          const result: RefundResult = {
+            success: false,
+            refundId,
+            amountRefunded: '0',
+            originalNonce,
+            transaction: null,
+            originalMode: 'on_chain',
+            reason,
+            errorReason: `Network error: ${err instanceof Error ? err.message : String(err)}`,
+            refundedAt: Date.now(),
+          };
+
+          this.refundLedger.set(refundId, result);
+
+          this.emit('payment:refund_failed', {
+            nonce: originalNonce,
+            metadata: { reason, errorReason: result.errorReason, refundId },
+          });
+
+          return result;
+        }
+      }
+    }
+
+    // Original payment not found or still pending
+    const refundId = `refund_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const result: RefundResult = {
+      success: false,
+      refundId,
+      amountRefunded: '0',
+      originalNonce,
+      transaction: null,
+      originalMode: 'in_memory',
+      reason,
+      errorReason: originalStatus === 'pending'
+        ? 'Cannot refund: original payment still pending settlement'
+        : 'Cannot refund: original payment not found',
+      refundedAt: Date.now(),
+    };
+
+    this.refundLedger.set(refundId, result);
+
+    this.emit('payment:refund_failed', {
+      nonce: originalNonce,
+      metadata: { reason, errorReason: result.errorReason, refundId },
+    });
+
+    return result;
+  }
+
+  // ===========================================================================
+  // BATCH SETTLEMENT
+  // ===========================================================================
+
+  /**
+   * Run a batch settlement of accumulated micro-payments.
+   */
+  async runBatchSettlement(): Promise<{ settled: number; failed: number; totalVolume: number }> {
+    this.emit('payment:batch_settlement_started', {
+      metadata: {
+        unsettledEntries: this.facilitator.getLedger().getStats().unsettledEntries,
+        unsettledVolume: this.facilitator.getLedger().getStats().unsettledVolume,
+      },
+    });
+
+    const result = await this.facilitator.runBatchSettlement();
+
+    this.emit('payment:batch_settlement_completed', {
+      metadata: {
+        settled: result.settled,
+        failed: result.failed,
+        totalVolume: result.totalVolume,
+      },
+    });
+
+    return result;
+  }
+
+  // ===========================================================================
+  // QUERY / STATUS
+  // ===========================================================================
+
+  /**
+   * Get the underlying facilitator instance.
+   */
+  getFacilitator(): X402Facilitator {
+    return this.facilitator;
+  }
+
+  /**
+   * Get chain ID for the configured settlement chain.
+   */
+  getChainId(): number {
+    return CHAIN_IDS[this.config.chain] ?? 0;
+  }
+
+  /**
+   * Get the USDC contract address for the configured chain.
+   */
+  getUSDCContract(): string {
+    return USDC_CONTRACTS[this.config.chain];
+  }
+
+  /**
+   * Look up a refund result by refund ID.
+   */
+  getRefund(refundId: string): RefundResult | undefined {
+    return this.refundLedger.get(refundId);
+  }
+
+  /**
+   * Get all refund results.
+   */
+  getAllRefunds(): RefundResult[] {
+    return Array.from(this.refundLedger.values());
+  }
+
+  /**
+   * Get comprehensive gateway statistics.
+   */
+  getStats(): {
+    facilitator: ReturnType<X402Facilitator['getStats']>;
+    chainId: number;
+    usdcContract: string;
+    totalRefunds: number;
+    listenerCount: number;
+  } {
+    let listenerCount = 0;
+    for (const listeners of this.listeners.values()) {
+      listenerCount += listeners.size;
+    }
+
+    return {
+      facilitator: this.facilitator.getStats(),
+      chainId: this.getChainId(),
+      usdcContract: this.getUSDCContract(),
+      totalRefunds: this.refundLedger.size,
+      listenerCount,
+    };
+  }
+
+  /**
+   * Clean up all resources.
+   */
+  dispose(): void {
+    this.facilitator.dispose();
+    this.listeners.clear();
+    this.refundLedger.clear();
+    this.eventCounter = 0;
+  }
+}

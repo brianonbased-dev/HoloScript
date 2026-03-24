@@ -337,6 +337,7 @@ export { VisionOSCompiler, type VisionOSCompilerOptions } from './compiler/Visio
 
 // HoloScript New Platform Compilers (NEW - Phase 14)
 export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCompiler';
+export { Native2DCompiler, type Native2DCompilerOptions } from './compiler/Native2DCompiler';
 export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
 export {
   AndroidXRCompiler,
@@ -3372,10 +3373,13 @@ export type {
 export {
   X402Facilitator,
   MicroPaymentLedger,
+  PaymentGateway,
   creditTraitHandler,
   X402_VERSION,
   USDC_CONTRACTS,
   MICRO_PAYMENT_THRESHOLD,
+  CHAIN_IDS,
+  CHAIN_ID_TO_NETWORK,
 } from './economy/x402-facilitator';
 export type {
   X402PaymentRequired,
@@ -3389,4 +3393,9 @@ export type {
   SettlementChain,
   SettlementMode,
   PaymentScheme,
+  SettlementEventType,
+  SettlementEvent,
+  SettlementEventListener,
+  RefundRequest,
+  RefundResult,
 } from './economy/x402-facilitator';
