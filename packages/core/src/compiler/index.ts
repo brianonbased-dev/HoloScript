@@ -109,3 +109,5 @@ export type { USDZPipelineOptions } from './USDZPipeline';
 
 // Compiler bridge
 export { CompilerBridge } from './CompilerBridge';
+export { Native2DCompiler } from './Native2DCompiler';
+export type { Native2DCompilerOptions } from './Native2DCompiler';

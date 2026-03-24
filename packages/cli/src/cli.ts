@@ -881,6 +881,7 @@ async function main(): Promise<void> {
         'openxr',
         'androidxr',
         'webgpu',
+        'native-2d',
       ];
 
       if (!validTargets.includes(target)) {
@@ -1501,6 +1502,45 @@ async function main(): Promise<void> {
           } else {
             console.log('\n--- WebGPU TypeScript Output ---\n');
             console.log(output);
+          }
+
+          process.exit(0);
+        }
+
+        // Special handling for Native 2D target
+        if (target === 'native-2d') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: Native 2D compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser, Native2DCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for Native 2D:\x1b[0m`);
+            parseResult.errors.forEach((e: any) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          console.log(`\x1b[2m[DEBUG] Compiling to Native 2D (HTML/React)...\x1b[0m`);
+          const compiler = new Native2DCompiler();
+          const outputFormat = /* options format flag if needed, assume html for now */ 'html';
+          const output = compiler.compile(parseResult.ast, '', options.output, { format: outputFormat });
+
+          console.log(`\x1b[32m✓ Native 2D compilation successful!\x1b[0m`);
+          console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
+          console.log(`\x1b[2m  UI Elements: ${parseResult.ast.ui?.elements?.length || 0}\x1b[0m`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const htmlPath = outputPath.endsWith('.html') ? outputPath : outputPath + '.html';
+            fs.writeFileSync(htmlPath, typeof output === 'string' ? output : (output as any).output);
+            console.log(`\x1b[32m✓ Native 2D HTML written to ${htmlPath}\x1b[0m`);
+          } else {
+            console.log('\n--- Native 2D HTML/Tailwind Output ---\n');
+            console.log(typeof output === 'string' ? output : (output as any).output);
           }
 
           process.exit(0);
