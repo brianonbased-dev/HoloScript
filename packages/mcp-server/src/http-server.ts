@@ -57,8 +57,8 @@ import {
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
-const SERVICE_VERSION = process.env.npm_package_version
-  || (() => { try { return JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'package.json'), 'utf8')).version; } catch { return '0.0.0'; } })();
+declare const __SERVICE_VERSION__: string;
+const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';
 
 // Initialize security services
 const oauth = getOAuth21Service({

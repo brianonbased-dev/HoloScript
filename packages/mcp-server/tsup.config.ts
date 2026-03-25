@@ -1,4 +1,7 @@
 import { defineConfig } from 'tsup';
+import { readFileSync } from 'fs';
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
 
 export default defineConfig({
   entry: ['src/index.ts', 'src/cli.ts', 'src/http-server.ts'],
@@ -9,4 +12,7 @@ export default defineConfig({
   clean: true,
   shims: true,
   external: ['@holoscript/core'],
+  define: {
+    __SERVICE_VERSION__: JSON.stringify(pkg.version),
+  },
 });
