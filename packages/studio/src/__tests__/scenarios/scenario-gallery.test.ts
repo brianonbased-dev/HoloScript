@@ -3,7 +3,7 @@ import {
   SCENARIOS,
   type ScenarioEntry,
   type ScenarioCategory,
-} from '../../components/scenarios/ScenarioGallery';
+} from '../../industry/scenarios/ScenarioGallery';
 
 describe('ScenarioGallery data', () => {
   it('has 26 scenarios registered', () => {

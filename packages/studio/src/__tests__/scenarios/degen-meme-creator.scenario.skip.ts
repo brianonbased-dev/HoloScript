@@ -89,7 +89,7 @@ describe.skip('Scenario: Degen Meme Creator — Character Import (API mismatch -
   });
 
   it('should show character preset library (Pepe variants, Doge, Wojak)', () => {
-    const { CharacterLibrary } = require('../../components/character/CharacterLibrary');
+    const { CharacterLibrary } = require('../../industry/character/CharacterLibrary');
     const { getPopularTemplates, searchTemplates } = require('../../lib/memeTemplates');
 
     // Verify CharacterLibrary component exists
@@ -117,7 +117,7 @@ describe.skip('Scenario: Degen Meme Creator — Character Import (API mismatch -
   });
 
   it('should create character from multi-path creation system', () => {
-    const { CharacterCreationModal } = require('../../components/character/CharacterCreationModal');
+    const { CharacterCreationModal } = require('../../industry/character/CharacterCreationModal');
     const {
       getAllPresetModels,
       getPresetModelById,
@@ -473,7 +473,7 @@ describe('Scenario: Degen Meme Creator — Meme Reactions & Triggers', () => {
       ReactionTriggerTrait,
       useReactionTrigger,
     } = require('../../lib/traits/reactionTriggerTrait');
-    const { DiscordReactionPanel } = require('../../components/character/DiscordReactionPanel');
+    const { DiscordReactionPanel } = require('../../industry/character/DiscordReactionPanel');
 
     // Verify Discord webhook manager exists
     expect(DiscordWebhookManager).toBeDefined();

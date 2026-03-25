@@ -37,7 +37,6 @@ import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import { SaveBar } from '@/components/SaveBar';
 import { CollabBar } from '@/components/collaboration/CollabBar';
 import { xrStore } from '@/components/vr/VREditSession';
-import { StudioModeSwitcher } from '@/components/StudioModeSwitcher';
 import dynamic from 'next/dynamic';
 import { useGlobalHotkeys } from '@/hooks/useGlobalHotkeys';
 import { useOrchestrationKeyboard } from '@/hooks/useOrchestrationKeyboard';
@@ -481,9 +480,25 @@ export function StudioHeader() {
           )}
         </div>
 
-        {/* Center: Studio Mode Switcher */}
+        {/* Center: Expert Mode Toggle */}
         <div className="flex justify-center">
-          <StudioModeSwitcher />
+          <button
+            onClick={() => {
+              if (isExpert) {
+                // Revert to setup configuration state
+                useStudioPresetStore.getState().reset();
+                if (typeof window !== 'undefined') window.location.reload();
+              } else {
+                useStudioPresetStore.getState().unlockMassiveIde();
+              }
+            }}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+              isExpert ? "bg-studio-accent text-white shadow-md shadow-studio-accent/20" : "bg-studio-panel border border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-surface"
+            }`}
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            {isExpert ? "Massive IDE" : "Expert Mode"}
+          </button>
         </div>
 
         {/* Right: status + tools + VR + collab + save */}
@@ -1214,12 +1229,12 @@ export function StudioHeader() {
       {/* Sprint 2-4: Orphaned studio panels — now wired */}
       {(usePanelVisibilityStore.getState() as any).calibrationOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <CalibrationUncertaintyIndicator onClose={() => usePanelVisibilityStore.getState().setCalibrationOpen(false)} />
+          <CalibrationUncertaintyIndicator />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).dragonPreviewOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <DragonPreview onClose={() => usePanelVisibilityStore.getState().setDragonPreviewOpen(false)} />
+          <DragonPreview />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).holoDiffOpen && (
@@ -1229,42 +1244,42 @@ export function StudioHeader() {
       )}
       {(usePanelVisibilityStore.getState() as any).sliderInspectorOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <SliderMaterialInspector onClose={() => usePanelVisibilityStore.getState().setSliderInspectorOpen(false)} />
+          <SliderMaterialInspector />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).traitMatrixOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <TraitSupportMatrixDashboard onClose={() => usePanelVisibilityStore.getState().setTraitMatrixOpen(false)} />
+          <TraitSupportMatrixDashboard />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).assetImportOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <AssetImportDropZone onClose={() => usePanelVisibilityStore.getState().setAssetImportOpen(false)} />
+          <AssetImportDropZone />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).cinematicCameraOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <CinematicCameraPanel onClose={() => usePanelVisibilityStore.getState().setCinematicCameraOpen(false)} />
+          <CinematicCameraPanel />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).syntheticDataOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <SyntheticDataDashboard onClose={() => usePanelVisibilityStore.getState().setSyntheticDataOpen(false)} />
+          <SyntheticDataDashboard />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).compilationPipelineOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <CompilationPipelineVisualizer onClose={() => usePanelVisibilityStore.getState().setCompilationPipelineOpen(false)} />
+          <CompilationPipelineVisualizer />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).confidenceXROpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <ConfidenceAwareXRUI onClose={() => usePanelVisibilityStore.getState().setConfidenceXROpen(false)} />
+          <ConfidenceAwareXRUI />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).operationsHubOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <StudioOperationsHub onClose={() => usePanelVisibilityStore.getState().setOperationsHubOpen(false)} />
+          <StudioOperationsHub />
         </div>
       )}
 

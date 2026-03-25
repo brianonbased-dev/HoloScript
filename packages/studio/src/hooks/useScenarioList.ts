@@ -5,7 +5,7 @@ import {
   SCENARIOS,
   type ScenarioEntry,
   type ScenarioCategory,
-} from '@/components/scenarios/ScenarioGallery';
+} from '@/industry/scenarios/ScenarioGallery';
 
 // ─── Types ──────────────────────────────────────────────────────
 

@@ -83,14 +83,14 @@ export const COMPONENT_REGISTRY: ComponentEntry[] = [
   // ── Scene ──
   {
     name: 'ScenarioGallery',
-    path: 'components/scenarios/ScenarioGallery.tsx',
+    path: 'industry/scenarios/ScenarioGallery.tsx',
     category: 'scene',
     owner: 'studio-core',
     isCanonical: true,
   },
   {
     name: 'ScenarioCard',
-    path: 'components/scenarios/ScenarioCard.tsx',
+    path: 'industry/scenarios/ScenarioCard.tsx',
     category: 'scene',
     owner: 'studio-core',
     isCanonical: true,

@@ -26,7 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Projects', href: '/projects', icon: '📁', description: 'Your saved work' },
   { label: 'Templates', href: '/templates', icon: '📐', description: 'Start from a preset' },
   { label: 'Playground', href: '/playground', icon: '🎮', description: 'Code sandbox' },
-  { label: 'Shader Lab', href: '/shader-editor', icon: '🎨', description: 'Shader graph editor' },
+
   { label: 'Registry', href: '/registry', icon: '📦', description: 'Trait & asset registry' },
 ];
 

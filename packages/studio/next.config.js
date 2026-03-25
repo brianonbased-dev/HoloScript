@@ -10,6 +10,14 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*` : 'http://localhost:3105/api/:path*'
+      }
+    ];
+  },
   outputFileTracingRoot: path.join(__dirname, '..', '..'),
   serverExternalPackages: [
     'tree-sitter',

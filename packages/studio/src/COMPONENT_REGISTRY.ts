@@ -221,7 +221,7 @@ export const COMPONENT_REGISTRY = {
   },
 
   ExportPanel_Character: {
-    canonical: 'components/character/export/ExportPanel.tsx',
+    canonical: 'industry/character/export/ExportPanel.tsx',
     exports: [
       'CharacterExportPanel',
       'ExportPanel (deprecated alias)',
@@ -231,7 +231,7 @@ export const COMPONENT_REGISTRY = {
     domain: 'character',
     description:
       'Character export panel with Character Card JSON, Full Bundle ZIP, and raw GLB download.',
-    usedIn: ['components/character/layout/CharacterLayout.tsx'],
+    usedIn: ['industry/character/layout/CharacterLayout.tsx'],
     note: 'Renamed from ExportPanel to CharacterExportPanel to avoid naming collision with scene export.',
   },
 } as const;

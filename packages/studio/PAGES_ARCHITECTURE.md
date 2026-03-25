@@ -190,6 +190,10 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
      [Studio Next.js App]   [Marketplace Next.js App]
          port: 3100              port: 3000
               |                     |
+     [Studio API Gateway]           |
+     (services/studio-api)          |
+         port: 3105                 |
+              |                     |
               +-----+               |
               |     |               |
     [@holoscript/core]     [@holoscript/marketplace-api]
@@ -207,6 +211,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 | Service | Package | Port | Dockerfile | Railway Config |
 |---|---|---|---|---|
 | Studio | `@holoscript/studio` | 3100 | Uses standalone output | `railway.toml` (TBD) |
+| Studio API | `services/studio-api` | 3105 | Needs Dockerfile | TBD |
 | Marketplace Web | `@holoscript/marketplace-web` | 3000 | Needs Dockerfile | TBD |
 | Marketplace API | `@holoscript/marketplace-api` | 3001 | Needs Dockerfile | TBD |
 | MCP Server | `@holoscript/mcp-server` | 5567 | `Dockerfile.mcp-server` | `railway.mcp-server.toml` |

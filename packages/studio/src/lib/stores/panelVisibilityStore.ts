@@ -92,10 +92,7 @@ export type PanelKey =
   | 'syntheticData'
   | 'compilationPipeline'
   | 'confidenceXR'
-  | 'operationsHub'
-  | 'robotDeploy'
-  | 'molecularViewer'
-  | 'dnaSequencer';
+  | 'operationsHub';
 
 /** Maps a PanelKey to its boolean field name (e.g. 'chat' -> 'chatOpen'). */
 type OpenField<K extends string> = `${K}Open`;
@@ -196,9 +193,6 @@ const PANEL_KEYS: PanelKey[] = [
   'compilationPipeline',
   'confidenceXR',
   'operationsHub',
-  'robotDeploy',
-  'molecularViewer',
-  'dnaSequencer',
 ];
 
 /** Panels that default to *open*. */

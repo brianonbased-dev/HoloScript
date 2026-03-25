@@ -8,27 +8,19 @@ import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { initAnalytics, identifyUser } from '../lib/analytics';
 import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
-import { useMagicMoment } from '../hooks/useMagicMoment';
 import dynamic from 'next/dynamic';
-import { isFirstRunCompleted } from '../components/FirstRunWizard';
 import { DevToolsInit } from '../components/DevToolsInit';
 import { AppShell } from '../components/AppShell';
 import { PluginHostProvider } from '../hooks/usePluginHost';
 
-const MagicMomentWizard = dynamic(
-  () => import('../components/wizard/MagicMomentWizard').then((m) => ({ default: m.MagicMomentWizard })),
-  { ssr: false }
-);
+
 
 const StudioSetupWizard = dynamic(
   () => import('../components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
   { ssr: false }
 );
 
-const FirstRunWizard = dynamic(
-  () => import('../components/FirstRunWizard').then((m) => ({ default: m.FirstRunWizard })),
-  { ssr: false }
-);
+
 
 // ═══════════════════════════════════════════════════════════════════
 // Theme Context

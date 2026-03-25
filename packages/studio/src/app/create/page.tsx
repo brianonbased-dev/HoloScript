@@ -88,25 +88,7 @@ import {
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
-import { CreatorLayout } from '@/components/layouts/CreatorLayout';
-import { FilmmakerLayout } from '@/components/layouts/FilmmakerLayout';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
-import { CharacterLayout } from '@/components/character/layout/CharacterLayout';
-
-const ScenarioLauncher = dynamic(
-  () =>
-    import('@/components/scenarios/ScenarioLauncher').then((m) => ({
-      default: m.ScenarioLauncher,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
-        Loading scenarios...
-      </div>
-    ),
-  }
-);
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -494,20 +476,7 @@ const ScriptConsole = dynamic(
   { ssr: false }
 );
 
-const RobotDeployPanel = dynamic(
-  () => import('@/components/scenarios/RobotDeployPanel').then((m) => ({ default: m.RobotDeployPanel })),
-  { ssr: false }
-);
 
-const MolecularViewerPanel = dynamic(
-  () => import('@/components/scenarios/MolecularViewerPanel').then((m) => ({ default: m.MolecularViewerPanel })),
-  { ssr: false }
-);
-
-const DNASequencerPanel = dynamic(
-  () => import('@/components/scenarios/DNASequencerPanel').then((m) => ({ default: m.DNASequencerPanel })),
-  { ssr: false }
-);
 
 
 
@@ -862,12 +831,7 @@ export default function CreatePage() {
   const toggleExclusive = usePanelVisibilityStore((s) => s.toggleExclusive);
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
-  const robotDeployOpen = usePanelVisibilityStore((s) => s.robotDeployOpen);
-  const setRobotDeployOpen = usePanelVisibilityStore((s) => s.setRobotDeployOpen);
-  const molecularViewerOpen = usePanelVisibilityStore((s) => s.molecularViewerOpen);
-  const setMolecularViewerOpen = usePanelVisibilityStore((s) => s.setMolecularViewerOpen);
-  const dnaSequencerOpen = usePanelVisibilityStore((s) => s.dnaSequencerOpen);
-  const setDnaSequencerOpen = usePanelVisibilityStore((s) => s.setDnaSequencerOpen);
+
 
   // Non-panel state (kept local — layout dimensions, left tab)
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>('scene');
@@ -917,9 +881,18 @@ export default function CreatePage() {
     canRedo: bridgeCanRedo,
   } = useStudioBridge(emptyAST);
 
-  // ── URL scene restore (?scene= parameter) ──────────────────────────────────
+  // ── URL scene restore (?scene= or ?src= parameters) ────────────────────────
   const searchParams = useSearchParams();
   useEffect(() => {
+    // 1. Check for raw generative source code
+    const rawSrc = searchParams.get('src');
+    if (rawSrc) {
+      setCode(rawSrc);
+      markClean();
+      return;
+    }
+
+    // 2. Check for encoded full scene state
     const encoded = searchParams.get('scene');
     if (!encoded) return;
     decodeSceneFromURL(encoded).then((result) => {
@@ -955,42 +928,11 @@ export default function CreatePage() {
       {/* Live preview status bar */}
       <LivePreviewBar sceneId="scene-1" />
 
-      {/* ── Layout: switches based on Studio Mode ────────────────────────────── */}
-      {studioMode === 'creator' ? (
-        <CreatorLayout
-          viewportSlot={
-            <div className="relative h-full w-full">
-              <StudioErrorBoundary>
-                <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
-              </StudioErrorBoundary>
-              <AssetDropOverlay />
-            </div>
-          }
-        />
-      ) : studioMode === 'filmmaker' ? (
-        <FilmmakerLayout
-          viewportSlot={
-            <div className="relative h-full w-full">
-              <StudioErrorBoundary>
-                <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
-              </StudioErrorBoundary>
-              <AssetDropOverlay />
-            </div>
-          }
-        />
-      ) : studioMode === 'character' ? (
-        <div className="flex flex-1 overflow-hidden">
-          <CharacterLayout />
-        </div>
-      ) : studioMode === 'scenarios' ? (
-        <div className="flex flex-1 overflow-hidden">
-          <ScenarioLauncher />
-        </div>
-      ) : (
-        <ResponsiveStudioLayout
-          leftTitle="Scene"
-          rightTitle="Properties"
-        >
+      {/* ── Core Unified Studio Layout ────────────────────────────── */}
+      <ResponsiveStudioLayout
+        leftTitle="Scene"
+        rightTitle="Properties"
+      >
         <div className="flex flex-1 overflow-hidden">
           {/* LEFT: Scene Graph + Assets tabbed panel (hidden on mobile, collapsible on tablet) */}
           <div
@@ -1621,26 +1563,7 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* RIGHT RAIL: Robot Deploy (Robotics Lab) */}
-          {robotDeployOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <RobotDeployPanel />
-            </div>
-          )}
 
-          {/* RIGHT RAIL: Molecular Viewer (Science Lab) */}
-          {molecularViewerOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <MolecularViewerPanel />
-            </div>
-          )}
-
-          {/* RIGHT RAIL: DNA Sequencer (Healthcare VR) */}
-          {dnaSequencerOpen && (
-            <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-              <DNASequencerPanel />
-            </div>
-          )}
 
           {/* OVERLAY: Hotkey Map (full screen modal) */}
           <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />
@@ -2079,7 +2002,6 @@ export default function CreatePage() {
           </div>
         </div>
         </ResponsiveStudioLayout>
-      )}
 
       {/* Trait Palette modal */}
       <TraitPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

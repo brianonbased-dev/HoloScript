@@ -7,7 +7,7 @@ import { QuickStartWizard } from '@/components/wizard/QuickStartWizard';
 import {
   CharacterCreationModal,
   type CharacterMetadata,
-} from '@/components/character/creation/CharacterCreationModal';
+} from '@/industry/character/creation/CharacterCreationModal';
 import { ContextMenu, SimplePropertyInspector } from '@holoscript/ui';
 import {
   Box,

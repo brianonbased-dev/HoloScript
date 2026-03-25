@@ -203,7 +203,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     category: 'robotics',
     studioMode: 'creator',
     domainProfile: 'robotics',
-    openPanels: ['chat', 'physics', 'inspector', 'robotDeploy'],
+    openPanels: ['chat', 'physics', 'inspector'],
     sidebarTabs: [
       'traits', 'physics', 'behavior', 'ai', 'pathfinding',
       'scene', 'assets', 'compiler', 'saveload',
@@ -218,7 +218,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     category: 'science',
     studioMode: 'creator',
     domainProfile: 'science',
-    openPanels: ['chat', 'inspector', 'particles', 'molecularViewer'],
+    openPanels: ['chat', 'inspector', 'particles'],
     sidebarTabs: [
       'traits', 'scene', 'physics', 'particles', 'shader',
       'assets', 'compiler', 'saveload',
@@ -248,7 +248,7 @@ export const STUDIO_PRESETS: StudioPreset[] = [
     category: 'healthcare',
     studioMode: 'creator',
     domainProfile: 'science',
-    openPanels: ['chat', 'physics', 'inspector', 'dnaSequencer'],
+    openPanels: ['chat', 'physics', 'inspector'],
     sidebarTabs: [
       'traits', 'physics', 'behavior', 'animation', 'audio',
       'scene', 'assets', 'lighting', 'camera', 'saveload',

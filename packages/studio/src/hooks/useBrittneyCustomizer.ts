@@ -21,7 +21,7 @@ import {
   type CharacterIntent,
   type CharacterStoreActions,
 } from '@/lib/brittney/CharacterIntentParser';
-import { BUILTIN_ITEMS } from '@/components/character/wardrobe/WardrobePanel';
+import { BUILTIN_ITEMS } from '@/industry/character/wardrobe/WardrobePanel';
 
 export interface BrittneyCustomizerReturn {
   /** Process a text command and return Brittney's response */
