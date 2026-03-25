@@ -7,6 +7,8 @@ on:
       - 'packages/mcp-server/**'
       - 'packages/core/**'
       - 'packages/crdt/**'
+      - 'packages/agent-protocol/**'
+      - 'packages/cli/**'
       - 'packages/llm-provider/**'
       - 'Dockerfile.mcp-server'
       - '.github/workflows/publish-mcp-image.yml'
@@ -61,3 +63,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trigger Railway redeploy
+        if: success()
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          npm install -g @railway/cli
+          railway redeploy --service mcp-server -y
