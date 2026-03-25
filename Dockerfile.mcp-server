@@ -1,7 +1,7 @@
 # HoloScript MCP Server - Monorepo Build
 #
 # Builds from the pnpm workspace root to resolve workspace dependencies
-# Dependency chain: mcp-server → core + llm-provider + cli, core → crdt
+# Dependency chain: mcp-server → core + llm-provider + absorb-service + cli, core → crdt
 
 FROM node:20-alpine AS builder
 
@@ -19,6 +19,7 @@ COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/core/package.json packages/core/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
+COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
 # Install dependencies (--ignore-scripts prevents tsup from running before source is copied)
@@ -30,6 +31,7 @@ COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
 COPY packages/cli/ packages/cli/
 COPY packages/llm-provider/ packages/llm-provider/
+COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/mcp-server/ packages/mcp-server/
 
 # Build in dependency order
@@ -38,6 +40,7 @@ RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN cd packages/llm-provider && npx tsup --no-dts
+RUN cd packages/absorb-service && npx tsup
 RUN cd packages/mcp-server && npx tsup
 
 # --- Production stage ---
@@ -67,6 +70,7 @@ COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/core/package.json packages/core/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
+COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
 # Install all dependencies (some externalized packages like jsonwebtoken aren't
@@ -78,6 +82,7 @@ COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
 COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
+COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 

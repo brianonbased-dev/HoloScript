@@ -45,6 +45,7 @@ interface StudioPresetState {
   addCustomPanel: (key: PanelKey) => void;
   removeCustomPanel: (key: PanelKey) => void;
   reset: () => void;
+  unlockMassiveIde: () => void;
   exportPreset: () => PresetExportData | null;
   importPreset: (json: string) => { success: boolean; error?: string };
 }
@@ -151,6 +152,42 @@ export const useStudioPresetStore = create<StudioPresetState>()(
             wizardCompleted: false,
             customPanelOverrides: [],
           }),
+
+        unlockMassiveIde: () => {
+          // Unlocks all panels by simulating an advanced mode with the 'all' domain
+          // 1. Close all currently open panels to avoid clutter, or leave them? Better to reset.
+          usePanelVisibilityStore.getState().closeAll();
+          
+          // 2. Set 'all' domain profile globally
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('holoscript-domain-profile', 'all');
+            
+            // Give them the full set of sidebar tabs
+            const allTabs = [
+              'safety', 'marketplace', 'platform', 'traits', 'physics', 'ai', 'dialogue', 'ecs',
+              'animation', 'audio', 'procgen', 'multiplayer', 'shader', 'combat', 'pathfinding',
+              'particles', 'camera', 'inventory', 'terrain', 'lighting', 'cinematic', 'collaboration',
+              'security', 'scripting', 'saveload', 'profiler', 'compiler', 'lod', 'statemachine',
+              'input', 'network', 'culture', 'timeline', 'scene', 'assets', 'state', 'viewport',
+              'bus', 'presets', 'agent', 'character', 'models', 'templates', 'diagnostics', 'behavior', 'pipeline'
+            ];
+            window.localStorage.setItem('holoscript-studio-favorites', JSON.stringify(allTabs));
+          }
+
+          // 3. Force expert mode
+          useEditorStore.getState().setStudioMode('expert');
+
+          // 4. Update preset state
+          set({
+            activePresetId: 'massive-ide',
+            wizardCompleted: true,
+          });
+          
+          // Force a reload to ensure hooks like useDomainFilter catch the new storage values
+          if (typeof window !== 'undefined') {
+            setTimeout(() => window.location.reload(), 100);
+          }
+        },
 
         exportPreset: () => {
           const { activePresetId, experienceLevel, projectSpecifics, customPanelOverrides } = get();

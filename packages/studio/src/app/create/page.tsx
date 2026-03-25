@@ -28,7 +28,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
 import { useProjectStore } from '@/lib/projectStore';
 import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
-import { StudioErrorBoundary } from '@/components/ui/StudioErrorBoundary';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   AlertTriangle,
   BarChart2,
@@ -87,7 +87,7 @@ import {
   Shield,
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
-import { PanelSplitter } from '@/components/ui/PanelSplitter';
+import { PanelSplitter } from '@holoscript/ui';
 import { CreatorLayout } from '@/components/layouts/CreatorLayout';
 import { FilmmakerLayout } from '@/components/layouts/FilmmakerLayout';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
@@ -416,10 +416,7 @@ const EnvironmentPanel = dynamic(
   { ssr: false }
 );
 
-const AssetPackStorePanel = dynamic(
-  () => import('@/components/store/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
-  { ssr: false }
-);
+// AssetPackStorePanel removed - duplicate of AssetPackPanel (line 216)
 
 
 // ProfilerPanel2 removed — duplicate of ProfilerPanel (line 263)
@@ -429,13 +426,7 @@ const AssetPackStorePanel = dynamic(
 // TraitRegistryPanel removed — misnamed duplicate of RemotePreviewPanel (line 484)
 
 
-const AiSceneGeneratorPanel = dynamic(
-  () =>
-    import('@/components/generator/SceneGeneratorPanel').then((m) => ({
-      default: m.SceneGeneratorPanel,
-    })),
-  { ssr: false }
-);
+// AiSceneGeneratorPanel removed — duplicate of SceneGeneratorPanel (line 274)
 
 const NodeInspectorPanel = dynamic(
   () =>

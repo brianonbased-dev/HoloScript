@@ -37,6 +37,7 @@
     "@holoscript/r3f-renderer": "workspace:*",
     "@holoscript/std": "workspace:*",
     "@holoscript/studio-plugin-sdk": "workspace:*",
+    "@holoscript/ui": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^1.0.2",
     "@react-three/drei": "^10.7.7",

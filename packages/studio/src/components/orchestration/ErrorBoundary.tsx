@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { StudioErrorBoundary } from '@/components/ui/StudioErrorBoundary';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 interface OrchestrationErrorBoundaryProps {
   children: React.ReactNode;

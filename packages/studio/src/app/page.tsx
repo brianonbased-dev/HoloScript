@@ -26,7 +26,7 @@ const MODES = [
     gradient: 'from-amber-500 via-orange-500 to-rose-500',
     glowColor: 'rgba(251, 146, 60, 0.4)',
     borderColor: 'rgba(251, 146, 60, 0.3)',
-    href: '/play',
+    href: process.env.NEXT_PUBLIC_ACADEMY_URL ? `${process.env.NEXT_PUBLIC_ACADEMY_URL}/play` : 'http://localhost:3102/play',
   },
   {
     id: 'learn',
@@ -37,7 +37,7 @@ const MODES = [
     gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
     glowColor: 'rgba(20, 184, 166, 0.4)',
     borderColor: 'rgba(20, 184, 166, 0.3)',
-    href: '/learn',
+    href: process.env.NEXT_PUBLIC_ACADEMY_URL ? `${process.env.NEXT_PUBLIC_ACADEMY_URL}/learn` : 'http://localhost:3102/learn',
   },
   {
     id: 'create',
@@ -95,7 +95,7 @@ function MeshBackground() {
 function ModeCard({ mode, index }: { mode: (typeof MODES)[number]; index: number }) {
   return (
     <Link
-      href={mode.href}
+      href={mode.href.startsWith('http') ? mode.href : mode.href}
       className="mode-card focus-ring"
       style={
         {
@@ -104,6 +104,7 @@ function ModeCard({ mode, index }: { mode: (typeof MODES)[number]; index: number
           animationDelay: `${index * 100 + 200}ms`,
         } as React.CSSProperties
       }
+      {...(mode.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >
       <div className="mode-card-inner">
         <div className={`mode-emoji bg-gradient-to-br ${mode.gradient}`}>
@@ -208,9 +209,9 @@ export default function HomePage() {
       <footer className="home-footer">
         <span>HoloScript v3.22 · 17,740+ tests</span>
         <span className="footer-sep">·</span>
-        <Link href="/playground" className="footer-link">
+        <a href={process.env.NEXT_PUBLIC_ACADEMY_URL ? `${process.env.NEXT_PUBLIC_ACADEMY_URL}/playground` : 'http://localhost:3102/playground'} className="footer-link">
           Playground
-        </Link>
+        </a>
         <span className="footer-sep">·</span>
         <Link href="/workspace" className="footer-link">
           Workspace

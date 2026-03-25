@@ -1,0 +1,16 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @holoscript/absorb-service build && pnpm --filter absorb-service build"
+
+[deploy]
+startCommand = "node services/absorb-service/dist/server.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[services]]
+internalPort = 3005
+
+[service]
+name = "absorb-service"

@@ -8,8 +8,7 @@ import {
   CharacterCreationModal,
   type CharacterMetadata,
 } from '@/components/character/creation/CharacterCreationModal';
-import { ContextMenu } from '@/components/ui/ContextMenu';
-import { SimplePropertyInspector } from '@/components/ui/SimplePropertyInspector';
+import { ContextMenu, SimplePropertyInspector } from '@holoscript/ui';
 import {
   Box,
   Lamp,

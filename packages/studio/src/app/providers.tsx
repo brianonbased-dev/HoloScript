@@ -122,35 +122,17 @@ function AnalyticsProvider({ children }: { children: ReactNode }) {
 export function Providers({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
 
-  // Magic Moment Wizard — the "iPhone moment" first-run experience
-  const magicMomentComplete = useMagicMoment((s) => s.isComplete);
-  const showMagicMoment = useMagicMoment((s) => s.isVisible);
-  const magicMomentShow = useMagicMoment((s) => s.showWizard);
-  const magicMomentHide = useMagicMoment((s) => s.hideWizard);
-
-  // Studio Setup Wizard — shown AFTER MagicMoment completes (optional workspace config)
+  // Studio Setup Wizard — shown if workspace configured
   const wizardCompleted = useStudioPresetStore((s) => s.wizardCompleted);
   const setWizardCompleted = useStudioPresetStore((s) => s.setWizardCompleted);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
 
-  // FirstRun Wizard — shown AFTER StudioSetupWizard completes (service integration)
-  const [firstRunDone, setFirstRunDone] = useState(() =>
-    typeof window !== 'undefined' ? isFirstRunCompleted() : true
-  );
-  const [showFirstRunWizard, setShowFirstRunWizard] = useState(false);
-
   useEffect(() => {
-    if (!magicMomentComplete) {
-      // First visit: show MagicMomentWizard
-      magicMomentShow();
-    } else if (!wizardCompleted) {
-      // MagicMoment done but workspace not configured: show StudioSetupWizard
+    if (!wizardCompleted) {
+      // Show Custom IDE picker if not configured
       setShowSetupWizard(true);
-    } else if (!firstRunDone) {
-      // StudioSetup done but first-run integrations not completed: show FirstRunWizard
-      setShowFirstRunWizard(true);
     }
-  }, [magicMomentComplete, wizardCompleted, firstRunDone, magicMomentShow]);
+  }, [wizardCompleted]);
 
   // Theme
   const [theme, setTheme] = useState<Theme>('dark');
@@ -196,35 +178,12 @@ export function Providers({ children }: { children: ReactNode }) {
                   <AppShell>{children}</AppShell>
                 </PluginHostProvider>
               </ErrorBoundary>
-              <ToastContainer toasts={toasts} onRemove={removeToast} />
-              {showMagicMoment && (
-                <MagicMomentWizard onClose={() => {
-                  magicMomentHide();
-                  // After MagicMoment, optionally show setup wizard
-                  if (!wizardCompleted) {
-                    setShowSetupWizard(true);
-                  }
-                }} />
-              )}
-              {showSetupWizard && !showMagicMoment && (
+              {showSetupWizard && (
                 <StudioSetupWizard onClose={() => {
                   setShowSetupWizard(false);
-                  // Mark wizard completed so it won't re-appear on page refresh
-                  // (applyPreset already sets this when the wizard completes normally,
-                  // but we also need to persist dismissal via X/Skip/Back)
                   if (!wizardCompleted) {
                     setWizardCompleted(true);
                   }
-                  // After StudioSetup completes, show FirstRunWizard if not yet done
-                  if (!firstRunDone) {
-                    setShowFirstRunWizard(true);
-                  }
-                }} />
-              )}
-              {showFirstRunWizard && !showMagicMoment && !showSetupWizard && (
-                <FirstRunWizard onClose={() => {
-                  setShowFirstRunWizard(false);
-                  setFirstRunDone(true);
                 }} />
               )}
               <DevToolsInit />

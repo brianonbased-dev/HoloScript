@@ -639,6 +639,16 @@ export function StudioHeader() {
                     <FolderGit2 className="h-3 w-3" />
                     Import GitHub Repo
                   </button>
+                  <button
+                    onClick={() => {
+                      useStudioPresetStore.getState().unlockMassiveIde();
+                      setPresetDropdownOpen(false);
+                    }}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg mt-1 border border-rose-500/30 bg-rose-500/20 px-3 py-1.5 text-[10px] font-semibold text-rose-400 transition hover:bg-rose-500/30 hover:border-rose-500/50"
+                  >
+                    <Settings2 className="h-3 w-3" />
+                    Unlock Massive IDE
+                  </button>
                 </div>
               </div>
             )}

@@ -5,7 +5,7 @@
  * @imperative region generation, and edge cases.
  */
 import { describe, it, expect } from 'vitest';
-import { handleAbsorbTypescriptTool } from '../absorb-typescript-tools';
+import { handleAbsorbTypescriptTool } from '@holoscript/absorb-service/mcp';
 
 // =============================================================================
 // HELPERS

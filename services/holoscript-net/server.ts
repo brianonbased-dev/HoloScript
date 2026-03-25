@@ -42,7 +42,12 @@ console.log('ROOT:', ROOT);
 console.log('NATIVE_ENGINE_DIST:', NATIVE_ENGINE_DIST);
 console.log('-----------------------');
 
-app.use(express.static(DOCS_DIST));
+// Serve Native V2 Landing Page at the Root /
+app.use(express.static(NATIVE_ENGINE_DIST));
+
+// Serve VitePress Documentation at /docs
+app.use('/docs', express.static(DOCS_DIST));
+
 app.use('/native/assets/@holoscript/core', express.static(path.resolve(ROOT, '../../packages/core/dist')));
 app.use('/native/assets/@holoscript/runtime', express.static(path.resolve(ROOT, '../../packages/runtime/dist')));
 app.use('/native/assets/@holoscript/r3f-renderer', express.static(path.resolve(ROOT, '../../packages/r3f-renderer/dist')));
@@ -55,11 +60,6 @@ app.get('/native/assets/node-fs-shim.js', (req, res) => {
 app.use('/src', express.static(path.resolve(ROOT, './src')));
 app.use('/node_modules', express.static(path.resolve(ROOT, './node_modules')));
 
-app.get('/native', (req, res) => {
-  res.sendFile(path.resolve(ROOT, 'index.html'));
-});
-app.use('/native', express.static(NATIVE_ENGINE_DIST));
-
 // Serve .holo files directly from the docs directory
 app.get('/site.holo', (req, res) => {
   res.sendFile(path.join(COMPOSITIONS_DIR, 'site.holo'));
@@ -70,17 +70,13 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', engine: 'holoscript-native' });
 });
 
-// Fallback to index.html for SPA routing
+// Fallbacks
 app.get('/docs*', (req, res) => {
   res.sendFile(path.join(DOCS_DIST, 'index.html'));
 });
 
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/native')) {
-    res.sendFile(path.resolve(ROOT, 'index.html'));
-  } else {
-    res.sendFile(path.join(DOCS_DIST, 'index.html'));
-  }
+  res.sendFile(path.join(NATIVE_ENGINE_DIST, 'index.html'));
 });
 
 // --- Live Spatial Presence (CRDT WebSocket Hub) ---

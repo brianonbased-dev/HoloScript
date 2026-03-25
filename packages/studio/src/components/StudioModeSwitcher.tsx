@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '@/lib/stores';
 import type { StudioMode } from '@/lib/stores';
+import { useStudioPresetStore } from '@/lib/stores/studioPresetStore';
 
 interface ModeInfo {
   id: StudioMode;
@@ -100,7 +101,13 @@ export function StudioModeSwitcher() {
           return (
             <button
               key={mode.id}
-              onClick={() => setStudioMode(mode.id)}
+              onClick={() => {
+                if (mode.id === 'expert') {
+                  useStudioPresetStore.getState().unlockMassiveIde();
+                } else {
+                  setStudioMode(mode.id);
+                }
+              }}
               title={`${mode.label}: ${mode.description}`}
               className={`studio-header-btn flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150 ${
                 active
@@ -133,7 +140,11 @@ export function StudioModeSwitcher() {
                 <button
                   key={mode.id}
                   onClick={() => {
-                    setStudioMode(mode.id);
+                    if (mode.id === 'expert') {
+                      useStudioPresetStore.getState().unlockMassiveIde();
+                    } else {
+                      setStudioMode(mode.id);
+                    }
                     setExpanded(false);
                   }}
                   className={`flex w-full items-start gap-2.5 rounded-lg p-2 text-left transition ${
