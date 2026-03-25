@@ -249,9 +249,22 @@ async function handleParseHs(args: Record<string, unknown>) {
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
 
+    // Deduplicate AST: root-level 'body' duplicates 'children'
+    const ast = result.ast;
+    if (ast && typeof ast === 'object' && 'body' in ast && 'children' in ast) {
+      const { body: _body, ...cleanAst } = ast as Record<string, unknown>;
+      return {
+        success: true,
+        ast: cleanAst,
+        errors: result.errors || [],
+        warnings: result.warnings || [],
+        ...(args.includeSourceMap ? { sourceMap: result.sourceMap } : {}),
+      };
+    }
+
     return {
       success: true,
-      ast: result.ast,
+      ast,
       errors: result.errors || [],
       warnings: result.warnings || [],
       ...(args.includeSourceMap ? { sourceMap: result.sourceMap } : {}),

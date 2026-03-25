@@ -89,6 +89,28 @@ const oauth2 = getOAuth2Provider({
 });
 const auditLog = getAuditLogger();
 
+// ── Simple per-IP rate limiter for OAuth endpoints ──────────────────────────
+const RATE_LIMIT = parseInt(process.env.OAUTH_RATE_LIMIT || '100', 10);
+const RATE_WINDOW_MS = 60_000;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function getRateLimit(ip: string): { remaining: number; limit: number; resetAt: number } {
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+  if (!bucket || bucket.resetAt <= now) {
+    bucket = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateBuckets.set(ip, bucket);
+  }
+  bucket.count++;
+  return { remaining: Math.max(0, RATE_LIMIT - bucket.count), limit: RATE_LIMIT, resetAt: bucket.resetAt };
+}
+
+function setRateLimitHeaders(res: http.ServerResponse, rl: { remaining: number; limit: number; resetAt: number }) {
+  res.setHeader('X-RateLimit-Limit', rl.limit);
+  res.setHeader('X-RateLimit-Remaining', rl.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rl.resetAt / 1000));
+}
+
 // Store active transports by session ID
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
@@ -743,6 +765,15 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /oauth/token — Token exchange
   if (url === '/oauth/token' && req.method === 'POST') {
+    const rl = getRateLimit(clientIP);
+    setRateLimitHeaders(res, rl);
+
+    if (rl.remaining <= 0) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) });
+      res.end(JSON.stringify({ error: 'rate_limit_exceeded', error_description: 'Too many token requests. Try again later.' }));
+      return;
+    }
+
     try {
       const body = await parseJsonBody(req);
       const grantType = body.grant_type as string;
@@ -900,6 +931,15 @@ const httpServer = http.createServer(async (req, res) => {
       agentId: auth.agentId,
       ip: clientIP,
     });
+
+    // Surface auth mode so agents know when they're unauthenticated
+    if (auth.agentId === 'open-dev-mode') {
+      res.setHeader('X-Auth-Mode', 'permissive-open');
+    } else if (!auth.clientId) {
+      res.setHeader('X-Auth-Mode', 'legacy-key');
+    } else {
+      res.setHeader('X-Auth-Mode', 'oauth2');
+    }
 
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
