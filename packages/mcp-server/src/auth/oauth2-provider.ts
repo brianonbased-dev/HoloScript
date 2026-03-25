@@ -855,14 +855,13 @@ export class OAuth2Provider {
       revocation_endpoint: `${this.config.issuer}/oauth/revoke`,
       introspection_endpoint: `${this.config.issuer}/oauth/introspect`,
       registration_endpoint: `${this.config.issuer}/oauth/register`,
-      jwks_uri: `${this.config.issuer}/.well-known/jwks.json`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
       code_challenge_methods_supported: ['S256'],
       scopes_supported: Object.keys(OAUTH2_SCOPES),
       dpop_signing_alg_values_supported: ['ES256', 'RS256'],
-      service_documentation: 'https://holoscript.net/docs/mcp/oauth',
+      service_documentation: 'https://github.com/buildwithholoscript/HoloScript',
     };
   }
 

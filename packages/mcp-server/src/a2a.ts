@@ -573,10 +573,10 @@ export function buildAgentCard(
     id: 'holoscript-agent',
     name: 'HoloScript Agent',
     description:
-      'HoloScript language tooling agent — parse, validate, compile, render, and generate ' +
-      'spatial computing code (.hs/.hsplus/.holo) across 28+ export targets including Unity, ' +
-      'Unreal, WebGPU, VisionOS, and more. Provides 82+ tools for codebase intelligence, ' +
-      'AI-assisted code generation, graph analysis, multiplayer networking, and browser preview.',
+      `HoloScript v6.0 language tooling agent — parse, validate, compile, render, and generate ` +
+      `spatial computing code (.hs/.hsplus/.holo) across 28+ export targets including Unity, ` +
+      `Unreal, WebGPU, VisionOS, and more. Provides ${allTools.length}+ tools for codebase intelligence, ` +
+      `AI-assisted code generation, graph analysis, multiplayer networking, and browser preview.`,
     endpoint: `${baseUrl}/a2a`,
     version: '1.0.0',
     documentationUrl: 'https://github.com/buildwithholoscript/HoloScript',

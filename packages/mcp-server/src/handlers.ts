@@ -323,13 +323,17 @@ async function handleValidate(args: Record<string, unknown>) {
       }
     }
 
+    const hasWarnings = warnings.length > 0;
     return {
       valid: errors.length === 0,
       format: detectedFormat,
       errors,
       ...(includeWarnings && { warnings }),
-      summary:
-        errors.length === 0 ? '✅ Valid HoloScript code' : `❌ Found ${errors.length} error(s)`,
+      summary: errors.length > 0
+        ? `Found ${errors.length} error(s)`
+        : hasWarnings
+          ? `Valid with ${warnings.length} warning(s) — review unknown traits`
+          : 'Valid HoloScript code',
     };
   } catch (error) {
     return {
@@ -448,16 +452,29 @@ async function handleGetSyntaxReference(args: Record<string, unknown>) {
 
 async function handleGetExamples(args: Record<string, unknown>) {
   const pattern = args.pattern as string;
+  const keys = Object.keys(EXAMPLES);
 
+  // Exact match
   const example = EXAMPLES[pattern];
-  if (!example) {
-    return {
-      error: `Unknown pattern: ${pattern}`,
-      availablePatterns: Object.keys(EXAMPLES),
-    };
+  if (example) return example;
+
+  // Fuzzy match: find patterns whose slug words overlap with query words
+  const queryWords = pattern.toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(/\s+/).filter(Boolean);
+  const scored = keys.map(k => {
+    const slugWords = k.split('-');
+    const matches = queryWords.filter(q => slugWords.some(s => s.includes(q) || q.includes(s)));
+    return { key: k, score: matches.length };
+  }).filter(s => s.score > 0).sort((a, b) => b.score - a.score);
+
+  if (scored.length > 0) {
+    return { ...(EXAMPLES[scored[0].key]), _matchedPattern: scored[0].key };
   }
 
-  return example;
+  return {
+    error: `Unknown pattern: ${pattern}`,
+    availablePatterns: keys,
+    hint: 'Use slug names (e.g. "interactive-object") or keywords (e.g. "physics", "teleport")',
+  };
 }
 
 async function handleExplainCode(args: Record<string, unknown>) {

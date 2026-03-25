@@ -5,7 +5,7 @@
  * - PKCE (RFC 7636) mandatory for all flows
  * - Token rotation with refresh tokens
  * - DPoP (RFC 9449) proof-of-possession binding
- * - Short-lived access tokens (15 min), long-lived refresh (24h)
+ * - Access tokens (1 hour default, configurable via OAUTH_ACCESS_TTL), long-lived refresh (24h)
  * - Client credential registration and management
  *
  * This replaces the legacy Ed25519/API key authentication with
@@ -16,13 +16,14 @@
  */
 
 import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
+import { expandScopes, OAUTH2_SCOPES } from '../auth/oauth2-provider';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
 export interface OAuth21Config {
   /** Issuer identifier (e.g., "https://mcp.holoscript.net") */
   issuer: string;
-  /** Access token TTL in seconds. Default: 900 (15 min) */
+  /** Access token TTL in seconds. Default: 3600 (1 hour) */
   accessTokenTTL: number;
   /** Refresh token TTL in seconds. Default: 86400 (24h) */
   refreshTokenTTL: number;
@@ -42,7 +43,7 @@ export interface OAuth21Config {
 
 export const DEFAULT_OAUTH_CONFIG: OAuth21Config = {
   issuer: process.env.OAUTH_ISSUER || 'https://mcp.holoscript.net',
-  accessTokenTTL: 900,
+  accessTokenTTL: parseInt(process.env.OAUTH_ACCESS_TTL || '3600', 10),
   refreshTokenTTL: 86400,
   authCodeTTL: 300,
   tokenSecret: process.env.OAUTH_TOKEN_SECRET || '',
@@ -495,6 +496,8 @@ export class OAuth21Service {
             return { active: false };
           }
         }
+        // Expand OAuth2 scopes to internal Gate 2 scopes
+        introspection.scopes = expandScopes(introspection.scopes || []);
         return introspection;
       }
 
@@ -506,6 +509,7 @@ export class OAuth21Service {
       const token = authHeader.slice(5);
       const introspection = this.introspect(token);
       if (introspection.active) {
+        introspection.scopes = expandScopes(introspection.scopes || []);
         return introspection;
       }
     }
@@ -539,14 +543,13 @@ export class OAuth21Service {
       revocation_endpoint: `${this.config.issuer}/oauth/revoke`,
       introspection_endpoint: `${this.config.issuer}/oauth/introspect`,
       registration_endpoint: `${this.config.issuer}/oauth/register`,
-      jwks_uri: `${this.config.issuer}/.well-known/jwks.json`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
       code_challenge_methods_supported: ['S256'],
-      scopes_supported: Object.keys(SCOPE_CATEGORIES),
+      scopes_supported: Object.keys(OAUTH2_SCOPES),
       dpop_signing_alg_values_supported: ['ES256', 'RS256'],
-      service_documentation: 'https://holoscript.net/docs/mcp/oauth',
+      service_documentation: 'https://github.com/buildwithholoscript/HoloScript',
     };
   }
 

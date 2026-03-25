@@ -160,7 +160,8 @@ function getClientIP(req: http.IncomingMessage): string {
 }
 
 /**
- * Parse JSON body from incoming request (native http has no built-in body parsing)
+ * Parse request body from incoming request.
+ * Supports both application/json and application/x-www-form-urlencoded (RFC 6749).
  */
 function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
@@ -180,9 +181,18 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
     req.on('end', () => {
       try {
         const body = Buffer.concat(chunks).toString('utf-8');
-        resolve(body ? JSON.parse(body) : {});
+        if (!body) { resolve({}); return; }
+        const ct = (req.headers['content-type'] || '').toLowerCase();
+        if (ct.includes('application/x-www-form-urlencoded')) {
+          const params = new URLSearchParams(body);
+          const obj: Record<string, unknown> = {};
+          for (const [k, v] of params) obj[k] = v;
+          resolve(obj);
+        } else {
+          resolve(JSON.parse(body));
+        }
       } catch {
-        reject(new Error('Invalid JSON body'));
+        reject(new Error('Invalid request body'));
       }
     });
     req.on('error', reject);
@@ -494,8 +504,8 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  // OpenID Configuration (OAuth 2.1 discovery)
-  if (url === '/.well-known/openid-configuration') {
+  // OpenID Configuration / OAuth Authorization Server Metadata (RFC 8414)
+  if (url === '/.well-known/openid-configuration' || url === '/.well-known/oauth-authorization-server') {
     res.writeHead(200, {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=3600',
@@ -504,8 +514,8 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
-  // GET /.well-known/agent-card.json — A2A Agent Card discovery
-  if ((url === '/.well-known/agent-card.json' || url === '/.well-known/agent-card') && req.method === 'GET') {
+  // GET /.well-known/agent-card.json / agent.json — A2A Agent Card discovery
+  if ((url === '/.well-known/agent-card.json' || url === '/.well-known/agent-card' || url === '/.well-known/agent.json') && req.method === 'GET') {
     const allTools = [...tools, ...PluginManager.getTools()];
     const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -1249,6 +1259,13 @@ const httpServer = http.createServer(async (req, res) => {
       'Content-Disposition': `attachment; filename="holoscript-audit-${new Date().toISOString().split('T')[0]}.${format}"`,
     });
     res.end(auditLog.export(format));
+    return;
+  }
+
+  // Root URL — redirect to discovery endpoint
+  if (url === '/' && req.method === 'GET') {
+    res.writeHead(302, { 'Location': '/.well-known/mcp' });
+    res.end();
     return;
   }
 

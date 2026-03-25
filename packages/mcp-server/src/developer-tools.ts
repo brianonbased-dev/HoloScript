@@ -20,7 +20,7 @@ let docsGenerator: APIDocsGenerator | null = null;
 let waterfallRenderer: TraceWaterfallRenderer | null = null;
 
 function getDocsGenerator(): APIDocsGenerator {
-  if (!docsGenerator) docsGenerator = new APIDocsGenerator();
+  if (!docsGenerator) docsGenerator = new APIDocsGenerator({ version: '6.0.0' });
   return docsGenerator;
 }
 
