@@ -1286,10 +1286,17 @@ httpServer.listen(PORT, '0.0.0.0', () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing server...');
+function shutdown(signal: string) {
+  console.log(`${signal} received, closing server...`);
   httpServer.close(() => {
     console.log('Server closed');
     process.exit(0);
   });
-});
+  // Force exit after 10s if connections don't drain
+  setTimeout(() => {
+    console.warn('Forcing exit after 10s timeout');
+    process.exit(1);
+  }, 10_000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

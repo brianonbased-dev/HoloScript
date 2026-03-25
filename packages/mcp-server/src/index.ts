@@ -44,11 +44,13 @@ import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
 import { handleAbsorbServiceTool } from './absorb-tools';
 
+declare const __SERVICE_VERSION__: string;
+
 // Create MCP server
 const server = new Server(
   {
     name: 'holoscript-mcp',
-    version: '5.0.0',
+    version: typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0',
   },
   {
     capabilities: {
