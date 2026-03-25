@@ -541,7 +541,7 @@ animate();</code></pre>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F916;</div>
-            <h3 class="card-title card-title--cyan">65+ MCP Tools</h3>
+            <h3 class="card-title card-title--cyan">103+ MCP Tools</h3>
             <p>
               MCP server for Claude, Cursor, Copilot. Brittney fine-tuned model. Swarm intelligence.
               3-layer agent comms

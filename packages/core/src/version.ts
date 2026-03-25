@@ -6,7 +6,7 @@
  *
  * Usage:
  *   import { HOLOSCRIPT_VERSION, GIT_COMMIT_SHA, getVersionString } from '@holoscript/core';
- *   const version = getVersionString(); // "5.1.0+abc1234"
+ *   const version = getVersionString(); // "6.0.0+abc1234"
  */
 
 /** Injected at build time by tsup define */
@@ -15,7 +15,7 @@ declare const __GIT_COMMIT_SHA__: string;
 declare const __BUILD_TIMESTAMP__: string;
 
 /**
- * The semantic version of @holoscript/core (e.g. "5.1.0").
+ * The semantic version of @holoscript/core (e.g. "6.0.0").
  * Falls back to 'dev' when running from source without a build step.
  */
 export const HOLOSCRIPT_VERSION: string =
@@ -37,7 +37,7 @@ export const BUILD_TIMESTAMP: string =
 
 /**
  * Returns a combined version string suitable for display.
- * Format: "<version>+<sha>" (e.g. "5.1.0+abc1234")
+ * Format: "<version>+<sha>" (e.g. "6.0.0+abc1234")
  */
 export function getVersionString(): string {
   const sha = GIT_COMMIT_SHA !== 'unknown' ? `+${GIT_COMMIT_SHA}` : '';

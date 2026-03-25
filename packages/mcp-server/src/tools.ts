@@ -611,7 +611,7 @@ export const hololandTrainingTools: Tool[] = [
   {
     name: 'generate_hololand_training',
     description:
-      'Generate Brittney v5.1 Hololand fine-tune training data as Alpaca-style JSONL. ' +
+      'Generate Brittney v6.0 Hololand fine-tune training data as Alpaca-style JSONL. ' +
       'Covers 9 categories × 4 difficulties including spatial objects, VR interactions, ' +
       'multiplayer networking, Web3/Zora, AI generation, and more. ' +
       'Returns JSONL string or saves to file.',

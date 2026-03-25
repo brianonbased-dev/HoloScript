@@ -697,7 +697,7 @@ describe('CompilerDocumentationGenerator', () => {
     it('should produce a valid server card with all required fields', () => {
       const generator = new CompilerDocumentationGenerator({
         serviceUrl: 'https://mcp.holoscript.net',
-        serviceVersion: '5.1.0',
+        serviceVersion: '6.0.0',
         contactRepository: 'https://github.com/holoscript/holoscript',
         contactDocumentation: 'https://docs.holoscript.net',
       });

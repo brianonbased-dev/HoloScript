@@ -24,7 +24,7 @@
 
 ## Sprint 1: Core Infrastructure (Week 1-2) — ✅ Complete
 
-### 1.1 MCP Server Package (`packages/mcp-server`) — ✅ Complete (65+ tools)
+### 1.1 MCP Server Package (`packages/mcp-server`) — ✅ Complete (103+ tools)
 
 Full Model Context Protocol server for AI agent integration.
 
@@ -264,7 +264,7 @@ GET  /health                - Server health + tool count
 GET  /api/health            - Extended health with capabilities
 POST /api/render            - Render preview image
 POST /api/share             - Create X share link + QR code
-POST /mcp                   - Full MCP protocol (65+ tools)
+POST /mcp                   - Full MCP protocol (103+ tools)
 ```
 
 Future public API (dedicated service):
@@ -365,7 +365,7 @@ print(social["social"])  # ['@shareable', '@collaborative', '@tweetable']
 
 | Metric                          | Target | Current                                              |
 | ------------------------------- | ------ | ---------------------------------------------------- |
-| MCP tools available             | 16     | 65+                                                  |
+| MCP tools available             | 16     | 103+                                                 |
 | Parse success rate              | >99%   | Testing                                              |
 | Validation accuracy             | >98%   | Testing                                              |
 | Generation quality (human eval) | >85%   | Testing                                              |

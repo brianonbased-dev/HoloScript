@@ -83,7 +83,7 @@ export interface SeededRNG {
 const DEFAULT_FIXED_TIMESTAMP = '2026-01-01T00:00:00.000Z';
 const DEFAULT_SEED = 42;
 const DEFAULT_GENERATOR = 'holoscript-compiler';
-const COMPILER_VERSION = '5.1.0';
+const COMPILER_VERSION = '6.0.0';
 
 // =============================================================================
 // SEEDED PRNG (Mulberry32)
