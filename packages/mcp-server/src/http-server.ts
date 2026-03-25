@@ -53,12 +53,29 @@ import {
   getOAuth2Provider,
   OAUTH2_SCOPES,
 } from './auth/oauth2-provider';
+import type { TokenStoreBackend } from './auth/token-store';
+import { PostgresTokenStore } from './auth/postgres-token-store';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
 const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';
+
+// Initialize token store backend (PostgreSQL if DATABASE_URL is set, otherwise in-memory)
+let tokenBackend: TokenStoreBackend | undefined;
+if (process.env.DATABASE_URL) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Pool } = require('pg') as typeof import('pg');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
+  });
+  tokenBackend = new PostgresTokenStore(pool);
+  console.log('[auth] Using PostgreSQL token store');
+} else {
+  console.log('[auth] Using in-memory token store (no DATABASE_URL)');
+}
 
 // Initialize security services
 const oauth = getOAuth21Service({
@@ -68,6 +85,7 @@ const oauth = getOAuth21Service({
 const oauth2 = getOAuth2Provider({
   legacyApiKey: MCP_API_KEY,
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
+  backend: tokenBackend,
 });
 const auditLog = getAuditLogger();
 

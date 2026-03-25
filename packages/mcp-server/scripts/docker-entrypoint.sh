@@ -10,6 +10,10 @@ if [ -z "${MCP_API_KEY:-}" ]; then
   echo "[WARN] MCP_API_KEY is not set. Legacy API key auth is disabled (open dev mode)." >&2
 fi
 
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "[WARN] DATABASE_URL is not set. Using in-memory token store (tokens lost on restart)." >&2
+fi
+
 # --- Cache directory setup ---
 CACHE_DIR="${HOLOSCRIPT_CACHE_DIR:-/app/.holoscript}"
 
