@@ -3577,3 +3577,20 @@ export type {
   SubscriptionManagerConfig,
   RenewalResult,
 } from './economy/SubscriptionManager';
+
+// --- Web3 Connector Protocol ---
+export {
+  MockWeb3Connector,
+  createWeb3EventBridge,
+} from './web3/Web3Connector';
+export type {
+  Web3Connector,
+  Web3ConnectorConfig,
+  WalletInfo,
+  NFTOwnershipResult,
+  TokenBalanceResult,
+  ENSResult,
+  BalanceResult,
+  SignatureResult,
+  TransferResult,
+} from './web3/Web3Connector';

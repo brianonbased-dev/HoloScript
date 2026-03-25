@@ -58,10 +58,8 @@ export default defineConfig({
     'compiler/trait-composition': 'src/compiler/TraitCompositionCompiler.ts',
     'compiler/incremental': 'src/compiler/IncrementalCompiler.ts',
 
-    // Codebase Absorption Engine (dynamically loaded)
+    // Codebase Absorption Engine (re-exports from @holoscript/absorb-service)
     'codebase/index': 'src/codebase/index.ts',
-    'codebase/workers/parse-worker': 'src/codebase/workers/parse-worker.ts',
-    'codebase/workers/embedding-worker': 'src/codebase/workers/embedding-worker.ts',
 
     // Self-Improvement Pipeline (dynamically loaded)
     'self-improvement/index': 'src/self-improvement/index.ts',
@@ -106,10 +104,6 @@ export default defineConfig({
   treeshake: true, // Remove unused code
   minify: false, // Keep readable for debugging, enable for production
   external: [
-    // Externalize blockchain/wallet packages that don't work in browser webpack bundles
-    '@coinbase/agentkit',
-    'viem',
-    'viem/accounts',
     // Externalize Node.js CJS packages that break in ESM bundles
     'jsonwebtoken',
     'jws',
@@ -117,7 +111,15 @@ export default defineConfig({
     // Externalize React (peer dependency for UI components like DegradedModeBanner)
     'react',
     'react-dom',
-    // Externalize agent-protocol (workspace dependency)
+    // Externalize Three.js (peer dependency to prevent multiple instance crashes)
+    'three',
+    '@react-three/fiber',
+    '@react-three/drei',
+    // Externalize workspace dependencies
+    '@holoscript/absorb-service',
+    '@holoscript/absorb-service/engine',
+    '@holoscript/absorb-service/self-improvement',
+    '@holoscript/absorb-service/daemon',
     '@holoscript/agent-protocol',
     // Externalize tree-sitter (native bindings, loaded at runtime)
     'tree-sitter',

@@ -3,9 +3,10 @@
  * @module @holoscript/core
  *
  * PURPOSE:
- * Bridges autonomous agents spawned via uaa2-service with Coinbase AgentKit
- * and Base L2 wallets. Allows agents to securely hold funds and autonomously
- * purchase logic traits on the HoloScript marketplace.
+ * Bridges autonomous agents spawned via uaa2-service with Base L2 wallets.
+ * Allows agents to securely hold funds and autonomously purchase logic traits
+ * on the HoloScript marketplace. Signing is delegated to a Web3Connector
+ * implementation (see @holoscript/marketplace-api for the viem-based connector).
  */
 
 export interface AgentWallet {
@@ -70,7 +71,7 @@ export class AgentWalletRegistry {
       throw new Error(`[AgentWalletRegistry] No wallet registered for agent ${agentId}`);
     }
 
-    // In production, this proxies into @coinbase/agentkit for secure signing.
+    // In production, this proxies into a Web3Connector for secure signing.
     // Simulating signature generation:
     const mockHash = '0x' + Buffer.from(JSON.stringify(payload)).toString('hex').slice(0, 64);
     return mockHash;

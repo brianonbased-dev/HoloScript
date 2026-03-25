@@ -1,6 +1,9 @@
 /**
  * Production Smoke Test for ZoraCoinsTrait
  *
+ * Moved from @holoscript/core to @holoscript/marketplace-api
+ * (web3 dependencies live here now).
+ *
  * Validates production environment configuration and connectivity
  * WITHOUT executing any transactions.
  *
@@ -10,8 +13,8 @@
  * @version 3.2.0
  */
 
-import { WalletConnection } from '../src/traits/utils/WalletConnection';
-import { GasEstimator } from '../src/traits/utils/GasEstimator';
+import { WalletConnection } from '../src/web3/WalletConnection';
+import { GasEstimator } from '../src/web3/GasEstimator';
 import { createPublicClient, http, type Address } from 'viem';
 import { base } from 'viem/chains';
 
@@ -29,14 +32,13 @@ interface SmokeTestResult {
 const results: SmokeTestResult[] = [];
 
 function logTest(test: string, status: 'pass' | 'fail' | 'warn', message: string, data?: any) {
-  const emoji = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️';
-  console.log(`${emoji} ${test}: ${message}`);
-
+  const indicator = status === 'pass' ? 'PASS' : status === 'fail' ? 'FAIL' : 'WARN';
+  console.log(`[${indicator}] ${test}: ${message}`);
   results.push({ test, status, message, data });
 }
 
 async function main() {
-  console.log('🔥 ZoraCoinsTrait Production Smoke Test\n');
+  console.log('ZoraCoinsTrait Production Smoke Test\n');
   console.log('='.repeat(60));
   console.log('Environment: PRODUCTION (Base L2 Mainnet)');
   console.log('='.repeat(60));
@@ -47,11 +49,7 @@ async function main() {
   console.log('-'.repeat(60));
 
   if (!PRODUCTION_COLLECTION_ID) {
-    logTest(
-      'Collection ID',
-      'fail',
-      'PRODUCTION_COLLECTION_ID not set. Set this environment variable.'
-    );
+    logTest('Collection ID', 'fail', 'PRODUCTION_COLLECTION_ID not set.');
   } else {
     logTest('Collection ID', 'pass', PRODUCTION_COLLECTION_ID);
   }
@@ -74,7 +72,6 @@ async function main() {
     const wallet = new WalletConnection({ chain: 'base' });
     const publicClient = wallet.getPublicClient();
 
-    // Check chain ID
     const chainId = wallet.getChainId();
     if (chainId === 8453) {
       logTest('Chain ID', 'pass', `Connected to Base mainnet (${chainId})`);
@@ -82,11 +79,9 @@ async function main() {
       logTest('Chain ID', 'fail', `Wrong chain! Expected 8453, got ${chainId}`);
     }
 
-    // Get latest block
     const blockNumber = await publicClient.getBlockNumber();
     logTest('Latest Block', 'pass', `Block ${blockNumber.toString()}`);
 
-    // Check block timestamp (should be recent)
     const block = await publicClient.getBlock({ blockNumber });
     const blockTime = Number(block.timestamp);
     const now = Math.floor(Date.now() / 1000);
@@ -141,7 +136,6 @@ async function main() {
       const wallet = new WalletConnection({ chain: 'base' });
       const publicClient = wallet.getPublicClient();
 
-      // Check if contract exists
       const code = await publicClient.getBytecode({
         address: PRODUCTION_COLLECTION_ID,
       });
@@ -149,9 +143,7 @@ async function main() {
       if (code && code !== '0x') {
         logTest('Contract Exists', 'pass', 'Contract deployed at address');
 
-        // Try to get contract name (if it's an ERC-721/1155)
         try {
-          // This is a best-effort check
           const name = await publicClient.readContract({
             address: PRODUCTION_COLLECTION_ID,
             abi: [
@@ -167,7 +159,7 @@ async function main() {
           });
 
           logTest('Contract Name', 'pass', `Collection name: "${name}"`);
-        } catch (error) {
+        } catch {
           logTest('Contract Name', 'warn', 'Unable to read contract name (may be non-standard)');
         }
       } else {
@@ -228,7 +220,6 @@ async function main() {
   console.log('Test 6: Security Checks');
   console.log('-'.repeat(60));
 
-  // Check for private keys in environment (should be in vault!)
   if (process.env.WALLET_PRIVATE_KEY) {
     logTest(
       'Private Key Storage',
@@ -239,7 +230,6 @@ async function main() {
     logTest('Private Key Storage', 'pass', 'No private keys in environment (use secure vault)');
   }
 
-  // Check NODE_ENV
   if (process.env.NODE_ENV === 'production') {
     logTest('Environment Mode', 'pass', 'NODE_ENV=production');
   } else {
@@ -261,35 +251,29 @@ async function main() {
   const failed = results.filter((r) => r.status === 'fail').length;
   const warned = results.filter((r) => r.status === 'warn').length;
 
-  console.log(`✅ Passed: ${passed}`);
-  console.log(`⚠️  Warnings: ${warned}`);
-  console.log(`❌ Failed: ${failed}`);
+  console.log(`Passed: ${passed}`);
+  console.log(`Warnings: ${warned}`);
+  console.log(`Failed: ${failed}`);
   console.log('');
 
   if (failed === 0) {
-    console.log('🎉 All critical checks passed!');
-    console.log('✅ Production environment is ready for deployment.');
-
+    console.log('All critical checks passed!');
     if (warned > 0) {
-      console.log(`⚠️  Note: ${warned} warning(s) detected. Review recommendations above.`);
+      console.log(`Note: ${warned} warning(s) detected. Review recommendations above.`);
     }
-
     process.exit(0);
   } else {
-    console.log('❌ Some critical checks failed.');
-    console.log('⚠️  Fix these issues before deploying to production:');
-
+    console.log('Some critical checks failed. Fix before deploying:');
     results
       .filter((r) => r.status === 'fail')
       .forEach((r) => {
         console.log(`   - ${r.test}: ${r.message}`);
       });
-
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.error('\n💥 Smoke test crashed:', error.message);
+  console.error('\nSmoke test crashed:', error.message);
   process.exit(1);
 });

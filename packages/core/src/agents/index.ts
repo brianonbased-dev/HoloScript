@@ -88,10 +88,5 @@ export {
   type OrchestratorConfig,
 } from './OrchestratorAgent';
 
-// AgentKit Integration (Transactions/Wallets)
-export {
-  AgentKitIntegration,
-  type AgentKitOptions,
-  type AgentWallet,
-  type AgentTransaction,
-} from './AgentKitIntegration';
+// AgentKit Integration moved to @holoscript/marketplace-api/agents
+// Import from '@holoscript/marketplace-api' instead.

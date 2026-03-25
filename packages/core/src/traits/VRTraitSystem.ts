@@ -405,7 +405,6 @@ import { voiceMeshHandler } from './VoiceMeshTrait';
 import { volumetricHandler } from './VolumetricTrait';
 import { volumetricWindowHandler } from './VolumetricWindowTrait';
 import { wotThingHandler } from './WoTThingTrait';
-import { zoraCoinsHandler } from './ZoraCoinsTrait';
 
 // Wisdom/Gotcha Atoms — Batch 1: Memory Cluster
 import { memoryCrystalHandler } from './MemoryCrystalTrait';
@@ -1773,7 +1772,6 @@ export class VRTraitRegistry {
     this.register(volumetricHandler as TraitHandler);
     this.register(volumetricWindowHandler as TraitHandler);
     this.register(wotThingHandler as TraitHandler);
-    this.register(zoraCoinsHandler as TraitHandler);
 
     // Wisdom/Gotcha Atoms — Batch 1: Memory Cluster
     this.register(memoryCrystalHandler as TraitHandler);
@@ -2360,7 +2358,6 @@ export {
   volumetricHandler,
   volumetricWindowHandler,
   wotThingHandler,
-  zoraCoinsHandler,
 };
 
 // CLASS trait handler exports

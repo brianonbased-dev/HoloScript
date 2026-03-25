@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 // Auto-generated test for AgentWalletService
-// Source: packages/core/src/agents/AgentWalletService.ts
+// Source: packages/marketplace-api/src/agents/AgentWalletService.ts
 
 describe('AgentWalletService', () => {
   it('should be defined', () => {

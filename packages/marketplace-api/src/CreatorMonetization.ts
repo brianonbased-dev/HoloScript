@@ -14,8 +14,8 @@
 import type { Address, Hex } from 'viem';
 import { parseEther, formatEther, encodeFunctionData } from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
-import { WalletConnection } from './utils/WalletConnection';
-import { GasEstimator } from './utils/GasEstimator';
+import { WalletConnection } from './web3/WalletConnection';
+import { GasEstimator } from './web3/GasEstimator';
 import type {
   CreatorMonetizationOptions,
   NFTMetadata,

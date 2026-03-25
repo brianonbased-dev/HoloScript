@@ -1,7 +1,8 @@
 /**
  * Zora Testnet Integration Testing Script
  *
- * This script helps validate the ZoraCoinsTrait integration on Base Goerli testnet.
+ * Moved from @holoscript/core to @holoscript/marketplace-api
+ * (web3 dependencies live here now).
  *
  * Prerequisites:
  * 1. Testnet ETH in your wallet (get from https://www.coinbase.com/faucets/base-ethereum-goerli-faucet)
@@ -11,17 +12,11 @@
  * Usage:
  *   pnpm tsx scripts/test-zora-testnet.ts --step [1|2|3|4|all]
  *
- * Steps:
- *   1. Check wallet balance
- *   2. Estimate gas for mint
- *   3. Execute test mint
- *   4. Verify transaction
- *
  * @version 3.2.0
  */
 
-import { WalletConnection } from '../src/traits/utils/WalletConnection';
-import { GasEstimator } from '../src/traits/utils/GasEstimator';
+import { WalletConnection } from '../src/web3/WalletConnection';
+import { GasEstimator } from '../src/web3/GasEstimator';
 import { createPublicClient, http, type Address } from 'viem';
 import { baseGoerli } from 'viem/chains';
 
@@ -49,15 +44,15 @@ function logStep(step: string, message: string) {
 }
 
 function logSuccess(message: string) {
-  console.log(`✅ ${message}`);
+  console.log(`  ${message}`);
 }
 
 function logError(message: string) {
-  console.error(`❌ ${message}`);
+  console.error(`  ${message}`);
 }
 
 function logInfo(message: string) {
-  console.log(`ℹ️  ${message}`);
+  console.log(`  ${message}`);
 }
 
 async function step1_checkBalance(): Promise<TestResult> {
@@ -89,7 +84,6 @@ async function step1_checkBalance(): Promise<TestResult> {
       return { step: 'step1', success: false, error: 'Zero balance' };
     }
 
-    // Check if balance is sufficient for a basic mint (estimate ~0.001 ETH)
     const minRequired = BigInt(1e15); // 0.001 ETH
     if (balance < minRequired) {
       logError(`Balance too low. Need at least 0.001 ETH, have ${balanceETH.toFixed(6)} ETH`);
@@ -137,10 +131,9 @@ async function step2_estimateGas(): Promise<TestResult> {
     console.log(`  Gas Limit: ${gasEstimate.gasLimit.toString()}`);
     console.log(`  Max Fee Per Gas: ${gasEstimate.maxFeePerGas.toString()} wei`);
     console.log(`  Total Gas Cost: ${formatted.totalGasCostETH} ETH`);
-    console.log(`  Mint Fee (0.000777 × ${TEST_MINT_QUANTITY}): ${formatted.mintFeeETH} ETH`);
+    console.log(`  Mint Fee (0.000777 x ${TEST_MINT_QUANTITY}): ${formatted.mintFeeETH} ETH`);
     console.log(`  Total Cost: ${formatted.totalCostETH} ETH`);
 
-    // Check if wallet has sufficient balance
     const balanceCheck = await GasEstimator.checkSufficientBalance(
       publicClient,
       TEST_WALLET_ADDRESS,
@@ -161,10 +154,7 @@ async function step2_estimateGas(): Promise<TestResult> {
     return {
       step: 'step2',
       success: true,
-      data: {
-        estimate: formatted,
-        sufficient: true,
-      },
+      data: { estimate: formatted, sufficient: true },
     };
   } catch (error: any) {
     logError(`Failed to estimate gas: ${error.message}`);
@@ -191,7 +181,7 @@ async function step3_executeMint(): Promise<TestResult> {
     mintConfig: {
       initialSupply: 1,
       maxSupply: 10,
-      priceETH: '0',  // Free mint for testing
+      priceETH: '0',
       name: 'HoloScript Test Coin',
       description: 'Testnet validation for ZoraCoinsTrait blockchain integration',
       tags: ['test', 'holoscript', 'zora']
@@ -202,23 +192,17 @@ async function step3_executeMint(): Promise<TestResult> {
   logInfo('4. Wait for transaction confirmation (check events)');
   logInfo('5. Copy the transaction hash for Step 4 verification');
 
-  return {
-    step: 'step3',
-    success: false,
-    error: 'Manual execution required',
-  };
+  return { step: 'step3', success: false, error: 'Manual execution required' };
 }
 
 async function step4_verifyTransaction(): Promise<TestResult> {
   logStep('STEP 4', 'Verifying Transaction');
 
-  // Get transaction hash from command line or environment
   const txHash = process.env.TEST_TX_HASH;
 
   if (!txHash) {
     logError('No transaction hash provided');
     logInfo('Set TEST_TX_HASH environment variable or pass as --tx-hash argument');
-    logInfo('Example: TEST_TX_HASH=0x... pnpm tsx scripts/test-zora-testnet.ts --step 4');
     return { step: 'step4', success: false, error: 'No transaction hash' };
   }
 
@@ -245,7 +229,6 @@ async function step4_verifyTransaction(): Promise<TestResult> {
     if (receipt.status === 'success') {
       logSuccess('Transaction confirmed successfully!');
 
-      // Try to extract token ID from logs
       const mintLog = receipt.logs.find(
         (log) =>
           log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe'
@@ -256,7 +239,7 @@ async function step4_verifyTransaction(): Promise<TestResult> {
         console.log(`  Token ID: ${tokenId}`);
       }
 
-      console.log(`\n📊 View on BaseScan:`);
+      console.log(`\nView on BaseScan:`);
       console.log(`  https://goerli.basescan.org/tx/${receipt.transactionHash}`);
 
       return {
@@ -271,7 +254,7 @@ async function step4_verifyTransaction(): Promise<TestResult> {
       };
     } else {
       logError('Transaction reverted on-chain');
-      console.log(`\n📊 View on BaseScan:`);
+      console.log(`\nView on BaseScan:`);
       console.log(`  https://goerli.basescan.org/tx/${receipt.transactionHash}`);
 
       return { step: 'step4', success: false, error: 'Transaction reverted' };
@@ -306,10 +289,9 @@ async function main() {
   const stepArg = args.find((arg) => arg.startsWith('--step='));
   const step = stepArg ? stepArg.split('=')[1] : 'all';
 
-  console.log('\n🧪 ZoraCoinsTrait Testnet Validation Script');
+  console.log('\nZoraCoinsTrait Testnet Validation Script');
   console.log('============================================\n');
 
-  // Validate environment
   if (!TEST_WALLET_ADDRESS) {
     logError('TEST_WALLET_ADDRESS not set in environment');
     logInfo('Add to .env: TEST_WALLET_ADDRESS=0xYourTestnetWallet');
@@ -319,11 +301,9 @@ async function main() {
   if (!TEST_COLLECTION_ID && step !== '1') {
     logError('TEST_COLLECTION_ID not set in environment');
     logInfo('Add to .env: TEST_COLLECTION_ID=0xYourTestnetCollectionAddress');
-    logInfo('Create collection at: https://testnet.zora.co/create');
     process.exit(1);
   }
 
-  // Execute requested step
   switch (step) {
     case '1':
       results.push(await step1_checkBalance());
@@ -351,18 +331,16 @@ async function main() {
   console.log('SUMMARY');
   console.log('='.repeat(60));
 
-  results.forEach((result, i) => {
-    const status = result.success ? '✅ PASS' : '❌ FAIL';
+  results.forEach((result) => {
+    const status = result.success ? 'PASS' : 'FAIL';
     console.log(`${status} - ${result.step}: ${result.error || 'Success'}`);
   });
 
   const allPassed = results.every((r) => r.success);
   if (allPassed) {
-    console.log('\n🎉 All validation steps passed!');
-    console.log('ZoraCoinsTrait is ready for production deployment.');
+    console.log('\nAll validation steps passed!');
   } else {
-    console.log('\n⚠️  Some validation steps failed.');
-    console.log('Review errors above and fix issues before production deployment.');
+    console.log('\nSome validation steps failed.');
   }
 }
 

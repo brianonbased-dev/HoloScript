@@ -5,7 +5,6 @@ import {
   cdpApiActionProvider,
   ActionProvider,
 } from '@coinbase/agentkit';
-import { logger } from '../logger';
 
 /**
  * AgentWalletService
@@ -32,7 +31,7 @@ export class AgentWalletService {
    */
   async initialize(): Promise<string> {
     try {
-      logger.info(`[AgentWalletService] Initializing AgentKit wallet on ${this.networkId}...`);
+      console.log(`[AgentWalletService] Initializing AgentKit wallet on ${this.networkId}...`);
 
       // 1. Provision the CDP Wallet Node
       const config = {
@@ -65,14 +64,14 @@ export class AgentWalletService {
         actionProviders: [
           wethActionProvider(),
           walletActionProvider(),
-          cdpApiActionProvider(), // args removed for AgentKit SDK compatibility
+          cdpApiActionProvider(),
         ] as ActionProvider<any>[],
       });
 
-      logger.info(`[AgentWalletService] Autonomous Wallet Live: ${this.walletAddress}`);
+      console.log(`[AgentWalletService] Autonomous Wallet Live: ${this.walletAddress}`);
       return this.walletAddress as string;
     } catch (e) {
-      logger.error('[AgentWalletService] Initialization failed!', { error: e instanceof Error ? e.message : String(e) });
+      console.error('[AgentWalletService] Initialization failed!', { error: e instanceof Error ? e.message : String(e) });
       throw e;
     }
   }
@@ -85,7 +84,7 @@ export class AgentWalletService {
       throw new Error('Wallet not initialized');
     }
 
-    logger.info(
+    console.log(
       `[AgentWalletService] Processing 402 M2M Challenge for ${challengeObj.cost} ${challengeObj.currency}...`
     );
 

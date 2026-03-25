@@ -400,7 +400,6 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
   '@wot_thing': [],
   '@zero_knowledge_proof': ['authority:own'],
   '@public_hash': [],
-  '@zora_coins': [],
 };
 
 /**

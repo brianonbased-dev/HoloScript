@@ -9,8 +9,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { WalletConnection } from '../utils/WalletConnection';
-import { GasEstimator } from '../utils/GasEstimator';
+import { WalletConnection } from '../../web3/WalletConnection';
+import { GasEstimator } from '../../web3/GasEstimator';
 import { createPublicClient, http, parseEther, type Address } from 'viem';
 import { base, baseGoerli } from 'viem/chains';
 

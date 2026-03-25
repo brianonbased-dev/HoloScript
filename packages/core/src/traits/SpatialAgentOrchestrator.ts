@@ -8,7 +8,7 @@
  *  1. Natural language → scene blueprint (LLM call)
  *  2. Blueprint → HoloScript DSL code (template + LLM)
  *  3. DSL → compiled scene (via compiler)
- *  4. Optional: render (RenderNetworkTrait), mint (ZoraCoinsTrait)
+ *  4. Optional: render (RenderNetworkTrait), publish for minting (via Web3Connector)
  *
  * Events emitted:
  *  scene_generation_started  { node, requestId, prompt }
@@ -92,7 +92,7 @@ export interface SpatialAgentConfig {
   max_agents: number;
   /** Auto-submit to RenderNetworkTrait after generation */
   auto_render: boolean;
-  /** Auto-mint as NFT via ZoraCoinsTrait after generation */
+  /** Auto-publish scene for NFT minting (handled by web3 provider) */
   auto_mint: boolean;
   /** Default render quality */
   render_quality: 'preview' | 'production' | 'film';
