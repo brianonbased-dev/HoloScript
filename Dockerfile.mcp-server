@@ -15,6 +15,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy the packages we need (full dependency chain)
 COPY packages/crdt/package.json packages/crdt/
+COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/core/package.json packages/core/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
@@ -25,6 +26,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
 COPY packages/crdt/ packages/crdt/
+COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/core/ packages/core/
 COPY packages/cli/ packages/cli/
 COPY packages/llm-provider/ packages/llm-provider/
@@ -33,6 +35,7 @@ COPY packages/mcp-server/ packages/mcp-server/
 # Build in dependency order
 # Skip DTS for all packages — server only needs JS runtime, not type declarations
 RUN cd packages/crdt && npx tsup --no-dts
+RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN cd packages/llm-provider && npx tsup --no-dts
 RUN cd packages/mcp-server && npx tsup
@@ -60,6 +63,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy workspace config
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/crdt/package.json packages/crdt/
+COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/core/package.json packages/core/
 COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
@@ -71,6 +75,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy built artifacts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
+COPY --from=builder /app/packages/agent-protocol/dist packages/agent-protocol/dist
 COPY --from=builder /app/packages/core/dist packages/core/dist
 COPY --from=builder /app/packages/llm-provider/dist packages/llm-provider/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
