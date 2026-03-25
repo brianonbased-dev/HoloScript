@@ -66,14 +66,19 @@ const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_V
 // Initialize token store backend (PostgreSQL if DATABASE_URL is set, otherwise in-memory)
 let tokenBackend: TokenStoreBackend | undefined;
 if (process.env.DATABASE_URL) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Pool } = require('pg') as typeof import('pg');
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
-  });
-  tokenBackend = new PostgresTokenStore(pool);
-  console.log('[auth] Using PostgreSQL token store');
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Pool } = require('pg') as typeof import('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
+    });
+    tokenBackend = new PostgresTokenStore(pool);
+    console.log('[auth] Using PostgreSQL token store');
+  } catch (err) {
+    console.error('[auth] Failed to initialize PostgreSQL token store:', err);
+    console.log('[auth] Falling back to in-memory token store');
+  }
 } else {
   console.log('[auth] Using in-memory token store (no DATABASE_URL)');
 }

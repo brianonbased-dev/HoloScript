@@ -217,6 +217,205 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@types/node@24.10.13)(jsdom@28.1.0)(vite@7.3.1)
 
+  packages/academy:
+    dependencies:
+      '@auth/drizzle-adapter':
+        specifier: ^1.11.1
+        version: 1.11.1
+      '@aws-sdk/client-s3':
+        specifier: ^3.1014.0
+        version: 3.1014.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: ^3.1013.0
+        version: 3.1013.0
+      '@dimforge/rapier3d-compat':
+        specifier: ^0.19.3
+        version: 0.19.3
+      '@holoscript/absorb-service':
+        specifier: workspace:*
+        version: link:../absorb-service
+      '@holoscript/connector-appstore':
+        specifier: workspace:*
+        version: link:../connector-appstore
+      '@holoscript/connector-github':
+        specifier: workspace:*
+        version: link:../connector-github
+      '@holoscript/connector-railway':
+        specifier: workspace:*
+        version: link:../connector-railway
+      '@holoscript/connector-upstash':
+        specifier: workspace:*
+        version: link:../connector-upstash
+      '@holoscript/connector-vscode':
+        specifier: workspace:*
+        version: link:../connector-vscode
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+      '@holoscript/r3f-renderer':
+        specifier: workspace:*
+        version: link:../r3f-renderer
+      '@holoscript/std':
+        specifier: workspace:*
+        version: link:../std
+      '@holoscript/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.45.0)(react-dom@19.2.4)(react@19.2.4)
+      '@neondatabase/serverless':
+        specifier: ^1.0.2
+        version: 1.0.2
+      '@react-three/drei':
+        specifier: ^10.7.7
+        version: 10.7.7(@react-three/fiber@9.5.0)(@types/react@19.2.13)(@types/three@0.170.0)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0)
+      '@react-three/fiber':
+        specifier: ^9.5.0
+        version: 9.5.0(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0)
+      '@react-three/postprocessing':
+        specifier: ^3.0.4
+        version: 3.0.4(@react-three/fiber@9.5.0)(@types/three@0.170.0)(react@19.2.4)(three@0.182.0)
+      '@react-three/xr':
+        specifier: ^6.6.0
+        version: 6.6.29(@react-three/fiber@9.5.0)(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0)
+      '@tanstack/react-query':
+        specifier: ^5.17.0
+        version: 5.95.0(react@19.2.4)
+      '@tanstack/react-virtual':
+        specifier: ^3.13.23
+        version: 3.13.23(react-dom@19.2.4)(react@19.2.4)
+      chart.js:
+        specifier: ^4.4.0
+        version: 4.5.1
+      clsx:
+        specifier: ^2.1.0
+        version: 2.1.1
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)
+      idb:
+        specifier: ^8.0.0
+        version: 8.0.3
+      idb-keyval:
+        specifier: ^6.2.1
+        version: 6.2.2
+      isomorphic-git:
+        specifier: ^1.37.2
+        version: 1.37.2
+      lucide-react:
+        specifier: ^0.314.0
+        version: 0.314.0(react@19.2.4)
+      memfs:
+        specifier: ^4.56.11
+        version: 4.56.11(tslib@2.8.1)
+      next:
+        specifier: ^15.5.14
+        version: 15.5.14(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@19.2.4)(react@19.2.4)
+      next-auth:
+        specifier: '4'
+        version: 4.24.13(next@15.5.14)(react-dom@19.2.4)(react@19.2.4)
+      pg:
+        specifier: ^8.11.3
+        version: 8.18.0
+      posthog-js:
+        specifier: ^1.363.1
+        version: 1.363.1
+      prismjs:
+        specifier: ^1.29.0
+        version: 1.30.0
+      react:
+        specifier: ^19.2.0
+        version: 19.2.4
+      react-chartjs-2:
+        specifier: ^5.2.0
+        version: 5.3.1(chart.js@4.5.1)(react@19.2.4)
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.4(react@19.2.4)
+      reactflow:
+        specifier: ^11.11.4
+        version: 11.11.4(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)
+      stripe:
+        specifier: ^20.4.1
+        version: 20.4.1(@types/node@24.10.13)
+      three:
+        specifier: ^0.182.0
+        version: 0.182.0
+      viem:
+        specifier: ^2.47.1
+        version: 2.47.2(typescript@5.9.3)
+      y-websocket:
+        specifier: ^2.0.3
+        version: 2.1.0(yjs@13.6.29)
+      yjs:
+        specifier: ^13.6.15
+        version: 13.6.29
+      zundo:
+        specifier: ^2.3.0
+        version: 2.3.0(zustand@4.5.7)
+      zustand:
+        specifier: ^4.5.0
+        version: 4.5.7(@types/react@19.2.13)(react@19.2.4)
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@testing-library/jest-dom':
+        specifier: ^6.1.5
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^14.1.2
+        version: 14.3.1(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.16.0
+      '@types/prismjs':
+        specifier: ^1.26.0
+        version: 1.26.6
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.13
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.13)
+      '@types/three':
+        specifier: ^0.170.0
+        version: 0.170.0
+      '@vitest/coverage-v8':
+        specifier: ^1.2.0
+        version: 1.6.1(vitest@1.6.1)
+      '@vitest/ui':
+        specifier: ^1.2.0
+        version: 1.6.1(vitest@1.6.1)
+      autoprefixer:
+        specifier: ^10.4.17
+        version: 10.4.24(postcss@8.5.8)
+      drizzle-kit:
+        specifier: ^0.31.10
+        version: 0.31.10
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-next:
+        specifier: ^14.1.0
+        version: 14.2.35(eslint@8.57.1)(typescript@5.9.3)
+      postcss:
+        specifier: ^8.4.33
+        version: 8.5.8
+      tailwindcss:
+        specifier: ^3.4.1
+        version: 3.4.19
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.1
+        version: 1.6.1(@types/node@24.10.13)(@vitest/ui@1.6.1)
+
   packages/adapter-postgres:
     dependencies:
       '@holoscript/core':
@@ -643,7 +842,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^1.6.0
-        version: 1.6.1(@types/node@24.10.13)
+        version: 1.6.1(@types/node@24.10.13)(jsdom@28.1.0)
 
   packages/core:
     dependencies:
@@ -1343,6 +1542,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: '>=1.25.2'
         version: 1.27.1(zod@3.25.76)
+      pg:
+        specifier: ^8.13.1
+        version: 8.18.0
       playwright:
         specifier: ^1.58.2
         version: 1.58.2
@@ -1356,6 +1558,9 @@ importers:
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.13
+      '@types/pg':
+        specifier: ^8.11.6
+        version: 8.16.0
       tsup:
         specifier: ^8.0.1
         version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
@@ -2170,6 +2375,46 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(@types/node@24.10.13)(jsdom@28.1.0)(vite@7.3.1)
+
+  packages/ui:
+    dependencies:
+      clsx:
+        specifier: ^2.1.0
+        version: 2.1.1
+      lucide-react:
+        specifier: ^0.314.0
+        version: 0.314.0(react@19.2.4)
+      react:
+        specifier: ^19.2.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.4(react@19.2.4)
+      tailwind-merge:
+        specifier: ^2.2.1
+        version: 2.6.1
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.13
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.13)
+      autoprefixer:
+        specifier: ^10.4.17
+        version: 10.4.24(postcss@8.5.8)
+      postcss:
+        specifier: ^8.4.33
+        version: 8.5.8
+      tailwindcss:
+        specifier: ^3.4.1
+        version: 3.4.19
+      tsup:
+        specifier: ^8.0.2
+        version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
 
   packages/unity-sdk: {}
 
@@ -3117,25 +3362,6 @@ packages:
       - aws-crt
     dev: false
 
-  /@aws-sdk/core@3.973.22:
-    resolution: {integrity: sha512-lY6g5L95jBNgOUitUhfV2N/W+i08jHEl3xuLODYSQH5Sf50V+LkVYBSyZRLtv2RyuXZXiV7yQ+acpswK1tlrOA==}
-    engines: {node: '>=20.0.0'}
-    dependencies:
-      '@aws-sdk/types': 3.973.6
-      '@aws-sdk/xml-builder': 3.972.14
-      '@smithy/core': 3.23.12
-      '@smithy/node-config-provider': 4.3.12
-      '@smithy/property-provider': 4.2.12
-      '@smithy/protocol-http': 5.3.12
-      '@smithy/signature-v4': 5.3.12
-      '@smithy/smithy-client': 4.12.7
-      '@smithy/types': 4.13.1
-      '@smithy/util-base64': 4.3.2
-      '@smithy/util-middleware': 4.2.12
-      '@smithy/util-utf8': 4.2.2
-      tslib: 2.8.1
-    dev: false
-
   /@aws-sdk/core@3.973.23:
     resolution: {integrity: sha512-aoJncvD1XvloZ9JLnKqTRL9dBy+Szkryoag9VT+V1TqsuUgIxV9cnBVM/hrDi2vE8bDqLiDR8nirdRcCdtJu0w==}
     engines: {node: '>=20.0.0'}
@@ -3373,26 +3599,6 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@aws-sdk/middleware-sdk-s3@3.972.22:
-    resolution: {integrity: sha512-dkUcRxF4rVpPbyHpxjCApGK6b7JpnSeo7tDoNakpRKmiLMCqgy4tlGBgeEYJnZgLrA4xc5jVKuXgvgqKqU18Kw==}
-    engines: {node: '>=20.0.0'}
-    dependencies:
-      '@aws-sdk/core': 3.973.22
-      '@aws-sdk/types': 3.973.6
-      '@aws-sdk/util-arn-parser': 3.972.3
-      '@smithy/core': 3.23.12
-      '@smithy/node-config-provider': 4.3.12
-      '@smithy/protocol-http': 5.3.12
-      '@smithy/signature-v4': 5.3.12
-      '@smithy/smithy-client': 4.12.7
-      '@smithy/types': 4.13.1
-      '@smithy/util-config-provider': 4.2.2
-      '@smithy/util-middleware': 4.2.12
-      '@smithy/util-stream': 4.5.20
-      '@smithy/util-utf8': 4.2.2
-      tslib: 2.8.1
-    dev: false
-
   /@aws-sdk/middleware-sdk-s3@3.972.23:
     resolution: {integrity: sha512-50QgHGPQAb2veqFOmTF1A3GsAklLHZXL47KbY35khIkfbXH5PLvqpEc/gOAEBPj/yFxrlgxz/8mqWcWTNxBkwQ==}
     engines: {node: '>=20.0.0'}
@@ -3497,24 +3703,12 @@ packages:
     resolution: {integrity: sha512-ndMG/QJ3W9ViBKiMUI/PQv9cYVXuLFtP0PC6Z1Dqn3GTlBufSO8vkGuU2X90aAKcoQ6U/GsUeDrjYVio5d2GjQ==}
     engines: {node: '>=20.0.0'}
     dependencies:
-      '@aws-sdk/signature-v4-multi-region': 3.996.10
+      '@aws-sdk/signature-v4-multi-region': 3.996.11
       '@aws-sdk/types': 3.973.6
       '@aws-sdk/util-format-url': 3.972.8
       '@smithy/middleware-endpoint': 4.4.27
       '@smithy/protocol-http': 5.3.12
       '@smithy/smithy-client': 4.12.7
-      '@smithy/types': 4.13.1
-      tslib: 2.8.1
-    dev: false
-
-  /@aws-sdk/signature-v4-multi-region@3.996.10:
-    resolution: {integrity: sha512-yJSbFTedh1McfqXa9wZzjchqQ2puq5PI/qRz5kUjg2UXS5mO4MBYBbeXaZ2rp/h+ZbkcYEdo4Qsiah9psyoxrA==}
-    engines: {node: '>=20.0.0'}
-    dependencies:
-      '@aws-sdk/middleware-sdk-s3': 3.972.22
-      '@aws-sdk/types': 3.973.6
-      '@smithy/protocol-http': 5.3.12
-      '@smithy/signature-v4': 5.3.12
       '@smithy/types': 4.13.1
       tslib: 2.8.1
     dev: false
@@ -3612,15 +3806,6 @@ packages:
       '@smithy/node-config-provider': 4.3.12
       '@smithy/types': 4.13.1
       '@smithy/util-config-provider': 4.2.2
-      tslib: 2.8.1
-    dev: false
-
-  /@aws-sdk/xml-builder@3.972.14:
-    resolution: {integrity: sha512-G/Yd8Bnnyh8QrqLf8jWJbixEnScUFW24e/wOBGYdw1Cl4r80KX/DvHyM2GVZ2vTp7J4gTEr8IXJlTadA8+UfuQ==}
-    engines: {node: '>=20.0.0'}
-    dependencies:
-      '@smithy/types': 4.13.1
-      fast-xml-parser: 5.5.6
       tslib: 2.8.1
     dev: false
 
@@ -8999,7 +9184,7 @@ packages:
       react-dom:
         optional: true
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@mediapipe/tasks-vision': 0.10.17
       '@monogrid/gainmap-js': 3.4.0(three@0.182.0)
       '@react-three/fiber': 9.5.0(@types/react@18.3.28)(react@18.3.1)(three@0.182.0)
@@ -9040,7 +9225,7 @@ packages:
       react-dom:
         optional: true
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@mediapipe/tasks-vision': 0.10.17
       '@monogrid/gainmap-js': 3.4.0(three@0.182.0)
       '@react-three/fiber': 9.5.0(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0)
@@ -12750,6 +12935,15 @@ packages:
       react: 18.3.1
     dev: false
 
+  /@tanstack/react-query@5.95.0(react@19.2.4):
+    resolution: {integrity: sha512-EMP8B+BK9zvnAemT8M/y3z/WO0NjZ7fIUY3T3wnHYK6AA3qK/k33i7tPgCXCejhX0cd4I6bJIXN2GmjrHjDBzg==}
+    peerDependencies:
+      react: ^18 || ^19
+    dependencies:
+      '@tanstack/query-core': 5.95.0
+      react: 19.2.4
+    dev: false
+
   /@tanstack/react-virtual@3.13.23(react-dom@19.2.4)(react@19.2.4):
     resolution: {integrity: sha512-XnMRnHQ23piOVj2bzJqHrRrLg4r+F86fuBcwteKfbIjJrtGxb4z7tIvPVAe4B+4UVwo9G4Giuz5fmapcrnZ0OQ==}
     peerDependencies:
@@ -12923,7 +13117,7 @@ packages:
     engines: {node: '>=14'}
     dependencies:
       '@babel/code-frame': 7.29.0
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@types/aria-query': 5.0.4
       aria-query: 5.1.3
       chalk: 4.1.2
@@ -12974,7 +13168,7 @@ packages:
       react: ^18.0.0
       react-dom: ^18.0.0
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@testing-library/dom': 9.3.4
       '@types/react-dom': 18.3.7(@types/react@18.3.28)
       react: 18.3.1
@@ -12990,7 +13184,7 @@ packages:
       react: ^18.0.0
       react-dom: ^18.0.0
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@testing-library/dom': 9.3.4
       '@types/react-dom': 18.3.7(@types/react@19.2.13)
       react: 19.2.4
@@ -13853,7 +14047,7 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.0.0'
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.55.0(typescript@5.9.3)
+      '@typescript-eslint/tsconfig-utils': 8.57.1(typescript@5.9.3)
       '@typescript-eslint/types': 8.57.1
       debug: 4.4.3
       typescript: 5.9.3
@@ -14479,7 +14673,7 @@ packages:
       std-env: 3.10.0
       strip-literal: 2.1.1
       test-exclude: 6.0.0
-      vitest: 1.6.1(@types/node@24.10.13)(jsdom@28.1.0)
+      vitest: 1.6.1(@types/node@24.10.13)(@vitest/ui@1.6.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -16148,6 +16342,14 @@ packages:
       acorn: ^6.0.0 || ^7.0.0 || ^8.0.0
     dependencies:
       acorn: 8.15.0
+    dev: true
+
+  /acorn-jsx@5.3.2(acorn@8.16.0):
+    resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
+    peerDependencies:
+      acorn: ^6.0.0 || ^7.0.0 || ^8.0.0
+    dependencies:
+      acorn: 8.16.0
     dev: true
 
   /acorn-walk@8.3.4:
@@ -19890,7 +20092,7 @@ packages:
       '@humanwhocodes/module-importer': 1.0.1
       '@nodelib/fs.walk': 1.2.8
       '@ungap/structured-clone': 1.3.0
-      ajv: 6.12.6
+      ajv: 6.14.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
       debug: 4.4.3
@@ -20033,8 +20235,8 @@ packages:
     resolution: {integrity: sha512-oruZaFkjorTpF32kDSI5/75ViwGeZginGGy2NoOSg3Q9bnwlnmDm4HLnkl0RE3n+njDXR037aY1+x58Z/zFdwQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
-      acorn: 8.15.0
-      acorn-jsx: 5.3.2(acorn@8.15.0)
+      acorn: 8.16.0
+      acorn-jsx: 5.3.2(acorn@8.16.0)
       eslint-visitor-keys: 3.4.3
     dev: true
 
@@ -20435,7 +20637,7 @@ packages:
     resolution: {integrity: sha512-an2S5quJMiy5bnZKEf6AkfH/7r8CzHvhchU40gxN+OM6HPhe7Z9T1FUychcf2M9PpPOO0Hf7BAEfJkw2TDIBDw==}
     engines: {node: '>=12.0.0'}
     dependencies:
-      readable-stream: 3.6.2
+      readable-stream: 4.7.0
       webextension-polyfill: 0.10.0
     dev: false
 
@@ -20517,15 +20719,6 @@ packages:
     resolution: {integrity: sha512-f2jhpN4Eccy0/Uz9csxh3Nu6q4ErKxf0XIsasomfOihuSUa3/xw6w8dnOtCDgEItQFJG8KyXPzQXzcODDrrbOg==}
     dependencies:
       path-expression-matcher: 1.2.0
-    dev: false
-
-  /fast-xml-parser@5.5.6:
-    resolution: {integrity: sha512-3+fdZyBRVg29n4rXP0joHthhcHdPUHaIC16cuyyd1iLsuaO6Vea36MPrxgAzbZna8lhvZeRL8Bc9GP56/J9xEw==}
-    hasBin: true
-    dependencies:
-      fast-xml-builder: 1.1.4
-      path-expression-matcher: 1.2.0
-      strnum: 2.2.1
     dev: false
 
   /fast-xml-parser@5.5.8:
@@ -22650,7 +22843,7 @@ packages:
     resolution: {integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==}
     engines: {node: '>=16'}
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       ts-algebra: 2.0.0
     dev: true
 
@@ -23405,7 +23598,7 @@ packages:
   /media-query-parser@2.0.2:
     resolution: {integrity: sha512-1N4qp+jE0pL5Xv4uEcwVUhIkwdUO3S/9gML90nqKA7v7FcOS5vUtatfzok9S9U1EJU8dHWlcv95WLnKmmxZI9w==}
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
     dev: false
 
   /media-typer@0.3.0:
@@ -23938,15 +24131,15 @@ packages:
       nodemailer:
         optional: true
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@panva/hkdf': 1.2.1
       cookie: 0.7.2
       jose: 4.15.9
       next: 15.5.14(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@19.2.4)(react@19.2.4)
       oauth: 0.9.15
       openid-client: 5.7.1
-      preact: 10.28.4
-      preact-render-to-string: 5.2.6(preact@10.28.4)
+      preact: 10.29.0
+      preact-render-to-string: 5.2.6(preact@10.29.0)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       uuid: 8.3.2
@@ -25583,7 +25776,7 @@ packages:
       core-js: 3.49.0
       dompurify: 3.3.3
       fflate: 0.4.8
-      preact: 10.28.4
+      preact: 10.29.0
       query-selector-shadow-dom: 1.0.1
       web-vitals: 5.1.0
     dev: false
@@ -25599,12 +25792,12 @@ packages:
   /potpack@1.0.2:
     resolution: {integrity: sha512-choctRBIV9EMT9WGAZHn3V7t0Z2pMQyl0EZE6pFc/6ml3ssw7Dlf/oAOvFwjm1HVsqfQN8GfeFyJ+d8tRzqueQ==}
 
-  /preact-render-to-string@5.2.6(preact@10.28.4):
+  /preact-render-to-string@5.2.6(preact@10.29.0):
     resolution: {integrity: sha512-JyhErpYOvBV1hEPwIxc/fHWXPfnEGdRKxc8gFdAZ7XV4tlzyzG847XAyEZqoDnynP88akM4eaHcSOzNcLWFguw==}
     peerDependencies:
       preact: '>=10'
     dependencies:
-      preact: 10.28.4
+      preact: 10.29.0
       pretty-format: 3.8.0
     dev: false
 
@@ -25622,10 +25815,6 @@ packages:
 
   /preact@10.24.3:
     resolution: {integrity: sha512-Z2dPnBnMUfyQfSQ+GBdsGa16hz35YmLmtTLhM169uW944hYL6xzTYkJjC07j+Wosz733pMWx0fgON3JNw1jJQA==}
-    dev: false
-
-  /preact@10.28.4:
-    resolution: {integrity: sha512-uKFfOHWuSNpRFVTnljsCluEFq57OKT+0QdOiQo8XWnQ/pSvg7OpX5eNOejELXJMWy+BwM2nobz0FkvzmnpCNsQ==}
     dev: false
 
   /preact@10.29.0:
@@ -26223,7 +26412,7 @@ packages:
     peerDependencies:
       react: '>=16.13.1'
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       react: 18.3.1
     dev: true
 
@@ -28021,6 +28210,10 @@ packages:
       syncpack-windows-arm64: 14.0.0
       syncpack-windows-x64: 14.0.0
     dev: true
+
+  /tailwind-merge@2.6.1:
+    resolution: {integrity: sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ==}
+    dev: false
 
   /tailwindcss@3.4.19:
     resolution: {integrity: sha512-3ofp+LL8E+pK/JuPLPggVAIaEuhvIz4qNcf3nA1Xn2o/7fb7s/TYpHhwGDv1ZU3PkBluUVaF8PyCHcm48cKLWQ==}
@@ -29914,63 +30107,6 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitest@1.6.1(@types/node@24.10.13):
-    resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@edge-runtime/vm': '*'
-      '@types/node': ^18.0.0 || >=20.0.0
-      '@vitest/browser': 1.6.1
-      '@vitest/ui': 1.6.1
-      happy-dom: '*'
-      jsdom: '*'
-    peerDependenciesMeta:
-      '@edge-runtime/vm':
-        optional: true
-      '@types/node':
-        optional: true
-      '@vitest/browser':
-        optional: true
-      '@vitest/ui':
-        optional: true
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-    dependencies:
-      '@types/node': 24.10.13
-      '@vitest/expect': 1.6.1
-      '@vitest/runner': 1.6.1
-      '@vitest/snapshot': 1.6.1
-      '@vitest/spy': 1.6.1
-      '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.5
-      chai: 4.5.0
-      debug: 4.4.3
-      execa: 8.0.1
-      local-pkg: 0.5.1
-      magic-string: 0.30.21
-      pathe: 1.1.2
-      picocolors: 1.1.1
-      std-env: 3.10.0
-      strip-literal: 2.1.1
-      tinybench: 2.9.0
-      tinypool: 0.8.4
-      vite: 5.4.21(@types/node@24.10.13)
-      vite-node: 1.6.1(@types/node@24.10.13)
-      why-is-node-running: 2.3.0
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-    dev: true
-
   /vitest@1.6.1(@types/node@24.10.13)(@vitest/ui@1.6.1):
     resolution: {integrity: sha512-Ljb1cnSJSivGN0LqXd/zmDbWEM0RNNg2t1QW/XUhYl/qPqyu7CsqeWtqQXHVaJsecLPuDoak2oJcZN2QoRIOag==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -30003,7 +30139,7 @@ packages:
       '@vitest/spy': 1.6.1
       '@vitest/ui': 1.6.1(vitest@1.6.1)
       '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.4
+      acorn-walk: 8.3.5
       chai: 4.5.0
       debug: 4.4.3
       execa: 8.0.1
@@ -30060,7 +30196,7 @@ packages:
       '@vitest/snapshot': 1.6.1
       '@vitest/spy': 1.6.1
       '@vitest/utils': 1.6.1
-      acorn-walk: 8.3.4
+      acorn-walk: 8.3.5
       chai: 4.5.0
       debug: 4.4.3
       execa: 8.0.1
