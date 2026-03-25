@@ -230,6 +230,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleDeveloperTool(name, args);
   }
 
+  // Moltbook social tools
+  if (name.startsWith('moltbook_')) {
+    const { handleMoltbookTool } = await import('./moltbook/index');
+    return handleMoltbookTool(name, args);
+  }
+
   // Handle plugins
   const pluginResult = await PluginManager.handleTool(name, args);
   if (pluginResult !== null) {

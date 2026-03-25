@@ -145,6 +145,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   absorb_get_pipeline: ['tools:codebase'],
   absorb_run_pipeline: ['tools:codebase'],
   absorb_get_project: ['tools:codebase'],
+
+  // === Moltbook (admin-only — posts under the HoloScript account) ===
+  moltbook_post: ['tools:admin'],
+  moltbook_comment: ['tools:admin'],
+  moltbook_browse: ['tools:read'],
+  moltbook_engage: ['tools:admin'],
+  moltbook_heartbeat: ['tools:admin'],
+  moltbook_create_submolt: ['tools:admin'],
 };
 
 // ── Scope Classification ─────────────────────────────────────────────────────
@@ -191,6 +199,14 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   generate_hololand_training: 'critical',
   holo_add_wisdom: 'critical',
   holo_add_gotcha: 'critical',
+
+  // Moltbook: external side effects (posts to third-party social network)
+  moltbook_post: 'critical',
+  moltbook_comment: 'high',
+  moltbook_browse: 'low',
+  moltbook_engage: 'high',
+  moltbook_heartbeat: 'critical',
+  moltbook_create_submolt: 'critical',
 };
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────

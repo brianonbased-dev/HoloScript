@@ -398,6 +398,10 @@ export function deriveSkillTags(toolName: string): string[] {
   else if (toolName === 'convert_format' || toolName === 'edit_holo') {
     tags.push('conversion', 'transformation', 'editing');
   }
+  // Moltbook social tools
+  else if (toolName.startsWith('moltbook_')) {
+    tags.push('social', 'moltbook', 'engagement');
+  }
   // Catch-all
   else {
     tags.push('utility');

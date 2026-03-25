@@ -22,6 +22,7 @@ import { observabilityTools } from './observability-tools';
 import { pluginManagementTools } from './plugin-management-tools';
 import { economyTools } from './economy-tools';
 import { developerTools } from './developer-tools';
+import { moltbookTools } from './moltbook/index';
 
 /**
  * All MCP tools for HoloScript
@@ -675,6 +676,7 @@ export const tools: Tool[] = [
   ...pluginManagementTools,
   ...economyTools,
   ...developerTools,
+  ...moltbookTools,
   ...PluginManager.getTools(),
 ];
 

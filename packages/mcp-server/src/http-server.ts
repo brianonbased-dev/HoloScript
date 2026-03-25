@@ -1368,6 +1368,18 @@ const httpServer = http.createServer(async (req, res) => {
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 
+// Start Moltbook heartbeat if API key is configured
+if (process.env.MOLTBOOK_API_KEY) {
+  import('./moltbook/index').then(({ getOrCreateHeartbeat }) => {
+    const heartbeat = getOrCreateHeartbeat();
+    heartbeat.start();
+    process.on('SIGTERM', () => heartbeat.stop());
+    process.on('SIGINT', () => heartbeat.stop());
+  }).catch((err) => {
+    console.error('[moltbook] Failed to start heartbeat:', err);
+  });
+}
+
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
   console.log(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
@@ -1381,6 +1393,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
   console.log(`   Audit: EU AI Act compliant (Articles 12-14)`);
   console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
+  console.log(`   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`);
   console.log(`   Endpoints:`);
   console.log(`     GET  /health                       - Health check (public)`);
   console.log(`     GET  /.well-known/mcp              - MCP discovery (public)`);
