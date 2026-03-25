@@ -102,6 +102,136 @@ All notable changes to HoloScript are documented here.
 
 ---
 
+## [5.9.0] — 2026-03-24 (Developer Portal)
+
+### New Modules
+- **DevServer** — `holoscript serve` with SSE-based HMR, file watching (.holo/.hs/.hsplus), error overlay, dashboard, /__hmr + /__api/stats + /__api/compositions endpoints
+- **TraceWaterfallRenderer** — distributed trace span visualization, DFS hierarchy, bar positioning, critical path detection, agent color assignment, minDuration filter
+- **WorkspaceManager** — `holoscript workspace init`, glob-based member resolution, Kahn's algorithm topological sort with parallel group detection
+- **APIDocsGenerator** — 25+ prefix-based category rules, markdown + JSON output, auth detection
+
+### MCP Tools (5 new → 103 total)
+- `get_api_reference`, `serve_preview`, `get_workspace_info`, `inspect_trace_waterfall`, `get_dev_dashboard_state`
+
+### Tests
+- 59 new tests (15 DevServer + 13 TraceWaterfall + 11 Workspace + 9 APIDocs + 11 showcase E2E)
+
+---
+
+## [5.8.0] — 2026-03-24 (Live Economy)
+
+### New Modules
+- **PaymentWebhookService** — HMAC-SHA256 verification, idempotent processing, retry queue with exponential backoff
+- **UsageMeter** — per-tool-call cost tracking, free-tier monthly allowance, aggregation by agent/tool/period
+- **AgentBudgetEnforcer** — per-agent budget caps, enforcement modes (warn/soft/hard), circuit breaker with auto-reset
+- **CreatorRevenueAggregator** — revenue by creator/plugin/period, configurable platform fee (15% default), payout tracking
+- **SubscriptionManager** — lifecycle (create→trial→active→past_due→suspended→cancelled), MRR calculation
+
+### MCP Tools (3 new → 98 total)
+- `check_agent_budget`, `get_usage_summary`, `get_creator_earnings`
+
+### Tests
+- 83 new tests (69 core economy + 14 showcase E2E)
+
+---
+
+## [5.7.0] — 2026-03-24 (Open Ecosystem)
+
+### New Modules
+- **PluginSandboxRunner** — vm.createContext() isolation, PermissionSet (11 perms), CapabilityBudget (CPU/memory/tools), rate limiting
+- **PluginSignatureVerifier** — TrustStore with key rotation/revocation/expiration, Ed25519 verification
+- **DependencyResolver** — topological sort, parallel group detection, cycle + version conflict detection
+- **PluginLifecycleManager** — install→verify→sandbox→enable→disable→uninstall lifecycle, telemetry emission
+- **`holoscript create-plugin` CLI** — scaffolds plugin boilerplate with package.json, tsconfig, test, README
+
+### MCP Tools (3 new → 95 total)
+- `install_plugin`, `list_plugins`, `manage_plugin`
+
+### Tests
+- 91 new tests (76 core plugins + 15 showcase E2E)
+
+---
+
+## [5.6.0] — 2026-03-24 (Observable Platform)
+
+### New Modules
+- **OTLPExporter** — OTLP/HTTP JSON exporter, batch flush, gzip, retry with backoff+jitter, configurable auth
+- **TraceContextPropagator** — W3C Trace Context inject/extract, traceparent/tracestate, createChildContext
+- **PrometheusMetricsRegistry** — counters/gauges/histograms, toPrometheusText(), linkTelemetry() auto-recording
+- **StructuredLogger** — JSON log entries with trace correlation (traceId/spanId), console/json-array/noop/custom sinks
+- **Health endpoints** — /health with subsystem checks, /metrics with Prometheus exposition text
+
+### MCP Tools (4 new → 92 total)
+- `query_traces`, `export_traces_otlp`, `get_agent_health`, `get_metrics_prometheus`
+
+### Tests
+- 91 new tests (78 core debug + 13 showcase E2E)
+
+---
+
+## [5.5.0] — 2026-03-24 (Agents as Universal Orchestrators)
+
+### New Modules
+- **FederatedRegistryAdapter** — cross-composition agent discovery via /.well-known/agent-card.json, A2A card → AgentManifest conversion
+- **TaskDelegationService** — local + remote (A2A JSON-RPC) delegation, auto-delegate via CapabilityMatcher, retry with exponential backoff
+- **SkillWorkflowEngine** — DAG-based skill composition, topological sort → parallel groups, cycle detection, fallback/skip error strategies
+- **OrchestratorAgent** — first concrete BaseAgent from uAA2++ protocol, 7 phases mapped to orchestration
+
+### MCP Tools (5 new → 88 total)
+- `discover_agents`, `delegate_task`, `get_task_status`, `compose_workflow`, `execute_workflow`
+
+### Tests
+- 95 new tests (82 core agents + 13 showcase E2E)
+
+---
+
+## [5.4.0] — 2026-03-24 (Domains Unified)
+
+### New Features
+- **Unified HoloDomainType** — 31 types (23 spatial + 8 v6), DialectDomain extends HoloDomainType
+- **DialectRegistry Boot** — registerBuiltinDialects() with 24 compilers
+- **Cross-Domain Trait Constraints** — 73 BUILTIN_CONSTRAINTS including v6 resilience (circuit_breaker, retry, timeout, bulkhead)
+- **LSP Cross-Domain Completions** — 72 V6_TRAIT_COMPLETIONS across 8 domains
+
+### MCP Tools (2 new → 83 total)
+- `validate_composition`, `absorb_typescript`
+
+### Tests
+- 74 new tests
+
+---
+
+## [5.3.0] — 2026-03-24 (Tooling as Semantic Bridge)
+
+### New Features
+- **Changesets config** with fixed (platform-v5) + linked (tooling-v3) groups
+- **Syncpack config** with workspace protocol + sameRange policies
+- **MCP quality gate** script (validate-mcp-tools.mjs) + CI workflow
+- **A2A parity validator** (validate-a2a-parity.mjs) + release compliance CI workflow
+
+### MCP Tools (3 new → 81 total)
+- `suggest_universal_traits`, `generate_service_contract`, `explain_service_contract`
+
+### Tests
+- 100 new tests
+
+---
+
+## [5.2.0] — 2026-03-24 (Parser Universalized)
+
+### New Features
+- **239 universal service traits** across 8 categories
+- **DialectRegistry** — MLIR-style dialect plugin system (322 lines)
+- **NodeServiceCompiler** — Express/Fastify code emission (646 lines)
+- **50 tree-sitter corpus fixtures** for v6 blocks (service, contract, data, pipeline)
+- **25 type checker trait constraints** for v6 domains
+- **traits/v6/ namespace** — 8 files, 35 trait types across 8 categories
+
+### Tests
+- 65 new tests
+
+---
+
 ### Studio Quality & DX Refinements (Track 1)
 - **Spatial Version Control (Git for 3D)**: Built isomorphic git integration enabling visual spatial blame tooltips and ghost-mesh translucent diff overlays within the 3D viewport.
 - **Conformance & Verification Pipelines**: Repurposed the Engine Play pipeline into a formal AST validation runner enforcing physics boundaries and accessibility guidelines.

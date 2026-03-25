@@ -3,10 +3,10 @@
   "rootVersionFile": "package.json",
   "lanes": [
     {
-      "name": "platform-v5",
-      "description": "Core platform packages that should move together on major 5",
+      "name": "platform-v6",
+      "description": "Core platform packages that should move together on major 6",
       "enforce": "major",
-      "targetMajor": 5,
+      "targetMajor": 6,
       "sync": true,
       "packages": [
         "@holoscript/core",
