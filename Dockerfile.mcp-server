@@ -1,7 +1,7 @@
 # HoloScript MCP Server - Monorepo Build
 #
 # Builds from the pnpm workspace root to resolve workspace dependencies
-# Dependency chain: mcp-server → core + llm-provider, core → crdt
+# Dependency chain: mcp-server → core + llm-provider + cli, core → crdt
 
 FROM node:20-alpine AS builder
 
@@ -16,6 +16,7 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 # Copy the packages we need (full dependency chain)
 COPY packages/crdt/package.json packages/crdt/
 COPY packages/core/package.json packages/core/
+COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
@@ -25,6 +26,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Copy source code
 COPY packages/crdt/ packages/crdt/
 COPY packages/core/ packages/core/
+COPY packages/cli/ packages/cli/
 COPY packages/llm-provider/ packages/llm-provider/
 COPY packages/mcp-server/ packages/mcp-server/
 
@@ -59,6 +61,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/crdt/package.json packages/crdt/
 COPY packages/core/package.json packages/core/
+COPY packages/cli/package.json packages/cli/
 COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
