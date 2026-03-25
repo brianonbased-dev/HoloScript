@@ -21,7 +21,7 @@ const nextConfig = {
     'web-tree-sitter',
     '@xenova/transformers',
   ],
-  transpilePackages: ['@holoscript/studio-plugin-sdk', 'three'],
+  transpilePackages: ['@holoscript/studio-plugin-sdk', 'three', '@holoscript/core', '@holoscript/std', '@holoscript/r3f-renderer'],
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,

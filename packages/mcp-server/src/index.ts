@@ -35,14 +35,12 @@ import { networkingTools, handleNetworkingTool } from './networking-tools';
 import { snapshotTools, handleSnapshotTool } from './snapshot-tools';
 import { monitoringTools, handleMonitoringTool } from './monitoring-tools';
 import { compilerTools, handleCompilerTool } from './compiler-tools';
-import { handleCodebaseTool } from './codebase-tools';
-import { handleGraphRagTool } from './graph-rag-tools';
+import { handleCodebaseTool, handleGraphRagTool, handleAbsorbServiceTool } from '@holoscript/absorb-service/mcp';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { refactorCodegenTools, handleRefactorCodegenTool } from './refactor-codegen-tools';
-import { handleAbsorbServiceTool } from './absorb-tools';
 
 declare const __SERVICE_VERSION__: string;
 
@@ -233,6 +231,6 @@ export * from './brittney-lite';
 export * from './compiler-tools';
 export * from './gltf-import-tools';
 export * from './wisdom-gotcha-tools';
-export * from './absorb-tools';
+export * from '@holoscript/absorb-service/mcp';
 export * from './a2a';
 export * from './security';

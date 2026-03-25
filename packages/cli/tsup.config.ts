@@ -10,4 +10,13 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
+  external: [
+    'tree-sitter',
+    'tree-sitter-python',
+    'tree-sitter-typescript',
+    'tree-sitter-javascript',
+    'tree-sitter-go',
+    'tree-sitter-rust',
+    'web-tree-sitter',
+  ],
 });

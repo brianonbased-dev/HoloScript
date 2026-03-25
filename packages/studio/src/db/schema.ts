@@ -384,69 +384,17 @@ export const activityFeed = pgTable(
 );
 
 // =============================================================================
-// CREDIT SYSTEM (Absorb Service)
+// CREDIT SYSTEM (Absorb Service) — Re-exported from @holoscript/absorb-service
 // =============================================================================
+// NOTE: FK constraints (userId -> users.id) are enforced at the DB migration
+// level. The schema objects are defined in @holoscript/absorb-service/schema
+// without FK refs to keep the package self-contained.
 
-export const creditAccounts = pgTable('credit_accounts', {
-  userId: uuid('user_id')
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  balanceCents: integer('balance_cents').default(0).notNull(),
-  lifetimeSpentCents: integer('lifetime_spent_cents').default(0).notNull(),
-  lifetimePurchasedCents: integer('lifetime_purchased_cents').default(0).notNull(),
-  tier: varchar('tier', { length: 16 }).default('free').notNull(),
-  freeCreditsUsedCents: integer('free_credits_used_cents').default(0).notNull(),
-  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
-});
-
-export const creditTransactions = pgTable(
-  'credit_transactions',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    type: varchar('type', { length: 16 }).notNull(),
-    amountCents: integer('amount_cents').notNull(),
-    balanceAfterCents: integer('balance_after_cents').notNull(),
-    description: text('description').notNull(),
-    metadata: jsonb('metadata').default({}),
-    stripeSessionId: text('stripe_session_id'),
-    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-  },
-  (t) => [
-    index('idx_credit_tx_user').on(t.userId),
-    index('idx_credit_tx_type').on(t.type),
-    index('idx_credit_tx_time').on(t.createdAt),
-  ]
-);
-
-export const absorbProjects = pgTable(
-  'absorb_projects',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    sourceType: varchar('source_type', { length: 16 }).notNull(),
-    sourceUrl: text('source_url'),
-    localPath: text('local_path'),
-    status: varchar('status', { length: 16 }).default('pending').notNull(),
-    lastAbsorbedAt: timestamp('last_absorbed_at', { mode: 'date' }),
-    absorbResultJson: text('absorb_result_json'),
-    totalSpentCents: integer('total_spent_cents').default(0).notNull(),
-    totalOperations: integer('total_operations').default(0).notNull(),
-    metadata: jsonb('metadata').default({}),
-    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
-  },
-  (t) => [
-    index('idx_absorb_projects_user').on(t.userId),
-    index('idx_absorb_projects_status').on(t.status),
-  ]
-);
+export {
+  creditAccounts,
+  creditTransactions,
+  absorbProjects,
+} from '@holoscript/absorb-service/schema';
 
 // =============================================================================
 // CHARACTERS

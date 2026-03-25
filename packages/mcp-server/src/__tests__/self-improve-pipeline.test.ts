@@ -223,7 +223,7 @@ describe('Self-Improve Tools', () => {
 
 describe('Codebase Tools - Graph Status', () => {
   it('should export codebaseTools array with holo_graph_status', async () => {
-    const { codebaseTools } = await import('../codebase-tools.js');
+    const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
     expect(Array.isArray(codebaseTools)).toBe(true);
     const statusTool = codebaseTools.find((t: any) => t.name === 'holo_graph_status');
     expect(statusTool).toBeDefined();
@@ -231,7 +231,7 @@ describe('Codebase Tools - Graph Status', () => {
   });
 
   it('should include all 5 codebase tools', async () => {
-    const { codebaseTools } = await import('../codebase-tools.js');
+    const { codebaseTools } = await import('@holoscript/absorb-service/mcp');
     const names = codebaseTools.map((t: any) => t.name);
     expect(names).toContain('holo_absorb_repo');
     expect(names).toContain('holo_query_codebase');

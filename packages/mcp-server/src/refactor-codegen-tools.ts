@@ -155,7 +155,7 @@ async function handleGenerateRefactorPlan(
   }
 
   // Import graph-rag-tools to check readiness
-  const { isGraphRAGReady } = await import('./graph-rag-tools');
+  const { isGraphRAGReady } = await import('@holoscript/absorb-service/mcp');
   if (!isGraphRAGReady()) {
     return {
       error:
@@ -164,7 +164,7 @@ async function handleGenerateRefactorPlan(
     };
   }
 
-  const { handleGraphRagTool } = await import('./graph-rag-tools');
+  const { handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
 
   // 1. Gather context about the target from the graph
   const contextResult = (await handleGraphRagTool('holo_ask_codebase', {
@@ -515,7 +515,7 @@ async function handleScaffoldCode(
   let symbolContext: Record<string, unknown> | null = null;
   if (context) {
     try {
-      const { isGraphRAGReady, handleGraphRagTool } = await import('./graph-rag-tools');
+      const { isGraphRAGReady, handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
       if (isGraphRAGReady()) {
         symbolContext = (await handleGraphRagTool('holo_semantic_search', {
           query: context,

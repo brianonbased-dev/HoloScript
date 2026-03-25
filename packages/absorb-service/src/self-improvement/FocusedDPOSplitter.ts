@@ -30,8 +30,9 @@
  * @module self-improvement
  */
 
-import { HoloCompositionParser } from '../parser/HoloCompositionParser';
-import type { HoloComposition, HoloParseResult, SourceRange } from '../parser/HoloCompositionTypes';
+// These types come from @holoscript/core (peer dependency)
+import { HoloCompositionParser } from '@holoscript/core';
+import type { HoloComposition, HoloParseResult, SourceRange } from '@holoscript/core';
 
 // =============================================================================
 // TYPES

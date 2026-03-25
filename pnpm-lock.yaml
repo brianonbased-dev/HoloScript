@@ -19,29 +19,30 @@ overrides:
   h3: '>=1.15.6'
   socket.io-parser: '>=4.2.6'
   '@modelcontextprotocol/sdk': '>=1.25.2'
+  tree-sitter: 0.22.4
 
 importers:
 
   .:
     dependencies:
-      '@coinbase/agentkit':
-        specifier: ^0.10.4
-        version: 0.10.4(@tanstack/react-query@5.95.0)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.1)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
+      tree-sitter:
+        specifier: 0.22.4
+        version: 0.22.4
       tree-sitter-go:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.4
+        version: 0.23.4(tree-sitter@0.22.4)
       tree-sitter-javascript:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.1
+        version: 0.23.1(tree-sitter@0.22.4)
       tree-sitter-python:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.6
+        version: 0.23.6(tree-sitter@0.22.4)
       tree-sitter-rust:
         specifier: ^0.24.0
-        version: 0.24.0(tree-sitter@0.21.1)
+        version: 0.24.0(tree-sitter@0.22.4)
       tree-sitter-typescript:
         specifier: ^0.23.2
-        version: 0.23.2(tree-sitter@0.21.1)
+        version: 0.23.2(tree-sitter@0.22.4)
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.78.0
@@ -159,6 +160,62 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  packages/absorb-service:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:^
+        version: link:../core
+      '@modelcontextprotocol/sdk':
+        specifier: '>=1.25.2'
+        version: 1.27.1(zod@3.25.76)
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)
+      openai:
+        specifier: ^6.32.0
+        version: 6.32.0(ws@8.19.0)(zod@3.25.76)
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
+    optionalDependencies:
+      '@huggingface/transformers':
+        specifier: ^3.8.1
+        version: 3.8.1
+      tree-sitter:
+        specifier: 0.22.4
+        version: 0.22.4
+      tree-sitter-go:
+        specifier: ^0.23.4
+        version: 0.23.4(tree-sitter@0.22.4)
+      tree-sitter-javascript:
+        specifier: ^0.23.1
+        version: 0.23.1(tree-sitter@0.22.4)
+      tree-sitter-python:
+        specifier: ^0.23.6
+        version: 0.23.6(tree-sitter@0.22.4)
+      tree-sitter-rust:
+        specifier: ^0.24.0
+        version: 0.24.0(tree-sitter@0.22.4)
+      tree-sitter-typescript:
+        specifier: ^0.23.2
+        version: 0.23.2(tree-sitter@0.22.4)
+      web-tree-sitter:
+        specifier: ^0.24.0
+        version: 0.24.7
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.0
+        version: 4.1.0(@types/node@24.10.13)(jsdom@28.1.0)(vite@7.3.1)
 
   packages/adapter-postgres:
     dependencies:
@@ -329,23 +386,23 @@ importers:
         specifier: ^16.4.5
         version: 16.6.1
       tree-sitter:
-        specifier: ^0.21.1
-        version: 0.21.1
+        specifier: 0.22.4
+        version: 0.22.4
       tree-sitter-go:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.4
+        version: 0.23.4(tree-sitter@0.22.4)
       tree-sitter-javascript:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.1
+        version: 0.23.1(tree-sitter@0.22.4)
       tree-sitter-python:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.6
+        version: 0.23.6(tree-sitter@0.22.4)
       tree-sitter-rust:
         specifier: ^0.24.0
-        version: 0.24.0(tree-sitter@0.21.1)
+        version: 0.24.0(tree-sitter@0.22.4)
       tree-sitter-typescript:
         specifier: ^0.23.2
-        version: 0.23.2(tree-sitter@0.21.1)
+        version: 0.23.2(tree-sitter@0.22.4)
     devDependencies:
       tsup:
         specifier: ^8.0.1
@@ -599,6 +656,9 @@ importers:
       '@gltf-transform/functions':
         specifier: ^3.7.0
         version: 3.10.1
+      '@holoscript/absorb-service':
+        specifier: workspace:*
+        version: link:../absorb-service
       '@holoscript/agent-protocol':
         specifier: workspace:*
         version: link:../agent-protocol
@@ -608,9 +668,6 @@ importers:
       '@pixiv/three-vrm':
         specifier: ^2.0.0
         version: 2.1.3(@types/three@0.170.0)(three@0.182.0)
-      '@zoralabs/protocol-deployments':
-        specifier: ^0.7.2
-        version: 0.7.2
       basis_universal:
         specifier: ^1.0.0
         version: 1.16.4
@@ -647,9 +704,6 @@ importers:
       three:
         specifier: ^0.182.0
         version: 0.182.0
-      viem:
-        specifier: ^2.47.1
-        version: 2.47.2(typescript@5.9.3)(zod@3.25.76)
       ws:
         specifier: ^8.16.0
         version: 8.19.0
@@ -667,23 +721,23 @@ importers:
         specifier: ^14.21.0
         version: 14.25.1
       tree-sitter:
-        specifier: 0.21.1
-        version: 0.21.1
+        specifier: 0.22.4
+        version: 0.22.4
       tree-sitter-go:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.4
+        version: 0.23.4(tree-sitter@0.22.4)
       tree-sitter-javascript:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.1
+        version: 0.23.1(tree-sitter@0.22.4)
       tree-sitter-python:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.6
+        version: 0.23.6(tree-sitter@0.22.4)
       tree-sitter-rust:
         specifier: ^0.24.0
-        version: 0.24.0(tree-sitter@0.21.1)
+        version: 0.24.0(tree-sitter@0.22.4)
       tree-sitter-typescript:
         specifier: ^0.23.2
-        version: 0.23.2(tree-sitter@0.21.1)
+        version: 0.23.2(tree-sitter@0.22.4)
       web-tree-sitter:
         specifier: ^0.24.0
         version: 0.24.7
@@ -1053,7 +1107,7 @@ importers:
         version: 0.36.3
       openai:
         specifier: '>=4.0.0'
-        version: 6.22.0(ws@8.20.0)
+        version: 6.22.0
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -1077,8 +1131,8 @@ importers:
         specifier: workspace:*
         version: link:../linter
       tree-sitter:
-        specifier: ^0.21.1
-        version: 0.21.1
+        specifier: 0.22.4
+        version: 0.22.4
       tree-sitter-holoscript:
         specifier: workspace:*
         version: link:../tree-sitter-holoscript
@@ -1110,6 +1164,9 @@ importers:
 
   packages/marketplace-api:
     dependencies:
+      '@coinbase/agentkit':
+        specifier: ^0.10.4
+        version: 0.10.4(@tanstack/react-query@5.95.0)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.1)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
       '@holoscript/auth':
         specifier: workspace:*
         version: link:../auth
@@ -1274,6 +1331,9 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@holoscript/absorb-service':
+        specifier: workspace:^
+        version: link:../absorb-service
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
@@ -1352,23 +1412,23 @@ importers:
         version: link:../core
     optionalDependencies:
       tree-sitter:
-        specifier: 0.21.1
-        version: 0.21.1
+        specifier: 0.22.4
+        version: 0.22.4
       tree-sitter-go:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.4
+        version: 0.23.4(tree-sitter@0.22.4)
       tree-sitter-javascript:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.1
+        version: 0.23.1(tree-sitter@0.22.4)
       tree-sitter-python:
-        specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        specifier: ^0.23.6
+        version: 0.23.6(tree-sitter@0.22.4)
       tree-sitter-rust:
         specifier: ^0.24.0
-        version: 0.24.0(tree-sitter@0.21.1)
+        version: 0.24.0(tree-sitter@0.22.4)
       tree-sitter-typescript:
         specifier: ^0.23.2
-        version: 0.23.2(tree-sitter@0.21.1)
+        version: 0.23.2(tree-sitter@0.22.4)
       web-tree-sitter:
         specifier: ^0.24.0
         version: 0.24.7
@@ -1780,6 +1840,24 @@ importers:
       '@dimforge/rapier3d-compat':
         specifier: ^0.19.3
         version: 0.19.3
+      '@holoscript/absorb-service':
+        specifier: workspace:*
+        version: link:../absorb-service
+      '@holoscript/connector-appstore':
+        specifier: workspace:*
+        version: link:../connector-appstore
+      '@holoscript/connector-github':
+        specifier: workspace:*
+        version: link:../connector-github
+      '@holoscript/connector-railway':
+        specifier: workspace:*
+        version: link:../connector-railway
+      '@holoscript/connector-upstash':
+        specifier: workspace:*
+        version: link:../connector-upstash
+      '@holoscript/connector-vscode':
+        specifier: workspace:*
+        version: link:../connector-vscode
       '@holoscript/core':
         specifier: workspace:*
         version: link:../core
@@ -2065,8 +2143,8 @@ importers:
         specifier: ^4.8.0
         version: 4.8.4
       tree-sitter:
-        specifier: ^0.21.0
-        version: 0.21.1
+        specifier: 0.22.4
+        version: 0.22.4
       web-tree-sitter:
         specifier: ^0.24.0
         version: 0.24.7
@@ -2315,6 +2393,52 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(@types/node@24.10.13)(jsdom@28.1.0)(vite@7.3.1)
+
+  services/absorb-service:
+    dependencies:
+      '@holoscript/absorb-service':
+        specifier: workspace:*
+        version: link:../../packages/absorb-service
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      cors:
+        specifier: ^2.8.5
+        version: 2.8.6
+      drizzle-orm:
+        specifier: ^0.30.10
+        version: 0.30.10(pg@8.18.0)
+      express:
+        specifier: ^4.18.2
+        version: 4.22.1
+      pg:
+        specifier: ^8.11.0
+        version: 8.18.0
+      uuid:
+        specifier: ^13.0.0
+        version: 13.0.0
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
+    devDependencies:
+      '@types/cors':
+        specifier: ^2.8.17
+        version: 2.8.19
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^20.10.6
+        version: 20.19.29
+      '@types/uuid':
+        specifier: ^9.0.7
+        version: 9.0.8
+      tsx:
+        specifier: ^4.7.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
 
   services/export-api:
     dependencies:
@@ -4232,7 +4356,7 @@ packages:
       '@x402/svm': 2.5.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@zerodev/ecdsa-validator': 5.4.9(@zerodev/sdk@5.5.7)(viem@2.38.3)
       '@zerodev/intent': 0.0.24(@zerodev/webauthn-key@5.5.0)(viem@2.38.3)
-      '@zerodev/sdk': 5.5.7(viem@2.38.3)
+      '@zerodev/sdk': 5.5.7(viem@2.47.2)
       '@zoralabs/coins-sdk': 0.2.8(abitype@1.2.3)(viem@2.38.3)
       '@zoralabs/protocol-deployments': 0.6.1
       bs58: 4.0.1
@@ -5896,7 +6020,7 @@ packages:
     resolution: {integrity: sha512-Kr+LPIUVKz2qkx1HAMH8q1q6azbqBAsXJUxBl/ODDuVPX45Z9DfwB8tPjTi6nNZ8BuM3nbJxC5zCAg5elnBUTQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     dependencies:
-      ajv: 6.12.6
+      ajv: 6.14.0
       debug: 4.4.3
       espree: 10.4.0
       globals: 14.0.0
@@ -12360,7 +12484,7 @@ packages:
   /@solana/web3.js@1.98.4(typescript@5.9.3):
     resolution: {integrity: sha512-vv9lfnvjUsRiq//+j5pBdXig0IQdtzA0BRZ3bXEP4KaIyF1CcaydWqgyzQgfZMNIsWNWmG+AUHwPy4AHOD6gpw==}
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@solana/buffer-layout': 4.0.1
@@ -12983,7 +13107,7 @@ packages:
   /@types/better-sqlite3@7.6.13:
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/body-parser@1.19.6:
@@ -13003,7 +13127,7 @@ packages:
     resolution: {integrity: sha512-kCFuWS0ebDbmxs0AXYn6e2r2nrGAb5KwQhknjSPSPgJcGd8+HVSILlUyFhGqML2gk39HcG7D1ydW9/qpYkN00Q==}
     dependencies:
       '@types/express': 5.0.6
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/connect@3.4.38:
@@ -13014,7 +13138,7 @@ packages:
   /@types/cors@2.8.19:
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/d3-array@3.2.2:
@@ -13396,13 +13520,13 @@ packages:
   /@types/pixelmatch@5.2.6:
     resolution: {integrity: sha512-wC83uexE5KGuUODn6zkm9gMzTwdY5L0chiK+VrKcDfEjzxh1uadlWTvOmAbCpnM9zx/Ww3f8uKlYQVnO/TrqVg==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/pngjs@6.0.5:
     resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/prismjs@1.26.6:
@@ -13412,7 +13536,7 @@ packages:
   /@types/prompts@2.4.9:
     resolution: {integrity: sha512-qTxFi6Buiu8+50/+3DGIWLHM6QuWsEKugJnnP6iv2Mc4ncxE4A/OJkjuVOA+5X0X1S/nq5VJRa8Lu+nwcvbrKA==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
       kleur: 3.0.3
     dev: true
 
@@ -13520,7 +13644,7 @@ packages:
   /@types/simple-peer@9.11.9:
     resolution: {integrity: sha512-6Gdl7TSS5oh9nuwKD4Pl8cSmaxWycYeZz9HLnJBNvIwWjZuGVsmHe9RwW3+9RxfhC1aIR9Z83DvaJoMw6rhkbg==}
     dependencies:
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
     dev: true
 
   /@types/stats.js@0.17.4:
@@ -14789,7 +14913,7 @@ packages:
       '@metamask/sdk': 0.33.1
       '@safe-global/safe-apps-provider': 0.18.6(typescript@5.9.3)(zod@3.25.76)
       '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@3.25.76)
-      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
+      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)
       '@walletconnect/ethereum-provider': 2.21.1(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
       cbw-sdk: /@coinbase/wallet-sdk@3.9.3
       porto: 0.2.35(@tanstack/react-query@5.95.0)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)
@@ -14870,7 +14994,7 @@ packages:
       viem: 2.47.2(typescript@5.9.3)
     dev: false
 
-  /@wagmi/core@2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3):
+  /@wagmi/core@2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2):
     resolution: {integrity: sha512-cG/xwQWsBEcKgRTkQVhH29cbpbs/TdcUJVFXCyri3ZknxhMyGv0YEjTcrNpRgt2SaswL1KrvslSNYKKo+5YEAg==}
     peerDependencies:
       '@tanstack/query-core': '>=5.0.0'
@@ -14885,7 +15009,7 @@ packages:
       eventemitter3: 5.0.1
       mipd: 0.0.7(typescript@5.9.3)
       typescript: 5.9.3
-      viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
       zustand: 5.0.0(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -15771,7 +15895,7 @@ packages:
       '@zerodev/sdk': ^5.4.13
       viem: ^2.28.0
     dependencies:
-      '@zerodev/sdk': 5.5.7(viem@2.38.3)
+      '@zerodev/sdk': 5.5.7(viem@2.47.2)
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
@@ -15798,7 +15922,7 @@ packages:
       '@simplewebauthn/browser': 9.0.1
       '@simplewebauthn/typescript-types': 8.3.4
       '@zerodev/sdk': 5.5.7(viem@2.38.3)
-      '@zerodev/webauthn-key': 5.5.0(viem@2.38.3)
+      '@zerodev/webauthn-key': 5.5.0(viem@2.47.2)
       merkletreejs: 0.3.11
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
@@ -15812,7 +15936,16 @@ packages:
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
-  /@zerodev/webauthn-key@5.5.0(viem@2.38.3):
+  /@zerodev/sdk@5.5.7(viem@2.47.2):
+    resolution: {integrity: sha512-Sf4G13yi131H8ujun64obvXIpk1UWn64GiGJjfvGx8aIKg+OWTRz9AZHgGKK+bE/evAmqIg4nchuSvKPhOau1w==}
+    peerDependencies:
+      viem: ^2.28.0
+    dependencies:
+      semver: 7.7.4
+      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+    dev: false
+
+  /@zerodev/webauthn-key@5.5.0(viem@2.47.2):
     resolution: {integrity: sha512-AbD2d/qrsX7AWxJMEfwxnLbp1TjiUjc1V4ne3Q40UJxKe+lW64Td+y8OD0qSFMqgN6rQxJZ0aOAXmat8H6xluA==}
     peerDependencies:
       viem: ^2.28.0
@@ -15820,7 +15953,7 @@ packages:
       '@noble/curves': 1.9.7
       '@simplewebauthn/browser': 8.3.7
       '@simplewebauthn/types': 12.0.0
-      viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
   /@zoralabs/coins-sdk@0.2.8(abitype@1.2.3)(viem@2.38.3):
@@ -15832,7 +15965,7 @@ packages:
     dependencies:
       '@hey-api/client-fetch': 0.8.4
       '@zoralabs/protocol-deployments': 0.6.1
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       viem: 2.38.3(typescript@5.9.3)(zod@3.25.76)
     dev: false
 
@@ -18680,6 +18813,89 @@ packages:
       esbuild: 0.25.12
       tsx: 4.21.0
     dev: true
+
+  /drizzle-orm@0.30.10(pg@8.18.0):
+    resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
+    peerDependencies:
+      '@aws-sdk/client-rds-data': '>=3'
+      '@cloudflare/workers-types': '>=3'
+      '@electric-sql/pglite': '>=0.1.1'
+      '@libsql/client': '*'
+      '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
+      '@opentelemetry/api': ^1.4.1
+      '@planetscale/database': '>=1'
+      '@types/better-sqlite3': '*'
+      '@types/pg': '*'
+      '@types/react': '>=18'
+      '@types/sql.js': '*'
+      '@vercel/postgres': '>=0.8.0'
+      '@xata.io/client': '*'
+      better-sqlite3: '>=7'
+      bun-types: '*'
+      expo-sqlite: '>=13.2.0'
+      knex: '*'
+      kysely: '*'
+      mysql2: '>=2'
+      pg: '>=8'
+      postgres: '>=3'
+      react: '>=18'
+      sql.js: '>=1'
+      sqlite3: '>=5'
+    peerDependenciesMeta:
+      '@aws-sdk/client-rds-data':
+        optional: true
+      '@cloudflare/workers-types':
+        optional: true
+      '@electric-sql/pglite':
+        optional: true
+      '@libsql/client':
+        optional: true
+      '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@types/better-sqlite3':
+        optional: true
+      '@types/pg':
+        optional: true
+      '@types/react':
+        optional: true
+      '@types/sql.js':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
+        optional: true
+      better-sqlite3:
+        optional: true
+      bun-types:
+        optional: true
+      expo-sqlite:
+        optional: true
+      knex:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
+        optional: true
+      postgres:
+        optional: true
+      react:
+        optional: true
+      sql.js:
+        optional: true
+      sqlite3:
+        optional: true
+    dependencies:
+      pg: 8.18.0
+    dev: false
 
   /drizzle-orm@0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0):
     resolution: {integrity: sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==}
@@ -24287,7 +24503,7 @@ packages:
       is-wsl: 2.2.0
     dev: false
 
-  /openai@6.22.0(ws@8.20.0):
+  /openai@6.22.0:
     resolution: {integrity: sha512-7Yvy17F33Bi9RutWbsaYt5hJEEJ/krRPOrwan+f9aCPuMat1WVsb2VNSII5W1EksKT6fF69TG/xj4XzodK3JZw==}
     hasBin: true
     peerDependencies:
@@ -24298,8 +24514,6 @@ packages:
         optional: true
       zod:
         optional: true
-    dependencies:
-      ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     dev: false
 
   /openai@6.32.0(ws@8.19.0)(zod@3.25.76):
@@ -24545,7 +24759,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
       eventemitter3: 5.0.1
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -25138,7 +25352,7 @@ packages:
         optional: true
     dependencies:
       '@tanstack/react-query': 5.95.0(react@18.3.1)
-      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
+      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)
       hono: 4.12.8
       idb-keyval: 6.2.2
       mipd: 0.0.7(typescript@5.9.3)
@@ -28247,93 +28461,79 @@ packages:
     requiresBuild: true
     dev: true
 
-  /tree-sitter-go@0.25.0(tree-sitter@0.21.1):
-    resolution: {integrity: sha512-APBc/Dq3xz/e35Xpkhb1blu5UgW+2E3RyGWawZSCNcbGwa7jhSQPS8KsUupuzBla8PCo8+lz9W/JDJjmfRa2tw==}
+  /tree-sitter-go@0.23.4(tree-sitter@0.22.4):
+    resolution: {integrity: sha512-iQaHEs4yMa/hMo/ZCGqLfG61F0miinULU1fFh+GZreCRtKylFLtvn798ocCZjO2r/ungNZgAY1s1hPFyAwkc7w==}
     requiresBuild: true
     peerDependencies:
-      tree-sitter: ^0.25.0
+      tree-sitter: 0.22.4
     peerDependenciesMeta:
       tree-sitter:
         optional: true
     dependencies:
       node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
-      tree-sitter: 0.21.1
+      tree-sitter: 0.22.4
     dev: false
 
-  /tree-sitter-javascript@0.23.1(tree-sitter@0.21.1):
+  /tree-sitter-javascript@0.23.1(tree-sitter@0.22.4):
     resolution: {integrity: sha512-/bnhbrTD9frUYHQTiYnPcxyHORIw157ERBa6dqzaKxvR/x3PC4Yzd+D1pZIMS6zNg2v3a8BZ0oK7jHqsQo9fWA==}
     requiresBuild: true
     peerDependencies:
-      tree-sitter: ^0.21.1
+      tree-sitter: 0.22.4
     peerDependenciesMeta:
       tree-sitter:
         optional: true
     dependencies:
       node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
-      tree-sitter: 0.21.1
+      tree-sitter: 0.22.4
     dev: false
 
-  /tree-sitter-javascript@0.25.0(tree-sitter@0.21.1):
-    resolution: {integrity: sha512-1fCbmzAskZkxcZzN41sFZ2br2iqTYP3tKls1b/HKGNPQUVOpsUxpmGxdN/wMqAk3jYZnYBR1dd/y/0avMeU7dw==}
+  /tree-sitter-python@0.23.6(tree-sitter@0.22.4):
+    resolution: {integrity: sha512-yIM9z0oxKIxT7bAtPOhgoVl6gTXlmlIhue7liFT4oBPF/lha7Ha4dQBS82Av6hMMRZoVnFJI8M6mL+SwWoLD3A==}
     requiresBuild: true
     peerDependencies:
-      tree-sitter: ^0.25.0
+      tree-sitter: 0.22.4
     peerDependenciesMeta:
       tree-sitter:
         optional: true
     dependencies:
       node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
-      tree-sitter: 0.21.1
+      tree-sitter: 0.22.4
     dev: false
 
-  /tree-sitter-python@0.25.0(tree-sitter@0.21.1):
-    resolution: {integrity: sha512-eCmJx6zQa35GxaCtQD+wXHOhYqBxEL+bp71W/s3fcDMu06MrtzkVXR437dRrCrbrDbyLuUDJpAgycs7ncngLXw==}
-    requiresBuild: true
-    peerDependencies:
-      tree-sitter: ^0.25.0
-    peerDependenciesMeta:
-      tree-sitter:
-        optional: true
-    dependencies:
-      node-addon-api: 8.6.0
-      node-gyp-build: 4.8.4
-      tree-sitter: 0.21.1
-    dev: false
-
-  /tree-sitter-rust@0.24.0(tree-sitter@0.21.1):
+  /tree-sitter-rust@0.24.0(tree-sitter@0.22.4):
     resolution: {integrity: sha512-NWemUDf629Tfc90Y0Z55zuwPCAHkLxWnMf2RznYu4iBkkrQl2o/CHGB7Cr52TyN5F1DAx8FmUnDtCy9iUkXZEQ==}
     requiresBuild: true
     peerDependencies:
-      tree-sitter: ^0.22.1
+      tree-sitter: 0.22.4
     peerDependenciesMeta:
       tree-sitter:
         optional: true
     dependencies:
       node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
-      tree-sitter: 0.21.1
+      tree-sitter: 0.22.4
     dev: false
 
-  /tree-sitter-typescript@0.23.2(tree-sitter@0.21.1):
+  /tree-sitter-typescript@0.23.2(tree-sitter@0.22.4):
     resolution: {integrity: sha512-e04JUUKxTT53/x3Uq1zIL45DoYKVfHH4CZqwgZhPg5qYROl5nQjV+85ruFzFGZxu+QeFVbRTPDRnqL9UbU4VeA==}
     requiresBuild: true
     peerDependencies:
-      tree-sitter: ^0.21.0
+      tree-sitter: 0.22.4
     peerDependenciesMeta:
       tree-sitter:
         optional: true
     dependencies:
       node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
-      tree-sitter: 0.21.1
-      tree-sitter-javascript: 0.23.1(tree-sitter@0.21.1)
+      tree-sitter: 0.22.4
+      tree-sitter-javascript: 0.23.1(tree-sitter@0.22.4)
     dev: false
 
-  /tree-sitter@0.21.1:
-    resolution: {integrity: sha512-7dxoA6kYvtgWw80265MyqJlkRl4yawIjO7S5MigytjELkX43fV2WsAXzsNfO7sBpPPCF5Gp0+XzHk0DwLCq3xQ==}
+  /tree-sitter@0.22.4:
+    resolution: {integrity: sha512-usbHZP9/oxNsUY65MQUsduGRqDHQOou1cagUSwjhoSYAmSahjQDAVsh9s+SlZkn8X8+O1FULRGwHu7AFP3kjzg==}
     requiresBuild: true
     dependencies:
       node-addon-api: 8.6.0
@@ -28681,7 +28881,7 @@ packages:
         optional: true
     dependencies:
       '@graphql-yoga/subscription': 5.0.5
-      '@types/node': 22.19.12
+      '@types/node': 20.19.29
       '@types/semver': 7.7.1
       graphql: 16.13.1
       graphql-query-complexity: 1.1.0(graphql@16.13.1)
@@ -30152,7 +30352,7 @@ packages:
     dependencies:
       '@tanstack/react-query': 5.95.0(react@18.3.1)
       '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.95.0)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)(zod@3.25.76)
-      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
+      '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)
       react: 18.3.1
       typescript: 5.9.3
       use-sync-external-store: 1.4.0(react@18.3.1)

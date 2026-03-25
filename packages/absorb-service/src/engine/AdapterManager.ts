@@ -118,7 +118,8 @@ export class AdapterManager {
       parser.setLanguage(grammar);
 
       return { parser, language: grammar, backend: 'native' };
-    } catch {
+    } catch (err) {
+      console.error(`[AdapterManager] loadNative(${language}) failed:`, err);
       return null;
     }
   }
@@ -146,7 +147,8 @@ export class AdapterManager {
       }
       const pkg = await import(packageName);
       return pkg.default || pkg;
-    } catch {
+    } catch (err) {
+      console.error(`[AdapterManager] importNativeGrammar(${packageName}) failed:`, err);
       return null;
     }
   }

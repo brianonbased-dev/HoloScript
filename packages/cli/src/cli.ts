@@ -2788,8 +2788,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         console.log(`\n\x1b[36m🔍 Absorbing codebase: ${rootDir}\x1b[0m\n`);
 
-        // Scan
-        const scanner = new CodebaseScanner();
+        // Scan (useWorkers=false: native tree-sitter addons can't resolve in worker threads)
+        const scanner = new CodebaseScanner(undefined, false);
         const scanStart = Date.now();
         let lastProgressLen = 0;
         const scanResult = await scanner.scan({
@@ -2820,6 +2820,18 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
         if (scanResult.stats.errors.length > 0) {
           console.log(`    \x1b[33m⚠ ${scanResult.stats.errors.length} files had errors\x1b[0m`);
+          // Group errors by phase for diagnostics
+          const byPhase: Record<string, number> = {};
+          for (const err of scanResult.stats.errors) {
+            byPhase[err.phase] = (byPhase[err.phase] ?? 0) + 1;
+          }
+          for (const [phase, count] of Object.entries(byPhase)) {
+            console.log(`      ${phase}: ${count} errors`);
+          }
+          // Show first 3 errors for debugging
+          for (const err of scanResult.stats.errors.slice(0, 3)) {
+            console.log(`      \x1b[33m→ ${err.file}: [${err.phase}] ${err.error}\x1b[0m`);
+          }
         }
 
         // Build graph

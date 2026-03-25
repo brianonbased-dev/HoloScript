@@ -12,7 +12,7 @@ import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './tra
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
-import { handleCodebaseTool } from './codebase-tools';
+import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
 import { handleBrittneyLiteTool } from './brittney-lite';
@@ -196,7 +196,7 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
 
   // TypeScript absorb tool
   if (name === 'absorb_typescript') {
-    const { handleAbsorbTypescriptTool } = await import('./absorb-typescript-tools');
+    const { handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
     return handleAbsorbTypescriptTool(name, args);
   }
 

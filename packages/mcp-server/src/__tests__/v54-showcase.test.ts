@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { handleValidationTool } from '../validation-tools';
-import { handleAbsorbTypescriptTool } from '../absorb-typescript-tools';
+import { handleAbsorbTypescriptTool } from '@holoscript/absorb-service/mcp';
 
 const EXAMPLES_DIR = resolve(__dirname, '../../../../examples/services');
 

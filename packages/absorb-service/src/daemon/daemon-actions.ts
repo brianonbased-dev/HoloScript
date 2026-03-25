@@ -9,7 +9,9 @@
  * native action bridge in BehaviorTreeTrait.
  */
 
-import type { ActionHandler } from '../runtime/profiles/HeadlessRuntime';
+// NOTE: These imports reference @holoscript/core internals. The daemon-actions
+// module requires @holoscript/core as a peer dependency for runtime types.
+import type { ActionHandler } from '@holoscript/core/runtime';
 import path from 'path';
 import { createHmac, timingSafeEqual } from 'crypto';
 import {
@@ -23,7 +25,7 @@ import {
   aggregatePatterns,
   type ErrorCategory,
 } from './daemon-error-taxonomy';
-import type { HostCapabilities } from '../traits/TraitTypes';
+import type { HostCapabilities } from '@holoscript/core/traits';
 import {
   createStdlibActions,
   resolveRepoRelativePath,
@@ -32,7 +34,7 @@ import {
   toStringArray,
   parseHostFromUrl,
   type StdlibPolicy,
-} from '../stdlib';
+} from '@holoscript/core';
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -1061,22 +1063,40 @@ export function createDaemonActions(
   // ── Stdlib Delegation (G.ARCH.003) ──────────────────────────────────────────
   const hostCaps: HostCapabilities = {
     fileSystem: {
-      readFile: (p: string) => host.readFile(p),
-      writeFile: (p: string, c: string) => host.writeFile(p, c),
-      deleteFile: () => { throw new Error('delete not supported by daemon host'); },
-      exists: (p: string) => host.exists(p),
+      readFile: async (p: string) => host.readFile(p),
+      writeFile: async (p: string, c: string) => host.writeFile(p, c),
+      exists: async (p: string) => host.exists(p),
+      listDir: async () => { throw new Error('listDir not supported by daemon host'); },
     },
     process: {
-      exec: (cmd, args, opts) => host.exec(cmd, args, opts),
+      exec: async (command: string, options?: any) => {
+        const args = options?.args || [];
+        const res = await host.exec(command, args, options);
+        return { exitCode: res.code ?? 1, stdout: res.stdout, stderr: res.stderr };
+      },
     },
     network: {
-      fetch: async (url, opts) => {
+      fetch: async (url: string, options?: any) => {
         const response = await (globalThis.fetch as typeof fetch)(url, {
-          method: opts?.method ?? 'GET',
-          headers: opts?.headers,
+          method: options?.method ?? 'GET',
+          headers: options?.headers,
+          body: options?.body,
         });
         const text = await response.text();
-        return { status: response.status, ok: response.ok, text };
+        const headersRecord: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          headersRecord[key] = value;
+        });
+        return { 
+          status: response.status, 
+          ok: response.ok, 
+          text,
+          headers: headersRecord,
+          body: text,
+          json: async () => JSON.parse(text),
+          arrayBuffer: async () => new ArrayBuffer(0),
+          blob: async () => new Blob()
+        };
       },
     },
   };
@@ -1154,11 +1174,11 @@ export function createDaemonActions(
       const skillsRoot = config.skillsDir
         ? resolveRepoRelativePath(config.skillsDir, config.repoRoot)
         : resolveRepoRelativePath('compositions/skills', config.repoRoot);
-      if (!skillsRoot.ok) {
-        bb.create_skill_error = skillsRoot.error;
+
+      if (!skillsRoot) {
+        bb.create_skill_error = 'Failed to resolve skills directory';
         return false;
       }
-
       const targetPath = `${skillsRoot.rel}/${safeName}.hsplus`;
       const content = typeof params.content === 'string' && params.content.trim().length > 0
         ? params.content
@@ -2156,8 +2176,10 @@ export function createDaemonActions(
       if (isTypefixFocus) {
         // CRITICAL: Count only scoped errors (packages/core|studio/src/) to match diagnose baseline.
         // Raw `errors` includes ALL repo errors (~3500) but baseline is scoped (~1490).
-        const scopedErrors = scopeFilter
-          ? errors.filter(l => scopeFilter.test(l))
+        const scopeFilterStr = (bb.scopeFilter as string) || '';
+        const thisScopeFilter = scopeFilterStr ? new RegExp(scopeFilterStr) : undefined;
+        const scopedErrors = thisScopeFilter
+          ? errors.filter(l => thisScopeFilter.test(l))
           : errors;
         const baseline = (bb.typeErrorCount as number) ?? Infinity;
         bb.compilation_passed = scopedErrors.length === 0 || scopedErrors.length <= baseline;

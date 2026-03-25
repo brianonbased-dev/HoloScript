@@ -5,8 +5,8 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import {
   SelfImprovementPipeline,
-  FailedGeneration,
-} from '../self-improvement/SelfImprovementPipeline';
+  type FailedGeneration,
+} from '@holoscript/absorb-service/self-improvement';
 
 describe('SelfImprovementPipeline', () => {
   let pipeline: SelfImprovementPipeline;

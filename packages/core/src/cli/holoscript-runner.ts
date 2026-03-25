@@ -32,8 +32,8 @@ import { AbsorbProcessor } from '../traits/AbsorbTrait';
 import { HotReloadWatcher } from '../traits/HotReloadTrait';
 import { registerStdlib } from '../stdlib';
 import type { HostCapabilities } from '../traits/TraitTypes';
-import { createDaemonActions, getDaemonFileState } from './daemon-actions';
-import type { DaemonConfig, DaemonHost, LLMProvider } from './daemon-actions';
+import { createDaemonActions, getDaemonFileState } from '@holoscript/absorb-service/daemon';
+import type { DaemonConfig, DaemonHost, LLMProvider } from '@holoscript/absorb-service/daemon';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 export interface CLIOptions {

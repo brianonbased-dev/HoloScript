@@ -6,7 +6,7 @@ import {
   type DaemonExecResult,
   type DaemonHost,
   type LLMProvider,
-} from '../daemon-actions';
+} from '@holoscript/absorb-service/daemon';
 
 type Blackboard = Record<string, unknown>;
 

@@ -952,7 +952,7 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
   const maxResults = (args.maxResults as number) ?? 10;
 
   // Import graph-rag-tools to check readiness
-  const { isGraphRAGReady } = await import('./graph-rag-tools');
+  const { isGraphRAGReady } = await import('@holoscript/absorb-service/mcp');
   if (!isGraphRAGReady()) {
     return {
       error:
@@ -965,7 +965,7 @@ async function handleDiagnose(args: Record<string, unknown>): Promise<unknown> {
   const candidates: DiagnosisCandidate[] = [];
 
   // Import handler to run GraphRAG queries internally
-  const { handleGraphRagTool } = await import('./graph-rag-tools');
+  const { handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
 
   // ── Coverage analysis ──────────────────────────────────────────────────
   if (focus === 'coverage' || focus === 'all') {

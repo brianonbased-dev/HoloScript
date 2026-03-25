@@ -13,7 +13,7 @@ import {
   parseTscOutput,
   aggregatePatterns,
   type SemanticError,
-} from '../daemon-error-taxonomy';
+} from '@holoscript/absorb-service/daemon';
 
 describe('categorizeError', () => {
   it('maps TS2304 to missing_symbol', () => {
