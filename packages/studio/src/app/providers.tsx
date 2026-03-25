@@ -10,7 +10,10 @@ import { initAnalytics, identifyUser } from '../lib/analytics';
 import { useStudioPresetStore } from '../lib/stores/studioPresetStore';
 import { useMagicMoment } from '../hooks/useMagicMoment';
 import dynamic from 'next/dynamic';
+import { isFirstRunCompleted } from '../components/FirstRunWizard';
 import { DevToolsInit } from '../components/DevToolsInit';
+import { AppShell } from '../components/AppShell';
+import { PluginHostProvider } from '../hooks/usePluginHost';
 
 const MagicMomentWizard = dynamic(
   () => import('../components/wizard/MagicMomentWizard').then((m) => ({ default: m.MagicMomentWizard })),
@@ -22,12 +25,8 @@ const StudioSetupWizard = dynamic(
   { ssr: false }
 );
 
-const AppShell = dynamic(
-  () => import('../components/AppShell').then((m) => ({ default: m.AppShell })),
-  { ssr: false }
-);
-const PluginHostProvider = dynamic(
-  () => import('../hooks/usePluginHost').then((m) => ({ default: m.PluginHostProvider })),
+const FirstRunWizard = dynamic(
+  () => import('../components/FirstRunWizard').then((m) => ({ default: m.FirstRunWizard })),
   { ssr: false }
 );
 
@@ -131,7 +130,14 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // Studio Setup Wizard — shown AFTER MagicMoment completes (optional workspace config)
   const wizardCompleted = useStudioPresetStore((s) => s.wizardCompleted);
+  const setWizardCompleted = useStudioPresetStore((s) => s.setWizardCompleted);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+
+  // FirstRun Wizard — shown AFTER StudioSetupWizard completes (service integration)
+  const [firstRunDone, setFirstRunDone] = useState(() =>
+    typeof window !== 'undefined' ? isFirstRunCompleted() : true
+  );
+  const [showFirstRunWizard, setShowFirstRunWizard] = useState(false);
 
   useEffect(() => {
     if (!magicMomentComplete) {
@@ -140,8 +146,11 @@ export function Providers({ children }: { children: ReactNode }) {
     } else if (!wizardCompleted) {
       // MagicMoment done but workspace not configured: show StudioSetupWizard
       setShowSetupWizard(true);
+    } else if (!firstRunDone) {
+      // StudioSetup done but first-run integrations not completed: show FirstRunWizard
+      setShowFirstRunWizard(true);
     }
-  }, [magicMomentComplete, wizardCompleted, magicMomentShow]);
+  }, [magicMomentComplete, wizardCompleted, firstRunDone, magicMomentShow]);
 
   // Theme
   const [theme, setTheme] = useState<Theme>('dark');
@@ -198,7 +207,25 @@ export function Providers({ children }: { children: ReactNode }) {
                 }} />
               )}
               {showSetupWizard && !showMagicMoment && (
-                <StudioSetupWizard onClose={() => setShowSetupWizard(false)} />
+                <StudioSetupWizard onClose={() => {
+                  setShowSetupWizard(false);
+                  // Mark wizard completed so it won't re-appear on page refresh
+                  // (applyPreset already sets this when the wizard completes normally,
+                  // but we also need to persist dismissal via X/Skip/Back)
+                  if (!wizardCompleted) {
+                    setWizardCompleted(true);
+                  }
+                  // After StudioSetup completes, show FirstRunWizard if not yet done
+                  if (!firstRunDone) {
+                    setShowFirstRunWizard(true);
+                  }
+                }} />
+              )}
+              {showFirstRunWizard && !showMagicMoment && !showSetupWizard && (
+                <FirstRunWizard onClose={() => {
+                  setShowFirstRunWizard(false);
+                  setFirstRunDone(true);
+                }} />
               )}
               <DevToolsInit />
             </ToastContext.Provider>

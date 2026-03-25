@@ -41,5 +41,13 @@ export default defineConfig({
     'drizzle-orm/pg-core',
     // Externalize Next.js (only used by credits/requireCredits which is Studio-specific)
     'next/server',
+    // Externalize @huggingface/transformers + onnxruntime (optional dep, native bindings)
+    '@huggingface/transformers',
+    'onnxruntime-node',
+    'onnxruntime-common',
+    // Externalize openai (regular dependency, installed by consumer)
+    'openai',
+    // Externalize zod (regular dependency)
+    'zod',
   ],
 });

@@ -193,6 +193,7 @@ const STARTER_TEMPLATES: TemplateOption[] = [
 // ─── localStorage Persistence ─────────────────────────────────────────────────
 
 const STORAGE_KEY = 'holoscript-wizard-progress';
+const COMPLETED_KEY = 'holoscript-firstrun-completed';
 
 function loadProgress(): WizardProgress | null {
   if (typeof window === 'undefined') return null;
@@ -219,6 +220,26 @@ function clearProgress(): void {
     localStorage.removeItem(STORAGE_KEY);
   } catch (err) {
     console.warn('[FirstRunWizard] Failed to clear progress:', err);
+  }
+}
+
+/** Mark the FirstRunWizard as permanently completed so it won't show again. */
+function markFirstRunCompleted(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COMPLETED_KEY, 'true');
+  } catch (err) {
+    console.warn('[FirstRunWizard] Failed to mark completed:', err);
+  }
+}
+
+/** Check whether the FirstRunWizard has been completed (or dismissed). */
+export function isFirstRunCompleted(): boolean {
+  if (typeof window === 'undefined') return true; // SSR: assume completed
+  try {
+    return localStorage.getItem(COMPLETED_KEY) === 'true';
+  } catch {
+    return false;
   }
 }
 
@@ -350,6 +371,7 @@ export function FirstRunWizard({ onClose, onComplete }: FirstRunWizardProps) {
   const handleComplete = useCallback(() => {
     setCompleted(true);
     clearProgress();
+    markFirstRunCompleted();
     setTimeout(() => {
       onComplete?.();
       onClose();
@@ -372,6 +394,7 @@ export function FirstRunWizard({ onClose, onComplete }: FirstRunWizardProps) {
     } else {
       // Final skip closes wizard
       clearProgress();
+      markFirstRunCompleted();
       onClose();
     }
   }, [step, goToStep, onClose]);
@@ -418,6 +441,7 @@ export function FirstRunWizard({ onClose, onComplete }: FirstRunWizardProps) {
             <button
               onClick={() => {
                 clearProgress();
+                markFirstRunCompleted();
                 onClose();
               }}
               className="rounded-lg p-1.5 text-studio-muted hover:bg-white/10 hover:text-studio-text transition"
