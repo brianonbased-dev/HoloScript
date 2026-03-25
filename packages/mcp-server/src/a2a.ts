@@ -269,7 +269,7 @@ const A2A_TASK_NOT_CANCELABLE = -32002;
 /**
  * Maps MCP tool name prefixes/patterns to A2A skill tags for rich discoverability.
  */
-function deriveSkillTags(toolName: string): string[] {
+export function deriveSkillTags(toolName: string): string[] {
   const tags: string[] = ['holoscript'];
 
   // Parsing & validation

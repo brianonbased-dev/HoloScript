@@ -41,6 +41,7 @@ import {
   type TaskMessage,
   type TaskState,
   type AgentCard,
+  deriveSkillTags,
 } from './a2a';
 import {
   getOAuth21Service,
@@ -110,6 +111,38 @@ function setRateLimitHeaders(res: http.ServerResponse, rl: { remaining: number; 
   res.setHeader('X-RateLimit-Remaining', rl.remaining);
   res.setHeader('X-RateLimit-Reset', Math.ceil(rl.resetAt / 1000));
 }
+
+// ── Tool category labels for discovery ───────────────────────────────────────
+const CATEGORY_LABELS: Record<string, string> = {
+  parsing: 'Parsing & Validation',
+  traits: 'Traits',
+  generation: 'Code Generation',
+  codebase: 'Codebase Intelligence',
+  search: 'Semantic Search',
+  graph: 'Graph Analysis',
+  quality: 'Quality & Testing',
+  filesystem: 'File Operations',
+  knowledge: 'Knowledge & Patterns',
+  refactoring: 'Refactoring',
+  ide: 'IDE / LSP',
+  ai: 'AI Assistant',
+  browser: 'Browser Control',
+  compilation: 'Compilation & Export',
+  networking: 'Networking',
+  temporal: 'Temporal Snapshots',
+  monitoring: 'Monitoring',
+  rendering: 'Rendering & Sharing',
+  gltf: 'glTF Import/Export',
+  agent: 'Agent Orchestration',
+  absorb: 'Absorb Service',
+  testing: 'Testing',
+  documentation: 'Documentation',
+  training: 'Training Data',
+  '3d': '3D Generation',
+  conversion: 'Format Conversion',
+  contract: 'Service Contracts',
+  utility: 'Utility',
+};
 
 // Store active transports by session ID
 const transports = new Map<string, StreamableHTTPServerTransport>();
@@ -498,10 +531,24 @@ const httpServer = http.createServer(async (req, res) => {
         resources: false,
         prompts: false,
       },
-      tools: allTools.map(t => ({
-        name: t.name,
-        description: t.description,
-      })),
+      categories: Object.entries(
+        allTools.reduce((acc, t) => {
+          const tags = deriveSkillTags(t.name);
+          const cat = CATEGORY_LABELS[tags[1] || 'utility'] || tags[1] || 'utility';
+          acc[cat] = (acc[cat] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      ).sort(([, a], [, b]) => (b as number) - (a as number)),
+      tools: allTools.map(t => {
+        const tags = deriveSkillTags(t.name);
+        const category = tags[1] || 'utility';
+        return {
+          name: t.name,
+          description: t.description,
+          category: CATEGORY_LABELS[category] || category,
+          tags: tags.slice(1),
+        };
+      }),
       endpoints: {
         mcp: `${baseUrl}/mcp`,
         health: `${baseUrl}/health`,
