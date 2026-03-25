@@ -314,6 +314,7 @@ export default defineConfig({
           items: [
             { text: 'All Categories', link: '/traits/' },
             { text: 'Extending Traits', link: '/traits/extending' },
+            { text: 'Semantic Dictionary', link: '/traits/semantic-dictionary' },
           ],
         },
         {

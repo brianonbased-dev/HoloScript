@@ -1,0 +1,107 @@
+// =============================================================================
+// v5.4 "Domains Unified" — Cross-Domain Service Composition
+//
+// Demonstrates ALL 8 v6 universal domains working together in a single
+// composition: service + data + pipeline + resilience + container +
+// network + metric + contract.
+//
+// This is a fullstack order-processing microservice expressed entirely
+// in HoloScript's declarative trait system.
+// =============================================================================
+
+composition "OrderService" {
+
+  // ── Service Layer ─────────────────────────────────────────────────────────
+  service {
+    @service
+    @cors_policy
+    @rate_limiter
+
+    @endpoint("POST /orders")
+    @handler("createOrder")
+    @middleware
+
+    @endpoint("GET /orders/:id")
+    @handler("getOrder")
+
+    @health_endpoint
+  }
+
+  // ── Data Layer ────────────────────────────────────────────────────────────
+  data {
+    @db
+    @repository
+
+    @model("Order")
+    // id: string
+    // customerId: string
+    // items: OrderItem[]
+    // total: number
+    // status: string
+    // createdAt: DateTime
+
+    @model("OrderItem")
+    // orderId: string
+    // productId: string
+    // quantity: number
+    // price: number
+
+    @migration
+    @cache
+    @soft_delete
+    @audit_column
+  }
+
+  // ── Contract Layer ────────────────────────────────────────────────────────
+  service_contract {
+    @contract
+    @schema
+    @validator
+    @json_schema
+    @openapi_path
+  }
+
+  // ── Pipeline Layer ────────────────────────────────────────────────────────
+  pipeline {
+    @pipeline
+    @queue("order-notifications")
+    @worker
+    @scheduler
+    @idempotent_consumer
+  }
+
+  // ── Network Layer ─────────────────────────────────────────────────────────
+  network {
+    @http
+    @tls_config
+    @jwt_config
+  }
+
+  // ── Resilience Layer ──────────────────────────────────────────────────────
+  resilience {
+    @circuit_breaker
+    @retry
+    @timeout
+    @fallback
+    @exponential_backoff
+  }
+
+  // ── Observability Layer ───────────────────────────────────────────────────
+  obs_metric {
+    @metric
+    @trace
+    @structured_log
+    @health_check
+    @slo
+    @alert_rule
+  }
+
+  // ── Container Layer ───────────────────────────────────────────────────────
+  container {
+    @container
+    @dockerfile
+    @deployment
+    @scaling
+    @secret
+  }
+}

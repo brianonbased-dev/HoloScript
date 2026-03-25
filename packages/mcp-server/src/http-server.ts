@@ -404,6 +404,13 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // Prometheus metrics endpoint (v5.6 Observable Platform)
+  if (url === '/metrics') {
+    const { handleMetricsRequest } = await import('./health-check');
+    handleMetricsRequest(req, res);
+    return;
+  }
+
   // .well-known/mcp discovery endpoint (MCP specification)
   if (url === '/.well-known/mcp' || url === '/.well-known/mcp.json') {
     const allTools = [...tools, ...PluginManager.getTools()];

@@ -206,6 +206,30 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleAgentOrchestrationTool(name, args);
   }
 
+  // Observability tools (v5.6)
+  if (name === 'query_traces' || name === 'export_traces_otlp' || name === 'get_agent_health' || name === 'get_metrics_prometheus') {
+    const { handleObservabilityTool } = await import('./observability-tools');
+    return handleObservabilityTool(name, args);
+  }
+
+  // Plugin management tools (v5.7)
+  if (name === 'install_plugin' || name === 'list_plugins' || name === 'manage_plugin') {
+    const { handlePluginManagementTool } = await import('./plugin-management-tools');
+    return handlePluginManagementTool(name, args);
+  }
+
+  // Economy tools (v5.8)
+  if (name === 'check_agent_budget' || name === 'get_usage_summary' || name === 'get_creator_earnings') {
+    const { handleEconomyTool } = await import('./economy-tools');
+    return handleEconomyTool(name, args);
+  }
+
+  // Developer tools (v5.9)
+  if (name === 'get_api_reference' || name === 'serve_preview' || name === 'get_workspace_info' || name === 'inspect_trace_waterfall' || name === 'get_dev_dashboard_state') {
+    const { handleDeveloperTool } = await import('./developer-tools');
+    return handleDeveloperTool(name, args);
+  }
+
   // Handle plugins
   const pluginResult = await PluginManager.handleTool(name, args);
   if (pluginResult !== null) {

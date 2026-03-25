@@ -21,6 +21,10 @@ import { serviceContractTools } from './service-contract-tools';
 import { validationTools } from './validation-tools';
 import { absorbTypescriptTools } from './absorb-typescript-tools';
 import { agentOrchestrationTools } from './agent-orchestration-tools';
+import { observabilityTools } from './observability-tools';
+import { pluginManagementTools } from './plugin-management-tools';
+import { economyTools } from './economy-tools';
+import { developerTools } from './developer-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -670,6 +674,10 @@ export const tools: Tool[] = [
   ...validationTools,
   ...absorbTypescriptTools,
   ...agentOrchestrationTools,
+  ...observabilityTools,
+  ...pluginManagementTools,
+  ...economyTools,
+  ...developerTools,
   ...PluginManager.getTools(),
 ];
 

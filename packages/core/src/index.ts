@@ -2968,6 +2968,20 @@ export type { Sandbox, SandboxState, SandboxExecutionResult } from './security/S
 export type { SecurityPolicy } from './security/SecurityPolicy';
 export { createDefaultPolicy, createStrictPolicy } from './security/SecurityPolicy';
 
+// ── Package Signing (Ed25519) ────────────────────────────────────────────
+export {
+  generateKeyPair,
+  signPackage,
+  verifySignature,
+  createPackageManifest,
+  canonicalizeManifest,
+} from './security/PackageSigner';
+export type {
+  Ed25519KeyPair,
+  PackageManifest,
+  SignedPackage,
+} from './security/PackageSigner';
+
 // ── Persistence / Save ─────────────────────────────────────────────
 export { SaveManager } from './persistence/SaveManager';
 export type { SaveSlot, SaveConfig } from './persistence/SaveManager';
@@ -2975,6 +2989,52 @@ export type { SaveSlot, SaveConfig } from './persistence/SaveManager';
 // ── Debug / Profiler ───────────────────────────────────────────────
 export { Profiler } from './debug/Profiler';
 export type { ProfileScope, FrameProfile, ProfileSummary } from './debug/Profiler';
+
+// ── Debug / TelemetryCollector ────────────────────────────────────
+export {
+  TelemetryCollector,
+  getTelemetryCollector,
+  resetTelemetryCollector,
+} from './debug/TelemetryCollector';
+
+// ── v5.6 Observability ────────────────────────────────────────────
+export { OTLPExporter, OTLPHttpError } from './debug/OTLPExporter';
+export type { OTLPExporterConfig, OTLPExportResult } from './debug/OTLPExporter';
+export {
+  TraceContextPropagator,
+  getTraceContextPropagator,
+  resetTraceContextPropagator,
+} from './debug/TraceContextPropagator';
+export type { PropagationHeaders, TraceStateEntry } from './debug/TraceContextPropagator';
+export {
+  PrometheusMetricsRegistry,
+  getPrometheusMetrics,
+  resetPrometheusMetrics,
+} from './debug/PrometheusMetrics';
+export type { MetricType, MetricLabels } from './debug/PrometheusMetrics';
+export {
+  StructuredLogger,
+  JsonArraySink,
+  ChildLogger,
+  getStructuredLogger,
+  resetStructuredLogger,
+} from './debug/StructuredLogger';
+export type {
+  LogLevel,
+  LogSinkType,
+  LogEntry,
+  LogSink,
+  StructuredLoggerConfig,
+} from './debug/StructuredLogger';
+
+// ── Trace Waterfall Renderer (v5.9) ────────────────────────────────
+export { TraceWaterfallRenderer } from './debug/TraceWaterfallRenderer';
+export type {
+  WaterfallRow,
+  WaterfallData,
+  WaterfallSummary,
+  WaterfallRendererConfig,
+} from './debug/TraceWaterfallRenderer';
 
 // ── LOD ────────────────────────────────────────────────────────────
 export { LODManager } from './lod/LODManager';
@@ -3362,6 +3422,56 @@ export { PluginLoader } from './plugins/PluginLoader';
 export { ModRegistry } from './plugins/ModRegistry';
 export { HololandExtensionRegistry } from './plugins/HololandExtensionRegistry';
 
+// ── v5.7 Plugin Ecosystem (Sandbox Runner, Signature, Dependencies, Lifecycle) ──
+export {
+  PluginSandboxRunner,
+  DEFAULT_CAPABILITY_BUDGET,
+} from './plugins/PluginSandboxRunner';
+export type {
+  SandboxPermission,
+  CapabilityBudget,
+  PluginSandboxRunnerConfig,
+  SandboxTool,
+  SandboxHandler,
+  SandboxRunResult,
+  SandboxRunnerState,
+} from './plugins/PluginSandboxRunner';
+
+export {
+  PluginSignatureVerifier,
+  getPluginSignatureVerifier,
+  resetPluginSignatureVerifier,
+  DEFAULT_VERIFIER_CONFIG,
+} from './plugins/PluginSignatureVerifier';
+export type {
+  TrustedKey,
+  VerificationResult,
+  SignatureVerifierConfig,
+} from './plugins/PluginSignatureVerifier';
+
+export {
+  DependencyResolver,
+} from './plugins/DependencyResolver';
+export type {
+  PluginEntry,
+  ResolutionResult,
+  VersionConflict,
+  MissingDependency,
+} from './plugins/DependencyResolver';
+
+export {
+  PluginLifecycleManager,
+  getPluginLifecycleManager,
+  resetPluginLifecycleManager,
+  DEFAULT_LIFECYCLE_CONFIG,
+} from './plugins/PluginLifecycleManager';
+export type {
+  ManagedPlugin,
+  InstallPluginOptions,
+  PluginLifecycleState as ManagedPluginState,
+  LifecycleManagerConfig,
+} from './plugins/PluginLifecycleManager';
+
 // ── Post-Quantum Cryptography (Hybrid Classical+PQ) ──────────────────────
 export {
   HybridCryptoProvider,
@@ -3404,3 +3514,66 @@ export type {
   RefundRequest,
   RefundResult,
 } from './economy/x402-facilitator';
+
+// ── v5.8 Live Economy (Webhooks, Usage, Budget, Revenue, Subscriptions) ──
+export {
+  PaymentWebhookService,
+} from './economy/PaymentWebhookService';
+export type {
+  WebhookProvider,
+  WebhookEventType,
+  WebhookPayload,
+  WebhookVerificationResult,
+  WebhookProcessingResult,
+  WebhookHandler,
+  WebhookServiceConfig,
+} from './economy/PaymentWebhookService';
+
+export {
+  UsageMeter,
+} from './economy/UsageMeter';
+export type {
+  UsagePeriod,
+  UsageEvent,
+  UsageAggregate,
+  AgentUsageSummary,
+  FreeTierConfig,
+  UsageMeterConfig,
+} from './economy/UsageMeter';
+
+export {
+  AgentBudgetEnforcer,
+} from './economy/AgentBudgetEnforcer';
+export type {
+  EnforcementMode,
+  BudgetPeriod,
+  AgentBudget,
+  BudgetState,
+  CircuitBreakerState,
+  SpendAuthorizationResult,
+  BudgetEnforcerConfig,
+} from './economy/AgentBudgetEnforcer';
+
+export {
+  CreatorRevenueAggregator,
+} from './economy/CreatorRevenueAggregator';
+export type {
+  RevenueEvent,
+  CreatorEarnings,
+  PluginRevenue,
+  PayoutRecord,
+  RevenuePeriod,
+  RevenueAggregatorConfig,
+} from './economy/CreatorRevenueAggregator';
+
+export {
+  SubscriptionManager,
+} from './economy/SubscriptionManager';
+export type {
+  SubscriptionState,
+  BillingInterval,
+  Subscription,
+  SubscriptionPlan,
+  SubscriptionManagerConfig,
+  RenewalResult,
+} from './economy/SubscriptionManager';

@@ -117,6 +117,8 @@ export default defineConfig({
     // Externalize React (peer dependency for UI components like DegradedModeBanner)
     'react',
     'react-dom',
+    // Externalize agent-protocol (workspace dependency)
+    '@holoscript/agent-protocol',
     // Externalize tree-sitter (native bindings, loaded at runtime)
     'tree-sitter',
     'tree-sitter-typescript',
