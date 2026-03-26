@@ -2036,9 +2036,6 @@ importers:
 
   packages/studio:
     dependencies:
-      '@auth/drizzle-adapter':
-        specifier: ^1.11.1
-        version: 1.11.1
       '@aws-sdk/client-s3':
         specifier: ^3.1014.0
         version: 3.1014.0
@@ -2084,9 +2081,6 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.45.0)(react-dom@19.2.4)(react@19.2.4)
-      '@neondatabase/serverless':
-        specifier: ^1.0.2
-        version: 1.0.2
       '@react-three/drei':
         specifier: ^10.7.7
         version: 10.7.7(@react-three/fiber@9.5.0)(@types/react@19.2.13)(@types/three@0.170.0)(react-dom@19.2.4)(react@19.2.4)(three@0.182.0)
@@ -2111,9 +2105,6 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)
       idb:
         specifier: ^8.0.0
         version: 8.0.3
@@ -2135,9 +2126,6 @@ importers:
       next-auth:
         specifier: '4'
         version: 4.24.13(next@15.5.14)(react-dom@19.2.4)(react@19.2.4)
-      pg:
-        specifier: ^8.11.3
-        version: 8.18.0
       posthog-js:
         specifier: ^1.363.1
         version: 1.363.1
@@ -2156,9 +2144,6 @@ importers:
       reactflow:
         specifier: ^11.11.4
         version: 11.11.4(@types/react@19.2.13)(react-dom@19.2.4)(react@19.2.4)
-      stripe:
-        specifier: ^20.4.1
-        version: 20.4.1(@types/node@24.10.13)
       three:
         specifier: ^0.182.0
         version: 0.182.0
@@ -2190,9 +2175,6 @@ importers:
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.13
-      '@types/pg':
-        specifier: ^8.11.0
-        version: 8.16.0
       '@types/prismjs':
         specifier: ^1.26.0
         version: 1.26.6
@@ -2214,9 +2196,6 @@ importers:
       autoprefixer:
         specifier: ^10.4.17
         version: 10.4.24(postcss@8.5.6)
-      drizzle-kit:
-        specifier: ^0.31.10
-        version: 0.31.10
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
@@ -2936,6 +2915,97 @@ importers:
       qrcode:
         specifier: ^1.5.3
         version: 1.5.4
+
+  services/studio-api:
+    dependencies:
+      '@auth/drizzle-adapter':
+        specifier: ^1.11.1
+        version: 1.11.1
+      '@aws-sdk/client-s3':
+        specifier: ^3.1014.0
+        version: 3.1014.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: ^3.1013.0
+        version: 3.1013.0
+      '@holoscript/absorb-service':
+        specifier: workspace:*
+        version: link:../../packages/absorb-service
+      '@holoscript/connector-appstore':
+        specifier: workspace:*
+        version: link:../../packages/connector-appstore
+      '@holoscript/connector-github':
+        specifier: workspace:*
+        version: link:../../packages/connector-github
+      '@holoscript/connector-railway':
+        specifier: workspace:*
+        version: link:../../packages/connector-railway
+      '@holoscript/connector-upstash':
+        specifier: workspace:*
+        version: link:../../packages/connector-upstash
+      '@holoscript/connector-vscode':
+        specifier: workspace:*
+        version: link:../../packages/connector-vscode
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@holoscript/mcp-server':
+        specifier: workspace:*
+        version: link:../../packages/mcp-server
+      '@holoscript/std':
+        specifier: workspace:*
+        version: link:../../packages/std
+      '@neondatabase/serverless':
+        specifier: ^1.0.2
+        version: 1.0.2
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)
+      next:
+        specifier: ^15.5.14
+        version: 15.5.14(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@19.2.4)(react@19.2.4)
+      next-auth:
+        specifier: '4'
+        version: 4.24.13(next@15.5.14)(react-dom@19.2.4)(react@19.2.4)
+      pg:
+        specifier: ^8.11.3
+        version: 8.18.0
+      react:
+        specifier: ^19.2.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.4(react@19.2.4)
+      stripe:
+        specifier: ^20.4.1
+        version: 20.4.1(@types/node@24.10.13)
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.13
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.16.0
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.13
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.13)
+      drizzle-kit:
+        specifier: ^0.31.10
+        version: 0.31.10
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-next:
+        specifier: ^14.1.0
+        version: 14.2.35(eslint@8.57.1)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
 
 packages:
 
@@ -15000,7 +15070,7 @@ packages:
       '@vitest/spy': 4.1.0
       estree-walker: 3.0.3
       magic-string: 0.30.21
-      vite: 7.3.1(@types/node@20.19.29)(tsx@4.21.0)
+      vite: 7.3.1(@types/node@24.10.13)(tsx@4.21.0)
     dev: true
 
   /@vitest/pretty-format@2.1.9:
