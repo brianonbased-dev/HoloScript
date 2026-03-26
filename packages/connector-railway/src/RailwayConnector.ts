@@ -13,7 +13,7 @@ export class RailwayConnector extends ServiceConnector {
 
     async connect(): Promise<void> {
         // Authenticate via token
-        this.apiKey = process.env.RAILWAY_API_TOKEN || null;
+        this.apiKey = process.env.RAILWAY_TOKEN || process.env.PROJECT_RAILWAY_TOKEN || process.env.RAILWAY_API_TOKEN || null;
         if (this.apiKey) {
             this.isConnected = true;
             await this.registrar.register({

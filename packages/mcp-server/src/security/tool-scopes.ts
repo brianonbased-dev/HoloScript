@@ -163,6 +163,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   moltbook_agent_generate: ['tools:write'],
   moltbook_agent_preview: ['tools:read'],
   moltbook_agent_list: ['tools:read'],
+
+  // === Railway Deployment (registered dynamically via connector) ===
+  railway_project_create: ['tools:admin'],
+  railway_service_create: ['tools:admin'],
+  railway_deploy: ['tools:admin'],
+  railway_variable_set: ['tools:admin'],
+  railway_domain_add: ['tools:admin'],
+  railway_deployment_status: ['tools:read'],
 };
 
 // ── Scope Classification ─────────────────────────────────────────────────────
@@ -227,6 +235,14 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   moltbook_agent_generate: 'medium',
   moltbook_agent_preview: 'low',
   moltbook_agent_list: 'low',
+
+  // Railway Deployment
+  railway_project_create: 'critical',
+  railway_service_create: 'critical',
+  railway_deploy: 'critical',
+  railway_variable_set: 'critical',
+  railway_domain_add: 'high',
+  railway_deployment_status: 'low',
 };
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────

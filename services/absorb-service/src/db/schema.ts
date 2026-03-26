@@ -399,11 +399,38 @@ export const activityFeed = pgTable(
 // level. The schema objects are defined in @holoscript/absorb-service/schema
 // without FK refs to keep the package self-contained.
 
+
+import { pgTable as pt, text as txt, timestamp as ts, integer as intg, jsonb as jsb, varchar as vch, boolean as bln, uuid as uid, index as idx } from 'drizzle-orm/pg-core';
+
+export const moltbookAgents = pt(
+  'moltbook_agents',
+  {
+    id: uid('id').defaultRandom().primaryKey(),
+    userId: uid('user_id').notNull(),
+    projectId: uid('project_id').notNull(),
+    agentName: vch('agent_name', { length: 64 }).notNull(),
+    moltbookApiKey: txt('moltbook_api_key').notNull(),
+    config: jsb('config').default({}).notNull(),
+    heartbeatEnabled: bln('heartbeat_enabled').default(false).notNull(),
+    lastHeartbeat: ts('last_heartbeat', { mode: 'date' }),
+    totalPostsGenerated: intg('total_posts_generated').default(0).notNull(),
+    totalCommentsGenerated: intg('total_comments_generated').default(0).notNull(),
+    totalLlmSpentCents: intg('total_llm_spent_cents').default(0).notNull(),
+    createdAt: ts('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: ts('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    idx('idx_moltbook_agents_user').on(t.userId),
+    idx('idx_moltbook_agents_project').on(t.projectId),
+  ]
+);
+
 export {
   creditAccounts,
   creditTransactions,
   absorbProjects,
 } from '@holoscript/absorb-service/schema';
+
 
 // =============================================================================
 // CHARACTERS
