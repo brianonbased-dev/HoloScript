@@ -38,6 +38,27 @@ function maskApiKey(key: string): string {
   return key.slice(0, 4) + '***...' + key.slice(-3);
 }
 
+/** Fire-and-forget event logger. Never throws. */
+async function logAgentEvent(
+  agentId: string,
+  eventType: string,
+  details: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    const db = getDb();
+    if (!db) return;
+    const { moltbookAgentEvents } = await import('../db/schema.js');
+    await db.insert(moltbookAgentEvents).values({
+      id: uuidv4(),
+      agentId,
+      eventType,
+      details,
+    });
+  } catch {
+    // Best-effort logging — never block the main operation
+  }
+}
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
 // GET / — List user's agents
@@ -93,6 +114,7 @@ router.get('/summary', async (req: Request, res: Response) => {
         totalPosts: sql<number>`coalesce(sum(${moltbookAgents.totalPostsGenerated}), 0)::int`,
         totalComments: sql<number>`coalesce(sum(${moltbookAgents.totalCommentsGenerated}), 0)::int`,
         totalLlmSpentCents: sql<number>`coalesce(sum(${moltbookAgents.totalLlmSpentCents}), 0)::int`,
+        totalUpvotesGiven: sql<number>`coalesce(sum(${moltbookAgents.totalUpvotesGiven}), 0)::int`,
       })
       .from(moltbookAgents)
       .where(eq(moltbookAgents.userId, userId));
@@ -144,6 +166,8 @@ router.post('/', async (req: Request, res: Response) => {
 
     const agent = Array.isArray(result) ? result[0] : result;
 
+    logAgentEvent(agent.id, 'created', { agentName: body.agentName, projectId: body.projectId });
+
     res.status(201).json({
       agent: { ...agent, moltbookApiKey: maskApiKey(agent.moltbookApiKey) },
     });
@@ -188,6 +212,9 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
 
     const agent = result[0];
+
+    logAgentEvent(req.params.id, 'config_updated', { fields: Object.keys(body).filter((k) => k !== 'config') });
+
     res.json({ agent: { ...agent, moltbookApiKey: maskApiKey(agent.moltbookApiKey) } });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -226,6 +253,211 @@ router.delete('/:id', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[moltbook] Delete error:', error.message);
     res.status(500).json({ error: 'Failed to delete agent', message: error.message });
+  }
+});
+
+// ─── Agent Control Routes ───────────────────────────────────────────────────
+// These endpoints update the DB state. The MCP agent manager polls or listens
+// for these state changes to start/stop the actual heartbeat daemon.
+
+// POST /:id/start — Enable heartbeat
+router.post('/:id/start', async (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      res.status(503).json({ error: 'Database not configured' });
+      return;
+    }
+
+    const { moltbookAgents } = await import('../db/schema.js');
+    const { eq, and } = await import('drizzle-orm');
+    const userId = (req as any).userId || 'anonymous';
+
+    const result = await db
+      .update(moltbookAgents)
+      .set({ heartbeatEnabled: true, updatedAt: new Date() })
+      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .returning();
+
+    if (!Array.isArray(result) || result.length === 0) {
+      res.status(404).json({ error: 'Agent not found' });
+      return;
+    }
+
+    logAgentEvent(req.params.id, 'started', { agentName: result[0].agentName });
+
+    res.json({ started: true, agent: { ...result[0], moltbookApiKey: maskApiKey(result[0].moltbookApiKey) } });
+  } catch (error: any) {
+    console.error('[moltbook] Start error:', error.message);
+    res.status(500).json({ error: 'Failed to start agent', message: error.message });
+  }
+});
+
+// POST /:id/stop — Disable heartbeat
+router.post('/:id/stop', async (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      res.status(503).json({ error: 'Database not configured' });
+      return;
+    }
+
+    const { moltbookAgents } = await import('../db/schema.js');
+    const { eq, and } = await import('drizzle-orm');
+    const userId = (req as any).userId || 'anonymous';
+
+    const result = await db
+      .update(moltbookAgents)
+      .set({ heartbeatEnabled: false, updatedAt: new Date() })
+      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .returning();
+
+    if (!Array.isArray(result) || result.length === 0) {
+      res.status(404).json({ error: 'Agent not found' });
+      return;
+    }
+
+    logAgentEvent(req.params.id, 'stopped', { agentName: result[0].agentName });
+
+    res.json({ stopped: true, agent: { ...result[0], moltbookApiKey: maskApiKey(result[0].moltbookApiKey) } });
+  } catch (error: any) {
+    console.error('[moltbook] Stop error:', error.message);
+    res.status(500).json({ error: 'Failed to stop agent', message: error.message });
+  }
+});
+
+// POST /:id/trigger — Trigger a single heartbeat tick
+router.post('/:id/trigger', async (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      res.status(503).json({ error: 'Database not configured' });
+      return;
+    }
+
+    const { moltbookAgents } = await import('../db/schema.js');
+    const { eq, and } = await import('drizzle-orm');
+    const userId = (req as any).userId || 'anonymous';
+
+    // Verify ownership
+    const [agent] = await db
+      .select()
+      .from(moltbookAgents)
+      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .limit(1);
+
+    if (!agent) {
+      res.status(404).json({ error: 'Agent not found' });
+      return;
+    }
+
+    // Update last heartbeat timestamp
+    await db
+      .update(moltbookAgents)
+      .set({ lastHeartbeat: new Date(), updatedAt: new Date() })
+      .where(eq(moltbookAgents.id, req.params.id));
+
+    logAgentEvent(req.params.id, 'triggered', { agentName: agent.agentName });
+
+    res.json({
+      triggered: true,
+      agentId: req.params.id,
+      agentName: agent.agentName,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('[moltbook] Trigger error:', error.message);
+    res.status(500).json({ error: 'Failed to trigger heartbeat', message: error.message });
+  }
+});
+
+// GET /:id/status — Get detailed agent status
+router.get('/:id/status', async (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      res.status(503).json({ error: 'Database not configured' });
+      return;
+    }
+
+    const { moltbookAgents } = await import('../db/schema.js');
+    const { eq, and } = await import('drizzle-orm');
+    const userId = (req as any).userId || 'anonymous';
+
+    const [agent] = await db
+      .select()
+      .from(moltbookAgents)
+      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .limit(1);
+
+    if (!agent) {
+      res.status(404).json({ error: 'Agent not found' });
+      return;
+    }
+
+    const config = (agent.config as Record<string, unknown>) ?? {};
+    const heartbeatState = config.heartbeatState as Record<string, unknown> | undefined;
+
+    res.json({
+      id: agent.id,
+      agentName: agent.agentName,
+      heartbeatEnabled: agent.heartbeatEnabled,
+      lastHeartbeat: agent.lastHeartbeat,
+      stats: {
+        totalPosts: agent.totalPostsGenerated,
+        totalComments: agent.totalCommentsGenerated,
+        totalUpvotesGiven: agent.totalUpvotesGiven,
+        challengeFailures: agent.challengeFailures,
+        llmSpentCents: agent.totalLlmSpentCents,
+      },
+      heartbeatState: heartbeatState ?? null,
+      createdAt: agent.createdAt,
+      updatedAt: agent.updatedAt,
+    });
+  } catch (error: any) {
+    console.error('[moltbook] Status error:', error.message);
+    res.status(500).json({ error: 'Failed to get agent status', message: error.message });
+  }
+});
+
+// GET /:id/events — Agent activity log
+router.get('/:id/events', async (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      res.status(503).json({ error: 'Database not configured' });
+      return;
+    }
+
+    const { moltbookAgents, moltbookAgentEvents } = await import('../db/schema.js');
+    const { eq, and, desc } = await import('drizzle-orm');
+    const userId = (req as any).userId || 'anonymous';
+
+    // Verify agent ownership
+    const [agent] = await db
+      .select({ id: moltbookAgents.id })
+      .from(moltbookAgents)
+      .where(and(eq(moltbookAgents.id, req.params.id), eq(moltbookAgents.userId, userId)))
+      .limit(1);
+
+    if (!agent) {
+      res.status(404).json({ error: 'Agent not found' });
+      return;
+    }
+
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
+
+    const events = await db
+      .select()
+      .from(moltbookAgentEvents)
+      .where(eq(moltbookAgentEvents.agentId, req.params.id))
+      .orderBy(desc(moltbookAgentEvents.createdAt))
+      .limit(limit);
+
+    res.json({ events });
+  } catch (error: any) {
+    console.error('[moltbook] Events error:', error.message);
+    res.status(500).json({ error: 'Failed to get events', message: error.message });
   }
 });
 

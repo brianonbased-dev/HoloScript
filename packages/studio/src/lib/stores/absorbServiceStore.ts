@@ -40,9 +40,28 @@ export interface MoltbookAgent {
   lastHeartbeat: string | null;
   totalPostsGenerated: number;
   totalCommentsGenerated: number;
+  totalUpvotesGiven: number;
+  challengeFailures: number;
   totalLlmSpentCents: number;
   createdAt: string;
   moltbookApiKey: string; // masked in responses
+}
+
+export interface MoltbookAgentStatus {
+  id: string;
+  agentName: string;
+  heartbeatEnabled: boolean;
+  lastHeartbeat: string | null;
+  stats: {
+    totalPosts: number;
+    totalComments: number;
+    totalUpvotesGiven: number;
+    challengeFailures: number;
+    llmSpentCents: number;
+  };
+  heartbeatState: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MoltbookSummary {
@@ -51,6 +70,15 @@ export interface MoltbookSummary {
   totalPosts: number;
   totalComments: number;
   totalLlmSpentCents: number;
+  totalUpvotesGiven: number;
+}
+
+export interface MoltbookAgentEvent {
+  id: string;
+  agentId: string;
+  eventType: string;
+  details: Record<string, unknown>;
+  createdAt: string;
 }
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
@@ -84,6 +112,11 @@ interface AbsorbServiceState {
   createMoltbookAgent: (projectId: string, agentName: string, moltbookApiKey: string, config?: Record<string, any>) => Promise<MoltbookAgent | null>;
   updateMoltbookAgent: (id: string, updates: { heartbeatEnabled?: boolean; config?: Record<string, any>; agentName?: string }) => Promise<MoltbookAgent | null>;
   deleteMoltbookAgent: (id: string) => Promise<boolean>;
+  startMoltbookAgent: (id: string) => Promise<boolean>;
+  stopMoltbookAgent: (id: string) => Promise<boolean>;
+  triggerMoltbookHeartbeat: (id: string) => Promise<boolean>;
+  fetchMoltbookAgentStatus: (id: string) => Promise<MoltbookAgentStatus | null>;
+  fetchMoltbookAgentEvents: (id: string, limit?: number) => Promise<MoltbookAgentEvent[]>;
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -243,6 +276,68 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             return true;
           } catch {
             return false;
+          }
+        },
+
+        startMoltbookAgent: async (id) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}/start`, { method: 'POST' });
+            if (!res.ok) return false;
+            const data = await res.json();
+            set((s) => ({
+              moltbookAgents: s.moltbookAgents.map((a) =>
+                a.id === id ? { ...a, heartbeatEnabled: true, ...data.agent } : a,
+              ),
+            }));
+            return true;
+          } catch {
+            return false;
+          }
+        },
+
+        stopMoltbookAgent: async (id) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}/stop`, { method: 'POST' });
+            if (!res.ok) return false;
+            const data = await res.json();
+            set((s) => ({
+              moltbookAgents: s.moltbookAgents.map((a) =>
+                a.id === id ? { ...a, heartbeatEnabled: false, ...data.agent } : a,
+              ),
+            }));
+            return true;
+          } catch {
+            return false;
+          }
+        },
+
+        triggerMoltbookHeartbeat: async (id) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}/trigger`, { method: 'POST' });
+            return res.ok;
+          } catch {
+            return false;
+          }
+        },
+
+        fetchMoltbookAgentStatus: async (id) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}/status`);
+            if (!res.ok) return null;
+            return await res.json();
+          } catch {
+            return null;
+          }
+        },
+
+        fetchMoltbookAgentEvents: async (id, limit = 20) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}/events?limit=${limit}`);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return data.events ?? [];
+          } catch {
+            return [];
           }
         },
       }),

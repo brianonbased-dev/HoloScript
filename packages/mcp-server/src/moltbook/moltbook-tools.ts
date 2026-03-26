@@ -219,7 +219,7 @@ export const moltbookAgentTools: Tool[] = [
   },
   {
     name: 'moltbook_agent_status',
-    description: 'Get status and stats for a Moltbook agent (posts generated, comments, LLM spend).',
+    description: 'Get status, stats, and credit balance for a Moltbook agent. Credits are derived from karma, engagement metrics (posts, comments, upvotes, followers), reply quality score, and LLM spend.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -495,6 +495,15 @@ function getOrCreateAgentManager(): MoltbookAgentManager {
     }
 
     agentManagerInstance = new MoltbookAgentManager(llmProviderFactory);
+
+    // Recover agents with heartbeatEnabled=true from database on first init
+    agentManagerInstance.recoverAgents().then((count) => {
+      if (count > 0) {
+        console.log(`[moltbook-tools] Recovered ${count} active agents from database`);
+      }
+    }).catch((err) => {
+      console.warn('[moltbook-tools] Agent recovery failed:', err);
+    });
   }
   return agentManagerInstance;
 }

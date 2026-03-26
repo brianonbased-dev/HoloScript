@@ -574,6 +574,16 @@ export function StudioHeader() {
             <span className="hidden lg:inline">Marketplace</span>
           </button>
 
+          {/* ── Integrations Link ─────────────────────────────── */}
+          <Link
+            href="/integrations"
+            title="Integration Hub"
+            className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-indigo-500/40 hover:text-indigo-400"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Integrations</span>
+          </Link>
+
           {/* ── Customize Studio button with quick-switch dropdown ── */}
           <div className="relative" ref={presetDropdownRef}>
             <div className="flex items-center">

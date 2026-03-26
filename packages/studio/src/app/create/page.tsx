@@ -892,7 +892,25 @@ export default function CreatePage() {
       return;
     }
 
-    // 2. Check for encoded full scene state
+    // 2. Check for workspace template
+    const templateName = searchParams.get('template');
+    if (templateName) {
+      setCode(`import { World } from "@holoscript/core";\n// Template scaffolding initialized for: ${templateName}\n\nconst world = new World();\n`);
+      setMetadata({ name: templateName });
+      markClean();
+      return;
+    }
+
+    // 3. Check for workspace agent
+    const agentName = searchParams.get('agent');
+    if (agentName) {
+      setCode(`import { World, Agent } from "@holoscript/core";\n// Agent scaffold for: ${agentName}\n\nconst agent = new Agent("${agentName}");\n`);
+      setMetadata({ name: agentName });
+      markClean();
+      return;
+    }
+
+    // 4. Check for encoded full scene state
     const encoded = searchParams.get('scene');
     if (!encoded) return;
     decodeSceneFromURL(encoded).then((result) => {

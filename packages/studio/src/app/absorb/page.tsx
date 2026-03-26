@@ -8,11 +8,13 @@
  * Authenticated users manage projects and credits.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useAbsorbService } from '@/hooks/useAbsorbService';
+import { useToast } from '@/app/providers';
 import { CREDIT_PACKAGES, OPERATION_COSTS, TIER_LIMITS } from '@/lib/absorb/pricing';
+import type { MoltbookAgent, MoltbookAgentStatus, MoltbookAgentEvent } from '@/lib/stores/absorbServiceStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -624,17 +626,294 @@ function ToolsTab({
   );
 }
 
+// ─── Moltbook Agent Helpers ──────────────────────────────────────────────────
+
+type HealthLevel = 'green' | 'yellow' | 'red' | 'stopped';
+
+const HEALTH_BADGE: Record<HealthLevel, { bg: string; text: string; dot: string; label: string }> = {
+  green:   { bg: 'bg-green-500/10 border-green-500/20', text: 'text-green-400', dot: 'bg-green-400', label: 'Healthy' },
+  yellow:  { bg: 'bg-yellow-500/10 border-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400', label: 'Warning' },
+  red:     { bg: 'bg-red-500/10 border-red-500/20', text: 'text-red-400', dot: 'bg-red-400', label: 'Unhealthy' },
+  stopped: { bg: 'bg-studio-bg border-studio-border', text: 'text-studio-muted', dot: 'bg-studio-muted', label: 'Stopped' },
+};
+
+const PILLARS = ['research', 'infrastructure', 'showcase', 'community'] as const;
+
+function getAgentHealth(agent: MoltbookAgent): HealthLevel {
+  if (!agent.heartbeatEnabled) return 'stopped';
+  const hours = agent.lastHeartbeat
+    ? (Date.now() - new Date(agent.lastHeartbeat).getTime()) / 3_600_000
+    : Infinity;
+  if (hours > 4 || (agent.challengeFailures ?? 0) >= 3) return 'red';
+  if (hours > 1 || (agent.challengeFailures ?? 0) >= 1) return 'yellow';
+  return 'green';
+}
+
+function formatTime(iso: string | null) {
+  if (!iso) return 'Never';
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000) return 'Just now';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return d.toLocaleDateString();
+}
+
+// ─── Agent Config Editor ─────────────────────────────────────────────────────
+
+function AgentConfigEditor({ agent, onSaved }: { agent: MoltbookAgent; onSaved: () => void }) {
+  const { updateMoltbookAgent, fetchMoltbookAgents } = useAbsorbService();
+  const { addToast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pillars, setPillars] = useState<string[]>(agent.config.pillars || []);
+  const [submolts, setSubmolts] = useState(agent.config.submolts?.join(', ') || '');
+  const [searchTopics, setSearchTopics] = useState(agent.config.searchTopics?.join(', ') || '');
+  const [persona, setPersona] = useState(agent.config.persona || '');
+
+  const togglePillar = (p: string) => {
+    setPillars((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const updated = await updateMoltbookAgent(agent.id, {
+      config: {
+        pillars,
+        submolts: submolts.split(',').map((s) => s.trim()).filter(Boolean),
+        searchTopics: searchTopics.split(',').map((s) => s.trim()).filter(Boolean),
+        persona,
+      },
+    });
+    if (updated) {
+      addToast('Config saved', 'success');
+      setEditing(false);
+      await fetchMoltbookAgents();
+      onSaved();
+    } else {
+      addToast('Failed to save config', 'error');
+    }
+    setSaving(false);
+  };
+
+  const handleCancel = () => {
+    setPillars(agent.config.pillars || []);
+    setSubmolts(agent.config.submolts?.join(', ') || '');
+    setSearchTopics(agent.config.searchTopics?.join(', ') || '');
+    setPersona(agent.config.persona || '');
+    setEditing(false);
+  };
+
+  if (!editing) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h5 className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Configuration</h5>
+          <button onClick={() => setEditing(true)} className="text-[10px] text-studio-accent hover:underline">Edit</button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div><span className="text-studio-muted">Pillars:</span> <span className="text-studio-text">{agent.config.pillars?.join(', ') || 'None'}</span></div>
+          <div><span className="text-studio-muted">Submolts:</span> <span className="text-studio-text">{agent.config.submolts?.join(', ') || 'None'}</span></div>
+          <div><span className="text-studio-muted">Topics:</span> <span className="text-studio-text">{agent.config.searchTopics?.join(', ') || 'None'}</span></div>
+          <div><span className="text-studio-muted">Persona:</span> <span className="text-studio-text truncate">{agent.config.persona || 'Default'}</span></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <h5 className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Edit Configuration</h5>
+      <div>
+        <label className="text-[10px] text-studio-muted">Pillars</label>
+        <div className="flex gap-1.5 mt-1">
+          {PILLARS.map((p) => (
+            <button key={p} onClick={() => togglePillar(p)} className={`rounded px-2 py-1 text-[10px] font-medium border transition-colors ${
+              pillars.includes(p) ? 'bg-studio-accent/20 text-studio-accent border-studio-accent/30' : 'bg-studio-bg text-studio-muted border-studio-border hover:border-studio-accent/20'
+            }`}>{p}</button>
+          ))}
+        </div>
+      </div>
+      <label className="block text-[10px] text-studio-muted">
+        Submolts <span className="text-studio-muted/50">(comma separated)</span>
+        <input type="text" value={submolts} onChange={(e) => setSubmolts(e.target.value)} placeholder="general, ai_agents"
+          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-2.5 py-1.5 text-xs text-studio-text focus:border-studio-accent focus:outline-none" />
+      </label>
+      <label className="block text-[10px] text-studio-muted">
+        Search Topics <span className="text-studio-muted/50">(comma separated)</span>
+        <input type="text" value={searchTopics} onChange={(e) => setSearchTopics(e.target.value)} placeholder="MCP, agents, security"
+          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-2.5 py-1.5 text-xs text-studio-text focus:border-studio-accent focus:outline-none" />
+      </label>
+      <label className="block text-[10px] text-studio-muted">
+        Persona
+        <textarea rows={3} value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="Custom agent identity..."
+          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-2.5 py-1.5 text-xs text-studio-text focus:border-studio-accent focus:outline-none resize-none" />
+      </label>
+      <div className="flex gap-2">
+        <button onClick={handleSave} disabled={saving} className="rounded-lg bg-studio-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-studio-accent/80 disabled:opacity-50">
+          {saving ? 'Saving...' : 'Save'}
+        </button>
+        <button onClick={handleCancel} className="rounded-lg bg-studio-bg px-3 py-1.5 text-xs font-medium text-studio-muted border border-studio-border hover:border-studio-accent/20">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Agent Activity Feed ─────────────────────────────────────────────────────
+
+function AgentActivityFeed({ agentId }: { agentId: string }) {
+  const { fetchMoltbookAgentEvents } = useAbsorbService();
+  const [events, setEvents] = useState<MoltbookAgentEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    setLoading(true);
+    fetchMoltbookAgentEvents(agentId, 20).then((evts) => {
+      setEvents(evts);
+      setLoading(false);
+    });
+  }, [agentId, expanded, fetchMoltbookAgentEvents]);
+
+  const typeColors: Record<string, string> = {
+    created: 'text-emerald-400', started: 'text-green-400', stopped: 'text-yellow-400',
+    triggered: 'text-blue-400', config_updated: 'text-purple-400', error: 'text-red-400',
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-studio-border/50">
+      <button onClick={() => setExpanded(!expanded)} className="text-[10px] font-medium text-studio-accent hover:underline">
+        {expanded ? 'Hide' : 'Show'} Activity Log
+      </button>
+      {expanded && (
+        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-studio-border bg-[#0f172a] p-3 space-y-1.5">
+          {loading ? (
+            <div className="text-[10px] text-studio-muted animate-pulse">Loading events...</div>
+          ) : events.length === 0 ? (
+            <div className="text-[10px] text-studio-muted">No events recorded yet.</div>
+          ) : (
+            events.map((evt) => (
+              <div key={evt.id} className="flex items-baseline gap-2 text-[10px]">
+                <span className="text-studio-muted shrink-0">{formatTime(evt.createdAt)}</span>
+                <span className={`font-medium ${typeColors[evt.eventType] || 'text-studio-text'}`}>
+                  {evt.eventType.replace(/_/g, ' ')}
+                </span>
+                {evt.details && Object.keys(evt.details).length > 0 && (
+                  <span className="text-studio-muted truncate">{JSON.stringify(evt.details)}</span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Agent Detail Panel ──────────────────────────────────────────────────────
+
+function AgentDetailPanel({
+  agent, status, loading, onSaved,
+}: {
+  agent: MoltbookAgent;
+  status: MoltbookAgentStatus | null;
+  loading: boolean;
+  onSaved: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-studio-border bg-[#0d1117] p-5 mt-2 space-y-4">
+      {loading ? (
+        <div className="text-xs text-studio-muted animate-pulse">Loading agent details...</div>
+      ) : (
+        <>
+          <AgentConfigEditor agent={agent} onSaved={onSaved} />
+
+          <div className="space-y-2">
+            <h5 className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Status Details</h5>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+              <div><span className="text-studio-muted">Created:</span> <span className="text-studio-text">{formatTime(agent.createdAt)}</span></div>
+              <div><span className="text-studio-muted">Last heartbeat:</span> <span className="text-studio-text">{formatTime(agent.lastHeartbeat)}</span></div>
+              <div><span className="text-studio-muted">LLM Spend:</span> <span className="text-studio-text">${(agent.totalLlmSpentCents / 100).toFixed(2)}</span></div>
+              <div><span className="text-studio-muted">Challenge failures:</span> <span className={`font-medium ${(agent.challengeFailures ?? 0) > 0 ? 'text-red-400' : 'text-studio-text'}`}>{agent.challengeFailures ?? 0}</span></div>
+            </div>
+          </div>
+
+          {status?.heartbeatState && (
+            <div className="space-y-2">
+              <h5 className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Heartbeat State</h5>
+              <pre className="rounded-lg border border-studio-border bg-[#0f172a] p-3 text-[10px] text-studio-text overflow-x-auto max-h-32">
+                {JSON.stringify(status.heartbeatState, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          <AgentActivityFeed agentId={agent.id} />
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Moltbook Agents Tab ────────────────────────────────────────────────────────
 
 function MoltbookAgentsTab() {
-  const { moltbookAgents, moltbookSummary, fetchMoltbookAgents, createMoltbookAgent, deleteMoltbookAgent, projects } = useAbsorbService();
+  const {
+    moltbookAgents, moltbookSummary, fetchMoltbookAgents, fetchMoltbookSummary,
+    createMoltbookAgent, deleteMoltbookAgent, startMoltbookAgent, stopMoltbookAgent,
+    triggerMoltbookHeartbeat, fetchMoltbookAgentStatus, projects,
+  } = useAbsorbService();
+  const { addToast } = useToast();
 
+  // Form state
   const [projectId, setProjectId] = useState('');
   const [agentName, setAgentName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
+  // Action + expansion state
+  const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+  const [agentStatus, setAgentStatus] = useState<MoltbookAgentStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  // Filter + sort state
+  const [searchFilter, setSearchFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'posts' | 'lastActive' | 'spend'>('name');
+  const [bulkLoading, setBulkLoading] = useState<'start' | 'stop' | null>(null);
+
+  // Auto-refresh (30s)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      fetchMoltbookAgents();
+      fetchMoltbookSummary();
+    }, 30_000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [fetchMoltbookAgents, fetchMoltbookSummary]);
+
+  // Filtered + sorted agents
+  const filteredAgents = useMemo(() => {
+    let list = moltbookAgents;
+    if (searchFilter.trim()) {
+      const q = searchFilter.toLowerCase();
+      list = list.filter((a) => a.agentName.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => {
+      switch (sortBy) {
+        case 'name': return a.agentName.localeCompare(b.agentName);
+        case 'posts': return b.totalPostsGenerated - a.totalPostsGenerated;
+        case 'lastActive': return (new Date(b.lastHeartbeat || 0).getTime()) - (new Date(a.lastHeartbeat || 0).getTime());
+        case 'spend': return b.totalLlmSpentCents - a.totalLlmSpentCents;
+        default: return 0;
+      }
+    });
+  }, [moltbookAgents, searchFilter, sortBy]);
+
+  // Handlers
   const handleCreate = async () => {
     if (!projectId || !agentName || !apiKey) return;
     setCreating(true);
@@ -643,17 +922,86 @@ function MoltbookAgentsTab() {
     if (agent) {
       setAgentName('');
       setApiKey('');
+      addToast('Agent created', 'success');
       fetchMoltbookAgents();
     } else {
       setError('Failed to create agent');
+      addToast('Failed to create agent', 'error');
     }
     setCreating(false);
   };
 
+  const handleToggle = async (agentId: string, currentlyEnabled: boolean) => {
+    setActionLoading((prev) => ({ ...prev, [agentId]: 'toggle' }));
+    const ok = currentlyEnabled
+      ? await stopMoltbookAgent(agentId)
+      : await startMoltbookAgent(agentId);
+    if (ok) {
+      addToast(`Agent ${currentlyEnabled ? 'stopped' : 'started'}`, 'success');
+      await fetchMoltbookAgents();
+    } else {
+      addToast('Action failed', 'error');
+    }
+    setActionLoading((prev) => { const n = { ...prev }; delete n[agentId]; return n; });
+  };
+
+  const handleTrigger = async (agentId: string) => {
+    setActionLoading((prev) => ({ ...prev, [agentId]: 'trigger' }));
+    const ok = await triggerMoltbookHeartbeat(agentId);
+    if (ok) {
+      addToast('Heartbeat triggered', 'success');
+    } else {
+      addToast('Trigger failed', 'error');
+    }
+    await fetchMoltbookAgents();
+    setActionLoading((prev) => { const n = { ...prev }; delete n[agentId]; return n; });
+  };
+
+  const handleDelete = async (agent: MoltbookAgent) => {
+    if (!confirm(`Delete agent "${agent.agentName}"?`)) return;
+    const ok = await deleteMoltbookAgent(agent.id);
+    if (ok) addToast('Agent deleted', 'success');
+    else addToast('Failed to delete agent', 'error');
+  };
+
+  const handleExpand = async (agentId: string) => {
+    if (expandedAgentId === agentId) {
+      setExpandedAgentId(null);
+      setAgentStatus(null);
+      return;
+    }
+    setExpandedAgentId(agentId);
+    setStatusLoading(true);
+    const status = await fetchMoltbookAgentStatus(agentId);
+    setAgentStatus(status);
+    setStatusLoading(false);
+  };
+
+  const handleStartAll = async () => {
+    const stopped = moltbookAgents.filter((a) => !a.heartbeatEnabled);
+    if (stopped.length === 0) return;
+    setBulkLoading('start');
+    for (const agent of stopped) await startMoltbookAgent(agent.id);
+    await fetchMoltbookAgents();
+    addToast(`Started ${stopped.length} agents`, 'success');
+    setBulkLoading(null);
+  };
+
+  const handleStopAll = async () => {
+    const running = moltbookAgents.filter((a) => a.heartbeatEnabled);
+    if (running.length === 0) return;
+    setBulkLoading('stop');
+    for (const agent of running) await stopMoltbookAgent(agent.id);
+    await fetchMoltbookAgents();
+    addToast(`Stopped ${running.length} agents`, 'success');
+    setBulkLoading(null);
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      {/* Summary Cards */}
       {moltbookSummary && (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
             <h3 className="text-sm font-semibold text-studio-text">Active Agents</h3>
             <p className="mt-2 text-2xl font-bold text-studio-accent">{moltbookSummary.activeAgents}</p>
@@ -667,7 +1015,17 @@ function MoltbookAgentsTab() {
             <p className="mt-2 text-2xl font-bold text-studio-accent">{moltbookSummary.totalComments}</p>
           </div>
           <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-            <h3 className="text-sm font-semibold text-studio-text">Total LLM Spend</h3>
+            <h3 className="text-sm font-semibold text-studio-text">Total Upvotes</h3>
+            <p className="mt-2 text-2xl font-bold text-studio-accent">{moltbookSummary.totalUpvotesGiven ?? 0}</p>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+            <h3 className="text-sm font-semibold text-studio-text">Avg Posts/Agent</h3>
+            <p className="mt-2 text-2xl font-bold text-studio-accent">
+              {moltbookSummary.totalAgents > 0 ? (moltbookSummary.totalPosts / moltbookSummary.totalAgents).toFixed(1) : '0'}
+            </p>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+            <h3 className="text-sm font-semibold text-studio-text">LLM Spend</h3>
             <p className="mt-2 text-2xl font-bold text-studio-accent">${(moltbookSummary.totalLlmSpentCents / 100).toFixed(2)}</p>
           </div>
         </div>
@@ -675,66 +1033,126 @@ function MoltbookAgentsTab() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
-          <h3 className="text-sm font-semibold text-studio-text">Agents ({moltbookAgents.length})</h3>
-          {moltbookAgents.length === 0 ? (
-            <div className="text-center py-12 text-sm text-studio-muted border border-dashed border-studio-border rounded-xl">No agents active. Assign an agent to a project to integrate Moltbook posting.</div>
+          {/* Header with bulk ops */}
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-studio-text">
+              Agents ({searchFilter ? `${filteredAgents.length}/${moltbookAgents.length}` : moltbookAgents.length})
+            </h3>
+            <button onClick={handleStartAll} disabled={!!bulkLoading || !moltbookAgents.some((a) => !a.heartbeatEnabled)}
+              className="rounded bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-green-400 hover:bg-green-500/20 disabled:opacity-50">
+              {bulkLoading === 'start' ? 'Starting...' : 'Start All'}
+            </button>
+            <button onClick={handleStopAll} disabled={!!bulkLoading || !moltbookAgents.some((a) => a.heartbeatEnabled)}
+              className="rounded bg-yellow-500/10 px-2.5 py-1 text-[10px] font-medium text-yellow-400 hover:bg-yellow-500/20 disabled:opacity-50">
+              {bulkLoading === 'stop' ? 'Stopping...' : 'Stop All'}
+            </button>
+          </div>
+
+          {/* Filter + sort */}
+          <div className="flex items-center gap-3">
+            <input type="text" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} placeholder="Filter agents..."
+              className="flex-1 rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none" />
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none">
+              <option value="name">Sort: Name</option>
+              <option value="posts">Sort: Posts</option>
+              <option value="lastActive">Sort: Last Active</option>
+              <option value="spend">Sort: Spend</option>
+            </select>
+          </div>
+
+          {/* Agent list */}
+          {filteredAgents.length === 0 ? (
+            <div className="text-center py-12 text-sm text-studio-muted border border-dashed border-studio-border rounded-xl">
+              {moltbookAgents.length === 0 ? 'No agents yet. Create one to start posting on Moltbook.' : 'No agents match the filter.'}
+            </div>
           ) : (
-            moltbookAgents.map((agent) => (
-              <div key={agent.id} className="rounded-xl border border-studio-border bg-[#111827] p-5 flex justify-between items-center">
-                <div>
-                  <h4 className="font-semibold text-studio-text">{agent.agentName}</h4>
-                  <p className="text-xs text-studio-muted mt-1">Project ID: <span className="font-mono text-[10px] bg-studio-bg px-1 rounded">{agent.projectId}</span></p>
-                  <div className="flex gap-4 mt-3 text-xs">
-                    <span className="text-studio-muted">Posts: <span className="text-studio-text font-medium">{agent.totalPostsGenerated}</span></span>
-                    <span className="text-studio-muted">Comments: <span className="text-studio-text font-medium">{agent.totalCommentsGenerated}</span></span>
-                    <span className="text-studio-muted">Spend: <span className="text-studio-text font-medium">${(agent.totalLlmSpentCents / 100).toFixed(2)}</span></span>
+            filteredAgents.map((agent) => {
+              const loading = actionLoading[agent.id];
+              const health = getAgentHealth(agent);
+              const badge = HEALTH_BADGE[health];
+              const isExpanded = expandedAgentId === agent.id;
+              return (
+                <div key={agent.id}>
+                  <div className={`rounded-xl border bg-[#111827] p-5 cursor-pointer transition-colors ${
+                    isExpanded ? 'border-studio-accent/40' : 'border-studio-border hover:border-studio-border/80'
+                  }`} onClick={() => handleExpand(agent.id)}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-studio-text">{agent.agentName}</h4>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border ${badge.bg} ${badge.text}`}>
+                          <span className={`inline-block h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+                          {badge.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => handleTrigger(agent.id)} disabled={!!loading}
+                          title="Trigger heartbeat now"
+                          className="rounded bg-studio-accent/10 px-2.5 py-1.5 text-xs font-medium text-studio-accent hover:bg-studio-accent/20 disabled:opacity-50">
+                          {loading === 'trigger' ? 'Running...' : 'Trigger'}
+                        </button>
+                        <button onClick={() => handleToggle(agent.id, agent.heartbeatEnabled)} disabled={!!loading}
+                          className={`rounded px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${
+                            agent.heartbeatEnabled ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                          }`}>
+                          {loading === 'toggle' ? '...' : agent.heartbeatEnabled ? 'Stop' : 'Start'}
+                        </button>
+                        <button onClick={() => handleDelete(agent)} disabled={!!loading}
+                          className="rounded bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-studio-muted mt-2">
+                      Last heartbeat: <span className="text-studio-text">{formatTime(agent.lastHeartbeat)}</span>
+                      <span className="mx-2">|</span>
+                      Project: <span className="font-mono text-[10px] bg-studio-bg px-1 rounded">{agent.projectId.slice(0, 8)}</span>
+                    </p>
+                    <div className="flex gap-4 mt-3 text-xs">
+                      <span className="text-studio-muted">Posts: <span className="text-studio-text font-medium">{agent.totalPostsGenerated}</span></span>
+                      <span className="text-studio-muted">Comments: <span className="text-studio-text font-medium">{agent.totalCommentsGenerated}</span></span>
+                      <span className="text-studio-muted">Upvotes: <span className="text-studio-text font-medium">{agent.totalUpvotesGiven ?? 0}</span></span>
+                      <span className="text-studio-muted">Spend: <span className="text-studio-text font-medium">${(agent.totalLlmSpentCents / 100).toFixed(2)}</span></span>
+                      {(agent.challengeFailures ?? 0) > 0 && (
+                        <span className="text-red-400">Failures: <span className="font-medium">{agent.challengeFailures}</span></span>
+                      )}
+                    </div>
                   </div>
+                  {isExpanded && (
+                    <AgentDetailPanel agent={agent} status={agentStatus} loading={statusLoading}
+                      onSaved={() => handleExpand(agent.id)} />
+                  )}
                 </div>
-                <button
-                  onClick={async () => await deleteMoltbookAgent(agent.id)}
-                  className="rounded bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20"
-                >
-                  Delete
-                </button>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
+        {/* Create form */}
         <div className="rounded-xl border border-studio-border bg-[#111827] p-5 self-start">
           <h3 className="text-sm font-semibold text-studio-text mb-4">New Moltbook Agent</h3>
           <div className="flex flex-col gap-3">
             <label className="text-xs font-medium text-studio-muted">
               Project
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
-              >
+              <select value={projectId} onChange={(e) => setProjectId(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none">
                 <option value="" disabled>Select Project</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
             <label className="text-xs font-medium text-studio-muted">
               Agent Name
-              <input
-                type="text" value={agentName} onChange={(e) => setAgentName(e.target.value)} placeholder="e.g. TrendBot"
-                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
-              />
+              <input type="text" value={agentName} onChange={(e) => setAgentName(e.target.value)} placeholder="e.g. TrendBot"
+                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none" />
             </label>
             <label className="text-xs font-medium text-studio-muted">
               Moltbook API Key
-              <input
-                type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..."
-                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
-              />
+              <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..."
+                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none" />
             </label>
             {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</div>}
-            <button
-              onClick={handleCreate}
-              disabled={creating || !projectId || !agentName || !apiKey}
-              className="mt-2 rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-50"
-            >
+            <button onClick={handleCreate} disabled={creating || !projectId || !agentName || !apiKey}
+              className="mt-2 rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-50">
               {creating ? 'Creating...' : 'Create Agent'}
             </button>
           </div>

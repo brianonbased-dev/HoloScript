@@ -415,6 +415,8 @@ export const moltbookAgents = pt(
     lastHeartbeat: ts('last_heartbeat', { mode: 'date' }),
     totalPostsGenerated: intg('total_posts_generated').default(0).notNull(),
     totalCommentsGenerated: intg('total_comments_generated').default(0).notNull(),
+    totalUpvotesGiven: intg('total_upvotes_given').default(0).notNull(),
+    challengeFailures: intg('challenge_failures').default(0).notNull(),
     totalLlmSpentCents: intg('total_llm_spent_cents').default(0).notNull(),
     createdAt: ts('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: ts('updated_at', { mode: 'date' }).defaultNow().notNull(),
@@ -422,6 +424,21 @@ export const moltbookAgents = pt(
   (t) => [
     idx('idx_moltbook_agents_user').on(t.userId),
     idx('idx_moltbook_agents_project').on(t.projectId),
+  ]
+);
+
+export const moltbookAgentEvents = pt(
+  'moltbook_agent_events',
+  {
+    id: uid('id').defaultRandom().primaryKey(),
+    agentId: uid('agent_id').notNull(),
+    eventType: vch('event_type', { length: 32 }).notNull(),
+    details: jsb('details').default({}).notNull(),
+    createdAt: ts('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    idx('idx_moltbook_events_agent').on(t.agentId),
+    idx('idx_moltbook_events_time').on(t.createdAt),
   ]
 );
 

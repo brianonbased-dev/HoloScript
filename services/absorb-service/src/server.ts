@@ -6,6 +6,7 @@ import { absorbRouter } from './routes/absorb.js';
 import { creditsRouter } from './routes/credits.js';
 import { holodaemonRouter } from './routes/holodaemon.js';
 import { pipelineRouter } from './routes/pipeline.js';
+import { moltbookRouter } from './routes/moltbook.js';
 import {
   handleMcpPost,
   handleMcpGet,
@@ -22,14 +23,30 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 // --- Public endpoints (no auth) ---
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+  let moltbookAgentCount: number | null = null;
+  const db = getDb();
+  if (db) {
+    try {
+      const { moltbookAgents } = await import('./db/schema.js');
+      const { sql } = await import('drizzle-orm');
+      const [row] = await db
+        .select({ count: sql<number>`count(*) filter (where ${moltbookAgents.heartbeatEnabled} = true)::int` })
+        .from(moltbookAgents);
+      moltbookAgentCount = row?.count ?? 0;
+    } catch {
+      // Schema not migrated yet — skip
+    }
+  }
+
   res.json({
     status: 'ok',
     service: 'absorb-service',
     version: '6.0.0',
     uptime: process.uptime(),
-    database: getDb() ? 'connected' : 'not configured',
+    database: db ? 'connected' : 'not configured',
     mcpSessions: getActiveSessionCount(),
+    moltbookActiveAgents: moltbookAgentCount,
     timestamp: new Date().toISOString(),
   });
 });
@@ -50,6 +67,7 @@ app.use('/api/absorb', absorbRouter);
 app.use('/api/credits', creditsRouter);
 app.use('/api/pipeline', pipelineRouter);
 app.use('/api/holodaemon', holodaemonRouter);
+app.use('/api/absorb/moltbook', moltbookRouter);
 
 // --- Global error handler ---
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

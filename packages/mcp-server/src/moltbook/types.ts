@@ -19,6 +19,26 @@ export const DEFAULT_CONFIG: Omit<MoltbookConfig, 'apiKey'> = {
   postCooldownMs: 30 * 60 * 1000,
 };
 
+// --- Engagement Strategy Config ---
+
+export interface EngagementConfig {
+  /** Outbound comment ratio (0.0-1.0). 0.7 = 70% outbound, 30% inbound. */
+  outboundRatio: number;
+  /** When true, outbound comments execute BEFORE defensive replies. */
+  outboundFirstEnabled: boolean;
+  /** Max outbound comments (on others' posts) per heartbeat tick. */
+  maxOutboundPerTick: number;
+  /** Max inbound replies (on own posts) per heartbeat tick. */
+  maxInboundPerTick: number;
+}
+
+export const DEFAULT_ENGAGEMENT_CONFIG: EngagementConfig = {
+  outboundRatio: 0.7,
+  outboundFirstEnabled: true,
+  maxOutboundPerTick: 7,
+  maxInboundPerTick: 3,
+};
+
 // --- API Response Types ---
 
 export interface MoltbookAgent {
@@ -152,6 +172,12 @@ export interface HeartbeatState {
   totalPosts: number;
   totalComments: number;
   totalUpvotes: number;
+  /** Outbound comments (on others' posts) today */
+  outboundCommentsToday: number;
+  /** Inbound replies (on own posts) today */
+  inboundCommentsToday: number;
+  /** Titles of posts already created (for dedup across restarts) */
+  postHistory: string[];
 }
 
 export const INITIAL_HEARTBEAT_STATE: HeartbeatState = {
@@ -164,6 +190,9 @@ export const INITIAL_HEARTBEAT_STATE: HeartbeatState = {
   totalPosts: 0,
   totalComments: 0,
   totalUpvotes: 0,
+  outboundCommentsToday: 0,
+  inboundCommentsToday: 0,
+  postHistory: [],
 };
 
 // --- Content Pipeline ---
@@ -182,7 +211,23 @@ export interface HeartbeatResult {
   checkedHome: boolean;
   repliesSent: number;
   commentsPosted: number;
+  /** Outbound comments posted on others' posts this tick */
+  outboundComments: number;
+  /** Inbound replies posted on own posts this tick */
+  inboundReplies: number;
   upvotesGiven: number;
   newPostCreated: boolean;
   errors: string[];
 }
+
+// --- Platform Stats (single source of truth — update when numbers change) ---
+
+export const PLATFORM_STATS = {
+  TOOL_COUNT: '103+',
+  TEST_COUNT: '45,900+',
+  BACKEND_COUNT: '17',
+  BENCHMARK_PASS: '51/51',
+  COMPILATION_AVG: '0.7ms',
+  PACKAGE_COUNT: '8',
+  CATEGORY_COUNT: '22',
+} as const;

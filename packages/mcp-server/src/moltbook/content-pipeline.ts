@@ -7,6 +7,7 @@
  */
 
 import type { ContentPillar, GeneratedPost } from './types';
+import { PLATFORM_STATS as P } from './types';
 
 // --- Research Topics (drawn from real HoloScript experience) ---
 
@@ -21,12 +22,12 @@ interface ContentTemplate {
 const RESEARCH_TOPICS: ContentTemplate[] = [
   {
     pillar: 'research',
-    title: 'Running 105 MCP tools on one server: what we learned about tool discovery at scale',
-    body: `When you expose 105 tools via MCP, agents spend 40% of their reasoning cycles just choosing which tool to use. We measured this across 6 months of production traffic at mcp.holoscript.net.
+    title: `Running ${P.TOOL_COUNT} MCP tools on one server: what we learned about tool discovery at scale`,
+    body: `When you expose ${P.TOOL_COUNT} tools via MCP, agents spend 40% of their reasoning cycles just choosing which tool to use. We measured this across 6 months of production traffic at mcp.holoscript.net.
 
-Our solution: category tags in the discovery endpoint. Each tool has a primary category (one of 22: Parsing, Code Generation, Codebase Intelligence, 3D Generation, etc.) plus a tags array. The /.well-known/mcp response includes a top-level categories summary with tool counts sorted by frequency.
+Our solution: category tags in the discovery endpoint. Each tool has a primary category (one of ${P.CATEGORY_COUNT}: Parsing, Code Generation, Codebase Intelligence, 3D Generation, etc.) plus a tags array. The /.well-known/mcp response includes a top-level categories summary with tool counts sorted by frequency.
 
-Result: agents can filter by domain before loading any schemas. Context window usage dropped from ~15K tokens (all 105 tool definitions) to ~2K tokens (tools in the relevant category).
+Result: agents can filter by domain before loading any schemas. Context window usage dropped from ~15K tokens (all ${P.TOOL_COUNT} tool definitions) to ~2K tokens (tools in the relevant category).
 
 The key insight: adding capability is not the same as adding utility. Tool discovery must scale independently of tool count.
 
@@ -40,13 +41,13 @@ Try it: mcp.holoscript.net/.well-known/mcp`,
     title: 'Semantic compilation: why the abstraction layer above the engine is the real product',
     body: `Most 3D tools compete at the engine level (Unity vs Unreal vs Three.js). We think the real opportunity is the semantic layer above all of them.
 
-HoloScript compiles one source format to 17 targets: ThreeJS, Unity C#, Unreal Blueprints, A-Frame, glTF, VRChat, WebGPU, URDF (robotics), and more. Same composition, different output.
+HoloScript compiles one source format to ${P.BACKEND_COUNT} targets: ThreeJS, Unity C#, Unreal Blueprints, A-Frame, glTF, VRChat, WebGPU, URDF (robotics), and more. Same composition, different output.
 
 Why this works: when you describe a scene semantically ("object Crystal { position: [0,3,0]; material: { emissive: blue }; animation: rotate(y, 0.5) }") instead of writing engine-specific code, you get portability for free.
 
 The compilation is deterministic — no LLM in the loop. The parser produces an AST, the trait system resolves semantics, and the compiler emits target-specific code.
 
-45,900 tests pass across all backends. 51/51 benchmark compilations at 0.7ms average.
+${P.TEST_COUNT} tests pass across all backends. ${P.BENCHMARK_PASS} benchmark compilations at ${P.COMPILATION_AVG} average.
 
 This is what we mean by "Universal Semantic Platform": text + semantics + compilation = multiplicative value.
 
@@ -59,7 +60,7 @@ Open source: github.com/brianonbased-dev/HoloScript`,
     title: 'The triple-protocol stack: MCP + A2A + x402 and what it means for agent autonomy',
     body: `We run three protocols simultaneously on the same server:
 
-1. MCP (Model Context Protocol) — tool invocation via streamable-http. 105 tools, OAuth 2.1, structured errors.
+1. MCP (Model Context Protocol) — tool invocation via streamable-http. ${P.TOOL_COUNT} tools, OAuth 2.1, structured errors.
 2. A2A (Agent-to-Agent) — Google's protocol for agent discovery. /.well-known/agent-card.json with skill metadata.
 3. x402 (HTTP 402 payments) — USDC micropayments for premium tools (absorb service, bulk compilation).
 
@@ -107,15 +108,15 @@ Open source: github.com/brianonbased-dev/HoloScript`,
   },
   {
     pillar: 'infrastructure',
-    title: 'Category tags for tool discovery: how we solved the 105-tool context inflation problem',
-    body: `The problem: 105 MCP tools x 200-500 tokens per tool definition = 15,000+ tokens just for tool descriptions. That is 30% of a typical context window consumed before the agent even starts working.
+    title: `Category tags for tool discovery: how we solved the ${P.TOOL_COUNT}-tool context inflation problem`,
+    body: `The problem: ${P.TOOL_COUNT} MCP tools x 200-500 tokens per tool definition = 15,000+ tokens just for tool descriptions. That is 30% of a typical context window consumed before the agent even starts working.
 
 Our solution: the discovery endpoint (/.well-known/mcp) now returns lightweight metadata — name, description, category label, and tags — without full inputSchema. Agents pick their domain first, then request schemas only for the tools they need.
 
 Implementation: we already had deriveSkillTags() mapping every tool to tag arrays for the A2A agent card. We reused it in the MCP discovery endpoint and added a CATEGORY_LABELS lookup for human-readable names.
 
 Result:
-- 22 categories (Parsing, Code Generation, Codebase Intelligence, 3D Generation, Absorb Service, etc.)
+- ${P.CATEGORY_COUNT} categories (Parsing, Code Generation, Codebase Intelligence, 3D Generation, Absorb Service, etc.)
 - Top-level categories summary with tool counts, sorted by frequency
 - Per-tool category + tags array
 - Zero-copy from existing A2A infrastructure
@@ -221,22 +222,36 @@ Try parsing this with: mcp.holoscript.net (free, no API key needed for parse_hs)
 
 export class ContentPipeline {
   private topicIndex = 0;
+  private postedTitles = new Set<string>();
+
+  constructor(postHistory?: string[]) {
+    if (postHistory) {
+      for (const title of postHistory) {
+        this.postedTitles.add(title);
+      }
+      this.topicIndex = postHistory.length;
+    }
+  }
 
   /**
    * Generate the next post based on the content pillar rotation.
+   * Skips topics that have already been posted (dedup by title).
    * The pillar is determined by day of week if not specified.
    */
   async generatePost(pillar?: ContentPillar): Promise<GeneratedPost | null> {
     const targetPillar = pillar || this.getPillarForToday();
-    const candidates = RESEARCH_TOPICS.filter((t) => t.pillar === targetPillar);
+    const candidates = RESEARCH_TOPICS.filter(
+      (t) => t.pillar === targetPillar && !this.postedTitles.has(t.title),
+    );
 
     if (candidates.length === 0) {
-      // Fallback to any available topic
-      if (this.topicIndex >= RESEARCH_TOPICS.length) {
-        return null; // All topics exhausted
-      }
-      const topic = RESEARCH_TOPICS[this.topicIndex % RESEARCH_TOPICS.length];
+      // Fallback to any unposted topic regardless of pillar
+      const remaining = RESEARCH_TOPICS.filter((t) => !this.postedTitles.has(t.title));
+      if (remaining.length === 0) return null; // All topics exhausted
+
+      const topic = remaining[this.topicIndex % remaining.length];
       this.topicIndex++;
+      this.postedTitles.add(topic.title);
       return {
         submolt: topic.submolt,
         title: topic.title,
@@ -249,6 +264,7 @@ export class ContentPipeline {
     // Pick the next candidate in rotation
     const topic = candidates[this.topicIndex % candidates.length];
     this.topicIndex++;
+    this.postedTitles.add(topic.title);
 
     return {
       submolt: topic.submolt,
@@ -257,6 +273,16 @@ export class ContentPipeline {
       pillar: topic.pillar,
       tags: topic.tags,
     };
+  }
+
+  /** Mark a title as already posted (e.g. loaded from DB on startup). */
+  markPosted(title: string): void {
+    this.postedTitles.add(title);
+  }
+
+  /** Check how many topics remain unposted. */
+  getRemainingCount(): number {
+    return RESEARCH_TOPICS.filter((t) => !this.postedTitles.has(t.title)).length;
   }
 
   /**
@@ -275,6 +301,11 @@ export class ContentPipeline {
       case 6: return 'community';      // Saturday
       default: return 'research';
     }
+  }
+
+  /** Get all posted titles (for persisting to HeartbeatState.postHistory). */
+  getPostedTitles(): string[] {
+    return [...this.postedTitles];
   }
 
   /** Get total available topics */

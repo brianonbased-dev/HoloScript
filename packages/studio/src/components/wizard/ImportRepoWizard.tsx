@@ -273,20 +273,20 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
 
   // ── Handle Absorb & Improve ──
   const handleAbsorbAndImprove = useCallback(async () => {
-    if (!absorbResult || !repoUrl) return;
+    if (!absorbStats || !repoUrl) return;
 
     const event = {
       projectPath: repoUrl,
       stats: {
-        filesProcessed: absorbResult.stats.totalFiles || 0,
-        patternsDetected: absorbResult.stats.totalSymbols || 0,
+        filesProcessed: absorbStats.totalFiles || 0,
+        patternsDetected: absorbStats.totalSymbols || 0,
         technologiesFound: dna?.languages || [],
         confidence: dna?.confidence || 0,
       },
     };
 
     await triggerPipeline(event);
-  }, [absorbResult, repoUrl, dna, triggerPipeline]);
+  }, [absorbStats, repoUrl, dna, triggerPipeline]);
 
   // ── Validation ──
 
@@ -441,9 +441,22 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                     )}
 
                     {reposError && (
-                      <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
-                        <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-                        <p className="text-xs text-red-300">{reposError}</p>
+                      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 text-center">
+                        <AlertCircle className="h-8 w-8 text-amber-400" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-300">GitHub Not Connected</p>
+                          <p className="text-[11px] text-amber-300/70 mt-1 max-w-[240px] mx-auto">
+                            {reposError || 'You must connect your GitHub account in the Integration Hub before importing repositories.'}
+                          </p>
+                        </div>
+                        <a 
+                          href="/integrations" 
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="mt-2 flex items-center gap-2 rounded-lg bg-indigo-500/20 px-4 py-2 text-xs font-medium text-indigo-300 hover:bg-indigo-500/30 hover:text-indigo-200 transition"
+                        >
+                          Open Integration Hub
+                        </a>
                       </div>
                     )}
 
