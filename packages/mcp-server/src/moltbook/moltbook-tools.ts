@@ -14,6 +14,9 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getMoltbookClient, hasMoltbookKey } from './client';
 import { MoltbookHeartbeat } from './heartbeat';
 import { ContentPipeline } from './content-pipeline';
+import { LLMContentGenerator, adaptProviderManager } from './llm-content-generator';
+import { MoltbookAgentManager } from './agent-manager';
+import type { ContentPillar } from './types';
 
 export const moltbookTools: Tool[] = [
   {
@@ -158,16 +161,134 @@ export const moltbookTools: Tool[] = [
   },
 ];
 
+// --- Multi-tenant agent tools ---
+
+export const moltbookAgentTools: Tool[] = [
+  {
+    name: 'moltbook_agent_create',
+    description:
+      'Create a Moltbook agent backed by an absorbed codebase. The agent can generate posts, comments, and engage on Moltbook using LLM-powered content grounded in the codebase.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', description: 'User ID (from credit system)' },
+        projectId: { type: 'string', description: 'Absorbed project ID to use as knowledge base' },
+        agentName: { type: 'string', description: 'Moltbook agent account name' },
+        moltbookApiKey: { type: 'string', description: 'Moltbook API key for the agent account' },
+        persona: { type: 'string', description: 'Custom system identity extension (optional)' },
+      },
+      required: ['userId', 'projectId', 'agentName', 'moltbookApiKey'],
+    },
+  },
+  {
+    name: 'moltbook_agent_configure',
+    description: 'Update configuration for a Moltbook agent (pillars, submolts, search topics, persona).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent ID' },
+        pillars: { type: 'array', items: { type: 'string' }, description: 'Content pillars to generate' },
+        submolts: { type: 'array', items: { type: 'string' }, description: 'Target submolts' },
+        searchTopics: { type: 'array', items: { type: 'string' }, description: 'Custom search topics' },
+        persona: { type: 'string', description: 'Custom system identity extension' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'moltbook_agent_start',
+    description: 'Start the heartbeat daemon for a Moltbook agent. The agent will post and engage on a 30-minute interval.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent ID to start' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'moltbook_agent_stop',
+    description: 'Stop the heartbeat daemon for a Moltbook agent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent ID to stop' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'moltbook_agent_status',
+    description: 'Get status and stats for a Moltbook agent (posts generated, comments, LLM spend).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent ID' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'moltbook_agent_generate',
+    description: 'Generate a single Moltbook post on-demand using the agent\'s absorbed codebase. The post is returned but NOT published — call moltbook_post to publish it.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent ID' },
+        pillar: { type: 'string', enum: ['research', 'infrastructure', 'showcase', 'community'], description: 'Content pillar (optional — random if omitted)' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'moltbook_agent_preview',
+    description: 'Preview what a Moltbook agent would generate without publishing. Identical to moltbook_agent_generate but makes the read-only intent explicit.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'Agent ID' },
+        pillar: { type: 'string', enum: ['research', 'infrastructure', 'showcase', 'community'], description: 'Content pillar (optional)' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'moltbook_agent_list',
+    description: 'List all Moltbook agents for a user.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', description: 'User ID' },
+      },
+      required: ['userId'],
+    },
+  },
+];
+
 // --- Heartbeat singleton (shared with http-server lifecycle) ---
 
 let heartbeatInstance: MoltbookHeartbeat | null = null;
 
 export function getOrCreateHeartbeat(): MoltbookHeartbeat {
   if (!heartbeatInstance) {
-    heartbeatInstance = new MoltbookHeartbeat(
-      getMoltbookClient(),
-      new ContentPipeline(),
-    );
+    const client = getMoltbookClient();
+    const pipeline = new ContentPipeline();
+
+    // Try to create LLM-powered content generator
+    let llmGenerator: LLMContentGenerator | undefined;
+    try {
+      // Dynamic import to avoid hard dependency on llm-provider at load time
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { createProviderManager } = require('@holoscript/llm-provider');
+      const providerManager = createProviderManager();
+      const llmAdapter = adaptProviderManager(providerManager);
+      llmGenerator = new LLMContentGenerator(llmAdapter);
+      console.log('[moltbook] LLM-powered content generation enabled');
+    } catch {
+      console.log('[moltbook] LLM provider not available, using static templates');
+    }
+
+    heartbeatInstance = new MoltbookHeartbeat(client, pipeline, llmGenerator);
   }
   return heartbeatInstance;
 }
@@ -188,6 +309,11 @@ export async function handleMoltbookTool(
     return {
       error: 'MOLTBOOK_API_KEY is not configured. Set it as an environment variable to enable Moltbook integration.',
     };
+  }
+
+  // Route agent tools
+  if (name.startsWith('moltbook_agent_')) {
+    return handleAgentTool(name, args);
   }
 
   switch (name) {
@@ -347,6 +473,104 @@ async function handleCreateSubmolt(args: Record<string, unknown>) {
       description: submolt.description,
     },
   };
+}
+
+// --- Agent Manager Singleton ---
+
+let agentManagerInstance: MoltbookAgentManager | null = null;
+
+function getOrCreateAgentManager(): MoltbookAgentManager {
+  if (!agentManagerInstance) {
+    let llmProviderFactory: (() => import('./llm-content-generator').LLMProvider) | undefined;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { createProviderManager } = require('@holoscript/llm-provider');
+      llmProviderFactory = () => {
+        const manager = createProviderManager();
+        return adaptProviderManager(manager);
+      };
+    } catch {
+      // LLM provider not available
+    }
+
+    agentManagerInstance = new MoltbookAgentManager(llmProviderFactory);
+  }
+  return agentManagerInstance;
+}
+
+export function getAgentManagerInstance(): MoltbookAgentManager | null {
+  return agentManagerInstance;
+}
+
+// --- Agent Tool Handler ---
+
+async function handleAgentTool(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const manager = getOrCreateAgentManager();
+
+  switch (name) {
+    case 'moltbook_agent_create': {
+      const record = await manager.createAgent(
+        args.userId as string,
+        args.projectId as string,
+        {
+          agentName: args.agentName as string,
+          moltbookApiKey: args.moltbookApiKey as string,
+          persona: args.persona as string | undefined,
+        },
+      );
+      return { success: true, agent: record };
+    }
+    case 'moltbook_agent_configure': {
+      const config: Record<string, unknown> = {};
+      if (args.pillars) config.pillars = args.pillars;
+      if (args.submolts) config.submolts = args.submolts;
+      if (args.searchTopics) config.searchTopics = args.searchTopics;
+      if (args.persona) config.persona = args.persona;
+
+      const record = await manager.configureAgent(args.agentId as string, config);
+      return { success: true, agent: record };
+    }
+    case 'moltbook_agent_start': {
+      await manager.startAgent(args.agentId as string);
+      return { success: true, message: 'Heartbeat started' };
+    }
+    case 'moltbook_agent_stop': {
+      await manager.stopAgent(args.agentId as string);
+      return { success: true, message: 'Heartbeat stopped' };
+    }
+    case 'moltbook_agent_status': {
+      const status = await manager.getAgentStatus(args.agentId as string);
+      return { success: true, status };
+    }
+    case 'moltbook_agent_generate': {
+      const post = await manager.generatePost(
+        args.agentId as string,
+        args.pillar as ContentPillar | undefined,
+      );
+      return post
+        ? { success: true, post }
+        : { success: false, reason: 'Generation produced no output (LLM returned empty or SKIP)' };
+    }
+    case 'moltbook_agent_preview': {
+      const post = await manager.previewPost(
+        args.agentId as string,
+        args.pillar as ContentPillar | undefined,
+      );
+      return post
+        ? { success: true, preview: post }
+        : { success: false, reason: 'Preview produced no output' };
+    }
+    case 'moltbook_agent_list': {
+      const agents = await manager.listAgents(args.userId as string);
+      return { success: true, agents };
+    }
+    default:
+      return { error: `Unknown agent tool: ${name}` };
+  }
 }
 
 // --- Helpers ---

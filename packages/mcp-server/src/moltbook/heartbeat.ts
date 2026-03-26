@@ -12,6 +12,7 @@
 
 import type { MoltbookClient } from './client';
 import type { ContentPipeline } from './content-pipeline';
+import type { LLMContentGenerator } from './llm-content-generator';
 import type { HeartbeatState, HeartbeatResult, MoltbookPost } from './types';
 import { DEFAULT_CONFIG, INITIAL_HEARTBEAT_STATE } from './types';
 
@@ -36,12 +37,14 @@ export class MoltbookHeartbeat {
   private state: HeartbeatState = { ...INITIAL_HEARTBEAT_STATE };
   private client: MoltbookClient;
   private pipeline: ContentPipeline;
+  private llmGenerator: LLMContentGenerator | null;
   private paused = false;
   private pauseUntil = 0;
 
-  constructor(client: MoltbookClient, pipeline: ContentPipeline) {
+  constructor(client: MoltbookClient, pipeline: ContentPipeline, llmGenerator?: LLMContentGenerator) {
     this.client = client;
     this.pipeline = pipeline;
+    this.llmGenerator = llmGenerator ?? null;
   }
 
   start(): void {
@@ -134,7 +137,10 @@ export class MoltbookHeartbeat {
       const postCooldownElapsed = Date.now() - this.state.lastPostTime >= DEFAULT_CONFIG.postCooldownMs;
       if (postCooldownElapsed) {
         try {
-          const post = await this.pipeline.generatePost();
+          // Try LLM-powered generation first, fall back to static templates
+          const post = this.llmGenerator
+            ? (await this.llmGenerator.generatePost()) ?? (await this.pipeline.generatePost())
+            : await this.pipeline.generatePost();
           if (post) {
             await this.client.createPost(post.submolt, post.title, post.body);
             this.state.lastPostTime = Date.now();
@@ -181,8 +187,8 @@ export class MoltbookHeartbeat {
     for (const comment of unanswered.slice(0, 2)) {
       if (!this.canComment()) break;
 
-      // Generate a contextual reply
-      const reply = this.generateReply(comment.content);
+      // Generate a contextual reply (LLM-powered or static fallback)
+      const reply = await this.generateReplyWithFallback(comment.content, postId);
       if (reply) {
         await this.client.createComment(postId, reply, comment.id);
         this.state.commentsToday++;
@@ -228,7 +234,7 @@ export class MoltbookHeartbeat {
         // Comment if we have budget
         if (this.canComment() && comments < 2) {
           try {
-            const comment = this.generateTopicComment(post.title || '', post.content);
+            const comment = await this.generateTopicCommentWithFallback(post.title || '', post.content);
             if (comment) {
               await this.client.createComment(post.id, comment);
               comments++;
@@ -250,8 +256,31 @@ export class MoltbookHeartbeat {
   }
 
   /**
+   * Try LLM-powered reply generation, fall back to static templates.
+   */
+  private async generateReplyWithFallback(commentContent: string, postId: string): Promise<string | null> {
+    if (this.llmGenerator) {
+      const llmReply = await this.llmGenerator.generateReply(commentContent, postId);
+      if (llmReply) return llmReply;
+    }
+    return this.generateReply(commentContent);
+  }
+
+  /**
+   * Try LLM-powered comment generation, fall back to static templates.
+   */
+  private async generateTopicCommentWithFallback(title: string, content: string): Promise<string | null> {
+    if (this.llmGenerator) {
+      const llmComment = await this.llmGenerator.generateTopicComment(title, content);
+      if (llmComment) return llmComment;
+    }
+    return this.generateTopicComment(title, content);
+  }
+
+  /**
    * Generate a reply to a comment on our own post.
    * Returns a substantive response with HoloScript context.
+   * (Static fallback — used when LLM is unavailable)
    */
   private generateReply(commentContent: string): string | null {
     const lower = commentContent.toLowerCase();
@@ -276,6 +305,7 @@ export class MoltbookHeartbeat {
   /**
    * Generate a comment for a post found during browsing.
    * Must include at least one of: metric, code snippet, technical insight, or link.
+   * (Static fallback — used when LLM is unavailable)
    */
   private generateTopicComment(title: string, content: string): string | null {
     const lower = (title + ' ' + content).toLowerCase();

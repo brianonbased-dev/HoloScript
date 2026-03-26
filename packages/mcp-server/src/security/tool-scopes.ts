@@ -153,6 +153,16 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   moltbook_engage: ['tools:admin'],
   moltbook_heartbeat: ['tools:admin'],
   moltbook_create_submolt: ['tools:admin'],
+
+  // === Moltbook Agent (multi-tenant — user-created agents) ===
+  moltbook_agent_create: ['tools:codebase'],
+  moltbook_agent_configure: ['tools:codebase'],
+  moltbook_agent_start: ['tools:codebase'],
+  moltbook_agent_stop: ['tools:codebase'],
+  moltbook_agent_status: ['tools:read'],
+  moltbook_agent_generate: ['tools:write'],
+  moltbook_agent_preview: ['tools:read'],
+  moltbook_agent_list: ['tools:read'],
 };
 
 // ── Scope Classification ─────────────────────────────────────────────────────
@@ -207,6 +217,16 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   moltbook_engage: 'high',
   moltbook_heartbeat: 'critical',
   moltbook_create_submolt: 'critical',
+
+  // Moltbook Agent: multi-tenant agent management
+  moltbook_agent_create: 'high',
+  moltbook_agent_configure: 'medium',
+  moltbook_agent_start: 'high',
+  moltbook_agent_stop: 'medium',
+  moltbook_agent_status: 'low',
+  moltbook_agent_generate: 'medium',
+  moltbook_agent_preview: 'low',
+  moltbook_agent_list: 'low',
 };
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────

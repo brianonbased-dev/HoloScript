@@ -19,6 +19,7 @@ import {
   uuid,
   varchar,
   index,
+  boolean,
 } from 'drizzle-orm/pg-core';
 
 // =============================================================================
@@ -59,6 +60,33 @@ export const creditTransactions = pgTable(
 // =============================================================================
 // ABSORB PROJECTS
 // =============================================================================
+
+// =============================================================================
+// MOLTBOOK AGENTS (multi-tenant Moltbook agent configurations)
+// =============================================================================
+
+export const moltbookAgents = pgTable(
+  'moltbook_agents',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').notNull(),
+    projectId: uuid('project_id').notNull(),
+    agentName: varchar('agent_name', { length: 64 }).notNull(),
+    moltbookApiKey: text('moltbook_api_key').notNull(),
+    config: jsonb('config').default({}).notNull(),
+    heartbeatEnabled: boolean('heartbeat_enabled').default(false).notNull(),
+    lastHeartbeat: timestamp('last_heartbeat', { mode: 'date' }),
+    totalPostsGenerated: integer('total_posts_generated').default(0).notNull(),
+    totalCommentsGenerated: integer('total_comments_generated').default(0).notNull(),
+    totalLlmSpentCents: integer('total_llm_spent_cents').default(0).notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_moltbook_agents_user').on(t.userId),
+    index('idx_moltbook_agents_project').on(t.projectId),
+  ]
+);
 
 export const absorbProjects = pgTable(
   'absorb_projects',
