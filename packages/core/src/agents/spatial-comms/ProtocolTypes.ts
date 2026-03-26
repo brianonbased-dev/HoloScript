@@ -144,7 +144,7 @@ export interface TaskSpec {
   task_id: string;
   task_type: 'terrain' | 'assets' | 'physics' | 'lighting' | 'audio' | 'custom';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   spatial_region?: {
     center: [number, number, number];
     size: [number, number, number];
@@ -176,7 +176,7 @@ export interface TaskCompleteMessage {
   timestamp: number;
   task_id: string;
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   performance_metrics?: {
     duration_ms: number;
@@ -225,7 +225,7 @@ export interface ConflictResolutionMessage {
   conflict_id: string;
   strategy: ConflictResolutionStrategy;
   involved_agents: string[];
-  resolution_params?: Record<string, any>;
+  resolution_params?: Record<string, unknown>;
 }
 
 /**
@@ -329,7 +329,7 @@ export const DEFAULT_A2A_CONFIG: A2AProtocolConfig = {
 export interface A2AResponse {
   message_id: string;
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   timestamp: number;
 }
@@ -446,7 +446,7 @@ export interface PerformanceMetrics {
  */
 export interface MCPCommandRequest {
   command: MCPCommandType;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }
 
 /**
@@ -454,7 +454,7 @@ export interface MCPCommandRequest {
  */
 export interface MCPCommandResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   timestamp: number;
 }

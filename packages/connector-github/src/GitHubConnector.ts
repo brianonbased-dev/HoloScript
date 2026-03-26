@@ -108,14 +108,14 @@ export class GitHubConnector extends ServiceConnector {
                 if (args.org) {
                     return octokit.rest.repos.listForOrg({
                         org: args.org as string,
-                        type: args.type as any,
-                        sort: args.sort as any,
+                        type: args.type as never,
+                        sort: args.sort as never,
                         per_page: args.per_page as number | undefined
                     });
                 } else {
                     return octokit.rest.repos.listForAuthenticatedUser({
-                        type: args.type as any,
-                        sort: args.sort as any,
+                        type: args.type as never,
+                        sort: args.sort as never,
                         per_page: args.per_page as number | undefined
                     });
                 }
@@ -135,7 +135,7 @@ export class GitHubConnector extends ServiceConnector {
                 return octokit.rest.issues.listForRepo({
                     owner: args.owner as string,
                     repo: args.repo as string,
-                    state: args.state as any,
+                    state: args.state as never,
                     labels: args.labels as string | undefined,
                     per_page: args.per_page as number | undefined
                 });
@@ -147,7 +147,7 @@ export class GitHubConnector extends ServiceConnector {
                     issue_number: args.issue_number as number,
                     title: args.title as string | undefined,
                     body: args.body as string | undefined,
-                    state: args.state as any,
+                    state: args.state as never,
                     labels: args.labels as string[] | undefined
                 });
 
@@ -175,7 +175,7 @@ export class GitHubConnector extends ServiceConnector {
                 return octokit.rest.pulls.list({
                     owner: args.owner as string,
                     repo: args.repo as string,
-                    state: args.state as any,
+                    state: args.state as never,
                     per_page: args.per_page as number | undefined
                 });
 
@@ -193,7 +193,7 @@ export class GitHubConnector extends ServiceConnector {
                     pull_number: args.pull_number as number,
                     commit_title: args.commit_title as string | undefined,
                     commit_message: args.commit_message as string | undefined,
-                    merge_method: args.merge_method as any
+                    merge_method: args.merge_method as never
                 });
 
             case 'github_pr_comment':
@@ -210,7 +210,7 @@ export class GitHubConnector extends ServiceConnector {
                     repo: args.repo as string,
                     pull_number: args.pull_number as number,
                     body: args.body as string | undefined,
-                    event: args.event as any
+                    event: args.event as never
                 });
 
             // Workflow Operations
@@ -235,14 +235,14 @@ export class GitHubConnector extends ServiceConnector {
                         owner: args.owner as string,
                         repo: args.repo as string,
                         workflow_id: args.workflow_id as string,
-                        status: args.status as any,
+                        status: args.status as never,
                         per_page: args.per_page as number | undefined
                     });
                 } else {
                     return octokit.rest.actions.listWorkflowRunsForRepo({
                         owner: args.owner as string,
                         repo: args.repo as string,
-                        status: args.status as any,
+                        status: args.status as never,
                         per_page: args.per_page as number | undefined
                     });
                 }
@@ -334,7 +334,7 @@ export class GitHubConnector extends ServiceConnector {
                         })
                     });
 
-                    const renderData = await renderResponse.json() as any;
+                    const renderData = await renderResponse.json() as { success?: boolean; previewUrl?: string; errors?: string[] };
 
                     results.push({
                         file: filePath,
@@ -418,7 +418,7 @@ export class GitHubConnector extends ServiceConnector {
                         })
                     });
 
-                    const validationData = await validationResponse.json() as any;
+                    const validationData = await validationResponse.json() as { valid?: boolean; errors?: string[]; warnings?: string[]; suggestions?: string[] };
 
                     results.push({
                         file: filePath,
