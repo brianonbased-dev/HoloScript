@@ -7,21 +7,32 @@ export interface AuthenticatedRequest extends Request {
   userId?: string;
   isAdmin?: boolean;
   githubUsername?: string;
+  /** Credit tier resolved from DB (free/pro/enterprise) */
+  tier?: string;
 }
 
 const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
 
+// ─── Rate Limiting ──────────────────────────────────────────────────────────
+
 const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
+const userRateLimitMap = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const FREE_SCAN_LIMIT = 3;
+const ANON_SCAN_LIMIT = 3;
+const FREE_USER_SCAN_LIMIT = 10;
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
 // Periodically clean expired rate limit entries to prevent memory leak
 const cleanupTimer = setInterval(() => {
   const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
+  for (const [key, entry] of rateLimitMap) {
     if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-      rateLimitMap.delete(ip);
+      rateLimitMap.delete(key);
+    }
+  }
+  for (const [key, entry] of userRateLimitMap) {
+    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+      userRateLimitMap.delete(key);
     }
   }
 }, CLEANUP_INTERVAL_MS);
@@ -33,15 +44,33 @@ function getClientIp(req: Request): string {
   return req.socket.remoteAddress || 'unknown';
 }
 
-function isRateLimited(ip: string): boolean {
+function checkRateLimit(
+  map: Map<string, { count: number; windowStart: number }>,
+  key: string,
+  limit: number,
+): { limited: boolean; remaining: number } {
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = map.get(key);
   if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    rateLimitMap.set(ip, { count: 1, windowStart: now });
-    return false;
+    map.set(key, { count: 1, windowStart: now });
+    return { limited: false, remaining: limit - 1 };
   }
   entry.count++;
-  return entry.count > FREE_SCAN_LIMIT;
+  return { limited: entry.count > limit, remaining: Math.max(0, limit - entry.count) };
+}
+
+/**
+ * Resolve the user's credit tier from the database.
+ * Returns 'free' if DB is unavailable or account doesn't exist yet.
+ */
+async function resolveUserTier(userId: string): Promise<string> {
+  try {
+    const { getOrCreateAccount } = await import('@holoscript/absorb-service/credits');
+    const account = await getOrCreateAccount(userId);
+    return account?.tier ?? 'free';
+  } catch {
+    return 'free';
+  }
 }
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -57,7 +86,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   if (authHeader) {
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
-    // Path 1: Service-to-service API key
+    // Path 1: Service-to-service API key — no rate limit
     if (apiKey && token === apiKey) {
       authReq.authenticated = true;
       return next();
@@ -71,6 +100,33 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         authReq.userId = identity.userId;
         authReq.isAdmin = identity.isAdmin;
         authReq.githubUsername = identity.githubUsername;
+
+        // Admins bypass rate limits entirely
+        if (identity.isAdmin) {
+          authReq.tier = 'admin';
+          return next();
+        }
+
+        // Resolve tier and apply per-user rate limit for free tier
+        const tier = await resolveUserTier(identity.userId);
+        authReq.tier = tier;
+
+        if (tier === 'free') {
+          const { limited, remaining } = checkRateLimit(userRateLimitMap, identity.userId, FREE_USER_SCAN_LIMIT);
+          if (limited) {
+            res.status(429).json({
+              error: 'Rate limit exceeded',
+              message: `Free GitHub tier limited to ${FREE_USER_SCAN_LIMIT} requests per hour. Purchase credits for unlimited access.`,
+              retryAfterMs: RATE_LIMIT_WINDOW_MS,
+              remaining: 0,
+              purchaseUrl: '/absorb?tab=credits',
+            });
+            return;
+          }
+          res.setHeader('X-RateLimit-Remaining', remaining);
+        }
+        // pro/enterprise: no rate limit (credit-gated in route handlers)
+
         return next();
       }
     } catch {
@@ -81,20 +137,22 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     return;
   }
 
-  // Free tier: allow scan endpoint with rate limiting
-  // Note: path is relative to mount point (/api/absorb), so check /scan not /api/absorb/scan
+  // Anonymous: allow scan endpoint with IP-based rate limiting
   if ((req.path === '/scan' || req.path === '/api/absorb/scan') && req.method === 'POST') {
     const ip = getClientIp(req);
-    if (isRateLimited(ip)) {
+    const { limited, remaining } = checkRateLimit(rateLimitMap, ip, ANON_SCAN_LIMIT);
+    if (limited) {
       res.status(429).json({
         error: 'Rate limit exceeded',
-        message: `Free tier limited to ${FREE_SCAN_LIMIT} scans per hour. Add an API key for unlimited access.`,
+        message: `Anonymous tier limited to ${ANON_SCAN_LIMIT} scans per hour. Sign in with GitHub for ${FREE_USER_SCAN_LIMIT}/hr, or purchase credits for unlimited access.`,
         retryAfterMs: RATE_LIMIT_WINDOW_MS,
+        remaining: 0,
       });
       return;
     }
     authReq.authenticated = false;
     authReq.freeTier = true;
+    res.setHeader('X-RateLimit-Remaining', remaining);
     return next();
   }
 

@@ -8,6 +8,7 @@
  */
 
 import { getDb } from '../db/client.js';
+import { encryptToken } from '../lib/token-encryption.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -108,10 +109,10 @@ async function upsertUser(ghUser: GitHubUser, token: string): Promise<string | n
       .limit(1);
 
     if (existing) {
-      // Update access token
+      // Update access token (encrypted at rest)
       await db
         .update(accounts)
-        .set({ access_token: token })
+        .set({ access_token: encryptToken(token) })
         .where(and(eq(accounts.provider, 'github'), eq(accounts.providerAccountId, githubId)));
       return existing.userId;
     }
@@ -133,9 +134,9 @@ async function upsertUser(ghUser: GitHubUser, token: string): Promise<string | n
       type: 'oauth',
       provider: 'github',
       providerAccountId: githubId,
-      access_token: token,
+      access_token: encryptToken(token),
       token_type: 'bearer',
-      scope: 'repo,read:org,workflow',
+      scope: 'repo,read:user,user:email,read:org',
     });
 
     return newUser.id;

@@ -7,6 +7,12 @@ vi.mock('./github-identity.js', () => ({
   resolveGitHubToken: (...args: any[]) => mockResolveGitHubToken(...args),
 }));
 
+// Mock credit service for tier resolution
+const mockGetOrCreateAccount = vi.fn();
+vi.mock('@holoscript/absorb-service/credits', () => ({
+  getOrCreateAccount: (...args: any[]) => mockGetOrCreateAccount(...args),
+}));
+
 import { authMiddleware, type AuthenticatedRequest } from './auth.js';
 
 function createMockReq(overrides: Record<string, any> = {}): AuthenticatedRequest {
@@ -19,10 +25,11 @@ function createMockReq(overrides: Record<string, any> = {}): AuthenticatedReques
   } as any;
 }
 
-function createMockRes(): Response & { statusCode: number; _json: any } {
+function createMockRes(): Response & { statusCode: number; _json: any; _headers: Record<string, string> } {
   const res: any = {
     statusCode: 200,
     _json: null,
+    _headers: {},
     headersSent: false,
     status(code: number) {
       res.statusCode = code;
@@ -30,6 +37,10 @@ function createMockRes(): Response & { statusCode: number; _json: any } {
     },
     json(data: any) {
       res._json = data;
+      return res;
+    },
+    setHeader(name: string, value: any) {
+      res._headers[name] = String(value);
       return res;
     },
   };
@@ -42,6 +53,9 @@ describe('authMiddleware', () => {
   beforeEach(() => {
     next = vi.fn();
     mockResolveGitHubToken.mockReset();
+    mockGetOrCreateAccount.mockReset();
+    // Default: free tier
+    mockGetOrCreateAccount.mockResolvedValue({ tier: 'free' });
     // Reset env
     delete process.env.ABSORB_API_KEY;
   });
@@ -223,5 +237,109 @@ describe('authMiddleware', () => {
     expect(req.authenticated).toBe(true);
     // resolveGitHubToken should NOT have been called — API key matched first
     expect(mockResolveGitHubToken).not.toHaveBeenCalled();
+  });
+
+  // ── Per-user quota tests ───────────────────────────────────────────────────
+
+  it('sets tier on authenticated GitHub user', async () => {
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-free-user',
+      githubUsername: 'freeuser',
+      githubId: '111',
+      isAdmin: false,
+    });
+    mockGetOrCreateAccount.mockResolvedValue({ tier: 'free' });
+
+    const req = createMockReq({
+      path: '/projects',
+      headers: { authorization: 'Bearer ghp_free_token' },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.tier).toBe('free');
+  });
+
+  it('skips rate limit for pro tier users', async () => {
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-pro-user',
+      githubUsername: 'prouser',
+      githubId: '222',
+      isAdmin: false,
+    });
+    mockGetOrCreateAccount.mockResolvedValue({ tier: 'pro' });
+
+    // Make 20 requests — all should pass for pro tier
+    for (let i = 0; i < 20; i++) {
+      const req = createMockReq({
+        path: '/projects',
+        headers: { authorization: 'Bearer ghp_pro_token' },
+      });
+      const res = createMockRes();
+      const n = vi.fn();
+      await authMiddleware(req, res, n);
+      expect(n).toHaveBeenCalled();
+      expect(req.tier).toBe('pro');
+    }
+  });
+
+  it('rate limits free GitHub user after 10 requests', async () => {
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-rate-limited-user',
+      githubUsername: 'ratelimited',
+      githubId: '333',
+      isAdmin: false,
+    });
+    mockGetOrCreateAccount.mockResolvedValue({ tier: 'free' });
+
+    // First 10 should pass
+    for (let i = 0; i < 10; i++) {
+      const req = createMockReq({
+        path: '/projects',
+        headers: { authorization: 'Bearer ghp_rl_token' },
+      });
+      const res = createMockRes();
+      const n = vi.fn();
+      await authMiddleware(req, res, n);
+      expect(n).toHaveBeenCalled();
+    }
+
+    // 11th should be rate limited
+    const req = createMockReq({
+      path: '/projects',
+      headers: { authorization: 'Bearer ghp_rl_token' },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(429);
+    expect(res._json.purchaseUrl).toBe('/absorb?tab=credits');
+  });
+
+  it('admin users bypass rate limits entirely', async () => {
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-admin',
+      githubUsername: 'brianonbased-dev',
+      githubId: '99999',
+      isAdmin: true,
+    });
+
+    // Make 50 requests — all should pass for admin
+    for (let i = 0; i < 50; i++) {
+      const req = createMockReq({
+        path: '/projects',
+        headers: { authorization: 'Bearer ghp_admin_token' },
+      });
+      const res = createMockRes();
+      const n = vi.fn();
+      await authMiddleware(req, res, n);
+      expect(n).toHaveBeenCalled();
+      expect(req.tier).toBe('admin');
+    }
   });
 });
