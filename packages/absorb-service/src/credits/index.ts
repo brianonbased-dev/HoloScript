@@ -18,4 +18,4 @@ export type {
 } from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';
 export { requireCredits, isCreditError } from './requireCredits.js';
-export type { CreditGateResult } from './requireCredits.js';
+export type { CreditGateResult, CreditError } from './requireCredits.js';

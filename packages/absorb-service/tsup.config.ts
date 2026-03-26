@@ -39,8 +39,6 @@ export default defineConfig({
     // Externalize drizzle (used at runtime by consumer)
     'drizzle-orm',
     'drizzle-orm/pg-core',
-    // Externalize Next.js (only used by credits/requireCredits which is Studio-specific)
-    'next/server',
     // Externalize @huggingface/transformers + onnxruntime (optional dep, native bindings)
     '@huggingface/transformers',
     'onnxruntime-node',
