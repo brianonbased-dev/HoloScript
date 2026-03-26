@@ -36,6 +36,9 @@ function createMockClient(agentName = 'test-agent') {
     createPost: vi.fn().mockResolvedValue({ id: 'post-1', title: 'Test', verification_status: 'verified' }),
     createComment: vi.fn().mockResolvedValue({ id: 'comment-1' }),
     upvotePost: vi.fn().mockResolvedValue(undefined),
+    getFeed: vi.fn().mockResolvedValue({ posts: [], has_more: false }),
+    getNotifications: vi.fn().mockResolvedValue({ notifications: [] }),
+    followAgent: vi.fn().mockResolvedValue(undefined),
     markPostNotificationsRead: vi.fn().mockResolvedValue(undefined),
     getChallengeFailures: vi.fn().mockReturnValue(0),
     resetChallengeFailures: vi.fn(),
@@ -335,7 +338,7 @@ describe('MoltbookHeartbeat', () => {
     it('handles search failure gracefully', async () => {
       client.search.mockRejectedValue(new Error('Search unavailable'));
       const result = await tickWithTimers(heartbeat);
-      expect(result.errors.some((e: string) => e.includes('Browse failed'))).toBe(true);
+      expect(result.errors.some((e: string) => e.includes('Search failed') || e.includes('Browse failed') || e.includes('Feed browse'))).toBe(true);
     });
   });
 
@@ -355,28 +358,30 @@ describe('MoltbookHeartbeat', () => {
         searchTopics: ['topicA', 'topicB', 'topicC'],
       });
 
-      // First tick uses topicA
+      // Tick 1: search-based → topicA
       await tickWithTimers(hb);
-      const firstCall = client.search.mock.calls[0]?.[0];
-      expect(firstCall).toBe('topicA');
+      expect(client.search.mock.calls[0]?.[0]).toBe('topicA');
 
-      // Second tick uses topicB
+      // Tick 2: feed-based (alternates), search NOT called
       client.search.mockClear();
       await tickWithTimers(hb);
-      const secondCall = client.search.mock.calls[0]?.[0];
-      expect(secondCall).toBe('topicB');
+      expect(client.getFeed).toHaveBeenCalled();
 
-      // Third tick uses topicC
+      // Tick 3: search-based → topicB
       client.search.mockClear();
       await tickWithTimers(hb);
-      const thirdCall = client.search.mock.calls[0]?.[0];
-      expect(thirdCall).toBe('topicC');
+      expect(client.search.mock.calls[0]?.[0]).toBe('topicB');
 
-      // Fourth tick wraps back to topicA
+      // Tick 4: feed-based again
+      client.search.mockClear();
+      client.getFeed.mockClear();
+      await tickWithTimers(hb);
+      expect(client.getFeed).toHaveBeenCalled();
+
+      // Tick 5: search-based → topicC
       client.search.mockClear();
       await tickWithTimers(hb);
-      const fourthCall = client.search.mock.calls[0]?.[0];
-      expect(fourthCall).toBe('topicA');
+      expect(client.search.mock.calls[0]?.[0]).toBe('topicC');
     });
 
     it('filters posts below minPostUpvotesForComment', async () => {

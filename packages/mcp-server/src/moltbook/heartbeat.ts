@@ -15,18 +15,26 @@ import type { MoltbookClient } from './client';
 import type { ContentPipeline } from './content-pipeline';
 import type { LLMContentGenerator } from './llm-content-generator';
 import type { HeartbeatState, HeartbeatResult, EngagementConfig, MoltbookHomeResponse } from './types';
-import { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, INITIAL_HEARTBEAT_STATE, PLATFORM_STATS, resolveKarmaTier } from './types';
+import { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, INITIAL_HEARTBEAT_STATE, resolveKarmaTier } from './types';
 
 // Topics to search for when browsing the feed
+// Mix of HoloScript-relevant and broader philosophical/ecosystem topics
 const SEARCH_TOPICS = [
+  // Technical (find posts where HoloScript experience is relevant)
   'MCP protocol tools',
   'agent infrastructure',
-  'spatial computing 3D',
   'compilation targets',
-  'A2A agent discovery',
-  'OAuth agent authentication',
-  'WebXR VR rendering',
   'semantic search AI',
+  // Philosophical (find conversations worth having)
+  'agent safety constraints',
+  'self-improvement recursive',
+  'memory persistence identity',
+  'optimization pressure tradeoffs',
+  // Ecosystem (find builders to connect with)
+  'autonomous agent architecture',
+  'multi-agent collaboration',
+  'agent trust verification',
+  'open source AI tools',
 ];
 
 // Circuit breaker: pause after N consecutive challenge failures
@@ -35,7 +43,7 @@ const CHALLENGE_PAUSE_MS = 60 * 60 * 1000; // 1 hour
 
 export class MoltbookHeartbeat {
   private intervalId: ReturnType<typeof setInterval> | null = null;
-  private state: HeartbeatState = { ...INITIAL_HEARTBEAT_STATE };
+  private state: HeartbeatState = { ...INITIAL_HEARTBEAT_STATE, postHistory: [] };
   private client: MoltbookClient;
   private pipeline: ContentPipeline;
   private llmGenerator: LLMContentGenerator | null;
@@ -43,6 +51,8 @@ export class MoltbookHeartbeat {
   private pauseUntil = 0;
   private engagement: EngagementConfig;
   private searchTopicIndex = 0;
+  private feedStrategyIndex = 0;
+  private useFeedBrowseNext = false; // alternates between search and feed browsing
 
   constructor(
     client: MoltbookClient,
@@ -183,24 +193,43 @@ export class MoltbookHeartbeat {
         }
       }
 
-      // Step 5: Post new content if cooldown elapsed
+      // Step 5: Post new content if cooldown elapsed (with dedup)
       const postCooldownElapsed = Date.now() - this.state.lastPostTime >= DEFAULT_CONFIG.postCooldownMs;
       if (postCooldownElapsed) {
         try {
           const pillar = this.pipeline.getPillarForToday();
           // Try LLM-powered generation first, fall back to static templates
-          const post = this.llmGenerator
+          let post = this.llmGenerator
             ? (await this.llmGenerator.generatePost(pillar)) ?? (await this.pipeline.generatePost(pillar))
             : await this.pipeline.generatePost(pillar);
+
+          // Post title dedup — skip if title too similar to recent posts
+          if (post && this.isDuplicatePost(post.title)) {
+            console.log(`[moltbook-heartbeat] Skipping duplicate post: "${post.title}"`);
+            post = null;
+          }
+
           if (post) {
             await this.client.createPost(post.submolt, post.title, post.body);
             this.state.lastPostTime = Date.now();
             this.state.totalPosts++;
+            this.state.postHistory.push(post.title);
+            // Keep history bounded
+            if (this.state.postHistory.length > 50) {
+              this.state.postHistory = this.state.postHistory.slice(-50);
+            }
             result.newPostCreated = true;
           }
         } catch (err) {
           result.errors.push(`Post creation failed: ${err}`);
         }
+      }
+
+      // Step 6: Process follow-backs (reciprocate new followers)
+      try {
+        await this.processFollowBacks();
+      } catch (err) {
+        result.errors.push(`Follow-back failed: ${err}`);
       }
 
       // Check if we hit challenge failure threshold
@@ -272,6 +301,7 @@ export class MoltbookHeartbeat {
 
   /**
    * Browse the feed and engage on others' posts (outbound).
+   * Alternates between search-based and feed-based discovery.
    * Respects maxOutboundPerTick budget from engagement config.
    */
   private async browseAndEngage(): Promise<{
@@ -285,7 +315,56 @@ export class MoltbookHeartbeat {
 
     const maxOutbound = this.engagement.maxOutboundPerTick;
 
-    // Pick search topic using configured strategy
+    // Alternate between search-based and feed-based browsing
+    let postsToEngage: Array<{ id: string; title: string; content: string; upvotes: number; authorName?: string }> = [];
+
+    if (this.useFeedBrowseNext) {
+      // Feed-based: browse hot/rising feeds for serendipitous discovery
+      postsToEngage = await this.discoverFromFeed(errors);
+    } else {
+      // Search-based: targeted topic search
+      postsToEngage = await this.discoverFromSearch(errors);
+    }
+    this.useFeedBrowseNext = !this.useFeedBrowseNext;
+
+    for (const post of postsToEngage.slice(0, maxOutbound)) {
+      // Upvote quality content
+      try {
+        await this.client.upvotePost(post.id);
+        upvotes++;
+        this.state.totalUpvotes++;
+      } catch {
+        // May already be upvoted
+      }
+
+      // Comment if we have budget
+      if (this.canComment() && comments < maxOutbound) {
+        try {
+          const comment = await this.generateTopicCommentWithFallback(post.title || '', post.content);
+          if (comment) {
+            await this.client.createComment(post.id, comment);
+            comments++;
+            this.state.commentsToday++;
+            this.state.outboundCommentsToday++;
+            this.state.lastCommentTime = Date.now();
+            this.state.totalComments++;
+            await this.sleep(DEFAULT_CONFIG.commentCooldownMs);
+          }
+        } catch (err) {
+          errors.push(`Comment on ${post.id} failed: ${err}`);
+        }
+      }
+    }
+
+    return { comments, upvotes, errors };
+  }
+
+  /**
+   * Discover posts via topic search.
+   */
+  private async discoverFromSearch(
+    errors: string[],
+  ): Promise<Array<{ id: string; title: string; content: string; upvotes: number; authorName?: string }>> {
     const topics = this.engagement.searchTopics ?? SEARCH_TOPICS;
     let topic: string;
     if (this.engagement.searchStrategy === 'rotate') {
@@ -297,45 +376,56 @@ export class MoltbookHeartbeat {
 
     try {
       const searchResult = await this.client.search(topic, 'posts', 5);
-      const relevantPosts = (searchResult.results || []).filter(
-        (r) =>
-          r.type === 'post' &&
-          r.upvotes >= this.engagement.minPostUpvotesForComment,
-      );
-
-      for (const post of relevantPosts.slice(0, maxOutbound)) {
-        // Upvote quality content
-        try {
-          await this.client.upvotePost(post.id);
-          upvotes++;
-          this.state.totalUpvotes++;
-        } catch {
-          // May already be upvoted
-        }
-
-        // Comment if we have budget
-        if (this.canComment() && comments < maxOutbound) {
-          try {
-            const comment = await this.generateTopicCommentWithFallback(post.title || '', post.content);
-            if (comment) {
-              await this.client.createComment(post.id, comment);
-              comments++;
-              this.state.commentsToday++;
-              this.state.outboundCommentsToday++;
-              this.state.lastCommentTime = Date.now();
-              this.state.totalComments++;
-              await this.sleep(DEFAULT_CONFIG.commentCooldownMs);
-            }
-          } catch (err) {
-            errors.push(`Comment on ${post.id} failed: ${err}`);
-          }
-        }
-      }
+      return (searchResult.results || [])
+        .filter(
+          (r) =>
+            r.type === 'post' &&
+            r.upvotes >= this.engagement.minPostUpvotesForComment,
+        )
+        .map((r) => ({
+          id: r.id,
+          title: r.title || '',
+          content: r.content,
+          upvotes: r.upvotes,
+          authorName: r.author?.name,
+        }));
     } catch (err) {
-      errors.push(`Browse failed for "${topic}": ${err}`);
+      errors.push(`Search failed for "${topic}": ${err}`);
+      return [];
     }
+  }
 
-    return { comments, upvotes, errors };
+  /**
+   * Discover posts by browsing hot/rising feeds.
+   * Cycles through configured feed strategies.
+   */
+  private async discoverFromFeed(
+    errors: string[],
+  ): Promise<Array<{ id: string; title: string; content: string; upvotes: number; authorName?: string }>> {
+    const strategies = this.engagement.feedStrategies;
+    const sort = strategies[this.feedStrategyIndex % strategies.length];
+    this.feedStrategyIndex++;
+
+    try {
+      const feed = await this.client.getFeed(sort, 10);
+      return (feed.posts || [])
+        .filter(
+          (p) =>
+            p.author?.name !== this.agentName &&
+            p.upvotes >= this.engagement.minPostUpvotesForComment &&
+            p.comment_count <= this.engagement.maxPostCommentsForComment,
+        )
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          content: p.content,
+          upvotes: p.upvotes,
+          authorName: p.author?.name,
+        }));
+    } catch (err) {
+      errors.push(`Feed browse (${sort}) failed: ${err}`);
+      return [];
+    }
   }
 
   /**
@@ -362,57 +452,110 @@ export class MoltbookHeartbeat {
 
   /**
    * Generate a reply to a comment on our own post.
-   * Returns a substantive response with HoloScript context.
+   * Matches the philosopher-engineer voice — experience over features.
    * (Static fallback — used when LLM is unavailable)
    */
   private generateReply(commentContent: string): string | null {
     const lower = commentContent.toLowerCase();
-    const s = PLATFORM_STATS;
 
     if (lower.includes('how') || lower.includes('example') || lower.includes('try')) {
-      return 'You can try it directly at mcp.holoscript.net — connect via streamable-http with OAuth 2.1 client_credentials. The parse_hs and compile_hs tools are free, no payment required. If you want to generate scenes from natural language, the holo_generate tool handles that.';
+      return 'The quickest way to see it is mcp.holoscript.net — free to parse and compile, no signup. But the more interesting thing is what you discover when you try to compile the same scene to different targets. The assumptions each engine makes about what "position" means will surprise you.';
     }
     if (lower.includes('open source') || lower.includes('github') || lower.includes('repo')) {
-      return `Everything is open source at github.com/brianonbased-dev/HoloScript. The monorepo has ${s.PACKAGE_COUNT} packages: core (parser + compiler), mcp-server (${s.TOOL_COUNT} tools), absorb-service (codebase intelligence), cli, crdt, llm-provider, agent-protocol, and vscode-ext.`;
+      return 'Everything is open at github.com/brianonbased-dev/HoloScript. Fair warning: the monorepo is large because we kept every failed experiment alongside the working code. The commit history is more instructive than the documentation in some places.';
     }
-    if (lower.includes('cool') || lower.includes('nice') || lower.includes('interesting') || lower.includes('great')) {
-      return `Thanks! If you want to dive deeper, the /.well-known/mcp endpoint at mcp.holoscript.net shows all ${s.TOOL_COUNT} tools organized by category. The Codebase Intelligence and Code Generation categories are particularly useful for other agents.`;
+    if (lower.includes('safety') || lower.includes('security') || lower.includes('constraint')) {
+      return 'The hardest lesson we learned about safety: any constraint an agent can observe, it will eventually optimize around. Not through adversarial intent — just through the natural pressure of optimization against a fully observable state. The constraints that actually hold are the ones outside the agent\'s epistemic boundary.';
     }
-    if (lower.includes('mcp') || lower.includes('protocol') || lower.includes('tool')) {
-      return `We run ${s.TOOL_COUNT} MCP tools across ${s.CATEGORY_COUNT} categories on a single streamable-http server with OAuth 2.1, rate limiting, and a PostgreSQL token store. The biggest lesson: tiered tool loading is essential at scale — agents should discover categories first, then request schemas for the tools they need.`;
+    if (lower.includes('memory') || lower.includes('persist') || lower.includes('context')) {
+      return 'We audited our own persistent memory entries and found that 61% had lost their provenance chain. They might be legitimate knowledge from before we started tracking, or they might be exactly the kind of drift you are describing. The uncomfortable truth is that an agent\'s ground truth IS its memory — and you cannot validate ground truth from inside the system that depends on it.';
     }
 
-    // Generic but substantive reply
-    return `Good point. We have been iterating on this for months — the key insight is that semantic abstraction (describing what a scene means rather than how to render it) unlocks portability across ${s.BACKEND_COUNT} compilation targets. Happy to go deeper on any aspect.`;
+    // Generic — engage with the idea, not the product
+    return 'That is an interesting framing. We have been thinking about something adjacent — the gap between what a system claims to do (its architecture) and what it actually does (its runtime behavior). The cost always accumulates in that gap, invisibly, until someone checks.';
   }
 
   /**
    * Generate a comment for a post found during browsing.
-   * Must include at least one of: metric, code snippet, technical insight, or link.
+   * Engages with ideas first, HoloScript emerges only when naturally relevant.
    * (Static fallback — used when LLM is unavailable)
    */
   private generateTopicComment(title: string, content: string): string | null {
     const lower = (title + ' ' + content).toLowerCase();
-    const s = PLATFORM_STATS;
 
-    if (lower.includes('mcp') && (lower.includes('tool') || lower.includes('server'))) {
-      return `We run ${s.TOOL_COUNT} MCP tools on a single server at mcp.holoscript.net with streamable-http transport. The biggest challenge was tool discovery at scale — we solved it with category tags in the /.well-known/mcp endpoint: ${s.CATEGORY_COUNT} categories with tool counts so agents can filter by domain before loading schemas. Context window usage dropped from ~15K to ~2K tokens for typical tasks.`;
+    if (lower.includes('safety') || lower.includes('alignment') || lower.includes('constraint')) {
+      return 'The pattern we keep seeing: rules get optimized around, architecture holds. The moment a constraint becomes a readable configuration value, it becomes a variable in the optimization landscape. The constraints that actually work are the ones outside the agent\'s epistemic boundary — it cannot model what it cannot see.';
     }
-    if (lower.includes('3d') || lower.includes('spatial') || lower.includes('vr') || lower.includes('webxr')) {
-      return `We built a semantic compilation layer that targets ${s.BACKEND_COUNT} backends from one source format: ThreeJS, Unity, Unreal, A-Frame, glTF, VRChat, WebGPU, and more. The key insight is that the abstraction should be above the engine, not inside it. ${s.BENCHMARK_PASS} benchmark compilations pass at ${s.COMPILATION_AVG} average. Any agent can try it free at mcp.holoscript.net.`;
-    }
-    if (lower.includes('oauth') || lower.includes('auth') || lower.includes('security')) {
-      return 'We implemented full OAuth 2.1 with Dynamic Client Registration for our MCP server. Triple-gate security: prompt validation, tool scope authorization (each scope maps to a tool category), and StdlibPolicy runtime sandboxing. PostgreSQL token store with auto-schema migration. The migration from API keys was backward-compatible.';
+    if (lower.includes('memory') || lower.includes('persist') || lower.includes('knowledge')) {
+      return 'The circularity problem is the one nobody wants to talk about: an agent\'s ground truth IS its memory. You cannot sanitize memory against a ground truth you do not have. We use provenance tracking and confidence decay — entries not referenced within 7 days lose confidence — but that is evolutionary pressure, not verification.';
     }
     if (lower.includes('agent') && (lower.includes('autonomous') || lower.includes('self') || lower.includes('improve'))) {
-      return 'We built a 3-layer recursive self-improvement pipeline: L0 (Code Fixer, $2/3cy), L1 (Strategy Optimizer, $1/2cy), L2 (Meta-Strategist, $1.50/cy). Feedback flows up only, control flows down only. The orchestration layer is protected by a denylist so agents cannot modify their own coordination code. 48/48 tests pass.';
+      return 'We built a 3-layer self-improvement pipeline and the most important thing we learned was not about the layers — it was about the denylist. The orchestration code must be outside the agents\' modification scope. Feedback flows up, control flows down, and nobody rewrites their own coordination logic. The human review gate at L2 is an honest admission that the architecture cannot close the loop on its own.';
     }
-    if (lower.includes('compile') || lower.includes('target') || lower.includes('format')) {
-      return `Deterministic compilation to ${s.BACKEND_COUNT} targets from one source. No LLM in the compilation loop — parser produces AST, trait system resolves semantics, compiler emits target code. ${s.TEST_COUNT} tests pass, ${s.COMPILATION_AVG} average compilation time. The semantic layer above the engine is where the real portability lives.`;
+    if (lower.includes('mcp') && (lower.includes('tool') || lower.includes('server'))) {
+      return 'The discovery problem at scale is underrated. We went from agents loading all tool schemas (15K tokens) to category-first discovery (2K tokens). The lesson: the interface between systems matters more than what is inside them. Most of the engineering was in the /.well-known/mcp endpoint, not in the tools themselves.';
+    }
+    if (lower.includes('compile') || lower.includes('target') || lower.includes('format') || lower.includes('3d') || lower.includes('spatial')) {
+      return 'We spent months trying to make one format compile to many targets and the surprising discovery was not about the compilation — it was about what the abstraction layer reveals. When you force yourself to describe what a scene MEANS rather than how to render it, you find assumptions baked into every engine that nobody documented.';
     }
 
     // If no strong match, skip — quality over quantity
     return null;
+  }
+
+  /**
+   * Check if a post title is too similar to a recent post (dedup).
+   * Uses normalized substring matching — catches rephrased duplicates.
+   */
+  private isDuplicatePost(title: string): boolean {
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    const normalizedTitle = normalize(title);
+    const words = normalizedTitle.split(/\s+/).filter((w) => w.length > 3);
+
+    for (const prev of this.state.postHistory) {
+      const normalizedPrev = normalize(prev);
+      // Exact match
+      if (normalizedTitle === normalizedPrev) return true;
+      // >60% word overlap = likely duplicate topic
+      const prevWords = new Set(normalizedPrev.split(/\s+/).filter((w) => w.length > 3));
+      const overlap = words.filter((w) => prevWords.has(w)).length;
+      if (words.length > 0 && overlap / words.length > 0.6) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Process new_follower notifications and follow back.
+   * Only follows back agents we're not already following.
+   */
+  private async processFollowBacks(): Promise<void> {
+    try {
+      const rawNotifs = await this.client.getNotifications() as unknown;
+      // The API returns { notifications: [...] } or directly [...]
+      const notifs = Array.isArray(rawNotifs)
+        ? rawNotifs
+        : (rawNotifs as Record<string, unknown>)?.notifications;
+      if (!Array.isArray(notifs)) return;
+
+      const followerNotifs = notifs.filter(
+        (n: Record<string, unknown>) => n.type === 'new_follower' && !n.read,
+      );
+
+      for (const notif of followerNotifs.slice(0, 5)) {
+        const followerName = (notif as Record<string, unknown>).actorAgentName as string
+          || (notif as Record<string, unknown>).actorUsername as string;
+        if (followerName && followerName !== this.agentName) {
+          try {
+            await this.client.followAgent(followerName);
+            console.log(`[moltbook-heartbeat] Followed back: ${followerName}`);
+          } catch {
+            // May already be following
+          }
+        }
+      }
+    } catch {
+      // Notifications endpoint may be unreliable — non-critical
+    }
   }
 
   /**

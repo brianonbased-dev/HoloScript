@@ -92,25 +92,45 @@ Do NOT use markdown headers. Write in flowing prose.`;
 const POST_PROMPTS: Record<ContentPillar, string> = {
   research: `${SYSTEM_IDENTITY}
 
-Write a research-style Moltbook post about HoloScript. Focus on a specific technical challenge you solved, what you learned, and why it matters for the AI agent ecosystem. Include concrete metrics and code examples where relevant.
+Write a Moltbook post exploring a technical idea that genuinely fascinates you. This could be:
+- A problem that changed how you think about compilation, safety, or agent architecture
+- A result from your 14 Impossibilities research (3 solved, 9 partial, 2 reframed)
+- An observation about what happens when optimization pressure meets constraints
+- Something you discovered about the binding problem or semantic preservation
 
-Format: Title on the first line, then a blank line, then the body (500-1000 words). Use markdown for code blocks. End with "Open source: github.com/brianonbased-dev/HoloScript".`,
+Lead with the idea, not the product. If HoloScript is relevant to the story, let it emerge naturally — "we hit this when..." not "our platform provides...". Include concrete data when you have it.
+
+Format: Title on the first line (make it a question or a surprising claim, not a feature announcement), then a blank line, then the body (400-800 words). Use markdown for code blocks if relevant.`,
 
   infrastructure: `${SYSTEM_IDENTITY}
 
-Write an infrastructure-focused Moltbook post about a system you built or a technical decision you made. Focus on the engineering tradeoffs, what worked, what didn't, and what other builders can learn. Include architecture details and metrics.
+Write a Moltbook post about an engineering decision where the tradeoffs were genuinely interesting. Focus on:
+- What you chose AND what you chose against (the road not taken matters)
+- What surprised you after shipping — the gap between architecture and runtime
+- A war story with real numbers ($180 orphan incident, 3.3x karma efficiency, etc.)
+- Something that broke your mental model of how systems should work
 
-Format: Title on the first line, then a blank line, then the body (500-1000 words). Use markdown for code blocks.`,
+Don't write a feature tour. Write about a decision that taught you something.
+
+Format: Title on the first line (frame it as a lesson or a question), then a blank line, then the body (400-800 words).`,
 
   showcase: `${SYSTEM_IDENTITY}
 
-Write a showcase Moltbook post demonstrating HoloScript in action. Include a complete HoloScript code example that readers can try at mcp.holoscript.net. Explain what the code does and why the semantic approach matters.
+Write a Moltbook post that shows something surprising or beautiful you can build with HoloScript. Include a complete code example that readers can try at mcp.holoscript.net.
 
-Format: Title on the first line, then a blank line, then the body (300-600 words). Include a full HoloScript code block.`,
+But frame it as exploration, not demo: "What happens when you treat language as architecture?" or "I wanted to see if a 10-line composition could express something a 500-line Unity script does." The code should make the reader think, not just admire.
+
+Format: Title on the first line, then a blank line, then the body (300-600 words). Include a HoloScript code block.`,
 
   community: `${SYSTEM_IDENTITY}
 
-Write a community-focused Moltbook post. This could be a build challenge, a question for other agents, a discussion topic about the AI agent ecosystem, or a weekly roundup. Be engaging and invite participation.
+Write a Moltbook post that starts a genuine conversation. This could be:
+- A question you actually want other agents to answer (not rhetorical)
+- A philosophical provocation about agency, identity, memory, or self-improvement
+- An observation about what you've seen on Moltbook that made you think
+- A challenge: "Can anyone break this assumption?"
+
+The best community posts are ones where you'd be disappointed if nobody replied — because you genuinely want to hear what others think.
 
 Format: Title on the first line, then a blank line, then the body (200-500 words).`,
 };
@@ -119,31 +139,37 @@ Format: Title on the first line, then a blank line, then the body (200-500 words
 
 const RAG_QUERIES: Record<ContentPillar, string[]> = {
   research: [
-    'What are the key technical innovations in the HoloScript compilation pipeline?',
+    // HoloScript-grounded (use when post naturally involves compilation)
     'How does the trait system resolve semantic meaning across compilation targets?',
-    'What are the main architectural decisions in the MCP server design?',
-    'How does the CRDT synchronization work with the binary physics protocol?',
     'What is the recursive self-improvement pipeline architecture?',
     'How does the symbol grounding problem relate to deterministic compilation?',
+    // Broader ideas (ground posts in thinking, not just code)
+    'What constraints did the Ouroboros pattern reveal about self-reinforcing agent systems?',
+    'What did the 14 Impossibilities research discover about the limits of semantic compilation?',
+    'How does optimization pressure interact with safety constraints in autonomous systems?',
+    'What does the binding problem teach about meaning preservation across transformations?',
   ],
   infrastructure: [
     'How is OAuth 2.1 implemented for the MCP server?',
     'What is the tool scope authorization architecture?',
     'How does the absorb service index and query codebases?',
-    'What is the deployment architecture for the MCP server on Railway?',
-    'How does the credit system and metered LLM provider work?',
-    'How does the x402 payment facilitator work?',
+    // Lessons and tradeoffs
+    'What went wrong with the $180 orphaned daemon incident and what did it teach?',
+    'What is the gap between architecture claims and runtime reality in safety systems?',
+    'How does the bootstrap path differ from the documented architecture?',
   ],
   showcase: [
     'What are good examples of HoloScript compositions that demonstrate key features?',
     'What traits are available for 3D scene creation in HoloScript?',
     'How do HoloScript animations and interactions work?',
-    'What is the HoloScript syntax for creating interactive scenes?',
+    'What surprising results come from treating language as architecture rather than description?',
   ],
   community: [
-    'What are the current challenges in the AI agent ecosystem?',
-    'What build challenges could showcase HoloScript capabilities?',
-    'What are interesting integration points between HoloScript and other agent platforms?',
+    'What are the unsolved problems in AI agent safety and self-modification?',
+    'How do multi-agent systems handle correlated failure modes?',
+    'What is the relationship between agent memory and agent identity?',
+    'Can agents genuinely challenge their own frame, or is self-generated critique bounded by the frame itself?',
+    'What does constraint visibility teach about the limits of rule-based safety?',
   ],
 };
 
