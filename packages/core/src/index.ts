@@ -3594,3 +3594,39 @@ export type {
   SignatureResult,
   TransferResult,
 } from './web3/Web3Connector';
+
+// ============================================================================
+// Gap 2: Unified Trait Definition & Registry
+// ============================================================================
+
+export {
+  UnifiedTraitRegistry,
+  defaultTraitRegistry,
+  createTraitRegistry,
+  type TraitDefinition,
+  type TraitCategory,
+  type PropertyDef,
+  type CompileHint,
+  type TraitDeprecationInfo,
+  type TraitSource,
+  type TraitRegistrySummary,
+} from './traits/TraitDefinition';
+
+// ============================================================================
+// Gap 3: RuleForge - Trait Composition Rule Engine
+// ============================================================================
+
+export {
+  RuleForge,
+  defaultRuleForge,
+  createRuleForge,
+} from './rules/RuleForge';
+
+export type {
+  Rule,
+  RuleType,
+  RuleViolation,
+  TraitSuggestion,
+  ValidationResult as RuleValidationResult,
+  RuleSet,
+} from './rules/types';

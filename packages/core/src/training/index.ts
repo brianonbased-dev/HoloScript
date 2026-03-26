@@ -94,3 +94,45 @@ export type {
   TrainingMonkeyIntegrationConfig,
   IntegrationResult,
 } from './trainingmonkey';
+
+// ============================================================================
+// Canonical Training Constants (Gap 1: Extracted from TrainingMonkey)
+// ============================================================================
+
+// Constants (zero-dependency module)
+export {
+  TRAINING_CATEGORIES,
+  DIFFICULTY_LEVELS,
+  QUALITY_THRESHOLDS,
+  DEFAULT_GENERATOR_THRESHOLDS,
+  RULEFORGE_DOMAINS,
+  getQualityTier,
+  isValidCategory,
+  isValidDifficulty,
+  type TrainingCategory,
+  type DifficultyLevel,
+  type QualityTier,
+  type RuleForgeDomain,
+} from './constants';
+
+// Training Data Schema (JSONL-compatible)
+export {
+  validateTrainingExample,
+  type TrainingExample,
+  type TrainingExampleMetadata,
+  type TrainingQualityScore,
+  type TrainingValidationResult,
+  type TrainingValidationError,
+  type CompressionResult as TrainingCompressionResult,
+  type GeneratorMetrics,
+} from './schema';
+
+// Trait Mappings (TM <-> HS)
+export {
+  TM_REGISTERED_TRAITS,
+  validateTraitName,
+  generateValidationReport,
+  type TrainingMetadata,
+  type TraitMapping,
+  type TraitValidationReport,
+} from './trait-mappings';

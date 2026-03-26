@@ -114,3 +114,17 @@ export type {
   TooltipLine,
   RAGAnnotation,
 } from './visualization/GraphTooltipGenerator';
+
+// Deprecated Symbol Inventory (Gap 5: SCARF-inspired cleanup)
+export {
+  DeprecatedInventoryBuilder,
+  createDeprecatedInventoryBuilder,
+  extractExportsFromSource,
+} from './DeprecatedInventory';
+export type {
+  SymbolClassification,
+  DeprecatedSymbol,
+  DeprecatedInventory,
+  MigrationAction,
+  MigrationPlan,
+} from './DeprecatedInventory';
