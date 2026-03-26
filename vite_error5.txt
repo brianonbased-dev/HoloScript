@@ -1,0 +1,38 @@
+
+> @holoscript/net-service@1.0.0 build:client C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+(node:4036) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/josep/Documents/GitHub/HoloScript/services/holoscript-net/postcss.config.js?t=1774472723416 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+[32m✓[39m 2015 modules transformed.
+[31m✗[39m Build failed in 4.44s
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+C:/Users/josep/Documents/GitHub/HoloScript/services/holoscript-net/src/components/GLTFModelNode.tsx:24:8: ERROR: The symbol "clonedScene" has already been declared[31m
+file: [36mC:/Users/josep/Documents/GitHub/HoloScript/services/holoscript-net/src/components/GLTFModelNode.tsx:24:8[31m
+[33m
+[33mThe symbol "clonedScene" has already been declared[33m
+22 |    const ref = useRef<THREE.Group>(null);
+23 |    const clonedScene = useMemo(() => scene.clone(), [scene]);
+24 |    const clonedScene = useMemo(() => scene.clone(), [scene]);
+   |          ^
+25 |  
+26 |    // Use either the provided animations (e.g., from userData) or the ones embedded in the GLTF
+[31m
+    at failureErrorWithLog (C:\Users\josep\Documents\GitHub\HoloScript\node_modules\.pnpm\esbuild@0.27.3\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\josep\Documents\GitHub\HoloScript\node_modules\.pnpm\esbuild@0.27.3\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\Users\josep\Documents\GitHub\HoloScript\node_modules\.pnpm\esbuild@0.27.3\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\josep\Documents\GitHub\HoloScript\node_modules\.pnpm\esbuild@0.27.3\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\josep\Documents\GitHub\HoloScript\node_modules\.pnpm\esbuild@0.27.3\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)[39m
+C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @holoscript/net-service@1.0.0 build:client: `vite build`
+Exit status 1

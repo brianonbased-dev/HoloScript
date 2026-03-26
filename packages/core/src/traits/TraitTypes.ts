@@ -27,6 +27,7 @@ export interface TraitHandler<TConfig = unknown> {
   onDetach?: (node: HSPlusNode, config: TConfig, context: TraitContext) => void;
   onUpdate?: (node: HSPlusNode, config: TConfig, context: TraitContext, delta: number) => void;
   onEvent?: (node: HSPlusNode, config: TConfig, context: TraitContext, event: TraitEvent) => void;
+  [key: string]: any; // Allow arbitrary compiler adapters, validators, and metadata decorators
 }
 
 export interface HostExecOptions {

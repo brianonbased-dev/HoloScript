@@ -153,6 +153,8 @@ export interface DaemonJob {
   limits?: DaemonJobLimits;
   projectPath?: string;
   error?: string;
+  /** GitHub-resolved user ID who initiated this job */
+  userId?: string;
   /** Codebase graph snapshot from Phase 0 absorb. Available once job completes. */
   absorb?: DaemonAbsorbSnapshot;
 }
@@ -163,6 +165,8 @@ export interface CreateDaemonJobInput {
   projectDna: DaemonProjectDNA;
   projectPath?: string;
   customLimits?: Partial<DaemonJobLimits>;
+  /** GitHub-resolved user ID of the requester */
+  userId?: string;
 }
 
 export interface DaemonTelemetryEvent {

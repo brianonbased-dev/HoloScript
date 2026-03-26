@@ -1,0 +1,30 @@
+src/compiler/R3FCompiler.ts(2359,47): error TS2345: Argument of type '{}' is not assignable to parameter of type 'Record<string, unknown>'.
+src/compiler/R3FCompiler.ts(2412,31): error TS2538: Type 'unknown' cannot be used as an index type.
+src/compiler/R3FCompiler.ts(2538,31): error TS2339: Property 'color' does not exist on type '{}'.
+src/compiler/R3FCompiler.ts(2539,30): error TS2339: Property 'near' does not exist on type '{}'.
+src/compiler/R3FCompiler.ts(2540,29): error TS2339: Property 'far' does not exist on type '{}'.
+src/compiler/R3FCompiler.ts(2550,34): error TS2339: Property 'color' does not exist on type '{}'.
+src/compiler/R3FCompiler.ts(2585,36): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+src/compiler/R3FCompiler.ts(2592,16): error TS2488: Type '{}' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/compiler/R3FCompiler.ts(2601,48): error TS2488: Type '{}' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/compiler/R3FCompiler.ts(2632,26): error TS2488: Type '{}' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/compiler/R3FCompiler.ts(2671,65): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2679,17): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2682,39): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2687,11): error TS18046: 'props.materialProps' is of type 'unknown'.
+src/compiler/R3FCompiler.ts(2690,11): error TS18046: 'props.materialProps' is of type 'unknown'.
+src/compiler/R3FCompiler.ts(2691,11): error TS18046: 'props.materialProps' is of type 'unknown'.
+src/compiler/R3FCompiler.ts(2693,35): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2695,35): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2758,15): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2761,37): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(2774,43): error TS2769: No overload matches this call.
+src/compiler/R3FCompiler.ts(3006,33): error TS2698: Spread types may only be created from object types.
+src/compiler/R3FCompiler.ts(3024,27): error TS2538: Type '{}' cannot be used as an index type.
+src/compiler/R3FCompiler.ts(3041,50): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+src/compiler/R3FCompiler.ts(3054,27): error TS2488: Type '{}' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/compiler/R3FCompiler.ts(3121,54): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+src/compiler/R3FCompiler.ts(3123,7): error TS2740: Type '{}' is missing the following properties from type 'HSPlusDirective[]': length, pop, push, concat, and 28 more.
+src/compiler/R3FCompiler.ts(3128,23): error TS2488: Type '{}' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/compiler/R3FCompiler.ts(3183,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | undefined'.
+src/compiler/R3FCompiler.ts(3185,7): error TS2740: Type '{}' is missing the following properties from type 'HSPlusDirective[]': length, pop, push, concat, and 28 more.

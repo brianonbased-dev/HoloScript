@@ -1,0 +1,56 @@
+
+> @holoscript/net-service@1.0.0 build:client C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+(node:31852) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/josep/Documents/GitHub/HoloScript/services/holoscript-net/postcss.config.js?t=1774472976873 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+[33m[plugin vite:resolve] Module "child_process" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/puppeteer-core@23.11.1/node_modules/puppeteer-core/lib/esm/puppeteer/node/ScreenRecorder.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "child_process" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/launch.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "readline" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/launch.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "child_process" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/install.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "readline" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/CLI.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "child_process" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/fileUtil.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "http" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/httpUtil.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "https" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/httpUtil.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "http" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/proxy-agent@6.5.0/node_modules/proxy-agent/dist/index.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "https" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/proxy-agent@6.5.0/node_modules/proxy-agent/dist/index.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "http" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/index.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "https" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/index.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "http" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/helpers.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "https" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/helpers.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "https" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/get-uri@6.0.5/node_modules/get-uri/dist/https.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "http" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/get-uri@6.0.5/node_modules/get-uri/dist/http.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "https" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/get-uri@6.0.5/node_modules/get-uri/dist/http.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m[plugin vite:resolve] Module "http" has been externalized for browser compatibility, imported by "C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/get-uri@6.0.5/node_modules/get-uri/dist/http-error.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.[39m
+[33m../../node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/httpUtil.js (49:16): "request" is not exported by "__vite-browser-external", imported by "../../node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/httpUtil.js".[39m
+[33m../../node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/httpUtil.js (50:15): "request" is not exported by "__vite-browser-external", imported by "../../node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/httpUtil.js".[39m
+[32m✓[39m 3505 modules transformed.
+[31m✗[39m Build failed in 13.62s
+[31merror during build:
+[31m../../node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/fileUtil.js (6:9): "spawnSync" is not exported by "__vite-browser-external", imported by "../../node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/fileUtil.js".[31m
+file: [36mC:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@puppeteer+browsers@2.6.1/node_modules/@puppeteer/browsers/lib/esm/fileUtil.js:6:9[31m
+[33m
+4:  * SPDX-License-Identifier: Apache-2.0
+5:  */
+6: import { spawnSync, spawn } from 'child_process';
+            ^
+7: import { createReadStream } from 'fs';
+8: import { mkdir, readdir } from 'fs/promises';
+[31m
+    at getRollupError (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/parseAst.js:406:41)
+    at error (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/parseAst.js:402:42)
+    at Module.error (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:17065:16)
+    at Module.traceVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:17477:29)
+    at ModuleScope.findVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:15090:39)
+    at FunctionScope.findVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)
+    at FunctionBodyScope.findVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)
+    at TrackingScope.findVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)
+    at TrackingScope.findVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)
+    at TrackingScope.findVariable (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)[39m
+C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @holoscript/net-service@1.0.0 build:client: `vite build`
+Exit status 1

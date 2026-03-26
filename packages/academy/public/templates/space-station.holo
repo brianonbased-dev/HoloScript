@@ -1,0 +1,62 @@
+composition "Space Station" {
+  environment {
+    skybox: "space_void"
+    ambient: 0.15
+  }
+
+  object "Central Hub" @collidable {
+    geometry: "sphere"
+    position: [0, 0, -8]
+    scale: [3, 3, 3]
+    color: "#aaaacc"
+    material: "metal"
+  }
+
+  object "Solar Panel Left" @animated {
+    geometry: "plane"
+    position: [-6, 0, -8]
+    scale: [4, 2, 1]
+    color: "#1a1a4a"
+    material: "shiny"
+  }
+
+  object "Solar Panel Right" @animated {
+    geometry: "plane"
+    position: [6, 0, -8]
+    scale: [4, 2, 1]
+    color: "#1a1a4a"
+    material: "shiny"
+  }
+
+  object "Docking Port" @clickable @glowing {
+    geometry: "cylinder"
+    position: [0, 0, -4.5]
+    scale: [1, 0.5, 1]
+    color: "#44aaff"
+    material: "chrome"
+  }
+
+  object "Antenna" {
+    geometry: "cylinder"
+    position: [0, 3, -8]
+    scale: [0.1, 2, 0.1]
+    color: "#cccccc"
+    material: "metal"
+  }
+
+  object "Antenna Dish" {
+    geometry: "sphere"
+    position: [0, 4.5, -8]
+    scale: [0.8, 0.3, 0.8]
+    color: "#dddddd"
+    material: "chrome"
+  }
+
+  object "Navigation Light" @glowing {
+    geometry: "sphere"
+    position: [3.5, 0, -8]
+    scale: [0.2, 0.2, 0.2]
+    color: "#ff0000"
+    material: "emissive"
+  }
+}

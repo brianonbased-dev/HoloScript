@@ -1,0 +1,30 @@
+src/runtime/HoloScriptPlusRuntime.ts(104,10): error TS2416: Property 'state' in type 'HoloScriptPlusRuntimeImpl' is not assignable to the same property in base type 'HSPlusRuntime'.
+src/runtime/HoloScriptPlusRuntime.ts(171,7): error TS2353: Object literal may only specify known properties, and 'substeps' does not exist in type 'IPhysicsWorldConfig'.
+src/runtime/HoloScriptPlusRuntime.ts(187,10): error TS2339: Property 'keyboardSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(187,46): error TS2345: Argument of type 'this' is not assignable to parameter of type 'HSPlusRuntime'.
+src/runtime/HoloScriptPlusRuntime.ts(188,10): error TS2339: Property 'handMenuSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(188,46): error TS2345: Argument of type 'this' is not assignable to parameter of type 'HSPlusRuntime'.
+src/runtime/HoloScriptPlusRuntime.ts(191,29): error TS2345: Argument of type '(payload: Record<string, unknown>) => void' is not assignable to parameter of type '(payload: unknown) => void'.
+src/runtime/HoloScriptPlusRuntime.ts(193,61): error TS2345: Argument of type 'string' is not assignable to parameter of type '"left" | "right"'.
+src/runtime/HoloScriptPlusRuntime.ts(198,9): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(198,41): error TS2345: Argument of type '{ type: "fixed"; bodyA: string; bodyB: string; pivotA: { x: number; y: number; z: number; }; pivotB: { x: number; y: number; z: number; }; }' is not assignable to parameter of type 'Constraint'.
+src/runtime/HoloScriptPlusRuntime.ts(209,32): error TS2345: Argument of type '(payload: Record<string, unknown>) => void' is not assignable to parameter of type '(payload: unknown) => void'.
+src/runtime/HoloScriptPlusRuntime.ts(211,25): error TS2551: Property 'removeConstraints' does not exist on type 'IPhysicsWorld'. Did you mean 'removeConstraint'?
+src/runtime/HoloScriptPlusRuntime.ts(222,29): error TS2345: Argument of type '(payload: Record<string, unknown>) => void' is not assignable to parameter of type '(payload: unknown) => void'.
+src/runtime/HoloScriptPlusRuntime.ts(223,12): error TS2339: Property 'keyboardSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(226,39): error TS2345: Argument of type '(payload: Record<string, unknown>) => void' is not assignable to parameter of type '(payload: unknown) => void'.
+src/runtime/HoloScriptPlusRuntime.ts(233,7): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(234,9): error TS2322: Type '"prismatic"' is not assignable to type '"fixed" | "slider" | "cone" | "hinge" | "ball" | "spring" | "distance" | "generic6dof"'.
+src/runtime/HoloScriptPlusRuntime.ts(237,9): error TS2322: Type 'IVector3 | undefined' is not assignable to type 'IVector3'.
+src/runtime/HoloScriptPlusRuntime.ts(238,19): error TS2353: Object literal may only specify known properties, and 'min' does not exist in type '{ low: number; high: number; }'.
+src/runtime/HoloScriptPlusRuntime.ts(245,30): error TS2352: Conversion of type 'Renderer' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(252,43): error TS2304: Cannot find name 'VRTraitName'.
+src/runtime/HoloScriptPlusRuntime.ts(253,57): error TS2367: This comparison appears to be unintentional because the types '"dialog" | "forEach" | "directive" | "fragment" | "trait" | "lifecycle" | "state" | "for" | "while" | "if" | "import" | "version" | "migrate" | "bindings" | "export" | "world_metadata" | ... 26 more ... | "asset"' and '"sync"' have no overlap.
+src/runtime/HoloScriptPlusRuntime.ts(253,78): error TS2367: This comparison appears to be unintentional because the types '"dialog" | "forEach" | "directive" | "fragment" | "trait" | "lifecycle" | "state" | "for" | "while" | "if" | "import" | "version" | "migrate" | "bindings" | "export" | "world_metadata" | ... 26 more ... | "asset"' and '"networked"' have no overlap.
+src/runtime/HoloScriptPlusRuntime.ts(301,41): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'HoloTemplate'.
+src/runtime/HoloScriptPlusRuntime.ts(319,9): error TS2740: Type 'Record<string, unknown>' is missing the following properties from type 'Map<string, HoloValue>': clear, delete, forEach, get, and 8 more.
+src/runtime/HoloScriptPlusRuntime.ts(327,41): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'HoloTemplate'.
+src/runtime/HoloScriptPlusRuntime.ts(332,42): error TS2345: Argument of type 'this' is not assignable to parameter of type 'HSPlusRuntime'.
+src/runtime/HoloScriptPlusRuntime.ts(353,22): error TS2352: Conversion of type 'Renderer | undefined' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(368,31): error TS2351: This expression is not constructable.
+src/runtime/HoloScriptPlusRuntime.ts(370,7): error TS2531: Object is possibly 'null'.

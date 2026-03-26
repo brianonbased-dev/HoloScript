@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { forwardAuthHeaders } from '@/lib/api-auth';
 
 // ─── /api/mcp/call — HoloScript MCP Tool Proxy (Decoupled) ───────────────────
 //
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     // The orchestrator handles dispatching to absorb-service, mcp-server, uaa2-service, etc.
     const res = await fetch(`${MCP_EXTERNAL_URL}/call`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...forwardAuthHeaders(request) },
       body: JSON.stringify(body),
     });
 

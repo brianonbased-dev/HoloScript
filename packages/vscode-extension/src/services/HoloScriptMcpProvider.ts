@@ -67,7 +67,8 @@ export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvi
   }
 
   /**
-   * Resolves the MCP server definition when VS Code needs to start the server
+   * Resolves the MCP server definition when VS Code needs to start the server.
+   * Injects GitHub OAuth token if available so the MCP server knows the caller's identity.
    */
   async resolveMcpServerDefinition(
     definition: vscode.lm.McpServerDefinition
@@ -82,8 +83,37 @@ export class HoloScriptMcpProvider implements vscode.lm.McpServerDefinitionProvi
       console.warn('HoloScript MCP server health check error:', error);
     }
 
-    // Return the definition as-is (production server handles all transport details)
+    // Inject GitHub token into request headers for identity-aware MCP calls
+    const token = await this.getGitHubToken();
+    if (token && definition.transport && 'requestHeaders' in definition.transport) {
+      definition = {
+        ...definition,
+        transport: {
+          ...definition.transport,
+          requestHeaders: {
+            ...(definition.transport as any).requestHeaders,
+            'Authorization': `Bearer ${token}`,
+          },
+        },
+      };
+    }
+
     return definition;
+  }
+
+  /**
+   * Attempts to retrieve the GitHub OAuth token from VS Code's authentication API.
+   * Returns null if not authenticated or the user declines.
+   */
+  private async getGitHubToken(): Promise<string | null> {
+    try {
+      const session = await vscode.authentication.getSession('github', ['read:user'], {
+        createIfNone: false,
+      });
+      return session?.accessToken ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /**

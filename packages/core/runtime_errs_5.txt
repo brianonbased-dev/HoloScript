@@ -1,0 +1,30 @@
+src/runtime/HoloScriptPlusRuntime.ts(173,7): error TS2353: Object literal may only specify known properties, and 'substeps' does not exist in type 'IPhysicsWorldConfig'.
+src/runtime/HoloScriptPlusRuntime.ts(195,61): error TS2345: Argument of type 'string' is not assignable to parameter of type '"left" | "right"'.
+src/runtime/HoloScriptPlusRuntime.ts(200,9): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(200,41): error TS2345: Argument of type '{ type: "fixed"; bodyA: string; bodyB: string; pivotA: { x: number; y: number; z: number; }; pivotB: { x: number; y: number; z: number; }; }' is not assignable to parameter of type 'Constraint'.
+src/runtime/HoloScriptPlusRuntime.ts(235,7): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(240,19): error TS2353: Object literal may only specify known properties, and 'min' does not exist in type '{ low: number; high: number; }'.
+src/runtime/HoloScriptPlusRuntime.ts(247,30): error TS2352: Conversion of type 'Renderer' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(254,43): error TS2304: Cannot find name 'VRTraitName'.
+src/runtime/HoloScriptPlusRuntime.ts(255,57): error TS2367: This comparison appears to be unintentional because the types '"dialog" | "forEach" | "directive" | "fragment" | "trait" | "lifecycle" | "state" | "for" | "while" | "if" | "import" | "version" | "migrate" | "bindings" | "export" | "world_metadata" | ... 26 more ... | "asset"' and '"sync"' have no overlap.
+src/runtime/HoloScriptPlusRuntime.ts(255,78): error TS2367: This comparison appears to be unintentional because the types '"dialog" | "forEach" | "directive" | "fragment" | "trait" | "lifecycle" | "state" | "for" | "while" | "if" | "import" | "version" | "migrate" | "bindings" | "export" | "world_metadata" | ... 26 more ... | "asset"' and '"networked"' have no overlap.
+src/runtime/HoloScriptPlusRuntime.ts(303,41): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'HoloTemplate'.
+src/runtime/HoloScriptPlusRuntime.ts(321,9): error TS2740: Type 'Record<string, unknown>' is missing the following properties from type 'Map<string, HoloValue>': clear, delete, forEach, get, and 8 more.
+src/runtime/HoloScriptPlusRuntime.ts(329,41): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'HoloTemplate'.
+src/runtime/HoloScriptPlusRuntime.ts(355,22): error TS2352: Conversion of type 'Renderer | undefined' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(372,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(392,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(661,29): error TS2488: Type '{}' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/runtime/HoloScriptPlusRuntime.ts(774,9): error TS2740: Type 'Record<string, unknown>' is missing the following properties from type 'Map<string, HoloValue>': clear, delete, forEach, get, and 8 more.
+src/runtime/HoloScriptPlusRuntime.ts(829,31): error TS2345: Argument of type 'keyof StateDeclaration' is not assignable to parameter of type 'string'.
+src/runtime/HoloScriptPlusRuntime.ts(903,47): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/runtime/HoloScriptPlusRuntime.ts(918,56): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'HSPlusNode'.
+src/runtime/HoloScriptPlusRuntime.ts(1344,50): error TS2304: Cannot find name 'VRTraitName'.
+src/runtime/HoloScriptPlusRuntime.ts(1380,56): error TS2339: Property 'x' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1380,84): error TS2339: Property 'y' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1380,112): error TS2339: Property 'z' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1385,40): error TS2339: Property 'x' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1386,40): error TS2339: Property 'y' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1387,40): error TS2339: Property 'z' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1388,40): error TS2339: Property 'w' does not exist on type '{}'.
+src/runtime/HoloScriptPlusRuntime.ts(1396,12): error TS2322: Type 'string' is not assignable to type 'BodyType | undefined'.

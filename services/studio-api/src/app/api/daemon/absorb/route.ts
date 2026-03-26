@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { forwardAuthHeaders } from '@/lib/api-auth';
 
 // ─── Types (mirrored from CodebaseGraph serialized shape) ─────────────────────
 
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(url.toString(), {
       method: 'GET',
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', ...forwardAuthHeaders(req) },
     });
 
     if (!res.ok) {
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${ABSORB_SERVICE_URL}/api/absorb`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...forwardAuthHeaders(req) },
       body: JSON.stringify(body),
     });
 

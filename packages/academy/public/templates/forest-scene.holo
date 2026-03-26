@@ -1,0 +1,63 @@
+composition "Enchanted Forest" {
+  environment {
+    skybox: "forest_sunset"
+    ambient: 0.4
+    fog: true
+  }
+
+  object "Ancient Oak" @collidable @animated {
+    geometry: "cylinder"
+    position: [0, 2, -5]
+    scale: [0.8, 4, 0.8]
+    color: "#5c3a1e"
+    material: "wood"
+  }
+
+  object "Tree Crown" {
+    geometry: "sphere"
+    position: [0, 5, -5]
+    scale: [3, 2.5, 3]
+    color: "#2d5a1e"
+    material: "matte"
+  }
+
+  object "Glowing Mushroom" @glowing @clickable {
+    geometry: "sphere"
+    position: [2, 0.3, -4]
+    scale: [0.4, 0.5, 0.4]
+    color: "#ff66ff"
+    material: "emissive"
+  }
+
+  object "Mushroom Stem" {
+    geometry: "cylinder"
+    position: [2, 0.1, -4]
+    scale: [0.1, 0.2, 0.1]
+    color: "#f0e6d0"
+    material: "matte"
+  }
+
+  object "Forest Floor" @collidable {
+    geometry: "plane"
+    position: [0, 0, -5]
+    scale: [20, 20, 1]
+    color: "#1a3a0a"
+    material: "matte"
+  }
+
+  object "Magic Crystal" @glowing @grabbable {
+    geometry: "cone"
+    position: [-2, 0.5, -3]
+    scale: [0.3, 0.8, 0.3]
+    color: "#6633ff"
+    material: "crystal"
+  }
+
+  object "Pond" {
+    geometry: "cylinder"
+    position: [3, 0.02, -6]
+    scale: [2, 0.02, 2]
+    color: "#006994"
+    material: "water"
+  }
+}

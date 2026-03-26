@@ -6,6 +6,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { forwardAuthHeaders } from '@/lib/api-auth';
 
 const ABSORB_SERVICE_URL = process.env.ABSORB_SERVICE_INTERNAL_URL || process.env.ABSORB_SERVICE_URL || 'http://localhost:3000';
 
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
+        ...forwardAuthHeaders(req),
       },
       body: bodyText,
     });

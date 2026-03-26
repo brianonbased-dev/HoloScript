@@ -198,15 +198,15 @@ async function createAndStoreSessionTransport(
  * Authenticate an HTTP request via OAuth 2.1 or legacy API key.
  * Returns token introspection with scopes and agent identity.
  */
-function authenticateRequest(req: http.IncomingMessage): TokenIntrospection {
-  return oauth.authenticateRequest(req.headers as Record<string, string | string[] | undefined>);
+async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntrospection> {
+  return oauth.authenticateRequestAsync(req.headers as Record<string, string | string[] | undefined>);
 }
 
 /**
  * Legacy authentication check (kept for simple boolean checks on non-tool routes)
  */
-function checkAuth(req: http.IncomingMessage): boolean {
-  const auth = authenticateRequest(req);
+async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
+  const auth = await authenticateRequest(req);
   return auth.active;
 }
 
@@ -956,7 +956,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // MCP Streamable HTTP endpoint
   if (url === '/mcp') {
-    const auth = authenticateRequest(req);
+    const auth = await authenticateRequest(req);
     if (!auth.active) {
       auditLog.logAuthEvent({
         event: 'auth_failure',
@@ -1283,7 +1283,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/api/audit' && req.method === 'GET') {
     // Audit logs require authentication
-    const auth = authenticateRequest(req);
+    const auth = await authenticateRequest(req);
     if (!auth.active) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Authentication required for audit access' }));
@@ -1320,7 +1320,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // GET /api/audit/compliance — EU AI Act compliance summary
   if (url === '/api/audit/compliance' && req.method === 'GET') {
-    const auth = authenticateRequest(req);
+    const auth = await authenticateRequest(req);
     if (!auth.active || (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Authentication required with admin scope' }));
@@ -1334,7 +1334,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // GET /api/audit/export — Export audit logs (EU AI Act Art. 13)
   if (url === '/api/audit/export' && req.method === 'GET') {
-    const auth = authenticateRequest(req);
+    const auth = await authenticateRequest(req);
     if (!auth.active || (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Authentication required with admin scope' }));

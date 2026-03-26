@@ -54,6 +54,9 @@ export {
   type StdlibPolicy,
 } from './gates';
 
+// GitHub Token Authentication
+export { resolveGitHubTokenForMcp } from './github-auth';
+
 // EU AI Act Audit Logging
 export {
   getAuditLogger,

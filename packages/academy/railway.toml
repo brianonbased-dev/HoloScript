@@ -1,0 +1,16 @@
+# Railway deployment config for HoloScript Studio
+# Setup: Railway Dashboard → New Service → Docker → Set root to repo root
+# Set RAILWAY_DOCKERFILE_PATH=packages/studio/Dockerfile
+
+[build]
+dockerfilePath = "packages/studio/Dockerfile"
+watchPatterns = ["packages/studio/**", "packages/core/**"]
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[service]
+internalPort = 3000

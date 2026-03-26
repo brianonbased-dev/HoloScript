@@ -1,0 +1,51 @@
+﻿[CacheDebug][codebase] cacheDir=C:\Users\josep\.holoscript cacheFile=C:\Users\josep\.holoscript\graph-cache.json exists=true
+[CacheDebug][networking] cacheDir=C:\Users\josep\.holoscript cacheFile=C:\Users\josep\.holoscript\state-authority.json exists=false
+[CacheDebug][networking] load miss path=C:\Users\josep\.holoscript\state-authority.json reason=file-not-found
+[CacheDebug][snapshot] cacheDir=C:\Users\josep\.holoscript cacheFile=C:\Users\josep\.holoscript\snapshots.json exists=true
+[CacheDebug][snapshot] load hit path=C:\Users\josep\.holoscript\snapshots.json entries=12
+--- Path Resolution ---
+ROOT: C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net
+NATIVE_ENGINE_DIST: C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net\dist\client
+-----------------------
+node : C:\Users\josep\Documents\GitHub
+\HoloScript\services\holoscript-net\di
+st\server\server.js:18888
+At line:1 char:1
++ node dist/server/server.js *>&1 | 
+Out-File -FilePath out.txt -Encodin 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (C:\Users\josep\...server.  
+  js:18888:String) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+wss.on("connection", (ws) => {
+^
+
+ReferenceError: wss is not defined
+    at Object.<anonymous> (C:\Users\jo
+sep\Documents\GitHub\HoloScript\servic
+es\holoscript-net\dist\server\server.j
+s:18888:1)
+    at Module._compile (node:internal/
+modules/cjs/loader:1706:14)
+    at Object..js (node:internal/modul
+es/cjs/loader:1839:10)
+    at Module.load (node:internal/modu
+les/cjs/loader:1441:32)
+    at Function._load (node:internal/m
+odules/cjs/loader:1263:12)
+    at TracingChannel.traceSync 
+(node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/m
+odules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint 
+[as runMain] 
+(node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_mod
+ule:36:49
+
+Node.js v22.20.0

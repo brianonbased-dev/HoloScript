@@ -236,10 +236,3 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
   },
 };
 
-/**
- * Embedding Search - Alias to vector_db
- */
-export const embeddingSearchHandler: TraitHandler<VectorDBConfig> = {
-  ...vectorDBHandler,
-  name: 'embedding_search',
-};

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -72,7 +73,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, desc } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const agents = await db
       .select()
@@ -105,7 +106,7 @@ router.get('/summary', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, sql } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const [summary] = await db
       .select({
@@ -138,7 +139,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     const { moltbookAgents, absorbProjects } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     // Verify project ownership
     const [project] = await db
@@ -193,7 +194,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (body.agentName !== undefined) updates.agentName = body.agentName;
@@ -237,7 +238,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const result = await db
       .delete(moltbookAgents)
@@ -271,7 +272,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const result = await db
       .update(moltbookAgents)
@@ -304,7 +305,7 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const result = await db
       .update(moltbookAgents)
@@ -337,7 +338,7 @@ router.post('/:id/trigger', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     // Verify ownership
     const [agent] = await db
@@ -382,7 +383,7 @@ router.get('/:id/status', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const [agent] = await db
       .select()
@@ -431,7 +432,7 @@ router.get('/:id/events', async (req: Request, res: Response) => {
 
     const { moltbookAgents, moltbookAgentEvents } = await import('../db/schema.js');
     const { eq, and, desc } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     // Verify agent ownership
     const [agent] = await db

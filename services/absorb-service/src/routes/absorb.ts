@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -54,12 +55,12 @@ router.post('/scan', async (req: Request, res: Response) => {
     });
 
     // Deduct credits if authenticated
-    if ((req as any).authenticated && body.projectId) {
+    if ((req as AuthenticatedRequest).authenticated && body.projectId) {
       try {
         const { deductCredits } = await import('@holoscript/absorb-service/credits');
         const cost = body.shallow ? 10 : 50; // cents
         await deductCredits(
-          (req as any).userId || 'anonymous',
+          (req as AuthenticatedRequest).userId || 'anonymous',
           cost,
           `Codebase scan: ${body.path}`,
           { graphId, shallow: body.shallow }
@@ -140,7 +141,7 @@ router.get('/projects', async (req: Request, res: Response) => {
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
     const { eq, desc } = await import('drizzle-orm');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const projects = await db
       .select()
@@ -167,7 +168,7 @@ router.post('/projects', async (req: Request, res: Response) => {
     }
 
     const { absorbProjects } = await import('@holoscript/absorb-service/schema');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const result = await db
       .insert(absorbProjects)

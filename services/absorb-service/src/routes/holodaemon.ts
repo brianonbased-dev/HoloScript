@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 // Note: These imports will need to be adjusted once the paths are finalized
 import {
@@ -110,6 +111,7 @@ holodaemonRouter.get('/', async (req: Request, res: Response) => {
 
 holodaemonRouter.post('/', async (req: Request, res: Response) => {
   const body = req.body;
+  const authReq = req as AuthenticatedRequest;
 
   if (body.action === 'start') {
     const profile = body.profile ?? 'balanced';
@@ -131,6 +133,7 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
         notes: ['HoloDaemon MVP — self-improvement daemon run'],
       },
       projectPath: body.projectPath,
+      userId: authReq.userId,
     });
 
     return res.status(201).json({ job });

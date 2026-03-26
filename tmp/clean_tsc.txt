@@ -1,0 +1,52 @@
+src/app/api/daemon/jobs/runner.ts(26,3): error TS2305: Module '"@holoscript/absorb-service/daemon"' has no exported member 'DaemonJobLimits'.
+src/app/api/daemon/jobs/runner.ts(27,3): error TS2305: Module '"@holoscript/absorb-service/daemon"' has no exported member 'DaemonLogEntry'.
+src/app/api/daemon/jobs/runner.ts(28,3): error TS2305: Module '"@holoscript/absorb-service/daemon"' has no exported member 'DaemonProfile'.
+src/app/api/daemon/jobs/runner.ts(29,3): error TS2305: Module '"@holoscript/absorb-service/daemon"' has no exported member 'DaemonProjectDNA'.
+src/app/api/daemon/jobs/runner.ts(30,3): error TS2305: Module '"@holoscript/absorb-service/daemon"' has no exported member 'PatchProposal'.
+src/app/api/daemon/jobs/runner.ts(197,20): error TS2352: Conversion of type 'typeof import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/dist/codebase/index")' to type '{ CodebaseScanner: new () => { scan(opts: { rootDir: string; depth?: string | undefined; }): Promise<AbsorbScanResult>; }; CodebaseGraph: { new (): { buildFromScanResult(r: AbsorbScanResult): void; serialize(): string; communities?: Record<...> | undefined; }; deserialize(json: string): unknown; }; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/app/api/daemon/jobs/store.ts(15,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'CreateDaemonJobInput'.
+src/app/api/daemon/jobs/store.ts(16,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonAbsorbSnapshot'.
+src/app/api/daemon/jobs/store.ts(17,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonJob'.
+src/app/api/daemon/jobs/store.ts(18,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonJobLimits'.
+src/app/api/daemon/jobs/store.ts(19,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonLogEntry'.
+src/app/api/daemon/jobs/store.ts(20,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProfile'.
+src/app/api/daemon/jobs/store.ts(21,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProjectDNA'.
+src/app/api/daemon/jobs/store.ts(22,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonTelemetryEvent'.
+src/app/api/daemon/jobs/store.ts(23,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonTelemetrySummary'.
+src/app/api/daemon/jobs/store.ts(24,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'PatchProposal'.
+src/app/api/daemon/jobs/store.ts(27,15): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'CreateDaemonJobInput'.
+src/app/api/export/gltf/route.ts(22,32): error TS2307: Cannot find module '@/lib/serializer' or its corresponding type declarations.
+src/app/api/export/gltf/route.ts(100,29): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/app/api/export/gltf/route.ts(139,42): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/app/api/holodaemon/route.ts(23,15): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProfile'.
+src/lib/brittney/BrittneySession.ts(8,32): error TS2307: Cannot find module '@/lib/stores' or its corresponding type declarations.
+src/lib/brittney/BrittneySession.ts(43,19): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/lib/brittney/BrittneyTools.ts(8,45): error TS2307: Cannot find module '@/lib/stores' or its corresponding type declarations.
+src/lib/daemon/compositionSurfaces.ts(5,15): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonJob'.
+src/lib/daemon/compositionSurfaces.ts(5,26): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonTelemetrySummary'.
+src/lib/daemon/compositionSurfaces.ts(106,56): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/lib/daemon/compositionSurfaces.ts(188,46): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/lib/daemon/compositionSurfaces.ts(218,58): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/lib/daemon/compositionSurfaces.ts(218,65): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/lib/daemon/compositionSurfaces.ts(269,47): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/lib/daemon/manifestParser.ts(20,15): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProjectDNA'.
+src/lib/daemon/manifestParser.ts(20,33): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProjectKind'.
+src/lib/daemon/manifestParser.ts(20,52): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProfile'.
+src/lib/daemon/manifestParser.ts(20,67): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'ManifestData'.
+src/lib/daemon/operationsSurfaceHolo.ts(1,15): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonJob'.
+src/lib/daemon/operationsSurfaceHolo.ts(1,26): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonTelemetrySummary'.
+src/lib/daemon/operationsSurfaceHolo.ts(68,11): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/lib/daemon/operationsSurfaceHolo.ts(68,18): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/lib/daemon/profilePlanner.ts(2,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonPass'.
+src/lib/daemon/profilePlanner.ts(3,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonPlan'.
+src/lib/daemon/profilePlanner.ts(4,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonPlanProfile'.
+src/lib/daemon/profilePlanner.ts(5,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProfile'.
+src/lib/daemon/profilePlanner.ts(6,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'DaemonProjectDNA'.
+src/lib/daemon/profilePlanner.ts(7,3): error TS2305: Module '"@/lib/daemon/types"' has no exported member 'ProjectDNA'.
+src/lib/daemon/profilePlanner.ts(49,32): error TS7006: Parameter 'script' implicitly has an 'any' type.
+src/lib/scene/sceneTemplates.ts(14,32): error TS2307: Cannot find module '@/lib/stores' or its corresponding type declarations.
+src/lib/scene/sceneUtils.ts(8,32): error TS2307: Cannot find module '../store' or its corresponding type declarations.
+src/lib/scene/sceneUtils.ts(9,35): error TS2307: Cannot find module '../projectStore' or its corresponding type declarations.
+src/lib/scene/sceneUtils.ts(28,30): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/lib/scene/serializer.ts(18,45): error TS2307: Cannot find module '@/lib/stores' or its corresponding type declarations.
+src/lib/scene/serializer.ts(19,28): error TS2307: Cannot find module '@/components/assets/useAssetStore' or its corresponding type declarations.

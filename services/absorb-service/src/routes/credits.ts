@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.get('/balance', async (req: Request, res: Response) => {
     }
 
     const { getOrCreateAccount, checkBalance } = await import('@holoscript/absorb-service/credits');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
     const account = await getOrCreateAccount(userId);
     const balance = await checkBalance(userId);
@@ -48,7 +49,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
     if (!stripeKey) {
       // Development mode: directly add credits
       const { addCredits } = await import('@holoscript/absorb-service/credits');
-      const userId = (req as any).userId || 'anonymous';
+      const userId = (req as AuthenticatedRequest).userId || 'anonymous';
 
       await addCredits(userId, body.amountCents, 'Direct purchase (dev mode)', {
         mode: 'development',
@@ -84,7 +85,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
       success_url: body.successUrl || `${process.env.PUBLIC_URL || 'http://localhost:3005'}/api/credits/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: body.cancelUrl || `${process.env.PUBLIC_URL || 'http://localhost:3005'}/api/credits/cancel`,
       metadata: {
-        userId: (req as any).userId || 'anonymous',
+        userId: (req as AuthenticatedRequest).userId || 'anonymous',
         amountCents: String(body.amountCents),
       },
     });
@@ -113,7 +114,7 @@ router.get('/history', async (req: Request, res: Response) => {
     }
 
     const { getUsageHistory } = await import('@holoscript/absorb-service/credits');
-    const userId = (req as any).userId || 'anonymous';
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
     const limit = Math.min(Number(req.query.limit) || 50, 200);
 
     const history = await getUsageHistory(userId, limit);

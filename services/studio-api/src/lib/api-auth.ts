@@ -1,8 +1,8 @@
 /**
  * Server-side authentication helper for API routes.
  *
- * Provides getSession() for route handlers and a requireAuth() guard
- * that returns 401 if the user is not authenticated.
+ * Provides getSession() for route handlers, a requireAuth() guard,
+ * and forwardAuthHeaders() for proxying identity to backend services.
  */
 
 import { getServerSession } from 'next-auth';
@@ -39,4 +39,19 @@ export async function requireAuth() {
     );
   }
   return session;
+}
+
+/**
+ * Extract Authorization header from an incoming request for forwarding
+ * to backend services (absorb-service, MCP orchestrator, etc.).
+ *
+ * Returns headers object suitable for spreading into a fetch() call.
+ */
+export function forwardAuthHeaders(request: Request): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const auth = request.headers.get('authorization');
+  if (auth) {
+    headers['Authorization'] = auth;
+  }
+  return headers;
 }

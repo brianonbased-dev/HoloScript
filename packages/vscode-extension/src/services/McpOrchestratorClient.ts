@@ -102,6 +102,37 @@ export class McpOrchestratorClient {
     return { url, apiKey, enabled, heartbeatSeconds, visibility, workspace };
   }
 
+  /**
+   * Retrieves the GitHub OAuth token from VS Code's authentication API.
+   * Used to attach user identity to orchestrator requests.
+   */
+  private async getGitHubToken(): Promise<string | null> {
+    try {
+      const session = await vscode.authentication.getSession('github', ['read:user'], {
+        createIfNone: false,
+      });
+      return session?.accessToken ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Builds standard request headers including API key and GitHub identity.
+   */
+  private async buildHeaders(): Promise<Record<string, string>> {
+    const config = this.getConfig();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-mcp-api-key': config.apiKey,
+    };
+    const ghToken = await this.getGitHubToken();
+    if (ghToken) {
+      headers['Authorization'] = `Bearer ${ghToken}`;
+    }
+    return headers;
+  }
+
   private buildRegistrationPayload(
     config: ReturnType<McpOrchestratorClient['getConfig']>
   ): McpRegistrationPayload {
@@ -146,12 +177,10 @@ export class McpOrchestratorClient {
     this.log(`Attempting to bind link to service: ${serverId}`);
     try {
       const config = this.getConfig();
+      const headers = await this.buildHeaders();
       const response = await fetch(`${config.url}/servers/${encodeURIComponent(serverId)}/enable`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-mcp-api-key': config.apiKey,
-        },
+        headers,
       });
       
       if (response.ok) {
@@ -167,13 +196,11 @@ export class McpOrchestratorClient {
 
   private async register(config: ReturnType<McpOrchestratorClient['getConfig']>): Promise<void> {
     const payload = this.buildRegistrationPayload(config);
+    const headers = await this.buildHeaders();
 
     await fetch(`${config.url}/servers/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-mcp-api-key': config.apiKey,
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -186,12 +213,10 @@ export class McpOrchestratorClient {
 
     this.heartbeatTimer = setInterval(async () => {
       try {
+        const headers = await this.buildHeaders();
         await fetch(`${config.url}/servers/${payload.id}/heartbeat`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-mcp-api-key': config.apiKey,
-          },
+          headers,
           body: JSON.stringify({ status: 'active', tools: payload.tools }),
         });
       } catch (err) {
@@ -225,9 +250,8 @@ export class McpOrchestratorClient {
       return [];
     }
 
-    const response = await fetch(`${config.url}/servers`, {
-      headers: { 'x-mcp-api-key': config.apiKey },
-    });
+    const headers = await this.buildHeaders();
+    const response = await fetch(`${config.url}/servers`, { headers });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch servers (${response.status})`);
@@ -256,9 +280,10 @@ export class McpOrchestratorClient {
       return [];
     }
 
+    const headers = await this.buildHeaders();
     const response = await fetch(
       `${config.url}/servers/${encodeURIComponent(serverId)}/tools`,
-      { headers: { 'x-mcp-api-key': config.apiKey } }
+      { headers }
     );
 
     if (!response.ok) {
@@ -307,15 +332,10 @@ export class McpOrchestratorClient {
       return false;
     }
 
+    const headers = await this.buildHeaders();
     const response = await fetch(
       `${config.url}/servers/${encodeURIComponent(serverId)}/enable`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-mcp-api-key': config.apiKey,
-        },
-      }
+      { method: 'POST', headers }
     );
 
     return response.ok;
@@ -330,15 +350,10 @@ export class McpOrchestratorClient {
       return false;
     }
 
+    const headers = await this.buildHeaders();
     const response = await fetch(
       `${config.url}/servers/${encodeURIComponent(serverId)}/disable`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-mcp-api-key': config.apiKey,
-        },
-      }
+      { method: 'POST', headers }
     );
 
     return response.ok;
@@ -353,9 +368,8 @@ export class McpOrchestratorClient {
       return [];
     }
 
-    const response = await fetch(`${config.url}/agents`, {
-      headers: { 'x-mcp-api-key': config.apiKey },
-    });
+    const headers = await this.buildHeaders();
+    const response = await fetch(`${config.url}/agents`, { headers });
 
     if (!response.ok) {
       // Agents endpoint may not exist on older orchestrators
@@ -396,9 +410,8 @@ export class McpOrchestratorClient {
         return { ok: false, message: `Health check failed (${health.status})` };
       }
 
-      const servers = await fetch(`${config.url}/servers`, {
-        headers: { 'x-mcp-api-key': config.apiKey },
-      });
+      const headers = await this.buildHeaders();
+      const servers = await fetch(`${config.url}/servers`, { headers });
 
       if (!servers.ok) {
         return { ok: false, message: `Auth failed (${servers.status})` };

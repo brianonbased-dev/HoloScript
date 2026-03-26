@@ -146,6 +146,7 @@ export function createDaemonJob(input: CreateDaemonJobInput): DaemonJob {
     statusMessage: 'Queued',
     projectPath: input.projectPath,
     limits: input.customLimits as DaemonJobLimits | undefined,
+    userId: input.userId,
   };
 
   daemonJobs.set(id, created);

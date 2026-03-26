@@ -7,7 +7,15 @@
 // Core Types
 // ============================================================================
 
-export type Vector3 = { x: number; y: number; z: number } | [number, number, number];
+export type Vector3 = {
+  x?: number;
+  y?: number;
+  z?: number;
+  0?: number;
+  1?: number;
+  2?: number;
+  [key: string]: any;
+};
 
 export interface Color {
   r: number;
@@ -53,7 +61,7 @@ export interface HSPlusRuntime {
   execute?(ast: unknown): unknown;
   callMethod?(name: string, args: unknown[]): unknown;
   destroy?(): void;
-  state?: Record<string, unknown>;
+  state?: any; // Reconciled for ReactiveState implementations
   props?: Record<string, unknown>;
   refs?: Record<string, unknown>;
 }

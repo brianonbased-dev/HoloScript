@@ -1,0 +1,7 @@
+src/runtime/HoloScriptPlusRuntime.ts(237,9): error TS2322: Type 'IVector3 | undefined' is not assignable to type 'IVector3'.
+  Type 'undefined' is not assignable to type 'IVector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1594,9): error TS2322: Type '(origin: Vector3, direction: Vector3, maxDistance: number) => { point: [any, any, any]; normal: [any, any, any]; distance: any; nodeId: any; } | null' is not assignable to type '(origin: Vector3, direction: Vector3, maxDistance: number) => RaycastHit | null'.
+src/traits/SpatiotemporalTraits.ts(378,9): error TS2322: Type 'unknown' is not assignable to type 'Vector3 | null'.
+src/traits/SpatiotemporalTraits.ts(553,7): error TS2322: Type 'unknown' is not assignable to type 'Vector3 | null'.
+src/traits/SpatiotemporalTraits.ts(846,7): error TS2322: Type 'unknown' is not assignable to type 'Vector3'.
+src/traits/SpatiotemporalTraits.ts(848,9): error TS2322: Type 'unknown' is not assignable to type 'Vector3 | null'.

@@ -23,7 +23,7 @@ import type { TraitHandler } from './TraitTypes';
 
 export type RateLimitStrategy = 'token_bucket' | 'sliding_window';
 
-export interface RateLimiterConfig {
+interface RateLimiterConfig {
   /** Rate limit strategy */
   strategy: RateLimitStrategy;
   /** Maximum requests allowed per window */

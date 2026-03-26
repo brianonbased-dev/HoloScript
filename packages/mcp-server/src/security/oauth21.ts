@@ -533,6 +533,32 @@ export class OAuth21Service {
     return { active: false };
   }
 
+  // ── Async Request Authentication (with GitHub token fallback) ────────────
+
+  /**
+   * Async variant of authenticateRequest that additionally resolves GitHub tokens.
+   * Tries sync OAuth/legacy paths first, then falls back to GitHub API validation.
+   */
+  async authenticateRequestAsync(headers: Record<string, string | string[] | undefined>): Promise<TokenIntrospection> {
+    const syncResult = this.authenticateRequest(headers);
+    if (syncResult.active) return syncResult;
+
+    // Try GitHub token resolution as last-resort fallback
+    const authHeader = (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const { resolveGitHubTokenForMcp } = await import('./github-auth.js');
+        const ghResult = await resolveGitHubTokenForMcp(token);
+        if (ghResult) return ghResult;
+      } catch {
+        // GitHub auth module not available — skip
+      }
+    }
+
+    return syncResult;
+  }
+
   // ── OpenID Configuration ─────────────────────────────────────────────────
 
   getOpenIDConfiguration(): Record<string, unknown> {

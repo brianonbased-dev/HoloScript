@@ -1,0 +1,22 @@
+
+> @holoscript/net-service@1.0.0 build:client C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+(node:44628) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/josep/Documents/GitHub/HoloScript/services/holoscript-net/postcss.config.js?t=1774472586940 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+transforming...
+[32m✓[39m 1898 modules transformed.
+[31m✗[39m Build failed in 3.73s
+[31merror during build:
+[31mCould not resolve "../scene/R3FNodeRenderer" from "src/components/MagicMomentPreview.tsx"[31m
+file: [36mC:/Users/josep/Documents/GitHub/HoloScript/services/holoscript-net/src/components/MagicMomentPreview.tsx[31m
+    at getRollupError (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/parseAst.js:406:41)
+    at error (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/parseAst.js:402:42)
+    at ModuleLoader.handleInvalidResolvedId (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:21765:24)
+    at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/rollup@4.60.0/node_modules/rollup/dist/es/shared/node-entry.js:21725:26[39m
+C:\Users\josep\Documents\GitHub\HoloScript\services\holoscript-net:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @holoscript/net-service@1.0.0 build:client: `vite build`
+Exit status 1

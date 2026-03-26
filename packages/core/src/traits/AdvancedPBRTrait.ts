@@ -38,7 +38,7 @@ export interface SheenConfig {
   intensity: number; // 0-1
 }
 
-export interface SubsurfaceScatteringConfig {
+interface SubsurfaceScatteringConfig {
   method: 'burley' | 'christensen' | 'random_walk';
   color: [number, number, number]; // RGB
   radius: number; // Scattering distance

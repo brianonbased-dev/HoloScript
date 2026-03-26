@@ -1,0 +1,86 @@
+composition "Art Gallery" {
+  environment {
+    skybox: "studio"
+    ambient: 0.6
+  }
+
+  object "Gallery Floor" @collidable {
+    geometry: "plane"
+    position: [0, 0, -6]
+    scale: [15, 15, 1]
+    color: "#f5f0e8"
+    material: "marble"
+  }
+
+  object "Pedestal 1" @collidable {
+    geometry: "cylinder"
+    position: [-3, 0.5, -5]
+    scale: [0.6, 1, 0.6]
+    color: "#e8e0d0"
+    material: "marble"
+  }
+
+  object "Sculpture Crystal" @glowing @grabbable {
+    geometry: "cone"
+    position: [-3, 1.5, -5]
+    scale: [0.4, 0.8, 0.4]
+    color: "#88ccff"
+    material: "crystal"
+  }
+
+  object "Pedestal 2" @collidable {
+    geometry: "cylinder"
+    position: [0, 0.5, -5]
+    scale: [0.6, 1, 0.6]
+    color: "#e8e0d0"
+    material: "marble"
+  }
+
+  object "Sculpture Sphere" @hoverable @glowing {
+    geometry: "sphere"
+    position: [0, 1.5, -5]
+    scale: [0.5, 0.5, 0.5]
+    color: "#ffd700"
+    material: "gold"
+  }
+
+  object "Pedestal 3" @collidable {
+    geometry: "cylinder"
+    position: [3, 0.5, -5]
+    scale: [0.6, 1, 0.6]
+    color: "#e8e0d0"
+    material: "marble"
+  }
+
+  object "Sculpture Torus" @animated @clickable {
+    geometry: "torus"
+    position: [3, 1.5, -5]
+    scale: [0.5, 0.5, 0.5]
+    color: "#cc4400"
+    material: "copper"
+  }
+
+  object "Spotlight 1" {
+    geometry: "sphere"
+    position: [-3, 4, -5]
+    scale: [0.1, 0.1, 0.1]
+    color: "#ffffff"
+    material: "emissive"
+  }
+
+  object "Spotlight 2" {
+    geometry: "sphere"
+    position: [0, 4, -5]
+    scale: [0.1, 0.1, 0.1]
+    color: "#ffffff"
+    material: "emissive"
+  }
+
+  object "Spotlight 3" {
+    geometry: "sphere"
+    position: [3, 4, -5]
+    scale: [0.1, 0.1, 0.1]
+    color: "#ffffff"
+    material: "emissive"
+  }
+}

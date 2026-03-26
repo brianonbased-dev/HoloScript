@@ -24,7 +24,7 @@ export type IKSolverType = 'fabrik' | 'ccd' | 'two-bone' | 'full-body';
 /**
  * 3D Vector
  */
-export interface Vector3 {
+interface Vector3 {
   x: number;
   y: number;
   z: number;

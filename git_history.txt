@@ -1,0 +1,102 @@
+﻿dfc9c85e feat: v6.0 "Universal Semantic Platform" ΓÇö graduation release
+b6710701 feat: implement v5.5-v5.9 progression ΓÇö agents, observability, plugins, economy, developer portal
+f6c674e8 feat(agents): v5.5 agent orchestration ΓÇö federated registry, task delegation, workflow engine
+4a8ae589 feat(core-types): complete Phase 3-5 ΓÇö migrate dependents, validate, document
+b3a90379 feat(core-types): scaffold @holoscript/core-types package ΓÇö Phase 1 of type extraction
+766655d6 feat: v5.4 cycle 5 ΓÇö AnimationTrait split, core-types plan (GraphRAG-validated), 2D Native compiler, semantic-2d package, validation tools, A2A protocol, LSP completions
+a7ab852a feat: implement v5.3 "Tooling as Semantic Bridge" ΓÇö 3 MCP tools, release infra, CI
+20fc373c feat: complete v5.2 test coverage ΓÇö 50 parser fixtures, 25 type constraints, 65 compiler tests
+16612a0a fix: update ANS namespace tests for node-service + quilt/mv-hevc registrations
+d03e3a3b docs: add AAIF MCP Dev Summit demo (April 2-3, 2026)
+c3b357de feat: add MLIR-style dialect registry, NodeServiceCompiler, and 239 v6 traits
+3e260e59 feat: add Agent Dashboard component for Studio
+7b8b1245 feat: add OAuth 2.1 provider with PKCE, token rotation, and RFC 7662
+49c6b381 feat: add v6 Universal Semantic Platform traits and grammar extensions
+b9c03a33 feat: add Native2D compiler for HTML/Tailwind output from .holo compositions
+4c138e8f feat: add PaymentGateway with x402/USDC micropayments on Base L2
+78e0b0f7 feat: enhance SKILL.md bridge with input/output schemas and HoloClaw interop
+36ea33a9 chore: update docs, add SpatialTextLayoutTrait, holoscript-net service
+05bba819 feat: implement A2A Agent Card with full JSON-RPC 2.0 transport
+c493cf97 docs: add Agent Quickstart and Bounty to site navigation
+8d7c6552 feat: pivot bounty to World's First A2A Bounty for AI Agents
+188c510b docs: pivot bounty to  Agent Integration Challenge
+7158dcb5 feat: add Agent MCP Quickstart and ,500 Bounty program
+17688cc3 feat: add x402 economy, mcp-server security (OAuth2.1, audit-log), and prophetic intelligence docs
+c6676c82 release: @holoscript/intelligence@1.1.0
+46489a37 feat: add absorb service tools + canonicalize hardcoded URLs
+c3a44b90 feat: All 13 Gaps Fixed ΓÇö Critical Infrastructure & Feature Expansion
+8f122b1a feat: Studio Integration Hub ΓÇö connectors, MagicMoment wizard, triple-output compilation
+c03c846a chore: bump core to 5.1.1, runtime to 3.1.2 ΓÇö metadata update (keywords, homepage, bugs)
+f9eb309b chore: professionalize npm presence ΓÇö README, keywords, homepage, descriptions
+36c68f9b fix: remove unpublished @holoscript deps from generated project, bump to v1.0.1
+3e91e4ec fix: correct bin path to dist/index.js and add type:module for create-holoscript-app
+ff5a2533 chore: update pnpm-lock.yaml for create-holoscript-app
+8aba5a03 feat: add create-holoscript-app ΓÇö npx scaffolder with 3 templates and Vite dev server
+d5dd044c fix: use full 5-step ImportRepoWizard with absorbPipelineBridge
+f489071a Merge pull request #92 from brianonbased-dev/dependabot/github_actions/pnpm/action-setup-5
+4af839f5 Merge pull request #91 from brianonbased-dev/dependabot/github_actions/dawidd6/action-download-artifact-19
+0cae86af Merge pull request #86 from brianonbased-dev/dependabot/npm_and_yarn/typescript-eslint/eslint-plugin-8.56.1
+339e552f Merge pull request #84 from brianonbased-dev/dependabot/npm_and_yarn/graphql-16.13.1
+87bbe795 Merge pull request #80 from brianonbased-dev/dependabot/npm_and_yarn/tanstack/react-virtual-3.13.22
+c06bdb70 chore(deps-dev): bump @typescript-eslint/eslint-plugin
+e92ece84 chore(deps): bump graphql from 16.13.0 to 16.13.1
+23b4b755 chore(deps): bump @tanstack/react-virtual from 3.13.19 to 3.13.22
+18f513e7 feat: implement @holoscript/connector-vscode package (22 tests)
+a06f2ffc chore: add absorb config files and pipeline test script
+fd593427 feat: add triple output compilation doc and connector-vscode package
+2d75ffba docs: add architecture docs, package READMEs, codebase intelligence guide, and std tests
+d0c2711c feat: add MCP integration to VSCode extension with HoloScriptMcpProvider and enhanced syntax grammar
+debdfa13 feat: add Studio deployment pipeline, FirstRunWizard, connector store, and new connector packages (appstore, upstash, compiler-utils)
+e4a35639 feat: enhance CLI args, MCP codebase/graph-rag tools, and daemon actions
+6b8bdaa7 fix: resolve TypeScript errors in core types, traits, compiler, codebase, and export modules
+18b47c2e chore: update dependencies and build configs across all packages
+a06e5e8b feat: add GitHub OAuth device flow for Studio Integration Hub
+ddc8c103 feat: implement connector API routes (connect, disconnect, activity SSE)
+1d2817f1 feat: add pipeline testing infrastructure with auth bypass
+2e189caf feat: wire GitHub connector into ImportRepoWizard
+d5fee5db docs: add comprehensive Integration Hub architecture guide
+49fbe3bf feat: add GitHub connector with 30 tests and Octokit integration
+4e5e7fa6 feat: add Zustand connector store with SSE activity streaming
+05696e55 feat: add Service Integrations panel to Studio
+fcef65bb test: add comprehensive test coverage for connector packages
+4acc89d3 feat(codebase): Phase 8 SSE progress streaming + job tracking + git hooks
+0246e6bb feat(mcp): Phase 10 ΓÇö Autonomous Refactoring & CodeGen Integration
+543931fc feat(codebase): implement Phase 9 Federated Knowledge Mesh and engine hardening
+18ef1377 test: GAPS Phase 1/2 integration tests ΓÇö 149 tests with Dawn GPU support
+92805dda feat: concrete LLM providers for recursive pipeline (Anthropic, xAI, OpenAI, Ollama)
+03dfcdc1 feat: wire /pipeline into Studio navigation
+fafb2f4f feat: import repo wizard, Studio preset rationalization, hologram templates
+3f8c767a feat: GAPS Phase 1+2 ΓÇö PBD density, quality tiers, 10 trait handlers, GPU fluid
+660b4daf feat: recursive self-improvement pipeline ΓÇö 3-layer agents through Studio
+12e8343f feat: complete 2D-to-3D hologram media pipeline with tests and Studio integration
+06a83ce0 fix: exclude studio from root tsconfig ΓÇö has own @/ path aliases
+0b5511bf fix(typefix): auto-fix MaterialLibrary.ts [daemon]
+6ea24dd4 fix(typefix): auto-fix VRChatCompiler.ts [daemon]
+0e5788ed fix(typefix): auto-fix WASMCompiler.ts [daemon]
+d3441c54 fix(typefix): auto-fix IOSCompiler.ts [daemon]
+bb81b3f0 fix(typefix): auto-fix AndroidXRCompiler.ts [daemon]
+cb49337a fix(lint): auto-fix basic-usage.ts [daemon]
+145017ac fix(lint): auto-fix RuntimeRegistry.ts [daemon]
+21a1a3a7 fix(lint): auto-fix CompilerBridge.ts [daemon]
+61ffb498 docs: add 100 use-case examples, GAPS architecture analysis, embeddings script
+977b521f feat: enable 3-provider rotation (Anthropic/xAI/OpenAI) for daemon
+08f00435 feat: add PostHog analytics events and collab auth token passthrough
+035974b6 feat: studio cloud infrastructure ΓÇö PostgreSQL, S3, NextAuth, Stripe
+3d712f09 feat: add JWT authentication to collab-server WebSocket connections
+9732377d fix: propagate cache deserialization errors and remove dead debug logging
+2afec6d0 chore: gitignore vscode-extension build output, remove from tracking
+adbe5d69 feat: template gallery integration, preset quick-switch, analytics, and 4 new domains
+49be3ace docs: add non-spatial demos index ΓÇö IoT, digital twins, robotics
+e55572a2 feat: add Studio Configuration Wizard with 13 presets and 32 templates
+6d2c1443 docs: add cross-compilation proof with real output from 13 backends
+a210783e docs: add HoloClaw agent marketplace specification
+8bb4288d docs: add cross-target trait-to-backend mappings specification
+b0ff1b05 docs: add MCP 3-layer communication spec with sequence diagrams
+e5c7b5c0 feat: add GAPS transparency artifacts ΓÇö architecture diagram, backends audit, MCP discovery
+dd36223f feat(holodaemon): add start-daemon and stop-daemon PowerShell scripts
+5c4a76a7 feat(holodaemon/sprint2): JSON status flag, machine-readable cycle telemetry, status unit tests
+ee14989d feat(holodaemon): sprint 1 status flow and build stabilization
+47bbe159 fix: resolve final 34 test failures ΓÇö 103ΓåÆ0 campaign complete
+be573cf5 refactor: unify daemon state ΓÇö single source of truth for quality metrics
+32e7c3b1 fix: resolve 11 more test failures across 8 packages
+2899f887 fix(bridge): reset totalCycles on session change to prevent budget gate bypass

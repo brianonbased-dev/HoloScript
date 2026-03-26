@@ -1,0 +1,30 @@
+src/runtime/HoloScriptPlusRuntime.ts(173,7): error TS2353: Object literal may only specify known properties, and 'substeps' does not exist in type 'IPhysicsWorldConfig'.
+src/runtime/HoloScriptPlusRuntime.ts(195,61): error TS2345: Argument of type 'string' is not assignable to parameter of type '"left" | "right"'.
+src/runtime/HoloScriptPlusRuntime.ts(200,9): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(200,41): error TS2345: Argument of type '{ type: "fixed"; bodyA: string; bodyB: string; pivotA: { x: number; y: number; z: number; }; pivotB: { x: number; y: number; z: number; }; }' is not assignable to parameter of type 'Constraint'.
+src/runtime/HoloScriptPlusRuntime.ts(235,7): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(240,19): error TS2353: Object literal may only specify known properties, and 'min' does not exist in type '{ low: number; high: number; }'.
+src/runtime/HoloScriptPlusRuntime.ts(247,30): error TS2352: Conversion of type 'Renderer' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(254,43): error TS2304: Cannot find name 'VRTraitName'.
+src/runtime/HoloScriptPlusRuntime.ts(255,57): error TS2367: This comparison appears to be unintentional because the types '"dialog" | "forEach" | "directive" | "fragment" | "trait" | "lifecycle" | "state" | "for" | "while" | "if" | "import" | "version" | "migrate" | "bindings" | "export" | "world_metadata" | ... 26 more ... | "asset"' and '"sync"' have no overlap.
+src/runtime/HoloScriptPlusRuntime.ts(255,78): error TS2367: This comparison appears to be unintentional because the types '"dialog" | "forEach" | "directive" | "fragment" | "trait" | "lifecycle" | "state" | "for" | "while" | "if" | "import" | "version" | "migrate" | "bindings" | "export" | "world_metadata" | ... 26 more ... | "asset"' and '"networked"' have no overlap.
+src/runtime/HoloScriptPlusRuntime.ts(303,41): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'HoloTemplate'.
+src/runtime/HoloScriptPlusRuntime.ts(321,9): error TS2740: Type 'Record<string, unknown>' is missing the following properties from type 'Map<string, HoloValue>': clear, delete, forEach, get, and 8 more.
+src/runtime/HoloScriptPlusRuntime.ts(329,41): error TS2345: Argument of type 'HSPlusNode' is not assignable to parameter of type 'HoloTemplate'.
+src/runtime/HoloScriptPlusRuntime.ts(355,22): error TS2352: Conversion of type 'Renderer | undefined' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(370,31): error TS2351: This expression is not constructable.
+src/runtime/HoloScriptPlusRuntime.ts(372,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(381,20): error TS2349: This expression is not callable.
+src/runtime/HoloScriptPlusRuntime.ts(389,45): error TS2345: Argument of type '(time: number, frame: XRFrame) => void' is not assignable to parameter of type '(time: number, frame: import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/runtime/WebXRManager").XRFrame) => void'.
+src/runtime/HoloScriptPlusRuntime.ts(392,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(398,20): error TS2349: This expression is not callable.
+src/runtime/HoloScriptPlusRuntime.ts(411,10): error TS2352: Conversion of type 'WebXRManager' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(414,15): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(415,13): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(437,22): error TS2352: Conversion of type 'Renderer | undefined' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(439,16): error TS2349: This expression is not callable.
+src/runtime/HoloScriptPlusRuntime.ts(488,46): error TS2345: Argument of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/runtime/WebXRManager").XRReferenceSpace' is not assignable to parameter of type 'XRReferenceSpace'.
+src/runtime/HoloScriptPlusRuntime.ts(506,19): error TS2339: Property 'gripSpace' does not exist on type 'XRInputSource | XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(511,37): error TS2339: Property 'gripSpace' does not exist on type 'XRInputSource | XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(511,48): error TS2345: Argument of type 'XRReferenceSpace' is not assignable to parameter of type 'XRSpace'.
+src/runtime/HoloScriptPlusRuntime.ts(519,15): error TS2739: Type '{ id: string; position: [number, number, number]; rotation: [number, number, number]; velocity: [number, number, number]; pinchStrength: number; gripStrength: number; }' is missing the following properties from type 'VRHand': grip, trigger

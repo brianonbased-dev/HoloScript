@@ -15,6 +15,14 @@ import { useAbsorbService } from '@/hooks/useAbsorbService';
 import { useToast } from '@/app/providers';
 import { CREDIT_PACKAGES, OPERATION_COSTS, TIER_LIMITS } from '@/lib/absorb/pricing';
 import type { MoltbookAgent, MoltbookAgentStatus, MoltbookAgentEvent } from '@/lib/stores/absorbServiceStore';
+import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
+import {
+  useDaemonJobs,
+  useDaemonJobPoller,
+  type DaemonJob,
+  type DaemonProfile,
+  type DaemonTelemetrySummary,
+} from '@/hooks/useDaemonJobs';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1162,6 +1170,140 @@ function MoltbookAgentsTab() {
   );
 }
 
+// ─── HoloDaemon Dogfood Integration ──────────────────────────────────────────
+
+function HoloDaemonSubPanel() {
+  const composition = useHoloComposition('/api/daemon/surface?kind=dashboard');
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<DaemonJob[]>([]);
+  const [telemetry, setTelemetry] = useState<DaemonTelemetrySummary | null>(null);
+  const [daemonMode, setDaemonMode] = useState<DaemonProfile>('balanced');
+  const { createJob, listJobs, getTelemetry, creating, error } = useDaemonJobs();
+  const { job: polledJob } = useDaemonJobPoller(selectedJobId);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const [jobList, tel] = await Promise.all([listJobs(), getTelemetry()]);
+        if (mounted) {
+          setJobs(jobList);
+          setTelemetry(tel);
+        }
+      } catch {}
+    };
+    void load();
+    return () => { mounted = false; };
+  }, [listJobs, getTelemetry]);
+
+  useEffect(() => {
+    if (!composition.loading && telemetry) {
+      composition.setState({
+        totalJobsRun: telemetry.totalJobs ?? 0,
+        totalPatchesProposed: telemetry.totalPatches ?? 0,
+        costUSD: telemetry.totalCostUSD ?? 0,
+        cyclesCompleted: telemetry.completedJobs ?? 0,
+      });
+    }
+  }, [telemetry, composition.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (polledJob) {
+      setJobs((prev) => {
+        const idx = prev.findIndex((j) => j.id === polledJob.id);
+        if (idx >= 0) { const next = [...prev]; next[idx] = polledJob; return next; }
+        return [polledJob, ...prev];
+      });
+      composition.setState({
+        daemonStatus: polledJob.status === 'running' ? 'running' : polledJob.status === 'failed' ? 'error' : 'idle',
+        activeJobId: polledJob.id,
+        activeJobProgress: polledJob.progress ?? 0,
+        activeJobStatus: polledJob.statusMessage || polledJob.summary || 'Processing...',
+        qualityScore: polledJob.metrics?.qualityAfter ?? 0,
+        qualityDelta: polledJob.metrics?.qualityDelta ?? 0,
+        typeErrorCount: polledJob.metrics?.typeErrors ?? 0,
+      });
+    }
+  }, [polledJob]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try { const tel = await getTelemetry(); setTelemetry(tel); } catch {}
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [getTelemetry]);
+
+  const handleStartDaemon = useCallback(async () => {
+    try {
+      const job = await createJob({
+        projectId: 'holoscript',
+        profile: daemonMode,
+        projectDna: {
+          kind: 'spatial',
+          confidence: 0.95,
+          detectedStack: ['typescript', 'react', 'holoscript', 'three.js'],
+          recommendedProfile: daemonMode,
+          notes: ['HoloScript monorepo — self-improvement daemon run'],
+        },
+      });
+      setSelectedJobId(job.id);
+      setJobs((prev) => [job, ...prev]);
+      composition.setState({
+        daemonStatus: 'running',
+        activeJobId: job.id,
+        activeJobProgress: 0,
+        activeJobStatus: 'Job created, starting...',
+      });
+    } catch {}
+  }, [createJob, daemonMode, composition]);
+
+  const daemonStatus = polledJob?.status === 'running' ? 'running' : polledJob?.status === 'failed' ? 'error' : 'idle';
+
+  return (
+    <div className="mb-6 rounded-xl border border-studio-border bg-[#0d0d14] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-studio-border bg-[#111827] px-5 py-3">
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-bold text-studio-text flex items-center gap-2">
+            <span className="text-studio-accent">HoloDaemon</span>
+            <span className="text-[10px] uppercase font-normal text-studio-muted border border-studio-border px-1.5 py-0.5 rounded">Mesh Control</span>
+          </h3>
+          <div className="flex items-center gap-2 ml-4">
+            <div className={`h-2.5 w-2.5 rounded-full ${daemonStatus === 'running' ? 'bg-emerald-500 animate-pulse' : daemonStatus === 'error' ? 'bg-red-500' : 'bg-amber-500'}`} />
+            <span className={`text-[10px] font-medium uppercase ${daemonStatus === 'running' ? 'text-emerald-400' : daemonStatus === 'error' ? 'text-red-400' : 'text-amber-400'}`}>{daemonStatus}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <select value={daemonMode} onChange={(e) => setDaemonMode(e.target.value as DaemonProfile)} className="rounded-md border border-studio-border bg-studio-surface px-2 py-1 text-xs text-studio-text">
+            <option value="quick">Quick</option>
+            <option value="balanced">Balanced</option>
+            <option value="deep">Deep</option>
+          </select>
+          <button onClick={handleStartDaemon} disabled={creating || daemonStatus === 'running'} className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50">
+            {creating ? 'Starting...' : daemonStatus === 'running' ? 'Running...' : 'Initialize Daemon'}
+          </button>
+        </div>
+      </div>
+      <div className="relative h-64 bg-[#050505]">
+        {error && <div className="absolute top-2 left-2 right-2 z-10 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-sm">{error}</div>}
+        {composition.loading ? (
+          <div className="flex h-full items-center justify-center text-xs text-studio-muted">Loading Composition Engine...</div>
+        ) : composition.error ? (
+          <div className="flex h-full items-center justify-center text-xs text-red-400">Failed: {composition.error}</div>
+        ) : (
+          <HoloSurfaceRenderer
+            nodes={composition.nodes}
+            state={composition.state}
+            computed={composition.computed}
+            templates={composition.templates}
+            onEmit={composition.emit}
+            className="w-full h-full"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AbsorbPage() {
@@ -1280,8 +1422,10 @@ function AuthenticatedDashboard() {
 
         {/* Dashboard Tab */}
         {tab === 'dashboard' && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <CreditBalanceCard balance={creditBalance} tier={tier} />
+          <>
+            <HoloDaemonSubPanel />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <CreditBalanceCard balance={creditBalance} tier={tier} />
             <div className="rounded-xl border border-studio-border bg-[#111827] p-6">
               <h3 className="text-sm font-semibold text-studio-text">Quick Stats</h3>
               <div className="mt-4 grid grid-cols-3 gap-4">
@@ -1337,6 +1481,7 @@ function AuthenticatedDashboard() {
               )}
             </div>
           </div>
+          </>
         )}
 
         {/* Projects Tab */}

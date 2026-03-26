@@ -188,7 +188,7 @@ export const aiTextureGenHandler: TraitHandler<StableDiffusionConfig> = {
 /**
  * Diffusion Realtime - Stable diffusion with streaming enabled
  */
-export const diffusionRealtimeHandler: TraitHandler<StableDiffusionConfig> = {
+const diffusionRealtimeHandler: TraitHandler<StableDiffusionConfig> = {
   ...stableDiffusionHandler,
   name: 'diffusion_realtime',
   defaultConfig: {
@@ -202,7 +202,7 @@ export const diffusionRealtimeHandler: TraitHandler<StableDiffusionConfig> = {
 /**
  * AI Inpainting - Stable diffusion with inpainting
  */
-export const aiInpaintingHandler: TraitHandler<StableDiffusionConfig> = {
+const aiInpaintingHandler: TraitHandler<StableDiffusionConfig> = {
   ...stableDiffusionHandler,
   name: 'ai_inpainting',
   defaultConfig: {
