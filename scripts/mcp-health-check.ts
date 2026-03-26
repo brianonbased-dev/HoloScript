@@ -243,14 +243,74 @@ async function main() {
   console.log(`  Total tools registered: ${totalTools}`);
   console.log();
 
+  // 5. Prune ghost servers (--prune flag)
+  if (args.includes('--prune')) {
+    const maxAgeMs = parseInt(args[args.indexOf('--prune-age') + 1] || '', 10) || 7 * 24 * 60 * 60 * 1000; // default 7 days
+    console.log(`── Pruning (max age: ${Math.round(maxAgeMs / 86400000)}d) ──`);
+
+    const staleCutoff = Date.now() - maxAgeMs;
+    let pruned = 0;
+
+    for (const server of servers) {
+      const lastSeen = server.lastSeen || server.lastHeartbeat;
+      if (!lastSeen) continue;
+
+      const seenAt = new Date(lastSeen).getTime();
+      if (seenAt < staleCutoff) {
+        const id = server.id || server.name || '';
+        process.stdout.write(`  Pruning "${id}" (last seen: ${lastSeen})... `);
+        try {
+          const res = await fetch(`${ORCHESTRATOR_URL}/servers/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { 'x-mcp-api-key': API_KEY!, 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(TIMEOUT_MS),
+          });
+          console.log(res.ok ? 'DELETED' : `FAILED (${res.status})`);
+          if (res.ok) pruned++;
+        } catch (err) {
+          console.log(`FAILED (${err instanceof Error ? err.message : err})`);
+        }
+      }
+    }
+
+    console.log(`  Pruned ${pruned} stale server(s).`);
+    console.log();
+  }
+
+  // 6. Send heartbeat (--heartbeat <server-id> flag)
+  const heartbeatIdx = args.indexOf('--heartbeat');
+  if (heartbeatIdx >= 0 && args[heartbeatIdx + 1]) {
+    const serverId = args[heartbeatIdx + 1];
+    console.log(`── Heartbeat for "${serverId}" ──`);
+
+    try {
+      const res = await fetch(`${ORCHESTRATOR_URL}/heartbeat`, {
+        method: 'POST',
+        headers: {
+          'x-mcp-api-key': API_KEY!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ serverId }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      const body = await res.json().catch(() => ({}));
+      console.log(res.ok ? `  ✅ Heartbeat acknowledged` : `  ❌ Heartbeat rejected: ${res.status}`);
+      if (body.lastSeen) console.log(`  Last seen: ${body.lastSeen}`);
+    } catch (err) {
+      console.log(`  ❌ Heartbeat failed: ${err instanceof Error ? err.message : err}`);
+    }
+    console.log();
+  }
+
   if (unhealthy > 0) {
     console.log('⚠️  Some servers are unhealthy. Review the errors above.');
-    console.log('   Ghost servers (registered but unreachable) should be cleaned up.');
     process.exit(1);
   }
 
   console.log('✅  All servers healthy.');
 }
+
+const args = process.argv.slice(2);
 
 main().catch((err) => {
   console.error('Fatal error:', err);
