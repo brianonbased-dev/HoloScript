@@ -9,8 +9,8 @@
  * static templates from content-pipeline.ts).
  */
 
-import type { ContentPillar, GeneratedPost } from './types';
-import { PLATFORM_STATS as S } from './types';
+import type { ContentPillar, GeneratedPost, SubmoltTarget } from './types';
+import { PLATFORM_STATS as S, selectSubmoltByAudience } from './types';
 
 // ── LLM Provider interface (matches absorb-service's GraphRAGEngine.LLMProvider) ──
 
@@ -135,10 +135,15 @@ export interface GraphRAGQueryable {
 }
 
 export class LLMContentGenerator {
+  private submoltTargets: SubmoltTarget[] | undefined;
+
   constructor(
     private llmProvider: LLMProvider,
     private graphRAG: GraphRAGQueryable | null = null,
-  ) {}
+    submoltTargets?: SubmoltTarget[],
+  ) {
+    this.submoltTargets = submoltTargets;
+  }
 
   /**
    * Generate a reply to a comment on our own post.
@@ -254,9 +259,10 @@ export class LLMContentGenerator {
         title = title.slice(0, 117) + '...';
       }
 
-      // Pick submolt
-      const submolts = PILLAR_SUBMOLTS[pillar];
-      const submolt = submolts[Math.floor(Math.random() * submolts.length)];
+      // Pick submolt — weighted by audience size if targets available, else static fallback
+      const submolt = this.submoltTargets
+        ? selectSubmoltByAudience(pillar, this.submoltTargets)
+        : PILLAR_SUBMOLTS[pillar][Math.floor(Math.random() * PILLAR_SUBMOLTS[pillar].length)];
 
       // Derive tags from pillar
       const tags = this.deriveTags(pillar, title, body);

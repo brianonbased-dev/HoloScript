@@ -22,6 +22,32 @@ const PORT = process.env.PORT || 3005;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// --- UI Redirect (absorb.holoscript.net -> Studio Frontend) ---
+app.get('/', (req, res) => {
+  // If users navigate to the raw absorb-service Railway URL in their browser,
+  // we gracefully bounce them back to the HoloScript Studio frontend where the Absorb UI lives.
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>HoloScript Absorb Service</title>
+        <meta http-equiv="refresh" content="2;url=https://holoscript.net/studio/absorb" />
+        <style>
+          body { font-family: system-ui, sans-serif; background: #09090b; color: #ededed; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+          a { color: #3b82f6; text-decoration: none; padding: 10px 20px; border: 1px solid #3b82f6; border-radius: 6px; margin-top: 20px; transition: all 0.2s; }
+          a:hover { background: #3b82f6; color: white; }
+        </style>
+      </head>
+      <body>
+        <h2>📡 Absorb Mesh Service Running</h2>
+        <p>This is the headless microservice API.</p>
+        <p>Redirecting you to the Studio UI...</p>
+        <a href="https://holoscript.net/studio/absorb">Go to Studio Dashboard</a>
+      </body>
+    </html>
+  `);
+});
+
 // --- Public endpoints (no auth) ---
 app.get('/health', async (_req, res) => {
   let moltbookAgentCount: number | null = null;

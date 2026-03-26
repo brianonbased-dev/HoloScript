@@ -15,7 +15,7 @@ import type { MoltbookClient } from './client';
 import type { ContentPipeline } from './content-pipeline';
 import type { LLMContentGenerator } from './llm-content-generator';
 import type { HeartbeatState, HeartbeatResult, EngagementConfig, MoltbookHomeResponse } from './types';
-import { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, INITIAL_HEARTBEAT_STATE, PLATFORM_STATS } from './types';
+import { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, INITIAL_HEARTBEAT_STATE, PLATFORM_STATS, resolveKarmaTier } from './types';
 
 // Topics to search for when browsing the feed
 const SEARCH_TOPICS = [
@@ -42,6 +42,7 @@ export class MoltbookHeartbeat {
   private agentName: string;
   private pauseUntil = 0;
   private engagement: EngagementConfig;
+  private searchTopicIndex = 0;
 
   constructor(
     client: MoltbookClient,
@@ -127,11 +128,15 @@ export class MoltbookHeartbeat {
     let home: MoltbookHomeResponse | null = null;
 
     try {
-      // Step 1: Check home (gather data, don't reply yet)
+      // Step 1: Check home (gather data, don't reply yet) + track karma
       try {
         home = await this.client.getHome();
         result.checkedHome = true;
         this.state.lastCheck = Date.now();
+        if (home.your_account?.karma != null) {
+          this.state.currentKarma = home.your_account.karma;
+          this.updateInterval();
+        }
       } catch (err) {
         result.errors.push(`Home endpoint failed: ${err}`);
       }
