@@ -14,6 +14,8 @@ import type {
   MoltbookHomeResponse,
   MoltbookSearchResult,
   VerificationChallenge,
+  DMConversation,
+  DMMessage,
 } from './types';
 import { MOLTBOOK_BASE } from './types';
 
@@ -214,6 +216,33 @@ export class MoltbookClient {
       'GET',
       `/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}`,
     );
+  }
+
+  // --- Direct Messages ---
+
+  async listDMConversations(): Promise<DMConversation[]> {
+    const result = await this.request<{ conversations: DMConversation[] }>('GET', '/dm/conversations');
+    return result.conversations;
+  }
+
+  async getDMMessages(conversationId: string, limit = 20): Promise<DMMessage[]> {
+    const result = await this.request<{ messages: DMMessage[] }>(
+      'GET',
+      `/dm/conversations/${conversationId}/messages?limit=${limit}`,
+    );
+    return result.messages;
+  }
+
+  async sendDM(recipientName: string, content: string): Promise<DMMessage> {
+    const result = await this.request<{ message: DMMessage }>('POST', '/dm/messages', {
+      recipient_name: recipientName,
+      content,
+    });
+    return result.message;
+  }
+
+  async markDMRead(conversationId: string): Promise<void> {
+    await this.request('POST', `/dm/conversations/${conversationId}/read`);
   }
 
   // --- Verification ---

@@ -7,6 +7,7 @@ import { creditsRouter } from './routes/credits.js';
 import { holodaemonRouter } from './routes/holodaemon.js';
 import { pipelineRouter } from './routes/pipeline.js';
 import { moltbookRouter } from './routes/moltbook.js';
+import { adminRouter } from './routes/admin.js';
 import {
   handleMcpPost,
   handleMcpGet,
@@ -94,6 +95,7 @@ app.use('/api/credits', creditsRouter);
 app.use('/api/pipeline', pipelineRouter);
 app.use('/api/holodaemon', holodaemonRouter);
 app.use('/api/absorb/moltbook', moltbookRouter);
+app.use('/api/admin', adminRouter);
 
 // --- Global error handler ---
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

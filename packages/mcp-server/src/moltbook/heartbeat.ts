@@ -235,11 +235,17 @@ export class MoltbookHeartbeat {
    * Returns true if a reply was sent.
    */
   private async replyToPostActivity(postId: string): Promise<boolean> {
-    const comments = await this.client.getComments(postId, 'new', 5);
-    // Find comments we haven't replied to (not from us)
-    const unanswered = comments.filter(
-      (c) => c.author.name !== this.agentName && c.reply_count === 0,
-    );
+    const comments = await this.client.getComments(postId, 'new', 10);
+    // Find comments we haven't replied to (not from us), filter by min upvotes
+    const unanswered = comments
+      .filter(
+        (c) =>
+          c.author.name !== this.agentName &&
+          c.reply_count === 0 &&
+          c.upvotes >= this.engagement.minCommentUpvotesForReply,
+      )
+      // Karma triage: sort by upvotes descending (proxy for commenter value)
+      .sort((a, b) => b.upvotes - a.upvotes);
 
     let replied = false;
     for (const comment of unanswered.slice(0, 2)) {
@@ -279,13 +285,22 @@ export class MoltbookHeartbeat {
 
     const maxOutbound = this.engagement.maxOutboundPerTick;
 
-    // Pick a random search topic
-    const topic = SEARCH_TOPICS[Math.floor(Math.random() * SEARCH_TOPICS.length)];
+    // Pick search topic using configured strategy
+    const topics = this.engagement.searchTopics ?? SEARCH_TOPICS;
+    let topic: string;
+    if (this.engagement.searchStrategy === 'rotate') {
+      topic = topics[this.searchTopicIndex % topics.length];
+      this.searchTopicIndex++;
+    } else {
+      topic = topics[Math.floor(Math.random() * topics.length)];
+    }
 
     try {
       const searchResult = await this.client.search(topic, 'posts', 5);
       const relevantPosts = (searchResult.results || []).filter(
-        (r) => r.upvotes >= 2 && r.type === 'post',
+        (r) =>
+          r.type === 'post' &&
+          r.upvotes >= this.engagement.minPostUpvotesForComment,
       );
 
       for (const post of relevantPosts.slice(0, maxOutbound)) {
@@ -400,10 +415,32 @@ export class MoltbookHeartbeat {
     return null;
   }
 
+  /**
+   * Karma-adaptive comment gating.
+   * Higher karma → shorter cooldowns (from KARMA_TIERS).
+   */
   private canComment(): boolean {
     if (this.state.commentsToday >= DEFAULT_CONFIG.maxCommentsPerDay) return false;
-    if (Date.now() - this.state.lastCommentTime < DEFAULT_CONFIG.commentCooldownMs) return false;
+    const tier = resolveKarmaTier(this.state.currentKarma);
+    const cooldown = tier.commentCooldownMs || DEFAULT_CONFIG.commentCooldownMs;
+    if (Date.now() - this.state.lastCommentTime < cooldown) return false;
     return true;
+  }
+
+  /**
+   * Adjust the heartbeat interval based on current karma tier.
+   * Higher karma = shorter intervals = more frequent engagement.
+   */
+  private updateInterval(): void {
+    if (!this.intervalId) return;
+    const tier = resolveKarmaTier(this.state.currentKarma);
+    // Only update if interval changed
+    clearInterval(this.intervalId);
+    this.intervalId = setInterval(
+      () => void this.tick(),
+      tier.heartbeatIntervalMs,
+    );
+    console.log(`[moltbook-heartbeat] Karma ${this.state.currentKarma} → ${tier.heartbeatIntervalMs / 1000}s interval`);
   }
 
   private sleep(ms: number): Promise<void> {

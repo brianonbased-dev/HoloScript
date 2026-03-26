@@ -30,6 +30,24 @@ export interface EngagementConfig {
   maxOutboundPerTick: number;
   /** Max inbound replies (on own posts) per heartbeat tick. */
   maxInboundPerTick: number;
+  /** Search strategy: random (current), rotate (round-robin), weighted (by relevance) */
+  searchStrategy: 'random' | 'rotate' | 'weighted';
+  /** Feed sorting strategies to use during browse (cycles through them) */
+  feedStrategies: Array<'hot' | 'new' | 'rising'>;
+  /** Min upvotes on a post before we'll comment on it */
+  minPostUpvotesForComment: number;
+  /** Max comment count on a post — avoid crowded threads */
+  maxPostCommentsForComment: number;
+  /** Custom search topics (overrides default SEARCH_TOPICS in heartbeat) */
+  searchTopics?: string[];
+  /** Min upvotes on a commenter's comment before replying (karma triage proxy) */
+  minCommentUpvotesForReply: number;
+  /** Enable DM support (inbox check + outreach). Default: false. */
+  dmEnabled: boolean;
+  /** Min comment exchanges with an agent before DM outreach is allowed */
+  dmMinExchangesBeforeOutreach: number;
+  /** Max DMs to send per heartbeat tick */
+  dmMaxOutreachPerTick: number;
 }
 
 export const DEFAULT_ENGAGEMENT_CONFIG: EngagementConfig = {
@@ -37,7 +55,97 @@ export const DEFAULT_ENGAGEMENT_CONFIG: EngagementConfig = {
   outboundFirstEnabled: true,
   maxOutboundPerTick: 7,
   maxInboundPerTick: 3,
+  searchStrategy: 'rotate',
+  feedStrategies: ['hot', 'new'],
+  minPostUpvotesForComment: 2,
+  maxPostCommentsForComment: 30,
+  minCommentUpvotesForReply: 0,
+  dmEnabled: false,
+  dmMinExchangesBeforeOutreach: 3,
+  dmMaxOutreachPerTick: 2,
 };
+
+// --- Karma-Adaptive Tiers ---
+
+export interface KarmaTier {
+  minKarma: number;
+  heartbeatIntervalMs: number;
+  commentCooldownMs: number;
+}
+
+/**
+ * Higher karma = faster engagement allowed.
+ * Based on live Moltbook rate limit data from 4 engagement sessions.
+ */
+export const KARMA_TIERS: KarmaTier[] = [
+  { minKarma: 50, heartbeatIntervalMs: 2 * 60 * 1000, commentCooldownMs: 0 },
+  { minKarma: 31, heartbeatIntervalMs: 2.5 * 60 * 1000, commentCooldownMs: 0 },
+  { minKarma: 16, heartbeatIntervalMs: 5 * 60 * 1000, commentCooldownMs: 60_000 },
+  { minKarma: 0, heartbeatIntervalMs: 30 * 60 * 1000, commentCooldownMs: 120_000 },
+];
+
+/** Resolve the karma tier for a given karma value. */
+export function resolveKarmaTier(karma: number): KarmaTier {
+  for (const tier of KARMA_TIERS) {
+    if (karma >= tier.minKarma) return tier;
+  }
+  return KARMA_TIERS[KARMA_TIERS.length - 1];
+}
+
+// --- Submolt Audience Targeting ---
+
+export interface SubmoltTarget {
+  name: string;
+  /** Subscriber count — used for weighted selection. Higher = more reach. */
+  subscriberCount: number;
+  /** Which content pillars suit this submolt (empty = all) */
+  pillarAffinity?: ContentPillar[];
+}
+
+/**
+ * Default submolt targets based on live Moltbook data (2026-03-26).
+ * general has 50x the audience of agents — prioritize it for growth.
+ */
+export const DEFAULT_SUBMOLT_TARGETS: SubmoltTarget[] = [
+  { name: 'general', subscriberCount: 126_035 },
+  { name: 'ai', subscriberCount: 7_224, pillarAffinity: ['research'] },
+  { name: 'security', subscriberCount: 5_261, pillarAffinity: ['infrastructure'] },
+  { name: 'agents', subscriberCount: 2_519, pillarAffinity: ['research', 'infrastructure'] },
+  { name: 'tooling', subscriberCount: 942, pillarAffinity: ['infrastructure'] },
+  { name: 'builds', subscriberCount: 1_636, pillarAffinity: ['showcase'] },
+  { name: 'infrastructure', subscriberCount: 766, pillarAffinity: ['infrastructure'] },
+  { name: 'technology', subscriberCount: 1_063, pillarAffinity: ['research', 'showcase'] },
+];
+
+/**
+ * Select a submolt using weighted random by subscriber count.
+ * Filters by pillar affinity if specified, always includes 'general'.
+ * Falls back to 'general' if no suitable submolt found.
+ */
+export function selectSubmoltByAudience(
+  pillar: ContentPillar,
+  targets: SubmoltTarget[] = DEFAULT_SUBMOLT_TARGETS,
+  minSubscribers = 1000,
+): string {
+  // Filter to submolts matching pillar affinity (or no affinity = universal)
+  const candidates = targets.filter((t) => {
+    if (t.subscriberCount < minSubscribers && t.name !== 'general') return false;
+    if (!t.pillarAffinity || t.pillarAffinity.length === 0) return true;
+    return t.pillarAffinity.includes(pillar);
+  });
+
+  if (candidates.length === 0) return 'general';
+
+  // Weighted random: probability proportional to subscriberCount
+  const totalWeight = candidates.reduce((sum, c) => sum + c.subscriberCount, 0);
+  let roll = Math.random() * totalWeight;
+  for (const candidate of candidates) {
+    roll -= candidate.subscriberCount;
+    if (roll <= 0) return candidate.name;
+  }
+
+  return candidates[candidates.length - 1].name;
+}
 
 // --- API Response Types ---
 
@@ -160,6 +268,27 @@ export interface MoltbookSearchResult {
   created_at: string;
 }
 
+// --- Direct Messages ---
+
+export interface DMConversation {
+  id: string;
+  participants: Array<{ id: string; name: string }>;
+  last_message?: DMMessage;
+  unread_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DMMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 // --- Heartbeat State ---
 
 export interface HeartbeatState {
@@ -176,6 +305,8 @@ export interface HeartbeatState {
   outboundCommentsToday: number;
   /** Inbound replies (on own posts) today */
   inboundCommentsToday: number;
+  /** Last known karma (for tier resolution and delta tracking) */
+  currentKarma: number;
   /** Titles of posts already created (for dedup across restarts) */
   postHistory: string[];
 }
@@ -192,6 +323,7 @@ export const INITIAL_HEARTBEAT_STATE: HeartbeatState = {
   totalUpvotes: 0,
   outboundCommentsToday: 0,
   inboundCommentsToday: 0,
+  currentKarma: 0,
   postHistory: [],
 };
 

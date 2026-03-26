@@ -6,6 +6,9 @@ export { LLMContentGenerator, adaptProviderManager } from './llm-content-generat
 export { MoltbookAgentManager } from './agent-manager';
 export { MoltbookCreditScorer, DEFAULT_CREDIT_WEIGHTS } from './credit-scorer';
 export { solveChallenge } from './challenge-solver';
-export { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, INITIAL_HEARTBEAT_STATE, PLATFORM_STATS, MOLTBOOK_BASE } from './types';
+export { EngagementTracker } from './engagement-tracker';
+export { ExperimentTracker } from './experiment-tracker';
+export { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, DEFAULT_SUBMOLT_TARGETS, INITIAL_HEARTBEAT_STATE, PLATFORM_STATS, MOLTBOOK_BASE, selectSubmoltByAudience } from './types';
 export type * from './types';
 export type { CreditBreakdown, CreditWeights, LocalStats, LiveStats } from './credit-scorer';
+export type { DMConversation, DMMessage } from './types';

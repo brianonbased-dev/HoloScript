@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import { resolveGitHubToken } from './github-identity.js';
 
 export interface AuthenticatedRequest extends Request {
   authenticated?: boolean;
   freeTier?: boolean;
   userId?: string;
+  isAdmin?: boolean;
+  githubUsername?: string;
 }
 
 const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
@@ -41,7 +44,7 @@ function isRateLimited(ip: string): boolean {
   return entry.count > FREE_SCAN_LIMIT;
 }
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authReq = req as AuthenticatedRequest;
 
   if (PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p))) {
@@ -53,11 +56,28 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 
   if (authHeader) {
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+    // Path 1: Service-to-service API key
     if (apiKey && token === apiKey) {
       authReq.authenticated = true;
       return next();
     }
-    res.status(401).json({ error: 'Invalid API key' });
+
+    // Path 2: GitHub OAuth token
+    try {
+      const identity = await resolveGitHubToken(token);
+      if (identity) {
+        authReq.authenticated = true;
+        authReq.userId = identity.userId;
+        authReq.isAdmin = identity.isAdmin;
+        authReq.githubUsername = identity.githubUsername;
+        return next();
+      }
+    } catch {
+      // GitHub resolution failed — fall through to rejection
+    }
+
+    res.status(401).json({ error: 'Invalid API key or GitHub token' });
     return;
   }
 
@@ -86,6 +106,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 
   res.status(401).json({
     error: 'Authentication required',
-    message: 'Provide an API key via Authorization: Bearer <key> header',
+    message: 'Provide an API key via Authorization: Bearer <key> header, or a GitHub OAuth token',
   });
 }

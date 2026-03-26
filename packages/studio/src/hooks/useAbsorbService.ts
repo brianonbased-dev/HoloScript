@@ -9,6 +9,7 @@
 import { useCallback, useEffect } from 'react';
 import { useAbsorbServiceStore } from '@/lib/stores/absorbServiceStore';
 import { OPERATION_COSTS, type OperationType } from '@/lib/absorb/pricing';
+import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
 
 export function useAbsorbService() {
   const store = useAbsorbServiceStore();
@@ -38,7 +39,7 @@ export function useAbsorbService() {
    * Run absorb on a project with credit checking.
    */
   const runAbsorb = useCallback(async (projectId: string, depth: 'shallow' | 'deep' = 'shallow') => {
-    const res = await fetch(`/api/absorb/projects/${projectId}/absorb`, {
+    const res = await absorbFetch(`/api/absorb/projects/${projectId}/absorb`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ depth, tier: store.qualityTier }),
@@ -55,7 +56,7 @@ export function useAbsorbService() {
    * Run daemon improvement on a project.
    */
   const runImprove = useCallback(async (projectId: string, profile: 'quick' | 'balanced' | 'deep' = 'quick') => {
-    const res = await fetch(`/api/absorb/projects/${projectId}/improve`, {
+    const res = await absorbFetch(`/api/absorb/projects/${projectId}/improve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ profile, tier: store.qualityTier }),
@@ -72,7 +73,7 @@ export function useAbsorbService() {
    * Run pipeline on a project.
    */
   const runPipeline = useCallback(async (projectId: string, layer: 'l0' | 'l1' | 'l2' = 'l0') => {
-    const res = await fetch(`/api/absorb/projects/${projectId}/pipeline`, {
+    const res = await absorbFetch(`/api/absorb/projects/${projectId}/pipeline`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ layer }),
@@ -89,7 +90,7 @@ export function useAbsorbService() {
    * Run GraphRAG query on a project.
    */
   const runQuery = useCallback(async (projectId: string, query: string, withLLM = false) => {
-    const res = await fetch(`/api/absorb/projects/${projectId}/query`, {
+    const res = await absorbFetch(`/api/absorb/projects/${projectId}/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, withLLM }),
@@ -109,7 +110,7 @@ export function useAbsorbService() {
     format: 'png' | 'jpeg' | 'webp' | 'pdf' = 'png',
     options?: { width?: number; height?: number; quality?: number },
   ) => {
-    const res = await fetch(`/api/absorb/projects/${projectId}/render`, {
+    const res = await absorbFetch(`/api/absorb/projects/${projectId}/render`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ format, ...options }),
@@ -125,7 +126,7 @@ export function useAbsorbService() {
    * Run semantic diff between two source versions.
    */
   const runDiff = useCallback(async (projectId: string, sourceA: string, sourceB: string) => {
-    const res = await fetch(`/api/absorb/projects/${projectId}/diff`, {
+    const res = await absorbFetch(`/api/absorb/projects/${projectId}/diff`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceA, sourceB }),
@@ -141,7 +142,7 @@ export function useAbsorbService() {
    * Purchase a credit package — redirects to Stripe checkout.
    */
   const purchaseCredits = useCallback(async (packageId: string) => {
-    const res = await fetch('/api/absorb/credits', {
+    const res = await absorbFetch('/api/absorb/credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ packageId }),

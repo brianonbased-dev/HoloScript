@@ -2,8 +2,14 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { resolveGitHubToken } from './middleware/github-identity.js';
 
 const transports = new Map<string, StreamableHTTPServerTransport>();
+const sessionUserMap = new Map<string, string>();
+
+export function getSessionUserId(sessionId: string): string | undefined {
+  return sessionUserMap.get(sessionId);
+}
 
 function getToolCount(): number {
   // Count tools from the absorb service MCP modules
@@ -92,6 +98,7 @@ async function getOrCreateTransport(sessionId?: string): Promise<StreamableHTTPS
 
   transport.onclose = () => {
     transports.delete(sid);
+    sessionUserMap.delete(sid);
   };
 
   return transport;
@@ -102,6 +109,23 @@ export async function handleMcpPost(req: Request, res: Response): Promise<void> 
   try {
     const sessionId = req.headers['mcp-session-id'] as string | undefined;
     const transport = await getOrCreateTransport(sessionId);
+
+    // Bind userId to session from Authorization header (best-effort)
+    const sid = transport.sessionId;
+    if (sid && !sessionUserMap.has(sid)) {
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+        try {
+          const identity = await resolveGitHubToken(token);
+          if (identity) {
+            sessionUserMap.set(sid, identity.userId);
+          }
+        } catch {
+          // Token resolution failed — session remains anonymous
+        }
+      }
+    }
 
     // Pipe the request/response through the transport
     await transport.handleRequest(req, res, req.body);

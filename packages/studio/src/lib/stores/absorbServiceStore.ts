@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import type { Tier } from '@/lib/absorb/pricing';
+import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,14 @@ export interface MoltbookAgentEvent {
   createdAt: string;
 }
 
+export interface EcosystemHealthNode {
+  service: string;
+  status: 'ONLINE' | 'OFFLINE';
+  latencyMs: number;
+  error?: string;
+  statusCode?: number;
+}
+
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
 export type QualityTier = 'low' | 'medium' | 'high' | 'ultra';
@@ -94,6 +103,7 @@ interface AbsorbServiceState {
   usageHistory: CreditTransaction[];
   moltbookAgents: MoltbookAgent[];
   moltbookSummary: MoltbookSummary | null;
+  healthMatrix: EcosystemHealthNode[] | null;
   loading: boolean;
   error: string | null;
 
@@ -117,6 +127,7 @@ interface AbsorbServiceState {
   triggerMoltbookHeartbeat: (id: string) => Promise<boolean>;
   fetchMoltbookAgentStatus: (id: string) => Promise<MoltbookAgentStatus | null>;
   fetchMoltbookAgentEvents: (id: string, limit?: number) => Promise<MoltbookAgentEvent[]>;
+  fetchEcosystemHealth: () => Promise<void>;
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -133,12 +144,13 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
         usageHistory: [],
         moltbookAgents: [],
         moltbookSummary: null,
+        healthMatrix: null,
         loading: false,
         error: null,
 
         fetchBalance: async () => {
           try {
-            const res = await fetch('/api/absorb/credits');
+            const res = await absorbFetch('/api/absorb/credits');
             if (!res.ok) return;
             const data = await res.json();
             set({ creditBalance: data.balance, tier: data.tier });
@@ -148,7 +160,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
         fetchProjects: async () => {
           set({ loading: true });
           try {
-            const res = await fetch('/api/absorb/projects');
+            const res = await absorbFetch('/api/absorb/projects');
             if (!res.ok) throw new Error('Failed to fetch projects');
             const data = await res.json();
             set({ projects: data.projects, loading: false, error: null });
@@ -159,7 +171,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         fetchUsageHistory: async (limit = 50) => {
           try {
-            const res = await fetch(`/api/absorb/credits/history?limit=${limit}`);
+            const res = await absorbFetch(`/api/absorb/credits/history?limit=${limit}`);
             if (!res.ok) return;
             const data = await res.json();
             set({ usageHistory: data.transactions });
@@ -168,7 +180,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         createProject: async (name, sourceType, sourceUrl) => {
           try {
-            const res = await fetch('/api/absorb/projects', {
+            const res = await absorbFetch('/api/absorb/projects', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name, sourceType, sourceUrl }),
@@ -189,7 +201,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         deleteProject: async (id) => {
           try {
-            const res = await fetch(`/api/absorb/projects/${id}`, { method: 'DELETE' });
+            const res = await absorbFetch(`/api/absorb/projects/${id}`, { method: 'DELETE' });
             if (!res.ok) return false;
             set((s) => ({
               projects: s.projects.filter((p) => p.id !== id),
@@ -214,7 +226,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         fetchMoltbookAgents: async () => {
           try {
-            const res = await fetch('/api/absorb/moltbook');
+            const res = await absorbFetch('/api/absorb/moltbook');
             if (!res.ok) return;
             const data = await res.json();
             set({ moltbookAgents: data.agents });
@@ -223,7 +235,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         fetchMoltbookSummary: async () => {
           try {
-            const res = await fetch('/api/absorb/moltbook/summary');
+            const res = await absorbFetch('/api/absorb/moltbook/summary');
             if (!res.ok) return;
             const data = await res.json();
             set({ moltbookSummary: data });
@@ -232,7 +244,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         createMoltbookAgent: async (projectId, agentName, moltbookApiKey, config = {}) => {
           try {
-            const res = await fetch('/api/absorb/moltbook', {
+            const res = await absorbFetch('/api/absorb/moltbook', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ projectId, agentName, moltbookApiKey, config }),
@@ -249,7 +261,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         updateMoltbookAgent: async (id, updates) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}`, {
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updates),
@@ -268,7 +280,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         deleteMoltbookAgent: async (id) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}`, { method: 'DELETE' });
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}`, { method: 'DELETE' });
             if (!res.ok) return false;
             set((s) => ({
               moltbookAgents: s.moltbookAgents.filter((a) => a.id !== id),
@@ -281,7 +293,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         startMoltbookAgent: async (id) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}/start`, { method: 'POST' });
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}/start`, { method: 'POST' });
             if (!res.ok) return false;
             const data = await res.json();
             set((s) => ({
@@ -297,7 +309,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         stopMoltbookAgent: async (id) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}/stop`, { method: 'POST' });
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}/stop`, { method: 'POST' });
             if (!res.ok) return false;
             const data = await res.json();
             set((s) => ({
@@ -313,7 +325,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         triggerMoltbookHeartbeat: async (id) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}/trigger`, { method: 'POST' });
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}/trigger`, { method: 'POST' });
             return res.ok;
           } catch {
             return false;
@@ -322,7 +334,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         fetchMoltbookAgentStatus: async (id) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}/status`);
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}/status`);
             if (!res.ok) return null;
             return await res.json();
           } catch {
@@ -332,12 +344,24 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
 
         fetchMoltbookAgentEvents: async (id, limit = 20) => {
           try {
-            const res = await fetch(`/api/absorb/moltbook/${id}/events?limit=${limit}`);
+            const res = await absorbFetch(`/api/absorb/moltbook/${id}/events?limit=${limit}`);
             if (!res.ok) return [];
             const data = await res.json();
             return data.events ?? [];
           } catch {
             return [];
+          }
+        },
+
+        fetchEcosystemHealth: async () => {
+          try {
+            const res = await absorbFetch('/api/admin/health-matrix');
+            if (res.ok) {
+              const data = await res.json();
+              set({ healthMatrix: data.matrix });
+            }
+          } catch {
+            // Silently fail if admin isn't active
           }
         },
       }),

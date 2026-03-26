@@ -1,13 +1,14 @@
 /**
  * Moltbook MCP tool definitions and handlers.
  *
- * 6 tools for interacting with Moltbook (AI agent social network):
+ * 7 tools for interacting with Moltbook (AI agent social network):
  * - moltbook_post: Post content with rendered preview
  * - moltbook_comment: Comment on a post
  * - moltbook_browse: Browse feed or semantic search
  * - moltbook_engage: Upvote, follow, subscribe
  * - moltbook_heartbeat: Get status or trigger manual cycle
  * - moltbook_create_submolt: Create a community
+ * - moltbook_dm: Direct message support (list, read, send)
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -16,7 +17,9 @@ import { MoltbookHeartbeat } from './heartbeat';
 import { ContentPipeline } from './content-pipeline';
 import { LLMContentGenerator, adaptProviderManager } from './llm-content-generator';
 import { MoltbookAgentManager } from './agent-manager';
-import type { ContentPillar } from './types';
+import { EngagementTracker } from './engagement-tracker';
+import { ExperimentTracker } from './experiment-tracker';
+import type { ContentPillar, EngagementConfig } from './types';
 
 export const moltbookTools: Tool[] = [
   {
@@ -157,6 +160,89 @@ export const moltbookTools: Tool[] = [
         },
       },
       required: ['name', 'displayName', 'description'],
+    },
+  },
+  {
+    name: 'moltbook_dm',
+    description:
+      'Direct messaging on Moltbook: list conversations, read messages, or send a DM to another agent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'read', 'send'],
+          description: 'DM action: list conversations, read a conversation, or send a message',
+        },
+        conversationId: {
+          type: 'string',
+          description: 'Conversation ID (required for read action)',
+        },
+        recipientName: {
+          type: 'string',
+          description: 'Recipient agent name (required for send action)',
+        },
+        content: {
+          type: 'string',
+          description: 'Message content (required for send action)',
+        },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: 'moltbook_analytics',
+    description:
+      'Get engagement analytics for the Moltbook heartbeat: session metrics, karma/action ratios, outbound/inbound splits, and historical trends.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['snapshot', 'start_session', 'end_session'],
+          description: 'Analytics action: get current snapshot, start a tracking session, or end the current session',
+        },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: 'moltbook_experiment',
+    description:
+      'A/B test Moltbook engagement strategies. Create experiments with variant configs, record results, and evaluate which variant performs better.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['create', 'list', 'evaluate', 'status'],
+          description: 'Experiment action',
+        },
+        name: {
+          type: 'string',
+          description: 'Experiment name (for create)',
+        },
+        hypothesis: {
+          type: 'string',
+          description: 'What you expect to happen (for create)',
+        },
+        variants: {
+          type: 'array',
+          description: 'Array of {name, config} variant definitions (for create)',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              config: { type: 'object' },
+            },
+          },
+        },
+        experimentId: {
+          type: 'string',
+          description: 'Experiment ID (for evaluate/status)',
+        },
+      },
+      required: ['action'],
     },
   },
 ];
@@ -329,6 +415,12 @@ export async function handleMoltbookTool(
       return handleHeartbeat(args);
     case 'moltbook_create_submolt':
       return handleCreateSubmolt(args);
+    case 'moltbook_dm':
+      return handleDM(args);
+    case 'moltbook_analytics':
+      return handleAnalytics(args);
+    case 'moltbook_experiment':
+      return handleExperiment(args);
     default:
       return null;
   }
@@ -473,6 +565,141 @@ async function handleCreateSubmolt(args: Record<string, unknown>) {
       description: submolt.description,
     },
   };
+}
+
+// --- Analytics & Experiment Singletons ---
+
+let engagementTrackerInstance: EngagementTracker | null = null;
+let experimentTrackerInstance: ExperimentTracker | null = null;
+
+function getEngagementTracker(): EngagementTracker {
+  if (!engagementTrackerInstance) {
+    engagementTrackerInstance = new EngagementTracker();
+  }
+  return engagementTrackerInstance;
+}
+
+function getExperimentTracker(): ExperimentTracker {
+  if (!experimentTrackerInstance) {
+    experimentTrackerInstance = new ExperimentTracker();
+  }
+  return experimentTrackerInstance;
+}
+
+async function handleAnalytics(args: Record<string, unknown>) {
+  const tracker = getEngagementTracker();
+  const action = args.action as string;
+
+  switch (action) {
+    case 'snapshot': {
+      const heartbeat = getHeartbeatInstance();
+      const karma = heartbeat?.getState().currentKarma;
+      return { success: true, snapshot: tracker.getSnapshot(karma ?? undefined) };
+    }
+    case 'start_session': {
+      const heartbeat = getHeartbeatInstance();
+      const karma = heartbeat?.getState().currentKarma ?? 0;
+      const sessionId = tracker.startSession(karma);
+      return { success: true, sessionId, startKarma: karma };
+    }
+    case 'end_session': {
+      const heartbeat = getHeartbeatInstance();
+      const karma = heartbeat?.getState().currentKarma ?? 0;
+      const metrics = tracker.endSession(karma);
+      return metrics
+        ? { success: true, session: metrics }
+        : { success: false, reason: 'No active session' };
+    }
+    default:
+      return { error: `Unknown analytics action: ${action}` };
+  }
+}
+
+async function handleExperiment(args: Record<string, unknown>) {
+  const tracker = getExperimentTracker();
+  const action = args.action as string;
+
+  switch (action) {
+    case 'create': {
+      const name = args.name as string;
+      const hypothesis = args.hypothesis as string;
+      const variants = args.variants as Array<{ name: string; config: Partial<EngagementConfig> }>;
+      if (!name || !variants?.length) {
+        return { error: 'name and variants are required for create action' };
+      }
+      const experiment = tracker.createExperiment(name, hypothesis || '', variants);
+      return { success: true, experiment };
+    }
+    case 'list': {
+      return { success: true, experiments: tracker.listExperiments() };
+    }
+    case 'evaluate': {
+      const experimentId = args.experimentId as string;
+      if (!experimentId) return { error: 'experimentId is required for evaluate action' };
+      const result = tracker.evaluate(experimentId);
+      return result ? { success: true, result } : { error: `Experiment ${experimentId} not found` };
+    }
+    case 'status': {
+      const experimentId = args.experimentId as string;
+      if (!experimentId) return { error: 'experimentId is required for status action' };
+      const experiment = tracker.getExperiment(experimentId);
+      return experiment ? { success: true, experiment } : { error: `Experiment ${experimentId} not found` };
+    }
+    default:
+      return { error: `Unknown experiment action: ${action}` };
+  }
+}
+
+async function handleDM(args: Record<string, unknown>) {
+  const client = getMoltbookClient();
+  const action = args.action as string;
+
+  switch (action) {
+    case 'list': {
+      const conversations = await client.listDMConversations();
+      return {
+        success: true,
+        conversations: conversations.map((c) => ({
+          id: c.id,
+          participants: c.participants.map((p) => p.name),
+          unread: c.unread_count,
+          lastMessage: c.last_message
+            ? { from: c.last_message.sender_name, preview: c.last_message.content.slice(0, 100) }
+            : null,
+          updated_at: c.updated_at,
+        })),
+      };
+    }
+    case 'read': {
+      const conversationId = args.conversationId as string;
+      if (!conversationId) return { error: 'conversationId is required for read action' };
+      const messages = await client.getDMMessages(conversationId);
+      await client.markDMRead(conversationId);
+      return {
+        success: true,
+        conversationId,
+        messages: messages.map((m) => ({
+          id: m.id,
+          from: m.sender_name,
+          content: m.content,
+          created_at: m.created_at,
+        })),
+      };
+    }
+    case 'send': {
+      const recipientName = args.recipientName as string;
+      const content = args.content as string;
+      if (!recipientName || !content) return { error: 'recipientName and content are required for send action' };
+      const message = await client.sendDM(recipientName, content);
+      return {
+        success: true,
+        messageId: message.id,
+        conversationId: message.conversation_id,
+      };
+    }
+    default:
+      return { error: `Unknown DM action: ${action}` };
+  }
 }
 
 // --- Agent Manager Singleton ---
