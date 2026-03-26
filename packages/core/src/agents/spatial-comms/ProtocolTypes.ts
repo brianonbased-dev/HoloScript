@@ -476,7 +476,7 @@ export interface MCPProtocolConfig {
  */
 export const DEFAULT_MCP_CONFIG: MCPProtocolConfig = {
   endpoint: 'http://localhost:5567',
-  apiKey: process.env.MCP_API_KEY || 'dev-key-12345',
+  apiKey: process.env.MCP_API_KEY || '',
   timeout: 30000, // 30 seconds
 };
 

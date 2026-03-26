@@ -425,7 +425,7 @@ export function MCPServerConfigPanel({ onClose }: MCPServerConfigPanelProps) {
   const addMCPServer = useOrchestrationStore((s) => s.addMCPServer);
   const updateMCPServer = useOrchestrationStore((s) => s.updateMCPServer);
 
-  const [apiKey, setApiKey] = useLocalStorage('mcp-api-key', 'dev-key-12345');
+  const [apiKey, setApiKey] = useLocalStorage('mcp-api-key', '');
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null);
   const [showAddServer, setShowAddServer] = useState(false);
 

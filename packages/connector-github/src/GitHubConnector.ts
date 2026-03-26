@@ -409,7 +409,7 @@ export class GitHubConnector extends ServiceConnector {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'x-mcp-api-key': process.env.MCP_API_KEY || 'dev-key-12345'
+                            'x-mcp-api-key': process.env.MCP_API_KEY || ''
                         },
                         body: JSON.stringify({
                             server: 'holoscript-remote',

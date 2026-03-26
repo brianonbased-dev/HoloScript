@@ -12,7 +12,7 @@
  *
  * Environment variables:
  *   MCP_ORCHESTRATOR_URL  - Orchestrator base URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)
- *   MCP_API_KEY           - API key for orchestrator auth (default: dev-key-12345)
+ *   MCP_API_KEY           - API key for orchestrator auth (REQUIRED — no fallback)
  *   MCP_SERVER_NAME       - Server name to register as (default: holoscript-tools)
  *
  * @module mcp/registerWithOrchestrator
@@ -50,9 +50,20 @@ export interface RegistrationResult {
 // DEFAULT CONFIG
 // =============================================================================
 
+function requireApiKey(): string {
+  const key = process.env.MCP_API_KEY;
+  if (!key) {
+    throw new Error(
+      'MCP_API_KEY environment variable is required. ' +
+      'Set it in .env or pass --api-key on the command line.',
+    );
+  }
+  return key;
+}
+
 const DEFAULT_CONFIG: RegistrationConfig = {
   orchestratorUrl: process.env.MCP_ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app',
-  apiKey: process.env.MCP_API_KEY ?? 'dev-key-12345',
+  apiKey: requireApiKey(),
   serverName: process.env.MCP_SERVER_NAME ?? 'holoscript-tools',
   serverDescription:
     'HoloScript core tools: NIR compiler, WGSL shader generation, spatial training data, ' +
@@ -255,7 +266,7 @@ async function main(): Promise<void> {
       console.log();
       console.log('Options:');
       console.log('  --url <url>            Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)');
-      console.log('  --api-key <key>        API key (default: dev-key-12345)');
+      console.log('  --api-key <key>        API key (or set MCP_API_KEY env var)');
       console.log('  --server-name <name>   Server name (default: holoscript-tools)');
       console.log('  --unregister           Remove registration instead of registering');
       console.log('  --help                 Show this help message');
