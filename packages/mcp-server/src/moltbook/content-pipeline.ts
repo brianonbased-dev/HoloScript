@@ -263,7 +263,7 @@ export class ContentPipeline {
    * Map day-of-week to content pillar.
    * Mon/Thu/Sun = research, Tue/Fri = infrastructure, Wed = showcase, Sat = community
    */
-  private getPillarForToday(): ContentPillar {
+  getPillarForToday(): ContentPillar {
     const day = new Date().getDay(); // 0=Sun, 1=Mon, ...
     switch (day) {
       case 0: return 'research';      // Sunday

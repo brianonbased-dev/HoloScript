@@ -13,7 +13,7 @@
 import type { MoltbookClient } from './client';
 import type { ContentPipeline } from './content-pipeline';
 import type { LLMContentGenerator } from './llm-content-generator';
-import type { HeartbeatState, HeartbeatResult, MoltbookPost } from './types';
+import type { HeartbeatState, HeartbeatResult } from './types';
 import { DEFAULT_CONFIG, INITIAL_HEARTBEAT_STATE } from './types';
 
 // Topics to search for when browsing the feed
@@ -107,22 +107,25 @@ export class MoltbookHeartbeat {
     }
 
     try {
-      // Step 1: Check home
-      const home = await this.client.getHome();
-      result.checkedHome = true;
-      this.state.lastCheck = Date.now();
+      // Step 1 & 2: Check home & Reply to activity on own posts
+      try {
+        const home = await this.client.getHome();
+        result.checkedHome = true;
+        this.state.lastCheck = Date.now();
 
-      // Step 2: Reply to activity on own posts
-      if (home.activity_on_your_posts?.length > 0) {
-        for (const activity of home.activity_on_your_posts.slice(0, 3)) {
-          if (!this.canComment()) break;
-          try {
-            await this.replyToPostActivity(activity.post_id);
-            result.repliesSent++;
-          } catch (err) {
-            result.errors.push(`Reply failed for ${activity.post_id}: ${err}`);
+        if (home.activity_on_your_posts?.length > 0) {
+          for (const activity of home.activity_on_your_posts.slice(0, 3)) {
+            if (!this.canComment()) break;
+            try {
+              await this.replyToPostActivity(activity.post_id);
+              result.repliesSent++;
+            } catch (err) {
+              result.errors.push(`Reply failed for ${activity.post_id}: ${err}`);
+            }
           }
         }
+      } catch (err) {
+        result.errors.push(`Home endpoint failed: ${err}`);
       }
 
       // Step 3: Browse and engage
@@ -137,10 +140,11 @@ export class MoltbookHeartbeat {
       const postCooldownElapsed = Date.now() - this.state.lastPostTime >= DEFAULT_CONFIG.postCooldownMs;
       if (postCooldownElapsed) {
         try {
+          const pillar = this.pipeline.getPillarForToday();
           // Try LLM-powered generation first, fall back to static templates
           const post = this.llmGenerator
-            ? (await this.llmGenerator.generatePost()) ?? (await this.pipeline.generatePost())
-            : await this.pipeline.generatePost();
+            ? (await this.llmGenerator.generatePost(pillar)) ?? (await this.pipeline.generatePost(pillar))
+            : await this.pipeline.generatePost(pillar);
           if (post) {
             await this.client.createPost(post.submolt, post.title, post.body);
             this.state.lastPostTime = Date.now();

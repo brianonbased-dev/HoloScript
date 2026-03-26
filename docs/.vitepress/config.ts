@@ -127,6 +127,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guides/' },
+      { text: 'Strategy', link: '/strategy/v8-vision-rfc' },
       {
         text: 'Learn',
         items: [
@@ -200,6 +201,7 @@ export default defineConfig({
             { text: 'Working Tree Triage', link: '/guides/working-tree-triage' },
             { text: 'Release Slice (v5.0.1)', link: '/guides/release-slice-v5-0-1' },
             { text: 'HoloDaemon Demo', link: '/guides/holodaemon-demo' },
+            { text: 'Studio V6 Architecture', link: '/guides/studio-v6-architecture' },
           ],
         },
         {
@@ -214,15 +216,11 @@ export default defineConfig({
         },
         {
           text: 'Community',
-          items: [
-            { text: 'Agent Bounty Program', link: '/BOUNTY' },
-          ],
+          items: [{ text: 'Agent Bounty Program', link: '/bounty' }],
         },
         {
           text: 'Codebase Intelligence',
-          items: [
-            { text: 'absorb & query', link: '/guides/codebase-intelligence' },
-          ],
+          items: [{ text: 'absorb & query', link: '/guides/codebase-intelligence' }],
         },
       ],
 
@@ -431,9 +429,7 @@ export default defineConfig({
         },
         {
           text: 'GPU & Shaders',
-          items: [
-            { text: 'Trait Shader Language (TSL)', link: '/compilers/tsl' },
-          ],
+          items: [{ text: 'Trait Shader Language (TSL)', link: '/compilers/tsl' }],
         },
         {
           text: 'AI & Agents',
@@ -445,9 +441,7 @@ export default defineConfig({
         },
         {
           text: 'Web3',
-          items: [
-            { text: 'NFT Marketplace', link: '/compilers/nft-marketplace' },
-          ],
+          items: [{ text: 'NFT Marketplace', link: '/compilers/nft-marketplace' }],
         },
         {
           text: 'Guides',
@@ -672,6 +666,12 @@ export default defineConfig({
             { text: 'Arena Game', link: '/examples/arena-game' },
             { text: 'World Builder', link: '/examples/world-builder' },
           ],
+        },
+      ],
+      '/strategy/': [
+        {
+          text: 'Ecosystem Strategy',
+          items: [{ text: 'V8 Vision RFC', link: '/strategy/v8-vision-rfc' }],
         },
       ],
     },

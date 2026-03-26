@@ -214,7 +214,7 @@ export class LLMContentGenerator {
           const ragResult = await this.graphRAG.queryWithLLM(query);
           codebaseContext = `\n\nCodebase context (use this to ground your post in real implementation details):\n${ragResult.answer}`;
 
-          if (ragResult.citations.length > 0) {
+          if (ragResult.citations?.length > 0) {
             codebaseContext += `\n\nKey files: ${ragResult.citations
               .slice(0, 5)
               .map((c) => `${c.file}:${c.line} (${c.name})`)
