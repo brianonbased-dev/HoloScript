@@ -31,6 +31,28 @@ export interface CreditTransaction {
   createdAt: string;
 }
 
+export interface MoltbookAgent {
+  id: string;
+  projectId: string;
+  agentName: string;
+  config: { pillars?: string[]; submolts?: string[]; searchTopics?: string[]; persona?: string };
+  heartbeatEnabled: boolean;
+  lastHeartbeat: string | null;
+  totalPostsGenerated: number;
+  totalCommentsGenerated: number;
+  totalLlmSpentCents: number;
+  createdAt: string;
+  moltbookApiKey: string; // masked in responses
+}
+
+export interface MoltbookSummary {
+  totalAgents: number;
+  activeAgents: number;
+  totalPosts: number;
+  totalComments: number;
+  totalLlmSpentCents: number;
+}
+
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
 export type QualityTier = 'low' | 'medium' | 'high' | 'ultra';
@@ -42,6 +64,8 @@ interface AbsorbServiceState {
   projects: AbsorbProject[];
   activeProjectId: string | null;
   usageHistory: CreditTransaction[];
+  moltbookAgents: MoltbookAgent[];
+  moltbookSummary: MoltbookSummary | null;
   loading: boolean;
   error: string | null;
 
@@ -54,6 +78,12 @@ interface AbsorbServiceState {
   getActiveProject: () => AbsorbProject | null;
   setQualityTier: (tier: QualityTier) => void;
   setError: (error: string | null) => void;
+
+  fetchMoltbookAgents: () => Promise<void>;
+  fetchMoltbookSummary: () => Promise<void>;
+  createMoltbookAgent: (projectId: string, agentName: string, moltbookApiKey: string, config?: Record<string, any>) => Promise<MoltbookAgent | null>;
+  updateMoltbookAgent: (id: string, updates: { heartbeatEnabled?: boolean; config?: Record<string, any>; agentName?: string }) => Promise<MoltbookAgent | null>;
+  deleteMoltbookAgent: (id: string) => Promise<boolean>;
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -68,6 +98,8 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
         projects: [],
         activeProjectId: null,
         usageHistory: [],
+        moltbookAgents: [],
+        moltbookSummary: null,
         loading: false,
         error: null,
 
@@ -146,6 +178,73 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
         setQualityTier: (qualityTier) => set({ qualityTier }),
 
         setError: (error) => set({ error }),
+
+        fetchMoltbookAgents: async () => {
+          try {
+            const res = await fetch('/api/absorb/moltbook');
+            if (!res.ok) return;
+            const data = await res.json();
+            set({ moltbookAgents: data.agents });
+          } catch {}
+        },
+
+        fetchMoltbookSummary: async () => {
+          try {
+            const res = await fetch('/api/absorb/moltbook/summary');
+            if (!res.ok) return;
+            const data = await res.json();
+            set({ moltbookSummary: data });
+          } catch {}
+        },
+
+        createMoltbookAgent: async (projectId, agentName, moltbookApiKey, config = {}) => {
+          try {
+            const res = await fetch('/api/absorb/moltbook', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ projectId, agentName, moltbookApiKey, config }),
+            });
+            if (!res.ok) throw new Error('Failed to create agent');
+            const data = await res.json();
+            set((s) => ({ moltbookAgents: [data.agent, ...s.moltbookAgents] }));
+            return data.agent;
+          } catch (err) {
+            set({ error: err instanceof Error ? err.message : 'Create agent failed' });
+            return null;
+          }
+        },
+
+        updateMoltbookAgent: async (id, updates) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updates),
+            });
+            if (!res.ok) throw new Error('Failed to update agent');
+            const data = await res.json();
+            set((s) => ({
+              moltbookAgents: s.moltbookAgents.map((a) => (a.id === id ? data.agent : a)),
+            }));
+            return data.agent;
+          } catch (err) {
+            set({ error: err instanceof Error ? err.message : 'Update agent failed' });
+            return null;
+          }
+        },
+
+        deleteMoltbookAgent: async (id) => {
+          try {
+            const res = await fetch(`/api/absorb/moltbook/${id}`, { method: 'DELETE' });
+            if (!res.ok) return false;
+            set((s) => ({
+              moltbookAgents: s.moltbookAgents.filter((a) => a.id !== id),
+            }));
+            return true;
+          } catch {
+            return false;
+          }
+        },
       }),
       {
         name: 'absorb-service-store',

@@ -16,7 +16,7 @@ import { CREDIT_PACKAGES, OPERATION_COSTS, TIER_LIMITS } from '@/lib/absorb/pric
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AbsorbTab = 'dashboard' | 'projects' | 'credits' | 'tools' | 'pricing';
+type AbsorbTab = 'dashboard' | 'projects' | 'agents' | 'credits' | 'tools' | 'pricing';
 type QualityTierOption = 'low' | 'medium' | 'high' | 'ultra';
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
@@ -624,6 +624,126 @@ function ToolsTab({
   );
 }
 
+// ─── Moltbook Agents Tab ────────────────────────────────────────────────────────
+
+function MoltbookAgentsTab() {
+  const { moltbookAgents, moltbookSummary, fetchMoltbookAgents, createMoltbookAgent, deleteMoltbookAgent, projects } = useAbsorbService();
+
+  const [projectId, setProjectId] = useState('');
+  const [agentName, setAgentName] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleCreate = async () => {
+    if (!projectId || !agentName || !apiKey) return;
+    setCreating(true);
+    setError('');
+    const agent = await createMoltbookAgent(projectId, agentName, apiKey);
+    if (agent) {
+      setAgentName('');
+      setApiKey('');
+      fetchMoltbookAgents();
+    } else {
+      setError('Failed to create agent');
+    }
+    setCreating(false);
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-8">
+      {moltbookSummary && (
+        <div className="grid grid-cols-4 gap-4">
+          <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+            <h3 className="text-sm font-semibold text-studio-text">Active Agents</h3>
+            <p className="mt-2 text-2xl font-bold text-studio-accent">{moltbookSummary.activeAgents}</p>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+            <h3 className="text-sm font-semibold text-studio-text">Total Posts</h3>
+            <p className="mt-2 text-2xl font-bold text-studio-accent">{moltbookSummary.totalPosts}</p>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+            <h3 className="text-sm font-semibold text-studio-text">Total Comments</h3>
+            <p className="mt-2 text-2xl font-bold text-studio-accent">{moltbookSummary.totalComments}</p>
+          </div>
+          <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+            <h3 className="text-sm font-semibold text-studio-text">Total LLM Spend</h3>
+            <p className="mt-2 text-2xl font-bold text-studio-accent">${(moltbookSummary.totalLlmSpentCents / 100).toFixed(2)}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="flex flex-col gap-4">
+          <h3 className="text-sm font-semibold text-studio-text">Agents ({moltbookAgents.length})</h3>
+          {moltbookAgents.length === 0 ? (
+            <div className="text-center py-12 text-sm text-studio-muted border border-dashed border-studio-border rounded-xl">No agents active. Assign an agent to a project to integrate Moltbook posting.</div>
+          ) : (
+            moltbookAgents.map((agent) => (
+              <div key={agent.id} className="rounded-xl border border-studio-border bg-[#111827] p-5 flex justify-between items-center">
+                <div>
+                  <h4 className="font-semibold text-studio-text">{agent.agentName}</h4>
+                  <p className="text-xs text-studio-muted mt-1">Project ID: <span className="font-mono text-[10px] bg-studio-bg px-1 rounded">{agent.projectId}</span></p>
+                  <div className="flex gap-4 mt-3 text-xs">
+                    <span className="text-studio-muted">Posts: <span className="text-studio-text font-medium">{agent.totalPostsGenerated}</span></span>
+                    <span className="text-studio-muted">Comments: <span className="text-studio-text font-medium">{agent.totalCommentsGenerated}</span></span>
+                    <span className="text-studio-muted">Spend: <span className="text-studio-text font-medium">${(agent.totalLlmSpentCents / 100).toFixed(2)}</span></span>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => await deleteMoltbookAgent(agent.id)}
+                  className="rounded bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20"
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="rounded-xl border border-studio-border bg-[#111827] p-5 self-start">
+          <h3 className="text-sm font-semibold text-studio-text mb-4">New Moltbook Agent</h3>
+          <div className="flex flex-col gap-3">
+            <label className="text-xs font-medium text-studio-muted">
+              Project
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
+              >
+                <option value="" disabled>Select Project</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-medium text-studio-muted">
+              Agent Name
+              <input
+                type="text" value={agentName} onChange={(e) => setAgentName(e.target.value)} placeholder="e.g. TrendBot"
+                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
+              />
+            </label>
+            <label className="text-xs font-medium text-studio-muted">
+              Moltbook API Key
+              <input
+                type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..."
+                className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text focus:border-studio-accent focus:outline-none"
+              />
+            </label>
+            {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</div>}
+            <button
+              onClick={handleCreate}
+              disabled={creating || !projectId || !agentName || !apiKey}
+              className="mt-2 rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-50"
+            >
+              {creating ? 'Creating...' : 'Create Agent'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AbsorbPage() {
@@ -660,7 +780,7 @@ function AuthenticatedDashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['dashboard', 'projects', 'credits', 'tools', 'pricing'].includes(tabParam)) {
+    if (tabParam && ['dashboard', 'projects', 'credits', 'tools', 'pricing', 'agents'].includes(tabParam)) {
       setTab(tabParam as AbsorbTab);
     }
     if (params.get('purchased')) {
@@ -676,6 +796,7 @@ function AuthenticatedDashboard() {
   const tabs: { id: AbsorbTab; label: string }[] = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'projects', label: 'Projects' },
+    { id: 'agents', label: 'Agents' },
     { id: 'tools', label: 'Tools' },
     { id: 'credits', label: 'Credits' },
     { id: 'pricing', label: 'Pricing' },
@@ -882,6 +1003,11 @@ function AuthenticatedDashboard() {
 
             <TierComparisonTable />
           </div>
+        )}
+
+        {/* Agents Tab */}
+        {tab === 'agents' && (
+          <MoltbookAgentsTab />
         )}
 
         {/* Tools Tab */}

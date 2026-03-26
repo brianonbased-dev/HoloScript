@@ -13,10 +13,12 @@ import { OPERATION_COSTS, type OperationType } from '@/lib/absorb/pricing';
 export function useAbsorbService() {
   const store = useAbsorbServiceStore();
 
-  // Load balance and projects on mount
+  // Load balance, projects, and moltbook data on mount
   useEffect(() => {
     store.fetchBalance();
     store.fetchProjects();
+    store.fetchMoltbookAgents();
+    store.fetchMoltbookSummary();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
