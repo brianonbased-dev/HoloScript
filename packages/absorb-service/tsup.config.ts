@@ -1,6 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
+  onSuccess: 'node -e "const fs=require(\'fs\');const path=require(\'path\');function cp(s,d){if(!fs.existsSync(s))return;fs.mkdirSync(path.dirname(d),{recursive:true});if(fs.statSync(s).isDirectory()){for(const f of fs.readdirSync(s))cp(path.join(s,f),path.join(d,f))}else{fs.copyFileSync(s,d)}}cp(\'types\',\'dist\')"',
   entry: {
     index: 'src/index.ts',
     'engine/index': 'src/engine/index.ts',
