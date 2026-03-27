@@ -146,15 +146,15 @@ router.get('/success', async (req: Request, res: Response) => {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === 'paid' && session.metadata) {
-      const { addCredits } = await import('@holoscript/absorb-service/credits');
-      const userId = session.metadata.userId || 'anonymous';
       const amountCents = parseInt(session.metadata.amountCents || '0', 10);
-
-      await addCredits(userId, amountCents, 'Stripe purchase', {
-        stripeSessionId: sessionId,
+      
+      // Note: addCredits is now handled purely by the background POST webhook
+      // to guarantee safe, asynchronous provisioning even if the user closes their browser.
+      res.json({ 
+        status: 'success', 
+        message: 'Payment confirmed. Credits are being provisioned by the webhook asynchronously.',
+        amountExpected: amountCents 
       });
-
-      res.json({ status: 'success', credited: amountCents });
     } else {
       res.status(400).json({ error: 'Payment not completed' });
     }

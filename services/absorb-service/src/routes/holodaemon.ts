@@ -115,6 +115,14 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
 
   if (body.action === 'start') {
     const profile = body.profile ?? 'balanced';
+    
+    const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
+    const opType = profile === 'deep' ? 'daemon_deep' : profile === 'quick' ? 'daemon_quick' : 'daemon_balanced';
+    
+    const creditCheck = await requireCredits(authReq.userId || 'anonymous', opType);
+    if (isCreditError(creditCheck)) {
+      return res.status(402).json(creditCheck);
+    }
 
     const jobs = listDaemonJobs();
     const running = jobs.find((j: any) => j.status === 'running');
@@ -136,7 +144,14 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
       userId: authReq.userId,
     });
 
-    return res.status(201).json({ job });
+    await deductCredits(
+      authReq.userId || 'anonymous',
+      creditCheck.costCents,
+      `HoloDaemon cycle (${profile})`,
+      { jobId: job.id, profile }
+    );
+
+    return res.status(201).json({ job, cost: creditCheck.costCents });
   }
 
   if (body.action === 'stop') {

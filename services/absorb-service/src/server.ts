@@ -4,6 +4,7 @@ import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
 import { absorbRouter } from './routes/absorb.js';
 import { creditsRouter } from './routes/credits.js';
+import { creditsWebhookRouter } from './routes/creditsWebhook.js';
 import { holodaemonRouter } from './routes/holodaemon.js';
 import { pipelineRouter } from './routes/pipeline.js';
 import { moltbookRouter } from './routes/moltbook.js';
@@ -21,6 +22,11 @@ const PORT = process.env.PORT || 3005;
 
 // --- Middleware ---
 app.use(cors());
+
+// --- Webhooks (must come before express.json to preserve raw Buffer) ---
+app.use('/api/credits/webhook', express.raw({ type: 'application/json' }), creditsWebhookRouter);
+
+// --- Standard JSON Middleware ---
 app.use(express.json({ limit: '50mb' }));
 
 // --- UI Redirect (absorb.holoscript.net -> Studio Frontend) ---

@@ -56,18 +56,22 @@ router.post('/scan', async (req: Request, res: Response) => {
 
     // Deduct credits if authenticated
     if ((req as AuthenticatedRequest).authenticated && body.projectId) {
-      try {
-        const { deductCredits } = await import('@holoscript/absorb-service/credits');
-        const cost = body.shallow ? 10 : 50; // cents
-        await deductCredits(
-          (req as AuthenticatedRequest).userId || 'anonymous',
-          cost,
-          `Codebase scan: ${body.path}`,
-          { graphId, shallow: body.shallow }
-        );
-      } catch {
-        // Credit deduction failure shouldn't block the scan
+      const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
+      const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+      const opType = body.shallow ? 'absorb_shallow' : 'absorb_deep';
+      
+      const creditCheck = await requireCredits(userId, opType);
+      if (isCreditError(creditCheck)) {
+        res.status(402).json(creditCheck);
+        return;
       }
+      
+      await deductCredits(
+        userId,
+        creditCheck.costCents,
+        `Codebase scan: ${body.path}`,
+        { graphId, shallow: body.shallow }
+      );
     }
 
     res.json({
@@ -97,6 +101,15 @@ router.post('/query', async (req: Request, res: Response) => {
       return;
     }
 
+    const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const creditCheck = await requireCredits(userId, 'query_with_llm');
+    
+    if (isCreditError(creditCheck)) {
+      res.status(402).json(creditCheck);
+      return;
+    }
+
     const { EmbeddingIndex } = await import('@holoscript/absorb-service/engine');
     const index = new EmbeddingIndex();
 
@@ -108,6 +121,13 @@ router.post('/query', async (req: Request, res: Response) => {
 
     const results = await index.search(body.query, body.maxResults);
 
+    await deductCredits(
+      userId,
+      creditCheck.costCents,
+      `Semantic codebase query: ${body.query.substring(0, 32)}...`,
+      { graphId: body.graphId }
+    );
+
     res.json({
       query: body.query,
       results: results.map((r: any) => ({
@@ -118,7 +138,7 @@ router.post('/query', async (req: Request, res: Response) => {
         documentation: r.metadata?.documentation,
       })),
       graphId: body.graphId,
-      cost: 15,
+      cost: creditCheck.costCents,
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

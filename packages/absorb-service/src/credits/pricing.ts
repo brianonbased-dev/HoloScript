@@ -10,18 +10,19 @@
 export const OPERATION_COSTS = {
   absorb_shallow: { baseCostCents: 10, description: 'Shallow codebase scan' },
   absorb_deep: { baseCostCents: 50, description: 'Deep codebase scan with full graph' },
-  daemon_quick: { baseCostCents: 100, description: 'Quick fix cycle (1 cycle)' },
-  daemon_balanced: { baseCostCents: 250, description: 'Balanced improvement (2 cycles)' },
-  daemon_deep: { baseCostCents: 500, description: 'Deep improvement (3 cycles)' },
-  pipeline_l0: { baseCostCents: 200, description: 'L0 Code Fixer pipeline' },
-  pipeline_l1: { baseCostCents: 100, description: 'L1 Strategy Optimizer' },
+  daemon_quick: { baseCostCents: 50, description: 'Quick fix cycle (1 cycle)' },
+  daemon_balanced: { baseCostCents: 100, description: 'Balanced improvement (2 cycles)' },
+  daemon_deep: { baseCostCents: 250, description: 'Deep improvement (3 cycles)' },
+  pipeline_l0: { baseCostCents: 100, description: 'L0 Code Fixer pipeline' },
+  pipeline_l1: { baseCostCents: 75, description: 'L1 Strategy Optimizer' },
   pipeline_l2: { baseCostCents: 150, description: 'L2 Meta-Strategist' },
-  skill_generate: { baseCostCents: 75, description: 'Generate HoloClaw skill' },
-  query_basic: { baseCostCents: 5, description: 'Semantic codebase search' },
-  query_with_llm: { baseCostCents: 15, description: 'AI-powered codebase query (+ metered LLM tokens)' },
+  skill_generate: { baseCostCents: 50, description: 'Generate HoloClaw skill' },
+  query_basic: { baseCostCents: 2, description: 'Semantic codebase search' },
+  query_with_llm: { baseCostCents: 10, description: 'AI-powered codebase query (+ metered LLM tokens)' },
   screenshot: { baseCostCents: 3, description: 'Render scene to PNG/JPEG/WebP' },
   pdf_export: { baseCostCents: 5, description: 'Render scene to PDF' },
   semantic_diff: { baseCostCents: 2, description: 'Compare two project versions' },
+  semantic_dedup: { baseCostCents: 1, description: 'Agent semantic deduplication evaluation' },
 } as const;
 
 export type OperationType = keyof typeof OPERATION_COSTS;

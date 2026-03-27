@@ -271,6 +271,15 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
       return;
     }
 
+    const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
+    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const creditCheck = await requireCredits(userId, 'semantic_dedup');
+    
+    if (isCreditError(creditCheck)) {
+      res.status(402).json(creditCheck);
+      return;
+    }
+
     const { EmbeddingIndex } = await import('@holoscript/absorb-service/engine');
     const index = new EmbeddingIndex();
 
@@ -283,6 +292,13 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
     
     // Similarity > 0.85 = Semantic duplicate
     const isDuplicate = results.length > 0 && results[0].score > 0.85;
+
+    await deductCredits(
+      userId,
+      creditCheck.costCents,
+      `Semantic deduplication evaluation`,
+      { concept: body.concept.substring(0, 32) }
+    );
 
     res.json({
       isDuplicate,
