@@ -13,6 +13,8 @@
 // module requires @holoscript/core as a peer dependency for runtime types.
 import type { ActionHandler } from '@holoscript/core/runtime';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 import { createHmac, timingSafeEqual } from 'crypto';
 import {
   buildDaemonPromptContext,
@@ -183,6 +185,72 @@ async function computeQuality(
   return { score, typeErrors, testsPassed, testsTotal };
 }
 
+// ── Native GraphRAG Engine Injection ─────────────────────────────────────────
+
+let _graphEngine: any = null;
+let _codebaseGraph: any = null;
+
+async function getGraphEngine() {
+  if (_graphEngine) return { engine: _graphEngine, graph: _codebaseGraph };
+  try {
+    const CACHE_FILE = path.join(os.homedir(), '.holoscript', 'graph-cache.json');
+    if (!fs.existsSync(CACHE_FILE)) return null;
+    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
+    const envelope = JSON.parse(raw);
+    const { CodebaseGraph, GraphRAGEngine, EmbeddingIndex } = await import('../engine');
+    const graph = CodebaseGraph.deserialize(envelope.graphJson);
+    const index = new EmbeddingIndex();
+    const engine = new GraphRAGEngine(graph, index);
+    _codebaseGraph = graph;
+    _graphEngine = engine;
+    return { engine, graph };
+  } catch (err) {
+    console.warn('[Daemon] Failed to load native GraphRAGEngine cache:', err);
+    return null;
+  }
+}
+
+/** Compute downstream impact using true structural graph context */
+async function computeDownstreamImpact(
+  candidates: Array<[string, number]>,
+  host: DaemonHost,
+  repoRoot: string
+): Promise<Map<string, number>> {
+  const impact = new Map<string, number>();
+  const graphContext = await getGraphEngine();
+
+  for (const [file] of candidates) {
+    if (graphContext) {
+      // 1. Structural Native Path
+      const fileNormalized = path.relative(repoRoot, path.resolve(repoRoot, file)).replace(/\\/g, '/');
+      const symbols = graphContext.graph.getSymbolsInFile(fileNormalized) || [];
+      let totalImpact = 0;
+      for (const sym of symbols) {
+         totalImpact += graphContext.graph.getSymbolImpact(sym.name, sym.owner).size;
+      }
+      impact.set(file, totalImpact);
+    } else {
+      // 2. Fallback GraphRAG-lite Path (Regex Strings)
+      try {
+        const content = host.readFile(file);
+        const re = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(content))) {
+          const importedBase = m[1].split('/').pop()?.replace(/\.(ts|tsx|js)$/, '') || '';
+          for (const [cFile] of candidates) {
+            if (cFile === file) continue;
+            const cBase = cFile.split(/[/\\]/).pop()?.replace(/\.(ts|tsx)$/, '') || '';
+            if (importedBase === cBase) {
+              impact.set(cFile, (impact.get(cFile) || 0) + 1);
+            }
+          }
+        }
+      } catch { /* skip unreadable */ }
+    }
+  }
+  return impact;
+}
+
 // ── Incremental tsc ──────────────────────────────────────────────────────────
 
 /** tsc args with incremental caching — subsequent runs in same cycle reuse .tsbuildinfo */
@@ -194,30 +262,7 @@ function tscCheckArgs(stateDir: string): string[] {
 // ── Lightweight Import Graph (GraphRAG-lite) ─────────────────────────────────
 
 /** Count how many candidate files import each candidate (downstream impact) */
-function computeDownstreamImpact(
-  candidates: Array<[string, number]>,
-  host: DaemonHost,
-): Map<string, number> {
-  const impact = new Map<string, number>();
-  for (const [file] of candidates) {
-    try {
-      const content = host.readFile(file);
-      const re = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(content))) {
-        const importedBase = m[1].split('/').pop()?.replace(/\.(ts|tsx|js)$/, '') || '';
-        for (const [cFile] of candidates) {
-          if (cFile === file) continue;
-          const cBase = cFile.split(/[/\\]/).pop()?.replace(/\.(ts|tsx)$/, '') || '';
-          if (importedBase === cBase) {
-            impact.set(cFile, (impact.get(cFile) || 0) + 1);
-          }
-        }
-      }
-    } catch { /* skip unreadable */ }
-  }
-  return impact;
-}
+// This function is replaced by the new computeDownstreamImpact above.
 
 /** Extract exported type signatures from imported files for LLM context */
 function extractDependencyContext(content: string, file: string, host: DaemonHost): string {
@@ -251,52 +296,59 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
  */
 interface RelatedFile { path: string; content: string; relation: string }
 
-function resolveRelatedFiles(content: string, file: string, host: DaemonHost, errorContext: string, repoRoot: string): RelatedFile[] {
+async function resolveRelatedFiles(content: string, file: string, host: DaemonHost, errorContext: string, repoRoot: string): Promise<RelatedFile[]> {
   const related: RelatedFile[] = [];
-  const fileDir = path.dirname(file);
-
-  // 1. Find base class — look for 'extends XXX' in the source
-  const extendsMatch = content.match(/class\s+\w+\s+extends\s+(\w+)/);
-  if (extendsMatch) {
-    const baseClass = extendsMatch[1];
-    // Find which import provides this base class
-    const importRe = new RegExp(`import[^'"]*['"](\\.[\\/][^'"]+)['"]`);
-    const lines = content.split('\n');
-    for (const line of lines) {
-      if (line.includes(baseClass) && importRe.test(line)) {
-        const importMatch = line.match(importRe);
-        if (importMatch) {
-          for (const ext of ['.ts', '.tsx', '/index.ts']) {
-            // Construct absolute path, then normalize back to project-relative
-            const absPath = path.resolve(fileDir, importMatch[1] + ext);
-            const relPath = path.relative(repoRoot, absPath).replace(/\\/g, '/');
-            try {
-              if (host.exists(relPath)) {
-                related.push({ path: relPath, content: host.readFile(relPath), relation: `base class (${baseClass})` });
-                break;
-              }
-            } catch { /* skip */ }
-          }
+  const fileNormalized = path.relative(repoRoot, path.resolve(repoRoot, file)).replace(/\\/g, '/');
+  const graphContext = await getGraphEngine();
+  
+  if (graphContext) {
+    // 1. Structural Graph Context: precise caller/callee chains
+    const symbols = graphContext.graph.getSymbolsInFile(fileNormalized) || [];
+    for (const sym of symbols) {
+      const callers = graphContext.graph.getCallersOf(sym.name, sym.owner);
+      const callees = graphContext.graph.getCalleesOf(sym.owner ? `${sym.owner}.${sym.name}` : sym.name);
+      
+      for (const caller of callers.slice(0, 2)) {
+        if (caller.callerFilePath && caller.callerFilePath !== fileNormalized) {
+          try {
+            const absPath = path.resolve(repoRoot, caller.callerFilePath);
+            if (host.exists(absPath)) {
+              related.push({ path: caller.callerFilePath, content: host.readFile(absPath), relation: `structural caller (${caller.callerId})` });
+            }
+          } catch {}
         }
-        break;
+      }
+      for (const callee of callees.slice(0, 2)) {
+        if (callee.calleeFilePath && callee.calleeFilePath !== fileNormalized) {
+          try {
+            const absPath = path.resolve(repoRoot, callee.calleeFilePath);
+            if (host.exists(absPath)) {
+              related.push({ path: callee.calleeFilePath, content: host.readFile(absPath), relation: `structural callee (${callee.calleeName})` });
+            }
+          } catch {}
+        }
       }
     }
+    
+    if (related.length > 0) return related.slice(0, 3);
   }
 
-  // 2. If errors mention a type from another file, include that file
-  const errorTypeMatch = errorContext.match(/Type '(\w+)' is not assignable|missing.*from type '(\w+)'/);
+  // 2. Fallback regex logic if graph is unresolvable
+  // Find types mentioned in error messages that aren't defined in the candidate file
+  const errorTypeMatch = errorContext.match(/Type '(\w+)' is not assignable|missing.*from type '(\w+)'|Argument of type '(\w+)'/);
   if (errorTypeMatch) {
-    const typeName = errorTypeMatch[1] || errorTypeMatch[2];
+    const typeName = errorTypeMatch[1] || errorTypeMatch[2] || errorTypeMatch[3];
     const importRe = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
     let im: RegExpExecArray | null;
+    const dir = file.replace(/[/\\][^/\\]+$/, '');
+    
     while ((im = importRe.exec(content))) {
       for (const ext of ['.ts', '.tsx', '/index.ts']) {
-        // Construct absolute path, then normalize back to project-relative
-        const absPath = path.resolve(fileDir, im[1] + ext);
-        const relPath = path.relative(repoRoot, absPath).replace(/\\/g, '/');
+        const resolved = path.resolve(dir, im[1] + ext);
+        const relPath = path.relative(repoRoot, resolved).replace(/\\/g, '/');
         try {
-          if (host.exists(relPath) && !related.some(r => r.path === relPath)) {
-            const depContent = host.readFile(relPath);
+          if (host.exists(resolved) && !related.some(r => r.path === relPath)) {
+            const depContent = host.readFile(resolved);
             if (depContent.includes(typeName)) {
               related.push({ path: relPath, content: depContent, relation: `defines ${typeName}` });
               break;
@@ -1334,7 +1386,7 @@ export function createDaemonActions(
         // Tier 1: files with ≤3 errors (highest elimination chance) go first.
         // Within each tier: impact × tractability score breaks ties.
         const FEW_ERRORS_THRESHOLD = 3;
-        const impact = computeDownstreamImpact(filtered, host);
+        const impact = await computeDownstreamImpact(filtered, host, config.repoRoot);
         filtered.sort((a, b) => {
           const errorsA = a[1];
           const errorsB = b[1];
@@ -2249,7 +2301,7 @@ export function createDaemonActions(
         // Resolve type definitions from related files
         if (typeRefs.size > 0) {
           const content = bb.candidateContent as string;
-          const relatedFiles = resolveRelatedFiles(content, file, host, '', config.repoRoot);
+          const relatedFiles = await resolveRelatedFiles(content, file, host, '', config.repoRoot);
           for (const rel of relatedFiles) {
             for (const typeName of typeRefs) {
               const defRegex = new RegExp(`(export\\s+)?(interface|type|class)\\s+${typeName}[\\s{<]`);

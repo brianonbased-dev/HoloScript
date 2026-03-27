@@ -23,6 +23,10 @@
       "import": "./dist/moltbook/llm-content-generator.mjs",
       "require": "./dist/moltbook/llm-content-generator.js"
     },
+    "./moltbook/challenge-solver": {
+      "import": "./dist/moltbook/challenge-solver.mjs",
+      "require": "./dist/moltbook/challenge-solver.js"
+    },
     "./moltbook/types": {
       "import": "./dist/moltbook/types.mjs",
       "require": "./dist/moltbook/types.js"

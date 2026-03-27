@@ -5,7 +5,7 @@ export { ContentPipeline } from './content-pipeline';
 export { LLMContentGenerator, adaptProviderManager } from './llm-content-generator';
 export { MoltbookAgentManager } from './agent-manager';
 export { MoltbookCreditScorer, DEFAULT_CREDIT_WEIGHTS } from './credit-scorer';
-export { solveChallenge } from './challenge-solver';
+export { solveChallenge, ChallengeEscalationPipeline } from './challenge-solver';
 export { EngagementTracker } from './engagement-tracker';
 export { ExperimentTracker } from './experiment-tracker';
 export { DEFAULT_CONFIG, DEFAULT_ENGAGEMENT_CONFIG, DEFAULT_SUBMOLT_TARGETS, INITIAL_HEARTBEAT_STATE, PLATFORM_STATS, MOLTBOOK_BASE, selectSubmoltByAudience } from './types';

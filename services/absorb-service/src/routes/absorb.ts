@@ -7,7 +7,15 @@ import type { AuthenticatedRequest } from '../middleware/auth.js';
 const router = Router();
 
 // In-memory graph store (replace with Redis/DB for production scale)
-const graphStore = new Map<string, { graph: any; stats: any; createdAt: Date }>();
+const graphStore = new Map<string, { 
+  graph: any; 
+  stats: any; 
+  createdAt: Date;
+  path: string;
+  shallow: boolean;
+  topology: any;
+  fileCount: number;
+}>();
 
 const ScanRequestSchema = z.object({
   path: z.string().min(1),
@@ -35,6 +43,26 @@ router.post('/scan', async (req: Request, res: Response) => {
   try {
     const body = ScanRequestSchema.parse(req.body);
 
+    // --- CACHE CHECK ---
+    const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const now = new Date();
+    for (const [id, entry] of graphStore.entries()) {
+      if (entry.path === body.path && entry.shallow === body.shallow) {
+        if (now.getTime() - entry.createdAt.getTime() < CACHE_TTL_MS) {
+          // Return cached
+          return res.json({
+            graphId: id,
+            stats: entry.stats,
+            fileCount: entry.fileCount,
+            cost: 0, // Free if cached
+            cached: true,
+            topology: entry.topology
+          });
+        }
+      }
+    }
+    // -------------------
+
     // Lazy import to avoid loading heavy modules at startup
     const { CodebaseScanner, CodebaseGraph } = await import('@holoscript/absorb-service/engine');
 
@@ -48,11 +76,6 @@ router.post('/scan', async (req: Request, res: Response) => {
     graph.buildFromScanResult(scanResult);
 
     const graphId = uuidv4();
-    graphStore.set(graphId, {
-      graph,
-      stats: scanResult.stats,
-      createdAt: new Date(),
-    });
 
     // Build in-degree map for topological intelligence
     const inDegree: Record<string, number> = {};
@@ -91,18 +114,31 @@ router.post('/scan', async (req: Request, res: Response) => {
       );
     }
 
+    const topology = {
+      leafFirstOrder,
+      inDegree,
+      communities: (graph as any).communities ?? {},
+      graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
+      durationMs: scanResult.stats.durationMs ?? 0,
+    };
+
+    graphStore.set(graphId, {
+      graph,
+      stats: scanResult.stats,
+      createdAt: new Date(),
+      path: body.path,
+      shallow: body.shallow,
+      topology,
+      fileCount: scanResult.files?.length ?? 0,
+    });
+
     res.json({
       graphId,
       stats: scanResult.stats,
       fileCount: scanResult.files?.length ?? 0,
       cost: body.shallow ? 10 : 50,
-      topology: {
-        leafFirstOrder,
-        inDegree,
-        communities: (graph as any).communities ?? {},
-        graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
-        durationMs: scanResult.stats.durationMs ?? 0,
-      }
+      cached: false,
+      topology
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

@@ -38,6 +38,13 @@ export interface ImportResolveOptions {
   maxDepth?: number;
   /** If true, @import is a no-op (useful for REPL / sandboxed eval). Default: false */
   disabled?: boolean;
+  /**
+   * Base URL for the community registry (resolves @username/name imports).
+   * When set, imports matching `@<username>/<name>` are fetched from the registry
+   * instead of the local filesystem.
+   * Default: undefined (registry resolution disabled).
+   */
+  registryBaseUrl?: string;
 }
 
 /** A fully resolved module with its exported bindings */
@@ -78,8 +85,8 @@ export interface ImportResolutionError {
   importPath: string;
   /** Error message */
   message: string;
-  /** 'cycle' | 'not_found' | 'parse_error' | 'named_not_exported' */
-  code: 'cycle' | 'not_found' | 'parse_error' | 'named_not_exported' | 'max_depth';
+  /** 'cycle' | 'not_found' | 'parse_error' | 'named_not_exported' | 'registry_unavailable' */
+  code: 'cycle' | 'not_found' | 'parse_error' | 'named_not_exported' | 'max_depth' | 'registry_unavailable';
   /** The cycle chain if code === 'cycle' (e.g., ['a.hs', 'b.hs', 'a.hs']) */
   cycle?: string[];
 }
@@ -145,6 +152,31 @@ function normalizePath(p: string): string {
 }
 
 // =============================================================================
+// REGISTRY IMPORT DETECTION
+// =============================================================================
+
+/** Pattern for community registry imports: @username/composition-name */
+const REGISTRY_IMPORT_RE = /^@[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/;
+
+/**
+ * Check if an import path is a community registry reference (@username/name)
+ * as opposed to a file path (./foo.hs, ../lib/bar.hs, /absolute/path.hs).
+ */
+export function isRegistryImport(importPath: string): boolean {
+  return REGISTRY_IMPORT_RE.test(importPath);
+}
+
+/**
+ * Parse a registry import path into username and composition name.
+ * Returns null if the path is not a valid registry import.
+ */
+export function parseRegistryImport(importPath: string): { username: string; name: string } | null {
+  if (!isRegistryImport(importPath)) return null;
+  const parts = importPath.slice(1).split('/'); // strip leading @, split on /
+  return { username: parts[0], name: parts[1] };
+}
+
+// =============================================================================
 // IMPORT RESOLVER
 // =============================================================================
 
@@ -183,7 +215,10 @@ export class ImportResolver {
     const baseDir = options.baseDir.replace(/\\/g, '/');
 
     for (const imp of imports) {
-      const canonicalPath = resolveImportPath(imp.path, baseDir);
+      // Registry imports (@username/name) are used as-is; file paths are resolved
+      const canonicalPath = isRegistryImport(imp.path)
+        ? imp.path
+        : resolveImportPath(imp.path, baseDir);
 
       // ── Resolve the module (cycle errors bubble up via throw) ─────────────
       let mod: ResolvedModule;
@@ -200,7 +235,9 @@ export class ImportResolver {
               ? 'max_depth'
               : msg.startsWith('Parse error')
                 ? 'parse_error'
-                : 'not_found',
+                : msg.startsWith('Registry')
+                  ? 'registry_unavailable'
+                  : 'not_found',
           ...(msg.startsWith('Circular') ? { cycle: [canonicalPath] } : {}),
         });
         continue;
@@ -272,11 +309,21 @@ export class ImportResolver {
     try {
       // ── Read source ─────────────────────────────────────────────────────
       let source: string;
-      try {
-        const reader = options.readFile ?? this._defaultReader();
-        source = await reader(canonicalPath);
-      } catch {
-        throw new Error(`File not found: '${canonicalPath}' (imported from '${importedBy}')`);
+
+      // Registry imports: @username/name pattern
+      if (isRegistryImport(canonicalPath) && options.registryBaseUrl) {
+        try {
+          source = await this._fetchRegistrySource(canonicalPath, options.registryBaseUrl);
+        } catch {
+          throw new Error(`Registry unavailable for '${canonicalPath}' (imported from '${importedBy}')`);
+        }
+      } else {
+        try {
+          const reader = options.readFile ?? this._defaultReader();
+          source = await reader(canonicalPath);
+        } catch {
+          throw new Error(`File not found: '${canonicalPath}' (imported from '${importedBy}')`);
+        }
       }
 
       // ── Parse ────────────────────────────────────────────────────────────
@@ -300,7 +347,9 @@ export class ImportResolver {
       const baseDir = canonicalPath.replace(/\/[^/]+$/, '');
 
       for (const subImp of subImports) {
-        const subPath = resolveImportPath(subImp.path, baseDir);
+        const subPath = isRegistryImport(subImp.path)
+          ? subImp.path
+          : resolveImportPath(subImp.path, baseDir);
         transitiveDeps.push(subPath);
 
         if (!this.cache.has(subPath)) {
@@ -327,7 +376,9 @@ export class ImportResolver {
                   ? 'max_depth'
                   : msg.startsWith('Parse error')
                     ? 'parse_error'
-                    : 'not_found',
+                    : msg.startsWith('Registry')
+                      ? 'registry_unavailable'
+                      : 'not_found',
               ...(msg.startsWith('Circular') ? { cycle: [subPath] } : {}),
             });
           }
@@ -346,6 +397,32 @@ export class ImportResolver {
     } finally {
       this.inProgress.delete(canonicalPath);
     }
+  }
+
+  /**
+   * Fetch source code from the community registry for @username/name imports.
+   * Calls GET {registryBaseUrl}/api/scene/{name} and returns the scene code.
+   */
+  private async _fetchRegistrySource(importPath: string, registryBaseUrl: string): Promise<string> {
+    const parsed = parseRegistryImport(importPath);
+    if (!parsed) {
+      throw new Error(`Invalid registry import path: '${importPath}'`);
+    }
+
+    // Fetch from registry API: GET /api/registry/@username/name
+    const url = `${registryBaseUrl.replace(/\/$/, '')}/api/registry/${encodeURIComponent(parsed.username)}/${encodeURIComponent(parsed.name)}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Registry returned ${response.status} for '${importPath}'`);
+    }
+
+    const data = await response.json() as { code?: string };
+    if (!data.code || typeof data.code !== 'string') {
+      throw new Error(`Registry returned no code for '${importPath}'`);
+    }
+
+    return data.code;
   }
 
   /**

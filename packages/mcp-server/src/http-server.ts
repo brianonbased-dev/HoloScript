@@ -26,7 +26,8 @@ import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
-import { renderPreview, createShareLink, getScene, storeScene, generateBrowserTemplate } from './renderer';
+import { renderPreview, createShareLink, getScene, storeScene, findSceneByAuthor, generateBrowserTemplate } from './renderer';
+import type { StoredScene } from './renderer';
 import {
   buildAgentCard,
   createTask,
@@ -1273,6 +1274,72 @@ const httpServer = http.createServer(async (req, res) => {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /api/deploy — deploy a composition with provenance metadata
+  if (url === '/api/deploy' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body.code || typeof body.code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
+        return;
+      }
+      const scene = storeScene(body.code as string, {
+        title: (body.title as string) || undefined,
+        description: (body.description as string) || undefined,
+        author: (body.author as string) || undefined,
+        license: (body.license as string) || undefined,
+        provenance: body.provenance as any || undefined,
+      });
+      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`;
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        id: scene.id,
+        url: `${baseUrl}/scene/${scene.id}`,
+        embed: `${baseUrl}/embed/${scene.id}`,
+        api: `${baseUrl}/api/scene/${scene.id}`,
+        provenance: scene.provenance ? {
+          hash: scene.provenance.hash,
+          publishMode: scene.provenance.publishMode,
+          license: scene.license,
+        } : undefined,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // GET /api/registry/:username/:name — fetch published composition by creator namespace
+  if (url.startsWith('/api/registry/') && req.method === 'GET') {
+    const parts = url.replace('/api/registry/', '').split('/');
+    if (parts.length === 2) {
+      const [username, name] = parts.map(decodeURIComponent);
+      const found = findSceneByAuthor(username, name);
+      if (found) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          id: found.id,
+          code: found.code,
+          title: found.title,
+          author: found.author,
+          license: found.license,
+          provenance: found.provenance,
+        }));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Composition @${username}/${name} not found` }));
+      }
+    } else {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Expected /api/registry/:username/:name' }));
     }
     return;
   }

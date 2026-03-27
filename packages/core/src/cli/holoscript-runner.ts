@@ -34,10 +34,13 @@ import { registerStdlib } from '../stdlib';
 import type { HostCapabilities } from '../traits/TraitTypes';
 import { createDaemonActions, getDaemonFileState } from '@holoscript/absorb-service/daemon';
 import type { DaemonConfig, DaemonHost, LLMProvider } from '@holoscript/absorb-service/daemon';
+import { generateProvenance } from '../deploy/provenance';
+import type { LicenseType } from '../deploy/provenance';
+import { checkLicenseCompatibility } from '../deploy/license-checker';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 export interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'moltbook-daemon' | 'daemon-status' | 'help';
+  command: 'run' | 'test' | 'compile' | 'deploy' | 'absorb' | 'daemon' | 'holodaemon' | 'moltbook-daemon' | 'daemon-status' | 'help';
   json: boolean;
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
@@ -69,6 +72,15 @@ export interface CLIOptions {
   sessionId?: string;
   /** Quality tier for compilation (controls particle counts, LOD, shader complexity) */
   qualityTier?: 'low' | 'med' | 'high' | 'ultra';
+  // Deploy-specific options
+  /** Share the composition to the community gallery */
+  share: boolean;
+  /** Author name for provenance */
+  author: string;
+  /** License type for provenance */
+  license: string;
+  /** Deploy server URL */
+  serverUrl: string;
 }
 
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
@@ -154,6 +166,11 @@ function parseArgs(argv: string[]): CLIOptions {
     model: envDefaults.model,
     timeout: 30,
     sessionId: randomUUID(),
+    // Deploy defaults
+    share: false,
+    author: '',
+    license: 'free',
+    serverUrl: 'https://mcp.holoscript.net',
   };
   let modelExplicit = false;
   let toolProfileExplicit = false;
@@ -162,7 +179,7 @@ function parseArgs(argv: string[]): CLIOptions {
 
   // First arg is command
   const cmd = args[0];
-  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon' || cmd === 'moltbook-daemon') {
+  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'deploy' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon' || cmd === 'moltbook-daemon') {
     opts.command = cmd;
   }
 
@@ -253,6 +270,11 @@ function parseArgs(argv: string[]): CLIOptions {
       opts.allowedPaths.push(args[++i]);
     }
     if (args[i] === '--json') opts.json = true;
+    // Deploy-specific flags
+    if (args[i] === '--share') opts.share = true;
+    if (args[i] === '--author' && args[i + 1]) opts.author = args[++i];
+    if (args[i] === '--license' && args[i + 1]) opts.license = args[++i];
+    if (args[i] === '--server' && args[i + 1]) opts.serverUrl = args[++i];
   }
 
   if (!modelExplicit) {
@@ -1085,6 +1107,129 @@ function generatePythonTarget(ast: any): string {
   }
 
   return lines.join('\n');
+}
+
+// ── Deploy ──────────────────────────────────────────────────────────────────
+
+async function deployScript(opts: CLIOptions): Promise<void> {
+  if (!opts.file) {
+    console.error('Error: No source file specified');
+    console.error('Usage: holoscript deploy <file> [--share] [--author <name>] [--license <type>] [--server <url>]');
+    process.exit(1);
+  }
+
+  const filePath = path.resolve(opts.file);
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const fileName = path.basename(filePath);
+  const title = path.basename(filePath, path.extname(filePath));
+
+  // Parse
+  console.log(`Parsing ${fileName}...`);
+  const ast = parse(source);
+  if (ast.errors && ast.errors.length > 0) {
+    console.error('Parse errors:');
+    for (const err of ast.errors) {
+      console.error(`  ${err.message || err}`);
+    }
+    process.exit(1);
+  }
+
+  // Generate provenance
+  const license = (opts.license || 'free') as LicenseType;
+  const provenance = generateProvenance(source, ast, {
+    author: opts.author || 'anonymous',
+    license,
+    version: 1,
+  });
+
+  console.log(`Provenance: ${provenance.publishMode} | hash: ${provenance.hash.slice(0, 12)}... | license: ${provenance.license}`);
+
+  // License compatibility check (if composition imports other compositions)
+  if (provenance.imports.length > 0) {
+    // For now, imported licenses default to 'free' since we can't resolve them at CLI time
+    // The server-side deploy endpoint will do full resolution
+    const importedLicenses = provenance.imports.map(imp => ({
+      path: imp.path,
+      license: 'free' as LicenseType,
+    }));
+
+    const licenseCheck = checkLicenseCompatibility(license, importedLicenses);
+
+    if (licenseCheck.warnings.length > 0) {
+      for (const w of licenseCheck.warnings) {
+        console.log(`  Warning: ${w}`);
+      }
+    }
+    if (!licenseCheck.compatible) {
+      console.error('License compatibility errors:');
+      for (const e of licenseCheck.errors) {
+        console.error(`  ${e}`);
+      }
+      process.exit(1);
+    }
+    if (licenseCheck.forcedLicense) {
+      console.log(`  License forced to "${licenseCheck.forcedLicense}" by imports`);
+    }
+  }
+
+  // Deploy to server
+  const serverUrl = opts.serverUrl.replace(/\/$/, '');
+  const endpoint = `${serverUrl}/api/deploy`;
+
+  console.log(`Deploying to ${serverUrl}...`);
+
+  const body = JSON.stringify({
+    code: source,
+    title,
+    description: `Deployed from CLI: ${fileName}`,
+    author: provenance.author,
+    license: provenance.license,
+    provenance: {
+      hash: provenance.hash,
+      publishMode: provenance.publishMode,
+      imports: provenance.imports,
+    },
+  });
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`Deploy failed (${res.status}): ${text}`);
+      process.exit(1);
+    }
+
+    const result = await res.json() as { id: string; url: string; embed: string; api: string; provenance?: { hash: string; publishMode: string } };
+
+    console.log('\nDeployed successfully!');
+    console.log(`  ID:    ${result.id}`);
+    console.log(`  URL:   ${result.url}`);
+    console.log(`  Embed: ${result.embed}`);
+    console.log(`  API:   ${result.api}`);
+    if (result.provenance) {
+      console.log(`  Mode:  ${result.provenance.publishMode}`);
+      console.log(`  Hash:  ${result.provenance.hash}`);
+    }
+
+    if (opts.share) {
+      console.log(`\nShare URL: ${result.url}`);
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Deploy failed: ${msg}`);
+    console.error('Is the server running? Try: holoscript deploy <file> --server http://localhost:3000');
+    process.exit(1);
+  }
 }
 
 function absorbScript(opts: CLIOptions): void {
@@ -1994,16 +2139,19 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
   let MoltbookClient: typeof import('@holoscript/mcp-server/moltbook/client').MoltbookClient;
   let LLMContentGenerator: typeof import('@holoscript/mcp-server/moltbook/llm-content-generator').LLMContentGenerator;
   let adaptProviderManager: typeof import('@holoscript/mcp-server/moltbook/llm-content-generator').adaptProviderManager;
+  let ChallengeEscalationPipeline: typeof import('@holoscript/mcp-server/moltbook/challenge-solver').ChallengeEscalationPipeline;
 
   try {
     // Dynamic import since mcp-server is a peer dependency
     const actionsModule = await import('@holoscript/mcp-server/moltbook/agent/moltbook-daemon-actions');
     const clientModule = await import('@holoscript/mcp-server/moltbook/client');
     const llmModule = await import('@holoscript/mcp-server/moltbook/llm-content-generator');
+    const solverModule = await import('@holoscript/mcp-server/moltbook/challenge-solver');
     createMoltbookDaemonActions = actionsModule.createMoltbookDaemonActions;
     MoltbookClient = clientModule.MoltbookClient;
     LLMContentGenerator = llmModule.LLMContentGenerator;
     adaptProviderManager = llmModule.adaptProviderManager;
+    ChallengeEscalationPipeline = solverModule.ChallengeEscalationPipeline;
   } catch (err) {
     console.error(`[moltbook-daemon] Failed to import moltbook modules: ${(err as Error).message}`);
     console.error('[moltbook-daemon] Ensure @holoscript/mcp-server is installed');
@@ -2027,6 +2175,10 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
     },
   });
   const llmGenerator = new LLMContentGenerator(contentLLM);
+
+  // Instantiate and attach the challenge pipeline utilizing the same LLM
+  const challengePipeline = new ChallengeEscalationPipeline(contentLLM);
+  client.attachChallengePipeline(challengePipeline);
 
   // Create action handlers
   const daemonConfig = {
@@ -2289,6 +2441,7 @@ Usage:
   holoscript run <file>     [--target node|python|ros2] [--profile headless|minimal|full] [--ticks <n>] [--daemon] [--debug]
   holoscript test <file>    [--debug]
   holoscript compile <file> [--target node|python] [--output <path>] [--enforce-gotchas]
+  holoscript deploy <file>  [--share] [--author <name>] [--license <type>] [--server <url>]
   holoscript absorb <file>  [--output <path>] [--debug]
   holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--provider-rotation] [--always-on] [--cycle-interval-sec <n>] [--skills-dir <path>] [--allow-shell] [--allow-shell-command <cmd>] [--allow-host <host>] [--allow-path <path>] [--debug]
   holoscript daemon status  [--json]
@@ -2332,6 +2485,9 @@ async function main(): Promise<void> {
       break;
     case 'compile':
       compileScript(opts);
+      break;
+    case 'deploy':
+      await deployScript(opts);
       break;
     case 'absorb':
       absorbScript(opts);

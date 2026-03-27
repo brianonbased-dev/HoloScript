@@ -24,7 +24,7 @@ export interface UnsolvedChallenge {
   timestamp: number;
 }
 
-// ── L1: Deterministic regex solver ──────────────────────────────────────────
+// ── L1: Deterministic solver with fuzzy matching ─────────────────────────────
 
 const WORD_TO_NUM: Record<string, number> = {
   zero: 0, one: 1, two: 2, thre: 3, four: 4,
@@ -33,50 +33,102 @@ const WORD_TO_NUM: Record<string, number> = {
   fourten: 14, fiften: 15, sixten: 16, seventen: 17,
   eighten: 18, nineten: 19, tweny: 20, twenty: 20, thirty: 30,
   forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
-  hundred: 100, thousand: 1000
+  hundred: 100, thousand: 1000,
 };
 
-export function solveChallenge(challengeText: string): string | null {
-  // 1. Strip all non-alphanumeric except the decimal point.
-  // The Zalgo obfuscation scatters punctuation (/, -, ^, ~) INSIDE words (e.g. tW/eNtY).
-  let s = challengeText.toLowerCase().replace(/[^a-z0-9.]/g, '');
+// Operation keywords grouped by operator — longest first within each group.
+const OPERATION_KEYWORDS: Array<{ op: string; words: string[] }> = [
+  { op: '*', words: ['multiplied', 'multiply', 'product', 'triple', 'double', 'times'] },
+  { op: '/', words: ['quotient', 'divided', 'divide', 'split', 'half'] },
+  { op: '-', words: ['subtracted', 'subtract', 'diferent', 'diferenc', 'minus', 'reduc', 'lose', 'slow', 'les', 'los'] },
+  { op: '+', words: ['combined', 'increas', 'faster', 'total', 'speed', 'added', 'aded', 'gain', 'plus', 'fast', 'sped', 'sum', 'ads', 'ad'] },
+];
 
-  // 2. Collapse runs of duplicate letters (e.g., "tWwEe" -> "twe")
-  s = s.replace(/([a-z])\1+/g, '$1');
+// Number words sorted longest-first for greedy matching.
+const NUMBER_WORDS = Object.keys(WORD_TO_NUM).sort((a, b) => b.length - a.length);
 
-  // Match numbers (longest first to prevent "eighten" matching "eight")
-  const numbersRegex = /(seventen|thirten|fourten|eighten|nineten|fiften|sixten|twelve|eleven|twenty|thirty|seventy|eighty|ninety|hundred|thousand|tweny|twelv|forty|fifty|sixty|fyive|thre|four|five|fift|nine|eight|seven|zero|one|two|six|ten|\d+(?:\.\d+)?)/g;
+/**
+ * Fuzzy subsequence match: does `text[start..]` contain `pattern` as a
+ * near-subsequence, allowing up to `maxSkip` consecutive noise characters
+ * between each real character? Returns end index on success, -1 on failure.
+ */
+export function fuzzyMatch(text: string, start: number, pattern: string, maxSkip: number): number {
+  let pi = 0;
+  let si = start;
+  let consecutiveSkips = 0;
 
-  const numTokens: string[] = [];
-  let match;
-  while ((match = numbersRegex.exec(s)) !== null) {
-    numTokens.push(match[1]);
-  }
-
-  const rawValues: number[] = [];
-  for (const t of numTokens) {
-    if (/\d/.test(t)) {
-      rawValues.push(parseFloat(t));
+  while (pi < pattern.length && si < text.length) {
+    if (text[si] === pattern[pi]) {
+      pi++;
+      si++;
+      consecutiveSkips = 0;
     } else {
-      rawValues.push(WORD_TO_NUM[t]);
+      consecutiveSkips++;
+      if (consecutiveSkips > maxSkip) return -1;
+      si++;
     }
   }
 
-  // Compound parsing (e.g. 20, 5 -> 25)
+  return pi === pattern.length ? si : -1;
+}
+
+/**
+ * Scan `text` for number words using fuzzy matching (allows noise chars).
+ * Returns array of { word, value, end } sorted by position.
+ */
+function fuzzyFindNumbers(text: string, maxSkip: number): Array<{ word: string; value: number; end: number }> {
+  const results: Array<{ word: string; value: number; start: number; end: number }> = [];
+  let pos = 0;
+
+  while (pos < text.length) {
+    // Try digit run first
+    const digitMatch = text.slice(pos).match(/^(\d+(?:\.\d+)?)/);
+    if (digitMatch) {
+      results.push({ word: digitMatch[1], value: parseFloat(digitMatch[1]), start: pos, end: pos + digitMatch[1].length });
+      pos += digitMatch[1].length;
+      continue;
+    }
+
+    // Try each number word (longest first) with fuzzy matching
+    let bestMatch: { word: string; value: number; start: number; end: number } | null = null;
+    for (const word of NUMBER_WORDS) {
+      // Skip words shorter than best match (we want longest)
+      if (bestMatch && word.length <= bestMatch.word.length) continue;
+      const end = fuzzyMatch(text, pos, word, maxSkip);
+      if (end !== -1) {
+        bestMatch = { word, value: WORD_TO_NUM[word], start: pos, end };
+      }
+    }
+
+    if (bestMatch) {
+      results.push(bestMatch);
+      pos = bestMatch.end;
+    } else {
+      pos++;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Compound number assembly (e.g. [20, 5] → [25], [3, 100, 40, 2] → [342]).
+ */
+function compoundNumbers(rawValues: number[]): number[] {
   const numbers: number[] = [];
   for (let i = 0; i < rawValues.length; i++) {
     const val = rawValues[i];
-    if (val >= 20 && val <= 90 && i + 1 < rawValues.length && rawValues[i+1] < 10) {
-      numbers.push(val + rawValues[i+1]);
+    if (val >= 20 && val <= 90 && val % 10 === 0 && i + 1 < rawValues.length && rawValues[i + 1] < 10) {
+      numbers.push(val + rawValues[i + 1]);
       i++;
     } else if (val === 100 && numbers.length > 0) {
       const prev = numbers.pop()!;
       let compound = prev * 100;
-      if (i + 1 < rawValues.length && rawValues[i+1] < 100) {
-        compound += rawValues[i+1];
+      if (i + 1 < rawValues.length && rawValues[i + 1] < 100) {
+        compound += rawValues[i + 1];
         i++;
-        if (i + 1 < rawValues.length && rawValues[i] >= 20 && rawValues[i+1] < 10) {
-          compound += rawValues[i+1];
+        if (i + 1 < rawValues.length && rawValues[i] >= 20 && rawValues[i + 1] < 10) {
+          compound += rawValues[i + 1];
           i++;
         }
       }
@@ -85,20 +137,122 @@ export function solveChallenge(challengeText: string): string | null {
       numbers.push(val);
     }
   }
+  return numbers;
+}
 
-  if (numbers.length < 2) {
-    return null;
+/** Token with position in cleaned string */
+interface PosToken { value: number; start: number; end: number }
+
+/**
+ * Extract number tokens with positions using exact regex.
+ */
+function exactExtractNumbers(s: string): PosToken[] {
+  const numbersRegex = /(seventen|thirten|fourten|eighten|nineten|fiften|sixten|twelve|eleven|twenty|thirty|seventy|eighty|ninety|hundred|thousand|tweny|twelv|forty|fifty|sixty|fyive|thre|four|five|fift|nine|eight|seven|zero|one|two|six|ten|\d+)/g;
+  const tokens: PosToken[] = [];
+  let match;
+  while ((match = numbersRegex.exec(s)) !== null) {
+    const word = match[1];
+    tokens.push({
+      value: /\d/.test(word) ? parseFloat(word) : WORD_TO_NUM[word],
+      start: match.index,
+      end: match.index + word.length,
+    });
+  }
+  return tokens;
+}
+
+/**
+ * Find operation keyword position in the cleaned string.
+ * Returns the position (start index) or -1 if not found.
+ */
+function findOperationWithPos(s: string, maxSkip: number): { op: string; pos: number } | null {
+  // Exact match first (fast)
+  for (const { op, words } of OPERATION_KEYWORDS) {
+    for (const kw of words) {
+      const idx = s.indexOf(kw);
+      if (idx !== -1) return { op, pos: idx };
+    }
+  }
+  // Fuzzy match fallback
+  for (const { op, words } of OPERATION_KEYWORDS) {
+    for (const kw of words) {
+      for (let i = 0; i <= s.length - kw.length; i++) {
+        const end = fuzzyMatch(s, i, kw, maxSkip);
+        if (end !== -1) return { op, pos: i };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Position-aware compounding: only compound numbers on the same side of the
+ * operation. This prevents "twenty [times] five" from compounding to 25.
+ */
+function compoundWithSplit(
+  tokens: PosToken[],
+  opPos: number,
+): [number[], number[]] {
+  const before: number[] = [];
+  const after: number[] = [];
+
+  for (const t of tokens) {
+    if (t.end <= opPos) before.push(t.value);
+    else if (t.start >= opPos) after.push(t.value);
   }
 
-  // 3. Find operation
-  let operation: string | null = null;
-  if (s.match(/times|multiply|double|triple|\*/)) operation = '*';
-  else if (s.match(/divide|split|half|\//)) operation = '/';
-  else if (s.match(/subtract|minus|lose|los|les|slow|\-/)) operation = '-';
-  else if (s.match(/ads|plus|gain|increas|faster|fast|sped|speed|\+/)) operation = '+';
-  else if (s.match(/total/)) operation = '+';
+  return [compoundNumbers(before), compoundNumbers(after)];
+}
 
-  const [a, b] = numbers;
+export function solveChallenge(challengeText: string): string | null {
+  // 1. Strip ALL non-alphanumeric (dots too — they're obfuscation noise, not decimals).
+  let s = challengeText.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // 2. Collapse runs of duplicate letters (e.g., "tWwEeNnTtYy" → "twenty")
+  s = s.replace(/([a-z])\1+/g, '$1');
+
+  // 3. Find operation (with position) — needed to prevent cross-operation compounding
+  const opResult = findOperationWithPos(s, 2);
+  if (!opResult) return null;
+
+  const { op: operation, pos: opPos } = opResult;
+
+  // ── Pass 1: Exact regex number extraction ──
+  const numTokens = exactExtractNumbers(s);
+  let [beforeNums, afterNums] = compoundWithSplit(numTokens, opPos);
+
+  // ── Pass 2: Fuzzy matching if exact didn't find enough numbers ──
+  if (beforeNums.length < 1 || afterNums.length < 1) {
+    const fuzzyResults = fuzzyFindNumbers(s, 2);
+    const fuzzyTokens: PosToken[] = fuzzyResults.map(r => ({
+      value: r.value,
+      start: r.end - 1,  // approximate position
+      end: r.end,
+    }));
+    // Merge exact + fuzzy, deduplicate by position overlap
+    const merged = [...numTokens];
+    for (const ft of fuzzyTokens) {
+      const overlaps = merged.some(
+        et => ft.end > et.start && ft.start < et.end,
+      );
+      if (!overlaps) merged.push(ft);
+    }
+    merged.sort((a, b) => a.start - b.start);
+    [beforeNums, afterNums] = compoundWithSplit(merged, opPos);
+  }
+
+  // Fallback: when position-aware split can't place numbers on both sides
+  // (e.g., "the total of 10 and 5" where the op is prefix, or fuzzy op
+  // position bleeds into a number token), use exact tokens without position.
+  if (beforeNums.length < 1 || afterNums.length < 1) {
+    const allValues = compoundNumbers(numTokens.map(t => t.value));
+    if (allValues.length < 2) return null;
+    beforeNums = [allValues[0]];
+    afterNums = [allValues[allValues.length - 1]];
+  }
+
+  const a = beforeNums[beforeNums.length - 1]; // last number before op
+  const b = afterNums[0];                       // first number after op
   let result: number;
 
   switch (operation) {
@@ -106,7 +260,7 @@ export function solveChallenge(challengeText: string): string | null {
     case '-': result = a - b; break;
     case '*': result = a * b; break;
     case '/': if (b === 0) return null; result = a / b; break;
-    default: result = a + b;
+    default: return null;
   }
 
   return result.toFixed(2);
@@ -263,7 +417,7 @@ export class ChallengeEscalationPipeline {
   ): void {
     const cleaned = challengeText
       .toLowerCase()
-      .replace(/[^a-z0-9.]/g, '')
+      .replace(/[^a-z0-9]/g, '')
       .replace(/([a-z])\1+/g, '$1');
 
     this.unsolvedLog.push({

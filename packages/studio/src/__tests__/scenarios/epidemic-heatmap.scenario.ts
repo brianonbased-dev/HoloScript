@@ -190,4 +190,20 @@ describe('Scenario: Epidemic Heatmap — Interventions', () => {
     const lastDay = proj[proj.length - 1];
     expect(lastDay.projectedICUPatients).toBeGreaterThan(proj[0].projectedICUPatients);
   });
+
+  it('icuCapacityProjection — lastDay correctly identifies over-capacity state', () => {
+    // High growth rate (0.3), will exceed 50 available beds
+    const projOver = icuCapacityProjection(1000, 0.3, 0.20, 0.25, 100, 50, 14);
+    const lastDayOver = projOver[projOver.length - 1];
+    expect(lastDayOver.projectedICUPatients).toBeGreaterThan(lastDayOver.availableBeds);
+    expect(lastDayOver.overCapacity).toBe(true);
+  });
+
+  it('icuCapacityProjection — lastDay remains under capacity for low spread', () => {
+    // Zero growth rate (0.0), will not exceed 90 available beds
+    const projUnder = icuCapacityProjection(1000, 0.0, 0.10, 0.15, 100, 10, 14);
+    const lastDayUnder = projUnder[projUnder.length - 1];
+    expect(lastDayUnder.projectedICUPatients).toBeLessThanOrEqual(lastDayUnder.availableBeds);
+    expect(lastDayUnder.overCapacity).toBe(false);
+  });
 });

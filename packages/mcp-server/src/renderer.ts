@@ -11,13 +11,28 @@ import { randomUUID } from 'crypto';
 // Scene Persistence Store
 // =============================================================================
 
-interface StoredScene {
+export interface SceneProvenance {
+  /** SHA-256 hex hash of the composition source */
+  hash: string;
+  /** Auto-classified: original (no imports), remix (imports + own content), curated (imports only) */
+  publishMode: 'original' | 'remix' | 'curated';
+  /** Tracked imports with their hashes */
+  imports: { path: string; hash?: string }[];
+}
+
+export interface StoredScene {
   id: string;
   code: string;
   title: string;
   description: string;
   createdAt: number;
   accessCount: number;
+  /** Author identifier (@username or freeform) */
+  author?: string;
+  /** License type */
+  license?: string;
+  /** Provenance metadata (compiler-generated) */
+  provenance?: SceneProvenance;
 }
 
 /** In-memory scene store. Replace with Redis/SQLite for production persistence. */
@@ -31,10 +46,18 @@ function generateShortId(): string {
   return randomUUID().replace(/-/g, '').slice(0, 8);
 }
 
+export interface StoreSceneOptions {
+  title?: string;
+  description?: string;
+  author?: string;
+  license?: string;
+  provenance?: SceneProvenance;
+}
+
 /**
  * Store a scene and return a short URL-safe ID.
  */
-export function storeScene(code: string, title?: string, description?: string): StoredScene {
+export function storeScene(code: string, titleOrOptions?: string | StoreSceneOptions, description?: string): StoredScene {
   // Evict oldest scenes if at capacity
   if (sceneStore.size >= MAX_SCENES) {
     let oldestKey: string | null = null;
@@ -48,14 +71,22 @@ export function storeScene(code: string, title?: string, description?: string): 
     if (oldestKey) sceneStore.delete(oldestKey);
   }
 
+  // Support both legacy (title, description) and new options-object signatures
+  const opts: StoreSceneOptions = typeof titleOrOptions === 'object' && titleOrOptions !== null
+    ? titleOrOptions
+    : { title: titleOrOptions, description };
+
   const id = generateShortId();
   const scene: StoredScene = {
     id,
     code,
-    title: title || 'HoloScript Scene',
-    description: description || 'Interactive 3D scene built with HoloScript',
+    title: opts.title || 'HoloScript Scene',
+    description: opts.description || 'Interactive 3D scene built with HoloScript',
     createdAt: Date.now(),
     accessCount: 0,
+    author: opts.author,
+    license: opts.license,
+    provenance: opts.provenance,
   };
   sceneStore.set(id, scene);
   return scene;
@@ -70,6 +101,19 @@ export function getScene(id: string): StoredScene | null {
     scene.accessCount++;
   }
   return scene || null;
+}
+
+/**
+ * Find a scene by author username and composition name/id.
+ * Used by the registry endpoint to resolve @username/name imports.
+ */
+export function findSceneByAuthor(username: string, name: string): StoredScene | null {
+  for (const scene of sceneStore.values()) {
+    if (scene.author === username && (scene.title === name || scene.id === name)) {
+      return scene;
+    }
+  }
+  return null;
 }
 
 // =============================================================================

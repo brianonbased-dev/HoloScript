@@ -14,30 +14,65 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   solveChallenge,
+  fuzzyMatch,
   ChallengeEscalationPipeline,
 } from '../moltbook/challenge-solver';
 import type { ChallengeLLMProvider } from '../moltbook/challenge-solver';
 
-// ── L1: Regex solver ────────────────────────────────────────────────────────
+// ── fuzzyMatch unit tests ──────────────────────────────────────────────────
 
-describe('solveChallenge (L1 regex)', () => {
+describe('fuzzyMatch', () => {
+  it('matches exact substring', () => {
+    expect(fuzzyMatch('twenty', 0, 'twenty', 2)).toBe(6);
+  });
+
+  it('matches with 1 noise char inserted', () => {
+    // "twyo" contains "two" with 'y' as noise
+    expect(fuzzyMatch('twyo', 0, 'two', 2)).toBe(4);
+  });
+
+  it('matches with 2 noise chars inserted', () => {
+    // "txywo" = t, [x,y skipped], w, o
+    expect(fuzzyMatch('txywo', 0, 'two', 2)).toBe(5);
+  });
+
+  it('rejects with 3+ consecutive noise chars', () => {
+    // "txyzwo" — 3 consecutive skips exceed maxSkip=2
+    expect(fuzzyMatch('txyzwo', 0, 'two', 2)).toBe(-1);
+  });
+
+  it('matches number word with noise in middle', () => {
+    // "fortxy" = f,o,r,t,[x skipped],y → "forty"
+    expect(fuzzyMatch('fortxy', 0, 'forty', 2)).toBe(6);
+  });
+
+  it('matches from non-zero start position', () => {
+    expect(fuzzyMatch('xxxtwoyyyy', 3, 'two', 2)).toBe(6);
+  });
+
+  it('rejects when pattern not present', () => {
+    expect(fuzzyMatch('abcdef', 0, 'xyz', 2)).toBe(-1);
+  });
+});
+
+// ── L1: Regex + Fuzzy solver ────────────────────────────────────────────────
+
+describe('solveChallenge (L1)', () => {
+  // ── Pass 1: Exact regex (existing tests) ──
+
   it('solves compound + single addition', () => {
-    // "twenty two" compounds to 22, "eight" stays 8 → 30.00
     expect(solveChallenge('twenty two plus eight')).toBe('30.00');
   });
 
   it('solves compound + teen subtraction', () => {
-    // "forty five" compounds to 45, "twelve" stays 12 → 33.00
     expect(solveChallenge('forty five minus twelve')).toBe('33.00');
   });
 
   it('solves single × single multiplication', () => {
-    // Both < 20, no compounding → 7 × 6 = 42.00
     expect(solveChallenge('seven times six')).toBe('42.00');
   });
 
   it('solves decade / teen division', () => {
-    // 40 / 10 — ten >= 10 so no compounding → 4.00
     expect(solveChallenge('forty divide ten')).toBe('4.00');
   });
 
@@ -46,9 +81,6 @@ describe('solveChallenge (L1 regex)', () => {
   });
 
   it('strips special characters and collapses doubles', () => {
-    // "tWwEeNnTtYy tWwOo" → collapse → "twenty two" = 22
-    // "eIiGgHhTt" → collapse → "eight" = 8
-    // 22 + 8 = 30.00
     expect(solveChallenge('tWwEeNnTtYy tWwOo pLlUuSs eIiGgHhTt')).toBe('30.00');
   });
 
@@ -60,13 +92,67 @@ describe('solveChallenge (L1 regex)', () => {
     expect(solveChallenge('ten divide zero')).toBeNull();
   });
 
-  it('defaults to addition with "total" keyword', () => {
+  it('detects addition with "total" keyword', () => {
     expect(solveChallenge('the total of 10 and 5')).toBe('15.00');
   });
 
   it('handles speed word problem with "speeds up"', () => {
-    // "twenty two" = 22, "eight" = 8, "speed" triggers +
     expect(solveChallenge('A lobster swims at twenty two and speeds up by eight')).toBe('30.00');
+  });
+
+  // ── Pass 2: Fuzzy matching (noise chars inside words) ──
+
+  it('handles noise char inside number word: "tWyO" → two', () => {
+    // "tWyO" → strip+collapse → "twyo" → fuzzy matches "two"
+    expect(solveChallenge('tWyO tIiMeEs fIvEe')).toBe('10.00');
+  });
+
+  it('handles noise chars inside both operands', () => {
+    // "fOrTxy" → "fortxy" → fuzzy "forty", "tWyO" → "twyo" → fuzzy "two"
+    expect(solveChallenge('fOrTxy pLuS tWyO')).toBe('42.00');
+  });
+
+  it('handles noise-corrupted operation word: "tiymes" → times', () => {
+    expect(solveChallenge('seven tiymes six')).toBe('42.00');
+  });
+
+  it('handles dots used as obfuscation noise', () => {
+    // Dots are now stripped (not preserved)
+    expect(solveChallenge('t.w.e.n.t.y plus t.e.n')).toBe('30.00');
+  });
+
+  it('handles heavy Zalgo: special chars + doubles + noise', () => {
+    // "sEeVvEeNn" → collapse → "seven", "tIiMmEeSs" → collapse → "times"
+    // "sIiXx" → collapse → "six"
+    expect(solveChallenge('sEeVvEeNn tIiMmEeSs sIiXx')).toBe('42.00');
+  });
+
+  it('handles split words with noise: "fOrT_x_y" becomes "forty"', () => {
+    // After strip: "fortxy" → collapse: "fortxy" → fuzzy: "forty"
+    expect(solveChallenge('fOrT*x*y minus tEeNn')).toBe('30.00');
+  });
+
+  // ── Edge cases ──
+
+  it('returns null when operation is unrecognizable (no silent default)', () => {
+    // "gobbledygook" is not any operation keyword
+    expect(solveChallenge('ten gobbledygook five')).toBeNull();
+  });
+
+  it('handles "added" operation (collapse: "added" → "aded")', () => {
+    expect(solveChallenge('ten added to five')).toBe('15.00');
+  });
+
+  it('handles "multiplied" operation', () => {
+    expect(solveChallenge('four multiplied by three')).toBe('12.00');
+  });
+
+  it('handles "subtracted" operation', () => {
+    expect(solveChallenge('twenty subtracted by five')).toBe('15.00');
+  });
+
+  it('handles "combined" operation', () => {
+    expect(solveChallenge('seven combined with eight')).toBe('15.00');
   });
 });
 

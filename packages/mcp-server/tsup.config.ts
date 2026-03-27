@@ -9,6 +9,7 @@ export default defineConfig({
     'cli': 'src/cli.ts',
     'http-server': 'src/http-server.ts',
     'moltbook/agent/moltbook-daemon-actions': 'src/moltbook/agent/moltbook-daemon-actions.ts',
+    'moltbook/challenge-solver': 'src/moltbook/challenge-solver.ts',
     'moltbook/client': 'src/moltbook/client.ts',
     'moltbook/llm-content-generator': 'src/moltbook/llm-content-generator.ts',
     'moltbook/types': 'src/moltbook/types.ts',
