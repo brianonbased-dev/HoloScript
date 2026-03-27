@@ -4,7 +4,15 @@ import { readFileSync } from 'fs';
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/cli.ts', 'src/http-server.ts'],
+  entry: {
+    'index': 'src/index.ts',
+    'cli': 'src/cli.ts',
+    'http-server': 'src/http-server.ts',
+    'moltbook/agent/moltbook-daemon-actions': 'src/moltbook/agent/moltbook-daemon-actions.ts',
+    'moltbook/client': 'src/moltbook/client.ts',
+    'moltbook/llm-content-generator': 'src/moltbook/llm-content-generator.ts',
+    'moltbook/types': 'src/moltbook/types.ts',
+  },
   format: ['cjs', 'esm'],
   dts: false, // Disable for now - types need work
   splitting: false,
