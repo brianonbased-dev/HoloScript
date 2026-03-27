@@ -562,6 +562,7 @@ export default defineConfig({
             { text: 'Compiler', link: '/packages/compiler' },
             { text: 'Runtime', link: '/packages/runtime' },
             { text: 'Engine', link: '/packages/engine' },
+            { text: 'Semantic Dictionary v0.2', link: '/traits/semantic-dictionary' },
             { text: 'Traits (2,000+)', link: '/packages/traits' },
             { text: 'Standard Library', link: '/packages/std' },
             { text: 'FS', link: '/packages/fs' },

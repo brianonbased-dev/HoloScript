@@ -548,7 +548,7 @@ export {
   globalTraitGraph,
   type TraitUsage,
   type ObjectTraitInfo,
-  type TraitDefinition,
+  type TraitDefinition as GraphTraitDefinition,
   type TraitChangeInfo,
   type AffectedSet,
 } from './compiler/TraitDependencyGraph';
@@ -665,7 +665,7 @@ export {
   validateManifest,
   type SemVer,
   type PackageDependency,
-  type PackageManifest,
+  type PackageManifest as RegistryPackageManifest,
   type PackageMetadata,
   type SearchResult,
   type ResolvedDependency,
@@ -1208,7 +1208,7 @@ export {
   PerformanceTelemetry,
   getPerformanceTelemetry,
   type Metric,
-  type MetricType,
+  type MetricType as TelemetryMetricType,
   type SeverityLevel,
   type PerformanceBudget,
   type FrameTiming,
@@ -1540,7 +1540,7 @@ export type {
   RuntimeContext,
   ExecutionResult,
   HoloScriptValue,
-  ParticleSystem,
+  ParticleSystem as TypesParticleSystem,
 
   // Config
   SecurityConfig,
@@ -1693,7 +1693,7 @@ export function createHoloScriptEnvironment() {
   return {
     parser: new HoloScriptParser(),
     runtime: new HoloScriptRuntime(),
-    version: HOLOSCRIPT_VERSION,
+    version: "6.0.0",
   };
 }
 
@@ -3342,44 +3342,13 @@ export {
 // ── Sprint 1: Identity & Validation ─────────────────────────────────────────
 export { AgentOutputSchemaValidator } from './identity/AgentOutputSchemaValidator';
 
-// ── Sprint 1: Testing & Contracts ───────────────────────────────────────────
-export { TraitPropertyTesting } from './testing/TraitPropertyTesting';
-export { TraitBehavioralContract } from './contracts/TraitBehavioralContract';
-
-// ── Sprint 1: Trait Support Matrix ──────────────────────────────────────────
-export { TraitSupportMatrix } from './traits/TraitSupportMatrix';
-
-// ── Sprint 3: Mixture-of-Memory-Experts Trait Database ──────────────────────
-export { MoMETraitDatabase } from './traits/MoMETraitDatabase';
-
-// ── Sprint 3: WASM Compilation Target ───────────────────────────────────────
-export { WASMCompilationTarget } from './wasm/WASMCompilationTarget';
-
-// ── Sprint 3: Material Preset Audit ─────────────────────────────────────────
-export { MaterialPresetAudit } from './materials/MaterialPresetAudit';
-
-// ── Sprint 4: Unified PBR Schema ────────────────────────────────────────────
-export { UnifiedPBRSchema } from './materials/UnifiedPBRSchema';
-
-// ── Sprint 4: SNN vs Backprop Experiment ────────────────────────────────────
-export { SNNvsBackpropExperiment } from './experiments/SNNvsBackpropExperiment';
-
-// ── Sprint 4: Circuit Breaker Suite ─────────────────────────────────────────
-export { CircuitBreakerCICD } from './circuit-breaker/CircuitBreakerCICD';
-export { CircuitBreakerBenchmarks } from './circuit-breaker/CircuitBreakerBenchmarks';
-export { CircuitBreakerDeployment } from './circuit-breaker/CircuitBreakerDeployment';
-
 // ── Sprint 2: Compiler Extensions ───────────────────────────────────────────
 export { COCOExporter } from './compiler/COCOExporter';
-export { GLTFPipelineMCPTool } from './compiler/GLTFPipelineMCPTool';
-export { NodeToyMapping } from './compiler/NodeToyMapping';
 export { RemotionBridge } from './compiler/RemotionBridge';
-export { ReproducibilityMode } from './compiler/ReproducibilityMode';
-export { SemanticSceneGraph } from './compiler/SemanticSceneGraph';
 export { CompilerBase, type BaseCompilerOptions } from './compiler/CompilerBase';
 
 // ── Trait System Base Types ─────────────────────────────────────────────────
-export type { TraitHandler, ParsedTrait } from './traits/TraitTypes';
+export type { TraitHandler } from './traits/TraitTypes';
 export type { TraitConstraint } from './types';
 export { BUILTIN_CONSTRAINTS } from './traits/traitConstraints';
 
@@ -3549,7 +3518,7 @@ export type {
   BudgetPeriod,
   AgentBudget,
   BudgetState,
-  CircuitBreakerState,
+  CircuitBreakerState as BudgetCircuitBreakerState,
   SpendAuthorizationResult,
   BudgetEnforcerConfig,
 } from './economy/AgentBudgetEnforcer';
@@ -3586,13 +3555,6 @@ export {
 export type {
   Web3Connector,
   Web3ConnectorConfig,
-  WalletInfo,
-  NFTOwnershipResult,
-  TokenBalanceResult,
-  ENSResult,
-  BalanceResult,
-  SignatureResult,
-  TransferResult,
 } from './web3/Web3Connector';
 
 // ============================================================================

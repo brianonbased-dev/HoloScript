@@ -193,54 +193,43 @@ async function runAbsorbPhase(
   };
 
   try {
-    // Runtime import with webpackIgnore keeps optional deep deps out of the Studio bundle.
-    const coreCb = (await import(/* webpackIgnore: true */ '@holoscript/core/codebase')) as unknown as {
-      CodebaseScanner: { new(): { scan(opts: { rootDir: string; depth?: string }): Promise<AbsorbScanResult> } };
-      CodebaseGraph: {
-        new(): {
-          buildFromScanResult(r: AbsorbScanResult): void;
-          serialize(): string;
-          communities?: Record<string, number>;
-        };
-        deserialize(json: string): unknown;
-      };
-    };
+    const absorbUrl = process.env.ABSORB_SERVICE_URL || 'http://localhost:8081';
+    
+    // Delegate codebase scanning to the headless absorb-service
+    const res = await fetch(`${absorbUrl}/scan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // In a real environment, provide an API key if required
+      },
+      body: JSON.stringify({
+        path: workDir,
+        shallow: depth === 'shallow',
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
 
-    const { CodebaseScanner, CodebaseGraph } = coreCb;
-
-    const scanner = new CodebaseScanner();
-    const scanResult: AbsorbScanResult = await scanner.scan({ rootDir: workDir, depth });
-
-    const graph = new CodebaseGraph();
-    graph.buildFromScanResult(scanResult);
-    const graphJson = graph.serialize();
-
-    // Build in-degree map: for each file, count how many other files import it
-    const inDegree: Record<string, number> = {};
-    for (const file of scanResult.files) {
-      if (!(file.path in inDegree)) inDegree[file.path] = 0;
-      for (const imp of file.imports) {
-        if (imp.resolvedPath) {
-          inDegree[imp.resolvedPath] = (inDegree[imp.resolvedPath] ?? 0) + 1;
-        }
-      }
+    if (!res.ok) {
+      throw new Error(`Absorb service failed with status ${res.status}`);
     }
 
-    // Leaf-first order: sort files by in-degree ascending (safest to fix first)
-    const leafFirstOrder = scanResult.files
-      .map((f) => f.path)
-      .sort((a, b) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
+    const data = await res.json();
+    
+    // The absorb-service now computes and returns the graph topology directly
+    if (data.topology) {
+      return {
+        leafFirstOrder: data.topology.leafFirstOrder || [],
+        inDegree: data.topology.inDegree || {},
+        communities: data.topology.communities || {},
+        totalFiles: data.fileCount || 0,
+        totalSymbols: data.stats?.totalSymbols || 0,
+        durationMs: Date.now() - absorbStart,
+        graphJson: data.topology.graphJson || '{}',
+      };
+    }
 
-    return {
-      leafFirstOrder,
-      inDegree,
-      communities: graph.communities ?? {},
-      totalFiles: scanResult.stats.totalFiles,
-      totalSymbols: scanResult.stats.totalSymbols,
-      durationMs: Date.now() - absorbStart,
-      graphJson,
-    };
-  } catch {
+    return { ...empty, durationMs: Date.now() - absorbStart };
+  } catch (err) {
     // Core not available or scan failed — continue without graph
     return { ...empty, durationMs: Date.now() - absorbStart };
   }

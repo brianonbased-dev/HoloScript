@@ -171,7 +171,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     this.physicsWorld = new PhysicsWorldImpl({
       gravity: { x: 0, y: -9.81, z: 0 },
       substeps: 2,
-    });
+    } as any);
 
     this.vrPhysicsBridge = new VRPhysicsBridge(this.physicsWorld, (hand, intensity, duration) => {
       // Trigger Haptic Pulse via WebXR Manager
@@ -191,20 +191,20 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Register Physics Event Handlers
     this.on('physics_grab', (payload: any) => {
-      const { nodeId, hand } = payload as { nodeId: string; hand: string };
+      const { nodeId, hand } = payload as { nodeId: string; hand: "left" | "right" };
       const handBodyId = this.vrPhysicsBridge.getHandBodyId(hand);
       const objectBody = this.physicsWorld.getBody(nodeId);
 
       if (handBodyId && objectBody) {
         // Create Fixed Joint
-        this.physicsWorld.addConstraint({
+        (this.physicsWorld as any).addConstraint({
           type: 'fixed',
           bodyA: handBodyId,
           bodyB: nodeId,
           pivotA: { x: 0, y: 0, z: 0 }, // Center of hand
           pivotB: { x: 0, y: 0, z: 0 }, // Should be relative offset
           // For simplicity, we snap center-to-center or need to calculate offset based on current positions
-        });
+        } as any);
       }
     });
 
@@ -232,19 +232,19 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
       // This requires the Physics engine to support internal constraints/motors.
       // Assuming addConstraint supports 'prismatic' extended config.
-      this.physicsWorld.addConstraint({
+      (this.physicsWorld as any).addConstraint({
         type: 'slider' as any, // Mapped to slider for prismatic capability
         bodyA: 'WORLD_ANCHOR', // Placeholder for "Static Anchor at start pos"
         bodyB: nodeId,
         axisA: axis as any,
         limits: { min: min || 0, max: max || 0 },
         spring,
-      });
+      } as any);
     });
 
     // Initialize WebXR Manager if enabled
     // We defer full initialization until enterVR() or if renderer provides context now
-    if (options.renderer && (options.renderer as Record<string, unknown>).context && options.vrEnabled) {
+    if (options.renderer && (options.renderer as any).context && options.vrEnabled) {
       // We could pre-warm here, but for now we wait for explicit enterVR
     }
 
@@ -252,7 +252,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     const isNetworked =
       ast.root.traits?.has('networked' as any) ||
-      ast.root.directives?.some((d: HSPlusDirective) => d.type === 'sync' || d.type === 'networked');
+      ast.root.directives?.some((d: HSPlusDirective) => (d.type as string) === 'sync' || (d.type as string) === 'networked');
     const syncId = isNetworked ? ast.root.id || 'global_session' : undefined;
 
     this.state = createState({} as StateDeclaration, syncId);
@@ -306,7 +306,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         version: (this.ast as unknown as Record<string, unknown>).version as number || 0,
         migrations: (this.ast as unknown as Record<string, unknown>).migrations as unknown[] || [],
         state: { properties: [] },
-      } as unknown as HSPlusNode);
+      } as any);
 
       const stateBridge = this.createStateMapProxy();
       this.hotReloader.registerInstance({
@@ -318,7 +318,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         set version(v: number) {
           (self.ast as unknown as Record<string, unknown>).version = v;
         },
-        state: stateBridge as unknown as Record<string, unknown>,
+        state: stateBridge as any,
       });
     }
 
@@ -326,7 +326,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     const initialTemplates = this.findAllTemplates(this.ast.root);
     for (const [name, node] of initialTemplates) {
       this.templates.set(name, node as any);
-      this.hotReloader.registerTemplate(node as unknown as HSPlusNode);
+      this.hotReloader.registerTemplate(node as any);
     }
 
     // Initialize ChunkLoader if manifest provided
@@ -352,7 +352,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // We need access to the WebGPU context from the renderer
     // This assumes the renderer in options has a 'context' property or we can get it
     // Since Renderer interface in this file is generic, we cast it for now
-    const renderer = this.options.renderer as Record<string, unknown>;
+    const renderer = this.options.renderer as any;
     // Note: We might need to pass the context explicitly or ensure renderer has it
     if (!renderer) {
       console.error('Cannot enter VR: No renderer found');
@@ -1574,7 +1574,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           // this.emit('apply_velocity', { node, velocity });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-            body.velocity = { x: velocity[0], y: velocity[1], z: velocity[2] };
+            body.velocity = { x: velocity[0] as number, y: velocity[1] as number, z: velocity[2] as number };
           }
         },
         applyAngularVelocity: (node, angularVelocity) => {
@@ -1582,9 +1582,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
             body.angularVelocity = {
-              x: angularVelocity[0],
-              y: angularVelocity[1],
-              z: angularVelocity[2],
+              x: angularVelocity[0] as number,
+              y: angularVelocity[1] as number,
+              z: angularVelocity[2] as number,
             };
           }
         },
@@ -1605,11 +1605,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           );
 
           if (hit) {
+            const h = hit as any;
             return {
-              point: [hit.point.x, hit.point.y, hit.point.z],
-              normal: [hit.normal.x, hit.normal.y, hit.normal.z],
-              distance: hit.distance,
-              nodeId: hit.bodyId,
+              point: [h.point.x, h.point.y, h.point.z],
+              normal: [h.normal.x, h.normal.y, h.normal.z],
+              distance: h.distance,
+              nodeId: h.bodyId,
             };
           }
           return null;
@@ -1871,7 +1872,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     for (const [name, newNode] of newTemplates) {
       const oldNode = this.templates.get(name);
       if (oldNode && (newNode as unknown as Record<string, unknown>).version !== (oldNode as unknown as Record<string, unknown>).version) {
-        const result = await this.hotReloader.reload(newNode as unknown as HSPlusNode);
+        const result = await this.hotReloader.reload(newNode as any);
         if (result.success) {
           this.templates.set(name, newNode);
         } else {
@@ -1880,7 +1881,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       } else {
         // Just update the template definition if no version change
         this.templates.set(name, newNode);
-        this.hotReloader.registerTemplate(newNode as unknown as HSPlusNode);
+        this.hotReloader.registerTemplate(newNode as any);
       }
     }
 
@@ -1896,7 +1897,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         version: newAst.version,
         migrations: newAst.migrations,
         state: { properties: [] }, // Program state is bridged directly to root state
-      } as unknown as HSPlusNode);
+      } as any);
 
       if (!result.success) {
         console.error(`[Hot-Reload] Global program migration failed:`, result.error);
@@ -1940,7 +1941,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       },
       forEach(cb: (value: unknown, key: string, map: Map<string, unknown>) => void) {
         const snap = runtime.state.getSnapshot();
-        Object.entries(snap).forEach(([k, v]) => cb(v, k, this));
+        Object.entries(snap).forEach(([k, v]) => cb(v, k, this as any));
       },
       [Symbol.iterator]() {
         const snap = runtime.state.getSnapshot();
@@ -2003,7 +2004,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       switch (stmt.type) {
         case 'Assignment': {
           const value = this.evaluator.evaluate(String(stmt.value));
-          const target = stmt.target;
+          const target = stmt.target as string;
 
           if (target.startsWith('props.')) {
             const propName = target.split('.')[1];
@@ -2015,14 +2016,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             this.state.set(stateKey as keyof StateDeclaration, value);
           } else {
             // Local or unknown target
-            (context as Record<string, unknown>)[target] = value;
+            (context as any)[target] = value;
           }
           break;
         }
 
         case 'MethodCall': {
-          const args = stmt.arguments.map((arg) => this.evaluator.evaluate(String(arg)));
-          const method = (this.builtins as Record<string, unknown>)[stmt.method];
+          const args = (stmt.arguments || []).map((arg) => this.evaluator.evaluate(String(arg)));
+          const method = (this.builtins as any)[stmt.method as string];
           if (typeof method === 'function') {
             await method(...args);
           }
@@ -2032,16 +2033,16 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         case 'IfStatement': {
           const condition = this.evaluator.evaluate(String(stmt.condition));
           if (condition) {
-            await this.executeStatementBlock(instance, stmt.consequent as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.consequent as any);
           } else if (stmt.alternate) {
-            await this.executeStatementBlock(instance, stmt.alternate as HSPlusStatement[]);
+            await this.executeStatementBlock(instance, stmt.alternate as any);
           }
           break;
         }
 
         case 'EmitStatement': {
           const data = stmt.data ? this.evaluator.evaluate(String(stmt.data)) : undefined;
-          this.emit(stmt.event, data);
+          this.emit(stmt.event as string, data);
           break;
         }
 

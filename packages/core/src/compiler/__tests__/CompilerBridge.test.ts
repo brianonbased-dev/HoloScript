@@ -9,20 +9,25 @@ import type { CompilationResult } from '../CompilerBridge';
 // would pull the full core bundle. We mock at the module level.
 // ============================================================================
 
-const { mockTokenize, mockParse, mockCompile } = vi.hoisted(() => ({
-  mockTokenize: vi.fn(),
+const { mockParse, mockCompile } = vi.hoisted(() => ({
   mockParse: vi.fn(),
   mockCompile: vi.fn(),
 }));
 
-vi.mock('../../index', () => ({
-  tokenize: mockTokenize,
-  Parser: vi.fn().mockImplementation(function (this: { parse: typeof mockParse }, tokens: unknown[]) {
-    this.parse = mockParse;
-  }),
-  R3FCompiler: vi.fn().mockImplementation(function (this: { compile: typeof mockCompile }) {
-    this.compile = mockCompile;
-  }),
+vi.mock('../../parser/HoloScriptPlusParser', () => ({
+  HoloScriptPlusParser: class {
+    parse() {
+      return mockParse();
+    }
+  },
+}));
+
+vi.mock('../R3FCompiler', () => ({
+  R3FCompiler: class {
+    compile() {
+      return mockCompile();
+    }
+  },
 }));
 
 describe('CompilerBridge', () => {
@@ -78,7 +83,6 @@ describe('CompilerBridge', () => {
   // --------------------------------------------------------------------------
   describe('compile()', () => {
     beforeEach(() => {
-      mockTokenize.mockReset();
       mockParse.mockReset();
       mockCompile.mockReset();
     });
@@ -97,21 +101,20 @@ describe('CompilerBridge', () => {
       expect(result.error).toBe('Empty HoloScript input');
     });
 
-    it('returns error when tokenizer produces no tokens', async () => {
-      mockTokenize.mockReturnValue([]);
-      const bridge = new CompilerBridge();
-      const result = await bridge.compile('some source');
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('No valid tokens found');
-    });
-
     it('returns error when parser produces empty AST', async () => {
-      mockTokenize.mockReturnValue([{ type: 'keyword' }]);
-      mockParse.mockReturnValue([]);
+      mockParse.mockReturnValue({ success: true, ast: [] });
       const bridge = new CompilerBridge();
       const result = await bridge.compile('orb "test" {}');
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to parse HoloScript');
+    });
+
+    it('returns error when parser catches syntax errors', async () => {
+      mockParse.mockReturnValue({ success: false, errors: [{ message: 'Syntax Error' }] });
+      const bridge = new CompilerBridge();
+      const result = await bridge.compile('orb "test" {}');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Syntax Error');
     });
 
     it('compiles successfully and returns metadata', async () => {
@@ -119,8 +122,7 @@ describe('CompilerBridge', () => {
         { entities: [{ handlers: [{}, {}] }, { handlers: [{}] }] },
         { entities: [{ handlers: [] }] },
       ];
-      mockTokenize.mockReturnValue([{ type: 'keyword' }]);
-      mockParse.mockReturnValue(fakeAST);
+      mockParse.mockReturnValue({ success: true, ast: fakeAST });
       mockCompile.mockReturnValue('<R3FScene />');
 
       const bridge = new CompilerBridge();
@@ -141,7 +143,6 @@ describe('CompilerBridge', () => {
   // --------------------------------------------------------------------------
   describe('validate()', () => {
     beforeEach(() => {
-      mockTokenize.mockReset();
       mockParse.mockReset();
     });
 
@@ -153,13 +154,12 @@ describe('CompilerBridge', () => {
     });
 
     it('returns valid when parser succeeds', async () => {
-      mockTokenize.mockReturnValue([{ type: 'keyword' }]);
-      mockParse.mockReturnValue([{ type: 'zone' }]);
+      mockParse.mockReturnValue({ success: true, ast: [{ type: 'zone' }] });
 
       const bridge = new CompilerBridge();
       const result = await bridge.validate('orb "test" {}');
+      expect(result.errors).toEqual([]);
       expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
     });
   });
 

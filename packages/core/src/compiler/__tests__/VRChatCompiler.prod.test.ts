@@ -258,14 +258,14 @@ describe('VRChatCompiler — Production', () => {
       expect(typeof compileToVRChat).toBe('function');
     });
 
-    it('compiles a composition and returns result', () => {
-      const result = compileToVRChat(makeComp());
+    it('compiles a composition and returns result', async () => {
+      const result = await compileToVRChat(makeComp());
       expect(result).toHaveProperty('mainScript');
       expect(result).toHaveProperty('udonScripts');
     });
 
-    it('passes options correctly', () => {
-      const result = compileToVRChat(makeComp(), { className: 'ConvWorld' });
+    it('passes options correctly', async () => {
+      const result = await compileToVRChat(makeComp(), { className: 'ConvWorld' });
       expect(result.mainScript).toContain('ConvWorld');
     });
   });

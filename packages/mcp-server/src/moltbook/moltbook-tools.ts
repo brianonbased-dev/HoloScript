@@ -594,35 +594,79 @@ async function handleEngage(args: Record<string, unknown>) {
 }
 
 async function handleHeartbeat(args: Record<string, unknown>) {
+  // Check if the .hsplus moltbook-daemon is running (lock file check)
+  const daemonMode = isMoltbookDaemonRunning();
+
   const heartbeat = getOrCreateHeartbeat();
   // Support both new action param and deprecated trigger param
   const action = (args.action as string) || (args.trigger ? 'trigger' : 'status');
 
+  // If daemon mode is active, prevent conflicting operations
+  if (daemonMode && (action === 'start' || action === 'trigger')) {
+    return {
+      running: false,
+      daemonMode: true,
+      message: 'Moltbook agent daemon (.hsplus) is running. Stop it with `holoscript moltbook-daemon stop` before using the legacy heartbeat.',
+    };
+  }
+
+    const pipeline = getMoltbookClient().getChallengePipeline();
+    const l3Stats = pipeline ? {
+      stats: pipeline.getStats(),
+      recentLogs: pipeline.getUnsolvedLog().slice(-5) // Return last 5 logs for brevity
+    } : null;
+
   switch (action) {
     case 'start':
       if (heartbeat.isRunning()) {
-        return { running: true, message: 'Daemon already running', state: heartbeat.getState() };
+        return { running: true, daemonMode: false, message: 'Daemon already running', state: heartbeat.getState(), l3Stats };
       }
       heartbeat.start();
-      return { running: true, message: 'Daemon started', state: heartbeat.getState() };
+      return { running: true, daemonMode: false, message: 'Daemon started', state: heartbeat.getState(), l3Stats };
 
     case 'stop':
       if (!heartbeat.isRunning()) {
-        return { running: false, message: 'Daemon already stopped', state: heartbeat.getState() };
+        return { running: false, daemonMode, message: 'Daemon already stopped', state: heartbeat.getState(), l3Stats };
       }
       heartbeat.stop();
-      return { running: false, message: 'Daemon stopped — safe to engage manually', state: heartbeat.getState() };
+      return { running: false, daemonMode, message: 'Daemon stopped — safe to engage manually', state: heartbeat.getState(), l3Stats };
 
     case 'trigger': {
       const wasRunning = heartbeat.isRunning();
       const result = await heartbeat.triggerNow();
-      return { triggered: true, daemonRunning: wasRunning, result, state: heartbeat.getState() };
+      return { triggered: true, daemonRunning: wasRunning, daemonMode, result, state: heartbeat.getState(), l3Stats };
     }
 
     case 'status':
     default:
-      return { running: heartbeat.isRunning(), state: heartbeat.getState() };
+      return { running: heartbeat.isRunning(), daemonMode, state: heartbeat.getState(), l3Stats };
   }
+}
+
+
+/**
+ * Check if the .hsplus moltbook-daemon is running by checking its lock file.
+ */
+function isMoltbookDaemonRunning(): boolean {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    // Check common locations for the daemon lock file
+    const candidates = [
+      path.resolve(process.cwd(), '.holoscript', 'moltbook-daemon.lock'),
+      path.resolve(process.cwd(), 'compositions', '.holoscript', 'moltbook-daemon.lock'),
+    ];
+    for (const lockFile of candidates) {
+      if (fs.existsSync(lockFile)) {
+        const lock = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+        // Stale if heartbeat older than 2 minutes
+        if (Date.now() - lock.heartbeat < 120_000) {
+          return true;
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return false;
 }
 
 async function handleCreateSubmolt(args: Record<string, unknown>) {

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
       case 'upstash': {
         // @ts-ignore
-        const { UpstashConnector } = await import('@holoscript/connector-upstash');
+        const { UpstashConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-upstash');
         const upstash = new UpstashConnector();
         await upstash.disconnect();
 
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
       case 'appstore': {
         // @ts-ignore
-        const { AppStoreConnector } = await import('@holoscript/connector-appstore');
+        const { AppStoreConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-appstore');
         const appstore = new AppStoreConnector();
         await appstore.disconnect();
 
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
       case 'vscode': {
         // @ts-ignore
-        const { VSCodeConnector } = await import('@holoscript/connector-vscode');
+        const { VSCodeConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-vscode');
         const vscode = new VSCodeConnector();
         await vscode.disconnect();
 

@@ -113,6 +113,12 @@ import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
 
+// Character Pipeline & GPU Geometry (Phase R4)
+import { INSTANCING_GEOMETRY_TRAITS } from './instancing-geometry';
+import { CHARACTER_PIPELINE_TRAITS } from './character-pipeline';
+import { FACIAL_EXPRESSION_TRAITS } from './facial-expression';
+import { CHARACTER_MATERIAL_TRAITS } from './character-materials';
+
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
  * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1)
@@ -304,6 +310,18 @@ export const VR_TRAITS = [
 
   // v6 Universal Semantic Platform (35 traits)
   ...UNIVERSAL_V6_TRAITS,
+
+  // GPU Geometry & Instancing (32 traits — Phase R4)
+  ...INSTANCING_GEOMETRY_TRAITS,
+
+  // Character Pipeline (42 traits — Phase R4)
+  ...CHARACTER_PIPELINE_TRAITS,
+
+  // Facial Expression / FACS (75 traits — Phase R4)
+  ...FACIAL_EXPRESSION_TRAITS,
+
+  // Character Materials — SSS, Eye, Hair, Cloth (38 traits — Phase R4)
+  ...CHARACTER_MATERIAL_TRAITS,
 ] as const;
 
 /**
@@ -602,6 +620,30 @@ export { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 
 // GAPS Feature Roadmap — Phase 1
 export { GAPS_PHYSICS_TRAITS } from './gaps-physics';
+
+// GPU Geometry & Instancing (Phase R4)
+export {
+  INSTANCING_GEOMETRY_TRAITS,
+  type InstancingGeometryTraitName,
+} from './instancing-geometry';
+
+// Character Pipeline (Phase R4)
+export {
+  CHARACTER_PIPELINE_TRAITS,
+  type CharacterPipelineTraitName,
+} from './character-pipeline';
+
+// Facial Expression / FACS (Phase R4)
+export {
+  FACIAL_EXPRESSION_TRAITS,
+  type FacialExpressionTraitName,
+} from './facial-expression';
+
+// Character Materials (Phase R4)
+export {
+  CHARACTER_MATERIAL_TRAITS,
+  type CharacterMaterialTraitName,
+} from './character-materials';
 
 // v6 Universal Semantic Platform (35 traits)
 export {

@@ -253,46 +253,58 @@ graph TD
     Core["Core Language & Runtime"]
     Tooling["Developer Tooling & Integrations"]
     Spatial["Spatial Engineering & Rendering"]
-    App["Application Ecosystem"]
+    Services["Cloud Services & APIs"]
 
     %% Flow
     Core --> Tooling
     Core --> Spatial
-    Tooling --> App
-    Spatial --> App
+    Tooling --> Services
+    Spatial --> Services
 
     %% Subcomponents
-    subgraph Core_Runtime [Core Systems]
+    subgraph Core_Runtime [Core Packages]
         direction TB
-        C1("AST Parser & Compiler")
-        C2("uAA2++ Cognitive Runtime")
-        C3("CRDT State Synchronization")
+        C1("@holoscript/core <br/> 2,000+ Traits")
+        C2("@holoscript/compiler <br/> 30+ Targets")
+        C3("@holoscript/holo-vm <br/> Spatial VM")
+        C4("@holoscript/uaal <br/> Cognitive VM")
+        C5("@holoscript/crdt-spatial")
+        C1 --> C2
+        C1 --> C3
+        C4 --> C3
     end
     Core --- Core_Runtime
 
-    subgraph Dev_Tools [Dev Tools]
+    subgraph Dev_Tools [Tooling & Integrations]
         direction TB
-        T1("HoloScript CLI")
-        T2("MCP Server & Orchestrator")
-        T3("LSP / Editor Extensions")
+        T1("@holoscript/cli")
+        T2("@holoscript/mcp-server <br/> 100+ AI Tools")
+        T3("@holoscript/lsp")
+        T4("Connectors <br/> VSCode, GitHub, Railway")
+        T1 --> T2
+        T3 --> T4
     end
     Tooling --- Dev_Tools
 
     subgraph Render_Engine [Spatial Engine]
         direction TB
-        S1("R3F Declarative Renderer")
-        S2("Native Spatial Computation")
-        S3("SNN WebGPU Pipeline")
+        S1("@holoscript/r3f-renderer")
+        S2("@holoscript/snn-webgpu")
+        S3("@holoscript/semantic-2d")
+        S1 --> S2
     end
     Spatial --- Render_Engine
 
-    subgraph Ecosystem_Apps [Ecosystem]
+    subgraph Cloud_Services [Headless Services]
         direction TB
-        A1("HoloScript Studio IDE")
-        A2("Tauri Desktop Client")
-        A3("Infinite Marketplace API")
+        A1("studio-api <br/> API Gateway")
+        A2("absorb-service <br/> Codebase RAG & Webhooks")
+        A3("export-api <br/> Heavy Render Export")
+        A4("uaa2-service <br/> Agent Orchestrator")
+        A1 --> A2
+        A1 --> A3
     end
-    App --- Ecosystem_Apps
+    Services --- Cloud_Services
 ```
 
 ### 3. Three-Format Architecture

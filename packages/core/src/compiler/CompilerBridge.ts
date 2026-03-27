@@ -23,8 +23,7 @@ export interface CompilationResult {
 
 export class CompilerBridge {
   private modules: {
-    tokenize: (source: string) => unknown[];
-    Parser: new (tokens: unknown[]) => { parse(): unknown[] };
+    Parser: new () => { parse(source: string): { success: boolean; ast: unknown[]; errors: Array<{ message: string }> } };
     R3FCompiler: new (options: Record<string, unknown>) => { compile(ast: unknown[]): string };
   } | null = null;
   private initialized = false;
@@ -37,15 +36,13 @@ export class CompilerBridge {
 
     try {
       // Direct imports to avoid circular dependency through index.ts barrel
-      const [tokenizer, parser, compiler] = await Promise.all([
-        import('../HoloScriptParser'),
-        import('../HoloScriptParser'),
-        import('../compiler/R3FCompiler'),
+      const [parserModule, compilerModule] = await Promise.all([
+        import('../parser/HoloScriptPlusParser'),
+        import('./R3FCompiler'),
       ]);
       this.modules = {
-        tokenize: (tokenizer as Record<string, unknown>).tokenize as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['tokenize'],
-        Parser: (parser as Record<string, unknown>).HoloScriptParser as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['Parser'],
-        R3FCompiler: (compiler as Record<string, unknown>).R3FCompiler as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['R3FCompiler'],
+        Parser: (parserModule as Record<string, unknown>).HoloScriptPlusParser as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['Parser'],
+        R3FCompiler: (compilerModule as Record<string, unknown>).R3FCompiler as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['R3FCompiler'],
       };
       this.initialized = true;
     } catch (error: unknown) {
@@ -68,15 +65,15 @@ export class CompilerBridge {
         return { success: false, error: 'Empty HoloScript input' };
       }
 
-      // Tokenize
-      const tokens = this.modules!.tokenize(holoScript);
-      if (tokens.length === 0) {
-        return { success: false, error: 'No valid tokens found' };
+      // Parse
+      const parser = new this.modules!.Parser();
+      const parseResult = parser.parse(holoScript);
+      
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.errors[0]?.message || 'Failed to parse HoloScript' };
       }
 
-      // Parse
-      const parser = new this.modules!.Parser(tokens);
-      const ast = parser.parse() as Array<{ entities?: Array<{ handlers?: unknown[] }> }>;
+      const ast = parseResult.ast as Array<{ entities?: Array<{ handlers?: unknown[] }> }>;
       if (!ast || ast.length === 0) {
         return { success: false, error: 'Failed to parse HoloScript' };
       }
@@ -125,14 +122,15 @@ export class CompilerBridge {
         return { valid: false, errors };
       }
 
-      const tokens = this.modules!.tokenize(holoScript);
-      if (tokens.length === 0) {
-        errors.push('No valid tokens found');
+      const parser = new this.modules!.Parser();
+      const parseResult = parser.parse(holoScript);
+      
+      if (!parseResult.success) {
+        errors.push(parseResult.errors[0]?.message || 'Failed to parse HoloScript');
         return { valid: false, errors };
       }
 
-      const parser = new this.modules!.Parser(tokens);
-      const ast = parser.parse();
+      const ast = parseResult.ast;
       if (!ast || ast.length === 0) {
         errors.push('Failed to parse HoloScript');
         return { valid: false, errors };

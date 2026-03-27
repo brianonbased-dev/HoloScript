@@ -54,6 +54,23 @@ router.post('/scan', async (req: Request, res: Response) => {
       createdAt: new Date(),
     });
 
+    // Build in-degree map for topological intelligence
+    const inDegree: Record<string, number> = {};
+    const filesList = scanResult.files || [];
+    for (const file of filesList) {
+      if (!(file.path in inDegree)) inDegree[file.path] = 0;
+      for (const imp of file.imports || []) {
+        if (imp.resolvedPath) {
+          inDegree[imp.resolvedPath] = (inDegree[imp.resolvedPath] ?? 0) + 1;
+        }
+      }
+    }
+
+    // Leaf-first order: sort files by in-degree ascending (safest to fix first)
+    const leafFirstOrder = filesList
+      .map((f: any) => f.path)
+      .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
+
     // Deduct credits if authenticated
     if ((req as AuthenticatedRequest).authenticated && body.projectId) {
       const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
@@ -79,6 +96,13 @@ router.post('/scan', async (req: Request, res: Response) => {
       stats: scanResult.stats,
       fileCount: scanResult.files?.length ?? 0,
       cost: body.shallow ? 10 : 50,
+      topology: {
+        leafFirstOrder,
+        inDegree,
+        communities: (graph as any).communities ?? {},
+        graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
+        durationMs: scanResult.stats.durationMs ?? 0,
+      }
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {

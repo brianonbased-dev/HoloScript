@@ -770,8 +770,8 @@ export class SimulatedLIFLayer {
     preSpikes: Float64Array | Uint8Array,
     postSpikes: Uint8Array,
     learningRate: number = 0.01,
-    tauPlus: number = 20.0,
-    tauMinus: number = 20.0,
+    _tauPlus: number = 20.0,
+    _tauMinus: number = 20.0,
     aPlus: number = 0.005,
     aMinus: number = 0.005
   ): void {
@@ -1235,7 +1235,7 @@ export class ExperimentRunner {
           // Backward pass
           let currentGrad = grad;
           for (let l = layers.length - 1; l >= 0; l--) {
-            currentGrad = layers[l].backward(currentGrad);
+            currentGrad = layers[l].backward(currentGrad) as unknown as Float64Array<ArrayBuffer>;
           }
         }
 

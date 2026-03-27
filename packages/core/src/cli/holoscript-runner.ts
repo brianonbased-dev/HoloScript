@@ -37,7 +37,7 @@ import type { DaemonConfig, DaemonHost, LLMProvider } from '@holoscript/absorb-s
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 export interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'daemon-status' | 'help';
+  command: 'run' | 'test' | 'compile' | 'absorb' | 'daemon' | 'holodaemon' | 'moltbook-daemon' | 'daemon-status' | 'help';
   json: boolean;
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
@@ -162,7 +162,7 @@ function parseArgs(argv: string[]): CLIOptions {
 
   // First arg is command
   const cmd = args[0];
-  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon') {
+  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon' || cmd === 'moltbook-daemon') {
     opts.command = cmd;
   }
 
@@ -1922,6 +1922,184 @@ function getASTBlackboardValue(ast: unknown, key: string): unknown {
   return result;
 }
 
+// ── Moltbook Daemon Script ─────────────────────────────────────────────────
+// Follows the HoloDaemon pattern but targets the Moltbook social network.
+// Uses moltbook-daemon-actions.ts for BT action handlers.
+
+export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
+  if (!opts.file) {
+    console.error('Error: No composition file specified');
+    console.error('Usage: holoscript moltbook-daemon compositions/moltbook-agent.hsplus [options]');
+    process.exit(1);
+  }
+
+  const filePath = path.resolve(opts.file);
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  // Check for MOLTBOOK_API_KEY
+  if (!process.env.MOLTBOOK_API_KEY) {
+    console.error('[moltbook-daemon] MOLTBOOK_API_KEY environment variable is required');
+    process.exit(1);
+  }
+
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const parseResult = parse(source);
+
+  if (!parseResult.success || !parseResult.ast) {
+    const errors = parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
+    console.error(`[moltbook-daemon] Parse failed: ${errors}`);
+    process.exit(1);
+  }
+
+  const compositionAST = parseResult.ast as Record<string, unknown>;
+  const stateDir = path.resolve(path.dirname(filePath), '.holoscript');
+  if (!fs.existsSync(stateDir)) fs.mkdirSync(stateDir, { recursive: true });
+  const stateFile = path.join(stateDir, 'moltbook-state.json');
+
+  console.log(`[moltbook-daemon] Composition: ${path.basename(filePath)}`);
+  console.log(`[moltbook-daemon] Cycles: ${opts.cycles} | Always-on: ${opts.alwaysOn} | Provider: ${opts.provider}`);
+
+  // Lock file
+  const lockFile = path.join(stateDir, 'moltbook-daemon.lock');
+  const lockData = { pid: process.pid, time: Date.now(), heartbeat: Date.now() };
+
+  if (fs.existsSync(lockFile)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
+      if (Date.now() - existing.heartbeat < 120_000) {
+        console.error(`[moltbook-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`);
+        process.exit(1);
+      }
+      console.log(`[moltbook-daemon] Reclaiming stale lock from PID ${existing.pid}`);
+    } catch { /* corrupt lock, reclaim */ }
+  }
+  fs.writeFileSync(lockFile, JSON.stringify(lockData), 'utf-8');
+
+  const heartbeatTimer = setInterval(() => {
+    try { fs.writeFileSync(lockFile, JSON.stringify({ ...lockData, heartbeat: Date.now() }), 'utf-8'); } catch { /* */ }
+  }, 30_000);
+
+  const cleanup = () => {
+    clearInterval(heartbeatTimer);
+    try { fs.rmSync(lockFile, { force: true }); } catch { /* */ }
+  };
+  process.once('SIGINT', cleanup);
+  process.once('SIGTERM', cleanup);
+
+  // Late-import moltbook dependencies (they're in mcp-server, not core)
+  let createMoltbookDaemonActions: typeof import('@holoscript/mcp-server/moltbook/agent/moltbook-daemon-actions').createMoltbookDaemonActions;
+  let MoltbookClient: typeof import('@holoscript/mcp-server/moltbook/client').MoltbookClient;
+  let LLMContentGenerator: typeof import('@holoscript/mcp-server/moltbook/llm-content-generator').LLMContentGenerator;
+  let adaptProviderManager: typeof import('@holoscript/mcp-server/moltbook/llm-content-generator').adaptProviderManager;
+
+  try {
+    // Dynamic import since mcp-server is a peer dependency
+    const actionsModule = await import('@holoscript/mcp-server/moltbook/agent/moltbook-daemon-actions');
+    const clientModule = await import('@holoscript/mcp-server/moltbook/client');
+    const llmModule = await import('@holoscript/mcp-server/moltbook/llm-content-generator');
+    createMoltbookDaemonActions = actionsModule.createMoltbookDaemonActions;
+    MoltbookClient = clientModule.MoltbookClient;
+    LLMContentGenerator = llmModule.LLMContentGenerator;
+    adaptProviderManager = llmModule.adaptProviderManager;
+  } catch (err) {
+    console.error(`[moltbook-daemon] Failed to import moltbook modules: ${(err as Error).message}`);
+    console.error('[moltbook-daemon] Ensure @holoscript/mcp-server is installed');
+    cleanup();
+    process.exit(1);
+  }
+
+  // Create Moltbook client
+  const client = new MoltbookClient(process.env.MOLTBOOK_API_KEY!);
+
+  // Create LLM provider for content generation
+  const llmProvider = createDaemonLLMProvider(opts);
+  const contentLLM = adaptProviderManager({
+    complete: async (request) => {
+      const result = await llmProvider.chat({
+        system: request.messages.find(m => m.role === 'system')?.content ?? '',
+        prompt: request.messages.find(m => m.role === 'user')?.content ?? '',
+        maxTokens: request.maxTokens ?? 1024,
+      });
+      return { content: result.text };
+    },
+  });
+  const llmGenerator = new LLMContentGenerator(contentLLM);
+
+  // Create action handlers
+  const daemonConfig = {
+    agentName: 'holoscript',
+    stateFile,
+    verbose: opts.debug,
+    maxRepliesPerPost: 2,
+    conceptClusters: [],
+  };
+  const { actions, wireTraitListeners } = createMoltbookDaemonActions(
+    client, llmGenerator, null, daemonConfig,
+  );
+
+  console.log(`[moltbook-daemon] ${Object.keys(actions).length} action handlers registered`);
+
+  // Cycle loop
+  let cycle = 0;
+  while (opts.alwaysOn || cycle < opts.cycles) {
+    console.log(`\n[moltbook-daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} ===`);
+
+    // Fresh AST per cycle
+    const cycleAST = JSON.parse(JSON.stringify(compositionAST));
+    materializeTraits(cycleAST);
+
+    // Create runtime
+    const runtime = createProfileRuntime(cycleAST, {
+      profile: PROFILES_HEADLESS,
+      tickRate: 1,
+      debug: opts.debug,
+      hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
+    });
+
+    // Register actions
+    for (const [name, handler] of Object.entries(actions)) {
+      runtime.registerAction(name, handler);
+    }
+    wireTraitListeners(runtime);
+
+    // Wait for BT completion or timeout
+    const maxWaitMs = (opts.timeout ?? 5) * 60 * 1000;
+    const btResult = await new Promise<{ status: string }>((resolve) => {
+      let resolved = false;
+      const timeout = setTimeout(() => {
+        if (!resolved) { resolved = true; resolve({ status: 'timeout' }); }
+      }, maxWaitMs);
+
+      runtime.on('bt_complete', () => {
+        if (!resolved) { resolved = true; clearTimeout(timeout); resolve({ status: 'complete' }); }
+      });
+
+      runtime.start();
+    });
+
+    runtime.stop();
+    console.log(`[moltbook-daemon] Cycle ${cycle + 1} ${btResult.status}`);
+
+    cycle++;
+
+    // Inter-cycle cooldown: use karma tier to determine wait time
+    if (opts.alwaysOn || cycle < opts.cycles) {
+      const intervalSec = opts.cycleIntervalSec > 0 ? opts.cycleIntervalSec : 120;
+      // Add ±30% jitter
+      const jitter = 1 + (Math.random() * 2 - 1) * 0.3;
+      const waitMs = Math.round(intervalSec * 1000 * jitter);
+      console.log(`[moltbook-daemon] Waiting ${Math.round(waitMs / 1000)}s before next cycle...`);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+
+  cleanup();
+  console.log('[moltbook-daemon] Done');
+}
+
 async function daemonStatus(jsonOutput = false): Promise<void> {
   const repoRoot = findGitRoot(process.cwd());
   const stateDir = path.join(repoRoot, '.holoscript');
@@ -2161,6 +2339,9 @@ async function main(): Promise<void> {
     case 'daemon':
     case 'holodaemon':
       await daemonScript(opts);
+      break;
+    case 'moltbook-daemon':
+      await moltbookDaemonScript(opts);
       break;
     case 'daemon-status':
       await daemonStatus(opts.json);

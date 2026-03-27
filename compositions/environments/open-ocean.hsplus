@@ -1,0 +1,93 @@
+/**
+ * Open Ocean — Environment Template
+ *
+ * Sunset atmosphere + FFT ocean + god rays + bloom.
+ * Fork-ready template for ocean/maritime scenes.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @see HL-RENDER-1: Environment Template Library
+ */
+
+composition "OpenOcean" {
+
+  state {
+    version: "1.0.0"
+    timeOfDay: 0.75
+    windSpeed: 12
+    waveChoppiness: 1.8
+  }
+
+  environment "sky" {
+    @atmosphere {
+      model: bruneton_precomputed
+      sun_direction: [0.2, 0.15, -0.8]
+      turbidity: 3.0
+      rayleigh: 2.0
+      mie_coefficient: 0.01
+      mie_directional: 0.9
+      exposure: 1.2
+    }
+
+    @volumetric_clouds {
+      coverage: 0.3
+      type: cumulus
+      wind: [5.0, 0, 2.0]
+      color: "#ffddaa"
+      opacity: 0.5
+    }
+  }
+
+  environment "water" {
+    @ocean {
+      type: fft_ocean
+      size: [20000, 20000]
+      wind_speed: $state.windSpeed
+      wind_direction: [0.7, 0.3]
+      choppiness: $state.waveChoppiness
+      color: "#002040"
+      roughness: 0.08
+      foam: { threshold: 0.25, color: [0.9, 0.93, 0.97] }
+      caustics: true
+      refraction: true
+      buoyancy: true
+      swells: [
+        { amplitude: 2.5, wavelength: 100, direction: [0.8, 0.2], speed: 9 },
+        { amplitude: 1.8, wavelength: 60, direction: [0.3, 0.7], speed: 7 }
+      ]
+    }
+  }
+
+  environment "lighting" {
+    @god_rays {
+      source: $sky.sun
+      density: 0.9
+      weight: 0.6
+      decay: 0.97
+      samples: 80
+    }
+
+    @global_illumination {
+      method: light_probes
+      ambient_intensity: 0.4
+    }
+  }
+
+  environment "post" {
+    @post_processing {
+      steps: [
+        { effect: bloom, threshold: 0.7, intensity: 0.5, radius: 0.4 },
+        { effect: tone_mapping, method: aces_filmic, exposure: 1.1 },
+        { effect: color_grading, warmth: 0.3 },
+        { effect: fxaa },
+        { effect: vignette, offset: 0.4, darkness: 0.4 }
+      ]
+      quality_tier: {
+        ultra: { steps: all }
+        high: { skip: [] }
+        medium: { skip: [color_grading] }
+        low: { steps: [tone_mapping, fxaa] }
+      }
+    }
+  }
+}

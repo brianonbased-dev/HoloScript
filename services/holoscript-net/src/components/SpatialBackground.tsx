@@ -73,19 +73,18 @@ function SwarmParticles() {
     <InstancedRigidBodies
       positions={instances.map(i => i.position as [number, number, number])}
       rotations={instances.map(i => i.rotation as [number, number, number])}
-      colliders="hull"
+      colliders="ball"
     >
       <instancedMesh args={[undefined, undefined, COUNT]} castShadow receiveShadow>
         <octahedronGeometry args={[0.3, 0]} />
-        <meshPhysicalMaterial 
+        <meshStandardMaterial 
           color="#aa00ff" 
           emissive="#00ffff"
-          emissiveIntensity={0.15}
-          roughness={0.1}
-          metalness={0.1}
-          transmission={0.9}
-          thickness={0.5}
-          ior={1.5}
+          emissiveIntensity={0.5}
+          roughness={0.2}
+          metalness={0.8}
+          transparent
+          opacity={0.8}
         />
       </instancedMesh>
     </InstancedRigidBodies>

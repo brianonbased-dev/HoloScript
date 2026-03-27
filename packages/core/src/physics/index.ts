@@ -173,3 +173,33 @@ export {
   type PIDControllerState,
   type PIDControllerTraitConfig,
 } from './PIDController';
+
+// Physics Activation System (Sleep/Wake for cloth/hair simulation)
+export {
+  // Enums
+  PhysicsActivationState,
+  ActivationTriggerType,
+  WindZoneType,
+  // Classes
+  PhysicsActivationController,
+  VelocitySmoother,
+  WindZoneManager,
+  // Functions
+  evaluateIntensityCurve,
+  computeSelfWind,
+  // Constants
+  DEFAULT_INTENSITY_CURVE,
+  DEFAULT_ACTIVATION_CONFIG,
+  DEFAULT_LOCOMOTION_CONFIG,
+  // Types
+  type ThresholdTriggerConfig,
+  type CollisionTriggerConfig,
+  type AnimationTriggerConfig,
+  type ActivationTriggers,
+  type IntensityCurvePoint,
+  type LocomotionConfig,
+  type GustConfig,
+  type WindZone,
+  type PhysicsActivationConfig,
+  type ActivationUpdateInput,
+} from './PhysicsActivation';

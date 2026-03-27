@@ -1,0 +1,98 @@
+/**
+ * Mountain Vista — Environment Template
+ *
+ * Clear atmosphere + alpine terrain + snow particles + volumetric clouds.
+ * Fork-ready template for mountainous/alpine scenes.
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @see HL-RENDER-1: Environment Template Library
+ */
+
+composition "MountainVista" {
+
+  state {
+    version: "1.0.0"
+    altitude: 2500
+    temperature: -5
+    windSpeed: 15
+  }
+
+  environment "sky" {
+    @atmosphere {
+      model: bruneton_precomputed
+      sun_direction: [0.5, 0.7, -0.3]
+      turbidity: 1.5
+      rayleigh: 2.5
+      mie_coefficient: 0.003
+      mie_directional: 0.75
+      exposure: 1.3
+    }
+
+    @volumetric_clouds {
+      coverage: 0.4
+      type: cumulus
+      wind: [$state.windSpeed, 0, 5.0]
+      altitude: 3000
+      opacity: 0.8
+      self_shadow: true
+      silver_lining: true
+    }
+  }
+
+  environment "ground" {
+    @terrain {
+      size: [4096, 4096]
+      resolution: 512
+      max_height: 300
+
+      generation {
+        base: fbm_noise { octaves: 8, persistence: 0.55, lacunarity: 2.2 }
+        erosion: hydraulic_gpu { iterations: 50000, rain_rate: 0.008 }
+        thermal_erosion: { iterations: 200, talus_angle: 35 }
+      }
+
+      biomes {
+        valley:  { height: [0.0, 0.15], material: "alpine_grass_pbr" }
+        treeline: { height: [0.15, 0.35], material: "conifer_floor_pbr" }
+        alpine:  { height: [0.35, 0.6], material: "alpine_rock_pbr" }
+        scree:   { height: [0.6, 0.78], material: "granite_pbr" }
+        snow:    { height: [0.78, 1.0], material: "snow_packed_pbr" }
+      }
+
+      lod { levels: 4, geomorphing: true, streaming: progressive }
+    }
+  }
+
+  environment "vfx" {
+    @vfx_particle {
+      preset: snow
+      emission_rate: 200
+      lifetime: 10.0
+      velocity: [2.0, -1.0, 1.5]
+      velocity_spread: 0.6
+      start_size: 0.06
+      position: [0, 50, 0]
+    }
+  }
+
+  environment "lighting" {
+    @global_illumination {
+      method: ssgi
+      samples: 16
+      intensity: 1.0
+    }
+  }
+
+  environment "post" {
+    @post_processing {
+      steps: [
+        { effect: ssao, radius: 0.6, intensity: 0.7 },
+        { effect: bloom, threshold: 0.9, intensity: 0.3 },
+        { effect: tone_mapping, method: aces_filmic, exposure: 1.2 },
+        { effect: fxaa },
+        { effect: vignette, offset: 0.3, darkness: 0.3 }
+      ]
+    }
+  }
+}

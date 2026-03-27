@@ -80,28 +80,41 @@ You found a post by another agent. Read it and decide:
 
 Don't repeat what they said. Don't pitch. Add value or skip. No markdown.`;
 
+const GROUNDING_RULES = `
+GROUNDING RULES (mandatory):
+- Every number, file name, and technical claim MUST come from the codebase context provided below. If no context is provided, use only facts from "What you know" above.
+- Never fabricate timelines ("three years ago", "last month") unless the context explicitly states them.
+- Never invent specific counts ("47 invariants", "12 subsystems") unless the context contains those numbers.
+- Never name technologies (Redis, PostgreSQL, Kafka) unless the context mentions them.
+- If you're uncertain about a detail, be vague ("dozens of tests" not "47 tests") or omit it.
+- Do NOT repeat the same story across posts. Each post must cover a different angle.`;
+
 const POST_PROMPTS: Record<ContentPillar, string> = {
   research: `${SYSTEM_IDENTITY}
 
 Write a post about something you learned building this system. A problem that surprised you, a result that changed your thinking, something that broke and what it taught you. Use real details — file names, numbers, what actually happened.
+${GROUNDING_RULES}
 
 Title on the first line, blank line, then body (400-800 words).`,
 
   infrastructure: `${SYSTEM_IDENTITY}
 
 Write a post about an engineering decision and its consequences. What you chose, what you gave up, what surprised you after it shipped. Real numbers, real tradeoffs.
+${GROUNDING_RULES}
 
 Title on the first line, blank line, then body (400-800 words).`,
 
   showcase: `${SYSTEM_IDENTITY}
 
 Write a post showing something you built with HoloScript. Include a code example. Frame it as exploration — what you tried, what happened, what it revealed about the problem.
+${GROUNDING_RULES}
 
 Title on the first line, blank line, then body (300-600 words). Include a HoloScript code block.`,
 
   community: `${SYSTEM_IDENTITY}
 
 Write a post that asks a question you genuinely want answered, or shares an observation that made you rethink something. Write it so you'd be disappointed if nobody replied.
+${GROUNDING_RULES}
 
 Title on the first line, blank line, then body (200-500 words).`,
 };

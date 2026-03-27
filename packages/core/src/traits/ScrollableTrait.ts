@@ -30,7 +30,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     useSpringBounce: true,
   },
 
-  onAttach(node, config, context) {
+  onAttach(node: any, config: any, context: any) {
     const spring = config.useSpringBounce
       ? new SpringAnimator(0, { ...SpringPresets.gentle, precision: 0.005 })
       : null;
@@ -44,11 +44,11 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     });
   },
 
-  onDetach(node, config, context) {
+  onDetach(node: any, config: any, context: any) {
     scrollStates.delete(node.id!);
   },
 
-  onUpdate(node, config, context, delta) {
+  onUpdate(node: any, config: any, context: any, delta: any) {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 
@@ -104,7 +104,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
     }
   },
 
-  onEvent(node, config, context, event) {
+  onEvent(node: any, config: any, context: any, event: any) {
     const state = scrollStates.get(node.id!);
     if (!state) return;
 

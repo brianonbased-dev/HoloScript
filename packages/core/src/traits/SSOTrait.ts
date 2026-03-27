@@ -448,8 +448,8 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
 
       // Extract user info from callback
       const externalUserId = (event as Record<string, unknown>).externalUserId as string;
-      const attributes = ((event as Record<string, unknown>).attributes as Record<string, string>) || {};
-      const internalUserId = (event as Record<string, unknown>).internalUserId || externalUserId;
+      const attributes = ((event as Record<string, unknown>).attributes as Record<string, string>) || ({} as Record<string, string>);
+      const internalUserId = ((event as Record<string, unknown>).internalUserId as string) || externalUserId;
 
       // Map roles from IdP
       const mappedRoles: string[] = [];
@@ -534,10 +534,10 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
         lastActivityAt: now.toISOString(),
         attributes,
         roles: mappedRoles,
-        tokenData: (event as Record<string, unknown>).tokenData,
-        samlData: (event as Record<string, unknown>).samlData,
-        ipAddress: (event as Record<string, unknown>).ipAddress,
-        userAgent: (event as Record<string, unknown>).userAgent,
+        tokenData: (event as Record<string, unknown>).tokenData as any,
+        samlData: (event as Record<string, unknown>).samlData as any,
+        ipAddress: (event as Record<string, unknown>).ipAddress as string,
+        userAgent: (event as Record<string, unknown>).userAgent as string,
       };
 
       state.sessions.set(sessionId, session);

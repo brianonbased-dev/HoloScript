@@ -1,7 +1,4 @@
 import { NextResponse } from 'next/server';
-import { generateMockScene, refineMockScene } from '@/lib/mock-generator';
-
-// ─── Starter Templates metadata (matching mock-generator template IDs) ─────────
 
 const STARTER_TEMPLATES = [
   {
@@ -46,43 +43,12 @@ export function GET() {
   return NextResponse.json({ templates: STARTER_TEMPLATES });
 }
 
-const BRITTNEY_SERVICE_URL = process.env.BRITTNEY_SERVICE_URL || '';
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
-
-const SYSTEM_PROMPT = `You are a HoloScript expert. Generate valid HoloScript code from user descriptions.
-
-HoloScript uses composition syntax for 3D scenes:
-
-composition "Scene Name" {
-  environment {
-    skybox: "sky_day"
-    ambient: 0.5
-  }
-
-  object "ObjectName" @trait1 @trait2 {
-    geometry: "sphere"
-    position: [0, 1, -3]
-    color: "#ff6600"
-    material: "glass"
-    scale: [1, 1, 1]
-  }
-}
-
-GEOMETRIES: sphere, cube, cylinder, cone, plane, torus, capsule, box, pyramid
-MATERIALS: glass, metal, chrome, gold, copper, crystal, wood, fabric, stone, marble, hologram, neon, emissive, water, shiny, velvet, matte, wireframe
-TRAITS: @grabbable, @throwable, @hoverable, @clickable, @collidable, @animated, @glowing, @particle_emitter, @physics, @networked, @spatial_audio
-
-RULES:
-1. Use descriptive quoted object names
-2. Position objects logically in 3D space (y is up, negative z faces camera)
-3. Include environment block for skybox/lighting
-4. Output ONLY valid HoloScript code, no markdown fences, no explanations
-5. Use negative z positions so objects are visible from default camera`;
 
 export async function POST(request: Request) {
   try {
-    const { prompt, existingCode, model } = await request.json();
+    const body = await request.json();
+    const { prompt, existingCode, model } = body;
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json(
@@ -91,121 +57,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build the full prompt
     let fullPrompt = prompt;
     if (existingCode) {
       fullPrompt = `Here is the current HoloScript scene:\n\n${existingCode}\n\nModify it according to this instruction: ${prompt}\n\nReturn the COMPLETE updated HoloScript code.`;
     }
 
-    // Try Brittney Cloud Service first (GPU inference)
-    const brittneyResult = await tryBrittneyCloud(fullPrompt);
-    if (brittneyResult) return NextResponse.json(brittneyResult);
+    const payload = {
+      prompt: fullPrompt,
+      context: 'holoscript',
+      model
+    };
 
-    // Try LLM service next
-    const llmResult = await tryLLMService(fullPrompt);
-    if (llmResult) return NextResponse.json(llmResult);
+    const res = await fetch(`${LLM_SERVICE_URL}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BRITTNEY_API_KEY || 'anonymous'}`
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(60_000)
+    });
 
-    // Fall back to direct Ollama
-    const ollamaResult = await tryOllama(fullPrompt, model);
-    if (ollamaResult) return NextResponse.json(ollamaResult);
+    if (!res.ok) {
+      const errorText = await res.text();
+      return NextResponse.json({ success: false, code: '', error: errorText }, { status: res.status });
+    }
 
-    // Final fallback: mock generator (always works, zero dependencies)
-    const mockCode = existingCode
-      ? refineMockScene(existingCode, prompt)
-      : generateMockScene(prompt);
-    return NextResponse.json({ success: true, code: mockCode, source: 'mock' });
+    const data = await res.json();
+    return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ success: false, code: '', error: String(err) }, { status: 500 });
   }
-}
-
-async function tryBrittneyCloud(prompt: string) {
-  if (!BRITTNEY_SERVICE_URL) return null;
-  try {
-    const res = await fetch(`${BRITTNEY_SERVICE_URL}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, context: 'holoscript' }),
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.success && data.code) {
-      return { success: true, code: data.code, source: 'brittney-cloud' };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function tryLLMService(prompt: string) {
-  try {
-    const res = await fetch(`${LLM_SERVICE_URL}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, context: 'holoscript' }),
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.success && data.code) {
-      return { success: true, code: data.code };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function tryOllama(prompt: string, model?: string) {
-  try {
-    const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model || 'brittney-qwen-v23:latest',
-        prompt: `${SYSTEM_PROMPT}\n\nUser request: ${prompt}`,
-        stream: false,
-        options: { temperature: 0.7, num_predict: 2048 },
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const code = extractHoloScript(data.response || '');
-    if (code) {
-      return { success: true, code };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function extractHoloScript(text: string): string {
-  // Remove markdown code fences if present
-  let cleaned = text.replace(/```(?:holoscript|holo|hs)?\n?/g, '').replace(/```\n?/g, '');
-
-  // Trim whitespace
-  cleaned = cleaned.trim();
-
-  // If it starts with composition, it's likely valid
-  if (cleaned.startsWith('composition')) {
-    return cleaned;
-  }
-
-  // Try to find a composition block
-  const match = cleaned.match(/composition\s+".+?"\s*\{[\s\S]*\}/);
-  if (match) {
-    return match[0];
-  }
-
-  // If it starts with object/orb, wrap in a composition
-  if (cleaned.match(/^(object|orb)\s+"/)) {
-    return `composition "Generated Scene" {\n  environment {\n    skybox: "sky_day"\n    ambient: 0.5\n  }\n\n  ${cleaned}\n}`;
-  }
-
-  // Return as-is if non-empty
-  return cleaned || '';
 }

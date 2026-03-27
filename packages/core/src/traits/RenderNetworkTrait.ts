@@ -54,7 +54,7 @@ import type {
   RenderNetworkState,
 } from './RenderNetworkTypes';
 
-interface RenderNetworkConfig {
+export interface RenderNetworkConfig {
   /** Render Network API key */
   api_key: string;
   /** Wallet address for RNDR tokens */
@@ -820,14 +820,4 @@ async function uploadSceneAssets(
 // EXPORTS
 // =============================================================================
 
-export {
-  RenderNetworkConfig,
-  RenderNetworkState,
-  RenderJob,
-  RenderOutput,
-  RenderCredits,
-  RenderQuality,
-  RenderEngine,
-  JobPriority,
-  JobStatus,
-};
+// End of RenderNetworkTrait.ts

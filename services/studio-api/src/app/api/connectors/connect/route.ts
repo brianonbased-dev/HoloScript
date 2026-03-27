@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
 
         // Dynamically import to avoid bundling issues
         // @ts-ignore
-        const { UpstashConnector } = await import('@holoscript/connector-upstash');
+        const { UpstashConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-upstash');
         const upstash = new UpstashConnector();
         await upstash.connect();
 
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
         }
 
         // @ts-ignore
-        const { AppStoreConnector } = await import('@holoscript/connector-appstore');
+        const { AppStoreConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-appstore');
         const appstore = new AppStoreConnector();
         await appstore.connect();
 
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
         }
 
         // @ts-ignore
-        const { VSCodeConnector } = await import('@holoscript/connector-vscode');
+        const { VSCodeConnector } = await import(/* webpackIgnore: true */ '@holoscript/connector-vscode');
         const vscode = new VSCodeConnector();
         await vscode.connect();
 

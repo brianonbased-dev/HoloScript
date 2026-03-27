@@ -38,6 +38,38 @@ export type { CloudRendererProps } from './components/CloudRenderer';
 export { GodRaysEffect } from './components/GodRaysEffect';
 export type { GodRaysEffectProps } from './components/GodRaysEffect';
 
+// Environment Rendering Components (Phase R1)
+export { PostProcessingRenderer } from './components/PostProcessingRenderer';
+export type { PostProcessingRendererProps, PostProcessStep, PostProcessEffect, QualityTier } from './components/PostProcessingRenderer';
+export { AtmosphereRenderer } from './components/AtmosphereRenderer';
+export type { AtmosphereRendererProps, SkyModel } from './components/AtmosphereRenderer';
+export { OceanRenderer } from './components/OceanRenderer';
+export type { OceanRendererProps, OceanType, GerstnerSwell } from './components/OceanRenderer';
+export { TerrainRenderer } from './components/TerrainRenderer';
+export type { TerrainRendererProps, BiomeConfig } from './components/TerrainRenderer';
+export { GIRenderer } from './components/GIRenderer';
+export type { GIRendererProps, GIMethod, GIQualityTier, LightProbeConfig } from './components/GIRenderer';
+
+// Simulation Visualization Components (Phase R2)
+export { ScalarFieldOverlay } from './components/ScalarFieldOverlay';
+export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarFieldOverlay';
+
+// VFX & Audio Components (Phase R3)
+export { VFXParticleRenderer } from './components/VFXParticleRenderer';
+export type { VFXParticleRendererProps, VFXPreset, EmitterShape } from './components/VFXParticleRenderer';
+export { SpatialAudioRenderer } from './components/SpatialAudioRenderer';
+export type { SpatialAudioRendererProps, AudioSourceType, ReverbZone } from './components/SpatialAudioRenderer';
+
+// Character Rendering Components (Phase R4)
+export { ShapePoolRenderer } from './components/ShapePoolRenderer';
+export type { ShapePoolRendererProps, ShapeInstance, PoolGeometryType } from './components/ShapePoolRenderer';
+export { SkinSSRenderer } from './components/SkinSSRenderer';
+export type { SkinSSRendererProps } from './components/SkinSSRenderer';
+export { EyeRenderer } from './components/EyeRenderer';
+export type { EyeRendererProps } from './components/EyeRenderer';
+export { HairRenderer } from './components/HairRenderer';
+export type { HairRendererProps, HairMode, HairGuide } from './components/HairRenderer';
+
 // Utilities
 export {
   getGeometry,

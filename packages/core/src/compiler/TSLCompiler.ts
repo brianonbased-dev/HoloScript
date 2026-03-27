@@ -615,7 +615,7 @@ export class TSLCompiler extends CompilerBase {
       domainBlocks,
       {
         material: (block) => {
-          const mat = compileMaterialBlock(block);
+          const mat = compileMaterialBlock(block) as any;
           const safeName = this.sanitizeName(mat.name);
           const lines: string[] = [
             `// TSL Domain Block Material: "${mat.name}"`,
@@ -679,7 +679,7 @@ export class TSLCompiler extends CompilerBase {
         },
 
         physics: (block) => {
-          const phys = compilePhysicsBlock(block);
+          const phys = compilePhysicsBlock(block) as any;
           const safeName = this.sanitizeName(phys.name || 'physics');
           const lines: string[] = [
             `// TSL Domain Block Physics Compute: "${phys.name}"`,
@@ -748,7 +748,7 @@ export class TSLCompiler extends CompilerBase {
         },
 
         vfx: (block) => {
-          const ps = compileParticleBlock(block);
+          const ps = compileParticleBlock(block) as any;
           const safeName = this.sanitizeName(ps.name);
           const lines: string[] = [
             `// TSL Domain Block Particle Compute: "${ps.name}"`,
@@ -813,7 +813,7 @@ export class TSLCompiler extends CompilerBase {
         },
 
         postfx: (block) => {
-          const pp = compilePostProcessingBlock(block);
+          const pp = compilePostProcessingBlock(block) as any;
           const safeName = this.sanitizeName(pp.name);
           const lines: string[] = [
             `// TSL Domain Block Post-Processing: "${pp.name}"`,
