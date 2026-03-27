@@ -111,7 +111,7 @@ jobs:
           files: packages/video-tutorials/out/*.mp4
           tag_name: ${{ github.event.release.tag_name || github.ref_name }}
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Summary ─────────────────────────────────────────────────────────────
       - name: Write job summary
