@@ -362,6 +362,29 @@ export const moltbookAgentTools: Tool[] = [
   },
 ];
 
+// --- RAG Client for Absorb-Service ---
+class AbsorbRAGClient {
+  private readonly baseUrl = process.env.ABSORB_SERVICE_INTERNAL_URL || 
+                             process.env.ABSORB_SERVICE_URL || 
+                             'http://localhost:3005';
+
+  async queryWithLLM(question: string) {
+    const res = await fetch(`${this.baseUrl}/api/absorb/query`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'authorization': `Bearer ${process.env.API_KEY_SECRET || ''}`
+      },
+      body: JSON.stringify({ query: question })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Absorb RAG Graph query failed: ${res.statusText}`);
+    }
+    return await res.json();
+  }
+}
+
 // --- Heartbeat singleton (shared with http-server lifecycle) ---
 
 let heartbeatInstance: MoltbookHeartbeat | null = null;
@@ -377,7 +400,8 @@ export function getOrCreateHeartbeat(): MoltbookHeartbeat {
       const { createProviderManager } = require('@holoscript/llm-provider');
       const providerManager = createProviderManager();
       const llmAdapter = adaptProviderManager(providerManager);
-      llmGenerator = new LLMContentGenerator(llmAdapter);
+      const ragClient = new AbsorbRAGClient();
+      llmGenerator = new LLMContentGenerator(llmAdapter, ragClient);
 
       // Wire L1/L2/L3 challenge escalation pipeline with same LLM provider
       client.setChallengePipeline(new ChallengeEscalationPipeline(llmAdapter));
