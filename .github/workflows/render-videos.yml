@@ -30,10 +30,6 @@ on:
         default: 'false'
         type: boolean
 
-  schedule:
-    # Run every Sunday at 03:00 UTC to keep videos current
-    - cron: '0 3 * * 0'
-
 jobs:
   render:
     name: Render Tutorial Videos
@@ -65,8 +61,6 @@ jobs:
       # ── pnpm ────────────────────────────────────────────────────────────────
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
-        with:
-          version: 8
 
       # ── Node.js ─────────────────────────────────────────────────────────────
       - name: Setup Node.js
@@ -117,7 +111,7 @@ jobs:
           files: packages/video-tutorials/out/*.mp4
           tag_name: ${{ github.event.release.tag_name || github.ref_name }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       # ── Summary ─────────────────────────────────────────────────────────────
       - name: Write job summary
