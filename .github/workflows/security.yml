@@ -127,3 +127,53 @@ jobs:
           name: npm-audit-report
           path: npm-audit.json
           retention-days: 30
+
+  aggregate-results:
+    name: Aggregate Vulnerability Metrics
+    runs-on: ubuntu-latest
+    needs: [snyk-scan, codeql-analysis, npm-audit]
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    steps:
+      - name: Download all security artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: security-artifacts/
+
+      - name: Analyze Scans and Comment Error Logs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let summary = '## 🛡️ Consolidated Security Report\n\n';
+            summary += 'The pipeline has aggregated the following vulnerability metrics:\n\n';
+            
+            try {
+              if (fs.existsSync('security-artifacts/npm-audit-report/npm-audit.json')) {
+                const auditData = JSON.parse(fs.readFileSync('security-artifacts/npm-audit-report/npm-audit.json', 'utf8'));
+                const vulns = auditData.metadata?.vulnerabilities || {};
+                summary += '### NPM Audit\n';
+                summary += `- 🟡 Moderate: ${vulns.moderate || 0}\n`;
+                summary += `- 🟠 High: ${vulns.high || 0}\n`;
+                summary += `- 🔴 Critical: ${vulns.critical || 0}\n\n`;
+              }
+            } catch(e) { summary += '*(NPM Audit missing or failed)*\n\n'; }
+
+            try {
+              if (fs.existsSync('security-artifacts/snyk-security-report/snyk-report.json')) {
+                const snykData = JSON.parse(fs.readFileSync('security-artifacts/snyk-security-report/snyk-report.json', 'utf8'));
+                // Snyk outputs an array of projects or a single project
+                const vulnCount = Array.isArray(snykData) ? snykData.reduce((acc, p) => acc + (p.vulnerabilities?.length || 0), 0) : (snykData.vulnerabilities?.length || 0);
+                summary += '### Snyk Scanner\n';
+                summary += `- 🔒 ${vulnCount === 0 ? 'Zero vulnerabilities found!' : `${vulnCount} vulnerabilities found.`}\n\n`;
+              }
+            } catch(e) { summary += '*(Snyk check missing or failed)*\n\n'; }
+
+            summary += '> **Note:** CodeQL dynamic code scanning results are available directly in your GitHub Security tab.\n';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: summary
+            });

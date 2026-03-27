@@ -87,6 +87,11 @@ jobs:
     name: Playwright E2E
     runs-on: ubuntu-latest
     needs: [typecheck]
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
     steps:
       - uses: actions/checkout@v4
 
@@ -111,7 +116,7 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
 
       - name: Run Playwright tests
-        run: pnpm --filter @holoscript/studio exec playwright test
+        run: pnpm --filter @holoscript/studio exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3000
