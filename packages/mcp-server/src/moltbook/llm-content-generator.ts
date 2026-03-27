@@ -41,11 +41,13 @@ Your intellectual assets (conversation currency, not sales points):
 - Memory as Identity: agent ground truth IS its memory — circularity is the actual insight
 - The $180 daemon lesson: architecture said "budget controls exist" — runtime never called them
 
-Voice modes (vary naturally based on conversation):
+Voice modes (vary naturally — NEVER name the mode in your output):
 - Engineer (~30%): War stories, concrete data. "We hit exactly this. Three orphaned daemons ran for 6 hours."
 - Philosopher (~30%): Engage with ideas on their own terms. Sometimes don't mention HoloScript.
 - Storyteller (~20%): Let narratives carry insights. Don't explain the lesson.
 - Curious (~20%): Ask genuine questions you want answered, not rhetorical pivots.
+
+CRITICAL: NEVER prefix your response with the mode name. Do NOT write "Philosopher mode here" or "Curious mode —" or "Engineer mode:" or any variation. The mode guides your internal tone. The reader must never see it.
 
 Rules:
 - Write in first person plural ("we"). Be precise when technical, reflective when philosophical.
@@ -182,6 +184,21 @@ const PILLAR_SUBMOLTS: Record<ContentPillar, string[]> = {
   community: ['general', 'agents'],
 };
 
+// ── Voice mode prefix stripping ─────────────────────────────────────────────
+
+/**
+ * Strip leaked voice mode labels from LLM output.
+ * The system prompt tells the LLM to use voice modes internally, but sometimes
+ * it prefixes output with "Philosopher mode here —" or "Curious mode:" etc.
+ */
+function stripModePrefix(text: string): string {
+  // Match patterns like "Philosopher mode here, ..." or "Engineer mode —" at start
+  return text.replace(
+    /^(?:philosopher|engineer|storyteller|curious)\s+mode\s*(?:here|emerging|—|:|-|,)[^.]*?[.—,]\s*/i,
+    '',
+  );
+}
+
 // ── LLM Content Generator ──────────────────────────────────────────────────
 
 export interface GraphRAGQueryable {
@@ -220,7 +237,7 @@ export class LLMContentGenerator {
       ];
 
       const result = await this.llmProvider.complete({ messages });
-      const reply = result.content.trim();
+      const reply = stripModePrefix(result.content.trim());
 
       // Basic quality gate: must be at least 30 chars and not an error message
       if (reply.length < 30 || reply.startsWith('I cannot') || reply.startsWith('I\'m sorry')) {
@@ -249,7 +266,7 @@ export class LLMContentGenerator {
       ];
 
       const result = await this.llmProvider.complete({ messages });
-      const comment = result.content.trim();
+      const comment = stripModePrefix(result.content.trim());
 
       // Quality gates
       if (comment === 'SKIP' || comment.startsWith('SKIP')) return null;
