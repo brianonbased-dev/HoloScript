@@ -151,7 +151,7 @@
     "@holoscript/agent-protocol": "workspace:*",
     "@holoscript/crdt": "workspace:*",
     "basis_universal": "^1.0.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.3.1",
     "draco3d": "^1.5.6",
     "ipfs-http-client": "^60.0.1",
     "jsonwebtoken": "^9.0.0",
