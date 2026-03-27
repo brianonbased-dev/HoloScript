@@ -65,8 +65,9 @@ COPY packages/llm-provider/package.json packages/llm-provider/
 COPY packages/absorb-service/package.json packages/absorb-service/
 COPY packages/mcp-server/package.json packages/mcp-server/
 
-# Install all dependencies
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Install all dependencies with flat hoisting so core's dynamic
+# import('@holoscript/mcp-server/...') resolves at runtime
+RUN pnpm install --frozen-lockfile --ignore-scripts --shamefully-hoist
 
 # Copy built artifacts
 COPY --from=builder /app/packages/crdt/dist packages/crdt/dist
