@@ -86,6 +86,9 @@ RUN mkdir -p /app/compositions/.holoscript && \
 
 # Environment
 ENV NODE_ENV=production
+# Allow core's dynamic import('@holoscript/mcp-server/...') to resolve
+# via root workspace node_modules (pnpm strict mode blocks it otherwise)
+ENV NODE_PATH=/app/node_modules
 
 # Run as non-root
 USER nodejs
