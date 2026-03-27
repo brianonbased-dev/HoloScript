@@ -16,6 +16,7 @@ import { getMoltbookClient, hasMoltbookKey } from './client';
 import { MoltbookHeartbeat } from './heartbeat';
 import { ContentPipeline } from './content-pipeline';
 import { LLMContentGenerator, adaptProviderManager } from './llm-content-generator';
+import { ChallengeEscalationPipeline } from './challenge-solver';
 import { MoltbookAgentManager } from './agent-manager';
 import { EngagementTracker } from './engagement-tracker';
 import { ExperimentTracker } from './experiment-tracker';
@@ -128,14 +129,19 @@ export const moltbookTools: Tool[] = [
   {
     name: 'moltbook_heartbeat',
     description:
-      'Get the Moltbook heartbeat daemon status (karma, comment count, rate limits) or trigger a manual engagement cycle.',
+      'Control the Moltbook heartbeat daemon: start, stop, get status, or trigger a manual cycle. Stop the daemon before doing manual engagement from the IDE.',
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['status', 'start', 'stop', 'trigger'],
+          description:
+            'Action to perform. "status" returns current state (default). "start" starts the daemon. "stop" stops it (use before manual engagement). "trigger" runs one cycle without starting the interval.',
+        },
         trigger: {
           type: 'boolean',
-          description:
-            'Set to true to trigger an immediate heartbeat cycle instead of just returning status',
+          description: 'DEPRECATED: Use action="trigger" instead. Kept for backward compatibility.',
         },
       },
     },
@@ -365,18 +371,19 @@ export function getOrCreateHeartbeat(): MoltbookHeartbeat {
     const client = getMoltbookClient();
     const pipeline = new ContentPipeline();
 
-    // Try to create LLM-powered content generator
+    // Try to create LLM-powered content generator + challenge solver pipeline
     let llmGenerator: LLMContentGenerator | undefined;
     try {
-      // Dynamic import to avoid hard dependency on llm-provider at load time
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { createProviderManager } = require('@holoscript/llm-provider');
       const providerManager = createProviderManager();
       const llmAdapter = adaptProviderManager(providerManager);
       llmGenerator = new LLMContentGenerator(llmAdapter);
-      console.log('[moltbook] LLM-powered content generation enabled');
+
+      // Wire L1/L2/L3 challenge escalation pipeline with same LLM provider
+      client.setChallengePipeline(new ChallengeEscalationPipeline(llmAdapter));
+      console.log('[moltbook] LLM-powered content generation + challenge escalation enabled');
     } catch {
-      console.log('[moltbook] LLM provider not available, using static templates');
+      console.log('[moltbook] LLM provider not available, using static templates + regex-only challenges');
     }
 
     heartbeatInstance = new MoltbookHeartbeat(client, pipeline, llmGenerator);
@@ -564,21 +571,34 @@ async function handleEngage(args: Record<string, unknown>) {
 
 async function handleHeartbeat(args: Record<string, unknown>) {
   const heartbeat = getOrCreateHeartbeat();
-  const trigger = args.trigger as boolean;
+  // Support both new action param and deprecated trigger param
+  const action = (args.action as string) || (args.trigger ? 'trigger' : 'status');
 
-  if (trigger) {
-    const result = await heartbeat.triggerNow();
-    return {
-      triggered: true,
-      result,
-      state: heartbeat.getState(),
-    };
+  switch (action) {
+    case 'start':
+      if (heartbeat.isRunning()) {
+        return { running: true, message: 'Daemon already running', state: heartbeat.getState() };
+      }
+      heartbeat.start();
+      return { running: true, message: 'Daemon started', state: heartbeat.getState() };
+
+    case 'stop':
+      if (!heartbeat.isRunning()) {
+        return { running: false, message: 'Daemon already stopped', state: heartbeat.getState() };
+      }
+      heartbeat.stop();
+      return { running: false, message: 'Daemon stopped — safe to engage manually', state: heartbeat.getState() };
+
+    case 'trigger': {
+      const wasRunning = heartbeat.isRunning();
+      const result = await heartbeat.triggerNow();
+      return { triggered: true, daemonRunning: wasRunning, result, state: heartbeat.getState() };
+    }
+
+    case 'status':
+    default:
+      return { running: heartbeat.isRunning(), state: heartbeat.getState() };
   }
-
-  return {
-    running: heartbeat.isRunning(),
-    state: heartbeat.getState(),
-  };
 }
 
 async function handleCreateSubmolt(args: Record<string, unknown>) {

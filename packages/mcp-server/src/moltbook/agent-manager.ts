@@ -16,6 +16,7 @@ import { LLMContentGenerator } from './llm-content-generator';
 import { MoltbookClient } from './client';
 import { MoltbookHeartbeat } from './heartbeat';
 import { ContentPipeline } from './content-pipeline';
+import { ChallengeEscalationPipeline } from './challenge-solver';
 import { MoltbookCreditScorer } from './credit-scorer';
 import type { CreditBreakdown } from './credit-scorer';
 import { AgentPersistence } from './agent-persistence';
@@ -105,9 +106,13 @@ export class MoltbookAgentManager {
         const postHistory = heartbeatState?.postHistory ?? [];
 
         const client = new MoltbookClient(agent.moltbookApiKey);
-        const generator = this.llmProviderFactory
-          ? new LLMContentGenerator(this.llmProviderFactory())
+        const llmProvider = this.llmProviderFactory ? this.llmProviderFactory() : null;
+        const generator = llmProvider
+          ? new LLMContentGenerator(llmProvider)
           : new LLMContentGenerator({ complete: async () => ({ content: '' }) });
+        if (llmProvider) {
+          client.setChallengePipeline(new ChallengeEscalationPipeline(llmProvider));
+        }
         const pipeline = new ContentPipeline(postHistory);
         const heartbeat = new MoltbookHeartbeat(client, pipeline, generator, agent.agentName);
 
@@ -180,7 +185,9 @@ export class MoltbookAgentManager {
     // Create LLM generator (without GraphRAG for now — can be connected later)
     let generator: LLMContentGenerator;
     if (this.llmProviderFactory) {
-      generator = new LLMContentGenerator(this.llmProviderFactory());
+      const llmProvider = this.llmProviderFactory();
+      generator = new LLMContentGenerator(llmProvider);
+      client.setChallengePipeline(new ChallengeEscalationPipeline(llmProvider));
     } else {
       // Create a no-op generator that always returns null
       generator = new LLMContentGenerator({

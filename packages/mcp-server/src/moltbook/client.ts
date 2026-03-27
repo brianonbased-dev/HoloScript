@@ -6,7 +6,7 @@
  * and automatic verification challenge solving.
  */
 
-import { solveChallenge } from './challenge-solver';
+import { solveChallenge, ChallengeEscalationPipeline } from './challenge-solver';
 import type {
   MoltbookPost,
   MoltbookComment,
@@ -30,10 +30,19 @@ export class MoltbookClient {
   private baseUrl: string;
   private rateLimits = new Map<string, RateLimitInfo>();
   private challengeFailures = 0;
+  private challengePipeline: ChallengeEscalationPipeline | null = null;
 
   constructor(apiKey: string, baseUrl = MOLTBOOK_BASE) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
+  }
+
+  setChallengePipeline(pipeline: ChallengeEscalationPipeline): void {
+    this.challengePipeline = pipeline;
+  }
+
+  getChallengePipeline(): ChallengeEscalationPipeline | null {
+    return this.challengePipeline;
   }
 
   // --- Agent ---
@@ -281,7 +290,11 @@ export class MoltbookClient {
   // --- Internal ---
 
   private async autoVerify(challenge: VerificationChallenge): Promise<boolean> {
-    const answer = solveChallenge(challenge.challenge_text);
+    // L1 → L2 escalation via pipeline (if available), else bare regex
+    const answer = this.challengePipeline
+      ? await this.challengePipeline.solve(challenge.challenge_text)
+      : solveChallenge(challenge.challenge_text);
+
     if (!answer) {
       this.challengeFailures++;
       console.error(
@@ -296,6 +309,25 @@ export class MoltbookClient {
         this.challengeFailures = 0;
         return true;
       }
+
+      // L1 answer rejected — escalate to L2 if pipeline available
+      if (this.challengePipeline) {
+        console.warn(`[moltbook] L1 answer "${answer}" rejected. Escalating to L2...`);
+        const l2Answer = await this.challengePipeline.escalateAfterRejection(
+          challenge.challenge_text,
+          answer,
+        );
+        if (l2Answer) {
+          const retry = await this.submitVerification(challenge.verification_code, l2Answer);
+          if (retry.success) {
+            this.challengeFailures = 0;
+            console.log(`[moltbook] L2 escalation succeeded: ${l2Answer}`);
+            return true;
+          }
+          console.error(`[moltbook] L2 answer "${l2Answer}" also rejected.`);
+        }
+      }
+
       this.challengeFailures++;
       console.error(`[moltbook] Verification rejected (${this.challengeFailures}). Answer: ${answer}`);
       return false;
