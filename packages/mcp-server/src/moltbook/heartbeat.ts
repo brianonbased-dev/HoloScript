@@ -319,6 +319,10 @@ export class MoltbookHeartbeat {
    * Returns true if a reply was sent.
    */
   private async replyToPostActivity(postId: string): Promise<boolean> {
+    // Hydrate reply count from API if not cached (survives restarts)
+    if (!this.repliedPostCounts.has(postId)) {
+      await this.hasAgentCommented(postId);
+    }
     // Per-post reply cap — don't spam our own threads
     const existingReplies = this.repliedPostCounts.get(postId) ?? 0;
     if (existingReplies >= MoltbookHeartbeat.MAX_REPLIES_PER_POST) {
@@ -393,8 +397,8 @@ export class MoltbookHeartbeat {
     this.useFeedBrowseNext = !this.useFeedBrowseNext;
 
     for (const post of postsToEngage.slice(0, maxOutbound)) {
-      // Skip posts we've already commented on (prevents multi-commenting)
-      if (this.commentedPostIds.has(post.id)) continue;
+      // Skip posts we've already commented on — API-level check survives restarts
+      if (await this.hasAgentCommented(post.id)) continue;
 
       // Upvote quality content
       try {
@@ -684,6 +688,46 @@ export class MoltbookHeartbeat {
       interval,
     );
     console.log(`[moltbook-heartbeat] Karma ${this.state.currentKarma} → ${Math.round(interval / 1000)}s interval (±jitter)`);
+  }
+
+  /**
+   * Check if this agent already has a comment on the given post (API-level dedup).
+   * Survives restarts because it queries the actual Moltbook data.
+   * Also populates the in-memory caches so subsequent checks within the same
+   * process lifetime are free.
+   */
+  private async hasAgentCommented(postId: string): Promise<boolean> {
+    // Fast path: in-memory cache says we already commented
+    if (this.commentedPostIds.has(postId)) return true;
+
+    try {
+      const comments = await this.client.getComments(postId, 'new', 50);
+      const agentCommented = this.countAgentComments(comments);
+
+      if (agentCommented > 0) {
+        this.commentedPostIds.add(postId);
+        this.repliedPostCounts.set(postId, agentCommented);
+        return true;
+      }
+      return false;
+    } catch {
+      // On error, allow the comment (don't block engagement on transient failures)
+      return false;
+    }
+  }
+
+  /**
+   * Count how many comments the agent has on a post (including nested replies).
+   */
+  private countAgentComments(comments: Array<{ author: { name: string }; replies?: unknown[] }>): number {
+    let count = 0;
+    for (const c of comments) {
+      if (c.author.name === this.agentName) count++;
+      if (Array.isArray(c.replies) && c.replies.length > 0) {
+        count += this.countAgentComments(c.replies as typeof comments);
+      }
+    }
+    return count;
   }
 
   private sleep(ms: number): Promise<void> {
