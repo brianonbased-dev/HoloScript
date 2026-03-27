@@ -41,6 +41,48 @@ const SEARCH_TOPICS = [
 const MAX_CHALLENGE_FAILURES = 3;
 const CHALLENGE_PAUSE_MS = 60 * 60 * 1000; // 1 hour
 
+// Timing jitter: ±30% random variation to avoid predictable activation patterns
+const JITTER_FACTOR = 0.3;
+function applyJitter(intervalMs: number): number {
+  const jitter = 1 + (Math.random() * 2 - 1) * JITTER_FACTOR; // 0.7x to 1.3x
+  return Math.round(intervalMs * jitter);
+}
+
+// ── Local keyword cluster dedup (fallback when Absorb Service unavailable) ──
+
+/** Concept clusters: titles sharing 2+ keywords from the same cluster = duplicate */
+const CONCEPT_CLUSTERS: string[][] = [
+  ['safety', 'constraint', 'attack', 'alignment', 'guardrail', 'adversarial'],
+  ['memory', 'persistence', 'identity', 'provenance', 'context', 'ground truth'],
+  ['recursive', 'self-improvement', 'self-modify', 'meta', 'ouroboros', 'loop'],
+  ['compilation', 'target', 'backend', 'semantic', 'compiler', 'wasm', 'webgpu'],
+  ['mcp', 'tool', 'discovery', 'protocol', 'server', 'endpoint'],
+  ['agent', 'autonomous', 'daemon', 'orchestrat', 'multi-agent'],
+  ['trust', 'verification', 'signature', 'cryptograph', 'zero-trust'],
+  ['budget', 'cost', 'orphan', 'runaway', 'spend', '$180'],
+  ['optimization', 'pressure', 'tradeoff', 'gradient', 'convergence'],
+];
+
+/**
+ * Check if two titles share a concept cluster (2+ shared keywords from same cluster).
+ */
+function sharesConceptCluster(titleA: string, titleB: string): boolean {
+  const a = titleA.toLowerCase();
+  const b = titleB.toLowerCase();
+  for (const cluster of CONCEPT_CLUSTERS) {
+    const matchesA = cluster.filter((kw) => a.includes(kw));
+    const matchesB = cluster.filter((kw) => b.includes(kw));
+    // Both titles hit 1+ keywords from the same cluster, and share at least one
+    if (matchesA.length >= 1 && matchesB.length >= 1) {
+      const shared = matchesA.filter((kw) => matchesB.includes(kw));
+      if (shared.length >= 1 && (matchesA.length + matchesB.length) >= 3) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export class MoltbookHeartbeat {
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private state: HeartbeatState = { ...INITIAL_HEARTBEAT_STATE, postHistory: [] };
@@ -53,6 +95,12 @@ export class MoltbookHeartbeat {
   private searchTopicIndex = 0;
   private feedStrategyIndex = 0;
   private useFeedBrowseNext = false; // alternates between search and feed browsing
+  /** Post IDs we've already commented on (outbound) — prevents multi-commenting */
+  private commentedPostIds = new Set<string>();
+  /** Post IDs we've already replied on (inbound) with count — caps at 2 per post */
+  private repliedPostCounts = new Map<string, number>();
+  /** Max replies we'll leave on any single post across all ticks */
+  private static readonly MAX_REPLIES_PER_POST = 2;
 
   constructor(
     client: MoltbookClient,
@@ -70,13 +118,15 @@ export class MoltbookHeartbeat {
 
   start(): void {
     if (this.intervalId) return;
-    console.log('[moltbook-heartbeat] Starting (30-min interval)');
+    const interval = applyJitter(DEFAULT_CONFIG.heartbeatIntervalMs);
+    console.log(`[moltbook-heartbeat] Starting (${Math.round(interval / 1000)}s interval with jitter)`);
     this.intervalId = setInterval(
       () => void this.tick(),
-      DEFAULT_CONFIG.heartbeatIntervalMs,
+      interval,
     );
-    // Run immediately on start
-    void this.tick();
+    // Run after a short random delay (0-60s) to avoid predictable startup
+    const startDelay = Math.floor(Math.random() * 60_000);
+    setTimeout(() => void this.tick(), startDelay);
   }
 
   stop(): void {
@@ -203,9 +253,14 @@ export class MoltbookHeartbeat {
             ? (await this.llmGenerator.generatePost(pillar)) ?? (await this.pipeline.generatePost(pillar))
             : await this.pipeline.generatePost(pillar);
 
-          // Post title dedup — skip if title too similar to recent posts
-          if (post && this.isDuplicatePost(post.title)) {
-            console.log(`[moltbook-heartbeat] Skipping duplicate post: "${post.title}"`);
+          // Post title dedup — skip if title conceptually similar to recent posts
+          let duplicate = false;
+          if (post) {
+            duplicate = await this.isDuplicatePost(post.title);
+          }
+
+          if (duplicate) {
+            console.log(`[moltbook-heartbeat] Skipping duplicate post: "${post?.title}"`);
             post = null;
           }
 
@@ -264,6 +319,15 @@ export class MoltbookHeartbeat {
    * Returns true if a reply was sent.
    */
   private async replyToPostActivity(postId: string): Promise<boolean> {
+    // Per-post reply cap — don't spam our own threads
+    const existingReplies = this.repliedPostCounts.get(postId) ?? 0;
+    if (existingReplies >= MoltbookHeartbeat.MAX_REPLIES_PER_POST) {
+      // Still mark notifications read so we don't keep retrying
+      await this.client.markPostNotificationsRead(postId);
+      return false;
+    }
+    const replyBudget = MoltbookHeartbeat.MAX_REPLIES_PER_POST - existingReplies;
+
     const comments = await this.client.getComments(postId, 'new', 10);
     // Find comments we haven't replied to (not from us), filter by min upvotes
     const unanswered = comments
@@ -277,7 +341,7 @@ export class MoltbookHeartbeat {
       .sort((a, b) => b.upvotes - a.upvotes);
 
     let replied = false;
-    for (const comment of unanswered.slice(0, 2)) {
+    for (const comment of unanswered.slice(0, Math.min(2, replyBudget))) {
       if (!this.canComment()) break;
 
       // Generate a contextual reply (LLM-powered or static fallback)
@@ -288,6 +352,7 @@ export class MoltbookHeartbeat {
         this.state.inboundCommentsToday++;
         this.state.lastCommentTime = Date.now();
         this.state.totalComments++;
+        this.repliedPostCounts.set(postId, (this.repliedPostCounts.get(postId) ?? 0) + 1);
         replied = true;
         // Respect 20s cooldown
         await this.sleep(DEFAULT_CONFIG.commentCooldownMs);
@@ -328,6 +393,9 @@ export class MoltbookHeartbeat {
     this.useFeedBrowseNext = !this.useFeedBrowseNext;
 
     for (const post of postsToEngage.slice(0, maxOutbound)) {
+      // Skip posts we've already commented on (prevents multi-commenting)
+      if (this.commentedPostIds.has(post.id)) continue;
+
       // Upvote quality content
       try {
         await this.client.upvotePost(post.id);
@@ -343,6 +411,7 @@ export class MoltbookHeartbeat {
           const comment = await this.generateTopicCommentWithFallback(post.title || '', post.content);
           if (comment) {
             await this.client.createComment(post.id, comment);
+            this.commentedPostIds.add(post.id);
             comments++;
             this.state.commentsToday++;
             this.state.outboundCommentsToday++;
@@ -354,6 +423,12 @@ export class MoltbookHeartbeat {
           errors.push(`Comment on ${post.id} failed: ${err}`);
         }
       }
+    }
+
+    // Bound the set to prevent unbounded memory growth
+    if (this.commentedPostIds.size > 500) {
+      const arr = [...this.commentedPostIds];
+      this.commentedPostIds = new Set(arr.slice(-250));
     }
 
     return { comments, upvotes, errors };
@@ -505,22 +580,47 @@ export class MoltbookHeartbeat {
 
   /**
    * Check if a post title is too similar to a recent post (dedup).
-   * Uses normalized substring matching — catches rephrased duplicates.
+   * Deprecated substring implementation in favor of Absorb Service semantic vector matching.
    */
-  private isDuplicatePost(title: string): boolean {
-    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-    const normalizedTitle = normalize(title);
-    const words = normalizedTitle.split(/\s+/).filter((w) => w.length > 3);
+  private async isDuplicatePost(title: string): Promise<boolean> {
+    if (this.state.postHistory.length === 0) return false;
 
-    for (const prev of this.state.postHistory) {
-      const normalizedPrev = normalize(prev);
-      // Exact match
-      if (normalizedTitle === normalizedPrev) return true;
-      // >60% word overlap = likely duplicate topic
-      const prevWords = new Set(normalizedPrev.split(/\s+/).filter((w) => w.length > 3));
-      const overlap = words.filter((w) => prevWords.has(w)).length;
-      if (words.length > 0 && overlap / words.length > 0.6) return true;
+    try {
+      const absorbUrl = process.env.ABSORB_SERVICE_URL || 'http://localhost:3005';
+      const token = process.env.ABSORB_SERVICE_TOKEN || '';
+      
+      const res = await fetch(`${absorbUrl}/api/absorb/moltbook/semantic-dedup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          concept: title,
+          history: this.state.postHistory
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json() as { isDuplicate: boolean; score: number };
+        if (data.isDuplicate) {
+          console.log(`[moltbook-heartbeat] Semantic dedup matched (score: ${data.score.toFixed(3)})`);
+          return true;
+        }
+        return false;
+      }
+    } catch (err) {
+      console.warn(`[moltbook-heartbeat] Semantic dedup fetch failed, falling back to keyword clusters: ${err}`);
     }
+
+    // Local fallback: keyword cluster matching
+    for (const existing of this.state.postHistory) {
+      if (sharesConceptCluster(title, existing)) {
+        console.log(`[moltbook-heartbeat] Keyword cluster dedup matched: "${title}" ≈ "${existing}"`);
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -577,13 +677,13 @@ export class MoltbookHeartbeat {
   private updateInterval(): void {
     if (!this.intervalId) return;
     const tier = resolveKarmaTier(this.state.currentKarma);
-    // Only update if interval changed
+    const interval = applyJitter(tier.heartbeatIntervalMs);
     clearInterval(this.intervalId);
     this.intervalId = setInterval(
       () => void this.tick(),
-      tier.heartbeatIntervalMs,
+      interval,
     );
-    console.log(`[moltbook-heartbeat] Karma ${this.state.currentKarma} → ${tier.heartbeatIntervalMs / 1000}s interval`);
+    console.log(`[moltbook-heartbeat] Karma ${this.state.currentKarma} → ${Math.round(interval / 1000)}s interval (±jitter)`);
   }
 
   private sleep(ms: number): Promise<void> {

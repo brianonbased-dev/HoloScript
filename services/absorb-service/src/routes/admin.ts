@@ -342,4 +342,26 @@ router.get('/health-matrix', async (req: Request, res: Response) => {
   }
 });
 
+// ─── GET /operations-surface — Expose HoloScript 2D Telemetry ───────────────
+
+router.get('/operations-surface', async (req: Request, res: Response) => {
+  try {
+    // We dynamically import the daemon operations surface generator and state
+    const { buildDaemonOperationsSurfaceCode } = await import('../lib/daemon/operationsSurfaceHolo.js');
+    const { listDaemonJobs, getTelemetrySummary } = await import('../daemon/jobs/store.js');
+    
+    // Fetch state
+    const jobs = listDaemonJobs();
+    const telemetry = getTelemetrySummary();
+
+    // Generate the HoloScript 2D surface projection
+    const surfaceHolo = buildDaemonOperationsSurfaceCode('hsplus', jobs, telemetry);
+
+    res.json({ surfaceHolo });
+  } catch (error: any) {
+    console.error('[admin] Operations surface error:', error.message);
+    res.status(500).json({ error: 'Failed to generate operations surface', message: error.message });
+  }
+});
+
 export { router as adminRouter };

@@ -245,6 +245,11 @@ export const moltbookTools: Tool[] = [
       required: ['action'],
     },
   },
+  {
+    name: 'unified_agent_dashboard',
+    description: 'Get the Moltbook Unified Agent Dashboard containing 2D Operations Surface infrastructure telemetry.',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ];
 
 // --- Multi-tenant agent tools ---
@@ -421,12 +426,39 @@ export async function handleMoltbookTool(
       return handleAnalytics(args);
     case 'moltbook_experiment':
       return handleExperiment(args);
+    case 'unified_agent_dashboard':
+      return handleUnifiedAgentDashboard(args);
     default:
       return null;
   }
 }
 
 // --- Individual Handlers ---
+
+async function handleUnifiedAgentDashboard(_args: Record<string, unknown>) {
+  try {
+    const absorbUrl = process.env.ABSORB_SERVICE_URL || 'http://localhost:3005';
+    const token = process.env.ABSORB_SERVICE_TOKEN || '';
+    
+    // We fetch from the admin ops surface endpoint we just established
+    const res = await fetch(`${absorbUrl}/api/admin/operations-surface`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Failed to fetch operations surface: ${res.statusText}`);
+    }
+    
+    const data = await res.json() as { surfaceHolo: string };
+    
+    return {
+      success: true,
+      operationsSurface: data.surfaceHolo
+    };
+  } catch (err: any) {
+    return { error: `Unified Agent Dashboard failed: ${err.message}` };
+  }
+}
 
 async function handlePost(args: Record<string, unknown>) {
   const client = getMoltbookClient();

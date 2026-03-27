@@ -31,6 +31,11 @@ const UpdateAgentSchema = z.object({
   }).optional(),
 });
 
+const SemanticDedupSchema = z.object({
+  concept: z.string().min(1),
+  history: z.array(z.string()),
+});
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Mask API key for safe display: mb_***...*** */
@@ -254,6 +259,43 @@ router.delete('/:id', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[moltbook] Delete error:', error.message);
     res.status(500).json({ error: 'Failed to delete agent', message: error.message });
+  }
+});
+
+// POST /semantic-dedup — Deprecate substring dedup with semantic vector analysis
+router.post('/semantic-dedup', async (req: Request, res: Response) => {
+  try {
+    const body = SemanticDedupSchema.parse(req.body);
+    if (body.history.length === 0) {
+      res.json({ isDuplicate: false, score: 0 });
+      return;
+    }
+
+    const { EmbeddingIndex } = await import('@holoscript/absorb-service/engine');
+    const index = new EmbeddingIndex();
+
+    // Construct the semantic index out of the past post concepts
+    body.history.forEach((text, i) => {
+      index.add(`hist-${i}`, text, { text });
+    });
+
+    const results = await index.search(body.concept, 1);
+    
+    // Similarity > 0.85 = Semantic duplicate
+    const isDuplicate = results.length > 0 && results[0].score > 0.85;
+
+    res.json({
+      isDuplicate,
+      score: results.length > 0 ? results[0].score : 0,
+      matched: isDuplicate ? results[0].metadata?.text : null,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Validation error', details: error.errors });
+      return;
+    }
+    console.error('[moltbook] Semantic dedup error:', error.message);
+    res.status(500).json({ error: 'Semantic dedup failed', message: error.message });
   }
 });
 
