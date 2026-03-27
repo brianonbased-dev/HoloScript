@@ -18,7 +18,7 @@
   "dependencies": {
     "@holoscript/crdt": "workspace:*",
     "yjs": "^13.6.20",
-    "@automerge/automerge": "^2.2.8",
+    "@automerge/automerge": "^3.2.5",
     "tinybench": "^2.9.0",
     "chalk": "^5.3.0",
     "uuid": "^13.0.0"
