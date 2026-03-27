@@ -185,6 +185,7 @@ function createAbsorbJob(rootDir: string): string {
 
 const CACHE_DIR = process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript');
 const CACHE_FILE = path.join(CACHE_DIR, 'graph-cache.json');
+const EMBEDDINGS_FILE = path.join(CACHE_DIR, 'embeddings-cache.bin');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 console.log(
@@ -249,6 +250,32 @@ function saveGraphCache(
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
     console.warn(`[CacheDebug][codebase] save miss path=${CACHE_FILE} error=${(err as Error)?.message ?? String(err)}`);
+  }
+}
+
+function saveEmbeddingsCache(index: any, rootDir: string): void {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+    if (typeof index.serializeBinary === 'function') {
+      const buffer = index.serializeBinary();
+      fs.writeFileSync(EMBEDDINGS_FILE, buffer);
+      console.log(`[CacheDebug][codebase] save embeddings hit path=${EMBEDDINGS_FILE} rootDir=${rootDir}`);
+    }
+  } catch (err) {
+    console.warn(`[CacheDebug][codebase] save embeddings miss path=${EMBEDDINGS_FILE} error=${(err as Error)?.message}`);
+  }
+}
+
+async function loadEmbeddingsCache(mod: any, providerInstance: any): Promise<any | null> {
+  try {
+    if (!fs.existsSync(EMBEDDINGS_FILE)) return null;
+    const buffer = fs.readFileSync(EMBEDDINGS_FILE);
+    const index = mod.EmbeddingIndex.deserializeBinary(buffer, { provider: providerInstance });
+    console.log(`[CacheDebug][codebase] load embeddings hit path=${EMBEDDINGS_FILE}`);
+    return index;
+  } catch (err) {
+    console.warn(`[CacheDebug][codebase] load embeddings miss path=${EMBEDDINGS_FILE}`);
+    return null;
   }
 }
 
@@ -640,8 +667,22 @@ async function ensureCachedGraph(): Promise<{
       // Rebuild GraphRAG (best-effort)
       try {
         const { GraphRAGEngine } = mod;
-        const idx = await createDynamicEmbeddingIndex(mod);
-        await idx.buildIndex(cachedGraph);
+        const providerName = await detectBestEmbeddingProvider();
+        const providerObj = await mod.createEmbeddingProvider({
+          provider: providerName as any,
+          ollamaUrl: process.env.OLLAMA_URL,
+          ollamaModel: process.env.OLLAMA_MODEL,
+          openaiApiKey: process.env.OPENAI_API_KEY,
+          openaiModel: process.env.OPENAI_MODEL,
+          xenovaModel: process.env.XENOVA_MODEL,
+        });
+
+        let idx = await loadEmbeddingsCache(mod, providerObj);
+        if (!idx) {
+          idx = await createDynamicEmbeddingIndex(mod);
+          await idx.buildIndex(cachedGraph);
+          saveEmbeddingsCache(idx, cachedRootDir);
+        }
         setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
       } catch { /* Embedding provider may not be available */ }
       const ageMs = Date.now() - envelope.timestamp;
@@ -804,6 +845,7 @@ async function runFullScan(
         : undefined
     );
 
+    saveEmbeddingsCache(embeddingIndex, rootDir);
     setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
   } catch {
     // Embedding provider may not be available
@@ -967,24 +1009,39 @@ async function runIncrementalPatch(
   // Update embedding index
   try {
     const { GraphRAGEngine } = mod;
-    const embeddingIndex = await createDynamicEmbeddingIndex(mod, embeddingProvider, embeddingApiKey, embeddingModel);
+    let index: any = null;
 
-    // Load existing embeddings if available
-    if (cachedGraph && cachedGraph === graph) {
-      // Use cached embedding index
+    if (cachedGraph && cachedGraph === graph && false) {
+      // In-memory cache hit (todo: global cached index not implemented)
     } else {
+      const providerName = embeddingProvider || await detectBestEmbeddingProvider();
+      const providerObj = await mod.createEmbeddingProvider({
+        provider: providerName as any,
+        ollamaUrl: process.env.OLLAMA_URL,
+        ollamaModel: process.env.OLLAMA_MODEL,
+        openaiApiKey: embeddingApiKey || process.env.OPENAI_API_KEY,
+        openaiModel: embeddingModel || process.env.OPENAI_MODEL,
+        xenovaModel: process.env.XENOVA_MODEL,
+      });
+
+      index = await loadEmbeddingsCache(mod, providerObj);
+      if (!index) {
+        index = await createDynamicEmbeddingIndex(mod, embeddingProvider, embeddingApiKey, embeddingModel);
+      }
+
       // Remove stale embeddings
       for (const file of filesToRemove) {
-        embeddingIndex.removeSymbols(file);
+        index.removeSymbols(file);
       }
       // Add fresh embeddings
       const newSymbols = (rescanResult as any).files.flatMap((f: any) => f.symbols);
       if (newSymbols.length > 0) {
-        await embeddingIndex.addSymbols(newSymbols);
+        await index.addSymbols(newSymbols);
       }
-    }
 
-    setGraphRAGState(embeddingIndex, new GraphRAGEngine(graph, embeddingIndex));
+      saveEmbeddingsCache(index, rootDir);
+      setGraphRAGState(index, new GraphRAGEngine(graph, index));
+    }
   } catch {
     // Embedding provider may not be available
   }
