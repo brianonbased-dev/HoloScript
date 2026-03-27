@@ -80,15 +80,18 @@ COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 # Copy composition file (the daemon's brain)
 COPY compositions/moltbook-agent.hsplus compositions/moltbook-agent.hsplus
 
+# Symlink mcp-server into core's node_modules so dynamic
+# import('@holoscript/mcp-server/...') resolves from core's context.
+# ESM import() ignores NODE_PATH, so this is the only reliable fix.
+RUN mkdir -p /app/packages/core/node_modules/@holoscript && \
+    ln -s /app/packages/mcp-server /app/packages/core/node_modules/@holoscript/mcp-server
+
 # Create persistent state directory
 RUN mkdir -p /app/compositions/.holoscript && \
     chown -R nodejs:nodejs /app
 
 # Environment
 ENV NODE_ENV=production
-# Allow core's dynamic import('@holoscript/mcp-server/...') to resolve
-# via root workspace node_modules (pnpm strict mode blocks it otherwise)
-ENV NODE_PATH=/app/node_modules
 
 # Run as non-root
 USER nodejs
