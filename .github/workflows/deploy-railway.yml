@@ -2,20 +2,6 @@
 name: Deploy to Railway
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/studio/**'
-      - 'packages/marketplace-web/**'
-      - 'packages/marketplace-api/**'
-      - 'services/render-service/**'
-      - 'services/llm-service/**'
-      - 'packages/core/**'
-      - 'packages/mcp-server/**'
-      - 'packages/crdt/**'
-      - 'packages/llm-provider/**'
-      - 'Dockerfile.mcp-server'
-      - '.github/workflows/deploy-railway.yml'
   workflow_dispatch:
     inputs:
       service:
