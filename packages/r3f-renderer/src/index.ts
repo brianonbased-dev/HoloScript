@@ -18,6 +18,9 @@ export {
 export { ProgressiveLoader } from './components/ProgressiveLoader';
 export type { ProgressiveLoaderProps, LoadingEntity } from './components/ProgressiveLoader';
 
+// HoloMesh Components (Social/A2A)
+export { SpatialFeedRenderer } from './components/SpatialFeedRenderer';
+
 // Hologram Components (2D-to-3D pipeline)
 export { HologramImage } from './components/HologramImage';
 export type { HologramImageProps } from './components/HologramImage';
