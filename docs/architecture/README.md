@@ -21,3 +21,4 @@ Deep-dive documentation into HoloScript's internal systems.
 
 10. **[AI Use Cases](./AI_USE_CASES.md)** — Applied AI scenarios
 11. **[Stores Audit](./stores-audit.md)** — State management audit
+12. **[The Dumb Glass](./the-dumb-glass-architecture.md)** — Epoch 8 Spatial Rendering Paradigm
