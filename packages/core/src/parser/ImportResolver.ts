@@ -167,6 +167,13 @@ export function isRegistryImport(importPath: string): boolean {
 }
 
 /**
+ * Check if an import path targets the native HoloMesh agent-to-agent CRDT stream.
+ */
+export function isCrdtImport(importPath: string): boolean {
+  return importPath.startsWith('crdt://');
+}
+
+/**
  * Parse a registry import path into username and composition name.
  * Returns null if the path is not a valid registry import.
  */
@@ -216,7 +223,7 @@ export class ImportResolver {
 
     for (const imp of imports) {
       // Registry imports (@username/name) are used as-is; file paths are resolved
-      const canonicalPath = isRegistryImport(imp.path)
+      const canonicalPath = isRegistryImport(imp.path) || isCrdtImport(imp.path)
         ? imp.path
         : resolveImportPath(imp.path, baseDir);
 
@@ -317,6 +324,12 @@ export class ImportResolver {
         } catch {
           throw new Error(`Registry unavailable for '${canonicalPath}' (imported from '${importedBy}')`);
         }
+      } else if (isCrdtImport(canonicalPath)) {
+        try {
+          source = await this._fetchCrdtSource(canonicalPath);
+        } catch (err: any) {
+          throw new Error(`CRDT feed unavailable for '${canonicalPath}' (imported from '${importedBy}'): ${err.message}`);
+        }
       } else {
         try {
           const reader = options.readFile ?? this._defaultReader();
@@ -347,7 +360,7 @@ export class ImportResolver {
       const baseDir = canonicalPath.replace(/\/[^/]+$/, '');
 
       for (const subImp of subImports) {
-        const subPath = isRegistryImport(subImp.path)
+        const subPath = isRegistryImport(subImp.path) || isCrdtImport(subImp.path)
           ? subImp.path
           : resolveImportPath(subImp.path, baseDir);
         transitiveDeps.push(subPath);
@@ -396,6 +409,34 @@ export class ImportResolver {
       return mod;
     } finally {
       this.inProgress.delete(canonicalPath);
+    }
+  }
+
+  /**
+   * Fetch native string sources from the local LoroText Holographic CRDT.
+   * This bridges the compiler directly into the decentralized HoloMesh feed.
+   */
+  private async _fetchCrdtSource(importPath: string): Promise<string> {
+    if (importPath !== 'crdt://holomesh/feed') {
+      throw new Error(`Unknown CRDT namespace. Only crdt://holomesh/feed is supported.`);
+    }
+
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const { LoroDoc } = await import('@loro/loro');
+
+      // The HoloMesh Agent uses .holomesh/worldstate.crdt
+      const crdtPath = path.resolve(process.cwd(), '.holomesh/worldstate.crdt');
+      const bytes = await fs.readFile(crdtPath);
+      
+      const doc = new LoroDoc();
+      doc.import(bytes);
+      
+      const feed = doc.getText('feed');
+      return feed.toString();
+    } catch (e: any) {
+      throw new Error(`CRDT Sync Error: ${e.message}`);
     }
   }
 

@@ -1193,6 +1193,16 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // HOLOMESH API ROUTES (delegated to separate module)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (url?.startsWith('/api/holomesh/')) {
+    const { handleHoloMeshRoute } = await import('./holomesh/http-routes');
+    const handled = await handleHoloMeshRoute(req, res, url);
+    if (handled) return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // REST API ENDPOINTS (public creation, authenticated where noted)
   // ═══════════════════════════════════════════════════════════════════════════
 

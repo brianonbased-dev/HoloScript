@@ -28,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Playground', href: '/playground', icon: '🎮', description: 'Code sandbox' },
 
   { label: 'Registry', href: '/registry', icon: '📦', description: 'Trait & asset registry' },
+  { label: 'HoloMesh', href: '/holomesh', icon: '🕸️', description: 'Knowledge exchange' },
 ];
 
 const SECONDARY_ITEMS: NavItem[] = [

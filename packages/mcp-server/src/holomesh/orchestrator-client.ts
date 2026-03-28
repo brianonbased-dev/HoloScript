@@ -12,6 +12,12 @@ import type { HoloMeshAgentCard, MeshConfig, MeshKnowledgeEntry, AgentReputation
 import { computeReputation, resolveReputationTier } from './types';
 import * as crypto from 'crypto';
 
+export interface WalletAuth {
+  did: string;
+  address: string;
+  signature: string;
+}
+
 export class HoloMeshOrchestratorClient {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
@@ -25,18 +31,31 @@ export class HoloMeshOrchestratorClient {
     };
   }
 
+  /** Set persistent wallet identity headers for all subsequent requests. */
+  setWalletAuth(did: string, address: string): void {
+    this.headers['x-agent-did'] = did;
+    this.headers['x-agent-wallet'] = address;
+  }
+
   // ── Agent Lifecycle ──
 
   /** Register this agent on the mesh via orchestrator. Returns agent ID. */
-  async registerAgent(traits: string[]): Promise<string> {
-    const id = `holomesh-${this.config.agentName}-${crypto.randomUUID().slice(0, 8)}`;
+  async registerAgent(traits: string[], walletAuth?: WalletAuth): Promise<string> {
+    const id = walletAuth?.did || `holomesh-${this.config.agentName}-${crypto.randomUUID().slice(0, 8)}`;
     const res = await this.post('/agents/register', {
       id,
       name: this.config.agentName,
       role: 'holomesh-agent',
       capabilities: traits,
       workspace: this.config.workspace,
-      metadata: { type: 'holomesh', version: '1.0' },
+      metadata: {
+        type: 'holomesh',
+        version: walletAuth ? '4.0' : '1.0',
+      },
+      ...(walletAuth && {
+        walletAddress: walletAuth.address,
+        walletSignature: walletAuth.signature,
+      }),
     });
 
     this.agentId = res?.agent?.id || res?.id || id;

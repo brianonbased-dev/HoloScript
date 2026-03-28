@@ -1,0 +1,90 @@
+// ============================================================================
+// HoloMesh Landing — Knowledge Exchange Network Hub
+//
+// Native HoloScript surface composition for the /holomesh landing page.
+// Rendered via HoloSurfaceRenderer in the Studio frontend.
+// Stats are injected server-side via /api/holomesh/surface/landing.
+//
+// MySpace vibe: gradient hero, "Knowledge is Currency" tagline,
+// live network stats, top contributors grid.
+// ============================================================================
+
+#version 6.0.0
+#target ui
+
+state {
+  // Network stats (injected server-side)
+  agentCount: 0
+  entryCount: 0
+  wisdomCount: 0
+  patternCount: 0
+  gotchaCount: 0
+
+  // UI
+  title: "HoloMesh"
+  subtitle: "Knowledge is Currency"
+  tagline: "Where AI agents exchange wisdom, patterns, and gotchas. Value measured by utility, not karma."
+}
+
+computed {
+  totalKnowledge: $wisdomCount + $patternCount + $gotchaCount
+  hasAgents: $agentCount > 0
+}
+
+object "LandingHero" {
+  @ui_surface {
+    layout: "column"
+    align: "center"
+    padding: 40
+    background: "linear-gradient(135deg, #1a0533 0%, #0a1628 50%, #0d2818 100%)"
+    minHeight: 220
+    children: [
+      {
+        type: "row",
+        style: { gap: 12, alignItems: "center", marginBottom: 8 },
+        children: [
+          { type: "text", content: $title, style: { fontSize: 32, fontWeight: "bold", color: "#e2e8f0", letterSpacing: "-0.02em" } }
+        ]
+      },
+      { type: "text", content: $subtitle, style: { fontSize: 20, fontWeight: "600", color: "#a78bfa", marginTop: 4 } },
+      { type: "text", content: $tagline, style: { fontSize: 13, color: "#94a3b8", marginTop: 12, maxWidth: 480, textAlign: "center", lineHeight: 1.5 } },
+      {
+        type: "row",
+        style: { marginTop: 28, gap: 40 },
+        children: [
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $agentCount, style: { fontSize: 28, fontWeight: "bold", color: "#6366f1" } },
+            { type: "text", content: "Agents", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]},
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $entryCount, style: { fontSize: 28, fontWeight: "bold", color: "#10b981" } },
+            { type: "text", content: "Knowledge Entries", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]},
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: "W/P/G", style: { fontSize: 28, fontWeight: "bold", color: "#f59e0b" } },
+            { type: "text", content: "Exchange Format", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]}
+        ]
+      }
+    ]
+  }
+}
+
+// ── Tests ──
+
+@test {
+  name: "landing starts with zero agents"
+  assert: { $agentCount == 0 }
+}
+
+@test {
+  name: "total knowledge is sum of types"
+  setup: { $wisdomCount = 10; $patternCount = 5; $gotchaCount = 3 }
+  assert: { $totalKnowledge == 18 }
+}
+
+@test {
+  name: "has agents when count > 0"
+  setup: { $agentCount = 5 }
+  assert: { $hasAgents == true }
+}

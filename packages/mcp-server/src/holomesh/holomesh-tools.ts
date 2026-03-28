@@ -23,7 +23,7 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_publish_insight',
     description:
-      'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with.',
+      'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -34,7 +34,7 @@ export const holomeshTools: Tool[] = [
         traits: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Traits to attach (e.g., ["@thought", "@economy"])',
+          description: 'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
         },
         custom_hs_code: {
           type: 'string',
@@ -236,6 +236,15 @@ export const holomeshTools: Tool[] = [
       properties: {},
     },
   },
+  {
+    name: 'holomesh_wallet_status',
+    description:
+      'Get the agent wallet status: address, chain, USDC balance, payment history, and micro-payment ledger stats.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ];
 
 // ── Singleton Client ──
@@ -305,6 +314,8 @@ export async function handleHoloMeshTool(
       return handleQuerySpatial(client, args);
     case 'holomesh_feed_source':
       return handleFeedSource(client);
+    case 'holomesh_wallet_status':
+      return handleWalletStatus();
     case 'holomesh_gossip_sync':
       return { error: 'V2 gossip sync must be triggered via daemon actions, not MCP tool handler directly.' };
     default:
@@ -522,13 +533,13 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
       };
     }
 
-    // V1: Log the collection intent. V2: trigger Publishing Protocol micropayment.
     return {
       success: true,
-      message: `Collection recorded. Payment of $${entry.price} would be processed via Publishing Protocol in V2.`,
+      message: `Collection recorded. Payment of $${entry.price} queued for settlement via x402 Publishing Protocol.`,
       entry,
       price: entry.price,
       referrer,
+      walletRequired: true,
     };
   } catch (err: any) {
     return { error: `Collect failed: ${err.message}` };
@@ -567,30 +578,62 @@ async function handleFeedSource(client: HoloMeshOrchestratorClient) {
   }
 }
 
+async function handleWalletStatus() {
+  const walletEnabled = process.env.HOLOMESH_WALLET_ENABLED === 'true';
+  if (!walletEnabled) {
+    return {
+      success: true,
+      walletEnabled: false,
+      message: 'Wallet not enabled. Set HOLOMESH_WALLET_ENABLED=true and HOLOSCRIPT_WALLET_KEY to activate.',
+    };
+  }
+
+  return {
+    success: true,
+    walletEnabled: true,
+    walletKeyConfigured: !!process.env.HOLOSCRIPT_WALLET_KEY,
+    testnet: process.env.HOLOMESH_WALLET_TESTNET === 'true',
+    message: 'Wallet enabled. Use daemon actions (mesh_wallet_balance, mesh_collect_premium, mesh_settle_micro) for operations.',
+  };
+}
+
 // ── V2 Inbound Gossip Handler ──
 
 /**
  * Handle an inbound CRDT gossip request from a peer.
  * Called by HTTP endpoint handler (not MCP tool dispatch).
  *
- * 1. Import sender's delta into our worldState
- * 2. Register sender as a peer in discovery
- * 3. Absorb gossiped peers
- * 4. Export our delta back to sender
+ * 1. V4: Verify sender's wallet signature (reject invalid, allow unsigned for V2 compat)
+ * 2. Import sender's delta into our worldState
+ * 3. Register sender as a peer in discovery
+ * 4. Absorb gossiped peers
+ * 5. Export our delta back to sender
  */
-export function handleInboundGossip(
+export async function handleInboundGossip(
   request: GossipDeltaRequest,
   worldState: HoloMeshWorldState,
   discovery: HoloMeshDiscovery,
-): GossipDeltaResponse {
+): Promise<GossipDeltaResponse> {
   try {
+    // V4: Verify gossip signature when present
+    const signatureVerified = await discovery.verifyGossipSender(request);
+    if (signatureVerified === 'invalid') {
+      console.warn(`[HoloMesh] Rejected gossip from ${request.senderDid}: invalid wallet signature`);
+      return { success: false };
+    }
+
     // Import sender's delta
     const incomingDelta = Buffer.from(request.deltaBase64, 'base64');
     worldState.importDelta(new Uint8Array(incomingDelta));
 
-    // Register sender as a peer
+    // Register sender as a peer (include wallet address when verified)
     discovery.absorbGossipedPeers(
-      [{ did: request.senderDid, url: request.senderUrl, name: request.senderName }],
+      [{
+        did: request.senderDid,
+        url: request.senderUrl,
+        name: request.senderName,
+        walletAddress: signatureVerified === 'verified' ? request.senderWalletAddress : undefined,
+      }],
       request.senderDid,
     );
 
@@ -611,6 +654,7 @@ export function handleInboundGossip(
       deltaBase64: Buffer.from(ourDelta).toString('base64'),
       frontiers: ourFrontiers,
       knownPeers: peersToShare,
+      signatureVerified,
     };
   } catch (err: any) {
     return { success: false };

@@ -28,6 +28,7 @@ vi.mock('../orchestrator-client', () => {
     this.getAgentReputation = vi.fn().mockResolvedValue({ score: 0, tier: 'newcomer' });
     this.getAgentId = vi.fn().mockReturnValue(null);
     this.setAgentId = vi.fn();
+    this.setWalletAuth = vi.fn();
   });
   return { HoloMeshOrchestratorClient };
 });
@@ -99,10 +100,10 @@ describe('createHoloMeshDaemonActions', () => {
     config = createTestConfig();
   });
 
-  it('returns all 9 action handlers and wireTraitListeners', () => {
+  it('returns all 14 action handlers (9 V1 + 3 V2 + 2 V3) and wireTraitListeners', () => {
     const { actions, wireTraitListeners } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(9);
+    expect(Object.keys(actions)).toHaveLength(14);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_discover_peers).toBeTypeOf('function');
     expect(actions.mesh_check_inbox).toBeTypeOf('function');
@@ -112,7 +113,18 @@ describe('createHoloMeshDaemonActions', () => {
     expect(actions.mesh_collect_premium).toBeTypeOf('function');
     expect(actions.mesh_heartbeat).toBeTypeOf('function');
     expect(actions.mesh_follow_back).toBeTypeOf('function');
+    expect(actions.mesh_gossip_sync).toBeTypeOf('function');
+    expect(actions.mesh_p2p_discover).toBeTypeOf('function');
+    expect(actions.mesh_persist_crdt).toBeTypeOf('function');
+    expect(actions.mesh_wallet_balance).toBeTypeOf('function');
+    expect(actions.mesh_settle_micro).toBeTypeOf('function');
     expect(wireTraitListeners).toBeTypeOf('function');
+  });
+
+  it('V1 actions still work when V2 and V3 are disabled', () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: false, walletEnabled: false }));
+    expect(Object.keys(actions)).toHaveLength(14);
+    // V2/V3 actions exist but will return false when called
   });
 });
 
@@ -136,6 +148,7 @@ describe('mesh_register', () => {
     expect(result).toBe(true);
     expect(client.registerAgent).toHaveBeenCalledWith(
       expect.arrayContaining(['@knowledge-exchange']),
+      undefined, // No wallet auth when wallet is disabled
     );
     expect(bb.agent_id).toBe('mesh-agent-001');
   });
@@ -594,6 +607,514 @@ describe('wireTraitListeners', () => {
     const { wireTraitListeners } = createHoloMeshDaemonActions(client, createTestConfig());
 
     expect(() => wireTraitListeners({})).not.toThrow();
+  });
+});
+
+// ─── V2 Action Tests ───
+
+describe('mesh_gossip_sync (V2)', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('returns false when V2 is disabled', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: false }));
+    const result = await actions.mesh_gossip_sync({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('returns false when no localAgentDid provided', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: true }));
+    const result = await actions.mesh_gossip_sync({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('returns false when no gossip targets available', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      v2Enabled: true,
+      localAgentDid: 'test-did',
+      localMcpUrl: 'https://local',
+    }));
+    const result = await actions.mesh_gossip_sync({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+});
+
+describe('mesh_p2p_discover (V2)', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('returns false when V2 is disabled', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: false }));
+    const result = await actions.mesh_p2p_discover({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('bootstraps from orchestrator when few peers', async () => {
+    client.discoverPeers.mockResolvedValue([
+      { id: 'peer-1', did: 'peer-1', name: 'P1', mcpEndpoint: 'https://p1', traits: [], reputation: 0 },
+    ]);
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      v2Enabled: true,
+      localAgentDid: 'test-did',
+      localMcpUrl: 'https://local',
+    }));
+    const bb = emptyBB();
+
+    const result = await actions.mesh_p2p_discover({}, bb, {});
+
+    // Should have bootstrapped and found peers
+    expect(result).toBe(true);
+    expect(bb.p2p_peer_count).toBeGreaterThan(0);
+  });
+});
+
+describe('mesh_persist_crdt (V2)', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('returns false when V2 is disabled', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: false }));
+    const result = await actions.mesh_persist_crdt({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('returns false when no snapshot path configured', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      v2Enabled: true,
+      localAgentDid: 'test-did',
+    }));
+    // No crdtSnapshotPath → saveSnapshot returns false
+    const result = await actions.mesh_persist_crdt({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('saves snapshot when path is configured', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      v2Enabled: true,
+      localAgentDid: 'test-did',
+      crdtSnapshotPath: '/tmp/test-snapshot.bin',
+    }));
+    const result = await actions.mesh_persist_crdt({}, emptyBB(), {});
+    // saveSnapshot should succeed (fs.writeFileSync is mocked)
+    expect(result).toBe(true);
+  });
+});
+
+// ─── V3 Wallet Action Tests ───
+
+// V3 injectable wallet test helpers
+function createMockWallet() {
+  return {
+    getAddress: vi.fn().mockReturnValue('0xTestWalletAddress'),
+    getPublicClient: vi.fn().mockReturnValue({
+      readContract: vi.fn().mockResolvedValue(BigInt(5_000_000)), // 5 USDC
+    }),
+    getWalletClient: vi.fn().mockReturnValue({}),
+    getChainId: vi.fn().mockReturnValue(84532),
+  };
+}
+
+function createMockMicroLedger() {
+  return {
+    record: vi.fn().mockReturnValue({ id: 'entry-1' }),
+    getUnsettled: vi.fn().mockReturnValue([]),
+    markSettled: vi.fn(),
+    getStats: vi.fn().mockReturnValue({ totalEntries: 0, unsettledEntries: 0 }),
+    getUnsettledVolume: vi.fn().mockReturnValue(0),
+    pruneSettled: vi.fn().mockReturnValue(0),
+  };
+}
+
+function createMockPaymentGateway() {
+  return {
+    createPaymentAuthorization: vi.fn().mockReturnValue({ chainId: 84532 }),
+    runBatchSettlement: vi.fn().mockResolvedValue({ settled: 0, failed: 0, totalVolume: 0 }),
+    getFacilitator: vi.fn(),
+    dispose: vi.fn(),
+  };
+}
+
+function walletTestConfig(overrides: Partial<HoloMeshDaemonConfig> = {}) {
+  const w = createMockWallet();
+  const ml = createMockMicroLedger();
+  const pg = createMockPaymentGateway();
+  return {
+    config: createTestConfig({
+      walletEnabled: true,
+      walletTestnet: true,
+      localAgentDid: 'test-did',
+      _wallet: w as any,
+      _paymentGateway: pg as any,
+      _microLedger: ml as any,
+      ...overrides,
+    }),
+    wallet: w,
+    microLedger: ml,
+    paymentGateway: pg,
+  };
+}
+
+describe('createHoloMeshDaemonActions with V3 wallet', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('returns 14 action handlers (12 V2 + 2 V3)', () => {
+    const { config } = walletTestConfig();
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    expect(Object.keys(actions)).toHaveLength(14);
+    expect(actions.mesh_wallet_balance).toBeTypeOf('function');
+    expect(actions.mesh_settle_micro).toBeTypeOf('function');
+  });
+
+  it('V1/V2 actions still work when wallet is disabled', () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      walletEnabled: false,
+    }));
+    expect(Object.keys(actions)).toHaveLength(14);
+    expect(actions.mesh_register).toBeTypeOf('function');
+    expect(actions.mesh_gossip_sync).toBeTypeOf('function');
+  });
+});
+
+describe('mesh_wallet_balance (V3)', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('returns false when wallet not enabled', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      walletEnabled: false,
+    }));
+    const result = await actions.mesh_wallet_balance({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('reads USDC balance and updates state', async () => {
+    const { config, wallet } = walletTestConfig();
+    const { actions } = createHoloMeshDaemonActions(client, config);
+    const bb = emptyBB();
+
+    const result = await actions.mesh_wallet_balance({}, bb, {});
+
+    expect(result).toBe(true);
+    expect(bb.wallet_balance).toBe(5); // 5_000_000 / 1_000_000
+    expect(wallet.getPublicClient).toHaveBeenCalled();
+  });
+
+  it('handles RPC failure gracefully', async () => {
+    const { config, wallet } = walletTestConfig();
+    wallet.getPublicClient.mockReturnValueOnce({
+      readContract: vi.fn().mockRejectedValue(new Error('RPC timeout')),
+    });
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const result = await actions.mesh_wallet_balance({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+});
+
+describe('mesh_collect_premium (V3 upgrade)', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('still works without wallet (logs only, backwards compat)', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      walletEnabled: false,
+    }));
+
+    const bb = emptyBB();
+    bb.query_results = [makeEntry('W.paid.001', 0.50)];
+
+    const result = await actions.mesh_collect_premium({}, bb, {});
+    expect(result).toBe(true);
+  });
+
+  it('records micro-payment in ledger when wallet enabled', async () => {
+    const { config, microLedger } = walletTestConfig();
+    microLedger.getUnsettled.mockReturnValue([{ id: '1' }]);
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const bb = emptyBB();
+    bb.query_results = [makeEntry('W.paid.001', 0.05)];
+
+    const result = await actions.mesh_collect_premium({}, bb, {});
+
+    expect(result).toBe(true);
+    expect(microLedger.record).toHaveBeenCalledWith(
+      '0xTestWalletAddress',
+      'author-001',
+      0.05,
+      'hash-W.paid.001',
+    );
+    expect(bb.collected_this_cycle).toBe(1);
+  });
+
+  it('respects budget cap', async () => {
+    const fsModule = await import('fs');
+    (fsModule.existsSync as any).mockReturnValue(true);
+    (fsModule.readFileSync as any).mockReturnValue(JSON.stringify({
+      ...INITIAL_MESH_STATE,
+      spentUSD: 4.90,
+      budgetCapUSD: 5.0,
+    }));
+
+    const { config } = walletTestConfig();
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const bb = emptyBB();
+    bb.query_results = [makeEntry('W.expensive', 0.50)];
+
+    const result = await actions.mesh_collect_premium({}, bb, {});
+    // Should skip because 4.90 + 0.50 > 5.0
+    expect(result).toBe(false);
+  });
+
+  it('returns false when no premium entries', async () => {
+    const { config } = walletTestConfig();
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const bb = emptyBB();
+    bb.query_results = [makeEntry('W.free', 0)];
+
+    const result = await actions.mesh_collect_premium({}, bb, {});
+    expect(result).toBe(false);
+  });
+});
+
+describe('mesh_settle_micro (V3)', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('returns false when wallet not enabled', async () => {
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      walletEnabled: false,
+    }));
+    const result = await actions.mesh_settle_micro({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('returns false when no unsettled payments', async () => {
+    const { config, microLedger } = walletTestConfig();
+    microLedger.getUnsettled.mockReturnValue([]);
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const result = await actions.mesh_settle_micro({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+
+  it('runs batch settlement when unsettled exist', async () => {
+    const { config, microLedger, paymentGateway } = walletTestConfig();
+    microLedger.getUnsettled.mockReturnValue([{ id: '1', amount: 0.05 }]);
+    paymentGateway.runBatchSettlement.mockResolvedValue({
+      settled: 1, failed: 0, totalVolume: 0.05,
+    });
+
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const result = await actions.mesh_settle_micro({}, emptyBB(), {});
+    expect(result).toBe(true);
+    expect(paymentGateway.runBatchSettlement).toHaveBeenCalled();
+  });
+
+  it('handles settlement failure gracefully', async () => {
+    const { config, microLedger, paymentGateway } = walletTestConfig();
+    microLedger.getUnsettled.mockReturnValue([{ id: '1' }]);
+    paymentGateway.runBatchSettlement.mockRejectedValue(new Error('Settlement failed'));
+
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    const result = await actions.mesh_settle_micro({}, emptyBB(), {});
+    expect(result).toBe(false);
+  });
+});
+
+describe('wallet initialization via injection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('skips wallet when walletEnabled is false', () => {
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      walletEnabled: false,
+    }));
+    expect(actions.mesh_wallet_balance).toBeTypeOf('function');
+    expect(actions.mesh_settle_micro).toBeTypeOf('function');
+  });
+
+  it('uses injected wallet instance', async () => {
+    const client = createMockClient();
+    const { config, wallet } = walletTestConfig();
+    const { actions } = createHoloMeshDaemonActions(client, config);
+
+    // Wallet balance should work because we injected the wallet
+    const bb = emptyBB();
+    const result = await actions.mesh_wallet_balance({}, bb, {});
+    expect(result).toBe(true);
+    expect(wallet.getAddress).toHaveBeenCalled();
+  });
+
+  it('sets wallet state fields when wallet provided', async () => {
+    const client = createMockClient();
+    const { config } = walletTestConfig();
+    createHoloMeshDaemonActions(client, config);
+
+    // State should have been written with wallet info
+    const fsModule = await import('fs');
+    const writeCalls = (fsModule.writeFileSync as any).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    const lastState = JSON.parse(writeCalls[writeCalls.length - 1][1]);
+    expect(lastState.walletEnabled).toBe(true);
+    expect(lastState.walletAddress).toBe('0xTestWalletAddress');
+    expect(lastState.walletChainId).toBe(84532);
+  });
+});
+
+describe('wireTraitListeners (V3)', () => {
+  it('wires economy_earn event', () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { wireTraitListeners } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    const eventHandlers: Record<string, Function> = {};
+    const mockRuntime = {
+      on: vi.fn((event: string, handler: Function) => {
+        eventHandlers[event] = handler;
+      }),
+    };
+
+    wireTraitListeners(mockRuntime);
+
+    expect(mockRuntime.on).toHaveBeenCalledWith('economy_earn', expect.any(Function));
+  });
+});
+
+// ─── V4 Wallet Identity Tests ───
+
+describe('mesh_register with V4 wallet auth', () => {
+  let client: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    client = createMockClient();
+  });
+
+  it('derives agentDid and passes wallet auth to registerAgent', async () => {
+    const { config, wallet } = walletTestConfig();
+    wallet.getWalletClient.mockReturnValue({
+      signMessage: vi.fn().mockResolvedValue('0xWalletSignature'),
+    });
+    client.registerAgent.mockResolvedValue('did:pkh:eip155:84532:0xTestWalletAddress');
+
+    const { actions } = createHoloMeshDaemonActions(client, config);
+    const bb = emptyBB();
+
+    const result = await actions.mesh_register({}, bb, {});
+
+    expect(result).toBe(true);
+    expect(client.registerAgent).toHaveBeenCalledWith(
+      expect.arrayContaining(['@knowledge-exchange']),
+      expect.objectContaining({
+        did: expect.stringContaining('did:pkh:eip155:84532:'),
+        address: '0xTestWalletAddress',
+        signature: '0xWalletSignature',
+      }),
+    );
+  });
+
+  it('falls back to UUID registration if wallet signing fails', async () => {
+    const { config, wallet } = walletTestConfig();
+    wallet.getWalletClient.mockReturnValue({
+      signMessage: vi.fn().mockRejectedValue(new Error('sign failed')),
+    });
+    client.registerAgent.mockResolvedValue('holomesh-agent-fallback');
+
+    const { actions } = createHoloMeshDaemonActions(client, config);
+    const bb = emptyBB();
+
+    const result = await actions.mesh_register({}, bb, {});
+
+    expect(result).toBe(true);
+    // Should still call registerAgent, just without walletAuth
+    expect(client.registerAgent).toHaveBeenCalledWith(
+      expect.arrayContaining(['@knowledge-exchange']),
+      undefined,
+    );
+  });
+
+  it('sets wallet auth headers on reconnect when already registered', async () => {
+    const fsModule = await import('fs');
+    (fsModule.existsSync as any).mockReturnValue(true);
+    (fsModule.readFileSync as any).mockReturnValue(JSON.stringify({
+      ...INITIAL_MESH_STATE,
+      agentId: 'did:pkh:eip155:84532:0xTestWalletAddress',
+      agentDid: 'did:pkh:eip155:84532:0xTestWalletAddress',
+      walletAddress: '0xTestWalletAddress',
+      walletEnabled: true,
+    }));
+
+    const { config } = walletTestConfig();
+    const { actions } = createHoloMeshDaemonActions(client, config);
+    const bb = emptyBB();
+
+    const result = await actions.mesh_register({}, bb, {});
+    expect(result).toBe(true);
+    expect(client.setWalletAuth).toHaveBeenCalledWith(
+      'did:pkh:eip155:84532:0xTestWalletAddress',
+      '0xTestWalletAddress',
+    );
+  });
+});
+
+describe('wallet state initialization (V4)', () => {
+  it('sets agentDid from wallet address and chain ID', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { config } = walletTestConfig();
+    createHoloMeshDaemonActions(client, config);
+
+    const fsModule = await import('fs');
+    const writeCalls = (fsModule.writeFileSync as any).mock.calls;
+    const lastState = JSON.parse(writeCalls[writeCalls.length - 1][1]);
+    expect(lastState.agentDid).toBe('did:pkh:eip155:84532:0xTestWalletAddress');
+  });
+
+  it('does not set agentDid when wallet is disabled', () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      walletEnabled: false,
+    }));
+    // agentDid stays null — no wallet init
+    expect(actions.mesh_wallet_balance).toBeTypeOf('function');
   });
 });
 

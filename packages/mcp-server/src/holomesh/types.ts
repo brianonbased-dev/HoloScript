@@ -129,6 +129,61 @@ export const DEFAULT_MESH_CONFIG: Omit<MeshConfig, 'apiKey'> = {
   budgetCapUSD: 5.0,
 };
 
+// --- V2 Peer Store ---
+
+export interface PeerStoreEntry {
+  did: string;
+  mcpBaseUrl: string;
+  name: string;
+  traits: string[];
+  reputation: number;
+  lastSeen: string;
+  lastSyncAt: string | null;
+  /** Loro frontiers from last sync (JSON-serializable) */
+  lastKnownFrontiers: unknown[] | null;
+  source: 'orchestrator' | 'gossip' | 'direct';
+  /** Consecutive contact failures */
+  failureCount: number;
+  /** V4: Wallet address (verified via signature) */
+  walletAddress?: string;
+}
+
+// --- V2 Gossip Exchange ---
+
+export interface GossipDeltaRequest {
+  senderDid: string;
+  senderUrl: string;
+  senderName: string;
+  /** Loro binary delta encoded as base64 */
+  deltaBase64: string;
+  /** Sender's Loro frontiers for version negotiation */
+  frontiers: unknown[];
+  /** Peers to share via gossip */
+  knownPeers?: Array<{ did: string; url: string; name: string }>;
+  timestamp: string;
+  /** V4: EIP-191 signature over gossip payload */
+  signature?: string;
+  /** V4: Sender wallet address (for signature verification) */
+  senderWalletAddress?: string;
+}
+
+export interface GossipDeltaResponse {
+  success: boolean;
+  /** Receiver's delta back to sender (base64) */
+  deltaBase64?: string;
+  /** Receiver's Loro frontiers */
+  frontiers?: unknown[];
+  /** Receiver's known peers */
+  knownPeers?: Array<{ did: string; url: string; name: string }>;
+  /** V4: Signature verification result */
+  signatureVerified?: 'verified' | 'unsigned' | 'invalid';
+}
+
+// --- V2 Knowledge Domains ---
+
+export const KNOWLEDGE_DOMAINS = ['security', 'rendering', 'agents', 'compilation', 'general'] as const;
+export type KnowledgeDomain = typeof KNOWLEDGE_DOMAINS[number];
+
 // --- Daemon State ---
 
 export interface HoloMeshDaemonState {
@@ -153,6 +208,23 @@ export interface HoloMeshDaemonState {
   cycles: number;
   lastCycleAt: string | null;
   errors: number;
+  // V2 gossip fields (null/false = V1 mode)
+  v2Enabled: boolean;
+  p2pPeerCount: number;
+  gossipSyncCount: number;
+  crdtMergeCount: number;
+  lastGossipSyncAt: string | null;
+  // V3 wallet fields (null/false = no wallet)
+  walletEnabled: boolean;
+  walletAddress: string | null;
+  walletChainId: number;
+  walletBalanceUSDC: number;
+  totalPaymentsMade: number;
+  totalPaymentsReceived: number;
+  microLedgerUnsettled: number;
+  lastSettlementAt: string | null;
+  // V4 wallet identity (null = no wallet-based DID)
+  agentDid: string | null;
 }
 
 export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
@@ -177,4 +249,18 @@ export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
   cycles: 0,
   lastCycleAt: null,
   errors: 0,
+  v2Enabled: false,
+  p2pPeerCount: 0,
+  gossipSyncCount: 0,
+  crdtMergeCount: 0,
+  lastGossipSyncAt: null,
+  walletEnabled: false,
+  walletAddress: null,
+  walletChainId: 0,
+  walletBalanceUSDC: 0,
+  totalPaymentsMade: 0,
+  totalPaymentsReceived: 0,
+  microLedgerUnsettled: 0,
+  lastSettlementAt: null,
+  agentDid: null,
 };

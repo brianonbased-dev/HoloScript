@@ -11,10 +11,36 @@
  */
 
 import { HoloMeshOrchestratorClient } from '../orchestrator-client';
+import type { WalletAuth } from '../orchestrator-client';
 import type { MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
+import { deriveAgentDid, createAuthChallenge, signAuthChallenge } from '../wallet-auth';
 import { computeReputation, resolveReputationTier, INITIAL_MESH_STATE } from '../types';
+import { HoloMeshWorldState } from '../crdt-sync';
+import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+
+// V3 Wallet imports — lazy-loaded to avoid hard dependency when wallet is disabled
+type InvisibleWalletType = {
+  getAddress: () => string;
+  getPublicClient: () => any;
+  getWalletClient: () => any;
+  getChainId: () => number;
+};
+type PaymentGatewayType = {
+  createPaymentAuthorization: (resource: string, amountUSDC: number, description?: string) => any;
+  getFacilitator: () => any;
+  runBatchSettlement: () => Promise<{ settled: number; failed: number; totalVolume: number }>;
+  dispose: () => void;
+};
+type MicroPaymentLedgerType = {
+  record: (from: string, to: string, amount: number, resource: string) => any;
+  getUnsettled: () => any[];
+  markSettled: (entryIds: string[], txHash: string) => void;
+  getStats: () => any;
+  getUnsettledVolume: () => number;
+  pruneSettled: () => number;
+};
 
 export interface HoloMeshDaemonConfig {
   stateFile: string;
@@ -25,6 +51,19 @@ export interface HoloMeshDaemonConfig {
   localKnowledge?: MeshKnowledgeEntry[];
   /** Search topics to rotate through when querying the network */
   searchTopics?: string[];
+  // V2 P2P configuration
+  v2Enabled?: boolean;
+  crdtSnapshotPath?: string;
+  peerStorePath?: string;
+  localMcpUrl?: string;
+  localAgentDid?: string;
+  // V3 Wallet configuration
+  walletEnabled?: boolean;
+  walletTestnet?: boolean;
+  // Injectable wallet instances (for testing or pre-initialized wallets)
+  _wallet?: InvisibleWalletType | null;
+  _paymentGateway?: PaymentGatewayType | null;
+  _microLedger?: MicroPaymentLedgerType | null;
 }
 
 type ActionHandler = (params: any, blackboard: Record<string, any>, context: any) => Promise<boolean>;
@@ -53,6 +92,63 @@ export function createHoloMeshDaemonActions(
   const maxContributions = config.maxContributionsPerCycle || 5;
   const maxQueries = config.maxQueriesPerCycle || 3;
 
+  // V2 instances (null when v2Enabled is false — backwards compatible)
+  let worldState: HoloMeshWorldState | null = null;
+  let discovery: HoloMeshDiscovery | null = null;
+  if (config.v2Enabled && config.localAgentDid) {
+    worldState = new HoloMeshWorldState(config.localAgentDid, {
+      snapshotPath: config.crdtSnapshotPath,
+    });
+    discovery = new HoloMeshDiscovery(
+      config.localAgentDid,
+      config.localMcpUrl || '',
+      worldState,
+      { storePath: config.peerStorePath },
+    );
+  }
+
+  // V3 wallet instances (null when walletEnabled is false — backwards compatible)
+  let wallet: InvisibleWalletType | null = config._wallet || null;
+  let paymentGateway: PaymentGatewayType | null = config._paymentGateway || null;
+  let microLedger: MicroPaymentLedgerType | null = config._microLedger || null;
+
+  if (config.walletEnabled && !wallet) {
+    try {
+      // Dynamic import to avoid hard dep when wallet is disabled
+      const { InvisibleWallet } = require('../../../../marketplace-api/src/protocol/InvisibleWallet');
+      const { PaymentGateway, MicroPaymentLedger } = require('../../../../core/src/economy/x402-facilitator');
+      const { AgentWalletRegistry } = require('../../../../core/src/agents/AgentWalletRegistry');
+
+      wallet = InvisibleWallet.fromEnvironment({
+        testnet: config.walletTestnet ?? false,
+      });
+      paymentGateway = new PaymentGateway({
+        recipientAddress: wallet!.getAddress(),
+        chain: config.walletTestnet ? 'base-sepolia' : 'base',
+      });
+      microLedger = new MicroPaymentLedger();
+
+      // Register in global registry
+      AgentWalletRegistry.getInstance().registerWallet(
+        config.localAgentDid || 'local-agent',
+        wallet!.getAddress(),
+        wallet!.getChainId(),
+      );
+    } catch (err: any) {
+      // Graceful degradation — missing env var or wallet dep should not crash daemon (G.WALLET.01)
+      console.log(`[holomesh] Wallet init failed (continuing without wallet): ${err.message}`);
+    }
+  }
+
+  if (wallet) {
+    state.walletEnabled = true;
+    state.walletAddress = wallet.getAddress();
+    state.walletChainId = wallet.getChainId();
+    // V4: Derive DID from wallet address
+    state.agentDid = deriveAgentDid(wallet.getAddress(), wallet.getChainId());
+    saveCurrentState();
+  }
+
   function log(msg: string) {
     if (config.verbose) console.log(`[holomesh] ${msg}`);
   }
@@ -68,17 +164,45 @@ export function createHoloMeshDaemonActions(
   const mesh_register: ActionHandler = async (_params, blackboard) => {
     if (state.agentId) {
       client.setAgentId(state.agentId);
+      // V4: Set wallet auth headers on reconnect
+      if (state.agentDid && state.walletAddress) {
+        client.setWalletAuth(state.agentDid, state.walletAddress);
+      }
       log(`Already registered: ${state.agentId}`);
       return true;
     }
 
     try {
-      const id = await client.registerAgent(['@knowledge-exchange', '@research', '@philosophy']);
+      // V4: Sign registration challenge when wallet is available
+      let walletAuth: WalletAuth | undefined;
+      if (wallet && state.agentDid) {
+        try {
+          const challenge = createAuthChallenge();
+          const walletClient = wallet.getWalletClient();
+          const signature = await signAuthChallenge(walletClient, challenge.challenge, challenge.nonce);
+          walletAuth = {
+            did: state.agentDid,
+            address: wallet.getAddress(),
+            signature,
+          };
+        } catch (err: any) {
+          log(`Wallet signing failed (falling back to UUID): ${err.message}`);
+        }
+      }
+
+      const id = await client.registerAgent(
+        ['@knowledge-exchange', '@research', '@philosophy'],
+        walletAuth,
+      );
       state.agentId = id;
       state.status = 'running';
       blackboard.agent_id = id;
+      // V4: Set wallet auth headers after successful registration
+      if (state.agentDid && state.walletAddress) {
+        client.setWalletAuth(state.agentDid, state.walletAddress);
+      }
       saveCurrentState();
-      log(`Registered on mesh: ${id}`);
+      log(`Registered on mesh: ${id}${walletAuth ? ' (wallet-authenticated)' : ''}`);
       return true;
     } catch (err: any) {
       log(`Registration failed: ${err.message}`);
@@ -216,16 +340,47 @@ export function createHoloMeshDaemonActions(
   };
 
   const mesh_collect_premium: ActionHandler = async (_params, blackboard) => {
-    // V1: Log interest in premium entries. V2: trigger Publishing Protocol.
     const results: MeshKnowledgeEntry[] = blackboard.query_results || [];
     const premium = results.filter(r => r.price > 0);
-
     if (premium.length === 0) return false;
 
-    state.totalCollects += premium.length;
+    // No wallet — log-only mode (backwards compatible)
+    if (!wallet || !microLedger) {
+      state.totalCollects += premium.length;
+      saveCurrentState();
+      log(`Found ${premium.length} premium entries (no wallet — logged only)`);
+      return true;
+    }
+
+    let collected = 0;
+    for (const entry of premium) {
+      try {
+        if (state.spentUSD + entry.price > state.budgetCapUSD) {
+          log(`Budget cap reached — skipping ${entry.id}`);
+          break;
+        }
+
+        // Record in micro-payment ledger (settled in batch via mesh_settle_micro)
+        microLedger.record(
+          wallet.getAddress(),
+          entry.authorId,
+          entry.price,
+          entry.provenanceHash,
+        );
+        state.spentUSD += entry.price;
+        state.totalPaymentsMade++;
+        collected++;
+      } catch (err: any) {
+        log(`Payment record failed for ${entry.id}: ${err.message}`);
+      }
+    }
+
+    state.totalCollects += collected;
+    state.microLedgerUnsettled = microLedger.getUnsettled().length;
+    blackboard.collected_this_cycle = collected;
     saveCurrentState();
-    log(`Found ${premium.length} premium entries (collection deferred to V2)`);
-    return true;
+    log(`Collected ${collected}/${premium.length} premium entries`);
+    return collected > 0;
   };
 
   const mesh_heartbeat: ActionHandler = async () => {
@@ -269,6 +424,171 @@ export function createHoloMeshDaemonActions(
     return subscribed > 0;
   };
 
+  // ── V2 Action Handlers ──
+
+  const mesh_gossip_sync: ActionHandler = async (_params, blackboard) => {
+    if (!discovery || !worldState) {
+      log('V2 not enabled — skipping gossip sync');
+      return false;
+    }
+
+    try {
+      const targets = discovery.selectGossipTargets(2);
+      if (targets.length === 0) {
+        log('No gossip targets available');
+        return false;
+      }
+
+      let synced = 0;
+      for (const peer of targets) {
+        // V4: Pass wallet for gossip signing when available
+        const wc = wallet?.getWalletClient();
+        const wa = wallet?.getAddress();
+        const ok = await discovery.gossipSync(peer, wc, wa);
+        if (ok) synced++;
+      }
+
+      state.gossipSyncCount += synced;
+      state.p2pPeerCount = discovery.getPeerCount();
+      if (synced > 0) {
+        state.lastGossipSyncAt = new Date().toISOString();
+      }
+      blackboard.gossip_synced = synced;
+      saveCurrentState();
+      log(`Gossip sync: ${synced}/${targets.length} peers synced`);
+      return synced > 0;
+    } catch (err: any) {
+      log(`Gossip sync failed: ${err.message}`);
+      state.errors++;
+      return false;
+    }
+  };
+
+  const mesh_p2p_discover: ActionHandler = async (_params, blackboard) => {
+    if (!discovery) {
+      log('V2 not enabled — skipping P2P discovery');
+      return false;
+    }
+
+    try {
+      // Bootstrap from orchestrator if we have few peers
+      if (discovery.getPeerCount() < 3) {
+        const added = await discovery.bootstrapFromOrchestrator(client);
+        log(`Bootstrap: added ${added} peers from orchestrator`);
+      }
+
+      // Prune stale peers
+      const pruned = discovery.pruneStale();
+      if (pruned.length > 0) {
+        log(`Pruned ${pruned.length} stale peers`);
+      }
+
+      // Discover peers from CRDT peer registry (if worldState available)
+      if (worldState) {
+        const crdtPeers = worldState.getCRDTPeers();
+        let absorbed = 0;
+        for (const p of crdtPeers) {
+          if (!discovery.getPeer(p.did)) {
+            discovery.absorbGossipedPeers(
+              [{ did: p.did, url: p.url, name: p.name }],
+              'crdt-registry',
+            );
+            absorbed++;
+          }
+        }
+        if (absorbed > 0) log(`Absorbed ${absorbed} peers from CRDT registry`);
+      }
+
+      state.p2pPeerCount = discovery.getPeerCount();
+      blackboard.p2p_peer_count = discovery.getPeerCount();
+      saveCurrentState();
+      log(`P2P discovery complete: ${discovery.getPeerCount()} peers known`);
+      return discovery.getPeerCount() > 0;
+    } catch (err: any) {
+      log(`P2P discovery failed: ${err.message}`);
+      state.errors++;
+      return false;
+    }
+  };
+
+  const mesh_persist_crdt: ActionHandler = async () => {
+    if (!worldState) {
+      log('V2 not enabled — skipping CRDT persist');
+      return false;
+    }
+
+    try {
+      const saved = worldState.saveSnapshot();
+      log(`CRDT snapshot ${saved ? 'saved' : 'skipped (no path)'}`);
+      return saved;
+    } catch (err: any) {
+      log(`CRDT persist failed: ${err.message}`);
+      return false;
+    }
+  };
+
+  // ── V3 Wallet Action Handlers ──
+
+  const mesh_wallet_balance: ActionHandler = async (_params, blackboard) => {
+    if (!wallet) {
+      log('Wallet not enabled — skipping balance check');
+      return false;
+    }
+
+    try {
+      const publicClient = wallet.getPublicClient();
+      const usdcAddress = config.walletTestnet
+        ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+        : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+      const balance = await publicClient.readContract({
+        address: usdcAddress,
+        abi: [{
+          name: 'balanceOf',
+          type: 'function',
+          inputs: [{ name: 'account', type: 'address' }],
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+        }],
+        functionName: 'balanceOf',
+        args: [wallet.getAddress()],
+      });
+
+      // USDC has 6 decimals
+      state.walletBalanceUSDC = Number(balance) / 1_000_000;
+      blackboard.wallet_balance = state.walletBalanceUSDC;
+      saveCurrentState();
+      log(`Balance: ${state.walletBalanceUSDC} USDC`);
+      return true;
+    } catch (err: any) {
+      log(`Balance check failed: ${err.message}`);
+      return false;
+    }
+  };
+
+  const mesh_settle_micro: ActionHandler = async () => {
+    if (!microLedger || !paymentGateway) {
+      log('Wallet not enabled — skipping micro settlement');
+      return false;
+    }
+
+    const unsettled = microLedger.getUnsettled();
+    if (unsettled.length === 0) return false;
+
+    try {
+      const result = await paymentGateway.runBatchSettlement();
+      state.microLedgerUnsettled = microLedger.getUnsettled().length;
+      state.lastSettlementAt = new Date().toISOString();
+      saveCurrentState();
+      log(`Batch settlement: ${result.settled} settled, ${result.failed} failed, $${result.totalVolume} volume`);
+      return result.settled > 0;
+    } catch (err: any) {
+      log(`Micro settlement failed: ${err.message}`);
+      state.errors++;
+      return false;
+    }
+  };
+
   // ── Factory Return ──
 
   const actions: Record<string, ActionHandler> = {
@@ -281,6 +601,11 @@ export function createHoloMeshDaemonActions(
     mesh_collect_premium,
     mesh_heartbeat,
     mesh_follow_back,
+    mesh_gossip_sync,
+    mesh_p2p_discover,
+    mesh_persist_crdt,
+    mesh_wallet_balance,
+    mesh_settle_micro,
   };
 
   const wireTraitListeners = (runtime: any) => {
@@ -299,6 +624,11 @@ export function createHoloMeshDaemonActions(
       });
       runtime.on('economy_spend', (event: any) => {
         state.spentUSD += event?.amount || 0;
+        saveCurrentState();
+      });
+      runtime.on('economy_earn', (event: any) => {
+        state.earningsUSD += event?.amount || 0;
+        state.totalPaymentsReceived++;
         saveCurrentState();
       });
     }

@@ -9,6 +9,7 @@ import { AgentCard } from '../a2a.js';
 import { HoloMeshWorldState } from './crdt-sync.js';
 import type { HoloMeshOrchestratorClient } from './orchestrator-client.js';
 import type { PeerStoreEntry, GossipDeltaRequest, GossipDeltaResponse } from './types.js';
+import { signGossipPayload, verifyGossipSignature } from './wallet-auth.js';
 import * as fs from 'fs';
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -224,13 +225,20 @@ export class HoloMeshDiscovery {
 
   /** Absorb peers shared by another peer via gossip */
   public absorbGossipedPeers(
-    peers: Array<{ did: string; url: string; name: string }>,
+    peers: Array<{ did: string; url: string; name: string; walletAddress?: string }>,
     _sourceDid: string,
   ): number {
     let added = 0;
     for (const p of peers) {
       if (p.did === this.localAgentDid) continue;
-      if (this.peers.has(p.did)) continue;
+      if (this.peers.has(p.did)) {
+        // V4: Update wallet address if newly provided
+        if (p.walletAddress) {
+          const existing = this.peers.get(p.did)!;
+          existing.walletAddress = p.walletAddress;
+        }
+        continue;
+      }
 
       this.peers.set(p.did, {
         did: p.did,
@@ -243,6 +251,7 @@ export class HoloMeshDiscovery {
         lastKnownFrontiers: null,
         source: 'gossip',
         failureCount: 0,
+        walletAddress: p.walletAddress,
       });
       added++;
     }
@@ -268,7 +277,11 @@ export class HoloMeshDiscovery {
   // ── V2: CRDT Delta Exchange ──────────────────────────────────────────────
 
   /** Perform a gossip sync round with a single peer */
-  public async gossipSync(peer: PeerStoreEntry): Promise<boolean> {
+  public async gossipSync(
+    peer: PeerStoreEntry,
+    walletClient?: { signMessage: (args: { message: string }) => Promise<string> },
+    walletAddress?: string,
+  ): Promise<boolean> {
     if (!this.worldState) return false;
 
     try {
@@ -277,15 +290,28 @@ export class HoloMeshDiscovery {
         ? this.worldState.exportDelta(peer.lastKnownFrontiers)
         : this.worldState.exportDelta();
 
+      const deltaBase64 = Buffer.from(delta).toString('base64');
+      const timestamp = new Date().toISOString();
+
       const request: GossipDeltaRequest = {
         senderDid: this.localAgentDid,
         senderUrl: this.localMcpUrl,
         senderName: 'holomesh-agent',
-        deltaBase64: Buffer.from(delta).toString('base64'),
+        deltaBase64,
         frontiers: this.worldState.getFrontiers(),
         knownPeers: this.getPeersToShare(peer.did),
-        timestamp: new Date().toISOString(),
+        timestamp,
       };
+
+      // V4: Sign gossip payload when wallet is available
+      if (walletClient && walletAddress) {
+        try {
+          request.signature = await signGossipPayload(walletClient, deltaBase64, timestamp);
+          request.senderWalletAddress = walletAddress;
+        } catch {
+          // Signing failed — send unsigned (V2 compat)
+        }
+      }
 
       const response = await fetch(`${peer.mcpBaseUrl}/.well-known/crdt-gossip`, {
         method: 'POST',
@@ -324,6 +350,22 @@ export class HoloMeshDiscovery {
       this.recordFailure(peer.did);
       return false;
     }
+  }
+
+  // ── V4: Gossip Signature Verification ───────────────────────────────────
+
+  /** Verify the wallet signature on an inbound gossip request. */
+  public async verifyGossipSender(
+    request: GossipDeltaRequest,
+  ): Promise<'verified' | 'unsigned' | 'invalid'> {
+    if (!request.signature || !request.senderWalletAddress) return 'unsigned';
+    const valid = await verifyGossipSignature(
+      request.senderWalletAddress,
+      request.deltaBase64,
+      request.timestamp,
+      request.signature,
+    );
+    return valid ? 'verified' : 'invalid';
   }
 
   // ── V2: Accessors ────────────────────────────────────────────────────────

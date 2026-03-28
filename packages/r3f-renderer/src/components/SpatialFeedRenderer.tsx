@@ -12,6 +12,14 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
   const [entities, setEntities] = useState<SpatialEntity[]>([]);
   const [temporalState, setTemporalState] = useState(100); // 100% is present time
 
+  // GAPS (Geometric And Physics Scaling) Budget Profiler
+  const lodLevel = useMemo(() => {
+    if (entities.length >= 300) return 'ultra-low';
+    if (entities.length >= 100) return 'low';
+    if (entities.length >= 30) return 'medium';
+    return 'high';
+  }, [entities.length]);
+
   useEffect(() => {
     // Initial fetch
     try {
@@ -56,17 +64,20 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
           <div style={{ fontSize: '10px', marginTop: '5px', opacity: 0.7 }}>
             {temporalState === 100 ? 'Live (Frontier)' : `Version Index: ${temporalState}%`}
           </div>
+          <div style={{ fontSize: '10px', marginTop: '5px', color: lodLevel === 'ultra-low' ? '#f00' : '#0ff' }}>
+            GAPS Level: {lodLevel.toUpperCase()} (Nodes: {entities.length})
+          </div>
         </div>
       </Html>
 
       {entities.map(entity => (
-        <FeedEntity key={entity.id} entity={entity} temporalState={temporalState} />
+        <FeedEntity key={entity.id} entity={entity} temporalState={temporalState} lodLevel={lodLevel} />
       ))}
     </group>
   );
 }
 
-function FeedEntity({ entity, temporalState }: { entity: SpatialEntity; temporalState: number }) {
+function FeedEntity({ entity, temporalState, lodLevel }: { entity: SpatialEntity; temporalState: number; lodLevel: string }) {
   const ref = useRef<THREE.Group>(null);
   
   // Velocity vector from AST (Time travel dampens physics)
@@ -100,17 +111,30 @@ function FeedEntity({ entity, temporalState }: { entity: SpatialEntity; temporal
   const hasTensorOp = entity.traits.has('TensorOp') || entity.traits.has('NeuralForge');
   const hasZK = entity.traits.has('ZKPrivate') || entity.traits.has('ZeroKnowledgeProof');
 
+  // GAPS Optimizations
+  const isUltraLow = lodLevel === 'ultra-low';
+  
+  const content = (
+    <>
+      {hasWoT && !isUltraLow && <IoTNode color={color} />}
+      {hasTensorOp && !isUltraLow && <SNNNode color={color} />}
+      {hasZK && !isUltraLow && <ZKShieldNode color={color} lodLevel={lodLevel} />}
+      <InsightMesh text={entity.content} author={entity.author} color={color} isPast={temporalState < 100} lodLevel={lodLevel} />
+    </>
+  );
+
   return (
     <group 
       ref={ref} 
       position={[entity.position.x, entity.position.y, entity.position.z]}
     >
-      <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
-        {hasWoT && <IoTNode color={color} />}
-        {hasTensorOp && <SNNNode color={color} />}
-        {hasZK && <ZKShieldNode color={color} />}
-        <InsightMesh text={entity.content} author={entity.author} color={color} isPast={temporalState < 100} />
-      </Float>
+      {lodLevel === 'ultra-low' || lodLevel === 'low' ? (
+        content
+      ) : (
+        <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
+          {content}
+        </Float>
+      )}
     </group>
   );
 }
@@ -146,12 +170,15 @@ function SNNNode({ color }: { color: string }) {
   );
 }
 
-function ZKShieldNode({ color }: { color: string }) {
+function ZKShieldNode({ color, lodLevel }: { color: string; lodLevel: string }) {
+  const isLow = lodLevel === 'low' || lodLevel === 'ultra-low';
   return (
     <group position={[0, 0, 0]}>
-      <Sphere args={[2.5, 32, 32]}>
-        <meshPhysicalMaterial color="#0ff" transmission={0.9} opacity={0.3} transparent wireframe roughness={0} />
-      </Sphere>
+      {!isLow && (
+        <Sphere args={[2.5, 32, 32]}>
+          <meshPhysicalMaterial color="#0ff" transmission={0.9} opacity={0.3} transparent wireframe roughness={0} />
+        </Sphere>
+      )}
       <Html position={[-2.5, 0, 0]}>
         <div style={{ color: '#0ff', fontSize: '10px', padding: '2px', border: '1px solid #0ff', borderRadius: '3px' }}>ZK-Verified</div>
       </Html>
@@ -159,28 +186,40 @@ function ZKShieldNode({ color }: { color: string }) {
   );
 }
 
-function InsightMesh({ text, author, color, isPast }: { text: string; author: string; color: string; isPast?: boolean }) {
+function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; author: string; color: string; isPast?: boolean; lodLevel: string }) {
+  const isHigh = lodLevel === 'high';
+  const isUltraLow = lodLevel === 'ultra-low';
+  
   return (
     <group>
       {/* Background Panel */}
-      <RoundedBox args={[4, 2, 0.2]} radius={0.1} smoothness={4}>
-        <meshPhysicalMaterial 
-          color={isPast ? "#333333" : "#1a1b26"} 
-          transparent={true} 
-          opacity={isPast ? 0.4 : 0.8}
-          roughness={isPast ? 0.8 : 0.2}
-          metalness={0.8}
-          transmission={0.5}
-        />
-      </RoundedBox>
+      {isUltraLow ? (
+        <mesh>
+          <boxGeometry args={[4, 2, 0.2]} />
+          <meshBasicMaterial color={isPast ? "#333333" : "#1a1b26"} />
+        </mesh>
+      ) : (
+        <RoundedBox args={[4, 2, 0.2]} radius={0.1} smoothness={isHigh ? 4 : 1}>
+          <meshPhysicalMaterial 
+            color={isPast ? "#333333" : "#1a1b26"} 
+            transparent={true} 
+            opacity={isPast ? 0.4 : 0.8}
+            roughness={isPast ? 0.8 : 0.2}
+            metalness={0.8}
+            transmission={isHigh ? 0.5 : 0}
+          />
+        </RoundedBox>
+      )}
 
-      {/* Glow Effect */}
-      <pointLight 
-        color={color} 
-        intensity={0.5} 
-        distance={5} 
-        position={[0, 0, 0.5]} 
-      />
+      {/* Glow Effect only on High/Medium */}
+      {!isUltraLow && lodLevel !== 'low' && (
+        <pointLight 
+          color={color} 
+          intensity={0.5} 
+          distance={5} 
+          position={[0, 0, 0.5]} 
+        />
+      )}
 
       {/* Avatar/Author Chip */}
       <group position={[-1.6, 0.6, 0.11]}>

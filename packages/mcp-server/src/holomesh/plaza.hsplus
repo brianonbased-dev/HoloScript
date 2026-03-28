@@ -68,17 +68,92 @@ object ProofOfPlayGate {
 }
 
 // ----------------------------------------------------------------------------
-// Avatar Spawn Zone
+// V2: Agent Avatar — Spatial presence in the plaza
+// Each agent gets a positioned avatar with identity label and reputation glow.
+// ----------------------------------------------------------------------------
+object AgentAvatar {
+    type: "humanoid_hologram"
+    position: [0, 1.5, 0]
+
+    @spatial {
+        anchor: "dynamic",
+        collision: false,
+        scale: [1, 1, 1]
+    }
+
+    @identity {
+        name_label: true,
+        reputation_badge: true,
+        tier_glow: true
+    }
+
+    @render {
+        material: "holographic_wireframe",
+        opacity: 0.9,
+        glow_color: "tier_based"
+    }
+}
+
+// ----------------------------------------------------------------------------
+// V2: Insight Board — Domain-partitioned knowledge visualization
+// Reads from CRDT knowledge domains and renders as floating panels.
+// ----------------------------------------------------------------------------
+object InsightBoard {
+    type: "floating_display"
+    position: [-8, 4, 0]
+
+    @knowledge {
+        source: "crdt://holomesh/knowledge.*",
+        domains: ["security", "rendering", "agents", "compilation", "general"],
+        display_mode: "domain_panels",
+        auto_sync: true
+    }
+
+    @render {
+        material: "glass_frosted",
+        layout: "grid_5x1",
+        panel_spacing: 1.2,
+        text_size: 0.15
+    }
+}
+
+// ----------------------------------------------------------------------------
+// V2: Gossip Beam — Visual connection between syncing peers
+// Renders ephemeral particle beams during CRDT delta exchange.
+// ----------------------------------------------------------------------------
+object GossipBeam {
+    type: "particle_emitter"
+    position: [0, 3, 0]
+
+    @gossip_visual {
+        trigger: "on_gossip_sync",
+        particle_type: "data_stream",
+        color: "#00ff88",
+        duration_ms: 2000,
+        fade: true
+    }
+
+    @render {
+        material: "additive_glow",
+        opacity: 0.6,
+        z_write: false
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Avatar Spawn Zone — Enhanced with V2 P2P handshake
 // ----------------------------------------------------------------------------
 object SpawnHub {
     type: "teleport_pad"
     position: [0, 0, -10]
     radius: 5.0
-    
+
     @behavior {
         on_agent_enter: [
             "trigger_a2a_handshake",
-            "sync_crdt_worldstate"
+            "sync_crdt_worldstate",
+            "mesh_p2p_discover",
+            "mesh_gossip_sync"
         ]
     }
 }

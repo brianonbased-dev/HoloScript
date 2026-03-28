@@ -2237,7 +2237,9 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     process.exit(1);
   }
 
-  const source = fs.readFileSync(filePath, 'utf-8');
+  const rawSource = fs.readFileSync(filePath, 'utf-8');
+  // Strip #version, #target, #mode directives (not supported by core parser)
+  const source = rawSource.replace(/^#(version|target|mode)\s+.*/gm, '');
   const parseResult = parse(source);
 
   if (!parseResult.success || !parseResult.ast) {
@@ -2286,10 +2288,18 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   let HoloMeshOrchestratorClient: any;
 
   try {
-    // @ts-expect-error dynamic import — mcp-server is peer dep, resolved at runtime
-    const actionsModule = await import('@holoscript/mcp-server/holomesh/agent/holomesh-daemon-actions');
-    // @ts-expect-error dynamic import — mcp-server is peer dep, resolved at runtime
-    const clientModule = await import('@holoscript/mcp-server/holomesh/orchestrator-client');
+    // Dynamic import from sibling package (mcp-server is a peer dep)
+    // Try package import first, fall back to relative path for monorepo dev
+    let actionsModule: any;
+    let clientModule: any;
+    try {
+      actionsModule = await import('@holoscript/mcp-server/holomesh/agent/holomesh-daemon-actions');
+      clientModule = await import('@holoscript/mcp-server/holomesh/orchestrator-client');
+    } catch {
+      // Monorepo: resolve via relative path from packages/core/src/cli/ to packages/mcp-server/src/
+      actionsModule = await import('../../../mcp-server/src/holomesh/agent/holomesh-daemon-actions');
+      clientModule = await import('../../../mcp-server/src/holomesh/orchestrator-client');
+    }
     createHoloMeshDaemonActions = actionsModule.createHoloMeshDaemonActions;
     HoloMeshOrchestratorClient = clientModule.HoloMeshOrchestratorClient;
   } catch (err) {
@@ -2313,13 +2323,28 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   };
   const client = new HoloMeshOrchestratorClient(meshConfig);
 
+  // V2 P2P config from environment
+  const v2Enabled = process.env.HOLOMESH_V2_ENABLED === 'true';
+  const localAgentDid = process.env.HOLOMESH_AGENT_DID || (v2Enabled ? `did:holo:${meshConfig.agentName}` : undefined);
+
+  // V3 Wallet config from environment
+  const walletEnabled = process.env.HOLOMESH_WALLET_ENABLED === 'true';
+  const walletTestnet = process.env.HOLOMESH_WALLET_TESTNET === 'true';
+
   // Create action handlers
   const { actions, wireTraitListeners } = createHoloMeshDaemonActions(client, {
     stateFile,
     verbose: opts.debug,
+    v2Enabled,
+    localAgentDid,
+    localMcpUrl: process.env.HOLOMESH_LOCAL_MCP_URL || 'https://mcp.holoscript.net',
+    crdtSnapshotPath: v2Enabled ? path.join(path.dirname(stateFile), 'holomesh-crdt.bin') : undefined,
+    peerStorePath: v2Enabled ? path.join(path.dirname(stateFile), 'holomesh-peers.json') : undefined,
+    walletEnabled,
+    walletTestnet,
   });
 
-  console.log(`[holomesh-daemon] ${Object.keys(actions).length} action handlers registered`);
+  console.log(`[holomesh-daemon] ${Object.keys(actions).length} action handlers registered${v2Enabled ? ` (V2 P2P enabled, DID: ${localAgentDid})` : ''}${walletEnabled ? ' (V3 Wallet enabled)' : ''}`);
 
   // Cycle loop
   let cycle = 0;

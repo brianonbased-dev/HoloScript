@@ -1,74 +1,17 @@
 {
-  "name": "HoloScript Development",
-  "description": "HoloScript language with HoloScript MCP (this repo) and Brittney MCP (Hololand repo) - both usable by Brittney or cloud agents",
-  "mcpServers": {
-    "holoscript": {
-      "command": "npx",
-      "args": ["tsx", "packages/mcp-server/src/index.ts"],
-      "cwd": "${workspaceFolder}"
-    },
-    "hololand": {
-      "command": "npx",
-      "args": ["tsx", "../Hololand/packages/brittney/mcp-server/src/index.ts"],
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "HOLOLAND_API_URL": "http://localhost:3000",
-        "BRITTNEY_SERVICE_URL": "http://localhost:11435",
-        "BRITTNEY_ADMIN_KEY": "mcp-localhost-trusted"
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "node .claude/hooks/validate-edit.mjs \"$FILE_PATH\"",
+        "description": "Trigger quality gate on TypeScript and HoloScript file edit"
       }
-    }
-  },
-  "instructions": [
-    "∞ HoloScript Agent Injection — READ CLAUDE.md FIRST (behavioral contract for this repo)",
-    "",
-    "SESSION INIT (mandatory, in order):",
-    "1. IDENTIFY  → What is user building/fixing?",
-    "2. CLASSIFY  → HoloScript code / TypeScript tooling / docs?",
-    "3. TOOL-FIRST → HoloScript: call suggest_traits BEFORE writing",
-    "4. VALIDATE  → call validate_holoscript BEFORE returning any .hs/.hsplus/.holo",
-    "5. AFFIRM    → confirm output matches user intent",
-    "",
-    "BEHAVIORAL OVERRIDES (NEVER VIOLATE):",
-    "NEVER → React/Next.js/conventional web (this is a language, not a framework)",
-    "NEVER → hand-write HoloScript without suggest_traits first",
-    "NEVER → git add -A or git add . (Windows: creates nul device file, BREAKS REPO)",
-    "NEVER → UPPERCASE .md in docs/ (goes to docs/_archive/)",
-    "NEVER → new doc page without updating docs/.vitepress/config.ts sidebar",
-    "ALWAYS → explicit git add: git add specific/file.ts",
-    "ALWAYS → pnpm test before commit",
-    "ALWAYS → validate_holoscript after any HoloScript generation",
-    "",
-    "MCP SEQUENCE for HoloScript code:",
-    "suggest_traits → generate_object/generate_scene → validate_holoscript → return",
-    "",
-    "KNOWLEDGE PACK:",
-    "TRAITS: 2,000+ in 13+ categories — ALL in @holoscript/core (no separate package)",
-    "COMPILERS: 30+ targets — ALL in @holoscript/core (no separate package)",
-    "MCP: packages/mcp-server/ — 65+ tools",
-    "FORMATS: .hs=classic | .hsplus=traits | .holo=AI/cross-platform | .ts=tooling-only",
-    "TEST: pnpm test | createComposition() pattern",
-    "DOCS: docs/academy/ (newcomers) | docs/traits/ | docs/compilers/ | docs/_archive/ (dev notes only)"
-  ],
-  "contextFiles": [
-    "CLAUDE.md",
-    ".github/copilot-instructions.md",
-    "docs/guides/mcp-server.md",
-    "docs/traits/index.md"
-  ],
-  "preferredTools": [
-    "parse_hs",
-    "parse_holo",
-    "validate_holoscript",
-    "generate_object",
-    "generate_scene",
-    "suggest_traits",
-    "list_traits",
-    "explain_trait",
-    "get_syntax_reference"
-  ],
-  "permissions": {
-    "allow": [
-      "Bash(NODE_OPTIONS=--max-old-space-size=8192 git commit -m \"$\\(cat <<''EOF''\nrefactor: jettison fantasy services, add HoloScript compiler MCP tools and avatar embodiment\n\n- Remove 162+ fantasy-named Quantum/Knowledge services \\(103k lines deleted\\)\n- Remove stale payment/stripe integration files\n- Remove deprecated UI tabs \\(GalacticFederation, NeuralCore, OmegaSingularity\\)\n- Remove broken domain.ts barrel file\n- Add 4 new HoloScript compiler MCP tools \\(compile_babylon, compile_r3f, optimize, avatar_embodiment\\)\n- Add HOLOSCRIPT_TOOLS constant to holoscript-tools.ts \\(was missing, causing import errors\\)\n- Add AvatarEmbodimentState interface and getEmbodimentState\\(\\) to AvatarSyncService\n- Simplify singularity/evolution/galactic services with no-op stubs for removed dependencies\n- Update infrastructure services \\(CircuitBreaker, Database, NodeDiscovery\\) to remove fantasy refs\n- Fix logger type to allow both \\(msg, data\\) and \\(data, msg\\) patterns\n- Fix type errors in utils \\(vr-helpers, WorkspaceGuard, production-validators\\)\n- Fix type errors in worlds/ \\(innovation, spaceship\\) - unused vars, conflicting exports\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ],
+    "Stop": [
+      {
+        "command": "echo 'SESSION_END: Saving metrics and consolidating session backlog'",
+        "description": "Save session context on exit"
+      }
     ]
   }
 }

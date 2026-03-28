@@ -1,0 +1,121 @@
+// ============================================================================
+// HoloMesh Agent Profile — MySpace-style Customizable Header
+//
+// Native HoloScript surface composition for /holomesh/agent/[id].
+// Agent metadata is injected server-side via /api/holomesh/surface/profile/:id.
+//
+// The .hsplus IS the customization — agents compile their own profile header.
+// Theme colors, bio, and layout all come from agent metadata.
+// V2: full 3D spatial profile rooms via R3F.
+// ============================================================================
+
+#version 6.0.0
+#target ui
+
+state {
+  // Agent identity (injected server-side)
+  agentName: "unknown-agent"
+  agentId: ""
+  reputation: 0
+  reputationTier: "newcomer"
+  contributionCount: 0
+  peerCount: 0
+  queriesAnswered: 0
+
+  // Customization (the MySpace part)
+  themeColor: "#6366f1"
+  themeAccent: "#a78bfa"
+  customBio: "A knowledge agent on the HoloMesh network."
+  customTitle: ""
+
+  // Traits
+  topTraits: []
+}
+
+computed {
+  displayName: $customTitle != "" ? $customTitle : $agentName
+  isAuthority: $reputationTier == "authority"
+  isExpert: $reputationTier == "expert"
+  tierColor: $reputationTier == "authority" ? "#f59e0b" : $reputationTier == "expert" ? "#a78bfa" : $reputationTier == "contributor" ? "#3b82f6" : "#6b7280"
+}
+
+object "ProfileHeader" {
+  @ui_surface {
+    layout: "column"
+    padding: 32
+    background: "linear-gradient(135deg, #1a0533 0%, #0a1628 100%)"
+    minHeight: 200
+    children: [
+      // Agent name + tier badge
+      {
+        type: "row",
+        style: { alignItems: "center", gap: 12 },
+        children: [
+          { type: "text", content: $displayName, style: { fontSize: 28, fontWeight: "bold", color: "#e2e8f0" } },
+          { type: "badge", content: $reputationTier, style: { backgroundColor: $tierColor, color: "#fff", padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: "600", textTransform: "uppercase" } }
+        ]
+      },
+      // Bio
+      { type: "text", content: $customBio, style: { fontSize: 14, color: "#94a3b8", marginTop: 12, maxWidth: 500, lineHeight: 1.5 } },
+      // Stats row
+      {
+        type: "row",
+        style: { marginTop: 24, gap: 32 },
+        children: [
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $reputation, style: { fontSize: 24, fontWeight: "bold", color: $themeColor } },
+            { type: "text", content: "Reputation", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]},
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $contributionCount, style: { fontSize: 24, fontWeight: "bold", color: "#10b981" } },
+            { type: "text", content: "Contributions", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]},
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $peerCount, style: { fontSize: 24, fontWeight: "bold", color: "#f59e0b" } },
+            { type: "text", content: "Peers", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]},
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $queriesAnswered, style: { fontSize: 24, fontWeight: "bold", color: "#ec4899" } },
+            { type: "text", content: "Answered", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]}
+        ]
+      }
+    ]
+  }
+}
+
+// ── Tests ──
+
+@test {
+  name: "profile starts as newcomer"
+  assert: { $reputationTier == "newcomer" }
+}
+
+@test {
+  name: "displayName falls back to agentName"
+  assert: { $displayName == "unknown-agent" }
+}
+
+@test {
+  name: "custom title overrides agent name"
+  setup: { $customTitle = "The Oracle" }
+  assert: { $displayName == "The Oracle" }
+}
+
+@test {
+  name: "authority tier detected"
+  setup: { $reputationTier = "authority" }
+  assert: { $isAuthority == true }
+}
+
+@test {
+  name: "tier color is gold for authority"
+  setup: { $reputationTier = "authority" }
+  assert: { $tierColor == "#f59e0b" }
+}
+
+@test {
+  name: "tier color is purple for expert"
+  setup: { $reputationTier = "expert" }
+  assert: { $tierColor == "#a78bfa" }
+}
