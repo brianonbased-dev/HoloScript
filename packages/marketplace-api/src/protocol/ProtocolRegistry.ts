@@ -16,7 +16,11 @@
 
 import type { Address, Hex } from 'viem';
 import { formatEther } from 'viem';
-import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
+import {
+  zoraCreator1155ImplABI,
+  zoraCreatorFixedPriceSaleStrategyABI,
+  zoraCreatorFixedPriceSaleStrategyAddress,
+} from '@zoralabs/protocol-deployments';
 import { WalletConnection } from '../web3/WalletConnection.js';
 import { GasEstimator } from '../web3/GasEstimator.js';
 import {
@@ -127,7 +131,7 @@ export class ProtocolRegistry {
 
       const record: ProtocolRecord = {
         contentHash: provenance.hash,
-        author: (this.wallet.getAddress() || provenance.author) as HexAddress,
+        author: (provenance.author || this.wallet.getAddress()) as HexAddress,
         importHashes: provenance.imports.map((i: ProvenanceImport) => i.hash).filter(Boolean) as string[],
         license: provenance.license as LicenseType,
         publishMode: provenance.publishMode as PublishMode,
@@ -432,7 +436,14 @@ export class ProtocolRegistry {
 
   /**
    * Create an on-chain token in the shared 1155 collection.
-   * Uses Zora's zoraCreator1155ImplABI for direct contract interaction.
+   *
+   * Revenue routing: the creator (not the platform) receives all revenue.
+   * 1. setupNewTokenWithCreateReferral → Zora create rewards go to creator
+   * 2. addPermission → grant fixed-price minter permission to sell
+   * 3. callSale → per-token fundsRecipient = creator (primary sales)
+   * 4. updateRoyaltiesForToken → royaltyRecipient = creator (secondary sales)
+   *
+   * The platform wallet pays gas but does NOT receive revenue.
    */
   private async createOnChainToken(
     record: ProtocolRecord,
@@ -447,19 +458,32 @@ export class ProtocolRegistry {
 
     const walletClient = this.wallet.getWalletClient();
     const publicClient = this.wallet.getPublicClient();
-    const minterAddress = this.wallet.getAddress()!;
+    const platformAddress = this.wallet.getAddress()!;
 
-    // Estimate gas
+    // Resolve creator address — if the author is an 0x address use it directly,
+    // otherwise default to the platform wallet (creator can claim later).
+    const creatorAddress = (
+      record.author.startsWith('0x') ? record.author : platformAddress
+    ) as Address;
+
+    // Determine chain for fixed-price minter address lookup
+    const chainId = this.testnet
+      ? PROTOCOL_CONSTANTS.CHAIN.testnet.id
+      : PROTOCOL_CONSTANTS.CHAIN.id;
+    const fixedPriceMinter = zoraCreatorFixedPriceSaleStrategyAddress[
+      chainId as keyof typeof zoraCreatorFixedPriceSaleStrategyAddress
+    ] as Address;
+
+    // Check balance
     const gasEstimate = await GasEstimator.estimateMintGas(
       publicClient,
       this.collectionAddress,
       1n,
     );
 
-    // Check balance
     const balanceCheck = await GasEstimator.checkSufficientBalance(
       publicClient,
-      minterAddress,
+      platformAddress,
       gasEstimate,
     );
 
@@ -474,52 +498,119 @@ export class ProtocolRegistry {
       );
     }
 
-    // Mint first edition (creates the token)
-    const txHash = await walletClient.writeContract({
+    // Step 1: Create token with creator as create referral
+    const setupTxHash = await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'mint' as any,
+      functionName: 'setupNewTokenWithCreateReferral' as any,
       args: [
-        minterAddress,
-        0n, // tokenId 0 = new token
-        1n, // quantity
-        '0x' as Hex,
-        minterAddress, // self-referral for first mint
+        record.metadataURI || '',         // token URI
+        BigInt(Number.MAX_SAFE_INTEGER),   // maxSupply (unlimited editions)
+        creatorAddress,                     // createReferral → creator gets Zora rewards
       ] as any,
-      value: gasEstimate.mintFee,
-      gas: gasEstimate.gasLimit,
-      maxFeePerGas: gasEstimate.maxFeePerGas,
-      maxPriorityFeePerGas: gasEstimate.maxPriorityFeePerGas,
     } as any);
 
-    // Wait for confirmation
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash: txHash,
+    const setupReceipt = await publicClient.waitForTransactionReceipt({
+      hash: setupTxHash,
       confirmations: 1,
     });
 
-    if (receipt.status === 'reverted') {
+    if (setupReceipt.status === 'reverted') {
       throw new ProtocolRegistryError(
-        `On-chain token creation reverted: ${txHash}`,
+        `Token creation reverted: ${setupTxHash}`,
         'TX_REVERTED',
-        { txHash },
+        { txHash: setupTxHash },
       );
     }
 
-    // Extract token ID from Zora Minted event
+    // Extract token ID from UpdatedToken event
     let tokenId = '0';
-    const mintLog = receipt.logs.find(
-      (log) => log.topics[0] === '0x30385c845b448a36257a6a1716e6ad2e1bc2cbe333cde1e69fe849ad6511adfe',
-    );
-    if (mintLog?.topics[2]) {
-      tokenId = BigInt(mintLog.topics[2]).toString();
+    const UPDATED_TOKEN_TOPIC = '0x5086d1bcea28999da9875111e3592688fbfa821db63214c695ca35f00f5e0e23';
+    for (const log of setupReceipt.logs) {
+      if (log.topics[0] === UPDATED_TOKEN_TOPIC && log.topics[1]) {
+        tokenId = BigInt(log.topics[1]).toString();
+        break;
+      }
     }
 
-    return { tokenId, txHash };
+    // Fallback: check TransferSingle (ERC-1155) event for tokenId
+    if (tokenId === '0') {
+      const TRANSFER_SINGLE = '0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62';
+      for (const log of setupReceipt.logs) {
+        if (log.topics[0] === TRANSFER_SINGLE && log.topics[3]) {
+          tokenId = BigInt(log.topics[3]).toString();
+          break;
+        }
+      }
+    }
+
+    const tokenIdBig = BigInt(tokenId);
+
+    // Step 2: Grant minter permission to the fixed-price sale strategy
+    await walletClient.writeContract({
+      address: this.collectionAddress,
+      abi: zoraCreator1155ImplABI,
+      functionName: 'addPermission' as any,
+      args: [
+        tokenIdBig,
+        fixedPriceMinter,
+        4n, // PERMISSION_BIT_MINTER = 2^2 = 4
+      ] as any,
+    } as any);
+
+    // Step 3: Configure per-token sale — fundsRecipient = CREATOR
+    const { encodeFunctionData } = await import('viem');
+    const setSaleData = encodeFunctionData({
+      abi: zoraCreatorFixedPriceSaleStrategyABI,
+      functionName: 'setSale',
+      args: [
+        tokenIdBig,
+        {
+          saleStart: 0n,                                      // immediately
+          saleEnd: BigInt('18446744073709551615'),             // uint64 max (forever)
+          maxTokensPerAddress: 0n,                             // unlimited
+          pricePerToken: record.price,                         // creator's price
+          fundsRecipient: creatorAddress,                      // CREATOR gets primary sale revenue
+        },
+      ],
+    });
+
+    await walletClient.writeContract({
+      address: this.collectionAddress,
+      abi: zoraCreator1155ImplABI,
+      functionName: 'callSale' as any,
+      args: [
+        tokenIdBig,
+        fixedPriceMinter,
+        setSaleData,
+      ] as any,
+    } as any);
+
+    // Step 4: Set per-token royalties — royaltyRecipient = CREATOR
+    await walletClient.writeContract({
+      address: this.collectionAddress,
+      abi: zoraCreator1155ImplABI,
+      functionName: 'updateRoyaltiesForToken' as any,
+      args: [
+        tokenIdBig,
+        {
+          royaltyMintSchedule: 0,
+          royaltyBPS: PROTOCOL_CONSTANTS.PLATFORM_FEE_BPS,    // 2.5% secondary royalty
+          royaltyRecipient: creatorAddress,                    // CREATOR gets secondary sales
+        },
+      ] as any,
+    } as any);
+
+    return { tokenId, txHash: setupTxHash };
   }
 
   /**
    * Mint an edition of an existing on-chain token.
+   *
+   * Uses mintWithRewards so Zora protocol rewards are distributed:
+   * - Create referral (creator) gets Zora create reward
+   * - Mint referral (referrer) gets Zora mint reward
+   * - Primary sale revenue goes to creator via per-token fundsRecipient
    */
   private async mintEdition(
     record: ProtocolRecord,
@@ -535,9 +626,9 @@ export class ProtocolRegistry {
 
     const walletClient = this.wallet.getWalletClient();
     const publicClient = this.wallet.getPublicClient();
-    const minterAddress = this.wallet.getAddress()!;
+    const collectorAddress = this.wallet.getAddress()!;
 
-    const mintReferral = (referrer || minterAddress) as Address;
+    const mintReferral = (referrer || collectorAddress) as Address;
 
     const gasEstimate = await GasEstimator.estimateMintGas(
       publicClient,
@@ -545,19 +636,19 @@ export class ProtocolRegistry {
       BigInt(quantity),
     );
 
-    // Total cost = gas + mint fee + price * quantity
+    // Total cost = Zora mint fee + token price * quantity
     const totalValue = gasEstimate.mintFee + record.price * BigInt(quantity);
 
     const txHash = await walletClient.writeContract({
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
-      functionName: 'mint' as any,
+      functionName: 'mintWithRewards' as any,
       args: [
-        minterAddress,
-        BigInt(record.tokenId),
-        BigInt(quantity),
-        '0x' as Hex,
-        mintReferral,
+        collectorAddress,               // minter (receives the NFT)
+        BigInt(record.tokenId),          // tokenId
+        BigInt(quantity),                // quantity
+        '0x' as Hex,                     // minterArguments
+        mintReferral,                    // mintReferral (earns Zora referral reward)
       ] as any,
       value: totalValue,
       gas: gasEstimate.gasLimit,
