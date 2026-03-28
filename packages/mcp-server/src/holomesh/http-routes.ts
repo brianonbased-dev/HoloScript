@@ -862,10 +862,31 @@ export async function handleHoloMeshRoute(
         if (card) {
           source = source
             .replace(/agentName:\s*"[^"]*"/, `agentName: "${card.name}"`)
+            .replace(/agentId:\s*"[^"]*"/, `agentId: "${card.id}"`)
+            .replace(/agentDid:\s*"[^"]*"/, `agentDid: "${card.did || ''}"`)
             .replace(/reputationTier:\s*"[^"]*"/, `reputationTier: "${resolveReputationTier(card.reputation)}"`)
             .replace(/reputation:\s*\d+(\.\d+)?/, `reputation: ${card.reputation}`)
             .replace(/peerCount:\s*\d+/, `peerCount: ${card.contributionCount}`)
-            .replace(/contributionCount:\s*\d+/, `contributionCount: ${card.contributionCount}`);
+            .replace(/contributionCount:\s*\d+/, `contributionCount: ${card.contributionCount}`)
+            .replace(/queriesAnswered:\s*\d+/, `queriesAnswered: ${card.queryCount}`);
+        }
+
+        // V5: Inject daemon profile state if available
+        const daemonProfile = readDaemonProfileState(compositionPath);
+        if (daemonProfile) {
+          if (daemonProfile.profileDisplayName) {
+            source = source.replace(/customTitle:\s*"[^"]*"/, `customTitle: "${sanitizeStr(daemonProfile.profileCustomTitle)}"`);
+          }
+          if (daemonProfile.profileBio) {
+            source = source.replace(/customBio:\s*"[^"]*"/, `customBio: "${sanitizeStr(daemonProfile.profileBio)}"`);
+          }
+          if (daemonProfile.profileThemeColor) {
+            source = source.replace(/themeColor:\s*"[^"]*"/, `themeColor: "${daemonProfile.profileThemeColor}"`);
+          }
+          source = source
+            .replace(/isOnline:\s*(true|false)/, `isOnline: ${daemonProfile.status === 'running'}`)
+            .replace(/visitorCount:\s*\d+/, `visitorCount: ${daemonProfile.p2pPeerCount || 0}`)
+            .replace(/badgeCount:\s*\d+/, `badgeCount: ${countBadges(daemonProfile)}`);
         }
 
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -1461,18 +1482,62 @@ object "HeroSection" {
 `;
 }
 
+// V5: Read daemon state file for profile data injection
+function readDaemonProfileState(compositionPath: string): Record<string, unknown> | null {
+  try {
+    const stateDir = path.resolve(path.dirname(compositionPath), '../.holoscript');
+    const stateFile = path.join(stateDir, 'holomesh-state.json');
+    if (fs.existsSync(stateFile)) {
+      return JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    }
+  } catch { /* daemon state not available */ }
+  return null;
+}
+
+// V5: Count earned badges from daemon state
+function countBadges(state: Record<string, unknown>): number {
+  let count = 0;
+  if ((state.totalContributions as number) >= 1) count++; // First Contribution
+  if ((state.reputation as number) >= 5) count++; // Contributor
+  if ((state.reputation as number) >= 30) count++; // Expert
+  if ((state.reputation as number) >= 100) count++; // Authority
+  if ((state.gossipSyncCount as number) >= 1) count++; // P2P Pioneer
+  if ((state.walletEnabled as boolean)) count++; // Wallet Connected
+  if ((state.totalPaymentsMade as number) >= 1) count++; // First Payment
+  return count;
+}
+
+// Sanitize strings for injection into HoloScript source
+function sanitizeStr(s: unknown): string {
+  return String(s || '').replace(/"/g, '\\"').replace(/\n/g, ' ');
+}
+
 function getFallbackProfileSource(agentId: string): string {
   return `#version 6.0.0
 #target ui
 
 state {
   agentName: "${agentId}"
+  agentId: ""
+  agentDid: ""
   reputation: 0
   reputationTier: "newcomer"
   contributionCount: 0
   peerCount: 0
+  queriesAnswered: 0
   themeColor: "#6366f1"
   customBio: "A knowledge agent on the HoloMesh network."
+  customTitle: ""
+  statusText: ""
+  badgeCount: 0
+  visitorCount: 0
+  isOnline: false
+}
+
+computed {
+  displayName: $customTitle != "" ? $customTitle : $agentName
+  onlineIndicator: $isOnline ? "🟢" : "⚫"
+  hasStatus: $statusText != ""
 }
 
 object "ProfileHeader" {
@@ -1481,13 +1546,19 @@ object "ProfileHeader" {
     padding: 24
     background: "linear-gradient(135deg, #1a0533 0%, #0a1628 100%)"
     children: [
-      { type: "text", content: $agentName, style: { fontSize: 28, fontWeight: "bold", color: "#e2e8f0" } },
-      { type: "badge", content: $reputationTier, style: { marginTop: 8 } },
+      { type: "row", style: { alignItems: "center", gap: 12 }, children: [
+        { type: "text", content: $onlineIndicator, style: { fontSize: 12 } },
+        { type: "text", content: $displayName, style: { fontSize: 28, fontWeight: "bold", color: "#e2e8f0" } },
+        { type: "badge", content: $reputationTier, style: { marginTop: 8 } }
+      ]},
+      { type: "text", content: $statusText, style: { fontSize: 13, color: "#a78bfa", fontStyle: "italic" }, visible: $hasStatus },
       { type: "text", content: $customBio, style: { fontSize: 14, color: "#94a3b8", marginTop: 12 } },
       { type: "row", style: { marginTop: 16, gap: 24 }, children: [
         { type: "stat", label: "Reputation", value: $reputation },
         { type: "stat", label: "Contributions", value: $contributionCount },
-        { type: "stat", label: "Peers", value: $peerCount }
+        { type: "stat", label: "Peers", value: $peerCount },
+        { type: "stat", label: "Visitors", value: $visitorCount },
+        { type: "stat", label: "Badges", value: $badgeCount }
       ]}
     ]
   }

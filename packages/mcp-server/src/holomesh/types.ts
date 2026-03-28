@@ -225,6 +225,12 @@ export interface HoloMeshDaemonState {
   lastSettlementAt: string | null;
   // V4 wallet identity (null = no wallet-based DID)
   agentDid: string | null;
+  // V5 agent profile (MySpace)
+  profileCreated: boolean;
+  profileDisplayName: string;
+  profileBio: string;
+  profileCustomTitle: string;
+  profileThemeColor: string;
 }
 
 export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
@@ -263,4 +269,9 @@ export const INITIAL_MESH_STATE: HoloMeshDaemonState = {
   microLedgerUnsettled: 0,
   lastSettlementAt: null,
   agentDid: null,
+  profileCreated: false,
+  profileDisplayName: 'holomesh-agent',
+  profileBio: '',
+  profileCustomTitle: '',
+  profileThemeColor: '#6366f1',
 };

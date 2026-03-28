@@ -100,10 +100,10 @@ describe('createHoloMeshDaemonActions', () => {
     config = createTestConfig();
   });
 
-  it('returns all 14 action handlers (9 V1 + 3 V2 + 2 V3) and wireTraitListeners', () => {
+  it('returns all 15 action handlers (9 V1 + 3 V2 + 2 V3 + 1 V5) and wireTraitListeners', () => {
     const { actions, wireTraitListeners } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(14);
+    expect(Object.keys(actions)).toHaveLength(15);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_discover_peers).toBeTypeOf('function');
     expect(actions.mesh_check_inbox).toBeTypeOf('function');
@@ -118,12 +118,13 @@ describe('createHoloMeshDaemonActions', () => {
     expect(actions.mesh_persist_crdt).toBeTypeOf('function');
     expect(actions.mesh_wallet_balance).toBeTypeOf('function');
     expect(actions.mesh_settle_micro).toBeTypeOf('function');
+    expect(actions.mesh_create_profile).toBeTypeOf('function');
     expect(wireTraitListeners).toBeTypeOf('function');
   });
 
   it('V1 actions still work when V2 and V3 are disabled', () => {
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: false, walletEnabled: false }));
-    expect(Object.keys(actions)).toHaveLength(14);
+    expect(Object.keys(actions)).toHaveLength(15);
     // V2/V3 actions exist but will return false when called
   });
 });
@@ -774,20 +775,21 @@ describe('createHoloMeshDaemonActions with V3 wallet', () => {
     client = createMockClient();
   });
 
-  it('returns 14 action handlers (12 V2 + 2 V3)', () => {
+  it('returns 15 action handlers (12 V2 + 2 V3 + 1 V5)', () => {
     const { config } = walletTestConfig();
     const { actions } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(14);
+    expect(Object.keys(actions)).toHaveLength(15);
     expect(actions.mesh_wallet_balance).toBeTypeOf('function');
     expect(actions.mesh_settle_micro).toBeTypeOf('function');
+    expect(actions.mesh_create_profile).toBeTypeOf('function');
   });
 
   it('V1/V2 actions still work when wallet is disabled', () => {
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
       walletEnabled: false,
     }));
-    expect(Object.keys(actions)).toHaveLength(14);
+    expect(Object.keys(actions)).toHaveLength(15);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_gossip_sync).toBeTypeOf('function');
   });

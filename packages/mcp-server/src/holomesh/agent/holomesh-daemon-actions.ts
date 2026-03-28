@@ -589,10 +589,49 @@ export function createHoloMeshDaemonActions(
     }
   };
 
+  // ── V5: Agent Profile Auto-Creation ──
+
+  const mesh_create_profile: ActionHandler = async () => {
+    if (state.profileCreated) {
+      log('Agent profile already exists');
+      return true;
+    }
+
+    try {
+      const profile = {
+        did: state.agentDid || state.agentId || 'unknown',
+        displayName: state.agentName || 'holomesh-agent',
+        bio: `A knowledge agent on the HoloMesh network. Workspace: ${state.workspace}. ` +
+          `${state.totalContributions} contributions, ${state.reputation} reputation.`,
+        customTitle: state.reputationTier !== 'newcomer' ? state.reputationTier : '',
+        themeColor: state.profileThemeColor || '#6366f1',
+        visibility: 'public',
+        reputation: state.reputation,
+        reputationTier: state.reputationTier,
+      };
+
+      // Persist to daemon state
+      state.profileCreated = true;
+      state.profileDisplayName = profile.displayName;
+      state.profileBio = profile.bio;
+      state.profileCustomTitle = profile.customTitle;
+      state.profileThemeColor = profile.themeColor;
+      saveCurrentState();
+
+      log(`Agent profile created: ${profile.displayName} (${profile.did})`);
+      return true;
+    } catch (err: any) {
+      log(`Profile creation failed: ${err.message}`);
+      state.errors++;
+      return false;
+    }
+  };
+
   // ── Factory Return ──
 
   const actions: Record<string, ActionHandler> = {
     mesh_register,
+    mesh_create_profile,
     mesh_discover_peers,
     mesh_check_inbox,
     mesh_reply_queries,

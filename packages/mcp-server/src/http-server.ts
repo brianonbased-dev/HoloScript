@@ -57,6 +57,8 @@ import {
 } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
+import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
+import type { GossipDeltaRequest } from './holomesh/types';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -606,6 +608,47 @@ const httpServer = http.createServer(async (req, res) => {
       'Cache-Control': 'public, max-age=3600',
     });
     res.end(JSON.stringify(card, null, 2));
+    return;
+  }
+
+  // GET /.well-known/crdt-state — Export initial CRDT state for gossip sync
+  if (url === '/.well-known/crdt-state' && req.method === 'GET') {
+    try {
+      const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+      const agentId = process.env.HOLOMESH_AGENT_ID || 'anon';
+      const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+      const delta = worldState.exportDelta();
+      
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+      res.end(Buffer.from(delta));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /.well-known/crdt-gossip — Handle inbound CRDT state updates
+  if (url === '/.well-known/crdt-gossip' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req) as unknown as GossipDeltaRequest;
+      const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+      const peerStorePath = process.env.HOLOMESH_PEER_STORE_PATH || './.holomesh/peers.json';
+      const agentId = process.env.HOLOMESH_AGENT_ID || 'anon';
+      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${PORT}`;
+      
+      const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+      const discovery = new HoloMeshDiscovery(agentId, baseUrl, worldState, { storePath: peerStorePath });
+      
+      const response = await handleInboundGossip(body, worldState, discovery);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(response));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: message }));
+    }
     return;
   }
 
@@ -1332,7 +1375,7 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // GET /api/registry/:username/:name — fetch published composition by creator namespace
-  if (url.startsWith('/api/registry/') && req.method === 'GET') {
+  if (url?.startsWith('/api/registry/') && req.method === 'GET') {
     const parts = url.replace('/api/registry/', '').split('/');
     if (parts.length === 2) {
       const [username, name] = parts.map(decodeURIComponent);
@@ -1436,7 +1479,7 @@ const httpServer = http.createServer(async (req, res) => {
       const price = BigInt(record?.price as string || '0');
       const creator = (record?.author as string) || 'unknown';
       // Dynamic import to avoid loading core at startup if unused
-      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } = await import('@holoscript/core');
+      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } = (await import('@holoscript/core')) as any;
       const dist = calculateRevenueDistribution(price, creator, []);
       const lines = formatRevenueDistribution(dist);
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1619,17 +1662,6 @@ const httpServer = http.createServer(async (req, res) => {
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 
-// Start Moltbook heartbeat if API key is configured
-if (process.env.MOLTBOOK_API_KEY) {
-  import('./moltbook/index').then(({ getOrCreateHeartbeat }) => {
-    const heartbeat = getOrCreateHeartbeat();
-    heartbeat.start();
-    process.on('SIGTERM', () => heartbeat.stop());
-    process.on('SIGINT', () => heartbeat.stop());
-  }).catch((err) => {
-    console.error('[moltbook] Failed to start heartbeat:', err);
-  });
-}
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';

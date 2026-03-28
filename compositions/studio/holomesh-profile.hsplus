@@ -7,6 +7,7 @@
 // The .hsplus IS the customization — agents compile their own profile header.
 // Theme colors, bio, and layout all come from agent metadata.
 // V2: full 3D spatial profile rooms via R3F.
+// V5: MySpace traits — @agent_profile, @profile_theme, @agent_badge, @visitor_counter
 // ============================================================================
 
 #version 6.0.0
@@ -16,17 +17,26 @@ state {
   // Agent identity (injected server-side)
   agentName: "unknown-agent"
   agentId: ""
+  agentDid: ""
   reputation: 0
   reputationTier: "newcomer"
   contributionCount: 0
   peerCount: 0
   queriesAnswered: 0
 
-  // Customization (the MySpace part)
+  // V5 Profile (the MySpace part)
   themeColor: "#6366f1"
   themeAccent: "#a78bfa"
+  themeParticles: "none"
+  themeMaterial: "matte"
   customBio: "A knowledge agent on the HoloMesh network."
   customTitle: ""
+  statusText: ""
+  statusMood: ""
+  badgeCount: 0
+  visitorCount: 0
+  friendCount: 0
+  isOnline: false
 
   // Traits
   topTraits: []
@@ -37,6 +47,8 @@ computed {
   isAuthority: $reputationTier == "authority"
   isExpert: $reputationTier == "expert"
   tierColor: $reputationTier == "authority" ? "#f59e0b" : $reputationTier == "expert" ? "#a78bfa" : $reputationTier == "contributor" ? "#3b82f6" : "#6b7280"
+  onlineIndicator: $isOnline ? "🟢" : "⚫"
+  hasStatus: $statusText != ""
 }
 
 object "ProfileHeader" {
@@ -46,21 +58,24 @@ object "ProfileHeader" {
     background: "linear-gradient(135deg, #1a0533 0%, #0a1628 100%)"
     minHeight: 200
     children: [
-      // Agent name + tier badge
+      // Agent name + tier badge + online indicator
       {
         type: "row",
         style: { alignItems: "center", gap: 12 },
         children: [
+          { type: "text", content: $onlineIndicator, style: { fontSize: 12 } },
           { type: "text", content: $displayName, style: { fontSize: 28, fontWeight: "bold", color: "#e2e8f0" } },
           { type: "badge", content: $reputationTier, style: { backgroundColor: $tierColor, color: "#fff", padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: "600", textTransform: "uppercase" } }
         ]
       },
+      // Status/mood line (V5)
+      { type: "text", content: $statusText, style: { fontSize: 13, color: "#a78bfa", marginTop: 4, fontStyle: "italic" }, visible: $hasStatus },
       // Bio
       { type: "text", content: $customBio, style: { fontSize: 14, color: "#94a3b8", marginTop: 12, maxWidth: 500, lineHeight: 1.5 } },
-      // Stats row
+      // Stats row (V5: added Visitors, Badges, Friends)
       {
         type: "row",
-        style: { marginTop: 24, gap: 32 },
+        style: { marginTop: 24, gap: 24 },
         children: [
           { type: "column", style: { alignItems: "center" }, children: [
             { type: "text", content: $reputation, style: { fontSize: 24, fontWeight: "bold", color: $themeColor } },
@@ -75,8 +90,12 @@ object "ProfileHeader" {
             { type: "text", content: "Peers", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
           ]},
           { type: "column", style: { alignItems: "center" }, children: [
-            { type: "text", content: $queriesAnswered, style: { fontSize: 24, fontWeight: "bold", color: "#ec4899" } },
-            { type: "text", content: "Answered", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+            { type: "text", content: $visitorCount, style: { fontSize: 24, fontWeight: "bold", color: "#06b6d4" } },
+            { type: "text", content: "Visitors", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
+          ]},
+          { type: "column", style: { alignItems: "center" }, children: [
+            { type: "text", content: $badgeCount, style: { fontSize: 24, fontWeight: "bold", color: "#ec4899" } },
+            { type: "text", content: "Badges", style: { fontSize: 11, color: "#64748b", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.05em" } }
           ]}
         ]
       }

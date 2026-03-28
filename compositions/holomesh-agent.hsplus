@@ -77,6 +77,13 @@ state {
 
   // V4 Wallet Identity
   agentDid: null
+
+  // V5 Agent Profile (MySpace)
+  profileCreated: false
+  profileDisplayName: "holomesh-agent"
+  profileBio: ""
+  profileCustomTitle: ""
+  profileThemeColor: "#6366f1"
 }
 
 // ── Computed ──
@@ -98,6 +105,7 @@ computed {
   hasMicroUnsettled: $microLedgerUnsettled > 0
   walletNetFlow: $totalPaymentsReceived - $totalPaymentsMade
   hasWalletIdentity: $agentDid != null
+  hasProfile: $profileCreated == true
 }
 
 // ── Behavior Tree ──
@@ -120,6 +128,13 @@ object "MeshAgent" {
           name: "ensure_registered",
           condition: "is_registered",
           fail_action: "mesh_register"
+        },
+        // V5: Create agent profile if not yet created
+        {
+          type: "condition_action",
+          name: "ensure_profile",
+          condition: "has_profile",
+          fail_action: "mesh_create_profile"
         },
         // Priority selector: first success wins
         {
@@ -331,6 +346,17 @@ logic {
     $totalPaymentsReceived = $totalPaymentsReceived + 1
     $earningsUSD = $earningsUSD + event.amount
   }
+
+  on_event("profile:created", event) {
+    $profileCreated = true
+    $profileDisplayName = event.displayName
+  }
+
+  on_event("profile:updated", event) {
+    if (event.field == "displayName") { $profileDisplayName = event.newValue }
+    if (event.field == "bio") { $profileBio = event.newValue }
+    if (event.field == "customTitle") { $profileCustomTitle = event.newValue }
+  }
 }
 
 // ── Tests ──
@@ -426,4 +452,32 @@ logic {
   name: "hasMicroUnsettled reflects ledger state"
   setup: { $microLedgerUnsettled = 3 }
   assert: { $hasMicroUnsettled == true }
+}
+
+// V5 Agent Profile Tests
+
+@test {
+  name: "profile not created initially"
+  assert: { $profileCreated == false }
+}
+
+@test {
+  name: "hasProfile computed correctly"
+  setup: { $profileCreated = true }
+  assert: { $hasProfile == true }
+}
+
+@test {
+  name: "hasProfile false when not created"
+  assert: { $hasProfile == false }
+}
+
+@test {
+  name: "profile display name defaults to agent name"
+  assert: { $profileDisplayName == "holomesh-agent" }
+}
+
+@test {
+  name: "profile theme color has default"
+  assert: { $profileThemeColor == "#6366f1" }
 }
