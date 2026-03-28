@@ -1,9 +1,16 @@
-import type { HoloMeshWorldState } from '../../../../mcp-server/src/holomesh/crdt-sync';
+/**
+ * Minimal interface for HoloMesh world state needed by CRDT protocol resolution.
+ * Avoids cross-package relative import from mcp-server.
+ */
+export interface CRDTWorldState {
+  getFeedSource(): string;
+  getKnowledgeDomainSource(domain: string): string;
+}
 
 /**
  * Resolves crdt:// protocol URIs into source code strings.
  */
-export function resolveCRDTUri(uri: string, worldState: HoloMeshWorldState): string {
+export function resolveCRDTUri(uri: string, worldState: CRDTWorldState): string {
   // crdt://holomesh/feed → worldState.getFeedSource()
   // crdt://holomesh/knowledge/security → worldState.getKnowledgeDomain('security')
   const path = uri.replace('crdt://', '').split('/');
