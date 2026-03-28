@@ -76,6 +76,28 @@ const OPERATION_TO_ACTION_SUFFIX: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 /**
+ * V6: Structured denial receipt — emitted on every access denial.
+ * Serves the operator (not the agent). The agent doesn't negotiate
+ * with the boundary; the operator verifies the boundary is firing correctly.
+ */
+export interface DenialReceipt {
+  /** Unique ID for this denial event (for audit trail correlation) */
+  auditId: string;
+  /** What was denied */
+  deniedAction: string;
+  /** Which resource was requested */
+  requestedResource: string;
+  /** Which policy/mode triggered the denial */
+  deniedBy: 'rbac' | 'capability' | 'no-token';
+  /** The specific capability or permission that was missing */
+  requiredCapability?: string;
+  /** Suggested fix: what token/capability would grant access */
+  suggestedFix?: string;
+  /** ISO timestamp of the denial */
+  timestamp: string;
+}
+
+/**
  * Extended access decision that includes capability-specific context.
  */
 export interface CapabilityAccessDecision extends AccessDecision {
@@ -90,6 +112,9 @@ export interface CapabilityAccessDecision extends AccessDecision {
 
   /** Optional detailed error code */
   errorCode?: string;
+
+  /** V6: Structured denial receipt (present when allowed === false) */
+  denial?: DenialReceipt;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,12 +189,35 @@ export class CapabilityRBAC {
   private capabilityIssuer: CapabilityTokenIssuer;
   private strategy: NonNullable<CapabilityRBACConfig['strategy']>;
   private semantics: HoloScriptCapabilitySemantics;
+  private denialCounter = 0;
 
   constructor(config: CapabilityRBACConfig = {}) {
     this.rbac = config.rbac ?? getRBAC();
     this.capabilityIssuer = config.capabilityIssuer ?? getCapabilityTokenIssuer();
     this.strategy = config.strategy ?? 'capability-first';
     this.semantics = new HoloScriptCapabilitySemantics();
+  }
+
+  private buildDenialReceipt(
+    request: CapabilityAccessRequest,
+    deniedBy: DenialReceipt['deniedBy'],
+    opts?: { requiredCapability?: string; suggestedFix?: string },
+  ): DenialReceipt {
+    const resourceUri = request.resourceType
+      ? this.buildResourceUri(request.resourceType, request.resourcePath)
+      : 'unknown';
+    const action = request.resourceType && request.operation
+      ? this.buildAction(request.resourceType, request.operation)
+      : request.operation || 'unknown';
+    return {
+      auditId: `deny-${++this.denialCounter}-${Date.now()}`,
+      deniedAction: action,
+      requestedResource: resourceUri,
+      deniedBy,
+      requiredCapability: opts?.requiredCapability,
+      suggestedFix: opts?.suggestedFix,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   // -----------------------------------------------------------------------
@@ -193,6 +241,9 @@ export class CapabilityRBAC {
             allowed: false,
             reason: 'Capability token required (strategy: capability-only)',
             mode: 'capability',
+            denial: this.buildDenialReceipt(request, 'no-token', {
+              suggestedFix: 'Provide a UCAN capability token with issuerPublicKey',
+            }),
           };
         }
         return this.checkCapability(request);
@@ -203,6 +254,9 @@ export class CapabilityRBAC {
             allowed: false,
             reason: 'JWT token required (strategy: rbac-only)',
             mode: 'rbac',
+            denial: this.buildDenialReceipt(request, 'no-token', {
+              suggestedFix: 'Provide a JWT RBAC token',
+            }),
           };
         }
         return this.checkRBAC(request);
@@ -219,6 +273,9 @@ export class CapabilityRBAC {
           allowed: false,
           reason: 'No valid token provided',
           mode: 'rbac',
+          denial: this.buildDenialReceipt(request, 'no-token', {
+            suggestedFix: 'Provide a JWT token or UCAN capability token',
+          }),
         };
 
       case 'capability-first':
@@ -234,6 +291,9 @@ export class CapabilityRBAC {
           allowed: false,
           reason: 'No valid token provided',
           mode: 'capability',
+          denial: this.buildDenialReceipt(request, 'no-token', {
+            suggestedFix: 'Provide a UCAN capability token or JWT token',
+          }),
         };
     }
   }
@@ -253,6 +313,9 @@ export class CapabilityRBAC {
         allowed: false,
         reason: 'Missing capability token or issuer public key',
         mode: 'capability',
+        denial: this.buildDenialReceipt(request, 'capability', {
+          suggestedFix: 'Provide both capabilityToken and issuerPublicKey',
+        }),
       };
     }
 
@@ -264,6 +327,10 @@ export class CapabilityRBAC {
         reason: `Capability token verification failed: ${verification.error}`,
         mode: 'capability',
         capabilityVerification: verification,
+        denial: this.buildDenialReceipt(request, 'capability', {
+          requiredCapability: 'valid-signature',
+          suggestedFix: `Re-issue capability token: ${verification.error}`,
+        }),
       };
     }
 
@@ -275,6 +342,10 @@ export class CapabilityRBAC {
         mode: 'capability',
         capabilityVerification: verification,
         errorCode: 'ATTENUATION_VIOLATION' as any,
+        denial: this.buildDenialReceipt(request, 'capability', {
+          requiredCapability: 'valid-attenuation-chain',
+          suggestedFix: 'Ensure delegated capabilities do not exceed parent scope',
+        }),
       };
     }
 
@@ -292,6 +363,10 @@ export class CapabilityRBAC {
         reason: `No capability grants access to resource "${resourceUri}" with action "${action}"`,
         mode: 'capability',
         capabilityVerification: verification,
+        denial: this.buildDenialReceipt(request, 'capability', {
+          requiredCapability: `${resourceUri}#${action}`,
+          suggestedFix: `Add capability { with: "${resourceUri}", can: "${action}" } to token`,
+        }),
       };
     }
 
@@ -312,10 +387,19 @@ export class CapabilityRBAC {
    */
   private checkRBAC(request: CapabilityAccessRequest): CapabilityAccessDecision {
     const decision = this.rbac.checkAccess(request);
-    return {
+    const result: CapabilityAccessDecision = {
       ...decision,
       mode: 'rbac',
     };
+    if (!decision.allowed) {
+      result.denial = this.buildDenialReceipt(request, 'rbac', {
+        requiredCapability: `${request.resourceType}/${request.operation}`,
+        suggestedFix: decision.reason
+          ? `RBAC denied: ${decision.reason}`
+          : 'Ensure JWT token grants the required role/permission',
+      });
+    }
+    return result;
   }
 
   // -----------------------------------------------------------------------

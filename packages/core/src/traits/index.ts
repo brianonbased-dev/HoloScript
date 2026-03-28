@@ -90,6 +90,7 @@ export * from './Heatmap3DTrait';
 export * from './HighContrastTrait';
 export * from './HITLTrait';
 export * from './HolomeshSocialTraits';
+export * from './HolomeshMarketplaceTrait';
 export * from './HRTFTrait';
 export * from './HSMIntegrationTrait';
 export { iKHandler } from './IKTrait';
