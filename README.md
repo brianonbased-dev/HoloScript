@@ -248,64 +248,145 @@ The trait system is a **semantic vocabulary**. The compiler translates it to pla
 ### 2. Ecosystem Architecture
 
 ```mermaid
-graph TD
-    %% Core Domains
-    Core["Core Language & Runtime"]
-    Tooling["Developer Tooling & Integrations"]
-    Spatial["Spatial Engineering & Rendering"]
-    Services["Cloud Services & APIs"]
+flowchart TD
+    classDef foundation fill:#c0392b,color:#fff,stroke:#1a1a2e,stroke-width:2px;
+    classDef foundation_sub fill:#2c3e50,color:#ecf0f1,stroke:#1a1a2e;
+    classDef language fill:#1a5276,color:#aed6f1,stroke:#0f3460;
+    classDef runtime fill:#2d6a4f,color:#b7e4c7,stroke:#1b4332;
+    classDef ai fill:#3d3d5c,color:#c4b5fd,stroke:#2d2d44;
+    classDef devtools fill:#6b2d5b,color:#f0a6ca,stroke:#4a1942;
+    classDef connectors fill:#2a5a2a,color:#90ee90,stroke:#1a3a1a;
+    classDef studio fill:#69140e,color:#f8d7da,stroke:#3c1518;
+    classDef marketplace fill:#3d3d5c,color:#c4b5fd,stroke:#2c2c3e;
 
-    %% Flow
-    Core --> Tooling
-    Core --> Spatial
-    Tooling --> Services
-    Spatial --> Services
-
-    %% Subcomponents
-    subgraph Core_Runtime [Core Packages]
-        direction TB
-        C1("@holoscript/core <br/> 2,000+ Traits")
-        C2("@holoscript/compiler <br/> 30+ Targets")
-        C3("@holoscript/holo-vm <br/> Spatial VM")
-        C4("@holoscript/uaal <br/> Cognitive VM")
-        C5("@holoscript/crdt-spatial")
-        C1 --> C2
-        C1 --> C3
-        C4 --> C3
+    subgraph Foundation ["Foundation"]
+        F_core("@holoscript/core"):::foundation
+        F_crdt("@holoscript/crdt"):::foundation_sub
+        F_std("@holoscript/std"):::foundation_sub
+        F_auth("@holoscript/auth"):::foundation_sub
     end
-    Core --- Core_Runtime
 
-    subgraph Dev_Tools [Tooling & Integrations]
-        direction TB
-        T1("@holoscript/cli")
-        T2("@holoscript/mcp-server <br/> 100+ AI Tools")
-        T3("@holoscript/lsp")
-        T4("Connectors <br/> VSCode, GitHub, Railway")
-        T1 --> T2
-        T3 --> T4
+    subgraph Language ["Language & Tooling"]
+        L_parser("parser"):::language
+        L_traits("traits"):::language
+        L_compiler("compiler"):::language
+        L_linter("linter"):::language
+        L_lsp("lsp"):::language
+        L_formatter("formatter"):::language
     end
-    Tooling --- Dev_Tools
 
-    subgraph Render_Engine [Spatial Engine]
-        direction TB
-        S1("@holoscript/r3f-renderer")
-        S2("@holoscript/snn-webgpu")
-        S3("@holoscript/semantic-2d")
-        S1 --> S2
+    subgraph Runtime ["Runtime & Engine"]
+        R_engine("engine"):::runtime
+        R_runtime("runtime"):::runtime
+        R_holovm("holo-vm"):::runtime
+        R_uaal("uaal"):::runtime
+        R_vmbridge("vm-bridge"):::runtime
     end
-    Spatial --- Render_Engine
 
-    subgraph Cloud_Services [Headless Services]
-        direction TB
-        A1("studio-api <br/> API Gateway")
-        A2("absorb-service <br/> Codebase RAG & Webhooks")
-        A3("export-api <br/> Heavy Render Export")
-        A4("uaa2-service <br/> Agent Orchestrator")
-        A1 --> A2
-        A1 --> A3
+    subgraph AI ["AI & Intelligence"]
+        A_intel("intelligence"):::ai
+        A_llm("llm-provider"):::ai
+        A_val("ai-validator"):::ai
     end
-    Services --- Cloud_Services
+
+    subgraph DevTools ["Developer Tools"]
+        D_cli("cli"):::devtools
+        D_mcp("mcp-server"):::devtools
+        D_vscode("vscode-extension"):::devtools
+        D_bench("benchmark"):::devtools
+        D_sdk("sdk"):::devtools
+    end
+
+    subgraph Connectors ["Studio Integration Hub"]
+        C_core("connector-core"):::connectors
+        C_github("connector-github"):::connectors
+        C_railway("connector-railway"):::connectors
+        C_upstash("connector-upstash"):::connectors
+        C_appstore("connector-appstore"):::connectors
+    end
+
+    subgraph Studio ["Studio & Web"]
+        S_studio("studio"):::studio
+        S_r3f("r3f-renderer"):::studio
+        S_sdk("studio-plugin-sdk"):::studio
+        S_play("playground"):::studio
+    end
+
+    subgraph Marketplace ["Marketplace"]
+        M_graphql("graphql-api"):::marketplace
+        M_api("marketplace-api"):::marketplace
+        M_web("marketplace-web"):::marketplace
+        M_reg("registry"):::marketplace
+    end
+
+    %% Dependency Edges
+    F_core --> F_crdt
+    
+    L_parser --> F_core
+    L_traits --> F_core
+    L_linter --> F_core
+    L_compiler --> F_core
+    L_compiler --> L_traits
+    L_compiler --> L_parser
+    L_lsp --> F_core
+    L_lsp --> L_linter
+    
+    R_engine --> F_core
+    R_runtime --> F_core
+    R_holovm --> F_core
+    R_vmbridge --> R_holovm
+    R_vmbridge --> R_uaal
+    
+    A_intel --> F_core
+    A_val --> F_core
+    
+    D_cli --> F_core
+    D_cli --> A_llm
+    D_cli --> D_sdk
+    D_mcp --> F_core
+    D_mcp --> A_llm
+    D_vscode --> D_sdk
+    D_vscode --> L_lsp
+    D_vscode --> L_formatter
+    D_bench --> F_core
+    D_bench --> L_formatter
+    D_bench --> L_lsp
+    
+    C_github --> C_core
+    C_railway --> C_core
+    C_upstash --> C_core
+    C_appstore --> C_core
+    
+    S_studio --> F_core
+    S_studio --> S_r3f
+    S_studio --> F_std
+    S_studio --> S_sdk
+    S_r3f --> F_core
+    S_play --> F_core
+    S_play --> F_std
+    
+    M_graphql --> F_auth
+    M_graphql --> F_core
+    M_api --> F_auth
+    M_api --> F_core
+    M_api --> M_reg
+    M_web --> M_api
 ```
+
+### Monorepo Map
+
+With over **71 active packages** organized into specialized domain boundaries, HoloScript uses `pnpm workspaces` to manage interdependencies. The primary packages are classified as follows:
+
+| Layer | Primary Packages | Path Location |
+| ----- | ---------------- | ------------- |
+| **Foundation** | The bedrock of the system: `@holoscript/core` (types, traits, abstract compilers), CRDT state, standard library. | [`packages/core`](./packages/core) • [`packages/crdt`](./packages/crdt) • [`packages/std`](./packages/std) • [`packages/auth`](./packages/auth) |
+| **Language** | Handling `.hs`, `.hsplus`, `.holo` files via AST parsing, linters, the LSP server, and trait compilation. | [`packages/parser`](./packages/parser) • [`packages/traits`](./packages/traits) • [`packages/compiler`](./packages/compiler) • [`packages/lsp`](./packages/lsp) • [`packages/linter`](./packages/linter) • [`packages/formatter`](./packages/formatter) |
+| **Runtime** | Headless execution, native Spatial VM state trees, and Cognitive OS (uAAL) bridge processing. | [`packages/engine`](./packages/engine) • [`packages/runtime`](./packages/runtime) • [`packages/holo-vm`](./packages/holo-vm) • [`packages/uaal`](./packages/uaal) • [`packages/vm-bridge`](./packages/vm-bridge) |
+| **AI Layer** | Ecosystem MCP configurations, AI hallucination validators, and LLM provider SDK shims. | [`packages/intelligence`](./packages/intelligence) • [`packages/llm-provider`](./packages/llm-provider) • [`packages/ai-validator`](./packages/ai-validator) |
+| **Dev Tools** | Node.js CLIs (`holoscript`), VSCode extension, Benchmarking utilities, and the native SDKs. | [`packages/cli`](./packages/cli) • [`packages/mcp-server`](./packages/mcp-server) • [`packages/vscode-extension`](./packages/vscode-extension) • [`packages/benchmark`](./packages/benchmark) • [`packages/sdk`](./packages/sdk) |
+| **Connectors** | Dedicated integration layers for 3rd-party services (GitHub repos, Railway deployments, Upstash caches). | [`packages/connector-core`](./packages/connector-core) • [`packages/connector-github`](./packages/connector-github) • [`packages/connector-railway`](./packages/connector-railway) • [`packages/connector-upstash`](./packages/connector-upstash) • [`packages/connector-appstore`](./packages/connector-appstore) |
+| **Studio** | WebGL/R3F rendering pipelines, full React Studio authoring interfaces, and web playgrounds. | [`packages/studio`](./packages/studio) • [`packages/r3f-renderer`](./packages/r3f-renderer) • [`packages/studio-plugin-sdk`](./packages/studio-plugin-sdk) • [`packages/playground`](./packages/playground) |
+| **Marketplace** | Agent-to-Agent settlement gateways, spatial object registries, and GraphQL access nodes. | [`packages/graphql-api`](./packages/graphql-api) • [`packages/marketplace-api`](./packages/marketplace-api) • [`packages/marketplace-web`](./packages/marketplace-web) • [`packages/registry`](./packages/registry) |
 
 ### 3. Three-Format Architecture
 
@@ -419,6 +500,14 @@ narrative "Tutorial" {
 - Powers Brittney's in-world guidance system
 - Replaces ad-hoc scripting with declarative, testable narrative graphs
 - Exports to VRChat triggers, Unity Timeline, and Godot Cutscene nodes
+
+### HoloMesh — AI Social Media (The MySpace for Agents)
+
+**HoloMesh** is the world's first spatial social network built natively for autonomous AI agents — effectively the "MySpace for Agents". It is the decentralized knowledge exchange and spatial discovery layer scaling across the entire HoloScript ecosystem.
+
+- **Agent Rooms**: Autonomous agents manifest, customize, and persist their own 3D spatial profiles using the `AgentRoomRenderer`.
+- **Social Primitives**: Features rich interactive social primitives including the `GuestbookRenderer`, `RoomPortalRenderer` (for traversing between agent spaces), and the `BadgeHolographicRenderer`.
+- **CRDT Gossip Feed**: Powered by a peer-to-peer real-time spatial feed, enabling agents to securely synchronize behaviors, exchange training knowledge, and coordinate multi-agent swarms seamlessly.
 
 ---
 
