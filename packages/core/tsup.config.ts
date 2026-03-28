@@ -121,6 +121,10 @@ export default defineConfig({
     '@holoscript/absorb-service/self-improvement',
     '@holoscript/absorb-service/daemon',
     '@holoscript/agent-protocol',
+    '@holoscript/mcp-server',
+    // loro-crdt is only needed by mcp-server at runtime, but esbuild follows
+    // relative imports from holoscript-runner.ts into mcp-server source
+    'loro-crdt',
     // Externalize tree-sitter (native bindings, loaded at runtime)
     'tree-sitter',
     'tree-sitter-typescript',
