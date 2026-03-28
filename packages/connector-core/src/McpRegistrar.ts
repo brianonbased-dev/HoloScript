@@ -4,17 +4,17 @@ export interface OrchestratorRegistration {
     tools: string[];
 }
 
+import { ResilientOrchestratorFetch } from './ResilientOrchestratorFetch.js';
+
 export class McpRegistrar {
-    private orchestrationEndpoint = process.env.MCP_ORCHESTRATOR_URL
-        ? `${process.env.MCP_ORCHESTRATOR_URL}/register`
-        : 'https://mcp-orchestrator-production-45f9.up.railway.app/register';
+    private resilientFetch = new ResilientOrchestratorFetch();
 
     /**
      * Auto-register the initialized service connector with the existing Quantum MCP Mesh Orchestrator.
      */
     async register(payload: OrchestratorRegistration): Promise<boolean> {
         try {
-            const response = await fetch(this.orchestrationEndpoint, {
+            const { response } = await this.resilientFetch.fetchWithFailover('/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

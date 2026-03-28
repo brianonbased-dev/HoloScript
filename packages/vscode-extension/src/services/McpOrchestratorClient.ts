@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { CircuitBreakerFetch } from './CircuitBreaker.js';
 
 interface McpRegistrationPayload {
   id: string;
@@ -11,7 +12,6 @@ interface McpRegistrationPayload {
   tools?: string[];
 }
 
-/** Represents a registered MCP server from the orchestrator registry. */
 export interface McpServerInfo {
   id: string;
   name: string;
@@ -22,14 +22,12 @@ export interface McpServerInfo {
   lastHeartbeat?: string;
 }
 
-/** A single tool exposed by an MCP server. */
 export interface McpToolInfo {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
 }
 
-/** Health response from the orchestrator. */
 export interface McpHealthInfo {
   status: 'ok' | 'degraded' | 'down';
   uptime?: number;
@@ -37,7 +35,6 @@ export interface McpHealthInfo {
   version?: string;
 }
 
-/** An agent-protocol compatible agent entry. */
 export interface McpAgentInfo {
   id: string;
   name: string;
@@ -51,6 +48,7 @@ export interface McpAgentInfo {
 export class McpOrchestratorClient {
   private readonly output = vscode.window.createOutputChannel('HoloScript MCP');
   private heartbeatTimer: NodeJS.Timeout | null = null;
+  private circuitBreaker: CircuitBreakerFetch | null = null;
 
   start(context: vscode.ExtensionContext): void {
     const config = this.getConfig();
@@ -67,6 +65,8 @@ export class McpOrchestratorClient {
       return;
     }
 
+    this.initCircuitBreaker(config);
+
     this.register(config).catch((err) => this.log(`Register failed: ${err}`));
 
     this.startHeartbeat(config);
@@ -78,10 +78,27 @@ export class McpOrchestratorClient {
         this.stopHeartbeat();
         const next = this.getConfig();
         if (next.enabled && next.apiKey && next.url) {
+          this.initCircuitBreaker(next);
           this.register(next).catch((err) => this.log(`Register failed: ${err}`));
           this.startHeartbeat(next);
         }
       }
+    });
+  }
+
+  private initCircuitBreaker(config: ReturnType<McpOrchestratorClient['getConfig']>) {
+    const urls = [
+      config.url,
+      'http://mcp-orchestrator.railway.internal',
+      'https://mcp-orchestrator-production-45f9.up.railway.app',
+      'http://localhost:3001'
+    ].filter(Boolean) as string[];
+
+    this.circuitBreaker = new CircuitBreakerFetch({
+      urls,
+      logger: (msg) => this.log(msg),
+      failureThreshold: 3,
+      resetTimeoutMs: 30000
     });
   }
 
@@ -94,7 +111,6 @@ export class McpOrchestratorClient {
     const visibility = cfg.get<'public' | 'private'>('visibility', 'public');
     const workspace = cfg.get<string>('workspaceId', 'holoscript');
 
-    // Resolve environment variable reference or fallback to process.env
     if (!apiKey || apiKey.includes('${env:')) {
       apiKey = process.env.MCP_API_KEY || '';
     }
@@ -102,10 +118,6 @@ export class McpOrchestratorClient {
     return { url, apiKey, enabled, heartbeatSeconds, visibility, workspace };
   }
 
-  /**
-   * Retrieves the GitHub OAuth token from VS Code's authentication API.
-   * Used to attach user identity to orchestrator requests.
-   */
   private async getGitHubToken(): Promise<string | null> {
     try {
       const session = await vscode.authentication.getSession('github', ['read:user'], {
@@ -117,9 +129,6 @@ export class McpOrchestratorClient {
     }
   }
 
-  /**
-   * Builds standard request headers including API key and GitHub identity.
-   */
   private async buildHeaders(): Promise<Record<string, string>> {
     const config = this.getConfig();
     const headers: Record<string, string> = {
@@ -170,15 +179,12 @@ export class McpOrchestratorClient {
     } as any;
   }
 
-  /**
-   * Facilitates connecting to a specific service connector discovered via the mesh.
-   */
   async connectToService(serverId: string): Promise<boolean> {
+    if (!this.circuitBreaker) return false;
     this.log(`Attempting to bind link to service: ${serverId}`);
     try {
-      const config = this.getConfig();
       const headers = await this.buildHeaders();
-      const response = await fetch(`${config.url}/servers/${encodeURIComponent(serverId)}/enable`, {
+      const { response } = await this.circuitBreaker.fetchWithFailover(`/servers/${encodeURIComponent(serverId)}/enable`, {
         method: 'POST',
         headers,
       });
@@ -195,10 +201,11 @@ export class McpOrchestratorClient {
   }
 
   private async register(config: ReturnType<McpOrchestratorClient['getConfig']>): Promise<void> {
+    if (!this.circuitBreaker) return;
     const payload = this.buildRegistrationPayload(config);
     const headers = await this.buildHeaders();
 
-    await fetch(`${config.url}/servers/register`, {
+    await this.circuitBreaker.fetchWithFailover(`/servers/register`, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -212,9 +219,10 @@ export class McpOrchestratorClient {
     const intervalMs = Math.max(10, config.heartbeatSeconds) * 1000;
 
     this.heartbeatTimer = setInterval(async () => {
+      if (!this.circuitBreaker) return;
       try {
         const headers = await this.buildHeaders();
-        await fetch(`${config.url}/servers/${payload.id}/heartbeat`, {
+        await this.circuitBreaker.fetchWithFailover(`/servers/${payload.id}/heartbeat`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ status: 'active', tools: payload.tools }),
@@ -239,26 +247,19 @@ export class McpOrchestratorClient {
     this.output.appendLine(`[MCP] ${message}`);
   }
 
-  // ── Public query methods ─────────────────────────────────────────────
-
-  /**
-   * Fetches all registered MCP servers from the orchestrator.
-   */
   async getServers(): Promise<McpServerInfo[]> {
+    if (!this.circuitBreaker) return [];
     const config = this.getConfig();
-    if (!config.url || !config.apiKey) {
-      return [];
-    }
+    if (!config.apiKey) return [];
 
     const headers = await this.buildHeaders();
-    const response = await fetch(`${config.url}/servers`, { headers });
+    const { response } = await this.circuitBreaker.fetchWithFailover(`/servers`, { headers });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch servers (${response.status})`);
     }
 
     const data: any = await response.json();
-    // Orchestrator may return { servers: [...] } or a plain array
     const raw: any[] = Array.isArray(data) ? data : data.servers ?? [];
     return raw.map((s: any) => ({
       id: s.id ?? '',
@@ -271,18 +272,14 @@ export class McpOrchestratorClient {
     }));
   }
 
-  /**
-   * Fetches the tools exposed by a specific server.
-   */
   async getServerTools(serverId: string): Promise<McpToolInfo[]> {
+    if (!this.circuitBreaker) return [];
     const config = this.getConfig();
-    if (!config.url || !config.apiKey) {
-      return [];
-    }
+    if (!config.apiKey) return [];
 
     const headers = await this.buildHeaders();
-    const response = await fetch(
-      `${config.url}/servers/${encodeURIComponent(serverId)}/tools`,
+    const { response } = await this.circuitBreaker.fetchWithFailover(
+      `/servers/${encodeURIComponent(serverId)}/tools`,
       { headers }
     );
 
@@ -299,80 +296,65 @@ export class McpOrchestratorClient {
     }));
   }
 
-  /**
-   * Fetches health information from the orchestrator.
-   */
   async getHealth(): Promise<McpHealthInfo> {
-    const config = this.getConfig();
-    if (!config.url) {
+    if (!this.circuitBreaker) return { status: 'down' };
+
+    try {
+      const { response } = await this.circuitBreaker.fetchWithFailover(`/health`);
+      if (!response.ok) {
+        return { status: 'down' };
+      }
+
+      const data: any = await response.json();
+      return {
+        status: data.status === 'ok' || data.status === 'healthy' ? 'ok'
+          : data.status === 'degraded' ? 'degraded' : 'down',
+        uptime: data.uptime,
+        serverCount: data.serverCount ?? data.server_count,
+        version: data.version,
+      };
+    } catch {
       return { status: 'down' };
     }
-
-    const response = await fetch(`${config.url}/health`);
-    if (!response.ok) {
-      return { status: 'down' };
-    }
-
-    const data: any = await response.json();
-    return {
-      status: data.status === 'ok' || data.status === 'healthy' ? 'ok'
-        : data.status === 'degraded' ? 'degraded' : 'down',
-      uptime: data.uptime,
-      serverCount: data.serverCount ?? data.server_count,
-      version: data.version,
-    };
   }
 
-  /**
-   * Enables (installs) a server on the orchestrator.
-   */
   async enableServer(serverId: string): Promise<boolean> {
+    if (!this.circuitBreaker) return false;
     const config = this.getConfig();
-    if (!config.url || !config.apiKey) {
-      return false;
-    }
+    if (!config.apiKey) return false;
 
     const headers = await this.buildHeaders();
-    const response = await fetch(
-      `${config.url}/servers/${encodeURIComponent(serverId)}/enable`,
+    const { response } = await this.circuitBreaker.fetchWithFailover(
+      `/servers/${encodeURIComponent(serverId)}/enable`,
       { method: 'POST', headers }
     );
 
     return response.ok;
   }
 
-  /**
-   * Disables a server on the orchestrator.
-   */
   async disableServer(serverId: string): Promise<boolean> {
+    if (!this.circuitBreaker) return false;
     const config = this.getConfig();
-    if (!config.url || !config.apiKey) {
-      return false;
-    }
+    if (!config.apiKey) return false;
 
     const headers = await this.buildHeaders();
-    const response = await fetch(
-      `${config.url}/servers/${encodeURIComponent(serverId)}/disable`,
+    const { response } = await this.circuitBreaker.fetchWithFailover(
+      `/servers/${encodeURIComponent(serverId)}/disable`,
       { method: 'POST', headers }
     );
 
     return response.ok;
   }
 
-  /**
-   * Fetches agent-protocol compatible agents from the orchestrator.
-   */
   async getAgents(): Promise<McpAgentInfo[]> {
+    if (!this.circuitBreaker) return [];
     const config = this.getConfig();
-    if (!config.url || !config.apiKey) {
-      return [];
-    }
+    if (!config.apiKey) return [];
 
     const headers = await this.buildHeaders();
-    const response = await fetch(`${config.url}/agents`, { headers });
+    const { response } = await this.circuitBreaker.fetchWithFailover(`/agents`, { headers });
 
     if (!response.ok) {
-      // Agents endpoint may not exist on older orchestrators
       return [];
     }
 
@@ -396,28 +378,31 @@ export class McpOrchestratorClient {
       return { ok: false, message: 'Integration disabled (holoscript.mcp.enabled=false)' };
     }
 
-    if (!config.url) {
-      return { ok: false, message: 'Missing orchestrator URL (holoscript.mcp.orchestratorUrl)' };
-    }
-
     if (!config.apiKey) {
       return { ok: false, message: 'Missing MCP API key (holoscript.mcp.apiKey)' };
     }
 
+    if (!this.circuitBreaker) {
+      this.initCircuitBreaker(config);
+    }
+
     try {
-      const health = await fetch(`${config.url}/health`);
+      const { response: health } = await this.circuitBreaker!.fetchWithFailover(`/health`);
       if (!health.ok) {
         return { ok: false, message: `Health check failed (${health.status})` };
       }
 
       const headers = await this.buildHeaders();
-      const servers = await fetch(`${config.url}/servers`, { headers });
+      const { response: servers, url } = await this.circuitBreaker!.fetchWithFailover(`/servers`, { headers });
 
       if (!servers.ok) {
         return { ok: false, message: `Auth failed (${servers.status})` };
       }
 
-      return { ok: true, message: `Connected to ${config.url}` };
+      const isFallback = url !== config.url && !url.includes(config.url);
+      const connectivityMsg = isFallback ? `Connected to fallback (${url})` : `Connected to primary (${config.url})`;
+
+      return { ok: true, message: connectivityMsg };
     } catch (error: any) {
       return { ok: false, message: `Connection failed: ${error?.message || error}` };
     }

@@ -29,7 +29,7 @@ describe('McpRegistrar', () => {
 
             expect(result).toBe(true);
             expect(global.fetch).toHaveBeenCalledWith(
-                'https://mcp-orchestrator-production-45f9.up.railway.app/register',
+                'http://mcp-orchestrator.railway.internal/register',
                 expect.objectContaining({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -39,7 +39,7 @@ describe('McpRegistrar', () => {
         });
 
         it('should return false on HTTP error', async () => {
-            (global.fetch as any).mockResolvedValueOnce({
+            (global.fetch as any).mockResolvedValue({
                 ok: false,
                 status: 500
             });
@@ -56,7 +56,7 @@ describe('McpRegistrar', () => {
         });
 
         it('should return false on network error', async () => {
-            (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+            (global.fetch as any).mockRejectedValue(new Error('Network error'));
 
             const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -116,7 +116,7 @@ describe('McpRegistrar', () => {
             expect(callBody.tools).toEqual([]);
         });
 
-        it('should use production orchestrator endpoint', async () => {
+        it('should use default orchestrator fallback endpoints', async () => {
             (global.fetch as any).mockResolvedValueOnce({
                 ok: true,
                 status: 200
@@ -129,7 +129,7 @@ describe('McpRegistrar', () => {
             });
 
             expect(global.fetch).toHaveBeenCalledWith(
-                'https://mcp-orchestrator-production-45f9.up.railway.app/register',
+                'http://mcp-orchestrator.railway.internal/register',
                 expect.anything()
             );
         });
