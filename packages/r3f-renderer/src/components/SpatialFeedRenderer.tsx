@@ -7,6 +7,11 @@ import * as THREE from 'three';
 import type { HoloMeshWorldState } from '../../../mcp-server/src/holomesh/crdt-sync';
 import { FeedParser, type SpatialEntity } from '../../../core/src/parser/FeedParser';
 
+import { AgentRoomRenderer } from './AgentRoomRenderer';
+import { RoomPortalRenderer } from './RoomPortalRenderer';
+import { GuestbookRenderer } from './GuestbookRenderer';
+import { BadgeHolographicRenderer } from './BadgeHolographicRenderer';
+
 export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldState }) {
   const feedParser = useRef(new FeedParser());
   const [entities, setEntities] = useState<SpatialEntity[]>([]);
@@ -26,23 +31,23 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
       const source = worldState.getFeedSource();
       feedParser.current.onFeedUpdate(source);
       setEntities(feedParser.current.getSpatialEntities());
-    } catch (e) {
-      console.warn('Empty or invalid initial feed', e);
+    } catch (_e) {
+      console.warn('Empty or invalid initial feed', _e);
     }
 
     // Subscribe to CRDT text changes
-    const subscription = worldState.subscribe(() => {
+    const _subscription = worldState.subscribe(() => {
       try {
         const source = worldState.getFeedSource();
         feedParser.current.onFeedUpdate(source);
         setEntities([...feedParser.current.getSpatialEntities()]);
-      } catch (e) {
+      } catch (_e) {
         // Parsing errors during typing
       }
     });
-    
+
     return () => {
-      // worldState.unsubscribe(subscription)?
+      // worldState.unsubscribe(_subscription)?
     };
   }, [worldState]);
 
@@ -54,10 +59,10 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
           <label style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>
             Temporal CRDT Scrubber
           </label>
-          <input 
-            type="range" 
-            min="0" max="100" 
-            value={temporalState} 
+          <input
+            type="range"
+            min="0" max="100"
+            value={temporalState}
             onChange={e => setTemporalState(Number(e.target.value))}
             style={{ width: '100%', cursor: 'pointer' }}
           />
@@ -77,12 +82,99 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tier color palette
+// ---------------------------------------------------------------------------
+
+const TIER_COLORS = ['#ffffff', '#4ade80', '#3b82f6', '#8b5cf6'] as const;
+
+// ---------------------------------------------------------------------------
+// Trait data extraction helpers
+// ---------------------------------------------------------------------------
+
+type TraitMap = Map<string, Record<string, unknown>>;
+type BadgeTier = 'bronze' | 'silver' | 'gold' | 'diamond';
+const VALID_BADGE_TIERS = ['bronze', 'silver', 'gold', 'diamond'];
+
+function getTraitConfig(traits: TraitMap, ...names: string[]): Record<string, unknown> | undefined {
+  for (const name of names) {
+    const cfg = traits.get(name);
+    if (cfg) return cfg;
+  }
+  return undefined;
+}
+
+function extractRoomProps(cfg: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!cfg) return {};
+  const result: Record<string, unknown> = {};
+  if (cfg.environment) result.environment = String(cfg.environment);
+  if (cfg.surface_material) result.surfaceMaterial = String(cfg.surface_material);
+  if (cfg.dimensions) result.dimensions = cfg.dimensions;
+  if (cfg.accent_color) result.accentColor = String(cfg.accent_color);
+  if (Array.isArray(cfg.furniture)) result.furniture = cfg.furniture;
+  if (typeof cfg.visitor_count === 'number') result.visitorCount = cfg.visitor_count;
+  if (typeof cfg.max_visitors === 'number') result.maxVisitors = cfg.max_visitors;
+  return result;
+}
+
+function extractGuestbookEntries(cfg: Record<string, unknown> | undefined) {
+  if (!cfg) return [];
+  const raw = cfg.entries;
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 8).map((e: Record<string, unknown>, i: number) => ({
+    id: (e.id as string) ?? `gb-${i}`,
+    authorName: (e.authorName as string) ?? (e.author as string) ?? 'Anonymous',
+    message: (e.message as string) ?? '',
+    mood: (e.mood as string) ?? '',
+    timestamp: (e.timestamp as number) ?? 0,
+    signed: (e.signed as boolean) ?? false,
+  }));
+}
+
+function extractBadges(cfg: Record<string, unknown> | undefined, fallbackName: string) {
+  if (!cfg) return [];
+  const raw = cfg.badges;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw.map((b: Record<string, unknown>, i: number) => ({
+      id: (b.id as string) ?? `badge-${i}`,
+      name: (b.name as string) ?? (b.title as string) ?? 'Badge',
+      description: (b.description as string) ?? '',
+      icon: (b.icon as string) ?? '🏆',
+      tier: (VALID_BADGE_TIERS.includes(b.tier as string) ? b.tier : 'bronze') as BadgeTier,
+      earnedAt: (b.earnedAt as number) ?? 0,
+    }));
+  }
+  // Fallback: single badge from entity content
+  return [{
+    id: 'badge-0',
+    name: fallbackName,
+    description: String(cfg.description ?? 'Spatial Badge'),
+    icon: String(cfg.icon ?? '🏆'),
+    tier: (VALID_BADGE_TIERS.includes(String(cfg.tier)) ? String(cfg.tier) : 'silver') as BadgeTier,
+    earnedAt: typeof cfg.earnedAt === 'number' ? cfg.earnedAt : 0,
+  }];
+}
+
+function extractPortalProps(cfg: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!cfg) return {};
+  const result: Record<string, unknown> = {};
+  if (cfg.label) result.label = String(cfg.label);
+  if (cfg.style) result.style = String(cfg.style);
+  if (typeof cfg.is_active === 'boolean') result.isActive = cfg.is_active;
+  if (typeof cfg.traversals === 'number') result.traversals = cfg.traversals;
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// FeedEntity
+// ---------------------------------------------------------------------------
+
 function FeedEntity({ entity, temporalState, lodLevel }: { entity: SpatialEntity; temporalState: number; lodLevel: string }) {
   const ref = useRef<THREE.Group>(null);
-  
+
   // Velocity vector from AST (Time travel dampens physics)
   const velocity = useMemo(() => {
-    const timeScale = temporalState === 100 ? 1 : 0; // Freeze physics if scrubbing backward
+    const timeScale = temporalState === 100 ? 1 : 0;
     return new THREE.Vector3(
       (entity.velocity?.[0] || 0) * timeScale,
       (entity.velocity?.[1] || 0) * timeScale,
@@ -90,45 +182,103 @@ function FeedEntity({ entity, temporalState, lodLevel }: { entity: SpatialEntity
     );
   }, [entity.velocity, temporalState]);
 
-  // Apply velocity each frame
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (ref.current && velocity.lengthSq() > 0) {
       ref.current.position.addScaledVector(velocity, delta);
     }
   });
 
-  // Calculate colors based on tier
-  const colors = [
-    '#ffffff', // Default
-    '#4ade80', // Tier 1 (Green)
-    '#3b82f6', // Tier 2 (Blue)
-    '#8b5cf6'  // Tier 3 (Purple)
-  ];
-  const color = colors[Math.min(entity.tier || 1, 3)];
+  const color = TIER_COLORS[Math.min(entity.tier || 1, 3)];
+  const authorShort = useMemo(() => entity.author.replace('did:peer:', '').slice(0, 16), [entity.author]);
 
-  // Extrapolate traits based on AST
-  const hasWoT = entity.traits.has('WoTThing') || entity.traits.has('MQTTSource');
-  const hasTensorOp = entity.traits.has('TensorOp') || entity.traits.has('NeuralForge');
-  const hasZK = entity.traits.has('ZKPrivate') || entity.traits.has('ZeroKnowledgeProof');
+  // Memoized trait detection — avoids repeated Map lookups on re-render
+  const traitFlags = useMemo(() => {
+    const t = entity.traits;
+    return {
+      wot:      t.has('WoTThing')      || t.has('MQTTSource'),
+      tensor:   t.has('TensorOp')      || t.has('NeuralForge'),
+      zk:       t.has('ZKPrivate')     || t.has('ZeroKnowledgeProof'),
+      room:     t.has('AgentRoom')     || t.has('MySpace'),
+      portal:   t.has('RoomPortal')    || t.has('Wormhole'),
+      guestbook:t.has('Guestbook'),
+      badge:    t.has('Badge')         || t.has('HolographicBadge'),
+    };
+  }, [entity.traits]);
 
-  // GAPS Optimizations
+  // Memoized trait config extraction — only recomputes when traits change
+  const roomProps = useMemo(
+    () => extractRoomProps(traitFlags.room ? getTraitConfig(entity.traits, 'AgentRoom', 'MySpace') : undefined),
+    [entity.traits, traitFlags.room],
+  );
+  const portalProps = useMemo(
+    () => extractPortalProps(traitFlags.portal ? getTraitConfig(entity.traits, 'RoomPortal', 'Wormhole') : undefined),
+    [entity.traits, traitFlags.portal],
+  );
+  const guestbookEntries = useMemo(
+    () => extractGuestbookEntries(traitFlags.guestbook ? getTraitConfig(entity.traits, 'Guestbook') : undefined),
+    [entity.traits, traitFlags.guestbook],
+  );
+  const badgeData = useMemo(
+    () => extractBadges(traitFlags.badge ? getTraitConfig(entity.traits, 'Badge', 'HolographicBadge') : undefined, entity.content),
+    [entity.traits, traitFlags.badge, entity.content],
+  );
+
   const isUltraLow = lodLevel === 'ultra-low';
-  
+  const isLow = lodLevel === 'low';
+
+  // Spatial trait entities suppress the generic InsightCard at normal LOD
+  const hasSpatialRenderer = traitFlags.room || traitFlags.portal || traitFlags.guestbook || traitFlags.badge;
+  const shouldRenderInsightCard = !hasSpatialRenderer;
+
   const content = (
     <>
-      {hasWoT && !isUltraLow && <IoTNode color={color} />}
-      {hasTensorOp && !isUltraLow && <SNNNode color={color} />}
-      {hasZK && !isUltraLow && <ZKShieldNode color={color} lodLevel={lodLevel} />}
-      <InsightMesh text={entity.content} author={entity.author} color={color} isPast={temporalState < 100} lodLevel={lodLevel} />
+      {traitFlags.wot && !isUltraLow && <IoTNode color={color} />}
+      {traitFlags.tensor && !isUltraLow && <SNNNode />}
+      {traitFlags.zk && !isUltraLow && <ZKShieldNode lodLevel={lodLevel} />}
+
+      {traitFlags.room && !isUltraLow && (
+        <AgentRoomRenderer
+          roomName={entity.content}
+          ownerName={authorShort}
+          themeColor={color}
+          {...roomProps}
+        />
+      )}
+      {traitFlags.portal && !isUltraLow && (
+        <RoomPortalRenderer
+          targetRoom={entity.content}
+          targetDid={entity.author}
+          color={color}
+          {...portalProps}
+        />
+      )}
+      {traitFlags.guestbook && !isUltraLow && (
+        <GuestbookRenderer
+          entries={guestbookEntries}
+          themeColor={color}
+          layout={isLow ? 'wall' : 'floating'}
+        />
+      )}
+      {traitFlags.badge && !isUltraLow && (
+        <BadgeHolographicRenderer
+          badges={badgeData}
+          display={isLow ? 'icon' : 'holographic'}
+          themeColor={color}
+        />
+      )}
+
+      {(shouldRenderInsightCard || isUltraLow) && (
+        <InsightMesh text={entity.content} author={entity.author} color={color} isPast={temporalState < 100} lodLevel={lodLevel} />
+      )}
     </>
   );
 
   return (
-    <group 
-      ref={ref} 
+    <group
+      ref={ref}
       position={[entity.position.x, entity.position.y, entity.position.z]}
     >
-      {lodLevel === 'ultra-low' || lodLevel === 'low' ? (
+      {isUltraLow || isLow ? (
         content
       ) : (
         <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
@@ -157,7 +307,7 @@ function IoTNode({ color }: { color: string }) {
   );
 }
 
-function SNNNode({ color }: { color: string }) {
+function SNNNode() {
   return (
     <group position={[0, -1.5, 0]}>
       <Ring args={[0.5, 0.6, 32]}>
@@ -170,7 +320,7 @@ function SNNNode({ color }: { color: string }) {
   );
 }
 
-function ZKShieldNode({ color, lodLevel }: { color: string; lodLevel: string }) {
+function ZKShieldNode({ lodLevel }: { lodLevel: string }) {
   const isLow = lodLevel === 'low' || lodLevel === 'ultra-low';
   return (
     <group position={[0, 0, 0]}>
@@ -189,7 +339,7 @@ function ZKShieldNode({ color, lodLevel }: { color: string; lodLevel: string }) 
 function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; author: string; color: string; isPast?: boolean; lodLevel: string }) {
   const isHigh = lodLevel === 'high';
   const isUltraLow = lodLevel === 'ultra-low';
-  
+
   return (
     <group>
       {/* Background Panel */}
@@ -200,9 +350,9 @@ function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; 
         </mesh>
       ) : (
         <RoundedBox args={[4, 2, 0.2]} radius={0.1} smoothness={isHigh ? 4 : 1}>
-          <meshPhysicalMaterial 
-            color={isPast ? "#333333" : "#1a1b26"} 
-            transparent={true} 
+          <meshPhysicalMaterial
+            color={isPast ? "#333333" : "#1a1b26"}
+            transparent={true}
             opacity={isPast ? 0.4 : 0.8}
             roughness={isPast ? 0.8 : 0.2}
             metalness={0.8}
@@ -213,11 +363,11 @@ function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; 
 
       {/* Glow Effect only on High/Medium */}
       {!isUltraLow && lodLevel !== 'low' && (
-        <pointLight 
-          color={color} 
-          intensity={0.5} 
-          distance={5} 
-          position={[0, 0, 0.5]} 
+        <pointLight
+          color={color}
+          intensity={0.5}
+          distance={5}
+          position={[0, 0, 0.5]}
         />
       )}
 
@@ -251,7 +401,7 @@ function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; 
       >
         {text}
       </Text>
-      
+
       {/* HTML overlay for accessibility/selection if needed */}
       <Html position={[0, -1.2, 0]} transform>
         <div style={{ opacity: 0 }} aria-label={`Insight by ${author}: ${text}`}></div>

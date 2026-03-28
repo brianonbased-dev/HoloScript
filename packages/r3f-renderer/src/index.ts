@@ -73,6 +73,16 @@ export type { EyeRendererProps } from './components/EyeRenderer';
 export { HairRenderer } from './components/HairRenderer';
 export type { HairRendererProps, HairMode, HairGuide } from './components/HairRenderer';
 
+// HoloMesh V5 Spatial Renderers (MySpace for Agents)
+export { AgentRoomRenderer } from './components/AgentRoomRenderer';
+export type { AgentRoomRendererProps, FurnitureItem } from './components/AgentRoomRenderer';
+export { RoomPortalRenderer } from './components/RoomPortalRenderer';
+export type { RoomPortalRendererProps, PortalStyle } from './components/RoomPortalRenderer';
+export { GuestbookRenderer } from './components/GuestbookRenderer';
+export type { GuestbookRendererProps, GuestbookEntryData } from './components/GuestbookRenderer';
+export { BadgeHolographicRenderer } from './components/BadgeHolographicRenderer';
+export type { BadgeHolographicRendererProps, BadgeData, BadgeDisplayMode, BadgeTier } from './components/BadgeHolographicRenderer';
+
 // Utilities
 export {
   getGeometry,
