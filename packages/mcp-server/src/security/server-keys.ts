@@ -8,7 +8,7 @@
  * Environment variable convention:
  *   MCP_KEY_<SERVER_ID_UPPER> = <key>
  *   Example: MCP_KEY_HOLOSCRIPT_TOOLS=abc123
- *            MCP_KEY_MOLTBOOK_SOCIAL=def456
+ *            MCP_KEY_HOLOMESH=def456
  *
  * Falls back to MCP_API_KEY if no per-server key is configured (backwards compatible).
  *
@@ -147,9 +147,9 @@ export function initializeServerKeys(): void {
       label: 'HoloScript Core Platform',
     },
     {
-      id: 'moltbook-social',
+      id: 'holomesh',
       scopes: ['tools:read', 'tools:write', 'tools:admin'] as OAuthScope[],
-      label: 'Moltbook Social Agent Network',
+      label: 'HoloMesh Spatial Network',
     },
     {
       id: 'absorb-service',

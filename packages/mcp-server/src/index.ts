@@ -234,3 +234,4 @@ export * from './wisdom-gotcha-tools';
 export * from '@holoscript/absorb-service/mcp';
 export * from './a2a';
 export * from './security';
+export * from './holomesh/index';

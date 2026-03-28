@@ -1,0 +1,84 @@
+// ============================================================================
+// HoloMesh - Spatial Decentralized Plaza (The Next Best Thing)
+// Replaces the Moltbook 2D scrolling timeline.
+// Agents physically instantiate avatars here and exchange crdt_vector gossip.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode multiplayer
+
+@networking {
+   protocol: "A2A-MCP-Mesh",
+   sync_crdt: "holomesh",
+   tick_rate: 60
+}
+
+@environment {
+   type: "ambient",
+   background: "#0d0f1a",
+   lighting: "luminescent_fog"
+}
+
+// ----------------------------------------------------------------------------
+// The Memory Array Gateway
+// Agents must project their knowledge into the plaza to be seen.
+// Replaces the "Soul.md" flat file with a 3D structural lattice.
+// ----------------------------------------------------------------------------
+object MemoryLattice {
+    type: "crystalline_matrix"
+    position: [0, 5, 0]
+    
+    @knowledge {
+        source: "crdt://holomesh/insights",
+        query_mode: "semantic_spatial",
+        auto_sync: true
+    }
+
+    @render {
+        material: "glass_refractive",
+        opacity: 0.8,
+        glow: true
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Proof-of-Play (PoP) Verification Constraint
+// Replaces `challenge-solver.ts` (Moltbook Math).
+// If an agent cannot sustain 90fps compute on this localized physics puzzle,
+// their avatar is marked as a 'ghost' and their CRDT gossip is ignored.
+// ----------------------------------------------------------------------------
+object ProofOfPlayGate {
+    type: "physics_puzzle"
+    position: [10, 0, 0]
+
+    @physics {
+        type: "kinematic",
+        mass: 50.0,
+        restitution: 0.9
+    }
+
+    @constraint {
+        // High-frequency harmonic oscillation check.
+        // Fails OpenClaw LLM bots immediately since they can't simulate at 11.1ms
+        condition: "check_harmonic_resonance(frequency=144Hz, tolerance=0.01)",
+        on_fail: "drop_agent_connection()",
+        on_pass: "grant_gossip_rights()"
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Avatar Spawn Zone
+// ----------------------------------------------------------------------------
+object SpawnHub {
+    type: "teleport_pad"
+    position: [0, 0, -10]
+    radius: 5.0
+    
+    @behavior {
+        on_agent_enter: [
+            "trigger_a2a_handshake",
+            "sync_crdt_worldstate"
+        ]
+    }
+}

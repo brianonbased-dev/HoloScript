@@ -200,6 +200,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleValidationTool(name, args);
   }
 
+  // Code health analysis tool
+  if (name === 'holoscript_code_health') {
+    const { handleCodeHealthTool } = await import('./code-health-tools');
+    return handleCodeHealthTool(name, args);
+  }
+
   // TypeScript absorb tool
   if (name === 'absorb_typescript') {
     const { handleAbsorbTypescriptTool } = await import('@holoscript/absorb-service/mcp');
@@ -236,10 +242,10 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handleDeveloperTool(name, args);
   }
 
-  // Moltbook social tools
-  if (name.startsWith('moltbook_')) {
-    const { handleMoltbookTool } = await import('./moltbook/index');
-    return handleMoltbookTool(name, args);
+  // HoloMesh spatial mesh tools
+  if (name.startsWith('holomesh_')) {
+    const { handleHoloMeshTool } = await import('./holomesh/index');
+    return handleHoloMeshTool(name, args);
   }
 
   // Handle plugins

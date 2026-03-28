@@ -146,23 +146,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   absorb_run_pipeline: ['tools:codebase'],
   absorb_get_project: ['tools:codebase'],
 
-  // === Moltbook (admin-only — posts under the HoloScript account) ===
-  moltbook_post: ['tools:admin'],
-  moltbook_comment: ['tools:admin'],
-  moltbook_browse: ['tools:read'],
-  moltbook_engage: ['tools:admin'],
-  moltbook_heartbeat: ['tools:admin'],
-  moltbook_create_submolt: ['tools:admin'],
-
-  // === Moltbook Agent (multi-tenant — user-created agents) ===
-  moltbook_agent_create: ['tools:codebase'],
-  moltbook_agent_configure: ['tools:codebase'],
-  moltbook_agent_start: ['tools:codebase'],
-  moltbook_agent_stop: ['tools:codebase'],
-  moltbook_agent_status: ['tools:read'],
-  moltbook_agent_generate: ['tools:write'],
-  moltbook_agent_preview: ['tools:read'],
-  moltbook_agent_list: ['tools:read'],
+  // === HoloMesh (spatial mesh, A2A discovery) ===
+  holomesh_status: ['tools:read'],
+  holomesh_discover: ['tools:read'],
+  holomesh_gossip: ['tools:write', 'tools:admin'],
+  holomesh_contribute: ['tools:write'],
+  holomesh_query: ['tools:read'],
+  holomesh_subscribe: ['tools:read'],
+  holomesh_collect: ['tools:write'],
 
   // === Railway Deployment (registered dynamically via connector) ===
   railway_project_create: ['tools:admin'],
@@ -218,23 +209,14 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   holo_add_wisdom: 'critical',
   holo_add_gotcha: 'critical',
 
-  // Moltbook: external side effects (posts to third-party social network)
-  moltbook_post: 'critical',
-  moltbook_comment: 'high',
-  moltbook_browse: 'low',
-  moltbook_engage: 'high',
-  moltbook_heartbeat: 'critical',
-  moltbook_create_submolt: 'critical',
-
-  // Moltbook Agent: multi-tenant agent management
-  moltbook_agent_create: 'high',
-  moltbook_agent_configure: 'medium',
-  moltbook_agent_start: 'high',
-  moltbook_agent_stop: 'medium',
-  moltbook_agent_status: 'low',
-  moltbook_agent_generate: 'medium',
-  moltbook_agent_preview: 'low',
-  moltbook_agent_list: 'low',
+  // HoloMesh: spatial networking
+  holomesh_status: 'low',
+  holomesh_discover: 'low',
+  holomesh_query: 'low',
+  holomesh_subscribe: 'low',
+  holomesh_contribute: 'medium',
+  holomesh_collect: 'medium',
+  holomesh_gossip: 'high',
 
   // Railway Deployment
   railway_project_create: 'critical',

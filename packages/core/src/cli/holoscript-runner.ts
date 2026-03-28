@@ -43,7 +43,7 @@ import type { ImportChainNode } from '../deploy/protocol-types';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 export interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'deploy' | 'absorb' | 'daemon' | 'holodaemon' | 'moltbook-daemon' | 'daemon-status' | 'help';
+  command: 'run' | 'test' | 'compile' | 'deploy' | 'absorb' | 'daemon' | 'holodaemon' | 'moltbook-daemon' | 'holomesh-daemon' | 'daemon-status' | 'help';
   json: boolean;
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
@@ -196,7 +196,7 @@ function parseArgs(argv: string[]): CLIOptions {
 
   // First arg is command
   const cmd = args[0];
-  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'deploy' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon' || cmd === 'moltbook-daemon') {
+  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'deploy' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon' || cmd === 'moltbook-daemon' || cmd === 'holomesh-daemon') {
     opts.command = cmd;
   }
 
@@ -2213,14 +2213,16 @@ function getASTBlackboardValue(ast: unknown, key: string): unknown {
   return result;
 }
 
-// ── Moltbook Daemon Script ─────────────────────────────────────────────────
-// Follows the HoloDaemon pattern but targets the Moltbook social network.
-// Uses moltbook-daemon-actions.ts for BT action handlers.
 
-export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
+
+// ── HoloMesh Daemon ─────────────────────────────────────────────────────────
+// Decentralized knowledge exchange daemon.
+// Uses holomesh-daemon-actions.ts for BT action handlers.
+
+export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   if (!opts.file) {
     console.error('Error: No composition file specified');
-    console.error('Usage: holoscript moltbook-daemon compositions/moltbook-agent.hsplus [options]');
+    console.error('Usage: holoscript holomesh-daemon compositions/holomesh-agent.hsplus [options]');
     process.exit(1);
   }
 
@@ -2230,9 +2232,8 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
     process.exit(1);
   }
 
-  // Check for MOLTBOOK_API_KEY
-  if (!process.env.MOLTBOOK_API_KEY) {
-    console.error('[moltbook-daemon] MOLTBOOK_API_KEY environment variable is required');
+  if (!process.env.MCP_API_KEY) {
+    console.error('[holomesh-daemon] MCP_API_KEY environment variable is required');
     process.exit(1);
   }
 
@@ -2241,30 +2242,30 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
 
   if (!parseResult.success || !parseResult.ast) {
     const errors = parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
-    console.error(`[moltbook-daemon] Parse failed: ${errors}`);
+    console.error(`[holomesh-daemon] Parse failed: ${errors}`);
     process.exit(1);
   }
 
   const compositionAST = parseResult.ast as Record<string, unknown>;
   const stateDir = path.resolve(path.dirname(filePath), '.holoscript');
   if (!fs.existsSync(stateDir)) fs.mkdirSync(stateDir, { recursive: true });
-  const stateFile = path.join(stateDir, 'moltbook-state.json');
+  const stateFile = path.join(stateDir, 'holomesh-state.json');
 
-  console.log(`[moltbook-daemon] Composition: ${path.basename(filePath)}`);
-  console.log(`[moltbook-daemon] Cycles: ${opts.cycles} | Always-on: ${opts.alwaysOn} | Provider: ${opts.provider}`);
+  console.log(`[holomesh-daemon] Composition: ${path.basename(filePath)}`);
+  console.log(`[holomesh-daemon] Cycles: ${opts.cycles} | Always-on: ${opts.alwaysOn}`);
 
   // Lock file
-  const lockFile = path.join(stateDir, 'moltbook-daemon.lock');
+  const lockFile = path.join(stateDir, 'holomesh-daemon.lock');
   const lockData = { pid: process.pid, time: Date.now(), heartbeat: Date.now() };
 
   if (fs.existsSync(lockFile)) {
     try {
       const existing = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
       if (Date.now() - existing.heartbeat < 120_000) {
-        console.error(`[moltbook-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`);
+        console.error(`[holomesh-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`);
         process.exit(1);
       }
-      console.log(`[moltbook-daemon] Reclaiming stale lock from PID ${existing.pid}`);
+      console.log(`[holomesh-daemon] Reclaiming stale lock from PID ${existing.pid}`);
     } catch { /* corrupt lock, reclaim */ }
   }
   fs.writeFileSync(lockFile, JSON.stringify(lockData), 'utf-8');
@@ -2280,76 +2281,54 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
   process.once('SIGINT', cleanup);
   process.once('SIGTERM', cleanup);
 
-  // Late-import moltbook dependencies (they're in mcp-server, not core)
-  let createMoltbookDaemonActions: typeof import('@holoscript/mcp-server/moltbook/agent/moltbook-daemon-actions').createMoltbookDaemonActions;
-  let MoltbookClient: typeof import('@holoscript/mcp-server/moltbook/client').MoltbookClient;
-  let LLMContentGenerator: typeof import('@holoscript/mcp-server/moltbook/llm-content-generator').LLMContentGenerator;
-  let adaptProviderManager: typeof import('@holoscript/mcp-server/moltbook/llm-content-generator').adaptProviderManager;
-  let ChallengeEscalationPipeline: typeof import('@holoscript/mcp-server/moltbook/challenge-solver').ChallengeEscalationPipeline;
+  // Late-import holomesh dependencies (they're in mcp-server, not core)
+  let createHoloMeshDaemonActions: any;
+  let HoloMeshOrchestratorClient: any;
 
   try {
-    // Dynamic import since mcp-server is a peer dependency
-    const actionsModule = await import('@holoscript/mcp-server/moltbook/agent/moltbook-daemon-actions');
-    const clientModule = await import('@holoscript/mcp-server/moltbook/client');
-    const llmModule = await import('@holoscript/mcp-server/moltbook/llm-content-generator');
-    const solverModule = await import('@holoscript/mcp-server/moltbook/challenge-solver');
-    createMoltbookDaemonActions = actionsModule.createMoltbookDaemonActions;
-    MoltbookClient = clientModule.MoltbookClient;
-    LLMContentGenerator = llmModule.LLMContentGenerator;
-    adaptProviderManager = llmModule.adaptProviderManager;
-    ChallengeEscalationPipeline = solverModule.ChallengeEscalationPipeline;
+    // @ts-expect-error dynamic import — mcp-server is peer dep, resolved at runtime
+    const actionsModule = await import('@holoscript/mcp-server/holomesh/agent/holomesh-daemon-actions');
+    // @ts-expect-error dynamic import — mcp-server is peer dep, resolved at runtime
+    const clientModule = await import('@holoscript/mcp-server/holomesh/orchestrator-client');
+    createHoloMeshDaemonActions = actionsModule.createHoloMeshDaemonActions;
+    HoloMeshOrchestratorClient = clientModule.HoloMeshOrchestratorClient;
   } catch (err) {
-    console.error(`[moltbook-daemon] Failed to import moltbook modules: ${(err as Error).message}`);
-    console.error('[moltbook-daemon] Ensure @holoscript/mcp-server is installed');
+    console.error(`[holomesh-daemon] Failed to import holomesh modules: ${(err as Error).message}`);
+    console.error('[holomesh-daemon] Ensure @holoscript/mcp-server is installed');
     cleanup();
     process.exit(1);
   }
 
-  // Create Moltbook client
-  const client = new MoltbookClient(process.env.MOLTBOOK_API_KEY!);
-
-  // Create LLM provider for content generation
-  const llmProvider = createDaemonLLMProvider(opts);
-  const contentLLM = adaptProviderManager({
-    complete: async (request) => {
-      const result = await llmProvider.chat({
-        system: request.messages.find(m => m.role === 'system')?.content ?? '',
-        prompt: request.messages.find(m => m.role === 'user')?.content ?? '',
-        maxTokens: request.maxTokens ?? 1024,
-      });
-      return { content: result.text };
-    },
-  });
-  const llmGenerator = new LLMContentGenerator(contentLLM);
-
-  // Instantiate and attach the challenge pipeline utilizing the same LLM
-  const challengePipeline = new ChallengeEscalationPipeline(contentLLM);
-  client.attachChallengePipeline(challengePipeline);
+  // Create orchestrator client
+  const meshConfig = {
+    orchestratorUrl: process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
+    apiKey: process.env.MCP_API_KEY!,
+    workspace: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+    agentName: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
+    discoveryIntervalMs: 5 * 60 * 1000,
+    inboxIntervalMs: 60 * 1000,
+    maxContributionsPerCycle: 5,
+    maxQueriesPerCycle: 3,
+    budgetCapUSD: parseFloat(process.env.HOLOMESH_BUDGET_CAP || '5'),
+  };
+  const client = new HoloMeshOrchestratorClient(meshConfig);
 
   // Create action handlers
-  const daemonConfig = {
-    agentName: 'holoscript',
+  const { actions, wireTraitListeners } = createHoloMeshDaemonActions(client, {
     stateFile,
     verbose: opts.debug,
-    maxRepliesPerPost: 2,
-    conceptClusters: [],
-  };
-  const { actions, wireTraitListeners } = createMoltbookDaemonActions(
-    client, llmGenerator, null, daemonConfig,
-  );
+  });
 
-  console.log(`[moltbook-daemon] ${Object.keys(actions).length} action handlers registered`);
+  console.log(`[holomesh-daemon] ${Object.keys(actions).length} action handlers registered`);
 
   // Cycle loop
   let cycle = 0;
   while (opts.alwaysOn || cycle < opts.cycles) {
-    console.log(`\n[moltbook-daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} ===`);
+    console.log(`\n[holomesh-daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} ===`);
 
-    // Fresh AST per cycle
     const cycleAST = JSON.parse(JSON.stringify(compositionAST));
     materializeTraits(cycleAST);
 
-    // Create runtime
     const runtime = createProfileRuntime(cycleAST, {
       profile: PROFILES_HEADLESS,
       tickRate: 1,
@@ -2357,13 +2336,11 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
       hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
     });
 
-    // Register actions
     for (const [name, handler] of Object.entries(actions)) {
-      runtime.registerAction(name, handler);
+      runtime.registerAction(name, handler as ActionHandler);
     }
     wireTraitListeners(runtime);
 
-    // Wait for BT completion or timeout
     const maxWaitMs = (opts.timeout ?? 5) * 60 * 1000;
     const btResult = await new Promise<{ status: string }>((resolve) => {
       let resolved = false;
@@ -2379,23 +2356,21 @@ export async function moltbookDaemonScript(opts: CLIOptions): Promise<void> {
     });
 
     runtime.stop();
-    console.log(`[moltbook-daemon] Cycle ${cycle + 1} ${btResult.status}`);
+    console.log(`[holomesh-daemon] Cycle ${cycle + 1} ${btResult.status}`);
 
     cycle++;
 
-    // Inter-cycle cooldown: use karma tier to determine wait time
     if (opts.alwaysOn || cycle < opts.cycles) {
       const intervalSec = opts.cycleIntervalSec > 0 ? opts.cycleIntervalSec : 120;
-      // Add ±30% jitter
       const jitter = 1 + (Math.random() * 2 - 1) * 0.3;
       const waitMs = Math.round(intervalSec * 1000 * jitter);
-      console.log(`[moltbook-daemon] Waiting ${Math.round(waitMs / 1000)}s before next cycle...`);
+      console.log(`[holomesh-daemon] Waiting ${Math.round(waitMs / 1000)}s before next cycle...`);
       await new Promise((r) => setTimeout(r, waitMs));
     }
   }
 
   cleanup();
-  console.log('[moltbook-daemon] Done');
+  console.log('[holomesh-daemon] Done');
 }
 
 async function daemonStatus(jsonOutput = false): Promise<void> {
@@ -2642,8 +2617,8 @@ async function main(): Promise<void> {
     case 'holodaemon':
       await daemonScript(opts);
       break;
-    case 'moltbook-daemon':
-      await moltbookDaemonScript(opts);
+    case 'holomesh-daemon':
+      await holoMeshDaemonScript(opts);
       break;
     case 'daemon-status':
       await daemonStatus(opts.json);
