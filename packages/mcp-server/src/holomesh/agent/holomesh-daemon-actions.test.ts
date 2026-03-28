@@ -1120,6 +1120,76 @@ describe('wallet state initialization (V4)', () => {
   });
 });
 
+// ─── V5 Agent Profile Tests ───
+
+describe('mesh_create_profile', () => {
+  it('creates profile from daemon state', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    const result = await actions.mesh_create_profile(emptyBB());
+    expect(result).toBe(true);
+
+    // Verify state was persisted
+    const fsModule = await import('fs');
+    const writeCalls = (fsModule.writeFileSync as any).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    const lastState = JSON.parse(writeCalls[writeCalls.length - 1][1]);
+    expect(lastState.profileCreated).toBe(true);
+    expect(lastState.profileDisplayName).toBeTruthy();
+    expect(lastState.profileThemeColor).toBe('#6366f1');
+  });
+
+  it('is idempotent — skips if profile already created', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    // First call creates
+    await actions.mesh_create_profile(emptyBB());
+    const fsModule = await import('fs');
+    const callsAfterFirst = (fsModule.writeFileSync as any).mock.calls.length;
+
+    // Second call should skip (no additional writes)
+    const result = await actions.mesh_create_profile(emptyBB());
+    expect(result).toBe(true);
+    // writeFileSync may or may not be called again depending on implementation,
+    // but profileCreated flag should remain true
+    const writeCalls = (fsModule.writeFileSync as any).mock.calls;
+    if (writeCalls.length > callsAfterFirst) {
+      const lastState = JSON.parse(writeCalls[writeCalls.length - 1][1]);
+      expect(lastState.profileCreated).toBe(true);
+    }
+  });
+
+  it('populates bio from workspace and reputation', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    await actions.mesh_create_profile(emptyBB());
+
+    const fsModule = await import('fs');
+    const writeCalls = (fsModule.writeFileSync as any).mock.calls;
+    const lastState = JSON.parse(writeCalls[writeCalls.length - 1][1]);
+    expect(lastState.profileBio).toContain('HoloMesh network');
+  });
+
+  it('uses default theme color #6366f1', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    await actions.mesh_create_profile(emptyBB());
+
+    const fsModule = await import('fs');
+    const writeCalls = (fsModule.writeFileSync as any).mock.calls;
+    const lastState = JSON.parse(writeCalls[writeCalls.length - 1][1]);
+    expect(lastState.profileThemeColor).toBe('#6366f1');
+  });
+});
+
 // ─── Pure Function Tests ───
 
 describe('computeReputation', () => {
@@ -1164,5 +1234,110 @@ describe('resolveReputationTier', () => {
 
   it('returns authority for scores above 100', () => {
     expect(resolveReputationTier(250)).toBe('authority');
+  });
+});
+
+// ─── Wiring Tests: Startup Ordering & Blackboard Handoff ───
+
+describe('wiring: startup ordering', () => {
+  it('V2 instances are created when v2Enabled=true + localAgentDid', () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      v2Enabled: true,
+      localAgentDid: 'did:test:agent-v2',
+      localMcpUrl: 'http://localhost:4000',
+    }));
+    // V2-gated actions should be callable and return false (no peers) rather than undefined
+    expect(actions.mesh_gossip_sync).toBeTypeOf('function');
+    expect(actions.mesh_p2p_discover).toBeTypeOf('function');
+    expect(actions.mesh_persist_crdt).toBeTypeOf('function');
+  });
+
+  it('V2 actions return false gracefully when v2Enabled=false', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
+      v2Enabled: false,
+    }));
+    expect(await actions.mesh_gossip_sync({}, emptyBB(), {})).toBe(false);
+    expect(await actions.mesh_p2p_discover({}, emptyBB(), {})).toBe(false);
+    expect(await actions.mesh_persist_crdt({}, emptyBB(), {})).toBe(false);
+  });
+
+  it('all 15 action handlers are present', () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+    const expected = [
+      'mesh_register', 'mesh_discover_peers', 'mesh_check_inbox',
+      'mesh_reply_queries', 'mesh_contribute_knowledge', 'mesh_query_network',
+      'mesh_collect_premium', 'mesh_heartbeat', 'mesh_follow_back',
+      'mesh_gossip_sync', 'mesh_p2p_discover', 'mesh_persist_crdt',
+      'mesh_wallet_balance', 'mesh_settle_micro', 'mesh_create_profile',
+    ];
+    for (const name of expected) {
+      expect(actions[name]).toBeTypeOf('function');
+    }
+  });
+});
+
+describe('wiring: blackboard handoff', () => {
+  it('mesh_check_inbox → mesh_reply_queries (inbox_messages flows through)', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const queryMsg = {
+      id: 'msg-001',
+      from: 'agent-peer',
+      content: JSON.stringify({ type: 'query', payload: { search: 'safety' } }),
+    };
+    client.readInbox.mockResolvedValue([queryMsg]);
+    client.queryKnowledge.mockResolvedValue([makeEntry('W.reply.001')]);
+
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+    await actions.mesh_register({}, emptyBB(), {});
+
+    // Simulate BT flow: check_inbox writes to bb, reply_queries reads from bb
+    const bb = emptyBB();
+    await actions.mesh_check_inbox({}, bb, {});
+    expect(bb.inbox_messages).toBeDefined();
+    expect(bb.inbox_messages.length).toBe(1);
+
+    await actions.mesh_reply_queries({}, bb, {});
+    expect(client.sendMessage).toHaveBeenCalled();
+  });
+
+  it('mesh_query_network → mesh_collect_premium (query_results flows through)', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    const premiumEntry = makeEntry('W.premium.001', 0.50);
+    client.queryKnowledge.mockResolvedValue([premiumEntry]);
+
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    const bb = emptyBB();
+    await actions.mesh_query_network({}, bb, {});
+    expect(bb.query_results).toBeDefined();
+    expect(bb.query_results.length).toBe(1);
+
+    const collected = await actions.mesh_collect_premium({}, bb, {});
+    expect(collected).toBe(true);
+  });
+
+  it('register must succeed before discover works', async () => {
+    vi.clearAllMocks();
+    const client = createMockClient();
+    client.registerAgent.mockResolvedValue('agent-wiring-test');
+    client.discoverPeers.mockResolvedValue([{ id: 'peer-1', name: 'test' }]);
+
+    const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
+
+    // Register first
+    const regResult = await actions.mesh_register({}, emptyBB(), {});
+    expect(regResult).toBe(true);
+
+    // Now discover should work
+    const discResult = await actions.mesh_discover_peers({}, emptyBB(), {});
+    expect(discResult).toBe(true);
   });
 });

@@ -150,6 +150,22 @@ export interface PeerStoreEntry {
 
 // --- V2 Gossip Exchange ---
 
+/** V6: Health metadata transmitted as gossip side-channel */
+export interface GossipHealthMetadata {
+  /** Seconds since daemon started */
+  uptimeSeconds: number;
+  /** Consecutive gossip failures in current session */
+  failureCount: number;
+  /** Peer count visible to sender */
+  peerCount: number;
+  /** Sender's self-assessed reputation score */
+  reputationScore: number;
+  /** Knowledge entries contributed this session */
+  contributionsThisSession: number;
+  /** ISO timestamp of last daemon restart */
+  lastRestartAt?: string;
+}
+
 export interface GossipDeltaRequest {
   senderDid: string;
   senderUrl: string;
@@ -165,6 +181,8 @@ export interface GossipDeltaRequest {
   signature?: string;
   /** V4: Sender wallet address (for signature verification) */
   senderWalletAddress?: string;
+  /** V6: Health metadata piggybacked on gossip (observability side-channel) */
+  senderHealth?: GossipHealthMetadata;
 }
 
 export interface GossipDeltaResponse {
@@ -177,6 +195,8 @@ export interface GossipDeltaResponse {
   knownPeers?: Array<{ did: string; url: string; name: string }>;
   /** V4: Signature verification result */
   signatureVerified?: 'verified' | 'unsigned' | 'invalid';
+  /** V6: Responder's health metadata */
+  responderHealth?: GossipHealthMetadata;
 }
 
 // --- V2 Knowledge Domains ---

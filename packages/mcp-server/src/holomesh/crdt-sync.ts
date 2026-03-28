@@ -222,6 +222,80 @@ Insight("${this.agentDid}_${Date.now()}") {
     }
   }
 
+  // ── V6: Confidence Decay & Forced Re-evaluation ────────────────────────
+
+  /** Half-life for reputation decay in milliseconds (default: 7 days) */
+  static REPUTATION_HALF_LIFE_MS = 7 * 24 * 60 * 60 * 1000;
+  /** Re-evaluation threshold: if decay factor drops below this, flag for re-evaluation */
+  static REEVAL_DECAY_THRESHOLD = 0.5;
+
+  /**
+   * Get reputation with time-based decay applied.
+   *
+   * Uses exponential decay: effective_score = raw_score * 2^(-age / halfLife)
+   * Old contributions carry less weight than recent ones, preventing the
+   * upward confidence drift that comes from absence of negative feedback.
+   */
+  public getReputationWithDecay(
+    agentDid: string,
+    halfLifeMs: number = HoloMeshWorldState.REPUTATION_HALF_LIFE_MS,
+  ): { raw: any; decayedScore: number; decayFactor: number; needsReeval: boolean } | null {
+    const raw = this.getReputation(agentDid);
+    if (!raw) return null;
+
+    const age = Date.now() - (raw.updatedAt || 0);
+    const decayFactor = Math.pow(2, -age / halfLifeMs);
+    const rawScore = typeof raw.score === 'number' ? raw.score : 0;
+    const decayedScore = Math.round(rawScore * decayFactor * 100) / 100;
+    const needsReeval = decayFactor < HoloMeshWorldState.REEVAL_DECAY_THRESHOLD;
+
+    return { raw, decayedScore, decayFactor, needsReeval };
+  }
+
+  /**
+   * Find all agents whose reputation has decayed below threshold.
+   * Returns DIDs needing external re-validation.
+   */
+  public findAgentsNeedingReeval(
+    halfLifeMs: number = HoloMeshWorldState.REPUTATION_HALF_LIFE_MS,
+  ): string[] {
+    const repMap = this.doc.getMap('reputation');
+    if (!repMap) return [];
+
+    const stale: string[] = [];
+    const raw = repMap.toJSON() as Record<string, string>;
+    for (const [did, json] of Object.entries(raw)) {
+      try {
+        const parsed = typeof json === 'string' ? JSON.parse(json) : json;
+        const age = Date.now() - (parsed.updatedAt || 0);
+        const decayFactor = Math.pow(2, -age / halfLifeMs);
+        if (decayFactor < HoloMeshWorldState.REEVAL_DECAY_THRESHOLD) {
+          stale.push(did);
+        }
+      } catch {
+        stale.push(did);
+      }
+    }
+    return stale;
+  }
+
+  /**
+   * Reset reputation for an agent, forcing fresh re-evaluation.
+   * Score is zeroed but contribution/query counts preserved as history.
+   */
+  public resetReputation(agentDid: string): boolean {
+    const existing = this.getReputation(agentDid);
+    if (!existing) return false;
+
+    this.updateReputation(agentDid, {
+      contributions: existing.contributions || 0,
+      queries: existing.queries || 0,
+      score: 0,
+      tier: 'newcomer',
+    });
+    return true;
+  }
+
   // ── V2: Peer Registry ────────────────────────────────────────────────────
 
   /** Register a peer in the CRDT (propagates to other peers via gossip) */

@@ -16,7 +16,7 @@ import { HoloMeshOrchestratorClient } from './orchestrator-client';
 import type { MeshConfig, MeshKnowledgeEntry, GossipDeltaRequest, GossipDeltaResponse } from './types';
 import { DEFAULT_MESH_CONFIG } from './types';
 import { HoloMeshWorldState } from './crdt-sync';
-import type { HoloMeshDiscovery } from './discovery';
+import { HoloMeshDiscovery } from './discovery';
 import * as crypto from 'crypto';
 
 export const holomeshTools: Tool[] = [
@@ -317,7 +317,7 @@ export async function handleHoloMeshTool(
     case 'holomesh_wallet_status':
       return handleWalletStatus();
     case 'holomesh_gossip_sync':
-      return { error: 'V2 gossip sync must be triggered via daemon actions, not MCP tool handler directly.' };
+      return handleGossipSync(client, args);
     default:
       return null;
   }
@@ -642,6 +642,11 @@ export async function handleInboundGossip(
       discovery.absorbGossipedPeers(request.knownPeers, request.senderDid);
     }
 
+    // V6: Absorb sender's health metadata
+    if (request.senderHealth) {
+      discovery.absorbPeerHealth(request.senderDid, request.senderHealth);
+    }
+
     // Export our delta back (using sender's frontiers for efficient diff)
     const ourDelta = worldState.exportDelta(request.frontiers);
     const ourFrontiers = worldState.getFrontiers();
@@ -655,8 +660,51 @@ export async function handleInboundGossip(
       frontiers: ourFrontiers,
       knownPeers: peersToShare,
       signatureVerified,
+      responderHealth: discovery.buildHealthMetadata(),
     };
   } catch (err: any) {
     return { success: false };
+  }
+}
+
+async function handleGossipSync(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
+  try {
+    const agentId = client.getAgentId() || 'did:agent:local';
+    const localMcpUrl = process.env.MCP_LOCAL_URL || 'http://localhost:3000';
+    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+    const peerStorePath = process.env.HOLOMESH_PEER_STORE_PATH || './.holomesh/peers.json';
+
+    const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+    const discovery = new HoloMeshDiscovery(agentId, localMcpUrl, worldState, { storePath: peerStorePath });
+
+    const targetCount = (args.targetCount as number) || 2;
+    let targets = discovery.selectGossipTargets(targetCount);
+    
+    // Auto-bootstrap from orchestrator if network knowledge is cold
+    if (targets.length === 0) {
+      await discovery.bootstrapFromOrchestrator(client);
+      targets = discovery.selectGossipTargets(targetCount);
+    }
+
+    if (targets.length === 0) {
+      return { success: false, message: 'No healthy gossip peers available after orchestrator bootstrap attempt.' };
+    }
+
+    let synced = 0;
+    for (const peer of targets) {
+      const ok = await discovery.gossipSync(peer);
+      if (ok) synced++;
+    }
+
+    worldState.saveSnapshot();
+
+    return {
+      success: true,
+      synced,
+      attempted: targets.length,
+      message: `Successfully gossiped bounded CRDT vector states with ${synced}/${targets.length} peers`,
+    };
+  } catch (err: any) {
+    return { error: `Gossip sync failed: ${err.message}` };
   }
 }

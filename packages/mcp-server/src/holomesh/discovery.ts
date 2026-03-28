@@ -8,7 +8,7 @@
 import { AgentCard } from '../a2a.js';
 import { HoloMeshWorldState } from './crdt-sync.js';
 import type { HoloMeshOrchestratorClient } from './orchestrator-client.js';
-import type { PeerStoreEntry, GossipDeltaRequest, GossipDeltaResponse } from './types.js';
+import type { PeerStoreEntry, GossipDeltaRequest, GossipDeltaResponse, GossipHealthMetadata } from './types.js';
 import { signGossipPayload, verifyGossipSignature } from './wallet-auth.js';
 import * as fs from 'fs';
 
@@ -32,6 +32,14 @@ export interface HoloMeshDiscoveryOptions {
 export class HoloMeshDiscovery {
   private peers: Map<string, PeerStoreEntry> = new Map();
   private storePath: string | null;
+  /** V6: Track when this discovery instance was created (for uptime calculation) */
+  private readonly startedAt: number = Date.now();
+  /** V6: Track gossip failures this session */
+  private sessionFailureCount = 0;
+  /** V6: Track contributions this session */
+  private sessionContributionCount = 0;
+  /** V6: Received health from peers (keyed by DID) */
+  private peerHealthCache: Map<string, GossipHealthMetadata> = new Map();
 
   constructor(
     public localAgentDid: string,
@@ -211,6 +219,12 @@ export class HoloMeshDiscovery {
   public recordFailure(did: string): void {
     const peer = this.peers.get(did);
     if (peer) peer.failureCount++;
+    this.sessionFailureCount++;
+  }
+
+  /** V6: Increment contribution count for health metadata */
+  public recordContribution(): void {
+    this.sessionContributionCount++;
   }
 
   // ── V2: Peer Gossip ─────────────────────────────────────────────────────
@@ -301,6 +315,7 @@ export class HoloMeshDiscovery {
         frontiers: this.worldState.getFrontiers(),
         knownPeers: this.getPeersToShare(peer.did),
         timestamp,
+        senderHealth: this.buildHealthMetadata(),
       };
 
       // V4: Sign gossip payload when wallet is available
@@ -342,6 +357,11 @@ export class HoloMeshDiscovery {
         this.absorbGossipedPeers(result.knownPeers, peer.did);
       }
 
+      // V6: Cache responder's health metadata
+      if (result.responderHealth) {
+        this.absorbPeerHealth(peer.did, result.responderHealth);
+      }
+
       peer.lastSyncAt = new Date().toISOString();
       this.touchPeer(peer.did);
       this.savePeerStore();
@@ -366,6 +386,34 @@ export class HoloMeshDiscovery {
       request.signature,
     );
     return valid ? 'verified' : 'invalid';
+  }
+
+  // ── V6: Gossip Health Side-Channel ─────────────────────────────────────
+
+  /** Build health metadata to piggyback on outbound gossip */
+  public buildHealthMetadata(): GossipHealthMetadata {
+    return {
+      uptimeSeconds: Math.floor((Date.now() - this.startedAt) / 1000),
+      failureCount: this.sessionFailureCount,
+      peerCount: this.peers.size,
+      reputationScore: 0, // Caller can override via setLocalReputation
+      contributionsThisSession: this.sessionContributionCount,
+    };
+  }
+
+  /** Store health metadata received from a peer */
+  public absorbPeerHealth(peerDid: string, health: GossipHealthMetadata): void {
+    this.peerHealthCache.set(peerDid, health);
+  }
+
+  /** Get cached health metadata for a peer */
+  public getPeerHealth(peerDid: string): GossipHealthMetadata | undefined {
+    return this.peerHealthCache.get(peerDid);
+  }
+
+  /** Get health metadata for all peers that have reported */
+  public getAllPeerHealth(): Map<string, GossipHealthMetadata> {
+    return new Map(this.peerHealthCache);
   }
 
   // ── V2: Accessors ────────────────────────────────────────────────────────
