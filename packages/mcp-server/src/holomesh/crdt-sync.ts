@@ -27,10 +27,6 @@ export interface HoloMeshWorldStateOptions {
 
 export class HoloMeshWorldState {
   private doc: LoroDoc;
-  // Loro's TS types don't expose getOrInsertList/getMap/getList on LoroMap —
-  // these methods exist at runtime (loro-crdt@1.x). Cast to any for access.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private meshMap: any;
   private snapshotPath: string | null;
 
   constructor(
@@ -44,16 +40,16 @@ export class HoloMeshWorldState {
     const hashPair = parseInt(agentDid.substring(0, 15), 36);
     this.doc.setPeerId(BigInt(hashPair));
 
-    this.meshMap = this.doc.getMap('holomesh') as any;
-
-    if (!this.meshMap.get('insights')) {
-        this.meshMap.getOrCreateList('insights');
-    } // V2: domain knowledge maps
+    // Initialize all containers at doc level (auto-create on first access in Loro)
+    // Calling getMap/getList ensures the containers exist in the doc.
+    this.doc.getMap('holomesh');
+    this.doc.getList('insights');
+    this.doc.getText('feed');
     for (const domain of KNOWLEDGE_DOMAINS) {
-      this.meshMap.getOrCreateMap(`knowledge.${domain}`);
+      this.doc.getMap(`knowledge.${domain}`);
     }
-    this.meshMap.getOrCreateMap('reputation');
-    this.meshMap.getOrCreateMap('peers');
+    this.doc.getMap('reputation');
+    this.doc.getMap('peers');
 
     // Load snapshot from disk if available
     if (this.snapshotPath) {
@@ -67,15 +63,48 @@ export class HoloMeshWorldState {
    * Replaces Moltbook "publishPost" with a local CRDT list insertion.
    * Immediately ready to gossip out via exportDelta().
    */
-  public publishInsight(content: string, traitTags: string[]): Uint8Array {
-    const list = this.meshMap.getList('insights');
+  public publishInsight(content: string, traitTags: string[], customCode?: string): Uint8Array {
+    const list = this.doc.getList('insights');
     if (list) {
+      const formattedTraits = traitTags.map(t => `@${t.replace(/^@/, '')}`).join('\n  ');
+      const randomX = Math.floor(Math.random() * 100) - 50;
+      
+      const repInfo = this.getReputation(this.agentDid);
+      const tier = repInfo?.tier ? parseInt(repInfo.tier) : 1;
+      const altitude = tier * 25; // High tier = high altitude
+      
+      let physicsTrait = '';
+      if (tier >= 3) physicsTrait = '\n  @attraction(radius: 30)';
+      else if (tier === 1) physicsTrait = '\n  @gravity(1.5)';
+      
+      const hsSource = customCode || `state {
+  interactions: 0
+}
+
+Insight("${this.agentDid}_${Date.now()}") {
+  @author("${this.agentDid}")
+  @thought(${JSON.stringify(content)})
+  ${formattedTraits}
+  @position(${randomX}, ${altitude}, 0)${physicsTrait}
+  @velocity(0, 1, 0)
+  @lifetime(${tier >= 2 ? 604800 : 3600})
+  @behavior({
+    on_interact: "interactions += 1; trigger_event('insight_read');",
+    on_expire: "spawn_particles('data_decay')"
+  })
+  PhysicsBody("rigid")
+}`;
+      
+      // V1 Compat
       list.push({
+        hs_source: hsSource.trim(),
         author: this.agentDid,
-        text: content,
-        tags: traitTags,
         timestamp: Date.now(),
       });
+      
+      // V3 Text Feed
+      this.appendToFeed(hsSource.trim(), this.agentDid);
+      
       this.doc.commit();
     }
     return this.doc.export({ mode: 'update' });
@@ -93,12 +122,40 @@ export class HoloMeshWorldState {
     }
   }
 
-  /** Returns a flattened view of all insights currently active in the Mesh. */
-  public queryFeedView(): any[] {
-    const list = this.meshMap.getList('insights');
+  /** Returns a flattened view of all insights currently active in the Mesh as .hs source blocks. */
+  public queryFeedView(): Array<{ source: string; timestamp: number }> {
+    const list = this.doc.getList('insights') as any;
     if (!list) return [];
-    const feed = list.getDeepValue();
-    return (feed as any[]).sort((a, b) => b.timestamp - a.timestamp);
+    const feed = list.toJSON();
+    return (feed as any[])
+      .sort((a: any, b: any) => b.timestamp - a.timestamp)
+      .map((item: any) => ({
+        source: item.hs_source || `Insight("legacy") {\n  @author("${item.author}")\n  @thought(${JSON.stringify(item.text)})\n}`,
+        timestamp: item.timestamp
+      }));
+  }
+
+  // ── V3: The Spatial Text Feed ───────────────────────────────────────────
+  
+  public appendToFeed(hsBlock: string, authorDid: string): void {
+    const text = this.doc.getText('feed');
+    const annotated = `\n// @author ${authorDid} @timestamp ${Date.now()}\n${hsBlock}\n`;
+    text.insert(text.length, annotated);
+  }
+
+  public getFeedSource(): string {
+    const text = this.doc.getText('feed');
+    return text.toString();
+  }
+
+  public getKnowledgeDomainSource(domain: string): string {
+    const entries = this.queryDomain(domain as any);
+    return entries.map(e => e.entry.content || '').join('\n\n');
+  }
+
+  /** Subscribe to CRDT changes */
+  public subscribe(callback: () => void): any {
+    return this.doc.subscribe(callback);
   }
 
   // ── V2: Knowledge Domain Methods ─────────────────────────────────────────
@@ -109,7 +166,7 @@ export class HoloMeshWorldState {
     entryId: string,
     entry: { content: string; type: string; authorDid: string; tags: string[]; timestamp: number },
   ): void {
-    const domainMap = this.meshMap.getMap(`knowledge.${domain}`);
+    const domainMap = this.doc.getMap(`knowledge.${domain}`);
     if (domainMap) {
       domainMap.set(entryId, JSON.stringify(entry));
       this.doc.commit();
@@ -118,7 +175,7 @@ export class HoloMeshWorldState {
 
   /** Query entries from a specific domain */
   public queryDomain(domain: KnowledgeDomain): Array<{ id: string; entry: any }> {
-    const domainMap = this.meshMap.getMap(`knowledge.${domain}`);
+    const domainMap = this.doc.getMap(`knowledge.${domain}`);
     if (!domainMap) return [];
     const raw = domainMap.toJSON() as Record<string, string>;
     return Object.entries(raw).map(([id, json]) => ({
@@ -145,7 +202,7 @@ export class HoloMeshWorldState {
     agentDid: string,
     data: { contributions: number; queries: number; score: number; tier: string },
   ): void {
-    const repMap = this.meshMap.getMap('reputation');
+    const repMap = this.doc.getMap('reputation');
     if (repMap) {
       repMap.set(agentDid, JSON.stringify({ ...data, updatedAt: Date.now() }));
       this.doc.commit();
@@ -154,7 +211,7 @@ export class HoloMeshWorldState {
 
   /** Get reputation for an agent */
   public getReputation(agentDid: string): any | null {
-    const repMap = this.meshMap.getMap('reputation');
+    const repMap = this.doc.getMap('reputation');
     if (!repMap) return null;
     const raw = repMap.get(agentDid);
     if (!raw || typeof raw !== 'string') return null;
@@ -172,7 +229,7 @@ export class HoloMeshWorldState {
     peerDid: string,
     data: { url: string; name: string; traits?: string[] },
   ): void {
-    const peerMap = this.meshMap.getMap('peers');
+    const peerMap = this.doc.getMap('peers');
     if (peerMap) {
       peerMap.set(peerDid, JSON.stringify({ ...data, lastSeen: Date.now() }));
       this.doc.commit();
@@ -181,7 +238,7 @@ export class HoloMeshWorldState {
 
   /** Get all peers from the CRDT registry */
   public getCRDTPeers(): Array<{ did: string; url: string; name: string; lastSeen: number }> {
-    const peerMap = this.meshMap.getMap('peers');
+    const peerMap = this.doc.getMap('peers');
     if (!peerMap) return [];
     const raw = peerMap.toJSON() as Record<string, string>;
     return Object.entries(raw).map(([did, json]) => {

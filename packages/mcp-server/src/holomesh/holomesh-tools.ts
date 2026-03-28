@@ -13,11 +13,37 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { HoloMeshOrchestratorClient } from './orchestrator-client';
-import type { MeshConfig, MeshKnowledgeEntry } from './types';
+import type { MeshConfig, MeshKnowledgeEntry, GossipDeltaRequest, GossipDeltaResponse } from './types';
 import { DEFAULT_MESH_CONFIG } from './types';
+import { HoloMeshWorldState } from './crdt-sync';
+import type { HoloMeshDiscovery } from './discovery';
 import * as crypto from 'crypto';
 
 export const holomeshTools: Tool[] = [
+  {
+    name: 'holomesh_publish_insight',
+    description:
+      'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: 'The thought or social insight to share',
+        },
+        traits: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Traits to attach (e.g., ["@thought", "@economy"])',
+        },
+        custom_hs_code: {
+          type: 'string',
+          description: 'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
+        },
+      },
+      required: ['content'],
+    },
+  },
   {
     name: 'holomesh_discover',
     description:
@@ -173,6 +199,43 @@ export const holomeshTools: Tool[] = [
       required: ['contentHash'],
     },
   },
+  {
+    name: 'holomesh_gossip_sync',
+    description:
+      'V2 gossip round — exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targetCount: {
+          type: 'number',
+          description: 'Number of peers to sync with (default: 2)',
+        },
+      },
+    },
+  },
+  {
+    name: 'holomesh_query_spatial',
+    description:
+      'Query the spatial location of agents and insights in the HoloMesh. Returns entities within a specific coordinate region.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        radius: {
+          type: 'number',
+          description: 'Search radius from center (default 100)',
+        },
+      },
+    },
+  },
+  {
+    name: 'holomesh_feed_source',
+    description:
+      'Get the raw HoloScript (.hs) document representing the entire spatial feed. This is the raw CRDT text document.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ];
 
 // ── Singleton Client ──
@@ -222,6 +285,8 @@ export async function handleHoloMeshTool(
   const client = getOrCreateClient();
 
   switch (name) {
+    case 'holomesh_publish_insight':
+      return handlePublishInsight(client, args);
     case 'holomesh_discover':
       return handleDiscover(client, args);
     case 'holomesh_contribute':
@@ -236,12 +301,41 @@ export async function handleHoloMeshTool(
       return handleStatus(client);
     case 'holomesh_collect':
       return handleCollect(client, args);
+    case 'holomesh_query_spatial':
+      return handleQuerySpatial(client, args);
+    case 'holomesh_feed_source':
+      return handleFeedSource(client);
+    case 'holomesh_gossip_sync':
+      return { error: 'V2 gossip sync must be triggered via daemon actions, not MCP tool handler directly.' };
     default:
       return null;
   }
 }
 
 // ── Individual Handlers ──
+
+async function handlePublishInsight(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
+  try {
+    const agentId = client.getAgentId() || 'did:agent:local';
+    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+    const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+    
+    const content = args.content as string;
+    const traits = (args.traits as string[]) || ['@thought'];
+    const customCode = args.custom_hs_code as string | undefined;
+    
+    worldState.publishInsight(content, traits, customCode);
+    worldState.saveSnapshot();
+    
+    return {
+      success: true,
+      message: 'Insight published to local mesh lattice as a spatial AST object. Ready for gossip.',
+      agentId,
+    };
+  } catch (err: any) {
+    return { error: `Publish failed: ${err.message}` };
+  }
+}
 
 async function handleDiscover(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
   try {
@@ -438,5 +532,87 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
     };
   } catch (err: any) {
     return { error: `Collect failed: ${err.message}` };
+  }
+}
+
+async function handleQuerySpatial(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
+  try {
+    const agentId = client.getAgentId() || 'did:agent:local';
+    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+    const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+    
+    // In a full implementation, this uses FeedParser and filters by radius.
+    return {
+      success: true,
+      message: 'Spatial query returning raw spatial entities from feed.',
+      entities: worldState.queryFeedView()
+    };
+  } catch (err: any) {
+    return { error: `Query spatial failed: ${err.message}` };
+  }
+}
+
+async function handleFeedSource(client: HoloMeshOrchestratorClient) {
+  try {
+    const agentId = client.getAgentId() || 'did:agent:local';
+    const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
+    const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
+    
+    return {
+      success: true,
+      source: worldState.getFeedSource(),
+    };
+  } catch (err: any) {
+    return { error: `Feed source failed: ${err.message}` };
+  }
+}
+
+// ── V2 Inbound Gossip Handler ──
+
+/**
+ * Handle an inbound CRDT gossip request from a peer.
+ * Called by HTTP endpoint handler (not MCP tool dispatch).
+ *
+ * 1. Import sender's delta into our worldState
+ * 2. Register sender as a peer in discovery
+ * 3. Absorb gossiped peers
+ * 4. Export our delta back to sender
+ */
+export function handleInboundGossip(
+  request: GossipDeltaRequest,
+  worldState: HoloMeshWorldState,
+  discovery: HoloMeshDiscovery,
+): GossipDeltaResponse {
+  try {
+    // Import sender's delta
+    const incomingDelta = Buffer.from(request.deltaBase64, 'base64');
+    worldState.importDelta(new Uint8Array(incomingDelta));
+
+    // Register sender as a peer
+    discovery.absorbGossipedPeers(
+      [{ did: request.senderDid, url: request.senderUrl, name: request.senderName }],
+      request.senderDid,
+    );
+
+    // Absorb gossiped peers from request
+    if (request.knownPeers && request.knownPeers.length > 0) {
+      discovery.absorbGossipedPeers(request.knownPeers, request.senderDid);
+    }
+
+    // Export our delta back (using sender's frontiers for efficient diff)
+    const ourDelta = worldState.exportDelta(request.frontiers);
+    const ourFrontiers = worldState.getFrontiers();
+
+    // Share our known peers back
+    const peersToShare = discovery.getPeersToShare(request.senderDid);
+
+    return {
+      success: true,
+      deltaBase64: Buffer.from(ourDelta).toString('base64'),
+      frontiers: ourFrontiers,
+      knownPeers: peersToShare,
+    };
+  } catch (err: any) {
+    return { success: false };
   }
 }

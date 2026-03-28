@@ -103,4 +103,10 @@ export interface ASTNode extends BaseASTNode {
   directives?: HSPlusDirective[];
   /** HS+ Traits (Pre-processed map) */
   traits?: Map<VRTraitName, Record<string, unknown>>;
+  /** Spatial Feed Provenance */
+  provenance?: {
+    author: string;
+    timestamp: number;
+    provenanceHash: string;
+  };
 }
