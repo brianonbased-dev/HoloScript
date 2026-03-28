@@ -4,7 +4,7 @@
 
 ## Overview
 
-The MCP server provides 103+ AI-friendly tools that let language models:
+The MCP server provides 122 AI-friendly tools that let language models:
 
 - **Parse** HoloScript files into abstract syntax trees
 - **Validate** code for errors before generation
@@ -69,7 +69,7 @@ const server = await startMCPServer({
 });
 ```
 
-## Tools (103+)
+## Tools (122)
 
 ### Parsing & Analysis
 

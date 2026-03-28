@@ -38,7 +38,7 @@ A full VR battle arena in ~100 lines.
 
 ### [AI Integration](/examples/ai-agent)
 
-Use MCP server (103+ tools) for AI-generated content.
+Use MCP server (122 tools) for AI-generated content.
 
 ### [Multi-Platform Export](/examples/export)
 

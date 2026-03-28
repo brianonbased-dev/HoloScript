@@ -203,7 +203,7 @@ AI Agent (Grok/Claude/Copilot)
          │
          ▼
 ┌─────────────────────┐
-│ @holoscript/mcp-server │  ← 103+ MCP tools
+│ @holoscript/mcp-server │  ← 122 MCP tools
 └────────┬────────────┘
          │ parse, validate, generate
          ▼

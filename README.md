@@ -425,7 +425,7 @@ Write **one** HoloScript file. Compile to:
 
 - ✅ **2,000+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — 103+ MCP tools, Brittney agent, scene generation from natural language
+- ✅ **AI-Native** — 122 MCP tools, Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
@@ -580,7 +580,7 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server (103+ tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/guides/mcp-server.md)**
+- **MCP Server (122 tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/guides/mcp-server.md)**
 - **LSP Server** — IntelliSense for 2,000+ traits with completions, hover docs, and diagnostics
 - **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.
 - **Plugin System** — Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.

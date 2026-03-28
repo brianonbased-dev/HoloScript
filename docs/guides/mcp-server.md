@@ -128,7 +128,7 @@ Add to Cursor settings or `.cursor/mcp.json`:
 
 ## Available Tools
 
-The MCP server exposes **103+ tools** organized in categories.
+The MCP server exposes **122 tools** organized in categories.
 
 ### generate_object
 
