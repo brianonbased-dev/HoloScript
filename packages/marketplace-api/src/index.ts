@@ -159,3 +159,18 @@ export type {
   MCPMeAgentTemplate,
   TierCheckResult,
 } from './MCPMeBillingBridge.js';
+
+// ─── Protocol Registry (HoloScript-as-Protocol) ────────────────────────────
+export {
+  ProtocolRegistry,
+  createProtocolRegistry,
+  ProtocolRegistryError,
+} from './protocol/ProtocolRegistry.js';
+export type { ProtocolRegistryConfig } from './protocol/ProtocolRegistry.js';
+
+export {
+  InvisibleWallet,
+  InvisibleWalletError,
+  createKeystore,
+} from './protocol/InvisibleWallet.js';
+export type { InvisibleWalletConfig } from './protocol/InvisibleWallet.js';

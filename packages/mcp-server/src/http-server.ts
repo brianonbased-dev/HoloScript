@@ -64,6 +64,10 @@ const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;
 const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_VERSION__ : '0.0.0';
 
+// Protocol Registry — in-memory store (production: back with PostgreSQL)
+const protocolRecords = new Map<string, Record<string, unknown>>();
+const protocolMetadata = new Map<string, Record<string, unknown>>();
+
 // Initialize token store backend (PostgreSQL if DATABASE_URL is set, otherwise in-memory)
 let tokenBackend: TokenStoreBackend | undefined;
 if (process.env.DATABASE_URL) {
@@ -1341,6 +1345,176 @@ const httpServer = http.createServer(async (req, res) => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Expected /api/registry/:username/:name' }));
     }
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROTOCOL ENDPOINTS (HoloScript-as-Protocol — Publishing & Collecting)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // POST /api/protocol — Register a protocol record
+  if (url === '/api/protocol' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const contentHash = body.contentHash as string;
+      if (!contentHash) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: contentHash' }));
+        return;
+      }
+      // Store record in protocol registry
+      protocolRecords.set(contentHash, {
+        ...(body as Record<string, unknown>),
+        contentHash,
+        timestamp: body.timestamp || Date.now(),
+      });
+      // If source code was provided, store as scene too
+      const sceneResult: Record<string, unknown> = {};
+      if (body.source && typeof body.source === 'string') {
+        const scene = storeScene(body.source as string, {
+          title: (body.title as string) || undefined,
+          author: (body.author as string) || undefined,
+          license: (body.license as string) || undefined,
+        });
+        const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+          ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+          : `http://localhost:${PORT}`;
+        sceneResult.sceneId = scene.id;
+        sceneResult.sceneUrl = `${baseUrl}/scene/${scene.id}`;
+        sceneResult.embedUrl = `${baseUrl}/embed/${scene.id}`;
+      }
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(sceneResult));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /api/protocol/metadata — Store provenance metadata
+  if (url === '/api/protocol/metadata' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const provenance = body.provenance as Record<string, unknown> | undefined;
+      const hash = provenance?.hash as string || `meta-${Date.now()}`;
+      protocolMetadata.set(hash, body);
+      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`;
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ metadataURI: `${baseUrl}/metadata/${hash}` }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // GET /api/protocol/revenue/:hash — Preview revenue distribution
+  if (url?.startsWith('/api/protocol/revenue/') && req.method === 'GET') {
+    const hash = url.replace('/api/protocol/revenue/', '');
+    if (!hash) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing content hash' }));
+      return;
+    }
+    try {
+      const record = protocolRecords.get(hash);
+      const price = BigInt(record?.price as string || '0');
+      const creator = (record?.author as string) || 'unknown';
+      // Dynamic import to avoid loading core at startup if unused
+      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } = await import('@holoscript/core');
+      const dist = calculateRevenueDistribution(price, creator, []);
+      const lines = formatRevenueDistribution(dist);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        totalPrice: dist.totalPrice.toString(),
+        flows: dist.flows.map((f: { recipient: string; amount: bigint; reason: string; bps: number; depth?: number }) => ({
+          ...f,
+          amount: f.amount.toString(),
+        })),
+        formatted: lines,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // GET /api/protocol/author/:address — Get all publications by author
+  if (url?.startsWith('/api/protocol/author/') && req.method === 'GET') {
+    const author = decodeURIComponent(url.replace('/api/protocol/author/', ''));
+    const records = Array.from(protocolRecords.values())
+      .filter((r: Record<string, unknown>) => r.author === author);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(records));
+    return;
+  }
+
+  // GET /api/protocol/:hash — Get protocol record by content hash
+  if (url?.startsWith('/api/protocol/') && req.method === 'GET') {
+    const hash = url.replace('/api/protocol/', '');
+    if (!hash || hash.includes('/')) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid content hash' }));
+      return;
+    }
+    const record = protocolRecords.get(hash);
+    if (!record) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Protocol record not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(record));
+    return;
+  }
+
+  // POST /api/collect/:hash — Collect a published composition
+  if (url?.startsWith('/api/collect/') && req.method === 'POST') {
+    const hash = url.replace('/api/collect/', '');
+    const record = protocolRecords.get(hash);
+    if (!record) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Composition not found' }));
+      return;
+    }
+    try {
+      const body = await parseJsonBody(req);
+      const quantity = (body.quantity as number) || 1;
+      // Increment edition count
+      const currentCount = (record.editionCount as number) || 0;
+      record.editionCount = currentCount + quantity;
+      const editions = Array.from({ length: quantity }, (_, i) => currentCount + i + 1);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        editions,
+        txHash: '',
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // GET /metadata/:hash — Retrieve stored metadata
+  if (url?.startsWith('/metadata/') && req.method === 'GET') {
+    const hash = url.replace('/metadata/', '');
+    const meta = protocolMetadata.get(hash);
+    if (!meta) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Metadata not found' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(meta));
     return;
   }
 

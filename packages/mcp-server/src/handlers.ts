@@ -148,6 +148,12 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
   }
 
+  // Protocol tools (HoloScript-as-Protocol) — must come before general holo_ prefix
+  if (name.startsWith('holo_protocol_')) {
+    const { handleProtocolTool } = await import('./protocol-tools');
+    return handleProtocolTool(name, args);
+  }
+
   // Route codebase-intelligence tools first, then wisdom/gotcha tools, then graph tools.
   // All share the `holo_` prefix.
   if (name.startsWith('holo_')) {

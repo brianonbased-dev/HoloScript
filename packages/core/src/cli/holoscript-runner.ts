@@ -37,6 +37,9 @@ import type { DaemonConfig, DaemonHost, LLMProvider } from '@holoscript/absorb-s
 import { generateProvenance } from '../deploy/provenance';
 import type { LicenseType } from '../deploy/provenance';
 import { checkLicenseCompatibility } from '../deploy/license-checker';
+import { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } from '../deploy/revenue-splitter';
+import { PROTOCOL_CONSTANTS } from '../deploy/protocol-types';
+import type { ImportChainNode } from '../deploy/protocol-types';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 export interface CLIOptions {
@@ -81,6 +84,15 @@ export interface CLIOptions {
   license: string;
   /** Deploy server URL */
   serverUrl: string;
+  // Protocol publish options
+  /** Publish to HoloScript Protocol (on-chain registry + CDN) */
+  publish: boolean;
+  /** Also mint as Zora NFT */
+  mintNft: boolean;
+  /** Collect price in ETH (e.g. '0.01') */
+  price: string;
+  /** Wallet private key (or use HOLOSCRIPT_WALLET_KEY env var) */
+  walletKey: string;
 }
 
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
@@ -171,6 +183,11 @@ function parseArgs(argv: string[]): CLIOptions {
     author: '',
     license: 'free',
     serverUrl: 'https://mcp.holoscript.net',
+    // Protocol publish defaults
+    publish: false,
+    mintNft: false,
+    price: '0',
+    walletKey: '',
   };
   let modelExplicit = false;
   let toolProfileExplicit = false;
@@ -275,6 +292,11 @@ function parseArgs(argv: string[]): CLIOptions {
     if (args[i] === '--author' && args[i + 1]) opts.author = args[++i];
     if (args[i] === '--license' && args[i + 1]) opts.license = args[++i];
     if (args[i] === '--server' && args[i + 1]) opts.serverUrl = args[++i];
+    // Protocol publish flags
+    if (args[i] === '--publish') opts.publish = true;
+    if (args[i] === '--mint-nft') opts.mintNft = true;
+    if (args[i] === '--price' && args[i + 1]) opts.price = args[++i];
+    if (args[i] === '--wallet-key' && args[i + 1]) opts.walletKey = args[++i];
   }
 
   if (!modelExplicit) {
@@ -1114,7 +1136,7 @@ function generatePythonTarget(ast: any): string {
 async function deployScript(opts: CLIOptions): Promise<void> {
   if (!opts.file) {
     console.error('Error: No source file specified');
-    console.error('Usage: holoscript deploy <file> [--share] [--author <name>] [--license <type>] [--server <url>]');
+    console.error('Usage: holoscript deploy <file> [--share] [--publish] [--price <eth>] [--mint-nft] [--author <name>] [--license <type>] [--server <url>]');
     process.exit(1);
   }
 
@@ -1179,6 +1201,130 @@ async function deployScript(opts: CLIOptions): Promise<void> {
 
   // Deploy to server
   const serverUrl = opts.serverUrl.replace(/\/$/, '');
+
+  // ── Protocol Publish (--publish) ─────────────────────────────────────────
+  if (opts.publish) {
+    const priceWei = ethToWei(opts.price || '0');
+
+    // Revenue preview
+    const importChain: ImportChainNode[] = provenance.imports.map((imp, i) => ({
+      contentHash: imp.hash || `import-${i}`,
+      author: imp.author || imp.path,
+      depth: 1,
+      children: [],
+    }));
+
+    const revenuePreview = calculateRevenueDistribution(
+      priceWei,
+      provenance.author || 'anonymous',
+      importChain,
+    );
+
+    console.log('\nRevenue distribution:');
+    for (const line of formatRevenueDistribution(revenuePreview)) {
+      console.log(`  ${line}`);
+    }
+
+    // Store metadata first
+    console.log(`\nPublishing to protocol at ${serverUrl}...`);
+    const metadataBody = JSON.stringify({
+      contentHash: provenance.hash,
+      provenance: {
+        hash: provenance.hash,
+        author: provenance.author,
+        license: provenance.license,
+        publishMode: provenance.publishMode,
+        imports: provenance.imports,
+        created: provenance.created,
+      },
+    });
+
+    try {
+      const metaRes = await fetch(`${serverUrl}/api/protocol/metadata`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: metadataBody,
+      });
+      if (!metaRes.ok) {
+        const text = await metaRes.text();
+        console.error(`Metadata storage failed (${metaRes.status}): ${text}`);
+        process.exit(1);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Metadata storage failed: ${msg}`);
+      process.exit(1);
+    }
+
+    // Register protocol record (also deploys scene)
+    const protocolBody = JSON.stringify({
+      contentHash: provenance.hash,
+      author: provenance.author || 'anonymous',
+      importHashes: provenance.imports.map((imp) => imp.hash).filter(Boolean),
+      license: provenance.license,
+      publishMode: provenance.publishMode,
+      price: opts.price || '0',
+      referralBps: PROTOCOL_CONSTANTS.DEFAULT_REFERRAL_BPS,
+      metadataURI: `${serverUrl}/metadata/${provenance.hash}`,
+      mintAsNFT: opts.mintNft,
+      // Include scene data for CDN deploy
+      code: source,
+      title,
+      description: `Published from CLI: ${fileName}`,
+    });
+
+    try {
+      const pubRes = await fetch(`${serverUrl}/api/protocol`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: protocolBody,
+      });
+
+      if (!pubRes.ok) {
+        const text = await pubRes.text();
+        console.error(`Protocol publish failed (${pubRes.status}): ${text}`);
+        process.exit(1);
+      }
+
+      const pubResult = await pubRes.json() as {
+        contentHash: string;
+        protocolId: string;
+        collectUrl: string;
+        registryUrl: string;
+        sceneUrl?: string;
+        embedUrl?: string;
+      };
+
+      console.log('\nPublished to HoloScript Protocol!');
+      console.log(`  Hash:     ${pubResult.contentHash}`);
+      console.log(`  ID:       ${pubResult.protocolId}`);
+      console.log(`  Collect:  ${pubResult.collectUrl}`);
+      console.log(`  Registry: ${pubResult.registryUrl}`);
+      if (pubResult.sceneUrl) {
+        console.log(`  Scene:    ${pubResult.sceneUrl}`);
+      }
+      if (pubResult.embedUrl) {
+        console.log(`  Embed:    ${pubResult.embedUrl}`);
+      }
+      if (priceWei > 0n) {
+        console.log(`  Price:    ${opts.price} ETH`);
+      } else {
+        console.log('  Price:    Free collect');
+      }
+      if (opts.mintNft) {
+        console.log('  NFT:      Zora mint requested');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Protocol publish failed: ${msg}`);
+      console.error('Is the server running? Try: holoscript deploy <file> --publish --server http://localhost:3000');
+      process.exit(1);
+    }
+
+    return; // Protocol publish includes CDN deploy, so we're done
+  }
+
+  // ── CDN-only Deploy (existing behavior) ──────────────────────────────────
   const endpoint = `${serverUrl}/api/deploy`;
 
   console.log(`Deploying to ${serverUrl}...`);
@@ -2441,7 +2587,7 @@ Usage:
   holoscript run <file>     [--target node|python|ros2] [--profile headless|minimal|full] [--ticks <n>] [--daemon] [--debug]
   holoscript test <file>    [--debug]
   holoscript compile <file> [--target node|python] [--output <path>] [--enforce-gotchas]
-  holoscript deploy <file>  [--share] [--author <name>] [--license <type>] [--server <url>]
+  holoscript deploy <file>  [--share] [--publish] [--price <eth>] [--mint-nft] [--wallet-key <key>] [--author <name>] [--license <type>] [--server <url>]
   holoscript absorb <file>  [--output <path>] [--debug]
   holoscript daemon <file>  [--provider anthropic|xai|openai|ollama] [--tool-profile claude-hsplus|grok-hsplus|standard] [--cycles <n>] [--commit] [--model <model>] [--trial <n>] [--provider-rotation] [--always-on] [--cycle-interval-sec <n>] [--skills-dir <path>] [--allow-shell] [--allow-shell-command <cmd>] [--allow-host <host>] [--allow-path <path>] [--debug]
   holoscript daemon status  [--json]

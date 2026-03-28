@@ -3592,3 +3592,53 @@ export type {
   ValidationResult as RuleValidationResult,
   RuleSet,
 } from './rules/types';
+
+// ============================================================================
+// Deploy & Publishing Protocol (Phase 2: HoloScript-as-Protocol)
+// ============================================================================
+
+export {
+  computeContentHash,
+  classifyPublishMode,
+  extractImports,
+  generateProvenance,
+} from './deploy/provenance';
+export type {
+  LicenseType,
+  PublishMode,
+  ProvenanceBlock,
+  ProvenanceImport,
+} from './deploy/provenance';
+
+export {
+  checkLicenseCompatibility,
+} from './deploy/license-checker';
+export type {
+  ImportedLicense,
+  LicenseCheckResult,
+} from './deploy/license-checker';
+
+export {
+  PROTOCOL_CONSTANTS,
+} from './deploy/protocol-types';
+export type {
+  HexAddress,
+  RevenueReason,
+  RevenueFlow,
+  RevenueDistribution,
+  ImportChainNode,
+  ProtocolRecord,
+  PublishOptions,
+  PublishResult,
+  CollectOptions,
+  CollectResult,
+  RevenueCalculatorOptions,
+} from './deploy/protocol-types';
+
+export {
+  calculateRevenueDistribution,
+  resolveImportChain,
+  formatRevenueDistribution,
+  ethToWei,
+  weiToEth,
+} from './deploy/revenue-splitter';

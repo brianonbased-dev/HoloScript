@@ -23,6 +23,7 @@ import { pluginManagementTools } from './plugin-management-tools';
 import { economyTools } from './economy-tools';
 import { developerTools } from './developer-tools';
 import { moltbookTools, moltbookAgentTools } from './moltbook/index';
+import { protocolTools } from './protocol-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -678,6 +679,7 @@ export const tools: Tool[] = [
   ...developerTools,
   ...moltbookTools,
   ...moltbookAgentTools,
+  ...protocolTools,
   ...PluginManager.getTools(),
 ];
 
