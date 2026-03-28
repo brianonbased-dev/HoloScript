@@ -10,26 +10,6 @@
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./moltbook/agent/moltbook-daemon-actions": {
-      "import": "./dist/moltbook/agent/moltbook-daemon-actions.mjs",
-      "require": "./dist/moltbook/agent/moltbook-daemon-actions.js"
-    },
-    "./moltbook/client": {
-      "import": "./dist/moltbook/client.mjs",
-      "require": "./dist/moltbook/client.js"
-    },
-    "./moltbook/llm-content-generator": {
-      "import": "./dist/moltbook/llm-content-generator.mjs",
-      "require": "./dist/moltbook/llm-content-generator.js"
-    },
-    "./moltbook/challenge-solver": {
-      "import": "./dist/moltbook/challenge-solver.mjs",
-      "require": "./dist/moltbook/challenge-solver.js"
-    },
-    "./moltbook/types": {
-      "import": "./dist/moltbook/types.mjs",
-      "require": "./dist/moltbook/types.js"
     }
   },
   "bin": {

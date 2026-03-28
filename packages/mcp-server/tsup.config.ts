@@ -8,11 +8,6 @@ export default defineConfig({
     'index': 'src/index.ts',
     'cli': 'src/cli.ts',
     'http-server': 'src/http-server.ts',
-    'moltbook/agent/moltbook-daemon-actions': 'src/moltbook/agent/moltbook-daemon-actions.ts',
-    'moltbook/challenge-solver': 'src/moltbook/challenge-solver.ts',
-    'moltbook/client': 'src/moltbook/client.ts',
-    'moltbook/llm-content-generator': 'src/moltbook/llm-content-generator.ts',
-    'moltbook/types': 'src/moltbook/types.ts',
   },
   format: ['cjs', 'esm'],
   dts: false, // Disable for now - types need work
@@ -20,7 +15,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   shims: true,
-  external: ['@holoscript/core', 'pg'],
+  external: ['@holoscript/core', 'pg', 'loro-crdt'],
   define: {
     __SERVICE_VERSION__: JSON.stringify(pkg.version),
   },
