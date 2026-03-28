@@ -803,9 +803,12 @@ export class CreatorMonetization {
    * @private
    */
   private getDefaultCollectionAddress(): Address {
-    // TODO: Replace with actual default collection or require user to provide
+    const envAddress = process.env.HOLOSCRIPT_COLLECTION_ADDRESS;
+    if (envAddress) {
+      return envAddress as Address;
+    }
     throw new CreatorMonetizationError(
-      'Collection address required. Provide collectionAddress in mintNFT options or create collection first.',
+      'Collection address required. Set HOLOSCRIPT_COLLECTION_ADDRESS env var, provide collectionAddress in mintNFT options, or deploy via: pnpm tsx scripts/deploy-protocol-collection.ts',
       'COLLECTION_REQUIRED'
     );
   }

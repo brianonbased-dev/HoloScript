@@ -52,6 +52,16 @@ export const PROTOCOL_CONSTANTS = {
 
   /** Protocol registry base URL */
   REGISTRY_BASE_URL: 'https://holoscript.net',
+
+  /** Zora 1155 factory address (same on all chains) */
+  ZORA_1155_FACTORY: '0x777777C338d93e2C7adf08D102d45CA7CC4Ed021' as const,
+
+  /** Environment variable names */
+  ENV: {
+    WALLET_KEY: 'HOLOSCRIPT_WALLET_KEY',
+    COLLECTION_ADDRESS: 'HOLOSCRIPT_COLLECTION_ADDRESS',
+    SERVER_URL: 'HOLOSCRIPT_SERVER_URL',
+  },
 } as const;
 
 // =============================================================================

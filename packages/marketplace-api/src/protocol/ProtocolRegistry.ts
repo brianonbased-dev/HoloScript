@@ -91,7 +91,8 @@ export class ProtocolRegistry {
     this.wallet = config.wallet || new WalletConnection({
       chain: config.testnet ? 'base-testnet' : 'base',
     });
-    this.collectionAddress = config.collectionAddress;
+    this.collectionAddress = config.collectionAddress
+      || (process.env.HOLOSCRIPT_COLLECTION_ADDRESS as HexAddress | undefined);
     this.registryUrl = config.registryUrl || PROTOCOL_CONSTANTS.REGISTRY_BASE_URL;
     this.testnet = config.testnet || false;
     this.platformAddress = config.platformAddress || '0x0000000000000000000000000000000000000000' as HexAddress;
