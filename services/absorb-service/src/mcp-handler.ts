@@ -81,12 +81,14 @@ async function createMcpServer(): Promise<McpServer> {
   return server;
 }
 
-// GET /mcp — Handle SSE connection request
 export async function handleMcpSse(req: Request, res: Response): Promise<void> {
   const sessionId = randomUUID();
   
   // Client should POST to /mcp/messages with sessionId in query
-  const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
+  const host = req.headers.host || 'localhost:3005';
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  const baseUrl = `${protocol}://${host}`;
+  const transport = new SSEServerTransport(`${baseUrl}/mcp/messages?sessionId=${sessionId}`, res);
   transports.set(sessionId, transport);
 
   req.on('close', () => {

@@ -16,7 +16,7 @@
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -157,23 +157,25 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 // Store active transports by session ID
-const transports = new Map<string, StreamableHTTPServerTransport>();
+const transports = new Map<string, SSEServerTransport>();
 
 // ── Session-to-Auth mapping for MCP transport sessions ───────────────────────
 const sessionAuth = new Map<string, TokenIntrospection>();
 
 async function createAndStoreSessionTransport(
-  sessionId?: string,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
   auth?: TokenIntrospection,
-): Promise<StreamableHTTPServerTransport> {
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => sessionId || randomUUID(),
-  });
+): Promise<{ transport: SSEServerTransport; sid: string }> {
+  const sid = randomUUID();
+  const host = req.headers.host || `localhost:${PORT}`;
+  const protocol = req.headers['x-forwarded-proto'] || 'http';
+  const baseUrl = `${protocol}://${host}`;
+  const transport = new SSEServerTransport(`${baseUrl}/mcp/messages?sessionId=${sid}`, res);
 
   const server = createMcpServer(auth);
   await server.connect(transport);
 
-  const sid = transport.sessionId!;
   transports.set(sid, transport);
 
   if (auth) {
@@ -193,10 +195,11 @@ async function createAndStoreSessionTransport(
       clientId: auth?.clientId,
     });
     sessionAuth.delete(sid);
+    transports.delete(sid);
     console.log(`[MCP] Session closed: ${sid}`);
   };
 
-  return transport;
+  return { transport, sid };
 }
 
 // ── Authentication ───────────────────────────────────────────────────────────
@@ -206,7 +209,14 @@ async function createAndStoreSessionTransport(
  * Returns token introspection with scopes and agent identity.
  */
 async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntrospection> {
-  return oauth.authenticateRequestAsync(req.headers as Record<string, string | string[] | undefined>);
+  const headers = { ...req.headers };
+  const queryString = req.url?.split('?')[1] || '';
+  const params = new URLSearchParams(queryString);
+  const apiKey = params.get('apiKey') || params.get('key');
+  if (apiKey) {
+    headers['x-mcp-api-key'] = apiKey;
+  }
+  return oauth.authenticateRequestAsync(headers as Record<string, string | string[] | undefined>);
 }
 
 /**
@@ -531,7 +541,7 @@ const httpServer = http.createServer(async (req, res) => {
       version: SERVICE_VERSION,
       description: 'HoloScript language tooling — parse, validate, compile, and render .hs/.hsplus/.holo compositions across 27 backend targets.',
       transport: {
-        type: 'streamable-http',
+        type: 'sse',
         url: `${baseUrl}/mcp`,
         authentication: {
           type: 'oauth2',
@@ -1009,8 +1019,8 @@ const httpServer = http.createServer(async (req, res) => {
   // AUTHENTICATED ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // MCP Streamable HTTP endpoint
-  if (url === '/mcp') {
+  // MCP SSE endpoint
+  if (url === '/mcp' && req.method === 'GET') {
     const auth = await authenticateRequest(req);
     if (!auth.active) {
       auditLog.logAuthEvent({
@@ -1048,100 +1058,30 @@ const httpServer = http.createServer(async (req, res) => {
       res.setHeader('X-Auth-Mode', 'oauth2');
     }
 
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    const { sid } = await createAndStoreSessionTransport(req, res, auth);
+    console.log(`[MCP] New session: ${sid} (client: ${auth.clientId || 'legacy'})`);
+    return;
+  }
 
-    // POST without session ID = create a new session transport
-    if (req.method === 'POST' && !sessionId) {
-      const transport = await createAndStoreSessionTransport(undefined, auth);
-      console.log(`[MCP] New session: ${transport.sessionId!} (client: ${auth.clientId || 'legacy'})`);
-      await transport.handleRequest(req, res);
+  if (url === '/mcp/messages' && req.method === 'POST') {
+    const queryString = req.url?.split('?')[1] || '';
+    const params = new URLSearchParams(queryString);
+    const sessionId = params.get('sessionId');
+
+    if (!sessionId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Session ID required in query parameters' }));
       return;
     }
 
-    // Requests with session ID = existing session
-    if (sessionId) {
-      let transport = transports.get(sessionId);
-      if (!transport && req.method === 'POST') {
-        const body = await parseJsonBody(req);
-        const method = typeof body.method === 'string' ? body.method : '';
-
-        if (method === 'notifications/initialized') {
-          res.writeHead(202);
-          res.end();
-          return;
-        }
-
-        if (method === 'tools/list') {
-          const id = (body.id as string | number | null | undefined) ?? null;
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              id,
-              result: {
-                tools: [...tools, ...PluginManager.getTools()],
-              },
-            })
-          );
-          return;
-        }
-
-        if (method === 'tools/call') {
-          const id = (body.id as string | number | null | undefined) ?? null;
-          const params = (body.params as Record<string, unknown>) || {};
-          const name = params.name as string;
-          const args = (params.arguments as Record<string, unknown>) || {};
-
-          // Use session auth context
-          const sessionAuth_ = sessionAuth.get(sessionId) || auth;
-
-          const { result, isError } = await securedToolExecution(name, args, sessionAuth_, {
-            sessionId,
-            requestPath: '/mcp',
-            requestMethod: 'POST',
-            ip: clientIP,
-          });
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              jsonrpc: '2.0',
-              id,
-              result: {
-                content: [
-                  {
-                    type: 'text',
-                    text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-                  },
-                ],
-                ...(isError ? { isError: true } : {}),
-              },
-            })
-          );
-          return;
-        }
-      }
-      if (transport) {
-        await transport.handleRequest(req, res);
-        if (req.method === 'DELETE') {
-          transports.delete(sessionId);
-          sessionAuth.delete(sessionId);
-          console.log(`[MCP] Session removed: ${sessionId}`);
-        }
-        return;
-      }
+    const transport = transports.get(sessionId);
+    if (!transport) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Session not found', sessionId }));
       return;
     }
 
-    // Invalid request
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(
-      JSON.stringify({
-        error: 'Bad Request - Missing Mcp-Session-Id header or invalid initialization',
-      })
-    );
+    await transport.handlePostMessage(req, res);
     return;
   }
 
