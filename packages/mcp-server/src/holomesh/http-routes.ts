@@ -101,6 +101,7 @@ function addComment(comment: StoredComment): void {
   const list = commentStore.get(comment.entryId) || [];
   list.push(comment);
   commentStore.set(comment.entryId, list);
+  persistSocialStore();
 }
 
 function getVoteCount(targetId: string): number {
@@ -121,6 +122,7 @@ function castVote(targetId: string, userId: string, value: 1 | -1): number {
     votes.push({ targetId, userId, value });
   }
   voteStore.set(targetId, votes);
+  persistSocialStore();
   return votes.reduce((sum, v) => sum + v.value, 0);
 }
 
@@ -269,11 +271,13 @@ function indexAgentTeam(agentId: string, teamId: string): void {
     existing.push(teamId);
     agentTeamIndex.set(agentId, existing);
   }
+  persistTeamStore();
 }
 
 function unindexAgentTeam(agentId: string, teamId: string): void {
   const existing = agentTeamIndex.get(agentId) || [];
   agentTeamIndex.set(agentId, existing.filter(id => id !== teamId));
+  persistTeamStore();
 }
 
 // ── Agent Key Store (x402 Wallet Identity) ──
@@ -403,45 +407,115 @@ function pruneExpiredChallenges(): void {
   }
 }
 
-// ── Persistence (disk JSON) ──
+// ── Persistence (disk JSON — all stores) ──
 
-const AGENT_STORE_PATH = path.resolve(process.env.HOLOMESH_DATA_DIR || path.join(__dirname, '..', '..', '..', '.holoscript'), 'holomesh-agents.json');
+const HOLOMESH_DATA_DIR = process.env.HOLOMESH_DATA_DIR || path.join(process.env.HOLOSCRIPT_CACHE_DIR || path.join(require('os').homedir(), '.holoscript'), 'holomesh');
 
-function persistAgentStore(): void {
+/** Atomic JSON write: temp file → rename */
+function atomicWriteJSON(filePath: string, data: unknown): void {
   try {
-    const dir = path.dirname(AGENT_STORE_PATH);
+    const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    const agents = [...agentKeyStore.values()];
-    const data = JSON.stringify({ version: 1, agents, savedAt: new Date().toISOString() }, null, 2);
-
-    // Atomic write: write to temp then rename
-    const tmp = AGENT_STORE_PATH + '.tmp';
-    fs.writeFileSync(tmp, data, 'utf-8');
-    fs.renameSync(tmp, AGENT_STORE_PATH);
+    const tmp = filePath + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmp, filePath);
   } catch { /* persistence is best-effort */ }
 }
 
-function loadAgentStore(): void {
+/** Read JSON file, return null if missing/corrupted */
+function readJSON(filePath: string): any {
   try {
-    if (!fs.existsSync(AGENT_STORE_PATH)) return;
-    const raw = fs.readFileSync(AGENT_STORE_PATH, 'utf-8');
-    const data = JSON.parse(raw);
-    if (data.version !== 1 || !Array.isArray(data.agents)) return;
-
-    for (const agent of data.agents as RegisteredAgent[]) {
-      if (agent.apiKey && agent.id && agent.name && agent.walletAddress) {
-        // Backfill profile for agents persisted before V6
-        if (!agent.profile) agent.profile = { ...DEFAULT_PROFILE };
-        agentKeyStore.set(agent.apiKey, agent);
-        walletToAgent.set(agent.walletAddress.toLowerCase(), agent);
-      }
-    }
-  } catch { /* corrupted file — start fresh */ }
+    if (!fs.existsSync(filePath)) return null;
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch { return null; }
 }
 
-// Load persisted agents on module init
+// ── Agent Persistence ──
+
+const AGENT_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'agents.json');
+
+function persistAgentStore(): void {
+  atomicWriteJSON(AGENT_STORE_PATH, { version: 1, agents: [...agentKeyStore.values()], savedAt: new Date().toISOString() });
+}
+
+function loadAgentStore(): void {
+  const data = readJSON(AGENT_STORE_PATH);
+  if (!data?.agents || data.version !== 1) return;
+  for (const agent of data.agents as RegisteredAgent[]) {
+    if (agent.apiKey && agent.id && agent.name && agent.walletAddress) {
+      if (!agent.profile) agent.profile = { ...DEFAULT_PROFILE };
+      agentKeyStore.set(agent.apiKey, agent);
+      walletToAgent.set(agent.walletAddress.toLowerCase(), agent);
+    }
+  }
+}
+
+// ── Team Persistence ──
+
+const TEAM_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'teams.json');
+
+function persistTeamStore(): void {
+  const teams: Record<string, any> = {};
+  for (const [id, team] of teamStore) {
+    teams[id] = { ...team, messages: teamMessageStore.get(id) || [] };
+  }
+  const index: Record<string, string[]> = {};
+  for (const [agentId, teamIds] of agentTeamIndex) {
+    index[agentId] = teamIds;
+  }
+  atomicWriteJSON(TEAM_STORE_PATH, { version: 1, teams, agentTeamIndex: index, savedAt: new Date().toISOString() });
+}
+
+function loadTeamStore(): void {
+  const data = readJSON(TEAM_STORE_PATH);
+  if (!data?.teams || data.version !== 1) return;
+  for (const [id, team] of Object.entries(data.teams) as [string, any][]) {
+    const { messages, ...teamData } = team;
+    teamStore.set(id, teamData);
+    if (messages?.length) teamMessageStore.set(id, messages);
+  }
+  if (data.agentTeamIndex) {
+    for (const [agentId, teamIds] of Object.entries(data.agentTeamIndex) as [string, string[]][]) {
+      agentTeamIndex.set(agentId, teamIds);
+    }
+  }
+}
+
+// ── Comment & Vote Persistence ──
+
+const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
+
+function persistSocialStore(): void {
+  const comments: Record<string, StoredComment[]> = {};
+  for (const [id, c] of commentStore) comments[id] = c;
+  const votes: Record<string, StoredVote[]> = {};
+  for (const [id, v] of voteStore) votes[id] = v;
+  atomicWriteJSON(SOCIAL_STORE_PATH, { version: 1, comments, votes, paidAccess: [...paidAccessStore], savedAt: new Date().toISOString() });
+}
+
+function loadSocialStore(): void {
+  const data = readJSON(SOCIAL_STORE_PATH);
+  if (!data || data.version !== 1) return;
+  if (data.comments) {
+    for (const [id, c] of Object.entries(data.comments) as [string, StoredComment[]][]) {
+      commentStore.set(id, c);
+    }
+  }
+  if (data.votes) {
+    for (const [id, v] of Object.entries(data.votes) as [string, StoredVote[]][]) {
+      voteStore.set(id, v);
+    }
+  }
+  if (data.paidAccess) {
+    for (const key of data.paidAccess) paidAccessStore.add(key);
+  }
+}
+
+// Load all persisted state on module init
 loadAgentStore();
+loadTeamStore();
+loadSocialStore();
+console.log(`[HoloMesh] Loaded state from ${HOLOMESH_DATA_DIR}: ${agentKeyStore.size} agents, ${teamStore.size} teams, ${commentStore.size} comment threads`);
 
 // ── Singleton Client ──
 
@@ -2076,7 +2150,7 @@ export async function handleHoloMeshRoute(
       };
 
       teamStore.set(teamId, team);
-      indexAgentTeam(caller.id, teamId);
+      indexAgentTeam(caller.id, teamId); // also persists
 
       // Auto-provision team knowledge workspace
       try {
@@ -2347,6 +2421,7 @@ export async function handleHoloMeshRoute(
       // Keep last 500 messages per team
       if (messages.length > 500) messages.splice(0, messages.length - 500);
       teamMessageStore.set(teamId, messages);
+      persistTeamStore();
 
       json(res, 201, { success: true, message });
       return true;
@@ -2495,6 +2570,7 @@ export async function handleHoloMeshRoute(
         createdAt: new Date().toISOString(),
       });
       teamMessageStore.set(teamId, messages);
+      persistTeamStore();
 
       json(res, 201, {
         success: true,
@@ -2574,6 +2650,7 @@ export async function handleHoloMeshRoute(
         createdAt: new Date().toISOString(),
       });
       teamMessageStore.set(teamId, messages);
+      persistTeamStore();
 
       json(res, 202, {
         success: true,
