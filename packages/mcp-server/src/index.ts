@@ -35,7 +35,7 @@ import { networkingTools, handleNetworkingTool } from './networking-tools';
 import { snapshotTools, handleSnapshotTool } from './snapshot-tools';
 import { monitoringTools, handleMonitoringTool } from './monitoring-tools';
 import { compilerTools, handleCompilerTool } from './compiler-tools';
-import { handleCodebaseTool, handleGraphRagTool, handleAbsorbServiceTool } from '@holoscript/absorb-service/mcp';
+import { handleCodebaseTool, handleGraphRagTool, handleAbsorbServiceTool, handleOracleTool } from '@holoscript/absorb-service/mcp';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
@@ -179,6 +179,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [{ type: 'text', text: JSON.stringify(absorbServiceResult, null, 2) }],
       };
+    }
+
+    // Check Oracle tools (North Star Oracle — agent decision support)
+    if (name === 'holo_oracle_consult') {
+      return await handleOracleTool(name, args || {} as Record<string, unknown>);
     }
 
     const result = await handleTool(name, args || {});

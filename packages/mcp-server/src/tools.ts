@@ -10,7 +10,7 @@ import { graphTools } from './graph-tools';
 import { ideTools } from './ide-tools';
 import { brittneyLiteTools } from './brittney-lite';
 import { PluginManager } from './PluginManager';
-import { codebaseTools, graphRagTools, absorbServiceTools, absorbTypescriptTools } from '@holoscript/absorb-service/mcp';
+import { codebaseTools, graphRagTools, absorbServiceTools, absorbTypescriptTools, oracleTools } from '@holoscript/absorb-service/mcp';
 import { selfImproveTools } from './self-improve-tools';
 import { gltfImportTools } from './gltf-import-tools';
 import { editHoloTools } from './edit-holo-tools';
@@ -681,6 +681,7 @@ export const tools: Tool[] = [
   ...holomeshTools,
   ...protocolTools,
   ...codeHealthTools,
+  ...oracleTools,
   ...PluginManager.getTools(),
 ];
 
