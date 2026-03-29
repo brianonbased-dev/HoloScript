@@ -255,7 +255,7 @@ export class DTDLCompiler extends CompilerBase {
     };
 
     if (this.options.includeDescriptions) {
-      iface.description = `Generated from HoloScript composition "${composition.name}"`;
+      iface.description = `Generated from HoloScript composition "${this.escapeStringValue(composition.name as string, 'TypeScript')}"`;
     }
 
     return iface;
@@ -277,7 +277,7 @@ export class DTDLCompiler extends CompilerBase {
           '@type': 'Command',
           name: action.name,
           displayName: action.name,
-          description: `Action defined in template ${template.name}`,
+          description: `Action defined in template ${this.escapeStringValue(template.name as string, 'TypeScript')}`,
         });
       }
     }

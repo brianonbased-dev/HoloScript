@@ -419,7 +419,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     const c = this.options.includeComments;
 
     if (c) {
-      lines.push(`// LIF Neuron: ${node.id}`);
+      lines.push(`// LIF Neuron: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// ODE: tau * dv/dt = (v_leak - v) + R * i(t)`);
       lines.push(`// Spike: v >= v_threshold, Reset: v = ${resetV}`);
       lines.push(`// Integration: ${this.options.integrationMethod}, dt = ${dt}`);
@@ -455,7 +455,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 1,
-        name: `${node.id}_input`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -463,7 +463,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 2,
-        name: `${node.id}_tau`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_tau`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -471,7 +471,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 3,
-        name: `${node.id}_r`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_r`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -479,7 +479,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 4,
-        name: `${node.id}_v_leak`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_v_leak`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -487,7 +487,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 5,
-        name: `${node.id}_v_threshold`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_v_threshold`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -495,7 +495,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 6,
-        name: `${node.id}_voltage`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_voltage`,
         type: 'storage',
         elementType: 'f32',
         size,
@@ -503,7 +503,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 7,
-        name: `${node.id}_output`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
         type: 'storage',
         elementType: 'u32',
         size,
@@ -610,7 +610,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
     const c = this.options.includeComments;
 
     if (c) {
-      lines.push(`// CubaLIF Neuron: ${node.id}`);
+      lines.push(`// CubaLIF Neuron: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// Synaptic: tau_syn * di/dt = -i + w_in * input`);
       lines.push(`// Membrane: tau_mem * dv/dt = (v_leak - v) + R * i_syn`);
       lines.push(`// Integration: ${this.options.integrationMethod}, dt = ${dt}`);
@@ -649,7 +649,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 1,
-        name: `${node.id}_input`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -657,7 +657,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 2,
-        name: `${node.id}_tau_syn`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_tau_syn`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -665,7 +665,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 3,
-        name: `${node.id}_tau_mem`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_tau_mem`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -673,7 +673,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 4,
-        name: `${node.id}_r`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_r`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -681,7 +681,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 5,
-        name: `${node.id}_v_leak`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_v_leak`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -689,7 +689,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 6,
-        name: `${node.id}_v_threshold`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_v_threshold`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -697,7 +697,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 7,
-        name: `${node.id}_w_in`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_w_in`,
         type: 'read-only-storage',
         elementType: 'f32',
         size,
@@ -705,7 +705,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 8,
-        name: `${node.id}_i_syn`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_i_syn`,
         type: 'storage',
         elementType: 'f32',
         size,
@@ -713,7 +713,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 9,
-        name: `${node.id}_voltage`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_voltage`,
         type: 'storage',
         elementType: 'f32',
         size,
@@ -721,7 +721,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       },
       {
         binding: 10,
-        name: `${node.id}_output`,
+        name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
         type: 'storage',
         elementType: 'u32',
         size,
@@ -845,7 +845,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// IF Neuron: ${node.id}`);
+      lines.push(`// IF Neuron: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// ODE: dv/dt = R * i(t), spike when v >= theta`);
       lines.push('');
     }
@@ -897,7 +897,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -905,7 +905,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_r`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_r`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -913,7 +913,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 3,
-          name: `${node.id}_v_threshold`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_v_threshold`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -921,7 +921,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 4,
-          name: `${node.id}_voltage`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_voltage`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -929,7 +929,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 5,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'u32',
           size,
@@ -952,7 +952,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// LI (Leaky Integrator): ${node.id}`);
+      lines.push(`// LI (Leaky Integrator): ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// ODE: tau * dv/dt = (v_leak - v) + R * i(t)`);
       lines.push('');
     }
@@ -1001,7 +1001,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1009,7 +1009,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_tau`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_tau`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1017,7 +1017,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 3,
-          name: `${node.id}_r`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_r`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1025,7 +1025,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 4,
-          name: `${node.id}_v_leak`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_v_leak`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1033,7 +1033,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 5,
-          name: `${node.id}_voltage`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_voltage`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1041,7 +1041,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 6,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1064,7 +1064,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Integrator: ${node.id}`);
+      lines.push(`// Integrator: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// ODE: dv/dt = R * i(t)`);
       lines.push('');
     }
@@ -1103,7 +1103,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1111,7 +1111,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_r`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_r`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1119,7 +1119,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 3,
-          name: `${node.id}_voltage`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_voltage`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1127,7 +1127,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 4,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1153,7 +1153,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Affine Transform: ${node.id}`);
+      lines.push(`// Affine Transform: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// y = W * x + b (${outputSize} x ${inputSize})`);
       lines.push('');
     }
@@ -1184,7 +1184,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: inputSize,
@@ -1192,7 +1192,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_weight`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_weight`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: outputSize * inputSize,
@@ -1200,7 +1200,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_bias`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_bias`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: outputSize,
@@ -1208,7 +1208,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 3,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size: outputSize,
@@ -1230,7 +1230,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Linear Transform: ${node.id}`);
+      lines.push(`// Linear Transform: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// y = W * x (${outputSize} x ${inputSize})`);
       lines.push('');
     }
@@ -1260,7 +1260,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: inputSize,
@@ -1268,7 +1268,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_weight`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_weight`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: outputSize * inputSize,
@@ -1276,7 +1276,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size: outputSize,
@@ -1312,7 +1312,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Conv2d: ${node.id}`);
+      lines.push(`// Conv2d: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// Kernel: ${outChannels} x ${inChannelsPerGroup} x ${kH} x ${kW}`);
       lines.push(
         `// Stride: [${strideH}, ${strideW}], Padding: [${padH}, ${padW}], Groups: ${groups}`
@@ -1379,7 +1379,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: inChannelsPerGroup * groups * spatialH * spatialW,
@@ -1387,7 +1387,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_weight`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_weight`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: outChannels * inChannelsPerGroup * kH * kW,
@@ -1395,7 +1395,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size: totalOutputElements,
@@ -1420,7 +1420,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Threshold: ${node.id}`);
+      lines.push(`// Threshold: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// output = (input >= threshold) ? 1.0 : 0.0`);
       lines.push('');
     }
@@ -1448,7 +1448,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1456,7 +1456,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_threshold`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_threshold`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1464,7 +1464,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1485,7 +1485,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Scale: ${node.id}`);
+      lines.push(`// Scale: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// y = scale * x`);
       lines.push('');
     }
@@ -1508,7 +1508,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1516,7 +1516,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_scale`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_scale`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1524,7 +1524,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1545,7 +1545,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Delay: ${node.id}`);
+      lines.push(`// Delay: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// Ring buffer delay line`);
       lines.push('');
     }
@@ -1590,7 +1590,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size,
@@ -1598,7 +1598,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 2,
-          name: `${node.id}_delay_steps`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_delay_steps`,
           type: 'read-only-storage',
           elementType: 'u32',
           size,
@@ -1606,7 +1606,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 3,
-          name: `${node.id}_ring_buffer`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_ring_buffer`,
           type: 'storage',
           elementType: 'f32',
           size: size * 256,
@@ -1614,7 +1614,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 4,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size,
@@ -1637,7 +1637,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// Flatten: ${node.id}`);
+      lines.push(`// Flatten: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// Input shape: [${shape.join(', ')}] -> flat [${totalSize}]`);
       lines.push('');
     }
@@ -1659,7 +1659,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: totalSize,
@@ -1667,7 +1667,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size: totalSize,
@@ -1694,7 +1694,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// SumPooling: ${node.id}`);
+      lines.push(`// SumPooling: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// Kernel: ${kernelSize}x${kernelSize}`);
       lines.push('');
     }
@@ -1731,7 +1731,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: inH * inW,
@@ -1739,7 +1739,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size: totalOutput,
@@ -1766,7 +1766,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// AvgPooling: ${node.id}`);
+      lines.push(`// AvgPooling: ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
       lines.push(`// Kernel: ${kernelSize}x${kernelSize}`);
       lines.push('');
     }
@@ -1804,7 +1804,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
       buffers: [
         {
           binding: 0,
-          name: `${node.id}_input`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_input`,
           type: 'read-only-storage',
           elementType: 'f32',
           size: inH * inW,
@@ -1812,7 +1812,7 @@ export class NIRToWGSLCompiler extends CompilerBase {
         },
         {
           binding: 1,
-          name: `${node.id}_output`,
+          name: `${this.escapeStringValue(node.id as string, 'TypeScript')}_output`,
           type: 'storage',
           elementType: 'f32',
           size: totalOutput,

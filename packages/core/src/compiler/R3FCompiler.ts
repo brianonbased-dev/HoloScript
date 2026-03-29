@@ -18,7 +18,7 @@ import {
   weatherToR3F,
 } from './DomainBlockCompilerMixin';
 import { getRBAC, ResourceType } from './identity/AgentRBAC';
-import { UnauthorizedCompilerAccessError } from './CompilerBase';
+import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
 
@@ -2245,7 +2245,8 @@ export class R3FCompiler {
 
     const r3fNode = r3fNodePool.acquire();
     r3fNode.type = type;
-    r3fNode.id = (node as unknown as Record<string, unknown>).id as string || (node as unknown as Record<string, unknown>).name as string;
+    const rawId = (node as unknown as Record<string, unknown>).id as string || (node as unknown as Record<string, unknown>).name as string;
+    r3fNode.id = rawId ? escapeStringValue(rawId, 'JSX') : undefined;
     r3fNode.props = this.compileProperties(node, rawProps);
     r3fNode.children = [];
     r3fNode.traits = new Map();
@@ -2278,7 +2279,7 @@ export class R3FCompiler {
 
     const root = r3fNodePool.acquire();
     root.type = 'group';
-    root.id = composition.name as string | undefined;
+    root.id = composition.name ? escapeStringValue(composition.name as string, 'JSX') : undefined;
     root.props = {};
     root.children = [];
     root.traits = new Map();
@@ -2438,7 +2439,7 @@ export class R3FCompiler {
 
     const r3fNode = r3fNodePool.acquire();
     r3fNode.type = type;
-    r3fNode.id = light.name as string | undefined;
+    r3fNode.id = light.name ? escapeStringValue(light.name as string, 'JSX') : undefined;
     r3fNode.props = props;
     r3fNode.children = [];
     r3fNode.traits = new Map();
@@ -3308,7 +3309,8 @@ export class R3FCompiler {
         entries.push(this.createNode('TimelineEntry', entryProps));
       }
     }
-    const timelineNode = this.createNode('Timeline', { autoplay: timeline.autoplay, loop: timeline.loop }, timeline.name);
+    const safeName = timeline.name ? escapeStringValue(timeline.name as string, 'JSX') : undefined;
+    const timelineNode = this.createNode('Timeline', { autoplay: timeline.autoplay, loop: timeline.loop }, safeName);
     timelineNode.children = entries;
     return timelineNode;
   }
@@ -3326,7 +3328,8 @@ export class R3FCompiler {
         }
       }
     }
-    return this.createNode('Audio', props, audio.name);
+    const safeName = audio.name ? escapeStringValue(audio.name as string, 'JSX') : undefined;
+    return this.createNode('Audio', props, safeName);
   }
 
   private compileZoneBlock(zone: any): R3FNode {
@@ -3344,7 +3347,8 @@ export class R3FCompiler {
         body: h.body,
       }));
     }
-    return this.createNode('Zone', props, zone.name);
+    const safeName = zone.name ? escapeStringValue(zone.name as string, 'JSX') : undefined;
+    return this.createNode('Zone', props, safeName);
   }
 
   private compileUIBlock(ui: any): R3FNode {
@@ -3361,7 +3365,8 @@ export class R3FCompiler {
             }
           }
         }
-        children.push(this.createNode('UIElement', elProps, el.name));
+        const safeElName = el.name ? escapeStringValue(el.name as string, 'JSX') : undefined;
+        children.push(this.createNode('UIElement', elProps, safeElName));
       }
     }
     const uiNode = this.createNode('UI', {}, '__ui');
@@ -3376,7 +3381,8 @@ export class R3FCompiler {
         props[prop.key] = prop.value;
       }
     }
-    return this.createNode('Transition', props, transition.name);
+    const safeName = transition.name ? escapeStringValue(transition.name as string, 'JSX') : undefined;
+    return this.createNode('Transition', props, safeName);
   }
 
   private compileConditionalBlock(cond: any, templateMap?: Map<string, any>): R3FNode {

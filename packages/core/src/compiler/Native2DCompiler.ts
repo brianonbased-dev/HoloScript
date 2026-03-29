@@ -114,7 +114,7 @@ export default ${safeName}Component;
       props += ` id="${traits.theme.id}"`;
     }
 
-    let combinedStyles: Record<string, string> = { ...styles };
+    const combinedStyles: Record<string, string> = { ...styles };
     if (traits.theme?.style) {
       traits.theme.style.split(';').forEach((rule: string) => {
         const [key, ...valueParts] = rule.split(':');

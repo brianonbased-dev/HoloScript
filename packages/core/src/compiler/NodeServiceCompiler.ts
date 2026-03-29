@@ -326,7 +326,7 @@ export class NodeServiceCompiler extends CompilerBase {
       lines.push('');
       for (const service of this.services) {
         const importName = `${this.toCamelCase(service.name)}Routes`;
-        lines.push(`app.use('${this.options.apiPrefix}', ${importName});`);
+        lines.push(`app.use('${this.escapeStringValue(this.options.apiPrefix, 'TypeScript')}', ${importName});`);
       }
       lines.push('');
       lines.push(`const PORT = process.env['PORT'] || ${this.options.port};`);
@@ -347,7 +347,7 @@ export class NodeServiceCompiler extends CompilerBase {
       lines.push('');
       for (const service of this.services) {
         const importName = `${this.toCamelCase(service.name)}Routes`;
-        lines.push(`app.register(${importName}, { prefix: '${this.options.apiPrefix}' });`);
+        lines.push(`app.register(${importName}, { prefix: '${this.escapeStringValue(this.options.apiPrefix, 'TypeScript')}' });`);
       }
       lines.push('');
       lines.push(`const PORT = Number(process.env['PORT']) || ${this.options.port};`);
@@ -389,12 +389,12 @@ export class NodeServiceCompiler extends CompilerBase {
 
         lines.push(`// ${route.method} ${route.path}`);
         if (this.options.typescript) {
-          lines.push(`router.${methodLower}('${route.path}', ${mwArgs}(req: Request, res: Response) => {`);
+          lines.push(`router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req: Request, res: Response) => {`);
         } else {
-          lines.push(`router.${methodLower}('${route.path}', ${mwArgs}(req, res) => {`);
+          lines.push(`router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req, res) => {`);
         }
         lines.push(`  // TODO: Implement ${route.handlerName}`);
-        lines.push(`  res.json({ message: '${route.handlerName} not implemented' });`);
+        lines.push(`  res.json({ message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' });`);
         lines.push(`});`);
         lines.push('');
       }
@@ -407,7 +407,7 @@ export class NodeServiceCompiler extends CompilerBase {
         } else {
           lines.push(`router.get('/health', (_req, res) => {`);
         }
-        lines.push(`  res.json({ status: 'ok', service: '${service.name}' });`);
+        lines.push(`  res.json({ status: 'ok', service: '${this.escapeStringValue(service.name, 'TypeScript')}' });`);
         lines.push(`});`);
         lines.push('');
       }
@@ -422,9 +422,9 @@ export class NodeServiceCompiler extends CompilerBase {
       for (const route of service.routes) {
         const methodLower = route.method.toLowerCase();
         lines.push(`  // ${route.method} ${route.path}`);
-        lines.push(`  app.${methodLower}('${route.path}', async (request, reply) => {`);
+        lines.push(`  app.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', async (request, reply) => {`);
         lines.push(`    // TODO: Implement ${route.handlerName}`);
-        lines.push(`    return { message: '${route.handlerName} not implemented' };`);
+        lines.push(`    return { message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' };`);
         lines.push(`  });`);
         lines.push('');
       }
@@ -432,7 +432,7 @@ export class NodeServiceCompiler extends CompilerBase {
       if (service.routes.length === 0) {
         lines.push(`  // Default health check`);
         lines.push(`  app.get('/health', async () => {`);
-        lines.push(`    return { status: 'ok', service: '${service.name}' };`);
+        lines.push(`    return { status: 'ok', service: '${this.escapeStringValue(service.name, 'TypeScript')}' };`);
         lines.push(`  });`);
         lines.push('');
       }

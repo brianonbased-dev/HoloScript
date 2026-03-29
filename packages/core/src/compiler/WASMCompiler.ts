@@ -185,7 +185,7 @@ export class WASMCompiler extends CompilerBase {
         {
           material: (block) => {
             const mat = compileMaterialBlock(block);
-            this.emit(`  ;; Material: "${mat.name}" type=${mat.type}`);
+            this.emit(`  ;; Material: "${this.escapeStringValue(mat.name as string, 'TypeScript')}" type=${mat.type}`);
             this.emit(
               `  ;; baseColor=${mat.baseColor || 'none'} roughness=${mat.roughness ?? 0.5} metallic=${mat.metallic ?? 0}`
             );
@@ -193,7 +193,7 @@ export class WASMCompiler extends CompilerBase {
           },
         },
         (block) => {
-          this.emit(`  ;; Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+          this.emit(`  ;; Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`);
           return '';
         }
       );
@@ -561,7 +561,7 @@ export class WASMCompiler extends CompilerBase {
     // Initialize state variables
     for (const v of this.stateVars) {
       const offset = this.memoryLayout.stateOffset + v.offset;
-      this.emit(`  ;; ${v.name}`);
+      this.emit(`  ;; ${this.escapeStringValue(v.name as string, 'TypeScript')}`);
 
       switch (v.type) {
         case 'i32':

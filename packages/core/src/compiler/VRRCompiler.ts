@@ -231,7 +231,7 @@ export class VRRCompiler extends CompilerBase {
         {
           material: (block) => {
             const m = compileMaterialBlock(block);
-            return `// VRR Material: "${m.name}" type=${m.type} baseColor=${m.baseColor || 'none'}`;
+            return `// VRR Material: "${this.escapeStringValue(m.name as string, 'TypeScript')}" type=${m.type} baseColor=${m.baseColor || 'none'}`;
           },
           physics: (block) => {
             const p = compilePhysicsBlock(block);
@@ -239,18 +239,18 @@ export class VRRCompiler extends CompilerBase {
           },
           vfx: (block) => {
             const ps = compileParticleBlock(block);
-            return `// VRR Particles: "${ps.name}" rate=${ps.properties.rate || 'default'}`;
+            return `// VRR Particles: "${this.escapeStringValue(ps.name as string, 'TypeScript')}" rate=${ps.properties.rate || 'default'}`;
           },
           audio: (block) => {
             const a = compileAudioSourceBlock(block);
-            return `// VRR Audio: "${a.name}" clip=${a.properties.clip || 'none'}`;
+            return `// VRR Audio: "${this.escapeStringValue(a.name as string, 'TypeScript')}" clip=${a.properties.clip || 'none'}`;
           },
           weather: (block) => {
             const w = compileWeatherBlock(block);
             return `// VRR Weather: ${w.keyword} layers=[${w.layers.map((l) => l.type).join(', ')}]`;
           },
         },
-        (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
+        (block) => `// Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`
       );
       for (const line of compiled) {
         this.generatedCode.push(line);
@@ -373,8 +373,8 @@ export class VRRCompiler extends CompilerBase {
     const paywalls = this.extractNodesWithTrait(twinNodes[0] || {}, '@x402_paywall');
     for (const pw of paywalls) {
       const trait = pw.traits.find((t: any) => t.name === 'x402_paywall');
-      this.generatedCode.push(`\n// @x402_paywall requirement for ${pw.name}`);
-      this.generatedCode.push(`vrr.persistState('paywall_${pw.name}', ${JSON.stringify(trait.params)});`);
+      this.generatedCode.push(`\n// @x402_paywall requirement for ${this.escapeStringValue(pw.name as string, 'TypeScript')}`);
+      this.generatedCode.push(`vrr.persistState('paywall_${this.escapeStringValue(pw.name as string, 'TypeScript')}', ${JSON.stringify(trait.params)});`);
     }
 
     // Multiplayer Hooks
