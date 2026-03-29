@@ -128,10 +128,33 @@ jobs:
           path: npm-audit.json
           retention-days: 30
 
+  compiler-security:
+    name: Compiler Injection Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run FlowLevel (Code Injection) Security Checks
+        working-directory: packages/core
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: npx vitest run src/compiler/__tests__/FlowLevel.test.ts
+
   aggregate-results:
     name: Aggregate Vulnerability Metrics
     runs-on: ubuntu-latest
-    needs: [snyk-scan, codeql-analysis, npm-audit]
+    needs: [snyk-scan, codeql-analysis, npm-audit, compiler-security]
     if: ${{ always() && github.event_name == 'pull_request' }}
     steps:
       - name: Download all security artifacts
@@ -144,10 +167,10 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             let summary = '## 🛡️ Consolidated Security Report\n\n';
             summary += 'The pipeline has aggregated the following vulnerability metrics:\n\n';
-            
+
             try {
               if (fs.existsSync('security-artifacts/npm-audit-report/npm-audit.json')) {
                 const auditData = JSON.parse(fs.readFileSync('security-artifacts/npm-audit-report/npm-audit.json', 'utf8'));
