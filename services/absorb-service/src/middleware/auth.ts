@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { resolveGitHubToken } from './github-identity.js';
 
 export interface AuthenticatedRequest extends Request {
@@ -7,8 +8,13 @@ export interface AuthenticatedRequest extends Request {
   userId?: string;
   isAdmin?: boolean;
   githubUsername?: string;
-  /** Credit tier resolved from DB (free/pro/enterprise) */
+  /** Credit tier resolved from DB (free/pro/enterprise) or attested by MCPMe orchestrator */
   tier?: string;
+  /**
+   * When true, this request was quota-checked by the MCPMe orchestrator.
+   * Absorb-service should skip its own credit deduction to prevent double billing.
+   */
+  orchestratorGated?: boolean;
 }
 
 const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
@@ -60,6 +66,31 @@ function checkRateLimit(
 }
 
 /**
+ * Verify an MCPMe orchestrator attestation signature.
+ *
+ * The orchestrator signs `${apiKeyId}:${tier}:${window}` with a shared secret
+ * where window = Math.floor(Date.now() / 30_000) (30-second tick).
+ * We allow the current AND the previous window to handle clock skew at boundaries.
+ */
+function verifyOrchestratorSig(apiKeyId: string, tier: string, sig: string): boolean {
+  const secret = process.env.ORCHESTRATOR_SECRET;
+  if (!secret || !apiKeyId || !tier || !sig) return false;
+  const window = Math.floor(Date.now() / 30_000);
+  for (const w of [window, window - 1]) {
+    const message = `${apiKeyId}:${tier}:${w}`;
+    const expected = createHmac('sha256', secret).update(message).digest('hex');
+    try {
+      if (timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) {
+        return true;
+      }
+    } catch {
+      // buffers of different length — invalid sig format
+    }
+  }
+  return false;
+}
+
+/**
  * Resolve the user's credit tier from the database.
  * Returns 'free' if DB is unavailable or account doesn't exist yet.
  */
@@ -89,6 +120,21 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     // Path 1: Service-to-service API key — no rate limit
     if (apiKey && token === apiKey) {
       authReq.authenticated = true;
+      return next();
+    }
+
+    // Path 1.5: MCPMe orchestrator attestation — billing already handled upstream.
+    // When the MCP mesh routes a call to absorb-service, it attaches a HMAC-signed
+    // header proving the request passed MCPMe quota checks. In this case we skip
+    // absorb credits entirely to prevent double billing.
+    const orchKey = req.headers['x-mcpme-orchestrator-key'] as string | undefined;
+    const orchTier = req.headers['x-mcpme-orchestrator-tier'] as string | undefined;
+    const orchSig = req.headers['x-mcpme-orchestrator-sig'] as string | undefined;
+    if (orchKey && orchTier && orchSig && verifyOrchestratorSig(orchKey, orchTier, orchSig)) {
+      authReq.authenticated = true;
+      authReq.orchestratorGated = true;
+      authReq.userId = `orchestrator:${orchKey}`;
+      authReq.tier = orchTier;
       return next();
     }
 

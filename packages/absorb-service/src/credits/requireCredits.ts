@@ -4,6 +4,10 @@
  * Framework-agnostic: returns a plain CreditError object on failure,
  * or a CreditGateResult on success. Consumers (Express, Next.js, etc.)
  * map the error to their own response format.
+ *
+ * When `options.orchestratorGated` is true the call was already quota-checked
+ * by the MCPMe orchestrator (mcp-orchestrator / billing mesh). In this case
+ * absorb-service skips its own credit deduction to prevent double billing.
  */
 
 import { checkBalance } from './creditService';
@@ -13,6 +17,8 @@ export interface CreditGateResult {
   userId: string;
   costCents: number;
   operationType: OperationType;
+  /** True when billing was handled upstream by the MCPMe orchestrator. */
+  orchestratorBilled?: boolean;
 }
 
 export interface CreditError {
@@ -24,6 +30,15 @@ export interface CreditError {
   purchaseUrl?: string;
 }
 
+export interface RequireCreditsOptions {
+  /**
+   * When true, the MCPMe orchestrator already deducted compute units for this
+   * operation. Return a zero-cost gate result so route handlers can proceed
+   * without touching the internal credit balance.
+   */
+  orchestratorGated?: boolean;
+}
+
 /**
  * Check that a user has sufficient credits for an operation.
  * Returns a CreditGateResult on success, or a CreditError on failure.
@@ -31,6 +46,7 @@ export interface CreditError {
 export async function requireCredits(
   userId: string,
   operationType: OperationType,
+  options: RequireCreditsOptions = {},
 ): Promise<CreditGateResult | CreditError> {
   const cost = OPERATION_COSTS[operationType];
   if (!cost) {
@@ -38,6 +54,11 @@ export async function requireCredits(
       error: `Unknown operation type: ${operationType}`,
       status: 400,
     };
+  }
+
+  // Fast path: billing handled upstream by the MCPMe orchestrator mesh.
+  if (options.orchestratorGated) {
+    return { userId, costCents: 0, operationType, orchestratorBilled: true };
   }
 
   const balance = await checkBalance(userId, cost.baseCostCents);
