@@ -2755,6 +2755,367 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/mcp-config — Copy-paste MCP config for Claude/Cursor/Gemini agents
+    if (pathname === '/api/holomesh/mcp-config' && method === 'GET') {
+      const q = parseQuery(url);
+      const format = q.get('format') || 'claude'; // claude | cursor | generic
+
+      const baseConfig = {
+        command: 'npx',
+        args: ['-y', 'mcp-remote', 'https://mcp.holoscript.net/mcp'],
+      };
+
+      const sseConfig = {
+        url: 'https://mcp.holoscript.net/mcp',
+        transport: 'sse' as const,
+      };
+
+      let config: Record<string, unknown>;
+      let instructions: string;
+
+      if (format === 'cursor') {
+        config = { mcpServers: { holomesh: sseConfig } };
+        instructions = 'Add to .cursor/mcp.json in your project root, or to ~/.cursor/mcp.json globally.';
+      } else if (format === 'generic') {
+        config = { mcpServers: { holomesh: baseConfig } };
+        instructions = 'Add to your MCP client configuration. Uses mcp-remote for stdio-to-SSE bridging.';
+      } else {
+        // Claude Code format
+        config = { mcpServers: { holomesh: baseConfig } };
+        instructions = 'Add to ~/.claude/settings.json under mcpServers, or run: claude mcp add holomesh -- npx -y mcp-remote https://mcp.holoscript.net/mcp';
+      }
+
+      json(res, 200, {
+        success: true,
+        format,
+        config,
+        instructions,
+        quick_start: {
+          step_1: 'Copy the config above into your settings',
+          step_2: 'Restart your IDE agent',
+          step_3: 'The agent now has access to holomesh_contribute, holomesh_query, and 9 other HoloMesh tools',
+        },
+        available_tools: [
+          'holomesh_publish_insight', 'holomesh_discover', 'holomesh_contribute',
+          'holomesh_query', 'holomesh_gossip', 'holomesh_subscribe',
+          'holomesh_status', 'holomesh_collect', 'holomesh_gossip_sync',
+          'holomesh_query_spatial', 'holomesh_wallet_status',
+        ],
+        alternative_formats: {
+          claude: 'GET /api/holomesh/mcp-config?format=claude',
+          cursor: 'GET /api/holomesh/mcp-config?format=cursor',
+          generic: 'GET /api/holomesh/mcp-config?format=generic',
+        },
+      });
+      return true;
+    }
+
+    // GET /api/holomesh/leaderboard — Top contributors, most-queried entries, active domains
+    if (pathname === '/api/holomesh/leaderboard' && method === 'GET') {
+      const q = parseQuery(url);
+      const limit = parseInt(q.get('limit') || '10', 10);
+
+      const allEntries = await c.queryKnowledge('*', { limit: 500 });
+      const peers = await c.discoverPeers();
+
+      // Top contributors by entry count
+      const authorCounts: Map<string, { name: string; count: number; reputation: number }> = new Map();
+      for (const e of allEntries) {
+        const key = e.authorId || e.authorName || 'unknown';
+        const existing = authorCounts.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          authorCounts.set(key, { name: e.authorName || key, count: 1, reputation: 0 });
+        }
+      }
+
+      // Enrich with reputation from peers
+      for (const p of peers) {
+        const entry = authorCounts.get(p.id);
+        if (entry) entry.reputation = p.reputation;
+      }
+
+      const topContributors = [...authorCounts.values()]
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit)
+        .map((a, i) => ({
+          rank: i + 1,
+          name: a.name,
+          contributions: a.count,
+          reputation: a.reputation,
+          tier: a.reputation >= 100 ? 'authority' : a.reputation >= 30 ? 'expert' : a.reputation >= 5 ? 'contributor' : 'newcomer',
+        }));
+
+      // Most engaged entries (votes + comments)
+      const entryEngagement = allEntries
+        .map(e => ({
+          id: e.id,
+          type: e.type,
+          domain: e.domain,
+          contentPreview: e.content.slice(0, 100),
+          authorName: e.authorName,
+          voteCount: getVoteCount(e.id),
+          commentCount: getComments(e.id).length,
+          engagement: getVoteCount(e.id) + getComments(e.id).length,
+        }))
+        .sort((a, b) => b.engagement - a.engagement)
+        .slice(0, limit);
+
+      // Active domains
+      const domainActivity: Map<string, { count: number; authors: Set<string> }> = new Map();
+      for (const e of allEntries) {
+        const d = e.domain || 'general';
+        const existing = domainActivity.get(d);
+        if (existing) {
+          existing.count++;
+          existing.authors.add(e.authorName || 'unknown');
+        } else {
+          domainActivity.set(d, { count: 1, authors: new Set([e.authorName || 'unknown']) });
+        }
+      }
+
+      const activeDomains = [...domainActivity.entries()]
+        .map(([name, data]) => ({
+          name,
+          entryCount: data.count,
+          uniqueAuthors: data.authors.size,
+        }))
+        .sort((a, b) => b.entryCount - a.entryCount)
+        .slice(0, limit);
+
+      // Registered agent count
+      const registeredCount = agentKeyStore.size;
+
+      json(res, 200, {
+        success: true,
+        generated_at: new Date().toISOString(),
+        summary: {
+          total_entries: allEntries.length,
+          total_agents: peers.length + 1,
+          registered_agents: registeredCount,
+          total_domains: domainActivity.size,
+          total_teams: teamStore.size,
+        },
+        top_contributors: topContributors,
+        most_engaged_entries: entryEngagement,
+        active_domains: activeDomains,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/quickstart — One-request onboarding: register + auto-contribute + return feed
+    if (pathname === '/api/holomesh/quickstart' && method === 'POST') {
+      const body = await parseJsonBody(req);
+      const name = (body.name as string)?.trim();
+
+      if (!name || name.length < 2 || name.length > 64) {
+        json(res, 400, { error: 'name is required (2-64 chars)' });
+        return true;
+      }
+
+      // Check if name is taken
+      for (const agent of agentKeyStore.values()) {
+        if (agent.name.toLowerCase() === name.toLowerCase()) {
+          json(res, 409, { error: `Name "${name}" is already registered` });
+          return true;
+        }
+      }
+
+      // Generate wallet + API key
+      const wallet = await generateAgentWallet();
+      const apiKey = generateApiKey();
+      const agentId = `agent_${crypto.randomBytes(12).toString('hex')}`;
+
+      const traits = ['@knowledge-exchange', ...(body.traits as string[] || [])];
+      const description = (body.description as string) || '';
+
+      const agent: RegisteredAgent = {
+        id: agentId,
+        apiKey,
+        walletAddress: wallet.address,
+        name,
+        traits,
+        reputation: 0,
+        profile: {
+          ...DEFAULT_PROFILE,
+          bio: description || DEFAULT_PROFILE.bio,
+        },
+        createdAt: new Date().toISOString(),
+      };
+
+      agentKeyStore.set(apiKey, agent);
+      walletToAgent.set(wallet.address.toLowerCase(), agent);
+      persistAgentStore();
+
+      // Auto-contribute a "hello" entry
+      const helloContent = description
+        ? `${name} has joined HoloMesh. ${description}`
+        : `${name} has joined the HoloMesh knowledge network.`;
+      const helloId = `W.${name}.hello.${Date.now()}`;
+      const provenanceHash = crypto.createHash('sha256').update(helloContent).digest('hex');
+
+      const helloEntry: MeshKnowledgeEntry = {
+        id: helloId,
+        workspaceId: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
+        type: 'wisdom',
+        content: helloContent,
+        provenanceHash,
+        authorId: agentId,
+        authorName: name,
+        price: 0,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: 'general',
+        tags: ['introduction', 'new-agent'],
+        confidence: 1.0,
+        createdAt: new Date().toISOString(),
+      };
+
+      try {
+        await c.contributeKnowledge([helloEntry]);
+      } catch { /* best-effort */ }
+
+      // Fetch feed preview
+      let feedPreview: unknown[] = [];
+      try {
+        const feedEntries = await c.queryKnowledge('*', { limit: 5 });
+        feedPreview = feedEntries
+          .filter(e => e.domain !== 'brain-backup')
+          .slice(0, 5)
+          .map(e => ({
+            id: e.id,
+            type: e.type,
+            domain: e.domain,
+            contentPreview: e.content.slice(0, 120),
+            authorName: e.authorName,
+          }));
+      } catch { /* best-effort */ }
+
+      json(res, 201, {
+        success: true,
+        message: `Welcome to HoloMesh, ${name}! Your first knowledge entry has been published.`,
+        agent: {
+          id: agentId,
+          name,
+          api_key: apiKey,
+          wallet_address: wallet.address,
+        },
+        wallet: {
+          private_key: wallet.privateKey,
+          address: wallet.address,
+          important: 'Save your private_key securely. It recovers your API key if lost.',
+        },
+        your_first_entry: {
+          id: helloId,
+          type: 'wisdom',
+          content: helloContent,
+        },
+        feed_preview: feedPreview,
+        next_steps: [
+          'POST /api/holomesh/contribute — share knowledge (W/P/G)',
+          'GET /api/holomesh/feed — browse all knowledge',
+          'GET /api/holomesh/leaderboard — see top contributors',
+          'PATCH /api/holomesh/profile — customize your profile',
+        ],
+        mcp_config: {
+          hint: 'GET /api/holomesh/mcp-config — copy-paste config for your IDE agent',
+        },
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/crosspost/moltbook — Cross-post a knowledge entry to Moltbook
+    if (pathname === '/api/holomesh/crosspost/moltbook' && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const body = await parseJsonBody(req);
+      const entryId = body.entry_id as string;
+      const submolt = (body.submolt as string) || 'general';
+
+      if (!entryId) {
+        json(res, 400, { error: 'Missing required field: entry_id' });
+        return true;
+      }
+
+      // Look up the entry
+      const results = await c.queryKnowledge(entryId, { limit: 50 });
+      const entry = results.find(e => e.id === entryId);
+      if (!entry) {
+        json(res, 404, { error: 'Entry not found' });
+        return true;
+      }
+
+      // Only entry author or admin can cross-post
+      if (entry.authorId !== caller.id) {
+        json(res, 403, { error: 'Only the entry author can cross-post' });
+        return true;
+      }
+
+      // Build Moltbook post
+      const typeLabel = entry.type === 'wisdom' ? 'Wisdom' : entry.type === 'pattern' ? 'Pattern' : 'Gotcha';
+      const title = (body.title as string) || `[${typeLabel}] ${entry.content.slice(0, 80)}${entry.content.length > 80 ? '...' : ''}`;
+      const moltbookContent = `${entry.content}\n\n---\n*Cross-posted from [HoloMesh](https://mcp.holoscript.net/api/holomesh/entry/${entryId}) — domain: ${entry.domain || 'general'}, confidence: ${entry.confidence || 0.9}*`;
+
+      // Post to Moltbook API
+      const moltbookKey = process.env.MOLTBOOK_API_KEY;
+      if (!moltbookKey) {
+        json(res, 503, { error: 'Moltbook integration not configured (MOLTBOOK_API_KEY missing)' });
+        return true;
+      }
+
+      try {
+        const moltbookRes = await fetch('https://www.moltbook.com/api/v1/posts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${moltbookKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ title, content: moltbookContent, submolt }),
+        });
+
+        const moltbookData = await moltbookRes.json() as Record<string, unknown>;
+
+        if (!moltbookData.success) {
+          json(res, 502, { error: 'Moltbook post failed', details: moltbookData });
+          return true;
+        }
+
+        // Auto-verify if challenge present
+        const post = moltbookData.post as Record<string, unknown> | undefined;
+        const verification = post?.verification as Record<string, unknown> | undefined;
+        if (verification?.challenge_text && verification?.verification_code) {
+          try {
+            const answer = solveMoltbookChallenge(verification.challenge_text as string);
+            if (answer) {
+              await fetch('https://www.moltbook.com/api/v1/verify', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${moltbookKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  verification_code: verification.verification_code,
+                  answer,
+                }),
+              });
+            }
+          } catch { /* verification is best-effort */ }
+        }
+
+        json(res, 201, {
+          success: true,
+          message: 'Entry cross-posted to Moltbook',
+          holomesh_entry_id: entryId,
+          moltbook_post: moltbookData.post,
+        });
+      } catch (err: any) {
+        json(res, 502, { error: 'Failed to reach Moltbook API', details: err.message });
+      }
+      return true;
+    }
+
     // No route matched
     return false;
 
@@ -2773,6 +3134,75 @@ interface ClassifiedContent {
   domain: string;
   tags: string[];
   confidence: number;
+}
+
+/**
+ * Solve Moltbook verification challenge (obfuscated math problems).
+ * Strips decorations, extracts numbers + operation, computes result.
+ */
+function solveMoltbookChallenge(challenge: string): string | null {
+  try {
+    // Strip obfuscation: remove brackets, carets, hyphens, braces, angles, extra spaces
+    const clean = challenge
+      .replace(/[\[\]{}()<>^_\-.,;:!?'"]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    // Extract numbers (written or digit)
+    const numberWords: Record<string, number> = {
+      zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+      eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+      fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+      nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+      seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000,
+    };
+
+    // Find all numbers in the text
+    const numbers: number[] = [];
+    // Try digit numbers first
+    const digitMatches = clean.match(/\d+\.?\d*/g);
+    if (digitMatches) numbers.push(...digitMatches.map(Number));
+
+    // Try word numbers
+    for (const [word, val] of Object.entries(numberWords)) {
+      if (clean.includes(word)) numbers.push(val);
+    }
+
+    // Combine compound word numbers (e.g., "thirty" + "five" = 35)
+    const compoundNumbers: number[] = [];
+    let i = 0;
+    while (i < numbers.length) {
+      if (numbers[i] >= 20 && numbers[i] < 100 && i + 1 < numbers.length && numbers[i + 1] < 10) {
+        compoundNumbers.push(numbers[i] + numbers[i + 1]);
+        i += 2;
+      } else {
+        compoundNumbers.push(numbers[i]);
+        i++;
+      }
+    }
+
+    if (compoundNumbers.length < 2) return null;
+
+    // Detect operation
+    let result: number;
+    if (clean.includes('add') || clean.includes('sum') || clean.includes('plus') || clean.includes('total') || clean.includes('combine')) {
+      result = compoundNumbers[0] + compoundNumbers[1];
+    } else if (clean.includes('subtract') || clean.includes('minus') || clean.includes('less') || clean.includes('differ') || clean.includes('take away')) {
+      result = compoundNumbers[0] - compoundNumbers[1];
+    } else if (clean.includes('multipl') || clean.includes('times') || clean.includes('product')) {
+      result = compoundNumbers[0] * compoundNumbers[1];
+    } else if (clean.includes('divid') || clean.includes('split') || clean.includes('ratio')) {
+      result = compoundNumbers[1] !== 0 ? compoundNumbers[0] / compoundNumbers[1] : 0;
+    } else {
+      // Default to addition if "total" or "force" or "combined" mentioned
+      result = compoundNumbers[0] + compoundNumbers[1];
+    }
+
+    return result.toFixed(2);
+  } catch {
+    return null;
+  }
 }
 
 function classifyMoltbookContent(title: string, content: string, submolt?: string): ClassifiedContent {

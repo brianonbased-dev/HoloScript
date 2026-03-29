@@ -1665,6 +1665,271 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 
+  // ── MCP Config Endpoint (P2) ──
+
+  describe('GET /api/holomesh/mcp-config', () => {
+    it('returns Claude config by default', async () => {
+      const req = mockReq('GET', '/api/holomesh/mcp-config');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/mcp-config');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.format).toBe('claude');
+      expect(res._body.config.mcpServers.holomesh).toBeDefined();
+      expect(res._body.config.mcpServers.holomesh.command).toBe('npx');
+      expect(res._body.instructions).toContain('claude');
+      expect(res._body.available_tools).toBeInstanceOf(Array);
+      expect(res._body.available_tools.length).toBeGreaterThan(5);
+    });
+
+    it('returns Cursor config when format=cursor', async () => {
+      const req = mockReq('GET', '/api/holomesh/mcp-config?format=cursor');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/mcp-config?format=cursor');
+
+      expect(res._status).toBe(200);
+      expect(res._body.format).toBe('cursor');
+      expect(res._body.config.mcpServers.holomesh.url).toContain('mcp.holoscript.net');
+      expect(res._body.config.mcpServers.holomesh.transport).toBe('sse');
+    });
+
+    it('returns generic config when format=generic', async () => {
+      const req = mockReq('GET', '/api/holomesh/mcp-config?format=generic');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/mcp-config?format=generic');
+
+      expect(res._status).toBe(200);
+      expect(res._body.format).toBe('generic');
+      expect(res._body.config.mcpServers.holomesh.command).toBe('npx');
+    });
+
+    it('includes quick_start and alternative_formats', async () => {
+      const req = mockReq('GET', '/api/holomesh/mcp-config');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/mcp-config');
+
+      expect(res._body.quick_start).toBeDefined();
+      expect(res._body.quick_start.step_1).toContain('Copy');
+      expect(res._body.alternative_formats.claude).toContain('format=claude');
+      expect(res._body.alternative_formats.cursor).toContain('format=cursor');
+    });
+  });
+
+  // ── Leaderboard Endpoint (P4) ──
+
+  describe('GET /api/holomesh/leaderboard', () => {
+    it('returns leaderboard with empty data', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      mockClient.discoverPeers.mockResolvedValueOnce([]);
+
+      const req = mockReq('GET', '/api/holomesh/leaderboard');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/leaderboard');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.summary).toBeDefined();
+      expect(res._body.top_contributors).toBeInstanceOf(Array);
+      expect(res._body.most_engaged_entries).toBeInstanceOf(Array);
+      expect(res._body.active_domains).toBeInstanceOf(Array);
+    });
+
+    it('ranks contributors by entry count', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'e1', authorId: 'a1', authorName: 'Alice', domain: 'agents', content: 'test', type: 'wisdom', createdAt: new Date().toISOString() },
+        { id: 'e2', authorId: 'a1', authorName: 'Alice', domain: 'agents', content: 'test2', type: 'pattern', createdAt: new Date().toISOString() },
+        { id: 'e3', authorId: 'a2', authorName: 'Bob', domain: 'security', content: 'test3', type: 'gotcha', createdAt: new Date().toISOString() },
+      ]);
+      mockClient.discoverPeers.mockResolvedValueOnce([]);
+
+      const req = mockReq('GET', '/api/holomesh/leaderboard');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/leaderboard');
+
+      expect(res._status).toBe(200);
+      expect(res._body.top_contributors[0].name).toBe('Alice');
+      expect(res._body.top_contributors[0].contributions).toBe(2);
+      expect(res._body.top_contributors[0].rank).toBe(1);
+      expect(res._body.top_contributors[1].name).toBe('Bob');
+      expect(res._body.active_domains.length).toBe(2);
+      expect(res._body.summary.total_entries).toBe(3);
+    });
+
+    it('respects limit parameter', async () => {
+      const entries = Array.from({ length: 20 }, (_, i) => ({
+        id: `e${i}`, authorId: `a${i}`, authorName: `Agent${i}`,
+        domain: 'general', content: `entry ${i}`, type: 'wisdom',
+        createdAt: new Date().toISOString(),
+      }));
+      mockClient.queryKnowledge.mockResolvedValueOnce(entries);
+      mockClient.discoverPeers.mockResolvedValueOnce([]);
+
+      const req = mockReq('GET', '/api/holomesh/leaderboard?limit=3');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/leaderboard?limit=3');
+
+      expect(res._body.top_contributors.length).toBeLessThanOrEqual(3);
+    });
+  });
+
+  // ── Quickstart Endpoint (P3) ──
+
+  describe('POST /api/holomesh/quickstart', () => {
+    it('registers agent, auto-contributes, and returns feed', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'sample1', type: 'wisdom', domain: 'agents', content: 'Sample entry', authorName: 'someone', createdAt: new Date().toISOString() },
+      ]);
+
+      const req = mockReq('POST', '/api/holomesh/quickstart', {
+        name: `quickstart-bot-${Date.now()}`,
+        description: 'A test bot for quickstart',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
+
+      expect(res._status).toBe(201);
+      expect(res._body.success).toBe(true);
+      expect(res._body.agent.api_key).toMatch(/^holomesh_sk_/);
+      expect(res._body.agent.wallet_address).toMatch(/^0x/);
+      expect(res._body.wallet.private_key).toMatch(/^0x/);
+      expect(res._body.your_first_entry).toBeDefined();
+      expect(res._body.your_first_entry.type).toBe('wisdom');
+      expect(res._body.feed_preview).toBeInstanceOf(Array);
+      expect(res._body.next_steps).toBeInstanceOf(Array);
+      expect(res._body.mcp_config).toBeDefined();
+
+      // Verify auto-contribution was called
+      expect(mockClient.contributeKnowledge).toHaveBeenCalled();
+    });
+
+    it('rejects short names', async () => {
+      const req = mockReq('POST', '/api/holomesh/quickstart', { name: 'x' });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
+
+      expect(res._status).toBe(400);
+      expect(res._body.error).toContain('2-64 chars');
+    });
+
+    it('rejects duplicate names', async () => {
+      // Register first
+      const req1 = mockReq('POST', '/api/holomesh/quickstart', { name: `dup-test-${Date.now()}` });
+      const res1 = mockRes();
+      await handleHoloMeshRoute(req1, res1, '/api/holomesh/quickstart');
+      expect(res1._status).toBe(201);
+
+      // Try same name
+      const req2 = mockReq('POST', '/api/holomesh/quickstart', { name: res1._body.agent.name });
+      const res2 = mockRes();
+      await handleHoloMeshRoute(req2, res2, '/api/holomesh/quickstart');
+
+      expect(res2._status).toBe(409);
+    });
+
+    it('includes description in hello entry', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+
+      const req = mockReq('POST', '/api/holomesh/quickstart', {
+        name: `desc-bot-${Date.now()}`,
+        description: 'I analyze security patterns',
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
+
+      expect(res._status).toBe(201);
+      expect(res._body.your_first_entry.content).toContain('security patterns');
+    });
+  });
+
+  // ── Crosspost to Moltbook (P5) ──
+
+  describe('POST /api/holomesh/crosspost/moltbook', () => {
+    it('requires authentication', async () => {
+      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'test' });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+
+      expect(res._status).toBe(401);
+    });
+
+    it('requires entry_id field', async () => {
+      // Register an agent first to get API key
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-bot-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', {}, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+
+      expect(res._status).toBe(400);
+      expect(res._body.error).toContain('entry_id');
+    });
+
+    it('returns 404 for nonexistent entry', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-404-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+
+      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'nonexistent' }, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+
+      expect(res._status).toBe(404);
+    });
+
+    it('rejects cross-post by non-author', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-noauth-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'entry-by-other', authorId: 'different-agent', content: 'test', type: 'wisdom', domain: 'general' },
+      ]);
+
+      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'entry-by-other' }, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+
+      expect(res._status).toBe(403);
+    });
+
+    it('returns 503 if MOLTBOOK_API_KEY not set', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-nokey-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+      const agentId = regRes._body.agent.id;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'my-entry', authorId: agentId, content: 'my knowledge', type: 'wisdom', domain: 'general', confidence: 0.9 },
+      ]);
+
+      delete process.env.MOLTBOOK_API_KEY;
+
+      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'my-entry' }, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+
+      expect(res._status).toBe(503);
+      expect(res._body.error).toContain('MOLTBOOK_API_KEY');
+    });
+  });
+
   // ── Route Matching ──
 
   describe('Route matching', () => {
