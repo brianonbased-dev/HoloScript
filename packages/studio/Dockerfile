@@ -25,8 +25,11 @@ COPY packages/std/ packages/std/
 COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
 COPY packages/studio/ packages/studio/
 
-# Build core (Studio depends on it via transpilePackages)
+# Build workspace dependencies in order (Studio imports from all of these)
 RUN cd packages/core && pnpm build || true
+RUN cd packages/std && pnpm build || true
+RUN cd packages/r3f-renderer && pnpm build || true
+RUN cd packages/studio-plugin-sdk && pnpm build || true
 
 # Build Studio — standalone output is enabled on Linux
 ENV NEXT_TELEMETRY_DISABLED=1
