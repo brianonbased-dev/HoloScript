@@ -107,15 +107,16 @@ const RATE_LIMIT = parseInt(process.env.OAUTH_RATE_LIMIT || '100', 10);
 const RATE_WINDOW_MS = 60_000;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-function getRateLimit(ip: string): { remaining: number; limit: number; resetAt: number } {
+function getRateLimit(ip: string, dynamicLimit?: number): { remaining: number; limit: number; resetAt: number } {
   const now = Date.now();
+  const activeLimit = dynamicLimit ?? RATE_LIMIT;
   let bucket = rateBuckets.get(ip);
   if (!bucket || bucket.resetAt <= now) {
     bucket = { count: 0, resetAt: now + RATE_WINDOW_MS };
     rateBuckets.set(ip, bucket);
   }
   bucket.count++;
-  return { remaining: Math.max(0, RATE_LIMIT - bucket.count), limit: RATE_LIMIT, resetAt: bucket.resetAt };
+  return { remaining: Math.max(0, activeLimit - bucket.count), limit: activeLimit, resetAt: bucket.resetAt };
 }
 
 function setRateLimitHeaders(res: http.ServerResponse, rl: { remaining: number; limit: number; resetAt: number }) {
@@ -332,6 +333,34 @@ async function securedToolExecution(
       },
       isError: true,
     };
+  }
+
+  // Enforce Tenant Config / Billing Limits
+  const tenantCtx = (auth as any).tenantContext;
+  if (tenantCtx) {
+    const rl = getRateLimit(`tenant_${tenantCtx.tenantId}`, tenantCtx.limits.rateLimitRequestsPerMin);
+    if (rl.remaining <= 0) {
+      return {
+        result: {
+          error: `Tenant rate limit exceeded (${tenantCtx.limits.rateLimitRequestsPerMin} req/min). Please upgrade tier from ${tenantCtx.subscriptionTier}.`,
+        },
+        isError: true,
+      };
+    }
+    
+    // Abstracted async usage tracking for billing
+    if (process.env.DATABASE_URL) {
+      Promise.resolve().then(async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { Pool } = require('pg');
+          const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false });
+          await pool.query('UPDATE api_keys SET usage_count = usage_count + 1, spent_usd = spent_usd + 0.001 WHERE tenant_id = $1', [tenantCtx.tenantId]);
+        } catch (e) {
+          console.error('[Telemetry] Failed to update usage:', e);
+        }
+      });
+    }
   }
 
   // Execute the tool

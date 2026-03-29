@@ -56,6 +56,7 @@ export interface CLIOptions {
     | 'setup-hooks'
     | 'remove-hooks'
     | 'setup-mcp'
+    | 'issue-key'
     | 'help'
     | 'version';
   input?: string;
@@ -271,6 +272,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'setup-hooks',
           'remove-hooks',
           'setup-mcp',
+          'issue-key',
           'help',
           'version',
         ].includes(arg)

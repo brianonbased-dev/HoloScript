@@ -3390,6 +3390,24 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       }
     }
 
+    case 'issue-key': {
+      const tenantId = options.input;
+      if (!tenantId) {
+        console.error('\x1b[31mError: No tenant ID specified.\x1b[0m');
+        console.log('Usage: npx @holoscript/cli issue-key <tenant_id> [--tier free|pro|enterprise]');
+        process.exit(1);
+      }
+      const tier = (options as any).tier || 'free';
+      try {
+        const { issueTenantKey } = await import('./admin-provisioner');
+        await issueTenantKey(tenantId, tier);
+        process.exit(0);
+      } catch (err: any) {
+        console.error(`\x1b[31mSetup failed: ${err.message}\x1b[0m`);
+        process.exit(1);
+      }
+    }
+
     default:
       const cli = new HoloScriptCLI(options);
       const exitCode = await cli.run();
