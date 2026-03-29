@@ -1859,24 +1859,51 @@ export interface R3FCompilerOptions {
 }
 
 /** Scale factors per quality tier for runtime tuning. */
-export const QUALITY_TIER_SCALES: Record<QualityTier, {
-  particleScale: number;
-  lodLevel: 'draft' | 'mesh' | 'final';
-  maxLights: number;
-  shadowMapSize: number;
-  shaderComplexity: 'basic' | 'standard' | 'physical';
-}> = {
-  low:   { particleScale: 0.25, lodLevel: 'draft', maxLights: 2,  shadowMapSize: 512,  shaderComplexity: 'basic' },
-  med:   { particleScale: 0.6,  lodLevel: 'mesh',  maxLights: 4,  shadowMapSize: 1024, shaderComplexity: 'standard' },
-  high:  { particleScale: 1.0,  lodLevel: 'final', maxLights: 8,  shadowMapSize: 2048, shaderComplexity: 'physical' },
-  ultra: { particleScale: 1.5,  lodLevel: 'final', maxLights: 16, shadowMapSize: 4096, shaderComplexity: 'physical' },
+export const QUALITY_TIER_SCALES: Record<
+  QualityTier,
+  {
+    particleScale: number;
+    lodLevel: 'draft' | 'mesh' | 'final';
+    maxLights: number;
+    shadowMapSize: number;
+    shaderComplexity: 'basic' | 'standard' | 'physical';
+  }
+> = {
+  low: {
+    particleScale: 0.25,
+    lodLevel: 'draft',
+    maxLights: 2,
+    shadowMapSize: 512,
+    shaderComplexity: 'basic',
+  },
+  med: {
+    particleScale: 0.6,
+    lodLevel: 'mesh',
+    maxLights: 4,
+    shadowMapSize: 1024,
+    shaderComplexity: 'standard',
+  },
+  high: {
+    particleScale: 1.0,
+    lodLevel: 'final',
+    maxLights: 8,
+    shadowMapSize: 2048,
+    shaderComplexity: 'physical',
+  },
+  ultra: {
+    particleScale: 1.5,
+    lodLevel: 'final',
+    maxLights: 16,
+    shadowMapSize: 4096,
+    shaderComplexity: 'physical',
+  },
 };
 
 export class R3FCompiler {
   // ─── Options & Quality Tier ────────────────────────────────────────────
 
   public readonly qualityTier: QualityTier;
-  public readonly tierScales: typeof QUALITY_TIER_SCALES[QualityTier];
+  public readonly tierScales: (typeof QUALITY_TIER_SCALES)[QualityTier];
   private readonly _defaultLighting: boolean;
 
   constructor(options: R3FCompilerOptions = {}) {
@@ -1969,7 +1996,11 @@ export class R3FCompiler {
     for (const [key, value] of Object.entries(props)) {
       if (key.startsWith('__spread_')) {
         spreadKeys.push(key);
-      } else if (value && typeof value === 'object' && (value as Record<string, unknown>).type === 'spread') {
+      } else if (
+        value &&
+        typeof value === 'object' &&
+        (value as Record<string, unknown>).type === 'spread'
+      ) {
         // Handle spread stored as a regular property value
         spreadKeys.push(key);
       } else {
@@ -1994,8 +2025,15 @@ export class R3FCompiler {
     // Second pass: expand and merge spreads in order
     for (const spreadKey of spreadKeys) {
       const spreadValue = props[spreadKey];
-      if (spreadValue && typeof spreadValue === 'object' && (spreadValue as Record<string, unknown>).type === 'spread') {
-        const resolved = this.resolveSpreadArgument((spreadValue as Record<string, unknown>).argument, context);
+      if (
+        spreadValue &&
+        typeof spreadValue === 'object' &&
+        (spreadValue as Record<string, unknown>).type === 'spread'
+      ) {
+        const resolved = this.resolveSpreadArgument(
+          (spreadValue as Record<string, unknown>).argument,
+          context
+        );
         if (resolved && typeof resolved === 'object' && !Array.isArray(resolved)) {
           // Merge spread properties - spread comes first, explicit props override
           Object.assign(result, this.expandSpreads(resolved as Record<string, unknown>, context));
@@ -2007,7 +2045,11 @@ export class R3FCompiler {
     for (const [key, value] of Object.entries(props)) {
       if (
         !key.startsWith('__spread_') &&
-        !(value && typeof value === 'object' && (value as Record<string, unknown>).type === 'spread')
+        !(
+          value &&
+          typeof value === 'object' &&
+          (value as Record<string, unknown>).type === 'spread'
+        )
       ) {
         if (
           value &&
@@ -2040,7 +2082,10 @@ export class R3FCompiler {
 
     for (const item of arr) {
       if (item && typeof item === 'object' && (item as Record<string, unknown>).type === 'spread') {
-        const resolved = this.resolveSpreadArgument((item as Record<string, unknown>).argument, context);
+        const resolved = this.resolveSpreadArgument(
+          (item as Record<string, unknown>).argument,
+          context
+        );
         if (Array.isArray(resolved)) {
           result.push(...resolved);
         } else if (resolved !== undefined && resolved !== null) {
@@ -2096,7 +2141,7 @@ export class R3FCompiler {
       if (context?.state && ref.includes('.')) {
         const parts = ref.split('.');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let value: any = context.state;
+        let value: Record<string, unknown> = context.state;
         for (const part of parts) {
           if (value && typeof value === 'object' && part in value) {
             value = value[part];
@@ -2147,70 +2192,83 @@ export class R3FCompiler {
     this.injectDefaultLighting(root);
 
     // v4.2: Compile domain blocks (materials, physics, particles, post-fx, audio, weather)
-    const domainBlocks = ((ast as unknown as Record<string, unknown>).domainBlocks ?? []) as Array<Record<string, unknown>>;
+    const domainBlocks = ((ast as unknown as Record<string, unknown>).domainBlocks ?? []) as Array<
+      Record<string, unknown>
+    >;
     if (domainBlocks.length > 0) {
-      const compiled = compileDomainBlocks(domainBlocks as unknown as import('../parser/HoloCompositionTypes').HoloDomainBlock[], {
-        material: (block) => {
-          const mat = compileMaterialBlock(block);
-          return {
-            type: 'DomainBlockOutput',
-            props: { __raw: materialToR3F(mat, this.tierScales), __domain: 'material', __name: mat.name },
-            children: [],
-          } as R3FNode;
-        },
-        physics: (block) => {
-          const phys = compilePhysicsBlock(block);
-          return {
-            type: 'DomainBlockOutput',
-            props: {
-              __raw: physicsToR3F(phys),
-              __domain: 'physics',
-              __name: phys.name || phys.keyword,
-            },
-            children: [],
-          } as R3FNode;
-        },
-        vfx: (block) => {
-          const ps = compileParticleBlock(block);
-          return {
-            type: 'DomainBlockOutput',
-            props: { __raw: particlesToR3F(ps, this.tierScales), __domain: 'vfx', __name: ps.name },
-            children: [],
-          } as R3FNode;
-        },
-        postfx: (block) => {
-          const pp = compilePostProcessingBlock(block);
-          return {
-            type: 'DomainBlockOutput',
-            props: {
-              __raw: postProcessingToR3F(pp),
-              __domain: 'postfx',
-              __name: pp.name || 'PostProcessing',
-            },
-            children: [],
-          } as R3FNode;
-        },
-        audio: (block) => {
-          const audio = compileAudioSourceBlock(block);
-          return {
-            type: 'DomainBlockOutput',
-            props: { __raw: audioSourceToR3F(audio), __domain: 'audio', __name: audio.name },
-            children: [],
-          } as R3FNode;
-        },
-        weather: (block) => {
-          const weather = compileWeatherBlock(block);
-          return {
-            type: 'DomainBlockOutput',
-            props: {
-              __raw: weatherToR3F(weather),
-              __domain: 'weather',
-              __name: weather.name || 'Weather',
-            },
-            children: [],
-          } as R3FNode;
-        },
-      });
+      const compiled = compileDomainBlocks(
+        domainBlocks as unknown as import('../parser/HoloCompositionTypes').HoloDomainBlock[],
+        {
+          material: (block) => {
+            const mat = compileMaterialBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: {
+                __raw: materialToR3F(mat, this.tierScales),
+                __domain: 'material',
+                __name: mat.name,
+              },
+              children: [],
+            } as R3FNode;
+          },
+          physics: (block) => {
+            const phys = compilePhysicsBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: {
+                __raw: physicsToR3F(phys),
+                __domain: 'physics',
+                __name: phys.name || phys.keyword,
+              },
+              children: [],
+            } as R3FNode;
+          },
+          vfx: (block) => {
+            const ps = compileParticleBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: {
+                __raw: particlesToR3F(ps, this.tierScales),
+                __domain: 'vfx',
+                __name: ps.name,
+              },
+              children: [],
+            } as R3FNode;
+          },
+          postfx: (block) => {
+            const pp = compilePostProcessingBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: {
+                __raw: postProcessingToR3F(pp),
+                __domain: 'postfx',
+                __name: pp.name || 'PostProcessing',
+              },
+              children: [],
+            } as R3FNode;
+          },
+          audio: (block) => {
+            const audio = compileAudioSourceBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: { __raw: audioSourceToR3F(audio), __domain: 'audio', __name: audio.name },
+              children: [],
+            } as R3FNode;
+          },
+          weather: (block) => {
+            const weather = compileWeatherBlock(block);
+            return {
+              type: 'DomainBlockOutput',
+              props: {
+                __raw: weatherToR3F(weather),
+                __domain: 'weather',
+                __name: weather.name || 'Weather',
+              },
+              children: [],
+            } as R3FNode;
+          },
+        }
+      );
       if (!root.children) root.children = [];
       for (const c of compiled) {
         if (typeof c === 'object') root.children.push(c as R3FNode);
@@ -2240,12 +2298,15 @@ export class R3FCompiler {
       return this.compileComponentNode(node as unknown as Record<string, unknown>);
     }
 
-    const rawProps = (node as unknown as Record<string, unknown>).properties as Record<string, unknown> || {};
+    const rawProps =
+      ((node as unknown as Record<string, unknown>).properties as Record<string, unknown>) || {};
     const type = this.mapType(node.type, rawProps);
 
     const r3fNode = r3fNodePool.acquire();
     r3fNode.type = type;
-    const rawId = (node as unknown as Record<string, unknown>).id as string || (node as unknown as Record<string, unknown>).name as string;
+    const rawId =
+      ((node as unknown as Record<string, unknown>).id as string) ||
+      ((node as unknown as Record<string, unknown>).name as string);
     r3fNode.id = rawId ? escapeStringValue(rawId, 'JSX') : undefined;
     r3fNode.props = this.compileProperties(node, rawProps);
     r3fNode.children = [];
@@ -2255,7 +2316,10 @@ export class R3FCompiler {
     if (node.directives) {
       for (const directive of node.directives) {
         if (directive.type === 'trait') {
-          r3fNode.traits?.set(directive.name as VRTraitName, directive.config as Record<string, unknown>);
+          r3fNode.traits?.set(
+            directive.name as VRTraitName,
+            directive.config as Record<string, unknown>
+          );
         }
       }
     }
@@ -2266,7 +2330,9 @@ export class R3FCompiler {
     }
 
     if (enhanced.children && Array.isArray(enhanced.children)) {
-      r3fNode.children = (enhanced.children as ASTNode[]).map((child: ASTNode) => this.compileNode(child));
+      r3fNode.children = (enhanced.children as ASTNode[]).map((child: ASTNode) =>
+        this.compileNode(child)
+      );
     }
 
     return r3fNode;
@@ -2274,7 +2340,11 @@ export class R3FCompiler {
 
   // ─── HoloComposition Compilation (.holo files) ────────────────────────
 
-  public compileComposition(composition: Record<string, unknown>, agentToken?: string, outputPath?: string): R3FNode {
+  public compileComposition(
+    composition: Record<string, unknown>,
+    agentToken?: string,
+    outputPath?: string
+  ): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
 
     const root = r3fNodePool.acquire();
@@ -2388,7 +2458,9 @@ export class R3FCompiler {
 
     // Compile first-class effects block OR auto-detect post-processing
     if (composition.effects) {
-      root.children!.unshift(this.compileEffectsBlock(composition.effects as Record<string, unknown>));
+      root.children!.unshift(
+        this.compileEffectsBlock(composition.effects as Record<string, unknown>)
+      );
     } else if (this.hasPostProcessing(root)) {
       root.children!.unshift({
         type: 'EffectComposer',
@@ -2401,7 +2473,7 @@ export class R3FCompiler {
     return root;
   }
 
-  private compileLightBlock(light: any): R3FNode {
+  private compileLightBlock(light: Record<string, unknown>): R3FNode {
     const lightMapping: Record<string, string> = {
       directional: 'directionalLight',
       point: 'pointLight',
@@ -2410,8 +2482,8 @@ export class R3FCompiler {
       ambient: 'ambientLight',
       area: 'rectAreaLight',
     };
-    const type = lightMapping[light.lightType] || 'directionalLight';
-    const props: any = {};
+    const type = lightMapping[light.lightType as string] || 'directionalLight';
+    const props: Record<string, unknown> = {};
 
     if (Array.isArray(light.properties)) {
       for (const prop of light.properties as Record<string, unknown>[]) {
@@ -2447,7 +2519,7 @@ export class R3FCompiler {
     return r3fNode;
   }
 
-  private compileEffectsBlock(effects: any): R3FNode {
+  private compileEffectsBlock(effects: Record<string, unknown>): R3FNode {
     const children: R3FNode[] = [];
     if (Array.isArray(effects.effects)) {
       for (const effect of effects.effects as Record<string, unknown>[]) {
@@ -2462,7 +2534,9 @@ export class R3FCompiler {
         };
         const effectType = effect.effectType as string;
         const type = effectMapping[effectType] || effectType;
-        children.push(this.createNode(type, { ...(effect.properties as Record<string, unknown> || {}) }));
+        children.push(
+          this.createNode(type, { ...((effect.properties as Record<string, unknown>) || {}) })
+        );
       }
     }
     const composer = this.createNode('EffectComposer', {});
@@ -2470,8 +2544,8 @@ export class R3FCompiler {
     return composer;
   }
 
-  private compileCameraBlock(camera: any): R3FNode {
-    const props: any = {};
+  private compileCameraBlock(camera: Record<string, unknown>): R3FNode {
+    const props: Record<string, unknown> = {};
     if (Array.isArray(camera.properties)) {
       for (const prop of camera.properties as Record<string, unknown>[]) {
         if (prop.key === 'field_of_view' || prop.key === 'fov') {
@@ -2488,7 +2562,7 @@ export class R3FCompiler {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private compileEnvironmentBlock(env: any): R3FNode[] {
+  private compileEnvironmentBlock(env: Record<string, unknown>): R3FNode[] {
     const nodes: R3FNode[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const envProps: Record<string, any> = {};
@@ -2504,53 +2578,72 @@ export class R3FCompiler {
     if (presetName) {
       const preset = ENVIRONMENT_PRESETS[presetName];
       if (preset) {
-        nodes.push(this.createNode('Environment', { background: true, preset: preset.envPreset || presetName }));
+        nodes.push(
+          this.createNode('Environment', {
+            background: true,
+            preset: preset.envPreset || presetName,
+          })
+        );
 
         const lighting = preset.lighting as Record<string, Record<string, unknown>> | undefined;
         if (lighting?.ambient) {
-          nodes.push(this.createNode('ambientLight', {
-            color: lighting.ambient.color,
-            intensity: lighting.ambient.intensity,
-          }));
+          nodes.push(
+            this.createNode('ambientLight', {
+              color: lighting.ambient.color,
+              intensity: lighting.ambient.intensity,
+            })
+          );
         }
         if (lighting?.directional) {
           const dl = lighting.directional;
-          nodes.push(this.createNode('directionalLight', {
-            color: dl.color,
-            intensity: dl.intensity,
-            position: dl.position,
-            castShadow: dl.shadows !== false,
-            'shadow-mapSize': [2048, 2048],
-          }));
+          nodes.push(
+            this.createNode('directionalLight', {
+              color: dl.color,
+              intensity: dl.intensity,
+              position: dl.position,
+              castShadow: dl.shadows !== false,
+              'shadow-mapSize': [2048, 2048],
+            })
+          );
         }
         if (Array.isArray(lighting?.points)) {
-          for (const pl of (lighting!.points as unknown[]) as Record<string, unknown>[]) {
-            nodes.push(this.createNode('pointLight', {
-              color: pl.color,
-              intensity: pl.intensity,
-              position: pl.position,
-              distance: pl.distance,
-            }));
+          for (const pl of lighting!.points as unknown[] as Record<string, unknown>[]) {
+            nodes.push(
+              this.createNode('pointLight', {
+                color: pl.color,
+                intensity: pl.intensity,
+                position: pl.position,
+                distance: pl.distance,
+              })
+            );
           }
         }
-        if ((preset as any).fog) {
-          nodes.push(this.createNode('fog', {
-            attach: 'fog',
-            color: (preset as any).fog.color,
-            near: (preset as any).fog.near,
-            far: (preset as any).fog.far,
-          }));
+        if ((preset as Record<string, unknown>).fog) {
+          nodes.push(
+            this.createNode('fog', {
+              attach: 'fog',
+              color: (preset as Record<string, unknown>).fog.color,
+              near: (preset as Record<string, unknown>).fog.near,
+              far: (preset as Record<string, unknown>).fog.far,
+            })
+          );
         }
-        if ((preset as any).ground) {
-          nodes.push(this.createNode('mesh', {
-            hsType: 'plane',
-            rotation: [-Math.PI / 2, 0, 0],
-            position: [0, -0.01, 0],
-            receiveShadow: true,
-            args: [200, 200],
-            color: (preset as any).ground.color,
-            materialProps: { roughness: 0.8, metalness: 0.0 },
-          }, '__ground'));
+        if ((preset as Record<string, unknown>).ground) {
+          nodes.push(
+            this.createNode(
+              'mesh',
+              {
+                hsType: 'plane',
+                rotation: [-Math.PI / 2, 0, 0],
+                position: [0, -0.01, 0],
+                receiveShadow: true,
+                args: [200, 200],
+                color: (preset as Record<string, unknown>).ground.color,
+                materialProps: { roughness: 0.8, metalness: 0.0 },
+              },
+              '__ground'
+            )
+          );
         }
       } else {
         nodes.push(this.createNode('Environment', { background: true, preset: presetName }));
@@ -2559,26 +2652,30 @@ export class R3FCompiler {
 
     // Explicit ambient_light
     if (envProps.ambient_light !== undefined) {
-      nodes.push(this.createNode('ambientLight', {
-        intensity: typeof envProps.ambient_light === 'number' ? envProps.ambient_light : 0.5,
-      }));
+      nodes.push(
+        this.createNode('ambientLight', {
+          intensity: typeof envProps.ambient_light === 'number' ? envProps.ambient_light : 0.5,
+        })
+      );
     }
 
     // Explicit fog
     if (envProps.fog && typeof envProps.fog === 'object') {
-      nodes.push(this.createNode('fog', {
-        attach: 'fog',
-        color: envProps.fog.color || '#cccccc',
-        near: envProps.fog.near || 10,
-        far: envProps.fog.far || 100,
-      }));
+      nodes.push(
+        this.createNode('fog', {
+          attach: 'fog',
+          color: envProps.fog.color || '#cccccc',
+          near: envProps.fog.near || 10,
+          far: envProps.fog.far || 100,
+        })
+      );
     }
 
     return nodes;
   }
 
-  private compileObjectDecl(obj: any, templateMap?: Map<string, any>): R3FNode {
-    const props: any = {};
+  private compileObjectDecl(obj: Record<string, unknown>, templateMap?: Map<string, any>): R3FNode {
+    const props: Record<string, unknown> = {};
     let geometryType = 'cube';
 
     // Merge template traits onto the object if it uses a template
@@ -2587,18 +2684,32 @@ export class R3FCompiler {
       if (tmpl) {
         // Merge template traits (object's own traits take precedence)
         if (tmpl.traits && Array.isArray(tmpl.traits)) {
-          const existingTraitNames = new Set((obj.traits as Array<Record<string, unknown>> || []).map((t: Record<string, unknown>) => t.name));
+          const existingTraitNames = new Set(
+            ((obj.traits as Array<Record<string, unknown>>) || []).map(
+              (t: Record<string, unknown>) => t.name
+            )
+          );
           obj.traits = [
-            ...tmpl.traits.filter((t: Record<string, unknown>) => !existingTraitNames.has(t.name as string)),
+            ...tmpl.traits.filter(
+              (t: Record<string, unknown>) => !existingTraitNames.has(t.name as string)
+            ),
             ...(obj.traits || []),
           ];
         }
         // Merge template properties (object's own properties take precedence)
         if (tmpl.properties && Array.isArray(tmpl.properties)) {
-          const existingKeys = new Set((obj.properties as Array<Record<string, unknown>> || []).map((p: Record<string, unknown>) => p.key));
+          const existingKeys = new Set(
+            ((obj.properties as Array<Record<string, unknown>>) || []).map(
+              (p: Record<string, unknown>) => p.key
+            )
+          );
           const mergedProps = tmpl.properties
             .filter((p: Record<string, unknown>) => !existingKeys.has(p.key as string))
-            .map((p: Record<string, unknown>) => ({ type: 'ObjectProperty', key: p.key, value: p.value }));
+            .map((p: Record<string, unknown>) => ({
+              type: 'ObjectProperty',
+              key: p.key,
+              value: p.value,
+            }));
           obj.properties = [...mergedProps, ...(obj.properties || [])];
         }
       }
@@ -3000,7 +3111,9 @@ export class R3FCompiler {
     // Uses TraitCompositor for layer-ordered merge with suppression,
     // requirement, additive, and multi-trait merge rules.
     if (obj.traits && Array.isArray(obj.traits)) {
-      const traitNames = (obj.traits as Array<Record<string, unknown>>).map((t: Record<string, unknown>) => t.name as string);
+      const traitNames = (obj.traits as Array<Record<string, unknown>>).map(
+        (t: Record<string, unknown>) => t.name as string
+      );
       const compositor = new TraitCompositor();
       const composedMaterial = compositor.compose(traitNames);
       if (Object.keys(composedMaterial).length > 0) {
@@ -3081,7 +3194,7 @@ export class R3FCompiler {
         }
 
         r3fNode.children!.push(
-          this.createNode(componentType, componentProps, `${obj.name}-${componentType}`),
+          this.createNode(componentType, componentProps, `${obj.name}-${componentType}`)
         );
       }
       delete props.__gapsComponents;
@@ -3098,8 +3211,11 @@ export class R3FCompiler {
    * to a group node annotated with its rich metadata (state, actions,
    * hooks) so the runtime/renderer can wire up behavior.
    */
-  private compileSystemNode(node: any, templateMap?: Map<string, any>): R3FNode {
-    const props: any = {};
+  private compileSystemNode(
+    node: Record<string, unknown>,
+    templateMap?: Map<string, any>
+  ): R3FNode {
+    const props: Record<string, unknown> = {};
 
     // Preserve system metadata for runtime
     if (node.state) {
@@ -3157,7 +3273,10 @@ export class R3FCompiler {
    * and render/UI blocks. They compile to a group node annotated with
    * component metadata for the runtime.
    */
-  private compileComponentNode(node: any, templateMap?: Map<string, any>): R3FNode {
+  private compileComponentNode(
+    node: Record<string, unknown>,
+    templateMap?: Map<string, any>
+  ): R3FNode {
     const props: Record<string, any> = {};
 
     // Preserve component metadata for runtime
@@ -3217,7 +3336,10 @@ export class R3FCompiler {
    * Used by compileSystemNode, compileComponentNode, and compileComposition
    * when processing the parser's children array.
    */
-  private compileChildNode(child: any, templateMap?: Map<string, any>): R3FNode {
+  private compileChildNode(
+    child: Record<string, unknown>,
+    templateMap?: Map<string, any>
+  ): R3FNode {
     switch (child.type) {
       case 'system':
         return this.compileSystemNode(child, templateMap);
@@ -3245,7 +3367,10 @@ export class R3FCompiler {
    * In the R3F tree, they compile to an empty group (they're not
    * rendered directly — objects "using" them inherit their properties).
    */
-  private compileTemplateNode(node: any, _templateMap?: Map<string, any>): R3FNode {
+  private compileTemplateNode(
+    node: Record<string, unknown>,
+    _templateMap?: Map<string, any>
+  ): R3FNode {
     const props: Record<string, any> = {};
 
     // Preserve template metadata
@@ -3263,7 +3388,10 @@ export class R3FCompiler {
     return this.createNode('Template', props, node.name);
   }
 
-  private compileSpatialGroup(group: any, templateMap?: Map<string, any>): R3FNode {
+  private compileSpatialGroup(
+    group: Record<string, unknown>,
+    templateMap?: Map<string, any>
+  ): R3FNode {
     const props: Record<string, any> = {};
     if (group.properties) {
       for (const prop of group.properties) {
@@ -3290,7 +3418,7 @@ export class R3FCompiler {
     return node;
   }
 
-  private compileTimelineBlock(timeline: any): R3FNode {
+  private compileTimelineBlock(timeline: Record<string, unknown>): R3FNode {
     const entries: R3FNode[] = [];
     if (timeline.entries) {
       for (const entry of timeline.entries) {
@@ -3310,12 +3438,16 @@ export class R3FCompiler {
       }
     }
     const safeName = timeline.name ? escapeStringValue(timeline.name as string, 'JSX') : undefined;
-    const timelineNode = this.createNode('Timeline', { autoplay: timeline.autoplay, loop: timeline.loop }, safeName);
+    const timelineNode = this.createNode(
+      'Timeline',
+      { autoplay: timeline.autoplay, loop: timeline.loop },
+      safeName
+    );
     timelineNode.children = entries;
     return timelineNode;
   }
 
-  private compileAudioBlock(audio: any): R3FNode {
+  private compileAudioBlock(audio: Record<string, unknown>): R3FNode {
     const props: Record<string, any> = {};
     if (audio.properties) {
       for (const prop of audio.properties) {
@@ -3332,7 +3464,7 @@ export class R3FCompiler {
     return this.createNode('Audio', props, safeName);
   }
 
-  private compileZoneBlock(zone: any): R3FNode {
+  private compileZoneBlock(zone: Record<string, unknown>): R3FNode {
     const props: Record<string, any> = {};
     if (zone.properties) {
       for (const prop of zone.properties) {
@@ -3341,17 +3473,19 @@ export class R3FCompiler {
     }
     // Attach handlers as props
     if (zone.handlers && zone.handlers.length > 0) {
-      props.handlers = (zone.handlers as Array<Record<string, unknown>>).map((h: Record<string, unknown>) => ({
-        event: h.event,
-        parameters: h.parameters,
-        body: h.body,
-      }));
+      props.handlers = (zone.handlers as Array<Record<string, unknown>>).map(
+        (h: Record<string, unknown>) => ({
+          event: h.event,
+          parameters: h.parameters,
+          body: h.body,
+        })
+      );
     }
     const safeName = zone.name ? escapeStringValue(zone.name as string, 'JSX') : undefined;
     return this.createNode('Zone', props, safeName);
   }
 
-  private compileUIBlock(ui: any): R3FNode {
+  private compileUIBlock(ui: Record<string, unknown>): R3FNode {
     const children: R3FNode[] = [];
     if (ui.elements) {
       for (const el of ui.elements) {
@@ -3374,18 +3508,23 @@ export class R3FCompiler {
     return uiNode;
   }
 
-  private compileTransitionBlock(transition: any): R3FNode {
+  private compileTransitionBlock(transition: Record<string, unknown>): R3FNode {
     const props: Record<string, any> = {};
     if (transition.properties) {
       for (const prop of transition.properties) {
         props[prop.key] = prop.value;
       }
     }
-    const safeName = transition.name ? escapeStringValue(transition.name as string, 'JSX') : undefined;
+    const safeName = transition.name
+      ? escapeStringValue(transition.name as string, 'JSX')
+      : undefined;
     return this.createNode('Transition', props, safeName);
   }
 
-  private compileConditionalBlock(cond: any, templateMap?: Map<string, any>): R3FNode {
+  private compileConditionalBlock(
+    cond: Record<string, unknown>,
+    templateMap?: Map<string, any>
+  ): R3FNode {
     const children: R3FNode[] = [];
     if (cond.objects) {
       for (const obj of cond.objects) children.push(this.compileObjectDecl(obj, templateMap));
@@ -3412,7 +3551,10 @@ export class R3FCompiler {
     return conditionalNode;
   }
 
-  private compileForEachBlock(iter: any, templateMap?: Map<string, any>): R3FNode {
+  private compileForEachBlock(
+    iter: Record<string, unknown>,
+    templateMap?: Map<string, any>
+  ): R3FNode {
     const templateChildren: R3FNode[] = [];
     if (iter.objects) {
       for (const obj of iter.objects)
@@ -3423,7 +3565,10 @@ export class R3FCompiler {
         templateChildren.push(this.compileSpatialGroup(g, templateMap));
     }
 
-    const forEachNode = this.createNode('ForEachGroup', { variable: iter.variable, iterable: iter.iterable });
+    const forEachNode = this.createNode('ForEachGroup', {
+      variable: iter.variable,
+      iterable: iter.iterable,
+    });
     forEachNode.children = templateChildren;
     return forEachNode;
   }
@@ -3432,8 +3577,12 @@ export class R3FCompiler {
    * Resolve a property value, converting bind expressions into runtime-reactive markers.
    */
   private resolveValue(value: unknown): unknown {
-    if (value && typeof value === 'object' && (value as any).__bind) {
-      return { __bind: true, source: (value as any).source, transform: (value as any).transform };
+    if (value && typeof value === 'object' && (value as Record<string, unknown>).__bind) {
+      return {
+        __bind: true,
+        source: (value as Record<string, unknown>).source,
+        transform: (value as Record<string, unknown>).transform,
+      };
     }
     return value;
   }
@@ -3463,7 +3612,11 @@ export class R3FCompiler {
   }
 
   private hasPostProcessing(node: R3FNode): boolean {
-    if (node.traits?.has('bloom' as VRTraitName) || node.traits?.has('postprocessing' as VRTraitName)) return true;
+    if (
+      node.traits?.has('bloom' as VRTraitName) ||
+      node.traits?.has('postprocessing' as VRTraitName)
+    )
+      return true;
     if (node.props.bloom) return true;
     return node.children?.some((c) => this.hasPostProcessing(c)) || false;
   }
@@ -3471,7 +3624,7 @@ export class R3FCompiler {
   private extractPostProcessingNodes(node: R3FNode): R3FNode[] {
     const effects: R3FNode[] = [];
 
-    const ppTrait: any = node.traits?.get('postprocessing' as VRTraitName);
+    const ppTrait: Record<string, unknown> = node.traits?.get('postprocessing' as VRTraitName);
     if (ppTrait) {
       if (ppTrait.bloom) effects.push(this.createNode('Bloom', ppTrait.bloom));
       if (ppTrait.ssao) effects.push(this.createNode('SSAO', ppTrait.ssao));
@@ -3481,7 +3634,9 @@ export class R3FCompiler {
       effects.push(
         this.createNode(
           'Bloom',
-          typeof node.props.bloom === 'object' ? node.props.bloom : ({ intensity: 1.0 } as any)
+          typeof node.props.bloom === 'object'
+            ? node.props.bloom
+            : ({ intensity: 1.0 } as Record<string, unknown>)
         )
       );
     }
@@ -3569,7 +3724,7 @@ export class R3FCompiler {
       const h = node.hologram;
       if (h.color) props.color = h.color;
       if (MESH_TYPES.has(node.type)) {
-        props.args = this.getGeometryArgs(node.type, h as any);
+        props.args = this.getGeometryArgs(node.type, h as Record<string, unknown>);
         props.hsType = node.type;
       }
     }
@@ -3653,7 +3808,21 @@ export class R3FCompiler {
 
   private applyGraphicsConfig(r3fNode: R3FNode, graphics: Record<string, unknown>): void {
     if (graphics.material) {
-      const m: any = graphics.material;
+      const m = graphics.material as {
+        preset?: string;
+        type?: string;
+        pbr?: {
+          baseColor?: string | number | Record<string, number>;
+          metallic?: number;
+          roughness?: number;
+          emission?: string | number | Record<string, number>;
+          emissionStrength?: number;
+          clearcoat?: number;
+          transmission?: number;
+          ior?: number;
+          iridescence?: number;
+        };
+      };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const materialProps: Record<string, any> = {};
 
@@ -3676,7 +3845,12 @@ export class R3FCompiler {
     }
 
     if (graphics.lighting) {
-      const l: any = graphics.lighting;
+      const l = graphics.lighting as {
+        shadows?: boolean;
+        intensity?: number;
+        color?: string | number | Record<string, number>;
+        preset?: string;
+      };
       if (r3fNode.type.toLowerCase().includes('light')) {
         if (l.shadows) r3fNode.props.castShadow = true;
         if (l.intensity !== undefined) r3fNode.props.intensity = l.intensity;
