@@ -86,8 +86,8 @@ COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/di
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
 
-# Create persistent cache directory (Railway volume mount point)
-RUN mkdir -p /app/.holoscript
+# Create persistent directories (Railway volume mount points)
+RUN mkdir -p /app/.holoscript /app/.holoscript/holomesh
 
 # Set ownership
 RUN chown -R nodejs:nodejs /app
@@ -98,6 +98,8 @@ RUN chmod +x /app/packages/mcp-server/scripts/docker-entrypoint.sh
 # Environment
 ENV NODE_ENV=production
 ENV HOLOSCRIPT_CACHE_DIR=/app/.holoscript
+ENV HOLOMESH_DATA_DIR=/app/.holoscript/holomesh
+ENV EMBEDDING_PROVIDER=openai
 
 # Expose port
 EXPOSE 3000
