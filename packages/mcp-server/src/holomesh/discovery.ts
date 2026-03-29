@@ -8,7 +8,12 @@
 import { AgentCard } from '../a2a.js';
 import { HoloMeshWorldState } from './crdt-sync.js';
 import type { HoloMeshOrchestratorClient } from './orchestrator-client.js';
-import type { PeerStoreEntry, GossipDeltaRequest, GossipDeltaResponse, GossipHealthMetadata } from './types.js';
+import type {
+  PeerStoreEntry,
+  GossipDeltaRequest,
+  GossipDeltaResponse,
+  GossipHealthMetadata,
+} from './types.js';
 import { signGossipPayload, verifyGossipSignature } from './wallet-auth.js';
 import * as fs from 'fs';
 
@@ -45,7 +50,7 @@ export class HoloMeshDiscovery {
     public localAgentDid: string,
     public localMcpUrl: string,
     private worldState?: HoloMeshWorldState,
-    options?: HoloMeshDiscoveryOptions,
+    options?: HoloMeshDiscoveryOptions
   ) {
     this.storePath = options?.storePath || null;
     if (this.storePath) this.loadPeerStore();
@@ -66,7 +71,9 @@ export class HoloMeshDiscovery {
       // Attempt handshake by asserting Proof-of-Play capability
       const isSpatial = await this.verifyProofOfPlayCapability(peerUrl);
       if (!isSpatial) {
-        console.warn(`[HoloMesh] Peer ${card.id} failed Proof-of-Play constraint. Dropping connection.`);
+        console.warn(
+          `[HoloMesh] Peer ${card.id} failed Proof-of-Play constraint. Dropping connection.`
+        );
         return false;
       }
 
@@ -113,7 +120,7 @@ export class HoloMeshDiscovery {
    */
   private async verifyProofOfPlayCapability(peerUrl: string): Promise<boolean> {
     try {
-      const [ax, ay, az, bx, by, bz] = Array.from({ length: 6 }, () => (Math.random() * 2 - 1));
+      const [ax, ay, az, bx, by, bz] = Array.from({ length: 6 }, () => Math.random() * 2 - 1);
       const expected = ax * bx + ay * by + az * bz;
 
       const start = performance.now();
@@ -133,7 +140,9 @@ export class HoloMeshDiscovery {
 
       const passed = Math.abs(result.value - expected) < 0.001 && duration < 100;
       if (!passed) {
-        console.warn(`[HoloMesh] PoP Failed! Deviation: ${Math.abs(result.value - expected)}, RTT: ${duration}ms`);
+        console.warn(
+          `[HoloMesh] PoP Failed! Deviation: ${Math.abs(result.value - expected)}, RTT: ${duration}ms`
+        );
       }
       return passed;
     } catch {
@@ -240,7 +249,7 @@ export class HoloMeshDiscovery {
   /** Absorb peers shared by another peer via gossip */
   public absorbGossipedPeers(
     peers: Array<{ did: string; url: string; name: string; walletAddress?: string }>,
-    _sourceDid: string,
+    _sourceDid: string
   ): number {
     let added = 0;
     for (const p of peers) {
@@ -278,7 +287,7 @@ export class HoloMeshDiscovery {
   /** Pick random peers for a gossip round (Fisher-Yates shuffle) */
   public selectGossipTargets(count: number = MAX_GOSSIP_TARGETS): PeerStoreEntry[] {
     const eligible = Array.from(this.peers.values()).filter(
-      (p) => p.failureCount < MAX_FAILURE_COUNT,
+      (p) => p.failureCount < MAX_FAILURE_COUNT
     );
     // Fisher-Yates shuffle
     for (let i = eligible.length - 1; i > 0; i--) {
@@ -294,15 +303,36 @@ export class HoloMeshDiscovery {
   public async gossipSync(
     peer: PeerStoreEntry,
     walletClient?: { signMessage: (args: { message: string }) => Promise<string> },
-    walletAddress?: string,
+    walletAddress?: string
   ): Promise<boolean> {
     if (!this.worldState) return false;
+
+    // V6: Memory Backpressure Check (borrowed from CompilerStateMonitor)
+    // Prevent OOM crashes during large CRDT state synchronizations
+    const memUsage = process.memoryUsage();
+    const ramUtilization = memUsage.heapUsed / memUsage.heapTotal;
+    if (ramUtilization > 0.7) {
+      console.warn(
+        `[HoloMesh] Memory backpressure active (RAM at ${(ramUtilization * 100).toFixed(1)}%). Skipping gossip sync with ${peer.did}.`
+      );
+      return false;
+    }
 
     try {
       // Export delta (full if no known frontiers for this peer)
       const delta = peer.lastKnownFrontiers
         ? this.worldState.exportDelta(peer.lastKnownFrontiers)
         : this.worldState.exportDelta();
+
+      // V6: Payload Size Backpressure
+      // Hard limit at 50MB to prevent Base64/JSON.stringify from blowing up V8 heap limits
+      if (delta.length > 50 * 1024 * 1024) {
+        console.warn(
+          `[HoloMesh] Gossip payload exceeds 50MB safety limit (${(delta.length / 1024 / 1024).toFixed(2)}MB). Skipping sync with ${peer.did} to prevent memory spike.`
+        );
+        // Note: we return false and record no failure, as this is local backpressure
+        return false;
+      }
 
       const deltaBase64 = Buffer.from(delta).toString('base64');
       const timestamp = new Date().toISOString();
@@ -376,14 +406,14 @@ export class HoloMeshDiscovery {
 
   /** Verify the wallet signature on an inbound gossip request. */
   public async verifyGossipSender(
-    request: GossipDeltaRequest,
+    request: GossipDeltaRequest
   ): Promise<'verified' | 'unsigned' | 'invalid'> {
     if (!request.signature || !request.senderWalletAddress) return 'unsigned';
     const valid = await verifyGossipSignature(
       request.senderWalletAddress,
       request.deltaBase64,
       request.timestamp,
-      request.signature,
+      request.signature
     );
     return valid ? 'verified' : 'invalid';
   }

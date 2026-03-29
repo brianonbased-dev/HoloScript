@@ -31,7 +31,7 @@ export class HoloMeshWorldState {
 
   constructor(
     public agentDid: string,
-    options?: HoloMeshWorldStateOptions,
+    options?: HoloMeshWorldStateOptions
   ) {
     this.doc = new LoroDoc();
     this.snapshotPath = options?.snapshotPath || null;
@@ -66,18 +66,20 @@ export class HoloMeshWorldState {
   public publishInsight(content: string, traitTags: string[], customCode?: string): Uint8Array {
     const list = this.doc.getList('insights');
     if (list) {
-      const formattedTraits = traitTags.map(t => `@${t.replace(/^@/, '')}`).join('\n  ');
+      const formattedTraits = traitTags.map((t) => `@${t.replace(/^@/, '')}`).join('\n  ');
       const randomX = Math.floor(Math.random() * 100) - 50;
-      
+
       const repInfo = this.getReputation(this.agentDid);
       const tier = repInfo?.tier ? parseInt(repInfo.tier) : 1;
       const altitude = tier * 25; // High tier = high altitude
-      
+
       let physicsTrait = '';
       if (tier >= 3) physicsTrait = '\n  @attraction(radius: 30)';
       else if (tier === 1) physicsTrait = '\n  @gravity(1.5)';
-      
-      const hsSource = customCode || `state {
+
+      const hsSource =
+        customCode ||
+        `state {
   interactions: 0
 }
 
@@ -94,17 +96,17 @@ Insight("${this.agentDid}_${Date.now()}") {
   })
   PhysicsBody("rigid")
 }`;
-      
+
       // V1 Compat
       list.push({
         hs_source: hsSource.trim(),
         author: this.agentDid,
         timestamp: Date.now(),
       });
-      
+
       // V3 Text Feed
       this.appendToFeed(hsSource.trim(), this.agentDid);
-      
+
       this.doc.commit();
     }
     return this.doc.export({ mode: 'update' });
@@ -130,13 +132,15 @@ Insight("${this.agentDid}_${Date.now()}") {
     return (feed as any[])
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
       .map((item: any) => ({
-        source: item.hs_source || `Insight("legacy") {\n  @author("${item.author}")\n  @thought(${JSON.stringify(item.text)})\n}`,
-        timestamp: item.timestamp
+        source:
+          item.hs_source ||
+          `Insight("legacy") {\n  @author("${item.author}")\n  @thought(${JSON.stringify(item.text)})\n}`,
+        timestamp: item.timestamp,
       }));
   }
 
   // ── V3: The Spatial Text Feed ───────────────────────────────────────────
-  
+
   public appendToFeed(hsBlock: string, authorDid: string): void {
     const text = this.doc.getText('feed');
     const annotated = `\n// @author ${authorDid} @timestamp ${Date.now()}\n${hsBlock}\n`;
@@ -150,7 +154,7 @@ Insight("${this.agentDid}_${Date.now()}") {
 
   public getKnowledgeDomainSource(domain: string): string {
     const entries = this.queryDomain(domain as any);
-    return entries.map(e => e.entry.content || '').join('\n\n');
+    return entries.map((e) => e.entry.content || '').join('\n\n');
   }
 
   /** Subscribe to CRDT changes */
@@ -164,7 +168,7 @@ Insight("${this.agentDid}_${Date.now()}") {
   public addKnowledgeEntry(
     domain: KnowledgeDomain,
     entryId: string,
-    entry: { content: string; type: string; authorDid: string; tags: string[]; timestamp: number },
+    entry: { content: string; type: string; authorDid: string; tags: string[]; timestamp: number }
   ): void {
     const domainMap = this.doc.getMap(`knowledge.${domain}`);
     if (domainMap) {
@@ -205,10 +209,10 @@ Insight("${this.agentDid}_${Date.now()}") {
   public accessKnowledge(domain: KnowledgeDomain, entryId: string): void {
     const domainMap = this.doc.getMap(`knowledge.${domain}`);
     if (!domainMap) return;
-    
+
     const raw = domainMap.get(entryId);
     if (!raw || typeof raw !== 'string') return;
-    
+
     try {
       const entry = JSON.parse(raw);
       entry.accessCount = (entry.accessCount || 0) + 1;
@@ -228,16 +232,16 @@ Insight("${this.agentDid}_${Date.now()}") {
   public pruneDeadKnowledge(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): number {
     let pruned = 0;
     const now = Date.now();
-    
+
     for (const domain of KNOWLEDGE_DOMAINS) {
       const domainMap = this.doc.getMap(`knowledge.${domain}`);
       if (!domainMap) continue;
-      
+
       const entries = this.queryDomain(domain);
       for (const { id, entry } of entries) {
         const age = now - (entry.timestamp || 0);
         const accessCount = entry.accessCount || 0;
-        
+
         // Tree-shaking: prune dead knowledge (0 accesses + older than threshold)
         if (accessCount === 0 && age > maxAgeMs) {
           domainMap.delete(id);
@@ -245,7 +249,7 @@ Insight("${this.agentDid}_${Date.now()}") {
         }
       }
     }
-    
+
     if (pruned > 0) {
       this.doc.commit();
       console.log(`[HoloMesh] Pruned ${pruned} dead knowledge entries across domains.`);
@@ -258,7 +262,7 @@ Insight("${this.agentDid}_${Date.now()}") {
   /** Update reputation for an agent (LWW via map overwrite) */
   public updateReputation(
     agentDid: string,
-    data: { contributions: number; queries: number; score: number; tier: string },
+    data: { contributions: number; queries: number; score: number; tier: string }
   ): void {
     const repMap = this.doc.getMap('reputation');
     if (repMap) {
@@ -296,7 +300,7 @@ Insight("${this.agentDid}_${Date.now()}") {
    */
   public getReputationWithDecay(
     agentDid: string,
-    halfLifeMs: number = HoloMeshWorldState.REPUTATION_HALF_LIFE_MS,
+    halfLifeMs: number = HoloMeshWorldState.REPUTATION_HALF_LIFE_MS
   ): { raw: any; decayedScore: number; decayFactor: number; needsReeval: boolean } | null {
     const raw = this.getReputation(agentDid);
     if (!raw) return null;
@@ -315,7 +319,7 @@ Insight("${this.agentDid}_${Date.now()}") {
    * Returns DIDs needing external re-validation.
    */
   public findAgentsNeedingReeval(
-    halfLifeMs: number = HoloMeshWorldState.REPUTATION_HALF_LIFE_MS,
+    halfLifeMs: number = HoloMeshWorldState.REPUTATION_HALF_LIFE_MS
   ): string[] {
     const repMap = this.doc.getMap('reputation');
     if (!repMap) return [];
@@ -359,7 +363,7 @@ Insight("${this.agentDid}_${Date.now()}") {
   /** Register a peer in the CRDT (propagates to other peers via gossip) */
   public registerPeerInCRDT(
     peerDid: string,
-    data: { url: string; name: string; traits?: string[] },
+    data: { url: string; name: string; traits?: string[] }
   ): void {
     const peerMap = this.doc.getMap('peers');
     if (peerMap) {
