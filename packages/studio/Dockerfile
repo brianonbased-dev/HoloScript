@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/studio/package.json packages/studio/
 COPY packages/core/package.json packages/core/
+COPY packages/crdt/package.json packages/crdt/
 COPY packages/r3f-renderer/package.json packages/r3f-renderer/
 COPY packages/std/package.json packages/std/
 COPY packages/ui/package.json packages/ui/
@@ -22,6 +23,7 @@ FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/ ./
+COPY packages/crdt/ packages/crdt/
 COPY packages/core/ packages/core/
 COPY packages/std/ packages/std/
 COPY packages/ui/ packages/ui/
@@ -32,13 +34,16 @@ COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
 COPY packages/studio/ packages/studio/
 
 # Build workspace dependencies in order (Studio imports from all of these)
-RUN cd packages/core && pnpm build || true
-RUN cd packages/std && pnpm build || true
-RUN cd packages/ui && pnpm build || true
-RUN cd packages/absorb-service && pnpm build || true
-RUN cd packages/agent-protocol && pnpm build || true
-RUN cd packages/r3f-renderer && pnpm build || true
-RUN cd packages/studio-plugin-sdk && pnpm build || true
+# Use tsup --no-dts directly — Studio only needs JS runtime, not type declarations.
+# tsc --emitDeclarationOnly often fails in Docker due to missing cross-package refs.
+RUN cd packages/crdt && npx tsup --no-dts
+RUN cd packages/agent-protocol && npx tsup --no-dts
+RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
+RUN cd packages/std && npx tsup
+RUN cd packages/absorb-service && npx tsup
+RUN cd packages/r3f-renderer && npx tsup --no-dts || true
+RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
+RUN cd packages/ui && npx tsup --no-dts || true
 
 # Build Studio — standalone output is enabled on Linux
 ENV NEXT_TELEMETRY_DISABLED=1
