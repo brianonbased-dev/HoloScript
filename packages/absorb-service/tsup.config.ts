@@ -15,6 +15,7 @@ export default defineConfig({
   },
   format: ['cjs', 'esm'],
   dts: false, // Disabled — daemon-actions has implicit any types + engine/types.ts references missing analysis/ReferenceGraph
+  shims: true, // Required: replaces import.meta.url with CJS equivalent in CJS output
   clean: true,
   sourcemap: true,
   splitting: true,
