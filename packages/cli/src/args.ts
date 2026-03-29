@@ -55,6 +55,7 @@ export interface CLIOptions {
     | 'daemon'
     | 'setup-hooks'
     | 'remove-hooks'
+    | 'setup-mcp'
     | 'help'
     | 'version';
   input?: string;
@@ -269,6 +270,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'prerender',
           'setup-hooks',
           'remove-hooks',
+          'setup-mcp',
           'help',
           'version',
         ].includes(arg)

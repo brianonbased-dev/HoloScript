@@ -164,9 +164,6 @@ function generateToken(): string {
   return `hs_${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '')}`;
 }
 
-function signToken(payload: string, secret: string): string {
-  return createHmac('sha256', secret).update(payload).digest('hex');
-}
 
 function verifyS256Challenge(verifier: string, challenge: string): boolean {
   const computed = createHash('sha256')
@@ -481,6 +478,7 @@ export class OAuth21Service {
   authenticateRequest(headers: Record<string, string | string[] | undefined>): TokenIntrospection {
     const authHeader = (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
     const apiKey = (typeof headers['x-api-key'] === 'string' ? headers['x-api-key'] : '') || '';
+    const mcpApiKey = (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
     const dpopHeader = (typeof headers['dpop'] === 'string' ? headers['dpop'] : '') || '';
 
     // Try OAuth 2.1 Bearer token
@@ -518,6 +516,9 @@ export class OAuth21Service {
     if (apiKey) {
       return this.validateLegacyKey(apiKey);
     }
+    if (mcpApiKey) {
+      return this.validateLegacyKey(mcpApiKey);
+    }
 
     // Try legacy Bearer that's actually an API key
     if (authHeader.startsWith('Bearer ') && this.config.legacyApiKey) {
@@ -543,8 +544,27 @@ export class OAuth21Service {
     const syncResult = this.authenticateRequest(headers);
     if (syncResult.active) return syncResult;
 
-    // Try GitHub token resolution as last-resort fallback
+    // 1. Try Dynamic Tenant Lookup (PostgreSQL/Upstash)
     const authHeader = (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
+    const apiKey = (typeof headers['x-api-key'] === 'string' ? headers['x-api-key'] : '') || '';
+    const mcpApiKey = (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
+    
+    let keyToValidate = apiKey || mcpApiKey;
+    if (!keyToValidate && authHeader.startsWith('Bearer ')) {
+      keyToValidate = authHeader.slice(7);
+    }
+    
+    if (keyToValidate) {
+      try {
+        const { validateTenantKey } = await import('./tenant-auth');
+        const tenantResult = await validateTenantKey(keyToValidate);
+        if (tenantResult && tenantResult.active) return tenantResult;
+      } catch (_err) {
+        // Fall through
+      }
+    }
+
+    // 2. Try GitHub token resolution as last-resort fallback
     if (authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       try {
