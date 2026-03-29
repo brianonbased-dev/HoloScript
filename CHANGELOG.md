@@ -6,6 +6,22 @@ All notable changes to HoloScript are documented here.
 
 ### [Unreleased]
 
+#### Oracle, Intelligence & Infrastructure Hardening
+
+**North Star Oracle & Operations (O1-O3)**
+- **Oracle Consult Tool:** Built the `holo_oracle_consult` MCP tool (Phase 2) to provide programmatic decision tree evaluation to agents directly.
+- **MCP Dispatch Routing:** Fixed stale barrel exports and explicit `holo_*` wildcard overriding, routing `holo_oracle_consult` via `index.ts` alongside general codebase tools.
+- **HoloMesh Repurposing:** Shifted HoloMesh "teams" strategy from IDE agent coordination to domain-based knowledge exchange.
+
+**Docker & Microservices (I1-I4)**
+- **Workspace Build Pipeline:** Hardened Dockerfiles by integrating previously omitted workspace dependencies (`@holoscript/std`, `ui`, `r3f-renderer`, `agent-protocol`, `studio-plugin-sdk`) into the Studio and render-service builds.
+- **BitNet Configurations:** Removed pretuned kernel flags for x86 fallback and updated runtime API (`--hf-repo`) in the `BitNet` Docker configuration.
+- **Absorb Economy:** Enhanced credit middleware authorization improvements.
+
+**Codebase Intelligence (C1-C2)**
+- **Semantic Transition:** Explicitly deprecated keyword-only `BM25EmbeddingProvider`, upgrading standard semantic search to `OpenAI` embeddings across `GraphRAGEngine` pipelines.
+- **Tool Count Audit:** Validated and increased the tracked MCP tool universe metric from 103 to 122 in all public references.
+
 #### 13-Gap Critical & Feature Expansion
 
 **Critical Infrastructure & Reliability (C1-C5)**
