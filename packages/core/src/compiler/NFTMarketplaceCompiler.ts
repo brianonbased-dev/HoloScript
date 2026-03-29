@@ -69,7 +69,12 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     };
   }
 
+  // @ts-expect-error - NFTMarketplace uses specialized AST instead of standard HoloComposition
   compile(marketplace: NFTMarketplaceAST): NFTMarketplaceCompilationOutput {
+    if (marketplace.name && !/^[a-zA-Z0-9_]+$/.test(marketplace.name)) {
+      throw new Error(`Invalid marketplace name: "${marketplace.name}". Names must be alphanumeric to prevent injection attacks.`);
+    }
+
     const contracts: CompiledContract[] = [];
     const deploymentScripts: DeploymentScript[] = [];
 
@@ -132,6 +137,10 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     lazyMinting?: LazyMintingConfig,
     gasOptimization?: GasOptimizationConfig
   ): string {
+    if (!/^[a-zA-Z0-9_]+$/.test(contract.name)) {
+      throw new Error(`Invalid contract name: "${contract.name}". Contract names must be alphanumeric to prevent injection attacks.`);
+    }
+
     this.lines = [];
     this.indentLevel = 0;
     this.gasAnalysis = [];
@@ -478,7 +487,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('}');
   }
 
-  private emitLazyMintingFunctions(contract: NFTContract, lazyMinting: LazyMintingConfig): void {
+  private emitLazyMintingFunctions(_contract: NFTContract, _lazyMinting: LazyMintingConfig): void {
     this.emit('// ============ Lazy Minting Functions ============');
     this.emit('');
 
@@ -607,7 +616,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('}');
   }
 
-  private emitMarketplaceFunctions(contract: NFTContract): void {
+  private emitMarketplaceFunctions(_contract: NFTContract): void {
     this.emit('// ============ Marketplace Integration ============');
     this.emit('');
 
@@ -686,7 +695,7 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     this.emit('}');
   }
 
-  private emitViewFunctions(contract: NFTContract): void {
+  private emitViewFunctions(_contract: NFTContract): void {
     this.emit('// ============ View Functions ============');
     this.emit('');
 
@@ -748,8 +757,8 @@ export class NFTMarketplaceCompiler extends CompilerBase {
 
   private compileMarketplaceContract(
     marketplace: MarketplaceConfig,
-    nftContract: NFTContract,
-    gasOptimization?: GasOptimizationConfig
+    _nftContract: NFTContract,
+    _gasOptimization?: GasOptimizationConfig
   ): string {
     this.lines = [];
     this.indentLevel = 0;
