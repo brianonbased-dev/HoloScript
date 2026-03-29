@@ -29,9 +29,9 @@ let cachedProviderName: string | null = null;
  *
  * Priority:
  * 1. Explicit EMBEDDING_PROVIDER env var (user override)
- * 2. OPENAI_API_KEY set → 'openai'
- * 3. Ollama running (probe with 2s timeout) → 'ollama'
- * 4. Fallback → 'bm25'
+ * 2. OPENAI_API_KEY set → 'openai' (PREFERRED — best quality)
+ * 3. Ollama running (probe with 2s timeout) ��� 'ollama'
+ * 4. Fallback → 'openai' with warning (BM25 deprecated)
  */
 async function detectBestEmbeddingProvider(): Promise<string> {
   if (cachedProviderName) return cachedProviderName;
@@ -71,9 +71,10 @@ async function detectBestEmbeddingProvider(): Promise<string> {
     // Ollama not running or unreachable
   }
 
-  // 4. Fallback to BM25
-  cachedProviderName = 'bm25';
-  console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (fallback, no API or Ollama found)`);
+  // 4. Fallback — OpenAI without key will fail gracefully; warn user
+  cachedProviderName = 'openai';
+  console.error(`[EmbeddingProvider] WARNING: No OPENAI_API_KEY or Ollama found. Defaulting to 'openai' which will fail without a key.`);
+  console.error(`[EmbeddingProvider] Set OPENAI_API_KEY in your environment for best quality semantic search.`);
   return cachedProviderName;
 }
 
@@ -467,12 +468,12 @@ export const codebaseTools: Tool[] = [
         },
         embeddingProvider: {
           type: 'string',
-          enum: ['bm25', 'openai', 'ollama', 'xenova'],
-          description: 'Embedding provider for semantic search (default: bm25). "bm25" is fast keyword-based (no API needed), "openai" uses OpenAI embeddings (requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model.',
+          enum: ['openai', 'ollama', 'xenova', 'bm25'],
+          description: 'Embedding provider for semantic search (default: openai). "openai" uses OpenAI embeddings (best quality, requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model, "bm25" is deprecated keyword-only fallback.',
         },
         embeddingApiKey: {
           type: 'string',
-          description: 'API key for embedding provider (required for openai, not needed for bm25/ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
+          description: 'API key for embedding provider (required for openai, not needed for ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
         },
         embeddingModel: {
           type: 'string',

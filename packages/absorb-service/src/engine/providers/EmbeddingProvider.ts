@@ -2,10 +2,10 @@
  * Embedding Provider Abstraction
  *
  * Decouples EmbeddingIndex from Ollama so any backend can be used:
- *   - BM25 (zero deps, always available, keyword-based)
+ *   - OpenAI (API, RECOMMENDED — best quality)
+ *   - Ollama (local server, good quality)
  *   - Xenova/Transformers (WASM local semantics, optional dep)
- *   - OpenAI (API, optional dep)
- *   - Ollama (original behaviour, backward compat)
+ *   - BM25 (DEPRECATED — keyword-only, no semantic understanding)
  */
 
 // =============================================================================
@@ -33,7 +33,7 @@ export type EmbeddingProviderName = 'bm25' | 'xenova' | 'openai' | 'ollama';
 export interface EmbeddingProviderOptions {
   /**
    * Which provider to use.
-   * Defaults to 'bm25' (zero-dependency, always available).
+   * Defaults to 'openai' (best quality). BM25 is deprecated.
    */
   provider?: EmbeddingProviderName;
 

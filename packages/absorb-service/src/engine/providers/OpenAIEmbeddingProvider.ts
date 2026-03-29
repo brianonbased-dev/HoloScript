@@ -110,7 +110,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         'OpenAI provider requires the openai package. ' +
           'Install it with:\n' +
           '  pnpm add openai --filter @holoscript/core\n' +
-          'or use --provider bm25 for zero-dependency operation.'
+          'or use --provider ollama for local operation.'
       );
     }
 

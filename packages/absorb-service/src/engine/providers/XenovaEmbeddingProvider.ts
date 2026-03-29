@@ -85,7 +85,7 @@ export class XenovaEmbeddingProvider implements EmbeddingProvider {
         'Xenova provider requires @huggingface/transformers. ' +
           'Install it with:\n' +
           '  pnpm add @huggingface/transformers --filter @holoscript/core\n' +
-          'or use --provider bm25 for zero-dependency operation.'
+          'or use --provider openai for best quality (requires OPENAI_API_KEY).'
       );
     }
 

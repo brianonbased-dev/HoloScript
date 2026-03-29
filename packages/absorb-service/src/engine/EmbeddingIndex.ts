@@ -10,6 +10,7 @@
 import type { ExternalSymbolDefinition } from './types';
 import type { CodebaseGraph } from './CodebaseGraph';
 import type { EmbeddingProvider } from './providers/EmbeddingProvider';
+// BM25 kept as sync constructor fallback only — deprecated, prefer OpenAI via createEmbeddingProvider()
 import { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
 import * as path from 'path';
 import * as os from 'os';
@@ -36,7 +37,7 @@ try {
 export interface EmbeddingIndexOptions {
   /**
    * Embedding provider instance.
-   * Defaults to BM25EmbeddingProvider (zero dependencies, always works).
+   * Defaults to OpenAI embeddings (best quality). BM25 is deprecated.
    * Use createEmbeddingProvider() from './providers' to build from config options.
    */
   provider?: EmbeddingProvider;

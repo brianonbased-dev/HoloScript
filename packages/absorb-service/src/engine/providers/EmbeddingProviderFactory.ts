@@ -15,8 +15,8 @@ import type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions
  * Create an EmbeddingProvider from options.
  *
  * @example
- * // Zero-dependency, always works:
- * const p = await createEmbeddingProvider({ provider: 'bm25' });
+ * // Best quality (recommended):
+ * const p = await createEmbeddingProvider({ provider: 'openai' });
  *
  * // Local WASM semantics (requires: pnpm add @huggingface/transformers):
  * const p = await createEmbeddingProvider({ provider: 'xenova' });
@@ -30,10 +30,11 @@ import type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions
 export async function createEmbeddingProvider(
   opts: EmbeddingProviderOptions = {}
 ): Promise<EmbeddingProvider> {
-  const name: EmbeddingProviderName = opts.provider ?? 'bm25';
+  const name: EmbeddingProviderName = opts.provider ?? 'openai';
 
   switch (name) {
     case 'bm25': {
+      console.error('[EmbeddingProvider] WARNING: BM25 is deprecated. Use "openai" for semantic search quality. Set OPENAI_API_KEY in your environment.');
       const { BM25EmbeddingProvider } = await import('./BM25EmbeddingProvider');
       return new BM25EmbeddingProvider();
     }

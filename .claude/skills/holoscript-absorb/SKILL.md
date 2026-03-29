@@ -1,296 +1,245 @@
 ---
 name: holoscript-absorb
 description: >
-  Use when you need to understand, map, or analyze the HoloScript codebase structure before refactoring,
-  planning, or investigating dependencies. Runs `holoscript absorb` to scan packages into spatial knowledge
-  graphs, then uses Graph RAG queries to answer architectural questions. Examples: "What calls this function?",
-  "Map the compiler pipeline", "Absorb core before refactoring", "Show dependency graph for studio",
-  "What's the blast radius of changing R3FCompiler?"
-argument-hint: "[package-path or query] e.g. 'packages/core' or 'what depends on R3FCompiler?'"
+  Codebase intelligence via HoloScript Absorb — scan repos into knowledge graphs,
+  semantic search, Graph RAG Q&A, impact analysis, and recursive self-improvement.
+  Use when you need to understand, map, or analyze any codebase before refactoring,
+  planning, or investigating dependencies.
 ---
 
-# HoloScript Absorb — Codebase Intelligence Extraction
+# HoloScript Absorb — Codebase Intelligence Skill
 
-## ⚡ MCP-First: Cache-First Workflow (Default)
+**Working directory**: `C:/Users/Josep/Documents/GitHub/HoloScript` (MANDATORY)
 
-**When the MCP server is running, use these tools — they are faster and more efficient than CLI.**
+## When to Use This Skill
 
-```
-Step 1: holo_graph_status({})
-        → Returns: { fresh, stale, cacheAgeMs, hint }
-        → If hint says "cache is fresh" → skip to Step 3
+- Before refactoring: scan the codebase to understand impact
+- Before architectural decisions: query the knowledge graph
+- When investigating dependencies or call chains
+- When you need semantic search across a codebase
+- When running recursive self-improvement pipelines
 
-Step 2: holo_absorb_repo({ rootDir: "packages/core" })
-        → Omit `force` (default false) → returns in ~21ms from disk cache if < 24h old
-        → force: true ONLY if holo_graph_status says stale
-
-Step 3: holo_query_codebase({ query: "what does X call?" })
-        holo_impact_analysis({ symbol: "TargetClass" })
-        → Both auto-load disk cache — no manual pre-load needed
-        → Response includes `cacheNote` field showing cache age
-
-Step 4: holo_detect_changes({ before: "HEAD~1", after: "HEAD" })
-        → Always fresh — compares two git states
-```
-
-**NEVER call `holo_absorb_repo` with `force: true`** unless `holo_graph_status` shows stale cache.
-Query tools auto-load from `~/.holoscript/graph-cache.json` (24h TTL) without a prior absorb call.
-
-**CLI fallback** (when MCP unavailable):
-```bash
-npx tsx packages/cli/src/cli.ts absorb packages/core --json
-npx tsx packages/cli/src/cli.ts query "what calls getMaterialProps?"
-```
-
----
-
-## When to Use
-
-- **Before refactoring**: "Absorb core before touching the compiler"
-- **Understanding architecture**: "Map the studio rendering pipeline"
-- **Impact analysis**: "What depends on getMaterialProps?"
-- **Dependency mapping**: "Show me the import graph for packages/core"
-- **Planning work tracks**: "Absorb studio and identify tight coupling"
-- **Knowledge snapshots**: Save codebase structure before major changes
-
-## What It Does
-
-`holoscript absorb` scans TypeScript/Python/Rust/Go codebases and extracts:
-- **Symbols**: Functions, classes, interfaces, methods, exports
-- **Relationships**: Imports, function calls, type references
-- **Module communities**: Auto-detected clusters of tightly coupled code
-- **Knowledge graph**: Nodes = symbols, edges = relationships
-
-Output formats:
-- `.holo` — Spatial 3D visualization (default)
-- `--json` — Serialized graph for programmatic queries
-
-## Workflow
-
-### Quick Absorb (Single Package)
-
-```
-1. Run: npx holoscript absorb <package-path> -o <output>.holo
-2. Review scan stats (files, symbols, imports, calls, LOC)
-3. Review detected module communities
-4. Use output for planning or Graph RAG queries
-```
-
-### Deep Analysis (With Graph RAG)
-
-```
-1. Run: npx holoscript absorb <package-path> --json -o graph.json
-2. Analyze community structure for tight coupling
-3. Trace call chains between subsystems
-4. Identify circular dependencies
-5. Map blast radius for planned changes
-6. Generate refactoring plan based on findings
-```
-
-### Pre-Refactor Protocol (MANDATORY per CLAUDE.md)
-
-**MCP-first (preferred):**
-```
-1. holo_graph_status({})                              → Check if cache is current
-2. holo_absorb_repo({ rootDir: "<package-path>" })    → Load cache (~21ms) or scan fresh
-3. holo_impact_analysis({ symbol: "<TargetClass>" })  → Blast radius: what will break?
-4. Make refactoring changes
-5. holo_absorb_repo({ rootDir: "<pkg>", force: true }) → Fresh scan AFTER to verify
-6. holo_query_codebase({ query: "what changed in <X>?" }) → Confirm no unintended shifts
-```
-
-**CLI fallback:**
-```bash
-npx tsx packages/cli/src/cli.ts absorb <package-path> --json   # Before
-# ...make changes...
-npx tsx packages/cli/src/cli.ts absorb <package-path> --json   # After comparison
-```
-
-## Commands
-
-### Absorb to .holo (Spatial Visualization)
+## Quick Start
 
 ```bash
-# Force-directed layout (organic, shows natural clusters)
-npx holoscript absorb packages/core -o packages/core/knowledge.holo
+# 1. Check graph freshness (always do this first)
+# MCP: holo_graph_status({})
+holoscript graph-status
 
-# Layered layout (hierarchical, shows dependency layers)
-npx holoscript absorb packages/core -o packages/core/knowledge.holo --layout layered
+# 2. Scan if stale (>24h or never scanned)
+# MCP: holo_absorb_repo({ directory: ".", force: false })
+holoscript absorb .
 
-# Absorb entire repo
-npx holoscript absorb . -o codebase.holo
+# 3. Query the graph
+# MCP: holo_query_codebase({ query: "callers", symbol: "buildIndex" })
+holoscript query "what calls buildIndex"
 ```
 
-### Absorb to JSON (Programmatic Analysis)
+## Production Endpoints
+
+| Service | URL | Auth |
+|---------|-----|------|
+| MCP Server (122 tools) | `https://mcp.holoscript.net` | None (free tools) |
+| Absorb Service | `https://absorb.holoscript.net` | Bearer `ABSORB_API_KEY` |
+| MCP Protocol | `POST https://mcp.holoscript.net/mcp` | None |
+| Studio (paid ops) | `https://studio.holoscript.net` | Bearer `ABSORB_API_KEY` |
+| Orchestrator | `https://mcp-orchestrator-production-45f9.up.railway.app` | `x-mcp-api-key` header |
+
+**Auth**: `ABSORB_API_KEY` from `HoloScript/.env`. Admin/founder tier = all tools free, no rate limits.
+
+## MCP Tools — FREE (Local, No Credits)
+
+### Codebase Scanning
+
+| Tool | Description | When to Use |
+|------|-------------|-------------|
+| `holo_graph_status` | Cache age, stats, loaded state | **Always first** — check before scanning |
+| `holo_absorb_repo` | Full scan → graph → emit pipeline | Before refactoring. `force: false` = ~21ms from cache |
+| `holo_get_absorb_status` | Poll running absorb job by `jobId` | Long-running scans |
+| `holo_detect_drift` | Fast content-hash check without re-scan | Quick staleness check |
+| `absorb_typescript` | Convert TypeScript → `.holo` composition | Detect routes, models, queues, patterns |
+
+### Graph Queries
+
+| Tool | Description | When to Use |
+|------|-------------|-------------|
+| `holo_query_codebase` | Graph traversal: callers, callees, imports, symbols, find, trace, communities, stats | Dependency analysis |
+| `holo_impact_analysis` | Transitive blast radius for changed files/symbols | Before modifying shared code |
+| `holo_detect_changes` | Structural diff between two graph snapshots | Compare before/after git refs |
+| `holo_resolve_symbol` | Federated symbol resolution across knowledge mesh | Cross-package lookups |
+
+### Semantic Search & RAG
+
+| Tool | Description | When to Use |
+|------|-------------|-------------|
+| `holo_semantic_search` | Vector/BM25 search over symbols, docs, paths | Find related code |
+| `holo_ask_codebase` | Graph RAG: search + graph + LLM synthesis | Natural language Q&A with citations |
+| `absorb_query` | Branded wrapper for `holo_semantic_search` | Same as above |
+| `absorb_diff` | Semantic AST diff between two code snippets | Detect renames, moves, structural changes |
+
+### Project Management (Studio)
+
+| Tool | Description |
+|------|-------------|
+| `absorb_list_projects` | List all Studio absorb projects |
+| `absorb_create_project` | Create project (github/local/upload source) |
+| `absorb_delete_project` | Delete project by ID |
+| `absorb_check_credits` | Check balance, tier, transaction history |
+
+## MCP Tools — PAID (Studio, Credits Deducted)
+
+| Tool | Credits | Description |
+|------|---------|-------------|
+| `absorb_run_absorb` | 10 (shallow) / 50 (deep) | Full cloud absorption with persistent storage |
+| `absorb_run_improve` | 25-150 | HoloDaemon improvement cycle (quick/balanced/deep) |
+| `absorb_run_query_ai` | 15+ metered tokens | AI-powered Q&A with LLM synthesis |
+| `absorb_run_render` | 3-5 | Screenshot (PNG/JPEG/WebP) or PDF export |
+| `absorb_run_pipeline` | 100+ | Recursive self-improvement pipeline (L0/L1/L2) |
+
+### Credit Costs (from pricing.ts — authoritative)
+
+| Operation | Credits |
+|-----------|---------|
+| `absorb_shallow` | 10 |
+| `absorb_deep` | 50 |
+| `daemon_quick` | 50 |
+| `daemon_balanced` | 100 |
+| `daemon_deep` | 250 |
+| `pipeline_l0` | 100 |
+| `pipeline_l1` | 75 |
+| `pipeline_l2` | 150 |
+| `query_basic` | 2 |
+| `query_with_llm` | 10 + metered |
+| `screenshot` | 3 |
+| `pdf_export` | 5 |
+| `semantic_diff` | 2 |
+
+1 credit = $0.01. LLM tokens metered at 15% markup.
+
+## Pipeline Stages
+
+### Local Scan (`holo_absorb_repo`)
+
+```
+scan (CodebaseScanner + language adapters)
+  → graph (CodebaseGraph + community detection)
+    → embed (EmbeddingIndex: BM25 / OpenAI / Ollama / Xenova)
+      → cache (~/.holoscript/graph-cache.json + embeddings)
+        → emit (.holo scene | JSON graph | stats)
+```
+
+Phases: `queued` → `scanning` → `analyzing` → `indexing` → `complete`
+
+### Self-Improvement Pipeline (L0/L1/L2)
+
+```
+ABSORB → DIAGNOSE → GENERATE → VALIDATE → COMMIT → LEARN
+```
+
+- **L0** Code Fixer: patches, measures quality delta
+- **L1** Strategy Optimizer: adjusts focus, profile, budget
+- **L2** Meta-Strategist: generates skills, wisdom entries, architectural insights
+
+## CLI Commands
 
 ```bash
-# JSON graph for analysis
-npx holoscript absorb packages/core --json -o core-graph.json
+# Absorption
+holoscript absorb .                              # Scan → .holo output
+holoscript absorb packages/core --json           # JSON knowledge graph
+holoscript absorb . --for-agent                  # Agent manifest
+holoscript absorb . --depth shallow              # Fast manifest-only
+holoscript absorb . --since HEAD~5               # Changed files only
 
-# JSON to stdout for piping
-npx holoscript absorb packages/studio --json | head -100
+# Semantic query
+holoscript query "what calls buildIndex"                    # BM25 default
+holoscript query "how does the parser work" --with-llm      # LLM synthesis
+holoscript query "find auth handlers" --provider openai     # Cloud embeddings
+holoscript query "trace from absorb" --top-k 20 --json      # Machine-readable
+
+# Self-improvement
+holoscript self-improve                          # 5 cycles default
+holoscript self-improve --cycles 10 --commit     # Auto-commit fixes
+holoscript self-improve --daemon                 # Continuous until convergence
 ```
 
-## Interpreting Results
+## Embedding Provider (MANDATORY: OpenAI)
 
-### Scan Stats
+**ALWAYS use OpenAI embeddings for best quality.** BM25 is keyword-only and produces poor results for semantic queries. The `OPENAI_API_KEY` is set in `HoloScript/.env` — it's free for the founder tier.
 
-| Metric | What It Means |
-|--------|---------------|
-| Total Files | Source files scanned (TS, JS, Python, Rust, Go) |
-| Total Symbols | Functions, classes, interfaces, methods found |
-| Total Imports | Import/require statements resolved |
-| Total Calls | Function call relationships mapped |
-| LOC | Lines of code scanned |
-| Errors | Files that failed to parse (check for syntax issues) |
+**Required**: Set `EMBEDDING_PROVIDER=openai` or ensure `OPENAI_API_KEY` is in the environment.
 
-### Module Communities
+Provider priority (auto-detected):
+1. `EMBEDDING_PROVIDER` env var (explicit override) — **set to `openai`**
+2. `openai` — if `OPENAI_API_KEY` set (**this is what we want**)
+3. `ollama` — local, acceptable fallback if OpenAI unavailable
+4. `bm25` — keyword-only, **NEVER use for production queries**
+5. `xenova` — local WASM transformer, OK for offline
 
-Communities are clusters of tightly coupled symbols detected via graph analysis.
+**If you see BM25 being used**: check that `OPENAI_API_KEY` is exported in the current shell. The key lives in `C:/Users/Josep/Documents/GitHub/HoloScript/.env`.
 
-| Community Size | Interpretation |
-|---------------|----------------|
-| 1-5 symbols | Normal module boundary |
-| 6-20 symbols | Feature cluster |
-| 20-50 symbols | Major subsystem |
-| 50+ symbols | Potential god module — consider splitting |
-
-### Coupling Indicators
-
-| Pattern | Risk Level | Action |
-|---------|-----------|--------|
-| Single community > 100 symbols | HIGH | Needs architectural decomposition |
-| Circular imports between communities | MEDIUM | Break dependency cycle |
-| Orphan symbols (no callers) | LOW | Possibly dead code |
-| Hub symbol (50+ callers) | INFO | Critical path — change carefully |
-
-## Package Quick Reference
-
-Common absorb targets in HoloScript monorepo:
-
-```bash
-# Core compiler and language
-npx holoscript absorb packages/core
-
-# Studio (Next.js frontend)
-npx holoscript absorb packages/studio
-
-# MCP server (AI tools)
-npx holoscript absorb packages/mcp-server
-
-# CLI
-npx holoscript absorb packages/cli
-
-# Specific subsystem
-npx holoscript absorb packages/core/src/compiler
-npx holoscript absorb packages/core/src/parser
-npx holoscript absorb packages/core/src/traits
-npx holoscript absorb packages/studio/src/components/scene
-```
-
-## Integration with Other Skills
-
-### With GitNexus (Complementary)
-
-- **GitNexus**: Process-level execution flows (who calls what in sequence)
-- **HoloScript Absorb**: Structural graph (module communities, import topology)
-- **Together**: Use absorb for structural planning, GitNexus for behavioral tracing
-
-### With AI Workspace Research
-
-- Absorb output feeds into uAA2++ Phase 0 (INTAKE) as structural context
-- Module communities map to Track 1/2/3 work planning
-- Community analysis reveals optimization targets for Phase 2 (EXECUTE)
-
-### With Impact Analysis
+## Workflow: Before Refactoring
 
 ```
-1. holoscript absorb packages/core --json     → Build full graph
-2. Identify target symbol in graph
-3. Trace upstream/downstream dependencies
-4. Assess blast radius (d=1 WILL BREAK, d=2 LIKELY, d=3 MAY)
-5. Plan changes with full dependency awareness
+1. holo_graph_status({})
+   → Is cache fresh (<24h)? If not, continue to step 2.
+
+2. holo_absorb_repo({ directory: ".", force: false })
+   → Builds/refreshes knowledge graph (~21ms from cache, ~3-10s fresh)
+
+3. holo_impact_analysis({ files: ["src/compiler/R3FCompiler.ts"] })
+   → Shows all transitively affected files
+
+4. holo_query_codebase({ query: "callers", symbol: "CompilerBase" })
+   → Lists everything that depends on the symbol
+
+5. Refactor with confidence — you know the blast radius.
 ```
 
-## MCP Tools (Preferred Interface)
-
-Start MCP server: `npx tsx packages/mcp-server/src/index.ts`
-
-| Tool | Cache Behavior | Purpose |
-|------|---------------|---------|
-| `holo_graph_status` | reads cache metadata | Check freshness — always call first |
-| `holo_absorb_repo` | `force=false` → ~21ms from cache; `force=true` → fresh scan | Primary absorb tool |
-| `holo_query_codebase` | auto-loads disk cache | Architectural questions |
-| `holo_impact_analysis` | auto-loads disk cache | Blast radius for a symbol |
-| `holo_detect_changes` | always fresh | Compare two git refs |
-| `holo_semantic_search` | auto-loads cache | Semantic search (needs Ollama) |
-| `holo_ask_codebase` | auto-loads cache | Natural language Q&A (needs Ollama) |
-| `holo_self_diagnose` | auto-loads cache | Auto-diagnose quality issues |
-
-## Examples
-
-### Example 1: "Absorb core before refactoring the compiler"
-
-```bash
-1. npx holoscript absorb packages/core -o packages/core/knowledge.holo
-   → Scanned 847 files, 12,432 symbols, 8,901 imports, 15,234 calls
-   → Detected 64 module communities
-   → Generated knowledge.holo (45,892 chars)
-
-2. Review communities related to compiler:
-   - Community "CompilerBase" (42 symbols) — core compilation pipeline
-   - Community "R3FCompiler" (38 symbols) — React Three Fiber output
-   - Community "DomainBlockCompilerMixin" (24 symbols) — domain block routing
-
-3. Identify cross-community dependencies before refactoring
-```
-
-### Example 2: "What's the blast radius of changing getMaterialProps?"
-
-```bash
-1. npx holoscript absorb packages/studio --json -o studio-graph.json
-2. Search graph for getMaterialProps:
-   - Defined in: materialUtils.tsx
-   - Called by: MeshNode.tsx, AnimatedMeshNode.tsx, ShaderMeshNode.tsx, LODMeshNode.tsx
-   - Community: "SceneRendering" (18 symbols)
-3. Blast radius: 4 direct callers, all in scene/ directory
-4. Risk: MEDIUM (affects all mesh rendering)
-```
-
-### Example 3: "Map tight coupling in studio"
-
-```bash
-1. npx holoscript absorb packages/studio -o studio.holo --layout layered
-2. Review communities > 30 symbols:
-   - "EditorState" (47 symbols) — stores, hooks, panels all interleaved
-   - "SceneRendering" (35 symbols) — rendering pipeline
-3. Recommendation: Extract EditorState into dedicated state management layer
-```
-
-## Checklist
+## Workflow: Codebase Q&A
 
 ```
-- [ ] Identified target package/directory for absorption
-- [ ] Ran holoscript absorb with appropriate output format
-- [ ] Reviewed scan stats (symbols, imports, calls, LOC)
-- [ ] Analyzed module communities for coupling patterns
-- [ ] Identified target symbols and their relationships
-- [ ] Assessed blast radius for planned changes
-- [ ] Documented findings for team/future reference
+1. holo_graph_status({})  → ensure graph is loaded
+
+2. holo_ask_codebase({
+     question: "How does the trait registration pipeline work?",
+     llmProvider: "anthropic"
+   })
+   → Returns synthesized answer with file citations
+
+3. Follow citations to read specific files for deeper understanding.
 ```
 
-## Troubleshooting
+## Workflow: Recursive Self-Improvement
 
-| Issue | Solution |
-|-------|----------|
-| "Not a directory" | Verify the path exists and is a directory |
-| Absorb error | Check for syntax errors in source files |
-| Slow scan | Narrow scope to specific subdirectory |
-| Empty graph | Ensure target has TypeScript/Python/Rust/Go files |
-| Missing symbols | Some dynamic patterns may not be statically detected |
+```
+1. holo_graph_status({})  → ensure fresh graph
 
----
+2. absorb_run_pipeline({ projectId: "...", layer: "l0" })
+   → L0: scans → diagnoses → generates patches → validates → commits
 
-**HoloScript Absorb v1.0**
-*Codebase Intelligence Extraction + Spatial Knowledge Graphs*
-*Pre-Refactor Protocol + Module Community Analysis + Blast Radius Assessment*
+3. absorb_run_pipeline({ projectId: "...", layer: "l1" })
+   → L1: adjusts strategy based on L0 results
+
+4. absorb_run_pipeline({ projectId: "...", layer: "l2" })
+   → L2: generates new skills and architectural insights
+```
+
+## Key Rules
+
+- **ALWAYS** call `holo_graph_status` before any scan or query operation
+- **NEVER** use `force: true` on `holo_absorb_repo` unless `holo_graph_status` says cache is corrupt
+- **Cache TTL**: 24 hours. Incremental re-scan detects changes via git content hashes.
+- **Cost awareness**: Free tools for local ops. Paid tools deduct credits. Check with `absorb_check_credits`.
+- **Graph cache**: `~/.holoscript/graph-cache.json` (local), `/app/.holoscript` (Docker)
+
+## Source Files Reference
+
+| File | Purpose |
+|------|---------|
+| `packages/absorb-service/src/mcp/codebase-tools.ts` | Free scan/query tool definitions |
+| `packages/absorb-service/src/mcp/graph-rag-tools.ts` | Semantic search + RAG tools |
+| `packages/absorb-service/src/mcp/absorb-tools.ts` | Studio proxy + paid tools |
+| `packages/absorb-service/src/mcp/absorb-typescript-tools.ts` | TypeScript → .holo converter |
+| `packages/absorb-service/src/credits/pricing.ts` | Authoritative credit costs |
+| `packages/absorb-service/src/pipeline/types.ts` | L0/L1/L2 pipeline types |
+| `infrastructure/Dockerfile.mcp-server` | Production container |

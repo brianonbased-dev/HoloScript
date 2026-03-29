@@ -1,6 +1,9 @@
 /**
  * BM25 Embedding Provider
  *
+ * @deprecated Use OpenAI embeddings instead (`--provider openai`). BM25 is keyword-only
+ * and produces poor results for semantic queries. Kept for offline/zero-dep edge cases only.
+ *
  * Zero-dependency pseudo-embedding using the Feature Hashing trick + TF weighting.
  *
  * How it works:
