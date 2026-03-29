@@ -21,8 +21,8 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/core/ packages/core/
 COPY services/render-service/ services/render-service/
 
-# Build core (render-service depends on it)
-RUN cd packages/core && pnpm build || true
+# Build core (render-service imports parseHolo from it)
+RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 
 ENV NODE_ENV=production
 ENV PORT=3000
