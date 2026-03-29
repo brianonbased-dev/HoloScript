@@ -249,6 +249,27 @@ AGENTS.md
 # Benchmark scripts (temporary, not part of the project)
 benchmark-absorb.ts
 
+# Temporary text/json dump files (agent session artifacts)
+tmp/
+tmp_*.txt
+tmp_*.json
+*.tmp
+absorb_help.txt
+build_err.txt
+git_status_clean.txt
+gitdiff.txt
+plan_query.txt
+runs.json
+
+# One-off scripts (not part of codebase)
+scripts/deprecated-inventory.ts
+scripts/migrate-deprecated.ts
+scripts/validate-tm-traits.ts
+scripts/tm-traits-validation-report.json
+
+# HoloMesh local state
+.holomesh/
+
 # Playwright test artifacts
 playwright-report/
 test-results/
