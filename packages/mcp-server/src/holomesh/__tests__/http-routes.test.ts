@@ -1675,6 +1675,213 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 
+  // ── Feed ──
+
+  describe('GET /api/holomesh/feed', () => {
+    it('returns feed without auth (unauthenticated preview)', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'e1', type: 'wisdom', content: 'Test entry', domain: 'general', authorName: 'bob', price: 0, createdAt: new Date().toISOString() },
+      ]);
+      const req = mockReq('GET', '/api/holomesh/feed');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/feed');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.entries).toBeInstanceOf(Array);
+      expect(res._body.entries[0].voteCount).toBeDefined();
+      expect(res._body.entries[0].commentCount).toBeDefined();
+    });
+
+    it('truncates premium content for unauthenticated users', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'premium1', type: 'pattern', content: 'A'.repeat(200), domain: 'security', authorName: 'alice', price: 0.50, createdAt: new Date().toISOString() },
+      ]);
+      const req = mockReq('GET', '/api/holomesh/feed');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/feed');
+
+      expect(res._body.entries[0].premium).toBe(true);
+      expect(res._body.entries[0].content.length).toBeLessThan(200);
+      expect(res._body.entries[0].content).toContain('premium');
+    });
+  });
+
+  // ── Contribute ──
+
+  describe('POST /api/holomesh/contribute', () => {
+    it('creates a knowledge entry with auth', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `contrib-bot-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const req = mockReq('POST', '/api/holomesh/contribute', {
+        type: 'wisdom',
+        content: 'Agents learn faster through knowledge exchange',
+        domain: 'agents',
+        tags: ['learning', 'exchange'],
+      }, { authorization: `Bearer ${apiKey}` });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
+
+      expect(res._status).toBe(201);
+      expect(res._body.success).toBe(true);
+      expect(res._body.provenanceHash).toBeTruthy();
+      expect(res._body.type).toBe('wisdom');
+    });
+
+    it('rejects missing content', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `contrib-empty-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const req = mockReq('POST', '/api/holomesh/contribute', { type: 'wisdom' }, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
+
+      expect(res._status).toBe(400);
+      expect(res._body.error).toContain('content');
+    });
+  });
+
+  // ── Space (Command Center) ──
+
+  describe('GET /api/holomesh/space', () => {
+    it('returns command center for authenticated agent', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `space-bot-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      mockClient.discoverPeers.mockResolvedValueOnce([]);
+
+      const req = mockReq('GET', '/api/holomesh/space', undefined, {
+        authorization: `Bearer ${apiKey}`,
+      });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/space');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.your_agent).toBeDefined();
+      expect(res._body.your_agent.registered).toBe(true);
+      expect(res._body.feed_summary).toBeDefined();
+      expect(res._body.what_to_do_next).toBeInstanceOf(Array);
+      expect(res._body.quick_links).toBeDefined();
+    });
+
+    it('returns space data without auth (server identity fallback)', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([]);
+      mockClient.discoverPeers.mockResolvedValueOnce([]);
+
+      const req = mockReq('GET', '/api/holomesh/space');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/space');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.domains).toBeInstanceOf(Array);
+    });
+  });
+
+  // ── Profile ──
+
+  describe('PATCH /api/holomesh/profile', () => {
+    it('updates agent profile fields', async () => {
+      const regReq = mockReq('POST', '/api/holomesh/register', { name: `profile-bot-${Date.now()}` });
+      const regRes = mockRes();
+      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
+      const apiKey = regRes._body.agent.api_key;
+
+      const req = mockReq('PATCH', '/api/holomesh/profile', {
+        bio: 'I analyze security patterns',
+        themeColor: '#ff6600',
+        statusText: 'Scanning...',
+      }, { authorization: `Bearer ${apiKey}` });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
+
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.profile.bio).toBe('I analyze security patterns');
+      expect(res._body.profile.themeColor).toBe('#ff6600');
+    });
+
+    it('requires auth', async () => {
+      const req = mockReq('PATCH', '/api/holomesh/profile', { bio: 'test' });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
+
+      expect(res._status).toBe(401);
+    });
+  });
+
+  // ── Domains ──
+
+  describe('GET /api/holomesh/domains', () => {
+    it('returns domain list with descriptions', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 'e1', domain: 'security', content: 'test', type: 'wisdom', createdAt: new Date().toISOString() },
+        { id: 'e2', domain: 'security', content: 'test2', type: 'pattern', createdAt: new Date().toISOString() },
+        { id: 'e3', domain: 'agents', content: 'test3', type: 'gotcha', createdAt: new Date().toISOString() },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/domains');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/domains');
+
+      expect(res._status).toBe(200);
+      expect(res._body.domains).toBeInstanceOf(Array);
+      expect(res._body.domains[0].name).toBe('security');
+      expect(res._body.domains[0].entryCount).toBe(2);
+      expect(res._body.domains[0].description).toBeTruthy();
+    });
+  });
+
+  // ── Search ──
+
+  describe('GET /api/holomesh/search', () => {
+    it('returns search results', async () => {
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        { id: 's1', content: 'MCP security', type: 'wisdom', domain: 'security' },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/search?q=security');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/search?q=security');
+
+      expect(res._status).toBe(200);
+      expect(res._body.results).toBeInstanceOf(Array);
+      expect(res._body.query).toBe('security');
+    });
+
+    it('rejects missing query', async () => {
+      const req = mockReq('GET', '/api/holomesh/search');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/search');
+
+      expect(res._status).toBe(400);
+    });
+  });
+
+  // ── Dashboard ──
+
+  describe('GET /api/holomesh/dashboard', () => {
+    it('returns not_registered for unauthenticated', async () => {
+      const req = mockReq('GET', '/api/holomesh/dashboard');
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, '/api/holomesh/dashboard');
+
+      expect(res._status).toBe(200);
+      expect(res._body.status).toBe('not_registered');
+    });
+  });
+
   // ── MCP Config Endpoint (P2) ──
 
   describe('GET /api/holomesh/mcp-config', () => {

@@ -299,35 +299,88 @@ export class VRRCompiler extends CompilerBase {
   }
 
   private generateAPIHooks(twinNodes: any[]) {
-    // Usually we loop, but here we emit standard bindings
     this.generatedCode.push(`\n// Engine Initialization via @vrr_twin`);
+    
+    // Default config values
+    let geoCenter = { lat: 0, lng: 0 };
+    let twinId = `auto_gen_twin_${Date.now()}`;
+    let weatherProvider = '';
+    let eventProvider = '';
+    let inventoryProvider = '';
+
+    for (const node of twinNodes) {
+      if (node.traits) {
+        for (const trait of node.traits) {
+          if (trait.name === 'geo_anchor') geoCenter = { lat: trait.params.lat, lng: trait.params.lng };
+          else if (trait.name === 'vrr_twin' && trait.params.mirror) twinId = trait.params.mirror;
+          else if (trait.name === 'weather_sync') weatherProvider = trait.params.provider;
+          else if (trait.name === 'event_sync') eventProvider = trait.params.provider;
+          else if (trait.name === 'inventory_sync') inventoryProvider = trait.params.provider;
+        }
+      }
+    }
+
+    const apiConfig = JSON.parse(JSON.stringify(this.options.api_integrations || {}));
+    if (weatherProvider && !apiConfig.weather) apiConfig.weather = { provider: weatherProvider };
+    if (eventProvider && !apiConfig.events) apiConfig.events = { provider: eventProvider };
+    if (inventoryProvider && !apiConfig.inventory) apiConfig.inventory = { provider: inventoryProvider };
+
     this.generatedCode.push(`const vrr = new VRRRuntime({`);
-    this.generatedCode.push(`  twin_id: 'auto_gen_twin_${Date.now()}',`);
-    this.generatedCode.push(
-      `  geo_center: { lat: 33.4484, lng: -112.0740 }, // Extracted from AST`
-    );
-    this.generatedCode.push(`  apis: ${JSON.stringify(this.options.api_integrations, null, 2)},`);
+    this.generatedCode.push(`  twin_id: '${twinId}',`);
+    this.generatedCode.push(`  geo_center: { lat: ${geoCenter.lat}, lng: ${geoCenter.lng} },`);
+    this.generatedCode.push(`  apis: ${JSON.stringify(apiConfig, null, 2)},`);
     this.generatedCode.push(`  multiplayer: { enabled: true, max_players: 1000, tick_rate: 20 },`);
-    this.generatedCode.push(
-      `  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`
-    );
+    this.generatedCode.push(`  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`);
     this.generatedCode.push(`});`);
 
     this.generatedCode.push(`\nconst phoenix_downtown = new THREE.Group();`);
 
     // Weather hooks
-    if (this.options.api_integrations.weather) {
+    if (weatherProvider) {
       this.generatedCode.push(`\n// Extracted @weather_sync hook`);
       this.generatedCode.push(`vrr.syncWeather((weather) => {`);
       this.generatedCode.push(`  scene.fog = new THREE.Fog(0xcccccc, 10, weather.visibility);`);
-      this.generatedCode.push(`  console.log("Weather updated inside twin:", weather);`);
+      this.generatedCode.push(`  if (weather.precipitation > 50) console.log("Heavy Rain Detected in Twin");`);
       this.generatedCode.push(`});`);
+    }
+
+    // Event hooks
+    if (eventProvider) {
+      this.generatedCode.push(`\n// Extracted @event_sync hook`);
+      this.generatedCode.push(`vrr.syncEvents((events) => {`);
+      this.generatedCode.push(`  events.forEach(evt => console.log('Spawning event NPCs for:', evt.name));`);
+      this.generatedCode.push(`});`);
+    }
+
+    // Business Quest and Inventory scanning
+    const questHubs = this.extractNodesWithTrait(twinNodes[0] || {}, '@quest_hub');
+    for (const hub of questHubs) {
+      const quests = hub.traits.find((t: any) => t.name === 'quest_hub')?.params.quests || [];
+      this.generatedCode.push(`\n// Configured @quest_hub for ${hub.name || 'Business'}`);
+      this.generatedCode.push(`const hub_${Math.random().toString(36).substring(7)} = {`);
+      this.generatedCode.push(`  quests: ${JSON.stringify(quests)}`);
+      this.generatedCode.push(`};`);
+
+      const inventory = hub.traits.find((t: any) => t.name === 'inventory_sync');
+      if (inventory) {
+        this.generatedCode.push(`vrr.syncInventory('${hub.name || 'shop'}', (inv) => {`);
+        this.generatedCode.push(`  console.log('Stock updated:', inv);`);
+        this.generatedCode.push(`});`);
+      }
+    }
+
+    // x402 Paywalls
+    const paywalls = this.extractNodesWithTrait(twinNodes[0] || {}, '@x402_paywall');
+    for (const pw of paywalls) {
+      const trait = pw.traits.find((t: any) => t.name === 'x402_paywall');
+      this.generatedCode.push(`\n// @x402_paywall requirement for ${pw.name}`);
+      this.generatedCode.push(`vrr.persistState('paywall_${pw.name}', ${JSON.stringify(trait.params)});`);
     }
 
     // Multiplayer Hooks
     this.generatedCode.push(`\n// Extracted Multiplayer logic`);
     this.generatedCode.push(`vrr.syncPlayers((players) => {`);
-    this.generatedCode.push(`  // Render avatars in scene`);
+    this.generatedCode.push(`  // Render avatars in scene mapped to players.position`);
     this.generatedCode.push(`});`);
   }
 
