@@ -43,8 +43,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python setup_env.py \
     --hf-repo microsoft/BitNet-b1.58-2B-4T \
     --model-dir /data/models \
-    --quant-type i2_s \
-    --use-pretuned
+    --quant-type i2_s
 
 # --- Production stage ---
 FROM python:3.11-slim
