@@ -1,6 +1,6 @@
 # BitNet Inference Server
 #
-# Builds and runs the real bitnet.cpp server with microsoft/bitnet-b1.58-2B-4T.
+# Builds and runs the real bitnet.cpp server with microsoft/BitNet-b1.58-2B-4T.
 # This is an OpenAI-compatible inference server running 1-bit quantized models
 # that require ~500 MB and no GPU — deployable on Railway, Fly.io, or any VPS.
 #
@@ -14,44 +14,53 @@
 #   RAM:  2 GB minimum (model is ~500 MB, inference uses ~1 GB peak)
 #   CPU:  2 vCPU recommended (1-bit arithmetic scales well with cores)
 #   Disk: 2 GB for model weights + build artifacts
-#
-# Build args:
-#   MODEL_ID    HuggingFace model ID (default: microsoft/bitnet-b1.58-2B-4T)
-#   MODEL_QUANT Quantization type   (default: i2_s — recommended for 2B-4T)
 
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
-# Build dependencies for bitnet.cpp (cmake + C++ compiler)
+# Build dependencies for bitnet.cpp (cmake + C/C++ compiler + clang)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     cmake \
     build-essential \
     ninja-build \
+    clang \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /bitnet
 
-# Clone bitnet.cpp at HEAD (pin a commit in production for reproducibility)
+# Clone bitnet.cpp
 RUN git clone --recursive https://github.com/microsoft/BitNet .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Build args for model selection
-ARG MODEL_ID=microsoft/bitnet-b1.58-2B-4T
-ARG MODEL_QUANT=i2_s
+# Download the model, generate optimized kernels, compile the binary.
+# --hf-repo: HuggingFace model identifier (must match SUPPORTED_HF_MODELS)
+# --model-dir: where to save downloaded model weights
+# --quant-type: i2_s (2-bit signed) is recommended for 2B-4T
+# --use-pretuned: use pre-optimized kernel parameters if available
+RUN python setup_env.py \
+    --hf-repo microsoft/BitNet-b1.58-2B-4T \
+    --model-dir /data/models \
+    --quant-type i2_s \
+    --use-pretuned
 
-# Persist as env vars so the CMD can reference them
-ENV MODEL_ID=${MODEL_ID}
-ENV MODEL_QUANT=${MODEL_QUANT}
-ENV MODEL_CACHE=/data/models
+# --- Production stage ---
+FROM python:3.11-slim
 
-# Download the model and compile the inference binary.
-# setup_env.py handles both steps: downloads from HuggingFace + builds the binary.
-# The model is stored to /data/models (mount a Railway volume here).
-RUN mkdir -p ${MODEL_CACHE} \
-    && python setup_env.py -md ${MODEL_ID} -q ${MODEL_QUANT} --model-dir ${MODEL_CACHE}
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /bitnet
+
+# Copy built binary, model, and runtime scripts
+COPY --from=builder /bitnet/build /bitnet/build
+COPY --from=builder /bitnet/run_inference_server.py /bitnet/run_inference_server.py
+COPY --from=builder /bitnet/run_inference.py /bitnet/run_inference.py
+COPY --from=builder /data/models /data/models
 
 # Runtime env
 ENV PORT=8080
@@ -59,15 +68,14 @@ ENV HOST=0.0.0.0
 
 EXPOSE ${PORT}
 
-# Health check — bitnet.cpp server responds at /health after warmup
+# Health check — llama-server responds at /health after warmup
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD wget -qO- http://localhost:${PORT}/health > /dev/null 2>&1 || exit 1
 
-# Start the bitnet.cpp inference server
-# -s / --serve: enable HTTP server mode
-# --port / --host: bind address
-CMD python run_inference.py \
-      --serve \
-      --port ${PORT} \
+# Start the bitnet.cpp inference server (OpenAI-compatible HTTP API)
+CMD python run_inference_server.py \
+      --model /data/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf \
       --host ${HOST} \
-      --model-dir ${MODEL_CACHE}/${MODEL_ID}
+      --port ${PORT} \
+      --threads 2 \
+      --ctx-size 2048
