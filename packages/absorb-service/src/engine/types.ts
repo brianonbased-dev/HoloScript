@@ -31,7 +31,8 @@ export type SupportedLanguage =
   | 'php'
   | 'swift'
   | 'kotlin'
-  | 'holoscript';
+  | 'holoscript'
+  | 'plaintext';
 
 // =============================================================================
 // EXTENDED SYMBOL TYPES (adds to ReferenceGraph.SymbolType)

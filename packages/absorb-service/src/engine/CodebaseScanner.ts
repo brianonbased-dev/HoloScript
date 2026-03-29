@@ -210,11 +210,8 @@ export class CodebaseScanner {
     } else {
       // SEQUENTIAL FALLBACK: Original implementation (no workers available)
       for (const filePath of filePaths) {
-        const language = detectLanguage(filePath);
-        if (!language) continue;
-
+        const language = detectLanguage(filePath) || 'plaintext';
         const adapter = getAdapterForFile(filePath);
-        if (!adapter) continue;
 
         // Read file
         let content: string;
@@ -228,9 +225,32 @@ export class CodebaseScanner {
           continue;
         }
 
-        // Parse with tree-sitter
+        // Parse with tree-sitter or fallback immediately if no adapter
         let tree;
         const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
+        
+        if (!adapter) {
+          // No tree-sitter adapter for this file type, immediately use regex fallback.
+          const fallbackImports = this.extractLooseImports(content, relPath);
+          const loc = content.split('\n').length;
+          files.push({
+            path: relPath,
+            language,
+            symbols: [],
+            imports: fallbackImports,
+            calls: [],
+            loc,
+            sizeBytes,
+            docComment: undefined,
+          });
+
+          filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
+          totalImports += fallbackImports.length;
+          totalLoc += loc;
+          onProgress?.(files.length, filePaths.length, relPath);
+          continue;
+        }
+
         try {
           tree = await this.adapterManager.parse(content, language);
           if (!tree) {
@@ -395,11 +415,8 @@ export class CodebaseScanner {
     readFile: (p: string) => Promise<string>,
     includeBuildArtifacts: boolean
   ): Promise<{ file?: ScannedFile; error?: ScanError }> {
-    const language = detectLanguage(filePath);
-    if (!language) return {};
-
+    const language = detectLanguage(filePath) || 'plaintext';
     const adapter = getAdapterForFile(filePath);
-    if (!adapter) return {};
 
     // Read file
     let content: string;
@@ -414,6 +431,25 @@ export class CodebaseScanner {
 
     // Parse with tree-sitter
     const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
+    
+    if (!adapter) {
+      // Direct plaintext fallback when no tree-sitter adapter exists
+      const fallbackImports = this.extractLooseImports(content, relPath);
+      const loc = content.split('\n').length;
+      return {
+        file: {
+          path: relPath,
+          language,
+          symbols: [],
+          imports: fallbackImports,
+          calls: [],
+          loc,
+          sizeBytes,
+          docComment: undefined,
+        },
+      };
+    }
+
     let tree;
     try {
       tree = await this.adapterManager.parse(content, language);
@@ -489,8 +525,7 @@ export class CodebaseScanner {
         if (entry.isDirectory()) {
           walk(fullPath);
         } else if (entry.isFile()) {
-          const lang = detectLanguage(fullPath);
-          if (!lang) continue;
+          const lang = detectLanguage(fullPath) || 'plaintext';
           if (langFilter && !langFilter.has(lang)) continue;
           files.push(fullPath);
         }
