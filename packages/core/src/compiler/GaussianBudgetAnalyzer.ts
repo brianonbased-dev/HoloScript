@@ -646,6 +646,16 @@ export class GaussianBudgetAnalyzer {
     const platformInfo = GAUSSIAN_PLATFORM_BUDGETS[platform];
     const overage = Math.max(0, totalGaussians - budget);
 
+    // G.SIG25.02: Compute overdraw factor for this platform
+    const viewportPixels = platform === 'quest3' ? 1832 * 1920
+      : platform === 'mobile_ar' ? 1170 * 2532
+      : platform === 'visionos' ? 1920 * 1920
+      : 1920 * 1080;
+    const overdrawFactor = estimateOverdraw(totalGaussians, viewportPixels);
+
+    // P.043: Multi-user savings (null if single-user)
+    const multiUserSavings: MultiUserCostEstimate | null = null;
+
     if (totalGaussians > budget) {
       // Critical: over budget
       return {
@@ -661,6 +671,8 @@ export class GaussianBudgetAnalyzer {
         utilizationPercent: utilization,
         overage,
         suggestion: this.generateSuggestion(platform, totalGaussians, budget, overage),
+        overdrawFactor,
+        multiUserSavings,
       };
     }
 
@@ -682,6 +694,8 @@ export class GaussianBudgetAnalyzer {
         suggestion:
           `Consider enabling SPZ v2 compression or octree LOD to maintain ` +
           `headroom for dynamic content.`,
+        overdrawFactor,
+        multiUserSavings,
       };
     }
 
@@ -699,6 +713,8 @@ export class GaussianBudgetAnalyzer {
         utilizationPercent: utilization,
         overage: 0,
         suggestion: '',
+        overdrawFactor,
+        multiUserSavings,
       };
     }
 

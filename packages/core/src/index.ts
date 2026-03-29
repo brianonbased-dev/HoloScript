@@ -1239,8 +1239,6 @@ export {
   type PerformanceRecommendation,
 } from './services/PlatformPerformanceOptimizer';
 
-
-
 // Type Checker
 export {
   HoloScriptTypeChecker,
@@ -1555,7 +1553,6 @@ export type {
   SceneGraphDescriptor,
 } from './types';
 
-
 // Version is now exported from './version' (build-time injected)
 
 // Supported Platforms
@@ -1693,7 +1690,7 @@ export function createHoloScriptEnvironment() {
   return {
     parser: new HoloScriptParser(),
     runtime: new HoloScriptRuntime(),
-    version: "6.0.0",
+    version: '6.0.0',
   };
 }
 
@@ -2637,10 +2634,7 @@ export {
   EFFECT_TO_CAPABILITY,
   CAPABILITY_HIERARCHY,
 } from './compiler/safety/CapabilityTypes';
-export type {
-  CapabilityScope,
-  CapabilityRequirement,
-} from './compiler/safety/CapabilityTypes';
+export type { CapabilityScope, CapabilityRequirement } from './compiler/safety/CapabilityTypes';
 
 export { runSafetyPass, quickSafetyCheck } from './compiler/safety/CompilerSafetyPass';
 export type { SafetyPassResult, SafetyPassConfig } from './compiler/safety/CompilerSafetyPass';
@@ -2976,11 +2970,7 @@ export {
   createPackageManifest,
   canonicalizeManifest,
 } from './security/PackageSigner';
-export type {
-  Ed25519KeyPair,
-  PackageManifest,
-  SignedPackage,
-} from './security/PackageSigner';
+export type { Ed25519KeyPair, PackageManifest, SignedPackage } from './security/PackageSigner';
 
 // ── Persistence / Save ─────────────────────────────────────────────
 export { SaveManager } from './persistence/SaveManager';
@@ -3069,11 +3059,7 @@ export type { SavedScene, SceneListEntry } from './scene/SceneManager';
 
 // ── Asset Registry ─────────────────────────────────────────────────
 export { AssetRegistry } from './assets/AssetRegistry';
-export type {
-  AssetEvent,
-  AssetEventType,
-  RegistryConfig,
-} from './assets/AssetRegistry';
+export type { AssetEvent, AssetEventType, RegistryConfig } from './assets/AssetRegistry';
 
 // =============================================================================
 // Material Parser (migrated from Hololand renderer)
@@ -3178,10 +3164,7 @@ export type {
 // Trait Runtime Integration (migrated from Hololand platform-core)
 // =============================================================================
 
-export {
-  TraitContextFactory,
-  createTraitContextFactory,
-} from './runtime/TraitContextFactory';
+export { TraitContextFactory, createTraitContextFactory } from './runtime/TraitContextFactory';
 
 export type {
   PhysicsProvider,
@@ -3194,15 +3177,9 @@ export type {
   TraitContextFactoryConfig,
 } from './runtime/TraitContextFactory';
 
-export {
-  TraitRuntimeIntegration,
-  createTraitRuntime,
-} from './runtime/TraitRuntimeIntegration';
+export { TraitRuntimeIntegration, createTraitRuntime } from './runtime/TraitRuntimeIntegration';
 
-export type {
-  TrackedNode,
-  TraitRuntimeStats,
-} from './runtime/TraitRuntimeIntegration';
+export type { TrackedNode, TraitRuntimeStats } from './runtime/TraitRuntimeIntegration';
 
 // Mathematical utilities
 export {
@@ -3214,9 +3191,7 @@ export {
 
 // ── Headless Runtime (CLI & Server-Side Execution) ──────────────────────────
 // HeadlessRuntime, HeadlessRuntimeOptions, RuntimeProfile already exported from './runtime/profiles' above
-export {
-  type RuntimeStats,
-} from './runtime/HeadlessRuntime';
+export { type RuntimeStats } from './runtime/HeadlessRuntime';
 
 // ── Error Recovery (Parser Error-Handling & Suggestions) ────────────────────
 export {
@@ -3377,25 +3352,21 @@ export {
 } from './traits/PerformanceRegressionMonitor';
 
 // ── Headless Runtime + Watch Runner ─────────────────────────────────────────
-export {
-  WatchRunner,
-  type WatchRunnerOptions,
-  type WatchEvent,
-} from './runtime/WatchRunner';
+export { WatchRunner, type WatchRunnerOptions, type WatchEvent } from './runtime/WatchRunner';
 
 // ── Plugin System (Sandboxing, API, Lifecycle Management) ─────────────────
 export { PluginSandbox, createPluginSandbox } from './plugins/PluginSandbox';
-export type { PluginSandboxOptions, PluginManifest as SandboxPluginManifest } from './plugins/PluginSandbox';
+export type {
+  PluginSandboxOptions,
+  PluginManifest as SandboxPluginManifest,
+} from './plugins/PluginSandbox';
 export { PluginAPI } from './plugins/PluginAPI';
 export { PluginLoader } from './plugins/PluginLoader';
 export { ModRegistry } from './plugins/ModRegistry';
 export { HololandExtensionRegistry } from './plugins/HololandExtensionRegistry';
 
 // ── v5.7 Plugin Ecosystem (Sandbox Runner, Signature, Dependencies, Lifecycle) ──
-export {
-  PluginSandboxRunner,
-  DEFAULT_CAPABILITY_BUDGET,
-} from './plugins/PluginSandboxRunner';
+export { PluginSandboxRunner, DEFAULT_CAPABILITY_BUDGET } from './plugins/PluginSandboxRunner';
 export type {
   SandboxPermission,
   CapabilityBudget,
@@ -3418,9 +3389,7 @@ export type {
   SignatureVerifierConfig,
 } from './plugins/PluginSignatureVerifier';
 
-export {
-  DependencyResolver,
-} from './plugins/DependencyResolver';
+export { DependencyResolver } from './plugins/DependencyResolver';
 export type {
   PluginEntry,
   ResolutionResult,
@@ -3485,9 +3454,7 @@ export type {
 } from './economy/x402-facilitator';
 
 // ── v5.8 Live Economy (Webhooks, Usage, Budget, Revenue, Subscriptions) ──
-export {
-  PaymentWebhookService,
-} from './economy/PaymentWebhookService';
+export { PaymentWebhookService } from './economy/PaymentWebhookService';
 export type {
   WebhookProvider,
   WebhookEventType,
@@ -3498,9 +3465,7 @@ export type {
   WebhookServiceConfig,
 } from './economy/PaymentWebhookService';
 
-export {
-  UsageMeter,
-} from './economy/UsageMeter';
+export { UsageMeter } from './economy/UsageMeter';
 export type {
   UsagePeriod,
   UsageEvent,
@@ -3510,9 +3475,7 @@ export type {
   UsageMeterConfig,
 } from './economy/UsageMeter';
 
-export {
-  AgentBudgetEnforcer,
-} from './economy/AgentBudgetEnforcer';
+export { AgentBudgetEnforcer } from './economy/AgentBudgetEnforcer';
 export type {
   EnforcementMode,
   BudgetPeriod,
@@ -3524,8 +3487,22 @@ export type {
 } from './economy/AgentBudgetEnforcer';
 
 export {
-  CreatorRevenueAggregator,
-} from './economy/CreatorRevenueAggregator';
+  UnifiedBudgetOptimizer,
+  DEFAULT_TRAIT_UTILITIES,
+  DEFAULT_COST_FLOOR,
+  DEFAULT_LOD_SCALING,
+  PLATFORM_LOD_SCALING,
+} from './economy/UnifiedBudgetOptimizer';
+export type {
+  TraitUtility,
+  TraitCategory,
+  TraitAllocation,
+  ResourceCostFloor,
+  UnifiedBudgetState,
+  UnifiedOptimizerConfig,
+} from './economy/UnifiedBudgetOptimizer';
+
+export { CreatorRevenueAggregator } from './economy/CreatorRevenueAggregator';
 export type {
   RevenueEvent,
   CreatorEarnings,
@@ -3535,9 +3512,7 @@ export type {
   RevenueAggregatorConfig,
 } from './economy/CreatorRevenueAggregator';
 
-export {
-  SubscriptionManager,
-} from './economy/SubscriptionManager';
+export { SubscriptionManager } from './economy/SubscriptionManager';
 export type {
   SubscriptionState,
   BillingInterval,
@@ -3548,14 +3523,8 @@ export type {
 } from './economy/SubscriptionManager';
 
 // --- Web3 Connector Protocol ---
-export {
-  MockWeb3Connector,
-  createWeb3EventBridge,
-} from './web3/Web3Connector';
-export type {
-  Web3Connector,
-  Web3ConnectorConfig,
-} from './web3/Web3Connector';
+export { MockWeb3Connector, createWeb3EventBridge } from './web3/Web3Connector';
+export type { Web3Connector, Web3ConnectorConfig } from './web3/Web3Connector';
 
 // ============================================================================
 // Gap 2: Unified Trait Definition & Registry
@@ -3578,11 +3547,7 @@ export {
 // Gap 3: RuleForge - Trait Composition Rule Engine
 // ============================================================================
 
-export {
-  RuleForge,
-  defaultRuleForge,
-  createRuleForge,
-} from './rules/RuleForge';
+export { RuleForge, defaultRuleForge, createRuleForge } from './rules/RuleForge';
 
 export type {
   Rule,
@@ -3610,17 +3575,10 @@ export type {
   ProvenanceImport,
 } from './deploy/provenance';
 
-export {
-  checkLicenseCompatibility,
-} from './deploy/license-checker';
-export type {
-  ImportedLicense,
-  LicenseCheckResult,
-} from './deploy/license-checker';
+export { checkLicenseCompatibility } from './deploy/license-checker';
+export type { ImportedLicense, LicenseCheckResult } from './deploy/license-checker';
 
-export {
-  PROTOCOL_CONSTANTS,
-} from './deploy/protocol-types';
+export { PROTOCOL_CONSTANTS } from './deploy/protocol-types';
 export type {
   HexAddress,
   RevenueReason,

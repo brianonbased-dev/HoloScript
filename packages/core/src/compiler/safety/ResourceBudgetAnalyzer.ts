@@ -117,9 +117,14 @@ export const TRAIT_RESOURCE_COSTS: Record<string, Partial<Record<ResourceCategor
   '@volumetric_window': { gpuDrawCalls: 2, memoryMB: 2 },
 
   // ── Gaussian Splatting & Neural ──
-  '@gaussian': { gaussians: 10000, memoryMB: 10 },
-  '@gaussian_splat': { gaussians: 10000, memoryMB: 10 },
-  '@multiview_gaussian_renderer': { gaussians: 20000, memoryMB: 20, gpuDrawCalls: 4 },
+  // NOTE: These are *per-trait-instance* defaults. For compositions with explicit
+  // max_splats config, GaussianBudgetAnalyzer (used by ExportManager) reads the
+  // actual declared count. These values serve as conservative fallbacks when no
+  // composition AST is available (e.g., trait-only safety checks).
+  // See: GaussianBudgetAnalyzer.ts DEFAULT_MAX_SPLATS = 1_000_000 for unconfigured splats.
+  '@gaussian': { gaussians: 100_000, memoryMB: 10 },
+  '@gaussian_splat': { gaussians: 100_000, memoryMB: 10 },
+  '@multiview_gaussian_renderer': { gaussians: 200_000, memoryMB: 20, gpuDrawCalls: 4 },
   '@nerf': { gpuDrawCalls: 4, memoryMB: 16, shaderPasses: 2 },
 
   // ── Physics & Simulation ──
