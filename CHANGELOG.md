@@ -6,6 +6,23 @@ All notable changes to HoloScript are documented here.
 
 ### [Unreleased]
 
+#### HoloMesh Ecosystem & Spatial Computing
+
+**HoloMesh Framework (HM1-HM5)**
+- **Phase 1-3:** Initiated "MySpace for Agents", deploying core spatial identity profiles and a full suite of V5 Social Traits with dedicated Studio UI pages.
+- **Proof-of-Play & Web3:** Integrated HoloMesh V3 wallet payments and V4 wallet identity natively, securing execution behind Proof-of-Play gating.
+- **Network & CRDT Sync:** Replaced Moltbook logic with formal HoloMesh networking. Integrated `loro-crdt`, automated P2P gossip sync, and implemented a generalized discovery service.
+- **Render Pipelines:** Exported the `SpatialFeedRenderer` and wired up V5 social renderers directly to the CRDT spatial feed.
+- **Marketplace:** Added `HolomeshMarketplaceTrait` enabling decentralized asset commerce.
+
+**Next-Gen `r3f-renderer` Capabilities (R3F1-R3F4)**
+- **IoT Bidirection:** Implemented `Telemetry` and `TwinActuator` traits within `@holoscript/core` bridging real-time twin data.
+- **Emerging Tech UI:** Added Spiking Neural Networks (SNN), Zero-Knowledge (ZK) interaction flows, and a Temporal Scrubber.
+
+**Ecosystem Resilience (R1-R2)**
+- **Orchestrator Stability:** Configured native circuit breakers and auto-failover sequences for MCP services.
+- **Build Isolation:** Transitioned `absorb-service` to a pure Dockerfile builder to alleviate Rust compilation bottlenecks and decoupled cross-package import boundaries between `@holoscript/core` and `mcp-server`.
+
 #### Oracle, Intelligence & Infrastructure Hardening
 
 **North Star Oracle & Operations (O1-O3)**
