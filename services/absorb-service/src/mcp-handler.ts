@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { resolveGitHubToken } from './middleware/github-identity.js';
 
-const transports = new Map<string, StreamableHTTPServerTransport>();
+const transports = new Map<string, SSEServerTransport>();
 const sessionUserMap = new Map<string, string>();
 
 export function getSessionUserId(sessionId: string): string | undefined {
@@ -81,45 +81,48 @@ async function createMcpServer(): Promise<McpServer> {
   return server;
 }
 
-async function getOrCreateTransport(sessionId?: string): Promise<StreamableHTTPServerTransport> {
-  if (sessionId && transports.has(sessionId)) {
-    return transports.get(sessionId)!;
-  }
+// GET /mcp — Handle SSE connection request
+export async function handleMcpSse(req: Request, res: Response): Promise<void> {
+  const sessionId = randomUUID();
+  
+  // Client should POST to /mcp/messages with sessionId in query
+  const transport = new SSEServerTransport(`/mcp/messages?sessionId=${sessionId}`, res);
+  transports.set(sessionId, transport);
 
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => sessionId || randomUUID(),
+  req.on('close', () => {
+    transports.delete(sessionId);
+    sessionUserMap.delete(sessionId);
   });
 
   const server = await createMcpServer();
   await server.connect(transport);
-
-  const sid = transport.sessionId!;
-  transports.set(sid, transport);
-
-  transport.onclose = () => {
-    transports.delete(sid);
-    sessionUserMap.delete(sid);
-  };
-
-  return transport;
+  await transport.start();
 }
 
-// POST /mcp — Handle MCP JSON-RPC messages
-export async function handleMcpPost(req: Request, res: Response): Promise<void> {
+// POST /mcp/messages — Handle incoming JSON-RPC messages from the client
+export async function handleMcpMessages(req: Request, res: Response): Promise<void> {
   try {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-    const transport = await getOrCreateTransport(sessionId);
+    const sessionId = req.query.sessionId as string;
+    if (!sessionId) {
+      res.status(400).json({ error: 'Missing sessionId query parameter' });
+      return;
+    }
+
+    const transport = transports.get(sessionId);
+    if (!transport) {
+      res.status(404).json({ error: 'Session not found or expired' });
+      return;
+    }
 
     // Bind userId to session from Authorization header (best-effort)
-    const sid = transport.sessionId;
-    if (sid && !sessionUserMap.has(sid)) {
+    if (!sessionUserMap.has(sessionId)) {
       const authHeader = req.headers.authorization;
       if (authHeader) {
         const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
         try {
           const identity = await resolveGitHubToken(token);
           if (identity) {
-            sessionUserMap.set(sid, identity.userId);
+            sessionUserMap.set(sessionId, identity.userId);
           }
         } catch {
           // Token resolution failed — session remains anonymous
@@ -128,7 +131,7 @@ export async function handleMcpPost(req: Request, res: Response): Promise<void> 
     }
 
     // Pipe the request/response through the transport
-    await transport.handleRequest(req, res, req.body);
+    await transport.handlePostMessage(req, res, req.body);
   } catch (error: any) {
     console.error('[mcp] POST error:', error.message);
     if (!res.headersSent) {
@@ -137,21 +140,9 @@ export async function handleMcpPost(req: Request, res: Response): Promise<void> 
   }
 }
 
-// GET /mcp — SSE stream for server-initiated messages
-export async function handleMcpGet(req: Request, res: Response): Promise<void> {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
-  if (!sessionId || !transports.has(sessionId)) {
-    res.status(400).json({ error: 'Invalid or missing session ID' });
-    return;
-  }
-
-  const transport = transports.get(sessionId)!;
-  await transport.handleRequest(req, res);
-}
-
-// DELETE /mcp — Close session
+// DELETE /mcp — Close session (optional for SSE, but kept for compatibility)
 export async function handleMcpDelete(req: Request, res: Response): Promise<void> {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  const sessionId = req.query.sessionId as string;
   if (!sessionId || !transports.has(sessionId)) {
     res.status(400).json({ error: 'Invalid or missing session ID' });
     return;
@@ -175,7 +166,7 @@ export function handleMcpDiscovery(req: Request, res: Response): void {
     version: '6.0.0',
     description: 'HoloScript Codebase Intelligence & Recursive Self-Improvement Service — scan codebases, build knowledge graphs, run GraphRAG queries, and execute recursive improvement pipelines.',
     transport: {
-      type: 'streamable-http',
+      type: 'sse',
       url: `${baseUrl}/mcp`,
       authentication: {
         type: 'bearer',

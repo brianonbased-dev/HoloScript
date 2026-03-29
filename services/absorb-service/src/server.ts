@@ -10,8 +10,8 @@ import { pipelineRouter } from './routes/pipeline.js';
 import { moltbookRouter } from './routes/moltbook.js';
 import { adminRouter } from './routes/admin.js';
 import {
-  handleMcpPost,
-  handleMcpGet,
+  handleMcpSse,
+  handleMcpMessages,
   handleMcpDelete,
   handleMcpDiscovery,
   getActiveSessionCount,
@@ -87,9 +87,9 @@ app.get('/health', async (_req, res) => {
 app.get('/.well-known/mcp', handleMcpDiscovery);
 app.get('/.well-known/mcp.json', handleMcpDiscovery);
 
-// --- MCP Streamable HTTP transport ---
-app.post('/mcp', handleMcpPost);
-app.get('/mcp', handleMcpGet);
+// --- MCP SSE transport ---
+app.get('/mcp', handleMcpSse);
+app.post('/mcp/messages', handleMcpMessages);
 app.delete('/mcp', handleMcpDelete);
 
 // --- Auth middleware for API routes ---
