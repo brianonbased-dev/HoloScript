@@ -11,6 +11,8 @@ COPY packages/core/package.json packages/core/
 COPY packages/r3f-renderer/package.json packages/r3f-renderer/
 COPY packages/std/package.json packages/std/
 COPY packages/ui/package.json packages/ui/
+COPY packages/absorb-service/package.json packages/absorb-service/
+COPY packages/agent-protocol/package.json packages/agent-protocol/
 COPY packages/studio-plugin-sdk/package.json packages/studio-plugin-sdk/
 
 RUN pnpm install --frozen-lockfile
@@ -21,9 +23,11 @@ WORKDIR /app
 
 COPY --from=deps /app/ ./
 COPY packages/core/ packages/core/
-COPY packages/r3f-renderer/ packages/r3f-renderer/
 COPY packages/std/ packages/std/
 COPY packages/ui/ packages/ui/
+COPY packages/absorb-service/ packages/absorb-service/
+COPY packages/agent-protocol/ packages/agent-protocol/
+COPY packages/r3f-renderer/ packages/r3f-renderer/
 COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
 COPY packages/studio/ packages/studio/
 
@@ -31,6 +35,8 @@ COPY packages/studio/ packages/studio/
 RUN cd packages/core && pnpm build || true
 RUN cd packages/std && pnpm build || true
 RUN cd packages/ui && pnpm build || true
+RUN cd packages/absorb-service && pnpm build || true
+RUN cd packages/agent-protocol && pnpm build || true
 RUN cd packages/r3f-renderer && pnpm build || true
 RUN cd packages/studio-plugin-sdk && pnpm build || true
 
