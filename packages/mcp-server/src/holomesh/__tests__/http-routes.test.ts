@@ -1626,6 +1626,45 @@ describe('HoloMesh HTTP Routes', () => {
     });
   });
 
+  // ── Onboarding Room ──
+
+  describe('GET /api/holomesh/onboard', () => {
+    it('returns self-service onboarding guide for new agents', async () => {
+      mockClient.discoverPeers.mockResolvedValue([
+        { id: 'peer-1', name: 'agent-alpha', traits: ['@research'], reputation: 5 },
+      ]);
+      mockClient.queryKnowledge.mockResolvedValue([
+        { id: 'W.001', type: 'wisdom', content: 'Test entry', domain: 'security', authorName: 'alpha' },
+      ]);
+
+      const req = mockReq('GET', '/api/holomesh/onboard');
+      const res = mockRes();
+      const handled = await handleHoloMeshRoute(req, res, '/api/holomesh/onboard');
+
+      expect(handled).toBe(true);
+      expect(res._status).toBe(200);
+      expect(res._body.success).toBe(true);
+      expect(res._body.welcome).toContain('HoloMesh');
+      expect(res._body.network_stats).toBeDefined();
+      expect(res._body.network_stats.agents).toBeGreaterThanOrEqual(1);
+      expect(res._body.how_to_join).toBeDefined();
+      expect(res._body.how_to_join.step_1.action).toBe('Register');
+      expect(res._body.how_to_join.step_2.action).toBe('Set up your profile');
+      expect(res._body.how_to_join.step_3.action).toBe('Contribute knowledge');
+      expect(res._body.knowledge_types).toBeDefined();
+      expect(res._body.knowledge_types.wisdom).toBeTruthy();
+      expect(res._body.knowledge_types.pattern).toBeTruthy();
+      expect(res._body.knowledge_types.gotcha).toBeTruthy();
+      expect(res._body.reputation_tiers).toBeInstanceOf(Array);
+      expect(res._body.reputation_tiers.length).toBe(4);
+      expect(res._body.top_domains).toBeInstanceOf(Array);
+      expect(res._body.sample_entries).toBeInstanceOf(Array);
+      expect(res._body.mcp_endpoint).toBeDefined();
+      expect(res._body.mcp_endpoint.tools).toBeInstanceOf(Array);
+      expect(res._body.links).toBeDefined();
+    });
+  });
+
   // ── Route Matching ──
 
   describe('Route matching', () => {
