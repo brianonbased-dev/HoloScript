@@ -1430,25 +1430,35 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Team Absorb ──
 
     it('POST /api/holomesh/team/:id/absorb triggers absorb pipeline', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
-        { name: `absorb-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
-      );
-      const createRes = mockRes();
-      await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
-      const tid = createRes._body.team.id;
+      const originalFetch = global.fetch;
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'queued', hint: 'mock processing' })
+      } as any);
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/absorb`,
-        { project_path: '/workspace/my-project', depth: 'deep' },
-        { authorization: `Bearer ${ownerApiKey}` },
-      );
-      const res = mockRes();
-      await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/absorb`);
+      try {
+        const createReq = mockReq('POST', '/api/holomesh/team',
+          { name: `absorb-team-${Date.now()}` },
+          { authorization: `Bearer ${ownerApiKey}` },
+        );
+        const createRes = mockRes();
+        await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
+        const tid = createRes._body.team.id;
 
-      expect(res._status).toBe(202);
-      expect(res._body.absorb.project_path).toBe('/workspace/my-project');
-      expect(res._body.absorb.depth).toBe('deep');
-      expect(res._body.absorb.workspace_id).toMatch(/^team:/);
+        const req = mockReq('POST', `/api/holomesh/team/${tid}/absorb`,
+          { project_path: '/workspace/my-project', depth: 'deep' },
+          { authorization: `Bearer ${ownerApiKey}` },
+        );
+        const res = mockRes();
+        await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/absorb`);
+
+        expect(res._status).toBe(202);
+        expect(res._body.absorb.project_path).toBe('/workspace/my-project');
+        expect(res._body.absorb.depth).toBe('deep');
+        expect(res._body.absorb.workspace_id).toMatch(/^team:/);
+      } finally {
+        global.fetch = originalFetch;
+      }
     });
 
     it('POST /api/holomesh/team/:id/absorb rejects missing project_path', async () => {
