@@ -157,6 +157,10 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   // Route codebase-intelligence tools first, then wisdom/gotcha tools, then graph tools.
   // All share the `holo_` prefix.
   if (name.startsWith('holo_')) {
+    // Oracle gets priority — must not fall through to graph tools
+    if (name === 'holo_oracle_consult') {
+      return { oracle_routed: true };
+    }
     const codebaseResult = await handleCodebaseTool(name, args);
     if (codebaseResult !== null) {
       return codebaseResult;
