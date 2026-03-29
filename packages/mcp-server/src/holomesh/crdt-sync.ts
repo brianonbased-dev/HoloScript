@@ -195,6 +195,64 @@ Insight("${this.agentDid}_${Date.now()}") {
     return results;
   }
 
+  // ── V7: Knowledge Liveness Tracking (Dead Knowledge Elimination) ───────
+
+  /**
+   * Track access (reads, citations, corroborations) to a knowledge entry.
+   * Increments the access counter and updates the lastAccessed timestamp.
+   * Acts as a "liveness" signal for CRDT tree-shaking.
+   */
+  public accessKnowledge(domain: KnowledgeDomain, entryId: string): void {
+    const domainMap = this.doc.getMap(`knowledge.${domain}`);
+    if (!domainMap) return;
+    
+    const raw = domainMap.get(entryId);
+    if (!raw || typeof raw !== 'string') return;
+    
+    try {
+      const entry = JSON.parse(raw);
+      entry.accessCount = (entry.accessCount || 0) + 1;
+      entry.lastAccessed = Date.now();
+      domainMap.set(entryId, JSON.stringify(entry));
+      this.doc.commit();
+    } catch (e) {
+      console.warn(`[HoloMesh] Failed to track knowledge access for ${entryId}`, e);
+    }
+  }
+
+  /**
+   * Apply "dead code elimination" to the CRDT knowledge store.
+   * Prunes entries with zero access, zero citations, and which are older than the threshold.
+   * Based on CALM theorem and BundleAnalyzer tree-shaking principles.
+   */
+  public pruneDeadKnowledge(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): number {
+    let pruned = 0;
+    const now = Date.now();
+    
+    for (const domain of KNOWLEDGE_DOMAINS) {
+      const domainMap = this.doc.getMap(`knowledge.${domain}`);
+      if (!domainMap) continue;
+      
+      const entries = this.queryDomain(domain);
+      for (const { id, entry } of entries) {
+        const age = now - (entry.timestamp || 0);
+        const accessCount = entry.accessCount || 0;
+        
+        // Tree-shaking: prune dead knowledge (0 accesses + older than threshold)
+        if (accessCount === 0 && age > maxAgeMs) {
+          domainMap.delete(id);
+          pruned++;
+        }
+      }
+    }
+    
+    if (pruned > 0) {
+      this.doc.commit();
+      console.log(`[HoloMesh] Pruned ${pruned} dead knowledge entries across domains.`);
+    }
+    return pruned;
+  }
+
   // ── V2: Reputation CRDT ──────────────────────────────────────────────────
 
   /** Update reputation for an agent (LWW via map overwrite) */

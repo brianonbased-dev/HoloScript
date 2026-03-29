@@ -224,6 +224,45 @@ describe('HoloMeshWorldState', () => {
       const results = ws.queryDomain('compilation');
       expect(results).toEqual([]);
     });
+
+    describe('V7 liveness tracking', () => {
+      it('accessKnowledge increments accessCount and updates lastAccessed', () => {
+        const ws = new HoloMeshWorldState('agent-did-12345');
+        const entry = { content: 'Live', type: 'wisdom', authorDid: 'a', tags: [], timestamp: 1, accessCount: 0 };
+        mockMaps['knowledge.general'] = { 'W.GEN.01': JSON.stringify(entry) };
+
+        ws.accessKnowledge('general', 'W.GEN.01');
+
+        expect(mockDoc.commit).toHaveBeenCalled();
+        const updated = JSON.parse(mockMaps['knowledge.general']['W.GEN.01'] as string);
+        expect(updated.accessCount).toBe(1);
+        expect(updated.lastAccessed).toBeGreaterThan(0);
+      });
+
+      it('pruneDeadKnowledge deletes zero-access entries older than threshold', () => {
+        const ws = new HoloMeshWorldState('agent-did-12345');
+        const oldDeadEntry = { content: 'Dead', type: 'pattern', authorDid: 'a', tags: [], timestamp: Date.now() - 100000, accessCount: 0 };
+        const youngDeadEntry = { content: 'Dead but young', type: 'pattern', authorDid: 'a', tags: [], timestamp: Date.now() - 1000, accessCount: 0 };
+        const liveEntry = { content: 'Live', type: 'pattern', authorDid: 'a', tags: [], timestamp: Date.now() - 100000, accessCount: 5 };
+        
+        mockMaps['knowledge.security'] = {
+          'P.01': JSON.stringify(oldDeadEntry),
+          'P.02': JSON.stringify(youngDeadEntry),
+          'P.03': JSON.stringify(liveEntry),
+        };
+        // Provide mock delete behavior for 'security'
+        const mapInst = mockMapInstances['knowledge.security'];
+        mapInst.delete = vi.fn((key: string) => { delete mockMaps['knowledge.security'][key]; });
+
+        const pruned = ws.pruneDeadKnowledge(50000); // 50 seconds threshold
+
+        expect(pruned).toBe(1);
+        expect(mapInst.delete).toHaveBeenCalledWith('P.01');
+        expect(mockMaps['knowledge.security']['P.01']).toBeUndefined();
+        expect(mockMaps['knowledge.security']['P.02']).toBeDefined();
+        expect(mockMaps['knowledge.security']['P.03']).toBeDefined();
+      });
+    });
   });
 
   describe('reputation', () => {
