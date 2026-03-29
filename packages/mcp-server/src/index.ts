@@ -118,6 +118,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    // Check Oracle tools FIRST (before other holo_* handlers catch the prefix)
+    if (name === 'holo_oracle_consult') {
+      return await handleOracleTool(name, args || {} as Record<string, unknown>);
+    }
+
     // Check Codebase Absorption tools
     const codebaseResult = await handleCodebaseTool(name, args || {});
     if (codebaseResult !== null) {
@@ -180,11 +185,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [{ type: 'text', text: JSON.stringify(absorbServiceResult, null, 2) }],
       };
-    }
-
-    // Check Oracle tools (North Star Oracle — agent decision support)
-    if (name === 'holo_oracle_consult') {
-      return await handleOracleTool(name, args || {} as Record<string, unknown>);
     }
 
     const result = await handleTool(name, args || {});
