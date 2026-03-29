@@ -10,6 +10,7 @@ COPY packages/studio/package.json packages/studio/
 COPY packages/core/package.json packages/core/
 COPY packages/r3f-renderer/package.json packages/r3f-renderer/
 COPY packages/std/package.json packages/std/
+COPY packages/ui/package.json packages/ui/
 COPY packages/studio-plugin-sdk/package.json packages/studio-plugin-sdk/
 
 RUN pnpm install --frozen-lockfile
@@ -22,12 +23,14 @@ COPY --from=deps /app/ ./
 COPY packages/core/ packages/core/
 COPY packages/r3f-renderer/ packages/r3f-renderer/
 COPY packages/std/ packages/std/
+COPY packages/ui/ packages/ui/
 COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
 COPY packages/studio/ packages/studio/
 
 # Build workspace dependencies in order (Studio imports from all of these)
 RUN cd packages/core && pnpm build || true
 RUN cd packages/std && pnpm build || true
+RUN cd packages/ui && pnpm build || true
 RUN cd packages/r3f-renderer && pnpm build || true
 RUN cd packages/studio-plugin-sdk && pnpm build || true
 
