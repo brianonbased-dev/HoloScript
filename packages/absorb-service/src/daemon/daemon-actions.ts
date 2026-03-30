@@ -415,6 +415,7 @@ async function resolveRelatedFiles(
   // 3. Sibling class discovery — if this file extends a base class that was found,
   // find other subclasses in the same directory that were recently committed by the daemon.
   // This gives the LLM evidence of the "correct" approach (what the sibling did to match the base).
+  const extendsMatch = content.match(/class\s+\w+\s+extends\s+(\w+)/);
   if (extendsMatch && related.length > 0) {
     const baseClass = extendsMatch[1];
     const baseRelated = related.find((r) => r.relation.includes('base class'));

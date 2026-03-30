@@ -46,6 +46,7 @@ describe('Scenario: Scene Templates — Catalogue', () => {
       'ecommerce',
       'industrial',
       'sports',
+      'showcase',
     ];
     for (const t of SCENE_TEMPLATES) {
       expect(validCategories).toContain(t.category);
@@ -76,9 +77,9 @@ describe('Scenario: Scene Templates — Category Coverage', () => {
 });
 
 describe('Scenario: Scene Templates — Code Snippets', () => {
-  it('all code contains a world block', () => {
+  it('all code contains a world or scene block', () => {
     for (const t of SCENE_TEMPLATES) {
-      expect(t.code).toMatch(/world\s+"/);
+      expect(t.code).toMatch(/(?:world|scene)\s+"/);
     }
   });
 

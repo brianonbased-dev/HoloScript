@@ -16,7 +16,7 @@ This RFC outlines the next 12–36 months of iterations, culminating in **v8.0: 
 
 ## 1. v6.x “The Great Refinement → Ecosystem Ignition” (Q2–Q3 2026)
 
-Building on our robust Studio polish, 1,500+ tests, and deep DX wins, we are supercharging v6.x with the following concrete deliverables:
+Building on Studio polish, 57,356+ tests, and DX wins from v6.0, the v6.x series adds these deliverables:
 
 - **Studio 2.0 (Multiplayer Semantic Canvas)**
   - WebRTC + shared trait graph for real-time collaboration with versioned semantic branching ("what if we swap `@physics` for `@softbody`?").
@@ -32,7 +32,7 @@ Building on our robust Studio polish, 1,500+ tests, and deep DX wins, we are sup
 - **StoryWeaver Integration**
   - `@storyweaver` trait family for branching dialogue, plot beats, and character arcs. Agents can dynamically negotiate story changes at runtime via continuous x402 micro-payments.
 
-## 2. Trait System Moonshots (2,000 → 5,000+ traits)
+## 2. Trait System Moonshots (3,300 → 5,000+ traits)
 
 Our traits are our superpower. Let’s aggressively expand the core repository:
 
@@ -48,12 +48,12 @@ Our traits are our superpower. Let’s aggressively expand the core repository:
 
 ## 3. Agent Swarm & Autonomous Economy (x402 + uAAL native)
 
-Leveraging the 122 MCP tools and recursive self-improvement loops:
+Using the 122 MCP tools and recursive self-improvement loops:
 
 - **Agent Marketplace with Built-in x402 Settlement**
   - Autonomous agents buy/sell traits, skills, or entire sub-worlds. Need a scene blocked out? Rent the "Film3D Director Agent" template for the afternoon.
 - **Sovereign Mesh Preview (Bridge to v7)**
-  - Spin up small HoloVM clusters on Railway/K8s where agents can migrate state seamlessly across devices, repositories, and virtual worlds via LifePods with zero downtime.
+  - Spin up small HoloVM clusters on Railway/K8s where agents migrate state across devices, repositories, and virtual worlds via LifePods.
 - **Brittney 2.0 Integration**
   - Hook our fine-tuned foundation model directly into the new Wisdom/Gotcha traits to enforce cultural awareness and refuse unsafe outputs natively at the compiler level.
 

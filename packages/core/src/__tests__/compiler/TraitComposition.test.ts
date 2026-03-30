@@ -119,22 +119,22 @@ describe('TraitCompositionCompiler — basic compile', () => {
 // TraitCompositionCompiler — config merge semantics
 // =============================================================================
 
-describe('TraitCompositionCompiler — config merge (left-to-right, later wins)', () => {
+describe('TraitCompositionCompiler — config merge (semiring-based)', () => {
   const compiler = new TraitCompositionCompiler();
 
-  it('later component value wins for shared key', () => {
+  it('throws CompositionConflictError for shared key without resolution rule', () => {
     const registry = {
       base: makeHandler({ speed: 1, color: 'red' }),
-      upgrade: makeHandler({ speed: 5 }), // speed override
+      upgrade: makeHandler({ speed: 5 }), // speed conflict — no semiring rule
     };
 
-    const [result] = compiler.compile(
-      [{ name: 'Fast', components: ['base', 'upgrade'] }],
-      (n) => (registry as Record<string, any>)[n]
-    );
-
-    expect(result.defaultConfig.speed).toBe(5); // upgrade wins
-    expect(result.defaultConfig.color).toBe('red'); // inherited from base
+    // Semiring requires explicit rules or authority; arbitrary right-side wins is banned.
+    expect(() =>
+      compiler.compile(
+        [{ name: 'Fast', components: ['base', 'upgrade'] }],
+        (n) => (registry as Record<string, any>)[n]
+      )
+    ).toThrow(CompositionConflictError);
   });
 
   it('override values beat all component defaults', () => {
@@ -242,15 +242,29 @@ describe('TraitCompositionCompiler — error cases', () => {
     }
   });
 
-  it('non-conflicting equal-key components compile without error', () => {
+  it('non-conflicting distinct-key components compile without error', () => {
     const registry = {
-      a: makeHandler({ speed: 5 }, []), // a does NOT conflict with b
-      b: makeHandler({ speed: 10 }, []),
+      a: makeHandler({ speed: 5 }, []),
+      b: makeHandler({ defense: 10 }, []),
     };
 
     expect(() =>
       compiler.compile(
         [{ name: 'SpeedBike', components: ['a', 'b'] }],
+        (n) => (registry as Record<string, any>)[n]
+      )
+    ).not.toThrow();
+  });
+
+  it('same-value equal-key components compile without error (idempotent)', () => {
+    const registry = {
+      a: makeHandler({ speed: 5 }, []),
+      b: makeHandler({ speed: 5 }, []), // same value = no conflict
+    };
+
+    expect(() =>
+      compiler.compile(
+        [{ name: 'Twins', components: ['a', 'b'] }],
         (n) => (registry as Record<string, any>)[n]
       )
     ).not.toThrow();
@@ -386,10 +400,10 @@ describe('TraitComposer — lifecycle dispatch', () => {
 // TraitComposer — config merge
 // =============================================================================
 
-describe('TraitComposer — defaultConfig merge (right wins)', () => {
-  it('right-side handler overwrites left-side config for shared keys', () => {
+describe('TraitComposer — defaultConfig merge (semiring-based)', () => {
+  it('merges distinct-key configs without conflict', () => {
     const handlerA = makeTraitHandler({ speed: 1, color: 'blue' });
-    const handlerB = makeTraitHandler({ speed: 5 }); // right wins
+    const handlerB = makeTraitHandler({ defense: 5 }); // no overlap
 
     const composer = new TraitComposer();
     const result = composer.compose(
@@ -401,7 +415,28 @@ describe('TraitComposer — defaultConfig merge (right wins)', () => {
       ['a', 'b']
     );
 
-    expect(result.handler.defaultConfig?.speed).toBe(5);
+    expect(result.handler.defaultConfig?.speed).toBe(1);
+    expect(result.handler.defaultConfig?.color).toBe('blue');
+    expect(result.handler.defaultConfig?.defense).toBe(5);
+  });
+
+  it('reports warning for shared-key conflict and retains first value', () => {
+    const handlerA = makeTraitHandler({ speed: 1, color: 'blue' });
+    const handlerB = makeTraitHandler({ speed: 5 }); // conflict
+
+    const composer = new TraitComposer();
+    const result = composer.compose(
+      'AB',
+      new Map([
+        ['a', handlerA],
+        ['b', handlerB],
+      ]),
+      ['a', 'b']
+    );
+
+    // Semiring reports unresolved conflict as warning; first value retained
+    expect(result.warnings.some((w) => w.includes('speed'))).toBe(true);
+    expect(result.handler.defaultConfig?.speed).toBe(1);
     expect(result.handler.defaultConfig?.color).toBe('blue');
   });
 

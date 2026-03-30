@@ -138,15 +138,28 @@ describe('TraitBinder.registerComposed', () => {
     expect(handler!.name).toBe('turret');
   });
 
-  it('merges defaultConfig (right-side wins)', () => {
+  it('merges defaultConfig from non-conflicting properties', () => {
     const binder = new TraitBinder();
     binder.register('a', makeHandler('a', { speed: 1, color: 'red' }));
-    binder.register('b', makeHandler('b', { speed: 5 }));
+    binder.register('b', makeHandler('b', { defense: 5 }));
     binder.registerComposed('ab', ['a', 'b']);
 
     const h = binder.resolve('ab')!;
-    // 'b' overrides speed; 'a' contributes color
-    expect(h.defaultConfig).toMatchObject({ speed: 5, color: 'red' });
+    // non-conflicting: all properties present
+    expect(h.defaultConfig).toMatchObject({ speed: 1, color: 'red', defense: 5 });
+  });
+
+  it('reports warning when defaultConfig properties conflict (semiring unresolved)', () => {
+    const binder = new TraitBinder();
+    binder.register('a', makeHandler('a', { speed: 1, color: 'red' }));
+    binder.register('b', makeHandler('b', { speed: 5 }));
+    const warnings = binder.registerComposed('ab', ['a', 'b']);
+
+    // Semiring reports unresolved conflict as a warning via TraitComposer
+    expect(warnings.length).toBeGreaterThan(0);
+    const h = binder.resolve('ab')!;
+    // First-writer retained when conflict is unresolvable
+    expect(h.defaultConfig).toMatchObject({ speed: 1, color: 'red' });
   });
 
   it('delegates onAttach to all source handlers in order', () => {

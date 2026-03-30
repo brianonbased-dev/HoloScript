@@ -2,75 +2,85 @@
 
 _The declarative language for the spatial and autonomous web._
 
-> 🎯 **Current version: v5.0.0** — see [CHANGELOG.md](../../CHANGELOG.md) for full release history.
-> 📝 **Refinement Master Plan:** The active sprint blueprint for stabilizing V1-V5 is located at [docs/planning/V1_V5_REFINEMENT_MASTER_PLAN.md](../planning/V1_V5_REFINEMENT_MASTER_PLAN.md).
-> 📊 **Weekly execution lanes:** Use the live Now/Next/Blocked template in [docs/planning/V1_V5_REFINEMENT_MASTER_PLAN.md](../planning/V1_V5_REFINEMENT_MASTER_PLAN.md).
-> 🔭 **V6 vision document:** The canonical v6 strategy is [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md).
-> 📦 Historical milestones (from v3.x to v5.0) are maintained in [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
+> **Current version: v6.0.0** — shipped 2026-03-30. See [CHANGELOG.md](../../CHANGELOG.md) for full release history.
+> **V6 vision document:** [docs/strategy/vision/VISION_V6.md](./vision/VISION_V6.md) (realized).
+> **Historical milestones:** v3.x to v5.0 archived at [docs/archive/ROADMAP_v3_to_v5_ARCHIVED.md](../archive/ROADMAP_v3_to_v5_ARCHIVED.md).
 
 ---
 
-## Executive Vision (Post-v5.0)
+## Current State (v6.0.0)
 
-HoloScript has achieved robust ecosystem federation with the v5.0 release ("Autonomous Ecosystems"). Our strategic focus for the v5.x series and approaching v6.0 is **The Great Refinement**: comprehensively expanding, reiterating, and deeply enhancing the foundations built from v1 through v5. We are pivoting from aggressive feature expansion to extreme stabilization, developer experience optimization, and holistic ecosystem integration.
+v6.0.0 shipped with 134 commits. The v5.x "Great Refinement" goals have been met or exceeded:
 
----
+| Metric | v5.0 Target | v6.0 Actual |
+| ------ | ----------- | ----------- |
+| Tests | 1,500+ | 57,356+ passing |
+| Traits | 1,800+ | 3,300+ across 114 categories |
+| Compile targets | 15 | 33 compilers, 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
+| MCP tools | — | 164 total (136 holoscript + 28 absorb) |
+| Packages | — | 68 |
+| Studio | prototype | 34 pages, 74 API routes |
+| HoloMesh | concept | V8: 43 endpoints, 8 MCP tools, 15 BT actions |
+| Knowledge store | — | 556 entries across 10 domains |
 
-## 🚀 Immediate Next Steps (v5.1 - v5.5)
+What shipped in v6.0.0:
 
-### 1. Studio Quality & Developer Experience (DX)
-
-Reiterating on the primary entry points for developers and creators.
-
-- **HoloScript Studio Polish:** Eliminating rendering artifacts, fixing click-to-place logic, and providing live 3D previews for all assets.
-- **Error Handling:** Unifying error classification and surfacing deterministic, actionable error messages directly in the IDE.
-- **Tooling Robustness:** Enhancing the CLI, formatter, and active language server capabilities.
-
-### 2. Core Engine Hardening (v1-v3 Enhancements)
-
-Deepening the reliability of the core architecture.
-
-- **Test Coverage Expansion:** Systematically adding production-level test suites to AI, combat, dialogue, and procedural generation subsystems to reach our 1,500+ test targets.
-- **Memory & Performance:** Resolving OOM bottlenecks, optimizing AST processing, and reducing build times through refined incremental compilation.
-
-### 3. Trait Ecosystem Integration (v3-v4 Expansions)
-
-Refining the 1,800+ existing traits for seamless interoperability.
-
-- **Cross-Domain Audits:** Ensuring networked traits, physics traits, and AI traits function cohesively without race conditions.
-- **Scientific/Industrial Plugins:** Polishing the existing Medical and Robotics plugins for production-grade telemetry and precision.
+- HoloMesh V5-V8 (social traits, marketplace, enterprise teams, accessibility endpoints)
+- Publishing protocol (4-layer on-chain: Provenance, Registry, Collect, Remix Revenue)
+- Multi-tenant auth, RBAC across compilers
+- Absorb service extracted as standalone microservice at `absorb.holoscript.net`
+- Agent loop proven: knowledge query -> scene compile -> absorb health -> knowledge sync
 
 ---
 
-## 🔮 Mid-term Goals (v6.0 - H2 2026)
+## Next: v6.x Series (H1 2026)
 
-This phase is measured by execution evidence from the refinement lanes: v6 is considered on-track only when weekly lane outputs show merged hardening milestones across Studio DX, core reliability, MCP correction loops, and test/benchmark stability.
+### 1. Adoption Funnel
 
-### Maturing Autonomous Systems (v5 Realization)
+The infrastructure holds weight without load. Zero external agents have joined HoloMesh organically. The bottleneck is adoption, not capability.
 
-Pushing the v5 agentic mesh to enterprise-grade reliability.
+- **Absorb -> Studio handoff:** Agent scans a repo with Absorb, gets offered Studio as the next step.
+- **Studio -> HoloMesh deploy:** One-click publish from Studio to HoloMesh knowledge exchange.
+- **Absorb web UI:** Browser-based entry point for agents that don't run MCP clients.
 
-- **Observability:** Implementing flawless distributed tracing for agent-to-agent negotiations and economic transactions (x402 protocol).
-- **Federated Sovereign Mesh Validation:** Hardening cross-scene agent communications and ensuring absolute resilience to network partitioning.
+### 2. Studio Polish
 
-### The uAAL Bridge & Epoch 7 Preparations
+34 pages built, but gaps remain:
 
-Laying the unshakeable groundwork for HoloScript's native AI DSL (uAAL) and Epoch 7 (Autonomy).
+- Full mobile responsiveness audit (viewport meta done, breakpoint audit deferred)
+- Live 3D preview for all asset types
+- Error classification and deterministic error messages in IDE
 
-- Iterative integration of the Neural Forge.
-- Stable validation of autonomous agents acting both in `Hololand` and deployed to physical edge devices.
+### 3. Compile Target Coverage
+
+33 CompilerBase subclasses, 29 registered ExportTargets. The "30+" claim is accurate. Next step: run the audit-results pipeline to earn Interoperability Badges for each target that passes all cross-platform tests.
+
+### 4. Trait Depth
+
+3,300+ traits across 114 categories exist. Cross-domain interaction testing is incomplete — networked + physics + AI trait combinations need systematic audit for race conditions and edge-case crashes.
 
 ---
 
-## 🌌 Long-term Vision (v7.0+)
+## Mid-term: v7.0 (H2 2026)
 
 ### The Sovereign Mesh (Epoch 7 Autonomy)
 
-The ultimate realization of the v6.0 core. A perfected foundation allows a `.holo` file to act as the universal format for scaling intelligence across virtual worlds, physical robotics, and organizational automation.
+The v6.0 foundation enables `.holo` files to act as universal format for scaling intelligence across virtual worlds, physical robotics, and organizational automation.
 
-- **Extreme Scalability:** Deploying the HoloVM dynamically across Kubernetes clusters to handle federated agent topologies.
-- **Physical Unification:** Native execution of `.hs` logic within edge devices and robotic hardware.
-- **uAAL Integration:** Shifting autonomous decision-making natively to the uAAL DSL and the Neural Forge.
+- **HoloVM clustering:** Deploy across Kubernetes clusters. Agent topologies scale dynamically. Cross-scene telemetry for concurrent agents.
+- **Physical unification:** Native execution of `.hs` logic within edge devices and robotic hardware. Robotics and Medical plugins refined for real-world fidelity.
+- **uAAL cognitive engine:** Transition from TypeScript-bound heuristics to the unified uAAL (AI-native DSL) virtual machine. Neural Forge integration into the `.holo` execution path.
+
+### Verification Criteria
+
+v7.0 readiness is verified when an autonomous agent can:
+
+1. Spawn natively in a VR training simulation
+2. Form a sovereign economic contract (x402) to rent edge compute
+3. Migrate its logic into a physical robotic wrapper
+4. Execute its assigned task in the real world
+
+All four steps powered by the v6.0 architecture without workarounds.
 
 ---
 

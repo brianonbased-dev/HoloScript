@@ -177,7 +177,7 @@ export class TraitCompositionCompiler {
     });
 
     // 2. Conflict detection (bypassed for high-authority contexts)
-    if (authorityWeight(decl.provenance?.context) < 100) {
+    if (authorityWeight((decl as any).provenance?.context?.authorityLevel ?? 0) < 100) {
       this.detectConflicts(handlers);
     }
 

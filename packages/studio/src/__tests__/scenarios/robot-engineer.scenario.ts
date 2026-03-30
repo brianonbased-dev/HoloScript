@@ -579,7 +579,7 @@ describe('Scenario: Robot Engineer — Multi-Robot Scene', () => {
 describe('Scenario: Robot Engineer — HoloScript Templates', () => {
   it('existing templates are valid HoloScript (world block + @-traits)', () => {
     for (const t of DATA_TEMPLATES) {
-      expect(t.code.trim()).toMatch(/^world\s+"/);
+      expect(t.code.trim()).toMatch(/^(?:world|scene)\s+"/);
       expect(t.code).toMatch(/@\w+/);
     }
   });

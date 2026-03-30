@@ -574,7 +574,7 @@ describe('Scenario: Industrial Plant Designer — Operator Training Mode', () =>
 describe('Scenario: Industrial Plant Designer — Templates', () => {
   it('all existing templates are valid HoloScript (world block + @-traits)', () => {
     for (const t of DATA_TEMPLATES) {
-      expect(t.code.trim()).toMatch(/^world\s+"/);
+      expect(t.code.trim()).toMatch(/^(?:world|scene)\s+"/);
       expect(t.code).toMatch(/@\w+/);
     }
   });

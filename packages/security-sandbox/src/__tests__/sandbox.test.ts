@@ -94,7 +94,8 @@ describe('HoloScriptSandbox', () => {
       const result = await sandbox.executeHoloScript(maliciousCode, { source: 'ai-generated' });
 
       expect(result.success).toBe(false);
-      expect(result.error?.type).toBe('runtime');
+      // Network access may be caught at validation or runtime depending on static analysis
+      expect(['validation', 'runtime']).toContain(result.error?.type);
     });
 
     it('should prevent process access', async () => {

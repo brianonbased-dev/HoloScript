@@ -13,7 +13,8 @@
  * - Material variants (LOD-specific simplified shaders)
  */
 
-import { ShaderGraph, type ISerializedShaderGraph } from '../../lib/shaderGraphTypes';
+import { ShaderGraph } from '../../lib/shader/shaderGraph';
+import type { ISerializedShaderGraph } from '../../lib/shaderGraphTypes';
 import { openDB, type IDBPDatabase } from 'idb';
 
 // ============================================================================

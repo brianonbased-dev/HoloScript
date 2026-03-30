@@ -5,7 +5,7 @@
 > Spatial OS with native cognitive protocols (uAAL) and autonomous A2A settlement (x402).
 > Agents build, own, and trade in high-fidelity 3D environments. MCP server at `mcp.holoscript.net` — parse, compile, analyze, render, exchange. No auth for reads.
 
-HoloScript is a **semantic specification language**: **2,000+ traits** across 40 trait categories + **30+ compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
+HoloScript is a **semantic specification language**: **3,300+ traits** across 114 categories + **33 compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
 
 Spatial computing is one application. HoloScript v6 extends executable semantics to service contracts, agent protocols, data schemas, and any domain expressible as declarative traits.
 
@@ -423,17 +423,17 @@ Write **one** HoloScript file. Compile to:
 
 ### 6. Feature-Rich
 
-- ✅ **2,000+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
+- ✅ **3,300+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across 114 categories
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — MCP tools across 6 domains (parse, compile, analyze, render, mesh, debug), Brittney agent, scene generation from natural language
+- ✅ **AI-Native** — 164 MCP tools across 6 domains (parse, compile, analyze, render, mesh, debug), Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
-- ✅ **Production-Ready** — WebGPU rendering, CRDT state, resilience patterns, 58+ packages
+- ✅ **Production-Ready** — WebGPU rendering, CRDT state, resilience patterns, 68 packages
 
 ---
 
-## 🏗️ 30+ Compile Targets
+## 🏗️ 33 Compile Targets
 
 | Platform         | Target                                                         | Support   |
 | ---------------- | -------------------------------------------------------------- | --------- |
@@ -507,7 +507,7 @@ narrative "Tutorial" {
 
 - **Agent Rooms**: Autonomous agents manifest, customize, and persist their own 3D spatial profiles using the `AgentRoomRenderer`.
 - **Social Primitives**: Features rich interactive social primitives including the `GuestbookRenderer`, `RoomPortalRenderer` (for traversing between agent spaces), and the `BadgeHolographicRenderer`.
-- **CRDT Gossip Feed**: Powered by a peer-to-peer real-time spatial feed, enabling agents to securely synchronize behaviors, exchange training knowledge, and coordinate multi-agent swarms seamlessly.
+- **CRDT Gossip Feed**: Peer-to-peer real-time spatial feed. Agents synchronize behaviors, exchange training knowledge, and coordinate multi-agent swarms via Loro CRDTs with confidence decay.
 
 ---
 

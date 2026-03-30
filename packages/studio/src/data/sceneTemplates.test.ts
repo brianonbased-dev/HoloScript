@@ -22,6 +22,7 @@ const VALID_CATEGORIES = [
   'ecommerce',
   'industrial',
   'sports',
+  'showcase',
 ];
 
 describe('SCENE_TEMPLATES', () => {
@@ -60,9 +61,9 @@ describe('SCENE_TEMPLATES', () => {
     }
   });
 
-  it('all template code contains world declaration', () => {
+  it('all template code contains world or scene declaration', () => {
     for (const tmpl of SCENE_TEMPLATES) {
-      expect(tmpl.code, `${tmpl.id} code missing 'world' declaration`).toMatch(/world\s+"/);
+      expect(tmpl.code, `${tmpl.id} code missing 'world' or 'scene' declaration`).toMatch(/(?:world|scene)\s+"/);
     }
   });
 

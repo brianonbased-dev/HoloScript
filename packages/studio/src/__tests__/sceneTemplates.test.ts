@@ -133,9 +133,9 @@ describe('data/SCENE_TEMPLATES — HoloScript syntax', () => {
     }
   });
 
-  it('all templates open with world declaration', () => {
+  it('all templates open with world or scene declaration', () => {
     for (const t of DATA_TEMPLATES) {
-      expect(t.code.trim()).toMatch(/^world\s+"/);
+      expect(t.code.trim()).toMatch(/^(?:world|scene)\s+"/);
     }
   });
 
