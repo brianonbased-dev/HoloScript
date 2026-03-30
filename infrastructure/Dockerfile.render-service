@@ -3,16 +3,23 @@
 # Lightweight Express server for rendering HoloScript previews
 # and generating share images for X/Twitter.
 
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Collect all package.json for lockfile resolution
+FROM base AS manifests
+WORKDIR /app
+COPY . .
+RUN find packages -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; \
+ && find services -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+
+FROM base
 WORKDIR /app
 
-# Copy workspace config
+# Copy workspace config + all package.json manifests
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/core/package.json packages/core/
-COPY services/render-service/package.json services/render-service/
+COPY --from=manifests /manifests/ ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts

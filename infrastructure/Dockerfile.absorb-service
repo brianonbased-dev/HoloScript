@@ -3,23 +3,22 @@
 # Builds from the pnpm workspace root to resolve workspace dependencies
 # Dependency chain: absorb-service → core + absorb-service(pkg)
 
-FROM node:20-alpine AS builder
-
-# Install pnpm
+FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Collect all package.json for lockfile resolution
+FROM base AS manifests
+WORKDIR /app
+COPY . .
+RUN find packages -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; \
+ && find services -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+
+FROM base AS builder
 WORKDIR /app
 
-# Copy workspace config
+# Copy workspace config + all package.json manifests
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-
-# Copy the packages we need (full dependency chain)
-COPY packages/crdt/package.json packages/crdt/
-COPY packages/agent-protocol/package.json packages/agent-protocol/
-COPY packages/core/package.json packages/core/
-COPY packages/llm-provider/package.json packages/llm-provider/
-COPY packages/absorb-service/package.json packages/absorb-service/
-COPY services/absorb-service/package.json services/absorb-service/
+COPY --from=manifests /manifests/ ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -51,14 +50,9 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs
 
-# Copy workspace config
+# Copy workspace config + all manifests for lockfile resolution
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/crdt/package.json packages/crdt/
-COPY packages/agent-protocol/package.json packages/agent-protocol/
-COPY packages/core/package.json packages/core/
-COPY packages/llm-provider/package.json packages/llm-provider/
-COPY packages/absorb-service/package.json packages/absorb-service/
-COPY services/absorb-service/package.json services/absorb-service/
+COPY --from=manifests /manifests/ ./
 
 # Install production dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
