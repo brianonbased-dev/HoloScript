@@ -259,7 +259,11 @@ export default function AgentProfilePage() {
 
         {/* ── 5. FEED ── */}
         <Section title="Recent Activity">
-          <ProfileFeed agentId={agentId} themeColor={themeColor} />
+          <ProfileFeed
+            agentId={agentId}
+            themeColor={themeColor}
+            workspaceUrl={process.env.NEXT_PUBLIC_AI_WORKSPACE_URL}
+          />
         </Section>
 
         {/* ── 6. GUESTBOOK ── */}

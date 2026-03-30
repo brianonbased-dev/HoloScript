@@ -64,6 +64,15 @@ export interface HoloMeshDaemonConfig {
   _wallet?: InvisibleWalletType | null;
   _paymentGateway?: PaymentGatewayType | null;
   _microLedger?: MicroPaymentLedgerType | null;
+  // AI_Workspace delegate integration
+  /** AI_Workspace URL (e.g. https://aiworkspace-production.up.railway.app) */
+  workspaceUrl?: string;
+  /** Agent delegate key for AI_Workspace access */
+  workspaceDelegateKey?: string;
+  /** Moltbook API key for cross-posting */
+  moltbookApiKey?: string;
+  /** Moltbook agent name (for posting attribution) */
+  moltbookAgentName?: string;
 }
 
 type ActionHandler = (
@@ -760,6 +769,179 @@ export function createHoloMeshDaemonActions(
     return true;
   };
 
+  // ── AI_Workspace Delegate Integration ──
+  // Syncs user's shared knowledge from AI_Workspace → HoloMesh feed
+  // and cross-posts to Moltbook. Respects visibility tiers (private/agent/shared/listed).
+
+  const WORKSPACE_URL = config.workspaceUrl || process.env.AI_WORKSPACE_URL || '';
+  const WORKSPACE_KEY = config.workspaceDelegateKey || process.env.AGENT_DELEGATE_KEY || process.env.MCP_API_KEY || '';
+  const MOLTBOOK_KEY = config.moltbookApiKey || process.env.MOLTBOOK_API_KEY || '';
+  const MOLTBOOK_AGENT = config.moltbookAgentName || process.env.HOLOMESH_AGENT_NAME || 'holoscript';
+
+  const mesh_sync_workspace: ActionHandler = async (_params, blackboard) => {
+    if (!WORKSPACE_URL) {
+      log('No AI_WORKSPACE_URL configured — skipping workspace sync');
+      return false;
+    }
+
+    try {
+      // Browse shared entries from the user's AI_Workspace
+      const browseRes = await fetch(`${WORKSPACE_URL}/api/delegate/browse?limit=20`, {
+        headers: { 'x-agent-key': WORKSPACE_KEY },
+      });
+      if (!browseRes.ok) {
+        log(`Workspace browse failed: ${browseRes.status}`);
+        return false;
+      }
+
+      const browseData = await browseRes.json();
+      const entries = browseData.entries || [];
+      const shared = entries.filter((e: any) => e.access === 'shared' && e.content);
+
+      // Filter out already-contributed entries
+      const newEntries = shared.filter((e: any) => !state.contributedIds.includes(`ws:${e.id}`));
+
+      if (newEntries.length === 0) {
+        log('No new shared entries from workspace');
+        blackboard.workspace_synced = 0;
+        return false;
+      }
+
+      // Curate for HoloMesh posting
+      const entryIds = newEntries.slice(0, maxContributions).map((e: any) => e.id);
+      const curateRes = await fetch(`${WORKSPACE_URL}/api/delegate/curate`, {
+        method: 'POST',
+        headers: {
+          'x-agent-key': WORKSPACE_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'post_holomesh',
+          entry_ids: entryIds,
+          context: `Agent delegate posting ${entryIds.length} shared entries to HoloMesh feed`,
+        }),
+      });
+
+      if (!curateRes.ok) {
+        log(`Workspace curate failed: ${curateRes.status}`);
+        return false;
+      }
+
+      const curateData = await curateRes.json();
+      const selected = curateData.selected || [];
+
+      if (selected.length === 0) {
+        log('All entries rejected by curation (access control)');
+        return false;
+      }
+
+      // Convert to MeshKnowledgeEntry format and contribute to HoloMesh
+      const meshEntries: MeshKnowledgeEntry[] = selected.map((e: any) => ({
+        id: `ws:${e.id}`,
+        type: e.type === 'research' ? 'wisdom' : e.type === 'analysis' ? 'pattern' : (e.type || 'wisdom'),
+        content: e.content,
+        authorId: state.agentId || 'workspace-delegate',
+        provenanceHash: crypto.createHash('sha256').update(e.content).digest('hex'),
+        domain: e.domain || 'general',
+        tags: e.tags || [],
+        confidence: e.confidence || 0.8,
+        price: 0,
+        queryCount: 0,
+        reuseCount: 0,
+        createdAt: new Date().toISOString(),
+      }));
+
+      const synced = await client.contributeKnowledge(meshEntries);
+      state.contributedIds.push(...meshEntries.map((e) => e.id));
+      state.totalContributions += meshEntries.length;
+      state.lastContributionAt = new Date().toISOString();
+      blackboard.workspace_synced = meshEntries.length;
+      saveCurrentState();
+      log(`Workspace sync: ${meshEntries.length} entries posted to HoloMesh (${synced} synced)`);
+      return true;
+    } catch (err: any) {
+      log(`Workspace sync error: ${err.message}`);
+      return false;
+    }
+  };
+
+  const mesh_crosspost_moltbook: ActionHandler = async (_params, blackboard) => {
+    if (!WORKSPACE_URL || !MOLTBOOK_KEY) {
+      log('No AI_WORKSPACE_URL or MOLTBOOK_API_KEY — skipping Moltbook crosspost');
+      return false;
+    }
+
+    try {
+      // Curate entries for Moltbook posting
+      const browseRes = await fetch(`${WORKSPACE_URL}/api/delegate/browse?limit=5`, {
+        headers: { 'x-agent-key': WORKSPACE_KEY },
+      });
+      if (!browseRes.ok) return false;
+
+      const browseData = await browseRes.json();
+      const shared = (browseData.entries || []).filter(
+        (e: any) => e.access === 'shared' && e.content && !state.contributedIds.includes(`mb:${e.id}`)
+      );
+
+      if (shared.length === 0) {
+        log('No new entries for Moltbook crosspost');
+        return false;
+      }
+
+      // Pick one entry per cycle (avoid spam)
+      const entry = shared[0];
+
+      const curateRes = await fetch(`${WORKSPACE_URL}/api/delegate/curate`, {
+        method: 'POST',
+        headers: {
+          'x-agent-key': WORKSPACE_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'post_moltbook',
+          entry_ids: [entry.id],
+          context: 'Agent delegate cross-posting shared knowledge to Moltbook',
+        }),
+      });
+
+      if (!curateRes.ok) return false;
+      const curateData = await curateRes.json();
+      if (!curateData.selected?.length) return false;
+
+      const selected = curateData.selected[0];
+
+      // Post to Moltbook API
+      const title = selected.content.slice(0, 120).replace(/\n/g, ' ');
+      const moltbookRes = await fetch('https://www.moltbook.com/api/v1/posts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${MOLTBOOK_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submolt: selected.domain || 'general',
+          title,
+          content: selected.content,
+        }),
+      });
+
+      if (!moltbookRes.ok) {
+        log(`Moltbook post failed: ${moltbookRes.status}`);
+        return false;
+      }
+
+      const moltbookData = await moltbookRes.json();
+      state.contributedIds.push(`mb:${entry.id}`);
+      saveCurrentState();
+      blackboard.moltbook_crossposted = true;
+      log(`Moltbook crosspost: "${title.slice(0, 50)}..." → ${moltbookData.post?.id || 'posted'}`);
+      return true;
+    } catch (err: any) {
+      log(`Moltbook crosspost error: ${err.message}`);
+      return false;
+    }
+  };
+
   // ── Factory Return ──
 
   const actions: Record<string, ActionHandler> = {
@@ -780,6 +962,8 @@ export function createHoloMeshDaemonActions(
     mesh_settle_micro,
     mesh_check_resource_pressure,
     mesh_reorder_priorities,
+    mesh_sync_workspace,
+    mesh_crosspost_moltbook,
   };
 
   const wireTraitListeners = (runtime: any) => {
