@@ -17,11 +17,20 @@ vi.mock('fs', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+// Mock process.memoryUsage to avoid backpressure check failing in tight heaps
+const originalMemoryUsage = process.memoryUsage.bind(process);
+vi.spyOn(process, 'memoryUsage').mockImplementation(() => ({
+  ...originalMemoryUsage(),
+  heapUsed: 100 * 1024 * 1024,
+  heapTotal: 512 * 1024 * 1024,
+}));
+
 // Mock worldState
 const mockWorldState = {
   mergeNeighborState: vi.fn(),
   exportDelta: vi.fn(() => new Uint8Array([1, 2, 3])),
   importDelta: vi.fn(),
+  importDeltaToHotBuffer: vi.fn(),
   getFrontiers: vi.fn(() => [{ peer: '1', counter: 5 }]),
 };
 
@@ -411,7 +420,7 @@ describe('HoloMeshDiscovery', () => {
         'https://peer1/.well-known/crdt-gossip',
         expect.objectContaining({ method: 'POST' })
       );
-      expect(mockWorldState.importDelta).toHaveBeenCalled();
+      expect(mockWorldState.importDeltaToHotBuffer).toHaveBeenCalled();
     });
 
     it('records failure on HTTP error', async () => {

@@ -126,7 +126,7 @@ describe('OAuth21Service', () => {
       expect(response.access_token).toMatch(/^hs_/);
       expect(response.refresh_token).toMatch(/^hs_/);
       expect(response.token_type).toBe('Bearer');
-      expect(response.expires_in).toBe(900);
+      expect(response.expires_in).toBe(3600);
       expect(response.scope).toBe('tools:read');
     });
 

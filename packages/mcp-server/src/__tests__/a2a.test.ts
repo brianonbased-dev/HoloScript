@@ -134,7 +134,7 @@ describe('buildAgentCard', () => {
 
   it('has name and description', () => {
     expect(card.name).toBe('HoloScript Agent');
-    expect(card.description).toContain('HoloScript language tooling agent');
+    expect(card.description).toContain('HoloScript v6.0 language tooling agent');
   });
 
   it('has version', () => {

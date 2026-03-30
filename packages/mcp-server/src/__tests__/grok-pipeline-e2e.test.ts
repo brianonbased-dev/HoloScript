@@ -138,7 +138,7 @@ describe('Grok E2E Pipeline', () => {
       expect(result.tweetText as string).toContain('#HoloScript');
       expect(result.qrCode).toBeDefined();
       expect(result.cardMeta).toBeDefined();
-      expect((result.cardMeta as Record<string, string>)['twitter:card']).toBe('player');
+      expect((result.cardMeta as Record<string, string>)['twitter:card']).toBe('summary_large_image');
     }, 15000);
   });
 
