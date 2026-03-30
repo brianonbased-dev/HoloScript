@@ -1372,6 +1372,38 @@ const httpServer = http.createServer(async (req, res) => {
     return;
   }
 
+  // POST /tools/call — REST proxy for orchestrator tool execution
+  if (url === '/tools/call' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const { tool, args } = body as { tool: string; args?: Record<string, unknown> };
+      if (!tool || typeof tool !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: tool (string)' }));
+        return;
+      }
+
+      const auth: TokenIntrospection = {
+        active: true,
+        scopes: ['admin:*'],
+        agentId: 'orchestrator-proxy',
+      };
+
+      const { result, isError } = await securedToolExecution(tool, args || {}, auth, {
+        requestPath: '/tools/call',
+        requestMethod: 'POST',
+      });
+
+      res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: !isError, result }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
   // POST /api/share — create share links for X/social platforms
   if (url === '/api/share' && req.method === 'POST') {
     try {
