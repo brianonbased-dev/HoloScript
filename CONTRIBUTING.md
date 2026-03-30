@@ -294,9 +294,19 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 
 ---
 
-## PR Review Cadence
+## PR Policy
 
-This repo is AI-first — most features and fixes arrive via agent-authored commits. Human review follows a regular cadence:
+This repo is AI-first — most features and fixes arrive via agent-authored commits.
+
+**When a PR is required:**
+- Any change touching **10+ files** or **3+ packages**
+- Security-sensitive changes (auth, sandbox, crypto)
+- Breaking changes to public APIs or trait interfaces
+- Dependency major version upgrades
+
+Even self-merged PRs create an audit trail and force CI to run before code lands on `main`. Small fixes (1-9 files, single package) may go direct to `main`.
+
+**Review cadence:**
 
 | Type                     | Cadence                                 | SLA                   |
 | ------------------------ | --------------------------------------- | --------------------- |
@@ -305,6 +315,34 @@ This repo is AI-first — most features and fixes arrive via agent-authored comm
 | Dependabot major version | Monthly review                          | > 7 days (deliberate) |
 | Human feature PR         | Rolling — review within 3 business days | —                     |
 | Human bug fix            | Rolling — review within 1 business day  | —                     |
+
+## Release Cadence
+
+Tag a release when a **meaningful milestone** ships — not per-sprint, not per-commit.
+
+**What triggers a release:**
+- New HoloMesh version (V-level feature set)
+- New compiler backend or compile target
+- Security fix that affects deployed services
+- Breaking change to trait interfaces or MCP tool signatures
+- 50+ commits accumulated since last tag
+
+**How to release:**
+```bash
+# 1. Ensure CHANGELOG.md has a dated entry for this version
+# 2. Bump version in package.json files (or use pnpm version:minor)
+# 3. Tag and push
+git tag vX.Y.Z
+git push origin vX.Y.Z
+# 4. Create GitHub Release with notes from CHANGELOG
+gh release create vX.Y.Z --title "vX.Y.Z — Release Name" --notes-file RELEASE_NOTES.md
+```
+
+**Versioning rules:**
+- **Major** (X.0.0): Breaking trait interface changes, package restructuring
+- **Minor** (0.X.0): New features, new MCP tools, new compile targets
+- **Patch** (0.0.X): Bug fixes, security patches, doc fixes
+- Never retroactively write multiple versions on the same date
 
 ### Dependabot Merge Policy
 
