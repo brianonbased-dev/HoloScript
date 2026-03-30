@@ -1,20 +1,21 @@
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
 
+# ─── Collect all package.json for lockfile resolution ────────────────────────
+# pnpm install --frozen-lockfile needs every workspace package.json present.
+# We copy the full repo into a temp stage, then extract only package.json files.
+FROM base AS manifests
+WORKDIR /app
+COPY . .
+RUN find packages -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; \
+ && find services -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+
 # ─── Install all deps ────────────────────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY packages/studio/package.json packages/studio/
-COPY packages/core/package.json packages/core/
-COPY packages/crdt/package.json packages/crdt/
-COPY packages/r3f-renderer/package.json packages/r3f-renderer/
-COPY packages/std/package.json packages/std/
-COPY packages/ui/package.json packages/ui/
-COPY packages/absorb-service/package.json packages/absorb-service/
-COPY packages/agent-protocol/package.json packages/agent-protocol/
-COPY packages/studio-plugin-sdk/package.json packages/studio-plugin-sdk/
+COPY --from=manifests /manifests/ ./
 
 RUN pnpm install --frozen-lockfile
 
