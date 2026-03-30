@@ -86,10 +86,20 @@ export type { GitChangeResult, FileContentHash } from './GitChangeDetector';
 export { EmbeddingIndex } from './EmbeddingIndex';
 export type { EmbeddingIndexOptions, IndexedSymbol, SearchResult } from './EmbeddingIndex';
 export { GraphRAGEngine } from './GraphRAGEngine';
-export type { GraphRAGOptions, GraphRAGResult, EnrichedResult, LLMAnswer, LLMProvider } from './GraphRAGEngine';
+export type {
+  GraphRAGOptions,
+  GraphRAGResult,
+  EnrichedResult,
+  LLMAnswer,
+  LLMProvider,
+} from './GraphRAGEngine';
 
 // Embedding Providers
-export type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions } from './providers/EmbeddingProvider';
+export type {
+  EmbeddingProvider,
+  EmbeddingProviderName,
+  EmbeddingProviderOptions,
+} from './providers/EmbeddingProvider';
 export { createEmbeddingProvider } from './providers/EmbeddingProviderFactory';
 export { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
 export { XenovaEmbeddingProvider } from './providers/XenovaEmbeddingProvider';
@@ -114,6 +124,14 @@ export type {
   TooltipLine,
   RAGAnnotation,
 } from './visualization/GraphTooltipGenerator';
+
+// Knowledge Extraction (auto-extract W/P/G from graph)
+export { KnowledgeExtractor } from './KnowledgeExtractor';
+export type {
+  KnowledgeEntry,
+  ExtractionResult,
+  ExtractionOptions,
+} from './KnowledgeExtractor';
 
 // Deprecated Symbol Inventory (Gap 5: SCARF-inspired cleanup)
 export {
