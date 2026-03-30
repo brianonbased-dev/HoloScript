@@ -88,6 +88,54 @@ export const moltbookAgents = pgTable(
   ]
 );
 
+// =============================================================================
+// KNOWLEDGE MARKETPLACE (wallet-bound, provenance-signed, x402-gated)
+// =============================================================================
+
+export const knowledgeEntries = pgTable(
+  'knowledge_entries',
+  {
+    id: varchar('id', { length: 255 }).primaryKey(),
+    workspaceId: varchar('workspace_id', { length: 255 }).notNull(),
+    walletAddress: varchar('wallet_address', { length: 42 }),
+    type: varchar('type', { length: 50 }).notNull(), // wisdom, pattern, gotcha, session
+    content: text('content').notNull(),
+    contentHash: varchar('content_hash', { length: 66 }), // keccak256
+    metadata: jsonb('metadata').default({}),
+    isPremium: boolean('is_premium').default(false).notNull(),
+    accessCount: integer('access_count').default(0).notNull(),
+    revenueCents: integer('revenue_cents').default(0).notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_knowledge_workspace').on(t.workspaceId),
+    index('idx_knowledge_wallet').on(t.walletAddress),
+    index('idx_knowledge_type').on(t.type),
+    index('idx_knowledge_premium').on(t.isPremium),
+  ]
+);
+
+export const knowledgeAccessLog = pgTable(
+  'knowledge_access_log',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    entryId: varchar('entry_id', { length: 255 }).notNull(),
+    accessorWallet: varchar('accessor_wallet', { length: 42 }),
+    accessorKeyId: varchar('accessor_key_id', { length: 255 }),
+    costCents: integer('cost_cents').default(0).notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_access_log_entry').on(t.entryId),
+    index('idx_access_log_wallet').on(t.accessorWallet),
+  ]
+);
+
+// =============================================================================
+// ABSORB PROJECTS
+// =============================================================================
+
 export const absorbProjects = pgTable(
   'absorb_projects',
   {
