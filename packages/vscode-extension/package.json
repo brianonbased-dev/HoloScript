@@ -1,8 +1,8 @@
 {
   "name": "holoscript-vscode",
   "displayName": "HoloScript Enhanced",
-  "description": "Language support for HoloScript+ with AI integration, Spatial Profiling, and Live Preview",
-  "version": "3.1.0",
+  "description": "HoloScript v6 language support — syntax, traits, preview, debug, AI agent API",
+  "version": "4.0.0",
   "publisher": "holoscript",
   "icon": "icons/holoscript-logo.png",
   "author": "Brian X Base Team",
@@ -27,57 +27,16 @@
     "3d",
     "webxr"
   ],
-  "activationEvents": [
-    "onStartupFinished",
-    "onLanguage:holoscript",
-    "onLanguage:holoscriptplus",
-    "onDebugResolve:holoscript-debug",
-    "onDebugDynamicConfigurations:holoscript-debug"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "HoloScript MCP",
+      "title": "HoloScript",
       "properties": {
-        "holoscript.mcp.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable MCP orchestrator integration for IDE agents."
-        },
         "holoscript.mcp.holoscriptMcpEnabled": {
           "type": "boolean",
           "default": true,
           "description": "Enable HoloScript MCP server (mcp.holoscript.net) for GitHub Copilot and AI agents."
-        },
-        "holoscript.mcp.orchestratorUrl": {
-          "type": "string",
-          "default": "http://localhost:5567",
-          "description": "MCP orchestrator base URL."
-        },
-        "holoscript.mcp.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "MCP API key for registration and heartbeats."
-        },
-        "holoscript.mcp.heartbeatSeconds": {
-          "type": "number",
-          "default": 20,
-          "minimum": 10,
-          "description": "Heartbeat interval in seconds."
-        },
-        "holoscript.mcp.visibility": {
-          "type": "string",
-          "enum": [
-            "public",
-            "private"
-          ],
-          "default": "public",
-          "description": "Visibility of this IDE agent in the orchestrator registry."
-        },
-        "holoscript.mcp.workspaceId": {
-          "type": "string",
-          "default": "holoscript",
-          "description": "Workspace ID to register under."
         },
         "holoscript.formatOnSave": {
           "type": "boolean",
@@ -93,200 +52,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable AI auto-suggestions while typing."
-        },
-        "holoscript.collaboration.serverUrl": {
-          "type": "string",
-          "default": "wss://collab.holoscript.net",
-          "description": "WebSocket URL for collaboration server."
-        },
-        "holoscript.collaboration.autoJoin": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically join collaboration sessions from shared links."
-        },
-        "holoscript.collaboration.showCursors": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show other participants' cursors."
-        },
-        "holoscript.collaboration.showSelections": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show other participants' selections."
-        },
-        "holoscript.collaboration.showNames": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show participant names above cursors."
-        },
-        "holoscript.git.enableSemanticDiff": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable semantic diff for HoloScript files."
-        },
-        "holoscript.git.enable3DPreview": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable 3D diff preview."
-        },
-        "holoscript.git.formatOnCommit": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto-format HoloScript files on commit."
-        },
-        "holoscript.git.validateOnCommit": {
-          "type": "boolean",
-          "default": true,
-          "description": "Validate HoloScript syntax on commit."
-        },
-        "holoscript.git.showInlineDiff": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show inline diff decorations in editor."
-        },
-        "holoscript.hololand.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Hololand Platform integration (VRR, AR, AgentKit, Zora, StoryWeaver, Quest Builder, x402)."
-        },
-        "holoscript.hololand.vrr.autoStart": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically start VRR synchronization on extension activation."
-        },
-        "holoscript.hololand.vrr.updateInterval": {
-          "type": "number",
-          "default": 300000,
-          "minimum": 60000,
-          "description": "VRR sync update interval in milliseconds (minimum 1 minute)."
-        },
-        "holoscript.hololand.vrr.weatherApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Weather.gov API key for real-time weather sync."
-        },
-        "holoscript.hololand.vrr.eventbriteApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Eventbrite API key for real-time event sync."
-        },
-        "holoscript.hololand.vrr.squareApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Square API key for real-time inventory sync."
-        },
-        "holoscript.hololand.x402.simulationMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use simulation mode for x402 payments (no real blockchain transactions)."
-        },
-        "holoscript.hololand.x402.defaultCurrency": {
-          "type": "string",
-          "enum": [
-            "ETH",
-            "USDC",
-            "DAI"
-          ],
-          "default": "ETH",
-          "description": "Default cryptocurrency for x402 payments."
-        },
-        "holoscript.hololand.agentkit.network": {
-          "type": "string",
-          "enum": [
-            "base",
-            "ethereum",
-            "base-sepolia"
-          ],
-          "default": "base-sepolia",
-          "description": "Blockchain network for AgentKit wallets."
-        },
-        "holoscript.hololand.agentkit.simulationMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use simulation mode for AgentKit operations (no real blockchain transactions)."
-        },
-        "holoscript.hololand.agentkit.defaultGasLimit": {
-          "type": "number",
-          "default": 21000,
-          "description": "Default gas limit for AgentKit transactions."
-        },
-        "holoscript.hololand.zora.network": {
-          "type": "string",
-          "enum": [
-            "base",
-            "ethereum",
-            "zora",
-            "base-sepolia"
-          ],
-          "default": "base",
-          "description": "Network for Zora NFT minting."
-        },
-        "holoscript.hololand.zora.defaultRoyalty": {
-          "type": "number",
-          "default": 10,
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Default royalty percentage for Zora NFTs (10-15% typical)."
-        },
-        "holoscript.hololand.zora.ipfsGateway": {
-          "type": "string",
-          "default": "https://ipfs.io/ipfs",
-          "description": "IPFS gateway URL for NFT metadata."
-        },
-        "holoscript.hololand.zora.simulationMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use simulation mode for Zora operations (no real blockchain transactions)."
-        },
-        "holoscript.hololand.storyweaver.provider": {
-          "type": "string",
-          "enum": [
-            "openai",
-            "anthropic",
-            "gemini"
-          ],
-          "default": "openai",
-          "description": "AI provider for StoryWeaver narrative generation."
-        },
-        "holoscript.hololand.storyweaver.model": {
-          "type": "string",
-          "default": "",
-          "description": "Specific model to use (e.g., 'gpt-4', 'claude-3-opus', 'gemini-pro')."
-        },
-        "holoscript.hololand.storyweaver.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "API key for StoryWeaver AI provider."
-        },
-        "holoscript.hololand.storyweaver.temperature": {
-          "type": "number",
-          "default": 0.7,
-          "minimum": 0,
-          "maximum": 2,
-          "description": "AI temperature for narrative generation (0-2)."
-        },
-        "holoscript.hololand.storyweaver.maxTokens": {
-          "type": "number",
-          "default": 1000,
-          "minimum": 100,
-          "maximum": 8000,
-          "description": "Maximum tokens for AI-generated narratives."
-        },
-        "holoscript.hololand.ar.simulationMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use simulation mode for AR preview (no real camera/QR scanning)."
-        },
-        "holoscript.hololand.ar.defaultTrigger": {
-          "type": "string",
-          "enum": [
-            "qr",
-            "nfc",
-            "image",
-            "location"
-          ],
-          "default": "qr",
-          "description": "Default AR portal trigger type."
         }
       }
     },
@@ -304,17 +69,6 @@
         {
           "id": "holohub.assets",
           "name": "Marketplace",
-          "icon": "media/icon.png"
-        },
-        {
-          "id": "holoscript.serviceHub",
-          "name": "Service Connectors",
-          "icon": "media/icon.png"
-        },
-        {
-          "id": "holoscript.diffVisualization",
-          "name": "Diff Preview",
-          "type": "webview",
           "icon": "media/icon.png"
         }
       ],
@@ -557,23 +311,6 @@
         "category": "HoloScript"
       },
       {
-        "command": "holoscript.mcp.status",
-        "title": "MCP: Show Connectivity Status",
-        "category": "HoloScript"
-      },
-      {
-        "command": "holoscript.openServiceHub",
-        "title": "Open Service Connector Hub",
-        "category": "HoloScript",
-        "icon": "$(plug)"
-      },
-      {
-        "command": "holoscript.runSetupWizard",
-        "title": "Run Setup Wizard",
-        "category": "HoloScript",
-        "icon": "$(zap)"
-      },
-      {
         "command": "holoscript.createFirstScene",
         "title": "Create First Scene",
         "category": "HoloScript",
@@ -610,114 +347,6 @@
         "icon": "$(check)"
       },
       {
-        "command": "holoscript.collaboration.start",
-        "title": "Start Collaboration Session",
-        "category": "HoloScript",
-        "icon": "$(broadcast)"
-      },
-      {
-        "command": "holoscript.collaboration.join",
-        "title": "Join Collaboration Session",
-        "category": "HoloScript",
-        "icon": "$(plug)"
-      },
-      {
-        "command": "holoscript.collaboration.end",
-        "title": "End Collaboration Session",
-        "category": "HoloScript",
-        "icon": "$(debug-disconnect)"
-      },
-      {
-        "command": "holoscript.collaboration.share",
-        "title": "Share Collaboration Link",
-        "category": "HoloScript",
-        "icon": "$(link)"
-      },
-      {
-        "command": "holoscript.collaboration.showParticipants",
-        "title": "Show Collaboration Participants",
-        "category": "HoloScript",
-        "icon": "$(organization)"
-      },
-      {
-        "command": "holoscript.collaboration.addComment",
-        "title": "Add Inline Comment",
-        "category": "HoloScript",
-        "icon": "$(comment)"
-      },
-      {
-        "command": "holoscript.collaboration.lockSection",
-        "title": "Lock Section for Editing",
-        "category": "HoloScript",
-        "icon": "$(lock)"
-      },
-      {
-        "command": "holoscript.collaboration.toggle",
-        "title": "Toggle Collaboration",
-        "category": "HoloScript",
-        "icon": "$(live-share)"
-      },
-      {
-        "command": "holoscript.showSemanticDiff",
-        "title": "Show Semantic Diff",
-        "category": "HoloScript Git",
-        "icon": "$(diff)"
-      },
-      {
-        "command": "holoscript.show3DDiff",
-        "title": "Show 3D Diff Preview",
-        "category": "HoloScript Git",
-        "icon": "$(preview)"
-      },
-      {
-        "command": "holoscript.toggleDiffDecorations",
-        "title": "Toggle Diff Decorations",
-        "category": "HoloScript Git",
-        "icon": "$(eye)"
-      },
-      {
-        "command": "holoscript.blameLine",
-        "title": "Blame Line",
-        "category": "HoloScript Git",
-        "icon": "$(git-commit)"
-      },
-      {
-        "command": "holoscript.showFileHistory",
-        "title": "Show File History",
-        "category": "HoloScript Git",
-        "icon": "$(history)"
-      },
-      {
-        "command": "holoscript.stageWithValidation",
-        "title": "Stage with Validation",
-        "category": "HoloScript Git",
-        "icon": "$(add)"
-      },
-      {
-        "command": "holoscript.commitSemantic",
-        "title": "Commit with Semantic Message",
-        "category": "HoloScript Git",
-        "icon": "$(check)"
-      },
-      {
-        "command": "holoscript.showGitStatus",
-        "title": "Show HoloScript Git Status",
-        "category": "HoloScript Git",
-        "icon": "$(source-control)"
-      },
-      {
-        "command": "holoscript.resolveMergeConflicts",
-        "title": "Resolve Merge Conflicts",
-        "category": "HoloScript Git",
-        "icon": "$(merge)"
-      },
-      {
-        "command": "holoscript.runPreCommitHook",
-        "title": "Run Pre-Commit Hook",
-        "category": "HoloScript Git",
-        "icon": "$(run)"
-      },
-      {
         "command": "holoscript.traitTree.refresh",
         "title": "Refresh Trait Tree",
         "category": "HoloScript",
@@ -739,132 +368,6 @@
         "title": "Copy Trait Name",
         "category": "HoloScript",
         "icon": "$(clippy)"
-      },
-      {
-        "command": "holoscript.vrr.startSync",
-        "title": "Start VRR Synchronization",
-        "category": "Hololand",
-        "icon": "$(sync)"
-      },
-      {
-        "command": "holoscript.vrr.stopSync",
-        "title": "Stop VRR Synchronization",
-        "category": "Hololand",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "holoscript.vrr.showStatus",
-        "title": "Show VRR Status",
-        "category": "Hololand",
-        "icon": "$(info)"
-      },
-      {
-        "command": "holoscript.ar.createPortal",
-        "title": "Create AR Portal",
-        "category": "Hololand",
-        "icon": "$(link-external)"
-      },
-      {
-        "command": "holoscript.ar.simulateQRScan",
-        "title": "Simulate QR Code Scan",
-        "category": "Hololand",
-        "icon": "$(device-camera)"
-      },
-      {
-        "command": "holoscript.agentkit.createWallet",
-        "title": "Create AI Agent Wallet",
-        "category": "Hololand",
-        "icon": "$(account)"
-      },
-      {
-        "command": "holoscript.agentkit.mintNFT",
-        "title": "Mint NFT with AgentKit",
-        "category": "Hololand",
-        "icon": "$(file-media)"
-      },
-      {
-        "command": "holoscript.agentkit.viewBalance",
-        "title": "View Agent Wallet Balance",
-        "category": "Hololand",
-        "icon": "$(symbol-currency)"
-      },
-      {
-        "command": "holoscript.zora.mintNFT",
-        "title": "Mint NFT on Zora",
-        "category": "Hololand",
-        "icon": "$(package)"
-      },
-      {
-        "command": "holoscript.zora.viewRoyalties",
-        "title": "View Zora Royalties",
-        "category": "Hololand",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "holoscript.storyweaver.generateNarrative",
-        "title": "Generate AI Narrative",
-        "category": "Hololand",
-        "icon": "$(book)"
-      },
-      {
-        "command": "holoscript.storyweaver.generateQuest",
-        "title": "Generate AI Quest",
-        "category": "Hololand",
-        "icon": "$(game)"
-      },
-      {
-        "command": "holoscript.quest.openBuilder",
-        "title": "Open Quest Builder",
-        "category": "Hololand",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "holoscript.quest.preview",
-        "title": "Preview Quest",
-        "category": "Hololand",
-        "icon": "$(preview)"
-      },
-      {
-        "command": "holoscript.x402.simulatePayment",
-        "title": "Simulate x402 Payment",
-        "category": "Hololand",
-        "icon": "$(credit-card)"
-      },
-      {
-        "command": "holoscript.x402.viewHistory",
-        "title": "View x402 Payment History",
-        "category": "Hololand",
-        "icon": "$(history)"
-      },
-      {
-        "command": "holoscript.hololand.showStatus",
-        "title": "Show Hololand Platform Status",
-        "category": "Hololand",
-        "icon": "$(dashboard)"
-      },
-      {
-        "command": "holoscript.hololand.openVRRPreview",
-        "title": "Open VRR Twin Preview",
-        "category": "Hololand",
-        "icon": "$(globe)"
-      },
-      {
-        "command": "holoscript.hololand.openQuestBuilder",
-        "title": "Open Quest Builder UI",
-        "category": "Hololand",
-        "icon": "$(tools)"
-      },
-      {
-        "command": "holoscript.hololand.openARSimulator",
-        "title": "Open AR Simulator",
-        "category": "Hololand",
-        "icon": "$(device-camera)"
-      },
-      {
-        "command": "holoscript.hololand.openWalletDashboard",
-        "title": "Open Agent Wallet Dashboard",
-        "category": "Hololand",
-        "icon": "$(account)"
       }
     ],
     "customEditors": [
@@ -892,33 +395,6 @@
           "command": "holoscript.openPreview",
           "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
           "group": "holoscript"
-        },
-        {
-          "command": "holoscript.showSemanticDiff",
-          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
-          "group": "holoscript-git@1"
-        },
-        {
-          "command": "holoscript.blameLine",
-          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
-          "group": "holoscript-git@2"
-        },
-        {
-          "command": "holoscript.show3DDiff",
-          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
-          "group": "holoscript-git@3"
-        }
-      ],
-      "explorer/context": [
-        {
-          "command": "holoscript.showSemanticDiff",
-          "when": "resourceExtname == .holo || resourceExtname == .hs",
-          "group": "holoscript-git"
-        },
-        {
-          "command": "holoscript.showFileHistory",
-          "when": "resourceExtname == .holo || resourceExtname == .hs",
-          "group": "holoscript-git"
         }
       ],
       "view/title": [
@@ -1175,8 +651,6 @@
     "@holoscript/sdk": "workspace:^",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",
-    "vscode-languageclient": "^9.0.1",
-    "y-websocket": "^2.0.3",
-    "yjs": "^13.6.15"
+    "vscode-languageclient": "^9.0.1"
   }
 }
