@@ -33,6 +33,10 @@ export interface StoredScene {
   license?: string;
   /** Provenance metadata (compiler-generated) */
   provenance?: SceneProvenance;
+  /** Cached PNG thumbnail (base64-encoded) */
+  thumbnail?: string;
+  /** Whether thumbnail generation is in progress */
+  thumbnailPending?: boolean;
 }
 
 /** In-memory scene store. Replace with Redis/SQLite for production persistence. */
@@ -117,6 +121,81 @@ export function findSceneByAuthor(username: string, name: string): StoredScene |
     if (scene.author === username && (scene.title === name || scene.id === name)) {
       return scene;
     }
+  }
+  return null;
+}
+
+// =============================================================================
+// Thumbnail Generation (Playwright headless screenshot)
+// =============================================================================
+
+/** In-memory thumbnail cache for scenes without stored thumbnails */
+const thumbnailCache = new Map<string, Buffer>();
+
+/**
+ * Generate a PNG thumbnail for a scene using Playwright headless browser.
+ * Runs async — call after storeScene() to populate the thumbnail field.
+ */
+export async function generateThumbnail(
+  sceneId: string,
+  width = 1200,
+  height = 630
+): Promise<Buffer | null> {
+  // Return cached thumbnail if available
+  const cached = thumbnailCache.get(sceneId);
+  if (cached) return cached;
+
+  const scene = sceneStore.get(sceneId);
+  if (!scene) return null;
+  if (scene.thumbnail) return Buffer.from(scene.thumbnail, 'base64');
+
+  // Mark as pending to avoid duplicate generation
+  if (scene.thumbnailPending) return null;
+  scene.thumbnailPending = true;
+
+  try {
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({
+      args: ['--headless', '--disable-gpu', '--no-sandbox'],
+    });
+    const page = await browser.newPage({ viewport: { width, height } });
+
+    // Render the scene HTML directly (no network round-trip)
+    const html = generateBrowserTemplate(scene.code, scene.title);
+    await page.setContent(html, { waitUntil: 'networkidle' });
+
+    // Wait for Three.js to render at least one frame
+    await page.waitForTimeout(2000);
+
+    const screenshot = await page.screenshot({ type: 'png' });
+    await browser.close();
+
+    // Cache the thumbnail
+    const buffer = Buffer.from(screenshot);
+    scene.thumbnail = buffer.toString('base64');
+    scene.thumbnailPending = false;
+    thumbnailCache.set(sceneId, buffer);
+
+    return buffer;
+  } catch (err) {
+    scene.thumbnailPending = false;
+    console.error(`[thumbnail] Failed to generate for scene ${sceneId}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Get a scene's thumbnail buffer, or null if not yet generated.
+ */
+export function getThumbnail(sceneId: string): Buffer | null {
+  const cached = thumbnailCache.get(sceneId);
+  if (cached) return cached;
+
+  const scene = sceneStore.get(sceneId);
+  if (scene?.thumbnail) {
+    const buffer = Buffer.from(scene.thumbnail, 'base64');
+    thumbnailCache.set(sceneId, buffer);
+    return buffer;
   }
   return null;
 }
@@ -228,10 +307,14 @@ export async function renderPreview(options: RenderOptions): Promise<RenderResul
   // Store scene and generate short URL
   const scene = storeScene(code, 'HoloScript Preview');
   const previewUrl = `${PLAYGROUND_URL}/scene/${scene.id}`;
+  const thumbnailUrl = `${PLAYGROUND_URL}/api/scene/${scene.id}/thumbnail`;
+
+  // Trigger async thumbnail generation (non-blocking)
+  generateThumbnail(scene.id).catch(() => {});
 
   return {
     success: true,
-    url: undefined, // No static image available locally
+    url: thumbnailUrl,
     previewUrl,
     embedCode: generateEmbedCode(previewUrl, resolution),
     localPath: undefined,
@@ -290,8 +373,11 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
   // Generate QR code data URL (for mobile XR access)
   const qrCode = generateQRCodeDataUrl(playgroundUrl);
 
-  // Generate Twitter Card meta tags
-  const cardMeta = generateCardMeta(title, description, embedUrl);
+  // Generate Twitter Card meta tags (with thumbnail URL)
+  const cardMeta = generateCardMeta(title, description, embedUrl, scene.id);
+
+  // Trigger async thumbnail generation
+  generateThumbnail(scene.id).catch(() => {});
 
   return {
     playgroundUrl,
@@ -436,20 +522,33 @@ function generateQRCodeDataUrl(url: string): string {
 function generateCardMeta(
   title: string,
   description: string,
-  embedUrl: string
+  embedUrl: string,
+  sceneId?: string
 ): Record<string, string> {
-  return {
-    'twitter:card': 'player',
+  const meta: Record<string, string> = {
+    'og:title': title,
+    'og:description': description,
+    'og:type': 'website',
+    'og:url': embedUrl,
     'twitter:title': title,
     'twitter:description': description,
     'twitter:player': embedUrl,
     'twitter:player:width': '800',
     'twitter:player:height': '600',
-    'og:title': title,
-    'og:description': description,
-    'og:type': 'website',
-    'og:url': embedUrl,
   };
+
+  if (sceneId) {
+    const thumbnailUrl = `${PLAYGROUND_URL}/api/scene/${sceneId}/thumbnail`;
+    meta['og:image'] = thumbnailUrl;
+    meta['og:image:width'] = '1200';
+    meta['og:image:height'] = '630';
+    meta['twitter:card'] = 'summary_large_image';
+    meta['twitter:image'] = thumbnailUrl;
+  } else {
+    meta['twitter:card'] = 'player';
+  }
+
+  return meta;
 }
 
 function generateEmbedCode(previewUrl: string, resolution: number[]): string {
@@ -464,17 +563,30 @@ function generateEmbedCode(previewUrl: string, resolution: number[]): string {
 ></iframe>`;
 }
 
-export function generateBrowserTemplate(code: string, title: string): string {
+export function generateBrowserTemplate(
+  code: string,
+  title: string,
+  sceneId?: string
+): string {
+  const thumbnailUrl = sceneId
+    ? `${PLAYGROUND_URL}/api/scene/${sceneId}/thumbnail`
+    : undefined;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
-  
+
+  <!-- OpenGraph -->
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="Interactive 3D scene built with HoloScript">
+  <meta property="og:type" content="website">${thumbnailUrl ? `\n  <meta property="og:image" content="${thumbnailUrl}">` : ''}${sceneId ? `\n  <meta property="og:url" content="${PLAYGROUND_URL}/scene/${sceneId}">` : ''}
+
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="player">
-  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:card" content="${thumbnailUrl ? 'summary_large_image' : 'player'}">
+  <meta name="twitter:title" content="${escapeHtml(title)}">${thumbnailUrl ? `\n  <meta name="twitter:image" content="${thumbnailUrl}">` : ''}
   <meta name="twitter:player" content="${PLAYGROUND_URL}/embed">
   <meta name="twitter:player:width" content="800">
   <meta name="twitter:player:height" content="600">

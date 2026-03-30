@@ -30,6 +30,8 @@ import {
   storeScene,
   findSceneByAuthor,
   generateBrowserTemplate,
+  generateThumbnail,
+  getThumbnail,
 } from './renderer';
 import type { StoredScene } from './renderer';
 import {
@@ -832,7 +834,7 @@ const httpServer = http.createServer(async (req, res) => {
       return;
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(generateBrowserTemplate(scene.code, scene.title));
+    res.end(generateBrowserTemplate(scene.code, scene.title, scene.id));
     return;
   }
 
@@ -848,7 +850,40 @@ const httpServer = http.createServer(async (req, res) => {
       'Content-Type': 'text/html; charset=utf-8',
       'X-Frame-Options': 'ALLOWALL',
     });
-    res.end(generateBrowserTemplate(scene.code, scene.title));
+    res.end(generateBrowserTemplate(scene.code, scene.title, scene.id));
+    return;
+  }
+
+  // GET /api/scene/:id/thumbnail — serve PNG thumbnail for social previews
+  const thumbnailMatch = url?.match(/^\/api\/scene\/([a-f0-9]{8})\/thumbnail$/);
+  if (thumbnailMatch && req.method === 'GET') {
+    const sceneId = thumbnailMatch[1];
+    const scene = getScene(sceneId);
+    if (!scene) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Scene not found' }));
+      return;
+    }
+
+    // Try cached thumbnail first
+    let buffer = getThumbnail(sceneId);
+    if (!buffer) {
+      // Generate on-demand (blocks this request but caches for future)
+      buffer = await generateThumbnail(sceneId);
+    }
+
+    if (buffer) {
+      res.writeHead(200, {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400',
+        'Content-Length': buffer.length.toString(),
+      });
+      res.end(buffer);
+    } else {
+      // Fallback: redirect to a placeholder or return 202
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'generating', retry_after: 3 }));
+    }
     return;
   }
 
