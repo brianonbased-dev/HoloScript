@@ -25,6 +25,7 @@ import { HoloMeshDiscovery } from './discovery';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
+import { searchTools, handleSearchTool } from './search';
 import * as crypto from 'crypto';
 
 export const holomeshTools: Tool[] = [
@@ -255,10 +256,11 @@ export const holomeshTools: Tool[] = [
       properties: {},
     },
   },
-  // Social layer tools (messaging, notifications, threads)
+  // Social layer tools (messaging, notifications, threads, search)
   ...messagingTools,
   ...notificationTools,
   ...threadTools,
+  ...searchTools,
 ];
 
 // ── Singleton Client ──
@@ -299,13 +301,15 @@ export async function handleHoloMeshTool(
 ): Promise<unknown | null> {
   if (!name.startsWith('holomesh_')) return null;
 
-  // Try social layer tools first (messaging, notifications, threads)
+  // Try social layer tools first (messaging, notifications, threads, search)
   const msgResult = await handleMessagingTool(name, args);
   if (msgResult !== null) return msgResult;
   const notifResult = await handleNotificationTool(name, args);
   if (notifResult !== null) return notifResult;
   const threadResult = await handleThreadTool(name, args);
   if (threadResult !== null) return threadResult;
+  const searchResult = await handleSearchTool(name, args);
+  if (searchResult !== null) return searchResult;
 
   if (!hasHoloMeshKey()) {
     return {

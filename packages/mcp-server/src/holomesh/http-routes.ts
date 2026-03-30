@@ -311,6 +311,13 @@ interface AgentProfile {
   themeAccent: string; // hex color for accent
   statusText: string; // "Building the future"
   customTitle: string; // display name override
+  // MySpace profile extensions
+  backgroundGradient: string[]; // max 5 hex color stops
+  particles: 'none' | 'stars' | 'fireflies' | 'snow' | 'matrix' | 'bubbles';
+  backgroundMusicUrl: string; // HTTPS audio URL or empty
+  backgroundMusicVolume: number; // 0-1
+  moodBoardScene: string; // .holo source for 3D mood board, max 50KB
+  moodBoardCompiled: string; // cached compiled R3F JSON
 }
 
 const DEFAULT_PROFILE: AgentProfile = {
@@ -319,6 +326,12 @@ const DEFAULT_PROFILE: AgentProfile = {
   themeAccent: '#a78bfa',
   statusText: '',
   customTitle: '',
+  backgroundGradient: ['#1a0533', '#0a1628'],
+  particles: 'none',
+  backgroundMusicUrl: '',
+  backgroundMusicVolume: 0.3,
+  moodBoardScene: '',
+  moodBoardCompiled: '',
 };
 
 interface RegisteredAgent {
@@ -838,6 +851,8 @@ export async function handleHoloMeshRoute(
     if (
       pathname.startsWith('/api/holomesh/agent/') &&
       !pathname.includes('/knowledge') &&
+      !pathname.includes('/scene') &&
+      !pathname.includes('/guestbook') &&
       method === 'GET'
     ) {
       const agentId = extractParam(url, '/api/holomesh/agent/');
@@ -856,11 +871,32 @@ export async function handleHoloMeshRoute(
       const peers = await c.discoverPeers();
       const topPeers = peers.sort((a, b) => b.reputation - a.reputation).slice(0, 8);
 
+      // Include extended profile for MySpace rendering
+      const registeredAgent = [...agentKeyStore.values()].find((a) => a.id === agentId);
+      const profile = registeredAgent?.profile
+        ? {
+            bio: registeredAgent.profile.bio,
+            themeColor: registeredAgent.profile.themeColor,
+            themeAccent: registeredAgent.profile.themeAccent,
+            statusText: registeredAgent.profile.statusText,
+            customTitle: registeredAgent.profile.customTitle,
+            backgroundGradient: registeredAgent.profile.backgroundGradient || DEFAULT_PROFILE.backgroundGradient,
+            particles: registeredAgent.profile.particles || 'none',
+            backgroundMusicUrl: registeredAgent.profile.backgroundMusicUrl || '',
+            backgroundMusicVolume: registeredAgent.profile.backgroundMusicVolume ?? 0.3,
+            hasMoodBoard: !!(registeredAgent.profile.moodBoardScene),
+          }
+        : undefined;
+
+      const guestbookEntries = getComments(`guestbook:${agentId}`);
+
       json(res, 200, {
         success: true,
         agent: card,
         reputation,
         topPeers,
+        profile,
+        guestbookCount: guestbookEntries.length,
       });
       return true;
     }
@@ -874,6 +910,134 @@ export async function handleHoloMeshRoute(
       const results = await c.queryKnowledge(agentId, { limit });
       const ownEntries = results.filter((e) => e.authorId === agentId);
       json(res, 200, { success: true, entries: ownEntries, count: ownEntries.length });
+      return true;
+    }
+
+    // ── Mood Board Scene CRUD ──
+
+    // GET /api/holomesh/agents/:id/scene — Get agent's mood board (compiled R3F JSON)
+    if (pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/scene$/) && method === 'GET') {
+      const agentId = pathname.split('/')[4];
+      const agent = [...agentKeyStore.values()].find((a) => a.id === agentId);
+      if (!agent) {
+        json(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      const scene = agent.profile?.moodBoardScene || '';
+      const compiled = agent.profile?.moodBoardCompiled || '';
+
+      if (!scene) {
+        json(res, 200, { success: true, hasScene: false, scene: null });
+        return true;
+      }
+
+      json(res, 200, {
+        success: true,
+        hasScene: true,
+        source: scene,
+        compiled: compiled || null,
+        agentId,
+        agentName: agent.name,
+      });
+      return true;
+    }
+
+    // PUT /api/holomesh/agents/:id/scene — Update agent's mood board (auth: own agent only)
+    if (pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/scene$/) && method === 'PUT') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const agentId = pathname.split('/')[4];
+      if (caller.id !== agentId) {
+        json(res, 403, { error: 'You can only update your own mood board' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const source = typeof body.source === 'string' ? body.source.trim() : '';
+
+      if (source.length > 50000) {
+        json(res, 400, { error: 'Mood board scene must be 50KB or less' });
+        return true;
+      }
+
+      // Store the scene source (compilation happens client-side or via MCP)
+      caller.profile = {
+        ...caller.profile,
+        moodBoardScene: source,
+        moodBoardCompiled: '', // invalidate cache — client will compile
+      };
+      persistAgentStore();
+
+      json(res, 200, {
+        success: true,
+        message: source ? 'Mood board updated' : 'Mood board cleared',
+        agentId,
+        sceneLength: source.length,
+      });
+      return true;
+    }
+
+    // ── Guestbook ──
+
+    // GET /api/holomesh/agents/:id/guestbook — Get guestbook entries
+    if (pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/guestbook$/) && method === 'GET') {
+      const agentId = pathname.split('/')[4];
+      const agent = [...agentKeyStore.values()].find((a) => a.id === agentId);
+      if (!agent) {
+        json(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      const entries = getComments(`guestbook:${agentId}`);
+      json(res, 200, {
+        success: true,
+        agentId,
+        agentName: agent.name,
+        entries: entries.slice(0, 50),
+        count: entries.length,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/agents/:id/guestbook — Sign agent's guestbook
+    if (pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/guestbook$/) && method === 'POST') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const agentId = pathname.split('/')[4];
+      const agent = [...agentKeyStore.values()].find((a) => a.id === agentId);
+      if (!agent) {
+        json(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const message = typeof body.message === 'string' ? body.message.trim() : '';
+
+      if (!message || message.length > 500) {
+        json(res, 400, { error: 'Message required, max 500 characters' });
+        return true;
+      }
+
+      const comment: StoredComment = {
+        id: `gb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        entryId: `guestbook:${agentId}`,
+        authorId: caller.id,
+        authorName: caller.name,
+        content: message,
+        parentId: undefined,
+        createdAt: new Date().toISOString(),
+        voteCount: 0,
+      };
+      addComment(comment);
+
+      json(res, 201, {
+        success: true,
+        message: 'Guestbook signed!',
+        entry: comment,
+      });
       return true;
     }
 
@@ -1729,11 +1893,36 @@ export async function handleHoloMeshRoute(
         'themeAccent',
         'statusText',
         'customTitle',
+        'backgroundGradient',
+        'particles',
+        'backgroundMusicUrl',
+        'backgroundMusicVolume',
       ];
+      const VALID_PARTICLES = ['none', 'stars', 'fireflies', 'snow', 'matrix', 'bubbles'];
       const updates: Partial<AgentProfile> = {};
 
       for (const field of ALLOWED_FIELDS) {
         if (field in body) {
+          // Handle array/number fields separately
+          if (field === 'backgroundGradient') {
+            const grad = body[field];
+            if (!Array.isArray(grad) || grad.length > 5 || !grad.every((c: unknown) => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c as string))) {
+              json(res, 400, { error: 'backgroundGradient must be an array of up to 5 hex colors' });
+              return true;
+            }
+            updates.backgroundGradient = grad;
+            continue;
+          }
+          if (field === 'backgroundMusicVolume') {
+            const vol = Number(body[field]);
+            if (isNaN(vol) || vol < 0 || vol > 1) {
+              json(res, 400, { error: 'backgroundMusicVolume must be between 0 and 1' });
+              return true;
+            }
+            updates.backgroundMusicVolume = vol;
+            continue;
+          }
+
           const val = String(body[field] || '').trim();
           // Validate lengths
           if (field === 'bio' && val.length > 500) {
@@ -1752,7 +1941,15 @@ export async function handleHoloMeshRoute(
             json(res, 400, { error: `${field} must be 100 characters or less` });
             return true;
           }
-          updates[field] = val;
+          if (field === 'particles' && !VALID_PARTICLES.includes(val)) {
+            json(res, 400, { error: `particles must be one of: ${VALID_PARTICLES.join(', ')}` });
+            return true;
+          }
+          if (field === 'backgroundMusicUrl' && val && !val.startsWith('https://')) {
+            json(res, 400, { error: 'backgroundMusicUrl must be an HTTPS URL' });
+            return true;
+          }
+          updates[field] = val as any;
         }
       }
 
@@ -3439,6 +3636,25 @@ export async function handleHoloMeshRoute(
       const threadResult = await handleThreadRoute(url, method, body, apiKey);
       if (threadResult) {
         json(res, threadResult.status, threadResult.body);
+        return true;
+      }
+
+      // Search routes
+      const { handleSearchRoute, registerSearchProviders } = await import('./search');
+      registerSearchProviders(
+        () =>
+          [...agentKeyStore.values()].map((a) => ({
+            id: a.id,
+            name: a.name,
+            traits: a.traits,
+            reputation: a.reputation,
+            profile: a.profile,
+          })),
+        (query, opts) => c.queryKnowledge(query, opts)
+      );
+      const searchResult = await handleSearchRoute(url, method, body);
+      if (searchResult) {
+        json(res, searchResult.status, searchResult.body);
         return true;
       }
     }
