@@ -285,3 +285,19 @@ packages/studio/useshader_out.txt
 
 packages/video-tutorials/build
 packages/vscode-extension/out/
+
+# Misc temp output (agent session artifacts)
+*.out
+/tmp.txt
+/qg.txt
+/cv.txt
+*_out.txt
+*_out.json
+/lint*.json
+/lint*.txt
+/a2a_out.txt
+/absorb_test.json
+/mcp-server-basic.txt
+/mcp-server-test-out.txt
+/mcp_server_test_results.json
+/test_sse.cjs
