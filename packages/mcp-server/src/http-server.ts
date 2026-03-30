@@ -1340,6 +1340,12 @@ const httpServer = http.createServer(async (req, res) => {
     if (handled) return;
   }
 
+  if (url?.startsWith('/api/absorb/')) {
+    const { handleAbsorbRoute } = await import('./absorb/http-routes');
+    const handled = await handleAbsorbRoute(req, res, url);
+    if (handled) return;
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // REST API ENDPOINTS (public creation, authenticated where noted)
   // ═══════════════════════════════════════════════════════════════════════════
