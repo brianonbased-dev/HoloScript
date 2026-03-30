@@ -311,6 +311,8 @@ export class ExportManager {
   private eventListeners: Map<ExportEventType, Set<ExportEventListener>> = new Map();
   private defaultOptions: Required<ExportOptions>;
   private memoryMonitor: CompilerStateMonitor | null = null;
+  /** V11: Content hash per backend to skip unchanged recompilations */
+  private lastCompositionHash: Map<string, string> = new Map();
 
   constructor(options: Partial<ExportOptions> = {}) {
     this.defaultOptions = {
@@ -391,6 +393,7 @@ export class ExportManager {
   dispose(): void {
     this.memoryMonitor?.dispose();
     this.eventListeners.clear();
+    this.lastCompositionHash.clear();
   }
 
   /**
@@ -438,7 +441,23 @@ export class ExportManager {
   }
 
   /**
-   * Export composition to multiple targets in parallel
+   * V11: Compute a stable content hash for a composition.
+   * Used to detect when a backend's input hasn't changed.
+   */
+  private computeCompositionHash(composition: HoloComposition): string {
+    const objects =
+      composition.objects?.map((o) => o.name).sort().join(',') || '';
+    const traitCount =
+      composition.objects?.reduce(
+        (sum, o) => sum + (o.traits?.length || 0),
+        0
+      ) || 0;
+    return `${composition.name}:${objects}:${traitCount}:${JSON.stringify(composition).length}`;
+  }
+
+  /**
+   * Export composition to multiple targets in parallel.
+   * V11: Skips backends whose last compilation matches the current composition.
    */
   async batchExport(
     targets: ExportTarget[],
@@ -446,14 +465,31 @@ export class ExportManager {
     options: Partial<ExportOptions> = {}
   ): Promise<BatchExportResult> {
     const startTime = Date.now();
+    const currentHash = this.computeCompositionHash(composition);
 
-    // Export all targets in parallel
+    // V11: Skip backends whose last compilation matches current composition
+    const forceRecompile = options.compilerOptions?.forceRecompile;
+    const needsCompile = forceRecompile
+      ? targets
+      : targets.filter(
+          (t) => this.lastCompositionHash.get(t) !== currentHash
+        );
+
+    // Export only changed targets in parallel
     const results = await Promise.all(
-      targets.map((target) => this.export(target, composition, options))
+      needsCompile.map((target) => this.export(target, composition, options))
     );
 
-    // Calculate statistics
-    const successCount = results.filter((r) => r.success).length;
+    // Update hash cache for successful compilations
+    for (const result of results) {
+      if (result.success) {
+        this.lastCompositionHash.set(result.target, currentHash);
+      }
+    }
+
+    // Calculate statistics (skipped backends count as successes)
+    const skippedCount = targets.length - needsCompile.length;
+    const successCount = results.filter((r) => r.success).length + skippedCount;
     const failureCount = results.filter((r) => !r.success).length;
     const fallbackCount = results.filter((r) => r.usedFallback).length;
 
@@ -614,9 +650,10 @@ export class ExportManager {
     let documentation: ExportResult['documentation'] | undefined;
     if (options.generateDocs && circuitResult.success && circuitResult.data) {
       const docGen = new CompilerDocumentationGenerator(options.docsOptions);
-      const outputStr = typeof circuitResult.data === 'string'
-        ? circuitResult.data
-        : JSON.stringify(circuitResult.data);
+      const outputStr =
+        typeof circuitResult.data === 'string'
+          ? circuitResult.data
+          : JSON.stringify(circuitResult.data);
       const tripleOutput = docGen.generate(composition, target, outputStr);
       documentation = {
         llmsTxt: tripleOutput.llmsTxt,

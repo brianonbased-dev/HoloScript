@@ -14,6 +14,7 @@ import type {
   GossipDeltaResponse,
   GossipHealthMetadata,
 } from './types.js';
+import { resolveReputationTier, getTierWeight } from './types.js';
 import { signGossipPayload, verifyGossipSignature } from './wallet-auth.js';
 import * as fs from 'fs';
 
@@ -282,19 +283,97 @@ export class HoloMeshDiscovery {
     return added;
   }
 
-  // ── V2: Random Peer Selection ────────────────────────────────────────────
+  // ── V2/V10: Weighted Peer Selection ──────────────────────────────────────
 
-  /** Pick random peers for a gossip round (Fisher-Yates shuffle) */
+  /**
+   * Pick peers for a gossip round using health-weighted selection.
+   *
+   * V10 Game Theory fix: Fisher-Yates ignored all 4 available signals
+   * (peerHealthCache, lastSyncAt, reputation, failureCount). Now uses
+   * weighted random selection based on peer quality scores.
+   *
+   * Weight formula:
+   *   base=1 + reputationBonus(0-3) + uptimeBonus(0-2) + freshnessBonus(0-2)
+   *   - failurePenalty(failureCount * 2)
+   *   Minimum weight: 0.1 (everyone gets a small chance)
+   */
   public selectGossipTargets(count: number = MAX_GOSSIP_TARGETS): PeerStoreEntry[] {
     const eligible = Array.from(this.peers.values()).filter(
       (p) => p.failureCount < MAX_FAILURE_COUNT
     );
-    // Fisher-Yates shuffle
-    for (let i = eligible.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
+    if (eligible.length === 0) return [];
+    if (eligible.length <= count) return eligible;
+
+    // Compute weights for each peer
+    const weighted = eligible.map((peer) => ({
+      peer,
+      weight: this.computePeerWeight(peer),
+    }));
+
+    // Weighted random selection without replacement
+    const selected: PeerStoreEntry[] = [];
+    const pool = [...weighted];
+
+    for (let i = 0; i < count && pool.length > 0; i++) {
+      const totalWeight = pool.reduce((sum, w) => sum + w.weight, 0);
+      let r = Math.random() * totalWeight;
+      let idx = 0;
+      for (idx = 0; idx < pool.length - 1; idx++) {
+        r -= pool[idx].weight;
+        if (r <= 0) break;
+      }
+      selected.push(pool[idx].peer);
+      pool.splice(idx, 1);
     }
-    return eligible.slice(0, count);
+
+    return selected;
+  }
+
+  /**
+   * Compute gossip priority weight for a peer.
+   * Higher weight = more likely to be selected as gossip target.
+   * Uses all 4 signals that were previously ignored.
+   */
+  public computePeerWeight(peer: PeerStoreEntry): number {
+    let weight = 1.0; // Base weight
+
+    // Signal 1: Reputation (from peer store) — V11: tier-weighted gossip priority
+    if (peer.reputation > 0) {
+      const tier = resolveReputationTier(peer.reputation);
+      const tierW = getTierWeight(tier);
+      weight += Math.min(peer.reputation / 30, 3) * tierW.gossipPriority;
+    }
+
+    // Signal 2: Peer health cache (uptime, contributions)
+    const health = this.peerHealthCache.get(peer.did);
+    if (health) {
+      // Uptime bonus: longer-running peers are more reliable
+      if (health.uptimeSeconds > 300) weight += 1; // >5 min
+      if (health.uptimeSeconds > 3600) weight += 1; // >1 hour (total +2)
+
+      // Contribution bonus: peers that contribute are better gossip partners
+      if (health.contributionsThisSession > 0) weight += 1;
+
+      // High failure rate penalty from health report
+      weight -= Math.min(health.failureCount * 0.5, 2);
+    }
+
+    // Signal 3: Freshness (lastSyncAt)
+    if (peer.lastSyncAt) {
+      const sinceSyncMs = Date.now() - new Date(peer.lastSyncAt).getTime();
+      // Stale peers get priority (they have more new data to share)
+      if (sinceSyncMs > 2 * 60 * 1000) weight += 1; // >2 min since sync
+      if (sinceSyncMs > 5 * 60 * 1000) weight += 1; // >5 min (total +2)
+    } else {
+      // Never synced = high priority
+      weight += 2;
+    }
+
+    // Signal 4: Local failure count (direct observation)
+    weight -= peer.failureCount * 2;
+
+    // Floor: everyone gets at least a small chance
+    return Math.max(weight, 0.1);
   }
 
   // ── V2: CRDT Delta Exchange ──────────────────────────────────────────────
@@ -371,10 +450,10 @@ export class HoloMeshDiscovery {
 
       const result: GossipDeltaResponse = await response.json();
 
-      // Import the peer's delta back
+      // Import the peer's delta back — route through hot buffer for V9 consolidation
       if (result.deltaBase64) {
         const peerDelta = Buffer.from(result.deltaBase64, 'base64');
-        this.worldState.importDelta(new Uint8Array(peerDelta));
+        this.worldState.importDeltaToHotBuffer(new Uint8Array(peerDelta), peer.did);
       }
 
       // Update peer's known frontiers

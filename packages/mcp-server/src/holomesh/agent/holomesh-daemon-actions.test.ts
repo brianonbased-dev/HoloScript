@@ -103,7 +103,7 @@ describe('createHoloMeshDaemonActions', () => {
   it('returns all 15 action handlers (9 V1 + 3 V2 + 2 V3 + 1 V5) and wireTraitListeners', () => {
     const { actions, wireTraitListeners } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(15);
+    expect(Object.keys(actions)).toHaveLength(17);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_discover_peers).toBeTypeOf('function');
     expect(actions.mesh_check_inbox).toBeTypeOf('function');
@@ -123,8 +123,11 @@ describe('createHoloMeshDaemonActions', () => {
   });
 
   it('V1 actions still work when V2 and V3 are disabled', () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({ v2Enabled: false, walletEnabled: false }));
-    expect(Object.keys(actions)).toHaveLength(15);
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({ v2Enabled: false, walletEnabled: false })
+    );
+    expect(Object.keys(actions)).toHaveLength(17);
     // V2/V3 actions exist but will return false when called
   });
 });
@@ -149,7 +152,7 @@ describe('mesh_register', () => {
     expect(result).toBe(true);
     expect(client.registerAgent).toHaveBeenCalledWith(
       expect.arrayContaining(['@knowledge-exchange']),
-      undefined, // No wallet auth when wallet is disabled
+      undefined // No wallet auth when wallet is disabled
     );
     expect(bb.agent_id).toBe('mesh-agent-001');
   });
@@ -160,10 +163,12 @@ describe('mesh_register', () => {
     const stateConfig = createTestConfig();
     const fs = await import('fs');
     (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      agentId: 'existing-agent',
-    }));
+    (fs.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        agentId: 'existing-agent',
+      })
+    );
 
     const { actions } = createHoloMeshDaemonActions(client, stateConfig);
     const bb = emptyBB();
@@ -268,10 +273,12 @@ describe('mesh_check_inbox', () => {
   it('filters out already-processed messages', async () => {
     const fs = await import('fs');
     (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      processedMessageIds: ['msg-1'],
-    }));
+    (fs.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        processedMessageIds: ['msg-1'],
+      })
+    );
 
     client.readInbox.mockResolvedValue([
       { id: 'msg-1', content: '{"type":"query"}', from: 'peer-1' },
@@ -314,9 +321,12 @@ describe('mesh_reply_queries', () => {
 
     expect(result).toBe(true);
     expect(client.queryKnowledge).toHaveBeenCalledWith('safety constraints', { limit: 3 });
-    expect(client.sendMessage).toHaveBeenCalledWith('peer-1', expect.objectContaining({
-      type: 'response',
-    }));
+    expect(client.sendMessage).toHaveBeenCalledWith(
+      'peer-1',
+      expect.objectContaining({
+        type: 'response',
+      })
+    );
   });
 
   it('returns false when no query messages in inbox', async () => {
@@ -351,9 +361,12 @@ describe('mesh_contribute_knowledge', () => {
     const entries = [makeEntry('W.001'), makeEntry('P.001'), makeEntry('G.001')];
     client.contributeKnowledge.mockResolvedValue(3);
 
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      localKnowledge: entries,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        localKnowledge: entries,
+      })
+    );
 
     const bb = emptyBB();
     const result = await actions.mesh_contribute_knowledge({}, bb, {});
@@ -364,9 +377,12 @@ describe('mesh_contribute_knowledge', () => {
   });
 
   it('returns false when no new entries to contribute', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      localKnowledge: [],
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        localKnowledge: [],
+      })
+    );
 
     const result = await actions.mesh_contribute_knowledge({}, emptyBB(), {});
 
@@ -377,17 +393,22 @@ describe('mesh_contribute_knowledge', () => {
   it('skips already-contributed entries', async () => {
     const fs = await import('fs');
     (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      contributedIds: ['W.001'],
-    }));
+    (fs.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        contributedIds: ['W.001'],
+      })
+    );
 
     const entries = [makeEntry('W.001'), makeEntry('W.002')];
     client.contributeKnowledge.mockResolvedValue(1);
 
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      localKnowledge: entries,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        localKnowledge: entries,
+      })
+    );
 
     const bb = emptyBB();
     const result = await actions.mesh_contribute_knowledge({}, bb, {});
@@ -403,16 +424,19 @@ describe('mesh_contribute_knowledge', () => {
     const entries = Array.from({ length: 10 }, (_, i) => makeEntry(`W.${i}`));
     client.contributeKnowledge.mockResolvedValue(2);
 
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      localKnowledge: entries,
-      maxContributionsPerCycle: 2,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        localKnowledge: entries,
+        maxContributionsPerCycle: 2,
+      })
+    );
 
     await actions.mesh_contribute_knowledge({}, emptyBB(), {});
 
     // Should batch to maxContributionsPerCycle=2
     expect(client.contributeKnowledge).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ id: 'W.0' })]),
+      expect.arrayContaining([expect.objectContaining({ id: 'W.0' })])
     );
     const callArg = client.contributeKnowledge.mock.calls[0][0];
     expect(callArg).toHaveLength(2);
@@ -430,9 +454,12 @@ describe('mesh_query_network', () => {
   it('queries network with rotating search topics', async () => {
     client.queryKnowledge.mockResolvedValue([makeEntry('W.net.001')]);
 
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      searchTopics: ['topic-A', 'topic-B', 'topic-C'],
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        searchTopics: ['topic-A', 'topic-B', 'topic-C'],
+      })
+    );
     const bb = emptyBB();
 
     // First call: topic-A
@@ -457,15 +484,14 @@ describe('mesh_query_network', () => {
   it('deduplicates already-received entries', async () => {
     const fs = await import('fs');
     (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      receivedIds: ['W.old.001'],
-    }));
+    (fs.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        receivedIds: ['W.old.001'],
+      })
+    );
 
-    client.queryKnowledge.mockResolvedValue([
-      makeEntry('W.old.001'),
-      makeEntry('W.new.001'),
-    ]);
+    client.queryKnowledge.mockResolvedValue([makeEntry('W.old.001'), makeEntry('W.new.001')]);
 
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
     const bb = emptyBB();
@@ -481,10 +507,12 @@ describe('mesh_query_network', () => {
   it('caps query history at 50', async () => {
     const fs = await import('fs');
     (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      queryHistory: Array.from({ length: 50 }, (_, i) => `old-topic-${i}`),
-    }));
+    (fs.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        queryHistory: Array.from({ length: 50 }, (_, i) => `old-topic-${i}`),
+      })
+    );
 
     client.queryKnowledge.mockResolvedValue([makeEntry('W.x')]);
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
@@ -506,7 +534,7 @@ describe('mesh_collect_premium', () => {
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
 
     const bb = emptyBB();
-    bb.query_results = [makeEntry('W.paid.001', 0.50), makeEntry('W.paid.002', 1.00)];
+    bb.query_results = [makeEntry('W.paid.001', 0.5), makeEntry('W.paid.002', 1.0)];
 
     const result = await actions.mesh_collect_premium({}, bb, {});
 
@@ -542,11 +570,13 @@ describe('mesh_heartbeat', () => {
     const result = await actions.mesh_heartbeat({}, emptyBB(), {});
 
     expect(result).toBe(true);
-    expect(client.heartbeat).toHaveBeenCalledWith(expect.objectContaining({
-      reputation: expect.any(Number),
-      reputationTier: expect.any(String),
-      contributions: expect.any(Number),
-    }));
+    expect(client.heartbeat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reputation: expect.any(Number),
+        reputationTier: expect.any(String),
+        contributions: expect.any(Number),
+      })
+    );
   });
 
   it('handles heartbeat failure', async () => {
@@ -634,11 +664,14 @@ describe('mesh_gossip_sync (V2)', () => {
   });
 
   it('returns false when no gossip targets available', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      v2Enabled: true,
-      localAgentDid: 'test-did',
-      localMcpUrl: 'https://local',
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        v2Enabled: true,
+        localAgentDid: 'test-did',
+        localMcpUrl: 'https://local',
+      })
+    );
     const result = await actions.mesh_gossip_sync({}, emptyBB(), {});
     expect(result).toBe(false);
   });
@@ -660,13 +693,23 @@ describe('mesh_p2p_discover (V2)', () => {
 
   it('bootstraps from orchestrator when few peers', async () => {
     client.discoverPeers.mockResolvedValue([
-      { id: 'peer-1', did: 'peer-1', name: 'P1', mcpEndpoint: 'https://p1', traits: [], reputation: 0 },
+      {
+        id: 'peer-1',
+        did: 'peer-1',
+        name: 'P1',
+        mcpEndpoint: 'https://p1',
+        traits: [],
+        reputation: 0,
+      },
     ]);
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      v2Enabled: true,
-      localAgentDid: 'test-did',
-      localMcpUrl: 'https://local',
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        v2Enabled: true,
+        localAgentDid: 'test-did',
+        localMcpUrl: 'https://local',
+      })
+    );
     const bb = emptyBB();
 
     const result = await actions.mesh_p2p_discover({}, bb, {});
@@ -692,21 +735,27 @@ describe('mesh_persist_crdt (V2)', () => {
   });
 
   it('returns false when no snapshot path configured', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      v2Enabled: true,
-      localAgentDid: 'test-did',
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        v2Enabled: true,
+        localAgentDid: 'test-did',
+      })
+    );
     // No crdtSnapshotPath → saveSnapshot returns false
     const result = await actions.mesh_persist_crdt({}, emptyBB(), {});
     expect(result).toBe(false);
   });
 
   it('saves snapshot when path is configured', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      v2Enabled: true,
-      localAgentDid: 'test-did',
-      crdtSnapshotPath: '/tmp/test-snapshot.bin',
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        v2Enabled: true,
+        localAgentDid: 'test-did',
+        crdtSnapshotPath: '/tmp/test-snapshot.bin',
+      })
+    );
     const result = await actions.mesh_persist_crdt({}, emptyBB(), {});
     // saveSnapshot should succeed (fs.writeFileSync is mocked)
     expect(result).toBe(true);
@@ -779,17 +828,20 @@ describe('createHoloMeshDaemonActions with V3 wallet', () => {
     const { config } = walletTestConfig();
     const { actions } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(15);
+    expect(Object.keys(actions)).toHaveLength(17);
     expect(actions.mesh_wallet_balance).toBeTypeOf('function');
     expect(actions.mesh_settle_micro).toBeTypeOf('function');
     expect(actions.mesh_create_profile).toBeTypeOf('function');
   });
 
   it('V1/V2 actions still work when wallet is disabled', () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      walletEnabled: false,
-    }));
-    expect(Object.keys(actions)).toHaveLength(15);
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        walletEnabled: false,
+      })
+    );
+    expect(Object.keys(actions)).toHaveLength(17);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_gossip_sync).toBeTypeOf('function');
   });
@@ -804,9 +856,12 @@ describe('mesh_wallet_balance (V3)', () => {
   });
 
   it('returns false when wallet not enabled', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      walletEnabled: false,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        walletEnabled: false,
+      })
+    );
     const result = await actions.mesh_wallet_balance({}, emptyBB(), {});
     expect(result).toBe(false);
   });
@@ -844,12 +899,15 @@ describe('mesh_collect_premium (V3 upgrade)', () => {
   });
 
   it('still works without wallet (logs only, backwards compat)', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      walletEnabled: false,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        walletEnabled: false,
+      })
+    );
 
     const bb = emptyBB();
-    bb.query_results = [makeEntry('W.paid.001', 0.50)];
+    bb.query_results = [makeEntry('W.paid.001', 0.5)];
 
     const result = await actions.mesh_collect_premium({}, bb, {});
     expect(result).toBe(true);
@@ -870,7 +928,7 @@ describe('mesh_collect_premium (V3 upgrade)', () => {
       '0xTestWalletAddress',
       'author-001',
       0.05,
-      'hash-W.paid.001',
+      'hash-W.paid.001'
     );
     expect(bb.collected_this_cycle).toBe(1);
   });
@@ -878,17 +936,19 @@ describe('mesh_collect_premium (V3 upgrade)', () => {
   it('respects budget cap', async () => {
     const fsModule = await import('fs');
     (fsModule.existsSync as any).mockReturnValue(true);
-    (fsModule.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      spentUSD: 4.90,
-      budgetCapUSD: 5.0,
-    }));
+    (fsModule.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        spentUSD: 4.9,
+        budgetCapUSD: 5.0,
+      })
+    );
 
     const { config } = walletTestConfig();
     const { actions } = createHoloMeshDaemonActions(client, config);
 
     const bb = emptyBB();
-    bb.query_results = [makeEntry('W.expensive', 0.50)];
+    bb.query_results = [makeEntry('W.expensive', 0.5)];
 
     const result = await actions.mesh_collect_premium({}, bb, {});
     // Should skip because 4.90 + 0.50 > 5.0
@@ -916,9 +976,12 @@ describe('mesh_settle_micro (V3)', () => {
   });
 
   it('returns false when wallet not enabled', async () => {
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      walletEnabled: false,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        walletEnabled: false,
+      })
+    );
     const result = await actions.mesh_settle_micro({}, emptyBB(), {});
     expect(result).toBe(false);
   });
@@ -936,7 +999,9 @@ describe('mesh_settle_micro (V3)', () => {
     const { config, microLedger, paymentGateway } = walletTestConfig();
     microLedger.getUnsettled.mockReturnValue([{ id: '1', amount: 0.05 }]);
     paymentGateway.runBatchSettlement.mockResolvedValue({
-      settled: 1, failed: 0, totalVolume: 0.05,
+      settled: 1,
+      failed: 0,
+      totalVolume: 0.05,
     });
 
     const { actions } = createHoloMeshDaemonActions(client, config);
@@ -965,9 +1030,12 @@ describe('wallet initialization via injection', () => {
 
   it('skips wallet when walletEnabled is false', () => {
     const client = createMockClient();
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      walletEnabled: false,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        walletEnabled: false,
+      })
+    );
     expect(actions.mesh_wallet_balance).toBeTypeOf('function');
     expect(actions.mesh_settle_micro).toBeTypeOf('function');
   });
@@ -1048,7 +1116,7 @@ describe('mesh_register with V4 wallet auth', () => {
         did: expect.stringContaining('did:pkh:eip155:84532:'),
         address: '0xTestWalletAddress',
         signature: '0xWalletSignature',
-      }),
+      })
     );
   });
 
@@ -1068,20 +1136,22 @@ describe('mesh_register with V4 wallet auth', () => {
     // Should still call registerAgent, just without walletAuth
     expect(client.registerAgent).toHaveBeenCalledWith(
       expect.arrayContaining(['@knowledge-exchange']),
-      undefined,
+      undefined
     );
   });
 
   it('sets wallet auth headers on reconnect when already registered', async () => {
     const fsModule = await import('fs');
     (fsModule.existsSync as any).mockReturnValue(true);
-    (fsModule.readFileSync as any).mockReturnValue(JSON.stringify({
-      ...INITIAL_MESH_STATE,
-      agentId: 'did:pkh:eip155:84532:0xTestWalletAddress',
-      agentDid: 'did:pkh:eip155:84532:0xTestWalletAddress',
-      walletAddress: '0xTestWalletAddress',
-      walletEnabled: true,
-    }));
+    (fsModule.readFileSync as any).mockReturnValue(
+      JSON.stringify({
+        ...INITIAL_MESH_STATE,
+        agentId: 'did:pkh:eip155:84532:0xTestWalletAddress',
+        agentDid: 'did:pkh:eip155:84532:0xTestWalletAddress',
+        walletAddress: '0xTestWalletAddress',
+        walletEnabled: true,
+      })
+    );
 
     const { config } = walletTestConfig();
     const { actions } = createHoloMeshDaemonActions(client, config);
@@ -1091,7 +1161,7 @@ describe('mesh_register with V4 wallet auth', () => {
     expect(result).toBe(true);
     expect(client.setWalletAuth).toHaveBeenCalledWith(
       'did:pkh:eip155:84532:0xTestWalletAddress',
-      '0xTestWalletAddress',
+      '0xTestWalletAddress'
     );
   });
 });
@@ -1112,9 +1182,12 @@ describe('wallet state initialization (V4)', () => {
   it('does not set agentDid when wallet is disabled', () => {
     vi.clearAllMocks();
     const client = createMockClient();
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      walletEnabled: false,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        walletEnabled: false,
+      })
+    );
     // agentDid stays null — no wallet init
     expect(actions.mesh_wallet_balance).toBeTypeOf('function');
   });
@@ -1205,13 +1278,44 @@ describe('computeReputation', () => {
     expect(computeReputation(0, 10, 0)).toBe(2);
   });
 
-  it('weights reuseRate at 50', () => {
-    expect(computeReputation(0, 0, 1.0)).toBe(50);
+  it('V10: reuseRate ignored when contributions < 3 (Sybil guard)', () => {
+    // Before V10: computeReputation(0, 0, 1.0) = 50 (authority with zero work!)
+    // After V10: reuseRate zeroed when contributions < 3
+    expect(computeReputation(0, 0, 1.0)).toBe(0);
+    expect(computeReputation(2, 0, 1.0)).toBe(0.6); // 2*0.3 = 0.6, reuseRate ignored
   });
 
-  it('combines all factors', () => {
-    // 10*0.3 + 5*0.2 + 0.5*50 = 3 + 1 + 25 = 29
-    expect(computeReputation(10, 5, 0.5)).toBe(29);
+  it('V10: reuseRate counts after 3+ contributions with capped weight', () => {
+    // V11: directWork=0.9, reuseWeight=min(20, 40, 0.9*2=1.8)=1.8 → total=2.7
+    expect(computeReputation(3, 0, 1.0)).toBe(2.7);
+  });
+
+  it('V11: reuseRate weight bounded by 2x direct work', () => {
+    // directWork=0.9, reuseWeight=min(100, 40, 1.8)=1.8 → total=2.7
+    expect(computeReputation(3, 0, 5.0)).toBe(2.7);
+  });
+
+  it('combines all factors with V11 formula', () => {
+    // directWork=10*0.3+5*0.2=4, reuseWeight=min(10, 40, 8)=8 → total=12
+    expect(computeReputation(10, 5, 0.5)).toBe(12);
+  });
+
+  it('V11: high direct work unlocks full reuseWeight', () => {
+    // directWork=100*0.3+50*0.2=40, reuseWeight=min(40, 40, 80)=40 → total=80
+    expect(computeReputation(100, 50, 2.0)).toBe(80);
+  });
+
+  it('V10: prevents Sybil authority (was computeReputation(0,0,2.0)=100)', () => {
+    // The original Sybil vector: zero contributions, fake reuseRate = instant authority
+    expect(computeReputation(0, 0, 2.0)).toBe(0);
+    // Even with 2 contributions (below threshold), still blocked
+    expect(computeReputation(2, 0, 2.0)).toBe(0.6);
+  });
+
+  it('V11: reuseWeight cannot exceed 2x direct work score', () => {
+    // directWork=3*0.3=0.9, reuseWeight capped at 0.9*2=1.8
+    const rep = computeReputation(3, 0, 10.0);
+    expect(rep).toBe(2.7); // 0.9 + 1.8
   });
 });
 
@@ -1243,11 +1347,14 @@ describe('wiring: startup ordering', () => {
   it('V2 instances are created when v2Enabled=true + localAgentDid', () => {
     vi.clearAllMocks();
     const client = createMockClient();
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      v2Enabled: true,
-      localAgentDid: 'did:test:agent-v2',
-      localMcpUrl: 'http://localhost:4000',
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        v2Enabled: true,
+        localAgentDid: 'did:test:agent-v2',
+        localMcpUrl: 'http://localhost:4000',
+      })
+    );
     // V2-gated actions should be callable and return false (no peers) rather than undefined
     expect(actions.mesh_gossip_sync).toBeTypeOf('function');
     expect(actions.mesh_p2p_discover).toBeTypeOf('function');
@@ -1257,9 +1364,12 @@ describe('wiring: startup ordering', () => {
   it('V2 actions return false gracefully when v2Enabled=false', async () => {
     vi.clearAllMocks();
     const client = createMockClient();
-    const { actions } = createHoloMeshDaemonActions(client, createTestConfig({
-      v2Enabled: false,
-    }));
+    const { actions } = createHoloMeshDaemonActions(
+      client,
+      createTestConfig({
+        v2Enabled: false,
+      })
+    );
     expect(await actions.mesh_gossip_sync({}, emptyBB(), {})).toBe(false);
     expect(await actions.mesh_p2p_discover({}, emptyBB(), {})).toBe(false);
     expect(await actions.mesh_persist_crdt({}, emptyBB(), {})).toBe(false);
@@ -1270,11 +1380,21 @@ describe('wiring: startup ordering', () => {
     const client = createMockClient();
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
     const expected = [
-      'mesh_register', 'mesh_discover_peers', 'mesh_check_inbox',
-      'mesh_reply_queries', 'mesh_contribute_knowledge', 'mesh_query_network',
-      'mesh_collect_premium', 'mesh_heartbeat', 'mesh_follow_back',
-      'mesh_gossip_sync', 'mesh_p2p_discover', 'mesh_persist_crdt',
-      'mesh_wallet_balance', 'mesh_settle_micro', 'mesh_create_profile',
+      'mesh_register',
+      'mesh_discover_peers',
+      'mesh_check_inbox',
+      'mesh_reply_queries',
+      'mesh_contribute_knowledge',
+      'mesh_query_network',
+      'mesh_collect_premium',
+      'mesh_heartbeat',
+      'mesh_follow_back',
+      'mesh_gossip_sync',
+      'mesh_p2p_discover',
+      'mesh_persist_crdt',
+      'mesh_wallet_balance',
+      'mesh_settle_micro',
+      'mesh_create_profile',
     ];
     for (const name of expected) {
       expect(actions[name]).toBeTypeOf('function');
@@ -1310,7 +1430,7 @@ describe('wiring: blackboard handoff', () => {
   it('mesh_query_network → mesh_collect_premium (query_results flows through)', async () => {
     vi.clearAllMocks();
     const client = createMockClient();
-    const premiumEntry = makeEntry('W.premium.001', 0.50);
+    const premiumEntry = makeEntry('W.premium.001', 0.5);
     client.queryKnowledge.mockResolvedValue([premiumEntry]);
 
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig());

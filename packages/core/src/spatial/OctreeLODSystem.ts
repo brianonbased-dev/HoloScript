@@ -44,6 +44,8 @@ export interface GaussianAnchor {
   gaussianCount: number;
   /** Optional: index into the original splat array for rendering */
   splatIndex?: number;
+  /** V11: Perceptual importance (0-1, default 0.5). Higher = kept under budget pressure */
+  importance?: number;
 }
 
 /**
@@ -514,9 +516,37 @@ export class OctreeLODSystem {
 
     if (availableBudget > 0 && totalGaussians > availableBudget) {
       budgetCapped = true;
-      // Drop from deepest level until under budget
+
+      // V11: Equimarginal LOD selection — drop levels by worst utility/cost ratio
+      // instead of always dropping the deepest (finest) level first.
+      // Utility combines base power-law decay with per-anchor importance scores.
+      const levelUtility = (level: number): number => {
+        const anchorsAtLevel = anchorsByLevel.get(level) || [];
+        const gaussians = gaussiansByLevel.get(level) || 1;
+        // Base utility: coarser levels are structurally more important (power-law)
+        const baseUtility = Math.pow(0.7, level);
+        // Importance bonus: average importance of anchors at this level
+        const avgImportance =
+          anchorsAtLevel.length > 0
+            ? anchorsAtLevel.reduce((sum, a) => sum + (a.importance ?? 0.5), 0) /
+              anchorsAtLevel.length
+            : 0.5;
+        return (baseUtility * avgImportance) / gaussians;
+      };
+
+      // Drop the level with the worst utility-per-gaussian ratio
       while (selectedLevels.length > 1 && totalGaussians > availableBudget) {
-        const droppedLevel = selectedLevels.pop()!;
+        let worstIdx = selectedLevels.length - 1; // fallback: deepest
+        let worstRatio = Infinity;
+        for (let i = 1; i < selectedLevels.length; i++) {
+          // Never drop level 0 (coarsest structural anchors)
+          const ratio = levelUtility(selectedLevels[i]);
+          if (ratio < worstRatio) {
+            worstRatio = ratio;
+            worstIdx = i;
+          }
+        }
+        const droppedLevel = selectedLevels.splice(worstIdx, 1)[0];
         totalGaussians -= gaussiansByLevel.get(droppedLevel) ?? 0;
         anchorsByLevel.delete(droppedLevel);
         levelsDropped++;

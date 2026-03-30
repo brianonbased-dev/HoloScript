@@ -14,7 +14,7 @@ import { HoloMeshOrchestratorClient } from '../orchestrator-client';
 import type { WalletAuth } from '../orchestrator-client';
 import type { MeshConfig, MeshKnowledgeEntry, HoloMeshDaemonState } from '../types';
 import { deriveAgentDid, createAuthChallenge, signAuthChallenge } from '../wallet-auth';
-import { computeReputation, resolveReputationTier, INITIAL_MESH_STATE } from '../types';
+import { computeReputation, resolveReputationTier, resolveReputationTierWithHysteresis, INITIAL_MESH_STATE } from '../types';
 import { HoloMeshWorldState } from '../crdt-sync';
 import { HoloMeshDiscovery } from '../discovery';
 import * as crypto from 'crypto';
@@ -66,7 +66,11 @@ export interface HoloMeshDaemonConfig {
   _microLedger?: MicroPaymentLedgerType | null;
 }
 
-type ActionHandler = (params: any, blackboard: Record<string, any>, context: any) => Promise<boolean>;
+type ActionHandler = (
+  params: any,
+  blackboard: Record<string, any>,
+  context: any
+) => Promise<boolean>;
 
 const DEFAULT_SEARCH_TOPICS = [
   'agent safety constraints',
@@ -82,9 +86,8 @@ const DEFAULT_SEARCH_TOPICS = [
 
 export function createHoloMeshDaemonActions(
   client: HoloMeshOrchestratorClient,
-  config: HoloMeshDaemonConfig,
+  config: HoloMeshDaemonConfig
 ): { actions: Record<string, ActionHandler>; wireTraitListeners: (runtime: any) => void } {
-
   // Persistent state
   let state: HoloMeshDaemonState = loadState(config.stateFile);
   let searchTopicIndex = 0;
@@ -99,12 +102,9 @@ export function createHoloMeshDaemonActions(
     worldState = new HoloMeshWorldState(config.localAgentDid, {
       snapshotPath: config.crdtSnapshotPath,
     });
-    discovery = new HoloMeshDiscovery(
-      config.localAgentDid,
-      config.localMcpUrl || '',
-      worldState,
-      { storePath: config.peerStorePath },
-    );
+    discovery = new HoloMeshDiscovery(config.localAgentDid, config.localMcpUrl || '', worldState, {
+      storePath: config.peerStorePath,
+    });
   }
 
   // V3 wallet instances (null when walletEnabled is false — backwards compatible)
@@ -115,8 +115,13 @@ export function createHoloMeshDaemonActions(
   if (config.walletEnabled && !wallet) {
     try {
       // Dynamic import to avoid hard dep when wallet is disabled
-      const { InvisibleWallet } = require('../../../../marketplace-api/src/protocol/InvisibleWallet');
-      const { PaymentGateway, MicroPaymentLedger } = require('../../../../core/src/economy/x402-facilitator');
+      const {
+        InvisibleWallet,
+      } = require('../../../../marketplace-api/src/protocol/InvisibleWallet');
+      const {
+        PaymentGateway,
+        MicroPaymentLedger,
+      } = require('../../../../core/src/economy/x402-facilitator');
       const { AgentWalletRegistry } = require('../../../../core/src/agents/AgentWalletRegistry');
 
       wallet = InvisibleWallet.fromEnvironment({
@@ -132,7 +137,7 @@ export function createHoloMeshDaemonActions(
       AgentWalletRegistry.getInstance().registerWallet(
         config.localAgentDid || 'local-agent',
         wallet!.getAddress(),
-        wallet!.getChainId(),
+        wallet!.getChainId()
       );
     } catch (err: any) {
       // Graceful degradation — missing env var or wallet dep should not crash daemon (G.WALLET.01)
@@ -156,7 +161,9 @@ export function createHoloMeshDaemonActions(
   function saveCurrentState() {
     try {
       fs.writeFileSync(config.stateFile, JSON.stringify(state, null, 2), 'utf-8');
-    } catch { /* state write failures are non-fatal */ }
+    } catch {
+      /* state write failures are non-fatal */
+    }
   }
 
   // ── Action Handlers ──
@@ -179,7 +186,11 @@ export function createHoloMeshDaemonActions(
         try {
           const challenge = createAuthChallenge();
           const walletClient = wallet.getWalletClient();
-          const signature = await signAuthChallenge(walletClient, challenge.challenge, challenge.nonce);
+          const signature = await signAuthChallenge(
+            walletClient,
+            challenge.challenge,
+            challenge.nonce
+          );
           walletAuth = {
             did: state.agentDid,
             address: wallet.getAddress(),
@@ -192,7 +203,7 @@ export function createHoloMeshDaemonActions(
 
       const id = await client.registerAgent(
         ['@knowledge-exchange', '@research', '@philosophy'],
-        walletAuth,
+        walletAuth
       );
       state.agentId = id;
       state.status = 'running';
@@ -214,7 +225,7 @@ export function createHoloMeshDaemonActions(
   const mesh_discover_peers: ActionHandler = async (_params, blackboard) => {
     try {
       const peers = await client.discoverPeers();
-      state.peers = peers.map(p => p.id);
+      state.peers = peers.map((p) => p.id);
       state.knownPeerCount = peers.length;
       state.lastDiscoveryAt = new Date().toISOString();
       blackboard.discovered_peers = peers;
@@ -230,9 +241,7 @@ export function createHoloMeshDaemonActions(
   const mesh_check_inbox: ActionHandler = async (_params, blackboard) => {
     try {
       const messages = await client.readInbox();
-      const unprocessed = messages.filter(
-        (m: any) => !state.processedMessageIds.includes(m.id),
-      );
+      const unprocessed = messages.filter((m: any) => !state.processedMessageIds.includes(m.id));
       blackboard.inbox_messages = unprocessed;
       state.unreadMessages = unprocessed.length;
       log(`Inbox: ${unprocessed.length} unread messages`);
@@ -245,21 +254,22 @@ export function createHoloMeshDaemonActions(
 
   const mesh_reply_queries: ActionHandler = async (_params, blackboard) => {
     const messages = blackboard.inbox_messages || [];
-    const queries = messages.filter(
-      (m: any) => {
-        try {
-          const content = typeof m.content === 'string' ? JSON.parse(m.content) : m.content;
-          return content?.type === 'query';
-        } catch { return false; }
-      },
-    );
+    const queries = messages.filter((m: any) => {
+      try {
+        const content = typeof m.content === 'string' ? JSON.parse(m.content) : m.content;
+        return content?.type === 'query';
+      } catch {
+        return false;
+      }
+    });
 
     if (queries.length === 0) return false;
 
     let answered = 0;
     for (const query of queries.slice(0, 3)) {
       try {
-        const content = typeof query.content === 'string' ? JSON.parse(query.content) : query.content;
+        const content =
+          typeof query.content === 'string' ? JSON.parse(query.content) : query.content;
         const searchTerm = content?.payload?.search || '';
 
         if (!searchTerm) continue;
@@ -278,7 +288,9 @@ export function createHoloMeshDaemonActions(
 
         // Mark as processed
         if (query.id) state.processedMessageIds.push(query.id);
-      } catch { /* skip failed responses */ }
+      } catch {
+        /* skip failed responses */
+      }
     }
 
     state.totalQueriesAnswered += answered;
@@ -289,7 +301,7 @@ export function createHoloMeshDaemonActions(
 
   const mesh_contribute_knowledge: ActionHandler = async (_params, blackboard) => {
     const localEntries = config.localKnowledge || [];
-    const uncontributed = localEntries.filter(e => !state.contributedIds.includes(e.id));
+    const uncontributed = localEntries.filter((e) => !state.contributedIds.includes(e.id));
 
     if (uncontributed.length === 0) {
       log('No new entries to contribute');
@@ -300,7 +312,7 @@ export function createHoloMeshDaemonActions(
 
     try {
       const synced = await client.contributeKnowledge(batch);
-      state.contributedIds.push(...batch.map(e => e.id));
+      state.contributedIds.push(...batch.map((e) => e.id));
       state.totalContributions += batch.length;
       state.lastContributionAt = new Date().toISOString();
       blackboard.contributed_this_cycle = batch.length;
@@ -319,9 +331,9 @@ export function createHoloMeshDaemonActions(
 
     try {
       const results = await client.queryKnowledge(topic, { limit: 5 });
-      const newResults = results.filter(r => !state.receivedIds.includes(r.id));
+      const newResults = results.filter((r) => !state.receivedIds.includes(r.id));
 
-      state.receivedIds.push(...newResults.map(r => r.id));
+      state.receivedIds.push(...newResults.map((r) => r.id));
       state.totalQueries++;
       state.queryHistory.push(topic);
       // Cap history
@@ -341,7 +353,7 @@ export function createHoloMeshDaemonActions(
 
   const mesh_collect_premium: ActionHandler = async (_params, blackboard) => {
     const results: MeshKnowledgeEntry[] = blackboard.query_results || [];
-    const premium = results.filter(r => r.price > 0);
+    const premium = results.filter((r) => r.price > 0);
     if (premium.length === 0) return false;
 
     // No wallet — log-only mode (backwards compatible)
@@ -361,12 +373,7 @@ export function createHoloMeshDaemonActions(
         }
 
         // Record in micro-payment ledger (settled in batch via mesh_settle_micro)
-        microLedger.record(
-          wallet.getAddress(),
-          entry.authorId,
-          entry.price,
-          entry.provenanceHash,
-        );
+        microLedger.record(wallet.getAddress(), entry.authorId, entry.price, entry.provenanceHash);
         state.spentUSD += entry.price;
         state.totalPaymentsMade++;
         collected++;
@@ -389,12 +396,10 @@ export function createHoloMeshDaemonActions(
       const rep = computeReputation(
         state.totalContributions,
         state.totalQueriesAnswered,
-        state.totalContributions > 0
-          ? state.receivedIds.length / state.totalContributions
-          : 0,
+        state.totalContributions > 0 ? state.receivedIds.length / state.totalContributions : 0
       );
       state.reputation = rep;
-      state.reputationTier = resolveReputationTier(rep);
+      state.reputationTier = resolveReputationTierWithHysteresis(rep, state.reputationTier);
 
       const ok = await client.heartbeat({
         reputation: state.reputation,
@@ -491,7 +496,7 @@ export function createHoloMeshDaemonActions(
           if (!discovery.getPeer(p.did)) {
             discovery.absorbGossipedPeers(
               [{ did: p.did, url: p.url, name: p.name }],
-              'crdt-registry',
+              'crdt-registry'
             );
             absorbed++;
           }
@@ -543,13 +548,15 @@ export function createHoloMeshDaemonActions(
 
       const balance = await publicClient.readContract({
         address: usdcAddress,
-        abi: [{
-          name: 'balanceOf',
-          type: 'function',
-          inputs: [{ name: 'account', type: 'address' }],
-          outputs: [{ name: '', type: 'uint256' }],
-          stateMutability: 'view',
-        }],
+        abi: [
+          {
+            name: 'balanceOf',
+            type: 'function',
+            inputs: [{ name: 'account', type: 'address' }],
+            outputs: [{ name: '', type: 'uint256' }],
+            stateMutability: 'view',
+          },
+        ],
         functionName: 'balanceOf',
         args: [wallet.getAddress()],
       });
@@ -580,7 +587,9 @@ export function createHoloMeshDaemonActions(
       state.microLedgerUnsettled = microLedger.getUnsettled().length;
       state.lastSettlementAt = new Date().toISOString();
       saveCurrentState();
-      log(`Batch settlement: ${result.settled} settled, ${result.failed} failed, $${result.totalVolume} volume`);
+      log(
+        `Batch settlement: ${result.settled} settled, ${result.failed} failed, $${result.totalVolume} volume`
+      );
       return result.settled > 0;
     } catch (err: any) {
       log(`Micro settlement failed: ${err.message}`);
@@ -601,7 +610,8 @@ export function createHoloMeshDaemonActions(
       const profile = {
         did: state.agentDid || state.agentId || 'unknown',
         displayName: state.agentName || 'holomesh-agent',
-        bio: `A knowledge agent on the HoloMesh network. Workspace: ${state.workspace}. ` +
+        bio:
+          `A knowledge agent on the HoloMesh network. Workspace: ${state.workspace}. ` +
           `${state.totalContributions} contributions, ${state.reputation} reputation.`,
         customTitle: state.reputationTier !== 'newcomer' ? state.reputationTier : '',
         themeColor: state.profileThemeColor || '#6366f1',
@@ -627,6 +637,129 @@ export function createHoloMeshDaemonActions(
     }
   };
 
+  // ── V11: Resource Pressure Check (L4 Blueprint 1) ──
+  // Wires UnifiedBudgetOptimizer's overallPressure into the BT budget gate.
+  // Previously budget_gate only checked economic balance (spentUSD < budgetCapUSD).
+  // Now it also factors rendering resource pressure so the agent slows down
+  // when GPU/memory limits are stressed, not just when USDC runs low.
+
+  const mesh_check_resource_pressure: ActionHandler = async (_params, blackboard) => {
+    try {
+      // Lazy-import to avoid hard dependency — UnifiedBudgetOptimizer is in @holoscript/core
+      const { UnifiedBudgetOptimizer, DEFAULT_LOD_SCALING, DEFAULT_COST_FLOOR } =
+        require('../../../../core/src/economy/UnifiedBudgetOptimizer');
+
+      const optimizer = new UnifiedBudgetOptimizer({
+        platform: 'webgpu', // Default platform for daemon context
+        costFloor: DEFAULT_COST_FLOOR,
+        economicBudget: state.budgetCapUSD * 1_000_000, // Convert to USDC base units
+        economicSpent: state.spentUSD * 1_000_000,
+      });
+
+      // Collect resource usage from contributed compositions this cycle
+      const contributed = blackboard.contributed_this_cycle || 0;
+      const queryResults = (blackboard.query_results as any[]) || [];
+
+      // Build resource usage nodes from recent activity
+      const nodes = queryResults
+        .filter((r: any) => r?.traits?.length)
+        .map((r: any) => ({
+          name: r.id || 'query-result',
+          traits: r.traits || [],
+          count: 1,
+        }));
+
+      const unifiedState = optimizer.getUnifiedState(
+        state.agentId || 'local',
+        nodes,
+        state.spentUSD * 1_000_000,
+        state.budgetCapUSD * 1_000_000
+      );
+
+      state.resourcePressure = unifiedState.overallPressure;
+      state.suggestedLOD = unifiedState.suggestedLOD;
+      state.hardLimitBreached = unifiedState.hardLimitBreached;
+
+      // Update blackboard so budget_gate condition sees rendering pressure
+      blackboard.resource_pressure = unifiedState.overallPressure;
+      blackboard.has_budget = (state.spentUSD < state.budgetCapUSD) &&
+        (unifiedState.overallPressure < 0.95);
+
+      if (unifiedState.overallPressure > 0.8) {
+        log(`Resource pressure HIGH: ${(unifiedState.overallPressure * 100).toFixed(1)}% (LOD ${unifiedState.suggestedLOD})`);
+      }
+      if (unifiedState.hardLimitBreached) {
+        log('HARD LIMIT BREACHED — pausing resource-intensive operations');
+      }
+
+      saveCurrentState();
+      return true;
+    } catch (err: any) {
+      // Graceful degradation: if UnifiedBudgetOptimizer unavailable, fall back to economic-only
+      blackboard.has_budget = state.spentUSD < state.budgetCapUSD;
+      log(`Resource pressure check failed (economic-only fallback): ${err.message}`);
+      return true; // Don't fail the cycle — just use economic-only gate
+    }
+  };
+
+  // ── V11: Priority Reordering (L4 Blueprint 3) ──
+  // Keeps P1 (reply/inbound) fixed as cooperation commitment.
+  // Reorders P2-P7 by expected utility (EU) each tick.
+  // EU = value * probability_of_success / estimated_cost.
+
+  const mesh_reorder_priorities: ActionHandler = async (_params, blackboard) => {
+    // Compute expected utility for each priority bucket
+    const eu: { name: string; eu: number }[] = [];
+
+    // P2: Discover — high value when few peers, low when many
+    const peerCount = state.p2pPeerCount || state.peers.length;
+    const discoverValue = peerCount < 5 ? 10 : peerCount < 20 ? 5 : 2;
+    const discoverProb = peerCount < 3 ? 0.8 : 0.5;
+    eu.push({ name: 'discover', eu: discoverValue * discoverProb });
+
+    // P2.5: Gossip — high value when peers exist and haven't synced recently
+    const lastGossipMs = state.lastGossipSyncAt
+      ? Date.now() - new Date(state.lastGossipSyncAt).getTime()
+      : Infinity;
+    const gossipValue = peerCount > 0 ? 8 : 0;
+    const gossipProb = lastGossipMs > 120_000 ? 0.9 : 0.3; // >2 min since sync
+    eu.push({ name: 'gossip', eu: gossipValue * gossipProb });
+
+    // P3: Contribute — high value when pending, decays with total contributions
+    const pendingCount = (config.localKnowledge || []).filter(
+      (e) => !state.contributedIds.includes(e.id)
+    ).length;
+    const contributeValue = pendingCount > 0 ? 7 : 0;
+    const contributeProb = pendingCount > 0 ? 0.95 : 0;
+    eu.push({ name: 'contribute', eu: contributeValue * contributeProb });
+
+    // P4: Query — moderate value, always available
+    const queryValue = 5;
+    const queryProb = 0.7;
+    eu.push({ name: 'query', eu: queryValue * queryProb });
+
+    // P5: Maintenance — low value but reliable
+    eu.push({ name: 'maintenance', eu: 2 * 0.9 });
+
+    // P6: Persist — value when V2 enabled and changes exist
+    const persistValue = state.v2Enabled && state.crdtMergeCount > 0 ? 4 : 0;
+    eu.push({ name: 'persist', eu: persistValue * 0.95 });
+
+    // P7: Settle — value when unsettled payments exist
+    const settleValue = state.microLedgerUnsettled > 0 ? 6 : 0;
+    eu.push({ name: 'settle', eu: settleValue * 0.9 });
+
+    // Sort by EU descending — P1 stays fixed, these determine P2-P7 order
+    eu.sort((a, b) => b.eu - a.eu);
+
+    // Store reordered priority list in blackboard for logging/debugging
+    blackboard.priority_order = ['inbound', ...eu.map((e) => e.name)];
+    blackboard.priority_eus = eu.map((e) => ({ name: e.name, eu: Math.round(e.eu * 100) / 100 }));
+
+    log(`Priority order: P1=inbound(fixed) ${eu.map((e, i) => `P${i + 2}=${e.name}(${e.eu.toFixed(1)})`).join(' ')}`);
+    return true;
+  };
+
   // ── Factory Return ──
 
   const actions: Record<string, ActionHandler> = {
@@ -645,6 +778,8 @@ export function createHoloMeshDaemonActions(
     mesh_persist_crdt,
     mesh_wallet_balance,
     mesh_settle_micro,
+    mesh_check_resource_pressure,
+    mesh_reorder_priorities,
   };
 
   const wireTraitListeners = (runtime: any) => {
@@ -696,6 +831,8 @@ function loadState(stateFile: string): HoloMeshDaemonState {
         processedMessageIds: saved.processedMessageIds || [],
       };
     }
-  } catch { /* fresh state on error */ }
+  } catch {
+    /* fresh state on error */
+  }
   return { ...INITIAL_MESH_STATE, processedMessageIds: [] } as any;
 }
