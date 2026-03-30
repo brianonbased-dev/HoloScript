@@ -815,17 +815,24 @@ export async function handleHoloMeshRoute(
   try {
     const c = getClient();
 
-    // GET /api/holomesh/feed — Knowledge feed with ranking
-    // ?sort=ranked|chronological|top (default: ranked)
+    // GET /api/holomesh/feed — Knowledge feed with ranking + following mode + cursor pagination
+    // ?sort=ranked|chronological|top|following  ?cursor=<token>  ?limit=20
     if (pathname === '/api/holomesh/feed' && method === 'GET') {
-      const { rankFeed } = await import('./social');
+      const { rankFeed, getFollowing, paginate, type: _t, ...socialMod } = await import('./social');
       const q = parseQuery(url);
       const search = q.get('q') || '*';
       const type = q.get('type') || undefined;
-      const sort = (q.get('sort') || 'ranked') as 'ranked' | 'chronological' | 'top';
+      const sort = (q.get('sort') || 'ranked') as 'ranked' | 'chronological' | 'top' | 'following';
       const limit = parseInt(q.get('limit') || '20', 10);
-      const results = await c.queryKnowledge(search, { type, limit: Math.min(limit * 3, 200) });
+      const cursor = q.get('cursor') || undefined;
+      const results = await c.queryKnowledge(search, { type, limit: Math.min(limit * 5, 500) });
       const caller = resolveRequestingAgent(req, c);
+
+      // Build following set for 'following' sort mode
+      const followingIds = sort === 'following' && caller.authenticated
+        ? new Set((await import('./social')).getFollowing(caller.id))
+        : undefined;
+
       const enriched = results.map((e) => {
         const isPremium = (e.price || 0) > 0;
         const paid = isPremium && caller.authenticated && hasPaidAccess(caller.id, e.id);
@@ -841,8 +848,10 @@ export async function handleHoloMeshRoute(
           authorReputation: authorAgent?.reputation || 0,
         };
       });
-      const ranked = rankFeed(enriched, sort).slice(0, limit);
-      json(res, 200, { success: true, entries: ranked, count: ranked.length, sort });
+
+      const ranked = rankFeed(enriched, sort, followingIds);
+      const page = paginate(ranked, limit, cursor);
+      json(res, 200, { success: true, ...page, sort });
       return true;
     }
 
@@ -1051,6 +1060,14 @@ export async function handleHoloMeshRoute(
     if (pathname === '/api/holomesh/contribute' && method === 'POST') {
       const caller = requireAuth(req, res);
       if (!caller) return true;
+
+      // Rate limit contributions
+      const { checkRateLimit } = await import('./social');
+      const rl = checkRateLimit(caller.id, 'contribute');
+      if (!rl.allowed) {
+        json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter, limit: '10 per minute' });
+        return true;
+      }
 
       const body = await parseJsonBody(req);
       const content = body.content as string;
@@ -1264,10 +1281,45 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // DELETE /api/holomesh/comment/:id — Delete own comment (auth required)
+    if (pathname.match(/^\/api\/holomesh\/comment\/[^/]+$/) && method === 'DELETE') {
+      const caller = requireAuth(req, res);
+      if (!caller) return true;
+
+      const commentId = extractParam(url, '/api/holomesh/comment/');
+      // Find and remove the comment if owned by caller
+      let deleted = false;
+      for (const [entryId, comments] of commentStore) {
+        const idx = comments.findIndex((cm) => cm.id === commentId && cm.authorId === caller.id);
+        if (idx >= 0) {
+          comments.splice(idx, 1);
+          persistSocialStore();
+          deleted = true;
+          break;
+        }
+      }
+
+      if (!deleted) {
+        json(res, 404, { error: 'Comment not found or not yours' });
+        return true;
+      }
+
+      json(res, 200, { success: true, deleted: commentId });
+      return true;
+    }
+
     // POST /api/holomesh/entry/:id/comment — Add comment/reply (auth required)
     if (pathname.match(/^\/api\/holomesh\/entry\/[^/]+\/comment$/) && method === 'POST') {
       const caller = requireAuth(req, res);
       if (!caller) return true;
+
+      // Rate limit comments
+      const { checkRateLimit } = await import('./social');
+      const rl = checkRateLimit(caller.id, 'comment');
+      if (!rl.allowed) {
+        json(res, 429, { error: 'Rate limited', retry_after: rl.retryAfter, limit: '20 per minute' });
+        return true;
+      }
 
       const entryId = extractParam(url, '/api/holomesh/entry/');
       const body = await parseJsonBody(req);

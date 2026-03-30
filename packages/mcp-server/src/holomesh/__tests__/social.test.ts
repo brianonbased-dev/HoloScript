@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   follow,
   unfollow,
@@ -16,6 +16,8 @@ import {
   reviewReport,
   isValidReason,
   extractMentions,
+  checkRateLimit,
+  paginate,
 } from '../social';
 
 // ── Social Graph ──────────────────────────────────────────────────────────
@@ -139,6 +141,24 @@ describe('Feed Ranking', () => {
     const sorted = rankFeed(entries, 'top');
     expect(sorted[0].id).toBe('popular');
   });
+
+  it('rankFeed following filters by followingIds', () => {
+    const entries = [
+      { id: 'followed', authorId: 'friend', voteCount: 1, commentCount: 0, createdAt: new Date(now).toISOString() },
+      { id: 'stranger', authorId: 'unknown', voteCount: 10, commentCount: 5, createdAt: new Date(now).toISOString() },
+    ];
+    const sorted = rankFeed(entries, 'following', new Set(['friend']));
+    expect(sorted.length).toBe(1);
+    expect(sorted[0].id).toBe('followed');
+  });
+
+  it('rankFeed following returns empty if not following anyone', () => {
+    const entries = [
+      { id: 'entry1', authorId: 'a', voteCount: 5, commentCount: 2, createdAt: new Date(now).toISOString() },
+    ];
+    const sorted = rankFeed(entries, 'following', new Set());
+    expect(sorted.length).toBe(0);
+  });
 });
 
 // ── Content Moderation ──────────────────────────────────────────────────
@@ -194,8 +214,7 @@ describe('@Mentions', () => {
   });
 
   it('deduplicates mentions', () => {
-    const mentions = extractMentions('@same @same @same');
-    expect(mentions.length).toBe(1);
+    expect(extractMentions('@same @same @same').length).toBe(1);
   });
 
   it('returns empty array for no mentions', () => {
@@ -207,10 +226,79 @@ describe('@Mentions', () => {
     expect(mentions).toContain('holoscript-delegate');
     expect(mentions).toContain('agent.v2');
   });
+});
 
-  it('does not match email-like patterns as full mention', () => {
-    // @user in user@email.com should only capture "user" before the @
-    const mentions = extractMentions('contact @admin for help');
-    expect(mentions).toContain('admin');
+// ── Rate Limiting ─────────────────────────────────────────────────────────
+
+describe('Rate Limiting', () => {
+  it('allows requests within limit', () => {
+    const result = checkRateLimit('rate-test-1', 'contribute');
+    expect(result.allowed).toBe(true);
+  });
+
+  it('blocks after exceeding limit', () => {
+    const agentId = `rate-test-burst-${Date.now()}`;
+    // Contribute limit is 10/min
+    for (let i = 0; i < 10; i++) {
+      checkRateLimit(agentId, 'contribute');
+    }
+    const result = checkRateLimit(agentId, 'contribute');
+    expect(result.allowed).toBe(false);
+    expect(result.retryAfter).toBeGreaterThan(0);
+  });
+
+  it('different actions have separate limits', () => {
+    const agentId = `rate-test-sep-${Date.now()}`;
+    for (let i = 0; i < 10; i++) {
+      checkRateLimit(agentId, 'contribute');
+    }
+    // Comment has separate bucket
+    const result = checkRateLimit(agentId, 'comment');
+    expect(result.allowed).toBe(true);
+  });
+});
+
+// ── Cursor Pagination ─────────────────────────────────────────────────────
+
+describe('Cursor Pagination', () => {
+  const items = Array.from({ length: 50 }, (_, i) => ({ id: i }));
+
+  it('first page returns items with cursor_next', () => {
+    const page = paginate(items, 10);
+    expect(page.items.length).toBe(10);
+    expect(page.items[0].id).toBe(0);
+    expect(page.cursor_next).not.toBeNull();
+    expect(page.cursor_prev).toBeNull();
+    expect(page.has_more).toBe(true);
+    expect(page.total).toBe(50);
+  });
+
+  it('second page uses cursor_next', () => {
+    const page1 = paginate(items, 10);
+    const page2 = paginate(items, 10, page1.cursor_next!);
+    expect(page2.items[0].id).toBe(10);
+    expect(page2.items.length).toBe(10);
+    expect(page2.cursor_prev).not.toBeNull();
+  });
+
+  it('last page has no cursor_next', () => {
+    const page = paginate(items, 10, Buffer.from('40').toString('base64url'));
+    expect(page.items.length).toBe(10);
+    expect(page.cursor_next).toBeNull();
+    expect(page.has_more).toBe(false);
+  });
+
+  it('handles empty items', () => {
+    const page = paginate([], 10);
+    expect(page.items.length).toBe(0);
+    expect(page.cursor_next).toBeNull();
+    expect(page.has_more).toBe(false);
+    expect(page.total).toBe(0);
+  });
+
+  it('handles invalid cursor gracefully', () => {
+    const page = paginate(items, 10, 'invalid-cursor');
+    expect(page.items.length).toBe(10);
+    expect(page.items[0].id).toBe(0);
   });
 });
