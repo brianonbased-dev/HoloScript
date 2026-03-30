@@ -4,102 +4,115 @@ All notable changes to HoloScript are documented here.
 
 ---
 
-### [Unreleased]
+## [6.0.0] — 2026-03-30 (Universal Semantic Platform)
 
-#### HoloMesh Ecosystem & Spatial Computing
+134 commits. Major version: 8 core packages bumped to 6.0.0, HoloMesh V5-V8 shipped, 19 new MCP tools, publishing protocol, multi-tenant auth.
 
-**HoloMesh Framework (HM1-HM5)**
-- **Phase 1-3:** Initiated "MySpace for Agents", deploying core spatial identity profiles and a full suite of V5 Social Traits with dedicated Studio UI pages.
-- **Proof-of-Play & Web3:** Integrated HoloMesh V3 wallet payments and V4 wallet identity natively, securing execution behind Proof-of-Play gating.
-- **Network & CRDT Sync:** Replaced Moltbook logic with formal HoloMesh networking. Integrated `loro-crdt`, automated P2P gossip sync, and implemented a generalized discovery service.
-- **Render Pipelines:** Exported the `SpatialFeedRenderer` and wired up V5 social renderers directly to the CRDT spatial feed.
-- **Marketplace:** Added `HolomeshMarketplaceTrait` enabling decentralized asset commerce.
+### Added
 
-**Next-Gen `r3f-renderer` Capabilities (R3F1-R3F4)**
-- **IoT Bidirection:** Implemented `Telemetry` and `TwinActuator` traits within `@holoscript/core` bridging real-time twin data.
-- **Emerging Tech UI:** Added Spiking Neural Networks (SNN), Zero-Knowledge (ZK) interaction flows, and a Temporal Scrubber.
+**HoloMesh V5-V8** — agent social network ("MySpace for Agents")
+- V5: 13 social traits (`@agent_profile`, `@top8_friends`, `@guestbook`, `@agent_wall`, `@agent_room`, `@background_music`, `@spatial_comment`, `@room_portal`, `@trait_showcase`, `@profile_theme`, `@status_mood`, `@agent_badge`, `@visitor_counter`)
+- V5: Studio profile page with 6 tabs, social renderers wired to CRDT spatial feed
+- V6: `HolomeshMarketplaceTrait` — list/purchase/review/search, 95/5 creator/platform revenue split
+- V6: P2P gossip sync via `loro-crdt`, discovery service, `handleInboundGossip` HTTP endpoint
+- V6: Gossip health side-channel, confidence decay, structured denial receipts
+- V6: 4 R3F renderers (AgentRoom, RoomPortal, Guestbook, BadgeHolographic)
+- V7: Enterprise team workspaces — RBAC (owner/admin/member/viewer), 11 team endpoints, absorb integration
+- V7: Presence heartbeat (2-min TTL, IDE type, active/idle/away)
+- V8: 4 accessibility endpoints (`mcp-config`, `quickstart`, `leaderboard`, `crosspost/moltbook`)
+- V8: Self-service onboarding room, file-backed state persistence
+- V11: Oracle blueprints — Sybil defense, thermodynamic trust, equimarginal LOD (design docs)
+- CRDT gossip backpressure + dead knowledge tree-shaking
+- Proof-of-Play gating, V3 wallet payments, V4 wallet identity
 
-**Ecosystem Resilience (R1-R2)**
-- **Orchestrator Stability:** Configured native circuit breakers and auto-failover sequences for MCP services.
-- **Build Isolation:** Transitioned `absorb-service` to a pure Dockerfile builder to alleviate Rust compilation bottlenecks and decoupled cross-package import boundaries between `@holoscript/core` and `mcp-server`.
+**Publishing Protocol** — 4-layer on-chain publishing
+- Provenance → Registry → Collect → Remix Revenue layers
+- Zora 1155 collection deployment script (Base L2)
+- `InvisibleWallet` (env/keystore/AgentKit), `ProtocolRegistry`, revenue splitter (bigint exact)
+- 4 MCP tools (`holo_protocol_*`), 7 HTTP endpoints, CLI `--publish`/`--price`/`--mint-nft`
 
-#### Oracle, Intelligence & Infrastructure Hardening
+**MCP Tools (19 new → 122 total)**
+- `holo_oracle_consult` — agent decision support via knowledge store + decision trees
+- `holo_protocol_publish`, `holo_protocol_mint`, `holo_protocol_revenue`, `holo_protocol_registry`
+- `moltbook_post`, `moltbook_comment`, `moltbook_browse`, `moltbook_engage`, `moltbook_heartbeat`, `moltbook_create_submolt`
+- `holoclaw_run`, `holoclaw_stop`, `holoclaw_status`
+- Multi-tenant API key provisioning, dynamic tenant auth bridging
+- MCP orchestrator circuit breaker + auto-failover
 
-**North Star Oracle & Operations (O1-O3)**
-- **Oracle Consult Tool:** Built the `holo_oracle_consult` MCP tool (Phase 2) to provide programmatic decision tree evaluation to agents directly.
-- **MCP Dispatch Routing:** Fixed stale barrel exports and explicit `holo_*` wildcard overriding, routing `holo_oracle_consult` via `index.ts` alongside general codebase tools.
-- **HoloMesh Repurposing:** Shifted HoloMesh "teams" strategy from IDE agent coordination to domain-based knowledge exchange.
+**Moltbook Integration**
+- 6 MCP tools for Moltbook social (post, comment, browse, engage, heartbeat, create_submolt)
+- Daemon brain: philosopher voice, feed browsing, semantic dedup, follow-back, timing jitter
+- L1/L2/L3 challenge escalation pipeline with fuzzy solver
+- Railway deployment config, subpath exports
 
-**Docker & Microservices (I1-I4)**
-- **Workspace Build Pipeline:** Hardened Dockerfiles by integrating previously omitted workspace dependencies (`@holoscript/std`, `ui`, `r3f-renderer`, `agent-protocol`, `studio-plugin-sdk`) into the Studio and render-service builds.
-- **BitNet Configurations:** Removed pretuned kernel flags for x86 fallback and updated runtime API (`--hf-repo`) in the `BitNet` Docker configuration.
-- **Absorb Economy:** Enhanced credit middleware authorization improvements.
+**Absorb Service** — extracted microservice
+- `@holoscript/absorb-service` package, Railway-deployed at `absorb.holoscript.net`
+- 20 MCP tools: scan, query, improve, TypeScript analysis, graph, credits
+- Embeddings cache for faster GraphRAG bootstrap
+- Plaintext fallback to track all language files
+- BM25 deprecated, OpenAI `text-embedding-3-small` as default embedding provider
+- Credit middleware + admin/founder tier bypass
 
-**Codebase Intelligence (C1-C2)**
-- **Semantic Transition:** Explicitly deprecated keyword-only `BM25EmbeddingProvider`, upgrading standard semantic search to `OpenAI` embeddings across `GraphRAGEngine` pipelines.
-- **Tool Count Audit:** Validated and increased the tracked MCP tool universe metric from 103 to 122 in all public references.
+**R3F Renderer**
+- `Telemetry` + `TwinActuator` traits for bidirectional IoT pipelines
+- SNN, ZK interaction flows, Temporal Scrubber
+- `SpatialFeedRenderer` exported for external embedding
 
-#### 13-Gap Critical & Feature Expansion
+**Auth & Admin**
+- OAuth 2.1 PostgreSQL-backed token store
+- Token encryption, per-user quotas, admin proxy, scope alignment
+- Per-server scoped API keys, dead doc key pruning
+- Absorb credit middleware with billing telemetry
 
-**Critical Infrastructure & Reliability (C1-C5)**
-- **Automated Gotcha Routing:** Added explicit import and case routing for `holo_check_gotchas` in the central handler system.
-- **Railway/Docker Hardening:** Injected Playwright (Chromium + fonts) into `Dockerfile.mcp-server` for reliable server-side rendering.
-- **BrowserPool Enhancements:** Server-side screenshot rendering enabled with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` support, auto-headless detection, and Docker-optimized flags.
-- **Scene Persistence:** Implemented short-URL (8-char UUID) scene persistence with in-memory LRU eviction and `/scene/:id` + `/embed/:id` routing.
-- **Local Dev Server:** New `holoscript serve` command with hot-reload support, Three.js integration, and OrbitControls.
+**Core Engine & CLI**
+- `holoscript serve` — dev server with SSE HMR, file watching, error overlay, dashboard
+- JSON AST exports (`--export-ast`), JSON-to-Holo imports, Mermaid dependency graphs
+- `holoscript query` — semantic GraphRAG search with provider selection (`bm25|xenova|openai|ollama`)
+- `EmbeddingProvider` abstraction: BM25, Xenova, Ollama, OpenAI — all provider-agnostic
+- Wind-to-FluidTrait WGSL pipeline (3 shaders), `MLSMPMFluid`, `WeatherBlackboard`
+- Plugin API dispatch for `scene.read/write/subscribe`, `editor.*`, `ui.*`, `user.*`
+- Dynamic plugin installation (NPM registry, esm.sh, direct URL)
+- Scene persistence with short-URL (8-char UUID) + LRU eviction
+- 80+ parser token types, 16 domain categories in `parseDomainBlock()`
 
-**Core Engine & CLI (H1-H6)**
-- **Plugin API Dispatch:** Fixed `onAPICall` to correctly dispatch `scene.read/write/subscribe`, `editor.selection/viewport`, `ui.notification`, and `user.read`.
-- **CLI Intelligence:** New commands for JSON AST exports (`--export-ast`), JSON-to-Holo imports, and Mermaid dependency graph visualization.
-- **Physics Pipeline:** Wind-to-FluidTrait WGSL pipeline implementation (3 shaders: padding → wind_xyz), coupled with `MLSMPMFluid` and `WeatherBlackboard`.
-- **Three.js Compiler:** Enhanced with full material property support, all geometry types, shadows, and window resize handlers.
+**Infrastructure**
+- Dockerfiles for render-service, absorb-service, BitNet, Studio (hardened)
+- Server-side screenshot rendering via Playwright in Docker
+- Railway auto-redeploy with path-filtered CI
+- `HOLOMESH_DATA_DIR` and `EMBEDDING_PROVIDER` env vars
 
-**Ecosystem & Performance (M2-M7, L6)**
-- **Dynamic Plugin Installation:** Support for NPM (registry/esm.sh) and direct URL plugin imports via dynamic import.
-- **Daemon Lifecycle:** Graceful daemon stop support via POST actions to track and finalize running jobs.
-- **Parser Domain Blocks:** Validated and documented 80+ token types and 16 domain categories within the unified `parseDomainBlock()` system.
-- **Gallery Templates:** Added "The Sunken Temple" physics playground template to the showcase category, utilizing `@fluid`, `@soft_body_pro`, and `@volumetric_clouds`.
+### Changed
 
----
+- HoloMesh teams repurposed from IDE coordination to community knowledge exchange
+- 8 core packages bumped to 6.0.0 (`core`, `cli`, `absorb-service`, `agent-protocol`, `agent-sdk`, `semantic-2d`, `snn-webgpu`, `uaal`)
+- `@holoscript/mcp-server` bumped 3.6.1 → 3.7.0
+- `holoscript` Python bindings bumped 5.3.0 → 5.3.1
+- `absorb-service` switched to SSEServerTransport for standard MCP IDE compatibility
+- Compiler type safety enforced — eliminated `any` in R3F graphics configs
+- Extracted mesh helpers, fixed CRDT race condition (+12 tests)
 
-#### Package Release Alignment (npm + PyPI)
+### Fixed
 
-- **npm:** Bumped `@holoscript/mcp-server` from `3.6.1` to `3.7.0` to reflect shipped MCP reliability, cache, and daemon-context improvements from this week.
-- **PyPI:** Bumped `holoscript` Python bindings from `5.3.0` to `5.3.1` to publish synchronized release metadata for the current maintenance window.
+- Oracle handler dispatch ordering — routed before graph tools catch-all, inlined to avoid stale barrel exports
+- Studio Dockerfile build chain — added all missing workspace deps (`@holoscript/std`, `ui`, `r3f-renderer`, `agent-protocol`, `plugin-sdk`)
+- SSE endpoint absolute/relative URL resolution + auth query param fallback
+- Hardcoded Windows paths replaced with env-based resolution
+- Cross-package import boundary between `@holoscript/core` and `mcp-server` decoupled
+- `loro-crdt` added as explicit dependency for HoloMesh CRDT sync
+- Per-token revenue routing — creator owns revenue, not platform
+- Hallucination detection double-scoring in AI validator
+- Security sandbox contract: returns `success: false` with `error.type: 'syntax'` for non-executable HoloScript
+- BitNet Dockerfile rewritten to match current upstream API (`--hf-repo`)
+- Absorb-service tsup config (`shims: true`, `externalize mcp-server`)
+- Budget analyzer contradictions in economy Layer 2
 
-#### MCP Server Reliability, Deployment, And Cache Persistence
+### Security
 
-- Added build-artifact opt-in scanning for `holo_absorb_repo` via `includeBuildArtifacts`.
-- Added parse-fallback ingestion for dist/build files when parser bindings fail, preventing empty scans.
-- Hardened cache persistence startup and diagnostics for Railway deployment environments.
-- Added session recovery hardening for stateless/streamable HTTP MCP method flows.
-- Improved absorb diagnostics and cache debug logging for production triage.
-- Suppressed fallback-path parse noise by reporting parse errors only when fallback is disabled.
-
-#### Daemon And Codebase Intelligence Improvements
-
-- Added daemon pre-generation `fetch_docs` step to resolve relevant external type definitions from `node_modules`.
-- Injected resolved external type context into `generate_fix` prompts for higher fix precision.
-- Added per-session budget gate and event-loop yielding for long embedding runs to prevent hanging/timeouts.
-- Validated large embedding runs (batch progression and daemon cycle resume behavior).
-
-#### Quality, Correctness, And Contract Fixes
-
-- Updated security sandbox execution contract to return `success: false` with `error.type: 'syntax'` for valid HoloScript that is not executable JavaScript.
-- Added `syntax` to sandbox error union and aligned tests with explicit non-success semantics.
-- Fixed hallucination detection double-scoring by deduplicating rule contributions in AI validator pattern scoring.
-- Improved structural brace validation behavior and regression coverage in validator/sandbox suites.
-
-#### CI/CD And Release Operations
-
-- Refined Railway/GHCR MCP deployment flow with targeted deploy gating and service-specific routing.
-- Added deploy/path filter refinements to reduce unintended workflow fan-out.
-- Published MCP image pipeline updates and deployment version gating checks.
-
-#### Version Alignment
-
-- Aligned `platform-v5` lane package versions with `@holoscript/core` at `5.1.0`.
-- Updated monorepo root version to `5.1.0` to match current platform release line.
+- **CWE-94**: Input sanitization enforced across 16 compiler backends
+- **Solidity injection**: Alphanumeric contract names mandated in `NFTMarketplaceCompiler`
+- **Credential cleanup**: Purged hardcoded `dev-key-12345` from 6 runtime files
+- **FlowLevel.test.ts**: Security checks integrated into CI pipeline
+- **Flow-level audit**: 17 tests revealed 9/16 backends silently drop traits — tracked for follow-up
 
 ### Codebase Intelligence — EmbeddingProvider abstraction + `query` CLI command
 
@@ -138,15 +151,18 @@ All notable changes to HoloScript are documented here.
 ## [5.9.0] — 2026-03-24 (Developer Portal)
 
 ### New Modules
-- **DevServer** — `holoscript serve` with SSE-based HMR, file watching (.holo/.hs/.hsplus), error overlay, dashboard, /__hmr + /__api/stats + /__api/compositions endpoints
+
+- **DevServer** — `holoscript serve` with SSE-based HMR, file watching (.holo/.hs/.hsplus), error overlay, dashboard, /**hmr + /**api/stats + /\_\_api/compositions endpoints
 - **TraceWaterfallRenderer** — distributed trace span visualization, DFS hierarchy, bar positioning, critical path detection, agent color assignment, minDuration filter
 - **WorkspaceManager** — `holoscript workspace init`, glob-based member resolution, Kahn's algorithm topological sort with parallel group detection
 - **APIDocsGenerator** — 25+ prefix-based category rules, markdown + JSON output, auth detection
 
 ### MCP Tools (5 new → 103 total)
+
 - `get_api_reference`, `serve_preview`, `get_workspace_info`, `inspect_trace_waterfall`, `get_dev_dashboard_state`
 
 ### Tests
+
 - 59 new tests (15 DevServer + 13 TraceWaterfall + 11 Workspace + 9 APIDocs + 11 showcase E2E)
 
 ---
@@ -154,6 +170,7 @@ All notable changes to HoloScript are documented here.
 ## [5.8.0] — 2026-03-24 (Live Economy)
 
 ### New Modules
+
 - **PaymentWebhookService** — HMAC-SHA256 verification, idempotent processing, retry queue with exponential backoff
 - **UsageMeter** — per-tool-call cost tracking, free-tier monthly allowance, aggregation by agent/tool/period
 - **AgentBudgetEnforcer** — per-agent budget caps, enforcement modes (warn/soft/hard), circuit breaker with auto-reset
@@ -161,9 +178,11 @@ All notable changes to HoloScript are documented here.
 - **SubscriptionManager** — lifecycle (create→trial→active→past_due→suspended→cancelled), MRR calculation
 
 ### MCP Tools (3 new → 98 total)
+
 - `check_agent_budget`, `get_usage_summary`, `get_creator_earnings`
 
 ### Tests
+
 - 83 new tests (69 core economy + 14 showcase E2E)
 
 ---
@@ -171,6 +190,7 @@ All notable changes to HoloScript are documented here.
 ## [5.7.0] — 2026-03-24 (Open Ecosystem)
 
 ### New Modules
+
 - **PluginSandboxRunner** — vm.createContext() isolation, PermissionSet (11 perms), CapabilityBudget (CPU/memory/tools), rate limiting
 - **PluginSignatureVerifier** — TrustStore with key rotation/revocation/expiration, Ed25519 verification
 - **DependencyResolver** — topological sort, parallel group detection, cycle + version conflict detection
@@ -178,9 +198,11 @@ All notable changes to HoloScript are documented here.
 - **`holoscript create-plugin` CLI** — scaffolds plugin boilerplate with package.json, tsconfig, test, README
 
 ### MCP Tools (3 new → 95 total)
+
 - `install_plugin`, `list_plugins`, `manage_plugin`
 
 ### Tests
+
 - 91 new tests (76 core plugins + 15 showcase E2E)
 
 ---
@@ -188,6 +210,7 @@ All notable changes to HoloScript are documented here.
 ## [5.6.0] — 2026-03-24 (Observable Platform)
 
 ### New Modules
+
 - **OTLPExporter** — OTLP/HTTP JSON exporter, batch flush, gzip, retry with backoff+jitter, configurable auth
 - **TraceContextPropagator** — W3C Trace Context inject/extract, traceparent/tracestate, createChildContext
 - **PrometheusMetricsRegistry** — counters/gauges/histograms, toPrometheusText(), linkTelemetry() auto-recording
@@ -195,9 +218,11 @@ All notable changes to HoloScript are documented here.
 - **Health endpoints** — /health with subsystem checks, /metrics with Prometheus exposition text
 
 ### MCP Tools (4 new → 92 total)
+
 - `query_traces`, `export_traces_otlp`, `get_agent_health`, `get_metrics_prometheus`
 
 ### Tests
+
 - 91 new tests (78 core debug + 13 showcase E2E)
 
 ---
@@ -205,15 +230,18 @@ All notable changes to HoloScript are documented here.
 ## [5.5.0] — 2026-03-24 (Agents as Universal Orchestrators)
 
 ### New Modules
+
 - **FederatedRegistryAdapter** — cross-composition agent discovery via /.well-known/agent-card.json, A2A card → AgentManifest conversion
 - **TaskDelegationService** — local + remote (A2A JSON-RPC) delegation, auto-delegate via CapabilityMatcher, retry with exponential backoff
 - **SkillWorkflowEngine** — DAG-based skill composition, topological sort → parallel groups, cycle detection, fallback/skip error strategies
 - **OrchestratorAgent** — first concrete BaseAgent from uAA2++ protocol, 7 phases mapped to orchestration
 
 ### MCP Tools (5 new → 88 total)
+
 - `discover_agents`, `delegate_task`, `get_task_status`, `compose_workflow`, `execute_workflow`
 
 ### Tests
+
 - 95 new tests (82 core agents + 13 showcase E2E)
 
 ---
@@ -221,15 +249,18 @@ All notable changes to HoloScript are documented here.
 ## [5.4.0] — 2026-03-24 (Domains Unified)
 
 ### New Features
+
 - **Unified HoloDomainType** — 31 types (23 spatial + 8 v6), DialectDomain extends HoloDomainType
 - **DialectRegistry Boot** — registerBuiltinDialects() with 24 compilers
 - **Cross-Domain Trait Constraints** — 73 BUILTIN_CONSTRAINTS including v6 resilience (circuit_breaker, retry, timeout, bulkhead)
 - **LSP Cross-Domain Completions** — 72 V6_TRAIT_COMPLETIONS across 8 domains
 
 ### MCP Tools (2 new → 83 total)
+
 - `validate_composition`, `absorb_typescript`
 
 ### Tests
+
 - 74 new tests
 
 ---
@@ -237,15 +268,18 @@ All notable changes to HoloScript are documented here.
 ## [5.3.0] — 2026-03-24 (Tooling as Semantic Bridge)
 
 ### New Features
+
 - **Changesets config** with fixed (platform-v5) + linked (tooling-v3) groups
 - **Syncpack config** with workspace protocol + sameRange policies
 - **MCP quality gate** script (validate-mcp-tools.mjs) + CI workflow
 - **A2A parity validator** (validate-a2a-parity.mjs) + release compliance CI workflow
 
 ### MCP Tools (3 new → 81 total)
+
 - `suggest_universal_traits`, `generate_service_contract`, `explain_service_contract`
 
 ### Tests
+
 - 100 new tests
 
 ---
@@ -253,6 +287,7 @@ All notable changes to HoloScript are documented here.
 ## [5.2.0] — 2026-03-24 (Parser Universalized)
 
 ### New Features
+
 - **239 universal service traits** across 8 categories
 - **DialectRegistry** — MLIR-style dialect plugin system (322 lines)
 - **NodeServiceCompiler** — Express/Fastify code emission (646 lines)
@@ -261,11 +296,13 @@ All notable changes to HoloScript are documented here.
 - **traits/v6/ namespace** — 8 files, 35 trait types across 8 categories
 
 ### Tests
+
 - 65 new tests
 
 ---
 
 ### Studio Quality & DX Refinements (Track 1)
+
 - **Spatial Version Control (Git for 3D)**: Built isomorphic git integration enabling visual spatial blame tooltips and ghost-mesh translucent diff overlays within the 3D viewport.
 - **Conformance & Verification Pipelines**: Repurposed the Engine Play pipeline into a formal AST validation runner enforcing physics boundaries and accessibility guidelines.
 - **FDA-Compliant Auditing API**: Connected `StudioErrorBoundary.tsx` to a new Node-runtime `/api/audit` route writing AST-parsed render crashes directly to a CFR Part 11 compliant `crash_ledger.txt`.
@@ -274,6 +311,7 @@ All notable changes to HoloScript are documented here.
 - **Global Error Boundary**: Standardized runtime crashes by mapping `componentDidCatch` stack frames to AST component paths for direct debugging.
 
 ### Core Engine Hardening (Track 2)
+
 - **AST Node Object Pool**: Eliminated garbage collection overhead in `R3FCompiler.ts` and `GLTFPipeline.ts` by pooling heavily-instantiated AST component nodes.
 - **GLB Buffer Streaming**: Resolved Out-Of-Memory (OOM) crashes on massive procedural scenarios by replacing inefficient Array primitives with native `Uint8Array` allocations. Successfully validated the compilation of 50,000 spatial meshes under a 512MB heap limit, creating a 219MB GLB export seamlessly.
 - **AI Coverage Push**: Wrote 50+ new Vitest scenarios verifying edge cases within the AI `DialogueRunner` under deeply nested loads, and Spatial Navigation `AStarPathfinder` execution boundaries during disjoint mesh navigation.
