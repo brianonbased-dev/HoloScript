@@ -10,9 +10,10 @@
  *   - done event
  *
  * Provider priority:
- *   1. Brittney Cloud Service (BRITTNEY_SERVICE_URL) — GPU inference
- *   2. Ollama (local) — dev fallback
- *   3. OpenAI (OPENAI_API_KEY) — user-provided key for alt AI
+ *   1. Claude via OpenRouter (OPENROUTER_API_KEY) — primary, best quality
+ *   2. Anthropic direct (ANTHROPIC_API_KEY) — direct Claude API
+ *   3. Ollama (local) — offline/edge fallback with Qwen-3B GGUF
+ *   4. OpenAI (OPENAI_API_KEY) — legacy fallback
  */
 
 import { NextRequest } from 'next/server';
@@ -39,27 +40,97 @@ Rules:
 - Match the user's energy: casual and fast if they're fast, detailed if they ask for it
 - Never apologize excessively or pad your responses`;
 
-const BRITTNEY_SERVICE_URL = process.env.BRITTNEY_SERVICE_URL || '';
+// ─── Claude via OpenRouter (OpenAI-compatible format) ────────────────────────
 
-// ─── Brittney Cloud provider ──────────────────────────────────────────────────
-
-async function* streamBrittneyCloud(
+async function* streamClaude(
   messages: BrittneyMessage[],
   scene: string
 ): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
-  const response = await fetch(`${BRITTNEY_SERVICE_URL}/api/chat`, {
+  // OpenRouter provides OpenAI-compatible API for Claude models
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY!;
+  const baseUrl = process.env.OPENROUTER_API_KEY
+    ? 'https://openrouter.ai/api/v1'
+    : 'https://api.anthropic.com/v1';
+  const model = process.env.BRITTNEY_CLAUDE_MODEL ?? 'anthropic/claude-haiku-3-5-20241022';
+
+  // For direct Anthropic API, use native format
+  if (!process.env.OPENROUTER_API_KEY && process.env.ANTHROPIC_API_KEY) {
+    yield* streamAnthropicDirect(messages, scene);
+    return;
+  }
+
+  // OpenRouter path: identical to OpenAI format
+  const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, sceneContext: scene }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://studio.holoscript.net',
+      'X-Title': 'HoloScript Studio - Brittney',
+    },
+    body: JSON.stringify({
+      model,
+      stream: true,
+      messages: [{ role: 'system', content: systemMsg }, ...messages],
+      tools: BRITTNEY_TOOLS,
+      max_tokens: 2048,
+    }),
   });
 
   if (!response.ok || !response.body) {
-    throw new Error(`Brittney Cloud error: ${response.status} ${response.statusText}`);
+    throw new Error(`Claude error: ${response.status} ${response.statusText}`);
+  }
+
+  // Reuse OpenAI SSE parser (OpenRouter uses identical format)
+  yield* parseOpenAIStream(response.body);
+}
+
+// ─── Anthropic Direct (native format) ────────────────────────────────────────
+
+async function* streamAnthropicDirect(
+  messages: BrittneyMessage[],
+  scene: string
+): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
+  const apiKey = process.env.ANTHROPIC_API_KEY!;
+  const model = process.env.BRITTNEY_CLAUDE_MODEL ?? 'claude-haiku-4-5-20251001';
+
+  const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;
+
+  // Convert OpenAI tool format to Anthropic format
+  const anthropicTools = BRITTNEY_TOOLS.map((t: any) => ({
+    name: t.function?.name ?? t.name,
+    description: t.function?.description ?? t.description,
+    input_schema: t.function?.parameters ?? t.parameters ?? t.input_schema,
+  }));
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2048,
+      system: systemMsg,
+      stream: true,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      tools: anthropicTools,
+    }),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Anthropic error: ${response.status} ${response.statusText}`);
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let currentToolName = '';
+  let currentToolArgs = '';
 
   while (true) {
     const { done, value } = await reader.read();
@@ -70,20 +141,45 @@ async function* streamBrittneyCloud(
     buffer = lines.pop() ?? '';
 
     for (const line of lines) {
+      if (line.startsWith('event: ')) continue;
       const trimmed = line.replace(/^data: /, '').trim();
       if (!trimmed) continue;
       try {
-        const event = JSON.parse(trimmed) as {
-          type: 'text' | 'tool_call' | 'done';
-          payload: unknown;
-        };
-        yield event;
-        if (event.type === 'done') return;
-      } catch {
-        // partial chunk
-      }
+        const event = JSON.parse(trimmed);
+
+        if (event.type === 'content_block_start') {
+          if (event.content_block?.type === 'tool_use') {
+            currentToolName = event.content_block.name;
+            currentToolArgs = '';
+          }
+        } else if (event.type === 'content_block_delta') {
+          if (event.delta?.type === 'text_delta') {
+            yield { type: 'text', payload: event.delta.text };
+          } else if (event.delta?.type === 'input_json_delta') {
+            currentToolArgs += event.delta.partial_json;
+          }
+        } else if (event.type === 'content_block_stop') {
+          if (currentToolName) {
+            try {
+              yield {
+                type: 'tool_call',
+                payload: {
+                  name: currentToolName,
+                  arguments: JSON.parse(currentToolArgs || '{}'),
+                },
+              };
+            } catch { /* ignore parse error */ }
+            currentToolName = '';
+            currentToolArgs = '';
+          }
+        } else if (event.type === 'message_stop') {
+          yield { type: 'done', payload: null };
+          return;
+        }
+      } catch { /* partial chunk */ }
     }
   }
+  yield { type: 'done', payload: null };
 }
 
 // ─── Ollama provider ──────────────────────────────────────────────────────────
@@ -93,7 +189,7 @@ async function* streamOllama(
   scene: string
 ): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
   const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434';
-  const model = process.env.BRITTNEY_MODEL ?? 'llama3.1:8b';
+  const model = process.env.BRITTNEY_MODEL ?? 'brittney-qwen3b';
 
   const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;
 
@@ -157,7 +253,81 @@ async function* streamOllama(
   }
 }
 
-// ─── OpenAI provider ──────────────────────────────────────────────────────────
+// ─── OpenAI-compatible stream parser (shared by OpenRouter + OpenAI) ─────────
+
+async function* parseOpenAIStream(
+  body: ReadableStream<Uint8Array>
+): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let pendingToolCall: { name: string; argsBuf: string } | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const trimmed = line.replace(/^data: /, '').trim();
+      if (!trimmed || trimmed === '[DONE]') {
+        if (trimmed === '[DONE]') {
+          if (pendingToolCall) {
+            try {
+              yield {
+                type: 'tool_call',
+                payload: {
+                  name: pendingToolCall.name,
+                  arguments: JSON.parse(pendingToolCall.argsBuf || '{}'),
+                },
+              };
+            } catch { /* ignore */ }
+            pendingToolCall = null;
+          }
+          yield { type: 'done', payload: null };
+        }
+        continue;
+      }
+      try {
+        const chunk = JSON.parse(trimmed);
+        const delta = chunk.choices?.[0]?.delta;
+        if (!delta) continue;
+
+        if (delta.content) {
+          yield { type: 'text', payload: delta.content };
+        }
+
+        if (delta.tool_calls?.length) {
+          for (const tc of delta.tool_calls) {
+            if (tc.function?.name) {
+              if (pendingToolCall) {
+                try {
+                  yield {
+                    type: 'tool_call',
+                    payload: {
+                      name: pendingToolCall.name,
+                      arguments: JSON.parse(pendingToolCall.argsBuf || '{}'),
+                    },
+                  };
+                } catch { /* ignore */ }
+              }
+              pendingToolCall = { name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
+            } else if (pendingToolCall && tc.function?.arguments) {
+              pendingToolCall.argsBuf += tc.function.arguments;
+            }
+          }
+        }
+      } catch {
+        // partial line
+      }
+    }
+  }
+}
+
+// ─── OpenAI provider (legacy fallback) ───────────────────────────────────────
 
 async function* streamOpenAI(
   messages: BrittneyMessage[],
@@ -186,79 +356,7 @@ async function* streamOpenAI(
     throw new Error(`OpenAI error: ${response.status} ${response.statusText}`);
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let pendingToolCall: { name: string; argsBuf: string } | null = null;
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-
-    for (const line of lines) {
-      const trimmed = line.replace(/^data: /, '').trim();
-      if (!trimmed || trimmed === '[DONE]') {
-        if (trimmed === '[DONE]') {
-          // flush pending tool call
-          if (pendingToolCall) {
-            try {
-              yield {
-                type: 'tool_call',
-                payload: {
-                  name: pendingToolCall.name,
-                  arguments: JSON.parse(pendingToolCall.argsBuf || '{}'),
-                },
-              };
-            } catch {
-              /* ignore */
-            }
-            pendingToolCall = null;
-          }
-          yield { type: 'done', payload: null };
-        }
-        continue;
-      }
-      try {
-        const chunk = JSON.parse(trimmed);
-        const delta = chunk.choices?.[0]?.delta;
-        if (!delta) continue;
-
-        if (delta.content) {
-          yield { type: 'text', payload: delta.content };
-        }
-
-        if (delta.tool_calls?.length) {
-          for (const tc of delta.tool_calls) {
-            if (tc.function?.name) {
-              // New tool call starting — flush previous if any
-              if (pendingToolCall) {
-                try {
-                  yield {
-                    type: 'tool_call',
-                    payload: {
-                      name: pendingToolCall.name,
-                      arguments: JSON.parse(pendingToolCall.argsBuf || '{}'),
-                    },
-                  };
-                } catch {
-                  /* ignore */
-                }
-              }
-              pendingToolCall = { name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
-            } else if (pendingToolCall && tc.function?.arguments) {
-              pendingToolCall.argsBuf += tc.function.arguments;
-            }
-          }
-        }
-      } catch {
-        // partial line
-      }
-    }
-  }
+  yield* parseOpenAIStream(response.body);
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -278,16 +376,10 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        // Provider priority: Brittney Cloud → Ollama → OpenAI
+        // Provider priority: Claude (OpenRouter/Anthropic) → Ollama → OpenAI
         let gen: AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }>;
-        if (BRITTNEY_SERVICE_URL) {
-          try {
-            gen = streamBrittneyCloud(messages, sceneContext);
-          } catch {
-            gen = process.env.OPENAI_API_KEY
-              ? streamOpenAI(messages, sceneContext)
-              : streamOllama(messages, sceneContext);
-          }
+        if (process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY) {
+          gen = streamClaude(messages, sceneContext);
         } else if (process.env.OPENAI_API_KEY) {
           gen = streamOpenAI(messages, sceneContext);
         } else {
