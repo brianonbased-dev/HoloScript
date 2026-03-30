@@ -13,7 +13,6 @@ export type {
 } from './EmbeddingProvider';
 export { createEmbeddingProvider } from './EmbeddingProviderFactory';
 
-export { BM25EmbeddingProvider } from './BM25EmbeddingProvider';
 export { XenovaEmbeddingProvider } from './XenovaEmbeddingProvider';
 export { OllamaEmbeddingProvider } from './OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './OpenAIEmbeddingProvider';

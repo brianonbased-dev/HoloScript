@@ -487,9 +487,9 @@ export const codebaseTools: Tool[] = [
         },
         embeddingProvider: {
           type: 'string',
-          enum: ['openai', 'ollama', 'xenova', 'bm25'],
+          enum: ['openai', 'ollama', 'xenova'],
           description:
-            'Embedding provider for semantic search (default: openai). "openai" uses OpenAI embeddings (best quality, requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model, "bm25" is deprecated keyword-only fallback.',
+            'Embedding provider for semantic search (default: openai). "openai" uses OpenAI embeddings (best quality, requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model.',
         },
         embeddingApiKey: {
           type: 'string',

@@ -10,8 +10,6 @@
 import type { ExternalSymbolDefinition } from './types';
 import type { CodebaseGraph } from './CodebaseGraph';
 import type { EmbeddingProvider } from './providers/EmbeddingProvider';
-// BM25 kept as sync constructor fallback only — deprecated, prefer OpenAI via createEmbeddingProvider()
-import { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
 import * as path from 'path';
 import * as os from 'os';
 import { fileURLToPath } from 'url';
@@ -105,7 +103,10 @@ export class EmbeddingIndex {
   private workerPool?: any;
 
   constructor(options: EmbeddingIndexOptions = {}) {
-    this.provider = options.provider ?? new BM25EmbeddingProvider();
+    if (!options.provider) {
+      throw new Error('EmbeddingIndex requires an explicit provider. Use createEmbeddingProvider() from providers/EmbeddingProviderFactory.');
+    }
+    this.provider = options.provider;
     // Increased from 32 to 100 for OpenAI (supports up to 2048)
     // Reduces API calls from 4,062 to 1,300 for 130K symbols
     this.batchSize = options.batchSize ?? (this.provider.name === 'openai' ? 100 : 32);

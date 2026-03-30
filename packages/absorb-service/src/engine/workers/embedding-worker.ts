@@ -51,13 +51,6 @@ async function createProvider(providerConfig: EmbeddingJob['provider']): Promise
         const { XenovaEmbeddingProvider } = await import('../providers/XenovaEmbeddingProvider');
         return new XenovaEmbeddingProvider(config.xenovaModel);
       }
-      case 'bm25': {
-        console.error(
-          '[EmbeddingWorker] WARNING: BM25 is deprecated. Use "openai" for quality semantic search.'
-        );
-        const { BM25EmbeddingProvider } = await import('../providers/BM25EmbeddingProvider');
-        return new BM25EmbeddingProvider();
-      }
       default:
         throw new Error(`Unknown provider: ${name}`);
     }

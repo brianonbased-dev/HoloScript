@@ -101,7 +101,6 @@ export type {
   EmbeddingProviderOptions,
 } from './providers/EmbeddingProvider';
 export { createEmbeddingProvider } from './providers/EmbeddingProviderFactory';
-export { BM25EmbeddingProvider } from './providers/BM25EmbeddingProvider';
 export { XenovaEmbeddingProvider } from './providers/XenovaEmbeddingProvider';
 export { OllamaEmbeddingProvider } from './providers/OllamaEmbeddingProvider';
 export { OpenAIEmbeddingProvider } from './providers/OpenAIEmbeddingProvider';

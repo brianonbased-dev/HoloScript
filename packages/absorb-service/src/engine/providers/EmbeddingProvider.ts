@@ -5,7 +5,6 @@
  *   - OpenAI (API, RECOMMENDED — best quality)
  *   - Ollama (local server, good quality)
  *   - Xenova/Transformers (WASM local semantics, optional dep)
- *   - BM25 (DEPRECATED — keyword-only, no semantic understanding)
  */
 
 // =============================================================================
@@ -28,7 +27,7 @@ export interface EmbeddingProvider {
 // FACTORY OPTIONS
 // =============================================================================
 
-export type EmbeddingProviderName = 'bm25' | 'xenova' | 'openai' | 'ollama';
+export type EmbeddingProviderName = 'xenova' | 'openai' | 'ollama';
 
 export interface EmbeddingProviderOptions {
   /**
