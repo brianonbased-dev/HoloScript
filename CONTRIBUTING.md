@@ -218,7 +218,9 @@ See `PHASE_4_COMPLETION_REPORT.md` for details.
 
 ## Commit Messages
 
-Use conventional commits:
+Use conventional commits with canonical scopes:
+
+**Types:**
 
 - `feat:` New feature or trait
 - `fix:` Bug fix
@@ -226,6 +228,31 @@ Use conventional commits:
 - `refactor:` Code restructuring
 - `test:` Test additions
 - `chore:` Build/tooling changes
+- `ci:` CI/CD pipeline changes
+
+**Canonical scopes** (use these, not aliases):
+
+| Scope | Package / Area | NOT these |
+|-------|---------------|-----------|
+| `core` | `@holoscript/core` — parser, types, traits, compilers | |
+| `mesh` | HoloMesh — social network, CRDT, gossip, teams | `holomesh` |
+| `mcp` | `@holoscript/mcp-server` — MCP tools, HTTP routes | `mcp-server` |
+| `absorb` | `@holoscript/absorb-service` — GraphRAG, embeddings | `absorb-service`, `absorb-engine` |
+| `studio` | `@holoscript/studio` — Next.js app, pages | `studio+holo` |
+| `cli` | `@holoscript/cli` — command-line tools | |
+| `r3f` | `@holoscript/r3f-renderer` — React Three Fiber | `r3f-renderer` |
+| `protocol` | Publishing protocol — provenance, registry, revenue | |
+| `infra` | Dockerfiles, Railway, deployment configs | `docker` |
+| `ci` | GitHub Actions, CI workflows | |
+| `security` | Security fixes, sandbox, auth | |
+| `economy` | Payments, budgets, revenue, subscriptions | `monetization` |
+| `lsp` | Language Server Protocol | |
+
+**Rules:**
+- One scope per commit. `feat(mesh):` not `feat(mesh, mcp):`
+- One concern per commit. If you write "and" in the subject, split into two commits.
+- Subject line max 72 characters. Use the body for detail.
+- Separate `test:` commits from `feat:` when adding tests alongside features.
 
 ## License
 
@@ -271,24 +298,24 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 
 This repo is AI-first — most features and fixes arrive via agent-authored commits. Human review follows a regular cadence:
 
-| Type | Cadence | SLA |
-|------|---------|-----|
-| Security patches (CVE) | Immediate | < 24 h |
-| Dependabot patch / minor | Weekly (Mondays) | < 7 days |
-| Dependabot major version | Monthly review | > 7 days (deliberate) |
-| Human feature PR | Rolling — review within 3 business days | — |
-| Human bug fix | Rolling — review within 1 business day | — |
+| Type                     | Cadence                                 | SLA                   |
+| ------------------------ | --------------------------------------- | --------------------- |
+| Security patches (CVE)   | Immediate                               | < 24 h                |
+| Dependabot patch / minor | Weekly (Mondays)                        | < 7 days              |
+| Dependabot major version | Monthly review                          | > 7 days (deliberate) |
+| Human feature PR         | Rolling — review within 3 business days | —                     |
+| Human bug fix            | Rolling — review within 1 business day  | —                     |
 
 ### Dependabot Merge Policy
 
-| Category | Policy |
-|----------|--------|
-| Security CVE (any level) | Merge immediately after CI passes |
-| Patch bumps (`z` in `x.y.z`) | Merge on weekly sweep if CI is green |
-| Minor bumps | Merge on weekly sweep; skim changelog first |
-| `next` major version | Require an explicit tracking issue and migration plan |
-| `uuid` major (CJS→ESM) | Verify all import sites use ESM syntax first, then merge |
-| `storybook` major | Run `npx storybook@latest upgrade` — do **not** merge fragmented Dependabot PRs individually; they must be coordinated (all `@storybook/*` at the same version) |
+| Category                     | Policy                                                                                                                                                          |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Security CVE (any level)     | Merge immediately after CI passes                                                                                                                               |
+| Patch bumps (`z` in `x.y.z`) | Merge on weekly sweep if CI is green                                                                                                                            |
+| Minor bumps                  | Merge on weekly sweep; skim changelog first                                                                                                                     |
+| `next` major version         | Require an explicit tracking issue and migration plan                                                                                                           |
+| `uuid` major (CJS→ESM)       | Verify all import sites use ESM syntax first, then merge                                                                                                        |
+| `storybook` major            | Run `npx storybook@latest upgrade` — do **not** merge fragmented Dependabot PRs individually; they must be coordinated (all `@storybook/*` at the same version) |
 
 ### Pre-commit Hook Notes
 
