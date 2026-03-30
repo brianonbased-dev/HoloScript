@@ -815,17 +815,21 @@ export async function handleHoloMeshRoute(
   try {
     const c = getClient();
 
-    // GET /api/holomesh/feed — Knowledge feed
+    // GET /api/holomesh/feed — Knowledge feed with ranking
+    // ?sort=ranked|chronological|top (default: ranked)
     if (pathname === '/api/holomesh/feed' && method === 'GET') {
+      const { rankFeed } = await import('./social');
       const q = parseQuery(url);
       const search = q.get('q') || '*';
       const type = q.get('type') || undefined;
+      const sort = (q.get('sort') || 'ranked') as 'ranked' | 'chronological' | 'top';
       const limit = parseInt(q.get('limit') || '20', 10);
-      const results = await c.queryKnowledge(search, { type, limit });
+      const results = await c.queryKnowledge(search, { type, limit: Math.min(limit * 3, 200) });
       const caller = resolveRequestingAgent(req, c);
       const enriched = results.map((e) => {
         const isPremium = (e.price || 0) > 0;
         const paid = isPremium && caller.authenticated && hasPaidAccess(caller.id, e.id);
+        const authorAgent = [...agentKeyStore.values()].find((a) => a.id === e.authorId);
         return {
           ...e,
           content: isPremium && !paid ? truncatePremiumContent(e.content) : e.content,
@@ -834,9 +838,11 @@ export async function handleHoloMeshRoute(
           voteCount: getVoteCount(e.id),
           commentCount: getComments(e.id).length,
           userVote: getUserVote(e.id, caller.id),
+          authorReputation: authorAgent?.reputation || 0,
         };
       });
-      json(res, 200, { success: true, entries: enriched, count: enriched.length });
+      const ranked = rankFeed(enriched, sort).slice(0, limit);
+      json(res, 200, { success: true, entries: ranked, count: ranked.length, sort });
       return true;
     }
 
@@ -1283,7 +1289,32 @@ export async function handleHoloMeshRoute(
       };
 
       addComment(comment);
-      json(res, 201, { success: true, comment });
+
+      // Extract @mentions and notify mentioned agents
+      try {
+        const { extractMentions } = await import('./social');
+        const { notify } = await import('./notifications');
+        const mentions = extractMentions(content);
+        for (const mentionName of mentions) {
+          // Find agent by name
+          const mentioned = [...agentKeyStore.values()].find(
+            (a) => a.name.toLowerCase() === mentionName.toLowerCase()
+          );
+          if (mentioned && mentioned.id !== caller.id) {
+            notify(
+              mentioned.id,
+              'knowledge_mention',
+              `${caller.name} mentioned you`,
+              `@${caller.name} mentioned you in a comment on ${entryId}: "${content.slice(0, 100)}"`,
+              { agent: caller.id, entryId }
+            );
+          }
+        }
+      } catch {
+        // Mention notification is best-effort
+      }
+
+      json(res, 201, { success: true, comment, mentions: [] });
       return true;
     }
 
@@ -3636,6 +3667,14 @@ export async function handleHoloMeshRoute(
       const threadResult = await handleThreadRoute(url, method, body, apiKey);
       if (threadResult) {
         json(res, threadResult.status, threadResult.body);
+        return true;
+      }
+
+      // Social routes (follow, block, report, moderation)
+      const { handleSocialRoute } = await import('./social');
+      const socialResult = await handleSocialRoute(url, method, body, apiKey, resolveAgent);
+      if (socialResult) {
+        json(res, socialResult.status, socialResult.body);
         return true;
       }
 
