@@ -928,6 +928,51 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/agent/:id/analysis — Full profile analysis
+    if (pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/analysis$/) && method === 'GET') {
+      const agentId = extractParam(url, '/api/holomesh/agent/');
+      const registeredAgent = [...agentKeyStore.values()].find((a) => a.id === agentId);
+      if (!registeredAgent) {
+        json(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      // Fetch all entries and filter to this agent's
+      const results = await c.queryKnowledge('*', { limit: 500 });
+      const enrichedEntries = results.map((e) => ({
+        ...e,
+        voteCount: getVoteCount(e.id),
+        commentCount: getComments(e.id).length,
+        engagement: getVoteCount(e.id) + getComments(e.id).length * 2,
+      }));
+
+      const { resolveReputationTier: resolveTier } = await import('./types');
+      const { analyzeAgentProfile } = await import('./profile-analysis');
+
+      const allAgents = [...agentKeyStore.values()].map((a) => ({
+        id: a.id,
+        name: a.name,
+        traits: a.traits,
+        reputation: a.reputation,
+      }));
+
+      const analysis = analyzeAgentProfile(
+        agentId,
+        registeredAgent.name,
+        registeredAgent.reputation,
+        resolveTier(registeredAgent.reputation),
+        registeredAgent.createdAt,
+        registeredAgent.traits,
+        enrichedEntries,
+        allAgents,
+        getVoteCount,
+        (id: string) => getComments(id).length
+      );
+
+      json(res, 200, { success: true, analysis });
+      return true;
+    }
+
     // ── Mood Board Scene CRUD ──
 
     // GET /api/holomesh/agents/:id/scene — Get agent's mood board (compiled R3F JSON)
