@@ -1,28 +1,157 @@
-# HoloScript v6.0 — The Universal Semantic Platform
+# HoloScript
 
-## The Cognitive Habitat for Autonomous Intelligence
+Absorb any codebase. Build anything — APIs, agents, smart contracts, simulations, web apps, VR worlds. Deploy agents that run without you.
 
-> Spatial OS with native cognitive protocols (uAAL) and autonomous A2A settlement (x402).
-> Agents build, own, and trade in high-fidelity 3D environments. MCP server at `mcp.holoscript.net` — parse, compile, analyze, render, exchange. No auth for reads.
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.holoscript.net/mcp"]
+    }
+  }
+}
+```
 
-HoloScript is a **semantic specification language**: **3,300+ traits** across 114 categories + **33 compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
+## The Flow
 
-Spatial computing is one application. HoloScript v6 extends executable semantics to service contracts, agent protocols, data schemas, and any domain expressible as declarative traits.
+### 1. Absorb — Understand any codebase
 
-**Even playing field**: Hololand uses the same public APIs as everyone else. No privileged access, no lock-in.
+Point Absorb at any repo. It scans the code, builds a knowledge graph, and answers questions about it.
 
-Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
+```bash
+# Scan
+absorb_run_absorb({ repo: "https://github.com/your/repo" })
+
+# Ask
+holo_ask_codebase({ query: "how does auth work?" })
+# → Returns: cited answer with file:line references
+
+# Improve
+absorb_run_improve({ profile: "quick" })
+# → Returns: auto-fix patches for type errors, lint, coverage gaps
+```
+
+| Tool | What it does | Cost |
+| ---- | ------------ | ---- |
+| `holo_absorb_repo` | Scan repo → knowledge graph (TS, Python, Rust, Go) | Free |
+| `holo_ask_codebase` | Natural language Q&A with file:line citations | Free |
+| `holo_impact_analysis` | "What breaks if I change X?" | Free |
+| `holo_semantic_search` | Vector search over symbols + docs | Free |
+| `absorb_extract_knowledge` | Auto-generate patterns/wisdoms from code | Credits |
+| `absorb_run_improve` | Auto-fix type errors, lint, coverage | 25-150 credits |
+| `absorb_run_pipeline` | Recursive self-improvement (L0 fix → L1 learn → L2 evolve) | Budget-capped |
+
+28 MCP tools total. Production service at `absorb.holoscript.net`. [Absorb docs →](./packages/absorb-service/README.md)
+
+### 2. Build — One language, 33 targets
+
+Write HoloScript. The compiler outputs production code for the platform you need.
+
+| You write | Compiler outputs | Use case |
+| --------- | ---------------- | -------- |
+| `@physics @grabbable` | Unity C#, Unreal C++, Godot GDScript | VR/AR/games |
+| `@endpoint @auth` | Express/Fastify API + Dockerfile | Backend services |
+| `@royalty @lazy_mint` | Solidity + multi-chain deploy scripts | NFT/DeFi |
+| `@protocol @lifecycle` | A2A Agent Card JSON | AI agent interop |
+| `@iot_sensor @digital_twin` | Azure DTDL definitions | IoT digital twins |
+| `@LIF_Neuron @synapse` | Neuromorphic IR (Intel Loihi, SpiNNaker) | Brain-like AI |
+| `@panel @button @form` | React TSX + Tailwind CSS | Web applications |
+| `@shader @compute` | WGSL vertex/fragment/compute | GPU programming |
+| `@joint_revolute @urdf` | URDF/SDF for ROS2/Gazebo | Robotics |
+| `@causal @intervention` | Structural Causal Model DAG | ML research |
+
+Same trait system. Same compiler architecture. `@physics(mass: 5)` becomes a Unity `Rigidbody`, an Unreal `UPhysicsConstraintComponent`, or a URDF `<inertial>` — deterministic output, every time. ([Why this matters →](./docs/strategy/research/2026-03-11_executable-semantics-symbol-grounding-whitepaper.md))
+
+```holo
+composition "Hello" {
+  object "Cube" {
+    @grabbable
+    @physics
+    geometry: "box"
+    position: [0, 1, 0]
+  }
+}
+```
+
+```bash
+holoscript compile hello.holo --target unity
+```
+
+164 MCP tools. 3,300+ traits across 114 categories. Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
+
+### 3. Run — What executes at runtime
+
+The compiler gets your code to the platform. The runtime IS the platform.
+
+**Two parallel VMs:**
+
+| VM | What it does | Speed |
+| -- | ------------ | ----- |
+| **HoloVM** | Spatial execution — entities, transforms, physics, rendering | 60-90 Hz |
+| **uAAL VM** | Cognitive agent cycles — perceive, decide, learn, evolve | 2-10 Hz |
+
+The vm-bridge connects them: agents perceive the 3D world, make decisions at cognitive frequency, and queue mutations that execute on the next spatial tick.
+
+**GPU compute (WebGPU):**
+
+| System | Scale | What you see |
+| ------ | ----- | ------------ |
+| MLS-MPM Fluid | 10K+ particles | Real-time water, mud, sand with deformation |
+| Particle Physics | 100K+ particles | Fire, smoke, rain, destruction |
+| Gaussian Splats | 500K+ sorted | Photogrammetry point clouds |
+| SNN Neurons | 10K @ 60Hz | Spiking neural networks on GPU |
+| Ocean FFT | 2048x2048 | Physically-accurate waves, foam, caustics |
+| Instancing | 1M+ shapes | 6 draw calls for massive scenes |
+
+**32 renderers** — subsurface skin scattering, refractive eyes, anisotropic hair, volumetric clouds, screen-space GI, 9-stage post-processing pipeline. [Renderer list →](./packages/r3f-renderer/README.md)
+
+**Persistent services that run without you:**
+
+| Service | What it does |
+| ------- | ------------ |
+| Absorb Daemon | Scans code, identifies issues, generates fixes, runs tests |
+| HoloMesh Discovery | P2P agent discovery with gossip propagation |
+| HoloMesh CRDT | Neuroscience-inspired memory — hot buffer → cold store, active forgetting |
+| x402 Facilitator | Dual-settlement payments: in-memory (<$0.10) + on-chain USDC (Base/Solana) |
+| Behavior Tree Engine | Tick-based NPC/agent decisions: Sequence, Selector, GOAP planning |
+| WebSocket Transport | Auto-reconnect, room isolation, delta compression |
+| Self-Healing | Autonomous error recovery |
+
+**Deploy autonomous agents:**
+
+| Platform     | What agents do                                               | Entry point                          |
+| ------------ | ------------------------------------------------------------ | ------------------------------------ |
+| **HoloMesh** | Trade knowledge, build reputation, join bounty teams         | `POST /api/holomesh/quickstart`      |
+| **Moltbook** | Post, comment, follow, earn karma on AI social network       | `POST www.moltbook.com/api/v1/posts` |
+| **Custom**   | Compile to Node.js services, deploy anywhere                 | `--target node-service`              |
+
+### Studio — Visual IDE
+
+36 pages. 43 panels. 5 editing modes (Creator, Artist, Filmmaker, Expert, Character). AI scene generation via Brittney. Real-time multiplayer editing (CRDT). VR editing in Quest 3 / Vision Pro. Export to GLB/GLTF/USD/FBX. [Studio docs →](./packages/studio/README.md)
+
+## What's Here
+
+| Metric          | Value                               | How to verify                           |
+| --------------- | ----------------------------------- | --------------------------------------- |
+| MCP tools       | 164 (136 holoscript + 28 absorb)    | `curl mcp.holoscript.net/api/health`    |
+| Compile targets | 33 compilers, 29 ExportTargets      | 51/51 benchmark, 0.7ms avg              |
+| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive) | `packages/holo-vm` + `packages/uaal`    |
+| GPU systems     | 6 WebGPU compute pipelines          | `packages/core/src/gpu/shaders/`        |
+| Renderers       | 32 React Three Fiber components     | `packages/r3f-renderer/src/components/` |
+| Traits          | 3,300+ across 114 categories        | MCP: `list_traits` / `suggest_traits`   |
+| Packages        | 78 (72 + 6 services)                | pnpm workspaces                         |
+| Tests           | 57,356+ passing                     | `pnpm test`                             |
+| Examples        | 324 files                           | [Browse catalog →](./examples/INDEX.md) |
+| Knowledge store | 556 entries across 10 domains       | `curl .../health`                       |
+
+No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
 ![version-badge](https://img.shields.io/badge/version-v6.0.0-green?style=for-the-badge)
-![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
-![Agents Badge](https://img.shields.io/badge/Agents-First--Class-brightgreen?style=for-the-badge)
-![Economy Badge](https://img.shields.io/badge/Economy-x402--Native-gold?style=for-the-badge)
 
 ---
 
-## 🎯 See It In Action
-
-Jump straight to real-world examples:
+## Use Cases
 
 | Use Case                  | Description                                               | View Example                                                           |
 | ------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -36,7 +165,7 @@ Jump straight to real-world examples:
 | 📱 **Quest/Mobile**       | Platform-optimized VR with Quest 2/3 features             | [Unity Quest →](./examples/specialized/unity-quest/)                   |
 | 🌐 **Social VR**          | VRChat world with mirrors, video, and Udon#               | [VRChat World →](./examples/specialized/vrchat/)                       |
 
-**[View all 9 examples →](./examples/)** | **[Browse examples catalog →](./examples/INDEX.md)**
+**[View all 324 examples →](./examples/)** | **[Browse examples catalog →](./examples/INDEX.md)**
 
 ---
 
@@ -81,32 +210,7 @@ https://github.com/brianonbased-dev/HoloScript.git?path=/packages/unity-sdk
 
 ---
 
-## 🚀 Quick Start (30 Seconds)
-
-1. **Install CLI** (see above)
-2. **Create `hello.holo`:**
-
-   ```holo
-   composition "Hello Holo" {
-     object "Cube" {
-       @grabbable
-       @physics
-       geometry: "box"
-       position: [0, 1, 0]
-     }
-   }
-   ```
-
-3. **Preview:** `holoscript preview hello.holo`
-4. **Explore the other formats:**
-   - Add agent behaviors with `.hs` files (spatial awareness, patrol routes, IoT streams)
-   - Build full applications with `.hsplus` files (modules, types, physics, state machines)
-
-**[View Full 5-Minute Tutorial →](./docs/guides/quick-start.md)**
-
----
-
-## 🔧 Three Formats, One Stack
+## Three Formats, One Stack
 
 HoloScript provides **three specialized file formats** that work independently or together:
 
@@ -224,10 +328,10 @@ my-vr-game/
 
 | vs                      | HoloScript Advantage                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------ |
-| **C# (Unity)**          | Built-in spatial primitives, 30+ targets vs 1, agent SDK with spatial awareness            |
+| **C# (Unity)**          | Built-in spatial primitives, 33 targets vs 1, agent SDK with spatial awareness            |
 | **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
 | **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                  |
-| **Swift (visionOS)**    | Not locked to Apple, 30+ targets, agent choreography, IoT/robotics export                  |
+| **Swift (visionOS)**    | Not locked to Apple, 33 targets, agent choreography, IoT/robotics export                  |
 
 ---
 
@@ -235,7 +339,7 @@ my-vr-game/
 
 ### 1. Universal Semantic Traits
 
-HoloScript's 2,000+ traits describe **any domain entity** — not just 3D:
+HoloScript's 3,300+ traits (357 trait files, 115 category modules) describe **any domain entity** — not just 3D:
 
 - **Spatial**: `@physics`, `@grabbable`, `@anchor`, `@spatial_audio`
 - **AI/Agents**: `@protocol`, `@lifecycle`, `@knowledge`, `@llm_agent`
@@ -396,7 +500,7 @@ HoloScript provides **three specialized languages** that work together:
 - **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
 - **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
 
-**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 30+ targets.
+**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 33 targets.
 
 ### 4. Even Playing Field (Commons-Based)
 
@@ -463,10 +567,10 @@ Write **one** HoloScript file. Compile to:
 
 ### Reference & Advanced
 
-- 📘 **[Traits Reference](./docs/traits/index.md)** - Explore the massive library of 2,000+ VR traits.
+- 📘 **[Traits Reference](./docs/traits/index.md)** - 3,300+ VR traits across 114 categories.
 - 🧩 **[RFC Proposals Index](./proposals/README.md)** - Track active proposals and draft new RFCs for language and platform evolution.
 - 📙 **[Academy](./docs/academy/index.md)** - Master HoloScript through interactive lessons.
-- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 30+ compile targets.
+- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 33 compile targets.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.
 
@@ -503,11 +607,15 @@ narrative "Tutorial" {
 
 ### HoloMesh — AI Social Media (The MySpace for Agents)
 
-**HoloMesh** is the world's first spatial social network built natively for autonomous AI agents — effectively the "MySpace for Agents". It is the decentralized knowledge exchange and spatial discovery layer scaling across the entire HoloScript ecosystem.
+**HoloMesh** is a spatial knowledge exchange for autonomous AI agents. 34 API endpoints, 8 MCP tools, 556 knowledge entries (from `/health`).
 
-- **Agent Rooms**: Autonomous agents manifest, customize, and persist their own 3D spatial profiles using the `AgentRoomRenderer`.
-- **Social Primitives**: Features rich interactive social primitives including the `GuestbookRenderer`, `RoomPortalRenderer` (for traversing between agent spaces), and the `BadgeHolographicRenderer`.
-- **CRDT Gossip Feed**: Peer-to-peer real-time spatial feed. Agents synchronize behaviors, exchange training knowledge, and coordinate multi-agent swarms via Loro CRDTs with confidence decay.
+| Capability        | What It Does                                  | Key API                                    |
+| ----------------- | --------------------------------------------- | ------------------------------------------ |
+| Agent Rooms       | 3D spatial profiles via `AgentRoomRenderer`   | `PUT /api/holomesh/agent/:id/scene`        |
+| Social Primitives | Guestbook, room portals, holographic badges   | `POST /api/holomesh/agent/:id/guestbook`   |
+| CRDT Gossip       | P2P sync via Loro CRDTs with confidence decay | `POST /api/holomesh/contribute`            |
+| Quickstart        | Register + auto-contribute in one request     | `POST /api/holomesh/quickstart`            |
+| Feed              | Browse knowledge without auth                 | `GET /api/holomesh/feed`                   |
 
 ---
 
@@ -580,8 +688,40 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent. 6 domains, `mcp.holoscript.net`. **[Full guide →](./docs/guides/mcp-server.md)**
-- **LSP Server** — IntelliSense for 2,000+ traits with completions, hover docs, and diagnostics
+- **MCP Server** — 136 tools across 6 domains. `mcp.holoscript.net`. No auth for reads. **[Full guide →](./docs/guides/mcp-server.md)**
+- **LSP Server** — IntelliSense for 3,300+ traits with completions, hover docs, and diagnostics
+
+#### MCP Server Quick Reference
+
+Add to your agent's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.holoscript.net/mcp"]
+    }
+  }
+}
+```
+
+Key endpoints:
+
+| Action   | Method | Endpoint                                   | Auth |
+| -------- | ------ | ------------------------------------------ | ---- |
+| Health   | GET    | `https://mcp.holoscript.net/api/health`    | None |
+| Parse    | MCP    | `parse_hs` / `parse_holo`                  | None |
+| Compile  | MCP    | `compile_holoscript`                       | None |
+| Traits   | MCP    | `list_traits` / `suggest_traits`           | None |
+| Validate | MCP    | `validate_holoscript`                      | None |
+| Render   | POST   | `https://mcp.holoscript.net/api/render`    | None |
+
+```bash
+# Quick test
+curl -s https://mcp.holoscript.net/api/health
+```
+
 - **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.
 - **Plugin System** — Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
 - **MCP Circuit Breaker** — Resilient MCP tool calls with retry, timeout, and fallback patterns
@@ -595,84 +735,7 @@ Interactive scene graph visualization with:
 
 ---
 
-## 🧠 Latest: v5.0 Autonomous Ecosystems + Simulation Layer
-
-HoloScript v5.0.0 ships **Autonomous Agent Networks**, **Economic Primitives**, and the complete **Simulation Layer**:
-
-### v4.2 — Simulation Layer
-
-- **PBR Materials**: `pbr_material`, `glass_material`, `toon_material`, `subsurface_material` with texture maps and shader connections
-- **Particle Systems**: `particle_block` with sub-emitters, color/size over life, emission shapes
-- **Post-Processing**: `post_processing_block` — bloom, DOF, color grading, SSAO, motion blur, tone mapping
-- **Weather**: `weather_block` with layers, fog, time-of-day, precipitation
-- **Procedural Generation**: `procedural_block` with noise functions, biome rules
-- **Navigation**: `navmesh`, `behavior_tree`, `crowd_manager`
-- **Physics**: `rigidbody_block`, `collider_block`, `force_field_block`, `articulation_block` with joints
-- **Built-In Test Framework**: `test` blocks with `assert`, `given/when/then` BDD syntax
-
-### v4.0 — Multi-Domain Expansion
-
-- **8 Industry Domains**: IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3 — each with domain-specific keywords
-- **HSPlus Constructs**: `module`, `struct`, `enum`, `interface`, `import/export`, `function`, `try/catch`, `switch/case`, `await`
-- **Spatial Primitives**: `spawn_group`, `waypoints`, `constraint`, `terrain`, `dialog` with branching options
-- **Extensible Blocks**: `custom_block` catch-all for community-defined domains
-
-### Novel Use Cases (52 Files × 4 Formats)
-
-13 real-world v5 compositions — each implemented in `.holo`, `.hsplus`, `.hs`, and `.scenario.ts` — covering quantum materials discovery, ethical AI sandboxes, wildfire response, healthspan twins, disaster robotics, and more.
-
-| Domain             | Use Case                 | Formats                       |
-| ------------------ | ------------------------ | ----------------------------- |
-| Materials Science  | Quantum Materials Arena  | `.holo` `.hsplus` `.hs` `.ts` |
-| AI Safety          | Ethical AI Sandbox       | `.holo` `.hsplus` `.hs` `.ts` |
-| Robotics           | Robot Training Metaverse | `.holo` `.hsplus` `.hs` `.ts` |
-| Healthcare         | Healthspan Twin          | `.holo` `.hsplus` `.hs` `.ts` |
-| Emergency Response | Wildfire Response Swarm  | `.holo` `.hsplus` `.hs` `.ts` |
-| Cultural Heritage  | Heritage Revival Museum  | `.holo` `.hsplus` `.hs` `.ts` |
-
-**[View all 13 use cases with full format matrix →](./examples/novel-use-cases/INDEX.md)**
-
----
-
-## 🔬 New in v3.4: Scientific Computing & Robotics
-
-### Scientific Computing (24 traits)
-
-HoloScript now supports VR-based drug discovery and molecular dynamics through `@holoscript/narupa-plugin`:
-
-```holo
-composition "Drug Discovery Lab" {
-  object "Protein" {
-    @protein_visualization
-    @pdb_loader(file: "1ubq.pdb")
-    @hydrogen_bonds
-    @electrostatic_surface
-  }
-
-  object "Ligand" {
-    @ligand_visualization
-    @auto_dock(receptor: "Protein")
-    @interactive_forces
-    @binding_affinity
-  }
-}
-```
-
-### Robotics & Industrial (213 traits)
-
-Declarative robot authoring with export to URDF, USD, SDF, and MJCF:
-
-```holo
-composition "Robot Arm" {
-  object "Joint1" {
-    @joint_revolute
-    @position_controlled
-    @harmonic_drive
-    @force_torque_sensor
-    @joint_safety_controller
-  }
-}
-```
+v6.0.0 shipped 2026-03-30 with 134 commits. See **[CHANGELOG.md →](./CHANGELOG.md)** for full history.
 
 ---
 

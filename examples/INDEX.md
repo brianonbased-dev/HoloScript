@@ -3,6 +3,8 @@
 Complete catalog of all HoloScript examples organized by category, platform, and feature.
 
 > **📄 New to HoloScript file types?** See [File Formats Guide](../docs/guides/file-formats.md) to understand `.holo`, `.hs`, and `.hsplus` files.
+>
+> **Compilation note:** The 9 featured examples (#1-#9) and all quickstart examples compile clean. Many advanced `.holo` examples use imperative syntax (dot access, arrow functions, conditionals) that the declarative `.holo` parser does not yet support — these are aspirational examples showing target language capabilities. Use `.hs` or `.hsplus` for imperative code.
 
 ## Quick Reference
 
@@ -412,4 +414,4 @@ v5.0 features are documented across all three formats to demonstrate the right t
 
 ---
 
-**Updated**: 2026-03-09 | **Total Examples**: 38+ | **Total Platforms**: 18+ | **v5.0 Coverage**: 3-format parity
+**Updated**: 2026-03-30 | **Total Examples**: 324 (241 .holo, 42 .hs, 41 .hsplus) | **Total Platforms**: 18+ | **v6.0 Coverage**: 3-format parity

@@ -2,7 +2,7 @@
 
 > **The programmatic bridge** for AI agents to read, write, compile, and transform HoloScript entities — spatial, backend, or anything in between. [Read the V6 Vision →](../../VISION.md)
 
-Model Context Protocol (MCP) server for HoloScript AI assistance. **43+ tools** across 5 categories, including **30+ compilation targets**. Free and open-source.
+Model Context Protocol (MCP) server for HoloScript AI assistance. **136 tools** across 6 categories, including **33 compilation targets**. Free and open-source.
 
 ## Installation
 
@@ -99,7 +99,7 @@ See [COMPILER_TOOLS.md](./COMPILER_TOOLS.md) for detailed documentation.
 | `parse_hs`             | Parse .hs or .hsplus code into AST              |
 | `parse_holo`           | Parse .holo composition files                   |
 | `validate_holoscript`  | Validate syntax with AI-friendly error messages |
-| `list_traits`          | List all 2,000+ VR traits by category           |
+| `list_traits`          | List all 3,300+ VR traits by category           |
 | `explain_trait`        | Get detailed trait documentation                |
 | `suggest_traits`       | Suggest traits from natural language            |
 | `generate_object`      | Generate objects from descriptions              |

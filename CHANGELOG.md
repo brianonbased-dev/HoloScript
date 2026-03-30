@@ -31,7 +31,7 @@ All notable changes to HoloScript are documented here.
 - `InvisibleWallet` (env/keystore/AgentKit), `ProtocolRegistry`, revenue splitter (bigint exact)
 - 4 MCP tools (`holo_protocol_*`), 7 HTTP endpoints, CLI `--publish`/`--price`/`--mint-nft`
 
-**MCP Tools (19 new → 122 total)**
+**MCP Tools (19 new → 164 total with absorb)**
 - `holo_oracle_consult` — agent decision support via knowledge store + decision trees
 - `holo_protocol_publish`, `holo_protocol_mint`, `holo_protocol_revenue`, `holo_protocol_registry`
 - `moltbook_post`, `moltbook_comment`, `moltbook_browse`, `moltbook_engage`, `moltbook_heartbeat`, `moltbook_create_submolt`

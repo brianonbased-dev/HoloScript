@@ -9,7 +9,7 @@
 
 ## Abstract
 
-Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through _executable semantics_. By utilizing a robust library of over 2,000 VR traits organized into 13 semantic categories and 30+ compile targets, HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
+Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through _executable semantics_. By utilizing a library of 3,300+ VR traits organized into 114 semantic categories and 33 compile targets, HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
 
 ---
 
@@ -35,7 +35,7 @@ As spatial computing expands across VR, AR, robotics, and mixed reality platform
 
 This paper demonstrates that HoloScript's three-format spatial compiler architecture constitutes the first production implementation of _executable semantics_ for spatial computing. Our central claim is:
 
-> **When an AI agent writes HoloScript, each semantic declaration is simultaneously a physical contract. The compiler enforces that contract deterministically across 25+ runtime targets. Symbol and ground truth are unified at the language level.**
+> **When an AI agent writes HoloScript, each semantic declaration is simultaneously a physical contract. The compiler enforces that contract deterministically across 33 runtime targets. Symbol and ground truth are unified at the language level.**
 
 This is not a partial address of the Symbol Grounding Problem in the sense that neural networks provide perceptual grounding. It is a structural resolution: the gap between symbol and referent is closed by a compiler with definite semantics, not probabilistic approximation.
 
@@ -75,7 +75,7 @@ composition "PhysicsDemoScene" {
 
 #### `.hsplus` — Behavioral Contract Layer
 
-The `.hsplus` format extends `.hs` with a trait system — a library of 1,800+ semantic decorators that encode spatial, physical, interaction, networking, and AI behaviors as first-class language primitives:
+The `.hsplus` format extends `.hs` with a trait system — a library of 3,300+ semantic decorators that encode spatial, physical, interaction, networking, and AI behaviors as first-class language primitives:
 
 ```hsplus
 composition "InteractiveScene" {
@@ -141,7 +141,7 @@ composition "Marketplace" {
 
 ### 2.2 The Trait System as Semantic Vocabulary
 
-The 1,800+ trait library is organized into 13 semantic categories:
+The 3,300+ trait library is organized into 114 semantic categories, including:
 
 | Category          | Representative Traits                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------ |

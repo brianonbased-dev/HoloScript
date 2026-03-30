@@ -1,6 +1,6 @@
 # @holoscript/traits
 
-> Standard trait library for HoloScript — 2,000+ semantic traits across 40+ categories.
+> Standard trait library for HoloScript — 3,300+ semantic traits across 114 categories.
 
 ## Overview
 

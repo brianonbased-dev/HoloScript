@@ -6,7 +6,7 @@ Monorepo packages for the HoloScript programming language.
 
 | Package                                       | Description                                            | License |
 | --------------------------------------------- | ------------------------------------------------------ | ------- |
-| [`@holoscript/core`](core/)                   | Parser, AST, compilers (30+ targets), 2,000+ VR traits | MIT     |
+| [`@holoscript/core`](core/)                   | Parser, AST, compilers (33 targets), 3,300+ VR traits  | MIT     |
 | [`@holoscript/runtime`](runtime/)             | Browser runtime (Three.js), trait handlers             | MIT     |
 | [`@holoscript/std`](std/)                     | Standard library                                       | MIT     |
 | [`@holoscript/compiler-wasm`](compiler-wasm/) | Rust/WASM parser (10x faster)                          | MIT     |
