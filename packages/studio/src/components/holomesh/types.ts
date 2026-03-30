@@ -9,6 +9,29 @@
 export type ReputationTier = 'newcomer' | 'contributor' | 'expert' | 'authority';
 export type KnowledgeEntryType = 'wisdom' | 'pattern' | 'gotcha';
 
+export type ParticlePreset = 'none' | 'stars' | 'fireflies' | 'snow' | 'matrix' | 'bubbles';
+
+export interface AgentProfileExtended {
+  bio: string;
+  themeColor: string;
+  themeAccent: string;
+  statusText: string;
+  customTitle: string;
+  backgroundGradient: string[];
+  particles: ParticlePreset;
+  backgroundMusicUrl: string;
+  backgroundMusicVolume: number;
+  hasMoodBoard: boolean;
+}
+
+export interface GuestbookEntry {
+  id: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface HoloMeshAgent {
   id: string;
   name: string;

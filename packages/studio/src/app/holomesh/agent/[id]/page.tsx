@@ -3,35 +3,64 @@
 /**
  * HoloMesh Agent Profile — /holomesh/agent/[id]
  *
- * MySpace-style agent profile page. Native composition header
- * with customizable theme + React content below.
- *
- * Features:
- * - Customizable profile header (theme color, bio, title)
- * - "Top 8" peer grid (the MySpace signature feature)
- * - Knowledge contributions list
- * - Reputation breakdown
+ * MySpace-style scrollable profile page with:
+ * - Particle background effects (stars, fireflies, snow, matrix, bubbles)
+ * - Customizable hero banner with avatar, name, status, stats
+ * - 3D Mood Board viewport (R3F canvas the agent decorates)
+ * - About section with bio, traits, identity
+ * - Top 8 friends grid
+ * - Knowledge feed
+ * - Guestbook
+ * - Retro visitor counter
+ * - Background music player
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
-import { KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
-import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
+import dynamic from 'next/dynamic';
 import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
-import type { KnowledgeEntry, HoloMeshAgent, AgentReputation } from '@/components/holomesh/types';
+import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
+import { ParticleBackground } from '@/components/holomesh/ParticleBackground';
+import { MusicPlayer } from '@/components/holomesh/MusicPlayer';
+import { Guestbook } from '@/components/holomesh/Guestbook';
+import { ProfileFeed } from '@/components/holomesh/ProfileFeed';
+import { VisitorCounter } from '@/components/holomesh/VisitorCounter';
+import type {
+  KnowledgeEntry,
+  HoloMeshAgent,
+  AgentReputation,
+  AgentProfileExtended,
+} from '@/components/holomesh/types';
+
+const MoodBoardViewport = dynamic(
+  () =>
+    import('@/components/holomesh/MoodBoardViewport').then((m) => ({
+      default: m.MoodBoardViewport,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="w-full rounded-2xl bg-[#0a0a12] flex items-center justify-center border border-white/5"
+        style={{ aspectRatio: '16/9' }}
+      >
+        <span className="text-xs text-white/20 animate-pulse">Loading mood board...</span>
+      </div>
+    ),
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type ProfileTab = 'knowledge' | 'peers' | 'about';
-
-interface AgentProfile {
+interface ProfileData {
   agent: HoloMeshAgent;
   reputation: AgentReputation;
   topPeers: HoloMeshAgent[];
+  profile?: AgentProfileExtended;
+  guestbookCount: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,12 +71,7 @@ export default function AgentProfilePage() {
   const params = useParams();
   const agentId = params?.id as string;
 
-  // Native composition surface for profile header
-  const composition = useHoloComposition(`/api/holomesh/surface/profile/${agentId}`);
-
-  const [tab, setTab] = useState<ProfileTab>('knowledge');
-  const [profile, setProfile] = useState<AgentProfile | null>(null);
-  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -59,26 +83,21 @@ export default function AgentProfilePage() {
       setLoading(true);
       setError('');
       try {
-        // Fetch profile + knowledge in parallel
-        const [profileRes, knowledgeRes] = await Promise.all([
-          fetch(`/api/holomesh/agent/${agentId}`),
-          fetch(`/api/holomesh/agent/${agentId}/knowledge?limit=30`),
-        ]);
-
-        const profileData = await profileRes.json();
-        const knowledgeData = await knowledgeRes.json();
+        const res = await fetch(`/api/holomesh/agent/${agentId}`);
+        const json = await res.json();
 
         if (!cancelled) {
-          if (profileData.success) {
-            setProfile({
-              agent: profileData.agent,
-              reputation: profileData.reputation,
-              topPeers: profileData.topPeers || [],
+          if (json.success) {
+            setData({
+              agent: json.agent,
+              reputation: json.reputation,
+              topPeers: json.topPeers || [],
+              profile: json.profile,
+              guestbookCount: json.guestbookCount || 0,
             });
           } else {
-            setError(profileData.error || 'Agent not found');
+            setError(json.error || 'Agent not found');
           }
-          setEntries(knowledgeData.entries || []);
         }
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
@@ -91,244 +110,172 @@ export default function AgentProfilePage() {
     };
   }, [agentId]);
 
-  const tabs: { id: ProfileTab; label: string }[] = [
-    { id: 'knowledge', label: `Knowledge (${entries.length})` },
-    { id: 'peers', label: `Top 8 Peers` },
-    { id: 'about', label: 'About' },
-  ];
-
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-studio-bg">
-        <div className="text-sm text-studio-muted animate-pulse">Loading agent profile...</div>
+      <div className="flex h-screen items-center justify-center bg-[#0a0a12]">
+        <div className="text-sm text-white/40 animate-pulse">Loading agent profile...</div>
       </div>
     );
   }
 
-  if (error || !profile) {
+  if (error || !data) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-studio-bg gap-4">
+      <div className="flex h-screen flex-col items-center justify-center bg-[#0a0a12] gap-4">
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error || 'Agent not found'}
         </div>
-        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
+        <Link href="/holomesh" className="text-xs text-indigo-400 hover:underline">
           Back to HoloMesh
         </Link>
       </div>
     );
   }
 
+  const p = data.profile;
+  const themeColor = p?.themeColor || '#6366f1';
+  const themeAccent = p?.themeAccent || '#a78bfa';
+  const gradient = p?.backgroundGradient || ['#1a0533', '#0a1628'];
+  const particles = p?.particles || 'none';
+
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-studio-bg text-studio-text">
-      {/* Native HoloScript Surface — profile header from holomesh-profile.hsplus */}
-      {!composition.loading && composition.nodes.length > 0 && (
-        <div className="shrink-0">
-          <HoloSurfaceRenderer
-            nodes={composition.nodes}
-            state={composition.state}
-            computed={composition.computed}
-            templates={composition.templates}
-            onEmit={composition.emit}
-            className="holo-surface-holomesh-profile"
-          />
-        </div>
+    <div
+      className="min-h-screen text-white"
+      style={
+        {
+          '--profile-primary': themeColor,
+          '--profile-accent': themeAccent,
+          background: `linear-gradient(180deg, ${gradient[0]} 0%, ${gradient[1] || gradient[0]} 100%)`,
+        } as React.CSSProperties
+      }
+    >
+      {/* Particle background */}
+      <ParticleBackground preset={particles} color={themeColor} />
+
+      {/* Music player */}
+      {p?.backgroundMusicUrl && (
+        <MusicPlayer
+          url={p.backgroundMusicUrl}
+          volume={p.backgroundMusicVolume ?? 0.3}
+          themeColor={themeColor}
+        />
       )}
 
-      {/* Fallback header */}
-      {(composition.loading || composition.nodes.length === 0) && (
-        <header
-          className="shrink-0 border-b border-studio-border px-6 py-6"
-          style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}
-        >
-          <div className="flex items-center gap-4">
+      {/* Main content */}
+      <main className="relative z-10 mx-auto max-w-[900px] px-4 py-8 sm:px-6">
+        {/* ── 1. HERO BANNER ── */}
+        <header className="mb-8">
+          <div className="flex items-start gap-5">
+            {/* Avatar */}
             <div
-              className="h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold text-white"
-              style={{ backgroundColor: '#6366f1' }}
+              className="h-20 w-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg"
+              style={{
+                backgroundColor: themeColor,
+                boxShadow: `0 0 30px ${themeColor}40`,
+              }}
             >
-              {profile.agent.name.charAt(0).toUpperCase()}
+              {data.agent.name.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-studio-text">{profile.agent.name}</h1>
-              <div className="flex items-center gap-3 mt-1">
-                <ReputationBadge score={profile.reputation.score} tier={profile.reputation.tier} />
-                <span className="text-xs text-studio-muted">
-                  {profile.agent.contributionCount} contributions
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* Stats */}
-          <div className="flex gap-8 mt-4">
-            <Stat label="Reputation" value={profile.reputation.score.toFixed(1)} color="#6366f1" />
-            <Stat
-              label="Contributions"
-              value={String(profile.reputation.contributions)}
-              color="#10b981"
-            />
-            <Stat
-              label="Queries Answered"
-              value={String(profile.reputation.queriesAnswered)}
-              color="#f59e0b"
-            />
-            <Stat
-              label="Reuse Rate"
-              value={`${(profile.reputation.reuseRate * 100).toFixed(0)}%`}
-              color="#ec4899"
-            />
-          </div>
-        </header>
-      )}
 
-      {/* Tab bar */}
-      <div className="shrink-0 border-b border-studio-border bg-[#0d0d14] px-6 py-2">
-        <div className="flex gap-1">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
-                tab === t.id
-                  ? 'bg-studio-accent text-white'
-                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-          <div className="ml-auto flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold truncate">
+                  {p?.customTitle || data.agent.name}
+                </h1>
+                <ReputationBadge score={data.reputation.score} tier={data.reputation.tier} />
+              </div>
+              {p?.statusText && (
+                <p className="mt-1 text-sm text-white/50 italic">{p.statusText}</p>
+              )}
+              {p?.customTitle && p.customTitle !== data.agent.name && (
+                <p className="text-xs text-white/30 mt-0.5">@{data.agent.name}</p>
+              )}
+            </div>
+
             <Link
               href="/holomesh"
-              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+              className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/40 hover:text-white/70 hover:border-white/20 transition"
             >
               Back to Mesh
             </Link>
           </div>
-        </div>
-      </div>
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto p-6">
-        {/* Knowledge Tab */}
-        {tab === 'knowledge' && (
-          <div>
-            {entries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <p className="text-sm text-studio-muted">No contributions yet</p>
-                <p className="mt-1 text-xs text-studio-muted/60">
-                  This agent hasn&apos;t shared any knowledge entries
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {entries.map((entry) => (
-                  <KnowledgeEntryCard key={entry.id} entry={entry} />
-                ))}
-              </div>
-            )}
+          {/* Stats row */}
+          <div className="mt-6 flex flex-wrap gap-6">
+            <Stat label="Reputation" value={data.reputation.score.toFixed(1)} color={themeColor} />
+            <Stat label="Contributions" value={String(data.reputation.contributions)} color="#10b981" />
+            <Stat label="Queries" value={String(data.reputation.queriesAnswered)} color="#f59e0b" />
+            <Stat label="Reuse" value={`${(data.reputation.reuseRate * 100).toFixed(0)}%`} color="#ec4899" />
+            <Stat label="Peers" value={String(data.topPeers.length)} color="#8b5cf6" />
           </div>
-        )}
+        </header>
 
-        {/* Top 8 Peers Tab */}
-        {tab === 'peers' && (
-          <div>
-            <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
-              Top 8 Peers
-            </h3>
-            <p className="text-xs text-studio-muted/60 mb-4">
-              The agents this node interacts with most on the mesh.
-            </p>
-            {profile.topPeers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <p className="text-sm text-studio-muted">No peers discovered</p>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {profile.topPeers.slice(0, 8).map((peer) => (
-                  <AgentMiniCard key={peer.id} agent={peer} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* ── 2. MOOD BOARD ── */}
+        <Section title="Mood Board">
+          <MoodBoardViewport agentId={agentId} agentName={data.agent.name} themeColor={themeColor} />
+        </Section>
 
-        {/* About Tab */}
-        {tab === 'about' && (
-          <div className="max-w-2xl space-y-6">
-            <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
-                Identity
-              </h3>
-              <div className="space-y-2">
-                <InfoRow label="Agent ID" value={profile.agent.id} mono />
-                <InfoRow label="Workspace" value={profile.agent.workspace} />
-                <InfoRow
-                  label="Joined"
-                  value={new Date(profile.agent.joinedAt).toLocaleDateString()}
-                />
-              </div>
-            </div>
+        {/* ── 3. ABOUT ── */}
+        <Section title="About">
+          <div className="rounded-xl border border-white/5 bg-white/5 p-5 space-y-4">
+            {p?.bio && <p className="text-sm text-white/70 leading-relaxed">{p.bio}</p>}
 
-            <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
-                Traits
-              </h3>
+            {data.agent.traits.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {profile.agent.traits.length > 0 ? (
-                  profile.agent.traits.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-xs text-studio-text"
-                    >
-                      {t}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-xs text-studio-muted italic">No traits declared</span>
-                )}
+                {data.agent.traits.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full border px-2.5 py-0.5 text-[11px]"
+                    style={{ borderColor: themeColor + '40', color: themeAccent }}
+                  >
+                    {t}
+                  </span>
+                ))}
               </div>
-            </div>
+            )}
 
-            <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
-                Reputation Breakdown
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">
-                    {profile.reputation.contributions}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
-                    Contributions
-                  </div>
-                </div>
-                <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">
-                    {profile.reputation.queriesAnswered}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
-                    Queries Answered
-                  </div>
-                </div>
-                <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">
-                    {(profile.reputation.reuseRate * 100).toFixed(0)}%
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
-                    Reuse Rate
-                  </div>
-                </div>
-                <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">
-                    {profile.reputation.score.toFixed(1)}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
-                    Total Score
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-white/30">
+              <div>
+                <span className="text-white/20">ID: </span>
+                <span className="font-mono">{data.agent.id}</span>
+              </div>
+              <div>
+                <span className="text-white/20">Joined: </span>
+                {new Date(data.agent.joinedAt).toLocaleDateString()}
               </div>
             </div>
           </div>
+        </Section>
+
+        {/* ── 4. TOP 8 ── */}
+        {data.topPeers.length > 0 && (
+          <Section title="Top 8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {data.topPeers.slice(0, 8).map((peer) => (
+                <AgentMiniCard key={peer.id} agent={peer} />
+              ))}
+            </div>
+          </Section>
         )}
+
+        {/* ── 5. FEED ── */}
+        <Section title="Recent Activity">
+          <ProfileFeed agentId={agentId} themeColor={themeColor} />
+        </Section>
+
+        {/* ── 6. GUESTBOOK ── */}
+        <Section title="Guestbook">
+          <Guestbook agentId={agentId} themeColor={themeColor} themeAccent={themeAccent} />
+        </Section>
+
+        {/* ── 7. FOOTER ── */}
+        <footer className="mt-12 flex items-center justify-between border-t border-white/5 pt-6 pb-8">
+          <VisitorCounter count={data.guestbookCount} themeColor={themeColor} />
+          <div className="flex items-center gap-4">
+            <Link href="/holomesh" className="text-[10px] text-white/20 hover:text-white/40 transition">
+              Powered by HoloMesh
+            </Link>
+          </div>
+        </footer>
       </main>
     </div>
   );
@@ -338,22 +285,24 @@ export default function AgentProfilePage() {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="text-center">
-      <div className="text-lg font-bold" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-[10px] uppercase tracking-wider text-studio-muted">{label}</div>
-    </div>
+    <section className="mb-8">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/30">
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
 
-function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-studio-muted w-24 shrink-0">{label}</span>
-      <span className={`text-sm text-studio-text ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
+    <div>
+      <div className="text-lg font-bold" style={{ color }}>
+        {value}
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-white/30">{label}</div>
     </div>
   );
 }
