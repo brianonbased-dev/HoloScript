@@ -160,6 +160,50 @@ export function useAbsorbService() {
   );
 
   /**
+   * Extract W/P/G knowledge entries from an absorbed codebase.
+   */
+  const extractKnowledge = useCallback(
+    async (projectId: string, options?: { minConfidence?: number; maxPerType?: number }) => {
+      const res = await absorbFetch(`/api/absorb/projects/${projectId}/knowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options || {}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        store.fetchBalance();
+      }
+      return { success: res.ok, data };
+    },
+    [store]
+  );
+
+  /**
+   * Publish knowledge entries to the marketplace (HoloMesh).
+   */
+  const publishKnowledge = useCallback(
+    async (entries: Array<{ id: string; type: string; content: string; is_premium?: boolean }>, workspaceId: string) => {
+      const res = await absorbFetch('/api/absorb/knowledge/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId, entries }),
+      });
+      const data = await res.json();
+      return { success: res.ok, data };
+    },
+    []
+  );
+
+  /**
+   * Check knowledge earnings for the current user's wallet.
+   */
+  const getKnowledgeEarnings = useCallback(async () => {
+    const res = await absorbFetch('/api/absorb/knowledge/earnings', { method: 'GET' });
+    const data = await res.json();
+    return { success: res.ok, data };
+  }, []);
+
+  /**
    * Purchase a credit package — redirects to Stripe checkout.
    */
   const purchaseCredits = useCallback(async (packageId: string) => {
@@ -184,6 +228,9 @@ export function useAbsorbService() {
     runQuery,
     runRender,
     runDiff,
+    extractKnowledge,
+    publishKnowledge,
+    getKnowledgeEarnings,
     purchaseCredits,
   };
 }

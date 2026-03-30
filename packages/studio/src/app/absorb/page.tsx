@@ -79,6 +79,7 @@ function ProjectCard({
   onSelect: () => void;
   onAbsorb: () => void;
   onImprove: () => void;
+  onExtractKnowledge?: () => void;
 }) {
   const statusColors: Record<string, string> = {
     pending: 'bg-gray-500/20 text-gray-400',
@@ -136,6 +137,18 @@ function ProjectCard({
         >
           Improve
         </button>
+        {onExtractKnowledge && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExtractKnowledge();
+            }}
+            disabled={project.status !== 'ready'}
+            className="rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-500/30 disabled:opacity-50"
+          >
+            Extract W/P/G
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1759,6 +1772,8 @@ function AuthenticatedDashboard() {
     runQuery,
     runRender,
     runDiff,
+    extractKnowledge,
+    publishKnowledge,
     purchaseCredits,
     setActiveProject,
     activeProjectId,
@@ -1768,6 +1783,30 @@ function AuthenticatedDashboard() {
 
   const [tab, setTab] = useState<AbsorbTab>('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [extractedKnowledge, setExtractedKnowledge] = useState<any[] | null>(null);
+  const [publishPremium, setPublishPremium] = useState(false);
+
+  const handleExtractKnowledge = useCallback(async (projectId: string) => {
+    const result = await extractKnowledge(projectId, { minConfidence: 0.6, maxPerType: 15 });
+    if (result.success && result.data?.entries) {
+      setExtractedKnowledge(result.data.entries);
+    }
+  }, [extractKnowledge]);
+
+  const handlePublishKnowledge = useCallback(async () => {
+    if (!extractedKnowledge || extractedKnowledge.length === 0) return;
+    const entries = extractedKnowledge.map((e: any) => ({
+      id: e.id,
+      type: e.type,
+      content: e.content,
+      is_premium: publishPremium,
+    }));
+    const result = await publishKnowledge(entries, selectedProjectId || 'default');
+    if (result.success) {
+      setExtractedKnowledge(null);
+    }
+    return result;
+  }, [extractedKnowledge, publishPremium, publishKnowledge, selectedProjectId]);
 
   // Check URL params for tab and purchase confirmation
   useEffect(() => {
@@ -1948,11 +1987,68 @@ function AuthenticatedDashboard() {
                         onSelect={() => setSelectedProjectId(p.id)}
                         onAbsorb={() => runAbsorb(p.id)}
                         onImprove={() => runImprove(p.id)}
+                        onExtractKnowledge={() => handleExtractKnowledge(p.id)}
                       />
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* Knowledge Extraction Results */}
+              {extractedKnowledge && extractedKnowledge.length > 0 && (
+                <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-amber-300">
+                      Extracted Knowledge ({extractedKnowledge.length} entries)
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs text-studio-muted">
+                        <input
+                          type="checkbox"
+                          checked={publishPremium}
+                          onChange={(e) => setPublishPremium(e.target.checked)}
+                          className="rounded border-studio-border"
+                        />
+                        Premium (earn 4c/access)
+                      </label>
+                      <button
+                        onClick={handlePublishKnowledge}
+                        className="rounded-lg bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30"
+                      >
+                        Publish to HoloMesh
+                      </button>
+                      <button
+                        onClick={() => setExtractedKnowledge(null)}
+                        className="rounded-lg bg-gray-500/20 px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-500/30"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                    {extractedKnowledge.map((entry: any, i: number) => (
+                      <div key={entry.id || i} className="rounded-lg border border-studio-border bg-[#0d1117] p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                            entry.type === 'wisdom' ? 'bg-blue-500/20 text-blue-300' :
+                            entry.type === 'pattern' ? 'bg-green-500/20 text-green-300' :
+                            'bg-red-500/20 text-red-300'
+                          }`}>
+                            {entry.type}
+                          </span>
+                          <span className="text-[10px] text-studio-muted">{entry.id}</span>
+                          {entry.confidence && (
+                            <span className="ml-auto text-[10px] text-studio-muted">
+                              {Math.round(entry.confidence * 100)}% conf
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-studio-text line-clamp-2">{entry.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -1980,6 +2076,7 @@ function AuthenticatedDashboard() {
                   onSelect={() => setSelectedProjectId(p.id)}
                   onAbsorb={() => runAbsorb(p.id)}
                   onImprove={() => runImprove(p.id)}
+                  onExtractKnowledge={() => handleExtractKnowledge(p.id)}
                 />
               ))}
               {projects.length === 0 && !loading && (
