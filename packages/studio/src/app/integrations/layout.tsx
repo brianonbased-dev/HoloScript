@@ -4,6 +4,11 @@ import { GlobalNavigation } from '@/components/layout/GlobalNavigation';
 export const metadata: Metadata = {
   title: 'Integration Hub — HoloScript Studio',
   description: 'Manage MCP Connectors, Git authentication, and orchestration hooks',
+  openGraph: {
+    title: 'Integration Hub — HoloScript Studio',
+    description: 'Manage MCP Connectors, Git authentication, and orchestration hooks',
+    type: 'website',
+  },
 };
 
 export default function IntegrationsLayout({ children }: { children: React.ReactNode }) {

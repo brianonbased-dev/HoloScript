@@ -2,37 +2,45 @@
   "name": "@holoscript/std",
   "version": "3.1.1",
   "description": "HoloScript Standard Library - Core types and utilities",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./math": {
       "types": "./dist/math.d.ts",
-      "import": "./dist/math.js"
+      "import": "./dist/math.js",
+      "require": "./dist/math.cjs"
     },
     "./collections": {
       "types": "./dist/collections.d.ts",
-      "import": "./dist/collections.js"
+      "import": "./dist/collections.js",
+      "require": "./dist/collections.cjs"
     },
     "./string": {
       "types": "./dist/string.d.ts",
-      "import": "./dist/string.js"
+      "import": "./dist/string.js",
+      "require": "./dist/string.cjs"
     },
     "./time": {
       "types": "./dist/time.d.ts",
-      "import": "./dist/time.js"
+      "import": "./dist/time.js",
+      "require": "./dist/time.cjs"
     },
     "./economic": {
       "types": "./dist/traits/EconomicPrimitives.d.ts",
-      "import": "./dist/traits/EconomicPrimitives.js"
+      "import": "./dist/traits/EconomicPrimitives.js",
+      "require": "./dist/traits/EconomicPrimitives.cjs"
     },
     "./economic-traits": {
       "types": "./dist/traits/EconomicTraits.d.ts",
-      "import": "./dist/traits/EconomicTraits.js"
+      "import": "./dist/traits/EconomicTraits.js",
+      "require": "./dist/traits/EconomicTraits.cjs"
     }
   },
   "scripts": {

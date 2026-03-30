@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import { DevToolsInit } from '../components/DevToolsInit';
 import { AppShell } from '../components/AppShell';
 import { PluginHostProvider } from '../hooks/usePluginHost';
+import { WebVitals } from '../components/WebVitals';
 
 const StudioSetupWizard = dynamic(
   () =>
@@ -180,6 +181,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 />
               )}
               <DevToolsInit />
+              <WebVitals />
             </ToastContext.Provider>
           </ThemeContext.Provider>
         </QueryClientProvider>

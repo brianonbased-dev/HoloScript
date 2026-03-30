@@ -17,7 +17,7 @@ export function GlobalNavigation() {
   ];
 
   return (
-    <nav className="w-16 lg:w-64 h-screen shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300">
+    <nav aria-label="Main navigation" className="w-16 lg:w-64 h-screen shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300">
       {/* App Branding */}
       <div className="h-14 border-b border-slate-800 flex items-center justify-center lg:justify-start lg:px-6">
         <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold font-mono">
@@ -39,6 +39,7 @@ export function GlobalNavigation() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl transition group ${
                 isActive
                   ? 'bg-emerald-500/10 text-emerald-400 font-medium'

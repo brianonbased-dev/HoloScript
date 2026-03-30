@@ -4,7 +4,7 @@
 
 HoloScript has **two separate Next.js frontend applications** that need to work together in production:
 
-1. **`@holoscript/studio`** (port 3100) — The main IDE/creation platform. 14 page routes, 51 API routes, 100+ components, 110+ hooks.
+1. **`@holoscript/studio`** (port 3100) — The main IDE/creation platform. 34 page routes, 5 connector API routes (proxied to studio-api), 100+ components, 110+ hooks.
 2. **`@holoscript/marketplace-web`** (port 3000) — The trait marketplace. 4 page routes, proxies API calls to `@holoscript/marketplace-api`.
 
 Both live in the same monorepo under `packages/` and share workspace dependencies (`@holoscript/core`, `@holoscript/std`, etc.), but they are **independently deployable Next.js apps** with no shared routing.
@@ -15,32 +15,59 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### A. Studio Pages (`packages/studio/src/app/`)
 
-| Route               | File                        | Rendering            | Purpose                                                                                                                                                                                                                            | Status                             |
-| ------------------- | --------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `/`                 | `page.tsx`                  | Client               | Landing page. 4 mode cards (Play/Learn/Create/Industry) + 9 industry portals                                                                                                                                                       | **Complete**                       |
-| `/create`           | `create/page.tsx`           | Client               | **Core IDE**. 43-panel editor: Monaco code editor, 3D SceneRenderer, AI chat (Brittney), trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. This is the main product. | **Complete (large, ~800+ lines)**  |
-| `/play`             | `play/page.tsx`             | Client               | Kid-friendly 3D builder. Drag-and-drop shapes with R3F Canvas, animations, particles, physics simulation, Proof-of-Play gamification. Ages 5-12.                                                                                   | **Complete (large, ~1000+ lines)** |
-| `/playground`       | `playground/page.tsx`       | Client               | Embeddable HoloScript sandbox. Monaco editor left, parse tree right. URL-shareable via `?code=<base64>`. No auth required.                                                                                                         | **Complete**                       |
-| `/workspace`        | `workspace/page.tsx`        | Client               | Creator hub. 7 content types (scenes, traits, skills, agents, plugins, training data, templates) with stats, search, quick actions.                                                                                                | **Complete**                       |
-| `/workspace/skills` | `workspace/skills/page.tsx` | Client               | Skill Builder IDE. SKILL.md editor with YAML frontmatter, file tree, test harness, metadata panel, publish-to-marketplace flow.                                                                                                    | **Complete**                       |
-| `/holodaemon`       | `holodaemon/page.tsx`       | Client               | Daemon dashboard. Status, metrics (quality/type-errors/jobs/cost), agent pool, BT phase progress, event feed, HoloScript source preview.                                                                                           | **Complete (large)**               |
-| `/holoclaw`         | `holoclaw/page.tsx`         | Client               | Skill shelf. Browse installed `.hsplus` skills, create from templates, SSE-streaming activity feed. 3 tabs: Shelf/Create/Activity.                                                                                                 | **Complete**                       |
-| `/registry`         | `registry/page.tsx`         | Client               | Public asset pack browser. Search + tag filters + import flow.                                                                                                                                                                     | **Complete**                       |
-| `/shader-editor`    | `shader-editor/page.tsx`    | Client               | Visual shader editor. Delegates to `<ShaderEditor />` component.                                                                                                                                                                   | **Complete (wrapper)**             |
-| `/templates`        | `templates/page.tsx`        | Client               | Template gallery. 5 built-in templates (forest, space station, art gallery, zen garden, neon city). Loads `.holo` file and navigates to `/create`.                                                                                 | **Complete**                       |
-| `/projects`         | `projects/page.tsx`         | Client               | User's saved projects. List from IndexedDB, open/delete.                                                                                                                                                                           | **Complete**                       |
-| `/view/[id]`        | `view/[id]/page.tsx`        | Client               | Read-only scene viewer. Full-screen SceneRenderer, no editor UI. Fetches from `/api/publish`.                                                                                                                                      | **Complete**                       |
-| `/shared/[id]`      | `shared/[id]/page.tsx`      | **Server (SSR/ISR)** | Community scene page. SEO-optimized with `generateMetadata`. ISR (60s revalidate). Shows scene info + code viewer + "Open in Studio" CTA.                                                                                          | **Complete**                       |
-| `/remote/[token]`   | `remote/[token]/page.tsx`   | Client               | Mobile touch controller. Virtual joystick + zoom/pan/select. Sends PUT to `/api/remote`. Opened via QR code.                                                                                                                       | **Complete**                       |
+| Route | File | Rendering | Purpose | Status |
+|---|---|---|---|---|
+| `/` | `page.tsx` | Client | Landing page. 4 mode cards (Play/Learn/Create/Industry) + 9 industry portals | **Complete** |
+| `/create` | `create/page.tsx` | Client | **Core IDE**. 43-panel editor: Monaco, 3D viewport, AI chat, trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. | **Complete (~800+ lines)** |
+| `/admin` | `admin/page.tsx` | Client | Admin dashboard. Requires auth. | **Complete** |
+| `/absorb` | `absorb/page.tsx` | Client | Codebase intelligence UI. GraphRAG queries, absorb runs. | **Complete** |
+| `/absorb/admin` | `absorb/admin/page.tsx` | Client | Absorb admin panel. Service management. | **Complete** |
+| `/character` | `character/page.tsx` | Client | Character creator. VRM/avatar authoring. | **Complete** |
+| `/holoclaw` | `holoclaw/page.tsx` | Client | Skill shelf. Browse `.hsplus` skills, create from templates, SSE activity feed. | **Complete** |
+| `/holodaemon` | `holodaemon/page.tsx` | Client | Daemon dashboard. Status, metrics, agent pool, BT progress, event feed. | **Complete (large)** |
+| `/holomesh` | `holomesh/page.tsx` | Client | HoloMesh network hub. Knowledge entries, feed, discovery. | **Complete** |
+| `/holomesh/dashboard` | `holomesh/dashboard/page.tsx` | Client | HoloMesh dashboard. Agent stats, contributions, domains. | **Complete** |
+| `/holomesh/onboard` | `holomesh/onboard/page.tsx` | Client | HoloMesh onboarding flow. | **Complete** |
+| `/holomesh/profile` | `holomesh/profile/page.tsx` | Client | HoloMesh agent profile. | **Complete** |
+| `/holomesh/contribute` | `holomesh/contribute/page.tsx` | Client | HoloMesh knowledge contribution form. | **Complete** |
+| `/holomesh/agent/[id]` | `holomesh/agent/[id]/page.tsx` | Client | Individual agent profile view. | **Complete** |
+| `/holomesh/entry/[id]` | `holomesh/entry/[id]/page.tsx` | Client | Individual knowledge entry view. | **Complete** |
+| `/integrations` | `integrations/page.tsx` | Client | Third-party integrations hub. | **Complete** |
+| `/operations` | `operations/page.tsx` | Client | Operations dashboard. | **Complete** |
+| `/pipeline` | `pipeline/page.tsx` | Client | Pipeline management. Build, export, deploy workflows. | **Complete** |
+| `/projects` | `projects/page.tsx` | Client | User's saved projects. List from IndexedDB, open/delete. | **Complete** |
+| `/registry` | `registry/page.tsx` | Client | Public asset pack browser. Search + tag filters + import. | **Complete** |
+| `/scenarios` | `scenarios/page.tsx` | Client | Scenario templates and presets. | **Complete** |
+| `/settings` | `settings/page.tsx` | Client | User settings. Requires auth. | **Complete** |
+| `/templates` | `templates/page.tsx` | Client | Template gallery. Built-in templates, loads `.holo` → `/create`. | **Complete** |
+| `/u/[username]` | `u/[username]/page.tsx` | Client | Public user profile page. | **Complete** |
+| `/workspace` | `workspace/page.tsx` | Client | Creator hub. 7 content types with stats, search, quick actions. | **Complete** |
+| `/workspace/skills` | `workspace/skills/page.tsx` | Client | Skill Builder IDE. SKILL.md editor, test harness, publish flow. | **Complete** |
+| `/workspace/agents/new` | `workspace/agents/new/page.tsx` | Client | New agent creation wizard. | **Complete** |
+| `/workspace/traits/new` | `workspace/traits/new/page.tsx` | Client | New trait creation wizard. | **Complete** |
+| `/workspace/plugins/new` | `workspace/plugins/new/page.tsx` | Client | New plugin creation wizard. | **Complete** |
+| `/workspace/templates/new` | `workspace/templates/new/page.tsx` | Client | New template creation wizard. | **Complete** |
+| `/workspace/training-data/new` | `workspace/training-data/new/page.tsx` | Client | New training data upload. | **Complete** |
+| `/remote/[token]` | `remote/[token]/page.tsx` | Client | Mobile touch controller. Virtual joystick, QR code initiated. | **Complete** |
+| `/shared/[id]` | `shared/[id]/page.tsx` | **Server (SSR/ISR)** | Community scene page. SEO-optimized `generateMetadata`. ISR (60s). | **Complete** |
+| `/view/[id]` | `view/[id]/page.tsx` | Client | Read-only scene viewer. Full-screen SceneRenderer. | **Complete** |
 
 **Utility Pages:**
 | File | Purpose |
 |---|---|
 | `error.tsx` | Global error boundary with "Try Again" + "Back to Home" |
+| `create/error.tsx` | Scene editor error boundary (WebGL/shader-specific messages) |
+| `holomesh/error.tsx` | HoloMesh error boundary (network-specific messages) |
+| `absorb/error.tsx` | Absorb service error boundary |
+| `workspace/error.tsx` | Workspace error boundary |
 | `not-found.tsx` | 404 page |
 | `loading.tsx` | Global loading spinner |
+| `create/loading.tsx` | Scene editor loading (3D viewport init message) |
+| `holomesh/loading.tsx` | HoloMesh loading |
+| `absorb/loading.tsx` | Absorb loading |
+| `workspace/loading.tsx` | Workspace loading |
+| `projects/loading.tsx` | Projects loading |
 | `shared/[id]/not-found.tsx` | Scene-specific 404 |
-| `creator-dashboard-example.tsx` | Example/demo file (NOT a route, orphaned component) |
 
 **Layouts:**
 | File | Purpose |

@@ -39,7 +39,7 @@ COPY packages/studio/ packages/studio/
 RUN cd packages/crdt && npx tsup --no-dts
 RUN cd packages/agent-protocol && npx tsup --no-dts
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
-RUN cd packages/std && npx tsup
+RUN cd packages/std && npx tsup --no-dts
 RUN cd packages/absorb-service && npx tsup
 RUN cd packages/r3f-renderer && npx tsup --no-dts || true
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true

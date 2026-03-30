@@ -5,10 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
-import { TraitInspector } from '@/components/inspector/TraitInspector';
-import { TraitPalette } from '@/components/inspector/TraitPalette';
-import { BrittneyChatPanel } from '@/components/ai/BrittneyChatPanel';
-import { AssetLibrary } from '@/components/assets/AssetLibrary';
 import { SplatCaptureWizard } from '@/components/assets/SplatCaptureWizard';
 import {
   useSceneStore,
@@ -21,9 +17,7 @@ import { decodeSceneFromURL } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import { useStudioBridge } from '@/hooks/useStudioBridge';
-import { HistoryPanel } from '@/components/HistoryPanel';
-import { GovernancePanel } from '@/components/history/GovernancePanel';
-import { ConformanceSuitePanel } from '@/components/validation/ConformanceSuitePanel';
+// Heavy panels — dynamically imported below
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
 import { useProjectStore } from '@/lib/projectStore';
@@ -478,6 +472,44 @@ const RemotePreviewPanel = dynamic(
 
 const ScriptConsole = dynamic(
   () => import('@/components/console/ScriptConsole').then((m) => ({ default: m.ScriptConsole })),
+  { ssr: false }
+);
+
+const TraitInspector = dynamic(
+  () => import('@/components/inspector/TraitInspector').then((m) => ({ default: m.TraitInspector })),
+  { ssr: false }
+);
+
+const TraitPalette = dynamic(
+  () => import('@/components/inspector/TraitPalette').then((m) => ({ default: m.TraitPalette })),
+  { ssr: false }
+);
+
+const BrittneyChatPanel = dynamic(
+  () => import('@/components/ai/BrittneyChatPanel').then((m) => ({ default: m.BrittneyChatPanel })),
+  { ssr: false }
+);
+
+const AssetLibrary = dynamic(
+  () => import('@/components/assets/AssetLibrary').then((m) => ({ default: m.AssetLibrary })),
+  { ssr: false }
+);
+
+const HistoryPanel = dynamic(
+  () => import('@/components/HistoryPanel').then((m) => ({ default: m.HistoryPanel })),
+  { ssr: false }
+);
+
+const GovernancePanel = dynamic(
+  () => import('@/components/history/GovernancePanel').then((m) => ({ default: m.GovernancePanel })),
+  { ssr: false }
+);
+
+const ConformanceSuitePanel = dynamic(
+  () =>
+    import('@/components/validation/ConformanceSuitePanel').then((m) => ({
+      default: m.ConformanceSuitePanel,
+    })),
   { ssr: false }
 );
 

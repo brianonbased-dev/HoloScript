@@ -4,6 +4,11 @@ import { GlobalNavigation } from '@/components/layout/GlobalNavigation';
 export const metadata: Metadata = {
   title: 'Creator Workspace — HoloScript Studio',
   description: 'Build, experiment, and ship to the HoloScript marketplace',
+  openGraph: {
+    title: 'Creator Workspace — HoloScript Studio',
+    description: 'Manage scenes, traits, skills, agents, plugins, and templates.',
+    type: 'website',
+  },
 };
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {

@@ -457,10 +457,10 @@ export function StudioHeader() {
 
   return (
     <>
-      <header className="grid h-12 grid-cols-[1fr_auto_1fr] items-center border-b border-studio-border bg-studio-panel px-2 sm:px-4 gap-1 sm:gap-2">
+      <header role="banner" aria-label="Studio editor toolbar" className="grid h-12 grid-cols-[1fr_auto_1fr] items-center border-b border-studio-border bg-studio-panel px-2 sm:px-4 gap-1 sm:gap-2">
         {/* Left: back link + scene name */}
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/" className="text-studio-muted transition hover:text-studio-text shrink-0">
+          <Link href="/" aria-label="Back to home" className="text-studio-muted transition hover:text-studio-text shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <span className="text-sm font-semibold hidden sm:inline shrink-0">
@@ -471,6 +471,7 @@ export function StudioHeader() {
             type="text"
             value={metadata.name}
             onChange={(e) => setMetadata({ name: e.target.value })}
+            aria-label="Scene name"
             className="min-w-0 w-28 bg-transparent text-sm text-studio-text outline-none truncate"
             placeholder="Untitled Scene"
           />
@@ -506,9 +507,9 @@ export function StudioHeader() {
         </div>
 
         {/* Right: status + tools + VR + collab + save */}
-        <div className="flex items-center justify-end gap-2">
+        <nav aria-label="Editor tools" className="flex items-center justify-end gap-2">
           {/* Ollama status */}
-          <div className="flex items-center gap-1.5 text-xs text-studio-muted">
+          <div role="status" aria-label={`AI status: ${ollamaStatus}`} className="flex items-center gap-1.5 text-xs text-studio-muted">
             <span
               className={`h-2 w-2 rounded-full shrink-0 ${
                 ollamaStatus === 'connected'
@@ -1096,7 +1097,7 @@ export function StudioHeader() {
 
           {/* Save / Open / Share / Export */}
           <SaveBar />
-        </div>
+        </nav>
       </header>
 
       {publishOpen && <PublishPanel onClose={() => setPublishOpen(false)} />}
