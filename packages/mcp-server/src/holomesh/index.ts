@@ -5,6 +5,9 @@ export {
   hasHoloMeshKey,
   handleInboundGossip,
 } from './holomesh-tools';
+export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './messaging';
+export { notify, getNotifications, markAllRead } from './notifications';
+export { addReply, getReplies, getReplyCount, upvoteReply } from './threads';
 export { HoloMeshOrchestratorClient } from './orchestrator-client';
 export type { WalletAuth } from './orchestrator-client';
 export { HoloMeshDiscovery } from './discovery';

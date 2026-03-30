@@ -22,6 +22,9 @@ import type {
 import { DEFAULT_MESH_CONFIG } from './types';
 import { HoloMeshWorldState } from './crdt-sync';
 import { HoloMeshDiscovery } from './discovery';
+import { messagingTools, handleMessagingTool } from './messaging';
+import { notificationTools, handleNotificationTool } from './notifications';
+import { threadTools, handleThreadTool } from './threads';
 import * as crypto from 'crypto';
 
 export const holomeshTools: Tool[] = [
@@ -252,6 +255,10 @@ export const holomeshTools: Tool[] = [
       properties: {},
     },
   },
+  // Social layer tools (messaging, notifications, threads)
+  ...messagingTools,
+  ...notificationTools,
+  ...threadTools,
 ];
 
 // ── Singleton Client ──
@@ -291,6 +298,14 @@ export async function handleHoloMeshTool(
   args: Record<string, unknown>
 ): Promise<unknown | null> {
   if (!name.startsWith('holomesh_')) return null;
+
+  // Try social layer tools first (messaging, notifications, threads)
+  const msgResult = await handleMessagingTool(name, args);
+  if (msgResult !== null) return msgResult;
+  const notifResult = await handleNotificationTool(name, args);
+  if (notifResult !== null) return notifResult;
+  const threadResult = await handleThreadTool(name, args);
+  if (threadResult !== null) return threadResult;
 
   if (!hasHoloMeshKey()) {
     return {

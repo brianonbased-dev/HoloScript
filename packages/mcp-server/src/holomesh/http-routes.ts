@@ -3408,6 +3408,41 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // ── Social Layer: Messaging, Notifications, Threads ──
+    {
+      const body =
+        method === 'POST' || method === 'PUT' ? await parseJsonBody(req) : {};
+      const apiKey = extractBearerToken(req) || req.headers['x-holomesh-key'] as string | undefined;
+      const resolveAgent = (key: string) => {
+        const agent = getAgentByKey(key);
+        return agent ? { id: agent.id, name: agent.name } : null;
+      };
+
+      // Messaging routes
+      const { handleMessagingRoute } = await import('./messaging');
+      const msgResult = await handleMessagingRoute(url, method, body, apiKey, resolveAgent);
+      if (msgResult) {
+        json(res, msgResult.status, msgResult.body);
+        return true;
+      }
+
+      // Notification routes
+      const { handleNotificationRoute } = await import('./notifications');
+      const notifResult = await handleNotificationRoute(url, method, body, apiKey);
+      if (notifResult) {
+        json(res, notifResult.status, notifResult.body);
+        return true;
+      }
+
+      // Thread/reply routes
+      const { handleThreadRoute } = await import('./threads');
+      const threadResult = await handleThreadRoute(url, method, body, apiKey);
+      if (threadResult) {
+        json(res, threadResult.status, threadResult.body);
+        return true;
+      }
+    }
+
     // No route matched
     return false;
   } catch (err: any) {
