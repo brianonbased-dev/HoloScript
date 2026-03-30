@@ -29,7 +29,9 @@ export const featureFlagHandler: TraitHandler<FeatureFlagConfig> = {
   onAttach(node: any): void {
     node.__featureFlagState = { flags: new Map<string, Flag>() };
   },
-  onDetach(node: any): void { delete node.__featureFlagState; },
+  onDetach(node: any): void {
+    delete node.__featureFlagState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: FeatureFlagConfig, context: any, event: any): void {
@@ -50,12 +52,16 @@ export const featureFlagHandler: TraitHandler<FeatureFlagConfig> = {
       case 'flag:evaluate': {
         const flag = state.flags.get(event.flagId as string);
         const value = flag ? (flag.enabled ? flag.defaultValue : false) : false;
-        context.emit?.('flag:result', { flagId: event.flagId, value, enabled: flag?.enabled ?? false });
+        context.emit?.('flag:result', {
+          flagId: event.flagId,
+          value,
+          enabled: flag?.enabled ?? false,
+        });
         break;
       }
       case 'flag:toggle': {
         const flag = state.flags.get(event.flagId as string);
-        if (flag) flag.enabled = event.enabled as boolean ?? !flag.enabled;
+        if (flag) flag.enabled = (event.enabled as boolean) ?? !flag.enabled;
         break;
       }
     }

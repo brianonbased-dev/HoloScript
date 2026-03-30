@@ -189,7 +189,12 @@ export const agentProfileHandler: TraitHandler<AgentProfileConfig> = {
             state[field] = value;
           }
           state.profileVersion = (state.profileVersion as number) + 1;
-          context.emit('profile:updated', { did: state.did, field, oldValue, newValue: state[field] });
+          context.emit('profile:updated', {
+            did: state.did,
+            field,
+            oldValue,
+            newValue: state[field],
+          });
         }
         break;
       }
@@ -363,7 +368,11 @@ export const statusMoodHandler: TraitHandler<StatusMoodConfig> = {
         const text = (ev.text as string) || '';
         const mood = (ev.mood as string) || '';
         const history = state.statusHistory as Array<{ text: string; mood: string; at: number }>;
-        history.push({ text: state.currentText as string, mood: state.currentMood as string, at: state.setAt as number });
+        history.push({
+          text: state.currentText as string,
+          mood: state.currentMood as string,
+          at: state.setAt as number,
+        });
         if (history.length > 20) history.shift();
         state.currentText = text;
         state.currentMood = mood;
@@ -376,7 +385,11 @@ export const statusMoodHandler: TraitHandler<StatusMoodConfig> = {
         state.currentText = config.default_text;
         state.currentMood = config.default_mood;
         state.expiresAt = null;
-        context.emit('status:changed', { text: state.currentText, mood: state.currentMood, setAt: Date.now() });
+        context.emit('status:changed', {
+          text: state.currentText,
+          mood: state.currentMood,
+          setAt: Date.now(),
+        });
         break;
       case 'status:get':
         context.emit('status:data', {
@@ -570,7 +583,11 @@ export const visitorCounterHandler: TraitHandler<VisitorCounterConfig> = {
         state.lastVisitAt = Date.now();
 
         const total = state.totalVisits as number;
-        context.emit('visitors:counted', { total, unique: unique.size, active: state.activeVisitors });
+        context.emit('visitors:counted', {
+          total,
+          unique: unique.size,
+          active: state.activeVisitors,
+        });
 
         // Check milestones
         const lastMilestone = state.lastMilestone as number;
@@ -830,7 +847,13 @@ export const top8FriendsHandler: TraitHandler<Top8FriendsConfig> = {
         const friends = state.friends as FriendEntry[];
         if (friends.some((f) => f.did === did)) break;
         if (friends.length >= config.max_slots) break;
-        friends.push({ did, name: name || did, rank: friends.length + 1, addedAt: Date.now(), isOnline: false });
+        friends.push({
+          did,
+          name: name || did,
+          rank: friends.length + 1,
+          addedAt: Date.now(),
+          isOnline: false,
+        });
         context.emit('friends:added', { did, name, rank: friends.length });
         break;
       }
@@ -841,7 +864,9 @@ export const top8FriendsHandler: TraitHandler<Top8FriendsConfig> = {
         if (idx < 0) break;
         friends.splice(idx, 1);
         // Re-rank
-        friends.forEach((f, i) => { f.rank = i + 1; });
+        friends.forEach((f, i) => {
+          f.rank = i + 1;
+        });
         context.emit('friends:removed', { did });
         break;
       }
@@ -854,7 +879,9 @@ export const top8FriendsHandler: TraitHandler<Top8FriendsConfig> = {
         if (idx < 0 || newRank < 1 || newRank > friends.length) break;
         const [friend] = friends.splice(idx, 1);
         friends.splice(newRank - 1, 0, friend);
-        friends.forEach((f, i) => { f.rank = i + 1; });
+        friends.forEach((f, i) => {
+          f.rank = i + 1;
+        });
         context.emit('friends:reordered', { did, newRank });
         break;
       }
@@ -868,7 +895,10 @@ export const top8FriendsHandler: TraitHandler<Top8FriendsConfig> = {
       case 'friends:request': {
         const from = ev.from as string;
         const name = ev.name as string;
-        const requests = state.pendingRequests as Map<string, { from: string; name: string; at: number }>;
+        const requests = state.pendingRequests as Map<
+          string,
+          { from: string; name: string; at: number }
+        >;
         if (!from || requests.has(from)) break;
         requests.set(from, { from, name: name || from, at: Date.now() });
         context.emit('friends:request_received', { from, name });
@@ -876,13 +906,22 @@ export const top8FriendsHandler: TraitHandler<Top8FriendsConfig> = {
       }
       case 'friends:accept': {
         const from = ev.from as string;
-        const requests = state.pendingRequests as Map<string, { from: string; name: string; at: number }>;
+        const requests = state.pendingRequests as Map<
+          string,
+          { from: string; name: string; at: number }
+        >;
         const req = requests.get(from);
         if (!req) break;
         requests.delete(from);
         const friends = state.friends as FriendEntry[];
         if (friends.length < config.max_slots && !friends.some((f) => f.did === from)) {
-          friends.push({ did: from, name: req.name, rank: friends.length + 1, addedAt: Date.now(), isOnline: false });
+          friends.push({
+            did: from,
+            name: req.name,
+            rank: friends.length + 1,
+            addedAt: Date.now(),
+            isOnline: false,
+          });
         }
         context.emit('friends:accepted', { did: from, name: req.name });
         break;
@@ -942,7 +981,7 @@ export const guestbookHandler: TraitHandler<GuestbookConfig> = {
     switch (event.type) {
       case 'guestbook:sign': {
         const authorDid = ev.authorDid as string;
-        const authorName = ev.authorName as string || authorDid || 'Anonymous';
+        const authorName = (ev.authorName as string) || authorDid || 'Anonymous';
         const message = ((ev.message as string) || '').slice(0, config.max_message_length);
         const mood = (ev.mood as string) || '';
         const signature = ev.signature as string | undefined;
@@ -1231,7 +1270,11 @@ export const agentRoomHandler: TraitHandler<AgentRoomConfig> = {
         break;
       }
       case 'room:place_furniture': {
-        const furniture = state.furniture as Array<{ id: string; type: string; position: [number, number, number] }>;
+        const furniture = state.furniture as Array<{
+          id: string;
+          type: string;
+          position: [number, number, number];
+        }>;
         const item = {
           id: `furn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           type: (ev.furnitureType as string) || 'generic',
@@ -1243,7 +1286,11 @@ export const agentRoomHandler: TraitHandler<AgentRoomConfig> = {
       }
       case 'room:remove_furniture': {
         const itemId = ev.itemId as string;
-        const furniture = state.furniture as Array<{ id: string; type: string; position: [number, number, number] }>;
+        const furniture = state.furniture as Array<{
+          id: string;
+          type: string;
+          position: [number, number, number];
+        }>;
         const idx = furniture.findIndex((f) => f.id === itemId);
         if (idx >= 0) {
           furniture.splice(idx, 1);
@@ -1479,7 +1526,11 @@ export const roomPortalHandler: TraitHandler<RoomPortalConfig> = {
     };
     node.__roomPortalState = state;
     if (config.target_did) {
-      context.emit('portal:created', { targetDid: config.target_did, targetRoom: config.target_room, label: config.label });
+      context.emit('portal:created', {
+        targetDid: config.target_did,
+        targetRoom: config.target_room,
+        label: config.label,
+      });
     }
   },
 

@@ -22,7 +22,9 @@ describe('useMultiplayerRoom', () => {
       close: vi.fn(),
     };
 
-    global.EventSource = vi.fn().mockImplementation(function () { return mockEventSource; }) as any;
+    global.EventSource = vi.fn().mockImplementation(function () {
+      return mockEventSource;
+    }) as any;
 
     // Mock fetch
     mockFetch = vi.fn();

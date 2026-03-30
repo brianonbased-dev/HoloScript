@@ -56,6 +56,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ## Connector Packages (4/6 Complete)
 
 ### ✅ @holoscript/connector-core
+
 - **Status:** Complete, 17 tests pass
 - **Location:** `packages/connector-core/`
 - **Exports:**
@@ -64,6 +65,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - `CredentialVault`, `DeploymentPipeline` — Interfaces
 
 ### ✅ @holoscript/connector-railway
+
 - **Status:** Complete, 19 tests pass
 - **Location:** `packages/connector-railway/`
 - **Tools:** 6 MCP tools
@@ -75,6 +77,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - GraphQL API wrapper
 
 ### ✅ @holoscript/connector-github
+
 - **Status:** Complete, 30 tests pass
 - **Location:** `packages/connector-github/`
 - **Tools:** 12 MCP tools
@@ -90,6 +93,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - GitHub Actions workflow templates included
 
 ### ✅ @holoscript/connector-appstore
+
 - **Status:** Complete, 60 tests (38 pass, 22 require real credentials)
 - **Location:** `packages/connector-appstore/`
 - **Tools:** 16 MCP tools (7 Apple, 7 Google, 2 cross-platform)
@@ -108,6 +112,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - Unity build artifact auto-detection and publishing
 
 ### ⚠️ @holoscript/connector-vscode
+
 - **Status:** Not yet created
 - **Priority:** 2 (next 2 weeks)
 - **Features planned:**
@@ -117,6 +122,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - Syntax highlighting for .holo/.hsplus
 
 ### ✅ @holoscript/connector-upstash
+
 - **Status:** Complete, 89 tests (86 pass, 3 minor API compatibility issues)
 - **Location:** `packages/connector-upstash/`
 - **Tools:** 25 MCP tools (7 Redis, 6 Vector, 9 QStash, 3 Convenience)
@@ -142,6 +148,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ## Studio Integration
 
 ### ServiceConnectorPanel Component
+
 - **Location:** `packages/studio/src/components/integrations/ServiceConnectorPanel.tsx`
 - **Features:**
   - 5-tab interface (GitHub, Railway, VSCode, App Store, Upstash)
@@ -151,6 +158,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - Connect/Disconnect buttons with confirmation
 
 ### Connector Store (Zustand)
+
 - **Location:** `packages/studio/src/lib/stores/connectorStore.ts`
 - **Features:**
   - Connection lifecycle management
@@ -160,6 +168,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
   - SSE lifecycle: `startActivityStream`, `stopActivityStream`
 
 ### Integration Page
+
 - **URL:** `/integrations`
 - **Location:** `packages/studio/src/app/integrations/page.tsx`
 - **Features:**
@@ -170,6 +179,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ## Implementation Status
 
 ### ✅ Completed (Today's Session)
+
 1. Connector foundation (core, railway, github) — **66 tests, 100% pass**
 2. ServiceConnectorPanel UI component
 3. connectorStore with SSE streaming
@@ -177,17 +187,20 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 5. absorbPipelineBridge integration
 
 ### ✅ Recently Completed
+
 1. **API Routes** — `/api/connectors/connect`, `/api/connectors/disconnect`, `/api/connectors/activity` (SSE)
    - All 4 connectors supported (GitHub, Railway, Upstash, AppStore)
    - Health checks and credential masking
    - Real-time activity streaming via Server-Sent Events
 
 ### 🚧 In Progress (Next Steps)
+
 1. **GitHub OAuth Device Flow** — Replace GITHUB_TOKEN with OAuth popup/device code
 2. **ImportRepoWizard Integration** — Use connectorStore GitHub connection instead of separate auth
 3. **Navigation Link** — Add `/integrations` to Studio home page
 
 ### 📋 Planned (Priority 2-3)
+
 5. VSCode connector + extension
 6. Upstash connector (Redis + Vector + QStash)
 7. App Store connector (commit + test)
@@ -196,9 +209,11 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ## API Routes (To Implement)
 
 ### POST /api/connectors/connect
+
 **Purpose:** Establish connection to a service connector
 
 **Request:**
+
 ```json
 {
   "serviceId": "github" | "railway" | "vscode" | "appstore" | "upstash",
@@ -212,6 +227,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -223,6 +239,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 ```
 
 **Implementation:**
+
 ```typescript
 // packages/studio/src/app/api/connectors/connect/route.ts
 import { GitHubConnector } from '@holoscript/connector-github';
@@ -249,9 +266,11 @@ export async function POST(req: NextRequest) {
 ```
 
 ### POST /api/connectors/disconnect
+
 **Purpose:** Disconnect from a service
 
 **Request:**
+
 ```json
 {
   "serviceId": "github"
@@ -259,6 +278,7 @@ export async function POST(req: NextRequest) {
 ```
 
 **Response:**
+
 ```json
 {
   "success": true
@@ -266,9 +286,11 @@ export async function POST(req: NextRequest) {
 ```
 
 ### GET /api/connectors/activity (SSE)
+
 **Purpose:** Real-time activity stream for all connectors
 
 **Response:** Server-Sent Events
+
 ```
 data: {"serviceId":"railway","action":"Deployed to production","status":"success"}
 
@@ -278,12 +300,14 @@ data: {"serviceId":"github","action":"PR #42 merged","status":"success"}
 ## OAuth Flow (GitHub Example)
 
 ### Current: Personal Access Token
+
 1. User generates PAT on GitHub
 2. User pastes token in Studio config form
 3. Token stored in connectorStore (not persisted)
 4. Token used for all GitHub API calls
 
 ### Future: OAuth Device Flow
+
 1. User clicks "Connect GitHub" in Studio
 2. Studio calls `/api/connectors/oauth/github/start`
 3. Backend generates device code
@@ -295,6 +319,7 @@ data: {"serviceId":"github","action":"PR #42 merged","status":"success"}
 ## ImportRepoWizard Integration
 
 ### Current Flow
+
 ```
 ImportRepoWizard
   ↓
@@ -306,6 +331,7 @@ GitHub REST API
 ```
 
 ### Target Flow
+
 ```
 ImportRepoWizard
   ↓
@@ -320,13 +346,13 @@ GitHubConnector.executeTool('github_repo_list')
 
 ## Test Coverage
 
-| Package | Tests | Status |
-|---------|-------|--------|
-| connector-core | 17 | ✅ 100% |
-| connector-railway | 19 | ✅ 100% |
-| connector-github | 30 | ✅ 100% |
-| connector-appstore | 60 | ⚠️ 38 pass (22 require real API credentials) |
-| **Total** | **126** | **✅ 104 pass (83% coverage)** |
+| Package            | Tests   | Status                                       |
+| ------------------ | ------- | -------------------------------------------- |
+| connector-core     | 17      | ✅ 100%                                      |
+| connector-railway  | 19      | ✅ 100%                                      |
+| connector-github   | 30      | ✅ 100%                                      |
+| connector-appstore | 60      | ⚠️ 38 pass (22 require real API credentials) |
+| **Total**          | **126** | **✅ 104 pass (83% coverage)**               |
 
 ## Commits
 

@@ -528,9 +528,12 @@ describe('WorldState', () => {
 
   describe('edge cases', () => {
     it('handles unicode in object properties', () => {
-      world.setObject('emoji', makeObject({
-        properties: { name: 'Cube \u2728', description: '\u3053\u3093\u306B\u3061\u306F' },
-      }));
+      world.setObject(
+        'emoji',
+        makeObject({
+          properties: { name: 'Cube \u2728', description: '\u3053\u3093\u306B\u3061\u306F' },
+        })
+      );
       const obj = world.getObject('emoji')!;
       expect(obj.properties.name).toBe('Cube \u2728');
     });

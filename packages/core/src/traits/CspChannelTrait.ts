@@ -4,20 +4,51 @@
  */
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-export interface CspChannelConfig { buffer_size: number; }
+export interface CspChannelConfig {
+  buffer_size: number;
+}
 export const cspChannelHandler: TraitHandler<CspChannelConfig> = {
-  name: 'csp_channel', defaultConfig: { buffer_size: 10 },
-  onAttach(node: HSPlusNode): void { node.__cspState = { channels: new Map<string, any[]>() }; },
-  onDetach(node: HSPlusNode): void { delete node.__cspState; },
+  name: 'csp_channel',
+  defaultConfig: { buffer_size: 10 },
+  onAttach(node: HSPlusNode): void {
+    node.__cspState = { channels: new Map<string, any[]>() };
+  },
+  onDetach(node: HSPlusNode): void {
+    delete node.__cspState;
+  },
   onUpdate(): void {},
-  onEvent(node: HSPlusNode, config: CspChannelConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: CspChannelConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__cspState as { channels: Map<string, any[]> } | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {
-      case 'csp:create': state.channels.set(event.channelId as string, []); context.emit?.('csp:created', { channelId: event.channelId }); break;
-      case 'csp:send': { const ch = state.channels.get(event.channelId as string); if (ch && ch.length < config.buffer_size) { ch.push(event.value); context.emit?.('csp:sent', { channelId: event.channelId, bufferUsed: ch.length }); } break; }
-      case 'csp:recv': { const ch = state.channels.get(event.channelId as string); const val = ch?.shift(); context.emit?.('csp:received', { channelId: event.channelId, value: val, hasValue: val !== undefined }); break; }
+      case 'csp:create':
+        state.channels.set(event.channelId as string, []);
+        context.emit?.('csp:created', { channelId: event.channelId });
+        break;
+      case 'csp:send': {
+        const ch = state.channels.get(event.channelId as string);
+        if (ch && ch.length < config.buffer_size) {
+          ch.push(event.value);
+          context.emit?.('csp:sent', { channelId: event.channelId, bufferUsed: ch.length });
+        }
+        break;
+      }
+      case 'csp:recv': {
+        const ch = state.channels.get(event.channelId as string);
+        const val = ch?.shift();
+        context.emit?.('csp:received', {
+          channelId: event.channelId,
+          value: val,
+          hasValue: val !== undefined,
+        });
+        break;
+      }
     }
   },
 };

@@ -292,9 +292,7 @@ class RemotionBridgeImpl {
     return sequences;
   }
 
-  private actionToComponent(
-    action: HoloTimelineEntry['action']
-  ): string {
+  private actionToComponent(action: HoloTimelineEntry['action']): string {
     switch (action.kind) {
       case 'animate':
         return 'AnimateObject';
@@ -371,9 +369,7 @@ class RemotionBridgeImpl {
   // Interpolation tracks
   // ---------------------------------------------------------------------------
 
-  private extractInterpolationTracks(
-    composition: HoloComposition
-  ): RemotionInterpolationTrack[] {
+  private extractInterpolationTracks(composition: HoloComposition): RemotionInterpolationTrack[] {
     const trackMap = new Map<string, RemotionInterpolationTrack>();
 
     for (const timeline of composition.timelines ?? []) {
@@ -426,7 +422,7 @@ class RemotionBridgeImpl {
         { name: 'Depth', type: 'depth', outputSuffix: '_depth', enabled: true },
         { name: 'Normal', type: 'normal', outputSuffix: '_normal', enabled: true },
         { name: 'ID Mask', type: 'id', outputSuffix: '_id', enabled: true },
-        { name: 'Wireframe', type: 'wireframe', outputSuffix: '_wire', enabled: false },
+        { name: 'Wireframe', type: 'wireframe', outputSuffix: '_wire', enabled: false }
       );
     }
 
@@ -452,7 +448,9 @@ class RemotionBridgeImpl {
     lines.push(`// Source composition: "${composition.name}"`);
     lines.push(``);
     lines.push(`import React from 'react';`);
-    lines.push(`import { useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';`);
+    lines.push(
+      `import { useCurrentFrame, useVideoConfig, interpolate, Sequence } from 'remotion';`
+    );
 
     if (this.include3DCanvas) {
       lines.push(`import { Canvas } from '@react-three/fiber';`);
@@ -472,7 +470,9 @@ class RemotionBridgeImpl {
         const outputRange = track.keyframes.map((k) => k.value);
 
         lines.push(`function ${fnName}(frame${this.isTypeScript ? ': number' : ''}) {`);
-        lines.push(`  return interpolate(frame, ${JSON.stringify(inputRange)}, ${JSON.stringify(outputRange)}, {`);
+        lines.push(
+          `  return interpolate(frame, ${JSON.stringify(inputRange)}, ${JSON.stringify(outputRange)}, {`
+        );
         lines.push(`    extrapolateLeft: 'clamp',`);
         lines.push(`    extrapolateRight: 'clamp',`);
         lines.push(`  });`);
@@ -521,7 +521,9 @@ class RemotionBridgeImpl {
 
     // Sequences
     for (const seq of sequences) {
-      lines.push(`      <Sequence from={${seq.from}} durationInFrames={${seq.durationInFrames}} name="${seq.name}">`);
+      lines.push(
+        `      <Sequence from={${seq.from}} durationInFrames={${seq.durationInFrames}} name="${seq.name}">`
+      );
       lines.push(`        {/* ${seq.component}: ${JSON.stringify(seq.props)} */}`);
       lines.push(`      </Sequence>`);
     }
@@ -604,10 +606,7 @@ class RemotionBridgeImpl {
     }
   }
 
-  private objectToJSX(
-    obj: HoloObjectDecl,
-    tracks: RemotionInterpolationTrack[]
-  ): string {
+  private objectToJSX(obj: HoloObjectDecl, tracks: RemotionInterpolationTrack[]): string {
     const geometry = this.inferGeometry(obj);
     const position = this.extractVec3(obj.properties, 'position', [0, 0, 0]);
     const scale = this.extractVec3(obj.properties, 'scale', [1, 1, 1]);
@@ -626,10 +625,7 @@ class RemotionBridgeImpl {
     ].join('\n      ');
   }
 
-  private groupToJSX(
-    group: HoloSpatialGroup,
-    tracks: RemotionInterpolationTrack[]
-  ): string {
+  private groupToJSX(group: HoloSpatialGroup, tracks: RemotionInterpolationTrack[]): string {
     const position = this.extractGroupVec3(group, 'position', [0, 0, 0]);
     const children = (group.objects ?? [])
       .map((o) => `        ${this.objectToJSX(o, tracks)}`)
@@ -697,16 +693,20 @@ class RemotionBridgeImpl {
 
   private mapGeometryName(name: string): string {
     const map: Record<string, string> = {
-      box: 'box', cube: 'box', sphere: 'sphere', orb: 'sphere',
-      cylinder: 'cylinder', cone: 'cone', plane: 'plane',
-      torus: 'torus', ring: 'torus',
+      box: 'box',
+      cube: 'box',
+      sphere: 'sphere',
+      orb: 'sphere',
+      cylinder: 'cylinder',
+      cone: 'cone',
+      plane: 'plane',
+      torus: 'torus',
+      ring: 'torus',
     };
     return map[name.toLowerCase()] ?? 'box';
   }
 
-  private propsToJSXAttrs(
-    properties: Array<{ key: string; value: HoloValue }>
-  ): string {
+  private propsToJSXAttrs(properties: Array<{ key: string; value: HoloValue }>): string {
     return properties
       .map((p) => {
         if (typeof p.value === 'string') return `${p.key}="${p.value}"`;

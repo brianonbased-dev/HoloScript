@@ -10,7 +10,9 @@ const ROOT_PKG = path.join(ROOT, 'package.json');
 const bumpType = process.argv[2];
 const allowed = new Set(['patch', 'minor', 'major', 'prerelease']);
 if (!allowed.has(bumpType)) {
-  console.error('Usage: node scripts/sync-versions.js <patch|minor|major|prerelease> [--lane <name>]');
+  console.error(
+    'Usage: node scripts/sync-versions.js <patch|minor|major|prerelease> [--lane <name>]'
+  );
   process.exit(1);
 }
 

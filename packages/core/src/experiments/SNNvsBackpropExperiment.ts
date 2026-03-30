@@ -511,17 +511,14 @@ function incompleteBetaApprox(x: number, a: number, b: number): number {
   if (x === 0 || x === 1) return x;
 
   // For the t-distribution case, use a series approximation
-  const lnBeta =
-    logGamma(a) + logGamma(b) - logGamma(a + b);
-  const prefix = Math.exp(
-    a * Math.log(x) + b * Math.log(1 - x) - lnBeta
-  ) / a;
+  const lnBeta = logGamma(a) + logGamma(b) - logGamma(a + b);
+  const prefix = Math.exp(a * Math.log(x) + b * Math.log(1 - x) - lnBeta) / a;
 
   // Simple series expansion (sufficient for our use case)
   let sum = 1;
   let term = 1;
   for (let n = 1; n < 200; n++) {
-    term *= (n - b) * x / (a + n);
+    term *= ((n - b) * x) / (a + n);
     sum += term;
     if (Math.abs(term) < 1e-10) break;
   }
@@ -535,9 +532,9 @@ function incompleteBetaApprox(x: number, a: number, b: number): number {
 function logGamma(z: number): number {
   const g = 7;
   const c = [
-    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-    771.32342877765313, -176.61502916214059, 12.507343278686905,
-    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+    0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
+    1.5056327351493116e-7,
   ];
 
   if (z < 0.5) {
@@ -565,9 +562,7 @@ export function cohensD(group1: number[], group2: number[]): number {
   const n2 = group2.length;
 
   // Pooled standard deviation
-  const sPooled = Math.sqrt(
-    ((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2)
-  );
+  const sPooled = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
 
   if (sPooled === 0) return 0;
   return (m1 - m2) / sPooled;
@@ -631,8 +626,10 @@ export class ConfabulationDetector {
       );
 
       const sampleCount = binTrials.length;
-      const meanConf = sampleCount > 0 ? mean(binTrials.map((t) => t.confidence)) : (lower + upper) / 2;
-      const accuracy = sampleCount > 0 ? binTrials.filter((t) => t.correct).length / sampleCount : 0;
+      const meanConf =
+        sampleCount > 0 ? mean(binTrials.map((t) => t.confidence)) : (lower + upper) / 2;
+      const accuracy =
+        sampleCount > 0 ? binTrials.filter((t) => t.correct).length / sampleCount : 0;
 
       bins.push({
         binIndex: i,
@@ -1105,9 +1102,9 @@ export class ExperimentRunner {
           let output: Uint8Array = new Uint8Array(layer.getSize());
           const timesteps = Math.floor(this.config.trialDuration / this.config.dt);
           for (let t = 0; t < timesteps; t++) {
-            output = layer.step(currentInput instanceof Uint8Array
-              ? new Float64Array(currentInput)
-              : currentInput);
+            output = layer.step(
+              currentInput instanceof Uint8Array ? new Float64Array(currentInput) : currentInput
+            );
           }
           layerSpikes.push(output);
           currentInput = output;
@@ -1140,9 +1137,9 @@ export class ExperimentRunner {
         const timesteps = Math.floor(this.config.trialDuration / this.config.dt);
         let output: Uint8Array = new Uint8Array(layer.getSize());
         for (let t = 0; t < timesteps; t++) {
-          output = layer.step(currentInput instanceof Uint8Array
-            ? new Float64Array(currentInput)
-            : currentInput);
+          output = layer.step(
+            currentInput instanceof Uint8Array ? new Float64Array(currentInput) : currentInput
+          );
           totalSpikes += output.reduce((s, v) => s + v, 0);
         }
         currentInput = output;
@@ -1344,7 +1341,10 @@ export class ExperimentRunner {
   /**
    * Compare SNN and backprop arms using statistical tests.
    */
-  private compareArms(snnTrials: TrialResult[], backpropTrials: TrialResult[]): StatisticalAnalysis {
+  private compareArms(
+    snnTrials: TrialResult[],
+    backpropTrials: TrialResult[]
+  ): StatisticalAnalysis {
     // Per-trial confabulation indicators (0 or 1)
     const snnConfabs = snnTrials.map((t) => (t.confabulated ? 1 : 0));
     const bpConfabs = backpropTrials.map((t) => (t.confabulated ? 1 : 0));
@@ -1381,8 +1381,7 @@ export class ExperimentRunner {
         level: 0.95,
       },
       significant: pValue < 0.05,
-      lowerConfabulationArm:
-        snnRate < bpRate ? 'snn' : snnRate > bpRate ? 'backprop' : 'tied',
+      lowerConfabulationArm: snnRate < bpRate ? 'snn' : snnRate > bpRate ? 'backprop' : 'tied',
       meanDifference,
     };
   }
@@ -1433,31 +1432,57 @@ export class ExperimentRunner {
     lines.push(`  Hallucination Rate: ${(results.snnMetrics.hallucinationRate * 100).toFixed(2)}%`);
     lines.push(`  Confabulation Count: ${results.snnMetrics.confabulationCount}`);
     lines.push(`  ECE: ${results.snnMetrics.expectedCalibrationError.toFixed(4)}`);
-    lines.push(`  Mean Confidence (Correct): ${results.snnMetrics.meanConfidenceCorrect.toFixed(4)}`);
-    lines.push(`  Mean Confidence (Incorrect): ${results.snnMetrics.meanConfidenceIncorrect.toFixed(4)}`);
-    lines.push(`  Mean Coherence: ${results.snnMetrics.meanCoherence.toFixed(4)} (+/- ${results.snnMetrics.stdCoherence.toFixed(4)})`);
+    lines.push(
+      `  Mean Confidence (Correct): ${results.snnMetrics.meanConfidenceCorrect.toFixed(4)}`
+    );
+    lines.push(
+      `  Mean Confidence (Incorrect): ${results.snnMetrics.meanConfidenceIncorrect.toFixed(4)}`
+    );
+    lines.push(
+      `  Mean Coherence: ${results.snnMetrics.meanCoherence.toFixed(4)} (+/- ${results.snnMetrics.stdCoherence.toFixed(4)})`
+    );
     lines.push(`  Mean Exec Time: ${results.snnMetrics.meanExecutionTimeMs.toFixed(2)}ms`);
     lines.push('');
 
     lines.push('--- Backprop Arm Results ---');
     lines.push(`  Accuracy: ${(results.backpropMetrics.accuracy * 100).toFixed(2)}%`);
-    lines.push(`  Hallucination Rate: ${(results.backpropMetrics.hallucinationRate * 100).toFixed(2)}%`);
+    lines.push(
+      `  Hallucination Rate: ${(results.backpropMetrics.hallucinationRate * 100).toFixed(2)}%`
+    );
     lines.push(`  Confabulation Count: ${results.backpropMetrics.confabulationCount}`);
     lines.push(`  ECE: ${results.backpropMetrics.expectedCalibrationError.toFixed(4)}`);
-    lines.push(`  Mean Confidence (Correct): ${results.backpropMetrics.meanConfidenceCorrect.toFixed(4)}`);
-    lines.push(`  Mean Confidence (Incorrect): ${results.backpropMetrics.meanConfidenceIncorrect.toFixed(4)}`);
-    lines.push(`  Mean Coherence: ${results.backpropMetrics.meanCoherence.toFixed(4)} (+/- ${results.backpropMetrics.stdCoherence.toFixed(4)})`);
+    lines.push(
+      `  Mean Confidence (Correct): ${results.backpropMetrics.meanConfidenceCorrect.toFixed(4)}`
+    );
+    lines.push(
+      `  Mean Confidence (Incorrect): ${results.backpropMetrics.meanConfidenceIncorrect.toFixed(4)}`
+    );
+    lines.push(
+      `  Mean Coherence: ${results.backpropMetrics.meanCoherence.toFixed(4)} (+/- ${results.backpropMetrics.stdCoherence.toFixed(4)})`
+    );
     lines.push(`  Mean Exec Time: ${results.backpropMetrics.meanExecutionTimeMs.toFixed(2)}ms`);
     lines.push('');
 
     lines.push('--- Statistical Comparison ---');
-    lines.push(`  Paired t-test: t(${results.statisticalAnalysis.degreesOfFreedom}) = ${results.statisticalAnalysis.tStatistic.toFixed(4)}`);
+    lines.push(
+      `  Paired t-test: t(${results.statisticalAnalysis.degreesOfFreedom}) = ${results.statisticalAnalysis.tStatistic.toFixed(4)}`
+    );
     lines.push(`  p-value: ${results.statisticalAnalysis.pValue.toFixed(6)}`);
-    lines.push(`  Significant (alpha=0.05): ${results.statisticalAnalysis.significant ? 'YES' : 'NO'}`);
-    lines.push(`  Cohen's d: ${results.statisticalAnalysis.cohensD.toFixed(4)} (${results.statisticalAnalysis.effectSizeInterpretation})`);
-    lines.push(`  95% CI: [${results.statisticalAnalysis.confidenceInterval.lower.toFixed(4)}, ${results.statisticalAnalysis.confidenceInterval.upper.toFixed(4)}]`);
-    lines.push(`  Mean Difference (SNN - BP): ${results.statisticalAnalysis.meanDifference.toFixed(4)}`);
-    lines.push(`  Lower Confabulation Arm: ${results.statisticalAnalysis.lowerConfabulationArm.toUpperCase()}`);
+    lines.push(
+      `  Significant (alpha=0.05): ${results.statisticalAnalysis.significant ? 'YES' : 'NO'}`
+    );
+    lines.push(
+      `  Cohen's d: ${results.statisticalAnalysis.cohensD.toFixed(4)} (${results.statisticalAnalysis.effectSizeInterpretation})`
+    );
+    lines.push(
+      `  95% CI: [${results.statisticalAnalysis.confidenceInterval.lower.toFixed(4)}, ${results.statisticalAnalysis.confidenceInterval.upper.toFixed(4)}]`
+    );
+    lines.push(
+      `  Mean Difference (SNN - BP): ${results.statisticalAnalysis.meanDifference.toFixed(4)}`
+    );
+    lines.push(
+      `  Lower Confabulation Arm: ${results.statisticalAnalysis.lowerConfabulationArm.toUpperCase()}`
+    );
     lines.push('');
 
     lines.push('================================================================');

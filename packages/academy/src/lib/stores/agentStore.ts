@@ -110,7 +110,9 @@ export const useAgentStore = create<AgentState>()(
           currentAction: '',
           lastError: error,
           recentCycles: s.recentCycles.map((c) =>
-            c.cycleId === cycleId ? { ...c, status: 'error', durationMs: Date.now() - c.startedAt } : c
+            c.cycleId === cycleId
+              ? { ...c, status: 'error', durationMs: Date.now() - c.startedAt }
+              : c
           ),
         }));
       },

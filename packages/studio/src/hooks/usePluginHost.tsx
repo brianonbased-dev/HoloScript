@@ -116,7 +116,9 @@ export function PluginHostProvider({
             return { subscribed: true };
           }
           if (method === 'write') {
-            console.warn(`[PluginHost] scene.write from ${pluginId} — not yet wired to scene graph`);
+            console.warn(
+              `[PluginHost] scene.write from ${pluginId} — not yet wired to scene graph`
+            );
             return { success: false, reason: 'Scene write not yet connected to live scene graph' };
           }
         }
@@ -124,7 +126,8 @@ export function PluginHostProvider({
         // ── Editor API ──────────────────────────────────────────────────
         if (namespace === 'editor') {
           if (method === 'selection') return { selectedIds: [] };
-          if (method === 'viewport') return { width: window.innerWidth, height: window.innerHeight, zoom: 1 };
+          if (method === 'viewport')
+            return { width: window.innerWidth, height: window.innerHeight, zoom: 1 };
           if (method === 'undo') {
             console.warn(`[PluginHost] editor.undo from ${pluginId} — not yet wired`);
             return { success: false };
@@ -135,7 +138,8 @@ export function PluginHostProvider({
         if (namespace === 'ui') {
           if (method === 'notification') {
             const [message, level] = args as [string, string?];
-            const logFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.info;
+            const logFn =
+              level === 'error' ? console.error : level === 'warn' ? console.warn : console.info;
             logFn(`[Plugin:${pluginId}] ${message}`);
             return { shown: true };
           }
@@ -143,7 +147,12 @@ export function PluginHostProvider({
             const isDark = document.documentElement.classList.contains('dark');
             return { theme: isDark ? 'dark' : 'light' };
           }
-          if (method === 'modal' || method === 'panel' || method === 'toolbar' || method === 'menu') {
+          if (
+            method === 'modal' ||
+            method === 'panel' ||
+            method === 'toolbar' ||
+            method === 'menu'
+          ) {
             console.info(`[PluginHost] ui.${method} from ${pluginId} — registration noted`);
             return { registered: true };
           }

@@ -25,7 +25,7 @@ const { useGlobalHotkeys } = await import('@/hooks/useGlobalHotkeys');
 
 function fireKey(
   key: string,
-  modifiers: { ctrlKey?: boolean; shiftKey?: boolean; metaKey?: boolean } = {},
+  modifiers: { ctrlKey?: boolean; shiftKey?: boolean; metaKey?: boolean } = {}
 ) {
   const event = new KeyboardEvent('keydown', {
     key,

@@ -2,9 +2,9 @@
  * Base Type Definitions
  * Extracted to avoid circular dependencies between types.ts, AdvancedTypeSystem.ts, and HoloScriptPlus.ts
  *
- * @module types/base
  */
 import type { HSPlusDirective } from './AdvancedTypeSystem';
+import type { ProvenanceContext } from '../compiler/traits/ProvenanceSemiring';
 
 // ============================================================================
 // Spatial Types (canonical definitions — re-exported by types.ts)
@@ -108,5 +108,6 @@ export interface ASTNode extends BaseASTNode {
     author: string;
     timestamp: number;
     provenanceHash: string;
+    context?: ProvenanceContext; // Algebraic weight threading
   };
 }

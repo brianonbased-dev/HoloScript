@@ -77,7 +77,15 @@ function createShapeGeometry(shape: DraftShape): THREE.BufferGeometry {
 /** Extract draft shape from an R3FNode */
 function getNodeShape(node: R3FNode): DraftShape {
   const shape = node.props.draftShape || node.props.hsType || node.props.geometry || 'box';
-  const validShapes: DraftShape[] = ['box', 'sphere', 'cylinder', 'cone', 'capsule', 'torus', 'plane'];
+  const validShapes: DraftShape[] = [
+    'box',
+    'sphere',
+    'cylinder',
+    'cone',
+    'capsule',
+    'torus',
+    'plane',
+  ];
   if (validShapes.includes(shape)) return shape as DraftShape;
   // Map common aliases
   if (shape === 'cube') return 'box';
@@ -147,7 +155,7 @@ function InstancedDraftGroup({
         _tempObject.scale.set(
           (rawScale[0] ?? 1) * size,
           (rawScale[1] ?? 1) * size,
-          (rawScale[2] ?? 1) * size,
+          (rawScale[2] ?? 1) * size
         );
       }
 

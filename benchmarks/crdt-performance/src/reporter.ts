@@ -244,8 +244,12 @@ function analyzeSerialization(ser: any[]): string {
   }
 
   // Performance analysis
-  const fastestSerializer = ser.reduce((best, r) => (r.serializeTime < best.serializeTime ? r : best));
-  const fastestDeserializer = ser.reduce((best, r) => (r.deserializeTime < best.deserializeTime ? r : best));
+  const fastestSerializer = ser.reduce((best, r) =>
+    r.serializeTime < best.serializeTime ? r : best
+  );
+  const fastestDeserializer = ser.reduce((best, r) =>
+    r.deserializeTime < best.deserializeTime ? r : best
+  );
 
   analysis += `\n**Serialization Speed**: ${fastestSerializer.library} (${fastestSerializer.serializeTime.toFixed(4)} ms)\n`;
   analysis += `**Deserialization Speed**: ${fastestDeserializer.library} (${fastestDeserializer.deserializeTime.toFixed(4)} ms)\n`;

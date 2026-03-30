@@ -4,13 +4,19 @@
  */
 import type { TraitHandler } from './TraitTypes';
 
-export interface TranslationConfig { fallback_locale: string; }
+export interface TranslationConfig {
+  fallback_locale: string;
+}
 
 export const translationHandler: TraitHandler<TranslationConfig> = {
   name: 'translation',
   defaultConfig: { fallback_locale: 'en' },
-  onAttach(node: any): void { node.__i18nState = { bundles: new Map<string, Map<string, string>>() }; },
-  onDetach(node: any): void { delete node.__i18nState; },
+  onAttach(node: any): void {
+    node.__i18nState = { bundles: new Map<string, Map<string, string>>() };
+  },
+  onDetach(node: any): void {
+    delete node.__i18nState;
+  },
   onUpdate(): void {},
   onEvent(node: any, config: TranslationConfig, context: any, event: any): void {
     const state = node.__i18nState as { bundles: Map<string, Map<string, string>> } | undefined;
@@ -20,7 +26,8 @@ export const translationHandler: TraitHandler<TranslationConfig> = {
       case 'i18n:load': {
         const locale = event.locale as string;
         const m = new Map<string, string>();
-        for (const [k, v] of Object.entries((event.messages as Record<string, string>) ?? {})) m.set(k, v);
+        for (const [k, v] of Object.entries((event.messages as Record<string, string>) ?? {}))
+          m.set(k, v);
         state.bundles.set(locale, m);
         context.emit?.('i18n:loaded', { locale, keys: m.size });
         break;

@@ -24,21 +24,21 @@ shaders/
 
 ## Trait → Shader Mapping
 
-| HoloScript Trait       | Generated Shader Feature              |
-| ---------------------- | ------------------------------------- |
-| `@glowing`             | Fresnel rim + HDR emissive output     |
-| `@emissive`            | Emissive PBR term in fragment shader  |
-| `@reflective`          | Specular GGX BRDF                     |
-| `@transparent`         | Alpha blending / OIT                  |
-| `@animated`            | Vertex displacement animation         |
-| `@particle`            | Compute-based particle system         |
-| `@gaussian_splat`      | Gaussian splatting splat render       |
-| `@volumetric`          | Raymarched volume shader              |
-| `@nerf`                | NeRF sample + accumulate shader       |
-| `@water`               | FFT ocean surface shader              |
-| `@holographic`         | Scanline + chromatic aberration       |
-| `@xray`                | Depth-based transparency              |
-| `ai_texture_gen`       | Passes UV to Stable Diffusion pipeline |
+| HoloScript Trait  | Generated Shader Feature               |
+| ----------------- | -------------------------------------- |
+| `@glowing`        | Fresnel rim + HDR emissive output      |
+| `@emissive`       | Emissive PBR term in fragment shader   |
+| `@reflective`     | Specular GGX BRDF                      |
+| `@transparent`    | Alpha blending / OIT                   |
+| `@animated`       | Vertex displacement animation          |
+| `@particle`       | Compute-based particle system          |
+| `@gaussian_splat` | Gaussian splatting splat render        |
+| `@volumetric`     | Raymarched volume shader               |
+| `@nerf`           | NeRF sample + accumulate shader        |
+| `@water`          | FFT ocean surface shader               |
+| `@holographic`    | Scanline + chromatic aberration        |
+| `@xray`           | Depth-based transparency               |
+| `ai_texture_gen`  | Passes UV to Stable Diffusion pipeline |
 
 ## Example
 
@@ -76,12 +76,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 ## Compiler Options
 
-| Option                  | Default | Description                                    |
-| ----------------------- | ------- | ---------------------------------------------- |
-| `--tsl-optimize`        | true    | Run Naga optimizer over generated WGSL         |
-| `--tsl-compute`         | false   | Emit separate compute shaders for @particle    |
-| `--tsl-compat-webgl`    | false   | Emit GLSL fallback alongside WGSL              |
-| `--tsl-sourcemap`       | false   | WGSL source-map back to .holo trait lines      |
+| Option               | Default | Description                                 |
+| -------------------- | ------- | ------------------------------------------- |
+| `--tsl-optimize`     | true    | Run Naga optimizer over generated WGSL      |
+| `--tsl-compute`      | false   | Emit separate compute shaders for @particle |
+| `--tsl-compat-webgl` | false   | Emit GLSL fallback alongside WGSL           |
+| `--tsl-sourcemap`    | false   | WGSL source-map back to .holo trait lines   |
 
 ## Pipeline Integration
 

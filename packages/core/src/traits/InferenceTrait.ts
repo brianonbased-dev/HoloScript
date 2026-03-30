@@ -23,7 +23,9 @@ export const inferenceHandler: TraitHandler<InferenceConfig> = {
   onAttach(node: any): void {
     node.__inferenceState = { totalRuns: 0, totalTokens: 0 };
   },
-  onDetach(node: any): void { delete node.__inferenceState; },
+  onDetach(node: any): void {
+    delete node.__inferenceState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: InferenceConfig, context: any, event: any): void {

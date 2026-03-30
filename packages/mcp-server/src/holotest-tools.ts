@@ -21,10 +21,17 @@ import { parseHolo, HoloScriptPlusParser } from '@holoscript/core';
 
 // ── Inline spatial math (mirrors packages/test/src/spatial/) ──────────────
 
-interface Vec3 { x: number; y: number; z: number; }
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 class BoundingBox {
-  constructor(readonly min: Readonly<Vec3>, readonly max: Readonly<Vec3>) {}
+  constructor(
+    readonly min: Readonly<Vec3>,
+    readonly max: Readonly<Vec3>
+  ) {}
 
   static fromMinMax(min: Vec3, max: Vec3): BoundingBox {
     return new BoundingBox(
@@ -34,7 +41,8 @@ class BoundingBox {
   }
 
   static fromBottomCenter(bc: Vec3, size: Vec3): BoundingBox {
-    const hx = Math.abs(size.x) / 2, hz = Math.abs(size.z) / 2;
+    const hx = Math.abs(size.x) / 2,
+      hz = Math.abs(size.z) / 2;
     return new BoundingBox(
       { x: bc.x - hx, y: bc.y, z: bc.z - hz },
       { x: bc.x + hx, y: bc.y + Math.abs(size.y), z: bc.z + hz }
@@ -42,17 +50,33 @@ class BoundingBox {
   }
 
   center(): Vec3 {
-    return { x: (this.min.x + this.max.x) / 2, y: (this.min.y + this.max.y) / 2, z: (this.min.z + this.max.z) / 2 };
+    return {
+      x: (this.min.x + this.max.x) / 2,
+      y: (this.min.y + this.max.y) / 2,
+      z: (this.min.z + this.max.z) / 2,
+    };
   }
 
   contains(p: Vec3): boolean {
-    return p.x >= this.min.x && p.x <= this.max.x && p.y >= this.min.y && p.y <= this.max.y && p.z >= this.min.z && p.z <= this.max.z;
+    return (
+      p.x >= this.min.x &&
+      p.x <= this.max.x &&
+      p.y >= this.min.y &&
+      p.y <= this.max.y &&
+      p.z >= this.min.z &&
+      p.z <= this.max.z
+    );
   }
 
   intersects(o: BoundingBox): boolean {
-    return this.min.x <= o.max.x && this.max.x >= o.min.x &&
-           this.min.y <= o.max.y && this.max.y >= o.min.y &&
-           this.min.z <= o.max.z && this.max.z >= o.min.z;
+    return (
+      this.min.x <= o.max.x &&
+      this.max.x >= o.min.x &&
+      this.min.y <= o.max.y &&
+      this.max.y >= o.min.y &&
+      this.min.z <= o.max.z &&
+      this.max.z >= o.min.z
+    );
   }
 
   intersectionVolume(o: BoundingBox): number {
@@ -79,17 +103,33 @@ class BoundingBox {
 }
 
 class SpatialEntity {
-  constructor(readonly id: string, public bounds: BoundingBox, readonly tags: string[] = []) {}
+  constructor(
+    readonly id: string,
+    public bounds: BoundingBox,
+    readonly tags: string[] = []
+  ) {}
 
-  static at(id: string, pos: [number, number, number], size: [number, number, number]): SpatialEntity {
-    return new SpatialEntity(id, BoundingBox.fromBottomCenter(
-      { x: pos[0], y: pos[1], z: pos[2] },
-      { x: size[0], y: size[1], z: size[2] }
-    ));
+  static at(
+    id: string,
+    pos: [number, number, number],
+    size: [number, number, number]
+  ): SpatialEntity {
+    return new SpatialEntity(
+      id,
+      BoundingBox.fromBottomCenter(
+        { x: pos[0], y: pos[1], z: pos[2] },
+        { x: size[0], y: size[1], z: size[2] }
+      )
+    );
   }
 
   get position(): Vec3 {
-    const c = this.bounds.center(); const s = { x: this.bounds.max.x - this.bounds.min.x, y: this.bounds.max.y - this.bounds.min.y, z: this.bounds.max.z - this.bounds.min.z };
+    const c = this.bounds.center();
+    const s = {
+      x: this.bounds.max.x - this.bounds.min.x,
+      y: this.bounds.max.y - this.bounds.min.y,
+      z: this.bounds.max.z - this.bounds.min.z,
+    };
     return { x: c.x, y: c.y - s.y / 2, z: c.z };
   }
 
@@ -104,7 +144,12 @@ class SpatialEntity {
 
 // ── Result types (mirrors packages/test/src/reporter/) ────────────────────
 
-type SpatialErrorType = 'IntersectionViolation' | 'OutOfBounds' | 'ValueViolation' | 'PositionViolation' | 'PhysicsViolation';
+type SpatialErrorType =
+  | 'IntersectionViolation'
+  | 'OutOfBounds'
+  | 'ValueViolation'
+  | 'PositionViolation'
+  | 'PhysicsViolation';
 
 interface AgentFeedback {
   error_type: SpatialErrorType;
@@ -132,20 +177,25 @@ interface TestReport {
 // ── Semantic reporting ─────────────────────────────────────────────────────
 
 function minAxis(pen: Vec3): { axis: 'X' | 'Y' | 'Z'; depth: number } {
-  const ax = Math.abs(pen.x), ay = Math.abs(pen.y), az = Math.abs(pen.z);
+  const ax = Math.abs(pen.x),
+    ay = Math.abs(pen.y),
+    az = Math.abs(pen.z);
   if (ay <= ax && ay <= az) return { axis: 'Y', depth: pen.y };
   if (ax <= az) return { axis: 'X', depth: pen.x };
   return { axis: 'Z', depth: pen.z };
 }
 
-function f(n: number) { return n.toFixed(3); }
+function f(n: number) {
+  return n.toFixed(3);
+}
 
 function intersectionFeedback(a: SpatialEntity, b: SpatialEntity): AgentFeedback {
   const pen = a.bounds.penetrationDepth(b.bounds);
   const { axis, depth } = minAxis(pen);
   const vol = a.bounds.intersectionVolume(b.bounds);
   const sign = depth > 0 ? '+' : '';
-  const bA = a.bounds, bB = b.bounds;
+  const bA = a.bounds,
+    bB = b.bounds;
   let desc = `'${a.id}' and '${b.id}' are clipping (${f(vol)} m³ overlap)`;
   if (axis === 'Y') {
     desc = `'${a.id}' bottom Y (${f(bA.min.y)}m) overlaps '${b.id}' top Y (${f(bB.max.y)}m) by ${f(Math.abs(depth))}m`;
@@ -160,17 +210,24 @@ function intersectionFeedback(a: SpatialEntity, b: SpatialEntity): AgentFeedback
 }
 
 function outOfBoundsFeedback(entity: SpatialEntity, container: BoundingBox): AgentFeedback {
-  const b = entity.bounds; const c = container;
+  const b = entity.bounds;
+  const c = container;
   const violations: string[] = [];
-  if (b.min.x < c.min.x) violations.push(`min.x (${f(b.min.x)}) < ${f(c.min.x)}: shift +X ${f(c.min.x - b.min.x)}m`);
-  if (b.min.y < c.min.y) violations.push(`min.y (${f(b.min.y)}) < ${f(c.min.y)}: shift +Y ${f(c.min.y - b.min.y)}m`);
-  if (b.min.z < c.min.z) violations.push(`min.z (${f(b.min.z)}) < ${f(c.min.z)}: shift +Z ${f(c.min.z - b.min.z)}m`);
-  if (b.max.x > c.max.x) violations.push(`max.x (${f(b.max.x)}) > ${f(c.max.x)}: shift -X ${f(b.max.x - c.max.x)}m`);
-  if (b.max.y > c.max.y) violations.push(`max.y (${f(b.max.y)}) > ${f(c.max.y)}: shift -Y ${f(b.max.y - c.max.y)}m`);
-  if (b.max.z > c.max.z) violations.push(`max.z (${f(b.max.z)}) > ${f(c.max.z)}: shift -Z ${f(b.max.z - c.max.z)}m`);
+  if (b.min.x < c.min.x)
+    violations.push(`min.x (${f(b.min.x)}) < ${f(c.min.x)}: shift +X ${f(c.min.x - b.min.x)}m`);
+  if (b.min.y < c.min.y)
+    violations.push(`min.y (${f(b.min.y)}) < ${f(c.min.y)}: shift +Y ${f(c.min.y - b.min.y)}m`);
+  if (b.min.z < c.min.z)
+    violations.push(`min.z (${f(b.min.z)}) < ${f(c.min.z)}: shift +Z ${f(c.min.z - b.min.z)}m`);
+  if (b.max.x > c.max.x)
+    violations.push(`max.x (${f(b.max.x)}) > ${f(c.max.x)}: shift -X ${f(b.max.x - c.max.x)}m`);
+  if (b.max.y > c.max.y)
+    violations.push(`max.y (${f(b.max.y)}) > ${f(c.max.y)}: shift -Y ${f(b.max.y - c.max.y)}m`);
+  if (b.max.z > c.max.z)
+    violations.push(`max.z (${f(b.max.z)}) > ${f(c.max.z)}: shift -Z ${f(b.max.z - c.max.z)}m`);
   return {
     error_type: 'OutOfBounds',
-    semantic_message: `SpatialAssertionError: '${entity.id}' is outside its container.\n${violations.map(v => `  · ${v}`).join('\n')}`,
+    semantic_message: `SpatialAssertionError: '${entity.id}' is outside its container.\n${violations.map((v) => `  · ${v}`).join('\n')}`,
     spatial_hint: `Container: ${container}. Entity: ${entity.bounds}.`,
     fix_suggestion: violations[0] ?? 'Adjust entity position or size.',
     affected_lines: [],
@@ -178,7 +235,13 @@ function outOfBoundsFeedback(entity: SpatialEntity, container: BoundingBox): Age
 }
 
 function missingFeedback(detail: string): AgentFeedback {
-  return { error_type: 'ValueViolation', semantic_message: detail, spatial_hint: 'Check entity IDs match names in the scene.', fix_suggestion: 'Run execute_holotest with the full scene code.', affected_lines: [] };
+  return {
+    error_type: 'ValueViolation',
+    semantic_message: detail,
+    spatial_hint: 'Check entity IDs match names in the scene.',
+    fix_suggestion: 'Run execute_holotest with the full scene code.',
+    affected_lines: [],
+  };
 }
 
 // ── Tool Definitions ───────────────────────────────────────────────────────
@@ -226,7 +289,10 @@ export const holotestTools: Tool[] = [
                   '"poly_count" = numeric limit check.',
               },
               entityA: { type: 'string', description: 'ID of the first entity.' },
-              entityB: { type: 'string', description: 'ID of the second entity (for pair assertions).' },
+              entityB: {
+                type: 'string',
+                description: 'ID of the second entity (for pair assertions).',
+              },
               container: {
                 type: 'object',
                 description: 'For within_volume: { min: [x,y,z], max: [x,y,z] }',
@@ -359,20 +425,31 @@ async function runExecuteHolotest(args: Record<string, unknown>): Promise<Holote
   return result;
 }
 
-function runAssertion(a: Assertion, entities: Map<string, SpatialEntity>): Omit<TestReport, 'duration_ms'> {
+function runAssertion(
+  a: Assertion,
+  entities: Map<string, SpatialEntity>
+): Omit<TestReport, 'duration_ms'> {
   const testName = a.name ?? `${a.type}(${a.entityA ?? '?'}, ${a.entityB ?? a.type})`;
 
   switch (a.type) {
     case 'no_intersect':
     case 'intersects': {
       if (!a.entityA || !a.entityB) {
-        return { name: testName, status: 'failed', error: missingFeedback(`'${testName}': entityA and entityB required`) };
+        return {
+          name: testName,
+          status: 'failed',
+          error: missingFeedback(`'${testName}': entityA and entityB required`),
+        };
       }
       const ea = entities.get(a.entityA);
       const eb = entities.get(a.entityB);
       if (!ea || !eb) {
         const missing = !ea ? a.entityA : a.entityB;
-        return { name: testName, status: 'failed', error: missingFeedback(`'${testName}': Entity '${missing}' not found in parsed scene.`) };
+        return {
+          name: testName,
+          status: 'failed',
+          error: missingFeedback(`'${testName}': Entity '${missing}' not found in parsed scene.`),
+        };
       }
       const overlaps = ea.intersects(eb);
       const expectOverlap = a.type === 'intersects';
@@ -388,11 +465,19 @@ function runAssertion(a: Assertion, entities: Map<string, SpatialEntity>): Omit<
 
     case 'within_volume': {
       if (!a.entityA || !a.container) {
-        return { name: testName, status: 'failed', error: missingFeedback(`'${testName}': entityA and container required`) };
+        return {
+          name: testName,
+          status: 'failed',
+          error: missingFeedback(`'${testName}': entityA and container required`),
+        };
       }
       const ea = entities.get(a.entityA);
       if (!ea) {
-        return { name: testName, status: 'failed', error: missingFeedback(`'${testName}': Entity '${a.entityA}' not found.`) };
+        return {
+          name: testName,
+          status: 'failed',
+          error: missingFeedback(`'${testName}': Entity '${a.entityA}' not found.`),
+        };
       }
       const box = BoundingBox.fromMinMax(
         { x: a.container.min[0], y: a.container.min[1], z: a.container.min[2] },
@@ -410,7 +495,11 @@ function runAssertion(a: Assertion, entities: Map<string, SpatialEntity>): Omit<
 
     case 'poly_count': {
       if (a.value === undefined || a.limit === undefined) {
-        return { name: testName, status: 'failed', error: missingFeedback(`'${testName}': value and limit required for poly_count`) };
+        return {
+          name: testName,
+          status: 'failed',
+          error: missingFeedback(`'${testName}': value and limit required for poly_count`),
+        };
       }
       if (a.value <= a.limit) {
         return { name: testName, status: 'passed' };
@@ -429,7 +518,11 @@ function runAssertion(a: Assertion, entities: Map<string, SpatialEntity>): Omit<
     }
 
     default:
-      return { name: testName, status: 'failed', error: missingFeedback(`Unknown assertion type: ${a.type}`) };
+      return {
+        name: testName,
+        status: 'failed',
+        error: missingFeedback(`Unknown assertion type: ${a.type}`),
+      };
   }
 }
 
@@ -544,7 +637,8 @@ function extractVec3Property(node: any, keys: string[]): Vec3 | null {
  */
 function extractViaRegex(code: string, out: SpatialEntity[]): void {
   // Match: object "Name" { ... } blocks
-  const objectBlockRE = /object\s+"([^"]+)"\s*(?:using\s+"[^"]+"\s*)?\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/gs;
+  const objectBlockRE =
+    /object\s+"([^"]+)"\s*(?:using\s+"[^"]+"\s*)?\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/gs;
   let match: RegExpExecArray | null;
 
   while ((match = objectBlockRE.exec(code)) !== null) {
@@ -563,7 +657,9 @@ function extractViaRegex(code: string, out: SpatialEntity[]): void {
 }
 
 function extractArrayProp(body: string, key: string): [number, number, number] | null {
-  const re = new RegExp(`${key}\\s*:\\s*\\[\\s*([\\d.+-]+)\\s*,\\s*([\\d.+-]+)\\s*,\\s*([\\d.+-]+)\\s*\\]`);
+  const re = new RegExp(
+    `${key}\\s*:\\s*\\[\\s*([\\d.+-]+)\\s*,\\s*([\\d.+-]+)\\s*,\\s*([\\d.+-]+)\\s*\\]`
+  );
   const m = re.exec(body);
   if (!m) return null;
   return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];

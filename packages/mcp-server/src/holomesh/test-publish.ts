@@ -27,4 +27,6 @@ const feed = worldState.queryFeedView();
 console.log('---');
 console.log(feed[0].source);
 console.log('---');
-console.log('[Test] Successfully converted a post with complex state and behavior nodes into the CRDT feed.');
+console.log(
+  '[Test] Successfully converted a post with complex state and behavior nodes into the CRDT feed.'
+);

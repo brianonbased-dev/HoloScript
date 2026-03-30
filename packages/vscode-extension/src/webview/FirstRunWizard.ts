@@ -2,45 +2,55 @@ import * as vscode from 'vscode';
 import { McpOrchestratorClient } from '../services/McpOrchestratorClient';
 
 export class FirstRunWizard {
-    public static currentPanel: FirstRunWizard | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
+  public static currentPanel: FirstRunWizard | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private _disposables: vscode.Disposable[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, private mcpClient: McpOrchestratorClient) {
-        this._panel = panel;
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._panel.webview.html = this._getHtmlForWebview(this._panel.webview);
-        
-        this._panel.webview.onDidReceiveMessage(async (message) => {
-            switch (message.command) {
-                case 'complete':
-                    await vscode.commands.executeCommand('holoscript.completeSetup');
-                    this.dispose();
-                    break;
-            }
-        }, null, this._disposables);
-    }
+  private constructor(
+    panel: vscode.WebviewPanel,
+    extensionUri: vscode.Uri,
+    private mcpClient: McpOrchestratorClient
+  ) {
+    this._panel = panel;
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    this._panel.webview.html = this._getHtmlForWebview(this._panel.webview);
 
-    public static createOrShow(extensionUri: vscode.Uri, mcpClient: McpOrchestratorClient) {
-        const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
-
-        if (FirstRunWizard.currentPanel) {
-            FirstRunWizard.currentPanel._panel.reveal(column);
-            return;
+    this._panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case 'complete':
+            await vscode.commands.executeCommand('holoscript.completeSetup');
+            this.dispose();
+            break;
         }
+      },
+      null,
+      this._disposables
+    );
+  }
 
-        const panel = vscode.window.createWebviewPanel(
-            'holoscriptWizard',
-            'HoloScript Setup Wizard',
-            column || vscode.ViewColumn.One,
-            { enableScripts: true }
-        );
+  public static createOrShow(extensionUri: vscode.Uri, mcpClient: McpOrchestratorClient) {
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
 
-        FirstRunWizard.currentPanel = new FirstRunWizard(panel, extensionUri, mcpClient);
+    if (FirstRunWizard.currentPanel) {
+      FirstRunWizard.currentPanel._panel.reveal(column);
+      return;
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview) {
-        return `<!DOCTYPE html>
+    const panel = vscode.window.createWebviewPanel(
+      'holoscriptWizard',
+      'HoloScript Setup Wizard',
+      column || vscode.ViewColumn.One,
+      { enableScripts: true }
+    );
+
+    FirstRunWizard.currentPanel = new FirstRunWizard(panel, extensionUri, mcpClient);
+  }
+
+  private _getHtmlForWebview(webview: vscode.Webview) {
+    return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <style>
@@ -81,14 +91,14 @@ export class FirstRunWizard {
                 </script>
             </body>
             </html>`;
-    }
+  }
 
-    public dispose() {
-        FirstRunWizard.currentPanel = undefined;
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) x.dispose();
-        }
+  public dispose() {
+    FirstRunWizard.currentPanel = undefined;
+    this._panel.dispose();
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) x.dispose();
     }
+  }
 }

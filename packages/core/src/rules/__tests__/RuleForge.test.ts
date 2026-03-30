@@ -96,13 +96,13 @@ describe('RuleForge', () => {
 
     it('suggests implied traits', () => {
       const result = forge.validate(['networked']);
-      expect(result.suggestions.some(s => s.trait === 'synced')).toBe(true);
-      expect(result.suggestions.find(s => s.trait === 'synced')?.source).toBe('expansion');
+      expect(result.suggestions.some((s) => s.trait === 'synced')).toBe(true);
+      expect(result.suggestions.find((s) => s.trait === 'synced')?.source).toBe('expansion');
     });
 
     it('does not suggest already-present traits', () => {
       const result = forge.validate(['networked', 'synced']);
-      expect(result.suggestions.filter(s => s.trait === 'synced')).toHaveLength(0);
+      expect(result.suggestions.filter((s) => s.trait === 'synced')).toHaveLength(0);
     });
   });
 
@@ -123,12 +123,12 @@ describe('RuleForge', () => {
 
     it('warns about deprecated traits', () => {
       const result = forge.validate(['talkable']);
-      expect(result.warnings.some(w => w.type === 'deprecation')).toBe(true);
+      expect(result.warnings.some((w) => w.type === 'deprecation')).toBe(true);
     });
 
     it('suggests replacements for deprecated traits', () => {
       const result = forge.validate(['talkable']);
-      expect(result.suggestions.some(s => s.trait === 'voice')).toBe(true);
+      expect(result.suggestions.some((s) => s.trait === 'voice')).toBe(true);
     });
   });
 
@@ -202,12 +202,12 @@ describe('RuleForge', () => {
 
     it('suggests expansion traits', () => {
       const suggestions = forge.suggest(['grabbable']);
-      expect(suggestions.some(s => s.trait === 'physics')).toBe(true);
+      expect(suggestions.some((s) => s.trait === 'physics')).toBe(true);
     });
 
     it('suggests composition partners', () => {
       const suggestions = forge.suggest(['grabbable']);
-      expect(suggestions.some(s => s.trait === 'throwable')).toBe(true);
+      expect(suggestions.some((s) => s.trait === 'throwable')).toBe(true);
     });
   });
 });

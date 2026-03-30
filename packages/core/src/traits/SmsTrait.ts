@@ -23,7 +23,9 @@ export const smsHandler: TraitHandler<SmsConfig> = {
   onAttach(node: any): void {
     node.__smsState = { sent: 0, failed: 0 };
   },
-  onDetach(node: any): void { delete node.__smsState; },
+  onDetach(node: any): void {
+    delete node.__smsState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: SmsConfig, context: any, event: any): void {
@@ -35,10 +37,17 @@ export const smsHandler: TraitHandler<SmsConfig> = {
       const message = (event.message as string) ?? '';
       if (message.length > config.max_length) {
         state.failed++;
-        context.emit?.('sms:error', { to: event.to, error: `exceeds_max_length_${config.max_length}` });
+        context.emit?.('sms:error', {
+          to: event.to,
+          error: `exceeds_max_length_${config.max_length}`,
+        });
       } else {
         state.sent++;
-        context.emit?.('sms:sent', { messageId: `sms_${Date.now()}`, to: event.to, provider: config.provider });
+        context.emit?.('sms:sent', {
+          messageId: `sms_${Date.now()}`,
+          to: event.to,
+          provider: config.provider,
+        });
       }
     }
   },

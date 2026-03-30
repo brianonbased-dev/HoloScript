@@ -43,7 +43,9 @@ describe('DevServer', () => {
 
     it('emits started event', async () => {
       let emitted = false;
-      server.on('started', () => { emitted = true; });
+      server.on('started', () => {
+        emitted = true;
+      });
 
       await server.start();
       expect(emitted).toBe(true);

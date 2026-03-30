@@ -46,7 +46,7 @@ function makeDomainBlock(
   keyword: string,
   name: string,
   properties: Record<string, any> = {},
-  children: any[] = [],
+  children: any[] = []
 ): HoloDomainBlock {
   return {
     type: 'DomainBlock',
@@ -141,11 +141,7 @@ describe('Domain Block Router — compileDomainBlocks()', () => {
       type: 'temperature',
     });
 
-    const results = compileDomainBlocks(
-      [block],
-      {},
-      (b) => `/* Stub: ${b.domain}/${b.keyword} */`,
-    );
+    const results = compileDomainBlocks([block], {}, (b) => `/* Stub: ${b.domain}/${b.keyword} */`);
 
     expect(results).toHaveLength(1);
     expect(results[0]).toContain('iot/sensor');
@@ -177,7 +173,7 @@ describe('Domain Block Router — compileDomainBlocks()', () => {
         physics: () => `phys-${idx++}`,
         payment: () => `pay-${idx++}`,
       },
-      (b) => `fallback-${b.domain}`,
+      (b) => `fallback-${b.domain}`
     );
 
     expect(results).toHaveLength(4);
@@ -438,14 +434,40 @@ describe('Cross-Domain: Narrative + Payment interop', () => {
 
 describe('Domain Type Completeness Matrix', () => {
   const ALL_DOMAINS: HoloDomainType[] = [
-    'iot', 'robotics', 'dataviz', 'education', 'healthcare', 'music',
-    'architecture', 'web3', 'material', 'physics', 'vfx', 'postfx',
-    'audio', 'weather', 'procedural', 'rendering', 'navigation', 'input',
-    'codebase', 'narrative', 'payment', 'norms', 'custom',
+    'iot',
+    'robotics',
+    'dataviz',
+    'education',
+    'healthcare',
+    'music',
+    'architecture',
+    'web3',
+    'material',
+    'physics',
+    'vfx',
+    'postfx',
+    'audio',
+    'weather',
+    'procedural',
+    'rendering',
+    'navigation',
+    'input',
+    'codebase',
+    'narrative',
+    'payment',
+    'norms',
+    'custom',
   ];
 
   const HANDLED_DOMAINS: HoloDomainType[] = [
-    'material', 'physics', 'vfx', 'postfx', 'audio', 'weather', 'narrative', 'payment',
+    'material',
+    'physics',
+    'vfx',
+    'postfx',
+    'audio',
+    'weather',
+    'narrative',
+    'payment',
   ];
 
   it('all 23 domain types are enumerable', () => {
@@ -458,7 +480,7 @@ describe('Domain Type Completeness Matrix', () => {
 
   it('compileDomainBlocks processes all 23 types without throwing', () => {
     const blocks = ALL_DOMAINS.map((domain) =>
-      makeDomainBlock(domain, 'test', `Test_${domain}`, {}),
+      makeDomainBlock(domain, 'test', `Test_${domain}`, {})
     );
 
     const results = compileDomainBlocks(
@@ -473,7 +495,7 @@ describe('Domain Type Completeness Matrix', () => {
         narrative: (b) => `ok:${b.domain}`,
         payment: (b) => `ok:${b.domain}`,
       },
-      (b) => `stub:${b.domain}`,
+      (b) => `stub:${b.domain}`
     );
 
     expect(results).toHaveLength(23);

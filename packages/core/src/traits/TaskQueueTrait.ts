@@ -119,7 +119,10 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
       case 'queue:add': {
         const task: QueueTask = {
           id: payload.taskId ?? generateTaskId(state),
-          priority: Math.max(0, Math.min(config.priority_levels - 1, Number(payload.priority) || 0)),
+          priority: Math.max(
+            0,
+            Math.min(config.priority_levels - 1, Number(payload.priority) || 0)
+          ),
           data: payload.data ?? {},
           retryCount: 0,
           enqueuedAt: Date.now(),
@@ -143,7 +146,7 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
 
       case 'queue:task_done': {
         const taskId = payload.taskId as string;
-        const idx = state.active.findIndex(t => t.id === taskId);
+        const idx = state.active.findIndex((t) => t.id === taskId);
         if (idx === -1) break;
 
         const task = state.active.splice(idx, 1)[0];
@@ -167,8 +170,8 @@ export const taskQueueHandler: TraitHandler<TaskQueueConfig> = {
 
       case 'queue:task_failed': {
         const taskId = payload.taskId as string;
-        const error = payload.error as string ?? 'unknown error';
-        const idx = state.active.findIndex(t => t.id === taskId);
+        const error = (payload.error as string) ?? 'unknown error';
+        const idx = state.active.findIndex((t) => t.id === taskId);
         if (idx === -1) break;
 
         const task = state.active.splice(idx, 1)[0];

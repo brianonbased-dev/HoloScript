@@ -18,16 +18,10 @@ const vitest = resolve(__dir, 'node_modules', 'vitest', 'vitest.mjs');
 const extraArgs = process.argv.slice(2);
 
 function runVitest(args) {
-  return spawnSync(
-    process.execPath,
-    [
-      '--max-old-space-size=16384',
-      vitest,
-      'run',
-      ...args,
-    ],
-    { stdio: 'inherit', env: sharedEnv }
-  );
+  return spawnSync(process.execPath, ['--max-old-space-size=16384', vitest, 'run', ...args], {
+    stdio: 'inherit',
+    env: sharedEnv,
+  });
 }
 
 function hasExplicitShard(args) {
@@ -60,4 +54,3 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs)) {
 }
 
 process.exit(overallExitCode);
-

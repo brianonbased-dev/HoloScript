@@ -24,6 +24,6 @@ export function resolveCRDTUri(uri: string, worldState: CRDTWorldState): string 
       return worldState.getKnowledgeDomainSource(path[1]);
     }
   }
-  
+
   throw new Error(`Unknown CRDT URI collection or path: ${uri}`);
 }

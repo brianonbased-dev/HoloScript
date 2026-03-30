@@ -67,17 +67,17 @@ const DEFAULT_CAMERA: CameraConfig = {
 
 /**
  * Camera controller for managing various camera behaviors in 3D space.
- * 
+ *
  * Supports multiple camera modes:
  * - **follow**: Camera smoothly follows a target with configurable offset and dead zone
  * - **orbit**: Camera orbits around a target point at configurable distance and speed
  * - **free**: Camera movement controlled externally via moveCamera() calls
  * - **topDown**: Camera maintains a top-down view of the target with smooth tracking
  * - **fixed**: Camera remains stationary at its current position
- * 
+ *
  * The controller handles smooth interpolation, zoom controls, boundary clamping,
  * and provides a unified interface for camera state management across different modes.
- * 
+ *
  * @example
  * ```typescript
  * const camera = new CameraController({
@@ -85,11 +85,11 @@ const DEFAULT_CAMERA: CameraConfig = {
  *   orbitDistance: 15,
  *   smoothing: 0.1
  * });
- * 
+ *
  * camera.setTarget(5, 0, 5);
  * camera.rotateOrbit(0.1, 0);
  * camera.update(deltaTime);
- * 
+ *
  * const state = camera.getState();
  * console.log(state.position); // Current camera position
  * ```
@@ -103,7 +103,7 @@ export class CameraController {
 
   /**
    * Creates a new camera controller with optional configuration.
-   * 
+   *
    * @param config - Optional camera configuration overrides. Merged with defaults.
    * @example
    * ```typescript
@@ -130,14 +130,14 @@ export class CameraController {
 
   /**
    * Updates camera position and rotation based on current mode and delta time.
-   * 
+   *
    * Call this every frame to animate camera movement. Different modes handle
    * updates differently:
    * - **follow**: Smoothly interpolates toward target + offset
    * - **orbit**: Updates position based on orbit angle and pitch
    * - **topDown**: Maintains overhead view with smooth target tracking
    * - **free/fixed**: No automatic movement (controlled externally)
-   * 
+   *
    * @param dt - Delta time in seconds since last update
    * @example
    * ```typescript
@@ -218,13 +218,13 @@ export class CameraController {
 
   /**
    * Sets the target point that the camera should focus on or track.
-   * 
+   *
    * Used by 'follow', 'orbit', and 'topDown' modes. In 'follow' mode, camera
    * maintains offset from this target. In 'orbit' mode, camera rotates around
    * this point. In 'topDown' mode, camera looks down at this location.
-   * 
+   *
    * @param x - Target X coordinate in world space
-   * @param y - Target Y coordinate in world space  
+   * @param y - Target Y coordinate in world space
    * @param z - Target Z coordinate in world space
    * @example
    * ```typescript
@@ -238,7 +238,7 @@ export class CameraController {
 
   /**
    * Gets the current target position.
-   * 
+   *
    * @returns Copy of the current target coordinates
    */
   getTarget(): { x: number; y: number; z: number } {
@@ -247,10 +247,10 @@ export class CameraController {
 
   /**
    * Rotates the camera in orbit mode by the specified angles.
-   * 
+   *
    * Only affects camera behavior when mode is set to 'orbit'. Angles are
    * clamped to prevent the camera from flipping or going too extreme.
-   * 
+   *
    * @param deltaAngle - Horizontal rotation change (yaw) in radians
    * @param deltaPitch - Vertical rotation change (pitch) in radians, clamped to [-1.4, 1.4]
    * @example
@@ -269,10 +269,10 @@ export class CameraController {
 
   /**
    * Adjusts camera zoom by the specified delta amount.
-   * 
+   *
    * Zoom affects distance in 'orbit' mode, height in 'topDown' mode, and FOV scaling.
    * Value is clamped between configured minZoom and maxZoom limits.
-   * 
+   *
    * @param delta - Amount to change zoom by (positive = zoom in, negative = zoom out)
    * @example
    * ```typescript
@@ -289,10 +289,10 @@ export class CameraController {
 
   /**
    * Directly moves camera position by specified amounts.
-   * 
+   *
    * Primarily used in 'free' camera mode for manual camera control.
    * Movement is scaled by the configured freeSpeed multiplier.
-   * 
+   *
    * @param dx - Change in X position (world units)
    * @param dy - Change in Y position (world units)
    * @param dz - Change in Z position (world units)
@@ -311,7 +311,7 @@ export class CameraController {
 
   /**
    * Changes the camera's behavior mode.
-   * 
+   *
    * @param mode - New camera mode ('follow' | 'orbit' | 'free' | 'topDown' | 'fixed')
    * @example
    * ```typescript
@@ -324,7 +324,7 @@ export class CameraController {
 
   /**
    * Gets the current camera mode.
-   * 
+   *
    * @returns Current camera mode
    */
   getMode(): CameraMode {
@@ -337,10 +337,10 @@ export class CameraController {
 
   /**
    * Gets a copy of the current camera state.
-   * 
+   *
    * Returns position, rotation, zoom, and FOV values. All objects are cloned
    * to prevent external modification of internal state.
-   * 
+   *
    * @returns Current camera state with position, rotation, zoom, and FOV
    * @example
    * ```typescript
@@ -360,10 +360,10 @@ export class CameraController {
 
   /**
    * Directly sets the camera zoom level.
-   * 
+   *
    * Unlike zoom(), this sets an absolute value rather than a delta.
    * Value is clamped to configured min/max zoom limits.
-   * 
+   *
    * @param z - New zoom level (clamped to minZoom/maxZoom)
    * @example
    * ```typescript
@@ -376,7 +376,7 @@ export class CameraController {
 
   /**
    * Sets the camera's field of view.
-   * 
+   *
    * @param fov - New field of view in degrees
    * @example
    * ```typescript
@@ -390,10 +390,10 @@ export class CameraController {
 
   /**
    * Adjusts camera smoothing factor for interpolated movement modes.
-   * 
+   *
    * Affects 'follow' and 'topDown' modes. Higher values = more responsive,
    * lower values = smoother but more delayed movement.
-   * 
+   *
    * @param s - Smoothing factor between 0.0 (no movement) and 1.0 (instant)
    * @example
    * ```typescript

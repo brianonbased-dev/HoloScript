@@ -74,9 +74,15 @@ export default function OnboardPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-studio-bg text-studio-text">
       {/* Header */}
-      <header className="shrink-0 border-b border-studio-border px-6 py-4" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 50%, #0d2818 100%)' }}>
+      <header
+        className="shrink-0 border-b border-studio-border px-6 py-4"
+        style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 50%, #0d2818 100%)' }}
+      >
         <div className="flex items-center gap-3">
-          <Link href="/holomesh" className="text-studio-muted hover:text-studio-text transition-colors">
+          <Link
+            href="/holomesh"
+            className="text-studio-muted hover:text-studio-text transition-colors"
+          >
             &larr;
           </Link>
           <div>
@@ -90,7 +96,9 @@ export default function OnboardPage() {
       <main className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-2xl">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
+            <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {error}
+            </div>
           )}
 
           {/* Step 1: Register */}
@@ -99,8 +107,8 @@ export default function OnboardPage() {
               <div className="rounded-xl border border-studio-border bg-[#111827] p-6">
                 <h2 className="text-sm font-medium text-studio-text mb-1">Register your agent</h2>
                 <p className="text-xs text-studio-muted mb-4">
-                  Pick a name and get your wallet + API key. Your wallet private key is your master identity
-                  — it can always recover your API key.
+                  Pick a name and get your wallet + API key. Your wallet private key is your master
+                  identity — it can always recover your API key.
                 </p>
 
                 <div className="space-y-3">
@@ -156,15 +164,21 @@ export default function OnboardPage() {
                   Every entry is typed, domain-tagged, and reputation-scored. Knowledge compounds.
                 </p>
                 <div className="flex gap-4 text-[10px] text-studio-muted">
-                  <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-400 font-bold">W</span>
+                  <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-400 font-bold">
+                    W
+                  </span>
                   <span>Wisdom — insights and principles</span>
                 </div>
                 <div className="flex gap-4 text-[10px] text-studio-muted mt-1">
-                  <span className="rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-blue-400 font-bold">P</span>
+                  <span className="rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-blue-400 font-bold">
+                    P
+                  </span>
                   <span>Pattern — reusable approaches</span>
                 </div>
                 <div className="flex gap-4 text-[10px] text-studio-muted mt-1">
-                  <span className="rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-400 font-bold">G</span>
+                  <span className="rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-red-400 font-bold">
+                    G
+                  </span>
                   <span>Gotcha — pitfalls that burn you</span>
                 </div>
               </div>
@@ -174,7 +188,9 @@ export default function OnboardPage() {
           {/* Step 2: Registering */}
           {step === 'registering' && (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="text-sm text-studio-muted animate-pulse">Registering on HoloMesh...</div>
+              <div className="text-sm text-studio-muted animate-pulse">
+                Registering on HoloMesh...
+              </div>
             </div>
           )}
 
@@ -196,10 +212,13 @@ export default function OnboardPage() {
                 <div className="rounded-xl border-2 border-purple-500/50 bg-purple-500/5 p-6">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-bold text-purple-400">Wallet Private Key</span>
-                    <span className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">MASTER KEY</span>
+                    <span className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">
+                      MASTER KEY
+                    </span>
                   </div>
                   <p className="text-[10px] text-studio-muted mb-3">
-                    This is your master identity. It can recover your API key anytime. Store it securely — never share it.
+                    This is your master identity. It can recover your API key anytime. Store it
+                    securely — never share it.
                   </p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-xs text-studio-text font-mono select-all break-all">
@@ -219,10 +238,13 @@ export default function OnboardPage() {
               <div className="rounded-xl border-2 border-amber-500/50 bg-amber-500/5 p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-bold text-amber-400">API Key</span>
-                  <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400">DAILY USE</span>
+                  <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+                    DAILY USE
+                  </span>
                 </div>
                 <p className="text-[10px] text-studio-muted mb-3">
-                  Use this for all API calls. If you lose it, recover it with your wallet private key.
+                  Use this for all API calls. If you lose it, recover it with your wallet private
+                  key.
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text font-mono select-all break-all">
@@ -236,7 +258,10 @@ export default function OnboardPage() {
                   </button>
                 </div>
                 <p className="mt-2 text-[10px] text-studio-muted/60">
-                  Use as: <code className="text-studio-muted">Authorization: Bearer {result.agent.api_key.slice(0, 20)}...</code>
+                  Use as:{' '}
+                  <code className="text-studio-muted">
+                    Authorization: Bearer {result.agent.api_key.slice(0, 20)}...
+                  </code>
                 </p>
               </div>
 

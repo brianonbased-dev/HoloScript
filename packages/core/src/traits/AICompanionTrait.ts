@@ -92,7 +92,7 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
     const decay = config.emotion_decay * delta;
     state.emotion.happiness += (0.5 - state.emotion.happiness) * decay;
     state.emotion.curiosity += (0.5 - state.emotion.curiosity) * decay;
-    state.emotion.fear *= (1 - decay);
+    state.emotion.fear *= 1 - decay;
     state.emotion.trust += (0.5 - state.emotion.trust) * decay * 0.5;
 
     context.emit('ai_companion_update', {
@@ -132,9 +132,12 @@ export const aiCompanionHandler: TraitHandler<AICompanionConfig> = {
       }
       case 'ai_companion_emotion_stimulus': {
         const e = event as any;
-        if (e.happiness !== undefined) state.emotion.happiness = Math.max(0, Math.min(1, state.emotion.happiness + e.happiness));
-        if (e.fear !== undefined) state.emotion.fear = Math.max(0, Math.min(1, state.emotion.fear + e.fear));
-        if (e.trust !== undefined) state.emotion.trust = Math.max(0, Math.min(1, state.emotion.trust + e.trust));
+        if (e.happiness !== undefined)
+          state.emotion.happiness = Math.max(0, Math.min(1, state.emotion.happiness + e.happiness));
+        if (e.fear !== undefined)
+          state.emotion.fear = Math.max(0, Math.min(1, state.emotion.fear + e.fear));
+        if (e.trust !== undefined)
+          state.emotion.trust = Math.max(0, Math.min(1, state.emotion.trust + e.trust));
         break;
       }
       case 'ai_companion_set_action':

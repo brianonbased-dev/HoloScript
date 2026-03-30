@@ -176,10 +176,7 @@ describe('APIDocsGenerator', () => {
 
   describe('auth detection', () => {
     it('marks absorb tools as requiring auth', () => {
-      const tools = [
-        makeTool({ name: 'absorb_typescript' }),
-        makeTool({ name: 'parse_hs' }),
-      ];
+      const tools = [makeTool({ name: 'absorb_typescript' }), makeTool({ name: 'parse_hs' })];
       const ref = generator.generate(tools);
 
       const allTools = ref.categories.flatMap((c) => c.tools);

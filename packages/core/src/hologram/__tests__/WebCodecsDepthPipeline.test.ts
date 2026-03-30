@@ -91,21 +91,32 @@ describe('WebCodecsDepthPipeline', () => {
     beforeEach(() => {
       mockDecoder = {
         state: 'unconfigured',
-        configure: vi.fn(function (this: any) { this.state = 'configured'; }),
+        configure: vi.fn(function (this: any) {
+          this.state = 'configured';
+        }),
         decode: vi.fn(),
         flush: vi.fn(() => Promise.resolve()),
-        close: vi.fn(function (this: any) { this.state = 'closed'; }),
+        close: vi.fn(function (this: any) {
+          this.state = 'closed';
+        }),
       };
 
-      (globalThis as any).VideoDecoder = vi.fn(function () { return mockDecoder; });
+      (globalThis as any).VideoDecoder = vi.fn(function () {
+        return mockDecoder;
+      });
       (globalThis as any).VideoFrame = class {
         close() {}
-        get timestamp() { return 0; }
+        get timestamp() {
+          return 0;
+        }
       };
       (globalThis as any).OffscreenCanvas = class {
         width = 512;
         height = 512;
-        constructor(w: number, h: number) { this.width = w; this.height = h; }
+        constructor(w: number, h: number) {
+          this.width = w;
+          this.height = h;
+        }
         getContext() {
           return {
             drawImage: vi.fn(),

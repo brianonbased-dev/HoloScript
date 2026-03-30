@@ -53,9 +53,7 @@ function verifyToken(token: string, secret: string): TokenPayload | null {
 
     // Verify signature
     const data = `${header64}.${payload64}`;
-    const expectedSig = createHmac('sha256', secret)
-      .update(data)
-      .digest('base64url');
+    const expectedSig = createHmac('sha256', secret).update(data).digest('base64url');
 
     if (sig64 !== expectedSig) return null;
 

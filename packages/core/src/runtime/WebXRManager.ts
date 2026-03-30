@@ -14,7 +14,10 @@ import type { IWebGPUContext } from '../rendering/webgpu/WebGPUTypes';
 // Polyfill types for WebXR + WebGPU
 // These are often missing from standard @types/webxr
 export interface XRWebGPUBindingLike {
-  createProjectionLayer(config: { colorFormat: string; depthStencilFormat: string }): XRProjectionLayerLike;
+  createProjectionLayer(config: {
+    colorFormat: string;
+    depthStencilFormat: string;
+  }): XRProjectionLayerLike;
 }
 
 export interface XRProjectionLayerLike {
@@ -76,7 +79,10 @@ export interface XRInputSource {
 
 /** Navigator with optional XR system */
 interface XRNavigator {
-  xr?: { isSessionSupported(mode: string): Promise<boolean>; requestSession(mode: string, init?: Record<string, unknown>): Promise<XRSession> };
+  xr?: {
+    isSessionSupported(mode: string): Promise<boolean>;
+    requestSession(mode: string, init?: Record<string, unknown>): Promise<XRSession>;
+  };
 }
 
 export interface XRHand extends Map<string, XRJointSpace> {}
@@ -159,18 +165,27 @@ export class WebXRManager {
     };
 
     try {
-      this.session = await (navigator as unknown as XRNavigator).xr!.requestSession('immersive-vr', sessionInit);
+      this.session = await (navigator as unknown as XRNavigator).xr!.requestSession(
+        'immersive-vr',
+        sessionInit
+      );
 
       // Handle session end
       this.session!.addEventListener('end', this.handleSessionEnd);
-      this.session!.addEventListener('inputsourceschange', this.handleInputSourcesChange as (event: unknown) => void);
+      this.session!.addEventListener(
+        'inputsourceschange',
+        this.handleInputSourcesChange as (event: unknown) => void
+      );
 
       // Create WebGPU Binding
       // Note: This API is experimental and varies by browser
       // We check for global constructor existence
       if (typeof XRWebGPUBinding !== 'undefined') {
         // @ts-expect-error XRWebGPUBinding is experimental, not in standard typings
-        this.glBinding = new XRWebGPUBinding(this.session!, this.context.device) as XRWebGPUBindingLike;
+        this.glBinding = new XRWebGPUBinding(
+          this.session!,
+          this.context.device
+        ) as XRWebGPUBindingLike;
       } else {
         console.warn('XRWebGPUBinding not found. Rendering may fail.');
       }

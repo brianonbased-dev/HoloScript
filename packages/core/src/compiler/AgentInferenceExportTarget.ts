@@ -167,15 +167,18 @@ export interface ExportResult {
 // CONSTANTS
 // =============================================================================
 
-const DEVICE_SPECS: Record<DeviceTarget, {
-  chipset: string;
-  totalRAM_MB: number;
-  reservedRAM_MB: number;
-  hasNPU: boolean;
-  hasGPU: boolean;
-  maxModelSize_MB: number;
-  webnnSupport: boolean;
-}> = {
+const DEVICE_SPECS: Record<
+  DeviceTarget,
+  {
+    chipset: string;
+    totalRAM_MB: number;
+    reservedRAM_MB: number;
+    hasNPU: boolean;
+    hasGPU: boolean;
+    maxModelSize_MB: number;
+    webnnSupport: boolean;
+  }
+> = {
   quest3: {
     chipset: 'Snapdragon XR2 Gen 2',
     totalRAM_MB: 8192,
@@ -228,7 +231,7 @@ const MODEL_SIZE_ESTIMATES_MB: Record<QuantizationMode, number> = {
   fp32: 6000, // 1.5B * 4 bytes
   fp16: 3000, // 1.5B * 2 bytes
   int8: 1500, // 1.5B * 1 byte
-  int4: 850,  // 1.5B * 0.5 bytes + overhead
+  int4: 850, // 1.5B * 0.5 bytes + overhead
   mixed: 1800, // ~60% int8 + 40% fp16
 };
 
@@ -313,7 +316,7 @@ export class AgentInferenceExportTarget {
     if (estimatedSize > deviceSpec.maxModelSize_MB) {
       errors.push(
         `Model size (${estimatedSize} MB) exceeds device limit (${deviceSpec.maxModelSize_MB} MB). ` +
-        `Use a more aggressive quantization mode.`
+          `Use a more aggressive quantization mode.`
       );
     }
 
@@ -324,7 +327,7 @@ export class AgentInferenceExportTarget {
     if (totalNeeded > available) {
       errors.push(
         `Total memory needed (${totalNeeded} MB) exceeds available (${available} MB). ` +
-        `Reduce context length or use int4 quantization.`
+          `Reduce context length or use int4 quantization.`
       );
     }
 
@@ -337,9 +340,7 @@ export class AgentInferenceExportTarget {
 
     // Check NPU availability
     if (this.webnnConfig.backend === 'npu' && !deviceSpec.hasNPU) {
-      warnings.push(
-        `NPU not available on ${this.device}. Will use GPU backend instead.`
-      );
+      warnings.push(`NPU not available on ${this.device}. Will use GPU backend instead.`);
     }
 
     // Performance warnings
@@ -347,7 +348,7 @@ export class AgentInferenceExportTarget {
     if (tps < 5) {
       warnings.push(
         `Estimated ${tps.toFixed(1)} tokens/sec may be too slow for real-time agent inference. ` +
-        `Consider int4 quantization or reducing model size.`
+          `Consider int4 quantization or reducing model size.`
       );
     }
 
@@ -355,7 +356,7 @@ export class AgentInferenceExportTarget {
     if (this.model.contextLength > 2048 && this.quantization.mode !== 'int4') {
       warnings.push(
         `Context length ${this.model.contextLength} with ${this.quantization.mode} quantization ` +
-        `may exceed KV cache budget on ${this.device}.`
+          `may exceed KV cache budget on ${this.device}.`
       );
     }
 
@@ -467,9 +468,9 @@ export class AgentInferenceExportTarget {
     const prefillFactor = this.model.contextLength / 512;
 
     return {
-      timeToFirstToken_ms: Math.round(1000 / tps * prefillFactor),
+      timeToFirstToken_ms: Math.round((1000 / tps) * prefillFactor),
       timePerToken_ms: Math.round(1000 / tps),
-      prefillTime_ms: Math.round(1000 / tps * this.model.contextLength / 512),
+      prefillTime_ms: Math.round(((1000 / tps) * this.model.contextLength) / 512),
       peakMemory_MB: modelSize + this.calculateKVCacheSize(),
       tokensPerSecond: tps,
       estimatedPower_mW: this.estimatePowerDraw(),
@@ -505,9 +506,10 @@ export class AgentInferenceExportTarget {
       const endLayer = Math.min(startLayer + layersPerShard, this.model.numLayers);
       const layers = Array.from({ length: endLayer - startLayer }, (_, j) => startLayer + j);
 
-      const shardSize = i === 0
-        ? Math.round((totalSize_MB / numShards) * 1.2) // first shard includes embeddings
-        : Math.round(totalSize_MB / numShards);
+      const shardSize =
+        i === 0
+          ? Math.round((totalSize_MB / numShards) * 1.2) // first shard includes embeddings
+          : Math.round(totalSize_MB / numShards);
 
       shards.push({
         index: i,
@@ -537,11 +539,13 @@ export class AgentInferenceExportTarget {
         contextLength: this.model.contextLength,
         vocabSize: this.model.vocabSize,
       },
-      webnn: deviceSpec.webnnSupport ? {
-        backend: deviceSpec.hasNPU ? this.webnnConfig.backend : 'gpu',
-        powerPreference: this.webnnConfig.powerPreference,
-        enablePartitioning: this.webnnConfig.enablePartitioning,
-      } : null,
+      webnn: deviceSpec.webnnSupport
+        ? {
+            backend: deviceSpec.hasNPU ? this.webnnConfig.backend : 'gpu',
+            powerPreference: this.webnnConfig.powerPreference,
+            enablePartitioning: this.webnnConfig.enablePartitioning,
+          }
+        : null,
       onnxruntime: {
         executionProviders: this.getExecutionProviders(),
         graphOptimizationLevel: 'all',
@@ -606,7 +610,9 @@ class HoloScriptAgentLoader {
     }
 
     // Initialize runtime
-    ${this.runtime === 'webnn' ? `
+    ${
+      this.runtime === 'webnn'
+        ? `
     if (navigator.ml) {
       const context = await navigator.ml.createContext({
         deviceType: '${this.webnnConfig.backend}',
@@ -616,11 +622,13 @@ class HoloScriptAgentLoader {
     } else {
       console.warn('WebNN not available, falling back to ONNX Runtime');
       // Fallback initialization
-    }` : `
+    }`
+        : `
     // ONNX Runtime Web initialization
     const ort = await import('onnxruntime-web');
     this.session = await ort.InferenceSession.create(modelBuffer, config.onnxruntime);
-    `}
+    `
+    }
 
     this.ready = true;
     console.log('HoloScript Agent loaded: ${this.model.name}');
@@ -674,8 +682,10 @@ export default HoloScriptAgentLoader;
 
   private calculateKVCacheSize(): number {
     // KV cache size = 2 * num_layers * hidden_size * context_length * bytes_per_param
-    const bytesPerParam = this.quantization.mode === 'fp16' ? 2 : this.quantization.mode === 'int8' ? 1 : 0.5;
-    const kvBytes = 2 * this.model.numLayers * this.model.hiddenSize * this.model.contextLength * bytesPerParam;
+    const bytesPerParam =
+      this.quantization.mode === 'fp16' ? 2 : this.quantization.mode === 'int8' ? 1 : 0.5;
+    const kvBytes =
+      2 * this.model.numLayers * this.model.hiddenSize * this.model.contextLength * bytesPerParam;
     return Math.round(kvBytes / 1_048_576); // MB
   }
 
@@ -716,7 +726,7 @@ export default HoloScriptAgentLoader;
     let hash = 0;
     for (let i = 0; i < input.length; i++) {
       const char = input.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16).padStart(8, '0') + Date.now().toString(16).slice(-8);

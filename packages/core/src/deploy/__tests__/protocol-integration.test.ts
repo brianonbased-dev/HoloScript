@@ -55,8 +55,8 @@ describe('E2E: Publish original composition', () => {
     const dist = calculateRevenueDistribution(price, '@brian', []);
 
     expect(dist.flows).toHaveLength(2); // platform + creator
-    const platform = dist.flows.find(f => f.reason === 'platform')!;
-    const creator = dist.flows.find(f => f.reason === 'creator')!;
+    const platform = dist.flows.find((f) => f.reason === 'platform')!;
+    const creator = dist.flows.find((f) => f.reason === 'creator')!;
 
     // Platform gets 2.5%
     expect(platform.bps).toBe(PROTOCOL_CONSTANTS.PLATFORM_FEE_BPS);
@@ -110,9 +110,9 @@ describe('E2E: Publish remix with upstream royalties', () => {
 
     const dist = calculateRevenueDistribution(price, '@maria', imports);
 
-    const platform = dist.flows.find(f => f.reason === 'platform')!;
-    const royalty = dist.flows.find(f => f.reason === 'import_royalty')!;
-    const creator = dist.flows.find(f => f.reason === 'creator')!;
+    const platform = dist.flows.find((f) => f.reason === 'platform')!;
+    const royalty = dist.flows.find((f) => f.reason === 'import_royalty')!;
+    const creator = dist.flows.find((f) => f.reason === 'creator')!;
 
     expect(platform.bps).toBe(250); // 2.5%
     expect(royalty.recipient).toBe('@brian');
@@ -135,13 +135,15 @@ describe('E2E: 3-level deep import chain', () => {
   // A imports B, B imports C — when someone collects A, all three get paid
   const imports: ImportChainNode[] = [
     {
-      contentHash: 'b-hash', author: '@userB', depth: 1,
+      contentHash: 'b-hash',
+      author: '@userB',
+      depth: 1,
       children: [
         {
-          contentHash: 'c-hash', author: '@userC', depth: 2,
-          children: [
-            { contentHash: 'd-hash', author: '@userD', depth: 3, children: [] },
-          ],
+          contentHash: 'c-hash',
+          author: '@userC',
+          depth: 2,
+          children: [{ contentHash: 'd-hash', author: '@userD', depth: 3, children: [] }],
         },
       ],
     },
@@ -150,18 +152,18 @@ describe('E2E: 3-level deep import chain', () => {
   it('pays all 3 import levels + platform + creator', () => {
     const dist = calculateRevenueDistribution(price, '@userA', imports);
 
-    const royalties = dist.flows.filter(f => f.reason === 'import_royalty');
+    const royalties = dist.flows.filter((f) => f.reason === 'import_royalty');
     expect(royalties).toHaveLength(3);
 
     // Each level gets 5%
     for (const r of royalties) {
-      expect(r.amount).toBe(price * 500n / 10000n);
+      expect(r.amount).toBe((price * 500n) / 10000n);
     }
 
     // Creator gets 100% - 2.5% platform - 15% imports = 82.5%
-    const creator = dist.flows.find(f => f.reason === 'creator')!;
+    const creator = dist.flows.find((f) => f.reason === 'creator')!;
     expect(creator.recipient).toBe('@userA');
-    const expectedCreator = price - (price * 250n / 10000n) - 3n * (price * 500n / 10000n);
+    const expectedCreator = price - (price * 250n) / 10000n - 3n * ((price * 500n) / 10000n);
     expect(creator.amount).toBe(expectedCreator);
 
     // Total = price
@@ -172,23 +174,38 @@ describe('E2E: 3-level deep import chain', () => {
   it('depth 4+ is excluded from revenue', () => {
     const deepImports: ImportChainNode[] = [
       {
-        contentHash: 'l1', author: '@l1', depth: 1,
-        children: [{
-          contentHash: 'l2', author: '@l2', depth: 2,
-          children: [{
-            contentHash: 'l3', author: '@l3', depth: 3,
-            children: [{
-              contentHash: 'l4', author: '@l4', depth: 4, children: [],
-            }],
-          }],
-        }],
+        contentHash: 'l1',
+        author: '@l1',
+        depth: 1,
+        children: [
+          {
+            contentHash: 'l2',
+            author: '@l2',
+            depth: 2,
+            children: [
+              {
+                contentHash: 'l3',
+                author: '@l3',
+                depth: 3,
+                children: [
+                  {
+                    contentHash: 'l4',
+                    author: '@l4',
+                    depth: 4,
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
     ];
 
     const dist = calculateRevenueDistribution(price, '@creator', deepImports);
-    const royalties = dist.flows.filter(f => f.reason === 'import_royalty');
+    const royalties = dist.flows.filter((f) => f.reason === 'import_royalty');
     expect(royalties).toHaveLength(3); // L1, L2, L3 only
-    expect(royalties.find(r => r.depth === 4)).toBeUndefined();
+    expect(royalties.find((r) => r.depth === 4)).toBeUndefined();
   });
 });
 
@@ -225,18 +242,14 @@ describe('E2E: Free collect', () => {
 
 describe('E2E: License enforcement', () => {
   it('blocks importing exclusive content', () => {
-    const imports: ImportedLicense[] = [
-      { path: '@protected/model', license: 'exclusive' },
-    ];
+    const imports: ImportedLicense[] = [{ path: '@protected/model', license: 'exclusive' }];
     const result = checkLicenseCompatibility('free', imports);
     expect(result.compatible).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
   it('forces cc_by_sa on composition using share-alike content', () => {
-    const imports: ImportedLicense[] = [
-      { path: '@open/lib', license: 'cc_by_sa' },
-    ];
+    const imports: ImportedLicense[] = [{ path: '@open/lib', license: 'cc_by_sa' }];
     const result = checkLicenseCompatibility('free', imports);
     expect(result.compatible).toBe(true);
     expect(result.forcedLicense).toBe('cc_by_sa');
@@ -264,7 +277,7 @@ describe('E2E: Referral rewards', () => {
       referrer: '@curator',
     });
 
-    const referral = dist.flows.find(f => f.reason === 'referral')!;
+    const referral = dist.flows.find((f) => f.reason === 'referral')!;
     expect(referral.recipient).toBe('@curator');
     expect(referral.bps).toBe(PROTOCOL_CONSTANTS.DEFAULT_REFERRAL_BPS); // 200 = 2%
 
@@ -274,9 +287,7 @@ describe('E2E: Referral rewards', () => {
   });
 
   it('referral + import royalties all sum to price', () => {
-    const imports: ImportChainNode[] = [
-      { contentHash: 'a', author: '@a', depth: 1, children: [] },
-    ];
+    const imports: ImportChainNode[] = [{ contentHash: 'a', author: '@a', depth: 1, children: [] }];
 
     const dist = calculateRevenueDistribution(price, '@creator', imports, {
       referrer: '@ref',
@@ -286,7 +297,7 @@ describe('E2E: Referral rewards', () => {
     expect(total).toBe(price);
 
     // All 4 flow types present
-    const reasons = dist.flows.map(f => f.reason);
+    const reasons = dist.flows.map((f) => f.reason);
     expect(reasons).toContain('platform');
     expect(reasons).toContain('import_royalty');
     expect(reasons).toContain('referral');
@@ -320,10 +331,14 @@ describe('E2E: Content hash integrity', () => {
 
   it('hash is embedded in provenance', () => {
     const source = 'scene HashTest { object X {} }';
-    const prov = generateProvenance(source, { imports: [], body: [] }, {
-      author: 'test',
-      license: 'free',
-    });
+    const prov = generateProvenance(
+      source,
+      { imports: [], body: [] },
+      {
+        author: 'test',
+        license: 'free',
+      }
+    );
     expect(prov.hash).toBe(computeContentHash(source));
   });
 });
@@ -364,9 +379,7 @@ describe('E2E: Protocol constants', () => {
 
 describe('E2E: Import chain resolution', () => {
   it('resolves a 2-level import chain', async () => {
-    const imports = [
-      { hash: 'b-hash', author: '@b', path: '@b/remix' },
-    ];
+    const imports = [{ hash: 'b-hash', author: '@b', path: '@b/remix' }];
 
     const resolver = async (hash: string) => {
       if (hash === 'b-hash') return { importHashes: ['a-hash'], author: '@b' };
@@ -386,20 +399,20 @@ describe('E2E: Import chain resolution', () => {
   it('resolved chain feeds into revenue calculator', async () => {
     const chain: ImportChainNode[] = [
       {
-        contentHash: 'b-hash', author: '@b', depth: 1,
-        children: [
-          { contentHash: 'a-hash', author: '@a', depth: 2, children: [] },
-        ],
+        contentHash: 'b-hash',
+        author: '@b',
+        depth: 1,
+        children: [{ contentHash: 'a-hash', author: '@a', depth: 2, children: [] }],
       },
     ];
 
     const price = ethToWei('0.05');
     const dist = calculateRevenueDistribution(price, '@c', chain);
 
-    const royalties = dist.flows.filter(f => f.reason === 'import_royalty');
+    const royalties = dist.flows.filter((f) => f.reason === 'import_royalty');
     expect(royalties).toHaveLength(2);
-    expect(royalties.find(r => r.recipient === '@b')).toBeDefined();
-    expect(royalties.find(r => r.recipient === '@a')).toBeDefined();
+    expect(royalties.find((r) => r.recipient === '@b')).toBeDefined();
+    expect(royalties.find((r) => r.recipient === '@a')).toBeDefined();
 
     const total = dist.flows.reduce((s, f) => s + f.amount, 0n);
     expect(total).toBe(price);
@@ -431,14 +444,14 @@ describe('E2E: Full publish flow', () => {
     const dist = calculateRevenueDistribution(price, '@artist', []);
 
     expect(dist.totalPrice).toBe(price);
-    const creator = dist.flows.find(f => f.reason === 'creator')!;
+    const creator = dist.flows.find((f) => f.reason === 'creator')!;
     expect(creator.recipient).toBe('@artist');
 
     // Step 4: Format for display
     const lines = formatRevenueDistribution(dist);
     expect(lines.length).toBeGreaterThan(0);
-    expect(lines.some(l => l.includes('@artist'))).toBe(true);
-    expect(lines.some(l => l.includes('platform'))).toBe(true);
+    expect(lines.some((l) => l.includes('@artist'))).toBe(true);
+    expect(lines.some((l) => l.includes('platform'))).toBe(true);
   });
 
   it('remix → provenance → license check → revenue with upstream', () => {
@@ -471,11 +484,11 @@ describe('E2E: Full publish flow', () => {
     ];
 
     const dist = calculateRevenueDistribution(price, '@bob', importChain);
-    const aliceRoyalty = dist.flows.find(f => f.reason === 'import_royalty')!;
+    const aliceRoyalty = dist.flows.find((f) => f.reason === 'import_royalty')!;
     expect(aliceRoyalty.recipient).toBe('@alice');
     expect(aliceRoyalty.bps).toBe(500); // 5%
 
-    const bobCreator = dist.flows.find(f => f.reason === 'creator')!;
+    const bobCreator = dist.flows.find((f) => f.reason === 'creator')!;
     expect(bobCreator.recipient).toBe('@bob');
 
     // Total = price

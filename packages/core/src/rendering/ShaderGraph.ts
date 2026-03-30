@@ -202,8 +202,18 @@ export class ShaderGraph {
       inputs: def.inputs,
       outputs: def.outputs,
       ports: [
-        ...def.inputs.map((p) => ({ id: p.name, name: p.name, direction: 'in' as const, type: p.type })),
-        ...def.outputs.map((p) => ({ id: p.name, name: p.name, direction: 'out' as const, type: p.type })),
+        ...def.inputs.map((p) => ({
+          id: p.name,
+          name: p.name,
+          direction: 'in' as const,
+          type: p.type,
+        })),
+        ...def.outputs.map((p) => ({
+          id: p.name,
+          name: p.name,
+          direction: 'out' as const,
+          type: p.type,
+        })),
       ],
       properties: {},
     };
@@ -225,8 +235,18 @@ export class ShaderGraph {
       inputs,
       outputs,
       ports: [
-        ...inputs.map((p) => ({ id: p.name, name: p.name, direction: 'in' as const, type: p.type })),
-        ...outputs.map((p) => ({ id: p.name, name: p.name, direction: 'out' as const, type: p.type })),
+        ...inputs.map((p) => ({
+          id: p.name,
+          name: p.name,
+          direction: 'in' as const,
+          type: p.type,
+        })),
+        ...outputs.map((p) => ({
+          id: p.name,
+          name: p.name,
+          direction: 'out' as const,
+          type: p.type,
+        })),
       ],
       properties: {},
     };
@@ -353,7 +373,12 @@ export class ShaderGraph {
   // Serialization
   // ---------------------------------------------------------------------------
 
-  toJSON(): { name: string; id: string; nodes: [string, ShaderNode][]; connections: ShaderConnection[] } {
+  toJSON(): {
+    name: string;
+    id: string;
+    nodes: [string, ShaderNode][];
+    connections: ShaderConnection[];
+  } {
     return {
       name: this.name,
       id: this.id,
@@ -362,7 +387,12 @@ export class ShaderGraph {
     };
   }
 
-  static fromJSON(json: { name: string; id?: string; nodes: [string, ShaderNode][]; connections: ShaderConnection[] }): ShaderGraph {
+  static fromJSON(json: {
+    name: string;
+    id?: string;
+    nodes: [string, ShaderNode][];
+    connections: ShaderConnection[];
+  }): ShaderGraph {
     const graph = new ShaderGraph(json.name, json.id);
     for (const [key, node] of json.nodes) {
       graph.nodes.set(key, node);

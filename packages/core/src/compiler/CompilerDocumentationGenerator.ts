@@ -171,9 +171,11 @@ export interface MCPTransportConfig {
  */
 export interface MCPCapabilities {
   /** Tool support (SEP-1649: { count: N }, SEP-1960: boolean) */
-  tools?: {
-    count: number;
-  } | boolean;
+  tools?:
+    | {
+        count: number;
+      }
+    | boolean;
 
   /** Resource support */
   resources?: boolean;
@@ -312,7 +314,8 @@ export class CompilerDocumentationGenerator {
 
   private getObjectType(obj: HoloObjectDecl): string {
     const typeProperty = obj.properties?.find(
-      (property) => property.key === 'geometry' || property.key === 'shape' || property.key === 'type'
+      (property) =>
+        property.key === 'geometry' || property.key === 'shape' || property.key === 'type'
     )?.value;
 
     return typeof typeProperty === 'string' ? typeProperty : 'Object';
@@ -387,7 +390,9 @@ export class CompilerDocumentationGenerator {
     // Export targets
     sections.push('## Export Capabilities');
     sections.push(`Primary target: ${targetName}`);
-    sections.push('Compatible targets: unity, unreal, godot, r3f, webgpu, babylon, openxr, vrchat, wasm, gltf, usd');
+    sections.push(
+      'Compatible targets: unity, unreal, godot, r3f, webgpu, babylon, openxr, vrchat, wasm, gltf, usd'
+    );
     sections.push('');
 
     // API surface (if multi-file compilation)
@@ -407,7 +412,8 @@ export class CompilerDocumentationGenerator {
     if (mcpTools.length > 0) {
       sections.push('## MCP Tools');
       sections.push(`Available tools: ${mcpTools.length}`);
-      for (const tool of mcpTools.slice(0, 8)) { // Limit for token budget
+      for (const tool of mcpTools.slice(0, 8)) {
+        // Limit for token budget
         sections.push(`- ${tool.name}: ${tool.description}`);
       }
       if (mcpTools.length > 8) {
@@ -475,10 +481,7 @@ export class CompilerDocumentationGenerator {
    * The card includes legacy compatibility fields (name, version at root)
    * for backward compatibility with v1.0.0 consumers.
    */
-  private generateMCPServerCard(
-    composition: HoloComposition,
-    targetName: string
-  ): MCPServerCard {
+  private generateMCPServerCard(composition: HoloComposition, targetName: string): MCPServerCard {
     const tools = this.extractMCPTools(composition, targetName);
     const sanitizedName = this.sanitizeServiceName(composition.name || 'holoscript-composition');
     const compositionTitle = composition.name || 'Untitled';
@@ -562,10 +565,7 @@ export class CompilerDocumentationGenerator {
   /**
    * Extract MCP tool manifest from composition
    */
-  private extractMCPTools(
-    composition: HoloComposition,
-    targetName: string
-  ): MCPToolManifest[] {
+  private extractMCPTools(composition: HoloComposition, targetName: string): MCPToolManifest[] {
     const tools: MCPToolManifest[] = [];
 
     // Core compilation tool
@@ -599,7 +599,8 @@ export class CompilerDocumentationGenerator {
 
     // Template instantiation tools (one per template)
     if (composition.templates && composition.templates.length > 0) {
-      for (const template of composition.templates.slice(0, 10)) { // Limit to first 10 templates
+      for (const template of composition.templates.slice(0, 10)) {
+        // Limit to first 10 templates
         tools.push({
           name: `instantiate_${this.sanitizeToolName(template.name)}`,
           description: `Instantiate the "${template.name}" template with custom properties`,
@@ -719,7 +720,9 @@ export class CompilerDocumentationGenerator {
     // Overview
     sections.push('## Overview');
     sections.push('');
-    sections.push(`This composition contains ${composition.objects?.length || 0} objects, ${composition.lights?.length || 0} lights, and ${composition.spatialGroups?.length || 0} spatial groups.`);
+    sections.push(
+      `This composition contains ${composition.objects?.length || 0} objects, ${composition.lights?.length || 0} lights, and ${composition.spatialGroups?.length || 0} spatial groups.`
+    );
     sections.push('');
 
     // Composition metadata
@@ -742,11 +745,14 @@ export class CompilerDocumentationGenerator {
       sections.push('');
       sections.push('| Name | Type | Position | Traits |');
       sections.push('|------|------|----------|--------|');
-      for (const obj of composition.objects.slice(0, 20)) { // Limit to first 20
+      for (const obj of composition.objects.slice(0, 20)) {
+        // Limit to first 20
         const objAny = obj as any; // HoloObjectDecl position may be nested in properties
         const pos = objAny.position || objAny.transform?.position;
         const posStr = pos ? `(${pos.x}, ${pos.y}, ${pos.z})` : 'N/A';
-        const traitNames = obj.traits ? this.extractTraitNames(obj.traits as any).join(', ') || 'none' : 'none';
+        const traitNames = obj.traits
+          ? this.extractTraitNames(obj.traits as any).join(', ') || 'none'
+          : 'none';
         sections.push(`| ${obj.name} | ${this.getObjectType(obj)} | ${posStr} | ${traitNames} |`);
       }
       if (composition.objects.length > 20) {
@@ -797,7 +803,9 @@ export class CompilerDocumentationGenerator {
       sections.push('### Custom Trait Definitions');
       sections.push('');
       for (const traitDef of composition.traitDefinitions) {
-        const extendsClause = (traitDef as any).extends ? ` extends ${(traitDef as any).extends}` : '';
+        const extendsClause = (traitDef as any).extends
+          ? ` extends ${(traitDef as any).extends}`
+          : '';
         sections.push(`- **${traitDef.name}**${extendsClause}`);
       }
       sections.push('');
@@ -853,7 +861,9 @@ export class CompilerDocumentationGenerator {
     const mcpTools = this.extractMCPTools(composition, targetName);
     sections.push('## MCP Tool Manifest');
     sections.push('');
-    sections.push(`This compilation exposes ${mcpTools.length} MCP tools for programmatic interaction:`);
+    sections.push(
+      `This compilation exposes ${mcpTools.length} MCP tools for programmatic interaction:`
+    );
     sections.push('');
     sections.push('| Tool | Description | Input Schema |');
     sections.push('|------|-------------|-------------|');
@@ -875,7 +885,9 @@ export class CompilerDocumentationGenerator {
     sections.push(`  "mcpVersion": "2025-03-26",`);
     sections.push(`  "protocolVersion": "2025-06-18",`);
     sections.push(`  "serverInfo": {`);
-    sections.push(`    "name": "${this.sanitizeServiceName(composition.name || 'holoscript-composition')}",`);
+    sections.push(
+      `    "name": "${this.sanitizeServiceName(composition.name || 'holoscript-composition')}",`
+    );
     sections.push(`    "version": "${this.options.serviceVersion}"`);
     sections.push(`  }`);
     sections.push(`}`);
@@ -998,25 +1010,81 @@ export class CompilerDocumentationGenerator {
     if (!trait) return 'Other';
     const lower = trait.toLowerCase();
 
-    if (lower.includes('material') || lower.includes('color') || lower.includes('texture') || lower.includes('glow') || lower.includes('emissive') || lower.includes('shader') || lower.includes('pbr') || lower.includes('light') || lower.includes('shadow') || lower.includes('fog') || lower.includes('transparency') || lower.includes('opacity')) {
+    if (
+      lower.includes('material') ||
+      lower.includes('color') ||
+      lower.includes('texture') ||
+      lower.includes('glow') ||
+      lower.includes('emissive') ||
+      lower.includes('shader') ||
+      lower.includes('pbr') ||
+      lower.includes('light') ||
+      lower.includes('shadow') ||
+      lower.includes('fog') ||
+      lower.includes('transparency') ||
+      lower.includes('opacity')
+    ) {
       return 'Visual';
     }
-    if (lower.includes('physics') || lower.includes('collider') || lower.includes('rigidbody') || lower.includes('gravity') || lower.includes('fluid') || lower.includes('constraint') || lower.includes('joint')) {
+    if (
+      lower.includes('physics') ||
+      lower.includes('collider') ||
+      lower.includes('rigidbody') ||
+      lower.includes('gravity') ||
+      lower.includes('fluid') ||
+      lower.includes('constraint') ||
+      lower.includes('joint')
+    ) {
       return 'Physics';
     }
-    if (lower.includes('audio') || lower.includes('sound') || lower.includes('music') || lower.includes('spatial_audio')) {
+    if (
+      lower.includes('audio') ||
+      lower.includes('sound') ||
+      lower.includes('music') ||
+      lower.includes('spatial_audio')
+    ) {
       return 'Audio';
     }
-    if (lower.includes('clickable') || lower.includes('draggable') || lower.includes('interactive') || lower.includes('hover') || lower.includes('grab') || lower.includes('pointer') || lower.includes('selectable')) {
+    if (
+      lower.includes('clickable') ||
+      lower.includes('draggable') ||
+      lower.includes('interactive') ||
+      lower.includes('hover') ||
+      lower.includes('grab') ||
+      lower.includes('pointer') ||
+      lower.includes('selectable')
+    ) {
       return 'Interaction';
     }
-    if (lower.includes('ai') || lower.includes('npc') || lower.includes('behavior') || lower.includes('pathfinding') || lower.includes('agent') || lower.includes('decision')) {
+    if (
+      lower.includes('ai') ||
+      lower.includes('npc') ||
+      lower.includes('behavior') ||
+      lower.includes('pathfinding') ||
+      lower.includes('agent') ||
+      lower.includes('decision')
+    ) {
       return 'AI';
     }
-    if (lower.includes('anim') || lower.includes('rotate') || lower.includes('move') || lower.includes('orbit') || lower.includes('keyframe') || lower.includes('tween') || lower.includes('spring')) {
+    if (
+      lower.includes('anim') ||
+      lower.includes('rotate') ||
+      lower.includes('move') ||
+      lower.includes('orbit') ||
+      lower.includes('keyframe') ||
+      lower.includes('tween') ||
+      lower.includes('spring')
+    ) {
       return 'Animation';
     }
-    if (lower.includes('network') || lower.includes('sync') || lower.includes('multiplayer') || lower.includes('replicated') || lower.includes('authority') || lower.includes('lobby')) {
+    if (
+      lower.includes('network') ||
+      lower.includes('sync') ||
+      lower.includes('multiplayer') ||
+      lower.includes('replicated') ||
+      lower.includes('authority') ||
+      lower.includes('lobby')
+    ) {
       return 'Network';
     }
 

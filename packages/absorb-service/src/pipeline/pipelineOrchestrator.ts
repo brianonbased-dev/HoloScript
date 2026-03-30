@@ -31,7 +31,7 @@ import {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /** Global budget cap across all layers (USD) */
-const GLOBAL_BUDGET_CAP = 10.00;
+const GLOBAL_BUDGET_CAP = 10.0;
 
 /** Minimum L0 cycles before L1 activates */
 const L1_ACTIVATION_THRESHOLD = 2;
@@ -46,7 +46,7 @@ const REVIEW_POLL_INTERVAL = 2000;
 const COST_ESTIMATE_MULTIPLIER = 1.5;
 
 /** Fallback cost estimate when no history available */
-const FALLBACK_COST_ESTIMATE = 1.50;
+const FALLBACK_COST_ESTIMATE = 1.5;
 
 // ─── Store Interface ─────────────────────────────────────────────────────────
 
@@ -80,11 +80,7 @@ export class PipelineOrchestrator {
   private llmProvider: LLMProvider;
   private abortController: AbortController | null = null;
 
-  constructor(
-    store: PipelineStoreAdapter,
-    l0Deps: L0ExecutorDeps,
-    llmProvider: LLMProvider,
-  ) {
+  constructor(store: PipelineStoreAdapter, l0Deps: L0ExecutorDeps, llmProvider: LLMProvider) {
     this.eventBus = new AgentEventBus();
     this.store = store;
     this.l0Deps = l0Deps;
@@ -116,7 +112,7 @@ export class PipelineOrchestrator {
             targetProject === 'self-target' ? 'self' : targetProject,
             l0Feedback,
             this.eventBus,
-            this.l0Deps,
+            this.l0Deps
           );
 
           this.store.recordCycleResult(l0Result);
@@ -153,7 +149,7 @@ export class PipelineOrchestrator {
             l1Config,
             l1Feedback,
             this.eventBus,
-            this.llmProvider,
+            this.llmProvider
           );
 
           this.store.recordCycleResult(l1Result);
@@ -195,7 +191,7 @@ export class PipelineOrchestrator {
             l2Feedback,
             l1History,
             this.eventBus,
-            this.llmProvider,
+            this.llmProvider
           );
 
           this.store.recordCycleResult(l2Result);
@@ -212,16 +208,24 @@ export class PipelineOrchestrator {
 
         // Check global budget
         if (this.store.getTotalCost() >= GLOBAL_BUDGET_CAP) {
-          this.eventBus.publish('pipeline:budget_exhausted', {
-            totalCost: this.store.getTotalCost(),
-          }, 'orchestrator');
+          this.eventBus.publish(
+            'pipeline:budget_exhausted',
+            {
+              totalCost: this.store.getTotalCost(),
+            },
+            'orchestrator'
+          );
           break;
         }
       } while (mode === 'continuous' && !this.abortController.signal.aborted);
 
-      this.eventBus.publish('pipeline:completed', {
-        totalCost: this.store.getTotalCost(),
-      }, 'orchestrator');
+      this.eventBus.publish(
+        'pipeline:completed',
+        {
+          totalCost: this.store.getTotalCost(),
+        },
+        'orchestrator'
+      );
     } finally {
       this.store.stopPipeline();
       this.eventBus.reset();
@@ -265,20 +269,25 @@ export class PipelineOrchestrator {
     if (history.length >= config.budget.maxCycles) return false;
 
     // Estimate next cycle cost
-    const avgCost = history.length > 0
-      ? history.reduce((sum, r) => sum + r.costUSD, 0) / history.length
-      : FALLBACK_COST_ESTIMATE;
+    const avgCost =
+      history.length > 0
+        ? history.reduce((sum, r) => sum + r.costUSD, 0) / history.length
+        : FALLBACK_COST_ESTIMATE;
     const estimatedCost = avgCost * COST_ESTIMATE_MULTIPLIER;
 
     // Check layer budget
     const layerSpent = history.reduce((sum, r) => sum + r.costUSD, 0);
     if (layerSpent + estimatedCost > config.budget.maxCostUSD) {
-      this.eventBus.publish('pipeline:budget_warning', {
-        layerId,
-        spent: layerSpent,
-        limit: config.budget.maxCostUSD,
-        estimated: estimatedCost,
-      }, 'orchestrator');
+      this.eventBus.publish(
+        'pipeline:budget_warning',
+        {
+          layerId,
+          spent: layerSpent,
+          limit: config.budget.maxCostUSD,
+          estimated: estimatedCost,
+        },
+        'orchestrator'
+      );
       return false;
     }
 
@@ -333,10 +342,14 @@ export class PipelineOrchestrator {
     }
 
     // Emit event so UI can show the strategy change
-    this.eventBus.publish('pipeline:strategy_applied', {
-      layerId: 0,
-      adjustment: output,
-    }, 'orchestrator');
+    this.eventBus.publish(
+      'pipeline:strategy_applied',
+      {
+        layerId: 0,
+        adjustment: output,
+      },
+      'orchestrator'
+    );
   }
 
   /**
@@ -355,17 +368,25 @@ export class PipelineOrchestrator {
         });
 
         if (response.ok) {
-          this.eventBus.publish('pipeline:skill_installed', {
-            name: skill.name,
-            description: skill.description,
-            confidence: skill.confidence,
-          }, 'layer-2');
+          this.eventBus.publish(
+            'pipeline:skill_installed',
+            {
+              name: skill.name,
+              description: skill.description,
+              confidence: skill.confidence,
+            },
+            'layer-2'
+          );
         }
       } catch {
         // Skill installation failure is non-fatal
-        this.eventBus.publish('pipeline:skill_install_failed', {
-          name: skill.name,
-        }, 'layer-2');
+        this.eventBus.publish(
+          'pipeline:skill_install_failed',
+          {
+            name: skill.name,
+          },
+          'layer-2'
+        );
       }
     }
   }

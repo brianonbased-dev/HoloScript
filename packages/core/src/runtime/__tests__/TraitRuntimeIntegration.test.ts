@@ -20,10 +20,7 @@ vi.mock('../../traits/VRTraitSystem', () => ({
   }),
 }));
 
-import {
-  TraitRuntimeIntegration,
-  createTraitRuntime,
-} from '../TraitRuntimeIntegration';
+import { TraitRuntimeIntegration, createTraitRuntime } from '../TraitRuntimeIntegration';
 import type { TraitContextFactory } from '../TraitContextFactory';
 import type { TraitContext, TraitEvent } from '../../traits/TraitTypes';
 import type { HSPlusNode } from '../../types/HoloScriptPlus';
@@ -115,11 +112,19 @@ describe('TraitRuntimeIntegration', () => {
 
   describe('registerNode', () => {
     it('registers a node with traits and calls attachTrait for each', () => {
-      const node = makeNode('dragon', [['grabbable', { mass: 5 }], ['throwable', {}]]);
+      const node = makeNode('dragon', [
+        ['grabbable', { mass: 5 }],
+        ['throwable', {}],
+      ]);
       runtime.registerNode(node);
 
       expect(mockAttachTrait).toHaveBeenCalledTimes(2);
-      expect(mockAttachTrait).toHaveBeenCalledWith(node, 'grabbable', { mass: 5 }, expect.anything());
+      expect(mockAttachTrait).toHaveBeenCalledWith(
+        node,
+        'grabbable',
+        { mass: 5 },
+        expect.anything()
+      );
       expect(mockAttachTrait).toHaveBeenCalledWith(node, 'throwable', {}, expect.anything());
     });
 
@@ -140,7 +145,10 @@ describe('TraitRuntimeIntegration', () => {
     });
 
     it('tracks all trait names on the node', () => {
-      const node = makeNode('box', [['scalable', {}], ['rotatable', {}]]);
+      const node = makeNode('box', [
+        ['scalable', {}],
+        ['rotatable', {}],
+      ]);
       runtime.registerNode(node);
       expect(runtime.getNodeTraits('box')).toEqual(['scalable', 'rotatable']);
     });
@@ -186,7 +194,12 @@ describe('TraitRuntimeIntegration', () => {
 
       runtime.attachTrait('obj', 'throwable' as any, { force: 10 });
 
-      expect(mockAttachTrait).toHaveBeenCalledWith(node, 'throwable', { force: 10 }, expect.anything());
+      expect(mockAttachTrait).toHaveBeenCalledWith(
+        node,
+        'throwable',
+        { force: 10 },
+        expect.anything()
+      );
       expect(runtime.getNodeTraits('obj')).toContain('throwable');
     });
 
@@ -196,7 +209,7 @@ describe('TraitRuntimeIntegration', () => {
 
       runtime.attachTrait('obj', 'grabbable' as any, {});
       const traits = runtime.getNodeTraits('obj');
-      expect(traits.filter(t => t === 'grabbable')).toHaveLength(1);
+      expect(traits.filter((t) => t === 'grabbable')).toHaveLength(1);
     });
 
     it('attachTrait on unknown nodeId is a no-op', () => {
@@ -205,7 +218,10 @@ describe('TraitRuntimeIntegration', () => {
     });
 
     it('detaches a trait from a registered node', () => {
-      const node = makeNode('obj', [['grabbable', {}], ['throwable', {}]]);
+      const node = makeNode('obj', [
+        ['grabbable', {}],
+        ['throwable', {}],
+      ]);
       runtime.registerNode(node);
       mockDetachTrait.mockClear();
 
@@ -226,7 +242,10 @@ describe('TraitRuntimeIntegration', () => {
 
   describe('unregisterNode', () => {
     it('detaches all traits and removes the node', () => {
-      const node = makeNode('obj', [['grabbable', {}], ['throwable', {}]]);
+      const node = makeNode('obj', [
+        ['grabbable', {}],
+        ['throwable', {}],
+      ]);
       runtime.registerNode(node);
       mockDetachTrait.mockClear();
 
@@ -255,7 +274,7 @@ describe('TraitRuntimeIntegration', () => {
       expect(mockUpdateAllTraits).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'a' }),
         expect.anything(),
-        0.016,
+        0.016
       );
     });
 
@@ -355,7 +374,12 @@ describe('TraitRuntimeIntegration', () => {
     });
 
     it('getStats returns correct counts', () => {
-      runtime.registerNode(makeNode('a', [['grabbable', {}], ['throwable', {}]]));
+      runtime.registerNode(
+        makeNode('a', [
+          ['grabbable', {}],
+          ['throwable', {}],
+        ])
+      );
       runtime.registerNode(makeNode('b', [['pointable', {}]]));
 
       const stats = runtime.getStats();

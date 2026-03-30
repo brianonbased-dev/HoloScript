@@ -134,9 +134,10 @@ describe('AnthropicLLMProvider.chat', () => {
   it('parses Anthropic Messages API response', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        content: [{ type: 'text', text: '{"focusRotationChange":null,"rationale":"test"}' }],
-      }),
+      json: () =>
+        Promise.resolve({
+          content: [{ type: 'text', text: '{"focusRotationChange":null,"rationale":"test"}' }],
+        }),
     });
     vi.stubGlobal('fetch', mockFetch);
 
@@ -146,20 +147,24 @@ describe('AnthropicLLMProvider.chat', () => {
     expect(result.text).toBe('{"focusRotationChange":null,"rationale":"test"}');
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.anthropic.com/v1/messages',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST' })
     );
   });
 
   it('throws on non-200 response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 429,
-      text: () => Promise.resolve('rate limited'),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve('rate limited'),
+      })
+    );
 
     const provider = new AnthropicLLMProvider('test-key');
-    await expect(provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 }))
-      .rejects.toThrow('Anthropic API error 429');
+    await expect(provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 })).rejects.toThrow(
+      'Anthropic API error 429'
+    );
   });
 });
 
@@ -171,12 +176,16 @@ describe('XAILLMProvider.chat', () => {
   });
 
   it('parses xAI OpenAI-compatible response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: 'grok response' } }],
-      }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: 'grok response' } }],
+          }),
+      })
+    );
 
     const provider = new XAILLMProvider('test-key');
     const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
@@ -195,7 +204,7 @@ describe('XAILLMProvider.chat', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.x.ai/v1/chat/completions',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST' })
     );
   });
 });
@@ -208,12 +217,16 @@ describe('OpenAILLMProvider.chat', () => {
   });
 
   it('parses OpenAI chat completion response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        choices: [{ message: { content: 'openai response' } }],
-      }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content: 'openai response' } }],
+          }),
+      })
+    );
 
     const provider = new OpenAILLMProvider('test-key');
     const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
@@ -229,12 +242,16 @@ describe('OllamaLLMProvider.chat', () => {
   });
 
   it('parses Ollama chat response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        message: { content: 'ollama response' },
-      }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            message: { content: 'ollama response' },
+          }),
+      })
+    );
 
     const provider = new OllamaLLMProvider();
     const result = await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
@@ -253,7 +270,7 @@ describe('OllamaLLMProvider.chat', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       'http://custom:8080/api/chat',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST' })
     );
   });
 
@@ -267,9 +284,6 @@ describe('OllamaLLMProvider.chat', () => {
     const provider = new OllamaLLMProvider('http://localhost:11434///');
     await provider.chat({ system: 'sys', prompt: 'test', maxTokens: 100 });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:11434/api/chat',
-      expect.any(Object),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('http://localhost:11434/api/chat', expect.any(Object));
   });
 });

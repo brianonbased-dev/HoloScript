@@ -111,7 +111,10 @@ export function PhysicsPreviewPanel() {
           >
             <span className="text-studio-text font-mono">#{e.id}</span>
             <span className="text-studio-muted">
-              {(() => { const t = e.transform as any; return `(${t.x?.toFixed(1) ?? '0.0'}, ${t.y?.toFixed(1) ?? '0.0'}, ${t.z?.toFixed(1) ?? '0.0'})`; })()}
+              {(() => {
+                const t = e.transform as any;
+                return `(${t.x?.toFixed(1) ?? '0.0'}, ${t.y?.toFixed(1) ?? '0.0'}, ${t.z?.toFixed(1) ?? '0.0'})`;
+              })()}
             </span>
             {e.collider && <span className="text-amber-400">{e.collider.type}</span>}
           </div>

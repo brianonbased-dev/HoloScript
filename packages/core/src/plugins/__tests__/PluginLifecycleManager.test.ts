@@ -54,21 +54,30 @@ describe('PluginLifecycleManager', () => {
 
     it('rejects duplicate installs', () => {
       manager.install({ id: 'a', name: 'A', version: '1.0.0', description: '', code: '' });
-      expect(() => manager.install({ id: 'a', name: 'A', version: '1.0.0', description: '', code: '' }))
-        .toThrow('already installed');
+      expect(() =>
+        manager.install({ id: 'a', name: 'A', version: '1.0.0', description: '', code: '' })
+      ).toThrow('already installed');
     });
 
     it('validates plugin ID format', () => {
-      expect(() => manager.install({ id: 'Bad Name!', name: 'Bad', version: '1.0.0', description: '', code: '' }))
-        .toThrow('Invalid plugin ID');
+      expect(() =>
+        manager.install({
+          id: 'Bad Name!',
+          name: 'Bad',
+          version: '1.0.0',
+          description: '',
+          code: '',
+        })
+      ).toThrow('Invalid plugin ID');
     });
 
     it('enforces max plugin limit', () => {
       const small = new PluginLifecycleManager({ requireSignature: false, maxPlugins: 2 });
       small.install({ id: 'a', name: 'A', version: '1.0.0', description: '', code: '' });
       small.install({ id: 'b', name: 'B', version: '1.0.0', description: '', code: '' });
-      expect(() => small.install({ id: 'c', name: 'C', version: '1.0.0', description: '', code: '' }))
-        .toThrow('limit reached');
+      expect(() =>
+        small.install({ id: 'c', name: 'C', version: '1.0.0', description: '', code: '' })
+      ).toThrow('limit reached');
     });
   });
 
@@ -83,7 +92,13 @@ describe('PluginLifecycleManager', () => {
       verifier.addTrustedKey('key-1', keyPair.publicKey, 'Trusted');
 
       const mgr = new PluginLifecycleManager({ requireSignature: true }, verifier);
-      mgr.install({ id: 'signed-plugin', name: 'Signed', version: '1.0.0', description: '', code: '' });
+      mgr.install({
+        id: 'signed-plugin',
+        name: 'Signed',
+        version: '1.0.0',
+        description: '',
+        code: '',
+      });
 
       const manifest: PackageManifest = {
         name: 'signed-plugin',
@@ -104,7 +119,13 @@ describe('PluginLifecycleManager', () => {
     });
 
     it('skipVerification works when not required', () => {
-      manager.install({ id: 'dev-plugin', name: 'Dev', version: '1.0.0', description: '', code: '' });
+      manager.install({
+        id: 'dev-plugin',
+        name: 'Dev',
+        version: '1.0.0',
+        description: '',
+        code: '',
+      });
       manager.skipVerification('dev-plugin');
 
       const plugin = manager.getPlugin('dev-plugin');
@@ -174,7 +195,14 @@ describe('PluginLifecycleManager', () => {
 
   describe('disable and uninstall', () => {
     it('disables an enabled plugin', async () => {
-      manager.install({ id: 'p', name: 'P', version: '1.0.0', description: '', code: '42', permissions: [] });
+      manager.install({
+        id: 'p',
+        name: 'P',
+        version: '1.0.0',
+        description: '',
+        code: '42',
+        permissions: [],
+      });
       manager.skipVerification('p');
       manager.sandbox('p');
       await manager.enable('p');
@@ -190,8 +218,22 @@ describe('PluginLifecycleManager', () => {
     });
 
     it('prevents uninstall when other plugins depend on it', () => {
-      manager.install({ id: 'core', name: 'Core', version: '1.0.0', description: '', code: '', dependencies: {} });
-      manager.install({ id: 'ext', name: 'Ext', version: '1.0.0', description: '', code: '', dependencies: { core: '^1.0.0' } });
+      manager.install({
+        id: 'core',
+        name: 'Core',
+        version: '1.0.0',
+        description: '',
+        code: '',
+        dependencies: {},
+      });
+      manager.install({
+        id: 'ext',
+        name: 'Ext',
+        version: '1.0.0',
+        description: '',
+        code: '',
+        dependencies: { core: '^1.0.0' },
+      });
 
       expect(() => manager.uninstall('core')).toThrow('required by');
     });
@@ -217,7 +259,14 @@ describe('PluginLifecycleManager', () => {
     });
 
     it('getStats returns comprehensive statistics', async () => {
-      manager.install({ id: 'p', name: 'P', version: '1.0.0', description: '', code: simpleCode(), permissions: ['tool:register'] });
+      manager.install({
+        id: 'p',
+        name: 'P',
+        version: '1.0.0',
+        description: '',
+        code: simpleCode(),
+        permissions: ['tool:register'],
+      });
       manager.skipVerification('p');
       manager.sandbox('p');
       await manager.enable('p');
@@ -235,8 +284,22 @@ describe('PluginLifecycleManager', () => {
 
   describe('dependency resolution', () => {
     it('resolves installed plugin dependencies', () => {
-      manager.install({ id: 'base', name: 'Base', version: '1.0.0', description: '', code: '', dependencies: {} });
-      manager.install({ id: 'ext', name: 'Ext', version: '1.0.0', description: '', code: '', dependencies: { base: '^1.0.0' } });
+      manager.install({
+        id: 'base',
+        name: 'Base',
+        version: '1.0.0',
+        description: '',
+        code: '',
+        dependencies: {},
+      });
+      manager.install({
+        id: 'ext',
+        name: 'Ext',
+        version: '1.0.0',
+        description: '',
+        code: '',
+        dependencies: { base: '^1.0.0' },
+      });
 
       const result = manager.resolveDependencies();
       expect(result.success).toBe(true);

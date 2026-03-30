@@ -108,7 +108,11 @@ export function AccessibilityPanel() {
     },
   ];
 
-  const SEV_COLORS: Record<string, string> = { critical: '#ef4444', major: '#f59e0b', minor: '#22c55e' };
+  const SEV_COLORS: Record<string, string> = {
+    critical: '#ef4444',
+    major: '#f59e0b',
+    minor: '#22c55e',
+  };
 
   return (
     <div style={s.panel}>

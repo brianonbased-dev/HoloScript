@@ -19,8 +19,12 @@ export const embeddingHandler: TraitHandler<EmbeddingConfig> = {
   name: 'embedding',
   defaultConfig: { default_model: 'text-embedding-3-small', default_dimensions: 1536 },
 
-  onAttach(node: any): void { node.__embeddingState = { generated: 0 }; },
-  onDetach(node: any): void { delete node.__embeddingState; },
+  onAttach(node: any): void {
+    node.__embeddingState = { generated: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__embeddingState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: EmbeddingConfig, context: any, event: any): void {

@@ -13,7 +13,6 @@ function createTextNode(id: string, text: string, nextId?: string): DialogueNode
 }
 
 describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
-
   // --- Depth and Volume ---
 
   it('handles deeply nested linear progression (10,000 nodes)', () => {
@@ -40,7 +39,13 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
     for (let i = 0; i < 5000; i++) {
       choices.push({ label: `Choice ${i}`, nextId: `res${i}` });
     }
-    const root: DialogueNode = { id: 'root', type: 'choice', speaker: 'NPC', text: 'Pick:', choices };
+    const root: DialogueNode = {
+      id: 'root',
+      type: 'choice',
+      speaker: 'NPC',
+      text: 'Pick:',
+      choices,
+    };
     dr.loadNodes([root, createTextNode('res4999', 'You found it')]);
 
     dr.start('root');
@@ -60,10 +65,16 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
       choices.push({
         label: `Choice ${i}`,
         nextId: `res${i}`,
-        condition: i % 2 === 0 ? 'even_only' : 'odd_only'
+        condition: i % 2 === 0 ? 'even_only' : 'odd_only',
       });
     }
-    const root: DialogueNode = { id: 'root', type: 'choice', speaker: 'NPC', text: 'Odds or Evens', choices };
+    const root: DialogueNode = {
+      id: 'root',
+      type: 'choice',
+      speaker: 'NPC',
+      text: 'Odds or Evens',
+      choices,
+    };
     dr.loadNodes([root]);
     dr.start('root');
 
@@ -90,13 +101,13 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
     dr.loadNodes([
       createTextNode('n1', 'Loop 1', 'n2'),
       createTextNode('n2', 'Loop 2', 'n3'),
-      createTextNode('n3', 'Loop 3', 'n1') // cycle
+      createTextNode('n3', 'Loop 3', 'n1'), // cycle
     ]);
     dr.start('n1');
 
     for (let i = 0; i < 1000; i++) {
-        const node = dr.advance();
-        expect(node).not.toBeNull();
+      const node = dr.advance();
+      expect(node).not.toBeNull();
     }
     expect(dr.getHistory().length).toBe(1001);
   });
@@ -115,7 +126,13 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
     dr.setVariable('flag', true);
     const nodes: DialogueNode[] = [];
     for (let i = 0; i < 100; i++) {
-      nodes.push({ id: `b${i}`, type: 'branch', condition: 'flag', trueNextId: `b${i+1}`, falseNextId: 'end' });
+      nodes.push({
+        id: `b${i}`,
+        type: 'branch',
+        condition: 'flag',
+        trueNextId: `b${i + 1}`,
+        falseNextId: 'end',
+      });
     }
     nodes.push(createTextNode('b100', 'Success'));
     dr.loadNodes(nodes);
@@ -129,7 +146,13 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
     dr.setVariable('flag', false);
     const nodes: DialogueNode[] = [];
     for (let i = 0; i < 100; i++) {
-      nodes.push({ id: `b${i}`, type: 'branch', condition: 'flag', trueNextId: 'end', falseNextId: `b${i+1}` });
+      nodes.push({
+        id: `b${i}`,
+        type: 'branch',
+        condition: 'flag',
+        trueNextId: 'end',
+        falseNextId: `b${i + 1}`,
+      });
     }
     nodes.push(createTextNode('b100', 'Falsy Path Success'));
     dr.loadNodes(nodes);
@@ -146,9 +169,16 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
     expect(dr.getAvailableChoices(dr.getCurrentNode()!).length).toBe(1);
 
     // Load 2
-    dr.loadNodes([{ id: 'c1', type: 'choice', choices: [
-      { label: '1', nextId: '1' }, { label: '2', nextId: '2' }
-    ]}]);
+    dr.loadNodes([
+      {
+        id: 'c1',
+        type: 'choice',
+        choices: [
+          { label: '1', nextId: '1' },
+          { label: '2', nextId: '2' },
+        ],
+      },
+    ]);
     dr.start('c1');
     expect(dr.getAvailableChoices(dr.getCurrentNode()!).length).toBe(2);
   });
@@ -163,12 +193,12 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
     const dr = new DialogueRunner();
     const nodes: DialogueNode[] = [];
     for (let i = 0; i < 100; i++) {
-        nodes.push(createTextNode(`n${i}`, `L`, i < 99 ? `n${i+1}` : undefined));
+      nodes.push(createTextNode(`n${i}`, `L`, i < 99 ? `n${i + 1}` : undefined));
     }
     dr.loadNodes(nodes);
     dr.start('n0');
-    for (let i=0; i<100; i++) dr.advance();
-    
+    for (let i = 0; i < 100; i++) dr.advance();
+
     expect(dr.getHistory().length).toBe(100);
     dr.start('n0');
     expect(dr.getHistory().length).toBe(1);
@@ -177,11 +207,13 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
   it('event node fires 1,000 consecutive events', () => {
     const dr = new DialogueRunner();
     let counter = 0;
-    dr.onEvent((evt) => { if (evt === 'ping') counter++; });
+    dr.onEvent((evt) => {
+      if (evt === 'ping') counter++;
+    });
 
     const nodes: DialogueNode[] = [];
     for (let i = 0; i < 1000; i++) {
-        nodes.push({ id: `e${i}`, type: 'event', event: 'ping', nextId: `e${i+1}` });
+      nodes.push({ id: `e${i}`, type: 'event', event: 'ping', nextId: `e${i + 1}` });
     }
     nodes.push(createTextNode('e1000', 'End'));
     dr.loadNodes(nodes);
@@ -200,8 +232,8 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
   it('falls back if choice index is out of bounds', () => {
     const dr = new DialogueRunner();
     dr.loadNodes([
-        { id: 'c', type: 'choice', choices: [{ label: '1', nextId: 't' }] },
-        createTextNode('t', 'End')
+      { id: 'c', type: 'choice', choices: [{ label: '1', nextId: 't' }] },
+      createTextNode('t', 'End'),
     ]);
     dr.start('c');
     const result = dr.advance(5);
@@ -211,15 +243,20 @@ describe('Cycle 185: Dialogue State Machine Stress Tests', () => {
   // Dynamic injection testing
   for (let phase = 0; phase < 11; phase++) {
     it(`runs random stress phase ${phase} with isolated variables`, () => {
-        const dr = new DialogueRunner();
-        dr.setVariable('phase', phase);
-        dr.loadNodes([
-            { id: 'start', type: 'branch', condition: 'phase', trueNextId: 'text', falseNextId: 'text' },
-            createTextNode('text', 'Phase {phase}', 'end')
-        ]);
-        const node = dr.start('start');
-        expect(dr.resolveText(node!.text)).toBe(`Phase ${phase}`);
+      const dr = new DialogueRunner();
+      dr.setVariable('phase', phase);
+      dr.loadNodes([
+        {
+          id: 'start',
+          type: 'branch',
+          condition: 'phase',
+          trueNextId: 'text',
+          falseNextId: 'text',
+        },
+        createTextNode('text', 'Phase {phase}', 'end'),
+      ]);
+      const node = dr.start('start');
+      expect(dr.resolveText(node!.text)).toBe(`Phase ${phase}`);
     });
   }
-
 });

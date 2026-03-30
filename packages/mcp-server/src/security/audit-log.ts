@@ -100,11 +100,30 @@ export interface AuditLogEntry {
 
 /** Fields that may contain PII and must be redacted */
 const PII_FIELDS = new Set([
-  'email', 'name', 'username', 'password', 'secret', 'token',
-  'apiKey', 'api_key', 'authorization', 'cookie', 'session',
-  'phone', 'address', 'ssn', 'credit_card', 'ip', 'user_agent',
-  'clientSecret', 'client_secret', 'refresh_token', 'access_token',
-  'codeVerifier', 'code_verifier', 'code_challenge',
+  'email',
+  'name',
+  'username',
+  'password',
+  'secret',
+  'token',
+  'apiKey',
+  'api_key',
+  'authorization',
+  'cookie',
+  'session',
+  'phone',
+  'address',
+  'ssn',
+  'credit_card',
+  'ip',
+  'user_agent',
+  'clientSecret',
+  'client_secret',
+  'refresh_token',
+  'access_token',
+  'codeVerifier',
+  'code_verifier',
+  'code_challenge',
 ]);
 
 /** Patterns that look like PII values */
@@ -140,9 +159,8 @@ export function redactPII(args: Record<string, unknown>): Record<string, string>
       }
       if (!redacted) {
         // Truncate long strings for the summary
-        summary[key] = value.length > 100
-          ? `${value.substring(0, 50)}...[${value.length} chars]`
-          : value;
+        summary[key] =
+          value.length > 100 ? `${value.substring(0, 50)}...[${value.length} chars]` : value;
       }
     } else if (typeof value === 'number' || typeof value === 'boolean') {
       summary[key] = String(value);
@@ -166,7 +184,10 @@ export function redactPII(args: Record<string, unknown>): Record<string, string>
  */
 function hashIP(ip: string): string {
   const { createHash } = require('crypto');
-  return createHash('sha256').update(ip + 'holoscript-audit-salt').digest('hex').substring(0, 16);
+  return createHash('sha256')
+    .update(ip + 'holoscript-audit-salt')
+    .digest('hex')
+    .substring(0, 16);
 }
 
 // ── Tool Category Mapping ────────────────────────────────────────────────────
@@ -280,9 +301,7 @@ class AuditLogger {
         name: params.toolName,
         category: getToolCategory(params.toolName),
         riskLevel: params.gateResult.riskLevel,
-        paramSummary: this.config.includeParams
-          ? redactPII(params.args)
-          : undefined,
+        paramSummary: this.config.includeParams ? redactPII(params.args) : undefined,
         resultStatus: params.gateResult.passed ? undefined : 'denied',
       },
       security: {
@@ -355,7 +374,14 @@ class AuditLogger {
    * Log authentication events.
    */
   logAuthEvent(params: {
-    event: 'auth_success' | 'auth_failure' | 'token_issued' | 'token_revoked' | 'client_registered' | 'client_revoked' | 'rate_limited';
+    event:
+      | 'auth_success'
+      | 'auth_failure'
+      | 'token_issued'
+      | 'token_revoked'
+      | 'client_registered'
+      | 'client_revoked'
+      | 'rate_limited';
     clientId?: string;
     agentId?: string;
     ip?: string;
@@ -414,32 +440,32 @@ class AuditLogger {
     let results = this.entries;
 
     if (filters.event) {
-      results = results.filter(e => e.event === filters.event);
+      results = results.filter((e) => e.event === filters.event);
     }
     if (filters.clientId) {
-      results = results.filter(e => e.agent.clientId === filters.clientId);
+      results = results.filter((e) => e.agent.clientId === filters.clientId);
     }
     if (filters.agentId) {
-      results = results.filter(e => e.agent.agentId === filters.agentId);
+      results = results.filter((e) => e.agent.agentId === filters.agentId);
     }
     if (filters.toolName) {
-      results = results.filter(e => e.tool?.name === filters.toolName);
+      results = results.filter((e) => e.tool?.name === filters.toolName);
     }
     if (filters.status) {
-      results = results.filter(e => e.tool?.resultStatus === filters.status);
+      results = results.filter((e) => e.tool?.resultStatus === filters.status);
     }
     if (filters.riskLevel) {
-      results = results.filter(e => e.tool?.riskLevel === filters.riskLevel);
+      results = results.filter((e) => e.tool?.riskLevel === filters.riskLevel);
     }
     if (filters.since) {
-      results = results.filter(e => e.timestamp >= filters.since!);
+      results = results.filter((e) => e.timestamp >= filters.since!);
     }
     if (filters.until) {
-      results = results.filter(e => e.timestamp <= filters.until!);
+      results = results.filter((e) => e.timestamp <= filters.until!);
     }
     if (filters.humanReviewOnly) {
-      results = results.filter(e =>
-        e.metadata && (e.metadata as Record<string, unknown>).humanReviewRequired === true
+      results = results.filter(
+        (e) => e.metadata && (e.metadata as Record<string, unknown>).humanReviewRequired === true
       );
     }
 
@@ -458,15 +484,19 @@ class AuditLogger {
    */
   export(format: 'json' | 'jsonl' = 'json'): string {
     if (format === 'jsonl') {
-      return this.entries.map(e => JSON.stringify(e)).join('\n');
+      return this.entries.map((e) => JSON.stringify(e)).join('\n');
     }
-    return JSON.stringify({
-      exportedAt: new Date().toISOString(),
-      compliance: 'eu-ai-act-articles-12-14',
-      version: '1.0.0',
-      total: this.entries.length,
-      entries: this.entries,
-    }, null, 2);
+    return JSON.stringify(
+      {
+        exportedAt: new Date().toISOString(),
+        compliance: 'eu-ai-act-articles-12-14',
+        version: '1.0.0',
+        total: this.entries.length,
+        entries: this.entries,
+      },
+      null,
+      2
+    );
   }
 
   /**
@@ -477,13 +507,13 @@ class AuditLogger {
     const last24h = new Date(now - 86_400_000).toISOString();
     const last7d = new Date(now - 7 * 86_400_000).toISOString();
 
-    const recent24h = this.entries.filter(e => e.timestamp >= last24h);
-    const recent7d = this.entries.filter(e => e.timestamp >= last7d);
+    const recent24h = this.entries.filter((e) => e.timestamp >= last24h);
+    const recent7d = this.entries.filter((e) => e.timestamp >= last7d);
 
-    const denials24h = recent24h.filter(e => e.event === 'gate_denied');
-    const highRisk24h = recent24h.filter(e => e.tool?.riskLevel === 'critical');
-    const humanReview = recent24h.filter(e =>
-      e.metadata && (e.metadata as Record<string, unknown>).humanReviewRequired === true
+    const denials24h = recent24h.filter((e) => e.event === 'gate_denied');
+    const highRisk24h = recent24h.filter((e) => e.tool?.riskLevel === 'critical');
+    const humanReview = recent24h.filter(
+      (e) => e.metadata && (e.metadata as Record<string, unknown>).humanReviewRequired === true
     );
 
     return {
@@ -491,16 +521,16 @@ class AuditLogger {
       reporting_period: {
         last24h: {
           totalEvents: recent24h.length,
-          toolInvocations: recent24h.filter(e => e.event === 'tool_invocation').length,
+          toolInvocations: recent24h.filter((e) => e.event === 'tool_invocation').length,
           denials: denials24h.length,
           highRiskOperations: highRisk24h.length,
           pendingHumanReview: humanReview.length,
-          authFailures: recent24h.filter(e => e.event === 'auth_failure').length,
+          authFailures: recent24h.filter((e) => e.event === 'auth_failure').length,
         },
         last7d: {
           totalEvents: recent7d.length,
-          uniqueClients: new Set(recent7d.map(e => e.agent.clientId).filter(Boolean)).size,
-          uniqueTools: new Set(recent7d.filter(e => e.tool).map(e => e.tool!.name)).size,
+          uniqueClients: new Set(recent7d.map((e) => e.agent.clientId).filter(Boolean)).size,
+          uniqueTools: new Set(recent7d.filter((e) => e.tool).map((e) => e.tool!.name)).size,
         },
       },
       retentionPolicy: {
@@ -531,7 +561,7 @@ class AuditLogger {
     if (this.cleanupInterval) return;
     this.cleanupInterval = setInterval(() => {
       const cutoff = new Date(Date.now() - this.config.retentionHours * 3_600_000).toISOString();
-      this.entries = this.entries.filter(e => e.timestamp >= cutoff);
+      this.entries = this.entries.filter((e) => e.timestamp >= cutoff);
     }, 3_600_000); // Clean up every hour
   }
 

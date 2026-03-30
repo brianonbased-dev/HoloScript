@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  parseKnowledge,
-  parsePrompts,
-  parseServerRoutes,
-  parseMeta,
-} from '../HSKnowledgeParser';
+import { parseKnowledge, parsePrompts, parseServerRoutes, parseMeta } from '../HSKnowledgeParser';
 
 // ============================================================================
 // parseMeta
@@ -280,14 +275,14 @@ switch_endpoint {
 
   it('extracts route method and path', () => {
     const result = parseServerRoutes(sampleServer);
-    const post = result.routes.find(r => r.method === 'POST');
+    const post = result.routes.find((r) => r.method === 'POST');
     expect(post).toBeDefined();
     expect(post!.path).toBe('/api/chat');
   });
 
   it('extracts route description and handler', () => {
     const result = parseServerRoutes(sampleServer);
-    const get = result.routes.find(r => r.method === 'GET');
+    const get = result.routes.find((r) => r.method === 'GET');
     expect(get).toBeDefined();
     expect(get!.description).toBe('Health check endpoint');
     expect(get!.handler).toBe('handleHealth');
@@ -295,7 +290,7 @@ switch_endpoint {
 
   it('extracts WS route', () => {
     const result = parseServerRoutes(sampleServer);
-    const ws = result.routes.find(r => r.method === 'WS');
+    const ws = result.routes.find((r) => r.method === 'WS');
     expect(ws).toBeDefined();
     expect(ws!.path).toBe('/ws/stream');
     expect(ws!.handler).toBe('handleStream');

@@ -22,15 +22,8 @@ import {
   type SandboxPermission,
   type CapabilityBudget,
 } from './PluginSandboxRunner';
-import {
-  PluginSignatureVerifier,
-  type VerificationResult,
-} from './PluginSignatureVerifier';
-import {
-  DependencyResolver,
-  type PluginEntry,
-  type ResolutionResult,
-} from './DependencyResolver';
+import { PluginSignatureVerifier, type VerificationResult } from './PluginSignatureVerifier';
+import { DependencyResolver, type PluginEntry, type ResolutionResult } from './DependencyResolver';
 
 // =============================================================================
 // TYPES
@@ -134,15 +127,14 @@ export class PluginLifecycleManager {
   private resolver: DependencyResolver;
   private telemetry?: TelemetryCollector;
 
-  constructor(
-    config?: Partial<LifecycleManagerConfig>,
-    verifier?: PluginSignatureVerifier
-  ) {
+  constructor(config?: Partial<LifecycleManagerConfig>, verifier?: PluginSignatureVerifier) {
     this.config = { ...DEFAULT_LIFECYCLE_CONFIG, ...config };
     this.telemetry = this.config.telemetry;
-    this.verifier = verifier || new PluginSignatureVerifier({
-      requireSignature: this.config.requireSignature,
-    });
+    this.verifier =
+      verifier ||
+      new PluginSignatureVerifier({
+        requireSignature: this.config.requireSignature,
+      });
     this.resolver = new DependencyResolver();
   }
 
@@ -246,7 +238,9 @@ export class PluginLifecycleManager {
     const plugin = this.requirePlugin(pluginId);
 
     if (plugin.state !== 'verified' && plugin.state !== 'installed') {
-      throw new Error(`Plugin "${pluginId}" must be verified before sandboxing (current: ${plugin.state})`);
+      throw new Error(
+        `Plugin "${pluginId}" must be verified before sandboxing (current: ${plugin.state})`
+      );
     }
 
     const config: PluginSandboxRunnerConfig = {
@@ -275,7 +269,9 @@ export class PluginLifecycleManager {
     const plugin = this.requirePlugin(pluginId);
 
     if (plugin.state !== 'sandboxed' && plugin.state !== 'disabled') {
-      throw new Error(`Plugin "${pluginId}" must be sandboxed before enabling (current: ${plugin.state})`);
+      throw new Error(
+        `Plugin "${pluginId}" must be sandboxed before enabling (current: ${plugin.state})`
+      );
     }
 
     if (!plugin.sandbox) {
@@ -335,9 +331,7 @@ export class PluginLifecycleManager {
     });
 
     if (activeDependents.length > 0) {
-      throw new Error(
-        `Cannot uninstall "${pluginId}": required by ${activeDependents.join(', ')}`
-      );
+      throw new Error(`Cannot uninstall "${pluginId}": required by ${activeDependents.join(', ')}`);
     }
 
     if (plugin.sandbox) {

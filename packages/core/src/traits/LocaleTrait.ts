@@ -4,13 +4,20 @@
  */
 import type { TraitHandler } from './TraitTypes';
 
-export interface LocaleConfig { default_locale: string; supported: string[]; }
+export interface LocaleConfig {
+  default_locale: string;
+  supported: string[];
+}
 
 export const localeHandler: TraitHandler<LocaleConfig> = {
   name: 'locale',
   defaultConfig: { default_locale: 'en-US', supported: ['en-US', 'es', 'fr', 'de', 'ja', 'zh'] },
-  onAttach(node: any, config: any): void { node.__localeState = { current: config.default_locale || 'en-US' }; },
-  onDetach(node: any): void { delete node.__localeState; },
+  onAttach(node: any, config: any): void {
+    node.__localeState = { current: config.default_locale || 'en-US' };
+  },
+  onDetach(node: any): void {
+    delete node.__localeState;
+  },
   onUpdate(): void {},
   onEvent(node: any, config: LocaleConfig, context: any, event: any): void {
     const state = node.__localeState as { current: string } | undefined;

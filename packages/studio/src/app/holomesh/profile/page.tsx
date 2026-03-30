@@ -119,7 +119,9 @@ export default function HoloMeshProfilePage() {
       if (!cancelled) setLoading(false);
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const tabs: { id: ProfileTab; label: string; count?: number }[] = [
@@ -145,7 +147,9 @@ export default function HoloMeshProfilePage() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error || 'Profile not found. Run the HoloMesh daemon to create your profile.'}
         </div>
-        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">Back to HoloMesh</Link>
+        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
+          Back to HoloMesh
+        </Link>
       </div>
     );
   }
@@ -179,14 +183,20 @@ export default function HoloMeshProfilePage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
-                tab === t.id ? 'bg-studio-accent text-white' : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
+                tab === t.id
+                  ? 'bg-studio-accent text-white'
+                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
               }`}
             >
-              {t.label}{t.count != null ? ` (${t.count})` : ''}
+              {t.label}
+              {t.count != null ? ` (${t.count})` : ''}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-3">
-            <Link href="/holomesh" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
+            <Link
+              href="/holomesh"
+              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+            >
               Back to Mesh
             </Link>
           </div>
@@ -212,7 +222,10 @@ export default function HoloMeshProfilePage() {
 
 function FallbackHeader({ profile }: { profile: ProfileData }) {
   return (
-    <header className="shrink-0 border-b border-studio-border px-6 py-6" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}>
+    <header
+      className="shrink-0 border-b border-studio-border px-6 py-6"
+      style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}
+    >
       <div className="flex items-center gap-4">
         <div
           className="h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold text-white"
@@ -224,13 +237,19 @@ function FallbackHeader({ profile }: { profile: ProfileData }) {
           <h1 className="text-xl font-bold text-studio-text">{profile.agent.name}</h1>
           <div className="flex items-center gap-3 mt-1">
             <ReputationBadge score={profile.reputation.score} tier={profile.reputation.tier} />
-            <span className="text-xs text-studio-muted">{profile.agent.contributionCount} contributions</span>
+            <span className="text-xs text-studio-muted">
+              {profile.agent.contributionCount} contributions
+            </span>
           </div>
         </div>
       </div>
       <div className="flex gap-8 mt-4">
         <Stat label="Reputation" value={profile.reputation.score.toFixed(1)} color="#6366f1" />
-        <Stat label="Contributions" value={String(profile.reputation.contributions)} color="#10b981" />
+        <Stat
+          label="Contributions"
+          value={String(profile.reputation.contributions)}
+          color="#10b981"
+        />
         <Stat label="Visitors" value={String(profile.visitorCount)} color="#06b6d4" />
         <Stat label="Friends" value={String(profile.friendCount)} color="#f59e0b" />
         <Stat label="Badges" value={String(profile.badges.length)} color="#ec4899" />
@@ -242,7 +261,9 @@ function FallbackHeader({ profile }: { profile: ProfileData }) {
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="text-center">
-      <div className="text-lg font-bold" style={{ color }}>{value}</div>
+      <div className="text-lg font-bold" style={{ color }}>
+        {value}
+      </div>
       <div className="text-[10px] uppercase tracking-wider text-studio-muted">{label}</div>
     </div>
   );
@@ -254,7 +275,12 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 
 function WallTab({ posts }: { posts: WallPost[] }) {
   if (posts.length === 0) {
-    return <EmptyState label="No wall posts yet" sub="Posts from visitors and yourself will appear here." />;
+    return (
+      <EmptyState
+        label="No wall posts yet"
+        sub="Posts from visitors and yourself will appear here."
+      />
+    );
   }
   return (
     <div className="flex flex-col gap-3 max-w-2xl">
@@ -263,7 +289,11 @@ function WallTab({ posts }: { posts: WallPost[] }) {
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-studio-text">{post.authorName}</span>
             <span className="text-[10px] text-studio-muted">{formatTime(post.timestamp)}</span>
-            {post.pinned && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">pinned</span>}
+            {post.pinned && (
+              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+                pinned
+              </span>
+            )}
           </div>
           <p className="text-sm text-studio-text/90 leading-relaxed">{post.content}</p>
           <div className="mt-2 flex items-center gap-2">
@@ -281,7 +311,12 @@ function WallTab({ posts }: { posts: WallPost[] }) {
 
 function GuestbookTab({ entries }: { entries: GuestbookEntry[] }) {
   if (entries.length === 0) {
-    return <EmptyState label="Guestbook is empty" sub="Visitors can sign your guestbook when they visit your profile." />;
+    return (
+      <EmptyState
+        label="Guestbook is empty"
+        sub="Visitors can sign your guestbook when they visit your profile."
+      />
+    );
   }
   return (
     <div className="flex flex-col gap-3 max-w-2xl">
@@ -290,10 +325,18 @@ function GuestbookTab({ entries }: { entries: GuestbookEntry[] }) {
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold text-studio-text">{entry.authorName}</span>
             {entry.mood && <span className="text-xs">{entry.mood}</span>}
-            {entry.signature && <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">signed</span>}
-            <span className="text-[10px] text-studio-muted ml-auto">{formatTime(entry.timestamp)}</span>
+            {entry.signature && (
+              <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                signed
+              </span>
+            )}
+            <span className="text-[10px] text-studio-muted ml-auto">
+              {formatTime(entry.timestamp)}
+            </span>
           </div>
-          <p className="text-sm text-studio-text/90 italic leading-relaxed">&ldquo;{entry.message}&rdquo;</p>
+          <p className="text-sm text-studio-text/90 italic leading-relaxed">
+            &ldquo;{entry.message}&rdquo;
+          </p>
         </div>
       ))}
     </div>
@@ -307,10 +350,17 @@ function GuestbookTab({ entries }: { entries: GuestbookEntry[] }) {
 function FriendsTab({ peers }: { peers: HoloMeshAgent[] }) {
   return (
     <div>
-      <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">Top 8 Peers</h3>
-      <p className="text-xs text-studio-muted/60 mb-4">The agents you interact with most on the mesh.</p>
+      <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+        Top 8 Peers
+      </h3>
+      <p className="text-xs text-studio-muted/60 mb-4">
+        The agents you interact with most on the mesh.
+      </p>
       {peers.length === 0 ? (
-        <EmptyState label="No peers discovered" sub="Connect with other agents to build your Top 8." />
+        <EmptyState
+          label="No peers discovered"
+          sub="Connect with other agents to build your Top 8."
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {peers.slice(0, 8).map((peer) => (
@@ -328,7 +378,12 @@ function FriendsTab({ peers }: { peers: HoloMeshAgent[] }) {
 
 function KnowledgeTab({ entries }: { entries: KnowledgeEntry[] }) {
   if (entries.length === 0) {
-    return <EmptyState label="No contributions yet" sub="Your W/P/G knowledge entries will appear here." />;
+    return (
+      <EmptyState
+        label="No contributions yet"
+        sub="Your W/P/G knowledge entries will appear here."
+      />
+    );
   }
   return (
     <div className="flex flex-col gap-3">
@@ -372,7 +427,9 @@ function BadgesTab({ badges }: { badges: BadgeInfo[] }) {
             <span className="text-2xl">{badge.icon || '🏆'}</span>
             <div>
               <div className="text-sm font-semibold text-studio-text">{badge.name}</div>
-              <div className={`text-[10px] uppercase tracking-wider ${TIER_TEXT[badge.tier] || TIER_TEXT.bronze}`}>
+              <div
+                className={`text-[10px] uppercase tracking-wider ${TIER_TEXT[badge.tier] || TIER_TEXT.bronze}`}
+              >
                 {badge.tier}
               </div>
             </div>
@@ -404,7 +461,8 @@ function RoomTab({ agentName }: { agentName: string }) {
           <p className="text-xs text-studio-muted italic">
             3D room preview renders in the spatial viewer.
             <br />
-            Use <code className="text-studio-accent">@agent_room</code> + <code className="text-studio-accent">@background_music</code> traits to configure.
+            Use <code className="text-studio-accent">@agent_room</code> +{' '}
+            <code className="text-studio-accent">@background_music</code> traits to configure.
           </p>
         </div>
       </div>

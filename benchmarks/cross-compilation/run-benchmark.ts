@@ -85,7 +85,10 @@ interface TargetMapping {
 
 interface CompilerRegistry {
   [target: string]: {
-    compile: (ast: ParsedASTNode, options?: Record<string, unknown>) => string | Record<string, unknown>;
+    compile: (
+      ast: ParsedASTNode,
+      options?: Record<string, unknown>
+    ) => string | Record<string, unknown>;
   };
 }
 
@@ -266,7 +269,10 @@ async function benchmarkCompilation(
 
 // ─── Feature Parity Calculation ──────────────────────────────────────────
 
-function calculateFeatureParity(ast: ParsedASTNode, output: string | Record<string, unknown>): FeatureParityScore {
+function calculateFeatureParity(
+  ast: ParsedASTNode,
+  output: string | Record<string, unknown>
+): FeatureParityScore {
   const features = extractFeatures(ast);
   const outputStr = typeof output === 'string' ? output : JSON.stringify(output);
 

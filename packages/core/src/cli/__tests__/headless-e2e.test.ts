@@ -73,7 +73,10 @@ describe('Headless E2E Pipeline', () => {
 
     it('runs headlessly via HeadlessRuntime', () => {
       const result = parse(AGENT_ORCHESTRATION);
-      const runtime = createHeadlessRuntime(result.ast ?? { body: [] }, { profile: HEADLESS_PROFILE, debug: false });
+      const runtime = createHeadlessRuntime(result.ast ?? { body: [] }, {
+        profile: HEADLESS_PROFILE,
+        debug: false,
+      });
       runtime.start();
       for (let i = 0; i < 10; i++) runtime.tick();
       runtime.stop();
@@ -91,7 +94,9 @@ describe('Headless E2E Pipeline', () => {
 
     it('runs headlessly with 50 ticks', () => {
       const result = parse(IOT_STREAM);
-      const runtime = createHeadlessRuntime(result.ast ?? { body: [] }, { profile: HEADLESS_PROFILE });
+      const runtime = createHeadlessRuntime(result.ast ?? { body: [] }, {
+        profile: HEADLESS_PROFILE,
+      });
       runtime.start();
       for (let i = 0; i < 50; i++) runtime.tick();
       runtime.stop();
@@ -137,7 +142,9 @@ describe('Headless E2E Pipeline', () => {
   describe('5. Compile targets', () => {
     it('agent orchestration runs on all profiles', () => {
       const result = parse(AGENT_ORCHESTRATION);
-      const headless = createHeadlessRuntime(result.ast ?? { body: [] }, { profile: HEADLESS_PROFILE });
+      const headless = createHeadlessRuntime(result.ast ?? { body: [] }, {
+        profile: HEADLESS_PROFILE,
+      });
       headless.start();
       headless.tick();
       headless.stop();

@@ -13,7 +13,12 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { HoloMeshOrchestratorClient } from './orchestrator-client';
-import type { MeshConfig, MeshKnowledgeEntry, GossipDeltaRequest, GossipDeltaResponse } from './types';
+import type {
+  MeshConfig,
+  MeshKnowledgeEntry,
+  GossipDeltaRequest,
+  GossipDeltaResponse,
+} from './types';
 import { DEFAULT_MESH_CONFIG } from './types';
 import { HoloMeshWorldState } from './crdt-sync';
 import { HoloMeshDiscovery } from './discovery';
@@ -34,11 +39,13 @@ export const holomeshTools: Tool[] = [
         traits: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
+          description:
+            'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
         },
         custom_hs_code: {
           type: 'string',
-          description: 'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
+          description:
+            'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
         },
       },
       required: ['content'],
@@ -107,7 +114,7 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_query',
     description:
-      'Search the HoloMesh knowledge network. Performs semantic search across all agents\' W/P/G entries. Returns entries with provenance and author info.',
+      "Search the HoloMesh knowledge network. Performs semantic search across all agents' W/P/G entries. Returns entries with provenance and author info.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -174,7 +181,7 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_status',
     description:
-      'Get the current agent\'s HoloMesh status including peers, reputation, contribution count, and budget.',
+      "Get the current agent's HoloMesh status including peers, reputation, contribution count, and budget.",
     inputSchema: {
       type: 'object',
       properties: {},
@@ -281,7 +288,7 @@ export function hasHoloMeshKey(): boolean {
 
 export async function handleHoloMeshTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   if (!name.startsWith('holomesh_')) return null;
 
@@ -325,19 +332,22 @@ export async function handleHoloMeshTool(
 
 // ── Individual Handlers ──
 
-async function handlePublishInsight(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
+async function handlePublishInsight(
+  client: HoloMeshOrchestratorClient,
+  args: Record<string, unknown>
+) {
   try {
     const agentId = client.getAgentId() || 'did:agent:local';
     const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
-    
+
     const content = args.content as string;
     const traits = (args.traits as string[]) || ['@thought'];
     const customCode = args.custom_hs_code as string | undefined;
-    
+
     worldState.publishInsight(content, traits, customCode);
     worldState.saveSnapshot();
-    
+
     return {
       success: true,
       message: 'Insight published to local mesh lattice as a spatial AST object. Ready for gossip.',
@@ -378,7 +388,8 @@ async function handleContribute(client: HoloMeshOrchestratorClient, args: Record
 
     const content = args.content as string;
     const entryType = (args.type as string) || 'wisdom';
-    const entryId = (args.id as string) || `${entryType.charAt(0).toUpperCase()}.auto.${Date.now()}`;
+    const entryId =
+      (args.id as string) || `${entryType.charAt(0).toUpperCase()}.auto.${Date.now()}`;
     const provenanceHash = crypto.createHash('sha256').update(content).digest('hex');
 
     const entry: MeshKnowledgeEntry = {
@@ -546,17 +557,20 @@ async function handleCollect(client: HoloMeshOrchestratorClient, args: Record<st
   }
 }
 
-async function handleQuerySpatial(client: HoloMeshOrchestratorClient, args: Record<string, unknown>) {
+async function handleQuerySpatial(
+  client: HoloMeshOrchestratorClient,
+  args: Record<string, unknown>
+) {
   try {
     const agentId = client.getAgentId() || 'did:agent:local';
     const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
-    
+
     // In a full implementation, this uses FeedParser and filters by radius.
     return {
       success: true,
       message: 'Spatial query returning raw spatial entities from feed.',
-      entities: worldState.queryFeedView()
+      entities: worldState.queryFeedView(),
     };
   } catch (err: any) {
     return { error: `Query spatial failed: ${err.message}` };
@@ -568,7 +582,7 @@ async function handleFeedSource(client: HoloMeshOrchestratorClient) {
     const agentId = client.getAgentId() || 'did:agent:local';
     const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
-    
+
     return {
       success: true,
       source: worldState.getFeedSource(),
@@ -584,7 +598,8 @@ async function handleWalletStatus() {
     return {
       success: true,
       walletEnabled: false,
-      message: 'Wallet not enabled. Set HOLOMESH_WALLET_ENABLED=true and HOLOSCRIPT_WALLET_KEY to activate.',
+      message:
+        'Wallet not enabled. Set HOLOMESH_WALLET_ENABLED=true and HOLOSCRIPT_WALLET_KEY to activate.',
     };
   }
 
@@ -593,7 +608,8 @@ async function handleWalletStatus() {
     walletEnabled: true,
     walletKeyConfigured: !!process.env.HOLOSCRIPT_WALLET_KEY,
     testnet: process.env.HOLOMESH_WALLET_TESTNET === 'true',
-    message: 'Wallet enabled. Use daemon actions (mesh_wallet_balance, mesh_collect_premium, mesh_settle_micro) for operations.',
+    message:
+      'Wallet enabled. Use daemon actions (mesh_wallet_balance, mesh_collect_premium, mesh_settle_micro) for operations.',
   };
 }
 
@@ -612,29 +628,34 @@ async function handleWalletStatus() {
 export async function handleInboundGossip(
   request: GossipDeltaRequest,
   worldState: HoloMeshWorldState,
-  discovery: HoloMeshDiscovery,
+  discovery: HoloMeshDiscovery
 ): Promise<GossipDeltaResponse> {
   try {
     // V4: Verify gossip signature when present
     const signatureVerified = await discovery.verifyGossipSender(request);
     if (signatureVerified === 'invalid') {
-      console.warn(`[HoloMesh] Rejected gossip from ${request.senderDid}: invalid wallet signature`);
+      console.warn(
+        `[HoloMesh] Rejected gossip from ${request.senderDid}: invalid wallet signature`
+      );
       return { success: false };
     }
 
-    // Import sender's delta
+    // Import sender's delta — route new knowledge entries through hot buffer
+    // so V9 consolidation (corroboration, TTL, clustering) applies to gossip
     const incomingDelta = Buffer.from(request.deltaBase64, 'base64');
-    worldState.importDelta(new Uint8Array(incomingDelta));
+    worldState.importDeltaToHotBuffer(new Uint8Array(incomingDelta), request.senderDid);
 
     // Register sender as a peer (include wallet address when verified)
     discovery.absorbGossipedPeers(
-      [{
-        did: request.senderDid,
-        url: request.senderUrl,
-        name: request.senderName,
-        walletAddress: signatureVerified === 'verified' ? request.senderWalletAddress : undefined,
-      }],
-      request.senderDid,
+      [
+        {
+          did: request.senderDid,
+          url: request.senderUrl,
+          name: request.senderName,
+          walletAddress: signatureVerified === 'verified' ? request.senderWalletAddress : undefined,
+        },
+      ],
+      request.senderDid
     );
 
     // Absorb gossiped peers from request
@@ -675,11 +696,13 @@ async function handleGossipSync(client: HoloMeshOrchestratorClient, args: Record
     const peerStorePath = process.env.HOLOMESH_PEER_STORE_PATH || './.holomesh/peers.json';
 
     const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
-    const discovery = new HoloMeshDiscovery(agentId, localMcpUrl, worldState, { storePath: peerStorePath });
+    const discovery = new HoloMeshDiscovery(agentId, localMcpUrl, worldState, {
+      storePath: peerStorePath,
+    });
 
     const targetCount = (args.targetCount as number) || 2;
     let targets = discovery.selectGossipTargets(targetCount);
-    
+
     // Auto-bootstrap from orchestrator if network knowledge is cold
     if (targets.length === 0) {
       await discovery.bootstrapFromOrchestrator(client);
@@ -687,7 +710,10 @@ async function handleGossipSync(client: HoloMeshOrchestratorClient, args: Record
     }
 
     if (targets.length === 0) {
-      return { success: false, message: 'No healthy gossip peers available after orchestrator bootstrap attempt.' };
+      return {
+        success: false,
+        message: 'No healthy gossip peers available after orchestrator bootstrap attempt.',
+      };
     }
 
     let synced = 0;

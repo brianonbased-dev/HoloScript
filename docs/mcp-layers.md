@@ -6,11 +6,11 @@ HoloScript implements a 3-layer communication stack that covers real-time scene 
 
 ## Layer Overview
 
-| Layer | Purpose | Transport | Latency | Source Package |
-|-------|---------|-----------|---------|----------------|
-| **L1: RealTime** | In-scene state sync, CRDT collaboration | WebSocket, WebRTC, BroadcastChannel | <16ms | `core/src/network/`, `collab-server/`, `core/src/collaboration/` |
-| **L2: A2A** | Agent-to-agent task delegation | HTTP JSON-RPC, Agent Cards | 50–500ms | `agent-protocol/`, `core/src/compiler/A2AAgentCardCompiler.ts` |
-| **L3: MCP** | Tool discovery and invocation | Streamable HTTP, JSON-RPC | 100ms–5s | `mcp-server/` (88 tools across 14 files) |
+| Layer            | Purpose                                 | Transport                           | Latency  | Source Package                                                   |
+| ---------------- | --------------------------------------- | ----------------------------------- | -------- | ---------------------------------------------------------------- |
+| **L1: RealTime** | In-scene state sync, CRDT collaboration | WebSocket, WebRTC, BroadcastChannel | <16ms    | `core/src/network/`, `collab-server/`, `core/src/collaboration/` |
+| **L2: A2A**      | Agent-to-agent task delegation          | HTTP JSON-RPC, Agent Cards          | 50–500ms | `agent-protocol/`, `core/src/compiler/A2AAgentCardCompiler.ts`   |
+| **L3: MCP**      | Tool discovery and invocation           | Streamable HTTP, JSON-RPC           | 100ms–5s | `mcp-server/` (88 tools across 14 files)                         |
 
 ## Architecture Diagram
 
@@ -65,11 +65,11 @@ Sub-frame entity state replication for multi-user VR/AR experiences. Two subsyst
 
 ### Transport Options
 
-| Transport | File | Latency | Use Case |
-|-----------|------|---------|----------|
-| WebSocket | `SyncProtocol.ts:330–456` | 5–15ms | Default, works everywhere |
-| WebRTC | `SyncProtocol.ts:458–559` | 1–5ms | Low-latency P2P, STUN via `stun.l.google.com:19302` |
-| BroadcastChannel | `SyncProtocol.ts:561–623` | ~1ms | Same-origin tabs (local dev) |
+| Transport        | File                      | Latency | Use Case                                            |
+| ---------------- | ------------------------- | ------- | --------------------------------------------------- |
+| WebSocket        | `SyncProtocol.ts:330–456` | 5–15ms  | Default, works everywhere                           |
+| WebRTC           | `SyncProtocol.ts:458–559` | 1–5ms   | Low-latency P2P, STUN via `stun.l.google.com:19302` |
+| BroadcastChannel | `SyncProtocol.ts:561–623` | ~1ms    | Same-origin tabs (local dev)                        |
 
 **Auto-detection** (`NetworkedTrait.ts:280–329`): Attempts WebRTC first, falls back to WebSocket, then Local.
 
@@ -96,16 +96,16 @@ Ping interval:          5000ms  (WebSocketTransport, line 434)
 
 `NetworkedTrait` v3.0.1 (`core/src/traits/NetworkedTrait.ts`) attaches to any scene entity:
 
-| Config | Value | Line |
-|--------|-------|------|
-| Sync modes | `owner`, `shared`, `server` | 29 |
-| Channels | `reliable`, `unreliable`, `ordered` | 30 |
-| Default sync rate | 20Hz | 245 |
-| Interpolation delay | 100ms | 945 |
-| Max extrapolation | 200ms | 947 |
-| Snap threshold | 5 units | 948 |
-| Buffer size | 10 samples | 481–484 |
-| Quantization | configurable bits per float | SyncProperty:46 |
+| Config              | Value                               | Line            |
+| ------------------- | ----------------------------------- | --------------- |
+| Sync modes          | `owner`, `shared`, `server`         | 29              |
+| Channels            | `reliable`, `unreliable`, `ordered` | 30              |
+| Default sync rate   | 20Hz                                | 245             |
+| Interpolation delay | 100ms                               | 945             |
+| Max extrapolation   | 200ms                               | 947             |
+| Snap threshold      | 5 units                             | 948             |
+| Buffer size         | 10 samples                          | 481–484         |
+| Quantization        | configurable bits per float         | SyncProperty:46 |
 
 Interpolation modes: `linear`, `hermite`, `catmull-rom`. Quaternion slerp for rotations (lines 652–684).
 
@@ -164,16 +164,16 @@ Cross-agent task delegation using a structured lifecycle protocol. Agents advert
 
 Defined in `packages/agent-protocol/src/index.ts`:
 
-| # | Phase | Purpose |
-|---|-------|---------|
-| 0 | **INTAKE** | Load context, discover tools, authenticate |
-| 1 | **REFLECT** | Analyze task, identify patterns from PWG knowledge |
-| 2 | **EXECUTE** | Perform work, call tools |
-| 3 | **COMPRESS** | Extract patterns, wisdom, gotchas from results |
-| 4 | **REINTAKE** | Re-evaluate with new knowledge |
-| 5 | **GROW** | Update capabilities, expand tool repertoire |
-| 6 | **EVOLVE** | Architectural improvements, protocol upgrades |
-| 7 | **AUTONOMIZE** | Self-directed task generation (max 3/cycle) |
+| #   | Phase          | Purpose                                            |
+| --- | -------------- | -------------------------------------------------- |
+| 0   | **INTAKE**     | Load context, discover tools, authenticate         |
+| 1   | **REFLECT**    | Analyze task, identify patterns from PWG knowledge |
+| 2   | **EXECUTE**    | Perform work, call tools                           |
+| 3   | **COMPRESS**   | Extract patterns, wisdom, gotchas from results     |
+| 4   | **REINTAKE**   | Re-evaluate with new knowledge                     |
+| 5   | **GROW**       | Update capabilities, expand tool repertoire        |
+| 6   | **EVOLVE**     | Architectural improvements, protocol upgrades      |
+| 7   | **AUTONOMIZE** | Self-directed task generation (max 3/cycle)        |
 
 **BaseAgent contract** (lines 65–143): Every agent implements `intake()`, `reflect()`, `execute()`, `compress()`, `reintake()`, `grow()`, `evolve()`. `runCycle(task, context)` orchestrates all phases sequentially.
 
@@ -181,9 +181,9 @@ Defined in `packages/agent-protocol/src/index.ts`:
 
 ```typescript
 interface AgentIdentity {
-  id: string;        // UUID
-  name: string;      // e.g. "holoscript-daemon"
-  domain: string;    // e.g. "holoscript"
+  id: string; // UUID
+  name: string; // e.g. "holoscript-daemon"
+  domain: string; // e.g. "holoscript"
   version: string;
   capabilities: string[];
 }
@@ -193,11 +193,11 @@ interface AgentIdentity {
 
 Three knowledge types flow between agents during COMPRESS/REINTAKE:
 
-| Type | ID Format | Key Fields | Example |
-|------|-----------|------------|---------|
+| Type        | ID Format     | Key Fields                          | Example                            |
+| ----------- | ------------- | ----------------------------------- | ---------------------------------- |
 | **Pattern** | `P.DOMAIN.NN` | problem, solution, confidence (0–1) | `P.HS.042` — parser error handling |
-| **Wisdom** | `W.DOMAIN.NN` | insight, context, source | `W.HS.127` — expression gap fix |
-| **Gotcha** | `G.DOMAIN.NN` | mistake, fix, severity | `G.HS.004` — hand-crafted types |
+| **Wisdom**  | `W.DOMAIN.NN` | insight, context, source            | `W.HS.127` — expression gap fix    |
+| **Gotcha**  | `G.DOMAIN.NN` | mistake, fix, severity              | `G.HS.004` — hand-crafted types    |
 
 ### MicroPhaseDecomposer
 
@@ -255,6 +255,7 @@ Standardized tool discovery and invocation for LLM agents. HoloScript exposes 88
 `GET /.well-known/mcp` (`http-server.ts:297–338`) — ahead of the MCP specification (currently an active SEP, not yet finalized).
 
 Response shape:
+
 ```json
 {
   "mcpVersion": "2025-03-26",
@@ -277,28 +278,29 @@ Response shape:
 
 ### Tool Categories (88 tools, 14 modules)
 
-| Module | Tools | Source |
-|--------|-------|--------|
-| **Core language** | `parse_hs`, `parse_holo`, `validate_holoscript`, `explain_code`, `analyze_code`, `convert_format` | `tools.ts`, `handlers.ts` |
-| **Traits** | `list_traits` (1,800+), `explain_trait`, `suggest_traits` | `handlers.ts:285–340` |
-| **Generators** | `generate_object`, `generate_scene` | `generators.ts` |
-| **Compiler** | Compilation to 27 backend targets | `compiler-tools.ts` |
-| **Graph analysis** | Scene graph traversal, dependency analysis | `graph-tools.ts`, `graph-rag-tools.ts` |
-| **IDE integration** | LSP-adjacent tools for editors | `ide-tools.ts` |
-| **Browser** | `browser_launch`, `browser_execute`, `browser_screenshot` | `browser/` |
-| **Networking** | `push_state_delta`, `fetch_authoritative_state` | `networking-tools.ts` |
-| **Monitoring** | Health, metrics, diagnostics | `monitoring-tools.ts` |
-| **Self-improve** | Daemon orchestration, quality scoring | `self-improve-tools.ts` |
-| **Testing** | `holoscript test` integration | `holotest-tools.ts` |
-| **GLTF import** | 3D model ingestion | `gltf-import-tools.ts` |
-| **Snapshots** | State capture and restore | `snapshot-tools.ts` |
-| **Knowledge** | Wisdom/gotcha/pattern management | `wisdom-gotcha-tools.ts` |
+| Module              | Tools                                                                                             | Source                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **Core language**   | `parse_hs`, `parse_holo`, `validate_holoscript`, `explain_code`, `analyze_code`, `convert_format` | `tools.ts`, `handlers.ts`              |
+| **Traits**          | `list_traits` (1,800+), `explain_trait`, `suggest_traits`                                         | `handlers.ts:285–340`                  |
+| **Generators**      | `generate_object`, `generate_scene`                                                               | `generators.ts`                        |
+| **Compiler**        | Compilation to 27 backend targets                                                                 | `compiler-tools.ts`                    |
+| **Graph analysis**  | Scene graph traversal, dependency analysis                                                        | `graph-tools.ts`, `graph-rag-tools.ts` |
+| **IDE integration** | LSP-adjacent tools for editors                                                                    | `ide-tools.ts`                         |
+| **Browser**         | `browser_launch`, `browser_execute`, `browser_screenshot`                                         | `browser/`                             |
+| **Networking**      | `push_state_delta`, `fetch_authoritative_state`                                                   | `networking-tools.ts`                  |
+| **Monitoring**      | Health, metrics, diagnostics                                                                      | `monitoring-tools.ts`                  |
+| **Self-improve**    | Daemon orchestration, quality scoring                                                             | `self-improve-tools.ts`                |
+| **Testing**         | `holoscript test` integration                                                                     | `holotest-tools.ts`                    |
+| **GLTF import**     | 3D model ingestion                                                                                | `gltf-import-tools.ts`                 |
+| **Snapshots**       | State capture and restore                                                                         | `snapshot-tools.ts`                    |
+| **Knowledge**       | Wisdom/gotcha/pattern management                                                                  | `wisdom-gotcha-tools.ts`               |
 
 ### State Synchronization Tools
 
 Two MCP tools bridge Layer 1 (RealTime) into Layer 3 (MCP), allowing LLM agents to participate in scene state:
 
 **`push_state_delta`** — Push field-level changes with server-authoritative conflict resolution (last-write-wins):
+
 ```json
 {
   "tool": "push_state_delta",
@@ -310,6 +312,7 @@ Two MCP tools bridge Layer 1 (RealTime) into Layer 3 (MCP), allowing LLM agents 
 ```
 
 **`fetch_authoritative_state`** — Read the current truth for any entity, bypassing stale local caches:
+
 ```json
 {
   "tool": "fetch_authoritative_state",
@@ -353,11 +356,11 @@ sequenceDiagram
 
 All three layers share authentication through uAA2 JWT tokens:
 
-| Layer | Auth Mechanism | Token Source |
-|-------|---------------|--------------|
-| L1 RealTime | `?token=<jwt>` query param on WebSocket | `COLLAB_AUTH_SECRET` / `NEXTAUTH_SECRET` |
-| L2 A2A | `AgentIdentity.id` + RBAC capability check | `CompilerBase.getRBAC()` |
-| L3 MCP | `Authorization: Bearer <token>` header | `MCP_API_KEY` env var |
+| Layer       | Auth Mechanism                             | Token Source                             |
+| ----------- | ------------------------------------------ | ---------------------------------------- |
+| L1 RealTime | `?token=<jwt>` query param on WebSocket    | `COLLAB_AUTH_SECRET` / `NEXTAUTH_SECRET` |
+| L2 A2A      | `AgentIdentity.id` + RBAC capability check | `CompilerBase.getRBAC()`                 |
+| L3 MCP      | `Authorization: Bearer <token>` header     | `MCP_API_KEY` env var                    |
 
 ### Layer Bridging
 
@@ -380,33 +383,33 @@ L2 ←→ L1:  Agents set presence via CRDTDocument.setWorldPosition()
 
 ## Failure Mode Table
 
-| Failure | Affected Layer | Degradation | Recovery |
-|---------|---------------|-------------|----------|
-| WebSocket disconnect | L1 | Entity state freezes at last known position; local edits queue | Exponential backoff reconnect (5 attempts, 1s×2^n) |
-| WebRTC ICE failure | L1 | Falls back to WebSocket transport automatically | Auto-detection chain in `NetworkedTrait.connect('auto')` |
-| CRDT merge conflict | L1 | Text-level CRDT resolves automatically (Yjs guarantees convergence) | No manual intervention needed |
-| Agent Card unavailable | L2 | Task delegation fails; agent operates in standalone mode | Orchestrator caches last-known card; retry on next cycle |
-| uAA2++ phase failure | L2 | `CycleResult.status = 'partial'`; remaining phases skipped | PWG gotcha recorded; next cycle applies learned fix |
-| MCP server down | L3 | Tool calls return errors; agents fall back to local parsing | Health check at `/health`; Railway auto-restart |
-| State Authority corrupt | L3 | `push_state_delta` returns stale data | Disk-backed JSON rebuilt from authoritative source on restart |
-| Auth token expired | All | Requests rejected with 401 | Token refresh via uAA2 service; lock file includes `spentUSD` for budget tracking |
+| Failure                 | Affected Layer | Degradation                                                         | Recovery                                                                          |
+| ----------------------- | -------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| WebSocket disconnect    | L1             | Entity state freezes at last known position; local edits queue      | Exponential backoff reconnect (5 attempts, 1s×2^n)                                |
+| WebRTC ICE failure      | L1             | Falls back to WebSocket transport automatically                     | Auto-detection chain in `NetworkedTrait.connect('auto')`                          |
+| CRDT merge conflict     | L1             | Text-level CRDT resolves automatically (Yjs guarantees convergence) | No manual intervention needed                                                     |
+| Agent Card unavailable  | L2             | Task delegation fails; agent operates in standalone mode            | Orchestrator caches last-known card; retry on next cycle                          |
+| uAA2++ phase failure    | L2             | `CycleResult.status = 'partial'`; remaining phases skipped          | PWG gotcha recorded; next cycle applies learned fix                               |
+| MCP server down         | L3             | Tool calls return errors; agents fall back to local parsing         | Health check at `/health`; Railway auto-restart                                   |
+| State Authority corrupt | L3             | `push_state_delta` returns stale data                               | Disk-backed JSON rebuilt from authoritative source on restart                     |
+| Auth token expired      | All            | Requests rejected with 401                                          | Token refresh via uAA2 service; lock file includes `spentUSD` for budget tracking |
 
 ---
 
 ## Comparison to 2026 MCP Standard
 
-| Feature | MCP Spec (2025-11-25) | HoloScript Implementation | Status |
-|---------|----------------------|---------------------------|--------|
-| Streamable HTTP transport | Replaced SSE (2025-03-26) | `POST /mcp` with streaming support | Aligned |
-| `.well-known/mcp` discovery | Active SEP (not yet finalized) | `http-server.ts:297` — full manifest + tool list | **Ahead of spec** |
-| Tool invocation | JSON-RPC over HTTP | 88 tools via `handleTool()` dispatcher | Aligned |
-| Resources | Resource templates + subscriptions | Not implemented (tools-only model) | Intentional gap |
-| Prompts | Prompt templates | Not implemented | Intentional gap |
-| Tasks primitive | Added in 2025-11-25 spec | Agent protocol handles task lifecycle at L2 | **Different layer** |
-| MCP Registry | `registry.modelcontextprotocol.io` (preview) | MCP Orchestrator with 9 registered servers | **Ahead of spec** |
-| Agent-optimized tools | Not in spec | `*_quick_*`, `*_batch_*`, `*_smart_*` prefixes in orchestrator | **Beyond spec** |
-| Multi-server orchestration | Not in spec | IDEA protocol (Initialize/Discover/Execute/Affirm) | **Beyond spec** |
-| Real-time state sync via MCP | Not in spec | `push_state_delta` / `fetch_authoritative_state` | **Beyond spec** |
+| Feature                      | MCP Spec (2025-11-25)                        | HoloScript Implementation                                      | Status              |
+| ---------------------------- | -------------------------------------------- | -------------------------------------------------------------- | ------------------- |
+| Streamable HTTP transport    | Replaced SSE (2025-03-26)                    | `POST /mcp` with streaming support                             | Aligned             |
+| `.well-known/mcp` discovery  | Active SEP (not yet finalized)               | `http-server.ts:297` — full manifest + tool list               | **Ahead of spec**   |
+| Tool invocation              | JSON-RPC over HTTP                           | 88 tools via `handleTool()` dispatcher                         | Aligned             |
+| Resources                    | Resource templates + subscriptions           | Not implemented (tools-only model)                             | Intentional gap     |
+| Prompts                      | Prompt templates                             | Not implemented                                                | Intentional gap     |
+| Tasks primitive              | Added in 2025-11-25 spec                     | Agent protocol handles task lifecycle at L2                    | **Different layer** |
+| MCP Registry                 | `registry.modelcontextprotocol.io` (preview) | MCP Orchestrator with 9 registered servers                     | **Ahead of spec**   |
+| Agent-optimized tools        | Not in spec                                  | `*_quick_*`, `*_batch_*`, `*_smart_*` prefixes in orchestrator | **Beyond spec**     |
+| Multi-server orchestration   | Not in spec                                  | IDEA protocol (Initialize/Discover/Execute/Affirm)             | **Beyond spec**     |
+| Real-time state sync via MCP | Not in spec                                  | `push_state_delta` / `fetch_authoritative_state`               | **Beyond spec**     |
 
 ### Key Differentiation
 
@@ -422,14 +425,14 @@ The MCP specification defines a single-layer tool protocol. HoloScript extends t
 
 ## Source Files
 
-| Component | Path | Lines |
-|-----------|------|-------|
-| SyncProtocol | `packages/core/src/network/SyncProtocol.ts` | 959 |
-| NetworkedTrait | `packages/core/src/traits/NetworkedTrait.ts` | 1,073 |
-| CRDTDocument | `packages/core/src/collaboration/CRDTDocument.ts` | 640+ |
-| Collab Server | `packages/collab-server/src/server.ts` | 166 |
-| Agent Protocol | `packages/agent-protocol/src/index.ts` | 534 |
-| A2A Compiler | `packages/core/src/compiler/A2AAgentCardCompiler.ts` | 751 |
-| MCP HTTP Server | `packages/mcp-server/src/http-server.ts` | 400+ |
-| MCP Handlers | `packages/mcp-server/src/handlers.ts` | 1,000+ |
-| Networking Tools | `packages/mcp-server/src/networking-tools.ts` | 167 |
+| Component        | Path                                                 | Lines  |
+| ---------------- | ---------------------------------------------------- | ------ |
+| SyncProtocol     | `packages/core/src/network/SyncProtocol.ts`          | 959    |
+| NetworkedTrait   | `packages/core/src/traits/NetworkedTrait.ts`         | 1,073  |
+| CRDTDocument     | `packages/core/src/collaboration/CRDTDocument.ts`    | 640+   |
+| Collab Server    | `packages/collab-server/src/server.ts`               | 166    |
+| Agent Protocol   | `packages/agent-protocol/src/index.ts`               | 534    |
+| A2A Compiler     | `packages/core/src/compiler/A2AAgentCardCompiler.ts` | 751    |
+| MCP HTTP Server  | `packages/mcp-server/src/http-server.ts`             | 400+   |
+| MCP Handlers     | `packages/mcp-server/src/handlers.ts`                | 1,000+ |
+| Networking Tools | `packages/mcp-server/src/networking-tools.ts`        | 167    |

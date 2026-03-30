@@ -12,11 +12,7 @@ import { eq, and } from 'drizzle-orm';
  * DELETE /api/orgs/[orgId]/members?userId=x   → Remove a member (owner only)
  */
 
-async function requireOrgAccess(
-  userId: string,
-  orgId: string,
-  requiredRole?: string
-) {
+async function requireOrgAccess(userId: string, orgId: string, requiredRole?: string) {
   const db = getDb();
   if (!db) return { error: 'Database not configured', status: 503 };
 
@@ -39,10 +35,7 @@ async function requireOrgAccess(
   return { membership };
 }
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ orgId: string }> }
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
@@ -78,10 +71,7 @@ export async function GET(
   });
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ orgId: string }> }
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
@@ -111,11 +101,7 @@ export async function POST(
   const db = getDb()!;
 
   // Find user by email
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
   if (!user) {
     return NextResponse.json(
@@ -135,10 +121,7 @@ export async function POST(
     return NextResponse.json({ error: 'User is already a member' }, { status: 409 });
   }
 
-  const [member] = await db
-    .insert(orgMembers)
-    .values({ orgId, userId: user.id, role })
-    .returning();
+  const [member] = await db.insert(orgMembers).values({ orgId, userId: user.id, role }).returning();
 
   return NextResponse.json(
     {
@@ -154,10 +137,7 @@ export async function POST(
   );
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ orgId: string }> }
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;

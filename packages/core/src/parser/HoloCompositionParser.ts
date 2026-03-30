@@ -1668,10 +1668,24 @@ export class HoloCompositionParser {
           const identValue = this.current().value;
 
           // Typo detection: check if identifier is a typo of a known composition-level keyword
-          const knownBlocks = ['environment', 'state', 'logic', 'template', 'object', 'spatial_group', 'import', 'light', 'norm', 'metanorm'];
+          const knownBlocks = [
+            'environment',
+            'state',
+            'logic',
+            'template',
+            'object',
+            'spatial_group',
+            'import',
+            'light',
+            'norm',
+            'metanorm',
+          ];
           const typoMatch = TypoDetector.findClosestMatch(identValue, knownBlocks);
           if (typoMatch && typoMatch !== identValue) {
-            this.error(`Unknown block "${identValue}"`, `Did you mean "${typoMatch}"? Check for typos in the keyword.`);
+            this.error(
+              `Unknown block "${identValue}"`,
+              `Did you mean "${typoMatch}"? Check for typos in the keyword.`
+            );
           }
 
           this.advance(); // consume IDENTIFIER
@@ -3371,9 +3385,19 @@ export class HoloCompositionParser {
         const args = this.parseArgumentList();
         expr = { type: 'CallExpression', callee: expr, arguments: args };
       } else if (this.match('INC')) {
-        expr = { type: 'UpdateExpression' as const, operator: '++' as const, argument: expr, prefix: false };
+        expr = {
+          type: 'UpdateExpression' as const,
+          operator: '++' as const,
+          argument: expr,
+          prefix: false,
+        };
       } else if (this.match('DEC')) {
-        expr = { type: 'UpdateExpression' as const, operator: '--' as const, argument: expr, prefix: false };
+        expr = {
+          type: 'UpdateExpression' as const,
+          operator: '--' as const,
+          argument: expr,
+          prefix: false,
+        };
       } else {
         break;
       }
@@ -4576,13 +4600,28 @@ export class HoloCompositionParser {
         effects.impact = { type: 'AbilityImpact', ...val } as unknown as HoloAbilityImpact;
       } else if (key === 'damage') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.damage = { type: 'AbilityDamage', damageType: 'physical', ...val } as unknown as HoloAbilityDamage;
+        effects.damage = {
+          type: 'AbilityDamage',
+          damageType: 'physical',
+          ...val,
+        } as unknown as HoloAbilityDamage;
       } else if (key === 'buff') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.buff = { type: 'AbilityBuff', stat: '', amount: 0, duration: 0, ...val } as unknown as HoloAbilityBuff;
+        effects.buff = {
+          type: 'AbilityBuff',
+          stat: '',
+          amount: 0,
+          duration: 0,
+          ...val,
+        } as unknown as HoloAbilityBuff;
       } else if (key === 'debuff') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        effects.debuff = { type: 'AbilityDebuff', effect: 'slow', duration: 0, ...val } as unknown as HoloAbilityDebuff;
+        effects.debuff = {
+          type: 'AbilityDebuff',
+          effect: 'slow',
+          duration: 0,
+          ...val,
+        } as unknown as HoloAbilityDebuff;
       }
 
       this.skipNewlines();
@@ -4729,8 +4768,8 @@ export class HoloCompositionParser {
       // Handle inline `state "name" { }` blocks (alternative state_machine syntax)
       if (this.check('STATE')) {
         this.advance(); // consume 'state'
-        const stateName = (this.check('STRING') || this.check('IDENTIFIER'))
-          ? this.advance().value : 'anonymous';
+        const stateName =
+          this.check('STRING') || this.check('IDENTIFIER') ? this.advance().value : 'anonymous';
         // Auto-set first state as initial if not explicitly set
         if (!sm.initialState) sm.initialState = stateName;
         if (this.check('LBRACE')) {
@@ -4943,7 +4982,10 @@ export class HoloCompositionParser {
       else if (key === 'progress') achievement.progress = this.parseExpression();
       else if (key === 'reward') {
         const val = this.parseValue() as Record<string, HoloValue>;
-        achievement.reward = { type: 'AchievementReward', ...val } as unknown as HoloAchievementReward;
+        achievement.reward = {
+          type: 'AchievementReward',
+          ...val,
+        } as unknown as HoloAchievementReward;
       }
 
       this.skipNewlines();
@@ -5063,7 +5105,11 @@ export class HoloCompositionParser {
         else if (key === 'icon') node.icon = this.parseValue() as string;
         else if (key === 'effect') {
           const val = this.parseValue() as Record<string, HoloValue>;
-          node.effect = { type: 'TalentEffect', effectType: 'passive', ...val } as unknown as HoloTalentEffect;
+          node.effect = {
+            type: 'TalentEffect',
+            effectType: 'passive',
+            ...val,
+          } as unknown as HoloTalentEffect;
         }
 
         this.skipNewlines();

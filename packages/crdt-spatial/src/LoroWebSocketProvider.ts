@@ -19,17 +19,9 @@
 
 import type { SpatialCRDTBridge } from './SpatialCRDTBridge.js';
 
-import type {
-  WebSocketProviderConfig,
-  AwarenessState,
-  SyncMessage,
-} from './types.js';
+import type { WebSocketProviderConfig, AwarenessState, SyncMessage } from './types.js';
 
-import {
-  ConnectionState,
-  SyncMessageType,
-  DEFAULT_WS_CONFIG,
-} from './types.js';
+import { ConnectionState, SyncMessageType, DEFAULT_WS_CONFIG } from './types.js';
 
 // =============================================================================
 // LORO WEBSOCKET PROVIDER
@@ -248,12 +240,16 @@ export class LoroWebSocketProvider {
         message = JSON.parse(json);
         // Restore payload as Uint8Array
         if (message.payload && typeof message.payload === 'object') {
-          message.payload = new Uint8Array(Object.values(message.payload as unknown as Record<string, number>));
+          message.payload = new Uint8Array(
+            Object.values(message.payload as unknown as Record<string, number>)
+          );
         }
       } else {
         message = JSON.parse(event.data);
         if (message.payload && typeof message.payload === 'object') {
-          message.payload = new Uint8Array(Object.values(message.payload as unknown as Record<string, number>));
+          message.payload = new Uint8Array(
+            Object.values(message.payload as unknown as Record<string, number>)
+          );
         }
       }
 
@@ -275,7 +271,9 @@ export class LoroWebSocketProvider {
           break;
 
         case SyncMessageType.Error:
-          this.onErrorHandler?.(new Error(`Server error: ${new TextDecoder().decode(message.payload)}`));
+          this.onErrorHandler?.(
+            new Error(`Server error: ${new TextDecoder().decode(message.payload)}`)
+          );
           break;
       }
     } catch (error) {
@@ -298,12 +296,17 @@ export class LoroWebSocketProvider {
       const delay = this.config.reconnectDelayMs * Math.pow(2, this.reconnectAttempts);
       this.reconnectAttempts++;
 
-      this.reconnectTimer = setTimeout(() => {
-        this.connect();
-      }, Math.min(delay, 30_000)); // Cap at 30s
+      this.reconnectTimer = setTimeout(
+        () => {
+          this.connect();
+        },
+        Math.min(delay, 30_000)
+      ); // Cap at 30s
     } else {
       this.setState(ConnectionState.Error);
-      this.onErrorHandler?.(new Error(`Max reconnection attempts (${this.config.maxReconnectAttempts}) exceeded`));
+      this.onErrorHandler?.(
+        new Error(`Max reconnection attempts (${this.config.maxReconnectAttempts}) exceeded`)
+      );
     }
   }
 

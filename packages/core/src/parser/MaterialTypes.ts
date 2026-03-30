@@ -36,12 +36,25 @@ export type HoloMaterialType =
  * Supports both inline (texture_map) and block (texture_map_block) forms.
  */
 export type TextureChannel =
-  | 'albedo_map' | 'normal_map' | 'roughness_map' | 'metallic_map'
-  | 'emission_map' | 'ao_map' | 'height_map' | 'opacity_map'
-  | 'displacement_map' | 'specular_map' | 'clearcoat_map'
-  | 'baseColor_map' | 'emissive_map' | 'transmission_map'
-  | 'sheen_map' | 'anisotropy_map' | 'thickness_map'
-  | 'subsurface_map' | 'iridescence_map';
+  | 'albedo_map'
+  | 'normal_map'
+  | 'roughness_map'
+  | 'metallic_map'
+  | 'emission_map'
+  | 'ao_map'
+  | 'height_map'
+  | 'opacity_map'
+  | 'displacement_map'
+  | 'specular_map'
+  | 'clearcoat_map'
+  | 'baseColor_map'
+  | 'emissive_map'
+  | 'transmission_map'
+  | 'sheen_map'
+  | 'anisotropy_map'
+  | 'thickness_map'
+  | 'subsurface_map'
+  | 'iridescence_map';
 
 // =============================================================================
 // TEXTURE & SHADER DEFINITIONS

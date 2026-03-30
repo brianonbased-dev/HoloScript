@@ -217,13 +217,38 @@ function drawWireframeShape(
         }
       }
       const edges = [
-        [0, 1], [2, 3], [4, 5], [6, 7],
-        [0, 2], [1, 3], [4, 6], [5, 7],
-        [0, 4], [1, 5], [2, 6], [3, 7],
+        [0, 1],
+        [2, 3],
+        [4, 5],
+        [6, 7],
+        [0, 2],
+        [1, 3],
+        [4, 6],
+        [5, 7],
+        [0, 4],
+        [1, 5],
+        [2, 6],
+        [3, 7],
       ];
       for (const [a, b] of edges) {
-        const [ax, ay] = projectPoint(corners[a][0], corners[a][1], corners[a][2], rotY, zoom, cx, cy);
-        const [bx, by] = projectPoint(corners[b][0], corners[b][1], corners[b][2], rotY, zoom, cx, cy);
+        const [ax, ay] = projectPoint(
+          corners[a][0],
+          corners[a][1],
+          corners[a][2],
+          rotY,
+          zoom,
+          cx,
+          cy
+        );
+        const [bx, by] = projectPoint(
+          corners[b][0],
+          corners[b][1],
+          corners[b][2],
+          rotY,
+          zoom,
+          cx,
+          cy
+        );
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
@@ -236,7 +261,10 @@ function drawWireframeShape(
       const isCone = part.geometry === 'cone';
       const topR = isCone ? 0 : 1;
       // Draw top and bottom circles
-      for (const [fy, radiusFactor] of [[1, topR], [-1, 1]] as [number, number][]) {
+      for (const [fy, radiusFactor] of [
+        [1, topR],
+        [-1, 1],
+      ] as [number, number][]) {
         ctx.beginPath();
         for (let i = 0; i <= n; i++) {
           const theta = (i / n) * Math.PI * 2;
@@ -301,10 +329,7 @@ interface DragonPreviewProps {
   initialLOD?: number;
 }
 
-export function DragonPreview({
-  creature = SAMPLE_DRAGON,
-  initialLOD = 2,
-}: DragonPreviewProps) {
+export function DragonPreview({ creature = SAMPLE_DRAGON, initialLOD = 2 }: DragonPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
 
@@ -324,12 +349,18 @@ export function DragonPreview({
     const baseVerts = creature.parts.reduce((sum, p) => {
       const s = lod.segments;
       switch (p.geometry) {
-        case 'sphere': return sum + (s + 1) * (s + 1);
-        case 'box': return sum + 8;
-        case 'cylinder': return sum + s * 2 + 2;
-        case 'cone': return sum + s + 2;
-        case 'torus': return sum + s * s;
-        default: return sum + s * s;
+        case 'sphere':
+          return sum + (s + 1) * (s + 1);
+        case 'box':
+          return sum + 8;
+        case 'cylinder':
+          return sum + s * 2 + 2;
+        case 'cone':
+          return sum + s + 2;
+        case 'torus':
+          return sum + s * s;
+        default:
+          return sum + s * s;
       }
     }, 0);
     const tris = Math.floor(baseVerts * 1.8 * lod.polyMultiplier);
@@ -434,9 +465,7 @@ export function DragonPreview({
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-3 py-2">
         <Eye className="h-4 w-4 text-orange-400" />
         <span className="text-[12px] font-semibold">{creature.name} Preview</span>
-        <span className="text-[9px] text-studio-muted ml-1">
-          LOD: {lod.label}
-        </span>
+        <span className="text-[9px] text-studio-muted ml-1">LOD: {lod.label}</span>
 
         {/* Controls */}
         <div className="ml-auto flex items-center gap-1">
@@ -544,10 +573,7 @@ export function DragonPreview({
 
         <div className="flex justify-between text-[8px] text-studio-muted/60">
           {LOD_LEVELS.map((l, i) => (
-            <span
-              key={l.label}
-              className={i === lodIndex ? 'text-teal-400 font-bold' : ''}
-            >
+            <span key={l.label} className={i === lodIndex ? 'text-teal-400 font-bold' : ''}>
               {l.label}
             </span>
           ))}

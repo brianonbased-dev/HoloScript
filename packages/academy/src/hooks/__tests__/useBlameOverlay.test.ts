@@ -1,6 +1,6 @@
 /**
  * useBlameOverlay — Unit Tests
- * 
+ *
  * Tests the blame overlay hook state management, toggle behavior,
  * and keyboard shortcut integration.
  */
@@ -53,7 +53,7 @@ describe('useBlameOverlay logic contracts', () => {
   it('fetchBlame handles error case', async () => {
     const { fetchBlame } = await import('@/features/versionControl/gitBlameService');
     const mockFetchBlame = vi.mocked(fetchBlame);
-    
+
     mockFetchBlame.mockResolvedValueOnce({
       ok: false,
       error: 'Git not available',
@@ -68,7 +68,7 @@ describe('useBlameOverlay logic contracts', () => {
   it('fetchBlame handles empty entries', async () => {
     const { fetchBlame } = await import('@/features/versionControl/gitBlameService');
     const mockFetchBlame = vi.mocked(fetchBlame);
-    
+
     mockFetchBlame.mockResolvedValueOnce({
       ok: true,
       entries: [],

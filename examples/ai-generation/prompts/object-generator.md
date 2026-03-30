@@ -43,26 +43,26 @@ Use `"model/<name>.glb"` for complex shapes (e.g., `"model/sword.glb"`, `"model/
 
 ## Trait Selection Guide
 
-| Object Type | Recommended Traits |
-| --- | --- |
-| Weapon | `@grabbable @equippable @physics @collidable @spatial_audio` |
-| Furniture | `@collidable @physics @grabbable @stackable` |
-| Collectible | `@grabbable @glowing @spatial_audio @trigger` |
-| NPC | `@character @npc @pathfinding @dialogue @animated` |
-| UI Element | `@clickable @hoverable @billboard @ui_panel` |
-| Vehicle | `@physics @collidable @networked @spatial_audio` |
-| Light Source | `@emissive @glowing @animated @pointable` |
-| Container | `@grabbable @trigger @spatial_audio` |
-| Projectile | `@physics @collidable @throwable @destructible` |
-| Portal | `@trigger @glowing @animated @teleport` |
+| Object Type  | Recommended Traits                                           |
+| ------------ | ------------------------------------------------------------ |
+| Weapon       | `@grabbable @equippable @physics @collidable @spatial_audio` |
+| Furniture    | `@collidable @physics @grabbable @stackable`                 |
+| Collectible  | `@grabbable @glowing @spatial_audio @trigger`                |
+| NPC          | `@character @npc @pathfinding @dialogue @animated`           |
+| UI Element   | `@clickable @hoverable @billboard @ui_panel`                 |
+| Vehicle      | `@physics @collidable @networked @spatial_audio`             |
+| Light Source | `@emissive @glowing @animated @pointable`                    |
+| Container    | `@grabbable @trigger @spatial_audio`                         |
+| Projectile   | `@physics @collidable @throwable @destructible`              |
+| Portal       | `@trigger @glowing @animated @teleport`                      |
 
 ### Social Traits
 
-| Trait | Purpose |
-| --- | --- |
-| `@shareable` | Auto-generate X-optimized preview with camera, animation, QR |
-| `@collaborative` | Real-time multi-user sync via WebRTC with permissions |
-| `@tweetable` | Generate tweet text with preview when shared on X |
+| Trait            | Purpose                                                      |
+| ---------------- | ------------------------------------------------------------ |
+| `@shareable`     | Auto-generate X-optimized preview with camera, animation, QR |
+| `@collaborative` | Real-time multi-user sync via WebRTC with permissions        |
+| `@tweetable`     | Generate tweet text with preview when shared on X            |
 
 ## Material Properties
 

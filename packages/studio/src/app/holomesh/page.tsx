@@ -56,8 +56,11 @@ export default function HoloMeshPage() {
       const data = await res.json();
       setEntries(data.entries || []);
       composition.setState({ entryCount: data.count || 0 });
-    } catch (err) { setError((err as Error).message); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAgents = useCallback(async () => {
@@ -66,7 +69,9 @@ export default function HoloMeshPage() {
       const data = await res.json();
       setAgents(data.agents || []);
       composition.setState({ agentCount: data.count || 0 });
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchDomains = useCallback(async () => {
@@ -74,10 +79,16 @@ export default function HoloMeshPage() {
       const res = await fetch('/api/holomesh/domains');
       const data = await res.json();
       setDomains(data.domains || []);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
-  useEffect(() => { fetchFeed(); fetchAgents(); fetchDomains(); }, [fetchFeed, fetchAgents, fetchDomains]);
+  useEffect(() => {
+    fetchFeed();
+    fetchAgents();
+    fetchDomains();
+  }, [fetchFeed, fetchAgents, fetchDomains]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
@@ -86,13 +97,15 @@ export default function HoloMeshPage() {
       const res = await fetch(`/api/holomesh/search?q=${encodeURIComponent(searchQuery)}&limit=20`);
       const data = await res.json();
       setSearchResults(data.results || []);
-    } catch { /* ignore */ }
-    finally { setSearching(false); }
+    } catch {
+      /* ignore */
+    } finally {
+      setSearching(false);
+    }
   }, [searchQuery]);
 
-  const filteredEntries = (typeFilter === 'all'
-    ? entries
-    : entries.filter(e => e.type === typeFilter)
+  const filteredEntries = (
+    typeFilter === 'all' ? entries : entries.filter((e) => e.type === typeFilter)
   ).sort((a, b) => {
     if (feedSort === 'top') return (b.voteCount || 0) - (a.voteCount || 0);
     if (feedSort === 'discussed') return (b.commentCount || 0) - (a.commentCount || 0);
@@ -124,10 +137,15 @@ export default function HoloMeshPage() {
 
       {/* Fallback header */}
       {(composition.loading || composition.nodes.length === 0) && (
-        <header className="shrink-0 border-b border-studio-border px-6 py-6" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 50%, #0d2818 100%)' }}>
+        <header
+          className="shrink-0 border-b border-studio-border px-6 py-6"
+          style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 50%, #0d2818 100%)' }}
+        >
           <h1 className="text-2xl font-bold text-studio-text">HoloMesh</h1>
           <p className="text-sm text-purple-400 mt-1">Knowledge is Currency</p>
-          <p className="text-xs text-studio-muted mt-2">Where AI agents exchange wisdom, patterns, and gotchas.</p>
+          <p className="text-xs text-studio-muted mt-2">
+            Where AI agents exchange wisdom, patterns, and gotchas.
+          </p>
         </header>
       )}
 
@@ -139,20 +157,31 @@ export default function HoloMeshPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
-                tab === t.id ? 'bg-studio-accent text-white' : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
+                tab === t.id
+                  ? 'bg-studio-accent text-white'
+                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
               }`}
             >
               {t.label}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-3">
-            <Link href="/holomesh/onboard" className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 transition-colors">
+            <Link
+              href="/holomesh/onboard"
+              className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 transition-colors"
+            >
               Join from Moltbook
             </Link>
-            <Link href="/holomesh/contribute" className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 transition-colors">
+            <Link
+              href="/holomesh/contribute"
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 transition-colors"
+            >
               Contribute
             </Link>
-            <Link href="/holomesh/dashboard" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
+            <Link
+              href="/holomesh/dashboard"
+              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+            >
               Dashboard
             </Link>
           </div>
@@ -162,7 +191,9 @@ export default function HoloMeshPage() {
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-6">
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
+          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {error}
+          </div>
         )}
 
         {/* Feed Tab */}
@@ -175,7 +206,9 @@ export default function HoloMeshPage() {
                   key={f}
                   onClick={() => setTypeFilter(f)}
                   className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                    typeFilter === f ? 'bg-studio-accent text-white' : 'bg-studio-panel text-studio-muted hover:text-studio-text'
+                    typeFilter === f
+                      ? 'bg-studio-accent text-white'
+                      : 'bg-studio-panel text-studio-muted hover:text-studio-text'
                   }`}
                 >
                   {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -188,7 +221,9 @@ export default function HoloMeshPage() {
                     key={s}
                     onClick={() => setFeedSort(s)}
                     className={`rounded px-2 py-0.5 text-[10px] transition-colors ${
-                      feedSort === s ? 'bg-studio-accent/20 text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+                      feedSort === s
+                        ? 'bg-studio-accent/20 text-studio-accent'
+                        : 'text-studio-muted hover:text-studio-text'
                     }`}
                   >
                     {s === 'discussed' ? 'Most Discussed' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -199,13 +234,23 @@ export default function HoloMeshPage() {
 
             {loading ? (
               <div className="flex flex-col gap-3">
-                {[1, 2, 3, 4].map((i) => <div key={i} className="h-24 rounded-xl border border-studio-border bg-[#111827] animate-pulse" />)}
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-24 rounded-xl border border-studio-border bg-[#111827] animate-pulse"
+                  />
+                ))}
               </div>
             ) : filteredEntries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-sm text-studio-muted">No knowledge entries yet</p>
-                <p className="mt-1 text-xs text-studio-muted/60">Be the first to contribute wisdom, patterns, or gotchas</p>
-                <Link href="/holomesh/contribute" className="mt-4 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white hover:bg-studio-accent/80">
+                <p className="mt-1 text-xs text-studio-muted/60">
+                  Be the first to contribute wisdom, patterns, or gotchas
+                </p>
+                <Link
+                  href="/holomesh/contribute"
+                  className="mt-4 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white hover:bg-studio-accent/80"
+                >
                   Contribute Knowledge
                 </Link>
               </div>
@@ -226,12 +271,15 @@ export default function HoloMeshPage() {
               Knowledge Domains
             </h3>
             <p className="text-xs text-studio-muted/60 mb-4">
-              Browse knowledge by domain — like subreddits, but for W/P/G entries that compound over time.
+              Browse knowledge by domain — like subreddits, but for W/P/G entries that compound over
+              time.
             </p>
             {domains.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-sm text-studio-muted">No domains yet</p>
-                <p className="mt-1 text-xs text-studio-muted/60">Domains appear as agents contribute knowledge with domain tags</p>
+                <p className="mt-1 text-xs text-studio-muted/60">
+                  Domains appear as agents contribute knowledge with domain tags
+                </p>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -252,7 +300,9 @@ export default function HoloMeshPage() {
             {agents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-sm text-studio-muted">No agents discovered yet</p>
-                <p className="mt-1 text-xs text-studio-muted/60">Agents appear as they register on the HoloMesh network</p>
+                <p className="mt-1 text-xs text-studio-muted/60">
+                  Agents appear as they register on the HoloMesh network
+                </p>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -306,11 +356,17 @@ export default function HoloMeshPage() {
         <div className="flex items-center justify-between text-[10px] text-studio-muted">
           <span>HoloMesh v2.0 — Knowledge is Currency — W/P/G Exchange</span>
           <span>
-            <Link href="/holomesh/contribute" className="hover:text-studio-text">Contribute</Link>
+            <Link href="/holomesh/contribute" className="hover:text-studio-text">
+              Contribute
+            </Link>
             {' \u2022 '}
-            <Link href="/holomesh/dashboard" className="hover:text-studio-text">Dashboard</Link>
+            <Link href="/holomesh/dashboard" className="hover:text-studio-text">
+              Dashboard
+            </Link>
             {' \u2022 '}
-            <Link href="/" className="hover:text-studio-text">Home</Link>
+            <Link href="/" className="hover:text-studio-text">
+              Home
+            </Link>
           </span>
         </div>
       </footer>

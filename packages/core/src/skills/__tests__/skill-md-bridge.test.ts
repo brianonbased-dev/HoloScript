@@ -356,13 +356,13 @@ describe('parseHsplus', () => {
     const traits = result.data!.traits;
     expect(traits).toHaveLength(3);
 
-    const rateLimiter = traits.find(t => t.name === 'rate_limiter');
+    const rateLimiter = traits.find((t) => t.name === 'rate_limiter');
     expect(rateLimiter).toBeDefined();
     expect(Object.keys(rateLimiter!.config)).toHaveLength(0);
 
-    const economy = traits.find(t => t.name === 'economy');
+    const economy = traits.find((t) => t.name === 'economy');
     expect(economy).toBeDefined();
-    expect(economy!.config.default_spend_limit).toBe(0.10);
+    expect(economy!.config.default_spend_limit).toBe(0.1);
   });
 
   it('should extract state variables', () => {
@@ -370,12 +370,12 @@ describe('parseHsplus', () => {
     const state = result.data!.state;
     expect(state.length).toBeGreaterThanOrEqual(5);
 
-    const phase = state.find(s => s.name === 'phase');
+    const phase = state.find((s) => s.name === 'phase');
     expect(phase).toBeDefined();
     expect(phase!.type).toBe('string');
     expect(phase!.defaultValue).toBe('idle');
 
-    const healthScore = state.find(s => s.name === 'healthScore');
+    const healthScore = state.find((s) => s.name === 'healthScore');
     expect(healthScore).toBeDefined();
     expect(healthScore!.type).toBe('number');
     expect(healthScore!.defaultValue).toBe(1.0);
@@ -386,7 +386,7 @@ describe('parseHsplus', () => {
     const steps = result.data!.steps;
     expect(steps.length).toBeGreaterThanOrEqual(1);
 
-    const healthCheck = steps.find(s => s.action === 'health-check');
+    const healthCheck = steps.find((s) => s.action === 'health-check');
     expect(healthCheck).toBeDefined();
     expect(healthCheck!.nodeType).toBe('sequence');
   });
@@ -415,7 +415,7 @@ describe('parseHsplus', () => {
 
   it('should extract spend limit from economy trait', () => {
     const result = parseHsplus(CODE_HEALTH_HSPLUS);
-    expect(result.data!.metadata.spendLimit).toBe(0.10);
+    expect(result.data!.metadata.spendLimit).toBe(0.1);
   });
 
   it('should fail on invalid input', () => {
@@ -426,7 +426,7 @@ describe('parseHsplus', () => {
 
   it('should handle boolean state variables', () => {
     const result = parseHsplus(PHOTO_HOLOGRAM_HSPLUS);
-    const depthReady = result.data!.state.find(s => s.name === 'depthReady');
+    const depthReady = result.data!.state.find((s) => s.name === 'depthReady');
     expect(depthReady).toBeDefined();
     expect(depthReady!.type).toBe('boolean');
     expect(depthReady!.defaultValue).toBe(false);
@@ -573,17 +573,17 @@ describe('parseSkillMd', () => {
     const state = result.data!.state;
     expect(state).toHaveLength(3);
 
-    const greeting = state.find(s => s.name === 'greeting');
+    const greeting = state.find((s) => s.name === 'greeting');
     expect(greeting).toBeDefined();
     expect(greeting!.type).toBe('string');
     expect(greeting!.defaultValue).toBe('hello');
 
-    const count = state.find(s => s.name === 'count');
+    const count = state.find((s) => s.name === 'count');
     expect(count).toBeDefined();
     expect(count!.type).toBe('number');
     expect(count!.defaultValue).toBe(0);
 
-    const active = state.find(s => s.name === 'active');
+    const active = state.find((s) => s.name === 'active');
     expect(active).toBeDefined();
     expect(active!.type).toBe('boolean');
     expect(active!.defaultValue).toBe(false);
@@ -594,7 +594,7 @@ describe('parseSkillMd', () => {
     const steps = result.data!.steps;
     expect(steps.length).toBeGreaterThan(0);
 
-    const actions = steps.filter(s => s.nodeType === 'action');
+    const actions = steps.filter((s) => s.nodeType === 'action');
     expect(actions.length).toBeGreaterThanOrEqual(3);
   });
 
@@ -642,7 +642,7 @@ A minimal skill.
     const result = parseSkillMd(mdNoTraits);
     expect(result.success).toBe(true);
     expect(result.data!.traits).toHaveLength(3); // default: rate_limiter, economy, timeout_guard
-    expect(result.data!.traits.map(t => t.name)).toContain('rate_limiter');
+    expect(result.data!.traits.map((t) => t.name)).toContain('rate_limiter');
   });
 });
 
@@ -748,8 +748,8 @@ describe('round-trip: .hsplus -> SKILL.md -> .hsplus', () => {
     const parsed1 = parseHsplus(CODE_HEALTH_HSPLUS);
     const md = toSkillMd(parsed1.data!).data!;
     const parsed2 = parseSkillMd(md);
-    const names1 = parsed1.data!.state.map(s => s.name).sort();
-    const names2 = parsed2.data!.state.map(s => s.name).sort();
+    const names1 = parsed1.data!.state.map((s) => s.name).sort();
+    const names2 = parsed2.data!.state.map((s) => s.name).sort();
     expect(names2).toEqual(names1);
   });
 
@@ -837,7 +837,9 @@ describe('ClawHub integration', () => {
 
   it('should generate publish command', () => {
     const cmd = getPublishCommand('code-health');
-    expect(cmd).toBe('clawhub publish @holoscript/code-health --registry https://registry.clawhub.com');
+    expect(cmd).toBe(
+      'clawhub publish @holoscript/code-health --registry https://registry.clawhub.com'
+    );
   });
 
   it('should generate publish command with custom registry', () => {
@@ -847,7 +849,9 @@ describe('ClawHub integration', () => {
 
   it('should generate install command', () => {
     const cmd = getInstallCommand('code-health');
-    expect(cmd).toBe('clawhub install @holoscript/code-health --target compositions/skills --registry https://registry.clawhub.com');
+    expect(cmd).toBe(
+      'clawhub install @holoscript/code-health --target compositions/skills --registry https://registry.clawhub.com'
+    );
   });
 
   it('should generate hs install command', () => {
@@ -901,7 +905,7 @@ describe('edge cases', () => {
 `;
     const result = parseHsplus(source);
     expect(result.success).toBe(true);
-    const rl = result.data!.traits.find(t => t.name === 'rate_limiter');
+    const rl = result.data!.traits.find((t) => t.name === 'rate_limiter');
     expect(rl).toBeDefined();
     expect(rl!.config.max_tokens).toBe(5);
     expect(rl!.config.refill_rate).toBe(1);
@@ -1053,13 +1057,13 @@ describe('input/output schema from .hsplus', () => {
     expect(result.data!.metadata.inputSchema).toBeDefined();
     expect(result.data!.metadata.inputSchema).toHaveLength(2);
 
-    const urlField = result.data!.metadata.inputSchema!.find(f => f.name === 'url');
+    const urlField = result.data!.metadata.inputSchema!.find((f) => f.name === 'url');
     expect(urlField).toBeDefined();
     expect(urlField!.type).toBe('string');
     expect(urlField!.required).toBe(true);
     expect(urlField!.description).toBe('URL to fetch');
 
-    const formatField = result.data!.metadata.inputSchema!.find(f => f.name === 'format');
+    const formatField = result.data!.metadata.inputSchema!.find((f) => f.name === 'format');
     expect(formatField).toBeDefined();
     expect(formatField!.type).toBe('string');
     expect(formatField!.description).toBe('Response format');
@@ -1071,11 +1075,11 @@ describe('input/output schema from .hsplus', () => {
     expect(result.data!.metadata.outputSchema).toBeDefined();
     expect(result.data!.metadata.outputSchema).toHaveLength(2);
 
-    const contentField = result.data!.metadata.outputSchema!.find(f => f.name === 'content');
+    const contentField = result.data!.metadata.outputSchema!.find((f) => f.name === 'content');
     expect(contentField).toBeDefined();
     expect(contentField!.type).toBe('string');
 
-    const statusField = result.data!.metadata.outputSchema!.find(f => f.name === 'status');
+    const statusField = result.data!.metadata.outputSchema!.find((f) => f.name === 'status');
     expect(statusField).toBeDefined();
     expect(statusField!.type).toBe('number');
   });
@@ -1099,13 +1103,13 @@ describe('input/output schema from SKILL.md', () => {
     expect(result.data!.metadata.inputSchema).toBeDefined();
     expect(result.data!.metadata.inputSchema).toHaveLength(2);
 
-    const urlField = result.data!.metadata.inputSchema!.find(f => f.name === 'url');
+    const urlField = result.data!.metadata.inputSchema!.find((f) => f.name === 'url');
     expect(urlField).toBeDefined();
     expect(urlField!.type).toBe('string');
     expect(urlField!.required).toBe(true);
     expect(urlField!.description).toBe('URL to fetch');
 
-    const formatField = result.data!.metadata.inputSchema!.find(f => f.name === 'format');
+    const formatField = result.data!.metadata.inputSchema!.find((f) => f.name === 'format');
     expect(formatField).toBeDefined();
     expect(formatField!.type).toBe('string');
     expect(formatField!.default).toBe('text');
@@ -1117,7 +1121,7 @@ describe('input/output schema from SKILL.md', () => {
     expect(result.data!.metadata.outputSchema).toBeDefined();
     expect(result.data!.metadata.outputSchema).toHaveLength(2);
 
-    const contentField = result.data!.metadata.outputSchema!.find(f => f.name === 'content');
+    const contentField = result.data!.metadata.outputSchema!.find((f) => f.name === 'content');
     expect(contentField).toBeDefined();
     expect(contentField!.type).toBe('string');
     expect(contentField!.description).toBe('Response body content');
@@ -1178,13 +1182,13 @@ describe('toHoloClawSkill', () => {
     const holoClaw = toHoloClawSkill(result.data!);
 
     expect(holoClaw.inputs).toHaveLength(2);
-    const urlInput = holoClaw.inputs.find(i => i.name === 'url');
+    const urlInput = holoClaw.inputs.find((i) => i.name === 'url');
     expect(urlInput).toBeDefined();
     expect(urlInput!.type).toBe('string');
     expect(urlInput!.required).toBe(true);
     expect(urlInput!.description).toBe('URL to fetch');
 
-    const formatInput = holoClaw.inputs.find(i => i.name === 'format');
+    const formatInput = holoClaw.inputs.find((i) => i.name === 'format');
     expect(formatInput).toBeDefined();
     expect(formatInput!.required).toBe(false);
     expect(formatInput!.default).toBe('text');
@@ -1195,7 +1199,7 @@ describe('toHoloClawSkill', () => {
     const holoClaw = toHoloClawSkill(result.data!);
 
     expect(holoClaw.outputs).toHaveLength(2);
-    const contentOutput = holoClaw.outputs.find(o => o.name === 'content');
+    const contentOutput = holoClaw.outputs.find((o) => o.name === 'content');
     expect(contentOutput).toBeDefined();
     expect(contentOutput!.type).toBe('string');
   });
@@ -1219,11 +1223,14 @@ describe('fromHoloClawSkill', () => {
       author: 'holoscript',
       inputs: [
         { name: 'json', type: 'string', required: true, description: 'JSON string to transform' },
-        { name: 'path', type: 'string', required: false, description: 'Dot-notation path to extract' },
+        {
+          name: 'path',
+          type: 'string',
+          required: false,
+          description: 'Dot-notation path to extract',
+        },
       ],
-      outputs: [
-        { name: 'result', type: 'object', description: 'Transformed result' },
-      ],
+      outputs: [{ name: 'result', type: 'object', description: 'Transformed result' }],
       sandbox: false,
     };
 
@@ -1242,12 +1249,8 @@ describe('fromHoloClawSkill', () => {
       description: 'test',
       version: '1.0.0',
       author: 'test',
-      inputs: [
-        { name: 'data', type: 'string', required: true, description: 'Input data' },
-      ],
-      outputs: [
-        { name: 'result', type: 'string', description: 'Output result' },
-      ],
+      inputs: [{ name: 'data', type: 'string', required: true, description: 'Input data' }],
+      outputs: [{ name: 'result', type: 'string', description: 'Output result' }],
       sandbox: true,
     };
 
@@ -1278,9 +1281,9 @@ describe('fromHoloClawSkill', () => {
     const parsed = fromHoloClawSkill(holoClaw);
 
     expect(parsed.traits).toHaveLength(3);
-    expect(parsed.traits.map(t => t.name)).toContain('rate_limiter');
-    expect(parsed.traits.map(t => t.name)).toContain('economy');
-    expect(parsed.traits.map(t => t.name)).toContain('timeout_guard');
+    expect(parsed.traits.map((t) => t.name)).toContain('rate_limiter');
+    expect(parsed.traits.map((t) => t.name)).toContain('economy');
+    expect(parsed.traits.map((t) => t.name)).toContain('timeout_guard');
   });
 
   it('should produce valid SKILL.md when serialized', () => {
@@ -1290,12 +1293,8 @@ describe('fromHoloClawSkill', () => {
       description: 'Fetch content from a URL',
       version: '1.0.0',
       author: 'holoscript',
-      inputs: [
-        { name: 'url', type: 'string', required: true, description: 'URL to fetch' },
-      ],
-      outputs: [
-        { name: 'content', type: 'string', description: 'Response content' },
-      ],
+      inputs: [{ name: 'url', type: 'string', required: true, description: 'URL to fetch' }],
+      outputs: [{ name: 'content', type: 'string', description: 'Response content' }],
       sandbox: false,
     };
 
@@ -1317,12 +1316,8 @@ describe('fromHoloClawSkill', () => {
       description: 'Fetch content from a URL',
       version: '1.0.0',
       author: 'holoscript',
-      inputs: [
-        { name: 'url', type: 'string', required: true, description: 'URL to fetch' },
-      ],
-      outputs: [
-        { name: 'content', type: 'string', description: 'Response content' },
-      ],
+      inputs: [{ name: 'url', type: 'string', required: true, description: 'URL to fetch' }],
+      outputs: [{ name: 'content', type: 'string', description: 'Response content' }],
       sandbox: false,
     };
 
@@ -1346,8 +1341,8 @@ describe('round-trip with schemas', () => {
     const parsed2 = parseSkillMd(md);
 
     expect(parsed2.data!.metadata.inputSchema).toBeDefined();
-    const names1 = parsed1.data!.metadata.inputSchema!.map(f => f.name).sort();
-    const names2 = parsed2.data!.metadata.inputSchema!.map(f => f.name).sort();
+    const names1 = parsed1.data!.metadata.inputSchema!.map((f) => f.name).sort();
+    const names2 = parsed2.data!.metadata.inputSchema!.map((f) => f.name).sort();
     expect(names2).toEqual(names1);
   });
 
@@ -1357,8 +1352,8 @@ describe('round-trip with schemas', () => {
     const parsed2 = parseSkillMd(md);
 
     expect(parsed2.data!.metadata.outputSchema).toBeDefined();
-    const names1 = parsed1.data!.metadata.outputSchema!.map(f => f.name).sort();
-    const names2 = parsed2.data!.metadata.outputSchema!.map(f => f.name).sort();
+    const names1 = parsed1.data!.metadata.outputSchema!.map((f) => f.name).sort();
+    const names2 = parsed2.data!.metadata.outputSchema!.map((f) => f.name).sort();
     expect(names2).toEqual(names1);
   });
 

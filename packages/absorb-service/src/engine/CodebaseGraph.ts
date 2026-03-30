@@ -79,7 +79,7 @@ export class CodebaseGraph {
   private importedByFile: Map<string, Set<string>> = new Map();
   private callerIndex: Map<string, CallEdge[]> = new Map(); // calleeName -> edges
   private calleeIndex: Map<string, CallEdge[]> = new Map(); // callerId -> edges
-  
+
   /** 3D Node positions for spatial persistence (makeObjectId(sym) -> [x,y,z]) */
   public nodePositions: Map<string, [number, number, number]> = new Map();
 
@@ -432,8 +432,8 @@ export class CodebaseGraph {
     }
 
     // Filter out imports and calls originating from this file
-    this.imports = this.imports.filter(imp => imp.fromFile !== filePath);
-    this.calls = this.calls.filter(call => call.filePath !== filePath);
+    this.imports = this.imports.filter((imp) => imp.fromFile !== filePath);
+    this.calls = this.calls.filter((call) => call.filePath !== filePath);
 
     this._communities = null;
     return true;
@@ -499,7 +499,7 @@ export class CodebaseGraph {
     const graph = new CodebaseGraph();
     graph.rootDir = data.rootDir ?? '';
 
-    for (const file of (data.files ?? [])) {
+    for (const file of data.files ?? []) {
       graph.addFile(file);
     }
     graph.buildIndexes();

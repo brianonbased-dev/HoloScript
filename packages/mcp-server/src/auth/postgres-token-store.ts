@@ -132,23 +132,31 @@ export class PostgresTokenStore implements TokenStoreBackend {
          client_id = EXCLUDED.client_id, scopes = EXCLUDED.scopes,
          issued_at = EXCLUDED.issued_at, expires_at = EXCLUDED.expires_at,
          agent_id = EXCLUDED.agent_id, dpop_thumbprint = EXCLUDED.dpop_thumbprint`,
-      [token.token, token.clientId, token.scopes, token.issuedAt, token.expiresAt,
-       token.agentId ?? null, token.dpopThumbprint ?? null]
+      [
+        token.token,
+        token.clientId,
+        token.scopes,
+        token.issuedAt,
+        token.expiresAt,
+        token.agentId ?? null,
+        token.dpopThumbprint ?? null,
+      ]
     );
   }
 
   async deleteAccessToken(token: string): Promise<boolean> {
     await this.ensureSchema();
-    const { rowCount } = await this.pool.query(
-      'DELETE FROM oauth_access_tokens WHERE token = $1', [token]
-    );
+    const { rowCount } = await this.pool.query('DELETE FROM oauth_access_tokens WHERE token = $1', [
+      token,
+    ]);
     return (rowCount ?? 0) > 0;
   }
 
   async deleteAccessTokensByClient(clientId: string): Promise<number> {
     await this.ensureSchema();
     const { rowCount } = await this.pool.query(
-      'DELETE FROM oauth_access_tokens WHERE client_id = $1', [clientId]
+      'DELETE FROM oauth_access_tokens WHERE client_id = $1',
+      [clientId]
     );
     return rowCount ?? 0;
   }
@@ -184,15 +192,23 @@ export class PostgresTokenStore implements TokenStoreBackend {
          client_id = EXCLUDED.client_id, scopes = EXCLUDED.scopes,
          issued_at = EXCLUDED.issued_at, expires_at = EXCLUDED.expires_at,
          chain_id = EXCLUDED.chain_id, used = EXCLUDED.used`,
-      [token.token, token.clientId, token.scopes, token.issuedAt, token.expiresAt,
-       token.chainId, token.used]
+      [
+        token.token,
+        token.clientId,
+        token.scopes,
+        token.issuedAt,
+        token.expiresAt,
+        token.chainId,
+        token.used,
+      ]
     );
   }
 
   async deleteRefreshToken(token: string): Promise<boolean> {
     await this.ensureSchema();
     const { rowCount } = await this.pool.query(
-      'DELETE FROM oauth_refresh_tokens WHERE token = $1', [token]
+      'DELETE FROM oauth_refresh_tokens WHERE token = $1',
+      [token]
     );
     return (rowCount ?? 0) > 0;
   }
@@ -207,16 +223,15 @@ export class PostgresTokenStore implements TokenStoreBackend {
       [clientId, Date.now()]
     );
     const { rowCount } = await this.pool.query(
-      'DELETE FROM oauth_refresh_tokens WHERE client_id = $1', [clientId]
+      'DELETE FROM oauth_refresh_tokens WHERE client_id = $1',
+      [clientId]
     );
     return rowCount ?? 0;
   }
 
   async markRefreshTokenUsed(token: string): Promise<void> {
     await this.ensureSchema();
-    await this.pool.query(
-      'UPDATE oauth_refresh_tokens SET used = TRUE WHERE token = $1', [token]
-    );
+    await this.pool.query('UPDATE oauth_refresh_tokens SET used = TRUE WHERE token = $1', [token]);
   }
 
   // ── Authorization Codes ───────────────────────────────────────────────
@@ -252,24 +267,30 @@ export class PostgresTokenStore implements TokenStoreBackend {
          scopes = EXCLUDED.scopes, code_challenge = EXCLUDED.code_challenge,
          code_challenge_method = EXCLUDED.code_challenge_method,
          expires_at = EXCLUDED.expires_at, used = EXCLUDED.used`,
-      [code.code, code.clientId, code.redirectUri, code.scopes,
-       code.codeChallenge, code.codeChallengeMethod, code.expiresAt, code.used]
+      [
+        code.code,
+        code.clientId,
+        code.redirectUri,
+        code.scopes,
+        code.codeChallenge,
+        code.codeChallengeMethod,
+        code.expiresAt,
+        code.used,
+      ]
     );
   }
 
   async deleteAuthorizationCode(code: string): Promise<boolean> {
     await this.ensureSchema();
-    const { rowCount } = await this.pool.query(
-      'DELETE FROM oauth_auth_codes WHERE code = $1', [code]
-    );
+    const { rowCount } = await this.pool.query('DELETE FROM oauth_auth_codes WHERE code = $1', [
+      code,
+    ]);
     return (rowCount ?? 0) > 0;
   }
 
   async markAuthorizationCodeUsed(code: string): Promise<void> {
     await this.ensureSchema();
-    await this.pool.query(
-      'UPDATE oauth_auth_codes SET used = TRUE WHERE code = $1', [code]
-    );
+    await this.pool.query('UPDATE oauth_auth_codes SET used = TRUE WHERE code = $1', [code]);
   }
 
   // ── Clients ───────────────────────────────────────────────────────────
@@ -305,16 +326,24 @@ export class PostgresTokenStore implements TokenStoreBackend {
          redirect_uris = EXCLUDED.redirect_uris, scopes = EXCLUDED.scopes,
          created_at = EXCLUDED.created_at, client_type = EXCLUDED.client_type,
          rate_limit = EXCLUDED.rate_limit`,
-      [client.clientId, client.clientSecretHash, client.clientName,
-       client.redirectUris, client.scopes, client.createdAt, client.clientType, client.rateLimit]
+      [
+        client.clientId,
+        client.clientSecretHash,
+        client.clientName,
+        client.redirectUris,
+        client.scopes,
+        client.createdAt,
+        client.clientType,
+        client.rateLimit,
+      ]
     );
   }
 
   async deleteClient(clientId: string): Promise<boolean> {
     await this.ensureSchema();
-    const { rowCount } = await this.pool.query(
-      'DELETE FROM oauth_clients WHERE client_id = $1', [clientId]
-    );
+    const { rowCount } = await this.pool.query('DELETE FROM oauth_clients WHERE client_id = $1', [
+      clientId,
+    ]);
     return (rowCount ?? 0) > 0;
   }
 
@@ -329,7 +358,8 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async isChainRevoked(chainId: string): Promise<boolean> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      'SELECT 1 FROM oauth_revoked_chains WHERE chain_id = $1 LIMIT 1', [chainId]
+      'SELECT 1 FROM oauth_revoked_chains WHERE chain_id = $1 LIMIT 1',
+      [chainId]
     );
     return rows.length > 0;
   }
@@ -351,17 +381,19 @@ export class PostgresTokenStore implements TokenStoreBackend {
     let removed = 0;
 
     const r1 = await this.pool.query(
-      'DELETE FROM oauth_auth_codes WHERE expires_at < $1 OR used = TRUE', [now]
+      'DELETE FROM oauth_auth_codes WHERE expires_at < $1 OR used = TRUE',
+      [now]
     );
     removed += r1.rowCount ?? 0;
 
-    const r2 = await this.pool.query(
-      'DELETE FROM oauth_access_tokens WHERE expires_at < $1', [now]
-    );
+    const r2 = await this.pool.query('DELETE FROM oauth_access_tokens WHERE expires_at < $1', [
+      now,
+    ]);
     removed += r2.rowCount ?? 0;
 
     const r3 = await this.pool.query(
-      'DELETE FROM oauth_refresh_tokens WHERE expires_at < $1 OR used = TRUE', [now]
+      'DELETE FROM oauth_refresh_tokens WHERE expires_at < $1 OR used = TRUE',
+      [now]
     );
     removed += r3.rowCount ?? 0;
 
@@ -376,9 +408,17 @@ export class PostgresTokenStore implements TokenStoreBackend {
 
     const [clients, at, rt, codes, chains] = await Promise.all([
       this.pool.query('SELECT COUNT(*)::int AS c FROM oauth_clients'),
-      this.pool.query('SELECT COUNT(*)::int AS c FROM oauth_access_tokens WHERE expires_at > $1', [now]),
-      this.pool.query('SELECT COUNT(*)::int AS c FROM oauth_refresh_tokens WHERE expires_at > $1 AND used = FALSE', [now]),
-      this.pool.query('SELECT COUNT(*)::int AS c FROM oauth_auth_codes WHERE expires_at > $1 AND used = FALSE', [now]),
+      this.pool.query('SELECT COUNT(*)::int AS c FROM oauth_access_tokens WHERE expires_at > $1', [
+        now,
+      ]),
+      this.pool.query(
+        'SELECT COUNT(*)::int AS c FROM oauth_refresh_tokens WHERE expires_at > $1 AND used = FALSE',
+        [now]
+      ),
+      this.pool.query(
+        'SELECT COUNT(*)::int AS c FROM oauth_auth_codes WHERE expires_at > $1 AND used = FALSE',
+        [now]
+      ),
       this.pool.query('SELECT COUNT(*)::int AS c FROM oauth_revoked_chains'),
     ]);
 

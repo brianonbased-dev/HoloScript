@@ -172,7 +172,7 @@ describe('MLSMPMFluid', () => {
     it('particle volume equals domain^3 / count', async () => {
       await fluid.init(testDevice!);
       const positions = fluid.generateParticleBlock([0, 0, 0], [5, 5, 5]);
-      const expectedVolume = (10 ** 3) / 1000; // domainSize=10, particleCount=1000
+      const expectedVolume = 10 ** 3 / 1000; // domainSize=10, particleCount=1000
       expect(positions[3]).toBeCloseTo(expectedVolume, 5);
     });
 

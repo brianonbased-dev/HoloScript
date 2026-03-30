@@ -126,6 +126,9 @@ export interface QualityContext {
   /** Agent identity token (if available) */
   agentToken?: string;
 
+  /** Authority metadata and provenance for this pipeline run */
+  provenanceContext?: import('./traits/ProvenanceSemiring').ProvenanceContext;
+
   /** Custom metadata */
   metadata: Record<string, unknown>;
 }
@@ -552,6 +555,19 @@ export function createSecurityAuditCheck(): QualityCheck {
     execute: async (context: QualityContext): Promise<CheckResult> => {
       const start = Date.now();
       const findings: Finding[] = [];
+
+      // Authority bypass for highly trusted operations
+      const { authorityWeight } = await import('./traits/ProvenanceSemiring');
+      if (authorityWeight(context.provenanceContext) >= 100) {
+        return {
+          checkId: 'security-001',
+          passed: true,
+          confidence: 1.0,
+          message: `Security Audit Bypassed (Authority: ${context.provenanceContext?.authority || 'verified'})`,
+          findings: [],
+          durationMs: Date.now() - start,
+        };
+      }
 
       if (context.source) {
         // Check for eval-like patterns

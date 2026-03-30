@@ -90,8 +90,20 @@ describe('TraceWaterfallRenderer', () => {
 
     it('sorts children by start time', () => {
       const parent = makeSpan({ spanId: 'p', startTime: 0, endTime: 100 });
-      const child2 = makeSpan({ spanId: 'c2', parentSpanId: 'p', startTime: 50, endTime: 80, name: 'second' });
-      const child1 = makeSpan({ spanId: 'c1', parentSpanId: 'p', startTime: 10, endTime: 40, name: 'first' });
+      const child2 = makeSpan({
+        spanId: 'c2',
+        parentSpanId: 'p',
+        startTime: 50,
+        endTime: 80,
+        name: 'second',
+      });
+      const child1 = makeSpan({
+        spanId: 'c1',
+        parentSpanId: 'p',
+        startTime: 10,
+        endTime: 40,
+        name: 'first',
+      });
 
       // Pass in wrong order
       const result = renderer.render([parent, child2, child1]);
@@ -107,8 +119,18 @@ describe('TraceWaterfallRenderer', () => {
   describe('agent colors', () => {
     it('assigns different colors per agent', () => {
       const spans = [
-        makeSpan({ spanId: 'a', startTime: 0, endTime: 100, attributes: { agentId: 'agent-alpha' } }),
-        makeSpan({ spanId: 'b', startTime: 50, endTime: 150, attributes: { agentId: 'agent-beta' } }),
+        makeSpan({
+          spanId: 'a',
+          startTime: 0,
+          endTime: 100,
+          attributes: { agentId: 'agent-alpha' },
+        }),
+        makeSpan({
+          spanId: 'b',
+          startTime: 50,
+          endTime: 150,
+          attributes: { agentId: 'agent-beta' },
+        }),
       ];
       const result = renderer.render(spans);
 
@@ -235,9 +257,7 @@ describe('TraceWaterfallRenderer', () => {
     it('includes span events in rows', () => {
       const span = makeSpan({
         spanId: 'e1',
-        events: [
-          { name: 'error', timestamp: 1500, attributes: { message: 'timeout' } },
-        ],
+        events: [{ name: 'error', timestamp: 1500, attributes: { message: 'timeout' } }],
       });
       const result = renderer.render([span]);
 

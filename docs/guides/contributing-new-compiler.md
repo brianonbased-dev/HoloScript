@@ -135,24 +135,27 @@ Create `docs/compilers/your-platform.md`:
 # Your Platform Compiler
 
 ## Usage
+
 holoscript compile scene.holo --target your-platform
 
 ## Supported Traits
+
 ...
 
 ## Output Format
+
 ...
 ```
 
 ## Existing Compilers (Reference)
 
-| Compiler | File | Good Example For |
-|----------|------|-----------------|
-| `UnrealCompiler` | `src/compiler/UnrealCompiler.ts` | C++ output, complex trait mapping |
-| `VisionOSCompiler` | `src/compiler/VisionOSCompiler.ts` | Swift/native platform |
-| `WebGPUCompiler` | `src/compiler/WebGPUCompiler.ts` | Shader compilation |
-| `CompilerBridge` | `src/compiler/CompilerBridge.ts` | R3F/web output, simplest example |
-| `URDFCompiler` | `src/compiler/urdf/` | XML output, domain-specific |
+| Compiler           | File                               | Good Example For                  |
+| ------------------ | ---------------------------------- | --------------------------------- |
+| `UnrealCompiler`   | `src/compiler/UnrealCompiler.ts`   | C++ output, complex trait mapping |
+| `VisionOSCompiler` | `src/compiler/VisionOSCompiler.ts` | Swift/native platform             |
+| `WebGPUCompiler`   | `src/compiler/WebGPUCompiler.ts`   | Shader compilation                |
+| `CompilerBridge`   | `src/compiler/CompilerBridge.ts`   | R3F/web output, simplest example  |
+| `URDFCompiler`     | `src/compiler/urdf/`               | XML output, domain-specific       |
 
 ## Checklist
 

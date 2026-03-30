@@ -7,6 +7,7 @@
 ## Context
 
 ### What Exists
+
 - **WeatherSystem.ts** (174 lines): State manager with 7 weather types, smooth transitions, wind/temperature/humidity/visibility/precipitation, event listeners, history tracking
 - **WeatherGovProvider.ts**: External weather data integration (Weather.gov API)
 - **weather-phenomena.visual.ts**: Visual presets for weather rendering
@@ -14,6 +15,7 @@
 - **@weather_sync trait**: Declared in VRRTraits.ts but NOT implemented
 
 ### What's Missing (GAPS W.157)
+
 - **Physics coupling**: Weather state does NOT drive physics parameters. Wind doesn't affect cloth/particles, rain doesn't change friction coefficients.
 - **Hub architecture**: Weather is isolated — not a "hub" that multiple traits read from
 - **Blackboard state**: No shared blackboard for consumer traits to query
@@ -46,23 +48,23 @@
 
 export interface WeatherBlackboard {
   // Core state (updated by @weather trait)
-  wind_vector: [number, number, number];     // Direction + magnitude
-  precipitation: number;                      // 0-1 intensity
+  wind_vector: [number, number, number]; // Direction + magnitude
+  precipitation: number; // 0-1 intensity
   precipitation_type: 'none' | 'rain' | 'snow' | 'hail';
-  temperature: number;                        // Celsius
-  humidity: number;                           // 0-1
-  sun_position: [number, number, number];    // Normalized direction vector
-  sun_intensity: number;                      // 0-1 (0 at night)
-  cloud_density: number;                      // 0-1
-  cloud_altitude: number;                     // Meters
-  fog_density: number;                        // 0-1
-  time_of_day: number;                        // 0-24 hours (fractional)
+  temperature: number; // Celsius
+  humidity: number; // 0-1
+  sun_position: [number, number, number]; // Normalized direction vector
+  sun_intensity: number; // 0-1 (0 at night)
+  cloud_density: number; // 0-1
+  cloud_altitude: number; // Meters
+  fog_density: number; // 0-1
+  time_of_day: number; // 0-24 hours (fractional)
 
   // Derived (computed from core state)
-  is_night: boolean;                          // sun_intensity < 0.1
-  surface_wetness: number;                    // Accumulated precipitation
-  wind_speed: number;                         // Magnitude of wind_vector
-  visibility_range: number;                   // Meters (from fog + precipitation)
+  is_night: boolean; // sun_intensity < 0.1
+  surface_wetness: number; // Accumulated precipitation
+  wind_speed: number; // Magnitude of wind_vector
+  visibility_range: number; // Meters (from fog + precipitation)
 }
 
 // Singleton blackboard — consumer traits import and read
@@ -72,7 +74,7 @@ export const weatherBlackboard: WeatherBlackboard = {
   precipitation_type: 'none',
   temperature: 20,
   humidity: 0.5,
-  sun_position: [0.5, 0.87, 0],  // ~60° elevation
+  sun_position: [0.5, 0.87, 0], // ~60° elevation
   sun_intensity: 1.0,
   cloud_density: 0.3,
   cloud_altitude: 2000,
@@ -92,21 +94,21 @@ export const weatherBlackboard: WeatherBlackboard = {
 
 export interface WeatherHubConfig {
   // Day-night cycle
-  day_length_seconds: number;          // Real seconds per in-game day (default: 1200 = 20 min)
-  start_time: number;                  // Starting time of day (0-24)
+  day_length_seconds: number; // Real seconds per in-game day (default: 1200 = 20 min)
+  start_time: number; // Starting time of day (0-24)
 
   // Weather presets
-  initial_weather: WeatherPreset;      // Starting conditions
-  auto_cycle: boolean;                 // Auto-transition between weather types
-  cycle_min_duration: number;          // Min seconds per weather state
-  cycle_max_duration: number;          // Max seconds per weather state
+  initial_weather: WeatherPreset; // Starting conditions
+  auto_cycle: boolean; // Auto-transition between weather types
+  cycle_min_duration: number; // Min seconds per weather state
+  cycle_max_duration: number; // Max seconds per weather state
 
   // Physics coupling strength
-  wind_physics_scale: number;          // How much wind affects physics (default: 1.0)
-  wetness_friction_modifier: number;   // Friction reduction when wet (default: 0.7)
+  wind_physics_scale: number; // How much wind affects physics (default: 1.0)
+  wetness_friction_modifier: number; // Friction reduction when wet (default: 0.7)
 
   // Persistence
-  persist_to_crdt: boolean;            // Save weather state to Loro (default: true)
+  persist_to_crdt: boolean; // Save weather state to Loro (default: true)
 }
 
 export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
@@ -166,9 +168,8 @@ const windForce = {
 
 ```typescript
 // Example: PhysicsTrait friction modification
-const frictionMod = weatherBlackboard.surface_wetness > 0.1
-  ? config.wetness_friction_modifier
-  : 1.0;
+const frictionMod =
+  weatherBlackboard.surface_wetness > 0.1 ? config.wetness_friction_modifier : 1.0;
 // Apply frictionMod to ground contact friction
 ```
 
@@ -183,8 +184,9 @@ sun_elevation: -90° ── 0° ──── max ──── 0° ──── -
 ```
 
 Sun position computed as:
+
 ```typescript
-const hourAngle = (timeOfDay - 12) * (Math.PI / 12);  // -π to π
+const hourAngle = (timeOfDay - 12) * (Math.PI / 12); // -π to π
 const elevation = Math.cos(hourAngle) * maxElevation;
 sunPosition = [
   Math.cos(hourAngle) * Math.cos(latitude),
@@ -196,6 +198,7 @@ sunPosition = [
 ### Bridge to Existing WeatherSystem
 
 WeatherHubTrait wraps the existing `WeatherSystem` class and adds:
+
 1. Blackboard writes (the system already has the state — just expose it)
 2. Day-night cycle (new)
 3. Physics coupling parameters (new)
@@ -234,24 +237,24 @@ world MyWorld {
 
 ## Files Changed
 
-| File | Action |
-|------|--------|
-| `src/environment/WeatherBlackboard.ts` | **NEW** — Singleton blackboard state |
-| `src/traits/WeatherHubTrait.ts` | **NEW** — @weather hub trait handler |
-| `src/environment/WeatherSystem.ts` | Add blackboard write in state update |
-| `src/traits/ClothTrait.ts` | Add wind force from blackboard (if exists) |
-| `src/traits/FluidTrait.ts` | Add wind surface wave force (after MLS-MPM) |
-| `src/traits/constants/environment-input.ts` | Add 'weather' to trait list |
+| File                                        | Action                                      |
+| ------------------------------------------- | ------------------------------------------- |
+| `src/environment/WeatherBlackboard.ts`      | **NEW** — Singleton blackboard state        |
+| `src/traits/WeatherHubTrait.ts`             | **NEW** — @weather hub trait handler        |
+| `src/environment/WeatherSystem.ts`          | Add blackboard write in state update        |
+| `src/traits/ClothTrait.ts`                  | Add wind force from blackboard (if exists)  |
+| `src/traits/FluidTrait.ts`                  | Add wind surface wave force (after MLS-MPM) |
+| `src/traits/constants/environment-input.ts` | Add 'weather' to trait list                 |
 
 ## Test Targets
 
-| Test | Target | Method |
-|------|--------|--------|
-| Blackboard propagation | Changes reach consumers in same frame | Unit test |
-| Day-night cycle | Correct sun position over 24h | Unit test: step through 24h of sim time |
-| Wind → cloth | Cloth moves when wind blows | Integration test with PBD |
-| Rain → friction | Surface friction decreases when wet | Physics integration test |
-| CRDT persistence | Weather state survives session restart | Integration with WorldState |
+| Test                   | Target                                 | Method                                  |
+| ---------------------- | -------------------------------------- | --------------------------------------- |
+| Blackboard propagation | Changes reach consumers in same frame  | Unit test                               |
+| Day-night cycle        | Correct sun position over 24h          | Unit test: step through 24h of sim time |
+| Wind → cloth           | Cloth moves when wind blows            | Integration test with PBD               |
+| Rain → friction        | Surface friction decreases when wet    | Physics integration test                |
+| CRDT persistence       | Weather state survives session restart | Integration with WorldState             |
 
 ## Dependencies
 

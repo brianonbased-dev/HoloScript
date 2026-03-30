@@ -52,13 +52,38 @@ const DEFAULT_OPTIONS: VisualToASTOptions = {
  */
 const TRANSLATION_RULES: NodeTranslationRule[] = [
   // Event nodes -> event handlers in AST
-  { visualType: 'on_click', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
-  { visualType: 'on_hover', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
+  {
+    visualType: 'on_click',
+    astType: 'event-handler',
+    strategy: 'event-handler',
+    category: 'event',
+  },
+  {
+    visualType: 'on_hover',
+    astType: 'event-handler',
+    strategy: 'event-handler',
+    category: 'event',
+  },
   { visualType: 'on_grab', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
   { visualType: 'on_tick', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
-  { visualType: 'on_timer', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
-  { visualType: 'on_collision', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
-  { visualType: 'on_trigger', astType: 'event-handler', strategy: 'event-handler', category: 'event' },
+  {
+    visualType: 'on_timer',
+    astType: 'event-handler',
+    strategy: 'event-handler',
+    category: 'event',
+  },
+  {
+    visualType: 'on_collision',
+    astType: 'event-handler',
+    strategy: 'event-handler',
+    category: 'event',
+  },
+  {
+    visualType: 'on_trigger',
+    astType: 'event-handler',
+    strategy: 'event-handler',
+    category: 'event',
+  },
 
   // Action nodes -> action statements in AST
   { visualType: 'play_sound', astType: 'action', strategy: 'action', category: 'action' },
@@ -397,17 +422,23 @@ export class VisualToAST {
     const handlerNode: ASTNode = {
       type: 'event-handler',
       id: eventNode.id,
-      directives: [{
-        type: 'lifecycle',
-        hook: handlerName,
-        body: body,
-      }],
+      directives: [
+        {
+          type: 'lifecycle',
+          hook: handlerName,
+          body: body,
+        },
+      ],
     };
 
     return handlerNode;
   }
 
-  private translateFlow(ctx: TranslationContext, outputPort: string, graph: VisualGraph): ASTNode[] {
+  private translateFlow(
+    ctx: TranslationContext,
+    outputPort: string,
+    graph: VisualGraph
+  ): ASTNode[] {
     const body: ASTNode[] = [];
 
     // Find edges from this output port
@@ -459,32 +490,36 @@ export class VisualToAST {
         return {
           type: 'action',
           id: ctx.node.id,
-          directives: [{
-            type: 'trait',
-            name: 'audio',
-            config: {
-              action: 'play',
-              url: props.url || 'sound.mp3',
-              volume: props.volume ?? 1,
-              loop: props.loop ?? false,
+          directives: [
+            {
+              type: 'trait',
+              name: 'audio',
+              config: {
+                action: 'play',
+                url: props.url || 'sound.mp3',
+                volume: props.volume ?? 1,
+                loop: props.loop ?? false,
+              },
             },
-          }],
+          ],
         };
 
       case 'play_animation':
         return {
           type: 'action',
           id: ctx.node.id,
-          directives: [{
-            type: 'trait',
-            name: 'animation',
-            config: {
-              action: 'play',
-              animation: props.animation || 'default',
-              duration: props.duration || 1000,
-              loop: props.loop ?? false,
+          directives: [
+            {
+              type: 'trait',
+              name: 'animation',
+              config: {
+                action: 'play',
+                animation: props.animation || 'default',
+                duration: props.duration || 1000,
+                loop: props.loop ?? false,
+              },
             },
-          }],
+          ],
         };
 
       case 'set_property': {
@@ -492,13 +527,15 @@ export class VisualToAST {
         return {
           type: 'assignment',
           id: ctx.node.id,
-          directives: [{
-            type: 'state',
-            body: {
-              property: props.property || 'color',
-              value,
+          directives: [
+            {
+              type: 'state',
+              body: {
+                property: props.property || 'color',
+                value,
+              },
             },
-          }],
+          ],
         };
       }
 
@@ -506,26 +543,30 @@ export class VisualToAST {
         return {
           type: 'assignment',
           id: ctx.node.id,
-          directives: [{
-            type: 'state',
-            body: {
-              property: props.property || 'visible',
-              toggle: true,
+          directives: [
+            {
+              type: 'state',
+              body: {
+                property: props.property || 'visible',
+                toggle: true,
+              },
             },
-          }],
+          ],
         };
 
       case 'spawn':
         return {
           type: 'action',
           id: ctx.node.id,
-          directives: [{
-            type: 'trait',
-            name: 'spawn',
-            config: {
-              template: props.template || 'default',
+          directives: [
+            {
+              type: 'trait',
+              name: 'spawn',
+              config: {
+                template: props.template || 'default',
+              },
             },
-          }],
+          ],
         };
 
       case 'destroy':
@@ -543,14 +584,16 @@ export class VisualToAST {
         return {
           type: 'gate',
           id: ctx.node.id,
-          directives: [{
-            type: 'state',
-            body: {
-              condition,
-              truePath: trueBranch,
-              falsePath: falseBranch,
+          directives: [
+            {
+              type: 'state',
+              body: {
+                condition,
+                truePath: trueBranch,
+                falsePath: falseBranch,
+              },
             },
-          }],
+          ],
         };
       }
 
@@ -579,7 +622,11 @@ export class VisualToAST {
     return this.translateDataNode(sourceCtx, inputEdge.sourceHandle || 'value', graph);
   }
 
-  private translateDataNode(ctx: TranslationContext, _outputPort: string, graph: VisualGraph): unknown {
+  private translateDataNode(
+    ctx: TranslationContext,
+    _outputPort: string,
+    graph: VisualGraph
+  ): unknown {
     const props = ctx.data.properties;
 
     switch (ctx.data.type) {
@@ -788,7 +835,11 @@ export class VisualToAST {
     return lines.join('\n');
   }
 
-  private generateEventHandlerCode(eventNode: HoloNode, graph: VisualGraph, depth: number): string[] {
+  private generateEventHandlerCode(
+    eventNode: HoloNode,
+    graph: VisualGraph,
+    depth: number
+  ): string[] {
     const lines: string[] = [];
     const handlerName = this.eventTypeToHandlerName(eventNode.data.type);
     const flowPort = this.getEventFlowPort(eventNode.data.type);
@@ -820,7 +871,7 @@ export class VisualToAST {
     ctx: TranslationContext,
     outputPort: string,
     graph: VisualGraph,
-    depth: number,
+    depth: number
   ): string[] {
     const lines: string[] = [];
     const indent = this.options.indent.repeat(depth);
@@ -885,7 +936,11 @@ export class VisualToAST {
     }
   }
 
-  private resolveAndFormatInputValue(ctx: TranslationContext, portId: string, graph: VisualGraph): string {
+  private resolveAndFormatInputValue(
+    ctx: TranslationContext,
+    portId: string,
+    graph: VisualGraph
+  ): string {
     const inputEdge = ctx.incomingEdges.find(
       (e) => e.targetHandle === portId || (!e.targetHandle && portId === 'value')
     );
@@ -900,7 +955,11 @@ export class VisualToAST {
     return this.generateDataNodeExpression(sourceCtx, inputEdge.sourceHandle || 'value', graph);
   }
 
-  private generateDataNodeExpression(ctx: TranslationContext, _outputPort: string, graph: VisualGraph): string {
+  private generateDataNodeExpression(
+    ctx: TranslationContext,
+    _outputPort: string,
+    graph: VisualGraph
+  ): string {
     const props = ctx.data.properties;
 
     switch (ctx.data.type) {
@@ -1016,7 +1075,7 @@ export class VisualToAST {
  */
 export function visualToAST(
   graph: VisualGraph,
-  options?: Partial<VisualToASTOptions>,
+  options?: Partial<VisualToASTOptions>
 ): VisualToASTResult {
   const translator = new VisualToAST(options);
   return translator.translate(graph);

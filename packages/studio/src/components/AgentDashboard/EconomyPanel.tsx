@@ -165,12 +165,18 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         </div>
       </td>
       <td className="py-1.5 px-2">
-        <span className="text-[10px] text-studio-muted truncate block max-w-[100px]" title={tx.payer}>
+        <span
+          className="text-[10px] text-studio-muted truncate block max-w-[100px]"
+          title={tx.payer}
+        >
           {truncateAddress(tx.payer)}
         </span>
       </td>
       <td className="py-1.5 px-2">
-        <span className="text-[10px] text-studio-muted truncate block max-w-[100px]" title={tx.recipient}>
+        <span
+          className="text-[10px] text-studio-muted truncate block max-w-[100px]"
+          title={tx.recipient}
+        >
           {truncateAddress(tx.recipient)}
         </span>
       </td>
@@ -239,9 +245,7 @@ export function EconomyPanel({ transactions, stats, className = '' }: EconomyPan
           Recent Transactions
         </h4>
         {transactions.length === 0 ? (
-          <div className="text-center text-studio-muted text-[11px] py-4">
-            No transactions yet
-          </div>
+          <div className="text-center text-studio-muted text-[11px] py-4">No transactions yet</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full" role="table">

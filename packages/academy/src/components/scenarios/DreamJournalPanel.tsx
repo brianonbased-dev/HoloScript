@@ -222,4 +222,3 @@ export function DreamJournalPanel() {
 }
 
 export default DreamJournalPanel;
-

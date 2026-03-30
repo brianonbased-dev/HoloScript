@@ -21,7 +21,13 @@ const nextConfig = {
     'web-tree-sitter',
     '@xenova/transformers',
   ],
-  transpilePackages: ['@holoscript/studio-plugin-sdk', 'three', '@holoscript/core', '@holoscript/std', '@holoscript/r3f-renderer'],
+  transpilePackages: [
+    '@holoscript/studio-plugin-sdk',
+    'three',
+    '@holoscript/core',
+    '@holoscript/std',
+    '@holoscript/r3f-renderer',
+  ],
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,
@@ -76,7 +82,7 @@ const nextConfig = {
       '@x402/fetch': false,
       'node:stream': false,
       'node:buffer': false,
-      'memfs': false,
+      memfs: false,
       'isomorphic-git': false,
     };
 

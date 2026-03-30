@@ -23,21 +23,67 @@
  * Export target identifier (mirrors compiler/CircuitBreaker.ts)
  */
 export type ExportTarget =
-  | 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat'
-  | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'ar'
-  | 'babylon' | 'webgpu' | 'r3f' | 'wasm' | 'playcanvas'
-  | 'usd' | 'usdz' | 'dtdl' | 'vrr' | 'multi-layer'
-  | 'incremental' | 'state' | 'trait-composition' | 'tsl'
-  | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities';
+  | 'urdf'
+  | 'sdf'
+  | 'unity'
+  | 'unreal'
+  | 'godot'
+  | 'vrchat'
+  | 'openxr'
+  | 'android'
+  | 'android-xr'
+  | 'ios'
+  | 'visionos'
+  | 'ar'
+  | 'babylon'
+  | 'webgpu'
+  | 'r3f'
+  | 'wasm'
+  | 'playcanvas'
+  | 'usd'
+  | 'usdz'
+  | 'dtdl'
+  | 'vrr'
+  | 'multi-layer'
+  | 'incremental'
+  | 'state'
+  | 'trait-composition'
+  | 'tsl'
+  | 'a2a-agent-card'
+  | 'nir'
+  | 'openxr-spatial-entities';
 
 /** All export targets as a constant array */
 export const ALL_EXPORT_TARGETS: ExportTarget[] = [
-  'urdf', 'sdf', 'unity', 'unreal', 'godot', 'vrchat',
-  'openxr', 'android', 'android-xr', 'ios', 'visionos', 'ar',
-  'babylon', 'webgpu', 'r3f', 'wasm', 'playcanvas',
-  'usd', 'usdz', 'dtdl', 'vrr', 'multi-layer',
-  'incremental', 'state', 'trait-composition', 'tsl',
-  'a2a-agent-card', 'nir', 'openxr-spatial-entities',
+  'urdf',
+  'sdf',
+  'unity',
+  'unreal',
+  'godot',
+  'vrchat',
+  'openxr',
+  'android',
+  'android-xr',
+  'ios',
+  'visionos',
+  'ar',
+  'babylon',
+  'webgpu',
+  'r3f',
+  'wasm',
+  'playcanvas',
+  'usd',
+  'usdz',
+  'dtdl',
+  'vrr',
+  'multi-layer',
+  'incremental',
+  'state',
+  'trait-composition',
+  'tsl',
+  'a2a-agent-card',
+  'nir',
+  'openxr-spatial-entities',
 ];
 
 /**
@@ -243,8 +289,17 @@ export const DEFAULT_BENCHMARK_CONFIG: BenchmarkConfig = {
 function computeStatistics(values: number[]): BenchmarkStatistics {
   if (values.length === 0) {
     return {
-      samples: 0, mean: 0, median: 0, stddev: 0,
-      min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0, cv: 0,
+      samples: 0,
+      mean: 0,
+      median: 0,
+      stddev: 0,
+      min: 0,
+      max: 0,
+      p50: 0,
+      p90: 0,
+      p95: 0,
+      p99: 0,
+      cv: 0,
     };
   }
 
@@ -298,15 +353,35 @@ function simulateCompilation(
 ): { timeMs: number; outputSizeBytes: number; success: boolean } {
   // Base cost per target (ms) - models relative complexity
   const baseCosts: Record<string, number> = {
-    'r3f': 12, 'babylon': 15, 'webgpu': 25, 'wasm': 40,
-    'unity': 35, 'unreal': 45, 'godot': 20, 'playcanvas': 18,
-    'openxr': 30, 'visionos': 38, 'android': 22, 'android-xr': 28,
-    'ios': 25, 'ar': 20, 'vrchat': 32,
-    'urdf': 18, 'sdf': 16, 'usd': 28, 'usdz': 30,
-    'dtdl': 14, 'vrr': 22, 'tsl': 20,
-    'multi-layer': 35, 'incremental': 8, 'state': 12,
-    'trait-composition': 15, 'a2a-agent-card': 10,
-    'nir': 50, 'openxr-spatial-entities': 25,
+    r3f: 12,
+    babylon: 15,
+    webgpu: 25,
+    wasm: 40,
+    unity: 35,
+    unreal: 45,
+    godot: 20,
+    playcanvas: 18,
+    openxr: 30,
+    visionos: 38,
+    android: 22,
+    'android-xr': 28,
+    ios: 25,
+    ar: 20,
+    vrchat: 32,
+    urdf: 18,
+    sdf: 16,
+    usd: 28,
+    usdz: 30,
+    dtdl: 14,
+    vrr: 22,
+    tsl: 20,
+    'multi-layer': 35,
+    incremental: 8,
+    state: 12,
+    'trait-composition': 15,
+    'a2a-agent-card': 10,
+    nir: 50,
+    'openxr-spatial-entities': 25,
   };
 
   const baseCost = baseCosts[target] || 20;
@@ -324,7 +399,9 @@ function simulateCompilation(
 
   // Output size scales linearly with composition
   const baseOutputSize = 1024 * (baseCosts[target] || 20);
-  const outputSizeBytes = Math.floor(baseOutputSize * compositionSize * (0.8 + Math.random() * 0.4));
+  const outputSizeBytes = Math.floor(
+    baseOutputSize * compositionSize * (0.8 + Math.random() * 0.4)
+  );
 
   // Small failure probability for realism
   const failureProbability = 0.02; // 2%
@@ -375,7 +452,10 @@ export class TargetBenchmarkRunner {
   /**
    * Run benchmark for a specific composition size.
    */
-  async run(compositionSize: number, baseline?: BenchmarkStatistics): Promise<TargetBenchmarkResult> {
+  async run(
+    compositionSize: number,
+    baseline?: BenchmarkStatistics
+  ): Promise<TargetBenchmarkResult> {
     const iterations: IterationResult[] = [];
 
     // Warmup phase
@@ -396,7 +476,9 @@ export class TargetBenchmarkRunner {
 
       const compilationTimeMs = performance.now() - t0 + result.timeMs; // Add simulated time
       const memAfter = this.config.collectMemory ? getMemoryUsage() : 0;
-      const memoryUsedBytes = this.config.collectMemory ? Math.max(0, memAfter - memBefore) : undefined;
+      const memoryUsedBytes = this.config.collectMemory
+        ? Math.max(0, memAfter - memBefore)
+        : undefined;
 
       iterations.push({
         iteration: i,
@@ -425,26 +507,22 @@ export class TargetBenchmarkRunner {
       }
     }
 
-    const successRate = iterations.length > 0
-      ? successfulIterations.length / iterations.length
-      : 0;
+    const successRate = iterations.length > 0 ? successfulIterations.length / iterations.length : 0;
 
-    const throughput = compilationTime.mean > 0
-      ? 1000 / compilationTime.mean
-      : 0;
+    const throughput = compilationTime.mean > 0 ? 1000 / compilationTime.mean : 0;
 
     // Regression detection
     let regressionDetected = false;
     let regression: TargetBenchmarkResult['regression'];
 
     if (baseline) {
-      const compilationTimeChange = baseline.mean > 0
-        ? ((compilationTime.mean - baseline.mean) / baseline.mean) * 100
-        : 0;
+      const compilationTimeChange =
+        baseline.mean > 0 ? ((compilationTime.mean - baseline.mean) / baseline.mean) * 100 : 0;
 
-      const memoryChange = memoryUsage && baseline.mean > 0
-        ? ((memoryUsage.mean - baseline.mean) / baseline.mean) * 100
-        : 0;
+      const memoryChange =
+        memoryUsage && baseline.mean > 0
+          ? ((memoryUsage.mean - baseline.mean) / baseline.mean) * 100
+          : 0;
 
       if (compilationTimeChange > this.config.regressionThreshold) {
         regressionDetected = true;
@@ -491,10 +569,7 @@ export class CircuitBreakerBenchmarkSuite {
   private readonly config: BenchmarkConfig;
   private readonly targets: ExportTarget[];
 
-  constructor(
-    config: Partial<BenchmarkConfig> = {},
-    targets?: ExportTarget[]
-  ) {
+  constructor(config: Partial<BenchmarkConfig> = {}, targets?: ExportTarget[]) {
     this.config = { ...DEFAULT_BENCHMARK_CONFIG, ...config };
     this.targets = targets ?? ALL_EXPORT_TARGETS;
   }
@@ -508,7 +583,8 @@ export class CircuitBreakerBenchmarkSuite {
 
     for (const target of this.targets) {
       // Use the largest composition size for the primary benchmark
-      const compositionSize = this.config.compositionSizes[this.config.compositionSizes.length - 1] || 10;
+      const compositionSize =
+        this.config.compositionSizes[this.config.compositionSizes.length - 1] || 10;
 
       const runner = new TargetBenchmarkRunner(target, this.config);
       const baselineStats = baseline?.get(target);
@@ -537,11 +613,14 @@ export class CircuitBreakerBenchmarkSuite {
     // Compute aggregates
     const successfulResults = targetResults.filter((r) => r.successRate > 0);
     const compilationTimes = successfulResults.map((r) => r.compilationTime.mean);
-    const meanCompilationTimeMs = compilationTimes.length > 0
-      ? compilationTimes.reduce((s, v) => s + v, 0) / compilationTimes.length
-      : 0;
+    const meanCompilationTimeMs =
+      compilationTimes.length > 0
+        ? compilationTimes.reduce((s, v) => s + v, 0) / compilationTimes.length
+        : 0;
 
-    const passedTargets = targetResults.filter((r) => r.successRate >= 0.9 && !r.regressionDetected).length;
+    const passedTargets = targetResults.filter(
+      (r) => r.successRate >= 0.9 && !r.regressionDetected
+    ).length;
     const failedTargets = targetResults.filter((r) => r.successRate < 0.9).length;
     const regressedTargets = targetResults.filter((r) => r.regressionDetected).length;
 
@@ -549,16 +628,22 @@ export class CircuitBreakerBenchmarkSuite {
     const sortedByTime = [...successfulResults].sort(
       (a, b) => a.compilationTime.mean - b.compilationTime.mean
     );
-    const fastestTarget = sortedByTime.length > 0
-      ? { target: sortedByTime[0].target, meanMs: sortedByTime[0].compilationTime.mean }
-      : { target: 'incremental' as ExportTarget, meanMs: 0 };
-    const slowestTarget = sortedByTime.length > 0
-      ? { target: sortedByTime[sortedByTime.length - 1].target, meanMs: sortedByTime[sortedByTime.length - 1].compilationTime.mean }
-      : { target: 'nir' as ExportTarget, meanMs: 0 };
+    const fastestTarget =
+      sortedByTime.length > 0
+        ? { target: sortedByTime[0].target, meanMs: sortedByTime[0].compilationTime.mean }
+        : { target: 'incremental' as ExportTarget, meanMs: 0 };
+    const slowestTarget =
+      sortedByTime.length > 0
+        ? {
+            target: sortedByTime[sortedByTime.length - 1].target,
+            meanMs: sortedByTime[sortedByTime.length - 1].compilationTime.mean,
+          }
+        : { target: 'nir' as ExportTarget, meanMs: 0 };
 
-    const overallSuccessRate = targetResults.length > 0
-      ? targetResults.reduce((s, r) => s + r.successRate, 0) / targetResults.length
-      : 0;
+    const overallSuccessRate =
+      targetResults.length > 0
+        ? targetResults.reduce((s, r) => s + r.successRate, 0) / targetResults.length
+        : 0;
 
     // Determine verdict
     let verdict: 'pass' | 'fail' | 'warn';
@@ -571,8 +656,12 @@ export class CircuitBreakerBenchmarkSuite {
     }
 
     const summary = this.generateSummary(
-      verdict, passedTargets, failedTargets, regressedTargets,
-      meanCompilationTimeMs, totalDurationMs
+      verdict,
+      passedTargets,
+      failedTargets,
+      regressedTargets,
+      meanCompilationTimeMs,
+      totalDurationMs
     );
 
     return {
@@ -584,10 +673,16 @@ export class CircuitBreakerBenchmarkSuite {
         platform: {
           runtime: typeof process !== 'undefined' ? 'node' : 'browser',
           arch: typeof process !== 'undefined' ? process.arch : 'wasm',
-          cpus: typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 1 : (typeof require !== 'undefined' ? require('os').cpus().length : 1),
-          totalMemoryMB: typeof process !== 'undefined' && process.memoryUsage
-            ? Math.round(process.memoryUsage().rss / 1024 / 1024)
-            : 0,
+          cpus:
+            typeof navigator !== 'undefined'
+              ? navigator.hardwareConcurrency || 1
+              : typeof require !== 'undefined'
+                ? require('os').cpus().length
+                : 1,
+          totalMemoryMB:
+            typeof process !== 'undefined' && process.memoryUsage
+              ? Math.round(process.memoryUsage().rss / 1024 / 1024)
+              : 0,
           nodeVersion: typeof process !== 'undefined' ? process.version : undefined,
         },
       },
@@ -637,9 +732,7 @@ export class CircuitBreakerBenchmarkSuite {
     const sumXY = logSizes.reduce((s, v, i) => s + v * logTimes[i], 0);
     const sumX2 = logSizes.reduce((s, v) => s + v * v, 0);
 
-    const scalingFactor = n > 1
-      ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
-      : 1;
+    const scalingFactor = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 1;
 
     return {
       target,
@@ -681,7 +774,9 @@ export class CircuitBreakerBenchmarkSuite {
     lines.push('');
     lines.push(`Verdict: ${results.verdict.toUpperCase()}`);
     lines.push(`Duration: ${(results.metadata.totalDurationMs / 1000).toFixed(1)}s`);
-    lines.push(`Platform: ${results.metadata.platform.runtime} (${results.metadata.platform.arch})`);
+    lines.push(
+      `Platform: ${results.metadata.platform.runtime} (${results.metadata.platform.arch})`
+    );
     lines.push(`CPUs: ${results.metadata.platform.cpus}`);
     lines.push(`Memory: ${results.metadata.platform.totalMemoryMB}MB`);
     lines.push('');
@@ -693,18 +788,22 @@ export class CircuitBreakerBenchmarkSuite {
     lines.push(`Regressed: ${results.aggregate.regressedTargets}`);
     lines.push(`Mean Compilation: ${results.aggregate.meanCompilationTimeMs.toFixed(2)}ms`);
     lines.push(`Success Rate: ${(results.aggregate.overallSuccessRate * 100).toFixed(1)}%`);
-    lines.push(`Fastest: ${results.aggregate.fastestTarget.target} (${results.aggregate.fastestTarget.meanMs.toFixed(2)}ms)`);
-    lines.push(`Slowest: ${results.aggregate.slowestTarget.target} (${results.aggregate.slowestTarget.meanMs.toFixed(2)}ms)`);
+    lines.push(
+      `Fastest: ${results.aggregate.fastestTarget.target} (${results.aggregate.fastestTarget.meanMs.toFixed(2)}ms)`
+    );
+    lines.push(
+      `Slowest: ${results.aggregate.slowestTarget.target} (${results.aggregate.slowestTarget.meanMs.toFixed(2)}ms)`
+    );
     lines.push('');
 
     lines.push('--- Per-Target Results ---');
     lines.push(
       'Target'.padEnd(25) +
-      'Mean(ms)'.padStart(10) +
-      'P95(ms)'.padStart(10) +
-      'StdDev'.padStart(10) +
-      'Success'.padStart(10) +
-      'Regress'.padStart(10)
+        'Mean(ms)'.padStart(10) +
+        'P95(ms)'.padStart(10) +
+        'StdDev'.padStart(10) +
+        'Success'.padStart(10) +
+        'Regress'.padStart(10)
     );
     lines.push('-'.repeat(75));
 
@@ -716,11 +815,11 @@ export class CircuitBreakerBenchmarkSuite {
       const status = result.regressionDetected ? 'YES' : result.successRate < 0.9 ? 'FAIL' : 'no';
       lines.push(
         result.target.padEnd(25) +
-        result.compilationTime.mean.toFixed(2).padStart(10) +
-        result.compilationTime.p95.toFixed(2).padStart(10) +
-        result.compilationTime.stddev.toFixed(2).padStart(10) +
-        `${(result.successRate * 100).toFixed(0)}%`.padStart(10) +
-        status.padStart(10)
+          result.compilationTime.mean.toFixed(2).padStart(10) +
+          result.compilationTime.p95.toFixed(2).padStart(10) +
+          result.compilationTime.stddev.toFixed(2).padStart(10) +
+          `${(result.successRate * 100).toFixed(0)}%`.padStart(10) +
+          status.padStart(10)
       );
     }
 
@@ -734,7 +833,9 @@ export class CircuitBreakerBenchmarkSuite {
         if (r.regression) {
           lines.push(`  ${r.target}:`);
           lines.push(`    Time change: ${r.regression.compilationTimeChange.toFixed(1)}%`);
-          lines.push(`    Baseline: ${r.regression.baselineMean.toFixed(2)}ms -> Current: ${r.regression.currentMean.toFixed(2)}ms`);
+          lines.push(
+            `    Baseline: ${r.regression.baselineMean.toFixed(2)}ms -> Current: ${r.regression.currentMean.toFixed(2)}ms`
+          );
           if (r.regression.memoryChange !== 0) {
             lines.push(`    Memory change: ${r.regression.memoryChange.toFixed(1)}%`);
           }
@@ -780,9 +881,7 @@ export class CircuitBreakerBenchmarkSuite {
     const unchanged: Array<{ target: ExportTarget; change: number }> = [];
 
     for (const currentResult of current.targetResults) {
-      const baselineResult = baseline.targetResults.find(
-        (r) => r.target === currentResult.target
-      );
+      const baselineResult = baseline.targetResults.find((r) => r.target === currentResult.target);
 
       if (!baselineResult || baselineResult.compilationTime.mean === 0) {
         unchanged.push({ target: currentResult.target, change: 0 });
@@ -791,7 +890,8 @@ export class CircuitBreakerBenchmarkSuite {
 
       const change =
         ((currentResult.compilationTime.mean - baselineResult.compilationTime.mean) /
-          baselineResult.compilationTime.mean) * 100;
+          baselineResult.compilationTime.mean) *
+        100;
 
       if (change > regressionThreshold) {
         regressed.push({ target: currentResult.target, change });
@@ -803,9 +903,8 @@ export class CircuitBreakerBenchmarkSuite {
     }
 
     const allChanges = [...improved, ...regressed, ...unchanged];
-    const overallChange = allChanges.length > 0
-      ? allChanges.reduce((s, c) => s + c.change, 0) / allChanges.length
-      : 0;
+    const overallChange =
+      allChanges.length > 0 ? allChanges.reduce((s, c) => s + c.change, 0) / allChanges.length : 0;
 
     return { improved, regressed, unchanged, overallChange };
   }

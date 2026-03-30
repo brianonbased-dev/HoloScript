@@ -79,26 +79,26 @@ composition "PhoenixDowntown" {
 
 ## Live Data Integration
 
-| Data Source           | Default Feed            | Trait            |
-| --------------------- | ----------------------- | ---------------- |
-| Weather (temp, wind)  | OpenWeatherMap API      | `@iot_sensor`    |
-| Traffic density       | HERE / TomTom           | `@digital_twin`  |
-| Air quality (AQI)     | OpenAQ                  | `@telemetry`     |
-| Build occupancy       | IoT sensor mesh         | `@mqtt_bridge`   |
-| Pedestrian flow       | Computer vision feeds   | `@telemetry`     |
-| Transit (buses, rail) | GTFS real-time          | `@digital_twin`  |
+| Data Source           | Default Feed          | Trait           |
+| --------------------- | --------------------- | --------------- |
+| Weather (temp, wind)  | OpenWeatherMap API    | `@iot_sensor`   |
+| Traffic density       | HERE / TomTom         | `@digital_twin` |
+| Air quality (AQI)     | OpenAQ                | `@telemetry`    |
+| Build occupancy       | IoT sensor mesh       | `@mqtt_bridge`  |
+| Pedestrian flow       | Computer vision feeds | `@telemetry`    |
+| Transit (buses, rail) | GTFS real-time        | `@digital_twin` |
 
 ## Compiler Options
 
-| Option               | Default    | Description                                  |
-| -------------------- | ---------- | -------------------------------------------- |
-| `--vrr-geo`          | required   | `lat,lon,alt` of scene origin                |
-| `--vrr-radius`       | 500        | Radius in metres to load                     |
-| `--vrr-sources`      | osm,usgs   | Geometry sources (comma-separated)           |
-| `--vrr-lod`          | 50,200,500 | LOD switch distances (metres)                |
-| `--vrr-feeds`        | none       | Live data feed IDs (comma-separated)         |
-| `--vrr-tile-size`    | 256        | Streaming tile size (metres)                 |
-| `--vrr-webxr-mode`   | immersive-vr | `immersive-vr`, `immersive-ar`, `inline`  |
+| Option             | Default      | Description                              |
+| ------------------ | ------------ | ---------------------------------------- |
+| `--vrr-geo`        | required     | `lat,lon,alt` of scene origin            |
+| `--vrr-radius`     | 500          | Radius in metres to load                 |
+| `--vrr-sources`    | osm,usgs     | Geometry sources (comma-separated)       |
+| `--vrr-lod`        | 50,200,500   | LOD switch distances (metres)            |
+| `--vrr-feeds`      | none         | Live data feed IDs (comma-separated)     |
+| `--vrr-tile-size`  | 256          | Streaming tile size (metres)             |
+| `--vrr-webxr-mode` | immersive-vr | `immersive-vr`, `immersive-ar`, `inline` |
 
 ## Use Cases
 

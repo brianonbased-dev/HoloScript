@@ -35,8 +35,15 @@ function humanBytes(bytes: number) {
 }
 
 const ALL_TAGS = [
-  'fantasy', 'sci-fi', 'nature', 'interior', 'architecture',
-  'modular', 'vegetation', 'outdoor', 'medieval',
+  'fantasy',
+  'sci-fi',
+  'nature',
+  'interior',
+  'architecture',
+  'modular',
+  'vegetation',
+  'outdoor',
+  'medieval',
 ];
 
 export default function RegistryPage() {
@@ -107,7 +114,10 @@ export default function RegistryPage() {
       ) : (
         <header className="border-b border-white/10 bg-[#0d0d1a]/80 px-6 py-4 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-4">
-            <Link href="/" className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition"
+            >
               <ArrowLeft className="h-4 w-4" /> Studio
             </Link>
             <h1 className="text-lg font-bold">HoloScript Registry</h1>
@@ -181,7 +191,10 @@ export default function RegistryPage() {
 
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {pack.tags.map((t) => (
-                      <span key={t} className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-white/40">
+                      <span
+                        key={t}
+                        className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-white/40"
+                      >
                         {t}
                       </span>
                     ))}
@@ -189,7 +202,9 @@ export default function RegistryPage() {
 
                   <div className="mt-3 flex items-center gap-3 text-[11px] text-white/35">
                     <span>{pack.author}</span>
-                    <span>{pack.files.length} files &middot; {humanBytes(totalSize)}</span>
+                    <span>
+                      {pack.files.length} files &middot; {humanBytes(totalSize)}
+                    </span>
                     <span className="flex items-center gap-1">
                       <Star className="h-3 w-3" />
                       {pack.downloads.toLocaleString()}

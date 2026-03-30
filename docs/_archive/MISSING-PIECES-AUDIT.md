@@ -9,6 +9,7 @@
 ## Executive Summary
 
 Comprehensive audit of HoloScript codebase revealed:
+
 - **4 connectors implemented** (GitHub, Railway, Upstash, AppStore)
 - **5 major incomplete features** (VRoid Hub, NFT marketplace, Shader pipeline, Absorb bridge, VSCode panel)
 - **3 placeholder systems** (Mixamo, AO baking, Character generation)
@@ -21,14 +22,15 @@ Comprehensive audit of HoloScript codebase revealed:
 
 ### ✅ Fully Implemented & Documented
 
-| Connector | Package | Status | Tools | Integration Hub |
-|-----------|---------|--------|-------|-----------------|
-| **GitHub** | `connector-github` | ✅ Complete | PR management, issues, deployments | ✅ Wired |
-| **Railway** | `connector-railway` | ✅ Complete | Deployments, env vars, logs | ✅ Wired |
-| **Upstash** | `connector-upstash` | ✅ Complete | 25 tools (Redis, Vector, QStash) | ✅ Wired (NEW) |
-| **AppStore** | `connector-appstore` | ✅ Complete | Apple + Google Play publishing | ✅ Wired (NEW) |
+| Connector    | Package              | Status      | Tools                              | Integration Hub |
+| ------------ | -------------------- | ----------- | ---------------------------------- | --------------- |
+| **GitHub**   | `connector-github`   | ✅ Complete | PR management, issues, deployments | ✅ Wired        |
+| **Railway**  | `connector-railway`  | ✅ Complete | Deployments, env vars, logs        | ✅ Wired        |
+| **Upstash**  | `connector-upstash`  | ✅ Complete | 25 tools (Redis, Vector, QStash)   | ✅ Wired (NEW)  |
+| **AppStore** | `connector-appstore` | ✅ Complete | Apple + Google Play publishing     | ✅ Wired (NEW)  |
 
 **Files**:
+
 - [GitHubConnector.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\connector-github\src\GitHubConnector.ts)
 - [RailwayConnector.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\connector-railway\src\RailwayConnector.ts)
 - [UpstashConnector.ts](c:\Users\josep\Documents\GitHub\HoloScript\packages\connector-upstash\src\UpstashConnector.ts)
@@ -41,6 +43,7 @@ Comprehensive audit of HoloScript codebase revealed:
 **Status**: 🟡 Class exists but not wired to Integration Hub API
 
 **Gap**: VSCode extension has `ServiceConnectorPanel` class but:
+
 - Not listed in Integration Hub connector matrix
 - No `connector-vscode` package
 - No MCP server connection from VSCode → Studio
@@ -65,6 +68,7 @@ Comprehensive audit of HoloScript codebase revealed:
 **Impact**: Medium - Users must manually configure pipelines
 
 **Solution Needed**:
+
 1. Parse WGSL shader to extract bindings
 2. Auto-generate `GPUBindGroupLayout` from shader reflection
 3. Wire to render pipeline creation
@@ -84,6 +88,7 @@ Comprehensive audit of HoloScript codebase revealed:
 **Impact**: High - Manual absorb required instead of automated pipeline
 
 **Solution Needed**:
+
 1. Create `absorbPipelineBridge` in workspace page
 2. Wire to `/api/daemon/absorb` endpoint
 3. Add SSE progress updates to UI
@@ -112,10 +117,12 @@ lastSync: 0, // TODO: Track last sync time
 ### ❌ VRoid Hub Integration
 
 **Files**:
+
 - `packages/studio/src/lib/character/vrmImport.ts:208`
 - `packages/studio/src/lib/character/vrmImport.ts:227`
 
 **Code**:
+
 ```typescript
 // VRoid Hub search not yet implemented
 console.warn('[VRMImport] VRoid Hub search not yet implemented');
@@ -127,11 +134,13 @@ throw new Error('VRoid Hub download not yet implemented. Please upload VRM files
 **Status**: 🔴 **Not implemented** - Placeholder functions exist
 
 **What's Missing**:
+
 1. **VRoid Hub API integration** - No OAuth or API client
 2. **Avatar search** - Returns placeholder array with 3 fake avatars
 3. **Direct download** - Throws error, requires manual VRM upload
 
 **Workaround**: Users must:
+
 1. Visit VRoid Hub website manually
 2. Download VRM file locally
 3. Upload to HoloScript Studio
@@ -139,6 +148,7 @@ throw new Error('VRoid Hub download not yet implemented. Please upload VRM files
 **Potential Impact**: High - VRoid Hub has 100K+ free avatars
 
 **Implementation Needed**:
+
 - VRoid Hub API client (unofficial, no official API documented)
 - OAuth flow for user authentication
 - Avatar search by tags/keywords
@@ -160,11 +170,13 @@ throw new Error('VRoid Hub download not yet implemented. Please upload VRM files
 **Status**: 🔴 **Not implemented** - Creator stats hook exists but no on-chain data
 
 **What's Missing**:
+
 1. **Zora Protocol integration** - No Web3 client or contract calls
 2. **On-chain stats fetching** - Mints, sales, revenue
 3. **Creator dashboard** - Empty placeholder with mock data
 
 **Mock Data Pattern**:
+
 ```typescript
 imageUrl: `/api/placeholder/300/300?text=Scene${i + 1}`,
 ```
@@ -172,6 +184,7 @@ imageUrl: `/api/placeholder/300/300?text=Scene${i + 1}`,
 **Potential Impact**: Medium - Creator monetization feature
 
 **Implementation Needed**:
+
 - Zora Protocol SDK integration
 - Web3 wallet connection (WalletConnect, MetaMask)
 - Contract read calls for NFT stats
@@ -187,11 +200,13 @@ imageUrl: `/api/placeholder/300/300?text=Scene${i + 1}`,
 **Status**: 🟡 **Partially implemented** - Functions exist but return placeholders
 
 **What Works**:
+
 - Character ID lookup
 - Animation list enumeration
 - GLB URL generation
 
 **What Doesn't Work**:
+
 ```typescript
 // Line 157: Returns placeholder URLs that point to similar models
 // Line 201: This is a placeholder for the workflow
@@ -199,6 +214,7 @@ imageUrl: `/api/placeholder/300/300?text=Scene${i + 1}`,
 ```
 
 **Gap**: Actual Mixamo API integration:
+
 1. No Adobe login/authentication
 2. No animation download
 3. No auto-rigging workflow
@@ -207,6 +223,7 @@ imageUrl: `/api/placeholder/300/300?text=Scene${i + 1}`,
 **Workaround**: Manual download from Mixamo website
 
 **Implementation Needed**:
+
 - Adobe ID OAuth flow
 - Mixamo API client (unofficial)
 - FBX → GLB conversion pipeline
@@ -251,15 +268,18 @@ return '1.0'; // Placeholder: AO bake requires ray-casting pass
 ### Known API Routes (Partial List)
 
 **Connectors** (`/api/connectors/*`):
+
 - ✅ `/api/connectors/connect` - Connect to external services
 - ✅ `/api/connectors/disconnect` - Disconnect from services
 - ✅ `/api/connectors/activity` - SSE activity stream
 
 **Daemon** (`/api/daemon/*`):
+
 - ✅ `/api/daemon/absorb` - Codebase absorption
 - ⚠️ `/api/daemon/absorb/stream` - SSE progress (from plan, not verified in code)
 
 **Compiler** (`/api/*`):
+
 - ✅ `/api/compile` - HoloScript compilation
 - ✅ `/api/render` - Scene rendering
 - ✅ `/api/share` - Share to X (Twitter)
@@ -267,9 +287,11 @@ return '1.0'; // Placeholder: AO bake requires ray-casting pass
 - ✅ `/api/preview` - Live preview stream
 
 **Auth** (`/api/auth/*`):
+
 - ✅ NextAuth.js routes (callback, session, signIn, signOut)
 
 **MCP** (`/mcp/*`):
+
 - ✅ `/mcp` - MCP protocol endpoint (mcp-server package)
 - ✅ `/.well-known/mcp` - MCP discovery endpoint (NEW)
 
@@ -286,6 +308,7 @@ return '1.0'; // Placeholder: AO bake requires ray-casting pass
 **Class**: `ServiceConnectorPanel`
 
 **Capabilities** (inferred from class name):
+
 - Webview panel for connector management
 - Likely shows GitHub/Railway/Upstash/AppStore status
 - Not wired to Studio Integration Hub API
@@ -293,12 +316,14 @@ return '1.0'; // Placeholder: AO bake requires ray-casting pass
 ### Missing Integration
 
 **Gap**: VSCode extension appears isolated from Studio:
+
 - No MCP client in VSCode extension code (needs verification)
 - No live preview panel (HoloScript → VSCode rendering)
 - No syntax highlighting (beyond basic TextMate grammar)
 - No code completion via LSP
 
 **Potential**: Full IDE integration with:
+
 1. Live preview panel synced with Studio
 2. MCP client → HoloScript MCP server
 3. LSP server for autocomplete/diagnostics
@@ -324,6 +349,7 @@ return '1.0'; // Placeholder: AO bake requires ray-casting pass
 5. **Animation Retargeting** - Cross-rig animation transfer
 
 **File References**:
+
 - `vrmImport.ts` - VRM parsing ✅ | VRoid Hub ❌
 - `mixamoIntegration.ts` - Character IDs ✅ | Animations ❌
 - `presetModels.ts` - Preset library ✅

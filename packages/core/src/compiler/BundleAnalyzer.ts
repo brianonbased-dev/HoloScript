@@ -282,7 +282,10 @@ class DependencyGraphManager {
   /**
    * Update module objects with dependency information
    */
-  private updateModuleDependencies(dependencies: Record<string, string[]>, modules: Map<string, ModuleInfo>): void {
+  private updateModuleDependencies(
+    dependencies: Record<string, string[]>,
+    modules: Map<string, ModuleInfo>
+  ): void {
     // Clear existing arrays
     for (const module of modules.values()) {
       module.dependencies = [];
@@ -308,8 +311,6 @@ class DependencyGraphManager {
     }
   }
 
-
-
   /**
    * Detect circular dependencies using optimized DFS with path tracking
    */
@@ -332,14 +333,14 @@ class DependencyGraphManager {
 
       visited.add(node);
       visiting.add(node);
-      
+
       const dependencies = this.dependencyGraph.get(node);
       if (dependencies) {
         for (const dep of dependencies) {
           findCircle(dep, [...path, node]);
         }
       }
-      
+
       visiting.delete(node);
     };
 
@@ -490,8 +491,6 @@ export class BundleAnalyzer {
     return sideEffectPatterns.some((pattern) => pattern.test(content));
   }
 
-
-
   /**
    * Build chunk parent/child relationships - optimized with file-to-chunk mapping
    */
@@ -507,7 +506,7 @@ export class BundleAnalyzer {
     // Use Sets to avoid duplicate relationships
     const parentSets = new Map<string, Set<string>>();
     const childSets = new Map<string, Set<string>>();
-    
+
     for (const [chunkId, chunk] of this.chunks) {
       parentSets.set(chunkId, new Set(chunk.parentChunks));
       childSets.set(chunkId, new Set(chunk.childChunks));
@@ -552,8 +551,6 @@ export class BundleAnalyzer {
       module.unusedExports = moduleExports.filter((e) => !usedSet.has(e));
     }
   }
-
-
 
   /**
    * Find duplicate modules

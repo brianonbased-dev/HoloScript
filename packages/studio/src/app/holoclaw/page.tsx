@@ -97,7 +97,15 @@ const SKILL_TEMPLATES = [
 // Sub-components (kept in React for interactive list/form patterns)
 // ---------------------------------------------------------------------------
 
-function SkillCard({ skill, selected, onSelect }: { skill: SkillMeta; selected: boolean; onSelect: (s: SkillMeta) => void }) {
+function SkillCard({
+  skill,
+  selected,
+  onSelect,
+}: {
+  skill: SkillMeta;
+  selected: boolean;
+  onSelect: (s: SkillMeta) => void;
+}) {
   return (
     <button
       onClick={() => onSelect(skill)}
@@ -110,7 +118,9 @@ function SkillCard({ skill, selected, onSelect }: { skill: SkillMeta; selected: 
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-studio-text truncate">{skill.name}</h3>
-          {skill.description && <p className="mt-1 text-xs text-studio-muted line-clamp-2">{skill.description}</p>}
+          {skill.description && (
+            <p className="mt-1 text-xs text-studio-muted line-clamp-2">{skill.description}</p>
+          )}
         </div>
         <span className="ml-2 shrink-0 rounded bg-studio-panel px-2 py-0.5 text-[10px] text-studio-muted">
           {formatBytes(skill.size)}
@@ -118,21 +128,43 @@ function SkillCard({ skill, selected, onSelect }: { skill: SkillMeta; selected: 
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {skill.actions.slice(0, 6).map((a) => (
-          <span key={a} className="rounded-full bg-studio-accent/10 px-2 py-0.5 text-[10px] font-medium text-studio-accent">{a}</span>
+          <span
+            key={a}
+            className="rounded-full bg-studio-accent/10 px-2 py-0.5 text-[10px] font-medium text-studio-accent"
+          >
+            {a}
+          </span>
         ))}
-        {skill.actions.length > 6 && <span className="rounded-full bg-studio-panel px-2 py-0.5 text-[10px] text-studio-muted">+{skill.actions.length - 6}</span>}
+        {skill.actions.length > 6 && (
+          <span className="rounded-full bg-studio-panel px-2 py-0.5 text-[10px] text-studio-muted">
+            +{skill.actions.length - 6}
+          </span>
+        )}
       </div>
       {skill.traits.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {skill.traits.slice(0, 5).map((t) => (
-            <span key={t} className={`rounded border px-1.5 py-0.5 text-[10px] ${traitBadgeClass(t)}`}>@{t}</span>
+            <span
+              key={t}
+              className={`rounded border px-1.5 py-0.5 text-[10px] ${traitBadgeClass(t)}`}
+            >
+              @{t}
+            </span>
           ))}
-          {skill.traits.length > 5 && <span className="rounded border border-studio-border px-1.5 py-0.5 text-[10px] text-studio-muted">+{skill.traits.length - 5}</span>}
+          {skill.traits.length > 5 && (
+            <span className="rounded border border-studio-border px-1.5 py-0.5 text-[10px] text-studio-muted">
+              +{skill.traits.length - 5}
+            </span>
+          )}
         </div>
       )}
       <div className="mt-3 flex items-center gap-3 text-[10px] text-studio-muted">
-        <span>{skill.states} state{skill.states !== 1 ? 's' : ''}</span>
-        <span>{skill.actions.length} action{skill.actions.length !== 1 ? 's' : ''}</span>
+        <span>
+          {skill.states} state{skill.states !== 1 ? 's' : ''}
+        </span>
+        <span>
+          {skill.actions.length} action{skill.actions.length !== 1 ? 's' : ''}
+        </span>
         <span className="ml-auto">{timeSince(skill.modifiedAt)}</span>
       </div>
     </button>
@@ -156,16 +188,22 @@ function SkillDetail({ skill }: { skill: SkillMeta }) {
               <span className="text-sm font-mono text-studio-text">{a}</span>
             </div>
           ))}
-          {skill.actions.length === 0 && <span className="text-xs text-studio-muted italic">No actions defined</span>}
+          {skill.actions.length === 0 && (
+            <span className="text-xs text-studio-muted italic">No actions defined</span>
+          )}
         </div>
       </div>
       <div>
         <h4 className="text-[10px] uppercase tracking-wider text-studio-muted mb-2">Traits</h4>
         <div className="flex flex-wrap gap-1.5">
           {skill.traits.map((t) => (
-            <span key={t} className={`rounded border px-2 py-1 text-xs ${traitBadgeClass(t)}`}>@{t}</span>
+            <span key={t} className={`rounded border px-2 py-1 text-xs ${traitBadgeClass(t)}`}>
+              @{t}
+            </span>
           ))}
-          {skill.traits.length === 0 && <span className="text-xs text-studio-muted italic">No traits</span>}
+          {skill.traits.length === 0 && (
+            <span className="text-xs text-studio-muted italic">No traits</span>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3">
@@ -182,7 +220,9 @@ function SkillDetail({ skill }: { skill: SkillMeta }) {
           <div className="text-[10px] uppercase tracking-wider text-studio-muted">Size</div>
         </div>
       </div>
-      <div className="text-[10px] text-studio-muted">Last modified: {new Date(skill.modifiedAt).toLocaleString()}</div>
+      <div className="text-[10px] text-studio-muted">
+        Last modified: {new Date(skill.modifiedAt).toLocaleString()}
+      </div>
     </div>
   );
 }
@@ -205,11 +245,17 @@ function CreateSkillPanel({ onCreated }: { onCreated: () => void }) {
         body: JSON.stringify({ name, content }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to create skill'); return; }
+      if (!res.ok) {
+        setError(data.error || 'Failed to create skill');
+        return;
+      }
       setSkillName('');
       onCreated();
-    } catch (err) { setError((err as Error).message); }
-    finally { setCreating(false); }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setCreating(false);
+    }
   }, [skillName, content, selectedTemplate, onCreated]);
 
   return (
@@ -220,9 +266,15 @@ function CreateSkillPanel({ onCreated }: { onCreated: () => void }) {
           {SKILL_TEMPLATES.map((t, idx) => (
             <button
               key={t.name}
-              onClick={() => { setSelectedTemplate(idx); setContent(SKILL_TEMPLATES[idx].content); setError(''); }}
+              onClick={() => {
+                setSelectedTemplate(idx);
+                setContent(SKILL_TEMPLATES[idx].content);
+                setError('');
+              }}
               className={`rounded-lg border p-3 text-left transition-all ${
-                selectedTemplate === idx ? 'border-studio-accent bg-studio-accent/10' : 'border-studio-border bg-[#111827] hover:border-studio-accent/40'
+                selectedTemplate === idx
+                  ? 'border-studio-accent bg-studio-accent/10'
+                  : 'border-studio-border bg-[#111827] hover:border-studio-accent/40'
               }`}
             >
               <div className="text-sm font-medium text-studio-text">{t.label}</div>
@@ -233,17 +285,34 @@ function CreateSkillPanel({ onCreated }: { onCreated: () => void }) {
       </div>
       <label className="text-xs font-medium text-studio-muted">
         Skill name
-        <input type="text" value={skillName} onChange={(e) => setSkillName(e.target.value)} placeholder={SKILL_TEMPLATES[selectedTemplate].name}
-          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none" />
+        <input
+          type="text"
+          value={skillName}
+          onChange={(e) => setSkillName(e.target.value)}
+          placeholder={SKILL_TEMPLATES[selectedTemplate].name}
+          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 text-sm text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none"
+        />
       </label>
       <label className="text-xs font-medium text-studio-muted">
         Composition source
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={16} spellCheck={false}
-          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 font-mono text-xs text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none resize-y" />
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={16}
+          spellCheck={false}
+          className="mt-1 block w-full rounded-lg border border-studio-border bg-[#0f172a] px-3 py-2 font-mono text-xs text-studio-text placeholder:text-studio-muted/50 focus:border-studio-accent focus:outline-none resize-y"
+        />
       </label>
-      {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</div>}
-      <button onClick={handleCreate} disabled={creating || !content.trim()}
-        className="rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-50">
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+          {error}
+        </div>
+      )}
+      <button
+        onClick={handleCreate}
+        disabled={creating || !content.trim()}
+        className="rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-50"
+      >
         {creating ? 'Installing...' : 'Install Skill'}
       </button>
     </div>
@@ -262,10 +331,14 @@ function ActivityPanel() {
         const res = await fetch('/api/holoclaw/activity?limit=50');
         const data = await res.json();
         if (!cancelled) setEntries((data.entries || []).reverse());
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       if (!cancelled) setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -276,33 +349,49 @@ function ActivityPanel() {
         const data = JSON.parse(event.data) as ActivityEntry & { type?: string };
         if (data.type === 'connected') return;
         setEntries((prev) => [data, ...prev].slice(0, 200));
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     };
     es.onerror = () => setStreaming(false);
     return () => es.close();
   }, []);
 
-  if (loading) return <div className="text-sm text-studio-muted animate-pulse">Loading activity...</div>;
+  if (loading)
+    return <div className="text-sm text-studio-muted animate-pulse">Loading activity...</div>;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-[10px] text-studio-muted">
-        <div className={`h-2 w-2 rounded-full ${streaming ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
+        <div
+          className={`h-2 w-2 rounded-full ${streaming ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`}
+        />
         {streaming ? 'Live' : 'Disconnected'}
         <span className="ml-auto">{entries.length} entries</span>
       </div>
       {entries.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-sm text-studio-muted">No activity yet</p>
-          <p className="mt-1 text-xs text-studio-muted/60">Skill executions and channel messages will appear here</p>
+          <p className="mt-1 text-xs text-studio-muted/60">
+            Skill executions and channel messages will appear here
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-1">
           {entries.map((e, i) => (
-            <div key={`${e.timestamp}-${i}`} className="flex items-start gap-3 rounded-lg bg-[#0f172a] p-3">
-              <div className="shrink-0 text-[10px] text-studio-muted font-mono">{new Date(e.timestamp).toLocaleTimeString()}</div>
+            <div
+              key={`${e.timestamp}-${i}`}
+              className="flex items-start gap-3 rounded-lg bg-[#0f172a] p-3"
+            >
+              <div className="shrink-0 text-[10px] text-studio-muted font-mono">
+                {new Date(e.timestamp).toLocaleTimeString()}
+              </div>
               <div className="flex-1 min-w-0">
-                {e.channel && <span className="rounded bg-studio-panel px-1.5 py-0.5 text-[10px] text-studio-muted mr-2">#{e.channel}</span>}
+                {e.channel && (
+                  <span className="rounded bg-studio-panel px-1.5 py-0.5 text-[10px] text-studio-muted mr-2">
+                    #{e.channel}
+                  </span>
+                )}
                 <span className="text-xs text-studio-text">{e.message || '(empty)'}</span>
               </div>
             </div>
@@ -358,11 +447,16 @@ export default function HoloClawPage() {
       setSkills(fetchedSkills);
       // Bridge skill count into composition state
       composition.setState({ skillsLoaded: fetchedSkills.length });
-    } catch (err) { setError((err as Error).message); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { fetchSkills(); }, [fetchSkills]);
+  useEffect(() => {
+    fetchSkills();
+  }, [fetchSkills]);
 
   const tabs: { id: ClawTab; label: string }[] = [
     { id: 'shelf', label: 'Shelf' },
@@ -406,20 +500,31 @@ export default function HoloClawPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
-                tab === t.id ? 'bg-studio-accent text-white' : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
+                tab === t.id
+                  ? 'bg-studio-accent text-white'
+                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
               }`}
             >
               {t.label}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-3">
-            <Link href="/holodaemon" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
+            <Link
+              href="/holodaemon"
+              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+            >
               Daemon
             </Link>
-            <Link href="/pipeline" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-purple-500/40 transition-colors">
+            <Link
+              href="/pipeline"
+              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-purple-500/40 transition-colors"
+            >
               Pipeline
             </Link>
-            <Link href="/" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
+            <Link
+              href="/"
+              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+            >
               Home
             </Link>
           </div>
@@ -429,7 +534,9 @@ export default function HoloClawPage() {
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-6">
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
+          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {error}
+          </div>
         )}
 
         {tab === 'shelf' && (
@@ -437,22 +544,41 @@ export default function HoloClawPage() {
             <div className="flex flex-col gap-3">
               {loading ? (
                 <div className="flex flex-col gap-3">
-                  {[1, 2, 3].map((i) => <div key={i} className="h-32 rounded-xl border border-studio-border bg-[#111827] animate-pulse" />)}
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-32 rounded-xl border border-studio-border bg-[#111827] animate-pulse"
+                    />
+                  ))}
                 </div>
               ) : skills.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <p className="text-sm text-studio-muted">No skills installed</p>
-                  <p className="mt-1 text-xs text-studio-muted/60">Create your first skill or drop a .hsplus file into compositions/skills/</p>
-                  <button onClick={() => setTab('create')} className="mt-4 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white hover:bg-studio-accent/80">
+                  <p className="mt-1 text-xs text-studio-muted/60">
+                    Create your first skill or drop a .hsplus file into compositions/skills/
+                  </p>
+                  <button
+                    onClick={() => setTab('create')}
+                    className="mt-4 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white hover:bg-studio-accent/80"
+                  >
                     Create a Skill
                   </button>
                 </div>
               ) : (
-                skills.map((s) => <SkillCard key={s.path} skill={s} selected={selectedSkill?.path === s.path} onSelect={setSelectedSkill} />)
+                skills.map((s) => (
+                  <SkillCard
+                    key={s.path}
+                    skill={s}
+                    selected={selectedSkill?.path === s.path}
+                    onSelect={setSelectedSkill}
+                  />
+                ))
               )}
             </div>
             <div className="hidden lg:block">
-              {selectedSkill ? <SkillDetail skill={selectedSkill} /> : (
+              {selectedSkill ? (
+                <SkillDetail skill={selectedSkill} />
+              ) : (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-studio-border bg-[#111827] p-8 text-center">
                   <p className="text-xs text-studio-muted">Select a skill to view details</p>
                 </div>
@@ -463,7 +589,12 @@ export default function HoloClawPage() {
 
         {tab === 'create' && (
           <div className="mx-auto max-w-2xl">
-            <CreateSkillPanel onCreated={() => { fetchSkills(); setTab('shelf'); }} />
+            <CreateSkillPanel
+              onCreated={() => {
+                fetchSkills();
+                setTab('shelf');
+              }}
+            />
           </div>
         )}
 
@@ -475,11 +606,17 @@ export default function HoloClawPage() {
         <div className="flex items-center justify-between text-[10px] text-studio-muted">
           <span>HoloClaw v0.1 — Skills hot-reload from compositions/skills/ — Native Surface</span>
           <span>
-            <Link href="/holodaemon" className="hover:text-studio-text">Daemon</Link>
+            <Link href="/holodaemon" className="hover:text-studio-text">
+              Daemon
+            </Link>
             {' \u2022 '}
-            <Link href="/pipeline" className="hover:text-studio-text">Pipeline</Link>
+            <Link href="/pipeline" className="hover:text-studio-text">
+              Pipeline
+            </Link>
             {' \u2022 '}
-            <Link href="/create" className="hover:text-studio-text">Create</Link>
+            <Link href="/create" className="hover:text-studio-text">
+              Create
+            </Link>
           </span>
         </div>
       </footer>

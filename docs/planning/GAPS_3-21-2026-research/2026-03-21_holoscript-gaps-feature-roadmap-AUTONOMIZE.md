@@ -25,6 +25,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 ## Autonomous TODOs
 
 ### TODO-FEAT-001: PBD Unified Solver Package [IMMEDIATE - Week 1-2]
+
 - **What**: Create `@holoscript/pbd-solver` package with Jacobi solver in WGSL compute shaders
 - **Why**: Foundation for @fluid, @soft_body_pro, @destruction, @crowd_sim, and @cloth -- single implementation serves 5 traits
 - **Agent**: `/holoscript`
@@ -35,6 +36,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 14 days
 
 ### TODO-FEAT-002: MLS-MPM @fluid Trait [IMMEDIATE - Week 2-3]
+
 - **What**: Implement @fluid trait using MLS-MPM algorithm with SSFR rendering
 - **Why**: Physics realism is the #1 make-or-break feature per GAPS doc; "turns Hololand from floaty demo into feels real"
 - **Agent**: `/holoscript`
@@ -46,6 +48,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 21 days
 
 ### TODO-FEAT-003: Loro CRDT World State Integration [IMMEDIATE - Week 1-2]
+
 - **What**: Integrate Loro CRDT v1.8+ for persistent world state with MV-Transformer spatial pattern
 - **Why**: Foundation for persistence, multiplayer, and publishing pipeline -- serves 3 GAPS categories
 - **Agent**: `/holoscript`
@@ -57,6 +60,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 14 days
 
 ### TODO-FEAT-004: @weather Hub Trait [WEEK 2-3]
+
 - **What**: Implement @weather as world simulation hub owning blackboard state consumed by 7 traits
 - **Why**: Environmental coherence -- rain affects physics, clouds affect lighting, wind affects cloth
 - **Agent**: `/holoscript`
@@ -66,6 +70,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 21 days
 
 ### TODO-FEAT-005: WebRTC Physics Sync Protocol [WEEK 2-4]
+
 - **What**: Binary WebRTC DataChannel protocol for physics particle synchronization
 - **Why**: Multiplayer physics -- two players see the same water, cloth, and rigid bodies interacting
 - **Agent**: `/hololand`
@@ -77,6 +82,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 28 days
 
 ### TODO-FEAT-006: @volumetric_clouds + @god_rays [WEEK 3-5]
+
 - **What**: Volumetric cloud raymarcher and screen-space god ray post-processor as separate traits
 - **Why**: Visual fidelity that makes worlds "photoreal enough for people to want to live in them"
 - **Agent**: `/holoscript`
@@ -87,6 +93,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 35 days
 
 ### TODO-FEAT-007: Quality-Tier Conditional Compilation [WEEK 4-6]
+
 - **What**: Add `--tier` flag to compiler, generate per-device asset bundles and WGSL shaders
 - **Why**: Single .holo source must run on Quest 3 (50K triangles, 90fps) AND desktop (300K triangles, 120fps)
 - **Agent**: `/holoscript`
@@ -97,6 +104,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 42 days
 
 ### TODO-FEAT-008: @ai_companion Trait (PPA + RAG + SNN Hybrid) [WEEK 5-8]
+
 - **What**: Persistent AI companion trait with hybrid SNN+LLM inference, vector memory, and social graph
 - **Why**: "Worlds feel alive even when no humans are online" -- the GAPS #6 priority
 - **Agent**: `/holoscript`
@@ -107,6 +115,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 56 days
 
 ### TODO-FEAT-009: @spatial_voice + @lip_sync [WEEK 5-7]
+
 - **What**: WebRTC spatial voice with proximity attenuation and viseme-based lip-sync
 - **Why**: Social immersion -- "hear people and see their mouths move"
 - **Agent**: `/holoscript`
@@ -117,6 +126,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 49 days
 
 ### TODO-FEAT-010: Economy Layer (@token_gated + Zora + Publishing) [WEEK 8-10]
+
 - **What**: On-chain minting, token gating, one-click publish, and in-world trading
 - **Why**: "Creators actually earn real money -> viral growth"
 - **Agent**: `/holoscript`
@@ -126,6 +136,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 70 days
 
 ### TODO-FEAT-011: Soft Body + Destruction + Terrain [WEEK 8-10]
+
 - **What**: @soft_body_pro, @destruction, @deformable_terrain traits using PBD solver
 - **Why**: Physics variety beyond fluids -- tearing, fracture, erosion
 - **Agent**: `/holoscript`
@@ -135,6 +146,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 70 days
 
 ### TODO-FEAT-012: @crowd_sim Trait [WEEK 7-8]
+
 - **What**: GPU-accelerated crowd simulation with spatial hash grid for 10K+ agents
 - **Why**: Populated worlds with realistic crowd behavior
 - **Agent**: `/holoscript`
@@ -145,6 +157,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 56 days
 
 ### TODO-FEAT-013: @moderation + @anti_grief [WEEK 10-11]
+
 - **What**: AI-powered content moderation and anti-griefing traits
 - **Why**: "Keeps Hololand welcoming at scale"
 - **Agent**: `/holoscript`
@@ -154,6 +167,7 @@ The GAPS_3-21-2026 planning document identifies 10 categories of upgrades needed
 - **Expiry**: 77 days
 
 ### TODO-FEAT-014: Quest PWA + visionOS + Tauri Desktop [WEEK 10-14]
+
 - **What**: Platform-specific packaging and performance validation
 - **Why**: "Works perfectly everywhere"
 - **Agent**: `/frontend`

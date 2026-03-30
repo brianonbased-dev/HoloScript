@@ -67,7 +67,11 @@ function copyDir(src: string, dest: string): void {
   }
 }
 
-function writeProjectPackageJson(projectDir: string, projectName: string, templateName: string): void {
+function writeProjectPackageJson(
+  projectDir: string,
+  projectName: string,
+  templateName: string
+): void {
   const pkg: any = {
     name: projectName,
     version: '0.1.0',
@@ -95,18 +99,19 @@ function writeProjectPackageJson(projectDir: string, projectName: string, templa
     pkg.devDependencies['@vitejs/plugin-react'] = '^4.3.4';
   }
 
-  fs.writeFileSync(
-    path.join(projectDir, 'package.json'),
-    JSON.stringify(pkg, null, 2) + '\n'
-  );
+  fs.writeFileSync(path.join(projectDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
 }
 
 // ─── Banner ───────────────────────────────────────────────
 function printBanner(): void {
   console.log();
   console.log(pc.cyan('  ╔═══════════════════════════════════════════╗'));
-  console.log(pc.cyan('  ║') + pc.bold('     🌐 create-holoscript-app              ') + pc.cyan('║'));
-  console.log(pc.cyan('  ║') + pc.dim('   The open AI-spatial reality protocol    ') + pc.cyan('║'));
+  console.log(
+    pc.cyan('  ║') + pc.bold('     🌐 create-holoscript-app              ') + pc.cyan('║')
+  );
+  console.log(
+    pc.cyan('  ║') + pc.dim('   The open AI-spatial reality protocol    ') + pc.cyan('║')
+  );
   console.log(pc.cyan('  ╚═══════════════════════════════════════════╝'));
   console.log();
 }
@@ -187,9 +192,7 @@ async function main(): Promise<void> {
   const templateDir = path.join(templatesRoot, template.dir);
 
   if (!fs.existsSync(templateDir)) {
-    console.error(
-      pc.red(`  ✗ Template "${template.name}" not found at ${templateDir}`)
-    );
+    console.error(pc.red(`  ✗ Template "${template.name}" not found at ${templateDir}`));
     process.exit(1);
   }
 
@@ -198,7 +201,10 @@ async function main(): Promise<void> {
   console.log(`  ${pc.green('✓')} Scaffolded project structure`);
 
   // Write package.json — use basename for the npm package name
-  const pkgName = path.basename(projectDir).toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+  const pkgName = path
+    .basename(projectDir)
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, '-');
   writeProjectPackageJson(projectDir, pkgName, template.name);
   console.log(`  ${pc.green('✓')} Generated package.json`);
 

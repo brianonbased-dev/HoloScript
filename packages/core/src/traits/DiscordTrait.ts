@@ -19,8 +19,12 @@ export const discordHandler: TraitHandler<DiscordConfig> = {
   name: 'discord',
   defaultConfig: { webhook_url: '', bot_name: 'HoloBot' },
 
-  onAttach(node: any): void { node.__discordState = { sent: 0 }; },
-  onDetach(node: any): void { delete node.__discordState; },
+  onAttach(node: any): void {
+    node.__discordState = { sent: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__discordState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: DiscordConfig, context: any, event: any): void {

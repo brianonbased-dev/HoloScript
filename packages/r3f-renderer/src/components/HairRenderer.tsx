@@ -70,7 +70,7 @@ function melaninToColor(melanin: number, redness: number): THREE.Color {
   return new THREE.Color(
     Math.max(0.02, Math.min(1, r)),
     Math.max(0.02, Math.min(1, g)),
-    Math.max(0.02, Math.min(1, b)),
+    Math.max(0.02, Math.min(1, b))
   );
 }
 
@@ -161,7 +161,11 @@ void main() {
 // Geometry Builders
 // =============================================================================
 
-function buildCardGeometry(guides: HairGuide[], cardsPerGuide: number, cardWidth: number): THREE.BufferGeometry {
+function buildCardGeometry(
+  guides: HairGuide[],
+  cardsPerGuide: number,
+  cardWidth: number
+): THREE.BufferGeometry {
   const positions: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
@@ -237,11 +241,7 @@ function buildStrandGeometry(guides: HairGuide[], strandsPerGuide: number): THRE
         const p = guide.points[i];
         const t = i / (guide.points.length - 1);
         const jitterScale = t * t; // More jitter at tips
-        positions.push(
-          p[0] + jitterX * jitterScale,
-          p[1],
-          p[2] + jitterZ * jitterScale,
-        );
+        positions.push(p[0] + jitterX * jitterScale, p[1], p[2] + jitterZ * jitterScale);
         strandTs.push(t);
         strandIds.push(strandId);
       }
@@ -277,25 +277,35 @@ export const HairRenderer: React.FC<HairRendererProps> = ({
 }) => {
   const meshRef = useRef<THREE.Mesh | THREE.LineSegments>(null);
 
-  const hairColor = useMemo(() => melaninToColor(melanin, melaninRedness), [melanin, melaninRedness]);
+  const hairColor = useMemo(
+    () => melaninToColor(melanin, melaninRedness),
+    [melanin, melaninRedness]
+  );
 
-  const uniforms = useMemo(() => ({
-    uHairColor: { value: new THREE.Vector3(hairColor.r, hairColor.g, hairColor.b) },
-    uPrimaryShift: { value: primaryShift * (Math.PI / 180) },
-    uSecondaryShift: { value: secondaryShift * (Math.PI / 180) },
-    uTime: { value: 0 },
-    uWind: { value: new THREE.Vector3(wind[0], wind[1], wind[2]) },
-    uOpacity: { value: opacity },
-  }), [hairColor, primaryShift, secondaryShift, wind, opacity]);
+  const uniforms = useMemo(
+    () => ({
+      uHairColor: { value: new THREE.Vector3(hairColor.r, hairColor.g, hairColor.b) },
+      uPrimaryShift: { value: primaryShift * (Math.PI / 180) },
+      uSecondaryShift: { value: secondaryShift * (Math.PI / 180) },
+      uTime: { value: 0 },
+      uWind: { value: new THREE.Vector3(wind[0], wind[1], wind[2]) },
+      uOpacity: { value: opacity },
+    }),
+    [hairColor, primaryShift, secondaryShift, wind, opacity]
+  );
 
-  const material = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: HAIR_VERTEX_SHADER,
-    fragmentShader: HAIR_FRAGMENT_SHADER,
-    uniforms,
-    transparent: opacity < 1.0,
-    side: THREE.DoubleSide,
-    depthWrite: opacity >= 1.0,
-  }), [uniforms, opacity]);
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: HAIR_VERTEX_SHADER,
+        fragmentShader: HAIR_FRAGMENT_SHADER,
+        uniforms,
+        transparent: opacity < 1.0,
+        side: THREE.DoubleSide,
+        depthWrite: opacity >= 1.0,
+      }),
+    [uniforms, opacity]
+  );
 
   const geometry = useMemo(() => {
     if (mode === 'cards') {

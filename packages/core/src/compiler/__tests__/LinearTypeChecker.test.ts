@@ -84,9 +84,7 @@ describe('LinearTypeChecker — checkNode', () => {
 
   it('detects resource from @inventory trait', () => {
     const checker = new LinearTypeChecker();
-    const result = checker.checkNode(
-      makeNode({ name: 'sword', traits: ['@inventory'] })
-    );
+    const result = checker.checkNode(makeNode({ name: 'sword', traits: ['@inventory'] }));
     // Resource tracked but no violation (just owned, no consuming calls)
     expect(result.trackedResources.has('sword')).toBe(true);
     expect(result.trackedResources.get('sword')).toBe('owned');
@@ -204,18 +202,14 @@ describe('LinearTypeChecker — configuration', () => {
       customTraitMap: { '@magic_orb': 'MagicOrb' },
     });
 
-    const result = checker.checkModule([
-      makeNode({ name: 'orb', traits: ['@magic_orb'] }),
-    ]);
+    const result = checker.checkModule([makeNode({ name: 'orb', traits: ['@magic_orb'] })]);
     expect(result.trackedResources.has('orb')).toBe(true);
     expect(result.violations.some((v) => v.kind === 'resource-leak')).toBe(true);
   });
 
   it('respects strictLeaks=false (warnings instead of errors)', () => {
     const checker = new LinearTypeChecker({ strictLeaks: false });
-    const result = checker.checkModule([
-      makeNode({ name: 'item', traits: ['@inventory'] }),
-    ]);
+    const result = checker.checkModule([makeNode({ name: 'item', traits: ['@inventory'] })]);
     const leaks = result.violations.filter((v) => v.kind === 'resource-leak');
     expect(leaks.length).toBeGreaterThan(0);
     expect(leaks[0].severity).toBe('warning');

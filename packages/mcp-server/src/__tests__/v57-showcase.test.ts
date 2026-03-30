@@ -25,10 +25,7 @@ import {
   signPackage,
   canonicalizeManifest,
 } from '@holoscript/core';
-import type {
-  PackageManifest,
-  SignedPackage,
-} from '@holoscript/core';
+import type { PackageManifest, SignedPackage } from '@holoscript/core';
 import { handlePluginManagementTool } from '../plugin-management-tools';
 
 // =============================================================================
@@ -124,7 +121,9 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
         budget: DEFAULT_CAPABILITY_BUDGET,
       });
 
-      const result = await runner.execute('typeof process !== "undefined" ? process.exit(1) : "safe"');
+      const result = await runner.execute(
+        'typeof process !== "undefined" ? process.exit(1) : "safe"'
+      );
       expect(result.success).toBe(true);
       expect(result.result).toBe('safe');
     });
@@ -241,14 +240,14 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
 
   describe('MCP plugin management tools', () => {
     it('install_plugin installs and enables a plugin', async () => {
-      const result = await handlePluginManagementTool('install_plugin', {
+      const result = (await handlePluginManagementTool('install_plugin', {
         id: 'test-plugin',
         name: 'Test Plugin',
         version: '1.0.0',
         description: 'A test',
         code: SIMPLE_PLUGIN_CODE,
         permissions: ['tool:register', 'event:emit'],
-      }) as { success: boolean; pluginId: string; state: string; tools: string[] };
+      })) as { success: boolean; pluginId: string; state: string; tools: string[] };
 
       expect(result.success).toBe(true);
       expect(result.pluginId).toBe('test-plugin');
@@ -266,7 +265,7 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
         permissions: [],
       });
 
-      const result = await handlePluginManagementTool('list_plugins', {}) as {
+      const result = (await handlePluginManagementTool('list_plugins', {})) as {
         plugins: Array<{ id: string; state: string }>;
         total: number;
       };
@@ -287,18 +286,18 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
       });
 
       // Disable
-      const disableResult = await handlePluginManagementTool('manage_plugin', {
+      const disableResult = (await handlePluginManagementTool('manage_plugin', {
         pluginId: 'managed-plugin',
         action: 'disable',
-      }) as { success: boolean; state: string };
+      })) as { success: boolean; state: string };
       expect(disableResult.success).toBe(true);
       expect(disableResult.state).toBe('disabled');
 
       // Uninstall
-      const uninstallResult = await handlePluginManagementTool('manage_plugin', {
+      const uninstallResult = (await handlePluginManagementTool('manage_plugin', {
         pluginId: 'managed-plugin',
         action: 'uninstall',
-      }) as { success: boolean; state: string };
+      })) as { success: boolean; state: string };
       expect(uninstallResult.success).toBe(true);
     });
   });
@@ -309,7 +308,9 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
 
   describe('create-plugin scaffolder', () => {
     it('generates valid plugin manifest template', async () => {
-      const { createPlugin } = await import(resolve(__dirname, '../../../../packages/cli/src/commands/create-plugin'));
+      const { createPlugin } = await import(
+        resolve(__dirname, '../../../../packages/cli/src/commands/create-plugin')
+      );
       const os = await import('os');
       const fs = await import('fs');
       const path = await import('path');
@@ -348,7 +349,9 @@ describe('v5.7 Showcase — Open Ecosystem', () => {
     });
 
     it('validates plugin name format', async () => {
-      const { createPlugin } = await import(resolve(__dirname, '../../../../packages/cli/src/commands/create-plugin'));
+      const { createPlugin } = await import(
+        resolve(__dirname, '../../../../packages/cli/src/commands/create-plugin')
+      );
       const result = createPlugin({ name: 'Bad Name!', outDir: '/tmp/nope' });
       expect(result.success).toBe(false);
       expect(result.error).toContain('kebab-case');

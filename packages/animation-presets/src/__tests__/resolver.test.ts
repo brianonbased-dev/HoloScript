@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  resolvePreset,
-  resolveMultiple,
-  getDefaultRegistry,
-} from '../resolver.js';
+import { resolvePreset, resolveMultiple, getDefaultRegistry } from '../resolver.js';
 import { walkPreset, idlePreset } from '../presets/index.js';
 import { PresetRegistry } from '../registry.js';
 
@@ -30,7 +26,7 @@ describe('resolvePreset()', () => {
 
     it('should throw for unknown preset name', () => {
       expect(() => resolvePreset('nonexistent')).toThrow(
-        'Animation preset "nonexistent" not found',
+        'Animation preset "nonexistent" not found'
       );
     });
   });
@@ -188,9 +184,21 @@ describe('resolvePreset()', () => {
 
   describe('all presets resolvable', () => {
     const presetNames = [
-      'walk', 'idle', 'attack', 'speak', 'dance',
-      'run', 'jump', 'wave', 'sit', 'sleep',
-      'crouch', 'swim', 'fly', 'climb', 'emote',
+      'walk',
+      'idle',
+      'attack',
+      'speak',
+      'dance',
+      'run',
+      'jump',
+      'wave',
+      'sit',
+      'sleep',
+      'crouch',
+      'swim',
+      'fly',
+      'climb',
+      'emote',
     ];
 
     for (const name of presetNames) {
@@ -238,8 +246,21 @@ describe('resolveMultiple()', () => {
 
   it('should produce valid HoloScript with all 15 presets', () => {
     const output = resolveMultiple([
-      'idle', 'walk', 'run', 'jump', 'crouch', 'swim', 'fly', 'climb',
-      'attack', 'speak', 'wave', 'dance', 'emote', 'sit', 'sleep',
+      'idle',
+      'walk',
+      'run',
+      'jump',
+      'crouch',
+      'swim',
+      'fly',
+      'climb',
+      'attack',
+      'speak',
+      'wave',
+      'dance',
+      'emote',
+      'sit',
+      'sleep',
     ]);
     expect(output).toContain('@animated');
     // Should have 15 animation blocks

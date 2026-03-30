@@ -35,14 +35,18 @@ export const profilerHandler: TraitHandler<ProfilerConfig> = {
       completedSpans: [] as ProfilerSpan[],
     };
   },
-  onDetach(node: any): void { delete node.__profilerState; },
+  onDetach(node: any): void {
+    delete node.__profilerState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: ProfilerConfig, context: any, event: any): void {
-    const state = node.__profilerState as {
-      activeSpans: Map<string, number>;
-      completedSpans: ProfilerSpan[];
-    } | undefined;
+    const state = node.__profilerState as
+      | {
+          activeSpans: Map<string, number>;
+          completedSpans: ProfilerSpan[];
+        }
+      | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 
@@ -68,7 +72,7 @@ export const profilerHandler: TraitHandler<ProfilerConfig> = {
       }
       case 'profiler:report': {
         context.emit?.('profiler:report', {
-          spans: state.completedSpans.map(s => ({ name: s.name, durationMs: s.durationMs })),
+          spans: state.completedSpans.map((s) => ({ name: s.name, durationMs: s.durationMs })),
           totalSpans: state.completedSpans.length,
           activeCount: state.activeSpans.size,
         });

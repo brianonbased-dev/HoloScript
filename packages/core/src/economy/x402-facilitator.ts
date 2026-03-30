@@ -44,9 +44,9 @@ export type SettlementMode = 'in_memory' | 'on_chain';
 
 /** USDC contract addresses per chain */
 export const USDC_CONTRACTS: Record<SettlementChain, string> = {
-  'base': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   'base-sepolia': '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-  'solana': 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  solana: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   'solana-devnet': '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
 };
 
@@ -484,7 +484,10 @@ export class X402Facilitator {
     const validBefore = parseInt(payment.payload.authorization.validBefore, 10);
 
     if (now < validAfter) {
-      return { isValid: false, invalidReason: 'Authorization not yet valid (validAfter in future)' };
+      return {
+        isValid: false,
+        invalidReason: 'Authorization not yet valid (validAfter in future)',
+      };
     }
     if (now > validBefore) {
       return { isValid: false, invalidReason: 'Authorization expired (validBefore in past)' };
@@ -829,9 +832,8 @@ export class X402Facilitator {
    */
   static decodeXPaymentHeader(header: string): X402PaymentPayload | null {
     try {
-      const decoded = typeof atob === 'function'
-        ? atob(header)
-        : Buffer.from(header, 'base64').toString('utf-8');
+      const decoded =
+        typeof atob === 'function' ? atob(header) : Buffer.from(header, 'base64').toString('utf-8');
       return JSON.parse(decoded) as X402PaymentPayload;
     } catch {
       return null;
@@ -843,9 +845,7 @@ export class X402Facilitator {
    */
   static encodeXPaymentHeader(payload: X402PaymentPayload): string {
     const json = JSON.stringify(payload);
-    return typeof btoa === 'function'
-      ? btoa(json)
-      : Buffer.from(json, 'utf-8').toString('base64');
+    return typeof btoa === 'function' ? btoa(json) : Buffer.from(json, 'utf-8').toString('base64');
   }
 
   /**
@@ -860,9 +860,7 @@ export class X402Facilitator {
       errorReason: result.errorReason,
     };
     const json = JSON.stringify(response);
-    return typeof btoa === 'function'
-      ? btoa(json)
-      : Buffer.from(json, 'utf-8').toString('base64');
+    return typeof btoa === 'function' ? btoa(json) : Buffer.from(json, 'utf-8').toString('base64');
   }
 
   // ===========================================================================
@@ -1115,9 +1113,10 @@ export const creditTraitHandler: TraitHandler<CreditTraitConfig> = {
         }
 
         // Decode the X-PAYMENT header
-        const paymentPayload = typeof xPaymentHeader === 'string'
-          ? X402Facilitator.decodeXPaymentHeader(xPaymentHeader)
-          : xPaymentHeader as X402PaymentPayload;
+        const paymentPayload =
+          typeof xPaymentHeader === 'string'
+            ? X402Facilitator.decodeXPaymentHeader(xPaymentHeader)
+            : (xPaymentHeader as X402PaymentPayload);
 
         if (!paymentPayload) {
           context.emit?.('credit:access_denied', {
@@ -1241,7 +1240,7 @@ export default creditTraitHandler;
 
 /** EVM chain IDs for supported settlement networks */
 export const CHAIN_IDS: Record<string, number> = {
-  'base': 8453,
+  base: 8453,
   'base-sepolia': 84532,
 };
 
@@ -1503,7 +1502,11 @@ export class PaymentGateway {
     amountUSDC: number,
     description?: string
   ): X402PaymentRequired & { chainId: number } {
-    const paymentRequired = this.facilitator.createPaymentRequired(resource, amountUSDC, description);
+    const paymentRequired = this.facilitator.createPaymentRequired(
+      resource,
+      amountUSDC,
+      description
+    );
 
     this.emit('payment:authorization_created', {
       recipient: this.config.recipientAddress,
@@ -1538,9 +1541,7 @@ export class PaymentGateway {
   ): X402VerificationResult & { decodedPayload: X402PaymentPayload | null } {
     // Decode if string
     const payload: X402PaymentPayload | null =
-      typeof payment === 'string'
-        ? X402Facilitator.decodeXPaymentHeader(payment)
-        : payment;
+      typeof payment === 'string' ? X402Facilitator.decodeXPaymentHeader(payment) : payment;
 
     if (!payload) {
       this.emit('payment:verification_failed', {
@@ -1605,9 +1606,7 @@ export class PaymentGateway {
   ): Promise<X402SettlementResult> {
     // Decode if string
     const payload: X402PaymentPayload | null =
-      typeof payment === 'string'
-        ? X402Facilitator.decodeXPaymentHeader(payment)
-        : payment;
+      typeof payment === 'string' ? X402Facilitator.decodeXPaymentHeader(payment) : payment;
 
     if (!payload) {
       return {
@@ -1698,9 +1697,10 @@ export class PaymentGateway {
 
       if (settlement.mode === 'in_memory' && settlement.transaction) {
         // It was a micro-payment -- record a reverse entry
-        const refundAmount = partialAmount ?? settlement.transaction
-          ? '0' // We'll try to find the amount from the ledger
-          : '0';
+        const refundAmount =
+          (partialAmount ?? settlement.transaction)
+            ? '0' // We'll try to find the amount from the ledger
+            : '0';
 
         const refundId = `refund_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -1856,9 +1856,10 @@ export class PaymentGateway {
       transaction: null,
       originalMode: 'in_memory',
       reason,
-      errorReason: originalStatus === 'pending'
-        ? 'Cannot refund: original payment still pending settlement'
-        : 'Cannot refund: original payment not found',
+      errorReason:
+        originalStatus === 'pending'
+          ? 'Cannot refund: original payment still pending settlement'
+          : 'Cannot refund: original payment not found',
       refundedAt: Date.now(),
     };
 

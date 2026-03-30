@@ -109,9 +109,7 @@ function toPrecipitationType(type: WeatherType): PrecipitationType {
 }
 
 // Available weather types for random cycling
-const CYCLE_WEATHER_TYPES: WeatherType[] = [
-  'clear', 'cloudy', 'rain', 'storm', 'snow', 'fog',
-];
+const CYCLE_WEATHER_TYPES: WeatherType[] = ['clear', 'cloudy', 'rain', 'storm', 'snow', 'fog'];
 
 // =============================================================================
 // Trait Handler
@@ -145,7 +143,7 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
       (wd[0] / len) * config.wind_speed,
       (wd[1] / len) * config.wind_speed,
       (wd[2] / len) * config.wind_speed,
-      config.wind_speed,
+      config.wind_speed
     );
 
     const state: WeatherHubState = {
@@ -214,7 +212,7 @@ export const weatherHubHandler: TraitHandler<WeatherHubConfig> = {
         (dir[0] / len) * speed,
         (dir[1] / len) * speed,
         (dir[2] / len) * speed,
-        speed,
+        speed
       );
     } else if (event.type === 'weather_set_time') {
       state.timeOfDay = event.time as number;
@@ -243,9 +241,12 @@ function writeBlackboard(state: WeatherHubState, config: WeatherHubConfig): void
     humidity: ws.humidity,
     sun_position: sunPos,
     sun_intensity: sunIntensity,
-    cloud_density: ws.type === 'cloudy' || ws.type === 'rain' || ws.type === 'storm'
-      ? ws.intensity
-      : ws.type === 'fog' ? 0.8 : 0.1,
+    cloud_density:
+      ws.type === 'cloudy' || ws.type === 'rain' || ws.type === 'storm'
+        ? ws.intensity
+        : ws.type === 'fog'
+          ? 0.8
+          : 0.1,
     cloud_altitude: 2000,
     fog_density: ws.type === 'fog' ? ws.intensity : ws.type === 'storm' ? 0.3 : 0,
     time_of_day: state.timeOfDay,

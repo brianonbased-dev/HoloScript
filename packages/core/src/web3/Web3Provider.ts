@@ -55,7 +55,9 @@ export class Web3Provider {
     ];
   }
 
-  public async mint(_params: { name: string }): Promise<{ transactionHash: string; tokenId: string }> {
+  public async mint(_params: {
+    name: string;
+  }): Promise<{ transactionHash: string; tokenId: string }> {
     if (!this.isConnected) {
       throw new Error('Not connected');
     }

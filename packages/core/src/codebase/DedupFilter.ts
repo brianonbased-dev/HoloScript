@@ -143,7 +143,7 @@ export class DedupFilter {
     const removed = new Set<string>();
 
     // Generate MinHash signatures for all items
-    const signatures = items.map(item => ({
+    const signatures = items.map((item) => ({
       item,
       shingles: this.shingle(item.content),
       minhash: this.minhash(this.shingle(item.content)),
@@ -201,7 +201,7 @@ export class DedupFilter {
       }
     }
 
-    const unique = items.filter(item => !removed.has(item.id));
+    const unique = items.filter((item) => !removed.has(item.id));
     return { unique, removals };
   }
 

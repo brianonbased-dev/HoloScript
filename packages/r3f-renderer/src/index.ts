@@ -43,7 +43,12 @@ export type { GodRaysEffectProps } from './components/GodRaysEffect';
 
 // Environment Rendering Components (Phase R1)
 export { PostProcessingRenderer } from './components/PostProcessingRenderer';
-export type { PostProcessingRendererProps, PostProcessStep, PostProcessEffect, QualityTier } from './components/PostProcessingRenderer';
+export type {
+  PostProcessingRendererProps,
+  PostProcessStep,
+  PostProcessEffect,
+  QualityTier,
+} from './components/PostProcessingRenderer';
 export { AtmosphereRenderer } from './components/AtmosphereRenderer';
 export type { AtmosphereRendererProps, SkyModel } from './components/AtmosphereRenderer';
 export { OceanRenderer } from './components/OceanRenderer';
@@ -51,7 +56,12 @@ export type { OceanRendererProps, OceanType, GerstnerSwell } from './components/
 export { TerrainRenderer } from './components/TerrainRenderer';
 export type { TerrainRendererProps, BiomeConfig } from './components/TerrainRenderer';
 export { GIRenderer } from './components/GIRenderer';
-export type { GIRendererProps, GIMethod, GIQualityTier, LightProbeConfig } from './components/GIRenderer';
+export type {
+  GIRendererProps,
+  GIMethod,
+  GIQualityTier,
+  LightProbeConfig,
+} from './components/GIRenderer';
 
 // Simulation Visualization Components (Phase R2)
 export { ScalarFieldOverlay } from './components/ScalarFieldOverlay';
@@ -59,13 +69,25 @@ export type { ScalarFieldOverlayProps, ColormapName } from './components/ScalarF
 
 // VFX & Audio Components (Phase R3)
 export { VFXParticleRenderer } from './components/VFXParticleRenderer';
-export type { VFXParticleRendererProps, VFXPreset, EmitterShape } from './components/VFXParticleRenderer';
+export type {
+  VFXParticleRendererProps,
+  VFXPreset,
+  EmitterShape,
+} from './components/VFXParticleRenderer';
 export { SpatialAudioRenderer } from './components/SpatialAudioRenderer';
-export type { SpatialAudioRendererProps, AudioSourceType, ReverbZone } from './components/SpatialAudioRenderer';
+export type {
+  SpatialAudioRendererProps,
+  AudioSourceType,
+  ReverbZone,
+} from './components/SpatialAudioRenderer';
 
 // Character Rendering Components (Phase R4)
 export { ShapePoolRenderer } from './components/ShapePoolRenderer';
-export type { ShapePoolRendererProps, ShapeInstance, PoolGeometryType } from './components/ShapePoolRenderer';
+export type {
+  ShapePoolRendererProps,
+  ShapeInstance,
+  PoolGeometryType,
+} from './components/ShapePoolRenderer';
 export { SkinSSRenderer } from './components/SkinSSRenderer';
 export type { SkinSSRendererProps } from './components/SkinSSRenderer';
 export { EyeRenderer } from './components/EyeRenderer';
@@ -81,15 +103,15 @@ export type { RoomPortalRendererProps, PortalStyle } from './components/RoomPort
 export { GuestbookRenderer } from './components/GuestbookRenderer';
 export type { GuestbookRendererProps, GuestbookEntryData } from './components/GuestbookRenderer';
 export { BadgeHolographicRenderer } from './components/BadgeHolographicRenderer';
-export type { BadgeHolographicRendererProps, BadgeData, BadgeDisplayMode, BadgeTier } from './components/BadgeHolographicRenderer';
+export type {
+  BadgeHolographicRendererProps,
+  BadgeData,
+  BadgeDisplayMode,
+  BadgeTier,
+} from './components/BadgeHolographicRenderer';
 
 // Utilities
-export {
-  getGeometry,
-  getMaterialProps,
-  isScaledBody,
-  isFireMesh,
-} from './utils/materialUtils';
+export { getGeometry, getMaterialProps, isScaledBody, isFireMesh } from './utils/materialUtils';
 export type { LODDetail } from './utils/materialUtils';
 
 // Hooks

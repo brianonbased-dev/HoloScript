@@ -164,30 +164,33 @@ export class TickSimulator {
         if (a.isStatic) {
           // Move b out of a
           b.entity.bounds = b.entity.bounds.translate(
-            axis === 'x' ? { x: -separation, y: 0, z: 0 } :
-            axis === 'y' ? { x: 0, y: -separation, z: 0 } :
-                           { x: 0, y: 0, z: -separation }
+            axis === 'x'
+              ? { x: -separation, y: 0, z: 0 }
+              : axis === 'y'
+                ? { x: 0, y: -separation, z: 0 }
+                : { x: 0, y: 0, z: -separation }
           );
           // Reflect b's velocity on collision axis with restitution
           b.velocity[axis] = -b.velocity[axis] * restitution;
-
         } else if (b.isStatic) {
           // Move a out of b
           a.entity.bounds = a.entity.bounds.translate(
-            axis === 'x' ? { x: separation, y: 0, z: 0 } :
-            axis === 'y' ? { x: 0, y: separation, z: 0 } :
-                           { x: 0, y: 0, z: separation }
+            axis === 'x'
+              ? { x: separation, y: 0, z: 0 }
+              : axis === 'y'
+                ? { x: 0, y: separation, z: 0 }
+                : { x: 0, y: 0, z: separation }
           );
           a.velocity[axis] = -a.velocity[axis] * restitution;
-
         } else {
           // Both dynamic: split the correction and exchange velocity on collision axis
           const halfSep = separation / 2;
-          const delta = (
-            axis === 'x' ? { x: halfSep, y: 0, z: 0 } :
-            axis === 'y' ? { x: 0, y: halfSep, z: 0 } :
-                           { x: 0, y: 0, z: halfSep }
-          );
+          const delta =
+            axis === 'x'
+              ? { x: halfSep, y: 0, z: 0 }
+              : axis === 'y'
+                ? { x: 0, y: halfSep, z: 0 }
+                : { x: 0, y: 0, z: halfSep };
           const negDelta = {
             x: -delta.x,
             y: -delta.y,
@@ -198,8 +201,12 @@ export class TickSimulator {
 
           // Elastic collision (equal mass simplification: swap velocities)
           const totalMass = a.mass + b.mass;
-          const newAVel = (a.velocity[axis] * (a.mass - b.mass) + 2 * b.mass * b.velocity[axis]) / totalMass * restitution;
-          const newBVel = (b.velocity[axis] * (b.mass - a.mass) + 2 * a.mass * a.velocity[axis]) / totalMass * restitution;
+          const newAVel =
+            ((a.velocity[axis] * (a.mass - b.mass) + 2 * b.mass * b.velocity[axis]) / totalMass) *
+            restitution;
+          const newBVel =
+            ((b.velocity[axis] * (b.mass - a.mass) + 2 * a.mass * a.velocity[axis]) / totalMass) *
+            restitution;
           a.velocity[axis] = newAVel;
           b.velocity[axis] = newBVel;
         }

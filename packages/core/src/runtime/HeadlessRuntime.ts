@@ -106,10 +106,10 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
 
   start(): void {
     if (this.running) return;
-    
+
     this.running = true;
     this.startTime = Date.now();
-    
+
     // Debug logging removed per lint rules
 
     // Start tick loop
@@ -121,9 +121,9 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
 
   stop(): void {
     if (!this.running) return;
-    
+
     this.running = false;
-    
+
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = undefined;
@@ -134,9 +134,9 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
 
   tick(): void {
     if (!this.running) return;
-    
+
     this.tickCount++;
-    
+
     // Process AST nodes (simplified)
     // In a real implementation, this would execute the scene graph
     // Debug logging removed per lint rules
@@ -226,7 +226,7 @@ class HeadlessRuntimeImpl implements HeadlessRuntime {
 }
 
 export function createHeadlessRuntime(
-  ast: HSPlusAST, 
+  ast: HSPlusAST,
   options: HeadlessRuntimeOptions = {}
 ): HeadlessRuntime {
   return new HeadlessRuntimeImpl(ast, options);

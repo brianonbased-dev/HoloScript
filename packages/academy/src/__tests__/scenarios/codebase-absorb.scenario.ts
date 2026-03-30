@@ -38,14 +38,34 @@ function makeMinimalGraph() {
         path: 'src/parser/HoloCompositionParser.ts',
         language: 'typescript',
         symbols: [
-          { name: 'HoloCompositionParser', type: 'class', filePath: 'src/parser/HoloCompositionParser.ts', line: 10 },
-          { name: 'parseHolo', type: 'function', filePath: 'src/parser/HoloCompositionParser.ts', line: 200 },
+          {
+            name: 'HoloCompositionParser',
+            type: 'class',
+            filePath: 'src/parser/HoloCompositionParser.ts',
+            line: 10,
+          },
+          {
+            name: 'parseHolo',
+            type: 'function',
+            filePath: 'src/parser/HoloCompositionParser.ts',
+            line: 200,
+          },
         ],
         imports: [
-          { fromFile: 'src/parser/HoloCompositionParser.ts', toModule: './HoloCompositionTypes', resolvedPath: 'src/parser/HoloCompositionTypes.ts' },
+          {
+            fromFile: 'src/parser/HoloCompositionParser.ts',
+            toModule: './HoloCompositionTypes',
+            resolvedPath: 'src/parser/HoloCompositionTypes.ts',
+          },
         ],
         calls: [
-          { callerId: 'HoloCompositionParser.parse', calleeName: 'parseHolo', calleeOwner: null, filePath: 'src/parser/HoloCompositionParser.ts', line: 250 },
+          {
+            callerId: 'HoloCompositionParser.parse',
+            calleeName: 'parseHolo',
+            calleeOwner: null,
+            filePath: 'src/parser/HoloCompositionParser.ts',
+            line: 250,
+          },
         ],
         loc: 400,
         sizeBytes: 12000,
@@ -54,8 +74,18 @@ function makeMinimalGraph() {
         path: 'src/parser/HoloCompositionTypes.ts',
         language: 'typescript',
         symbols: [
-          { name: 'HoloComposition', type: 'interface', filePath: 'src/parser/HoloCompositionTypes.ts', line: 81 },
-          { name: 'HoloObjectDecl', type: 'interface', filePath: 'src/parser/HoloCompositionTypes.ts', line: 368 },
+          {
+            name: 'HoloComposition',
+            type: 'interface',
+            filePath: 'src/parser/HoloCompositionTypes.ts',
+            line: 81,
+          },
+          {
+            name: 'HoloObjectDecl',
+            type: 'interface',
+            filePath: 'src/parser/HoloCompositionTypes.ts',
+            line: 368,
+          },
         ],
         imports: [],
         calls: [],
@@ -143,7 +173,9 @@ describe('Scenario: Codebase Absorb JSON — CodebaseGraph API', () => {
     const importedBy = graph.getImportedBy('src/parser/HoloCompositionTypes.ts');
     expect(Array.isArray(importedBy)).toBe(true);
     // May resolve via resolvedPath or path — check either way
-    expect(importedBy.length + graph.getImportedBy('@holoscript/core').length).toBeGreaterThanOrEqual(0);
+    expect(
+      importedBy.length + graph.getImportedBy('@holoscript/core').length
+    ).toBeGreaterThanOrEqual(0);
   });
 
   it('graph.getFilePaths() returns all tracked file paths', () => {
@@ -355,7 +387,8 @@ describe('Scenario: Codebase Absorb JSON — Query-Based Analysis', () => {
 
 describe('Scenario: Codebase Absorb JSON — Visualization Panel', () => {
   it('graphToVisualizationData() converts serialized CodebaseGraph to VisNode[]', async () => {
-    const { graphToVisualizationData } = await import('../../components/visualization/CodebaseVisualizationPanel');
+    const { graphToVisualizationData } =
+      await import('../../components/visualization/CodebaseVisualizationPanel');
     const graph = makeMinimalGraph();
     const serialized = JSON.parse(graph.serialize());
     const vizData = graphToVisualizationData(serialized);
@@ -366,7 +399,8 @@ describe('Scenario: Codebase Absorb JSON — Visualization Panel', () => {
   });
 
   it('each VisNode has id, label, community, degree', async () => {
-    const { graphToVisualizationData } = await import('../../components/visualization/CodebaseVisualizationPanel');
+    const { graphToVisualizationData } =
+      await import('../../components/visualization/CodebaseVisualizationPanel');
     const graph = makeMinimalGraph();
     const serialized = JSON.parse(graph.serialize());
     const vizData = graphToVisualizationData(serialized);
@@ -380,7 +414,8 @@ describe('Scenario: Codebase Absorb JSON — Visualization Panel', () => {
   });
 
   it('VisEdge[] reflects import relationships between files', async () => {
-    const { graphToVisualizationData } = await import('../../components/visualization/CodebaseVisualizationPanel');
+    const { graphToVisualizationData } =
+      await import('../../components/visualization/CodebaseVisualizationPanel');
     const graph = makeMinimalGraph();
     const serialized = JSON.parse(graph.serialize());
     const vizData = graphToVisualizationData(serialized);
@@ -395,7 +430,8 @@ describe('Scenario: Codebase Absorb JSON — Visualization Panel', () => {
   });
 
   it('stats.totalFiles / totalSymbols / totalImports match graph', async () => {
-    const { graphToVisualizationData } = await import('../../components/visualization/CodebaseVisualizationPanel');
+    const { graphToVisualizationData } =
+      await import('../../components/visualization/CodebaseVisualizationPanel');
     const graph = makeMinimalGraph();
     const serialized = JSON.parse(graph.serialize());
     const vizData = graphToVisualizationData(serialized);
@@ -405,7 +441,8 @@ describe('Scenario: Codebase Absorb JSON — Visualization Panel', () => {
   });
 
   it('node labels are short basenames (≤ filename length)', async () => {
-    const { graphToVisualizationData } = await import('../../components/visualization/CodebaseVisualizationPanel');
+    const { graphToVisualizationData } =
+      await import('../../components/visualization/CodebaseVisualizationPanel');
     const graph = makeMinimalGraph();
     const serialized = JSON.parse(graph.serialize());
     const vizData = graphToVisualizationData(serialized);

@@ -23,7 +23,11 @@ import {
 import { AgentRegistry, getDefaultRegistry } from './AgentRegistry';
 import { FederatedRegistryAdapter, type FederatedRegistryConfig } from './FederatedRegistryAdapter';
 import { TaskDelegationService, type DelegationResult } from './TaskDelegationService';
-import { SkillWorkflowEngine, type WorkflowDefinition, type WorkflowResult } from './SkillWorkflowEngine';
+import {
+  SkillWorkflowEngine,
+  type WorkflowDefinition,
+  type WorkflowResult,
+} from './SkillWorkflowEngine';
 import type { AgentManifest } from './AgentManifest';
 import type { CapabilityQuery, AgentMatch } from './CapabilityMatcher';
 
@@ -271,7 +275,8 @@ export class OrchestratorAgent extends BaseAgent {
       const existing = this.patterns.get(key);
       if (existing) {
         existing.successCount++;
-        existing.avgDurationMs = (existing.avgDurationMs + (lastResult.durationMs as number || 0)) / 2;
+        existing.avgDurationMs =
+          (existing.avgDurationMs + ((lastResult.durationMs as number) || 0)) / 2;
         existing.lastUsed = Date.now();
       } else {
         this.patterns.set(key, {
@@ -330,10 +335,7 @@ export class OrchestratorAgent extends BaseAgent {
   /**
    * Delegate a task without running a full cycle.
    */
-  async delegateTask(
-    skillId: string,
-    args: Record<string, unknown>
-  ): Promise<DelegationResult> {
+  async delegateTask(skillId: string, args: Record<string, unknown>): Promise<DelegationResult> {
     // Check preferences first
     const preferredAgentId = this.preferences.get(skillId);
     if (preferredAgentId && this.registry.has(preferredAgentId)) {
@@ -355,7 +357,10 @@ export class OrchestratorAgent extends BaseAgent {
     const executor = this.config.localExecutor
       ? async (skillId: string, inputs: Record<string, unknown>) => {
           const result = await this.config.localExecutor!(skillId, inputs);
-          return (typeof result === 'object' && result !== null ? result : { result }) as Record<string, unknown>;
+          return (typeof result === 'object' && result !== null ? result : { result }) as Record<
+            string,
+            unknown
+          >;
         }
       : async (skillId: string, inputs: Record<string, unknown>) => {
           return { skillId, inputs, note: 'No executor configured' } as Record<string, unknown>;

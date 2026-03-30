@@ -114,9 +114,7 @@ export function LODMetricsPanel() {
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <span>📊</span> LOD Metrics
         </h3>
-        <p className="text-[10px] text-studio-muted mt-0.5">
-          Frame time & LOD performance
-        </p>
+        <p className="text-[10px] text-studio-muted mt-0.5">Frame time & LOD performance</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -150,12 +148,10 @@ export function LODMetricsPanel() {
 
         {/* Sparkline */}
         <div className="bg-studio-panel/30 rounded-lg p-2">
-          <span className="text-studio-muted text-[10px]">Frame History ({HISTORY_SIZE} frames)</span>
-          <svg
-            viewBox="0 0 100 100"
-            className="w-full h-12 mt-1"
-            preserveAspectRatio="none"
-          >
+          <span className="text-studio-muted text-[10px]">
+            Frame History ({HISTORY_SIZE} frames)
+          </span>
+          <svg viewBox="0 0 100 100" className="w-full h-12 mt-1" preserveAspectRatio="none">
             {/* Threshold line */}
             <line
               x1="0"
@@ -186,9 +182,7 @@ export function LODMetricsPanel() {
             <span className="text-studio-muted text-[10px]">Regression State</span>
             <span
               className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                isRegressed
-                  ? 'bg-red-500/20 text-red-400'
-                  : 'bg-emerald-500/20 text-emerald-400'
+                isRegressed ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
               }`}
             >
               {isRegressed ? 'REGRESSED' : 'NORMAL'}
@@ -211,7 +205,7 @@ export function LODMetricsPanel() {
           <span className="text-studio-muted text-[10px]">LOD Level Distribution</span>
           <div className="flex items-end gap-1 h-10 mt-1">
             {(latest?.levelDistribution || [0, 0, 0, 0]).map((count, i) => {
-              const max = Math.max(1, ...((latest?.levelDistribution) || [1]));
+              const max = Math.max(1, ...(latest?.levelDistribution || [1]));
               const pct = (count / max) * 100;
               return (
                 <div key={i} className="flex-1 flex flex-col items-center">

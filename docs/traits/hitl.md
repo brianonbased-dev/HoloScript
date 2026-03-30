@@ -128,25 +128,25 @@ Agent continues   Agent logs rejection,
 
 ## Biofeedback Devices
 
-| Device | Signals | Transport |
-|--------|---------|-----------|
-| Polar H10 | Heart rate, HRV | Bluetooth LE |
-| Muse 2 | EEG (alpha, theta, beta) | Bluetooth LE |
-| Shimmer3 GSR+ | Galvanic skin response, temperature | Bluetooth/USB |
-| Tobii Eye Tracker | Gaze, pupil dilation | USB |
-| Meta Quest (built-in) | Eye tracking, face tracking | OpenXR ET ext |
+| Device                | Signals                             | Transport     |
+| --------------------- | ----------------------------------- | ------------- |
+| Polar H10             | Heart rate, HRV                     | Bluetooth LE  |
+| Muse 2                | EEG (alpha, theta, beta)            | Bluetooth LE  |
+| Shimmer3 GSR+         | Galvanic skin response, temperature | Bluetooth/USB |
+| Tobii Eye Tracker     | Gaze, pupil dilation                | USB           |
+| Meta Quest (built-in) | Eye tracking, face tracking         | OpenXR ET ext |
 
 ---
 
 ## Use Cases
 
-| Domain | Trait | How |
-|--------|-------|-----|
-| **Medical training** | `@biofeedback` | Adapt simulation difficulty to trainee stress/engagement |
-| **AI safety** | `@hitl` | Human confirmation before AI deploys changes |
-| **Research** | `@feedback_loop` | Capture expert corrections to fine-tune models |
-| **Accessibility** | `@biofeedback` | Detect fatigue and reduce cognitive load automatically |
-| **Enterprise AI** | `@hitl` | Compliance gate for AI-generated decisions |
+| Domain               | Trait            | How                                                      |
+| -------------------- | ---------------- | -------------------------------------------------------- |
+| **Medical training** | `@biofeedback`   | Adapt simulation difficulty to trainee stress/engagement |
+| **AI safety**        | `@hitl`          | Human confirmation before AI deploys changes             |
+| **Research**         | `@feedback_loop` | Capture expert corrections to fine-tune models           |
+| **Accessibility**    | `@biofeedback`   | Detect fatigue and reduce cognitive load automatically   |
+| **Enterprise AI**    | `@hitl`          | Compliance gate for AI-generated decisions               |
 
 ---
 

@@ -331,13 +331,13 @@ composition "Ball Demo" {
 
 When using all three formats together:
 
-| Capability        | Combined Value                  |
-| ----------------- | ------------------------------- |
+| Capability        | Combined Value                      |
+| ----------------- | ----------------------------------- |
 | VR Traits         | 1,800+ (stackable - 20+ per object) |
-| Lifecycle Hooks   | 80+ (combinable)                |
-| Builtin Functions | 90+                             |
-| Import Chains     | Unlimited                       |
-| Nesting Depth     | Unlimited (AST)                 |
+| Lifecycle Hooks   | 80+ (combinable)                    |
+| Builtin Functions | 90+                                 |
+| Import Chains     | Unlimited                           |
+| Nesting Depth     | Unlimited (AST)                     |
 
 ### The Power Formula
 

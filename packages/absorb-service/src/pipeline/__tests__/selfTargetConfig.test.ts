@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  HOLOSCRIPT_SELF_DNA,
-  SELF_TARGET_DENYLIST,
-  isSelfTargetSafe,
-} from '../selfTargetConfig';
+import { HOLOSCRIPT_SELF_DNA, SELF_TARGET_DENYLIST, isSelfTargetSafe } from '../selfTargetConfig';
 
 describe('HOLOSCRIPT_SELF_DNA', () => {
   it('has kind spatial with high confidence', () => {

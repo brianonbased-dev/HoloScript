@@ -23,7 +23,18 @@
 import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { useSceneGraphStore } from '@/lib/stores/sceneGraphStore';
 import type { SceneNode } from '@/lib/stores';
-import { X, ZoomIn, ZoomOut, Maximize2, Flame, Search, Download, Map, Link2, Edit3 } from 'lucide-react';
+import {
+  X,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Flame,
+  Search,
+  Download,
+  Map,
+  Link2,
+  Edit3,
+} from 'lucide-react';
 
 // ── Layout constants ────────────────────────────────────────────────────────
 const NODE_WIDTH = 160;
@@ -34,13 +45,13 @@ const PADDING = 40;
 
 // ── Node type colors ────────────────────────────────────────────────────────
 const TYPE_COLORS: Record<string, string> = {
-  mesh: '#6366f1',      // indigo
-  light: '#f59e0b',     // amber
-  group: '#10b981',     // emerald
-  camera: '#3b82f6',    // blue
-  audio: '#ec4899',     // pink
+  mesh: '#6366f1', // indigo
+  light: '#f59e0b', // amber
+  group: '#10b981', // emerald
+  camera: '#3b82f6', // blue
+  audio: '#ec4899', // pink
   environment: '#8b5cf6', // violet
-  default: '#64748b',   // slate
+  default: '#64748b', // slate
 };
 
 interface LayoutNode {
@@ -77,7 +88,10 @@ function layoutDAG(nodes: SceneNode[]): { nodes: LayoutNode[]; edges: LayoutEdge
         id: node.id,
         name: node.name || node.id.slice(0, 8),
         type: node.type || 'default',
-        traits: node.traits.map((t) => t.name).filter(Boolean).slice(0, 4),
+        traits: node.traits
+          .map((t) => t.name)
+          .filter(Boolean)
+          .slice(0, 4),
         x: 0,
         y: 0,
         layer: depth,
@@ -191,7 +205,12 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
     const q = searchQuery.toLowerCase();
     return new Set(
       layoutNodes
-        .filter((n) => n.name.toLowerCase().includes(q) || n.traits.some((t) => t.toLowerCase().includes(q)) || n.type.toLowerCase().includes(q))
+        .filter(
+          (n) =>
+            n.name.toLowerCase().includes(q) ||
+            n.traits.some((t) => t.toLowerCase().includes(q)) ||
+            n.type.toLowerCase().includes(q)
+        )
         .map((n) => n.id)
     );
   }, [layoutNodes, searchQuery]);
@@ -212,7 +231,9 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
   );
 
   const handleNodeClick = useCallback(
-    (id: string) => { selectNode?.(id); },
+    (id: string) => {
+      selectNode?.(id);
+    },
     [selectNode]
   );
 
@@ -293,7 +314,11 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <button onClick={fitToView} className="p-1 text-slate-400 hover:text-white transition rounded" title="Fit to view">
+          <button
+            onClick={fitToView}
+            className="p-1 text-slate-400 hover:text-white transition rounded"
+            title="Fit to view"
+          >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
           <button
@@ -324,10 +349,17 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           >
             <Map className="w-3.5 h-3.5" />
           </button>
-          <button onClick={exportSVG} className="p-1 text-slate-400 hover:text-white transition rounded" title="Export SVG">
+          <button
+            onClick={exportSVG}
+            className="p-1 text-slate-400 hover:text-white transition rounded"
+            title="Export SVG"
+          >
             <Download className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white transition rounded">
+          <button
+            onClick={onClose}
+            className="p-1 text-slate-400 hover:text-white transition rounded"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -480,14 +512,7 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                   className="transition-all duration-150"
                 />
                 {/* Color accent bar */}
-                <rect
-                  x={node.x}
-                  y={node.y}
-                  width={4}
-                  height={NODE_HEIGHT}
-                  rx={2}
-                  fill={color}
-                />
+                <rect x={node.x} y={node.y} width={4} height={NODE_HEIGHT} rx={2} fill={color} />
                 {/* Node name */}
                 <text
                   x={node.x + 14}
@@ -526,9 +551,10 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
                       width={36}
                       height={12}
                       rx={3}
-                      fill={editingTrait?.nodeId === node.id && editingTrait?.trait === trait
-                        ? `${color}55`
-                        : `${color}22`
+                      fill={
+                        editingTrait?.nodeId === node.id && editingTrait?.trait === trait
+                          ? `${color}55`
+                          : `${color}22`
                       }
                       stroke={`${color}44`}
                       strokeWidth={0.5}
@@ -619,7 +645,9 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
           <span className="text-[10px] text-slate-400 truncate">
             <span className="text-indigo-300">@{editingTrait.trait}</span>
             {' on '}
-            <span className="text-slate-200">{nodeMap.get(editingTrait.nodeId)?.name || editingTrait.nodeId}</span>
+            <span className="text-slate-200">
+              {nodeMap.get(editingTrait.nodeId)?.name || editingTrait.nodeId}
+            </span>
           </span>
           <input
             type="text"
@@ -652,8 +680,23 @@ export const DAGVisualizationPanel: React.FC<{ onClose: () => void }> = ({ onClo
               const node = sceneNodes.find((n) => n.id === editingTrait.nodeId);
               const trait = node?.traits.find((t) => t.name === editingTrait.trait);
               const existingKeys = trait ? Object.keys(trait.properties) : [];
-              const commonKeys = ['speed', 'radius', 'enabled', 'color', 'intensity', 'mass', 'friction',
-                'damping', 'force', 'range', 'delay', 'duration', 'volume', 'opacity', 'threshold'];
+              const commonKeys = [
+                'speed',
+                'radius',
+                'enabled',
+                'color',
+                'intensity',
+                'mass',
+                'friction',
+                'damping',
+                'force',
+                'range',
+                'delay',
+                'duration',
+                'volume',
+                'opacity',
+                'threshold',
+              ];
               const allKeys = [...new Set([...existingKeys, ...commonKeys])];
               return allKeys.map((k) => <option key={k} value={`${k}: `} />);
             })()}

@@ -247,14 +247,14 @@ export function jointToTrait(joint: Joint): string {
   if (joint.type === 'fixed') {
     return `@joint("${joint.name}", type: "fixed")`;
   }
-  
+
   let traitStr = `@joint("${joint.name}", type: "${joint.type}", axis: [${axis}]`;
   traitStr += `, limits: { min: ${joint.limits.min.toFixed(3)}, max: ${joint.limits.max.toFixed(3)}, effort: ${joint.limits.effort.toFixed(3)}, velocity: ${joint.limits.velocity.toFixed(3)} }`;
-  
+
   if (joint.dynamics) {
     traitStr += `, damping: ${joint.dynamics.damping.toFixed(3)}, friction: ${joint.dynamics.friction.toFixed(3)}`;
   }
-  
+
   return traitStr + `)`;
 }
 

@@ -31,7 +31,9 @@ function makeSandbox(overrides?: Partial<VFSSandboxOptions>): VFSSandbox {
 
 describe('VFSSandbox — allowlist', () => {
   let sandbox: VFSSandbox;
-  beforeEach(() => { sandbox = makeSandbox(); });
+  beforeEach(() => {
+    sandbox = makeSandbox();
+  });
 
   it('allows paths inside an allowed root', () => {
     const result = sandbox.validate(path.join(SRC_DIR, 'scene.holo'));
@@ -66,7 +68,9 @@ describe('VFSSandbox — allowlist', () => {
 
 describe('VFSSandbox — denylist', () => {
   let sandbox: VFSSandbox;
-  beforeEach(() => { sandbox = makeSandbox(); });
+  beforeEach(() => {
+    sandbox = makeSandbox();
+  });
 
   it('blocks .env files by default', () => {
     const result = sandbox.validate(path.join(SRC_DIR, '.env'));
@@ -110,7 +114,9 @@ describe('VFSSandbox — denylist', () => {
 
 describe('VFSSandbox — traversal detection', () => {
   let sandbox: VFSSandbox;
-  beforeEach(() => { sandbox = makeSandbox(); });
+  beforeEach(() => {
+    sandbox = makeSandbox();
+  });
 
   it('blocks ../ path traversal', () => {
     // Use string concat — path.join resolves ../ away on Windows
@@ -134,7 +140,9 @@ describe('VFSSandbox — traversal detection', () => {
 
 describe('VFSSandbox — assert methods', () => {
   let sandbox: VFSSandbox;
-  beforeEach(() => { sandbox = makeSandbox(); });
+  beforeEach(() => {
+    sandbox = makeSandbox();
+  });
 
   it('assertWritable returns resolved path for allowed file', () => {
     const resolved = sandbox.assertWritable(path.join(SRC_DIR, 'test.ts'));
@@ -254,7 +262,9 @@ describe('createProjectSandbox', () => {
   it('blocks node_modules writes', () => {
     const sandbox = createProjectSandbox('/myproject');
     // node_modules is not in allowedRoots AND is in deniedPatterns
-    const result = sandbox.validate(path.resolve('/myproject', 'src', 'node_modules', 'pkg', 'i.js'));
+    const result = sandbox.validate(
+      path.resolve('/myproject', 'src', 'node_modules', 'pkg', 'i.js')
+    );
     expect(result.allowed).toBe(false);
   });
 

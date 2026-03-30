@@ -42,11 +42,7 @@ import {
   ethToWei,
   weiToEth,
 } from '@holoscript/core';
-import type {
-  LicenseType,
-  PublishMode,
-  ProvenanceBlock,
-} from '@holoscript/core';
+import type { LicenseType, PublishMode, ProvenanceBlock } from '@holoscript/core';
 
 // =============================================================================
 // CONFIGURATION
@@ -73,7 +69,7 @@ export class ProtocolRegistryError extends Error {
   constructor(
     message: string,
     public code: string,
-    public details?: Record<string, unknown>,
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ProtocolRegistryError';
@@ -92,14 +88,18 @@ export class ProtocolRegistry {
   private platformAddress: HexAddress;
 
   constructor(config: ProtocolRegistryConfig = {}) {
-    this.wallet = config.wallet || new WalletConnection({
-      chain: config.testnet ? 'base-testnet' : 'base',
-    });
-    this.collectionAddress = config.collectionAddress
-      || (process.env.HOLOSCRIPT_COLLECTION_ADDRESS as HexAddress | undefined);
+    this.wallet =
+      config.wallet ||
+      new WalletConnection({
+        chain: config.testnet ? 'base-testnet' : 'base',
+      });
+    this.collectionAddress =
+      config.collectionAddress ||
+      (process.env.HOLOSCRIPT_COLLECTION_ADDRESS as HexAddress | undefined);
     this.registryUrl = config.registryUrl || PROTOCOL_CONSTANTS.REGISTRY_BASE_URL;
     this.testnet = config.testnet || false;
-    this.platformAddress = config.platformAddress || '0x0000000000000000000000000000000000000000' as HexAddress;
+    this.platformAddress =
+      config.platformAddress || ('0x0000000000000000000000000000000000000000' as HexAddress);
   }
 
   // ===========================================================================
@@ -119,7 +119,7 @@ export class ProtocolRegistry {
   async publish(
     provenance: ProvenanceBlock,
     source: string,
-    options: PublishOptions = {},
+    options: PublishOptions = {}
   ): Promise<PublishResult> {
     try {
       // Step 1: Store metadata
@@ -132,7 +132,9 @@ export class ProtocolRegistry {
       const record: ProtocolRecord = {
         contentHash: provenance.hash,
         author: (provenance.author || this.wallet.getAddress()) as HexAddress,
-        importHashes: provenance.imports.map((i: ProvenanceImport) => i.hash).filter(Boolean) as string[],
+        importHashes: provenance.imports
+          .map((i: ProvenanceImport) => i.hash)
+          .filter(Boolean) as string[],
         license: provenance.license as LicenseType,
         publishMode: provenance.publishMode as PublishMode,
         timestamp: Date.now(),
@@ -156,15 +158,11 @@ export class ProtocolRegistry {
       }
 
       // Step 5: Revenue preview
-      const importChain = provenance.imports.length > 0
-        ? await this.buildImportChain(provenance)
-        : [];
-      const revenuePreview = calculateRevenueDistribution(
-        price,
-        record.author,
-        importChain,
-        { referrer: undefined },
-      );
+      const importChain =
+        provenance.imports.length > 0 ? await this.buildImportChain(provenance) : [];
+      const revenuePreview = calculateRevenueDistribution(price, record.author, importChain, {
+        referrer: undefined,
+      });
 
       // Step 6: Build URLs
       const collectUrl = `${this.registryUrl}/collect/${provenance.hash}`;
@@ -177,23 +175,26 @@ export class ProtocolRegistry {
         collectUrl,
         registryUrl: registryRecordUrl,
         sceneId: registryResult.sceneId || provenance.hash.slice(0, 8),
-        sceneUrl: registryResult.sceneUrl || `${this.registryUrl}/scene/${provenance.hash.slice(0, 8)}`,
-        embedUrl: registryResult.embedUrl || `${this.registryUrl}/embed/${provenance.hash.slice(0, 8)}`,
+        sceneUrl:
+          registryResult.sceneUrl || `${this.registryUrl}/scene/${provenance.hash.slice(0, 8)}`,
+        embedUrl:
+          registryResult.embedUrl || `${this.registryUrl}/embed/${provenance.hash.slice(0, 8)}`,
         revenuePreview,
-        zoraResult: tokenId && this.collectionAddress ? {
-          tokenId,
-          txHash: txHash!,
-          zoraUrl: this.buildZoraUrl(tokenId),
-        } : undefined,
+        zoraResult:
+          tokenId && this.collectionAddress
+            ? {
+                tokenId,
+                txHash: txHash!,
+                zoraUrl: this.buildZoraUrl(tokenId),
+              }
+            : undefined,
       };
     } catch (error: unknown) {
       if (error instanceof ProtocolRegistryError) throw error;
       const msg = error instanceof Error ? error.message : String(error);
-      throw new ProtocolRegistryError(
-        `Publish failed: ${msg}`,
-        'PUBLISH_FAILED',
-        { originalError: msg },
-      );
+      throw new ProtocolRegistryError(`Publish failed: ${msg}`, 'PUBLISH_FAILED', {
+        originalError: msg,
+      });
     }
   }
 
@@ -209,18 +210,12 @@ export class ProtocolRegistry {
    * 2. If on-chain token exists → mint via Zora 1155
    * 3. Calculate + return revenue distribution
    */
-  async collect(
-    contentHash: string,
-    options: CollectOptions = {},
-  ): Promise<CollectResult> {
+  async collect(contentHash: string, options: CollectOptions = {}): Promise<CollectResult> {
     try {
       // Step 1: Fetch record
       const record = await this.getRecord(contentHash);
       if (!record) {
-        throw new ProtocolRegistryError(
-          `Composition not found: ${contentHash}`,
-          'NOT_FOUND',
-        );
+        throw new ProtocolRegistryError(`Composition not found: ${contentHash}`, 'NOT_FOUND');
       }
 
       const quantity = options.quantity || 1;
@@ -242,12 +237,9 @@ export class ProtocolRegistry {
 
       // Step 3: Calculate revenue flows
       const importChain = await this.resolveImportChainFromRecord(record);
-      const distribution = calculateRevenueDistribution(
-        record.price,
-        record.author,
-        importChain,
-        { referrer: options.referrer },
-      );
+      const distribution = calculateRevenueDistribution(record.price, record.author, importChain, {
+        referrer: options.referrer,
+      });
 
       return {
         tokenId: record.tokenId || contentHash,
@@ -259,11 +251,9 @@ export class ProtocolRegistry {
     } catch (error: unknown) {
       if (error instanceof ProtocolRegistryError) throw error;
       const msg = error instanceof Error ? error.message : String(error);
-      throw new ProtocolRegistryError(
-        `Collect failed: ${msg}`,
-        'COLLECT_FAILED',
-        { originalError: msg },
-      );
+      throw new ProtocolRegistryError(`Collect failed: ${msg}`, 'COLLECT_FAILED', {
+        originalError: msg,
+      });
     }
   }
 
@@ -274,26 +264,21 @@ export class ProtocolRegistry {
   /** Get a protocol record by content hash */
   async getRecord(contentHash: string): Promise<ProtocolRecord | null> {
     try {
-      const response = await fetch(
-        `${this.registryUrl}/api/protocol/${contentHash}`,
-      );
+      const response = await fetch(`${this.registryUrl}/api/protocol/${contentHash}`);
       if (response.status === 404) return null;
       if (!response.ok) {
         throw new ProtocolRegistryError(
           `Registry lookup failed: ${response.status}`,
-          'REGISTRY_ERROR',
+          'REGISTRY_ERROR'
         );
       }
-      const data = await response.json() as ProtocolRecord & { price: string };
+      const data = (await response.json()) as ProtocolRecord & { price: string };
       // Restore bigint price from string
       return { ...data, price: BigInt(data.price || '0') };
     } catch (error: unknown) {
       if (error instanceof ProtocolRegistryError) throw error;
       const msg = error instanceof Error ? error.message : String(error);
-      throw new ProtocolRegistryError(
-        `Lookup failed: ${msg}`,
-        'LOOKUP_FAILED',
-      );
+      throw new ProtocolRegistryError(`Lookup failed: ${msg}`, 'LOOKUP_FAILED');
     }
   }
 
@@ -301,23 +286,20 @@ export class ProtocolRegistry {
   async getByAuthor(author: string): Promise<ProtocolRecord[]> {
     try {
       const response = await fetch(
-        `${this.registryUrl}/api/protocol/author/${encodeURIComponent(author)}`,
+        `${this.registryUrl}/api/protocol/author/${encodeURIComponent(author)}`
       );
       if (!response.ok) {
         throw new ProtocolRegistryError(
           `Author lookup failed: ${response.status}`,
-          'REGISTRY_ERROR',
+          'REGISTRY_ERROR'
         );
       }
-      const data = await response.json() as Array<ProtocolRecord & { price: string }>;
-      return data.map(r => ({ ...r, price: BigInt(r.price || '0') }));
+      const data = (await response.json()) as Array<ProtocolRecord & { price: string }>;
+      return data.map((r) => ({ ...r, price: BigInt(r.price || '0') }));
     } catch (error: unknown) {
       if (error instanceof ProtocolRegistryError) throw error;
       const msg = error instanceof Error ? error.message : String(error);
-      throw new ProtocolRegistryError(
-        `Author lookup failed: ${msg}`,
-        'AUTHOR_LOOKUP_FAILED',
-      );
+      throw new ProtocolRegistryError(`Author lookup failed: ${msg}`, 'AUTHOR_LOOKUP_FAILED');
     }
   }
 
@@ -338,7 +320,7 @@ export class ProtocolRegistry {
     priceEth: string,
     creator: string,
     importChain: ImportChainNode[],
-    options?: RevenueCalculatorOptions,
+    options?: RevenueCalculatorOptions
   ): RevenueDistribution {
     const price = ethToWei(priceEth);
     return calculateRevenueDistribution(price, creator, importChain, options);
@@ -353,10 +335,7 @@ export class ProtocolRegistry {
    * Returns a URI that can be resolved to the full metadata.
    * Future: IPFS upload with server fallback.
    */
-  private async storeMetadata(
-    provenance: ProvenanceBlock,
-    source: string,
-  ): Promise<string> {
+  private async storeMetadata(provenance: ProvenanceBlock, source: string): Promise<string> {
     try {
       const response = await fetch(`${this.registryUrl}/api/protocol/metadata`, {
         method: 'POST',
@@ -372,7 +351,7 @@ export class ProtocolRegistry {
         throw new Error(`Metadata storage failed: ${response.status}`);
       }
 
-      const result = await response.json() as { metadataURI: string };
+      const result = (await response.json()) as { metadataURI: string };
       return result.metadataURI;
     } catch {
       // Fallback: generate a deterministic URI from content hash
@@ -385,7 +364,7 @@ export class ProtocolRegistry {
   // ===========================================================================
 
   private async registerRecord(
-    record: ProtocolRecord,
+    record: ProtocolRecord
   ): Promise<{ sceneId?: string; sceneUrl?: string; embedUrl?: string }> {
     try {
       const response = await fetch(`${this.registryUrl}/api/protocol`, {
@@ -401,7 +380,7 @@ export class ProtocolRegistry {
         throw new Error(`Registry registration failed: ${response.status}`);
       }
 
-      return await response.json() as { sceneId?: string; sceneUrl?: string; embedUrl?: string };
+      return (await response.json()) as { sceneId?: string; sceneUrl?: string; embedUrl?: string };
     } catch {
       // Non-fatal: server registration can be retried
       return {};
@@ -411,7 +390,7 @@ export class ProtocolRegistry {
   private async serverCollect(
     contentHash: string,
     quantity: number,
-    referrer?: string,
+    referrer?: string
   ): Promise<{ txHash?: string; editions?: number[] }> {
     try {
       const response = await fetch(`${this.registryUrl}/api/collect/${contentHash}`, {
@@ -424,7 +403,7 @@ export class ProtocolRegistry {
         throw new Error(`Server collect failed: ${response.status}`);
       }
 
-      return await response.json() as { txHash?: string; editions?: number[] };
+      return (await response.json()) as { txHash?: string; editions?: number[] };
     } catch {
       return { editions: Array.from({ length: quantity }, (_, i) => i + 1) };
     }
@@ -447,12 +426,12 @@ export class ProtocolRegistry {
    */
   private async createOnChainToken(
     record: ProtocolRecord,
-    options: PublishOptions,
+    options: PublishOptions
   ): Promise<{ tokenId: string; txHash: string }> {
     if (!this.collectionAddress) {
       throw new ProtocolRegistryError(
         'Collection address required for on-chain publish',
-        'NO_COLLECTION',
+        'NO_COLLECTION'
       );
     }
 
@@ -478,13 +457,13 @@ export class ProtocolRegistry {
     const gasEstimate = await GasEstimator.estimateMintGas(
       publicClient,
       this.collectionAddress,
-      1n,
+      1n
     );
 
     const balanceCheck = await GasEstimator.checkSufficientBalance(
       publicClient,
       platformAddress,
-      gasEstimate,
+      gasEstimate
     );
 
     if (!balanceCheck.sufficient) {
@@ -494,7 +473,7 @@ export class ProtocolRegistry {
         {
           required: formatEther(balanceCheck.required),
           balance: formatEther(balanceCheck.balance),
-        },
+        }
       );
     }
 
@@ -504,9 +483,9 @@ export class ProtocolRegistry {
       abi: zoraCreator1155ImplABI,
       functionName: 'setupNewTokenWithCreateReferral' as any,
       args: [
-        record.metadataURI || '',         // token URI
-        BigInt(Number.MAX_SAFE_INTEGER),   // maxSupply (unlimited editions)
-        creatorAddress,                     // createReferral → creator gets Zora rewards
+        record.metadataURI || '', // token URI
+        BigInt(Number.MAX_SAFE_INTEGER), // maxSupply (unlimited editions)
+        creatorAddress, // createReferral → creator gets Zora rewards
       ] as any,
     } as any);
 
@@ -516,16 +495,15 @@ export class ProtocolRegistry {
     });
 
     if (setupReceipt.status === 'reverted') {
-      throw new ProtocolRegistryError(
-        `Token creation reverted: ${setupTxHash}`,
-        'TX_REVERTED',
-        { txHash: setupTxHash },
-      );
+      throw new ProtocolRegistryError(`Token creation reverted: ${setupTxHash}`, 'TX_REVERTED', {
+        txHash: setupTxHash,
+      });
     }
 
     // Extract token ID from UpdatedToken event
     let tokenId = '0';
-    const UPDATED_TOKEN_TOPIC = '0x5086d1bcea28999da9875111e3592688fbfa821db63214c695ca35f00f5e0e23';
+    const UPDATED_TOKEN_TOPIC =
+      '0x5086d1bcea28999da9875111e3592688fbfa821db63214c695ca35f00f5e0e23';
     for (const log of setupReceipt.logs) {
       if (log.topics[0] === UPDATED_TOKEN_TOPIC && log.topics[1]) {
         tokenId = BigInt(log.topics[1]).toString();
@@ -566,11 +544,11 @@ export class ProtocolRegistry {
       args: [
         tokenIdBig,
         {
-          saleStart: 0n,                                      // immediately
-          saleEnd: BigInt('18446744073709551615'),             // uint64 max (forever)
-          maxTokensPerAddress: 0n,                             // unlimited
-          pricePerToken: record.price,                         // creator's price
-          fundsRecipient: creatorAddress,                      // CREATOR gets primary sale revenue
+          saleStart: 0n, // immediately
+          saleEnd: BigInt('18446744073709551615'), // uint64 max (forever)
+          maxTokensPerAddress: 0n, // unlimited
+          pricePerToken: record.price, // creator's price
+          fundsRecipient: creatorAddress, // CREATOR gets primary sale revenue
         },
       ],
     });
@@ -579,11 +557,7 @@ export class ProtocolRegistry {
       address: this.collectionAddress,
       abi: zoraCreator1155ImplABI,
       functionName: 'callSale' as any,
-      args: [
-        tokenIdBig,
-        fixedPriceMinter,
-        setSaleData,
-      ] as any,
+      args: [tokenIdBig, fixedPriceMinter, setSaleData] as any,
     } as any);
 
     // Step 4: Set per-token royalties — royaltyRecipient = CREATOR
@@ -595,8 +569,8 @@ export class ProtocolRegistry {
         tokenIdBig,
         {
           royaltyMintSchedule: 0,
-          royaltyBPS: PROTOCOL_CONSTANTS.PLATFORM_FEE_BPS,    // 2.5% secondary royalty
-          royaltyRecipient: creatorAddress,                    // CREATOR gets secondary sales
+          royaltyBPS: PROTOCOL_CONSTANTS.PLATFORM_FEE_BPS, // 2.5% secondary royalty
+          royaltyRecipient: creatorAddress, // CREATOR gets secondary sales
         },
       ] as any,
     } as any);
@@ -615,13 +589,10 @@ export class ProtocolRegistry {
   private async mintEdition(
     record: ProtocolRecord,
     quantity: number,
-    referrer?: string,
+    referrer?: string
   ): Promise<{ txHash: string; editions: number[] }> {
     if (!this.collectionAddress || !record.tokenId) {
-      throw new ProtocolRegistryError(
-        'On-chain token required for edition minting',
-        'NO_TOKEN',
-      );
+      throw new ProtocolRegistryError('On-chain token required for edition minting', 'NO_TOKEN');
     }
 
     const walletClient = this.wallet.getWalletClient();
@@ -633,7 +604,7 @@ export class ProtocolRegistry {
     const gasEstimate = await GasEstimator.estimateMintGas(
       publicClient,
       this.collectionAddress,
-      BigInt(quantity),
+      BigInt(quantity)
     );
 
     // Total cost = Zora mint fee + token price * quantity
@@ -644,11 +615,11 @@ export class ProtocolRegistry {
       abi: zoraCreator1155ImplABI,
       functionName: 'mintWithRewards' as any,
       args: [
-        collectorAddress,               // minter (receives the NFT)
-        BigInt(record.tokenId),          // tokenId
-        BigInt(quantity),                // quantity
-        '0x' as Hex,                     // minterArguments
-        mintReferral,                    // mintReferral (earns Zora referral reward)
+        collectorAddress, // minter (receives the NFT)
+        BigInt(record.tokenId), // tokenId
+        BigInt(quantity), // quantity
+        '0x' as Hex, // minterArguments
+        mintReferral, // mintReferral (earns Zora referral reward)
       ] as any,
       value: totalValue,
       gas: gasEstimate.gasLimit,
@@ -662,18 +633,13 @@ export class ProtocolRegistry {
     });
 
     if (receipt.status === 'reverted') {
-      throw new ProtocolRegistryError(
-        `Edition mint reverted: ${txHash}`,
-        'TX_REVERTED',
-        { txHash },
-      );
+      throw new ProtocolRegistryError(`Edition mint reverted: ${txHash}`, 'TX_REVERTED', {
+        txHash,
+      });
     }
 
     const currentEdition = record.editionCount || 0;
-    const editions = Array.from(
-      { length: quantity },
-      (_, i) => currentEdition + i + 1,
-    );
+    const editions = Array.from({ length: quantity }, (_, i) => currentEdition + i + 1);
 
     return { txHash, editions };
   }
@@ -682,9 +648,7 @@ export class ProtocolRegistry {
   // PRIVATE — IMPORT CHAIN RESOLUTION
   // ===========================================================================
 
-  private async buildImportChain(
-    provenance: ProvenanceBlock,
-  ): Promise<ImportChainNode[]> {
+  private async buildImportChain(provenance: ProvenanceBlock): Promise<ImportChainNode[]> {
     const imports = provenance.imports.map((imp: ProvenanceImport) => ({
       hash: imp.hash,
       author: imp.author,
@@ -701,13 +665,11 @@ export class ProtocolRegistry {
           author: record.author,
         };
       },
-      PROTOCOL_CONSTANTS.MAX_IMPORT_DEPTH,
+      PROTOCOL_CONSTANTS.MAX_IMPORT_DEPTH
     );
   }
 
-  private async resolveImportChainFromRecord(
-    record: ProtocolRecord,
-  ): Promise<ImportChainNode[]> {
+  private async resolveImportChainFromRecord(record: ProtocolRecord): Promise<ImportChainNode[]> {
     if (!record.importHashes.length) return [];
 
     const imports = record.importHashes.map((hash) => ({
@@ -725,7 +687,7 @@ export class ProtocolRegistry {
           author: rec.author,
         };
       },
-      PROTOCOL_CONSTANTS.MAX_IMPORT_DEPTH,
+      PROTOCOL_CONSTANTS.MAX_IMPORT_DEPTH
     );
   }
 
@@ -759,9 +721,7 @@ export class ProtocolRegistry {
 // CONVENIENCE FACTORY
 // =============================================================================
 
-export function createProtocolRegistry(
-  config?: ProtocolRegistryConfig,
-): ProtocolRegistry {
+export function createProtocolRegistry(config?: ProtocolRegistryConfig): ProtocolRegistry {
   return new ProtocolRegistry(config);
 }
 

@@ -32,7 +32,14 @@ import type { HSPlusNode } from '../../types/HoloScriptPlus';
 
 // ── Database Trait ─────────────────────────────────────────────────────────────
 
-export type DatabaseEngine = 'postgres' | 'mysql' | 'sqlite' | 'mongodb' | 'redis' | 'dynamodb' | 'cockroachdb';
+export type DatabaseEngine =
+  | 'postgres'
+  | 'mysql'
+  | 'sqlite'
+  | 'mongodb'
+  | 'redis'
+  | 'dynamodb'
+  | 'cockroachdb';
 
 export interface DatabaseConfig {
   /** Database engine */
@@ -147,7 +154,15 @@ export const queryHandler: TraitHandler<QueryConfig> = {
 
 // ── Migration Trait ───────────────────────────────────────────────────────────
 
-export type MigrationAction = 'create_table' | 'alter_table' | 'drop_table' | 'add_column' | 'drop_column' | 'add_index' | 'drop_index' | 'raw_sql';
+export type MigrationAction =
+  | 'create_table'
+  | 'alter_table'
+  | 'drop_table'
+  | 'add_column'
+  | 'drop_column'
+  | 'add_index'
+  | 'drop_index'
+  | 'raw_sql';
 
 export interface MigrationConfig {
   /** Migration version/sequence number */

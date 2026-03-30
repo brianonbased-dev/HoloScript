@@ -312,10 +312,7 @@ export class MixamoTopologyError extends MixamoError {
   constructor(issues: TopologyIssue[]) {
     const errorIssues = issues.filter((i) => i.severity === 'error');
     const summary = errorIssues.map((i) => i.message).join('; ');
-    super(
-      `Mesh topology unsupported for auto-rigging: ${summary}`,
-      'UNSUPPORTED_TOPOLOGY'
-    );
+    super(`Mesh topology unsupported for auto-rigging: ${summary}`, 'UNSUPPORTED_TOPOLOGY');
     this.name = 'MixamoTopologyError';
     this.issues = issues;
   }
@@ -409,10 +406,7 @@ export class MixamoAPI {
    * @throws {MixamoRateLimitError} If the API rate limit is exceeded after max retries.
    * @throws {MixamoError} For other API errors.
    */
-  async uploadCharacter(
-    data: Buffer | ArrayBuffer,
-    filename: string
-  ): Promise<UploadResult> {
+  async uploadCharacter(data: Buffer | ArrayBuffer, filename: string): Promise<UploadResult> {
     // Validate format
     const format = this.detectFormat(filename);
 
@@ -472,10 +466,7 @@ export class MixamoAPI {
    * @throws {MixamoRateLimitError} If the API rate limit is exceeded after max retries.
    * @throws {MixamoError} For other API errors (e.g. character not found).
    */
-  async autoRig(
-    characterId: string,
-    rigType: string = 'humanoid'
-  ): Promise<RigResult> {
+  async autoRig(characterId: string, rigType: string = 'humanoid'): Promise<RigResult> {
     const response = await this.requestWithRetry<{
       character_id: string;
       rig_type: string;
@@ -517,9 +508,7 @@ export class MixamoAPI {
    * @throws {MixamoRateLimitError} If the API rate limit is exceeded after max retries.
    * @throws {MixamoError} For other API errors.
    */
-  async listAnimations(
-    options: AnimationListOptions = {}
-  ): Promise<AnimationListResult> {
+  async listAnimations(options: AnimationListOptions = {}): Promise<AnimationListResult> {
     const params = new URLSearchParams();
     if (options.page) params.set('page', String(options.page));
     if (options.limit) params.set('limit', String(options.limit));
@@ -651,13 +640,9 @@ export class MixamoAPI {
    * @param format - The mesh format.
    * @returns Array of topology issues found (may be empty if mesh is clean).
    */
-  private validateTopology(
-    data: Buffer | ArrayBuffer,
-    format: MeshFormat
-  ): TopologyIssue[] {
+  private validateTopology(data: Buffer | ArrayBuffer, format: MeshFormat): TopologyIssue[] {
     const issues: TopologyIssue[] = [];
-    const byteLength =
-      data instanceof ArrayBuffer ? data.byteLength : data.length;
+    const byteLength = data instanceof ArrayBuffer ? data.byteLength : data.length;
 
     // Basic size validation
     if (byteLength < 100) {
@@ -698,10 +683,7 @@ export class MixamoAPI {
         Math.min(4, byteLength)
       );
       const glbMagic =
-        header[0] === 0x67 &&
-        header[1] === 0x6c &&
-        header[2] === 0x54 &&
-        header[3] === 0x46; // "glTF"
+        header[0] === 0x67 && header[1] === 0x6c && header[2] === 0x54 && header[3] === 0x46; // "glTF"
       if (!glbMagic) {
         issues.push({
           code: 'DEGENERATE_FACES',
@@ -768,8 +750,7 @@ export class MixamoAPI {
     body?: unknown,
     options?: { isFormData?: boolean; binary?: boolean }
   ): Promise<T> {
-    const baseUrl =
-      this.config.credentials.apiBase ?? MIXAMO_API_BASE;
+    const baseUrl = this.config.credentials.apiBase ?? MIXAMO_API_BASE;
     const url = `${baseUrl}${endpoint}`;
 
     let lastError: Error | null = null;
@@ -803,10 +784,7 @@ export class MixamoAPI {
 
         // Handle rate limiting
         if (response.status === 429) {
-          const retryAfter = parseInt(
-            response.headers.get('Retry-After') ?? '0',
-            10
-          );
+          const retryAfter = parseInt(response.headers.get('Retry-After') ?? '0', 10);
           const backoffMs = Math.min(
             retryAfter > 0
               ? retryAfter * 1000
@@ -822,10 +800,7 @@ export class MixamoAPI {
 
           // If this is the last attempt, throw
           if (attempt === this.config.maxRetries - 1) {
-            throw new MixamoRateLimitError(
-              Math.ceil(backoffMs / 1000),
-              attempt + 1
-            );
+            throw new MixamoRateLimitError(Math.ceil(backoffMs / 1000), attempt + 1);
           }
 
           await this.sleep(backoffMs);

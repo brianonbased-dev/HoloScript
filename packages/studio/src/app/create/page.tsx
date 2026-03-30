@@ -185,7 +185,10 @@ const SharePanel = dynamic(
 // CollabCursors V1 removed — consolidated into CollabCursorsV2
 // CollabStatusDot is still exported from the V1 file (not deprecated)
 const CollabStatusDot = dynamic(
-  () => import('@/components/collaboration/CollabCursors').then((m) => ({ default: m.CollabStatusDot })),
+  () =>
+    import('@/components/collaboration/CollabCursors').then((m) => ({
+      default: m.CollabStatusDot,
+    })),
   { ssr: false }
 );
 
@@ -400,13 +403,9 @@ const EnvironmentPanel = dynamic(
 
 // AssetPackStorePanel removed - duplicate of AssetPackPanel (line 216)
 
-
 // ProfilerPanel2 removed — duplicate of ProfilerPanel (line 263)
 
-
-
 // TraitRegistryPanel removed — misnamed duplicate of RemotePreviewPanel (line 484)
-
 
 // AiSceneGeneratorPanel removed — duplicate of SceneGeneratorPanel (line 274)
 
@@ -457,7 +456,10 @@ const SimpleMaterialPanel = dynamic(
 );
 
 const MultiplayerPanel = dynamic(
-  () => import('@/components/collaboration/MultiplayerPanel').then((m) => ({ default: m.MultiplayerPanel })),
+  () =>
+    import('@/components/collaboration/MultiplayerPanel').then((m) => ({
+      default: m.MultiplayerPanel,
+    })),
   { ssr: false }
 );
 
@@ -467,7 +469,10 @@ const LodPanel = dynamic(
 );
 
 const RemotePreviewPanel = dynamic(
-  () => import('@/components/remote/RemotePreviewPanel').then((m) => ({ default: m.RemotePreviewPanel })),
+  () =>
+    import('@/components/remote/RemotePreviewPanel').then((m) => ({
+      default: m.RemotePreviewPanel,
+    })),
   { ssr: false }
 );
 
@@ -475,10 +480,6 @@ const ScriptConsole = dynamic(
   () => import('@/components/console/ScriptConsole').then((m) => ({ default: m.ScriptConsole })),
   { ssr: false }
 );
-
-
-
-
 
 function ViewportSkeleton() {
   return (
@@ -832,10 +833,16 @@ export default function CreatePage() {
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
 
-
   // Non-panel state (kept local — layout dimensions, left tab)
-  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>('scene');
-  const [spatialBlameTooltip, setSpatialBlameTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
+  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>(
+    'scene'
+  );
+  const [spatialBlameTooltip, setSpatialBlameTooltip] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: '',
+  });
 
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
@@ -849,29 +856,32 @@ export default function CreatePage() {
   useOllamaStatus();
 
   // ── StudioBridge — AST mutation engine with history tracking ────────────────
-  const emptyAST = useMemo(() => ({
-    type: 'Composition' as const,
-    name: 'untitled',
-    templates: [],
-    objects: [],
-    spatialGroups: [],
-    lights: [],
-    imports: [],
-    timelines: [],
-    audio: [],
-    zones: [],
-    transitions: [],
-    conditionals: [],
-    iterators: [],
-    npcs: [],
-    quests: [],
-    abilities: [],
-    dialogues: [],
-    stateMachines: [],
-    achievements: [],
-    talentTrees: [],
-    shapes: [],
-  }), []);
+  const emptyAST = useMemo(
+    () => ({
+      type: 'Composition' as const,
+      name: 'untitled',
+      templates: [],
+      objects: [],
+      spatialGroups: [],
+      lights: [],
+      imports: [],
+      timelines: [],
+      audio: [],
+      zones: [],
+      transitions: [],
+      conditionals: [],
+      iterators: [],
+      npcs: [],
+      quests: [],
+      abilities: [],
+      dialogues: [],
+      stateMachines: [],
+      achievements: [],
+      talentTrees: [],
+      shapes: [],
+    }),
+    []
+  );
   const {
     bridge: studioBridge,
     apply: bridgeApply,
@@ -895,7 +905,9 @@ export default function CreatePage() {
     // 2. Check for workspace template
     const templateName = searchParams.get('template');
     if (templateName) {
-      setCode(`import { World } from "@holoscript/core";\n// Template scaffolding initialized for: ${templateName}\n\nconst world = new World();\n`);
+      setCode(
+        `import { World } from "@holoscript/core";\n// Template scaffolding initialized for: ${templateName}\n\nconst world = new World();\n`
+      );
       setMetadata({ name: templateName });
       markClean();
       return;
@@ -904,7 +916,9 @@ export default function CreatePage() {
     // 3. Check for workspace agent
     const agentName = searchParams.get('agent');
     if (agentName) {
-      setCode(`import { World, Agent } from "@holoscript/core";\n// Agent scaffold for: ${agentName}\n\nconst agent = new Agent("${agentName}");\n`);
+      setCode(
+        `import { World, Agent } from "@holoscript/core";\n// Agent scaffold for: ${agentName}\n\nconst agent = new Agent("${agentName}");\n`
+      );
       setMetadata({ name: agentName });
       markClean();
       return;
@@ -947,10 +961,7 @@ export default function CreatePage() {
       <LivePreviewBar sceneId="scene-1" />
 
       {/* ── Core Unified Studio Layout ────────────────────────────── */}
-      <ResponsiveStudioLayout
-        leftTitle="Scene"
-        rightTitle="Properties"
-      >
+      <ResponsiveStudioLayout leftTitle="Scene" rightTitle="Properties">
         <div className="flex flex-1 overflow-hidden">
           {/* LEFT: Scene Graph + Assets tabbed panel (hidden on mobile, collapsible on tablet) */}
           <div
@@ -1581,8 +1592,6 @@ export default function CreatePage() {
             </div>
           )}
 
-
-
           {/* OVERLAY: Hotkey Map (full screen modal) */}
           <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />
 
@@ -2019,7 +2028,7 @@ export default function CreatePage() {
             </button>
           </div>
         </div>
-        </ResponsiveStudioLayout>
+      </ResponsiveStudioLayout>
 
       {/* Trait Palette modal */}
       <TraitPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
@@ -2040,13 +2049,15 @@ export default function CreatePage() {
         </div>
       )}
 
-
-
       {/* OVERLAY: Spatial Blame Tooltip (Git for 3D) */}
       {spatialBlameTooltip.visible && (
-        <div 
+        <div
           className="fixed pointer-events-none z-50 bg-slate-900/95 border border-indigo-500/30 rounded-lg p-3 shadow-xl backdrop-blur-md"
-          style={{ left: spatialBlameTooltip.x, top: spatialBlameTooltip.y, transform: 'translate(-50%, -100%)' }}
+          style={{
+            left: spatialBlameTooltip.x,
+            top: spatialBlameTooltip.y,
+            transform: 'translate(-50%, -100%)',
+          }}
         >
           {spatialBlameTooltip.content}
         </div>

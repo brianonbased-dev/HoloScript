@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 
 /**
  * POST /api/audit
- * 
+ *
  * Receives unified crash reports from StudioErrorBoundary and appends them
  * to a local FDA 21 CFR Part 11 compliant audit ledger.
  */
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const timestamp = new Date().toISOString();
-    
+
     // Construct the FDA compliant log entry
     const logEntry = `
 ================================================================================
@@ -46,6 +46,9 @@ ${rawStack || 'No stack trace available'}
     return NextResponse.json({ success: true, logged: true });
   } catch (error) {
     console.error('[Audit API] Failed to write crash ledger:', error);
-    return NextResponse.json({ success: false, error: 'Failed to write audit log' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to write audit log' },
+      { status: 500 }
+    );
   }
 }

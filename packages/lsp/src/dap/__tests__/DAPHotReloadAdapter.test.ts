@@ -80,7 +80,14 @@ describe('AttachConnection', () => {
 
   afterEach(() => {
     // Clear any pending requests before disconnect to avoid unhandled rejections
-    const pendingMap = (conn as unknown as { pendingRequests: Map<number, { reject: (e: Error) => void; timeout: ReturnType<typeof setTimeout> }> }).pendingRequests;
+    const pendingMap = (
+      conn as unknown as {
+        pendingRequests: Map<
+          number,
+          { reject: (e: Error) => void; timeout: ReturnType<typeof setTimeout> }
+        >;
+      }
+    ).pendingRequests;
     if (pendingMap) {
       for (const [, pending] of pendingMap) {
         clearTimeout(pending.timeout);
@@ -135,12 +142,14 @@ describe('AttachConnection', () => {
     expect(authMsg.body).toEqual({ token: 'secret-123' });
 
     // Respond with success so the connect promise resolves
-    ws._triggerMessage(JSON.stringify({
-      type: 'response',
-      id: authMsg.id,
-      success: true,
-      body: { ok: true },
-    }));
+    ws._triggerMessage(
+      JSON.stringify({
+        type: 'response',
+        id: authMsg.id,
+        success: true,
+        body: { ok: true },
+      })
+    );
 
     const result = await connectPromise;
     expect(result).toBe(true);
@@ -204,12 +213,14 @@ describe('AttachConnection', () => {
     conn.on('hotReload', handler);
 
     // Simulate an inbound event message
-    ws._triggerMessage(JSON.stringify({
-      type: 'event',
-      id: 0,
-      command: 'hotReload',
-      body: { file: 'scene.hs' },
-    }));
+    ws._triggerMessage(
+      JSON.stringify({
+        type: 'event',
+        id: 0,
+        command: 'hotReload',
+        body: { file: 'scene.hs' },
+      })
+    );
 
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith({ file: 'scene.hs' });
@@ -259,12 +270,14 @@ describe('AttachConnection', () => {
     const sendPromise = conn.send('getVariables');
     const sentMsg: DAPAttachMessage = JSON.parse(ws.sent[0]);
 
-    ws._triggerMessage(JSON.stringify({
-      type: 'response',
-      id: sentMsg.id,
-      success: true,
-      body: { vars: ['x', 'y'] },
-    }));
+    ws._triggerMessage(
+      JSON.stringify({
+        type: 'response',
+        id: sentMsg.id,
+        success: true,
+        body: { vars: ['x', 'y'] },
+      })
+    );
 
     const result = await sendPromise;
     expect(result).toEqual({ vars: ['x', 'y'] });
@@ -281,12 +294,14 @@ describe('AttachConnection', () => {
     const sendPromise = conn.send('badCommand');
     const sentMsg: DAPAttachMessage = JSON.parse(ws.sent[0]);
 
-    ws._triggerMessage(JSON.stringify({
-      type: 'response',
-      id: sentMsg.id,
-      success: false,
-      error: 'Unknown command',
-    }));
+    ws._triggerMessage(
+      JSON.stringify({
+        type: 'response',
+        id: sentMsg.id,
+        success: false,
+        error: 'Unknown command',
+      })
+    );
 
     await expect(sendPromise).rejects.toThrow('Unknown command');
   });
@@ -390,7 +405,7 @@ describe('HotReloadManager', () => {
     const event: HotReloadEvent = handler.mock.calls[0][0];
     expect(event.success).toBe(false);
     expect(event.errors).toBeDefined();
-    expect(event.errors!.some(e => e.includes('unclosed brace'))).toBe(true);
+    expect(event.errors!.some((e) => e.includes('unclosed brace'))).toBe(true);
   });
 
   it('extracts affected object names from source', () => {
@@ -450,19 +465,23 @@ describe('TraitVariableInspector', () => {
   const inspector = new TraitVariableInspector();
 
   it('extracts traits from @ prefixed properties', () => {
-    const traits = inspector.extractTraitVariables('obj1', {
-      '@physics': { mass: 2.0, friction: 0.5 },
-      '@grabbable': { snapToHand: true },
-      color: 'red',
-    }, ['physics']);
+    const traits = inspector.extractTraitVariables(
+      'obj1',
+      {
+        '@physics': { mass: 2.0, friction: 0.5 },
+        '@grabbable': { snapToHand: true },
+        color: 'red',
+      },
+      ['physics']
+    );
 
     expect(traits.length).toBe(2);
-    const physics = traits.find(t => t.traitName === 'physics');
+    const physics = traits.find((t) => t.traitName === 'physics');
     expect(physics).toBeDefined();
     expect(physics!.active).toBe(true);
     expect(physics!.config).toEqual({ mass: 2.0, friction: 0.5 });
 
-    const grabbable = traits.find(t => t.traitName === 'grabbable');
+    const grabbable = traits.find((t) => t.traitName === 'grabbable');
     expect(grabbable).toBeDefined();
     expect(grabbable!.active).toBe(false);
   });
@@ -477,12 +496,16 @@ describe('TraitVariableInspector', () => {
   });
 
   it('extracts traits from a traits map', () => {
-    const traits = inspector.extractTraitVariables('obj3', {
-      traits: { glow: { intensity: 1.5 }, spin: { rpm: 30 } },
-    }, ['glow']);
+    const traits = inspector.extractTraitVariables(
+      'obj3',
+      {
+        traits: { glow: { intensity: 1.5 }, spin: { rpm: 30 } },
+      },
+      ['glow']
+    );
 
     expect(traits.length).toBe(2);
-    const glow = traits.find(t => t.traitName === 'glow');
+    const glow = traits.find((t) => t.traitName === 'glow');
     expect(glow!.active).toBe(true);
   });
 
@@ -496,8 +519,20 @@ describe('TraitVariableInspector', () => {
 
   it('formats traits for debugger with active/inactive prefix', () => {
     const traitInfo: TraitVariableInfo[] = [
-      { traitName: 'physics', objectId: 'obj1', config: { mass: 2 }, active: true, lastUpdate: 1000 },
-      { traitName: 'audio', objectId: 'obj1', config: { vol: 0.5 }, active: false, lastUpdate: 1000 },
+      {
+        traitName: 'physics',
+        objectId: 'obj1',
+        config: { mass: 2 },
+        active: true,
+        lastUpdate: 1000,
+      },
+      {
+        traitName: 'audio',
+        objectId: 'obj1',
+        config: { vol: 0.5 },
+        active: false,
+        lastUpdate: 1000,
+      },
     ];
     const vars = inspector.formatForDebugger(traitInfo);
 
@@ -520,7 +555,11 @@ describe('PerformanceTimeline', () => {
     timeline = new PerformanceTimeline(100);
   });
 
-  const makeFrame = (n: number, ms: number, traits: Record<string, number> = {}): PerformanceFrame => ({
+  const makeFrame = (
+    n: number,
+    ms: number,
+    traits: Record<string, number> = {}
+  ): PerformanceFrame => ({
     frameNumber: n,
     frameTimeMs: ms,
     traitTimes: traits,
@@ -652,7 +691,9 @@ describe('ConditionalBreakpointEvaluator', () => {
 
   it('handles && and || operators', () => {
     const ctx = { state: { score: 150, combo_count: 4 } };
-    expect(evaluator.evaluate('state.score >= 100 && state.combo_count > 3', ctx).result).toBe(true);
+    expect(evaluator.evaluate('state.score >= 100 && state.combo_count > 3', ctx).result).toBe(
+      true
+    );
     expect(evaluator.evaluate('state.score < 50 || state.combo_count > 3', ctx).result).toBe(true);
     expect(evaluator.evaluate('state.score < 50 && state.combo_count < 3', ctx).result).toBe(false);
   });

@@ -3,14 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Home, 
-  FolderGit2, 
-  Wand2, 
-  Workflow, 
-  Settings,
-  PanelsTopLeft
-} from 'lucide-react';
+import { Home, FolderGit2, Wand2, Workflow, Settings, PanelsTopLeft } from 'lucide-react';
 
 export function GlobalNavigation() {
   const pathname = usePathname();
@@ -38,9 +31,7 @@ export function GlobalNavigation() {
       {/* Nav Links */}
       <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = item.exact 
-            ? pathname === item.href 
-            : pathname.startsWith(item.href);
+          const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
 
           const Icon = item.icon;
 
@@ -49,12 +40,19 @@ export function GlobalNavigation() {
               key={item.href}
               href={item.href}
               className={`flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl transition group ${
-                isActive 
-                  ? 'bg-emerald-500/10 text-emerald-400 font-medium' 
+                isActive
+                  ? 'bg-emerald-500/10 text-emerald-400 font-medium'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
               }`}
             >
-              <Icon size={20} className={isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400 transition-colors'} />
+              <Icon
+                size={20}
+                className={
+                  isActive
+                    ? 'text-emerald-400'
+                    : 'text-slate-500 group-hover:text-slate-400 transition-colors'
+                }
+              />
               <span className="hidden lg:block text-sm">{item.label}</span>
             </Link>
           );
@@ -71,7 +69,10 @@ export function GlobalNavigation() {
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
-          <Settings size={20} className="text-slate-500 group-hover:text-slate-400 transition-colors" />
+          <Settings
+            size={20}
+            className="text-slate-500 group-hover:text-slate-400 transition-colors"
+          />
           <span className="hidden lg:block text-sm">Settings</span>
         </Link>
       </div>

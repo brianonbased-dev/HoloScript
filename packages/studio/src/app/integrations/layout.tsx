@@ -10,9 +10,7 @@ export default function IntegrationsLayout({ children }: { children: React.React
   return (
     <div className="flex h-screen bg-slate-950 overflow-hidden font-sans">
       <GlobalNavigation />
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {children}
-      </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">{children}</div>
     </div>
   );
 }

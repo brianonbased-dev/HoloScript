@@ -149,8 +149,13 @@ function findObjectBlock(
       for (let j = i; j < lines.length; j++) {
         const l = lines[j];
         for (const ch of l) {
-          if (ch === '{') { braceDepth++; foundOpen = true; }
-          if (ch === '}') { braceDepth--; }
+          if (ch === '{') {
+            braceDepth++;
+            foundOpen = true;
+          }
+          if (ch === '}') {
+            braceDepth--;
+          }
         }
         if (foundOpen && braceDepth === 0) {
           return { startLine: i, endLine: j, declarationLine: i };
@@ -220,7 +225,10 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
 
     switch (edit.op) {
       case 'set_property': {
-        if (!edit.key) { diffLog.push('⚠ set_property: key is required'); break; }
+        if (!edit.key) {
+          diffLog.push('⚠ set_property: key is required');
+          break;
+        }
         const result = applySetProperty(editedLines, currentBlock, edit.key, edit.value ?? '');
         editedLines = result.lines;
         diffLog.push(result.diff);
@@ -228,7 +236,10 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
       }
 
       case 'remove_property': {
-        if (!edit.key) { diffLog.push('⚠ remove_property: key is required'); break; }
+        if (!edit.key) {
+          diffLog.push('⚠ remove_property: key is required');
+          break;
+        }
         const result = applyRemoveProperty(editedLines, currentBlock, edit.key);
         editedLines = result.lines;
         diffLog.push(result.diff);
@@ -236,7 +247,10 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
       }
 
       case 'add_trait': {
-        if (!edit.trait) { diffLog.push('⚠ add_trait: trait is required'); break; }
+        if (!edit.trait) {
+          diffLog.push('⚠ add_trait: trait is required');
+          break;
+        }
         const result = applyAddTrait(editedLines, currentBlock, edit.trait);
         editedLines = result.lines;
         diffLog.push(result.diff);
@@ -244,7 +258,10 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
       }
 
       case 'remove_trait': {
-        if (!edit.trait) { diffLog.push('⚠ remove_trait: trait is required'); break; }
+        if (!edit.trait) {
+          diffLog.push('⚠ remove_trait: trait is required');
+          break;
+        }
         const result = applyRemoveTrait(editedLines, currentBlock, edit.trait);
         editedLines = result.lines;
         diffLog.push(result.diff);
@@ -252,7 +269,10 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
       }
 
       case 'rename': {
-        if (!edit.newName) { diffLog.push('⚠ rename: newName is required'); break; }
+        if (!edit.newName) {
+          diffLog.push('⚠ rename: newName is required');
+          break;
+        }
         const result = applyRename(editedLines, currentBlock, target, edit.newName);
         editedLines = result.lines;
         diffLog.push(result.diff);
@@ -272,7 +292,7 @@ function runEditHolo(args: EditHoloArgs): EditHoloResult {
     code: newCode,
     diff: diffLog,
     summary: changed
-      ? `Applied ${edits.length} edit(s) to "${target}": ${diffLog.filter(d => !d.startsWith('⚠')).join('; ')}`
+      ? `Applied ${edits.length} edit(s) to "${target}": ${diffLog.filter((d) => !d.startsWith('⚠')).join('; ')}`
       : `No changes made to "${target}".`,
   };
 }
@@ -392,7 +412,10 @@ function applyRename(
   }
 
   // Replace unquoted name (hsplus): oldName → newName
-  const unquotedPattern = new RegExp(`(\\b(?:object|cube|sphere|model)\\s+)${escapeRegex(oldName)}(\\s)`, 'i');
+  const unquotedPattern = new RegExp(
+    `(\\b(?:object|cube|sphere|model)\\s+)${escapeRegex(oldName)}(\\s)`,
+    'i'
+  );
   if (unquotedPattern.test(declLine)) {
     lines[block.startLine] = declLine.replace(unquotedPattern, `$1${newName}$2`);
     return { lines, diff: `rename ${oldName} → ${newName}` };

@@ -136,12 +136,20 @@ export function ECSInspectorPanel() {
           {selectedEntity.transform && (
             <div className="font-mono text-[10px] text-studio-muted">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(() => { const t = selectedEntity.transform as any; return <>
-                Pos: ({t.position?.x?.toFixed(2) ?? t.x?.toFixed(2) ?? '0.00'}, {t.position?.y?.toFixed(2) ?? t.y?.toFixed(2) ?? '0.00'}, {t.position?.z?.toFixed(2) ?? t.z?.toFixed(2) ?? '0.00'})
-                <br />
-                Scale: ({t.scale?.x?.toFixed(1) ?? t.sx?.toFixed(1) ?? '1.0'},{' '}
-                {t.scale?.y?.toFixed(1) ?? t.sy?.toFixed(1) ?? '1.0'}, {t.scale?.z?.toFixed(1) ?? t.sz?.toFixed(1) ?? '1.0'})
-              </>; })()}
+              {(() => {
+                const t = selectedEntity.transform as any;
+                return (
+                  <>
+                    Pos: ({t.position?.x?.toFixed(2) ?? t.x?.toFixed(2) ?? '0.00'},{' '}
+                    {t.position?.y?.toFixed(2) ?? t.y?.toFixed(2) ?? '0.00'},{' '}
+                    {t.position?.z?.toFixed(2) ?? t.z?.toFixed(2) ?? '0.00'})
+                    <br />
+                    Scale: ({t.scale?.x?.toFixed(1) ?? t.sx?.toFixed(1) ?? '1.0'},{' '}
+                    {t.scale?.y?.toFixed(1) ?? t.sy?.toFixed(1) ?? '1.0'},{' '}
+                    {t.scale?.z?.toFixed(1) ?? t.sz?.toFixed(1) ?? '1.0'})
+                  </>
+                );
+              })()}
             </div>
           )}
           {selectedEntity.agent && (

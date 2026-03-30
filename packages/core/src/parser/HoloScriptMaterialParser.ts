@@ -34,17 +34,35 @@ import type {
 // =============================================================================
 
 const TEXTURE_CHANNELS = new Set<string>([
-  'albedo_map', 'normal_map', 'roughness_map', 'metallic_map',
-  'emission_map', 'ao_map', 'height_map', 'opacity_map',
-  'displacement_map', 'specular_map', 'clearcoat_map',
-  'baseColor_map', 'emissive_map', 'transmission_map',
-  'sheen_map', 'anisotropy_map', 'thickness_map',
-  'subsurface_map', 'iridescence_map',
+  'albedo_map',
+  'normal_map',
+  'roughness_map',
+  'metallic_map',
+  'emission_map',
+  'ao_map',
+  'height_map',
+  'opacity_map',
+  'displacement_map',
+  'specular_map',
+  'clearcoat_map',
+  'baseColor_map',
+  'emissive_map',
+  'transmission_map',
+  'sheen_map',
+  'anisotropy_map',
+  'thickness_map',
+  'subsurface_map',
+  'iridescence_map',
 ]);
 
 const MATERIAL_BLOCK_TYPES = new Set<string>([
-  'material', 'pbr_material', 'unlit_material', 'shader',
-  'toon_material', 'glass_material', 'subsurface_material',
+  'material',
+  'pbr_material',
+  'unlit_material',
+  'shader',
+  'toon_material',
+  'glass_material',
+  'subsurface_material',
 ]);
 
 // =============================================================================
@@ -110,8 +128,8 @@ export class HoloScriptMaterialParser {
    */
   static parseFromComposition(nodes: CompositionMaterialNode[]): MaterialDefinition[] {
     return nodes
-      .filter(n => MATERIAL_BLOCK_TYPES.has(n.type))
-      .map(n => HoloScriptMaterialParser.parseCompositionNode(n));
+      .filter((n) => MATERIAL_BLOCK_TYPES.has(n.type))
+      .map((n) => HoloScriptMaterialParser.parseCompositionNode(n));
   }
 
   /**
@@ -127,7 +145,13 @@ export class HoloScriptMaterialParser {
     const shaderConnections = HoloScriptMaterialParser.extractShaderConnections(node);
 
     return HoloScriptMaterialParser.buildDefinition(
-      type, name, traits, properties, textureMaps, shaderPasses, shaderConnections
+      type,
+      name,
+      traits,
+      properties,
+      textureMaps,
+      shaderPasses,
+      shaderConnections
     );
   }
 
@@ -169,7 +193,13 @@ export class HoloScriptMaterialParser {
     }
 
     return HoloScriptMaterialParser.buildDefinition(
-      type, name, traits, properties, textureMaps, shaderPasses, shaderConnections
+      type,
+      name,
+      traits,
+      properties,
+      textureMaps,
+      shaderPasses,
+      shaderConnections
     );
   }
 
@@ -281,12 +311,12 @@ export class HoloScriptMaterialParser {
 
     for (const child of children) {
       if (child.type === 'property') {
-        const key = child.childForFieldName?.('key')?.text
-          || child.namedChildren?.[0]?.text
-          || child.children?.[0]?.text;
-        const valueNode = child.childForFieldName?.('value')
-          || child.namedChildren?.[1]
-          || child.children?.[2]; // skip ':'
+        const key =
+          child.childForFieldName?.('key')?.text ||
+          child.namedChildren?.[0]?.text ||
+          child.children?.[0]?.text;
+        const valueNode =
+          child.childForFieldName?.('value') || child.namedChildren?.[1] || child.children?.[2]; // skip ':'
 
         if (key && valueNode) {
           props[key] = HoloScriptMaterialParser.extractValue(valueNode);
@@ -307,12 +337,10 @@ export class HoloScriptMaterialParser {
     for (const child of children) {
       if (child.type === 'texture_map') {
         // Inline form: channel: "source"
-        const channelNode = child.childForFieldName?.('channel')
-          || child.namedChildren?.[0]
-          || child.children?.[0];
-        const sourceNode = child.childForFieldName?.('source')
-          || child.namedChildren?.[1]
-          || child.children?.[2]; // skip ':'
+        const channelNode =
+          child.childForFieldName?.('channel') || child.namedChildren?.[0] || child.children?.[0];
+        const sourceNode =
+          child.childForFieldName?.('source') || child.namedChildren?.[1] || child.children?.[2]; // skip ':'
 
         if (channelNode && sourceNode) {
           const channel = (channelNode.text || '') as TextureChannel;
@@ -321,15 +349,14 @@ export class HoloScriptMaterialParser {
         }
       } else if (child.type === 'texture_map_block') {
         // Block form: channel { source: ... tiling: ... }
-        const channelNode = child.childForFieldName?.('channel')
-          || child.namedChildren?.[0]
-          || child.children?.[0];
+        const channelNode =
+          child.childForFieldName?.('channel') || child.namedChildren?.[0] || child.children?.[0];
         const channel = (channelNode?.text || '') as TextureChannel;
 
         const blockProps = HoloScriptMaterialParser.extractProperties(child);
         maps.push({
           channel,
-          source: blockProps.source as string || '',
+          source: (blockProps.source as string) || '',
           tiling: blockProps.tiling as [number, number] | undefined,
           filtering: blockProps.filtering as TextureMapDef['filtering'],
           strength: blockProps.strength as number | undefined,
@@ -378,10 +405,8 @@ export class HoloScriptMaterialParser {
 
     for (const child of children) {
       if (child.type === 'shader_connection') {
-        const outputNode = child.childForFieldName?.('output')
-          || child.namedChildren?.[0];
-        const inputNode = child.childForFieldName?.('input')
-          || child.namedChildren?.[1];
+        const outputNode = child.childForFieldName?.('output') || child.namedChildren?.[0];
+        const inputNode = child.childForFieldName?.('input') || child.namedChildren?.[1];
 
         if (outputNode?.text && inputNode?.text) {
           connections.push({
@@ -402,16 +427,16 @@ export class HoloScriptMaterialParser {
   private static parseCompositionNode(node: CompositionMaterialNode): MaterialDefinition {
     const type = node.type as HoloMaterialType;
     const name = node.name;
-    const traits = (node.traits || []).map(t => t.name);
+    const traits = (node.traits || []).map((t) => t.name);
     const properties = node.properties || {};
 
-    const textureMaps: TextureMapDef[] = (node.textureMaps || []).map(tm => ({
+    const textureMaps: TextureMapDef[] = (node.textureMaps || []).map((tm) => ({
       channel: tm.channel as TextureChannel,
       source: tm.source || '',
       ...((tm.properties || {}) as Partial<TextureMapDef>),
     }));
 
-    const shaderPasses: ShaderPassDef[] = (node.shaderPasses || []).map(sp => ({
+    const shaderPasses: ShaderPassDef[] = (node.shaderPasses || []).map((sp) => ({
       name: sp.name,
       properties: sp.properties || {},
     }));
@@ -419,7 +444,13 @@ export class HoloScriptMaterialParser {
     const shaderConnections = node.shaderConnections || [];
 
     return HoloScriptMaterialParser.buildDefinition(
-      type, name, traits, properties, textureMaps, shaderPasses, shaderConnections
+      type,
+      name,
+      traits,
+      properties,
+      textureMaps,
+      shaderPasses,
+      shaderConnections
     );
   }
 
@@ -434,7 +465,7 @@ export class HoloScriptMaterialParser {
     properties: Record<string, unknown>,
     textureMaps: TextureMapDef[],
     shaderPasses: ShaderPassDef[],
-    shaderConnections: Array<{ output: string; input: string }>,
+    shaderConnections: Array<{ output: string; input: string }>
   ): MaterialDefinition {
     return {
       type,
@@ -446,7 +477,9 @@ export class HoloScriptMaterialParser {
       roughness: properties.roughness as number | undefined,
       metallic: properties.metallic as number | undefined,
       emissive: properties.emissive as string | undefined,
-      emissiveIntensity: (properties.emissiveIntensity ?? properties.emissive_intensity) as number | undefined,
+      emissiveIntensity: (properties.emissiveIntensity ?? properties.emissive_intensity) as
+        | number
+        | undefined,
       opacity: properties.opacity as number | undefined,
       IOR: (properties.IOR ?? properties.ior) as number | undefined,
       transmission: properties.transmission as number | undefined,
@@ -454,8 +487,12 @@ export class HoloScriptMaterialParser {
       doubleSided: (properties.double_sided ?? properties.doubleSided) as boolean | undefined,
 
       // Subsurface
-      subsurfaceColor: (properties.subsurface_color ?? properties.subsurfaceColor) as string | undefined,
-      subsurfaceRadius: (properties.subsurface_radius ?? properties.subsurfaceRadius) as number[] | undefined,
+      subsurfaceColor: (properties.subsurface_color ?? properties.subsurfaceColor) as
+        | string
+        | undefined,
+      subsurfaceRadius: (properties.subsurface_radius ?? properties.subsurfaceRadius) as
+        | number[]
+        | undefined,
 
       // Toon
       outlineWidth: (properties.outline_width ?? properties.outlineWidth) as number | undefined,
@@ -466,7 +503,9 @@ export class HoloScriptMaterialParser {
       rimColor: (properties.rim_color ?? properties.rimColor) as string | undefined,
 
       // Glass
-      attenuationColor: (properties.attenuation_color ?? properties.attenuationColor) as string | undefined,
+      attenuationColor: (properties.attenuation_color ?? properties.attenuationColor) as
+        | string
+        | undefined,
 
       // Maps and passes
       textureMaps,
@@ -499,8 +538,8 @@ export class HoloScriptMaterialParser {
       case 'array': {
         const items = node.namedChildren || node.children || [];
         return items
-          .filter(c => c.type !== ',' && c.type !== '[' && c.type !== ']')
-          .map(c => HoloScriptMaterialParser.extractValue(c));
+          .filter((c) => c.type !== ',' && c.type !== '[' && c.type !== ']')
+          .map((c) => HoloScriptMaterialParser.extractValue(c));
       }
       case 'identifier':
         return node.text;
@@ -510,9 +549,11 @@ export class HoloScriptMaterialParser {
   }
 
   private static unquote(text: string): string {
-    if ((text.startsWith('"') && text.endsWith('"')) ||
-        (text.startsWith("'") && text.endsWith("'")) ||
-        (text.startsWith('`') && text.endsWith('`'))) {
+    if (
+      (text.startsWith('"') && text.endsWith('"')) ||
+      (text.startsWith("'") && text.endsWith("'")) ||
+      (text.startsWith('`') && text.endsWith('`'))
+    ) {
       return text.slice(1, -1);
     }
     return text;

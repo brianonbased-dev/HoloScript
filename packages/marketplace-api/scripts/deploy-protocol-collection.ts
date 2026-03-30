@@ -94,13 +94,16 @@ async function main() {
   if (balance === 0n) {
     console.error('\nERROR: Wallet has zero balance.');
     if (isTestnet) {
-      console.error('Get testnet ETH: https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet');
+      console.error(
+        'Get testnet ETH: https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet'
+      );
     }
     process.exit(1);
   }
 
   // Factory address — same on all chains
-  const factoryAddress = zoraCreator1155FactoryImplAddress[chain.id as keyof typeof zoraCreator1155FactoryImplAddress];
+  const factoryAddress =
+    zoraCreator1155FactoryImplAddress[chain.id as keyof typeof zoraCreator1155FactoryImplAddress];
   console.log(`Factory: ${factoryAddress}\n`);
 
   // Deploy collection
@@ -111,15 +114,16 @@ async function main() {
     abi: zoraCreator1155FactoryImplABI,
     functionName: 'createContract',
     args: [
-      COLLECTION_URI,                                   // contractURI
-      COLLECTION_NAME,                                  // name
-      {                                                 // defaultRoyaltyConfiguration
+      COLLECTION_URI, // contractURI
+      COLLECTION_NAME, // name
+      {
+        // defaultRoyaltyConfiguration
         royaltyMintSchedule: 0,
         royaltyBPS: DEFAULT_ROYALTY_BPS,
         royaltyRecipient: account.address,
       },
-      account.address,                                  // defaultAdmin
-      [],                                               // setupActions (none)
+      account.address, // defaultAdmin
+      [], // setupActions (none)
     ],
     account,
   });

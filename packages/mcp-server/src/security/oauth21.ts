@@ -164,11 +164,8 @@ function generateToken(): string {
   return `hs_${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '')}`;
 }
 
-
 function verifyS256Challenge(verifier: string, challenge: string): boolean {
-  const computed = createHash('sha256')
-    .update(verifier)
-    .digest('base64url');
+  const computed = createHash('sha256').update(verifier).digest('base64url');
   return computed === challenge;
 }
 
@@ -208,7 +205,9 @@ export class OAuth21Service {
     if (!this.config.tokenSecret) {
       // Generate ephemeral secret for dev mode (not for production!)
       this.config.tokenSecret = randomUUID() + randomUUID();
-      console.warn('[OAuth2.1] WARNING: No OAUTH_TOKEN_SECRET set. Using ephemeral secret. Set this in production!');
+      console.warn(
+        '[OAuth2.1] WARNING: No OAUTH_TOKEN_SECRET set. Using ephemeral secret. Set this in production!'
+      );
     }
 
     startCleanupTimer();
@@ -281,7 +280,9 @@ export class OAuth21Service {
     }
 
     // Validate requested scopes against client's allowed scopes
-    const invalidScopes = params.scopes.filter(s => !client.scopes.includes(s) && !client.scopes.includes('admin:*'));
+    const invalidScopes = params.scopes.filter(
+      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin:*')
+    );
     if (invalidScopes.length > 0) {
       throw new Error(`Scopes not authorized for client: ${invalidScopes.join(', ')}`);
     }
@@ -339,7 +340,12 @@ export class OAuth21Service {
     // Mark code as used (one-time use)
     authCode.used = true;
 
-    return this.issueTokenPair(params.clientId, authCode.scopes, params.agentId, params.dpopThumbprint);
+    return this.issueTokenPair(
+      params.clientId,
+      authCode.scopes,
+      params.agentId,
+      params.dpopThumbprint
+    );
   }
 
   exchangeClientCredentials(params: {
@@ -359,12 +365,19 @@ export class OAuth21Service {
     }
 
     const requestedScopes = params.scopes || client.scopes;
-    const invalidScopes = requestedScopes.filter(s => !client.scopes.includes(s) && !client.scopes.includes('admin:*'));
+    const invalidScopes = requestedScopes.filter(
+      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin:*')
+    );
     if (invalidScopes.length > 0) {
       throw new Error(`Scopes not authorized: ${invalidScopes.join(', ')}`);
     }
 
-    return this.issueTokenPair(params.clientId, requestedScopes, params.agentId, params.dpopThumbprint);
+    return this.issueTokenPair(
+      params.clientId,
+      requestedScopes,
+      params.agentId,
+      params.dpopThumbprint
+    );
   }
 
   refreshAccessToken(params: {
@@ -476,9 +489,11 @@ export class OAuth21Service {
    * Supports: Bearer token (OAuth 2.1), DPoP token, legacy API key.
    */
   authenticateRequest(headers: Record<string, string | string[] | undefined>): TokenIntrospection {
-    const authHeader = (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
+    const authHeader =
+      (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
     const apiKey = (typeof headers['x-api-key'] === 'string' ? headers['x-api-key'] : '') || '';
-    const mcpApiKey = (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
+    const mcpApiKey =
+      (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
     const dpopHeader = (typeof headers['dpop'] === 'string' ? headers['dpop'] : '') || '';
 
     // Try OAuth 2.1 Bearer token
@@ -540,20 +555,24 @@ export class OAuth21Service {
    * Async variant of authenticateRequest that additionally resolves GitHub tokens.
    * Tries sync OAuth/legacy paths first, then falls back to GitHub API validation.
    */
-  async authenticateRequestAsync(headers: Record<string, string | string[] | undefined>): Promise<TokenIntrospection> {
+  async authenticateRequestAsync(
+    headers: Record<string, string | string[] | undefined>
+  ): Promise<TokenIntrospection> {
     const syncResult = this.authenticateRequest(headers);
     if (syncResult.active) return syncResult;
 
     // 1. Try Dynamic Tenant Lookup (PostgreSQL/Upstash)
-    const authHeader = (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
+    const authHeader =
+      (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
     const apiKey = (typeof headers['x-api-key'] === 'string' ? headers['x-api-key'] : '') || '';
-    const mcpApiKey = (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
-    
+    const mcpApiKey =
+      (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
+
     let keyToValidate = apiKey || mcpApiKey;
     if (!keyToValidate && authHeader.startsWith('Bearer ')) {
       keyToValidate = authHeader.slice(7);
     }
-    
+
     if (keyToValidate) {
       try {
         const { validateTenantKey } = await import('./tenant-auth');
@@ -618,7 +637,7 @@ export class OAuth21Service {
     scopes: OAuthScope[],
     agentId?: string,
     dpopThumbprint?: string,
-    chainId?: string,
+    chainId?: string
   ): TokenResponse {
     const now = Date.now();
     const accessTokenValue = generateToken();

@@ -49,10 +49,7 @@ describe('MVHEVCCompiler', () => {
     });
 
     it('includes scene name from composition', () => {
-      const result = compiler.compile(
-        createComposition({ name: 'MyVisionScene' }),
-        testToken
-      );
+      const result = compiler.compile(createComposition({ name: 'MyVisionScene' }), testToken);
       expect(result).toContain('MyVisionScene');
     });
 
@@ -99,7 +96,7 @@ describe('MVHEVCCompiler', () => {
       const leftShear = result.views[0].viewShear;
       const rightShear = result.views[1].viewShear;
       expect(leftShear).toBeGreaterThan(0); // Left eye shears right
-      expect(rightShear).toBeLessThan(0);   // Right eye shears left
+      expect(rightShear).toBeLessThan(0); // Right eye shears left
       expect(Math.abs(leftShear)).toBeCloseTo(Math.abs(rightShear));
     });
 
@@ -205,7 +202,7 @@ describe('MVHEVCCompiler', () => {
               {
                 name: 'spatial_video',
                 params: {
-                  ipd: 0.070,
+                  ipd: 0.07,
                   fps: 60,
                   convergence: 3.0,
                   fov: 100,
@@ -217,7 +214,7 @@ describe('MVHEVCCompiler', () => {
         ],
       });
       const result = compiler.compileMVHEVC(comp);
-      expect(result.config.ipd).toBe(0.070);
+      expect(result.config.ipd).toBe(0.07);
       expect(result.config.fps).toBe(60);
       expect(result.config.convergenceDistance).toBe(3.0);
       expect(result.config.fovDegrees).toBe(100);

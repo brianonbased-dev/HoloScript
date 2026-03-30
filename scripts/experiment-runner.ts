@@ -87,13 +87,31 @@ function resetState(): void {
   const historyFile = path.join(STATE_DIR, 'quality-history.json');
 
   // Reset unified daemon state (shared by holoscript-runner.ts and self-improve.ts)
-  fs.writeFileSync(stateFile, JSON.stringify({
-    totalCycles: 0, lastCycleAt: '', lastQuality: 0, bestQuality: 0,
-    focusRotation: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'],
-    currentFocusIndex: 0, convergenceStreak: 0, backoffMultiplier: 1,
-    improvements: [], attemptedFiles: [], lastErrorCounts: {},
-    focusIndex: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostUSD: 0,
-  }, null, 2), 'utf-8');
+  fs.writeFileSync(
+    stateFile,
+    JSON.stringify(
+      {
+        totalCycles: 0,
+        lastCycleAt: '',
+        lastQuality: 0,
+        bestQuality: 0,
+        focusRotation: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'],
+        currentFocusIndex: 0,
+        convergenceStreak: 0,
+        backoffMultiplier: 1,
+        improvements: [],
+        attemptedFiles: [],
+        lastErrorCounts: {},
+        focusIndex: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalCostUSD: 0,
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  );
 
   // Reset quality history
   fs.writeFileSync(historyFile, '[]', 'utf-8');
@@ -116,7 +134,11 @@ function archiveResults(arm: string, trial: number): void {
   }
 }
 
-async function runTrial(arm: 'control' | 'treatment', trial: number, config: ExperimentConfig): Promise<void> {
+async function runTrial(
+  arm: 'control' | 'treatment',
+  trial: number,
+  config: ExperimentConfig
+): Promise<void> {
   const branchName = `experiment/${arm}-trial-${trial}`;
   const originalBranch = git('rev-parse --abbrev-ref HEAD');
 
@@ -129,7 +151,11 @@ async function runTrial(arm: 'control' | 'treatment', trial: number, config: Exp
     git(`checkout -b ${branchName}`);
   } catch {
     // Branch might already exist, delete and recreate
-    try { git(`branch -D ${branchName}`); } catch { /* ignore */ }
+    try {
+      git(`branch -D ${branchName}`);
+    } catch {
+      /* ignore */
+    }
     git(`checkout -b ${branchName}`);
   }
 

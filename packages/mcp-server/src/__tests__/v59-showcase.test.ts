@@ -157,7 +157,8 @@ describe('v5.9 Showcase — Developer Portal', () => {
 
     it('full lifecycle: init → add members → build order → info', async () => {
       // Use dynamic import — resolve from __dirname (packages/mcp-server/src/__tests__)
-      const { WorkspaceManager } = await import('../../../../packages/cli/src/workspace/WorkspaceManager');
+      const { WorkspaceManager } =
+        await import('../../../../packages/cli/src/workspace/WorkspaceManager');
 
       // Create workspace structure
       mkdirSync(join(tempDir, 'packages', 'core'), { recursive: true });
@@ -195,9 +196,33 @@ describe('v5.9 Showcase — Developer Portal', () => {
     it('generates reference from real tool set', () => {
       const generator = new APIDocsGenerator();
       const tools = [
-        { name: 'parse_hs', description: 'Parse HoloScript', inputSchema: { type: 'object' as const, properties: { code: { type: 'string', description: 'Source' } }, required: ['code'] } },
-        { name: 'graph_traverse', description: 'Traverse graph', inputSchema: { type: 'object' as const, properties: { nodeId: { type: 'string', description: 'Start node' } }, required: ['nodeId'] } },
-        { name: 'check_agent_budget', description: 'Check budget', inputSchema: { type: 'object' as const, properties: { agentId: { type: 'string', description: 'Agent' } }, required: ['agentId'] } },
+        {
+          name: 'parse_hs',
+          description: 'Parse HoloScript',
+          inputSchema: {
+            type: 'object' as const,
+            properties: { code: { type: 'string', description: 'Source' } },
+            required: ['code'],
+          },
+        },
+        {
+          name: 'graph_traverse',
+          description: 'Traverse graph',
+          inputSchema: {
+            type: 'object' as const,
+            properties: { nodeId: { type: 'string', description: 'Start node' } },
+            required: ['nodeId'],
+          },
+        },
+        {
+          name: 'check_agent_budget',
+          description: 'Check budget',
+          inputSchema: {
+            type: 'object' as const,
+            properties: { agentId: { type: 'string', description: 'Agent' } },
+            required: ['agentId'],
+          },
+        },
       ];
 
       const ref = generator.generate(tools);
@@ -221,30 +246,47 @@ describe('v5.9 Showcase — Developer Portal', () => {
 
   describe('MCP developer tools', () => {
     it('get_api_reference returns API reference', async () => {
-      const result = await handleDeveloperTool('get_api_reference', {
+      const result = (await handleDeveloperTool('get_api_reference', {
         format: 'json',
-      }) as { format: string; reference: { totalTools: number } };
+      })) as { format: string; reference: { totalTools: number } };
 
       expect(result.format).toBe('json');
       expect(result.reference.totalTools).toBeGreaterThan(0);
     });
 
     it('get_api_reference supports markdown format', async () => {
-      const result = await handleDeveloperTool('get_api_reference', {
+      const result = (await handleDeveloperTool('get_api_reference', {
         format: 'markdown',
-      }) as { format: string; content: string };
+      })) as { format: string; content: string };
 
       expect(result.format).toBe('markdown');
       expect(result.content).toContain('# HoloScript MCP API Reference');
     });
 
     it('inspect_trace_waterfall renders spans', async () => {
-      const result = await handleDeveloperTool('inspect_trace_waterfall', {
+      const result = (await handleDeveloperTool('inspect_trace_waterfall', {
         spans: [
-          { traceId: 't1', spanId: 's1', name: 'test', kind: 'internal', startTime: 0, endTime: 100, status: 'ok' },
-          { traceId: 't1', spanId: 's2', parentSpanId: 's1', name: 'child', kind: 'internal', startTime: 10, endTime: 50, status: 'ok' },
+          {
+            traceId: 't1',
+            spanId: 's1',
+            name: 'test',
+            kind: 'internal',
+            startTime: 0,
+            endTime: 100,
+            status: 'ok',
+          },
+          {
+            traceId: 't1',
+            spanId: 's2',
+            parentSpanId: 's1',
+            name: 'child',
+            kind: 'internal',
+            startTime: 10,
+            endTime: 50,
+            status: 'ok',
+          },
         ],
-      }) as { waterfall: { spanCount: number; rows: Array<{ depth: number }> } };
+      })) as { waterfall: { spanCount: number; rows: Array<{ depth: number }> } };
 
       expect(result.waterfall.spanCount).toBe(2);
       expect(result.waterfall.rows[0].depth).toBe(0);
@@ -252,9 +294,9 @@ describe('v5.9 Showcase — Developer Portal', () => {
     });
 
     it('get_dev_dashboard_state returns dashboard data', async () => {
-      const result = await handleDeveloperTool('get_dev_dashboard_state', {
+      const result = (await handleDeveloperTool('get_dev_dashboard_state', {
         sections: ['traces', 'api'],
-      }) as { dashboard: Record<string, unknown>; sections: string[] };
+      })) as { dashboard: Record<string, unknown>; sections: string[] };
 
       expect(result.sections).toContain('traces');
       expect(result.sections).toContain('api');

@@ -16,7 +16,13 @@ import { packAsset, unpackAsset, inspectAsset } from './smartAssets';
 import { WatchService } from './WatchService';
 import { generateTargetCode } from './build/generators';
 import { publishPackage } from './publish';
-import { getVersionString, getVersionInfo, createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '@holoscript/core';
+import {
+  getVersionString,
+  getVersionInfo,
+  createHeadlessRuntime,
+  getProfile,
+  HEADLESS_PROFILE,
+} from '@holoscript/core';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -55,7 +61,9 @@ async function main(): Promise<void> {
         let errorList: any[] = [];
 
         if (options.verbose)
-          console.log(`\x1b[2m[TRACE] Starting validation (isHolo: ${isHolo}, isHsplus: ${isHsplus})...\x1b[0m`);
+          console.log(
+            `\x1b[2m[TRACE] Starting validation (isHolo: ${isHolo}, isHsplus: ${isHsplus})...\x1b[0m`
+          );
 
         let parseResult: any;
 
@@ -947,7 +955,9 @@ async function main(): Promise<void> {
 
           if (!result.success) {
             console.error(`\x1b[31mError parsing script:\x1b[0m`);
-            result.errors.forEach((e: any) => console.error(`  ${e.line}:${e.column}: ${e.message}`));
+            result.errors.forEach((e: any) =>
+              console.error(`  ${e.line}:${e.column}: ${e.message}`)
+            );
             process.exit(1);
           }
 
@@ -1157,10 +1167,14 @@ async function main(): Promise<void> {
         }
 
         // V6 2D UI Revolution - Flat Semantic Target
-        const isFlatSemantic = target === 'flat-semantic' || (target === 'web-2d' && (!options.projection || options.projection === 'flat-semantic'));
+        const isFlatSemantic =
+          target === 'flat-semantic' ||
+          (target === 'web-2d' && (!options.projection || options.projection === 'flat-semantic'));
         if (isFlatSemantic) {
           if (!isHolo) {
-            console.error(`\x1b[31mError: flat-semantic compilation requires .holo or .hsplus files.\x1b[0m`);
+            console.error(
+              `\x1b[31mError: flat-semantic compilation requires .holo or .hsplus files.\x1b[0m`
+            );
             process.exit(1);
           }
 
@@ -1180,7 +1194,7 @@ async function main(): Promise<void> {
           const reactOutput = compiler.compile(parseResult.ast, '', undefined, { format: 'react' });
 
           console.log(`\x1b[32m✓ Flat Semantic compilation successful!\x1b[0m`);
-          
+
           if (options.output) {
             const outputPath = path.resolve(options.output);
             fs.writeFileSync(outputPath, reactOutput);
@@ -1564,12 +1578,14 @@ async function main(): Promise<void> {
 
           console.log(`\x1b[2m[DEBUG] Compiling to Native 2D (HTML/React)...\x1b[0m`);
           const compiler = new Native2DCompiler();
-          const parsedFormat = process.argv.includes('--format') 
-            ? process.argv[process.argv.indexOf('--format') + 1] 
+          const parsedFormat = process.argv.includes('--format')
+            ? process.argv[process.argv.indexOf('--format') + 1]
             : (options as any).format;
           const outputFormat = parsedFormat === 'react' ? 'react' : 'html';
-          
-          const output = compiler.compile(parseResult.ast, '', options.output, { format: outputFormat });
+
+          const output = compiler.compile(parseResult.ast, '', options.output, {
+            format: outputFormat,
+          });
 
           console.log(`\x1b[32m✓ Native 2D compilation successful!\x1b[0m`);
           console.log(`\x1b[2m  Objects: ${parseResult.ast.objects?.length || 0}\x1b[0m`);
@@ -1578,11 +1594,17 @@ async function main(): Promise<void> {
           if (options.output) {
             const outputPath = path.resolve(options.output);
             const ext = outputFormat === 'react' ? '.tsx' : '.html';
-            const finalPath = (outputPath.endsWith('.html') || outputPath.endsWith('.tsx') || outputPath.endsWith('.jsx')) 
-                ? outputPath 
+            const finalPath =
+              outputPath.endsWith('.html') ||
+              outputPath.endsWith('.tsx') ||
+              outputPath.endsWith('.jsx')
+                ? outputPath
                 : outputPath + ext;
-                
-            fs.writeFileSync(finalPath, typeof output === 'string' ? output : (output as any).output);
+
+            fs.writeFileSync(
+              finalPath,
+              typeof output === 'string' ? output : (output as any).output
+            );
             console.log(`\x1b[32m✓ Native 2D output written to ${finalPath}\x1b[0m`);
           } else {
             console.log(`\n--- Native 2D Output (${outputFormat}) ---\n`);
@@ -2560,7 +2582,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
       if (!result.success) {
         console.error('\x1b[31mParse errors:\x1b[0m');
-        result.errors.forEach((e: any) => console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`));
+        result.errors.forEach((e: any) =>
+          console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`)
+        );
         process.exit(1);
       }
 
@@ -2612,10 +2636,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         holo += `  }\n\n`;
       }
 
-      for (const obj of (ast.objects || [])) {
-        const traits = (obj.traits || []).map((t: any) => ` @${typeof t === 'string' ? t : t.name}`).join('');
+      for (const obj of ast.objects || []) {
+        const traits = (obj.traits || [])
+          .map((t: any) => ` @${typeof t === 'string' ? t : t.name}`)
+          .join('');
         holo += `  object "${obj.name}"${traits} {\n`;
-        for (const prop of (obj.properties || [])) {
+        for (const prop of obj.properties || []) {
           holo += `    ${prop.key}: ${JSON.stringify(prop.value)}\n`;
         }
         holo += `  }\n\n`;
@@ -2657,21 +2683,25 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
       if (!result.success) {
         console.error('\x1b[31mParse errors:\x1b[0m');
-        result.errors.forEach((e: any) => console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`));
+        result.errors.forEach((e: any) =>
+          console.error(`  Line ${e.loc?.line || '?'}: ${e.message}`)
+        );
         process.exit(1);
       }
 
       let graph = `graph TD\n`;
       graph += `  ROOT["${result.ast?.name || 'Composition'}"]\n`;
 
-      for (const obj of (result.ast?.objects || [])) {
+      for (const obj of result.ast?.objects || []) {
         const id = obj.name.replace(/[^a-zA-Z0-9]/g, '_');
-        const traits = (obj.traits || []).map((t: any) => `@${typeof t === 'string' ? t : t.name}`).join(' ');
+        const traits = (obj.traits || [])
+          .map((t: any) => `@${typeof t === 'string' ? t : t.name}`)
+          .join(' ');
         graph += `  ${id}["${obj.name}${traits ? '\\n' + traits : ''}"]\n`;
         graph += `  ROOT --> ${id}\n`;
       }
 
-      for (const tmpl of (result.ast?.templates || [])) {
+      for (const tmpl of result.ast?.templates || []) {
         const id = 'T_' + tmpl.name.replace(/[^a-zA-Z0-9]/g, '_');
         graph += `  ${id}{{"${tmpl.name} (template)"}}\n`;
         graph += `  ROOT -.-> ${id}\n`;
@@ -2732,7 +2762,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         if (options.focus) runnerArgs.push('--focus', options.focus);
         if (options.providerRotation) runnerArgs.push('--provider-rotation');
         if (options.alwaysOn) runnerArgs.push('--always-on');
-        if (options.cycleIntervalSec) runnerArgs.push('--cycle-interval-sec', String(options.cycleIntervalSec));
+        if (options.cycleIntervalSec)
+          runnerArgs.push('--cycle-interval-sec', String(options.cycleIntervalSec));
         if (options.verbose) runnerArgs.push('--debug');
         if (options.timeout) runnerArgs.push('--timeout', String(options.timeout));
 
@@ -2863,7 +2894,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           );
           if (options.json) {
             const out = JSON.stringify(
-              { input: inputFiles, blast_radius: Array.from(impactSet).sort(), indirect, total: impactSet.size },
+              {
+                input: inputFiles,
+                blast_radius: Array.from(impactSet).sort(),
+                indirect,
+                total: impactSet.size,
+              },
               null,
               2
             );
@@ -3035,8 +3071,13 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const fs = await import('fs');
         const path = await import('path');
         const pkg = '@holoscript/core';
-        const { CodebaseScanner, CodebaseGraph, EmbeddingIndex, GraphRAGEngine, createEmbeddingProvider } =
-          await import(pkg + '/codebase');
+        const {
+          CodebaseScanner,
+          CodebaseGraph,
+          EmbeddingIndex,
+          GraphRAGEngine,
+          createEmbeddingProvider,
+        } = await import(pkg + '/codebase');
 
         const rootDir = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
         const question = options.input;
@@ -3056,17 +3097,31 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
         const BG_BLUE = '\x1b[44m';
 
         const hrLine = (char = '─', len = 60) => DIM + char.repeat(len) + RESET;
-        const sectionHeader = (title: string) => `\n${DIM}┌${'─'.repeat(58)}┐${RESET}\n${DIM}│${RESET} ${BOLD}${title}${RESET}${' '.repeat(Math.max(0, 57 - title.length))}${DIM}│${RESET}\n${DIM}└${'─'.repeat(58)}┘${RESET}`;
+        const sectionHeader = (title: string) =>
+          `\n${DIM}┌${'─'.repeat(58)}┐${RESET}\n${DIM}│${RESET} ${BOLD}${title}${RESET}${' '.repeat(Math.max(0, 57 - title.length))}${DIM}│${RESET}\n${DIM}└${'─'.repeat(58)}┘${RESET}`;
         const bullet = (icon: string, text: string) => `  ${icon} ${text}`;
-        const formatMs = (ms: number) => ms < 1000 ? `${ms}ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+        const formatMs = (ms: number) =>
+          ms < 1000
+            ? `${ms}ms`
+            : ms < 60000
+              ? `${(ms / 1000).toFixed(1)}s`
+              : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
 
         // ── Header ───────────────────────────────────────────────────────────
         console.log(`\n${DIM}╔${'═'.repeat(58)}╗${RESET}`);
-        console.log(`${DIM}║${RESET} ${CYAN}🔍 HoloScript GraphRAG Query${RESET}${' '.repeat(30)}${DIM}║${RESET}`);
+        console.log(
+          `${DIM}║${RESET} ${CYAN}🔍 HoloScript GraphRAG Query${RESET}${' '.repeat(30)}${DIM}║${RESET}`
+        );
         console.log(`${DIM}╠${'═'.repeat(58)}╣${RESET}`);
-        console.log(`${DIM}║${RESET}  ${BOLD}Q:${RESET} ${question.length > 52 ? question.slice(0, 49) + '...' : question}${' '.repeat(Math.max(0, 54 - Math.min(question.length, 52)))}${DIM}║${RESET}`);
-        console.log(`${DIM}║${RESET}  ${DIM}Provider:${RESET} ${YELLOW}${providerName}${RESET}  ${DIM}Top-K:${RESET} ${options.queryTopK ?? 10}  ${DIM}LLM:${RESET} ${options.queryLlm ? GREEN + options.queryLlm + RESET : DIM + 'off' + RESET}${' '.repeat(Math.max(0, 15 - (providerName.length + (options.queryLlm?.length ?? 3))))}${DIM}║${RESET}`);
-        console.log(`${DIM}║${RESET}  ${DIM}Dir:${RESET} ${rootDir.length > 50 ? '...' + rootDir.slice(-47) : rootDir}${' '.repeat(Math.max(0, 53 - Math.min(rootDir.length, 50)))}${DIM}║${RESET}`);
+        console.log(
+          `${DIM}║${RESET}  ${BOLD}Q:${RESET} ${question.length > 52 ? question.slice(0, 49) + '...' : question}${' '.repeat(Math.max(0, 54 - Math.min(question.length, 52)))}${DIM}║${RESET}`
+        );
+        console.log(
+          `${DIM}║${RESET}  ${DIM}Provider:${RESET} ${YELLOW}${providerName}${RESET}  ${DIM}Top-K:${RESET} ${options.queryTopK ?? 10}  ${DIM}LLM:${RESET} ${options.queryLlm ? GREEN + options.queryLlm + RESET : DIM + 'off' + RESET}${' '.repeat(Math.max(0, 15 - (providerName.length + (options.queryLlm?.length ?? 3))))}${DIM}║${RESET}`
+        );
+        console.log(
+          `${DIM}║${RESET}  ${DIM}Dir:${RESET} ${rootDir.length > 50 ? '...' + rootDir.slice(-47) : rootDir}${' '.repeat(Math.max(0, 53 - Math.min(rootDir.length, 50)))}${DIM}║${RESET}`
+        );
         console.log(`${DIM}╚${'═'.repeat(58)}╝${RESET}\n`);
 
         // ── 1. Try loading cached graph ──────────────────────────────────────
@@ -3089,9 +3144,16 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             graph = CodebaseGraph.deserialize(cacheData);
             fromCache = true;
             graphSymbolCount = graph.getAllSymbols().length;
-            console.log(bullet(`${GREEN}✓${RESET}`, `Graph loaded from cache ${DIM}(${graphSymbolCount.toLocaleString()} symbols)${RESET}`));
+            console.log(
+              bullet(
+                `${GREEN}✓${RESET}`,
+                `Graph loaded from cache ${DIM}(${graphSymbolCount.toLocaleString()} symbols)${RESET}`
+              )
+            );
           } catch (err: any) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache load failed: ${err.message}. Rescanning...`));
+            console.warn(
+              bullet(`${YELLOW}⚠${RESET}`, `Cache load failed: ${err.message}. Rescanning...`)
+            );
             fromCache = false;
           }
         }
@@ -3115,7 +3177,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             process.stdout.write('\r' + ' '.repeat(qLastProgressLen + 4) + '\r');
           }
           graphSymbolCount = scanResult.stats.totalSymbols;
-          console.log(bullet(`${GREEN}✓${RESET}`, `Scanned ${BOLD}${scanResult.stats.totalFiles.toLocaleString()}${RESET} files → ${BOLD}${graphSymbolCount.toLocaleString()}${RESET} symbols ${DIM}(${formatMs(Date.now() - scanStart)})${RESET}`));
+          console.log(
+            bullet(
+              `${GREEN}✓${RESET}`,
+              `Scanned ${BOLD}${scanResult.stats.totalFiles.toLocaleString()}${RESET} files → ${BOLD}${graphSymbolCount.toLocaleString()}${RESET} symbols ${DIM}(${formatMs(Date.now() - scanStart)})${RESET}`
+            )
+          );
 
           graph = new CodebaseGraph();
           graph.buildFromScanResult(scanResult);
@@ -3126,7 +3193,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
               fs.mkdirSync(cacheDir, { recursive: true });
             }
             fs.writeFileSync(cachePath, graph.serialize(), 'utf-8');
-            console.log(bullet(`${DIM}💾${RESET}`, `${DIM}Graph cached for future queries${RESET}`));
+            console.log(
+              bullet(`${DIM}💾${RESET}`, `${DIM}Graph cached for future queries${RESET}`)
+            );
           } catch (err: any) {
             console.warn(bullet(`${YELLOW}⚠${RESET}`, `Cache save failed: ${err.message}`));
           }
@@ -3152,9 +3221,19 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             const buf = fs.readFileSync(indexCacheBin);
             index = EmbeddingIndex.deserializeBinary(buf, { provider });
             indexFromCache = true;
-            console.log(bullet(`${GREEN}✓${RESET}`, `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, binary)${RESET}`));
+            console.log(
+              bullet(
+                `${GREEN}✓${RESET}`,
+                `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, binary)${RESET}`
+              )
+            );
           } catch (err: any) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Binary index cache load failed: ${err.message}. Rebuilding...`));
+            console.warn(
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `Binary index cache load failed: ${err.message}. Rebuilding...`
+              )
+            );
             indexFromCache = false;
           }
         } else if (!forceRescan && fs.existsSync(indexCacheJson)) {
@@ -3162,9 +3241,16 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             const indexData = fs.readFileSync(indexCacheJson, 'utf-8');
             index = EmbeddingIndex.deserialize(indexData, { provider });
             indexFromCache = true;
-            console.log(bullet(`${GREEN}✓${RESET}`, `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, json-legacy)${RESET}`));
+            console.log(
+              bullet(
+                `${GREEN}✓${RESET}`,
+                `Index loaded from cache ${DIM}(${index.size.toLocaleString()} embeddings, ${YELLOW}${providerName}${RESET}${DIM}, json-legacy)${RESET}`
+              )
+            );
           } catch (err: any) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache load failed: ${err.message}. Rebuilding...`));
+            console.warn(
+              bullet(`${YELLOW}⚠${RESET}`, `Index cache load failed: ${err.message}. Rebuilding...`)
+            );
             indexFromCache = false;
           }
         }
@@ -3173,7 +3259,12 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           const embedStart = Date.now();
           index = new EmbeddingIndex({ provider });
           await index.buildIndex(graph);
-          console.log(bullet(`${GREEN}✓${RESET}`, `Indexed ${BOLD}${index.size.toLocaleString()}${RESET} symbols with ${YELLOW}${providerName}${RESET} ${DIM}(${formatMs(Date.now() - embedStart)})${RESET}`));
+          console.log(
+            bullet(
+              `${GREEN}✓${RESET}`,
+              `Indexed ${BOLD}${index.size.toLocaleString()}${RESET} symbols with ${YELLOW}${providerName}${RESET} ${DIM}(${formatMs(Date.now() - embedStart)})${RESET}`
+            )
+          );
 
           try {
             if (!fs.existsSync(cacheDir)) {
@@ -3182,10 +3273,19 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             const binData = index.serializeBinary();
             fs.writeFileSync(indexCacheBin, binData);
             const sizeMB = (binData.length / (1024 * 1024)).toFixed(1);
-            console.log(bullet(`${DIM}💾${RESET}`, `${DIM}Index cached (${sizeMB} MB binary) for future queries${RESET}`));
+            console.log(
+              bullet(
+                `${DIM}💾${RESET}`,
+                `${DIM}Index cached (${sizeMB} MB binary) for future queries${RESET}`
+              )
+            );
             // Clean up legacy JSON cache if it exists
             if (fs.existsSync(indexCacheJson)) {
-              try { fs.unlinkSync(indexCacheJson); } catch { /* ignore */ }
+              try {
+                fs.unlinkSync(indexCacheJson);
+              } catch {
+                /* ignore */
+              }
             }
           } catch (err: any) {
             console.warn(bullet(`${YELLOW}⚠${RESET}`, `Index cache save failed: ${err.message}`));
@@ -3200,22 +3300,46 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             const key = options.queryLlmKey ?? '';
             switch (options.queryLlm) {
               case 'openai':
-                llmProvider = new llmPkg.OpenAIAdapter({ apiKey: key || process.env['OPENAI_API_KEY'] || '', defaultModel: options.queryModel ?? 'gpt-4o-mini' });
+                llmProvider = new llmPkg.OpenAIAdapter({
+                  apiKey: key || process.env['OPENAI_API_KEY'] || '',
+                  defaultModel: options.queryModel ?? 'gpt-4o-mini',
+                });
                 break;
               case 'anthropic':
-                llmProvider = new llmPkg.AnthropicAdapter({ apiKey: key || process.env['ANTHROPIC_API_KEY'] || '', defaultModel: options.queryModel ?? 'claude-3-haiku-20240307' });
+                llmProvider = new llmPkg.AnthropicAdapter({
+                  apiKey: key || process.env['ANTHROPIC_API_KEY'] || '',
+                  defaultModel: options.queryModel ?? 'claude-3-haiku-20240307',
+                });
                 break;
               case 'gemini':
-                llmProvider = new llmPkg.GeminiAdapter({ apiKey: key || process.env['GEMINI_API_KEY'] || '', defaultModel: options.queryModel ?? 'gemini-1.5-flash' });
+                llmProvider = new llmPkg.GeminiAdapter({
+                  apiKey: key || process.env['GEMINI_API_KEY'] || '',
+                  defaultModel: options.queryModel ?? 'gemini-1.5-flash',
+                });
                 break;
               default:
-                console.warn(bullet(`${YELLOW}⚠${RESET}`, `Unknown LLM provider: ${options.queryLlm}. Skipping LLM answer.`));
+                console.warn(
+                  bullet(
+                    `${YELLOW}⚠${RESET}`,
+                    `Unknown LLM provider: ${options.queryLlm}. Skipping LLM answer.`
+                  )
+                );
             }
             if (llmProvider) {
-              console.log(bullet(`${GREEN}✓${RESET}`, `LLM ready ${DIM}(${options.queryLlm}/${options.queryModel ?? 'default'})${RESET}`));
+              console.log(
+                bullet(
+                  `${GREEN}✓${RESET}`,
+                  `LLM ready ${DIM}(${options.queryLlm}/${options.queryModel ?? 'default'})${RESET}`
+                )
+              );
             }
           } catch {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `@holoscript/llm-provider not available. Install it: ${CYAN}pnpm add @holoscript/llm-provider${RESET}`));
+            console.warn(
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `@holoscript/llm-provider not available. Install it: ${CYAN}pnpm add @holoscript/llm-provider${RESET}`
+              )
+            );
           }
         }
 
@@ -3256,12 +3380,19 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             // ── Footer ────────────────────────────────────────────────────────
             console.log('');
             console.log(hrLine());
-            console.log(`  ${DIM}⏱  ${formatMs(totalTime)}${RESET}  ${DIM}│${RESET}  ${DIM}${graphSymbolCount.toLocaleString()} symbols${RESET}  ${DIM}│${RESET}  ${DIM}${providerName} embeddings${RESET}  ${DIM}│${RESET}  ${DIM}${options.queryLlm} LLM${RESET}`);
+            console.log(
+              `  ${DIM}⏱  ${formatMs(totalTime)}${RESET}  ${DIM}│${RESET}  ${DIM}${graphSymbolCount.toLocaleString()} symbols${RESET}  ${DIM}│${RESET}  ${DIM}${providerName} embeddings${RESET}  ${DIM}│${RESET}  ${DIM}${options.queryLlm} LLM${RESET}`
+            );
             console.log(hrLine());
           }
         } else {
           if (options.queryWithLlm && !llmProvider) {
-            console.warn(bullet(`${YELLOW}⚠${RESET}`, `--with-llm requires --llm <provider>. Falling back to ranked results.`));
+            console.warn(
+              bullet(
+                `${YELLOW}⚠${RESET}`,
+                `--with-llm requires --llm <provider>. Falling back to ranked results.`
+              )
+            );
             console.log(`  ${DIM}Usage: holoscript query "..." --with-llm --llm openai${RESET}`);
           }
           const result = await engine.query(question, { topK });
@@ -3271,7 +3402,11 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
             console.log(JSON.stringify(result, null, 2));
           } else {
             // ── Ranked Results ────────────────────────────────────────────────
-            console.log(sectionHeader(`📊 Top ${result.results.length} Results (${result.totalMatches} total)`));
+            console.log(
+              sectionHeader(
+                `📊 Top ${result.results.length} Results (${result.totalMatches} total)`
+              )
+            );
             console.log('');
 
             for (let i = 0; i < result.results.length; i++) {
@@ -3285,23 +3420,34 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
               console.log(`  ${rank} ${score}  ${typeBadge} ${name}`);
               console.log(`         ${DIM}${loc}${RESET}`);
               if (r.symbol.signature) {
-                console.log(`         ${DIM}${r.symbol.signature.length > 60 ? r.symbol.signature.slice(0, 57) + '...' : r.symbol.signature}${RESET}`);
+                console.log(
+                  `         ${DIM}${r.symbol.signature.length > 60 ? r.symbol.signature.slice(0, 57) + '...' : r.symbol.signature}${RESET}`
+                );
               }
               if (r.callers.length > 0) {
-                console.log(`         ${DIM}← ${r.callers.slice(0, 3).join(', ')}${r.callers.length > 3 ? ` +${r.callers.length - 3} more` : ''}${RESET}`);
+                console.log(
+                  `         ${DIM}← ${r.callers.slice(0, 3).join(', ')}${r.callers.length > 3 ? ` +${r.callers.length - 3} more` : ''}${RESET}`
+                );
               }
               if (i < result.results.length - 1) console.log('');
             }
 
             if (result.communities.length > 0) {
               console.log('');
-              console.log(bullet(`${DIM}🏘️${RESET}`, `${DIM}Modules: ${result.communities.join(' · ')}${RESET}`));
+              console.log(
+                bullet(
+                  `${DIM}🏘️${RESET}`,
+                  `${DIM}Modules: ${result.communities.join(' · ')}${RESET}`
+                )
+              );
             }
 
             // ── Footer ────────────────────────────────────────────────────────
             console.log('');
             console.log(hrLine());
-            console.log(`  ${DIM}⏱  ${formatMs(totalTime)}${RESET}  ${DIM}│${RESET}  ${DIM}${graphSymbolCount.toLocaleString()} symbols${RESET}  ${DIM}│${RESET}  ${DIM}${providerName} embeddings${RESET}  ${DIM}│${RESET}  ${DIM}top-${topK}${RESET}`);
+            console.log(
+              `  ${DIM}⏱  ${formatMs(totalTime)}${RESET}  ${DIM}│${RESET}  ${DIM}${graphSymbolCount.toLocaleString()} symbols${RESET}  ${DIM}│${RESET}  ${DIM}${providerName} embeddings${RESET}  ${DIM}│${RESET}  ${DIM}top-${topK}${RESET}`
+            );
             console.log(hrLine());
           }
         }
@@ -3367,7 +3513,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       if (cleaned === 0) {
         console.log('\x1b[33mNo index caches found to clean.\x1b[0m');
       } else {
-        console.log(`\n\x1b[32mCleaned ${cleaned} cache director${cleaned === 1 ? 'y' : 'ies'}.\x1b[0m Run \x1b[36mholoscript query\x1b[0m to rebuild.`);
+        console.log(
+          `\n\x1b[32mCleaned ${cleaned} cache director${cleaned === 1 ? 'y' : 'ies'}.\x1b[0m Run \x1b[36mholoscript query\x1b[0m to rebuild.`
+        );
       }
       process.exit(0);
     }
@@ -3394,7 +3542,9 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       const tenantId = options.input;
       if (!tenantId) {
         console.error('\x1b[31mError: No tenant ID specified.\x1b[0m');
-        console.log('Usage: npx @holoscript/cli issue-key <tenant_id> [--tier free|pro|enterprise]');
+        console.log(
+          'Usage: npx @holoscript/cli issue-key <tenant_id> [--tier free|pro|enterprise]'
+        );
         process.exit(1);
       }
       const tier = (options as any).tier || 'free';

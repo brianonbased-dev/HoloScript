@@ -86,7 +86,8 @@ describe('extractSymbol', () => {
 
 describe('parseTscErrorLine', () => {
   it('parses a standard tsc error line', () => {
-    const line = "packages/core/src/compiler/IOSCompiler.ts(42,10): error TS2304: Cannot find name 'CompilerBase'.";
+    const line =
+      "packages/core/src/compiler/IOSCompiler.ts(42,10): error TS2304: Cannot find name 'CompilerBase'.";
     const result = parseTscErrorLine(line);
     expect(result).not.toBeNull();
     expect(result!.code).toBe('TS2304');
@@ -97,7 +98,8 @@ describe('parseTscErrorLine', () => {
   });
 
   it('parses Windows-style paths', () => {
-    const line = "packages\\core\\src\\traits\\StateTrait.ts(15,3): error TS2339: Property 'value' does not exist on type 'StateNode'.";
+    const line =
+      "packages\\core\\src\\traits\\StateTrait.ts(15,3): error TS2339: Property 'value' does not exist on type 'StateNode'.";
     const result = parseTscErrorLine(line);
     expect(result).not.toBeNull();
     expect(result!.file).toBe('packages/core/src/traits/StateTrait.ts');
@@ -137,10 +139,38 @@ describe('parseTscOutput', () => {
 describe('aggregatePatterns', () => {
   it('groups errors by category and sorts by count', () => {
     const errors: SemanticError[] = [
-      { code: 'TS2304', category: 'missing_symbol', symbol: 'A', file: 'a.ts', line: 1, message: 'Cannot find name A' },
-      { code: 'TS2304', category: 'missing_symbol', symbol: 'B', file: 'b.ts', line: 2, message: 'Cannot find name B' },
-      { code: 'TS2304', category: 'missing_symbol', symbol: 'A', file: 'a.ts', line: 3, message: 'Cannot find name A' },
-      { code: 'TS2339', category: 'missing_property', symbol: 'x', file: 'c.ts', line: 1, message: "Property 'x' does not exist" },
+      {
+        code: 'TS2304',
+        category: 'missing_symbol',
+        symbol: 'A',
+        file: 'a.ts',
+        line: 1,
+        message: 'Cannot find name A',
+      },
+      {
+        code: 'TS2304',
+        category: 'missing_symbol',
+        symbol: 'B',
+        file: 'b.ts',
+        line: 2,
+        message: 'Cannot find name B',
+      },
+      {
+        code: 'TS2304',
+        category: 'missing_symbol',
+        symbol: 'A',
+        file: 'a.ts',
+        line: 3,
+        message: 'Cannot find name A',
+      },
+      {
+        code: 'TS2339',
+        category: 'missing_property',
+        symbol: 'x',
+        file: 'c.ts',
+        line: 1,
+        message: "Property 'x' does not exist",
+      },
     ];
 
     const patterns = aggregatePatterns(errors);
@@ -162,8 +192,22 @@ describe('aggregatePatterns', () => {
 
   it('deduplicates files and symbols', () => {
     const errors: SemanticError[] = [
-      { code: 'TS2304', category: 'missing_symbol', symbol: 'X', file: 'same.ts', line: 1, message: 'm1' },
-      { code: 'TS2304', category: 'missing_symbol', symbol: 'X', file: 'same.ts', line: 2, message: 'm2' },
+      {
+        code: 'TS2304',
+        category: 'missing_symbol',
+        symbol: 'X',
+        file: 'same.ts',
+        line: 1,
+        message: 'm1',
+      },
+      {
+        code: 'TS2304',
+        category: 'missing_symbol',
+        symbol: 'X',
+        file: 'same.ts',
+        line: 2,
+        message: 'm2',
+      },
     ];
 
     const patterns = aggregatePatterns(errors);

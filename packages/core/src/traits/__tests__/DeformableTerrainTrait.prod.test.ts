@@ -18,9 +18,11 @@ function attach(cfg = mkCfg(), node = mkNode(), ctx = mkCtx()) {
 }
 
 describe('deformableTerrainHandler — defaultConfig', () => {
-  it('resolution = 256', () => expect(deformableTerrainHandler.defaultConfig?.resolution).toBe(256));
+  it('resolution = 256', () =>
+    expect(deformableTerrainHandler.defaultConfig?.resolution).toBe(256));
   it('scale = 100', () => expect(deformableTerrainHandler.defaultConfig?.scale).toBe(100));
-  it('thermal_threshold = 45', () => expect(deformableTerrainHandler.defaultConfig?.thermal_threshold).toBe(45));
+  it('thermal_threshold = 45', () =>
+    expect(deformableTerrainHandler.defaultConfig?.thermal_threshold).toBe(45));
 });
 
 describe('deformableTerrainHandler — onAttach', () => {
@@ -67,10 +69,15 @@ describe('deformableTerrainHandler — onDetach', () => {
 describe('deformableTerrainHandler — onEvent', () => {
   it('terrain_deform emits deformable_terrain_deform with defaults', () => {
     const { node, ctx, cfg } = attach();
-    deformableTerrainHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'terrain_deform',
-      position: [10, 0, 10],
-    } as any);
+    deformableTerrainHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'terrain_deform',
+        position: [10, 0, 10],
+      } as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'deformable_terrain_deform');
     expect(ev?.payload.position).toEqual([10, 0, 10]);
     expect(ev?.payload.radius).toBe(5.0);
@@ -78,13 +85,18 @@ describe('deformableTerrainHandler — onEvent', () => {
   });
   it('terrain_deform respects overridden values', () => {
     const { node, ctx, cfg } = attach();
-    deformableTerrainHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'terrain_deform',
-      position: [0, 0, 0],
-      radius: 10,
-      strength: 2.0,
-      mode: 'raise',
-    } as any);
+    deformableTerrainHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'terrain_deform',
+        position: [0, 0, 0],
+        radius: 10,
+        strength: 2.0,
+        mode: 'raise',
+      } as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'deformable_terrain_deform');
     expect(ev?.payload.radius).toBe(10);
     expect(ev?.payload.strength).toBe(2.0);
@@ -101,7 +113,12 @@ describe('deformableTerrainHandler — onEvent', () => {
   });
   it('no-op when no state', () => {
     expect(() =>
-      deformableTerrainHandler.onEvent!(mkNode() as any, mkCfg(), mkCtx() as any, { type: 'terrain_reset' } as any)
+      deformableTerrainHandler.onEvent!(
+        mkNode() as any,
+        mkCfg(),
+        mkCtx() as any,
+        { type: 'terrain_reset' } as any
+      )
     ).not.toThrow();
   });
 });

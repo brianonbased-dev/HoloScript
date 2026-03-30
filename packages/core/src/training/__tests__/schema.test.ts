@@ -40,7 +40,7 @@ describe('validateTrainingExample', () => {
       instruction: '',
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.field === 'instruction')).toBe(true);
+    expect(result.errors.some((e) => e.field === 'instruction')).toBe(true);
   });
 
   it('rejects missing output', () => {
@@ -49,14 +49,14 @@ describe('validateTrainingExample', () => {
       output: '',
     });
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.field === 'output')).toBe(true);
+    expect(result.errors.some((e) => e.field === 'output')).toBe(true);
   });
 
   it('rejects missing metadata', () => {
     const { metadata, ...noMeta } = validExample;
     const result = validateTrainingExample(noMeta);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.field === 'metadata')).toBe(true);
+    expect(result.errors.some((e) => e.field === 'metadata')).toBe(true);
   });
 
   it('warns about missing traits array', () => {

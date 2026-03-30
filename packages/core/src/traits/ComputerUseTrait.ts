@@ -20,7 +20,9 @@
  */
 
 /** Minimal trait context */
-interface TraitCtx { emit(event: string, data: Record<string, unknown>): void; }
+interface TraitCtx {
+  emit(event: string, data: Record<string, unknown>): void;
+}
 /** Node with dynamic computer use state */
 type ComputerUseNode = Record<string, unknown> & { __computerUseState?: ComputerUseState };
 
@@ -156,7 +158,12 @@ export const computerUseHandler = {
     delete node.__computerUseState;
   },
 
-  onEvent(node: ComputerUseNode, config: ComputerUseConfig, ctx: TraitCtx, event: { type: string; payload?: Record<string, unknown> }): void {
+  onEvent(
+    node: ComputerUseNode,
+    config: ComputerUseConfig,
+    ctx: TraitCtx,
+    event: { type: string; payload?: Record<string, unknown> }
+  ): void {
     const state: ComputerUseState | undefined = node.__computerUseState;
     if (!state?.isReady) return;
 
@@ -277,7 +284,11 @@ export const computerUseHandler = {
   ): void {
     const browserId = payload?.browserId as string | undefined;
     if (!browserId) {
-      ctx.emit('computer_use_error', { node, browserId: undefined, error: 'No browserId provided' });
+      ctx.emit('computer_use_error', {
+        node,
+        browserId: undefined,
+        error: 'No browserId provided',
+      });
       return;
     }
     const action = payload?.action as BrowserAction | undefined;
@@ -389,7 +400,11 @@ export const computerUseHandler = {
     const browserId = payload?.browserId as string | undefined;
     const actions = (payload?.actions ?? []) as BrowserAction[];
     if (!browserId) {
-      ctx.emit('computer_use_error', { node, browserId: undefined, error: 'No browserId provided' });
+      ctx.emit('computer_use_error', {
+        node,
+        browserId: undefined,
+        error: 'No browserId provided',
+      });
       return;
     }
     const session = state.sessions.get(browserId);

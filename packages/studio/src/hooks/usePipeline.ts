@@ -44,22 +44,25 @@ export function usePipeline() {
     }
   }, []);
 
-  const controlPipeline = useCallback(async (
-    id: string,
-    action: 'pause' | 'resume' | 'stop' | 'approve' | 'reject',
-    layerId?: number,
-  ) => {
-    try {
-      const res = await fetch(`/api/pipeline/${id}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action, layerId }),
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }, []);
+  const controlPipeline = useCallback(
+    async (
+      id: string,
+      action: 'pause' | 'resume' | 'stop' | 'approve' | 'reject',
+      layerId?: number
+    ) => {
+      try {
+        const res = await fetch(`/api/pipeline/${id}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action, layerId }),
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
 
   const listPipelines = useCallback(async (): Promise<PipelineRunInfo[]> => {
     try {
@@ -78,10 +81,7 @@ export function usePipeline() {
 /**
  * Poll a pipeline run until it completes.
  */
-export function usePipelinePoller(
-  pipelineId: string | null,
-  intervalMs = 3000,
-) {
+export function usePipelinePoller(pipelineId: string | null, intervalMs = 3000) {
   const [run, setRun] = useState<PipelineRunInfo | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 

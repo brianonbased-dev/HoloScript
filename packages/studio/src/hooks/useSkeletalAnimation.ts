@@ -17,7 +17,7 @@ export function useSkeletalAnimation(
       actionsRef.current = {};
     }
     const mixer = mixerRef.current;
-    
+
     animations.forEach((clip) => {
       if (!actionsRef.current[clip.name]) {
         actionsRef.current[clip.name] = mixer.clipAction(clip);
@@ -28,20 +28,20 @@ export function useSkeletalAnimation(
   useMemo(() => {
     const actions = actionsRef.current;
     if (Object.keys(actions).length === 0) return;
-    
+
     const target = activeAction || 'idle';
     let action = actions[target];
-    
+
     if (!action) {
-      const lowerKeys = Object.keys(actions).map(k => k.toLowerCase());
-      const idleFallback = lowerKeys.findIndex(k => k.includes('idle'));
+      const lowerKeys = Object.keys(actions).map((k) => k.toLowerCase());
+      const idleFallback = lowerKeys.findIndex((k) => k.includes('idle'));
       if (idleFallback !== -1) {
         action = actions[Object.keys(actions)[idleFallback]];
       } else {
         action = Object.values(actions)[0];
       }
     }
-    
+
     Object.values(actions).forEach((a) => {
       if (a !== action && a.isRunning()) a.fadeOut(0.2);
     });

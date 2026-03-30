@@ -78,40 +78,40 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 
 **Interaction Traits** - Complete with event handling:
 
-| Trait | Handler Status |
-| ----- | -------------- |
-| `@grabbable` | ✅ Full grab/release lifecycle |
+| Trait        | Handler Status                            |
+| ------------ | ----------------------------------------- |
+| `@grabbable` | ✅ Full grab/release lifecycle            |
 | `@throwable` | ✅ Velocity tracking, physics integration |
-| `@clickable` | ✅ Click event dispatching |
-| `@hoverable` | ✅ Hover enter/exit events |
-| `@draggable` | ✅ Drag state management |
-| `@scalable` | ✅ Scale gestures and limits |
+| `@clickable` | ✅ Click event dispatching                |
+| `@hoverable` | ✅ Hover enter/exit events                |
+| `@draggable` | ✅ Drag state management                  |
+| `@scalable`  | ✅ Scale gestures and limits              |
 
 **AI/Behavior Traits** - Complete implementations:
 
-| Trait | Handler Status |
-| ----- | -------------- |
-| `@behavior_tree` | ✅ Full tree traversal, node execution |
-| `@goal_oriented` | ✅ Goal planning, action execution |
-| `@llm_agent` | ✅ LLM integration with message handling |
-| `@perception` | ✅ Sensor detection, line of sight |
-| `@emotion` | ✅ Emotional state machine, expressions |
+| Trait            | Handler Status                           |
+| ---------------- | ---------------------------------------- |
+| `@behavior_tree` | ✅ Full tree traversal, node execution   |
+| `@goal_oriented` | ✅ Goal planning, action execution       |
+| `@llm_agent`     | ✅ LLM integration with message handling |
+| `@perception`    | ✅ Sensor detection, line of sight       |
+| `@emotion`       | ✅ Emotional state machine, expressions  |
 
 **Physics Traits** - Complete simulations:
 
-| Trait | Handler Status |
-| ----- | -------------- |
-| `@cloth` | ✅ Cloth simulation, vertex pinning |
-| `@fluid` | ✅ Particle-based fluid, emitters |
-| `@soft_body` | ✅ Soft body deformation |
-| `@rope` | ✅ Segment-based rope physics |
+| Trait        | Handler Status                      |
+| ------------ | ----------------------------------- |
+| `@cloth`     | ✅ Cloth simulation, vertex pinning |
+| `@fluid`     | ✅ Particle-based fluid, emitters   |
+| `@soft_body` | ✅ Soft body deformation            |
+| `@rope`      | ✅ Segment-based rope physics       |
 
 **Web3 Traits** - Complete blockchain integration:
 
-| Trait | Handler Status |
-| ----- | -------------- |
-| `@token_gated` | ✅ Balance verification, access control |
-| `@wallet` | ✅ Wallet connection, transaction signing |
+| Trait          | Handler Status                            |
+| -------------- | ----------------------------------------- |
+| `@token_gated` | ✅ Balance verification, access control   |
+| `@wallet`      | ✅ Wallet connection, transaction signing |
 
 ### Import/Export
 
@@ -264,14 +264,14 @@ A comprehensive documentation gap analysis and fix was performed using GraphRAG 
 
 ### Results
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Packages with READMEs | ~58/71 | **71/71 (100%)** |
-| Architecture docs | 6 | **13** |
-| Guides | 37 | **40** |
-| D2 architecture diagrams | 0 | **2** |
-| New files created | — | **27** |
-| Files modified | — | **5** |
+| Metric                   | Before | After            |
+| ------------------------ | ------ | ---------------- |
+| Packages with READMEs    | ~58/71 | **71/71 (100%)** |
+| Architecture docs        | 6      | **13**           |
+| Guides                   | 37     | **40**           |
+| D2 architecture diagrams | 0      | **2**            |
+| New files created        | —      | **27**           |
+| Files modified           | —      | **5**            |
 
 ### New Architecture Documentation
 
@@ -299,7 +299,6 @@ A comprehensive documentation gap analysis and fix was performed using GraphRAG 
 
 ### Version History Update
 
-| Date       | Version | Changes |
-|------------|---------|---------|
+| Date       | Version | Changes                                                                           |
+| ---------- | ------- | --------------------------------------------------------------------------------- |
 | 2026-03-22 | 5.0+    | 100% README coverage, 7 new architecture docs, 3 guides, 2 D2 diagrams, ESM fixes |
-

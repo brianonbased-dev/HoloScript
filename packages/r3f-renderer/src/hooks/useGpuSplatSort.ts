@@ -143,8 +143,8 @@ export function useGpuSplatSort(options: GpuSplatSortOptions): GpuSplatSortResul
         projMatrix,
         viewProjectionMatrix: vpMatrix,
         cameraPosition: [cameraPos.x, cameraPos.y, cameraPos.z] as [number, number, number],
-        focalX: projMatrix[0] * gl.domElement.width / 2,
-        focalY: projMatrix[5] * gl.domElement.height / 2,
+        focalX: (projMatrix[0] * gl.domElement.width) / 2,
+        focalY: (projMatrix[5] * gl.domElement.height) / 2,
       });
 
       return null; // Sort modifies GPU buffers in-place

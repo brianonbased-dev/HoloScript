@@ -19,7 +19,6 @@ interface SceneVersion {
 // Share the in-memory store via module-level singleton (Next.js route co-location)
 // In production replace with Redis / PostgreSQL
 declare global {
-   
   var __versionStore__: Map<string, SceneVersion[]> | undefined;
 }
 const versionsByScene: Map<string, SceneVersion[]> =

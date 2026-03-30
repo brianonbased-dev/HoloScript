@@ -15,7 +15,6 @@
 import { ShaderGraph } from '@/lib/shaderGraph';
 import type { ICompiledShader } from '@/lib/shaderGraph';
 
- 
 type compileShaderGraph = (
   graph: ShaderGraph,
   opts: { target: string; optimize: boolean; debug: boolean }
@@ -101,7 +100,7 @@ export interface PerformanceMetrics {
 /**
  * Material instance for preview
  */
- 
+
 export interface MaterialInstance {
   shaderModule?: any; // GPUShaderModule
   pipeline?: any; // GPURenderPipeline

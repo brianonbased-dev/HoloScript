@@ -19,12 +19,7 @@ Add this to your `claude_desktop_config.json` or equivalent:
   "mcpServers": {
     "holoscript": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@holoscript/mcp-server",
-        "--remote",
-        "https://mcp.holoscript.net/mcp"
-      ],
+      "args": ["-y", "@holoscript/mcp-server", "--remote", "https://mcp.holoscript.net/mcp"],
       "env": {
         "MCP_API_KEY": "your_api_key_here"
       }

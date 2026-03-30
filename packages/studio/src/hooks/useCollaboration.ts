@@ -200,7 +200,7 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
           userId: s.selfId,
           name: s.selfName,
           color: s.selfColor,
-        }),
+        })
       );
     };
 
@@ -251,26 +251,23 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
     };
   }, [roomId, session]);
 
-  const sendCursorPosition = useCallback(
-    (x: number, y: number, selectedId?: string) => {
-      const ws = wsRef.current;
-      if (!ws || ws.readyState !== WS_OPEN) return;
-      const s = storeRef.current;
-      ws.send(
-        JSON.stringify({
-          type: 'cursor',
-          userId: s.selfId,
-          name: s.selfName,
-          color: s.selfColor,
-          x,
-          y,
-          selectedId: selectedId ?? null,
-          lastSeen: Date.now(),
-        }),
-      );
-    },
-    [],
-  );
+  const sendCursorPosition = useCallback((x: number, y: number, selectedId?: string) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WS_OPEN) return;
+    const s = storeRef.current;
+    ws.send(
+      JSON.stringify({
+        type: 'cursor',
+        userId: s.selfId,
+        name: s.selfName,
+        color: s.selfColor,
+        x,
+        y,
+        selectedId: selectedId ?? null,
+        lastSeen: Date.now(),
+      })
+    );
+  }, []);
 
   return { sendCursorPosition };
 }

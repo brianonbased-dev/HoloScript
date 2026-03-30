@@ -43,9 +43,21 @@ describe('PresetRegistry', () => {
 
     it('should retrieve all 15 canonical presets by name', () => {
       const names = [
-        'walk', 'idle', 'attack', 'speak', 'dance',
-        'run', 'jump', 'wave', 'sit', 'sleep',
-        'crouch', 'swim', 'fly', 'climb', 'emote',
+        'walk',
+        'idle',
+        'attack',
+        'speak',
+        'dance',
+        'run',
+        'jump',
+        'wave',
+        'sit',
+        'sleep',
+        'crouch',
+        'swim',
+        'fly',
+        'climb',
+        'emote',
       ];
       for (const name of names) {
         expect(registry.get(name)).toBeDefined();
@@ -99,7 +111,11 @@ describe('PresetRegistry', () => {
 
     it('category counts should sum to 15', () => {
       const categories: PresetCategory[] = [
-        'locomotion', 'combat', 'social', 'emote', 'environmental',
+        'locomotion',
+        'combat',
+        'social',
+        'emote',
+        'environmental',
       ];
       let total = 0;
       for (const cat of categories) {

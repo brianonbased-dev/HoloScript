@@ -115,11 +115,7 @@ export function GIRenderer({
   // Full SSGI multi-pass via PostProcessingRenderer render targets.
   return (
     <group>
-      <hemisphereLight
-        color="#90a0d0"
-        groundColor="#403020"
-        intensity={intensity * 0.6}
-      />
+      <hemisphereLight color="#90a0d0" groundColor="#403020" intensity={intensity * 0.6} />
       <ambientLight color={ambientCol} intensity={ambientIntensity * 0.3} />
       <group
         userData={{

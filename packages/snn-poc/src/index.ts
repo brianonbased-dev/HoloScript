@@ -18,11 +18,7 @@ export type {
   PocConfig,
 } from './types.js';
 
-export {
-  DEFAULT_LIF_PARAMS,
-  DEFAULT_PROPAGATION_PARAMS,
-  DEFAULT_POC_CONFIG,
-} from './types.js';
+export { DEFAULT_LIF_PARAMS, DEFAULT_PROPAGATION_PARAMS, DEFAULT_POC_CONFIG } from './types.js';
 
 // GPU harness
 export { GPUHarness } from './gpu-harness.js';

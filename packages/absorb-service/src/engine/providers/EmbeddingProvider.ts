@@ -53,4 +53,3 @@ export interface EmbeddingProviderOptions {
   /** HuggingFace model id (default: 'Xenova/all-MiniLM-L6-v2') */
   xenovaModel?: string;
 }
-

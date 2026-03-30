@@ -17,16 +17,20 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID } from 'crypto';
 import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
-import { renderPreview, createShareLink, getScene, storeScene, findSceneByAuthor, generateBrowserTemplate } from './renderer';
+import {
+  renderPreview,
+  createShareLink,
+  getScene,
+  storeScene,
+  findSceneByAuthor,
+  generateBrowserTemplate,
+} from './renderer';
 import type { StoredScene } from './renderer';
 import {
   buildAgentCard,
@@ -44,17 +48,10 @@ import {
   type AgentCard,
   deriveSkillTags,
 } from './a2a';
-import {
-  getOAuth21Service,
-  SCOPE_CATEGORIES,
-  type TokenIntrospection,
-} from './security/oauth21';
+import { getOAuth21Service, SCOPE_CATEGORIES, type TokenIntrospection } from './security/oauth21';
 import { runTripleGate } from './security/gates';
 import { getAuditLogger } from './security/audit-log';
-import {
-  getOAuth2Provider,
-  OAUTH2_SCOPES,
-} from './auth/oauth2-provider';
+import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
@@ -107,7 +104,10 @@ const RATE_LIMIT = parseInt(process.env.OAUTH_RATE_LIMIT || '100', 10);
 const RATE_WINDOW_MS = 60_000;
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-function getRateLimit(ip: string, dynamicLimit?: number): { remaining: number; limit: number; resetAt: number } {
+function getRateLimit(
+  ip: string,
+  dynamicLimit?: number
+): { remaining: number; limit: number; resetAt: number } {
   const now = Date.now();
   const activeLimit = dynamicLimit ?? RATE_LIMIT;
   let bucket = rateBuckets.get(ip);
@@ -116,10 +116,17 @@ function getRateLimit(ip: string, dynamicLimit?: number): { remaining: number; l
     rateBuckets.set(ip, bucket);
   }
   bucket.count++;
-  return { remaining: Math.max(0, activeLimit - bucket.count), limit: activeLimit, resetAt: bucket.resetAt };
+  return {
+    remaining: Math.max(0, activeLimit - bucket.count),
+    limit: activeLimit,
+    resetAt: bucket.resetAt,
+  };
 }
 
-function setRateLimitHeaders(res: http.ServerResponse, rl: { remaining: number; limit: number; resetAt: number }) {
+function setRateLimitHeaders(
+  res: http.ServerResponse,
+  rl: { remaining: number; limit: number; resetAt: number }
+) {
   res.setHeader('X-RateLimit-Limit', rl.limit);
   res.setHeader('X-RateLimit-Remaining', rl.remaining);
   res.setHeader('X-RateLimit-Reset', Math.ceil(rl.resetAt / 1000));
@@ -166,7 +173,7 @@ const sessionAuth = new Map<string, TokenIntrospection>();
 async function createAndStoreSessionTransport(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  auth?: TokenIntrospection,
+  auth?: TokenIntrospection
 ): Promise<{ transport: SSEServerTransport; sid: string }> {
   const sid = randomUUID();
   const host = req.headers.host || `localhost:${PORT}`;
@@ -259,7 +266,10 @@ function parseJsonBody(req: http.IncomingMessage): Promise<Record<string, unknow
     req.on('end', () => {
       try {
         const body = Buffer.concat(chunks).toString('utf-8');
-        if (!body) { resolve({}); return; }
+        if (!body) {
+          resolve({});
+          return;
+        }
         const ct = (req.headers['content-type'] || '').toLowerCase();
         if (ct.includes('application/x-www-form-urlencoded')) {
           const params = new URLSearchParams(body);
@@ -294,7 +304,7 @@ async function securedToolExecution(
     requestPath?: string;
     requestMethod?: string;
     ip?: string;
-  },
+  }
 ): Promise<{ result: unknown; isError: boolean }> {
   const startTime = Date.now();
 
@@ -338,7 +348,10 @@ async function securedToolExecution(
   // Enforce Tenant Config / Billing Limits
   const tenantCtx = (auth as any).tenantContext;
   if (tenantCtx) {
-    const rl = getRateLimit(`tenant_${tenantCtx.tenantId}`, tenantCtx.limits.rateLimitRequestsPerMin);
+    const rl = getRateLimit(
+      `tenant_${tenantCtx.tenantId}`,
+      tenantCtx.limits.rateLimitRequestsPerMin
+    );
     if (rl.remaining <= 0) {
       return {
         result: {
@@ -347,15 +360,21 @@ async function securedToolExecution(
         isError: true,
       };
     }
-    
+
     // Abstracted async usage tracking for billing
     if (process.env.DATABASE_URL) {
       Promise.resolve().then(async () => {
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const { Pool } = require('pg');
-          const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false });
-          await pool.query('UPDATE api_keys SET usage_count = usage_count + 1, spent_usd = spent_usd + 0.001 WHERE tenant_id = $1', [tenantCtx.tenantId]);
+          const pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
+          });
+          await pool.query(
+            'UPDATE api_keys SET usage_count = usage_count + 1, spent_usd = spent_usd + 0.001 WHERE tenant_id = $1',
+            [tenantCtx.tenantId]
+          );
         } catch (e) {
           console.error('[Telemetry] Failed to update usage:', e);
         }
@@ -373,9 +392,7 @@ async function securedToolExecution(
     }
 
     const pluginResult = await PluginManager.handleTool(toolName, args);
-    const result = pluginResult !== null
-      ? pluginResult
-      : await handleTool(toolName, args);
+    const result = pluginResult !== null ? pluginResult : await handleTool(toolName, args);
 
     auditLog.logToolResult({
       invocationId,
@@ -533,16 +550,18 @@ const httpServer = http.createServer(async (req, res) => {
   // Extended health check with render capabilities
   if (url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'healthy',
-      service: SERVICE_NAME,
-      version: SERVICE_VERSION,
-      uptime: process.uptime(),
-      capabilities: ['render', 'share', 'mcp', 'oauth21', 'audit'],
-      render_url: process.env.RAILWAY_PUBLIC_DOMAIN
-        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-        : `http://localhost:${PORT}`,
-    }));
+    res.end(
+      JSON.stringify({
+        status: 'healthy',
+        service: SERVICE_NAME,
+        version: SERVICE_VERSION,
+        uptime: process.uptime(),
+        capabilities: ['render', 'share', 'mcp', 'oauth21', 'audit'],
+        render_url: process.env.RAILWAY_PUBLIC_DOMAIN
+          ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+          : `http://localhost:${PORT}`,
+      })
+    );
     return;
   }
 
@@ -564,75 +583,84 @@ const httpServer = http.createServer(async (req, res) => {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=3600',
     });
-    res.end(JSON.stringify({
-      mcpVersion: '2025-03-26',
-      name: SERVICE_NAME,
-      version: SERVICE_VERSION,
-      description: 'HoloScript language tooling — parse, validate, compile, and render .hs/.hsplus/.holo compositions across 27 backend targets.',
-      transport: {
-        type: 'sse',
-        url: `${baseUrl}/mcp`,
-        authentication: {
-          type: 'oauth2',
-          flows: ['authorization_code', 'client_credentials'],
-          authorizationEndpoint: `${baseUrl}/oauth/authorize`,
-          tokenEndpoint: `${baseUrl}/oauth/token`,
-          registrationEndpoint: `${baseUrl}/oauth/register`,
-          introspectionEndpoint: `${baseUrl}/oauth/introspect`,
-          scopes: Object.keys(OAUTH2_SCOPES),
-          legacyScopes: Object.keys(SCOPE_CATEGORIES),
-          legacyBearerSupported: true,
+    res.end(
+      JSON.stringify({
+        mcpVersion: '2025-03-26',
+        name: SERVICE_NAME,
+        version: SERVICE_VERSION,
+        description:
+          'HoloScript language tooling — parse, validate, compile, and render .hs/.hsplus/.holo compositions across 27 backend targets.',
+        transport: {
+          type: 'sse',
+          url: `${baseUrl}/mcp`,
+          authentication: {
+            type: 'oauth2',
+            flows: ['authorization_code', 'client_credentials'],
+            authorizationEndpoint: `${baseUrl}/oauth/authorize`,
+            tokenEndpoint: `${baseUrl}/oauth/token`,
+            registrationEndpoint: `${baseUrl}/oauth/register`,
+            introspectionEndpoint: `${baseUrl}/oauth/introspect`,
+            scopes: Object.keys(OAUTH2_SCOPES),
+            legacyScopes: Object.keys(SCOPE_CATEGORIES),
+            legacyBearerSupported: true,
+          },
         },
-      },
-      capabilities: {
-        tools: { count: allTools.length },
-        resources: false,
-        prompts: false,
-      },
-      categories: Object.entries(
-        allTools.reduce((acc, t) => {
+        capabilities: {
+          tools: { count: allTools.length },
+          resources: false,
+          prompts: false,
+        },
+        categories: Object.entries(
+          allTools.reduce(
+            (acc, t) => {
+              const tags = deriveSkillTags(t.name);
+              const cat = CATEGORY_LABELS[tags[1] || 'utility'] || tags[1] || 'utility';
+              acc[cat] = (acc[cat] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>
+          )
+        ).sort(([, a], [, b]) => (b as number) - (a as number)),
+        tools: allTools.map((t) => {
           const tags = deriveSkillTags(t.name);
-          const cat = CATEGORY_LABELS[tags[1] || 'utility'] || tags[1] || 'utility';
-          acc[cat] = (acc[cat] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)
-      ).sort(([, a], [, b]) => (b as number) - (a as number)),
-      tools: allTools.map(t => {
-        const tags = deriveSkillTags(t.name);
-        const category = tags[1] || 'utility';
-        return {
-          name: t.name,
-          description: t.description,
-          category: CATEGORY_LABELS[category] || category,
-          tags: tags.slice(1),
-        };
-      }),
-      endpoints: {
-        mcp: `${baseUrl}/mcp`,
-        health: `${baseUrl}/health`,
-        render: `${baseUrl}/api/render`,
-        share: `${baseUrl}/api/share`,
-        a2a: `${baseUrl}/a2a`,
-        agentCard: `${baseUrl}/.well-known/agent-card.json`,
-        oauth: {
-          openidConfiguration: `${baseUrl}/.well-known/openid-configuration`,
-          authorize: `${baseUrl}/oauth/authorize`,
-          token: `${baseUrl}/oauth/token`,
-          register: `${baseUrl}/oauth/register`,
-          revoke: `${baseUrl}/oauth/revoke`,
-          introspect: `${baseUrl}/oauth/introspect`,
+          const category = tags[1] || 'utility';
+          return {
+            name: t.name,
+            description: t.description,
+            category: CATEGORY_LABELS[category] || category,
+            tags: tags.slice(1),
+          };
+        }),
+        endpoints: {
+          mcp: `${baseUrl}/mcp`,
+          health: `${baseUrl}/health`,
+          render: `${baseUrl}/api/render`,
+          share: `${baseUrl}/api/share`,
+          a2a: `${baseUrl}/a2a`,
+          agentCard: `${baseUrl}/.well-known/agent-card.json`,
+          oauth: {
+            openidConfiguration: `${baseUrl}/.well-known/openid-configuration`,
+            authorize: `${baseUrl}/oauth/authorize`,
+            token: `${baseUrl}/oauth/token`,
+            register: `${baseUrl}/oauth/register`,
+            revoke: `${baseUrl}/oauth/revoke`,
+            introspect: `${baseUrl}/oauth/introspect`,
+          },
+          audit: `${baseUrl}/api/audit`,
         },
-        audit: `${baseUrl}/api/audit`,
-      },
-      contact: {
-        repository: 'https://github.com/buildwithholoscript/HoloScript',
-      },
-    }));
+        contact: {
+          repository: 'https://github.com/buildwithholoscript/HoloScript',
+        },
+      })
+    );
     return;
   }
 
   // OpenID Configuration / OAuth Authorization Server Metadata (RFC 8414)
-  if (url === '/.well-known/openid-configuration' || url === '/.well-known/oauth-authorization-server') {
+  if (
+    url === '/.well-known/openid-configuration' ||
+    url === '/.well-known/oauth-authorization-server'
+  ) {
     res.writeHead(200, {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=3600',
@@ -642,7 +670,12 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // GET /.well-known/agent-card.json / agent.json — A2A Agent Card discovery
-  if ((url === '/.well-known/agent-card.json' || url === '/.well-known/agent-card' || url === '/.well-known/agent.json') && req.method === 'GET') {
+  if (
+    (url === '/.well-known/agent-card.json' ||
+      url === '/.well-known/agent-card' ||
+      url === '/.well-known/agent.json') &&
+    req.method === 'GET'
+  ) {
     const allTools = [...tools, ...PluginManager.getTools()];
     const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -664,7 +697,7 @@ const httpServer = http.createServer(async (req, res) => {
       const agentId = process.env.HOLOMESH_AGENT_ID || 'anon';
       const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
       const delta = worldState.exportDelta();
-      
+
       res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
       res.end(Buffer.from(delta));
     } catch (err) {
@@ -678,15 +711,19 @@ const httpServer = http.createServer(async (req, res) => {
   // POST /.well-known/crdt-gossip — Handle inbound CRDT state updates
   if (url === '/.well-known/crdt-gossip' && req.method === 'POST') {
     try {
-      const body = await parseJsonBody(req) as unknown as GossipDeltaRequest;
+      const body = (await parseJsonBody(req)) as unknown as GossipDeltaRequest;
       const worldStatePath = process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
       const peerStorePath = process.env.HOLOMESH_PEER_STORE_PATH || './.holomesh/peers.json';
       const agentId = process.env.HOLOMESH_AGENT_ID || 'anon';
-      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${PORT}`;
-      
+      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`;
+
       const worldState = new HoloMeshWorldState(agentId, { snapshotPath: worldStatePath });
-      const discovery = new HoloMeshDiscovery(agentId, baseUrl, worldState, { storePath: peerStorePath });
-      
+      const discovery = new HoloMeshDiscovery(agentId, baseUrl, worldState, {
+        storePath: peerStorePath,
+      });
+
       const response = await handleInboundGossip(body, worldState, discovery);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(response));
@@ -705,27 +742,34 @@ const httpServer = http.createServer(async (req, res) => {
       : `http://localhost:${PORT}`;
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      protocol: 'a2a',
-      version: '1.0.0',
-      transport: 'json-rpc-2.0',
-      agentCard: `${baseUrl}/.well-known/agent-card.json`,
-      endpoints: {
-        jsonrpc: `${baseUrl}/a2a`,
-        tasks: `${baseUrl}/a2a/tasks`,
-        agentCard: `${baseUrl}/.well-known/agent-card.json`,
-      },
-      methods: [
-        'a2a.sendMessage',
-        'a2a.getTask',
-        'a2a.listTasks',
-        'a2a.cancelTask',
-        'a2a.getExtendedAgentCard',
-      ],
-      description: 'HoloScript A2A (Agent-to-Agent) protocol endpoint. ' +
-        'POST JSON-RPC 2.0 requests to this URL, or use the REST endpoints under /a2a/tasks. ' +
-        'See agent card for full capabilities.',
-    }, null, 2));
+    res.end(
+      JSON.stringify(
+        {
+          protocol: 'a2a',
+          version: '1.0.0',
+          transport: 'json-rpc-2.0',
+          agentCard: `${baseUrl}/.well-known/agent-card.json`,
+          endpoints: {
+            jsonrpc: `${baseUrl}/a2a`,
+            tasks: `${baseUrl}/a2a/tasks`,
+            agentCard: `${baseUrl}/.well-known/agent-card.json`,
+          },
+          methods: [
+            'a2a.sendMessage',
+            'a2a.getTask',
+            'a2a.listTasks',
+            'a2a.cancelTask',
+            'a2a.getExtendedAgentCard',
+          ],
+          description:
+            'HoloScript A2A (Agent-to-Agent) protocol endpoint. ' +
+            'POST JSON-RPC 2.0 requests to this URL, or use the REST endpoints under /a2a/tasks. ' +
+            'See agent card for full capabilities.',
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -755,7 +799,7 @@ const httpServer = http.createServer(async (req, res) => {
       const response = await handleJsonRpcRequest(
         parsed.request,
         handleToolForA2A,
-        agentCardBuilder,
+        agentCardBuilder
       );
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -764,14 +808,16 @@ const httpServer = http.createServer(async (req, res) => {
       const message = err instanceof Error ? err.message : String(err);
       // JSON-RPC spec: parse errors return -32700
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        jsonrpc: '2.0',
-        id: null,
-        error: {
-          code: -32700,
-          message: `Parse error: ${message}`,
-        },
-      }));
+      res.end(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32700,
+            message: `Parse error: ${message}`,
+          },
+        })
+      );
     }
     return;
   }
@@ -830,18 +876,32 @@ const httpServer = http.createServer(async (req, res) => {
       const clientName = (body.client_name as string) || 'unnamed-client';
       const redirectUris = (body.redirect_uris as string[]) || [];
       const scopes = (body.scope as string)?.split(' ') || ['tools:read'];
-      const clientType = (body.token_endpoint_auth_method === 'none' ? 'public' : 'confidential') as 'confidential' | 'public';
+      const clientType = (
+        body.token_endpoint_auth_method === 'none' ? 'public' : 'confidential'
+      ) as 'confidential' | 'public';
       const rateLimit = (body.rate_limit as number) || 60;
 
       // Register with legacy provider (backwards compat)
       const { clientId, clientSecret } = oauth.registerClient({
-        clientName, redirectUris, scopes, clientType, rateLimit,
+        clientName,
+        redirectUris,
+        scopes,
+        clientType,
+        rateLimit,
       });
 
       // Also register with the new OAuth2Provider (token-store backed)
-      await oauth2.registerClient({
-        clientName, redirectUris, scopes, clientType, rateLimit,
-      }).catch(() => { /* non-fatal: new provider registration is additive */ });
+      await oauth2
+        .registerClient({
+          clientName,
+          redirectUris,
+          scopes,
+          clientType,
+          rateLimit,
+        })
+        .catch(() => {
+          /* non-fatal: new provider registration is additive */
+        });
 
       auditLog.logAuthEvent({
         event: 'client_registered',
@@ -850,15 +910,17 @@ const httpServer = http.createServer(async (req, res) => {
       });
 
       res.writeHead(201, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        client_name: body.client_name,
-        token_endpoint_auth_method: 'client_secret_post',
-        grant_types: ['authorization_code', 'client_credentials', 'refresh_token'],
-        scope: (body.scope as string) || 'tools:read',
-        scopes_supported: Object.keys(OAUTH2_SCOPES),
-      }));
+      res.end(
+        JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          client_name: body.client_name,
+          token_endpoint_auth_method: 'client_secret_post',
+          grant_types: ['authorization_code', 'client_credentials', 'refresh_token'],
+          scope: (body.scope as string) || 'tools:read',
+          scopes_supported: Object.keys(OAUTH2_SCOPES),
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -897,10 +959,12 @@ const httpServer = http.createServer(async (req, res) => {
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        code,
-        state: body.state || undefined,
-      }));
+      res.end(
+        JSON.stringify({
+          code,
+          state: body.state || undefined,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -915,8 +979,16 @@ const httpServer = http.createServer(async (req, res) => {
     setRateLimitHeaders(res, rl);
 
     if (rl.remaining <= 0) {
-      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) });
-      res.end(JSON.stringify({ error: 'rate_limit_exceeded', error_description: 'Too many token requests. Try again later.' }));
+      res.writeHead(429, {
+        'Content-Type': 'application/json',
+        'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+      });
+      res.end(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          error_description: 'Too many token requests. Try again later.',
+        })
+      );
       return;
     }
 
@@ -961,10 +1033,12 @@ const httpServer = http.createServer(async (req, res) => {
 
         default:
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: 'unsupported_grant_type',
-            error_description: `Grant type "${grantType}" is not supported. Use authorization_code, client_credentials, or refresh_token.`,
-          }));
+          res.end(
+            JSON.stringify({
+              error: 'unsupported_grant_type',
+              error_description: `Grant type "${grantType}" is not supported. Use authorization_code, client_credentials, or refresh_token.`,
+            })
+          );
           return;
       }
 
@@ -977,7 +1051,7 @@ const httpServer = http.createServer(async (req, res) => {
       res.writeHead(200, {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store',
-        'Pragma': 'no-cache',
+        Pragma: 'no-cache',
       });
       res.end(JSON.stringify(tokenResponse));
     } catch (err) {
@@ -1028,14 +1102,16 @@ const httpServer = http.createServer(async (req, res) => {
       const result = oauth.introspect(token);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        active: result.active,
-        client_id: result.clientId,
-        scope: result.scopes?.join(' '),
-        agent_id: result.agentId,
-        exp: result.expiresAt ? Math.floor(result.expiresAt / 1000) : undefined,
-        iat: result.issuedAt ? Math.floor(result.issuedAt / 1000) : undefined,
-      }));
+      res.end(
+        JSON.stringify({
+          active: result.active,
+          client_id: result.clientId,
+          scope: result.scopes?.join(' '),
+          agent_id: result.agentId,
+          exp: result.expiresAt ? Math.floor(result.expiresAt / 1000) : undefined,
+          iat: result.issuedAt ? Math.floor(result.issuedAt / 1000) : undefined,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1062,12 +1138,14 @@ const httpServer = http.createServer(async (req, res) => {
         'Content-Type': 'application/json',
         'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
       });
-      res.end(JSON.stringify({
-        error: 'Unauthorized',
-        message: 'Valid OAuth 2.1 token or API key required',
-        token_endpoint: '/oauth/token',
-        registration_endpoint: '/oauth/register',
-      }));
+      res.end(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'Valid OAuth 2.1 token or API key required',
+          token_endpoint: '/oauth/token',
+          registration_endpoint: '/oauth/register',
+        })
+      );
       return;
     }
 
@@ -1137,7 +1215,7 @@ const httpServer = http.createServer(async (req, res) => {
         skillId: body.skillId as string | undefined,
         arguments: body.arguments as Record<string, unknown> | undefined,
         metadata: {
-          ...(body.metadata as Record<string, unknown> || {}),
+          ...((body.metadata as Record<string, unknown>) || {}),
           ...(body.skillId ? { skillId: body.skillId } : {}),
           ...(body.arguments ? { arguments: body.arguments } : {}),
         },
@@ -1176,10 +1254,16 @@ const httpServer = http.createServer(async (req, res) => {
 
     const result = listTasks(filters);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      tasks: result.tasks.map(taskToResponse),
-      total: result.total,
-    }, null, 2));
+    res.end(
+      JSON.stringify(
+        {
+          tasks: result.tasks.map(taskToResponse),
+          total: result.total,
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -1291,18 +1375,20 @@ const httpServer = http.createServer(async (req, res) => {
       const scene = storeScene(
         body.code as string,
         (body.title as string) || undefined,
-        (body.description as string) || undefined,
+        (body.description as string) || undefined
       );
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `http://localhost:${PORT}`;
       res.writeHead(201, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        id: scene.id,
-        url: `${baseUrl}/scene/${scene.id}`,
-        embed: `${baseUrl}/embed/${scene.id}`,
-        api: `${baseUrl}/api/scene/${scene.id}`,
-      }));
+      res.end(
+        JSON.stringify({
+          id: scene.id,
+          url: `${baseUrl}/scene/${scene.id}`,
+          embed: `${baseUrl}/embed/${scene.id}`,
+          api: `${baseUrl}/api/scene/${scene.id}`,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1325,23 +1411,27 @@ const httpServer = http.createServer(async (req, res) => {
         description: (body.description as string) || undefined,
         author: (body.author as string) || undefined,
         license: (body.license as string) || undefined,
-        provenance: body.provenance as any || undefined,
+        provenance: (body.provenance as any) || undefined,
       });
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `http://localhost:${PORT}`;
       res.writeHead(201, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        id: scene.id,
-        url: `${baseUrl}/scene/${scene.id}`,
-        embed: `${baseUrl}/embed/${scene.id}`,
-        api: `${baseUrl}/api/scene/${scene.id}`,
-        provenance: scene.provenance ? {
-          hash: scene.provenance.hash,
-          publishMode: scene.provenance.publishMode,
-          license: scene.license,
-        } : undefined,
-      }));
+      res.end(
+        JSON.stringify({
+          id: scene.id,
+          url: `${baseUrl}/scene/${scene.id}`,
+          embed: `${baseUrl}/embed/${scene.id}`,
+          api: `${baseUrl}/api/scene/${scene.id}`,
+          provenance: scene.provenance
+            ? {
+                hash: scene.provenance.hash,
+                publishMode: scene.provenance.publishMode,
+                license: scene.license,
+              }
+            : undefined,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1358,14 +1448,16 @@ const httpServer = http.createServer(async (req, res) => {
       const found = findSceneByAuthor(username, name);
       if (found) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          id: found.id,
-          code: found.code,
-          title: found.title,
-          author: found.author,
-          license: found.license,
-          provenance: found.provenance,
-        }));
+        res.end(
+          JSON.stringify({
+            id: found.id,
+            code: found.code,
+            title: found.title,
+            author: found.author,
+            license: found.license,
+            provenance: found.provenance,
+          })
+        );
       } else {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: `Composition @${username}/${name} not found` }));
@@ -1427,7 +1519,7 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody(req);
       const provenance = body.provenance as Record<string, unknown> | undefined;
-      const hash = provenance?.hash as string || `meta-${Date.now()}`;
+      const hash = (provenance?.hash as string) || `meta-${Date.now()}`;
       protocolMetadata.set(hash, body);
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -1452,21 +1544,32 @@ const httpServer = http.createServer(async (req, res) => {
     }
     try {
       const record = protocolRecords.get(hash);
-      const price = BigInt(record?.price as string || '0');
+      const price = BigInt((record?.price as string) || '0');
       const creator = (record?.author as string) || 'unknown';
       // Dynamic import to avoid loading core at startup if unused
-      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } = (await import('@holoscript/core')) as any;
+      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
+        (await import('@holoscript/core')) as any;
       const dist = calculateRevenueDistribution(price, creator, []);
       const lines = formatRevenueDistribution(dist);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        totalPrice: dist.totalPrice.toString(),
-        flows: dist.flows.map((f: { recipient: string; amount: bigint; reason: string; bps: number; depth?: number }) => ({
-          ...f,
-          amount: f.amount.toString(),
-        })),
-        formatted: lines,
-      }));
+      res.end(
+        JSON.stringify({
+          totalPrice: dist.totalPrice.toString(),
+          flows: dist.flows.map(
+            (f: {
+              recipient: string;
+              amount: bigint;
+              reason: string;
+              bps: number;
+              depth?: number;
+            }) => ({
+              ...f,
+              amount: f.amount.toString(),
+            })
+          ),
+          formatted: lines,
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1478,8 +1581,9 @@ const httpServer = http.createServer(async (req, res) => {
   // GET /api/protocol/author/:address — Get all publications by author
   if (url?.startsWith('/api/protocol/author/') && req.method === 'GET') {
     const author = decodeURIComponent(url.replace('/api/protocol/author/', ''));
-    const records = Array.from(protocolRecords.values())
-      .filter((r: Record<string, unknown>) => r.author === author);
+    const records = Array.from(protocolRecords.values()).filter(
+      (r: Record<string, unknown>) => r.author === author
+    );
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(records));
     return;
@@ -1521,10 +1625,12 @@ const httpServer = http.createServer(async (req, res) => {
       record.editionCount = currentCount + quantity;
       const editions = Array.from({ length: quantity }, (_, i) => currentCount + i + 1);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        editions,
-        txHash: '',
-      }));
+      res.end(
+        JSON.stringify({
+          editions,
+          txHash: '',
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1571,11 +1677,11 @@ const httpServer = http.createServer(async (req, res) => {
     const params = new URLSearchParams(queryString);
 
     const result = auditLog.query({
-      event: params.get('event') as any || undefined,
+      event: (params.get('event') as any) || undefined,
       clientId: params.get('clientId') || undefined,
       toolName: params.get('toolName') || undefined,
-      status: params.get('status') as any || undefined,
-      riskLevel: params.get('riskLevel') as any || undefined,
+      status: (params.get('status') as any) || undefined,
+      riskLevel: (params.get('riskLevel') as any) || undefined,
       since: params.get('since') || undefined,
       until: params.get('until') || undefined,
       limit: params.get('limit') ? parseInt(params.get('limit')!, 10) : 100,
@@ -1591,7 +1697,10 @@ const httpServer = http.createServer(async (req, res) => {
   // GET /api/audit/compliance — EU AI Act compliance summary
   if (url === '/api/audit/compliance' && req.method === 'GET') {
     const auth = await authenticateRequest(req);
-    if (!auth.active || (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))) {
+    if (
+      !auth.active ||
+      (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))
+    ) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Authentication required with admin scope' }));
       return;
@@ -1605,7 +1714,10 @@ const httpServer = http.createServer(async (req, res) => {
   // GET /api/audit/export — Export audit logs (EU AI Act Art. 13)
   if (url === '/api/audit/export' && req.method === 'GET') {
     const auth = await authenticateRequest(req);
-    if (!auth.active || (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))) {
+    if (
+      !auth.active ||
+      (!auth.scopes?.includes('admin:*') && !auth.scopes?.includes('tools:admin'))
+    ) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Authentication required with admin scope' }));
       return;
@@ -1626,7 +1738,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // Root URL — redirect to discovery endpoint
   if (url === '/' && req.method === 'GET') {
-    res.writeHead(302, { 'Location': '/.well-known/mcp' });
+    res.writeHead(302, { Location: '/.well-known/mcp' });
     res.end();
     return;
   }
@@ -1638,21 +1750,24 @@ const httpServer = http.createServer(async (req, res) => {
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 
-
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
   console.log(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
   console.log(`   Transport: Streamable HTTP (MCP spec 2025-03-26)`);
   console.log(`   Port: ${PORT}`);
   console.log(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
-  console.log(`   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`);
+  console.log(
+    `   Token TTL: access=${oauth2.getStore().ttl.accessTokenTTL}s, refresh=${oauth2.getStore().ttl.refreshTokenTTL}s`
+  );
   console.log(`   Scopes: ${Object.keys(OAUTH2_SCOPES).join(', ')}`);
   console.log(`   Legacy API Key: ${MCP_API_KEY ? 'configured' : 'NONE (open dev mode)'}`);
   console.log(`   Security: Triple-gate (prompt \u2192 scope \u2192 policy)`);
   console.log(`   Token Store: ${oauth2.getStore().backend.constructor.name}`);
   console.log(`   Audit: EU AI Act compliant (Articles 12-14)`);
   console.log(`   Tools: ${tools.length} core + ${PluginManager.getTools().length} plugins`);
-  console.log(`   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`);
+  console.log(
+    `   Moltbook: ${process.env.MOLTBOOK_API_KEY ? 'heartbeat active' : 'disabled (no MOLTBOOK_API_KEY)'}`
+  );
   console.log(`   Endpoints:`);
   console.log(`     GET  /health                       - Health check (public)`);
   console.log(`     GET  /.well-known/mcp              - MCP discovery (public)`);

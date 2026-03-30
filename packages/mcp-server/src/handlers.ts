@@ -7,7 +7,14 @@
 
 import { HoloScriptPlusParser, parseHolo, parseHoloStrict, VR_TRAITS } from '@holoscript/core';
 
-import { generateObjectForMCP, generateSceneForMCP, suggestTraits, suggestUniversalTraits, suggest2DTraits, generateSemanticUIForMCP } from './generators';
+import {
+  generateObjectForMCP,
+  generateSceneForMCP,
+  suggestTraits,
+  suggestUniversalTraits,
+  suggest2DTraits,
+  generateSemanticUIForMCP,
+} from './generators';
 import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
@@ -31,61 +38,134 @@ import {
 // Full 1,800+ trait list is available via the 'all' category (sourced from @holoscript/core).
 const TRAIT_CATEGORIES: Record<string, string[]> = {
   interaction: [
-    '@grabbable', '@throwable', '@holdable', '@clickable', '@hoverable',
-    '@draggable', '@pointable', '@scalable', '@rotatable', '@snappable',
+    '@grabbable',
+    '@throwable',
+    '@holdable',
+    '@clickable',
+    '@hoverable',
+    '@draggable',
+    '@pointable',
+    '@scalable',
+    '@rotatable',
+    '@snappable',
   ],
   physics: [
-    '@collidable', '@physics', '@rigid', '@kinematic', '@trigger', '@gravity',
-    '@soft_body', '@fluid', '@magnetic', '@buoyant',
+    '@collidable',
+    '@physics',
+    '@rigid',
+    '@kinematic',
+    '@trigger',
+    '@gravity',
+    '@soft_body',
+    '@fluid',
+    '@magnetic',
+    '@buoyant',
   ],
   visual: [
-    '@glowing', '@emissive', '@transparent', '@reflective', '@animated',
-    '@billboard', '@particle', '@holographic', '@volumetric', '@shader_custom',
+    '@glowing',
+    '@emissive',
+    '@transparent',
+    '@reflective',
+    '@animated',
+    '@billboard',
+    '@particle',
+    '@holographic',
+    '@volumetric',
+    '@shader_custom',
   ],
   networking: [
-    '@networked', '@synced', '@persistent', '@owned', '@host_only',
-    '@replicated', '@authority', '@interpolated',
+    '@networked',
+    '@synced',
+    '@persistent',
+    '@owned',
+    '@host_only',
+    '@replicated',
+    '@authority',
+    '@interpolated',
   ],
   behavior: [
-    '@stackable', '@attachable', '@equippable', '@consumable', '@destructible',
-    '@breakable', '@character', '@npc', '@pathfinding', '@state_machine',
+    '@stackable',
+    '@attachable',
+    '@equippable',
+    '@consumable',
+    '@destructible',
+    '@breakable',
+    '@character',
+    '@npc',
+    '@pathfinding',
+    '@state_machine',
   ],
   spatial: [
-    '@anchor', '@tracked', '@world_locked', '@hand_tracked', '@eye_tracked',
-    '@plane_detected', '@image_tracked', '@face_tracked',
+    '@anchor',
+    '@tracked',
+    '@world_locked',
+    '@hand_tracked',
+    '@eye_tracked',
+    '@plane_detected',
+    '@image_tracked',
+    '@face_tracked',
   ],
   audio: [
-    '@spatial_audio', '@ambient', '@voice_activated', '@reverb', '@doppler',
-    '@music', '@procedural_audio',
+    '@spatial_audio',
+    '@ambient',
+    '@voice_activated',
+    '@reverb',
+    '@doppler',
+    '@music',
+    '@procedural_audio',
   ],
   state: [
-    '@state', '@reactive', '@observable', '@computed', '@event_driven',
-    '@persistent_state', '@replicated_state',
+    '@state',
+    '@reactive',
+    '@observable',
+    '@computed',
+    '@event_driven',
+    '@persistent_state',
+    '@replicated_state',
   ],
   ai: [
-    '@llm_agent', '@npc', '@crowd', '@reactive', '@pathfinding',
-    '@emotion', '@dialogue', '@decision_tree',
+    '@llm_agent',
+    '@npc',
+    '@crowd',
+    '@reactive',
+    '@pathfinding',
+    '@emotion',
+    '@dialogue',
+    '@decision_tree',
   ],
   accessibility: [
-    '@high_contrast', '@screen_reader', '@reduced_motion', '@voice_nav',
-    '@colorblind_safe', '@haptic_feedback',
+    '@high_contrast',
+    '@screen_reader',
+    '@reduced_motion',
+    '@voice_nav',
+    '@colorblind_safe',
+    '@haptic_feedback',
   ],
-  iot: [
-    '@iot_sensor', '@digital_twin', '@mqtt_bridge', '@telemetry',
-    '@actuator', '@stream_data',
-  ],
+  iot: ['@iot_sensor', '@digital_twin', '@mqtt_bridge', '@telemetry', '@actuator', '@stream_data'],
   web3: [
-    '@nft_asset', '@token_gated', '@wallet_connected', '@on_chain',
-    '@dao_governed', '@smart_contract',
+    '@nft_asset',
+    '@token_gated',
+    '@wallet_connected',
+    '@on_chain',
+    '@dao_governed',
+    '@smart_contract',
   ],
   advanced: [
-    '@teleport', '@ui_panel', '@particle_system', '@weather', '@day_night',
-    '@lod', '@hand_tracking', '@haptic', '@portal', '@mirror',
-    '@ray_traced', '@compute_shader', '@lod_managed',
+    '@teleport',
+    '@ui_panel',
+    '@particle_system',
+    '@weather',
+    '@day_night',
+    '@lod',
+    '@hand_tracking',
+    '@haptic',
+    '@portal',
+    '@mirror',
+    '@ray_traced',
+    '@compute_shader',
+    '@lod_managed',
   ],
-  social: [
-    '@shareable', '@collaborative', '@tweetable',
-  ],
+  social: ['@shareable', '@collaborative', '@tweetable'],
 };
 
 // All 1,800+ traits from @holoscript/core
@@ -217,13 +297,24 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   }
 
   // Agent orchestration tools
-  if (name === 'discover_agents' || name === 'delegate_task' || name === 'get_task_status' || name === 'compose_workflow' || name === 'execute_workflow') {
+  if (
+    name === 'discover_agents' ||
+    name === 'delegate_task' ||
+    name === 'get_task_status' ||
+    name === 'compose_workflow' ||
+    name === 'execute_workflow'
+  ) {
     const { handleAgentOrchestrationTool } = await import('./agent-orchestration-tools');
     return handleAgentOrchestrationTool(name, args);
   }
 
   // Observability tools (v5.6)
-  if (name === 'query_traces' || name === 'export_traces_otlp' || name === 'get_agent_health' || name === 'get_metrics_prometheus') {
+  if (
+    name === 'query_traces' ||
+    name === 'export_traces_otlp' ||
+    name === 'get_agent_health' ||
+    name === 'get_metrics_prometheus'
+  ) {
     const { handleObservabilityTool } = await import('./observability-tools');
     return handleObservabilityTool(name, args);
   }
@@ -234,14 +325,27 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
     return handlePluginManagementTool(name, args);
   }
 
-  // Economy tools (v5.8)
-  if (name === 'check_agent_budget' || name === 'get_usage_summary' || name === 'get_creator_earnings') {
+  // Economy tools (v5.8 + v6.1 unified budget)
+  if (
+    name === 'check_agent_budget' ||
+    name === 'get_usage_summary' ||
+    name === 'get_creator_earnings' ||
+    name === 'optimize_scene_budget' ||
+    name === 'validate_marketplace_pricing' ||
+    name === 'get_unified_budget_state'
+  ) {
     const { handleEconomyTool } = await import('./economy-tools');
     return handleEconomyTool(name, args);
   }
 
   // Developer tools (v5.9)
-  if (name === 'get_api_reference' || name === 'serve_preview' || name === 'get_workspace_info' || name === 'inspect_trace_waterfall' || name === 'get_dev_dashboard_state') {
+  if (
+    name === 'get_api_reference' ||
+    name === 'serve_preview' ||
+    name === 'get_workspace_info' ||
+    name === 'inspect_trace_waterfall' ||
+    name === 'get_dev_dashboard_state'
+  ) {
     const { handleDeveloperTool } = await import('./developer-tools');
     return handleDeveloperTool(name, args);
   }
@@ -364,11 +468,12 @@ async function handleValidate(args: Record<string, unknown>) {
       format: detectedFormat,
       errors,
       ...(includeWarnings && { warnings }),
-      summary: errors.length > 0
-        ? `Found ${errors.length} error(s)`
-        : hasWarnings
-          ? `Valid with ${warnings.length} warning(s) — review unknown traits`
-          : 'Valid HoloScript code',
+      summary:
+        errors.length > 0
+          ? `Found ${errors.length} error(s)`
+          : hasWarnings
+            ? `Valid with ${warnings.length} warning(s) — review unknown traits`
+            : 'Valid HoloScript code',
     };
   } catch (error) {
     return {
@@ -494,15 +599,24 @@ async function handleGetExamples(args: Record<string, unknown>) {
   if (example) return example;
 
   // Fuzzy match: find patterns whose slug words overlap with query words
-  const queryWords = pattern.toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(/\s+/).filter(Boolean);
-  const scored = keys.map(k => {
-    const slugWords = k.split('-');
-    const matches = queryWords.filter(q => slugWords.some(s => s.includes(q) || q.includes(s)));
-    return { key: k, score: matches.length };
-  }).filter(s => s.score > 0).sort((a, b) => b.score - a.score);
+  const queryWords = pattern
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  const scored = keys
+    .map((k) => {
+      const slugWords = k.split('-');
+      const matches = queryWords.filter((q) =>
+        slugWords.some((s) => s.includes(q) || q.includes(s))
+      );
+      return { key: k, score: matches.length };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
 
   if (scored.length > 0) {
-    return { ...(EXAMPLES[scored[0].key]), _matchedPattern: scored[0].key };
+    return { ...EXAMPLES[scored[0].key], _matchedPattern: scored[0].key };
   }
 
   return {

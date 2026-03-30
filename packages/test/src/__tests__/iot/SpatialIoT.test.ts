@@ -109,8 +109,20 @@ describe('SpatialIoT — R-value', () => {
 
   it('averages R-values across boundaries', () => {
     const boundaries: ThermalBoundary[] = [
-      { id: 'w1', type: 'wall', entity: SpatialEntity.fromMinMax('w', [0, 0, 0], [1, 1, 1]), rValue: 2.0, isOpen: false },
-      { id: 'w2', type: 'wall', entity: SpatialEntity.fromMinMax('w', [0, 0, 0], [1, 1, 1]), rValue: 4.0, isOpen: false },
+      {
+        id: 'w1',
+        type: 'wall',
+        entity: SpatialEntity.fromMinMax('w', [0, 0, 0], [1, 1, 1]),
+        rValue: 2.0,
+        isOpen: false,
+      },
+      {
+        id: 'w2',
+        type: 'wall',
+        entity: SpatialEntity.fromMinMax('w', [0, 0, 0], [1, 1, 1]),
+        rValue: 4.0,
+        isOpen: false,
+      },
     ];
     expect(averageRValue(makeZone({ boundaries }))).toBe(3.0);
   });
@@ -128,7 +140,9 @@ describe('SpatialIoT — load estimation', () => {
 
   it('returns higher load with more windows (solar gain)', () => {
     const fewWindows = makeZone({ boundaries: [makeWindow('w1')] });
-    const manyWindows = makeZone({ boundaries: [makeWindow('w1'), makeWindow('w2'), makeWindow('w3')] });
+    const manyWindows = makeZone({
+      boundaries: [makeWindow('w1'), makeWindow('w2'), makeWindow('w3')],
+    });
     expect(estimateLoad(manyWindows, 30)).toBeGreaterThan(estimateLoad(fewWindows, 30));
   });
 

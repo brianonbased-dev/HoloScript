@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Loader2, Zap, CheckCircle2, XCircle, Mic, MicOff, Trash2, Volume2, VolumeX } from 'lucide-react';
+import {
+  Send,
+  Loader2,
+  Zap,
+  CheckCircle2,
+  XCircle,
+  Mic,
+  MicOff,
+  Trash2,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { streamBrittney, buildRichContext, executeTool } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
@@ -81,21 +92,24 @@ export function BrittneyChatPanel() {
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
   /** Speak text aloud via Web Speech Synthesis */
-  const speak = useCallback((text: string) => {
-    if (!ttsEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    // Cancel any in-progress speech
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.1;
-    // Prefer a female voice for Brittney's persona
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(
-      (v) => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira')
-    );
-    if (femaleVoice) utterance.voice = femaleVoice;
-    window.speechSynthesis.speak(utterance);
-  }, [ttsEnabled]);
+  const speak = useCallback(
+    (text: string) => {
+      if (!ttsEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+      // Cancel any in-progress speech
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.1;
+      // Prefer a female voice for Brittney's persona
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(
+        (v) => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Zira')
+      );
+      if (femaleVoice) utterance.voice = femaleVoice;
+      window.speechSynthesis.speak(utterance);
+    },
+    [ttsEnabled]
+  );
 
   // Load persisted history on mount
   useEffect(() => {
@@ -246,7 +260,11 @@ export function BrittneyChatPanel() {
     setIsThinking(false);
 
     // TTS: speak the response
-    if (accumulatedText && !accumulatedText.startsWith('Sorry') && !accumulatedText.startsWith('Connection error')) {
+    if (
+      accumulatedText &&
+      !accumulatedText.startsWith('Sorry') &&
+      !accumulatedText.startsWith('Connection error')
+    ) {
       speak(accumulatedText);
     }
   }, [

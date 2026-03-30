@@ -225,13 +225,7 @@ export interface IntentTokenPayload {
  *
  * Mirrors `ResourceType` enum from `@holoscript/core` as a string union.
  */
-export type ResourceType =
-  | 'source_file'
-  | 'ast'
-  | 'ir'
-  | 'code'
-  | 'output'
-  | 'config';
+export type ResourceType = 'source_file' | 'ast' | 'ir' | 'code' | 'output' | 'config';
 
 /**
  * Access control decision returned by AgentRBAC.

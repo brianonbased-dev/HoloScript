@@ -21,14 +21,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 // TYPES
 // =============================================================================
 
-export type BuildTarget =
-  | 'web'
-  | 'ios'
-  | 'android'
-  | 'visionos'
-  | 'quest'
-  | 'desktop'
-  | 'wasm';
+export type BuildTarget = 'web' | 'ios' | 'android' | 'visionos' | 'quest' | 'desktop' | 'wasm';
 
 export type BuildStatus = 'idle' | 'queued' | 'building' | 'success' | 'failed' | 'cancelled';
 
@@ -169,8 +162,8 @@ function useBuildStatus() {
         progress: 0,
         errorCount: 0,
         warningCount: 0,
-      }),
-    ),
+      })
+    )
   );
   const [isBuilding, setIsBuilding] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -192,8 +185,8 @@ function useBuildStatus() {
                 errorCount: 0,
                 warningCount: 0,
               }
-            : t,
-        ),
+            : t
+        )
       );
 
       // Simulate progressive build
@@ -239,7 +232,7 @@ function useBuildStatus() {
         });
       }, 600);
     },
-    [isBuilding],
+    [isBuilding]
   );
 
   const cancelBuild = useCallback(() => {
@@ -249,8 +242,8 @@ function useBuildStatus() {
       prev.map((t) =>
         t.status === 'building' || t.status === 'queued'
           ? { ...t, status: 'cancelled', completedAt: Date.now() }
-          : t,
-      ),
+          : t
+      )
     );
   }, []);
 
@@ -267,7 +260,7 @@ function useBuildStatus() {
         completedAt: undefined,
         errorCount: 0,
         warningCount: 0,
-      })),
+      }))
     );
   }, []);
 
@@ -359,16 +352,12 @@ function useDeploymentPipeline() {
             };
 
             return { ...p, stages: newStages };
-          }),
+          })
         );
 
         setPipelines((prev) => {
           const target = prev.find((p) => p.id === pipeline.id);
-          if (
-            target &&
-            target.status === 'running' &&
-            currentStageIdx < target.stages.length
-          ) {
+          if (target && target.status === 'running' && currentStageIdx < target.stages.length) {
             setTimeout(advanceStage, 800 + Math.random() * 1200);
           }
           return prev;
@@ -377,7 +366,7 @@ function useDeploymentPipeline() {
 
       setTimeout(advanceStage, 300);
     },
-    [],
+    []
   );
 
   const cancelPipeline = useCallback((pipelineId: string) => {
@@ -390,11 +379,11 @@ function useDeploymentPipeline() {
               stages: p.stages.map((s) =>
                 s.status === 'running' || s.status === 'pending'
                   ? { ...s, status: 'skipped' as DeployStageStatus }
-                  : s,
+                  : s
               ),
             }
-          : p,
-      ),
+          : p
+      )
     );
   }, []);
 
@@ -488,7 +477,7 @@ function useErrorLogs() {
         (l) =>
           l.message.toLowerCase().includes(q) ||
           l.source.toLowerCase().includes(q) ||
-          (l.file && l.file.toLowerCase().includes(q)),
+          (l.file && l.file.toLowerCase().includes(q))
       );
     }
     return result;
@@ -525,7 +514,7 @@ function BuildStatusPanel({
   onReset,
 }: BuildStatusPanelProps) {
   const [selectedTargets, setSelectedTargets] = useState<Set<BuildTarget>>(
-    new Set(['web', 'wasm']),
+    new Set(['web', 'wasm'])
   );
 
   const toggleTarget = (target: BuildTarget) => {
@@ -637,12 +626,8 @@ function BuildStatusPanel({
               >
                 <span className="font-mono">{t.target}</span>
                 <span>{formatDuration(t.completedAt! - t.startedAt!)}</span>
-                {t.errorCount > 0 && (
-                  <span className="text-red-400">{t.errorCount}E</span>
-                )}
-                {t.warningCount > 0 && (
-                  <span className="text-yellow-400">{t.warningCount}W</span>
-                )}
+                {t.errorCount > 0 && <span className="text-red-400">{t.errorCount}E</span>}
+                {t.warningCount > 0 && <span className="text-yellow-400">{t.warningCount}W</span>}
               </div>
             ))}
         </div>
@@ -702,9 +687,7 @@ function DeploymentPipeline({ pipelines, onTrigger, onCancel }: DeploymentPipeli
         <div className="flex items-center gap-1.5">
           <select
             value={selectedEnv}
-            onChange={(e) =>
-              setSelectedEnv(e.target.value as 'staging' | 'production' | 'preview')
-            }
+            onChange={(e) => setSelectedEnv(e.target.value as 'staging' | 'production' | 'preview')}
             className="px-2 py-1 text-[10px] bg-studio-panel border border-studio-border rounded text-studio-text"
           >
             <option value="preview">Preview</option>
@@ -835,7 +818,11 @@ function ErrorLogViewer({
 
   const formatTime = (ts: number) => {
     const d = new Date(ts);
-    return d.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    return (
+      d.toLocaleTimeString('en-US', { hour12: false }) +
+      '.' +
+      String(d.getMilliseconds()).padStart(3, '0')
+    );
   };
 
   return (
@@ -934,10 +921,7 @@ function ErrorLogViewer({
 // MAIN COMPONENT: StudioOperationsHub
 // =============================================================================
 
-export function StudioOperationsHub({
-  onClose,
-  initialTab = 'build',
-}: StudioOperationsHubProps) {
+export function StudioOperationsHub({ onClose, initialTab = 'build' }: StudioOperationsHubProps) {
   const [activeTab, setActiveTab] = useState<'build' | 'deploy' | 'logs'>(initialTab);
   const build = useBuildStatus();
   const deploy = useDeploymentPipeline();

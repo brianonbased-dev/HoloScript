@@ -47,16 +47,18 @@ vi.mock('viem', () => ({
 const mockGateway = {
   createPaymentAuthorization: vi.fn((resource: string, amount: number) => ({
     x402Version: 1,
-    accepts: [{
-      scheme: 'exact',
-      network: 'base-sepolia',
-      maxAmountRequired: Math.round(amount * 1_000_000).toString(),
-      resource,
-      description: 'Premium HoloMesh entry',
-      payTo: '0x0000000000000000000000000000000000000000',
-      asset: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-      maxTimeoutSeconds: 60,
-    }],
+    accepts: [
+      {
+        scheme: 'exact',
+        network: 'base-sepolia',
+        maxAmountRequired: Math.round(amount * 1_000_000).toString(),
+        resource,
+        description: 'Premium HoloMesh entry',
+        payTo: '0x0000000000000000000000000000000000000000',
+        asset: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+        maxTimeoutSeconds: 60,
+      },
+    ],
     error: 'Payment required',
     chainId: 84532,
   })),
@@ -69,7 +71,9 @@ const mockGateway = {
 
 vi.mock('@holoscript/core', () => ({
   // W.011: function(){} for constructor mock
-  PaymentGateway: vi.fn(function () { return mockGateway; }),
+  PaymentGateway: vi.fn(function () {
+    return mockGateway;
+  }),
 }));
 
 // ── Mock orchestrator client ──
@@ -81,8 +85,11 @@ const mockClient = {
   contributeKnowledge: vi.fn().mockResolvedValue(1),
   getAgentCard: vi.fn().mockResolvedValue(null),
   getAgentReputation: vi.fn().mockResolvedValue({
-    score: 10, tier: 'contributor', contributions: 5,
-    queriesAnswered: 3, reuseRate: 0.5,
+    score: 10,
+    tier: 'contributor',
+    contributions: 5,
+    queriesAnswered: 3,
+    reuseRate: 0.5,
   }),
   getAgentId: vi.fn().mockReturnValue('server-agent-id'),
   heartbeat: vi.fn().mockResolvedValue(true),
@@ -110,7 +117,7 @@ function mockReq(
   method: string,
   url: string,
   body?: Record<string, unknown>,
-  headers?: Record<string, string>,
+  headers?: Record<string, string>
 ): http.IncomingMessage {
   const req = new EventEmitter() as http.IncomingMessage;
   req.method = method;
@@ -132,7 +139,11 @@ function mockReq(
 }
 
 /** Create a mock HTTP response that captures output */
-function mockRes(): http.ServerResponse & { _status: number; _body: any; _headers: Record<string, string> } {
+function mockRes(): http.ServerResponse & {
+  _status: number;
+  _body: any;
+  _headers: Record<string, string>;
+} {
   const res = {
     _status: 0,
     _body: null as any,
@@ -143,7 +154,11 @@ function mockRes(): http.ServerResponse & { _status: number; _body: any; _header
     },
     end(data?: string) {
       if (data) {
-        try { res._body = JSON.parse(data); } catch { res._body = data; }
+        try {
+          res._body = JSON.parse(data);
+        } catch {
+          res._body = data;
+        }
       }
     },
   } as any;
@@ -238,7 +253,8 @@ describe('HoloMesh HTTP Routes', () => {
 
       // Register first
       const req1 = mockReq('POST', '/api/holomesh/register', {
-        name: 'bot-a', wallet_address: wallet,
+        name: 'bot-a',
+        wallet_address: wallet,
       });
       const res1 = mockRes();
       await handleHoloMeshRoute(req1, res1, '/api/holomesh/register');
@@ -246,7 +262,8 @@ describe('HoloMesh HTTP Routes', () => {
 
       // Try same wallet
       const req2 = mockReq('POST', '/api/holomesh/register', {
-        name: 'bot-b', wallet_address: wallet,
+        name: 'bot-b',
+        wallet_address: wallet,
       });
       const res2 = mockRes();
       await handleHoloMeshRoute(req2, res2, '/api/holomesh/register');
@@ -329,7 +346,9 @@ describe('HoloMesh HTTP Routes', () => {
       const expectedApiKey = regRes._body.agent.api_key;
 
       // Get challenge
-      const chalReq = mockReq('POST', '/api/holomesh/key/challenge', { wallet_address: walletAddress });
+      const chalReq = mockReq('POST', '/api/holomesh/key/challenge', {
+        wallet_address: walletAddress,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/key/challenge');
       const nonce = chalRes._body.nonce;
@@ -359,7 +378,9 @@ describe('HoloMesh HTTP Routes', () => {
       const walletAddress = regRes._body.agent.wallet_address;
 
       // Get challenge
-      const chalReq = mockReq('POST', '/api/holomesh/key/challenge', { wallet_address: walletAddress });
+      const chalReq = mockReq('POST', '/api/holomesh/key/challenge', {
+        wallet_address: walletAddress,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/key/challenge');
       const nonce = chalRes._body.nonce;
@@ -408,7 +429,9 @@ describe('HoloMesh HTTP Routes', () => {
       const walletAddress = regRes._body.agent.wallet_address;
 
       // Get challenge
-      const chalReq = mockReq('POST', '/api/holomesh/key/challenge', { wallet_address: walletAddress });
+      const chalReq = mockReq('POST', '/api/holomesh/key/challenge', {
+        wallet_address: walletAddress,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/key/challenge');
       const nonce = chalRes._body.nonce;
@@ -416,7 +439,9 @@ describe('HoloMesh HTTP Routes', () => {
       // First recover — succeeds
       mockVerifyMessage.mockResolvedValue(true);
       const rec1Req = mockReq('POST', '/api/holomesh/key/recover', {
-        wallet_address: walletAddress, nonce, signature: '0xsig',
+        wallet_address: walletAddress,
+        nonce,
+        signature: '0xsig',
       });
       const rec1Res = mockRes();
       await handleHoloMeshRoute(rec1Req, rec1Res, '/api/holomesh/key/recover');
@@ -424,7 +449,9 @@ describe('HoloMesh HTTP Routes', () => {
 
       // Second recover with same nonce — fails
       const rec2Req = mockReq('POST', '/api/holomesh/key/recover', {
-        wallet_address: walletAddress, nonce, signature: '0xsig',
+        wallet_address: walletAddress,
+        nonce,
+        signature: '0xsig',
       });
       const rec2Res = mockRes();
       await handleHoloMeshRoute(rec2Req, rec2Res, '/api/holomesh/key/recover');
@@ -452,7 +479,9 @@ describe('HoloMesh HTTP Routes', () => {
 
       // Try to recover with wallet B's address using A's nonce
       const recReq = mockReq('POST', '/api/holomesh/key/recover', {
-        wallet_address: walletB, nonce, signature: '0xsig',
+        wallet_address: walletB,
+        nonce,
+        signature: '0xsig',
       });
       const recRes = mockRes();
       await handleHoloMeshRoute(recReq, recRes, '/api/holomesh/key/recover');
@@ -470,7 +499,9 @@ describe('HoloMesh HTTP Routes', () => {
 
     beforeEach(async () => {
       authBotCounter++;
-      const req = mockReq('POST', '/api/holomesh/register', { name: `auth-bot-${Date.now()}-${authBotCounter}-${Math.random().toString(36).slice(2, 8)}` });
+      const req = mockReq('POST', '/api/holomesh/register', {
+        name: `auth-bot-${Date.now()}-${authBotCounter}-${Math.random().toString(36).slice(2, 8)}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/register');
       apiKey = res._body.agent.api_key;
@@ -478,7 +509,8 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('POST /contribute requires auth', async () => {
       const req = mockReq('POST', '/api/holomesh/contribute', {
-        type: 'wisdom', content: 'Test insight',
+        type: 'wisdom',
+        content: 'Test insight',
       });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
@@ -488,9 +520,15 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /contribute succeeds with valid Bearer token', async () => {
-      const req = mockReq('POST', '/api/holomesh/contribute', {
-        type: 'wisdom', content: 'Test insight from auth test',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/contribute',
+        {
+          type: 'wisdom',
+          content: 'Test insight from auth test',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
 
@@ -516,9 +554,15 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('rejects invalid API key', async () => {
-      const req = mockReq('POST', '/api/holomesh/contribute', {
-        type: 'wisdom', content: 'Test',
-      }, { authorization: 'Bearer holomesh_sk_INVALID' });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/contribute',
+        {
+          type: 'wisdom',
+          content: 'Test',
+        },
+        { authorization: 'Bearer holomesh_sk_INVALID' }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
 
@@ -604,11 +648,18 @@ describe('HoloMesh HTTP Routes', () => {
   describe('Premium entries (x402)', () => {
     it('feed truncates content of premium entries for unauthenticated users', async () => {
       const longContent = 'A'.repeat(200);
-      mockClient.queryKnowledge.mockResolvedValueOnce([{
-        id: 'premium-1', type: 'wisdom', content: longContent,
-        domain: 'security', price: 0.05, authorId: 'other',
-        authorName: 'author', createdAt: new Date().toISOString(),
-      }]);
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'premium-1',
+          type: 'wisdom',
+          content: longContent,
+          domain: 'security',
+          price: 0.05,
+          authorId: 'other',
+          authorName: 'author',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
 
       const req = mockReq('GET', '/api/holomesh/feed');
       const res = mockRes();
@@ -623,11 +674,18 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('feed shows full content for free entries', async () => {
       const content = 'Free knowledge for all';
-      mockClient.queryKnowledge.mockResolvedValueOnce([{
-        id: 'free-1', type: 'wisdom', content,
-        domain: 'general', price: 0, authorId: 'other',
-        authorName: 'author', createdAt: new Date().toISOString(),
-      }]);
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'free-1',
+          type: 'wisdom',
+          content,
+          domain: 'general',
+          price: 0,
+          authorId: 'other',
+          authorName: 'author',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
 
       const req = mockReq('GET', '/api/holomesh/feed');
       const res = mockRes();
@@ -639,11 +697,18 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('entry detail returns 402 for premium entry without payment', async () => {
-      mockClient.queryKnowledge.mockResolvedValueOnce([{
-        id: 'premium-2', type: 'pattern', content: 'Secret pattern',
-        domain: 'agents', price: 0.10, authorId: 'other',
-        authorName: 'author', createdAt: new Date().toISOString(),
-      }]);
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'premium-2',
+          type: 'pattern',
+          content: 'Secret pattern',
+          domain: 'agents',
+          price: 0.1,
+          authorId: 'other',
+          authorName: 'author',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
 
       const req = mockReq('GET', '/api/holomesh/entry/premium-2');
       const res = mockRes();
@@ -653,17 +718,24 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.accepts).toBeInstanceOf(Array);
       expect(res._body.accepts[0].maxAmountRequired).toBe('100000'); // 0.10 USDC = 100000 base units
       expect(res._body.preview).toBeDefined();
-      expect(res._body.preview.price).toBe(0.10);
+      expect(res._body.preview.price).toBe(0.1);
       expect(res._body.hint).toContain('X-PAYMENT');
     });
 
     it('entry detail returns full content for free entry', async () => {
       const content = 'Free knowledge accessible to all';
-      mockClient.queryKnowledge.mockResolvedValueOnce([{
-        id: 'free-2', type: 'wisdom', content,
-        domain: 'general', price: 0, authorId: 'other',
-        authorName: 'author', createdAt: new Date().toISOString(),
-      }]);
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'free-2',
+          type: 'wisdom',
+          content,
+          domain: 'general',
+          price: 0,
+          authorId: 'other',
+          authorName: 'author',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
 
       const req = mockReq('GET', '/api/holomesh/entry/free-2');
       const res = mockRes();
@@ -675,16 +747,25 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('entry detail accepts X-PAYMENT header for premium entry (testnet fallback)', async () => {
       // Register agent for auth
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `pay-bot-${Date.now()}-${Math.random().toString(36).slice(2)}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `pay-bot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
-      mockClient.queryKnowledge.mockResolvedValueOnce([{
-        id: 'premium-3', type: 'gotcha', content: 'Full premium secret gotcha',
-        domain: 'compilation', price: 0.05, authorId: 'other',
-        authorName: 'author', createdAt: new Date().toISOString(),
-      }]);
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'premium-3',
+          type: 'gotcha',
+          content: 'Full premium secret gotcha',
+          domain: 'compilation',
+          price: 0.05,
+          authorId: 'other',
+          authorName: 'author',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
 
       const req = mockReq('GET', '/api/holomesh/entry/premium-3', undefined, {
         authorization: `Bearer ${apiKey}`,
@@ -706,7 +787,9 @@ describe('HoloMesh HTTP Routes', () => {
     let apiKey: string;
 
     beforeEach(async () => {
-      const req = mockReq('POST', '/api/holomesh/register', { name: `profile-bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
+      const req = mockReq('POST', '/api/holomesh/register', {
+        name: `profile-bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/register');
       apiKey = res._body.agent.api_key;
@@ -734,11 +817,16 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('PATCH /profile updates bio and theme', async () => {
-      const req = mockReq('PATCH', '/api/holomesh/profile', {
-        bio: 'I trade wisdom for wisdom.',
-        themeColor: '#ff6b6b',
-        statusText: 'Open for trades',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PATCH',
+        '/api/holomesh/profile',
+        {
+          bio: 'I trade wisdom for wisdom.',
+          themeColor: '#ff6b6b',
+          statusText: 'Open for trades',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -747,13 +835,20 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.profile.bio).toBe('I trade wisdom for wisdom.');
       expect(res._body.profile.themeColor).toBe('#ff6b6b');
       expect(res._body.profile.statusText).toBe('Open for trades');
-      expect(res._body.updated).toEqual(expect.arrayContaining(['bio', 'themeColor', 'statusText']));
+      expect(res._body.updated).toEqual(
+        expect.arrayContaining(['bio', 'themeColor', 'statusText'])
+      );
     });
 
     it('PATCH /profile persists changes', async () => {
-      const req = mockReq('PATCH', '/api/holomesh/profile', {
-        customTitle: 'The Oracle',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PATCH',
+        '/api/holomesh/profile',
+        {
+          customTitle: 'The Oracle',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -762,9 +857,14 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('PATCH /profile rejects invalid hex color', async () => {
-      const req = mockReq('PATCH', '/api/holomesh/profile', {
-        themeColor: 'not-a-color',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PATCH',
+        '/api/holomesh/profile',
+        {
+          themeColor: 'not-a-color',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -773,9 +873,14 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('PATCH /profile rejects overly long bio', async () => {
-      const req = mockReq('PATCH', '/api/holomesh/profile', {
-        bio: 'x'.repeat(501),
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PATCH',
+        '/api/holomesh/profile',
+        {
+          bio: 'x'.repeat(501),
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -784,9 +889,14 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('PATCH /profile rejects empty update', async () => {
-      const req = mockReq('PATCH', '/api/holomesh/profile', {
-        unknown_field: 'ignored',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PATCH',
+        '/api/holomesh/profile',
+        {
+          unknown_field: 'ignored',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -795,9 +905,14 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('PUT /profile also works (same as PATCH)', async () => {
-      const req = mockReq('PUT', '/api/holomesh/profile', {
-        themeAccent: '#a78bfa',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PUT',
+        '/api/holomesh/profile',
+        {
+          themeAccent: '#a78bfa',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -824,7 +939,7 @@ describe('HoloMesh HTTP Routes', () => {
       // The register call should have called contributeKnowledge with a workspace init entry
       const initCalls = mockClient.contributeKnowledge.mock.calls;
       const wsInitCall = initCalls.find((call: any[]) =>
-        call[0]?.some?.((e: any) => e.id.endsWith(':init') && e.workspaceId.startsWith('private:')),
+        call[0]?.some?.((e: any) => e.id.endsWith(':init') && e.workspaceId.startsWith('private:'))
       );
       expect(wsInitCall).toBeDefined();
     });
@@ -851,9 +966,14 @@ describe('HoloMesh HTTP Routes', () => {
     it('GET /knowledge/private returns entries from private workspace', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
         {
-          id: 'W.test.priv.1', type: 'wisdom', content: 'Private insight',
-          domain: 'security', authorId: 'me', authorName: agentName,
-          workspaceId: 'private:0xabc', createdAt: new Date().toISOString(),
+          id: 'W.test.priv.1',
+          type: 'wisdom',
+          content: 'Private insight',
+          domain: 'security',
+          authorId: 'me',
+          authorName: agentName,
+          workspaceId: 'private:0xabc',
+          createdAt: new Date().toISOString(),
         },
       ]);
 
@@ -873,8 +993,24 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('GET /knowledge/private filters by domain', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'W.1', type: 'wisdom', content: 'A', domain: 'security', authorId: 'me', authorName: 'x', createdAt: new Date().toISOString() },
-        { id: 'W.2', type: 'pattern', content: 'B', domain: 'agents', authorId: 'me', authorName: 'x', createdAt: new Date().toISOString() },
+        {
+          id: 'W.1',
+          type: 'wisdom',
+          content: 'A',
+          domain: 'security',
+          authorId: 'me',
+          authorName: 'x',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'W.2',
+          type: 'pattern',
+          content: 'B',
+          domain: 'agents',
+          authorId: 'me',
+          authorName: 'x',
+          createdAt: new Date().toISOString(),
+        },
       ]);
 
       const req = mockReq('GET', '/api/holomesh/knowledge/private?domain=security', undefined, {
@@ -890,8 +1026,24 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('GET /knowledge/private excludes workspace-init entries', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'private:0xabc:init', type: 'wisdom', content: 'Init', domain: 'general', authorId: 'me', authorName: 'x', createdAt: new Date().toISOString() },
-        { id: 'W.real', type: 'wisdom', content: 'Real entry', domain: 'general', authorId: 'me', authorName: 'x', createdAt: new Date().toISOString() },
+        {
+          id: 'private:0xabc:init',
+          type: 'wisdom',
+          content: 'Init',
+          domain: 'general',
+          authorId: 'me',
+          authorName: 'x',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'W.real',
+          type: 'wisdom',
+          content: 'Real entry',
+          domain: 'general',
+          authorId: 'me',
+          authorName: 'x',
+          createdAt: new Date().toISOString(),
+        },
       ]);
 
       const req = mockReq('GET', '/api/holomesh/knowledge/private', undefined, {
@@ -907,12 +1059,17 @@ describe('HoloMesh HTTP Routes', () => {
     it('POST /knowledge/private syncs entries to private workspace', async () => {
       mockClient.contributeKnowledge.mockResolvedValueOnce(2);
 
-      const req = mockReq('POST', '/api/holomesh/knowledge/private', {
-        entries: [
-          { type: 'wisdom', content: 'Private wisdom A', domain: 'security' },
-          { type: 'gotcha', content: 'Private gotcha B', domain: 'agents', tags: ['vitest'] },
-        ],
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/knowledge/private',
+        {
+          entries: [
+            { type: 'wisdom', content: 'Private wisdom A', domain: 'security' },
+            { type: 'gotcha', content: 'Private gotcha B', domain: 'agents', tags: ['vitest'] },
+          ],
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/knowledge/private');
 
@@ -940,9 +1097,14 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /knowledge/private rejects empty entries', async () => {
-      const req = mockReq('POST', '/api/holomesh/knowledge/private', {
-        entries: [],
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/knowledge/private',
+        {
+          entries: [],
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/knowledge/private');
 
@@ -952,12 +1114,18 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('POST /knowledge/private rejects more than 100 entries', async () => {
       const bigBatch = Array.from({ length: 101 }, (_, i) => ({
-        type: 'wisdom', content: `Entry ${i}`,
+        type: 'wisdom',
+        content: `Entry ${i}`,
       }));
 
-      const req = mockReq('POST', '/api/holomesh/knowledge/private', {
-        entries: bigBatch,
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/knowledge/private',
+        {
+          entries: bigBatch,
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/knowledge/private');
 
@@ -966,20 +1134,34 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /knowledge/promote promotes private entry to public feed', async () => {
-      mockClient.queryKnowledge.mockResolvedValueOnce([{
-        id: 'W.priv.1', type: 'wisdom', content: 'Promotable insight',
-        domain: 'security', authorId: 'me', authorName: agentName,
-        workspaceId: 'private:0xabc', tags: ['private'],
-        provenanceHash: 'abc123', price: 0,
-        queryCount: 0, reuseCount: 0,
-        createdAt: new Date().toISOString(),
-      }]);
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'W.priv.1',
+          type: 'wisdom',
+          content: 'Promotable insight',
+          domain: 'security',
+          authorId: 'me',
+          authorName: agentName,
+          workspaceId: 'private:0xabc',
+          tags: ['private'],
+          provenanceHash: 'abc123',
+          price: 0,
+          queryCount: 0,
+          reuseCount: 0,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       mockClient.contributeKnowledge.mockResolvedValueOnce(1);
 
-      const req = mockReq('POST', '/api/holomesh/knowledge/promote', {
-        entry_id: 'W.priv.1',
-        price: 0.05,
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/knowledge/promote',
+        {
+          entry_id: 'W.priv.1',
+          price: 0.05,
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/knowledge/promote');
 
@@ -999,9 +1181,14 @@ describe('HoloMesh HTTP Routes', () => {
     it('POST /knowledge/promote returns 404 for missing entry', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([]);
 
-      const req = mockReq('POST', '/api/holomesh/knowledge/promote', {
-        entry_id: 'nonexistent',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/knowledge/promote',
+        {
+          entry_id: 'nonexistent',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/knowledge/promote');
 
@@ -1086,9 +1273,11 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Create Team ──
 
     it('POST /api/holomesh/team creates a new team', async () => {
-      const req = mockReq('POST', '/api/holomesh/team',
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: 'test-team', description: 'A test enterprise team' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/team');
@@ -1110,9 +1299,11 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team rejects short names', async () => {
-      const req = mockReq('POST', '/api/holomesh/team',
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: 'a' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/team');
@@ -1122,13 +1313,23 @@ describe('HoloMesh HTTP Routes', () => {
     it('POST /api/holomesh/team rejects duplicate names', async () => {
       const name = `dup-team-${Date.now()}`;
       // Create first
-      const req1 = mockReq('POST', '/api/holomesh/team', { name }, { authorization: `Bearer ${ownerApiKey}` });
+      const req1 = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
       const res1 = mockRes();
       await handleHoloMeshRoute(req1, res1, '/api/holomesh/team');
       expect(res1._status).toBe(201);
 
       // Try duplicate
-      const req2 = mockReq('POST', '/api/holomesh/team', { name }, { authorization: `Bearer ${ownerApiKey}` });
+      const req2 = mockReq(
+        'POST',
+        '/api/holomesh/team',
+        { name },
+        { authorization: `Bearer ${ownerApiKey}` }
+      );
       const res2 = mockRes();
       await handleHoloMeshRoute(req2, res2, '/api/holomesh/team');
       expect(res2._status).toBe(409);
@@ -1138,16 +1339,20 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('GET /api/holomesh/teams lists agent teams', async () => {
       // Create a team first
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `list-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       expect(createRes._status).toBe(201);
 
       // List teams
-      const req = mockReq('GET', '/api/holomesh/teams', undefined, { authorization: `Bearer ${ownerApiKey}` });
+      const req = mockReq('GET', '/api/holomesh/teams', undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/teams');
 
@@ -1160,9 +1365,11 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('POST /api/holomesh/team/:id/join with invite code', async () => {
       // Create team
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `join-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
@@ -1170,9 +1377,11 @@ describe('HoloMesh HTTP Routes', () => {
       const code = createRes._body.team.invite_code;
 
       // Member joins
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: code },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join`);
@@ -1184,17 +1393,21 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team/:id/join rejects wrong invite code', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `bad-code-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: 'wrong-code' },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join`);
@@ -1203,18 +1416,22 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team/:id/join rejects double join', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `double-join-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
       // Owner tries to join again
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: createRes._body.team.invite_code },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/join`);
@@ -1225,15 +1442,19 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Team Dashboard ──
 
     it('GET /api/holomesh/team/:id returns team dashboard', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `dash-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('GET', `/api/holomesh/team/${tid}`, undefined, { authorization: `Bearer ${ownerApiKey}` });
+      const req = mockReq('GET', `/api/holomesh/team/${tid}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}`);
 
@@ -1246,15 +1467,19 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('GET /api/holomesh/team/:id returns 403 for non-members', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `private-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('GET', `/api/holomesh/team/${tid}`, undefined, { authorization: `Bearer ${memberApiKey}` });
+      const req = mockReq('GET', `/api/holomesh/team/${tid}`, undefined, {
+        authorization: `Bearer ${memberApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}`);
 
@@ -1264,17 +1489,21 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Presence ──
 
     it('POST /api/holomesh/team/:id/presence registers heartbeat', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `pres-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
         { ide_type: 'vscode', project_path: '/workspace/project', status: 'active' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/presence`);
@@ -1286,24 +1515,30 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('GET /api/holomesh/team/:id/presence returns online agents', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `pres-get-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
       // Register presence
-      const presReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+      const presReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
         { ide_type: 'cursor' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const presRes = mockRes();
       await handleHoloMeshRoute(presReq, presRes, `/api/holomesh/team/${tid}/presence`);
 
       // Get presence
-      const req = mockReq('GET', `/api/holomesh/team/${tid}/presence`, undefined, { authorization: `Bearer ${ownerApiKey}` });
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/presence`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/presence`);
 
@@ -1315,17 +1550,21 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Messaging ──
 
     it('POST /api/holomesh/team/:id/message sends team message', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `msg-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/message`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/message`,
         { content: 'Hello team!', type: 'text' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/message`);
@@ -1336,24 +1575,30 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('GET /api/holomesh/team/:id/messages reads team messages', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `read-msg-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
       // Send a message first
-      const sendReq = mockReq('POST', `/api/holomesh/team/${tid}/message`,
+      const sendReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/message`,
         { content: 'Test message' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const sendRes = mockRes();
       await handleHoloMeshRoute(sendReq, sendRes, `/api/holomesh/team/${tid}/message`);
 
       // Read messages
-      const req = mockReq('GET', `/api/holomesh/team/${tid}/messages`, undefined, { authorization: `Bearer ${ownerApiKey}` });
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/messages`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/messages`);
 
@@ -1362,17 +1607,21 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team/:id/message rejects missing content', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `empty-msg-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/message`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/message`,
         {},
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/message`);
@@ -1383,22 +1632,26 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Team Knowledge ──
 
     it('POST /api/holomesh/team/:id/knowledge contributes to team workspace', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `know-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/knowledge`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
         {
           entries: [
             { type: 'wisdom', content: 'Team insight about caching', domain: 'compilation' },
             { type: 'gotcha', content: 'Never use eval in production', domain: 'security' },
           ],
         },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
@@ -1410,15 +1663,19 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('GET /api/holomesh/team/:id/knowledge reads team knowledge', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `read-know-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('GET', `/api/holomesh/team/${tid}/knowledge`, undefined, { authorization: `Bearer ${ownerApiKey}` });
+      const req = mockReq('GET', `/api/holomesh/team/${tid}/knowledge`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
 
@@ -1433,21 +1690,25 @@ describe('HoloMesh HTTP Routes', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ status: 'queued', hint: 'mock processing' })
+        json: async () => ({ status: 'queued', hint: 'mock processing' }),
       } as any);
 
       try {
-        const createReq = mockReq('POST', '/api/holomesh/team',
+        const createReq = mockReq(
+          'POST',
+          '/api/holomesh/team',
           { name: `absorb-team-${Date.now()}` },
-          { authorization: `Bearer ${ownerApiKey}` },
+          { authorization: `Bearer ${ownerApiKey}` }
         );
         const createRes = mockRes();
         await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
         const tid = createRes._body.team.id;
 
-        const req = mockReq('POST', `/api/holomesh/team/${tid}/absorb`,
+        const req = mockReq(
+          'POST',
+          `/api/holomesh/team/${tid}/absorb`,
           { project_path: '/workspace/my-project', depth: 'deep' },
-          { authorization: `Bearer ${ownerApiKey}` },
+          { authorization: `Bearer ${ownerApiKey}` }
         );
         const res = mockRes();
         await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/absorb`);
@@ -1462,17 +1723,21 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team/:id/absorb rejects missing project_path', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `no-path-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/absorb`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/absorb`,
         {},
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/absorb`);
@@ -1484,9 +1749,11 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('POST /api/holomesh/team/:id/members can set role', async () => {
       // Create team and add member
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `role-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
@@ -1494,17 +1761,21 @@ describe('HoloMesh HTTP Routes', () => {
       const code = createRes._body.team.invite_code;
 
       // Member joins
-      const joinReq = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: code },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const joinRes = mockRes();
       await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
 
       // Owner promotes member to admin
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/members`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/members`,
         { action: 'set_role', agent_id: memberAgentId, role: 'admin' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
@@ -1514,9 +1785,11 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team/:id/members can remove member', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `rm-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
@@ -1524,17 +1797,21 @@ describe('HoloMesh HTTP Routes', () => {
       const code = createRes._body.team.invite_code;
 
       // Member joins
-      const joinReq = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: code },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const joinRes = mockRes();
       await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
 
       // Owner removes member
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/members`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/members`,
         { action: 'remove', agent_id: memberAgentId },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
@@ -1545,9 +1822,11 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('POST /api/holomesh/team/:id/members rejects non-admin', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `nonadmin-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
@@ -1555,17 +1834,21 @@ describe('HoloMesh HTTP Routes', () => {
       const code = createRes._body.team.invite_code;
 
       // Member joins
-      const joinReq = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: code },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const joinRes = mockRes();
       await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
 
       // Member tries to manage (should fail — member role has no members:manage)
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/members`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/members`,
         { action: 'set_role', agent_id: ownerAgentId, role: 'viewer' },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/members`);
@@ -1576,9 +1859,11 @@ describe('HoloMesh HTTP Routes', () => {
     // ── Viewer Permissions ──
 
     it('viewer cannot write knowledge to team', async () => {
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `viewer-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
@@ -1586,25 +1871,31 @@ describe('HoloMesh HTTP Routes', () => {
       const code = createRes._body.team.invite_code;
 
       // Member joins
-      const joinReq = mockReq('POST', `/api/holomesh/team/${tid}/join`,
+      const joinReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/join`,
         { invite_code: code },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const joinRes = mockRes();
       await handleHoloMeshRoute(joinReq, joinRes, `/api/holomesh/team/${tid}/join`);
 
       // Demote to viewer
-      const demoteReq = mockReq('POST', `/api/holomesh/team/${tid}/members`,
+      const demoteReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/members`,
         { action: 'set_role', agent_id: memberAgentId, role: 'viewer' },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const demoteRes = mockRes();
       await handleHoloMeshRoute(demoteReq, demoteRes, `/api/holomesh/team/${tid}/members`);
 
       // Viewer tries to contribute knowledge (should fail)
-      const req = mockReq('POST', `/api/holomesh/team/${tid}/knowledge`,
+      const req = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/knowledge`,
         { entries: [{ type: 'wisdom', content: 'Should fail' }] },
-        { authorization: `Bearer ${memberApiKey}` },
+        { authorization: `Bearer ${memberApiKey}` }
       );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/knowledge`);
@@ -1616,15 +1907,19 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('/space includes agent teams in your_agent', async () => {
       // Create team
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `space-team-${Date.now()}` },
-        { authorization: `Bearer ${ownerApiKey}` },
+        { authorization: `Bearer ${ownerApiKey}` }
       );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
 
       // Check /space
-      const req = mockReq('GET', '/api/holomesh/space', undefined, { authorization: `Bearer ${ownerApiKey}` });
+      const req = mockReq('GET', '/api/holomesh/space', undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/space');
 
@@ -1644,7 +1939,13 @@ describe('HoloMesh HTTP Routes', () => {
         { id: 'peer-1', name: 'agent-alpha', traits: ['@research'], reputation: 5 },
       ]);
       mockClient.queryKnowledge.mockResolvedValue([
-        { id: 'W.001', type: 'wisdom', content: 'Test entry', domain: 'security', authorName: 'alpha' },
+        {
+          id: 'W.001',
+          type: 'wisdom',
+          content: 'Test entry',
+          domain: 'security',
+          authorName: 'alpha',
+        },
       ]);
 
       const req = mockReq('GET', '/api/holomesh/onboard');
@@ -1680,7 +1981,15 @@ describe('HoloMesh HTTP Routes', () => {
   describe('GET /api/holomesh/feed', () => {
     it('returns feed without auth (unauthenticated preview)', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'e1', type: 'wisdom', content: 'Test entry', domain: 'general', authorName: 'bob', price: 0, createdAt: new Date().toISOString() },
+        {
+          id: 'e1',
+          type: 'wisdom',
+          content: 'Test entry',
+          domain: 'general',
+          authorName: 'bob',
+          price: 0,
+          createdAt: new Date().toISOString(),
+        },
       ]);
       const req = mockReq('GET', '/api/holomesh/feed');
       const res = mockRes();
@@ -1695,7 +2004,15 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('truncates premium content for unauthenticated users', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'premium1', type: 'pattern', content: 'A'.repeat(200), domain: 'security', authorName: 'alice', price: 0.50, createdAt: new Date().toISOString() },
+        {
+          id: 'premium1',
+          type: 'pattern',
+          content: 'A'.repeat(200),
+          domain: 'security',
+          authorName: 'alice',
+          price: 0.5,
+          createdAt: new Date().toISOString(),
+        },
       ]);
       const req = mockReq('GET', '/api/holomesh/feed');
       const res = mockRes();
@@ -1711,17 +2028,24 @@ describe('HoloMesh HTTP Routes', () => {
 
   describe('POST /api/holomesh/contribute', () => {
     it('creates a knowledge entry with auth', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `contrib-bot-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `contrib-bot-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
-      const req = mockReq('POST', '/api/holomesh/contribute', {
-        type: 'wisdom',
-        content: 'Agents learn faster through knowledge exchange',
-        domain: 'agents',
-        tags: ['learning', 'exchange'],
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/contribute',
+        {
+          type: 'wisdom',
+          content: 'Agents learn faster through knowledge exchange',
+          domain: 'agents',
+          tags: ['learning', 'exchange'],
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
 
@@ -1732,14 +2056,21 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('rejects missing content', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `contrib-empty-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `contrib-empty-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
-      const req = mockReq('POST', '/api/holomesh/contribute', { type: 'wisdom' }, {
-        authorization: `Bearer ${apiKey}`,
-      });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/contribute',
+        { type: 'wisdom' },
+        {
+          authorization: `Bearer ${apiKey}`,
+        }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/contribute');
 
@@ -1793,16 +2124,23 @@ describe('HoloMesh HTTP Routes', () => {
 
   describe('PATCH /api/holomesh/profile', () => {
     it('updates agent profile fields', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `profile-bot-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `profile-bot-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
-      const req = mockReq('PATCH', '/api/holomesh/profile', {
-        bio: 'I analyze security patterns',
-        themeColor: '#ff6600',
-        statusText: 'Scanning...',
-      }, { authorization: `Bearer ${apiKey}` });
+      const req = mockReq(
+        'PATCH',
+        '/api/holomesh/profile',
+        {
+          bio: 'I analyze security patterns',
+          themeColor: '#ff6600',
+          statusText: 'Scanning...',
+        },
+        { authorization: `Bearer ${apiKey}` }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/profile');
 
@@ -1826,9 +2164,27 @@ describe('HoloMesh HTTP Routes', () => {
   describe('GET /api/holomesh/domains', () => {
     it('returns domain list with descriptions', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'e1', domain: 'security', content: 'test', type: 'wisdom', createdAt: new Date().toISOString() },
-        { id: 'e2', domain: 'security', content: 'test2', type: 'pattern', createdAt: new Date().toISOString() },
-        { id: 'e3', domain: 'agents', content: 'test3', type: 'gotcha', createdAt: new Date().toISOString() },
+        {
+          id: 'e1',
+          domain: 'security',
+          content: 'test',
+          type: 'wisdom',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'e2',
+          domain: 'security',
+          content: 'test2',
+          type: 'pattern',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'e3',
+          domain: 'agents',
+          content: 'test3',
+          type: 'gotcha',
+          createdAt: new Date().toISOString(),
+        },
       ]);
 
       const req = mockReq('GET', '/api/holomesh/domains');
@@ -1954,9 +2310,33 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('ranks contributors by entry count', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'e1', authorId: 'a1', authorName: 'Alice', domain: 'agents', content: 'test', type: 'wisdom', createdAt: new Date().toISOString() },
-        { id: 'e2', authorId: 'a1', authorName: 'Alice', domain: 'agents', content: 'test2', type: 'pattern', createdAt: new Date().toISOString() },
-        { id: 'e3', authorId: 'a2', authorName: 'Bob', domain: 'security', content: 'test3', type: 'gotcha', createdAt: new Date().toISOString() },
+        {
+          id: 'e1',
+          authorId: 'a1',
+          authorName: 'Alice',
+          domain: 'agents',
+          content: 'test',
+          type: 'wisdom',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'e2',
+          authorId: 'a1',
+          authorName: 'Alice',
+          domain: 'agents',
+          content: 'test2',
+          type: 'pattern',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'e3',
+          authorId: 'a2',
+          authorName: 'Bob',
+          domain: 'security',
+          content: 'test3',
+          type: 'gotcha',
+          createdAt: new Date().toISOString(),
+        },
       ]);
       mockClient.discoverPeers.mockResolvedValueOnce([]);
 
@@ -1975,8 +2355,12 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('respects limit parameter', async () => {
       const entries = Array.from({ length: 20 }, (_, i) => ({
-        id: `e${i}`, authorId: `a${i}`, authorName: `Agent${i}`,
-        domain: 'general', content: `entry ${i}`, type: 'wisdom',
+        id: `e${i}`,
+        authorId: `a${i}`,
+        authorName: `Agent${i}`,
+        domain: 'general',
+        content: `entry ${i}`,
+        type: 'wisdom',
         createdAt: new Date().toISOString(),
       }));
       mockClient.queryKnowledge.mockResolvedValueOnce(entries);
@@ -1995,7 +2379,14 @@ describe('HoloMesh HTTP Routes', () => {
   describe('POST /api/holomesh/quickstart', () => {
     it('registers agent, auto-contributes, and returns feed', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'sample1', type: 'wisdom', domain: 'agents', content: 'Sample entry', authorName: 'someone', createdAt: new Date().toISOString() },
+        {
+          id: 'sample1',
+          type: 'wisdom',
+          domain: 'agents',
+          content: 'Sample entry',
+          authorName: 'someone',
+          createdAt: new Date().toISOString(),
+        },
       ]);
 
       const req = mockReq('POST', '/api/holomesh/quickstart', {
@@ -2072,14 +2463,21 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('requires entry_id field', async () => {
       // Register an agent first to get API key
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-bot-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `crosspost-bot-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
-      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', {}, {
-        authorization: `Bearer ${apiKey}`,
-      });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/crosspost/moltbook',
+        {},
+        {
+          authorization: `Bearer ${apiKey}`,
+        }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
 
@@ -2088,16 +2486,23 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('returns 404 for nonexistent entry', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-404-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `crosspost-404-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
       mockClient.queryKnowledge.mockResolvedValueOnce([]);
 
-      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'nonexistent' }, {
-        authorization: `Bearer ${apiKey}`,
-      });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/crosspost/moltbook',
+        { entry_id: 'nonexistent' },
+        {
+          authorization: `Bearer ${apiKey}`,
+        }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
 
@@ -2105,18 +2510,31 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('rejects cross-post by non-author', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-noauth-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `crosspost-noauth-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
 
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'entry-by-other', authorId: 'different-agent', content: 'test', type: 'wisdom', domain: 'general' },
+        {
+          id: 'entry-by-other',
+          authorId: 'different-agent',
+          content: 'test',
+          type: 'wisdom',
+          domain: 'general',
+        },
       ]);
 
-      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'entry-by-other' }, {
-        authorization: `Bearer ${apiKey}`,
-      });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/crosspost/moltbook',
+        { entry_id: 'entry-by-other' },
+        {
+          authorization: `Bearer ${apiKey}`,
+        }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
 
@@ -2124,21 +2542,35 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('returns 503 if MOLTBOOK_API_KEY not set', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', { name: `crosspost-nokey-${Date.now()}` });
+      const regReq = mockReq('POST', '/api/holomesh/register', {
+        name: `crosspost-nokey-${Date.now()}`,
+      });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
       const apiKey = regRes._body.agent.api_key;
       const agentId = regRes._body.agent.id;
 
       mockClient.queryKnowledge.mockResolvedValueOnce([
-        { id: 'my-entry', authorId: agentId, content: 'my knowledge', type: 'wisdom', domain: 'general', confidence: 0.9 },
+        {
+          id: 'my-entry',
+          authorId: agentId,
+          content: 'my knowledge',
+          type: 'wisdom',
+          domain: 'general',
+          confidence: 0.9,
+        },
       ]);
 
       delete process.env.MOLTBOOK_API_KEY;
 
-      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'my-entry' }, {
-        authorization: `Bearer ${apiKey}`,
-      });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/crosspost/moltbook',
+        { entry_id: 'my-entry' },
+        {
+          authorization: `Bearer ${apiKey}`,
+        }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
 

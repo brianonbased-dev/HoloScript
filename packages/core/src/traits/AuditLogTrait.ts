@@ -329,7 +329,10 @@ export const auditLogHandler: TraitHandler<AuditLogConfig> = {
       const action = (event as Record<string, unknown>).action as string;
       const details = ((event as Record<string, unknown>).details as Record<string, unknown>) || {};
       const result = ((event as Record<string, unknown>).result as string) || 'success';
-      const userId = (event as Record<string, unknown>).userId || (event as Record<string, unknown>).actorId || 'system';
+      const userId =
+        (event as Record<string, unknown>).userId ||
+        (event as Record<string, unknown>).actorId ||
+        'system';
       const tenantId = (event as Record<string, unknown>).tenantId || config.tenantId;
 
       const category = categorizeAction(action);

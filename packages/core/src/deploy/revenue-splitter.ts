@@ -118,10 +118,11 @@ export function calculateRevenueDistribution(
 
   // 4. Creator gets remainder
   if (remaining > 0n) {
-    const creatorBps = PROTOCOL_CONSTANTS.BPS_DENOMINATOR
-      - platformFeeBps
-      - (referrer ? referralBps : 0)
-      - (importRoyaltyBps * flattenedByDepth.size);
+    const creatorBps =
+      PROTOCOL_CONSTANTS.BPS_DENOMINATOR -
+      platformFeeBps -
+      (referrer ? referralBps : 0) -
+      importRoyaltyBps * flattenedByDepth.size;
 
     flows.push({
       recipient: creator,
@@ -202,12 +203,13 @@ export async function resolveImportChain(
       const record = await resolver(hash);
       const author = record?.author ?? imp.author ?? 'unknown';
 
-      const children = record && depth < maxDepth
-        ? await resolve(
-          record.importHashes.map(h => ({ hash: h, path: '', author: '' })),
-          depth + 1
-        )
-        : [];
+      const children =
+        record && depth < maxDepth
+          ? await resolve(
+              record.importHashes.map((h) => ({ hash: h, path: '', author: '' })),
+              depth + 1
+            )
+          : [];
 
       nodes.push({
         contentHash: hash,
@@ -237,8 +239,8 @@ export async function resolveImportChain(
 export function formatRevenueDistribution(dist: RevenueDistribution): string[] {
   if (dist.totalPrice === 0n) return ['Free collect — no revenue distribution'];
 
-  return dist.flows.map(flow => {
-    const pct = (Number(flow.amount) / Number(dist.totalPrice) * 100).toFixed(1);
+  return dist.flows.map((flow) => {
+    const pct = ((Number(flow.amount) / Number(dist.totalPrice)) * 100).toFixed(1);
     const depthLabel = flow.depth ? `, depth ${flow.depth}` : '';
     return `${pct}% → ${flow.recipient} (${flow.reason}${depthLabel})`;
   });

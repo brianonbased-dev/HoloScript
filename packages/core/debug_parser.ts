@@ -15,7 +15,7 @@ const cases = [
           }
         }
       }
-    }`
+    }`,
   },
   {
     name: 'test4 - with text',
@@ -27,7 +27,7 @@ const cases = [
           }
         }
       }
-    }`
+    }`,
   },
   {
     name: 'test5 - with link and image',
@@ -37,15 +37,15 @@ const cases = [
           object "LogoImg" @theme(className: "nav-logo-img", tag: "img") @image(src: "/logo.svg", alt: "HoloScript")
         }
       }
-    }`
-  }
+    }`,
+  },
 ];
 
 for (const tc of cases) {
   const res = parser.parse(tc.code);
   if (!res.success) {
     console.log(`❌ ${tc.name} FAILED:`);
-    res.errors.forEach(e => console.log(`  ${e.message}`));
+    res.errors.forEach((e) => console.log(`  ${e.message}`));
   } else {
     console.log(`✅ ${tc.name} SUCCESS`);
   }

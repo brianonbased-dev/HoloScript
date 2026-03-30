@@ -952,7 +952,9 @@ export class NIRToWGSLCompiler extends CompilerBase {
 
     const lines: string[] = [];
     if (this.options.includeComments) {
-      lines.push(`// LI (Leaky Integrator): ${this.escapeStringValue(node.id as string, 'TypeScript')}`);
+      lines.push(
+        `// LI (Leaky Integrator): ${this.escapeStringValue(node.id as string, 'TypeScript')}`
+      );
       lines.push(`// ODE: tau * dv/dt = (v_leak - v) + R * i(t)`);
       lines.push('');
     }

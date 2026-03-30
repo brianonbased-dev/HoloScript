@@ -116,8 +116,6 @@ function SimpleAssetLibrary({ onLoadTemplate, onShowWizard }: SimpleAssetLibrary
 
   return (
     <div className="flex h-full w-64 shrink-0 flex-col border-r border-studio-border bg-studio-panel">
-
-
       {/* Search */}
       <div className="border-b border-studio-border p-2">
         <div className="flex items-center gap-2 rounded-lg bg-black/20 px-2.5 py-1.5">
@@ -520,8 +518,6 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
 
       {/* Brittney prompt bar */}
       <BrittneyPromptBar />
-
-
 
       {/* Character Creation Modal */}
       <CharacterCreationModal

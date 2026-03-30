@@ -23,7 +23,13 @@ export interface CompilationResult {
 
 export class CompilerBridge {
   private modules: {
-    Parser: new () => { parse(source: string): { success: boolean; ast: unknown[]; errors: Array<{ message: string }> } };
+    Parser: new () => {
+      parse(source: string): {
+        success: boolean;
+        ast: unknown[];
+        errors: Array<{ message: string }>;
+      };
+    };
     R3FCompiler: new (options: Record<string, unknown>) => { compile(ast: unknown[]): string };
   } | null = null;
   private initialized = false;
@@ -41,8 +47,14 @@ export class CompilerBridge {
         import('./R3FCompiler'),
       ]);
       this.modules = {
-        Parser: (parserModule as Record<string, unknown>).HoloScriptPlusParser as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['Parser'],
-        R3FCompiler: (compilerModule as Record<string, unknown>).R3FCompiler as typeof this.modules extends null ? never : NonNullable<typeof this.modules>['R3FCompiler'],
+        Parser: (parserModule as Record<string, unknown>)
+          .HoloScriptPlusParser as typeof this.modules extends null
+          ? never
+          : NonNullable<typeof this.modules>['Parser'],
+        R3FCompiler: (compilerModule as Record<string, unknown>)
+          .R3FCompiler as typeof this.modules extends null
+          ? never
+          : NonNullable<typeof this.modules>['R3FCompiler'],
       };
       this.initialized = true;
     } catch (error: unknown) {
@@ -68,9 +80,12 @@ export class CompilerBridge {
       // Parse
       const parser = new this.modules!.Parser();
       const parseResult = parser.parse(holoScript);
-      
+
       if (!parseResult.success) {
-        return { success: false, error: parseResult.errors[0]?.message || 'Failed to parse HoloScript' };
+        return {
+          success: false,
+          error: parseResult.errors[0]?.message || 'Failed to parse HoloScript',
+        };
       }
 
       const ast = parseResult.ast as Array<{ entities?: Array<{ handlers?: unknown[] }> }>;
@@ -93,8 +108,11 @@ export class CompilerBridge {
         metadata: {
           zones: ast.length,
           entities: ast.reduce((sum, zone) => sum + (zone.entities?.length || 0), 0),
-          handlers: ast.reduce((sum, zone) =>
-            sum + (zone.entities?.reduce((s, e) => s + (e.handlers?.length || 0), 0) || 0), 0),
+          handlers: ast.reduce(
+            (sum, zone) =>
+              sum + (zone.entities?.reduce((s, e) => s + (e.handlers?.length || 0), 0) || 0),
+            0
+          ),
           duration: Math.round(duration * 100) / 100,
         },
       };
@@ -103,7 +121,12 @@ export class CompilerBridge {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown compilation error',
-        metadata: { zones: 0, entities: 0, handlers: 0, duration: Math.round(duration * 100) / 100 },
+        metadata: {
+          zones: 0,
+          entities: 0,
+          handlers: 0,
+          duration: Math.round(duration * 100) / 100,
+        },
       };
     }
   }
@@ -124,7 +147,7 @@ export class CompilerBridge {
 
       const parser = new this.modules!.Parser();
       const parseResult = parser.parse(holoScript);
-      
+
       if (!parseResult.success) {
         errors.push(parseResult.errors[0]?.message || 'Failed to parse HoloScript');
         return { valid: false, errors };

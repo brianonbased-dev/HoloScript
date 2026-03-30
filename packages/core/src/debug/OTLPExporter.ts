@@ -180,7 +180,12 @@ export class OTLPExporter {
         lastError = error instanceof Error ? error.message : String(error);
 
         // Don't retry on 4xx (client errors) except 429 (rate limiting)
-        if (error instanceof OTLPHttpError && error.statusCode >= 400 && error.statusCode < 500 && error.statusCode !== 429) {
+        if (
+          error instanceof OTLPHttpError &&
+          error.statusCode >= 400 &&
+          error.statusCode < 500 &&
+          error.statusCode !== 429
+        ) {
           break;
         }
 

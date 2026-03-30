@@ -224,7 +224,7 @@ export class ShockWave {
 
   /**
    * Get comprehensive statistics about the shock wave's current state
-   * 
+   *
    * @returns An object containing current shock wave statistics:
    * - `radius`: Current propagation radius in meters
    * - `age`: Time elapsed since shock wave creation in seconds
@@ -232,7 +232,7 @@ export class ShockWave {
    * - `energy`: Current energy level after attenuation in joules
    * - `wavefrontArea`: Surface area of the current wavefront in square meters
    * - `coverage`: Percentage of maximum radius reached (0-100)
-   * 
+   *
    * @example
    * ```typescript
    * const shockWave = new ShockWave({ origin: {x: 0, y: 0, z: 0}, energy: 1000000 });

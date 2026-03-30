@@ -236,9 +236,7 @@ export class WorldState {
     const raw = npcMemory.get(npcId) as string | undefined;
     if (!raw) return [];
     const entries = JSON.parse(raw) as NPCMemoryEntry[];
-    return entries
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, limit);
+    return entries.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
   }
 
   /** Get all NPC IDs that have memory entries */

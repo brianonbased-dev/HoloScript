@@ -21,7 +21,9 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   // Stripe Connect state
-  const [stripeStatus, setStripeStatus] = useState<'loading' | 'not_started' | 'pending' | 'complete'>('loading');
+  const [stripeStatus, setStripeStatus] = useState<
+    'loading' | 'not_started' | 'pending' | 'complete'
+  >('loading');
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [connectingStripe, setConnectingStripe] = useState(false);
 
@@ -173,15 +175,13 @@ export default function SettingsPage() {
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 18, marginBottom: 16 }}>Creator Payouts</h2>
 
-        {stripeStatus === 'loading' && (
-          <p style={{ color: '#888' }}>Checking payment setup...</p>
-        )}
+        {stripeStatus === 'loading' && <p style={{ color: '#888' }}>Checking payment setup...</p>}
 
         {stripeStatus === 'not_started' && (
           <div>
             <p style={{ color: '#888', marginBottom: 12 }}>
-              Set up Stripe Connect to receive payouts when your marketplace items sell.
-              Creators receive 80% of each sale.
+              Set up Stripe Connect to receive payouts when your marketplace items sell. Creators
+              receive 80% of each sale.
             </p>
             <button
               onClick={startStripeConnect}

@@ -30,7 +30,13 @@ describe('CreatorRevenueAggregator', () => {
     });
 
     it('tracks ledger entry reference', () => {
-      const event = aggregator.recordRevenue('creator-1', 'plugin-a', 5000, 'payer-1', 'ledger-123');
+      const event = aggregator.recordRevenue(
+        'creator-1',
+        'plugin-a',
+        5000,
+        'payer-1',
+        'ledger-123'
+      );
       expect(event.ledgerEntryId).toBe('ledger-123');
     });
   });
@@ -136,8 +142,8 @@ describe('CreatorRevenueAggregator', () => {
   describe('configuration', () => {
     it('gets and sets platform fee rate', () => {
       expect(aggregator.getPlatformFeeRate()).toBe(0.15);
-      aggregator.setPlatformFeeRate(0.10);
-      expect(aggregator.getPlatformFeeRate()).toBe(0.10);
+      aggregator.setPlatformFeeRate(0.1);
+      expect(aggregator.getPlatformFeeRate()).toBe(0.1);
     });
 
     it('rejects invalid fee rates', () => {

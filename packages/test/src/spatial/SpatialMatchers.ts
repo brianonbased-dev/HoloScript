@@ -37,15 +37,9 @@ const spatialMatchers = {
    * @example
    *   expect(player).toBeWithinVolume(roomBounds);
    */
-  toBeWithinVolume(
-    this: { isNot: boolean },
-    received: SpatialReceiver,
-    container: BoundingBox
-  ) {
+  toBeWithinVolume(this: { isNot: boolean }, received: SpatialReceiver, container: BoundingBox) {
     const b = toBounds(received);
-    const pass =
-      container.contains(b.min) &&
-      container.contains(b.max);
+    const pass = container.contains(b.min) && container.contains(b.max);
 
     if (pass) {
       return {
@@ -57,12 +51,18 @@ const spatialMatchers = {
 
     // Build informative failure message
     const violations: string[] = [];
-    if (b.min.x < container.min.x) violations.push(`min.x (${b.min.x}) < container.min.x (${container.min.x})`);
-    if (b.min.y < container.min.y) violations.push(`min.y (${b.min.y}) < container.min.y (${container.min.y})`);
-    if (b.min.z < container.min.z) violations.push(`min.z (${b.min.z}) < container.min.z (${container.min.z})`);
-    if (b.max.x > container.max.x) violations.push(`max.x (${b.max.x}) > container.max.x (${container.max.x})`);
-    if (b.max.y > container.max.y) violations.push(`max.y (${b.max.y}) > container.max.y (${container.max.y})`);
-    if (b.max.z > container.max.z) violations.push(`max.z (${b.max.z}) > container.max.z (${container.max.z})`);
+    if (b.min.x < container.min.x)
+      violations.push(`min.x (${b.min.x}) < container.min.x (${container.min.x})`);
+    if (b.min.y < container.min.y)
+      violations.push(`min.y (${b.min.y}) < container.min.y (${container.min.y})`);
+    if (b.min.z < container.min.z)
+      violations.push(`min.z (${b.min.z}) < container.min.z (${container.min.z})`);
+    if (b.max.x > container.max.x)
+      violations.push(`max.x (${b.max.x}) > container.max.x (${container.max.x})`);
+    if (b.max.y > container.max.y)
+      violations.push(`max.y (${b.max.y}) > container.max.y (${container.max.y})`);
+    if (b.max.z > container.max.z)
+      violations.push(`max.z (${b.max.z}) > container.max.z (${container.max.z})`);
 
     return {
       pass: false,
@@ -84,11 +84,7 @@ const spatialMatchers = {
    *   expect(crateA).not.toIntersect(crateB);       // no clipping
    *   expect(bullet).toIntersect(targetEntity);     // hit detection
    */
-  toIntersect(
-    this: { isNot: boolean },
-    received: SpatialReceiver,
-    other: SpatialReceiver
-  ) {
+  toIntersect(this: { isNot: boolean }, received: SpatialReceiver, other: SpatialReceiver) {
     const bA = toBounds(received);
     const bB = toBounds(other);
     const pass = bA.intersects(bB);
@@ -185,6 +181,10 @@ declare module 'vitest' {
   interface AsymmetricMatchersContaining {
     toBeWithinVolume(container: BoundingBox): unknown;
     toIntersect(other: SpatialReceiver): unknown;
-    toHaveIntersectionVolumeWith(other: SpatialReceiver, expected: number, tolerance?: number): unknown;
+    toHaveIntersectionVolumeWith(
+      other: SpatialReceiver,
+      expected: number,
+      tolerance?: number
+    ): unknown;
   }
 }

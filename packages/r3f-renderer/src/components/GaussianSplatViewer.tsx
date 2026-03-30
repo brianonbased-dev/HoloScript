@@ -40,10 +40,10 @@ export interface GaussianSplatViewerProps {
 }
 
 interface SplatData {
-  positions: Float32Array;  // xyz per splat
-  colors: Float32Array;     // rgba per splat
-  scales: Float32Array;     // xyz scale per splat
-  rotations: Float32Array;  // quaternion xyzw per splat
+  positions: Float32Array; // xyz per splat
+  colors: Float32Array; // rgba per splat
+  scales: Float32Array; // xyz scale per splat
+  rotations: Float32Array; // quaternion xyzw per splat
   count: number;
 }
 
@@ -98,7 +98,9 @@ export function GaussianSplatViewer({
     }
 
     loadSplats();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [src, maxSplats]);
 
   // Create instanced geometry
@@ -149,11 +151,14 @@ export function GaussianSplatViewer({
       dummy.fromArray(instanceData.matrices, i * 16);
       mesh.setMatrixAt(i, dummy);
 
-      mesh.setColorAt(i, new THREE.Color(
-        instanceData.colors[i * 4],
-        instanceData.colors[i * 4 + 1],
-        instanceData.colors[i * 4 + 2]
-      ));
+      mesh.setColorAt(
+        i,
+        new THREE.Color(
+          instanceData.colors[i * 4],
+          instanceData.colors[i * 4 + 1],
+          instanceData.colors[i * 4 + 2]
+        )
+      );
     }
 
     mesh.instanceMatrix.needsUpdate = true;
@@ -191,7 +196,7 @@ export function GaussianSplatViewer({
     );
   }
 
-  const rotRad = rotation.map(d => (d * Math.PI) / 180) as [number, number, number];
+  const rotRad = rotation.map((d) => (d * Math.PI) / 180) as [number, number, number];
 
   return (
     <instancedMesh
@@ -301,7 +306,13 @@ function parsePLY(buffer: ArrayBuffer, maxSplats: number): SplatData {
   }
 
   if (vertexCount === 0) {
-    return { positions: new Float32Array(0), colors: new Float32Array(0), scales: new Float32Array(0), rotations: new Float32Array(0), count: 0 };
+    return {
+      positions: new Float32Array(0),
+      colors: new Float32Array(0),
+      scales: new Float32Array(0),
+      rotations: new Float32Array(0),
+      count: 0,
+    };
   }
 
   // Read binary vertex data (assume standard Gaussian PLY layout)

@@ -69,7 +69,7 @@ export class HotReloadWatcher extends EventEmitter {
 
     for (const watchPath of this.config.watchPaths) {
       const resolved = path.resolve(watchPath);
-      
+
       if (!fs.existsSync(resolved)) {
         this.emit('warning', `Watch path does not exist: ${resolved}`);
         continue;
@@ -78,7 +78,7 @@ export class HotReloadWatcher extends EventEmitter {
       try {
         const watcher = fs.watch(resolved, { recursive: true }, (eventType, filename) => {
           if (!filename) return;
-          
+
           const ext = path.extname(filename).toLowerCase();
           if (!this.config.extensions.includes(ext)) return;
 
@@ -171,8 +171,20 @@ export const HOT_RELOAD_TRAIT = {
   requiresRenderer: false,
   parameters: [
     { name: 'watch', type: 'string[]', required: false, description: 'Glob patterns to watch' },
-    { name: 'debounce_ms', type: 'number', required: false, default: 300, description: 'Debounce interval' },
-    { name: 'on_reload', type: 'string', required: false, default: 'soft', description: '"soft" (re-parse) or "hard" (full restart)' },
+    {
+      name: 'debounce_ms',
+      type: 'number',
+      required: false,
+      default: 300,
+      description: 'Debounce interval',
+    },
+    {
+      name: 'on_reload',
+      type: 'string',
+      required: false,
+      default: 'soft',
+      description: '"soft" (re-parse) or "hard" (full restart)',
+    },
   ],
 };
 

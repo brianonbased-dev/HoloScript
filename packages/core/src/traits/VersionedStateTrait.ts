@@ -82,7 +82,8 @@ export const versionedStateHandler: TraitHandler<VersionedStateConfig> = {
     if (config.strategy === 'manual' && node.traits?.has('networked')) {
       context.emit('versioned_state_error', {
         node,
-        warning: 'manual merge strategy on a networked object risks unresolved conflict cascades. Consider strategy: "crdt".',
+        warning:
+          'manual merge strategy on a networked object risks unresolved conflict cascades. Consider strategy: "crdt".',
       });
     }
 
@@ -117,7 +118,12 @@ export const versionedStateHandler: TraitHandler<VersionedStateConfig> = {
     // No per-frame work needed
   },
 
-  onEvent(node: HSPlusNode, config: VersionedStateConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    config: VersionedStateConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const vNode = node as VersionedNode;
     const state = vNode.__versionedStateState;
     if (!state?.initialized) return;

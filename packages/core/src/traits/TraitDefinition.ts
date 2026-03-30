@@ -168,28 +168,28 @@ export class UnifiedTraitRegistry {
    * Get traits by category
    */
   getByCategory(category: TraitCategory): TraitDefinition[] {
-    return this.getAll().filter(t => t.category === category);
+    return this.getAll().filter((t) => t.category === category);
   }
 
   /**
    * Get traits by source
    */
   getBySource(source: TraitSource): TraitDefinition[] {
-    return this.getAll().filter(t => t.source === source);
+    return this.getAll().filter((t) => t.source === source);
   }
 
   /**
    * Get deprecated traits
    */
   getDeprecated(): TraitDefinition[] {
-    return this.getAll().filter(t => t.deprecated !== undefined);
+    return this.getAll().filter((t) => t.deprecated !== undefined);
   }
 
   /**
    * Get traits with training data
    */
   getWithTrainingData(): TraitDefinition[] {
-    return this.getAll().filter(t => t.training !== undefined);
+    return this.getAll().filter((t) => t.training !== undefined);
   }
 
   /**
@@ -199,7 +199,7 @@ export class UnifiedTraitRegistry {
     const trait = this.get(traitId);
     if (!trait) return [];
     return trait.composable
-      .map(id => this.get(id))
+      .map((id) => this.get(id))
       .filter((t): t is TraitDefinition => t !== undefined);
   }
 
@@ -210,7 +210,7 @@ export class UnifiedTraitRegistry {
     const trait = this.get(traitId);
     if (!trait) return [];
     return trait.conflicts
-      .map(id => this.get(id))
+      .map((id) => this.get(id))
       .filter((t): t is TraitDefinition => t !== undefined);
   }
 
@@ -220,7 +220,12 @@ export class UnifiedTraitRegistry {
   getSummary(): TraitRegistrySummary {
     const all = this.getAll();
     const byCategory: Record<string, number> = {};
-    const bySource: Record<string, number> = { holoscript: 0, trainingmonkey: 0, hololand: 0, community: 0 };
+    const bySource: Record<string, number> = {
+      holoscript: 0,
+      trainingmonkey: 0,
+      hololand: 0,
+      community: 0,
+    };
 
     for (const trait of all) {
       byCategory[trait.category] = (byCategory[trait.category] || 0) + 1;
@@ -231,8 +236,8 @@ export class UnifiedTraitRegistry {
       totalTraits: all.length,
       byCategory,
       bySource: bySource as Record<TraitSource, number>,
-      deprecated: all.filter(t => t.deprecated).length,
-      withTrainingData: all.filter(t => t.training).length,
+      deprecated: all.filter((t) => t.deprecated).length,
+      withTrainingData: all.filter((t) => t.training).length,
     };
   }
 

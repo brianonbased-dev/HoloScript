@@ -119,16 +119,15 @@ export const seatedHandler: TraitHandler<SeatedTrait> = {
     }
 
     // Handle snap turn
-    if ((event as Record<string, unknown>).type === 'turn_left' || (event as Record<string, unknown>).type === 'turn_right') {
+    if (
+      (event as Record<string, unknown>).type === 'turn_left' ||
+      (event as Record<string, unknown>).type === 'turn_right'
+    ) {
       const angle = config.snap_turn_angle || 45;
       const direction = (event as Record<string, unknown>).type === 'turn_left' ? -1 : 1;
       const currentRot = (node.properties?.rotation as any) || [0, 0, 0];
 
-      node.properties!.rotation = [
-        currentRot[0],
-        currentRot[1] + angle * direction,
-        currentRot[2],
-      ];
+      node.properties!.rotation = [currentRot[0], currentRot[1] + angle * direction, currentRot[2]];
 
       // Comfort vignette on snap turn
       if (config.comfort_vignette) {

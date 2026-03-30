@@ -259,9 +259,7 @@ export class PluginSandboxRunner {
     this.checkRateLimit();
 
     if (this.tools.size >= this.budget.maxTools) {
-      throw new Error(
-        `Plugin "${this.pluginId}" exceeded max tools (${this.budget.maxTools})`
-      );
+      throw new Error(`Plugin "${this.pluginId}" exceeded max tools (${this.budget.maxTools})`);
     }
 
     const qualifiedName = `plugin:${this.pluginId}:${name}`;
@@ -466,7 +464,9 @@ export class PluginSandboxRunner {
 
   private createSafeConsole(): Record<string, (...args: unknown[]) => void> {
     const capture = (...args: unknown[]) => {
-      const msg = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+      const msg = args
+        .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
+        .join(' ');
       this.consoleLogs.push(msg);
     };
     return { log: capture, info: capture, warn: capture, error: capture, debug: capture };

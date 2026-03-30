@@ -67,9 +67,7 @@ export function AgentCard({ agent, selected = false, onSelect }: AgentCardProps)
       {/* Header row: icon + name + status */}
       <div className="flex items-center gap-2 mb-1.5">
         <Bot className="h-4 w-4 text-studio-accent shrink-0" />
-        <span className="text-sm font-semibold text-studio-text truncate flex-1">
-          {agent.name}
-        </span>
+        <span className="text-sm font-semibold text-studio-text truncate flex-1">{agent.name}</span>
         <div className="flex items-center gap-1 shrink-0" title={statusCfg.label}>
           <span
             className={`inline-block w-2 h-2 rounded-full ${statusCfg.dotClass}`}
@@ -80,9 +78,7 @@ export function AgentCard({ agent, selected = false, onSelect }: AgentCardProps)
       </div>
 
       {/* Description */}
-      <p className="text-[11px] text-studio-muted mb-2 line-clamp-2">
-        {agent.description}
-      </p>
+      <p className="text-[11px] text-studio-muted mb-2 line-clamp-2">{agent.description}</p>
 
       {/* Capabilities */}
       {agent.capabilities.length > 0 && (

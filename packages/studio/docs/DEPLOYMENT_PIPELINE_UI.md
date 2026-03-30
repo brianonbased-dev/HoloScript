@@ -17,6 +17,7 @@ Five stages displayed left-to-right with animated connectors:
 - **Verify** - Runs health checks on deployed endpoint
 
 Each stage shows:
+
 - Status icon (idle, running, success, error, warning)
 - Animated spinner during execution
 - Progress bar for compilation and deployment stages
@@ -27,18 +28,19 @@ Each stage shows:
 
 Four quality tiers with automatic target mapping:
 
-| Tier | Target Label | Provider | Region | Description |
-|------|-------------|----------|--------|-------------|
-| `low` | Development | vercel-edge | dev-1 | Fast iteration, minimal checks |
-| `med` | Staging | cloudflare-workers | us-east-1 | Balanced performance and validation |
-| `high` | Production | aws-lambda | us-west-2 | Full validation, optimized artifacts |
-| `ultra` | Global CDN | cloudflare-workers | multi-region | Maximum performance, global distribution |
+| Tier    | Target Label | Provider           | Region       | Description                              |
+| ------- | ------------ | ------------------ | ------------ | ---------------------------------------- |
+| `low`   | Development  | vercel-edge        | dev-1        | Fast iteration, minimal checks           |
+| `med`   | Staging      | cloudflare-workers | us-east-1    | Balanced performance and validation      |
+| `high`  | Production   | aws-lambda         | us-west-2    | Full validation, optimized artifacts     |
+| `ultra` | Global CDN   | cloudflare-workers | multi-region | Maximum performance, global distribution |
 
 The target information banner updates automatically when the tier changes.
 
 ### 3. Real-time Status Indicators
 
 **Status types:**
+
 - `idle` - Gray, clock icon
 - `running` - Blue, animated spinner
 - `success` - Green, checkmark icon
@@ -46,6 +48,7 @@ The target information banner updates automatically when the tier changes.
 - `warning` - Yellow, alert icon
 
 **Visual feedback:**
+
 - Border color changes based on status
 - Background tint matches status color
 - Smooth transitions between states
@@ -54,6 +57,7 @@ The target information banner updates automatically when the tier changes.
 ### 4. Streaming Log Viewer
 
 Collapsible log panel with:
+
 - Timestamp for each entry (HH:MM:SS format)
 - Log level badge (DEBUG, INFO, WARN, ERROR)
 - Stage identifier
@@ -78,11 +82,7 @@ Collapsible log panel with:
 import { DeploymentPipelineUI } from '@/components/DeploymentPipelineUI';
 
 function MyPage() {
-  return (
-    <DeploymentPipelineUI
-      source="object Cube { @position: [0,1,0] }"
-    />
-  );
+  return <DeploymentPipelineUI source="object Cube { @position: [0,1,0] }" />;
 }
 ```
 
@@ -132,12 +132,12 @@ function MyPage() {
 
 ### `DeploymentPipelineUIProps`
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `source` | `string` | `''` | HoloScript source code or project path |
-| `onDeployStart` | `(tier: QualityTier) => void` | `undefined` | Called when deployment begins |
-| `onDeployComplete` | `(success: boolean) => void` | `undefined` | Called when deployment finishes |
-| `onRollback` | `() => Promise<void>` | `undefined` | Async callback for rollback operation |
+| Prop               | Type                          | Default     | Description                            |
+| ------------------ | ----------------------------- | ----------- | -------------------------------------- |
+| `source`           | `string`                      | `''`        | HoloScript source code or project path |
+| `onDeployStart`    | `(tier: QualityTier) => void` | `undefined` | Called when deployment begins          |
+| `onDeployComplete` | `(success: boolean) => void`  | `undefined` | Called when deployment finishes        |
+| `onRollback`       | `() => Promise<void>`         | `undefined` | Async callback for rollback operation  |
 
 ### Type Definitions
 
@@ -182,6 +182,7 @@ The component uses Tailwind CSS with custom design tokens from the Studio theme:
 ### Custom Colors
 
 Status-based colors:
+
 - Success: `emerald-400/500`
 - Error: `red-400/500`
 - Warning: `yellow-400/500`
@@ -193,23 +194,27 @@ Status-based colors:
 ### WCAG 2.1 Level AA Compliance
 
 **Keyboard Navigation:**
+
 - All interactive elements are keyboard accessible
 - Tab order follows visual flow
 - Focus indicators clearly visible
 - No keyboard traps
 
 **Screen Reader Support:**
+
 - Semantic HTML elements (`button`, `select`)
 - ARIA roles where appropriate
 - Descriptive labels for all controls
 - Status announcements for state changes
 
 **Color Contrast:**
+
 - Text: 4.5:1 contrast ratio
 - Interactive elements: 3:1 contrast ratio
 - Status colors meet WCAG requirements
 
 **Focus Management:**
+
 - Visible focus rings
 - Logical tab order
 - Skip to content functionality (via panel collapse)
@@ -364,6 +369,7 @@ A live demo is available at `/deployment-demo` in HoloScript Studio:
 **Issue:** Pipeline gets stuck showing "Compiling..." indefinitely.
 
 **Solution:**
+
 - Check browser console for errors
 - Verify source code syntax is valid
 - Ensure `onDeployStart` callback doesn't throw
@@ -373,6 +379,7 @@ A live demo is available at `/deployment-demo` in HoloScript Studio:
 **Issue:** New log entries don't scroll into view.
 
 **Solution:**
+
 - Ensure `showLogs` state is `true`
 - Check for console warnings about `scrollIntoView`
 - Verify `logsEndRef` is properly attached
@@ -382,6 +389,7 @@ A live demo is available at `/deployment-demo` in HoloScript Studio:
 **Issue:** Changing quality tier doesn't update the target banner.
 
 **Solution:**
+
 - Check React DevTools for state updates
 - Verify `QUALITY_TIER_CONFIG` constant is defined
 - Clear browser cache if using development build
@@ -391,6 +399,7 @@ A live demo is available at `/deployment-demo` in HoloScript Studio:
 **Issue:** Cannot click rollback button.
 
 **Solution:**
+
 - Ensure `onRollback` prop is provided
 - Check if deployment is currently running
 - Verify button is not obscured by other elements
@@ -462,6 +471,7 @@ Part of the HoloScript project. See LICENSE file in repository root.
 ## Support
 
 For issues, questions, or contributions:
+
 - GitHub Issues: [HoloScript Issues](https://github.com/your-org/holoscript/issues)
 - Documentation: [HoloScript Docs](https://docs.holoscript.com)
 - Discord: [HoloScript Community](https://discord.gg/holoscript)

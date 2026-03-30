@@ -31,11 +31,7 @@ import {
   runTripleGate,
   DEFAULT_GATE1_CONFIG,
 } from '../security/gates';
-import {
-  getAuditLogger,
-  resetAuditLogger,
-  redactPII,
-} from '../security/audit-log';
+import { getAuditLogger, resetAuditLogger, redactPII } from '../security/audit-log';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. OAuth 2.1 Token Service
@@ -141,11 +137,13 @@ describe('OAuth21Service', () => {
         scopes: ['tools:read'],
       });
 
-      expect(() => oauth.exchangeClientCredentials({
-        clientId,
-        clientSecret: 'wrong-secret',
-        scopes: ['tools:read'],
-      })).toThrow('Invalid client credentials');
+      expect(() =>
+        oauth.exchangeClientCredentials({
+          clientId,
+          clientSecret: 'wrong-secret',
+          scopes: ['tools:read'],
+        })
+      ).toThrow('Invalid client credentials');
     });
 
     it('should reject scopes not authorized for client', () => {
@@ -155,11 +153,13 @@ describe('OAuth21Service', () => {
         scopes: ['tools:read'],
       });
 
-      expect(() => oauth.exchangeClientCredentials({
-        clientId,
-        clientSecret,
-        scopes: ['tools:admin'],
-      })).toThrow('Scopes not authorized');
+      expect(() =>
+        oauth.exchangeClientCredentials({
+          clientId,
+          clientSecret,
+          scopes: ['tools:admin'],
+        })
+      ).toThrow('Scopes not authorized');
     });
 
     it('should reject public clients from using client_credentials grant', () => {
@@ -170,10 +170,12 @@ describe('OAuth21Service', () => {
         clientType: 'public',
       });
 
-      expect(() => oauth.exchangeClientCredentials({
-        clientId,
-        clientSecret,
-      })).toThrow('Client credentials grant requires confidential client');
+      expect(() =>
+        oauth.exchangeClientCredentials({
+          clientId,
+          clientSecret,
+        })
+      ).toThrow('Client credentials grant requires confidential client');
     });
   });
 
@@ -187,9 +189,7 @@ describe('OAuth21Service', () => {
 
       // Generate PKCE verifier and challenge
       const codeVerifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
-      const codeChallenge = createHash('sha256')
-        .update(codeVerifier)
-        .digest('base64url');
+      const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
 
       // Step 1: Create authorization code
       const code = oauth.createAuthorizationCode({
@@ -236,17 +236,23 @@ describe('OAuth21Service', () => {
 
       // First use: succeeds
       oauth.exchangeAuthorizationCode({
-        code, clientId, clientSecret,
+        code,
+        clientId,
+        clientSecret,
         redirectUri: 'https://example.com/cb',
         codeVerifier,
       });
 
       // Second use: fails
-      expect(() => oauth.exchangeAuthorizationCode({
-        code, clientId, clientSecret,
-        redirectUri: 'https://example.com/cb',
-        codeVerifier,
-      })).toThrow('Authorization code already used');
+      expect(() =>
+        oauth.exchangeAuthorizationCode({
+          code,
+          clientId,
+          clientSecret,
+          redirectUri: 'https://example.com/cb',
+          codeVerifier,
+        })
+      ).toThrow('Authorization code already used');
     });
 
     it('should reject wrong PKCE verifier', () => {
@@ -266,11 +272,15 @@ describe('OAuth21Service', () => {
         codeChallengeMethod: 'S256',
       });
 
-      expect(() => oauth.exchangeAuthorizationCode({
-        code, clientId, clientSecret,
-        redirectUri: 'https://example.com/cb',
-        codeVerifier: 'wrong-verifier',
-      })).toThrow('PKCE verification failed');
+      expect(() =>
+        oauth.exchangeAuthorizationCode({
+          code,
+          clientId,
+          clientSecret,
+          redirectUri: 'https://example.com/cb',
+          codeVerifier: 'wrong-verifier',
+        })
+      ).toThrow('PKCE verification failed');
     });
   });
 
@@ -311,11 +321,13 @@ describe('OAuth21Service', () => {
       });
 
       // Replay old token
-      expect(() => oauth.refreshAccessToken({
-        refreshToken: oldRefresh,
-        clientId,
-        clientSecret,
-      })).toThrow('Refresh token replay detected');
+      expect(() =>
+        oauth.refreshAccessToken({
+          refreshToken: oldRefresh,
+          clientId,
+          clientSecret,
+        })
+      ).toThrow('Refresh token replay detected');
     });
   });
 
@@ -399,7 +411,7 @@ describe('Gate 1: Prompt Validation', () => {
     const result = gate1ValidateRequest(
       'parse_hs',
       { code: 'object Cube { position: [0,1,0] }' },
-      'test-client',
+      'test-client'
     );
     expect(result.passed).toBe(true);
   });
@@ -409,7 +421,7 @@ describe('Gate 1: Prompt Validation', () => {
       'parse_hs',
       { code: 'x'.repeat(2 * 1024 * 1024) },
       'test-client',
-      { ...DEFAULT_GATE1_CONFIG, maxBodySize: 1024 },
+      { ...DEFAULT_GATE1_CONFIG, maxBodySize: 1024 }
     );
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('exceeds maximum size');
@@ -422,31 +434,19 @@ describe('Gate 1: Prompt Validation', () => {
       nested = { inner: nested };
     }
 
-    const result = gate1ValidateRequest(
-      'parse_hs',
-      nested,
-      'test-client',
-    );
+    const result = gate1ValidateRequest('parse_hs', nested, 'test-client');
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('nesting depth');
   });
 
   it('should detect shell injection patterns', () => {
-    const result = gate1ValidateRequest(
-      'parse_hs',
-      { code: '; rm -rf /' },
-      'test-client',
-    );
+    const result = gate1ValidateRequest('parse_hs', { code: '; rm -rf /' }, 'test-client');
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('Suspicious patterns');
   });
 
   it('should detect path traversal', () => {
-    const result = gate1ValidateRequest(
-      'parse_hs',
-      { code: '../../../etc/passwd' },
-      'test-client',
-    );
+    const result = gate1ValidateRequest('parse_hs', { code: '../../../etc/passwd' }, 'test-client');
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('Suspicious patterns');
   });
@@ -460,11 +460,7 @@ describe('Gate 1: Prompt Validation', () => {
     });
     malicious['__proto__'] = { isAdmin: true };
 
-    const result = gate1ValidateRequest(
-      'parse_hs',
-      malicious,
-      'test-client-proto',
-    );
+    const result = gate1ValidateRequest('parse_hs', malicious, 'test-client-proto');
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('Prototype pollution');
   });
@@ -557,21 +553,13 @@ describe('Gate 3: StdlibPolicy Enforcement', () => {
   });
 
   it('should block path traversal in downstream tools', () => {
-    const result = gate3EnforcePolicy(
-      'edit_holo',
-      { path: '../../etc/shadow' },
-      auth,
-    );
+    const result = gate3EnforcePolicy('edit_holo', { path: '../../etc/shadow' }, auth);
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('Path traversal blocked');
   });
 
   it('should block GPU access when policy denies it', () => {
-    const result = gate3EnforcePolicy(
-      'render_preview',
-      { code: 'test', useGpu: true },
-      auth,
-    );
+    const result = gate3EnforcePolicy('render_preview', { code: 'test', useGpu: true }, auth);
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('GPU compute access denied');
   });
@@ -592,7 +580,7 @@ describe('Gate 3: StdlibPolicy Enforcement', () => {
     const result = gate3EnforcePolicy(
       'render_preview',
       { code: 'test', duration: 999_999_999 },
-      auth,
+      auth
     );
     expect(result.passed).toBe(false);
     expect(result.reason).toContain('exceeds policy limit');

@@ -47,4 +47,3 @@ Use this index for current, canonical documentation entry points.
 
 1. **[Contributing Guide](../CONTRIBUTING.md)** - Contribution workflow and standards
 2. **[Proposals Index](../proposals/README.md)** - Active RFCs and proposal templates
-

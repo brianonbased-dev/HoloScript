@@ -110,16 +110,22 @@ export class EmbeddingIndex {
     // Reduces API calls from 4,062 to 1,300 for 130K symbols
     this.batchSize = options.batchSize ?? (this.provider.name === 'openai' ? 100 : 32);
     this.useWorkers = options.useWorkers !== false && WorkerPool !== null;
-    this.concurrentBatches = options.concurrentBatches ?? Math.min(4, Math.max(1, os.cpus().length - 2));
+    this.concurrentBatches =
+      options.concurrentBatches ?? Math.min(4, Math.max(1, os.cpus().length - 2));
 
     // Initialize worker pool for parallel embedding (Phase 9 Extension)
     if (this.useWorkers && WorkerPool) {
       try {
         const workerFile = path.join(__dirname_esm, 'workers', 'embedding-worker.js');
         this.workerPool = new WorkerPool(workerFile, this.concurrentBatches);
-        console.log(`[EmbeddingIndex] Worker pool initialized with ${this.concurrentBatches} threads for parallel embeddings`);
+        console.log(
+          `[EmbeddingIndex] Worker pool initialized with ${this.concurrentBatches} threads for parallel embeddings`
+        );
       } catch (err) {
-        console.warn('[EmbeddingIndex] Worker threads unavailable, falling back to sequential:', err);
+        console.warn(
+          '[EmbeddingIndex] Worker threads unavailable, falling back to sequential:',
+          err
+        );
         this.useWorkers = false;
       }
     }
@@ -213,7 +219,9 @@ export class EmbeddingIndex {
         const percent = Math.round((batchNum / totalBatches) * 100);
         const eta = totalBatches > batchNum ? this.estimateETA(batchNum, totalBatches, i) : 0;
         const etaStr = eta > 0 ? ` ETA: ${Math.round(eta / 60)}m ${eta % 60}s` : '';
-        console.error(`[EmbeddingIndex] ${percent}% (${batchNum}/${totalBatches} batches, ${this.entries.length} symbols)${etaStr}`);
+        console.error(
+          `[EmbeddingIndex] ${percent}% (${batchNum}/${totalBatches} batches, ${this.entries.length} symbols)${etaStr}`
+        );
       }
     }
   }
@@ -287,7 +295,9 @@ export class EmbeddingIndex {
         onProgress?.(batchIndex + 1, totalBatches, this.entries.length);
 
         if (totalBatches > 5 && (batchIndex + 1) % 10 === 0) {
-          console.error(`[EmbeddingIndex] batch ${batchIndex + 1}/${totalBatches} (${this.entries.length} symbols indexed) [PARALLEL]`);
+          console.error(
+            `[EmbeddingIndex] batch ${batchIndex + 1}/${totalBatches} (${this.entries.length} symbols indexed) [PARALLEL]`
+          );
         }
       }
     }
@@ -464,14 +474,16 @@ export class EmbeddingIndex {
     const dimension = metadata.dimension;
     let offset = 4 + metaLength;
 
-    index.entries = metadata.entries.map((e: { symbol: ExternalSymbolDefinition; text: string }) => {
-      const embedding = new Float32Array(dimension);
-      for (let i = 0; i < dimension; i++) {
-        embedding[i] = buffer.readFloatLE(offset);
-        offset += 4;
+    index.entries = metadata.entries.map(
+      (e: { symbol: ExternalSymbolDefinition; text: string }) => {
+        const embedding = new Float32Array(dimension);
+        for (let i = 0; i < dimension; i++) {
+          embedding[i] = buffer.readFloatLE(offset);
+          offset += 4;
+        }
+        return { symbol: e.symbol, text: e.text, embedding };
       }
-      return { symbol: e.symbol, text: e.text, embedding };
-    });
+    );
 
     return index;
   }
@@ -500,7 +512,11 @@ export class EmbeddingIndex {
    * Estimate remaining time based on current progress.
    * @returns Estimated seconds remaining
    */
-  private estimateETA(currentBatch: number, totalBatches: number, symbolsProcessed: number): number {
+  private estimateETA(
+    currentBatch: number,
+    totalBatches: number,
+    symbolsProcessed: number
+  ): number {
     if (!this.startTime) {
       this.startTime = Date.now();
       return 0;

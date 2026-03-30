@@ -201,14 +201,15 @@ export class CapabilityRBAC {
   private buildDenialReceipt(
     request: CapabilityAccessRequest,
     deniedBy: DenialReceipt['deniedBy'],
-    opts?: { requiredCapability?: string; suggestedFix?: string },
+    opts?: { requiredCapability?: string; suggestedFix?: string }
   ): DenialReceipt {
     const resourceUri = request.resourceType
       ? this.buildResourceUri(request.resourceType, request.resourcePath)
       : 'unknown';
-    const action = request.resourceType && request.operation
-      ? this.buildAction(request.resourceType, request.operation)
-      : request.operation || 'unknown';
+    const action =
+      request.resourceType && request.operation
+        ? this.buildAction(request.resourceType, request.operation)
+        : request.operation || 'unknown';
     return {
       auditId: `deny-${++this.denialCounter}-${Date.now()}`,
       deniedAction: action,

@@ -15,12 +15,12 @@ The documentation audit is now fully closed.
 
 ## Verified Coverage
 
-| Scope | Result |
-| ----- | ------ |
+| Scope                    | Result   |
+| ------------------------ | -------- |
 | Real packages documented | 59 of 59 |
-| Missing package docs | 0 |
-| Package index alignment | Complete |
-| Sidebar alignment | Complete |
+| Missing package docs     | 0        |
+| Package index alignment  | Complete |
+| Sidebar alignment        | Complete |
 
 ## Final Validation (This Pass)
 
@@ -30,13 +30,13 @@ The documentation audit is now fully closed.
 
 ## Smoke Test Snapshot
 
-| Mode | Path | HTTP | Result |
-| ---- | ---- | ---- | ------ |
-| Desktop | `/` | 200 | Pass |
-| Desktop | `/packages/` | 200 | Pass |
-| Desktop | `/guides/` | 200 | Pass |
-| Mobile | `/` | 200 | Pass |
-| Mobile | `/packages/` | 200 | Pass |
+| Mode    | Path         | HTTP | Result |
+| ------- | ------------ | ---- | ------ |
+| Desktop | `/`          | 200  | Pass   |
+| Desktop | `/packages/` | 200  | Pass   |
+| Desktop | `/guides/`   | 200  | Pass   |
+| Mobile  | `/`          | 200  | Pass   |
+| Mobile  | `/packages/` | 200  | Pass   |
 
 ## Notes
 

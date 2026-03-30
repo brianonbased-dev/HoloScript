@@ -161,8 +161,8 @@ export class WatchRunner {
         const results = this.testRunner.runTestsFromSource(source, filePath);
 
         if (results.length > 0) {
-          const passed = results.filter(r => r.status === 'passed').length;
-          const failed = results.filter(r => r.status === 'failed').length;
+          const passed = results.filter((r) => r.status === 'passed').length;
+          const failed = results.filter((r) => r.status === 'failed').length;
           const total = results.length;
 
           const allPassed = failed === 0;

@@ -4,13 +4,19 @@
  */
 import type { TraitHandler } from './TraitTypes';
 
-export interface ApprovalConfig { timeout_ms: number; }
+export interface ApprovalConfig {
+  timeout_ms: number;
+}
 
 export const approvalHandler: TraitHandler<ApprovalConfig> = {
   name: 'approval',
   defaultConfig: { timeout_ms: 86400000 },
-  onAttach(node: any): void { node.__approvalState = { requests: new Map<string, { status: string; requestedAt: number }>() }; },
-  onDetach(node: any): void { delete node.__approvalState; },
+  onAttach(node: any): void {
+    node.__approvalState = { requests: new Map<string, { status: string; requestedAt: number }>() };
+  },
+  onDetach(node: any): void {
+    delete node.__approvalState;
+  },
   onUpdate(): void {},
   onEvent(node: any, _config: ApprovalConfig, context: any, event: any): void {
     const state = node.__approvalState as { requests: Map<string, any> } | undefined;
@@ -18,7 +24,10 @@ export const approvalHandler: TraitHandler<ApprovalConfig> = {
     const t = typeof event === 'string' ? event : event.type;
     switch (t) {
       case 'approval:request':
-        state.requests.set(event.requestId as string, { status: 'pending', requestedAt: Date.now() });
+        state.requests.set(event.requestId as string, {
+          status: 'pending',
+          requestedAt: Date.now(),
+        });
         context.emit?.('approval:requested', { requestId: event.requestId });
         break;
       case 'approval:approve': {

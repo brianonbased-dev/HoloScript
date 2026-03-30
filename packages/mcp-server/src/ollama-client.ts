@@ -12,8 +12,7 @@
 
 type LLMProviderName = 'ollama' | 'anthropic' | 'openai';
 
-const LLM_PROVIDER: LLMProviderName =
-  (process.env.LLM_PROVIDER as LLMProviderName) || 'ollama';
+const LLM_PROVIDER: LLMProviderName = (process.env.LLM_PROVIDER as LLMProviderName) || 'ollama';
 
 // ── Ollama config ────────────────────────────────────────────────────────────
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
@@ -91,7 +90,7 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
       model: OPENAI_MODEL,
@@ -153,8 +152,7 @@ export async function isOllamaAvailable(): Promise<boolean> {
         if (!res.ok) return false;
         const data = (await res.json()) as { models?: Array<{ name: string }> };
         return (
-          data.models?.some((m) => m.name.startsWith(OLLAMA_MODEL.replace(':latest', ''))) ??
-          false
+          data.models?.some((m) => m.name.startsWith(OLLAMA_MODEL.replace(':latest', ''))) ?? false
         );
       }
     }

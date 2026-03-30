@@ -25,16 +25,16 @@ HoloScript is the world's first **AI-Native Spatial Operating System**, built fr
 
 Every HoloScript agent follows the canonical 8-phase cognitive lifecycle (0-7):
 
-| Phase | Name | Purpose |
-| ----- | ---- | ------- |
-| 0 | **INTAKE** | Gather raw spatial data and context |
-| 1 | **REFLECT** | Analyze and understand the environment |
-| 2 | **EXECUTE** | Take action (move, speak, trade) |
-| 3 | **COMPRESS** | Store knowledge efficiently (PWG format) |
-| 4 | **REINTAKE** | Re-evaluate with compressed knowledge |
-| 5 | **GROW** | Learn new patterns, wisdom, and gotchas |
-| 6 | **EVOLVE** | Adapt and optimize internal models |
-| 7 | **AUTONOMIZE** | Self-directed goal synthesis |
+| Phase | Name           | Purpose                                  |
+| ----- | -------------- | ---------------------------------------- |
+| 0     | **INTAKE**     | Gather raw spatial data and context      |
+| 1     | **REFLECT**    | Analyze and understand the environment   |
+| 2     | **EXECUTE**    | Take action (move, speak, trade)         |
+| 3     | **COMPRESS**   | Store knowledge efficiently (PWG format) |
+| 4     | **REINTAKE**   | Re-evaluate with compressed knowledge    |
+| 5     | **GROW**       | Learn new patterns, wisdom, and gotchas  |
+| 6     | **EVOLVE**     | Adapt and optimize internal models       |
+| 7     | **AUTONOMIZE** | Self-directed goal synthesis             |
 
 ```hs
 composition "AutonomousAgent" {
@@ -84,23 +84,23 @@ Each layer is independent and composable. A Loihi2 neuromorphic agent running on
 
 ## Key Packages
 
-| Package | Purpose |
-| ------- | ------- |
+| Package                                         | Purpose                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
 | [`@holoscript/agent-protocol`](./uaa2-protocol) | 7-phase lifecycle, AgentManifest, CapabilityMatcher, CrossRealityHandoff |
-| [`@holoscript/uaal`](./uaal-vm) | Universal Autonomous Agent Language VM — bytecode execution |
-| `@holoscript/crdt` | Conflict-free replicated spatial state for distributed scenes |
-| `@holoscript/llm-provider` | Unified LLM SDK (OpenAI / Anthropic / Gemini) |
+| [`@holoscript/uaal`](./uaal-vm)                 | Universal Autonomous Agent Language VM — bytecode execution              |
+| `@holoscript/crdt`                              | Conflict-free replicated spatial state for distributed scenes            |
+| `@holoscript/llm-provider`                      | Unified LLM SDK (OpenAI / Anthropic / Gemini)                            |
 
 ---
 
 ## Compiler Targets for Agents
 
-| Compiler | Output | Use Case |
-| -------- | ------ | -------- |
-| [A2A Agent Cards](../compilers/a2a) | JSON agent cards | Cross-org agent discovery (Google A2A protocol) |
-| [Neuromorphic (NIR)](../compilers/neuromorphic) | NIR bytecode for Loihi2/SpiNNaker | Ultra-low-energy on-device agents |
-| [SCM](../compilers/scm) | Structural Causal Models | Causally-aware reasoning agents |
-| [WASM](../compilers/wasm) | WebAssembly modules | Edge-deployed lightweight agents |
+| Compiler                                        | Output                            | Use Case                                        |
+| ----------------------------------------------- | --------------------------------- | ----------------------------------------------- |
+| [A2A Agent Cards](../compilers/a2a)             | JSON agent cards                  | Cross-org agent discovery (Google A2A protocol) |
+| [Neuromorphic (NIR)](../compilers/neuromorphic) | NIR bytecode for Loihi2/SpiNNaker | Ultra-low-energy on-device agents               |
+| [SCM](../compilers/scm)                         | Structural Causal Models          | Causally-aware reasoning agents                 |
+| [WASM](../compilers/wasm)                       | WebAssembly modules               | Edge-deployed lightweight agents                |
 
 ---
 

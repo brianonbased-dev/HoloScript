@@ -250,7 +250,8 @@ export class VRRCompiler extends CompilerBase {
             return `// VRR Weather: ${w.keyword} layers=[${w.layers.map((l) => l.type).join(', ')}]`;
           },
         },
-        (block) => `// Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`
+        (block) =>
+          `// Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`
       );
       for (const line of compiled) {
         this.generatedCode.push(line);
@@ -300,7 +301,7 @@ export class VRRCompiler extends CompilerBase {
 
   private generateAPIHooks(twinNodes: any[]) {
     this.generatedCode.push(`\n// Engine Initialization via @vrr_twin`);
-    
+
     // Default config values
     let geoCenter = { lat: 0, lng: 0 };
     let twinId = `auto_gen_twin_${Date.now()}`;
@@ -311,7 +312,8 @@ export class VRRCompiler extends CompilerBase {
     for (const node of twinNodes) {
       if (node.traits) {
         for (const trait of node.traits) {
-          if (trait.name === 'geo_anchor') geoCenter = { lat: trait.params.lat, lng: trait.params.lng };
+          if (trait.name === 'geo_anchor')
+            geoCenter = { lat: trait.params.lat, lng: trait.params.lng };
           else if (trait.name === 'vrr_twin' && trait.params.mirror) twinId = trait.params.mirror;
           else if (trait.name === 'weather_sync') weatherProvider = trait.params.provider;
           else if (trait.name === 'event_sync') eventProvider = trait.params.provider;
@@ -323,14 +325,17 @@ export class VRRCompiler extends CompilerBase {
     const apiConfig = JSON.parse(JSON.stringify(this.options.api_integrations || {}));
     if (weatherProvider && !apiConfig.weather) apiConfig.weather = { provider: weatherProvider };
     if (eventProvider && !apiConfig.events) apiConfig.events = { provider: eventProvider };
-    if (inventoryProvider && !apiConfig.inventory) apiConfig.inventory = { provider: inventoryProvider };
+    if (inventoryProvider && !apiConfig.inventory)
+      apiConfig.inventory = { provider: inventoryProvider };
 
     this.generatedCode.push(`const vrr = new VRRRuntime({`);
     this.generatedCode.push(`  twin_id: '${twinId}',`);
     this.generatedCode.push(`  geo_center: { lat: ${geoCenter.lat}, lng: ${geoCenter.lng} },`);
     this.generatedCode.push(`  apis: ${JSON.stringify(apiConfig, null, 2)},`);
     this.generatedCode.push(`  multiplayer: { enabled: true, max_players: 1000, tick_rate: 20 },`);
-    this.generatedCode.push(`  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`);
+    this.generatedCode.push(
+      `  state_persistence: { client: 'indexeddb', server: 'https://supabase.hololand.io' }`
+    );
     this.generatedCode.push(`});`);
 
     this.generatedCode.push(`\nconst phoenix_downtown = new THREE.Group();`);
@@ -340,7 +345,9 @@ export class VRRCompiler extends CompilerBase {
       this.generatedCode.push(`\n// Extracted @weather_sync hook`);
       this.generatedCode.push(`vrr.syncWeather((weather) => {`);
       this.generatedCode.push(`  scene.fog = new THREE.Fog(0xcccccc, 10, weather.visibility);`);
-      this.generatedCode.push(`  if (weather.precipitation > 50) console.log("Heavy Rain Detected in Twin");`);
+      this.generatedCode.push(
+        `  if (weather.precipitation > 50) console.log("Heavy Rain Detected in Twin");`
+      );
       this.generatedCode.push(`});`);
     }
 
@@ -348,7 +355,9 @@ export class VRRCompiler extends CompilerBase {
     if (eventProvider) {
       this.generatedCode.push(`\n// Extracted @event_sync hook`);
       this.generatedCode.push(`vrr.syncEvents((events) => {`);
-      this.generatedCode.push(`  events.forEach(evt => console.log('Spawning event NPCs for:', evt.name));`);
+      this.generatedCode.push(
+        `  events.forEach(evt => console.log('Spawning event NPCs for:', evt.name));`
+      );
       this.generatedCode.push(`});`);
     }
 
@@ -373,8 +382,12 @@ export class VRRCompiler extends CompilerBase {
     const paywalls = this.extractNodesWithTrait(twinNodes[0] || {}, '@x402_paywall');
     for (const pw of paywalls) {
       const trait = pw.traits.find((t: any) => t.name === 'x402_paywall');
-      this.generatedCode.push(`\n// @x402_paywall requirement for ${this.escapeStringValue(pw.name as string, 'TypeScript')}`);
-      this.generatedCode.push(`vrr.persistState('paywall_${this.escapeStringValue(pw.name as string, 'TypeScript')}', ${JSON.stringify(trait.params)});`);
+      this.generatedCode.push(
+        `\n// @x402_paywall requirement for ${this.escapeStringValue(pw.name as string, 'TypeScript')}`
+      );
+      this.generatedCode.push(
+        `vrr.persistState('paywall_${this.escapeStringValue(pw.name as string, 'TypeScript')}', ${JSON.stringify(trait.params)});`
+      );
     }
 
     // Multiplayer Hooks

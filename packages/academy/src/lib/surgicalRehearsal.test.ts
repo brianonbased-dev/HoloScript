@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  distance3D,
-  distanceToSegment,
-  Vec3
-} from './surgicalRehearsal';
+import { distance3D, distanceToSegment, Vec3 } from './surgicalRehearsal';
 
 describe('surgicalRehearsal', () => {
   describe('distance3D', () => {

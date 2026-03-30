@@ -304,7 +304,23 @@ export interface HSPlusExportDirective {
 
 /** Config-spread directives: { type: 'skybox', ...config } */
 export interface HSPlusConfigDirective {
-  type: 'world_metadata' | 'world_config' | 'skybox' | 'ambient_light' | 'fog' | 'artwork_metadata' | 'npc_behavior' | 'interactive' | 'lod' | 'gravity' | 'time_of_day' | 'audio_settings' | 'render_settings' | 'physics_config' | 'network_config' | 'accessibility';
+  type:
+    | 'world_metadata'
+    | 'world_config'
+    | 'skybox'
+    | 'ambient_light'
+    | 'fog'
+    | 'artwork_metadata'
+    | 'npc_behavior'
+    | 'interactive'
+    | 'lod'
+    | 'gravity'
+    | 'time_of_day'
+    | 'audio_settings'
+    | 'render_settings'
+    | 'physics_config'
+    | 'network_config'
+    | 'accessibility';
   [key: string]: unknown;
 }
 

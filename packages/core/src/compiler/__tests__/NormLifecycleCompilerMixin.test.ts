@@ -349,9 +349,7 @@ describe('validateCompiledNorm', () => {
       })
     );
     const issues = validateCompiledNorm(norm);
-    expect(issues.some((i) => i.includes('approval_threshold must be between 0 and 1'))).toBe(
-      true
-    );
+    expect(issues.some((i) => i.includes('approval_threshold must be between 0 and 1'))).toBe(true);
   });
 
   it('detects out-of-order sanctions', () => {
@@ -430,9 +428,7 @@ describe('validateCompiledMetanorm', () => {
       }),
     } as any);
     const issues = validateCompiledMetanorm(mn);
-    expect(issues.some((i) => i.includes('override_threshold must be between 0 and 1'))).toBe(
-      true
-    );
+    expect(issues.some((i) => i.includes('override_threshold must be between 0 and 1'))).toBe(true);
   });
 });
 

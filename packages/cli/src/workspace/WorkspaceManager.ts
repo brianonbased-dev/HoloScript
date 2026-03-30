@@ -245,7 +245,11 @@ export class WorkspaceManager {
         const fullPath = join(dir, entry.name);
         if (entry.isFile()) {
           callback(fullPath);
-        } else if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+        } else if (
+          entry.isDirectory() &&
+          !entry.name.startsWith('.') &&
+          entry.name !== 'node_modules'
+        ) {
           this.walkDir(fullPath, depth - 1, callback);
         }
       }
@@ -286,9 +290,7 @@ export class WorkspaceManager {
     let remaining = new Map(inDegree);
 
     while (processed.size < this.members.size) {
-      const group = [...remaining.entries()]
-        .filter(([, deg]) => deg === 0)
-        .map(([name]) => name);
+      const group = [...remaining.entries()].filter(([, deg]) => deg === 0).map(([name]) => name);
 
       if (group.length === 0) {
         // Cycle detected

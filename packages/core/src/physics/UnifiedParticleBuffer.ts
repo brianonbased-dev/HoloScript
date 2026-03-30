@@ -112,7 +112,7 @@ export class UnifiedParticleBuffer {
     if (this.nextFree + count > this.capacity) {
       throw new Error(
         `UnifiedParticleBuffer: capacity exceeded. Requested ${count}, ` +
-        `available ${this.capacity - this.nextFree} of ${this.capacity}`
+          `available ${this.capacity - this.nextFree} of ${this.capacity}`
       );
     }
 
@@ -126,10 +126,10 @@ export class UnifiedParticleBuffer {
     // Initialize attribute type tags for this range
     for (let i = 0; i < count; i++) {
       const idx = (this.nextFree + i) * 4;
-      this.attributes[idx] = type;       // type
-      this.attributes[idx + 1] = type;   // phase (default: same as type)
-      this.attributes[idx + 2] = 0;      // density
-      this.attributes[idx + 3] = 0;      // pressure
+      this.attributes[idx] = type; // type
+      this.attributes[idx + 1] = type; // phase (default: same as type)
+      this.attributes[idx + 2] = 0; // density
+      this.attributes[idx + 3] = 0; // pressure
     }
 
     this.nextFree += count;
@@ -179,8 +179,8 @@ export class UnifiedParticleBuffer {
    */
   solveBoundaryCoupling(dt: number): void {
     for (const coupling of this.couplings) {
-      const sourceRanges = this.ranges.filter(r => r.type === coupling.from);
-      const targetRanges = this.ranges.filter(r => r.type === coupling.to);
+      const sourceRanges = this.ranges.filter((r) => r.type === coupling.from);
+      const targetRanges = this.ranges.filter((r) => r.type === coupling.to);
 
       for (const src of sourceRanges) {
         for (const tgt of targetRanges) {
@@ -194,7 +194,7 @@ export class UnifiedParticleBuffer {
     src: ParticleRange,
     tgt: ParticleRange,
     coupling: BoundaryCoupling,
-    dt: number,
+    dt: number
   ): void {
     const r2Max = coupling.radius * coupling.radius;
     const pos = this.positions;
@@ -203,7 +203,9 @@ export class UnifiedParticleBuffer {
 
     for (let si = 0; si < src.count; si++) {
       const sIdx3 = (src.offset + si) * 3;
-      const sx = pos[sIdx3], sy = pos[sIdx3 + 1], sz = pos[sIdx3 + 2];
+      const sx = pos[sIdx3],
+        sy = pos[sIdx3 + 1],
+        sz = pos[sIdx3 + 2];
 
       for (let ti = 0; ti < tgt.count; ti++) {
         const tIdx3 = (tgt.offset + ti) * 3;
@@ -217,7 +219,7 @@ export class UnifiedParticleBuffer {
         const dist = Math.sqrt(d2);
         const overlap = coupling.radius - dist;
         // Repulsive force proportional to overlap (like a soft penalty)
-        const force = strength * overlap / dist * dt;
+        const force = ((strength * overlap) / dist) * dt;
 
         // Push target away from source
         vel[tIdx3] += dx * force;
@@ -301,7 +303,7 @@ export class UnifiedParticleBuffer {
 
   /** Get ranges of a specific particle type. */
   getRangesByType(type: ParticleType): ParticleRange[] {
-    return this.ranges.filter(r => r.type === type);
+    return this.ranges.filter((r) => r.type === type);
   }
 
   /** Total active particles across all ranges. */
@@ -356,16 +358,23 @@ export class UnifiedParticleBuffer {
     let offset = 0;
 
     // Header
-    view.setUint32(offset, 0x48505346, false); offset += 4; // 'HPSF' magic
-    view.setUint16(offset, 1, false); offset += 2;          // version 1
-    view.setUint32(offset, activeCount, false); offset += 4;
-    view.setUint16(offset, this.ranges.length, false); offset += 2;
+    view.setUint32(offset, 0x48505346, false);
+    offset += 4; // 'HPSF' magic
+    view.setUint16(offset, 1, false);
+    offset += 2; // version 1
+    view.setUint32(offset, activeCount, false);
+    offset += 4;
+    view.setUint16(offset, this.ranges.length, false);
+    offset += 2;
 
     // Range headers
     for (const range of this.ranges) {
-      view.setUint8(offset, range.type); offset += 1;
-      view.setUint32(offset, range.offset, false); offset += 4;
-      view.setUint32(offset, range.count, false); offset += 4;
+      view.setUint8(offset, range.type);
+      offset += 1;
+      view.setUint32(offset, range.offset, false);
+      offset += 4;
+      view.setUint32(offset, range.count, false);
+      offset += 4;
     }
 
     // Particle data (only active ranges)
@@ -373,13 +382,20 @@ export class UnifiedParticleBuffer {
       for (let i = 0; i < range.count; i++) {
         const pi = range.offset + i;
         const i3 = pi * 3;
-        view.setFloat32(offset, this.positions[i3], false); offset += 4;
-        view.setFloat32(offset, this.positions[i3 + 1], false); offset += 4;
-        view.setFloat32(offset, this.positions[i3 + 2], false); offset += 4;
-        view.setFloat32(offset, this.velocities[i3], false); offset += 4;
-        view.setFloat32(offset, this.velocities[i3 + 1], false); offset += 4;
-        view.setFloat32(offset, this.velocities[i3 + 2], false); offset += 4;
-        view.setUint8(offset, range.type); offset += 1;
+        view.setFloat32(offset, this.positions[i3], false);
+        offset += 4;
+        view.setFloat32(offset, this.positions[i3 + 1], false);
+        offset += 4;
+        view.setFloat32(offset, this.positions[i3 + 2], false);
+        offset += 4;
+        view.setFloat32(offset, this.velocities[i3], false);
+        offset += 4;
+        view.setFloat32(offset, this.velocities[i3 + 1], false);
+        offset += 4;
+        view.setFloat32(offset, this.velocities[i3 + 2], false);
+        offset += 4;
+        view.setUint8(offset, range.type);
+        offset += 1;
       }
     }
 
@@ -395,18 +411,22 @@ export class UnifiedParticleBuffer {
     let offset = 0;
 
     // Validate header
-    const magic = view.getUint32(offset, false); offset += 4;
+    const magic = view.getUint32(offset, false);
+    offset += 4;
     if (magic !== 0x48505346) {
       throw new Error('Invalid UnifiedParticleBuffer magic: expected HPSF');
     }
 
-    const version = view.getUint16(offset, false); offset += 2;
+    const version = view.getUint16(offset, false);
+    offset += 2;
     if (version !== 1) {
       throw new Error(`Unsupported UnifiedParticleBuffer version: ${version}`);
     }
 
-    const particleCount = view.getUint32(offset, false); offset += 4;
-    const rangeCount = view.getUint16(offset, false); offset += 2;
+    const particleCount = view.getUint32(offset, false);
+    offset += 4;
+    const rangeCount = view.getUint16(offset, false);
+    offset += 2;
 
     if (particleCount > this.capacity) {
       throw new Error(
@@ -421,10 +441,18 @@ export class UnifiedParticleBuffer {
     // Read range headers
     const incomingRanges: ParticleRange[] = [];
     for (let r = 0; r < rangeCount; r++) {
-      const type = view.getUint8(offset) as ParticleType; offset += 1;
-      const rangeOffset = view.getUint32(offset, false); offset += 4;
-      const count = view.getUint32(offset, false); offset += 4;
-      incomingRanges.push({ type, offset: rangeOffset, count, label: `remote-${ParticleType[type]}` });
+      const type = view.getUint8(offset) as ParticleType;
+      offset += 1;
+      const rangeOffset = view.getUint32(offset, false);
+      offset += 4;
+      const count = view.getUint32(offset, false);
+      offset += 4;
+      incomingRanges.push({
+        type,
+        offset: rangeOffset,
+        count,
+        label: `remote-${ParticleType[type]}`,
+      });
     }
 
     // Read particle data
@@ -433,13 +461,20 @@ export class UnifiedParticleBuffer {
         const pi = range.offset + i;
         const i3 = pi * 3;
         const i4 = pi * 4;
-        this.positions[i3] = view.getFloat32(offset, false); offset += 4;
-        this.positions[i3 + 1] = view.getFloat32(offset, false); offset += 4;
-        this.positions[i3 + 2] = view.getFloat32(offset, false); offset += 4;
-        this.velocities[i3] = view.getFloat32(offset, false); offset += 4;
-        this.velocities[i3 + 1] = view.getFloat32(offset, false); offset += 4;
-        this.velocities[i3 + 2] = view.getFloat32(offset, false); offset += 4;
-        this.attributes[i4] = view.getUint8(offset); offset += 1;
+        this.positions[i3] = view.getFloat32(offset, false);
+        offset += 4;
+        this.positions[i3 + 1] = view.getFloat32(offset, false);
+        offset += 4;
+        this.positions[i3 + 2] = view.getFloat32(offset, false);
+        offset += 4;
+        this.velocities[i3] = view.getFloat32(offset, false);
+        offset += 4;
+        this.velocities[i3 + 1] = view.getFloat32(offset, false);
+        offset += 4;
+        this.velocities[i3 + 2] = view.getFloat32(offset, false);
+        offset += 4;
+        this.attributes[i4] = view.getUint8(offset);
+        offset += 1;
       }
     }
 

@@ -6,7 +6,11 @@
  * to avoid loading others.
  */
 
-export type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions } from './EmbeddingProvider';
+export type {
+  EmbeddingProvider,
+  EmbeddingProviderName,
+  EmbeddingProviderOptions,
+} from './EmbeddingProvider';
 export { createEmbeddingProvider } from './EmbeddingProviderFactory';
 
 export { BM25EmbeddingProvider } from './BM25EmbeddingProvider';

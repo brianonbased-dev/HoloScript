@@ -98,8 +98,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
           const s = config.smoothing;
           node.position.x = node.position.x * s + state.localPosition.x * (1 - s);
           node.position.y =
-            node.position.y * s +
-            (state.localPosition.y + config.elevation_offset) * (1 - s);
+            node.position.y * s + (state.localPosition.y + config.elevation_offset) * (1 - s);
           node.position.z = node.position.z * s + state.localPosition.z * (1 - s);
         } else {
           node.position.x = state.localPosition.x;
@@ -116,8 +115,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
           node.rotation.y = node.rotation.y * s + state.localRotation.y * (1 - s);
           node.rotation.z = node.rotation.z * s + state.localRotation.z * (1 - s);
           if (node.rotation.w !== undefined) {
-            node.rotation.w =
-              node.rotation.w * s + state.localRotation.w * (1 - s);
+            node.rotation.w = node.rotation.w * s + state.localRotation.w * (1 - s);
           }
         } else {
           node.rotation.x = state.localRotation.x;

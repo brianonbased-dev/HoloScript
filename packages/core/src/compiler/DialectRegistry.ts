@@ -153,7 +153,7 @@ class DialectRegistryImpl {
     if (this.dialects.has(descriptor.name)) {
       throw new Error(
         `Dialect "${descriptor.name}" is already registered. ` +
-        `Use DialectRegistry.override() to replace an existing dialect.`
+          `Use DialectRegistry.override() to replace an existing dialect.`
       );
     }
     // Auto-generate ANS path if not provided
@@ -213,9 +213,7 @@ class DialectRegistryImpl {
     const desc = this.dialects.get(name);
     if (!desc) {
       const available = [...this.dialects.keys()].join(', ');
-      throw new Error(
-        `Unknown dialect "${name}". Available: ${available}`
-      );
+      throw new Error(`Unknown dialect "${name}". Available: ${available}`);
     }
     return desc.factory(options);
   }
@@ -224,7 +222,7 @@ class DialectRegistryImpl {
    * List all registered dialects.
    */
   list(): DialectInfo[] {
-    return [...this.dialects.values()].map(desc => ({
+    return [...this.dialects.values()].map((desc) => ({
       name: desc.name,
       domain: desc.domain,
       description: desc.description,
@@ -240,14 +238,14 @@ class DialectRegistryImpl {
    * List dialects filtered by domain.
    */
   listByDomain(domain: DialectDomain): DialectInfo[] {
-    return this.list().filter(d => d.domain === domain);
+    return this.list().filter((d) => d.domain === domain);
   }
 
   /**
    * Find dialects that support a specific trait.
    */
   findByTrait(traitName: string): DialectInfo[] {
-    return this.list().filter(d => d.supportedTraits.includes(traitName));
+    return this.list().filter((d) => d.supportedTraits.includes(traitName));
   }
 
   /**
@@ -278,9 +276,7 @@ class DialectRegistryImpl {
       throw new Error(`Unknown dialect "${dialectName}"`);
     }
 
-    const passes = [...(desc.loweringPasses || [])].sort(
-      (a, b) => a.priority - b.priority
-    );
+    const passes = [...(desc.loweringPasses || [])].sort((a, b) => a.priority - b.priority);
 
     if (passes.length === 0) {
       throw new Error(
@@ -306,7 +302,7 @@ class DialectRegistryImpl {
       }
 
       // Stop on error diagnostics
-      const hasError = lastResult.diagnostics?.some(d => d.level === 'error');
+      const hasError = lastResult.diagnostics?.some((d) => d.level === 'error');
       if (hasError) break;
     }
 
@@ -327,7 +323,6 @@ export function ensureDialectsBooted(): void {
   if (_autoBooted) return;
   _autoBooted = true;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { registerBuiltinDialects } = require('./registerBuiltinDialects');
     registerBuiltinDialects();
   } catch {

@@ -372,7 +372,10 @@ export const spatialTemporalAdjacentHandler: TraitHandler<SpatialTemporalAdjacen
   },
 
   onEvent(node, config, context, event) {
-    if (event.type === 'spatial_target_update' && (event as Record<string, unknown>).targetId === config.target) {
+    if (
+      event.type === 'spatial_target_update' &&
+      (event as Record<string, unknown>).targetId === config.target
+    ) {
       const state = context.getState().spatialTemporalAdjacent as TemporalAdjacentState | undefined;
       if (state) {
         state.targetPosition = (event as Record<string, unknown>).position;
@@ -549,7 +552,10 @@ export const spatialTemporalReachableHandler: TraitHandler<SpatialTemporalReacha
     if (!state) return;
 
     // Track target position
-    if (event.type === 'spatial_target_update' && (event as Record<string, unknown>).targetId === config.target) {
+    if (
+      event.type === 'spatial_target_update' &&
+      (event as Record<string, unknown>).targetId === config.target
+    ) {
       state.targetPosition = (event as Record<string, unknown>).position;
       context.setState({ spatialTemporalReachable: state });
     }

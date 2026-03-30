@@ -18,13 +18,13 @@ holoscript compile experience.holo --target ai-glasses --glasses-platform snap -
 
 ## Supported Platforms
 
-| Platform             | Device                | SDK               | Output Format      |
-| -------------------- | --------------------- | ----------------- | ------------------ |
-| `meta-raybans`       | Meta Ray-Ban Stories  | Meta View SDK     | JavaScript + HTML  |
-| `snap`               | Snap Spectacles 3     | Lens Studio (Snap OS) | Lens Script + AR  |
-| `android-xr-glasses` | Android XR glasses    | Android XR SDK    | Kotlin + Jetpack   |
-| `apple-ai-glasses`   | Apple AI glasses      | visionOS Light    | SwiftUI + ARKit    |
-| `generic`            | Generic OpenXR glasses | OpenXR + WebXR   | C++ / JS           |
+| Platform             | Device                 | SDK                   | Output Format     |
+| -------------------- | ---------------------- | --------------------- | ----------------- |
+| `meta-raybans`       | Meta Ray-Ban Stories   | Meta View SDK         | JavaScript + HTML |
+| `snap`               | Snap Spectacles 3      | Lens Studio (Snap OS) | Lens Script + AR  |
+| `android-xr-glasses` | Android XR glasses     | Android XR SDK        | Kotlin + Jetpack  |
+| `apple-ai-glasses`   | Apple AI glasses       | visionOS Light        | SwiftUI + ARKit   |
+| `generic`            | Generic OpenXR glasses | OpenXR + WebXR        | C++ / JS          |
 
 ## Trait Profile for AI Glasses
 
@@ -32,16 +32,16 @@ AI glasses have a restricted trait set due to hardware constraints:
 
 | Trait              | Support | Notes                                  |
 | ------------------ | ------- | -------------------------------------- |
-| `@voice_activated` | ✅ Full  | Primary input method                   |
-| `@eye_tracked`     | ✅ Full  | Foveated attention, gaze selection     |
-| `@billboard`       | ✅ Full  | Text/info always facing user           |
-| `@spatial_audio`   | ✅ Full  | 3D audio via bone conduction / earbuds |
-| `@anchor`          | ✅ Full  | World-locked info anchors              |
+| `@voice_activated` | ✅ Full | Primary input method                   |
+| `@eye_tracked`     | ✅ Full | Foveated attention, gaze selection     |
+| `@billboard`       | ✅ Full | Text/info always facing user           |
+| `@spatial_audio`   | ✅ Full | 3D audio via bone conduction / earbuds |
+| `@anchor`          | ✅ Full | World-locked info anchors              |
 | `@llm_agent`       | ⚠️ Edge | Lightweight quantized model only       |
-| `@physics`         | ❌ Skip  | Too GPU-heavy for glasses              |
-| `@particle`        | ❌ Skip  | Battery cost too high                  |
-| `@networked`       | ✅ WiFi  | Sync via companion app                 |
-| `@hitl`            | ✅ Full  | Glasses are a primary HITL interface   |
+| `@physics`         | ❌ Skip | Too GPU-heavy for glasses              |
+| `@particle`        | ❌ Skip | Battery cost too high                  |
+| `@networked`       | ✅ WiFi | Sync via companion app                 |
+| `@hitl`            | ✅ Full | Glasses are a primary HITL interface   |
 
 ## Example
 
@@ -99,12 +99,12 @@ glasses/
 
 ## Compiler Options
 
-| Option                      | Default    | Description                              |
-| --------------------------- | ---------- | ---------------------------------------- |
-| `--glasses-platform`        | `generic`  | Target platform (see table above)        |
-| `--glasses-edge-llm`        | `false`    | Include edge LLM inference bundle        |
-| `--glasses-battery-budget`  | `5`        | Max Watts; trims heavy traits            |
-| `--glasses-companion-sync`  | `false`    | Generate companion phone app sync code   |
+| Option                     | Default   | Description                            |
+| -------------------------- | --------- | -------------------------------------- |
+| `--glasses-platform`       | `generic` | Target platform (see table above)      |
+| `--glasses-edge-llm`       | `false`   | Include edge LLM inference bundle      |
+| `--glasses-battery-budget` | `5`       | Max Watts; trims heavy traits          |
+| `--glasses-companion-sync` | `false`   | Generate companion phone app sync code |
 
 ## See Also
 

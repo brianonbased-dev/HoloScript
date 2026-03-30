@@ -171,7 +171,7 @@ function parseForPreview(source: string): SceneNode[] {
       type: 'orb',
       name,
       properties: props,
-      traits: extractTraits(body).map(t => t.replace('@', '')),
+      traits: extractTraits(body).map((t) => t.replace('@', '')),
     });
   }
 
@@ -213,4 +213,3 @@ function parseProperties(body: string): Record<string, unknown> {
 
   return props;
 }
-

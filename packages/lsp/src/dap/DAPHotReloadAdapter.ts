@@ -92,11 +92,14 @@ export interface DAPAttachMessage {
 export class AttachConnection {
   private ws: WebSocket | null = null;
   private messageId = 0;
-  private pendingRequests = new Map<number, {
-    resolve: (value: unknown) => void;
-    reject: (reason: Error) => void;
-    timeout: ReturnType<typeof setTimeout>;
-  }>();
+  private pendingRequests = new Map<
+    number,
+    {
+      resolve: (value: unknown) => void;
+      reject: (reason: Error) => void;
+      timeout: ReturnType<typeof setTimeout>;
+    }
+  >();
   private eventListeners = new Map<string, ((data: unknown) => void)[]>();
   private _connected = false;
 
@@ -280,12 +283,20 @@ export class HotReloadManager {
   private onReload: ((event: HotReloadEvent) => void) | null = null;
 
   /** Enable or disable hot reload. */
-  get enabled(): boolean { return this._enabled; }
-  set enabled(value: boolean) { this._enabled = value; }
+  get enabled(): boolean {
+    return this._enabled;
+  }
+  set enabled(value: boolean) {
+    this._enabled = value;
+  }
 
   /** Debounce interval in ms. */
-  get debounceMs(): number { return this._debounceMs; }
-  set debounceMs(value: number) { this._debounceMs = Math.max(50, value); }
+  get debounceMs(): number {
+    return this._debounceMs;
+  }
+  set debounceMs(value: number) {
+    this._debounceMs = Math.max(50, value);
+  }
 
   /**
    * Register a file for hot-reload watching.
@@ -471,7 +482,7 @@ export class TraitVariableInspector {
   extractTraitVariables(
     objectId: string,
     props: Record<string, unknown>,
-    activeTraits: string[] = [],
+    activeTraits: string[] = []
   ): TraitVariableInfo[] {
     const traits: TraitVariableInfo[] = [];
 
@@ -482,9 +493,10 @@ export class TraitVariableInspector {
         traits.push({
           traitName,
           objectId,
-          config: typeof value === 'object' && value !== null
-            ? value as Record<string, unknown>
-            : { value },
+          config:
+            typeof value === 'object' && value !== null
+              ? (value as Record<string, unknown>)
+              : { value },
           active: activeTraits.includes(traitName),
           lastUpdate: Date.now(),
         });
@@ -498,9 +510,10 @@ export class TraitVariableInspector {
         traits.push({
           traitName,
           objectId,
-          config: typeof config === 'object' && config !== null
-            ? config as Record<string, unknown>
-            : { value: config },
+          config:
+            typeof config === 'object' && config !== null
+              ? (config as Record<string, unknown>)
+              : { value: config },
           active: activeTraits.includes(traitName),
           lastUpdate: Date.now(),
         });
@@ -523,9 +536,9 @@ export class TraitVariableInspector {
 
       // Create structured value with config entries
       const traitObj: Record<string, unknown> = {
-        '__status': trait.active ? 'active' : 'inactive',
-        '__objectId': trait.objectId,
-        '__lastUpdate': new Date(trait.lastUpdate).toISOString(),
+        __status: trait.active ? 'active' : 'inactive',
+        __objectId: trait.objectId,
+        __lastUpdate: new Date(trait.lastUpdate).toISOString(),
       };
 
       for (const [configKey, configValue] of Object.entries(trait.config)) {
@@ -633,7 +646,7 @@ export class PerformanceTimeline {
   detectSpikes(threshold: number = 2.0): PerformanceFrame[] {
     const avg = this.getAverageFrameTime();
     if (avg === 0) return [];
-    return this.frames.filter(f => f.frameTimeMs > avg * threshold);
+    return this.frames.filter((f) => f.frameTimeMs > avg * threshold);
   }
 
   /**
@@ -670,13 +683,17 @@ export class PerformanceTimeline {
    * Export timeline data as JSON for external analysis.
    */
   exportJSON(): string {
-    return JSON.stringify({
-      frameCount: this.frames.length,
-      avgFrameTime: this.getAverageFrameTime(),
-      hottestTraits: this.getHottestTraits(10),
-      spikeCount: this.detectSpikes().length,
-      frames: this.frames,
-    }, null, 2);
+    return JSON.stringify(
+      {
+        frameCount: this.frames.length,
+        avgFrameTime: this.getAverageFrameTime(),
+        hottestTraits: this.getHottestTraits(10),
+        spikeCount: this.detectSpikes().length,
+        frames: this.frames,
+      },
+      null,
+      2
+    );
   }
 
   /** Clear all recorded data. */
@@ -708,11 +725,18 @@ export class ConditionalBreakpointEvaluator {
    */
   evaluate(
     expression: string,
-    context: Record<string, unknown>,
+    context: Record<string, unknown>
   ): { result: boolean; error?: string } {
     try {
       // Sanitize: only allow safe characters
-      if (/[;{}()=]/.test(expression.replace(/[<>!=]=?/g, '').replace(/\(/g, '').replace(/\)/g, ''))) {
+      if (
+        /[;{}()=]/.test(
+          expression
+            .replace(/[<>!=]=?/g, '')
+            .replace(/\(/g, '')
+            .replace(/\)/g, '')
+        )
+      ) {
         return {
           result: false,
           error: `Unsafe characters in expression: ${expression}`,
@@ -720,41 +744,32 @@ export class ConditionalBreakpointEvaluator {
       }
 
       // Replace trait property access (@trait.prop) with context lookups
-      let normalized = expression.replace(
-        /@(\w+)\.(\w+)/g,
-        (_, trait, prop) => {
-          const traitConfig = context[`@${trait}`] || context[`trait_${trait}`] || context[trait];
-          if (traitConfig && typeof traitConfig === 'object') {
-            return String((traitConfig as Record<string, unknown>)[prop] ?? 'undefined');
-          }
-          return 'undefined';
+      let normalized = expression.replace(/@(\w+)\.(\w+)/g, (_, trait, prop) => {
+        const traitConfig = context[`@${trait}`] || context[`trait_${trait}`] || context[trait];
+        if (traitConfig && typeof traitConfig === 'object') {
+          return String((traitConfig as Record<string, unknown>)[prop] ?? 'undefined');
         }
-      );
+        return 'undefined';
+      });
 
       // Replace state.X with context lookups
-      normalized = normalized.replace(
-        /state\.(\w+)/g,
-        (_, prop) => {
-          const state = context['state'] as Record<string, unknown> | undefined;
-          if (state && prop in state) {
-            const val = state[prop];
-            return typeof val === 'string' ? `"${val}"` : String(val);
-          }
-          return 'undefined';
+      normalized = normalized.replace(/state\.(\w+)/g, (_, prop) => {
+        const state = context['state'] as Record<string, unknown> | undefined;
+        if (state && prop in state) {
+          const val = state[prop];
+          return typeof val === 'string' ? `"${val}"` : String(val);
         }
-      );
+        return 'undefined';
+      });
 
       // Replace this.X with context lookups
-      normalized = normalized.replace(
-        /this\.(\w+)(?:\[(\d+)\])?/g,
-        (_, prop, index) => {
-          const val = context[prop];
-          if (index !== undefined && Array.isArray(val)) {
-            return String(val[parseInt(index)] ?? 'undefined');
-          }
-          return typeof val === 'string' ? `"${val}"` : String(val ?? 'undefined');
+      normalized = normalized.replace(/this\.(\w+)(?:\[(\d+)\])?/g, (_, prop, index) => {
+        const val = context[prop];
+        if (index !== undefined && Array.isArray(val)) {
+          return String(val[parseInt(index)] ?? 'undefined');
         }
-      );
+        return typeof val === 'string' ? `"${val}"` : String(val ?? 'undefined');
+      });
 
       // Simple expression evaluator for comparisons
       const result = this.evaluateSimpleExpression(normalized);
@@ -773,12 +788,12 @@ export class ConditionalBreakpointEvaluator {
   private evaluateSimpleExpression(expr: string): boolean {
     // Handle && and ||
     if (expr.includes('&&')) {
-      const parts = expr.split('&&').map(p => p.trim());
-      return parts.every(part => this.evaluateSimpleExpression(part));
+      const parts = expr.split('&&').map((p) => p.trim());
+      return parts.every((part) => this.evaluateSimpleExpression(part));
     }
     if (expr.includes('||')) {
-      const parts = expr.split('||').map(p => p.trim());
-      return parts.some(part => this.evaluateSimpleExpression(part));
+      const parts = expr.split('||').map((p) => p.trim());
+      return parts.some((part) => this.evaluateSimpleExpression(part));
     }
 
     // Handle negation
@@ -795,15 +810,22 @@ export class ConditionalBreakpointEvaluator {
       const right = this.parseValue(comparisonMatch[3].trim());
 
       switch (op) {
-        case '>': return left > right;
-        case '<': return left < right;
-        case '>=': return left >= right;
-        case '<=': return left <= right;
+        case '>':
+          return left > right;
+        case '<':
+          return left < right;
+        case '>=':
+          return left >= right;
+        case '<=':
+          return left <= right;
         case '==':
-        case '===': return left === right;
+        case '===':
+          return left === right;
         case '!=':
-        case '!==': return left !== right;
-        default: return false;
+        case '!==':
+          return left !== right;
+        default:
+          return false;
       }
     }
 

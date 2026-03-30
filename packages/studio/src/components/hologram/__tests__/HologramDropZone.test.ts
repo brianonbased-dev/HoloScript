@@ -64,21 +64,23 @@ function generateVideoObject(name: string, filename: string, x: number, y: numbe
 
 describe('HologramDropZone — Media Detection', () => {
   describe('image extensions', () => {
-    it.each(['photo.png', 'image.jpg', 'pic.jpeg', 'shot.webp', 'HDR.avif', 'scan.tiff', 'old.bmp'])(
-      'detects %s as image',
-      (filename) => {
-        expect(detectMediaType(filename)).toBe('image');
-      }
-    );
+    it.each([
+      'photo.png',
+      'image.jpg',
+      'pic.jpeg',
+      'shot.webp',
+      'HDR.avif',
+      'scan.tiff',
+      'old.bmp',
+    ])('detects %s as image', (filename) => {
+      expect(detectMediaType(filename)).toBe('image');
+    });
   });
 
   describe('GIF extensions', () => {
-    it.each(['animation.gif', 'sticker.apng'])(
-      'detects %s as gif',
-      (filename) => {
-        expect(detectMediaType(filename)).toBe('gif');
-      }
-    );
+    it.each(['animation.gif', 'sticker.apng'])('detects %s as gif', (filename) => {
+      expect(detectMediaType(filename)).toBe('gif');
+    });
   });
 
   describe('video extensions', () => {

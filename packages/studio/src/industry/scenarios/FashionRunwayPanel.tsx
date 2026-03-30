@@ -265,4 +265,3 @@ export function FashionRunwayPanel() {
 }
 
 export default FashionRunwayPanel;
-

@@ -24,12 +24,35 @@
  * Supported export targets (aligned with compiler/CircuitBreaker.ts ExportTarget)
  */
 export type ExportTarget =
-  | 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat'
-  | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'ar'
-  | 'babylon' | 'webgpu' | 'r3f' | 'wasm' | 'playcanvas'
-  | 'usd' | 'usdz' | 'dtdl' | 'vrr' | 'multi-layer'
-  | 'incremental' | 'state' | 'trait-composition' | 'tsl'
-  | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities';
+  | 'urdf'
+  | 'sdf'
+  | 'unity'
+  | 'unreal'
+  | 'godot'
+  | 'vrchat'
+  | 'openxr'
+  | 'android'
+  | 'android-xr'
+  | 'ios'
+  | 'visionos'
+  | 'ar'
+  | 'babylon'
+  | 'webgpu'
+  | 'r3f'
+  | 'wasm'
+  | 'playcanvas'
+  | 'usd'
+  | 'usdz'
+  | 'dtdl'
+  | 'vrr'
+  | 'multi-layer'
+  | 'incremental'
+  | 'state'
+  | 'trait-composition'
+  | 'tsl'
+  | 'a2a-agent-card'
+  | 'nir'
+  | 'openxr-spatial-entities';
 
 /**
  * Threshold configuration for CI/CD quality gates.
@@ -253,8 +276,8 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig = {
 /** Critical targets that have stricter thresholds */
 const CRITICAL_TARGETS: ExportTarget[] = ['r3f', 'webgpu', 'unity', 'unreal', 'openxr', 'visionos'];
 
-export const DEFAULT_CRITICAL_TARGET_OVERRIDES: TargetThresholdOverrides[] =
-  CRITICAL_TARGETS.map((target) => ({
+export const DEFAULT_CRITICAL_TARGET_OVERRIDES: TargetThresholdOverrides[] = CRITICAL_TARGETS.map(
+  (target) => ({
     target,
     overrides: {
       maxFailureRate: 5,
@@ -263,7 +286,8 @@ export const DEFAULT_CRITICAL_TARGET_OVERRIDES: TargetThresholdOverrides[] =
       maxConsecutiveFailures: 3,
       maxP95CompilationTimeMs: 3000,
     },
-  }));
+  })
+);
 
 export const DEFAULT_CICD_CONFIG: CICDPipelineConfig = {
   thresholds: DEFAULT_THRESHOLDS,
@@ -646,11 +670,14 @@ export class QualityGateEvaluator {
     p95CompilationTimeMs: number;
     speedRegression: number;
     memoryRegression: number;
-    perTargetMetrics?: Map<ExportTarget, {
-      consecutiveFailures: number;
-      p95CompilationTimeMs: number;
-      failureRate: number;
-    }>;
+    perTargetMetrics?: Map<
+      ExportTarget,
+      {
+        consecutiveFailures: number;
+        p95CompilationTimeMs: number;
+        failureRate: number;
+      }
+    >;
   }): QualityGateResult {
     const t0 = performance.now();
     const checks: QualityCheck[] = [];
@@ -664,9 +691,10 @@ export class QualityGateEvaluator {
       actual: metrics.failureRate,
       threshold: thresholds.maxFailureRate,
       category: 'reliability',
-      message: metrics.failureRate <= thresholds.maxFailureRate
-        ? `Failure rate ${metrics.failureRate}/hr is within threshold`
-        : `Failure rate ${metrics.failureRate}/hr exceeds maximum ${thresholds.maxFailureRate}/hr`,
+      message:
+        metrics.failureRate <= thresholds.maxFailureRate
+          ? `Failure rate ${metrics.failureRate}/hr is within threshold`
+          : `Failure rate ${metrics.failureRate}/hr exceeds maximum ${thresholds.maxFailureRate}/hr`,
     });
 
     checks.push({
@@ -675,9 +703,10 @@ export class QualityGateEvaluator {
       actual: metrics.openCircuits,
       threshold: thresholds.maxOpenCircuits,
       category: 'reliability',
-      message: metrics.openCircuits <= thresholds.maxOpenCircuits
-        ? `${metrics.openCircuits} open circuits within threshold`
-        : `${metrics.openCircuits} open circuits exceeds maximum ${thresholds.maxOpenCircuits}`,
+      message:
+        metrics.openCircuits <= thresholds.maxOpenCircuits
+          ? `${metrics.openCircuits} open circuits within threshold`
+          : `${metrics.openCircuits} open circuits exceeds maximum ${thresholds.maxOpenCircuits}`,
     });
 
     checks.push({
@@ -686,9 +715,10 @@ export class QualityGateEvaluator {
       actual: metrics.healthScore,
       threshold: thresholds.minHealthScore,
       category: 'reliability',
-      message: metrics.healthScore >= thresholds.minHealthScore
-        ? `Health score ${metrics.healthScore} meets minimum ${thresholds.minHealthScore}`
-        : `Health score ${metrics.healthScore} below minimum ${thresholds.minHealthScore}`,
+      message:
+        metrics.healthScore >= thresholds.minHealthScore
+          ? `Health score ${metrics.healthScore} meets minimum ${thresholds.minHealthScore}`
+          : `Health score ${metrics.healthScore} below minimum ${thresholds.minHealthScore}`,
     });
 
     checks.push({
@@ -697,9 +727,10 @@ export class QualityGateEvaluator {
       actual: metrics.degradedTimeMs,
       threshold: thresholds.maxDegradedTimeMs,
       category: 'reliability',
-      message: metrics.degradedTimeMs <= thresholds.maxDegradedTimeMs
-        ? `Degraded time ${(metrics.degradedTimeMs / 1000).toFixed(0)}s within threshold`
-        : `Degraded time ${(metrics.degradedTimeMs / 1000).toFixed(0)}s exceeds maximum`,
+      message:
+        metrics.degradedTimeMs <= thresholds.maxDegradedTimeMs
+          ? `Degraded time ${(metrics.degradedTimeMs / 1000).toFixed(0)}s within threshold`
+          : `Degraded time ${(metrics.degradedTimeMs / 1000).toFixed(0)}s exceeds maximum`,
     });
 
     checks.push({
@@ -708,9 +739,10 @@ export class QualityGateEvaluator {
       actual: metrics.testCoverage,
       threshold: thresholds.minTestCoverage,
       category: 'coverage',
-      message: metrics.testCoverage >= thresholds.minTestCoverage
-        ? `Coverage ${metrics.testCoverage}% meets minimum ${thresholds.minTestCoverage}%`
-        : `Coverage ${metrics.testCoverage}% below minimum ${thresholds.minTestCoverage}%`,
+      message:
+        metrics.testCoverage >= thresholds.minTestCoverage
+          ? `Coverage ${metrics.testCoverage}% meets minimum ${thresholds.minTestCoverage}%`
+          : `Coverage ${metrics.testCoverage}% below minimum ${thresholds.minTestCoverage}%`,
     });
 
     checks.push({
@@ -719,9 +751,10 @@ export class QualityGateEvaluator {
       actual: metrics.p95CompilationTimeMs,
       threshold: thresholds.maxP95CompilationTimeMs,
       category: 'performance',
-      message: metrics.p95CompilationTimeMs <= thresholds.maxP95CompilationTimeMs
-        ? `P95 compile time ${metrics.p95CompilationTimeMs}ms within threshold`
-        : `P95 compile time ${metrics.p95CompilationTimeMs}ms exceeds maximum ${thresholds.maxP95CompilationTimeMs}ms`,
+      message:
+        metrics.p95CompilationTimeMs <= thresholds.maxP95CompilationTimeMs
+          ? `P95 compile time ${metrics.p95CompilationTimeMs}ms within threshold`
+          : `P95 compile time ${metrics.p95CompilationTimeMs}ms exceeds maximum ${thresholds.maxP95CompilationTimeMs}ms`,
     });
 
     checks.push({
@@ -730,9 +763,10 @@ export class QualityGateEvaluator {
       actual: metrics.speedRegression,
       threshold: thresholds.maxSpeedRegression,
       category: 'regression',
-      message: metrics.speedRegression <= thresholds.maxSpeedRegression
-        ? `Speed regression ${metrics.speedRegression}% within threshold`
-        : `Speed regression ${metrics.speedRegression}% exceeds maximum ${thresholds.maxSpeedRegression}%`,
+      message:
+        metrics.speedRegression <= thresholds.maxSpeedRegression
+          ? `Speed regression ${metrics.speedRegression}% within threshold`
+          : `Speed regression ${metrics.speedRegression}% exceeds maximum ${thresholds.maxSpeedRegression}%`,
     });
 
     checks.push({
@@ -741,9 +775,10 @@ export class QualityGateEvaluator {
       actual: metrics.memoryRegression,
       threshold: thresholds.maxMemoryRegression,
       category: 'regression',
-      message: metrics.memoryRegression <= thresholds.maxMemoryRegression
-        ? `Memory regression ${metrics.memoryRegression}% within threshold`
-        : `Memory regression ${metrics.memoryRegression}% exceeds maximum ${thresholds.maxMemoryRegression}%`,
+      message:
+        metrics.memoryRegression <= thresholds.maxMemoryRegression
+          ? `Memory regression ${metrics.memoryRegression}% within threshold`
+          : `Memory regression ${metrics.memoryRegression}% exceeds maximum ${thresholds.maxMemoryRegression}%`,
     });
 
     // --- Per-target checks ---
@@ -758,9 +793,10 @@ export class QualityGateEvaluator {
           threshold: targetThresholds.maxConsecutiveFailures,
           category: 'reliability',
           target,
-          message: targetMetrics.consecutiveFailures <= targetThresholds.maxConsecutiveFailures
-            ? `${target}: ${targetMetrics.consecutiveFailures} consecutive failures within threshold`
-            : `${target}: ${targetMetrics.consecutiveFailures} consecutive failures exceeds maximum`,
+          message:
+            targetMetrics.consecutiveFailures <= targetThresholds.maxConsecutiveFailures
+              ? `${target}: ${targetMetrics.consecutiveFailures} consecutive failures within threshold`
+              : `${target}: ${targetMetrics.consecutiveFailures} consecutive failures exceeds maximum`,
         });
 
         checks.push({
@@ -770,9 +806,10 @@ export class QualityGateEvaluator {
           threshold: targetThresholds.maxP95CompilationTimeMs,
           category: 'performance',
           target,
-          message: targetMetrics.p95CompilationTimeMs <= targetThresholds.maxP95CompilationTimeMs
-            ? `${target}: P95 ${targetMetrics.p95CompilationTimeMs}ms within threshold`
-            : `${target}: P95 ${targetMetrics.p95CompilationTimeMs}ms exceeds maximum`,
+          message:
+            targetMetrics.p95CompilationTimeMs <= targetThresholds.maxP95CompilationTimeMs
+              ? `${target}: P95 ${targetMetrics.p95CompilationTimeMs}ms within threshold`
+              : `${target}: P95 ${targetMetrics.p95CompilationTimeMs}ms exceeds maximum`,
         });
       }
     }
@@ -785,11 +822,14 @@ export class QualityGateEvaluator {
     if (!passed) {
       const categories = [...new Set(failedChecks.map((c) => c.category))];
       if (categories.includes('regression')) {
-        suggestedAction = 'Performance regression detected. Review recent changes for compilation bottlenecks.';
+        suggestedAction =
+          'Performance regression detected. Review recent changes for compilation bottlenecks.';
       } else if (categories.includes('reliability')) {
-        suggestedAction = 'Reliability issues detected. Check failing export targets and investigate root cause.';
+        suggestedAction =
+          'Reliability issues detected. Check failing export targets and investigate root cause.';
       } else if (categories.includes('coverage')) {
-        suggestedAction = 'Test coverage below threshold. Add tests for untested circuit breaker paths.';
+        suggestedAction =
+          'Test coverage below threshold. Add tests for untested circuit breaker paths.';
       } else {
         suggestedAction = 'Quality gate failed. Review individual check results for details.';
       }

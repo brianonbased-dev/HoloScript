@@ -82,9 +82,7 @@ describe('SpatialBlameOverlay', () => {
       entries: [mockEntry],
       isMock: true,
     });
-    render(
-      <SpatialBlameOverlay filePath="no-git/file.holo" line={1} onClose={onClose} />
-    );
+    render(<SpatialBlameOverlay filePath="no-git/file.holo" line={1} onClose={onClose} />);
     await waitFor(() => expect(screen.getByText(/mock data/i)).toBeTruthy());
   });
 
@@ -94,9 +92,7 @@ describe('SpatialBlameOverlay', () => {
       entries: [],
       error: 'not a git repository',
     });
-    render(
-      <SpatialBlameOverlay filePath="scenes/my-world.holo" line={1} onClose={onClose} />
-    );
+    render(<SpatialBlameOverlay filePath="scenes/my-world.holo" line={1} onClose={onClose} />);
     await waitFor(() => expect(screen.getByText(/not a git repository/i)).toBeTruthy());
   });
 
@@ -105,9 +101,7 @@ describe('SpatialBlameOverlay', () => {
       ok: true,
       entries: [mockEntry],
     });
-    render(
-      <SpatialBlameOverlay filePath="scenes/my-world.holo" line={42} onClose={onClose} />
-    );
+    render(<SpatialBlameOverlay filePath="scenes/my-world.holo" line={42} onClose={onClose} />);
     await waitFor(() => screen.getByText('abc1234'));
     const closeBtn = screen.getAllByRole('button')[0];
     fireEvent.click(closeBtn);

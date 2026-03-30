@@ -137,7 +137,7 @@ export const structuredLoggerHandler: TraitHandler<StructuredLoggerConfig> = {
 
         let filtered = state.entries;
         if (level) {
-          filtered = filtered.filter(e => e.level === level);
+          filtered = filtered.filter((e) => e.level === level);
         }
 
         const page = filtered.slice(offset, offset + limit);
@@ -176,18 +176,17 @@ function addEntry(
   config: StructuredLoggerConfig,
   context: any,
   level: LogLevel,
-  payload: any,
+  payload: any
 ): void {
   // Check minimum level
   if (LEVEL_PRIORITY[level] < LEVEL_PRIORITY[config.min_level]) return;
 
-  const message = typeof payload === 'string'
-    ? payload
-    : (payload.message as string) ?? String(payload);
+  const message =
+    typeof payload === 'string' ? payload : ((payload.message as string) ?? String(payload));
 
   const fields = {
     ...config.default_fields,
-    ...(typeof payload === 'object' && payload !== null ? payload.fields ?? {} : {}),
+    ...(typeof payload === 'object' && payload !== null ? (payload.fields ?? {}) : {}),
   };
 
   // Remove internal tracking fields
@@ -223,10 +222,18 @@ function addEntry(
     const prefix = `[${entry.iso}] [${level.toUpperCase()}]`;
     const fieldsStr = Object.keys(fields).length > 0 ? ` ${JSON.stringify(fields)}` : '';
     switch (level) {
-      case 'debug': console.debug(`${prefix} ${message}${fieldsStr}`); break;
-      case 'info': console.info(`${prefix} ${message}${fieldsStr}`); break;
-      case 'warn': console.warn(`${prefix} ${message}${fieldsStr}`); break;
-      case 'error': console.error(`${prefix} ${message}${fieldsStr}`); break;
+      case 'debug':
+        console.debug(`${prefix} ${message}${fieldsStr}`);
+        break;
+      case 'info':
+        console.info(`${prefix} ${message}${fieldsStr}`);
+        break;
+      case 'warn':
+        console.warn(`${prefix} ${message}${fieldsStr}`);
+        break;
+      case 'error':
+        console.error(`${prefix} ${message}${fieldsStr}`);
+        break;
     }
   }
 

@@ -111,8 +111,8 @@ function extractArray(content: string): string[] {
 
   return match[1]
     .split(',')
-    .map(s => s.trim().replace(/^["']|["']$/g, ''))
-    .filter(s => s.length > 0);
+    .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+    .filter((s) => s.length > 0);
 }
 
 /**

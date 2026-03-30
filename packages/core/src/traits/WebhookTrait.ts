@@ -117,9 +117,8 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
 
         // Use fetch (available in Node 18+ and all modern runtimes)
         const controller = new AbortController();
-        const timer = config.timeout_ms > 0
-          ? setTimeout(() => controller.abort(), config.timeout_ms)
-          : null;
+        const timer =
+          config.timeout_ms > 0 ? setTimeout(() => controller.abort(), config.timeout_ms) : null;
 
         fetch(url, {
           method,

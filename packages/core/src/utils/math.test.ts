@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  calculateAverage, 
-  calculateSuccessRate, 
-  calculateStandardDeviation, 
-  calculateMedian 
+import {
+  calculateAverage,
+  calculateSuccessRate,
+  calculateStandardDeviation,
+  calculateMedian,
 } from './math';
 
 describe('Math Utilities', () => {

@@ -227,7 +227,7 @@ describe('Flow-Level: @grabbable through all backends', () => {
       const flat = flattenOutput(result).toLowerCase();
       const found = entry.traitIndicators.some((ind) => flat.includes(ind.toLowerCase()));
       expect(found).toBe(true);
-    },
+    }
   );
 
   it('all 16 backends produce non-empty output from the same composition', () => {
@@ -251,28 +251,28 @@ describe('Flow-Level: @grabbable through all backends', () => {
 
 describe('Systemic CWE-94 Compiler Hardening', () => {
   it('should neutralize template injection attacks across all backends', () => {
-    // Malicious payload that attempts to inject code, break out of comments, 
+    // Malicious payload that attempts to inject code, break out of comments,
     // and close string literals prematurely.
     const maliciousName = 'cube"); \'; } function exploit() { process.exit(1); } //';
-    
+
     const maliciousComposition = createGrabbableCubeComposition();
     maliciousComposition.name = maliciousName;
     maliciousComposition.objects[0].name = maliciousName;
-    
+
     const failedBackends: string[] = [];
-    
+
     for (const backend of BACKENDS) {
       const compiler = backend.factory();
       try {
         const result = compiler.compile(maliciousComposition, 'test-token');
         const flat = flattenOutput(result);
-        
+
         // Either the backend escapes it properly (replacing quotes, brackets, etc.)
         // or it fails. We want to ensure the RAW malicious string does NOT appear.
         // Specifically, check that the bare unescaped quote + semicolon is NOT present
         // since that's what breaks out of the generated string literal.
         const unescapedPayload1 = 'cube"); \';';
-        
+
         if (flat.includes(unescapedPayload1)) {
           failedBackends.push(backend.name);
         }
@@ -280,7 +280,127 @@ describe('Systemic CWE-94 Compiler Hardening', () => {
         // If it throws safely during validation, that's also acceptable
       }
     }
-    
+
     expect(failedBackends).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Flow-Level Sanitization: malicious PROPERTY VALUES through all backends
+// ---------------------------------------------------------------------------
+
+describe('Flow-Level Sanitization: malicious property values through all backends', () => {
+  /**
+   * Injection payloads targeting the toValue() methods (toCSharpValue,
+   * toKotlinValue, toSwiftValue, toGDScriptValue) via state property strings.
+   * These are the highest-risk injection vectors because property values are
+   * interpolated inside generated string literals in the target language.
+   */
+  const INJECTION_PAYLOADS = [
+    // CWE-94: String termination + RCE per language
+    { name: 'csharp-rce', value: '"; System.Diagnostics.Process.Start("cmd.exe"); //' },
+    { name: 'gdscript-rce', value: '"; OS.execute("rm", ["-rf", "/"]); #' },
+    { name: 'swift-interpolation', value: '\\(FileManager.default.removeItem(atPath: "/"))' },
+    { name: 'kotlin-template', value: '${Runtime.getRuntime().exec("id")}' },
+    // Path traversal
+    { name: 'path-traversal', value: '..\\..\\..\\etc\\passwd' },
+    // Newline escape (breaks out of string into next line of code)
+    { name: 'newline-escape', value: 'hello\nworld"; exploit(); //' },
+    // Null byte (truncates strings in some languages)
+    { name: 'null-byte', value: 'safe\0"; dangerous(); //' },
+    // JSX/HTML injection (only dangerous in JSX/HTML output contexts, not C-style string literals)
+    { name: 'jsx-inject', value: '{"} + require("child_process").execSync("id") + {"' },
+    // Shader preprocessor
+    { name: 'shader-preproc', value: '*/ #include "/dev/stdin" /*' },
+  ];
+
+  /** Create a composition with a malicious string as a state property value */
+  function createMaliciousPropertyComposition(payload: string): HoloComposition {
+    const cube: HoloObjectDecl = {
+      name: 'TestCube',
+      properties: [],
+      traits: [
+        { name: 'grabbable', args: [] } as unknown as HoloTrait,
+        { name: 'position', args: [
+          { type: 'NumberLiteral', value: 0 },
+          { type: 'NumberLiteral', value: 1 },
+          { type: 'NumberLiteral', value: 0 },
+        ] } as unknown as HoloTrait,
+      ],
+    } as unknown as HoloObjectDecl;
+
+    return {
+      type: 'Composition',
+      name: 'SanitizationTest',
+      objects: [cube],
+      templates: [],
+      spatialGroups: [],
+      lights: [],
+      imports: [],
+      timelines: [],
+      audio: [],
+      zones: [],
+      transitions: [],
+      conditionals: [],
+      iterators: [],
+      npcs: [],
+      quests: [],
+      abilities: [],
+      dialogues: [],
+      stateMachines: [],
+      achievements: [],
+      talentTrees: [],
+      shapes: [],
+      state: {
+        type: 'State' as const,
+        properties: [
+          { type: 'StateProperty' as const, key: 'label', value: payload },
+          { type: 'StateProperty' as const, key: 'description', value: payload },
+        ],
+      },
+    } as unknown as HoloComposition;
+  }
+
+  // Backends that have state property compilation (toValue methods)
+  const STATE_BACKENDS = BACKENDS.filter(b =>
+    ['Unity', 'VRChat', 'Godot', 'Android', 'AndroidXR', 'iOS', 'VisionOS'].includes(b.name)
+  );
+
+  for (const payload of INJECTION_PAYLOADS) {
+    it(`[${payload.name}] no backend emits unescaped payload in state property output`, () => {
+      const composition = createMaliciousPropertyComposition(payload.value);
+      const failedBackends: string[] = [];
+
+      for (const backend of STATE_BACKENDS) {
+        try {
+          const compiler = backend.factory();
+          const result = compiler.compile(composition, 'test-token');
+          const flat = flattenOutput(result);
+
+          // The raw payload must NOT appear unescaped in the output.
+          // Escaped forms (\\", \\n, etc.) are safe — only the raw form is dangerous.
+          if (flat.includes(payload.value)) {
+            failedBackends.push(backend.name);
+          }
+        } catch {
+          // Throwing safely during compilation is acceptable (validation rejection)
+        }
+      }
+
+      expect(failedBackends).toEqual([]);
+    });
+  }
+
+  it('all backends compile without throwing on every injection payload', () => {
+    // Ensure no backend crashes on malicious input — graceful handling required
+    for (const payload of INJECTION_PAYLOADS) {
+      const composition = createMaliciousPropertyComposition(payload.value);
+      for (const backend of BACKENDS) {
+        expect(() => {
+          const compiler = backend.factory();
+          compiler.compile(composition, 'test-token');
+        }).not.toThrow();
+      }
+    }
   });
 });

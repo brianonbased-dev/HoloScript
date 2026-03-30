@@ -2,10 +2,10 @@
 
 HoloScript ships two CLI commands that turn any codebase into a queryable knowledge graph:
 
-| Command | Purpose |
-|---------|---------|
-| `holoscript absorb <dir>` | Scan source files, extract symbols, build a call graph + community structure, emit a `.holo` composition |
-| `holoscript query <question>` | Semantic GraphRAG search over an absorbed codebase |
+| Command                       | Purpose                                                                                                  |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `holoscript absorb <dir>`     | Scan source files, extract symbols, build a call graph + community structure, emit a `.holo` composition |
+| `holoscript query <question>` | Semantic GraphRAG search over an absorbed codebase                                                       |
 
 ---
 
@@ -40,14 +40,14 @@ By default `absorb` writes a `.holo` composition that can be loaded in HoloLand 
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
-| `--for-agent` | Emit agent-optimized manifest instead of spatial `.holo` |
+| Flag                            | Description                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------------- |
+| `--for-agent`                   | Emit agent-optimized manifest instead of spatial `.holo`                                     |
 | `--depth shallow\|medium\|deep` | Level of detail. `shallow` = manifest+index, `medium` = +public API, `deep` = full (default) |
-| `--since <ref>` | Limit to files changed since a git ref, commit hash, or ISO date |
-| `--impact <files>` | Comma-separated list of files to compute blast-radius for |
-| `--json`, `-j` | Output as JSON instead of `.holo` |
-| `--output <path>`, `-o` | Write output to file |
+| `--since <ref>`                 | Limit to files changed since a git ref, commit hash, or ISO date                             |
+| `--impact <files>`              | Comma-separated list of files to compute blast-radius for                                    |
+| `--json`, `-j`                  | Output as JSON instead of `.holo`                                                            |
+| `--output <path>`, `-o`         | Write output to file                                                                         |
 
 ---
 
@@ -84,12 +84,12 @@ holoscript query "error handlers" --top-k 20 --json
 
 The `--provider` flag selects the backend used to embed the query and index symbols.
 
-| Provider | Flag | Deps | Dim | Notes |
-|----------|------|------|-----|-------|
-| BM25 | `--provider bm25` | None | 1024 | Default. Keyword/identifier matching. Fast, zero setup. |
-| Xenova (WASM) | `--provider xenova` | `@huggingface/transformers` | 384 | Semantic. Model downloaded once (~25 MB) and cached. |
-| OpenAI | `--provider openai` | `openai` package + API key | 1536 | Highest quality. Requires `OPENAI_API_KEY` env var or `--llm-key`. |
-| Ollama | `--provider ollama` | Running Ollama instance | varies | Local server. Run `ollama pull nomic-embed-text` first. |
+| Provider      | Flag                | Deps                        | Dim    | Notes                                                              |
+| ------------- | ------------------- | --------------------------- | ------ | ------------------------------------------------------------------ |
+| BM25          | `--provider bm25`   | None                        | 1024   | Default. Keyword/identifier matching. Fast, zero setup.            |
+| Xenova (WASM) | `--provider xenova` | `@huggingface/transformers` | 384    | Semantic. Model downloaded once (~25 MB) and cached.               |
+| OpenAI        | `--provider openai` | `openai` package + API key  | 1536   | Highest quality. Requires `OPENAI_API_KEY` env var or `--llm-key`. |
+| Ollama        | `--provider ollama` | Running Ollama instance     | varies | Local server. Run `ollama pull nomic-embed-text` first.            |
 
 #### Installing optional providers
 
@@ -118,25 +118,25 @@ holoscript query "how does the absorb command build the call graph" \
 
 LLM backends:
 
-| Backend | Flag | Env var |
-|---------|------|---------|
-| OpenAI | `--llm openai` | `OPENAI_API_KEY` |
+| Backend   | Flag              | Env var             |
+| --------- | ----------------- | ------------------- |
+| OpenAI    | `--llm openai`    | `OPENAI_API_KEY`    |
 | Anthropic | `--llm anthropic` | `ANTHROPIC_API_KEY` |
-| Gemini | `--llm gemini` | `GEMINI_API_KEY` |
+| Gemini    | `--llm gemini`    | `GEMINI_API_KEY`    |
 
 Use `--llm-key <key>` to pass the API key directly instead of via an environment variable.
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
-| `--provider <b>` | Embedding backend: `bm25` (default), `xenova`, `openai`, `ollama` |
-| `--top-k <n>` | Number of results to return (default: 10) |
-| `--with-llm` | Synthesise a natural-language answer from the top results |
-| `--llm <adapter>` | LLM backend for `--with-llm`: `openai`, `anthropic`, `gemini` |
-| `--llm-key <key>` | API key for the LLM (overrides env vars) |
-| `--model <name>` | Model override for embedding or LLM backend |
-| `--json`, `-j` | Machine-readable output |
+| Flag              | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| `--provider <b>`  | Embedding backend: `bm25` (default), `xenova`, `openai`, `ollama` |
+| `--top-k <n>`     | Number of results to return (default: 10)                         |
+| `--with-llm`      | Synthesise a natural-language answer from the top results         |
+| `--llm <adapter>` | LLM backend for `--with-llm`: `openai`, `anthropic`, `gemini`     |
+| `--llm-key <key>` | API key for the LLM (overrides env vars)                          |
+| `--model <name>`  | Model override for embedding or LLM backend                       |
+| `--json`, `-j`    | Machine-readable output                                           |
 
 ---
 
@@ -157,8 +157,8 @@ import {
 const provider = await createEmbeddingProvider({ provider: 'xenova' });
 
 // Or instantiate directly
-const bm25 = new BM25EmbeddingProvider();        // zero deps
-const xenova = new XenovaEmbeddingProvider();    // WASM semantics
+const bm25 = new BM25EmbeddingProvider(); // zero deps
+const xenova = new XenovaEmbeddingProvider(); // WASM semantics
 // const openai = new OpenAIEmbeddingProvider('sk-...'); // cloud
 // const ollama = new OllamaEmbeddingProvider();         // local server
 
@@ -243,6 +243,7 @@ Ranked results (or LLMAnswer with citations)
 HoloScript's absorb pipeline includes **enterprise-grade optimizations** for large codebases (10K+ files, 100K+ symbols):
 
 **Key Features:**
+
 - **Incremental Absorb** — Only re-scans changed files (30-60x faster)
 - **Worker Thread Parallelization** — Multi-core parsing and embedding (4-8x faster)
 - **Real-time Progress Streaming** — Per-file and per-batch progress events
@@ -288,10 +289,10 @@ holoscript absorb .
 
 **Performance impact:**
 
-| Operation | Sequential | Parallel (4 cores) | Parallel (8 cores) | Speedup |
-|-----------|------------|-------------------|-------------------|---------|
-| **Parsing** (1000 files) | 20s | 5s | 3s | **4-8x faster** |
-| **Embeddings** (10K symbols) | 47s | 12s | 6s | **4-8x faster** |
+| Operation                    | Sequential | Parallel (4 cores) | Parallel (8 cores) | Speedup         |
+| ---------------------------- | ---------- | ------------------ | ------------------ | --------------- |
+| **Parsing** (1000 files)     | 20s        | 5s                 | 3s                 | **4-8x faster** |
+| **Embeddings** (10K symbols) | 47s        | 12s                | 6s                 | **4-8x faster** |
 
 **Configuration:**
 
@@ -354,12 +355,12 @@ git commit -m "Update authentication handler"
 
 ### Embedding Provider Performance
 
-| Provider | Speed (10K symbols) | Quality | Requirements |
-|----------|-------------------|---------|--------------|
-| **BM25** | **Instant** (<1s) | Good for keywords | None (built-in) |
-| **Xenova (WASM)** | 25s | Good for semantics | `@huggingface/transformers` (~25MB model) |
-| **Ollama** | 30s | Excellent | Ollama server running locally |
-| **OpenAI** | 12s (parallel) / 47s (sequential) | Excellent | API key + `openai` package |
+| Provider          | Speed (10K symbols)               | Quality            | Requirements                              |
+| ----------------- | --------------------------------- | ------------------ | ----------------------------------------- |
+| **BM25**          | **Instant** (<1s)                 | Good for keywords  | None (built-in)                           |
+| **Xenova (WASM)** | 25s                               | Good for semantics | `@huggingface/transformers` (~25MB model) |
+| **Ollama**        | 30s                               | Excellent          | Ollama server running locally             |
+| **OpenAI**        | 12s (parallel) / 47s (sequential) | Excellent          | API key + `openai` package                |
 
 **OpenAI parallelization:**
 
@@ -369,12 +370,12 @@ git commit -m "Update authentication handler"
 
 ### Scaling Recommendations
 
-| Codebase Size | Full Absorb | Incremental | Best Embedding Provider |
-|---------------|-------------|-------------|------------------------|
-| **Small** (<1K files) | <10s | <1s | BM25 or Xenova |
-| **Medium** (1-5K files) | 30-60s | 1-2s | OpenAI (with workers) |
-| **Large** (5-10K files) | 2-3min | 2-5s | OpenAI (with workers) |
-| **Enterprise** (10K+ files) | 5-10min | 5-10s | Ollama (local, unlimited) |
+| Codebase Size               | Full Absorb | Incremental | Best Embedding Provider   |
+| --------------------------- | ----------- | ----------- | ------------------------- |
+| **Small** (<1K files)       | <10s        | <1s         | BM25 or Xenova            |
+| **Medium** (1-5K files)     | 30-60s      | 1-2s        | OpenAI (with workers)     |
+| **Large** (5-10K files)     | 2-3min      | 2-5s        | OpenAI (with workers)     |
+| **Enterprise** (10K+ files) | 5-10min     | 5-10s       | Ollama (local, unlimited) |
 
 ### Monitoring Performance
 

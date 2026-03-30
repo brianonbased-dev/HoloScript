@@ -121,8 +121,8 @@ function scoreKind(stats: AbsorbStats, paths: string[]): Record<ProjectKind, num
 
 function detectRepoShape(paths: string[]): ProjectDNA['repoShape'] {
   const hasPackagesDir = paths.some((p) => p.includes('/packages/') || p.includes('\\packages\\'));
-  const hasWorkspaces = paths.some((p) =>
-    p.endsWith('pnpm-workspace.yaml') || p.endsWith('lerna.json'),
+  const hasWorkspaces = paths.some(
+    (p) => p.endsWith('pnpm-workspace.yaml') || p.endsWith('lerna.json')
   );
   if (hasPackagesDir || hasWorkspaces) return 'monorepo';
 
@@ -152,7 +152,8 @@ function detectStrengths(stats: AbsorbStats, paths: string[]): string[] {
   const pathStr = paths.join('\n').toLowerCase();
   if (pathStr.includes('test') || pathStr.includes('spec')) strengths.push('has-tests');
   if (pathStr.includes('readme') || pathStr.includes('docs/')) strengths.push('documented');
-  if (pathStr.includes('.github/workflows') || pathStr.includes('.gitlab-ci')) strengths.push('has-ci');
+  if (pathStr.includes('.github/workflows') || pathStr.includes('.gitlab-ci'))
+    strengths.push('has-ci');
   if (pathStr.includes('tsconfig')) strengths.push('typed');
   if (pathStr.includes('.eslint') || pathStr.includes('.prettier')) strengths.push('linted');
   return strengths;
@@ -185,8 +186,7 @@ export function detectProjectDNA(input: DetectDNAInput): ProjectDNA {
 
   // Score each kind
   const scores = scoreKind(stats, paths);
-  const sorted = (Object.entries(scores) as [ProjectKind, number][])
-    .sort(([, a], [, b]) => b - a);
+  const sorted = (Object.entries(scores) as [ProjectKind, number][]).sort(([, a], [, b]) => b - a);
   const [topKind, topScore] = sorted[0];
   const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
 
@@ -214,7 +214,8 @@ export function detectProjectDNA(input: DetectDNAInput): ProjectDNA {
 
   // Runtimes
   const runtimes: string[] = [];
-  if (languages.includes('ts') || languages.includes('js') || languages.includes('tsx')) runtimes.push('node');
+  if (languages.includes('ts') || languages.includes('js') || languages.includes('tsx'))
+    runtimes.push('node');
   if (languages.includes('py')) runtimes.push('python');
   if (languages.includes('rs')) runtimes.push('rust');
   if (languages.includes('go')) runtimes.push('go');

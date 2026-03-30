@@ -33,7 +33,7 @@ function makeBlock(
   keyword: string,
   name: string,
   properties: Record<string, any> = {},
-  opts: { traits?: string[]; children?: any[] } = {},
+  opts: { traits?: string[]; children?: any[] } = {}
 ): HoloDomainBlock {
   return {
     type: 'DomainBlock',
@@ -109,7 +109,7 @@ describe('Healthcare Domain Compilation', () => {
             { type: 'DomainBlock', keyword: 'step', name: 'extract_tissue' },
             { type: 'DomainBlock', keyword: 'step', name: 'send_to_lab' },
           ],
-        },
+        }
       );
 
       const result = compileHealthcareBlock(block);
@@ -148,7 +148,7 @@ describe('Healthcare Domain Compilation', () => {
           modality: 'ct',
           window_center: 50,
           window_width: 350,
-        }),
+        })
       );
 
       const code = healthcareToR3F(healthcare);
@@ -162,7 +162,7 @@ describe('Healthcare Domain Compilation', () => {
       const healthcare = compileHealthcareBlock(
         makeBlock('healthcare', 'vital_monitor', 'Monitor', {
           vital_signs: ['heart_rate', 'spo2'],
-        }),
+        })
       );
 
       const code = healthcareToR3F(healthcare);
@@ -178,7 +178,7 @@ describe('Healthcare Domain Compilation', () => {
           modality: 'mri',
           window_center: 600,
           window_width: 1200,
-        }),
+        })
       );
 
       const code = healthcareToUnity(healthcare);
@@ -197,7 +197,7 @@ describe('Healthcare Domain Compilation', () => {
           modality: 'xray',
           window_center: 0,
           window_width: 2000,
-        }),
+        })
       );
 
       const code = healthcareToGodot(healthcare);
@@ -217,7 +217,7 @@ describe('Healthcare Domain Compilation', () => {
           vital_signs: ['heart_rate'],
           window_center: 40,
           window_width: 400,
-        }),
+        })
       );
 
       const code = healthcareToVRChat(healthcare);
@@ -234,7 +234,7 @@ describe('Healthcare Domain Compilation', () => {
         makeBlock('healthcare', 'procedure', 'Arthroscopy', {
           modality: 'camera',
           body_system: 'musculoskeletal',
-        }),
+        })
       );
 
       const code = healthcareToUSDA(healthcare);
@@ -375,7 +375,7 @@ describe('Robotics Domain Compilation', () => {
           effort: 87,
           velocity: 2.0,
           drive_type: 'position',
-        }),
+        })
       );
 
       const code = roboticsToR3F(robotics);
@@ -396,7 +396,7 @@ describe('Robotics Domain Compilation', () => {
           upper: 0.785,
           effort: 150,
           velocity: 1.5,
-        }),
+        })
       );
 
       const code = roboticsToUnity(robotics);
@@ -414,7 +414,7 @@ describe('Robotics Domain Compilation', () => {
         makeBlock('robotics', 'joint', 'SafeJoint', {
           joint_type: 'continuous',
           safety_rating: 'iso_10218',
-        }),
+        })
       );
 
       const code = roboticsToUnity(robotics);
@@ -432,7 +432,7 @@ describe('Robotics Domain Compilation', () => {
           upper: 1.0,
           effort: 30,
           velocity: 3.0,
-        }),
+        })
       );
 
       const code = roboticsToGodot(robotics);
@@ -448,7 +448,7 @@ describe('Robotics Domain Compilation', () => {
       const robotics = compileRoboticsBlock(
         makeBlock('robotics', 'end_effector', 'Claw', {
           effector_type: 'parallel_gripper',
-        }),
+        })
       );
 
       const code = roboticsToGodot(robotics);
@@ -466,7 +466,7 @@ describe('Robotics Domain Compilation', () => {
           upper: 3.14,
           effort: 100,
           velocity: 2.0,
-        }),
+        })
       );
 
       const code = roboticsToVRChat(robotics);
@@ -488,7 +488,7 @@ describe('Robotics Domain Compilation', () => {
           velocity: 1.0,
           drive_type: 'velocity',
           safety_rating: 'iso_ts_15066',
-        }),
+        })
       );
 
       const code = roboticsToUSDA(robotics);

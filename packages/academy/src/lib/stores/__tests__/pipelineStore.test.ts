@@ -11,7 +11,7 @@ function makeCycleResult(layerId: 0 | 1 | 2 = 0): LayerCycleResult {
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     durationMs: 5000,
-    costUSD: 0.50,
+    costUSD: 0.5,
     qualityBefore: 0.85,
     qualityAfter: 0.89,
     qualityDelta: 0.04,
@@ -51,9 +51,9 @@ describe('pipelineStore', () => {
 
   it('has correct default budgets', () => {
     const configs = usePipelineStore.getState().layerConfigs;
-    expect(configs[0].budget.maxCostUSD).toBe(2.00);
-    expect(configs[1].budget.maxCostUSD).toBe(1.00);
-    expect(configs[2].budget.maxCostUSD).toBe(1.50);
+    expect(configs[0].budget.maxCostUSD).toBe(2.0);
+    expect(configs[1].budget.maxCostUSD).toBe(1.0);
+    expect(configs[2].budget.maxCostUSD).toBe(1.5);
   });
 
   it('has correct default review gates', () => {
@@ -101,7 +101,7 @@ describe('pipelineStore', () => {
       expect(pipeline.layers[0].history).toHaveLength(1);
       expect(pipeline.layers[0].cyclesCompleted).toBe(1);
       expect(pipeline.layers[0].status).toBe('completed');
-      expect(pipeline.totalCostUSD).toBe(0.50);
+      expect(pipeline.totalCostUSD).toBe(0.5);
       expect(pipeline.totalDurationMs).toBe(5000);
     });
 
@@ -111,7 +111,7 @@ describe('pipelineStore', () => {
       usePipelineStore.getState().recordCycleResult(makeCycleResult(0));
 
       const pipeline = usePipelineStore.getState().activePipeline!;
-      expect(pipeline.totalCostUSD).toBe(1.00);
+      expect(pipeline.totalCostUSD).toBe(1.0);
       expect(pipeline.layers[0].cyclesCompleted).toBe(2);
     });
   });
@@ -216,13 +216,13 @@ describe('pipelineStore', () => {
   describe('updateLayerConfig', () => {
     it('patches a specific layer config', () => {
       usePipelineStore.getState().updateLayerConfig(0, {
-        budget: { maxCostUSD: 5.00, maxDurationMs: 600_000, maxCycles: 5, cooldownMs: 1_000 },
+        budget: { maxCostUSD: 5.0, maxDurationMs: 600_000, maxCycles: 5, cooldownMs: 1_000 },
       });
 
       const configs = usePipelineStore.getState().layerConfigs;
-      expect(configs[0].budget.maxCostUSD).toBe(5.00);
+      expect(configs[0].budget.maxCostUSD).toBe(5.0);
       // Other layers unchanged
-      expect(configs[1].budget.maxCostUSD).toBe(1.00);
+      expect(configs[1].budget.maxCostUSD).toBe(1.0);
     });
   });
 

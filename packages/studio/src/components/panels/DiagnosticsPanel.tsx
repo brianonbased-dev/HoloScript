@@ -37,17 +37,17 @@ interface HoloDiagnostic {
 
 // ── Severity config ────────────────────────────────────────────────
 const SEVERITY_CONFIG = {
-  error:   { icon: '❌', color: '#ef4444', bg: '#ef444422', label: 'Error' },
+  error: { icon: '❌', color: '#ef4444', bg: '#ef444422', label: 'Error' },
   warning: { icon: '⚠️', color: '#f59e0b', bg: '#f59e0b22', label: 'Warning' },
-  info:    { icon: 'ℹ️', color: '#3b82f6', bg: '#3b82f622', label: 'Info' },
-  hint:    { icon: '💡', color: '#8b5cf6', bg: '#8b5cf622', label: 'Hint' },
+  info: { icon: 'ℹ️', color: '#3b82f6', bg: '#3b82f622', label: 'Info' },
+  hint: { icon: '💡', color: '#8b5cf6', bg: '#8b5cf622', label: 'Hint' },
 } as const;
 
 const ORIGIN_LABELS: Record<DiagnosticOrigin, string> = {
-  parser:   'Parser',
+  parser: 'Parser',
   compiler: 'Compiler',
-  runtime:  'Runtime',
-  lint:     'Lint',
+  runtime: 'Runtime',
+  lint: 'Lint',
 };
 
 // ── Demo diagnostics (replace with store integration) ──────────────
@@ -63,7 +63,11 @@ const DEMO_DIAGNOSTICS: HoloDiagnostic[] = [
     suggestion: 'Add a closing } brace after the object body',
     file: 'scene.holo',
     quickFixes: [
-      { title: 'Insert closing }', range: { startLine: 22, startColumn: 0, endLine: 22, endColumn: 0 }, newText: '}\n' },
+      {
+        title: 'Insert closing }',
+        range: { startLine: 22, startColumn: 0, endLine: 22, endColumn: 0 },
+        newText: '}\n',
+      },
     ],
   },
   {
@@ -73,7 +77,8 @@ const DEMO_DIAGNOSTICS: HoloDiagnostic[] = [
     line: 8,
     column: 18,
     origin: 'compiler',
-    suggestion: 'Replace @floatable with @physics and set use_gravity: false in a rigidbody {} block',
+    suggestion:
+      'Replace @floatable with @physics and set use_gravity: false in a rigidbody {} block',
     file: 'scene.holo',
   },
   {
@@ -196,14 +201,18 @@ export function DiagnosticsPanel() {
                     >
                       {diag.code}
                     </span>
-                    <span className="text-[9px] text-studio-muted">{ORIGIN_LABELS[diag.origin]}</span>
+                    <span className="text-[9px] text-studio-muted">
+                      {ORIGIN_LABELS[diag.origin]}
+                    </span>
                     {diag.file && (
                       <span className="text-[9px] text-studio-muted font-mono">
                         {diag.file}:{diag.line}:{diag.column}
                       </span>
                     )}
                   </div>
-                  <p className="text-studio-text text-[10px] mt-0.5 leading-tight">{diag.message}</p>
+                  <p className="text-studio-text text-[10px] mt-0.5 leading-tight">
+                    {diag.message}
+                  </p>
                 </div>
                 <span className="text-[8px] text-studio-muted flex-shrink-0">
                   {isExpanded ? '▾' : '▸'}
@@ -212,7 +221,10 @@ export function DiagnosticsPanel() {
 
               {/* Expanded details */}
               {isExpanded && (
-                <div className="px-2 pb-2 space-y-1.5 border-t" style={{ borderColor: `${sev.color}22` }}>
+                <div
+                  className="px-2 pb-2 space-y-1.5 border-t"
+                  style={{ borderColor: `${sev.color}22` }}
+                >
                   {/* Context snippet */}
                   {diag.context && (
                     <div className="mt-1.5">
@@ -260,7 +272,8 @@ export function DiagnosticsPanel() {
 
       {/* Footer */}
       <div className="text-[9px] text-studio-muted text-center">
-        {filtered.length} / {diagnostics.length} diagnostics · {counts.error} errors · {counts.warning} warnings
+        {filtered.length} / {diagnostics.length} diagnostics · {counts.error} errors ·{' '}
+        {counts.warning} warnings
       </div>
     </div>
   );

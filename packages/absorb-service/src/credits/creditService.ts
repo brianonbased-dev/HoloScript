@@ -15,7 +15,7 @@ import { TIER_LIMITS, type Tier } from './pricing';
 
 type DbClient = ReturnType<typeof import('drizzle-orm/node-postgres').drizzle> | any;
 
-let _getDb: (() => DbClient | null) = () => null;
+let _getDb: () => DbClient | null = () => null;
 
 /**
  * Set the database provider for the credit service.
@@ -156,7 +156,7 @@ export async function deductCredits(
   userId: string,
   amountCents: number,
   description: string,
-  metadata: Record<string, unknown> = {},
+  metadata: Record<string, unknown> = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
   if (!db) return null;
@@ -195,7 +195,7 @@ export async function addCredits(
   userId: string,
   amountCents: number,
   description: string,
-  opts: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> } = {},
+  opts: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> } = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
   if (!db) return null;
@@ -233,7 +233,7 @@ export async function addCredits(
 export async function getUsageHistory(
   userId: string,
   limit = 50,
-  offset = 0,
+  offset = 0
 ): Promise<CreditTransaction[]> {
   const db = getDb();
   if (!db) return [];

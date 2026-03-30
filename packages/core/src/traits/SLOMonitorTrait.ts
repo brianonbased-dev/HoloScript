@@ -21,7 +21,7 @@ export interface SLOMonitorConfig {
 
 interface SLOEntry {
   sloId: string;
-  target: number;      // e.g. 0.999
+  target: number; // e.g. 0.999
   windowMs: number;
   good: number;
   total: number;
@@ -35,7 +35,9 @@ export const sloMonitorHandler: TraitHandler<SLOMonitorConfig> = {
   onAttach(node: any): void {
     node.__sloState = { slos: new Map<string, SLOEntry>() };
   },
-  onDetach(node: any): void { delete node.__sloState; },
+  onDetach(node: any): void {
+    delete node.__sloState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: SLOMonitorConfig, context: any, event: any): void {
@@ -59,7 +61,10 @@ export const sloMonitorHandler: TraitHandler<SLOMonitorConfig> = {
       }
       case 'slo:record_good': {
         const slo = state.slos.get(event.sloId as string);
-        if (slo) { slo.good++; slo.total++; }
+        if (slo) {
+          slo.good++;
+          slo.total++;
+        }
         break;
       }
       case 'slo:record_bad': {

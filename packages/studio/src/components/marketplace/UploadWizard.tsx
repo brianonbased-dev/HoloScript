@@ -24,7 +24,15 @@ interface UploadWizardProps {
   };
 }
 
-type WizardStep = 'type' | 'file' | 'analysis' | 'thumbnail' | 'metadata' | 'daemon' | 'preview' | 'submit';
+type WizardStep =
+  | 'type'
+  | 'file'
+  | 'analysis'
+  | 'thumbnail'
+  | 'metadata'
+  | 'daemon'
+  | 'preview'
+  | 'submit';
 
 function inferProjectDNA(file: File): DaemonProjectDNA {
   const lower = file.name.toLowerCase();
@@ -105,7 +113,16 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
   const { upload, uploading, progress } = useUpload();
   const { createJob, creating: creatingDaemonJob, error: daemonJobError } = useDaemonJobs();
 
-  const steps: WizardStep[] = ['type', 'file', 'analysis', 'thumbnail', 'metadata', 'daemon', 'preview', 'submit'];
+  const steps: WizardStep[] = [
+    'type',
+    'file',
+    'analysis',
+    'thumbnail',
+    'metadata',
+    'daemon',
+    'preview',
+    'submit',
+  ];
   const currentStepIndex = steps.indexOf(currentStep);
 
   const canProceed = useCallback(() => {
@@ -354,7 +371,8 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                 <div className="mt-3">
                   <p className="text-xs text-studio-muted">Recommendation</p>
                   <p className="text-xs text-studio-text">
-                    Use <span className="font-semibold">{projectDNA.recommendedProfile}</span> daemon profile.
+                    Use <span className="font-semibold">{projectDNA.recommendedProfile}</span>{' '}
+                    daemon profile.
                   </p>
                 </div>
 
@@ -554,11 +572,13 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
 
               {enableDaemon && (
                 <div className="grid grid-cols-3 gap-3">
-                  {([
-                    { value: 'quick', label: 'Quick', desc: 'Typefix + smoke checks' },
-                    { value: 'balanced', label: 'Balanced', desc: 'Typefix + docs + coverage' },
-                    { value: 'deep', label: 'Deep', desc: 'Full legacy analysis matrix' },
-                  ] as const).map((profile) => (
+                  {(
+                    [
+                      { value: 'quick', label: 'Quick', desc: 'Typefix + smoke checks' },
+                      { value: 'balanced', label: 'Balanced', desc: 'Typefix + docs + coverage' },
+                      { value: 'deep', label: 'Deep', desc: 'Full legacy analysis matrix' },
+                    ] as const
+                  ).map((profile) => (
                     <button
                       key={profile.value}
                       onClick={() => setDaemonProfile(profile.value)}

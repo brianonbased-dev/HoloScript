@@ -125,14 +125,8 @@ export function CloudRenderer({
   const timeRef = useRef(0);
 
   const colorObj = useMemo(() => new THREE.Color(color), [color]);
-  const sunDir = useMemo(
-    () => new THREE.Vector3(...sunPosition).normalize(),
-    [sunPosition],
-  );
-  const windVec = useMemo(
-    () => new THREE.Vector3(...windOffset),
-    [windOffset],
-  );
+  const sunDir = useMemo(() => new THREE.Vector3(...sunPosition).normalize(), [sunPosition]);
+  const windVec = useMemo(() => new THREE.Vector3(...windOffset), [windOffset]);
 
   const uniforms = useMemo(
     () => ({
@@ -144,7 +138,7 @@ export function CloudRenderer({
       uTime: { value: 0 },
       uWindOffset: { value: windVec },
     }),
-    [coverage, opacity, colorObj, sunDir, sunIntensity, windVec],
+    [coverage, opacity, colorObj, sunDir, sunIntensity, windVec]
   );
 
   useFrame((_, delta) => {
@@ -156,19 +150,12 @@ export function CloudRenderer({
   });
 
   // Generate cloud layers at slightly different altitudes
-  const layerOffsets = useMemo(
-    () => Array.from({ length: layers }, (_, i) => i * 30),
-    [layers],
-  );
+  const layerOffsets = useMemo(() => Array.from({ length: layers }, (_, i) => i * 30), [layers]);
 
   return (
     <group ref={groupRef} position={position}>
       {layerOffsets.map((yOff, i) => (
-        <mesh
-          key={i}
-          position={[0, altitude + yOff, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        >
+        <mesh key={i} position={[0, altitude + yOff, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[radius * 2, radius * 2, 1, 1]} />
           <shaderMaterial
             vertexShader={CLOUD_VERT}

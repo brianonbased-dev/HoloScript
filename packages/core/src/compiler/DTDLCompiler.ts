@@ -112,7 +112,6 @@ export interface DTDLComponent {
   description?: string;
 }
 
- 
 export type DTDLSchema =
   | string
   | DTDLMapSchema

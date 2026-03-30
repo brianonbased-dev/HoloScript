@@ -10,6 +10,7 @@ We call this **HoloScript's Semantic2D Pipeline**.
 ## The Concept
 
 Traditionally, building an app involves mapping abstract data to HTML tags. HoloScript flips this: you declare the "Meaning" of a component via traits, and the runtime projects that meaning onto the screen. Under the engine, your app is a spatial simulation. It inherits:
+
 - Physics and kinetic feedback
 - Autonomous Agent interactions (e.g., bounties and economy)
 - 3D procedural rendering for backgrounds, micro-interactions, and borders
@@ -43,25 +44,19 @@ By leveraging traits natively in \`.holo\` or \`.hsplus\` files, you instruct th
 \`\`\`yaml
 Composition MyAdminDashboard
 environment:
-  theme "dark-void"
+theme "dark-void"
 
 objects:
-  - id DashboardContainer
-    traits:
-      - @2d_canvas { projection: "flat-semantic", responsive: true }
-      - @semantic_layout { flow: "cluster", wrap: true }
-    children:
-      - id ConversionMetric
-        traits:
-          - @semantic_entity { type: "metric-card" }
-          - @live_metric { format: "percentage" }
-          - @particle_feedback { on: "hover", type: "burst" }
-        text: "84.5%"
-  
-      - id AssignAgentButton
-        traits:
-          - @semantic_entity { type: "button", meaning: "call-to-action", priority: 1 }
-          - @agent_attention { swarm_size: 5, bounty_threshold: 15 }
-          - @dynamic_visual { color: "purple" }
-        text: "Deploy Swarm"
-\`\`\`
+
+- id DashboardContainer
+  traits: - @2d_canvas { projection: "flat-semantic", responsive: true } - @semantic_layout { flow: "cluster", wrap: true }
+  children: - id ConversionMetric
+  traits: - @semantic_entity { type: "metric-card" } - @live_metric { format: "percentage" } - @particle_feedback { on: "hover", type: "burst" }
+  text: "84.5%"
+        - id AssignAgentButton
+          traits:
+            - @semantic_entity { type: "button", meaning: "call-to-action", priority: 1 }
+            - @agent_attention { swarm_size: 5, bounty_threshold: 15 }
+            - @dynamic_visual { color: "purple" }
+          text: "Deploy Swarm"
+  \`\`\`

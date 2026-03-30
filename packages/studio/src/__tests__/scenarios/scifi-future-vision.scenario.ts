@@ -29,7 +29,7 @@ function plotBranchDepth(branches: { parent: string | null }[]): number {
     let current: typeof b | undefined = b;
     while (current?.parent) {
       depth++;
-      current = branches.find(x => x.parent === current!.parent);
+      current = branches.find((x) => x.parent === current!.parent);
       if (depth > 100) break; // safety
     }
     max = Math.max(max, depth);
@@ -98,34 +98,52 @@ function buildNarrativeDAG(nodes: NarrativeNode[]): { nodes: NarrativeNode[]; ed
 
 function dagDepth(nodes: NarrativeNode[], nodeId: string): number {
   let depth = 0;
-  let current = nodes.find(n => n.id === nodeId);
+  let current = nodes.find((n) => n.id === nodeId);
   while (current?.parentId) {
     depth++;
-    current = nodes.find(n => n.id === current!.parentId);
+    current = nodes.find((n) => n.id === current!.parentId);
     if (depth > 100) break;
   }
   return depth;
 }
 
 function dagRoots(nodes: NarrativeNode[]): NarrativeNode[] {
-  return nodes.filter(n => n.parentId === null);
+  return nodes.filter((n) => n.parentId === null);
 }
 
 function dagLeaves(nodes: NarrativeNode[]): NarrativeNode[] {
-  const parentIds = new Set(nodes.filter(n => n.parentId).map(n => n.parentId));
-  return nodes.filter(n => !parentIds.has(n.id));
+  const parentIds = new Set(nodes.filter((n) => n.parentId).map((n) => n.parentId));
+  return nodes.filter((n) => !parentIds.has(n.id));
 }
 
 function approvedTimeline(nodes: NarrativeNode[]): NarrativeNode[] {
-  return nodes.filter(n => n.approved);
+  return nodes.filter((n) => n.approved);
 }
 
 describe('Scenario: Sci-Fi Vision — Narrative DAG Visualization', () => {
   const nodes: NarrativeNode[] = [
     { id: 'genesis', label: 'Colony Founded', parentId: null, faction: 'Solaris', approved: true },
-    { id: 'expansion', label: 'Solar Expansion', parentId: 'genesis', faction: 'Solaris', approved: true },
-    { id: 'rebellion', label: 'Guild Rebellion', parentId: 'genesis', faction: 'Guild', approved: false },
-    { id: 'truce', label: 'Truce Signed', parentId: 'expansion', faction: 'Terraform', approved: true },
+    {
+      id: 'expansion',
+      label: 'Solar Expansion',
+      parentId: 'genesis',
+      faction: 'Solaris',
+      approved: true,
+    },
+    {
+      id: 'rebellion',
+      label: 'Guild Rebellion',
+      parentId: 'genesis',
+      faction: 'Guild',
+      approved: false,
+    },
+    {
+      id: 'truce',
+      label: 'Truce Signed',
+      parentId: 'expansion',
+      faction: 'Terraform',
+      approved: true,
+    },
     { id: 'war', label: 'Total War', parentId: 'rebellion', faction: 'Guild', approved: false },
   ];
 
@@ -145,11 +163,11 @@ describe('Scenario: Sci-Fi Vision — Narrative DAG Visualization', () => {
   });
   it('dagLeaves() finds terminal nodes', () => {
     const leaves = dagLeaves(nodes);
-    expect(leaves.map(l => l.id).sort()).toEqual(['truce', 'war']);
+    expect(leaves.map((l) => l.id).sort()).toEqual(['truce', 'war']);
   });
   it('approvedTimeline() filters to canonical storyline', () => {
     const approved = approvedTimeline(nodes);
     expect(approved).toHaveLength(3);
-    expect(approved.every(n => n.approved)).toBe(true);
+    expect(approved.every((n) => n.approved)).toBe(true);
   });
 });

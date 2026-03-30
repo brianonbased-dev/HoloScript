@@ -89,7 +89,7 @@ export const OAUTH2_SCOPES = {
   'tools:execute': 'Execute tools that produce output (compile, render, generate, share)',
   'tasks:read': 'Read A2A task state and history',
   'tasks:write': 'Create, send, and cancel A2A tasks',
-  'admin': 'Full administrative access to all tools and endpoints',
+  admin: 'Full administrative access to all tools and endpoints',
 } as const;
 
 export type OAuth2Scope = keyof typeof OAUTH2_SCOPES;
@@ -103,7 +103,7 @@ export const SCOPE_BRIDGE: Record<string, string[]> = {
   'tools:execute': ['tools:write', 'tools:codebase', 'tools:browser'],
   'tasks:read': ['a2a:tasks', 'scenes:read'],
   'tasks:write': ['a2a:tasks', 'scenes:write'],
-  'admin': ['admin:*', 'tools:admin'],
+  admin: ['admin:*', 'tools:admin'],
 };
 
 /**
@@ -253,7 +253,8 @@ export class OAuth2Provider {
         status: 400,
         body: {
           error: 'invalid_request',
-          error_description: 'PKCE is mandatory. Provide code_challenge with code_challenge_method=S256',
+          error_description:
+            'PKCE is mandatory. Provide code_challenge with code_challenge_method=S256',
         },
       };
     }
@@ -282,7 +283,7 @@ export class OAuth2Provider {
 
     const requestedScopes = scope.split(' ').filter(Boolean);
     const invalidScopes = requestedScopes.filter(
-      s => !client.scopes.includes(s) && !client.scopes.includes('admin')
+      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin')
     );
 
     if (invalidScopes.length > 0) {
@@ -315,7 +316,8 @@ export class OAuth2Provider {
             requested: requestedScopes.includes(name),
           })),
         },
-        instructions: 'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
+        instructions:
+          'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
         _links: {
           authorize: `${this.config.issuer}/oauth/authorize`,
           token: `${this.config.issuer}/oauth/token`,
@@ -380,7 +382,7 @@ export class OAuth2Provider {
 
     // Validate scopes
     const invalidScopes = scope.filter(
-      s => !client.scopes.includes(s) && !client.scopes.includes('admin')
+      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin')
     );
     if (invalidScopes.length > 0) {
       return {
@@ -422,7 +424,10 @@ export class OAuth2Provider {
    *   - client_credentials (server-to-server, confidential clients only)
    *   - refresh_token (token rotation)
    */
-  async handleToken(body: Record<string, unknown>, dpopHeader?: string): Promise<{
+  async handleToken(
+    body: Record<string, unknown>,
+    dpopHeader?: string
+  ): Promise<{
     status: number;
     body: Record<string, unknown>;
     headers?: Record<string, string>;
@@ -449,7 +454,7 @@ export class OAuth2Provider {
 
   private async handleAuthorizationCodeGrant(
     body: Record<string, unknown>,
-    dpopHeader?: string,
+    dpopHeader?: string
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const code = body.code as string;
     const clientId = body.client_id as string;
@@ -463,7 +468,8 @@ export class OAuth2Provider {
         status: 400,
         body: {
           error: 'invalid_request',
-          error_description: 'Missing required parameters: code, client_id, client_secret, redirect_uri, code_verifier',
+          error_description:
+            'Missing required parameters: code, client_id, client_secret, redirect_uri, code_verifier',
         },
       };
     }
@@ -471,33 +477,57 @@ export class OAuth2Provider {
     // Validate authorization code
     const authCode = await this.store.getAuthorizationCode(code);
     if (!authCode) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Invalid authorization code' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Invalid authorization code' },
+      };
     }
     if (authCode.used) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Authorization code already used' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Authorization code already used' },
+      };
     }
     if (authCode.expiresAt < Date.now()) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Authorization code expired' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Authorization code expired' },
+      };
     }
     if (authCode.clientId !== clientId) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Client mismatch' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Client mismatch' },
+      };
     }
     if (authCode.redirectUri !== redirectUri) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Redirect URI mismatch' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Redirect URI mismatch' },
+      };
     }
 
     // Verify client credentials
     const client = await this.store.getClient(clientId);
     if (!client) {
-      return { status: 400, body: { error: 'invalid_client', error_description: 'Invalid client' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_client', error_description: 'Invalid client' },
+      };
     }
     if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
-      return { status: 400, body: { error: 'invalid_client', error_description: 'Invalid client credentials' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_client', error_description: 'Invalid client credentials' },
+      };
     }
 
     // Verify PKCE (mandatory in OAuth 2.1)
     if (!this.store.verifyS256Challenge(codeVerifier, authCode.codeChallenge)) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'PKCE verification failed' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'PKCE verification failed' },
+      };
     }
 
     // Mark code as used
@@ -515,13 +545,13 @@ export class OAuth2Provider {
     return {
       status: 200,
       body: response,
-      headers: { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' },
+      headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
     };
   }
 
   private async handleClientCredentialsGrant(
     body: Record<string, unknown>,
-    dpopHeader?: string,
+    dpopHeader?: string
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const clientId = body.client_id as string;
     const clientSecret = body.client_secret as string;
@@ -537,21 +567,38 @@ export class OAuth2Provider {
 
     const client = await this.store.getClient(clientId);
     if (!client) {
-      return { status: 400, body: { error: 'invalid_client', error_description: 'Unknown client_id' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_client', error_description: 'Unknown client_id' },
+      };
     }
     if (client.clientType !== 'confidential') {
-      return { status: 400, body: { error: 'unauthorized_client', error_description: 'Client credentials grant requires confidential client' } };
+      return {
+        status: 400,
+        body: {
+          error: 'unauthorized_client',
+          error_description: 'Client credentials grant requires confidential client',
+        },
+      };
     }
     if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
-      return { status: 400, body: { error: 'invalid_client', error_description: 'Invalid client credentials' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_client', error_description: 'Invalid client credentials' },
+      };
     }
 
     const scopes = requestedScopes.length > 0 ? requestedScopes : client.scopes;
-    const invalidScopes = scopes.filter(s => !client.scopes.includes(s) && !client.scopes.includes('admin'));
+    const invalidScopes = scopes.filter(
+      (s) => !client.scopes.includes(s) && !client.scopes.includes('admin')
+    );
     if (invalidScopes.length > 0) {
       return {
         status: 400,
-        body: { error: 'invalid_scope', error_description: `Scopes not authorized: ${invalidScopes.join(', ')}` },
+        body: {
+          error: 'invalid_scope',
+          error_description: `Scopes not authorized: ${invalidScopes.join(', ')}`,
+        },
       };
     }
 
@@ -566,13 +613,13 @@ export class OAuth2Provider {
     return {
       status: 200,
       body: response,
-      headers: { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' },
+      headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
     };
   }
 
   private async handleRefreshTokenGrant(
     body: Record<string, unknown>,
-    dpopHeader?: string,
+    dpopHeader?: string
   ): Promise<{ status: number; body: Record<string, unknown>; headers?: Record<string, string> }> {
     const refreshTokenValue = body.refresh_token as string;
     const clientId = body.client_id as string;
@@ -581,42 +628,69 @@ export class OAuth2Provider {
     if (!refreshTokenValue || !clientId || !clientSecret) {
       return {
         status: 400,
-        body: { error: 'invalid_request', error_description: 'Missing refresh_token, client_id, or client_secret' },
+        body: {
+          error: 'invalid_request',
+          error_description: 'Missing refresh_token, client_id, or client_secret',
+        },
       };
     }
 
     const storedRefresh = await this.store.getRefreshToken(refreshTokenValue);
     if (!storedRefresh) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Invalid refresh token' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Invalid refresh token' },
+      };
     }
 
     if (storedRefresh.used) {
       // Token replay detected -- revoke entire chain
       await this.store.revokeRefreshChain(storedRefresh.chainId);
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Refresh token replay detected. Token chain revoked.' } };
+      return {
+        status: 400,
+        body: {
+          error: 'invalid_grant',
+          error_description: 'Refresh token replay detected. Token chain revoked.',
+        },
+      };
     }
 
     if (storedRefresh.expiresAt < Date.now()) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Refresh token expired' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Refresh token expired' },
+      };
     }
 
     if (storedRefresh.clientId !== clientId) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Client mismatch' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Client mismatch' },
+      };
     }
 
     // Check if chain is revoked
     const chainRevoked = await this.store.isChainRevoked(storedRefresh.chainId);
     if (chainRevoked) {
-      return { status: 400, body: { error: 'invalid_grant', error_description: 'Token chain has been revoked' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'Token chain has been revoked' },
+      };
     }
 
     // Verify client
     const client = await this.store.getClient(clientId);
     if (!client) {
-      return { status: 400, body: { error: 'invalid_client', error_description: 'Invalid client' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_client', error_description: 'Invalid client' },
+      };
     }
     if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
-      return { status: 400, body: { error: 'invalid_client', error_description: 'Invalid client credentials' } };
+      return {
+        status: 400,
+        body: { error: 'invalid_client', error_description: 'Invalid client credentials' },
+      };
     }
 
     // Mark old refresh token as used (rotation)
@@ -634,7 +708,7 @@ export class OAuth2Provider {
     return {
       status: 200,
       body: response,
-      headers: { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' },
+      headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
     };
   }
 
@@ -758,9 +832,10 @@ export class OAuth2Provider {
    *   5. Open dev mode (no auth, permissive mode, no API key configured)
    */
   async authenticateRequest(
-    headers: Record<string, string | string[] | undefined>,
+    headers: Record<string, string | string[] | undefined>
   ): Promise<TokenIntrospectionResult> {
-    const authHeader = (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
+    const authHeader =
+      (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
     const apiKey = (typeof headers['x-api-key'] === 'string' ? headers['x-api-key'] : '') || '';
     const dpopHeader = (typeof headers['dpop'] === 'string' ? headers['dpop'] : '') || '';
 
@@ -895,7 +970,7 @@ export class OAuth2Provider {
   private formatTokenResponse(
     accessToken: StoredAccessToken,
     refreshToken: { token: string },
-    dpopHeader?: string,
+    dpopHeader?: string
   ): OAuth2TokenResponse {
     return {
       access_token: accessToken.token,

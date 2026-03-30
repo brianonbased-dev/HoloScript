@@ -44,12 +44,12 @@ function sigmoidDerivative(output: number): number {
 interface MLPLayer {
   inputSize: number;
   outputSize: number;
-  weights: Float32Array;      // [inputSize * outputSize]
-  biases: Float32Array;       // [outputSize]
-  outputs: Float32Array;      // [outputSize] - after activation
+  weights: Float32Array; // [inputSize * outputSize]
+  biases: Float32Array; // [outputSize]
+  outputs: Float32Array; // [outputSize] - after activation
   preActivations: Float32Array; // [outputSize] - before activation
-  weightGrads: Float32Array;  // [inputSize * outputSize]
-  biasGrads: Float32Array;    // [outputSize]
+  weightGrads: Float32Array; // [inputSize * outputSize]
+  biasGrads: Float32Array; // [outputSize]
   weightMomentum: Float32Array;
   biasMomentum: Float32Array;
 }
@@ -84,7 +84,9 @@ function forwardLayer(layer: MLPLayer, input: Float32Array | number[]): void {
   for (let o = 0; o < layer.outputSize; o++) {
     let sum = layer.biases[o];
     for (let i = 0; i < layer.inputSize; i++) {
-      sum += (input instanceof Float32Array ? input[i] : input[i]) * layer.weights[i * layer.outputSize + o];
+      sum +=
+        (input instanceof Float32Array ? input[i] : input[i]) *
+        layer.weights[i * layer.outputSize + o];
     }
     layer.preActivations[o] = sum;
     layer.outputs[o] = sigmoid(sum);
@@ -108,11 +110,7 @@ export class BackpropRetrievalModel implements FactRetrievalModel {
   private traitNameToIndex: Map<string, number>;
   private totalTraits: number;
 
-  constructor(
-    config: ExperimentConfig['backprop'],
-    totalTraits: number,
-    traitNames: string[],
-  ) {
+  constructor(config: ExperimentConfig['backprop'], totalTraits: number, traitNames: string[]) {
     this.config = config;
     this.totalTraits = totalTraits;
     this.inputDim = Math.min(totalTraits, 64); // dense encoding
@@ -324,5 +322,5 @@ function seededRandom(seed: number): number {
   state ^= state << 13;
   state ^= state >>> 17;
   state ^= state << 5;
-  return (state >>> 0) / 0xFFFFFFFF;
+  return (state >>> 0) / 0xffffffff;
 }

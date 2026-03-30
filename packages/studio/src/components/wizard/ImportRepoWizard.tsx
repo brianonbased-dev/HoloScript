@@ -116,7 +116,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
   const [branch, setBranch] = useState('');
 
   // Step 2: Import progress
-  const [importStatus, setImportStatus] = useState<'idle' | 'cloning' | 'absorbing' | 'detecting' | 'done' | 'error'>('idle');
+  const [importStatus, setImportStatus] = useState<
+    'idle' | 'cloning' | 'absorbing' | 'detecting' | 'done' | 'error'
+  >('idle');
   const [importError, setImportError] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState(0);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
@@ -138,14 +140,14 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
       setPrevStep(step);
       setStep(next);
     },
-    [step],
+    [step]
   );
 
   // Effective repo URL
-  const repoUrl = useManual ? manualUrl.trim() : selectedRepo?.cloneUrl ?? '';
+  const repoUrl = useManual ? manualUrl.trim() : (selectedRepo?.cloneUrl ?? '');
   const repoName = useManual
     ? manualUrl.replace(/.*\/([^/]+?)(?:\.git)?$/, '$1')
-    : selectedRepo?.name ?? '';
+    : (selectedRepo?.name ?? '');
 
   // When a repo is selected, default to its branch
   useEffect(() => {
@@ -293,7 +295,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
   const canNext = useMemo(() => {
     switch (step) {
       case 0:
-        return useManual ? manualUrl.startsWith('https://') || manualUrl.startsWith('git@') : !!selectedRepo;
+        return useManual
+          ? manualUrl.startsWith('https://') || manualUrl.startsWith('git@')
+          : !!selectedRepo;
       case 1:
         return !!branch;
       case 2:
@@ -369,7 +373,6 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
 
         {/* Step content */}
         <div className="relative min-h-[360px] p-6">
-
           {/* ── Step 0: Choose repo ── */}
           <AnimatedStep visible={step === 0} direction={direction}>
             <div className="flex flex-col gap-3">
@@ -444,13 +447,16 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 text-center">
                         <AlertCircle className="h-8 w-8 text-amber-400" />
                         <div>
-                          <p className="text-sm font-semibold text-amber-300">GitHub Not Connected</p>
+                          <p className="text-sm font-semibold text-amber-300">
+                            GitHub Not Connected
+                          </p>
                           <p className="text-[11px] text-amber-300/70 mt-1 max-w-[240px] mx-auto">
-                            {reposError || 'You must connect your GitHub account in the Integration Hub before importing repositories.'}
+                            {reposError ||
+                              'You must connect your GitHub account in the Integration Hub before importing repositories.'}
                           </p>
                         </div>
-                        <a 
-                          href="/integrations" 
+                        <a
+                          href="/integrations"
                           target="_blank"
                           rel="noreferrer noopener"
                           className="mt-2 flex items-center gap-2 rounded-lg bg-indigo-500/20 px-4 py-2 text-xs font-medium text-indigo-300 hover:bg-indigo-500/30 hover:text-indigo-200 transition"
@@ -565,7 +571,8 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                     <span className="text-blue-400">2.</span> Absorb + index the entire codebase
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-400">3.</span> Detect Project DNA (stack, shape, risk)
+                    <span className="text-blue-400">3.</span> Detect Project DNA (stack, shape,
+                    risk)
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-blue-400">4.</span> Recommend daemon improvement strategy
@@ -601,7 +608,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               ) : (
                 <>
                   <div className="relative">
-                    <Loader2 className={`h-12 w-12 text-blue-400 ${importStatus !== 'done' ? 'animate-spin' : ''}`} />
+                    <Loader2
+                      className={`h-12 w-12 text-blue-400 ${importStatus !== 'done' ? 'animate-spin' : ''}`}
+                    />
                     {importStatus === 'done' && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Check className="h-6 w-6 text-emerald-400" />
@@ -619,7 +628,8 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                     </p>
                     <p className="text-[11px] text-studio-muted mt-1">
                       {importStatus === 'cloning' && `Cloning ${repoName} (${branch})...`}
-                      {importStatus === 'absorbing' && 'Scanning files, symbols, and import graph...'}
+                      {importStatus === 'absorbing' &&
+                        'Scanning files, symbols, and import graph...'}
                       {importStatus === 'detecting' && 'Classifying repo type and risk profile...'}
                       {importStatus === 'done' && 'All scans complete.'}
                     </p>
@@ -650,7 +660,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                 <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/5 p-4">
                   <span className="text-3xl">{KIND_META[dna.kind]?.emoji ?? '❓'}</span>
                   <div>
-                    <p className={`text-sm font-semibold ${KIND_META[dna.kind]?.color ?? 'text-studio-text'}`}>
+                    <p
+                      className={`text-sm font-semibold ${KIND_META[dna.kind]?.color ?? 'text-studio-text'}`}
+                    >
                       {KIND_META[dna.kind]?.label ?? dna.kind}
                     </p>
                     <p className="text-[11px] text-studio-muted">
@@ -664,15 +676,21 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                 {absorbStats && (
                   <div className="grid grid-cols-3 gap-2">
                     <div className="rounded-lg border border-studio-border bg-black/20 p-2.5 text-center">
-                      <p className="text-lg font-bold text-studio-text">{absorbStats.totalFiles.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-studio-text">
+                        {absorbStats.totalFiles.toLocaleString()}
+                      </p>
                       <p className="text-[10px] text-studio-muted">Files</p>
                     </div>
                     <div className="rounded-lg border border-studio-border bg-black/20 p-2.5 text-center">
-                      <p className="text-lg font-bold text-studio-text">{absorbStats.totalSymbols.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-studio-text">
+                        {absorbStats.totalSymbols.toLocaleString()}
+                      </p>
                       <p className="text-[10px] text-studio-muted">Symbols</p>
                     </div>
                     <div className="rounded-lg border border-studio-border bg-black/20 p-2.5 text-center">
-                      <p className="text-lg font-bold text-studio-text">{absorbStats.totalLoc.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-studio-text">
+                        {absorbStats.totalLoc.toLocaleString()}
+                      </p>
                       <p className="text-[10px] text-studio-muted">Lines</p>
                     </div>
                   </div>
@@ -685,7 +703,10 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                       <p className="text-xs font-medium text-studio-text mb-1">Languages</p>
                       <div className="flex flex-wrap gap-1.5">
                         {dna.languages.slice(0, 8).map((lang) => (
-                          <span key={lang} className="rounded-md bg-white/5 border border-studio-border px-2 py-0.5 text-[10px] text-studio-muted">
+                          <span
+                            key={lang}
+                            className="rounded-md bg-white/5 border border-studio-border px-2 py-0.5 text-[10px] text-studio-muted"
+                          >
                             {lang}
                           </span>
                         ))}
@@ -697,7 +718,10 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                       <p className="text-xs font-medium text-studio-text mb-1">Frameworks</p>
                       <div className="flex flex-wrap gap-1.5">
                         {dna.frameworks.map((fw) => (
-                          <span key={fw} className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400">
+                          <span
+                            key={fw}
+                            className="rounded-md bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] text-blue-400"
+                          >
                             {fw}
                           </span>
                         ))}
@@ -714,7 +738,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                         <Shield className="h-3 w-3" /> Strengths
                       </p>
                       {dna.strengths.map((s) => (
-                        <p key={s} className="text-[10px] text-studio-muted">{s}</p>
+                        <p key={s} className="text-[10px] text-studio-muted">
+                          {s}
+                        </p>
                       ))}
                     </div>
                   )}
@@ -724,7 +750,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                         <AlertCircle className="h-3 w-3" /> Risks
                       </p>
                       {dna.riskSignals.map((r) => (
-                        <p key={r} className="text-[10px] text-studio-muted">{r}</p>
+                        <p key={r} className="text-[10px] text-studio-muted">
+                          {r}
+                        </p>
                       ))}
                     </div>
                   )}
@@ -735,7 +763,8 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                   <Zap className="h-4 w-4 text-amber-400 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-studio-text">
-                      Recommended: <span className="text-blue-400">{dna.recommendedProfile}</span> daemon
+                      Recommended: <span className="text-blue-400">{dna.recommendedProfile}</span>{' '}
+                      daemon
                     </p>
                     <p className="text-[10px] text-studio-muted">
                       Mode: {dna.recommendedMode} \u00b7 Based on project DNA analysis
@@ -764,7 +793,9 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                   <div className="flex items-center gap-3 rounded-xl border border-studio-border bg-black/20 p-3">
                     <span className="text-2xl">{KIND_META[dna.kind]?.emoji ?? '❓'}</span>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-studio-text">{KIND_META[dna.kind]?.label}</p>
+                      <p className="text-sm font-medium text-studio-text">
+                        {KIND_META[dna.kind]?.label}
+                      </p>
                       <p className="text-[10px] text-studio-muted">
                         {dna.languages.slice(0, 3).join(', ')} \u00b7 {dna.repoShape}
                       </p>
@@ -854,7 +885,11 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
                 onClick={handleAbsorbAndImprove}
                 disabled={isTriggering || !config.autoStart}
                 className="flex items-center gap-2 rounded-lg bg-purple-500/20 px-4 py-1.5 text-sm font-medium text-purple-400 transition hover:bg-purple-500/30 disabled:opacity-40"
-                title={config.autoStart ? 'Trigger recursive pipeline' : 'Enable auto-start in /integrations'}
+                title={
+                  config.autoStart
+                    ? 'Trigger recursive pipeline'
+                    : 'Enable auto-start in /integrations'
+                }
               >
                 {isTriggering ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

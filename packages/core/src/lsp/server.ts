@@ -47,7 +47,9 @@ let _hasWorkspaceFolderCapability = false;
 connection.onInitialize((params: InitializeParams): InitializeResult => {
   const capabilities = params.capabilities;
   hasConfigurationCapability = !!(capabilities.workspace && capabilities.workspace.configuration);
-  _hasWorkspaceFolderCapability = !!(capabilities.workspace && capabilities.workspace.workspaceFolders);
+  _hasWorkspaceFolderCapability = !!(
+    capabilities.workspace && capabilities.workspace.workspaceFolders
+  );
 
   return {
     capabilities: {
@@ -113,10 +115,7 @@ connection.onCompletion((params) => {
 
   const text = doc.getText();
   const offset = doc.offsetAt(params.position);
-  const linePrefix = text.substring(
-    text.lastIndexOf('\n', offset - 1) + 1,
-    offset
-  );
+  const linePrefix = text.substring(text.lastIndexOf('\n', offset - 1) + 1, offset);
 
   // After @ trigger → trait completions
   if (linePrefix.trimStart().startsWith('@') || linePrefix.endsWith('@')) {
@@ -138,7 +137,12 @@ connection.onCompletion((params) => {
     return [...propertyCompletions, ...traitCompletions];
   }
 
-  return [...keywordCompletions, ...propertyCompletions, ...traitCompletions, ...geometryCompletions];
+  return [
+    ...keywordCompletions,
+    ...propertyCompletions,
+    ...traitCompletions,
+    ...geometryCompletions,
+  ];
 });
 
 connection.onCompletionResolve((item) => {

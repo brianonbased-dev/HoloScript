@@ -24,7 +24,7 @@ describe('gravity simulation', () => {
       { entity: floor, isStatic: true },
       { entity: crate, velocity: [0, 0, 0] },
     ],
-    { gravity: -9.81, hz: 60 },
+    { gravity: -9.81, hz: 60 }
   );
 
   it('crate starts above floor', () => {
@@ -41,10 +41,7 @@ describe('gravity simulation', () => {
   });
 
   it('crate stays in reasonable horizontal bounds', () => {
-    const bounds = BoundingBox.fromMinMax(
-      { x: -2, y: 0, z: -2 },
-      { x: 2, y: 8, z: 2 },
-    );
+    const bounds = BoundingBox.fromMinMax({ x: -2, y: 0, z: -2 }, { x: 2, y: 8, z: 2 });
     const landed = sim.getEntity('nft_crate')!;
     expect(landed).toBeWithinVolume(bounds);
   });

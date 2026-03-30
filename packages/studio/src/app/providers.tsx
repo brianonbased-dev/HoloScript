@@ -13,14 +13,13 @@ import { DevToolsInit } from '../components/DevToolsInit';
 import { AppShell } from '../components/AppShell';
 import { PluginHostProvider } from '../hooks/usePluginHost';
 
-
-
 const StudioSetupWizard = dynamic(
-  () => import('../components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
+  () =>
+    import('../components/wizard/StudioSetupWizard').then((m) => ({
+      default: m.StudioSetupWizard,
+    })),
   { ssr: false }
 );
-
-
 
 // ═══════════════════════════════════════════════════════════════════
 // Theme Context
@@ -171,12 +170,14 @@ export function Providers({ children }: { children: ReactNode }) {
                 </PluginHostProvider>
               </ErrorBoundary>
               {showSetupWizard && (
-                <StudioSetupWizard onClose={() => {
-                  setShowSetupWizard(false);
-                  if (!wizardCompleted) {
-                    setWizardCompleted(true);
-                  }
-                }} />
+                <StudioSetupWizard
+                  onClose={() => {
+                    setShowSetupWizard(false);
+                    if (!wizardCompleted) {
+                      setWizardCompleted(true);
+                    }
+                  }}
+                />
               )}
               <DevToolsInit />
             </ToastContext.Provider>

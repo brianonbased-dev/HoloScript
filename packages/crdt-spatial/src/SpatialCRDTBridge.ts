@@ -26,12 +26,7 @@ import type {
   SpatialCRDTBridgeConfig,
 } from './types.js';
 
-import {
-  DEFAULT_BRIDGE_CONFIG,
-  IDENTITY_QUATERNION,
-  ZERO_VEC3,
-  ONE_VEC3,
-} from './types.js';
+import { DEFAULT_BRIDGE_CONFIG, IDENTITY_QUATERNION, ZERO_VEC3, ONE_VEC3 } from './types.js';
 
 // =============================================================================
 // QUATERNION MATH

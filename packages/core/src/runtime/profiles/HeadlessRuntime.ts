@@ -68,7 +68,12 @@ export interface HeadlessRuntimeOptions {
   /** Action dispatcher for BehaviorTreeTrait — maps BT action names to external handlers.
    *  Return true (success), false (failure), or 'running' (async in progress).
    *  The blackboard parameter is the BT's shared state for updating conditions. */
-  executeAction?: (owner: unknown, actionName: string, params: Record<string, unknown>, blackboard?: Record<string, unknown>) => boolean | 'running';
+  executeAction?: (
+    owner: unknown,
+    actionName: string,
+    params: Record<string, unknown>,
+    blackboard?: Record<string, unknown>
+  ) => boolean | 'running';
   /** Optional capability adapter for host operations used by traits such as shell/file_system. */
   hostCapabilities?: HostCapabilities;
 }
@@ -639,7 +644,8 @@ export class HeadlessRuntime {
           if (!bucket) {
             // Initialize from trait config (max_tokens default: 10)
             const rlConfig = this.rootInstance.node.traits?.get('rate_limiter') as
-              { max_tokens?: number } | undefined;
+              | { max_tokens?: number }
+              | undefined;
             bucket = { tokens: rlConfig?.max_tokens ?? 10, lastRefillAt: Date.now() };
             rlState.buckets.set(key, bucket);
           }
@@ -667,10 +673,18 @@ export class HeadlessRuntime {
           };
           if (cbState.state === 'open') {
             const cbConfig = this.rootInstance.node.traits?.get('circuit_breaker') as
-              { reset_timeout_ms?: number } | undefined;
-            const remainingMs = Math.max(0,
-              (cbConfig?.reset_timeout_ms ?? 60000) - (Date.now() - cbState.openedAt));
-            this.emit('action:result', { requestId, status: 'failure', reason: 'circuit_open', remainingMs });
+              | { reset_timeout_ms?: number }
+              | undefined;
+            const remainingMs = Math.max(
+              0,
+              (cbConfig?.reset_timeout_ms ?? 60000) - (Date.now() - cbState.openedAt)
+            );
+            this.emit('action:result', {
+              requestId,
+              status: 'failure',
+              reason: 'circuit_open',
+              remainingMs,
+            });
             return;
           }
           cbId = `cb_${cbState.actionCounter++}`;
@@ -694,7 +708,11 @@ export class HeadlessRuntime {
           })
           .catch(() => {
             if (cbIdCapture) {
-              this.emit('circuit_breaker:result', { cbId: cbIdCapture, success: false, error: 'exception' });
+              this.emit('circuit_breaker:result', {
+                cbId: cbIdCapture,
+                success: false,
+                error: 'exception',
+              });
             }
             this.emit('action:result', { requestId, status: 'failure' });
           });
@@ -707,9 +725,10 @@ export class HeadlessRuntime {
     if (this.profile.traits && this.rootInstance && !this._routingEvent) {
       this._routingEvent = true;
       try {
-        const traitEvent: TraitEvent = typeof payload === 'object' && payload !== null
-          ? { type: event, ...(payload as object) }
-          : { type: event, payload };
+        const traitEvent: TraitEvent =
+          typeof payload === 'object' && payload !== null
+            ? { type: event, ...(payload as object) }
+            : { type: event, payload };
         this.routeEventToTraits(this.rootInstance, traitEvent);
       } finally {
         this._routingEvent = false;

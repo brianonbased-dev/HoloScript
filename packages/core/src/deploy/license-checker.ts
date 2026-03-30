@@ -141,13 +141,13 @@ export function checkLicenseCompatibility(
   // Check for incompatible forced licenses
   // cc_by_sa + cc_by_nc in the same composition is problematic:
   // cc_by_sa requires derivatives be cc_by_sa, cc_by_nc requires non-commercial
-  const hasShareAlike = importedLicenses.some(i => i.license === 'cc_by_sa');
-  const hasNonCommercial = importedLicenses.some(i => i.license === 'cc_by_nc');
+  const hasShareAlike = importedLicenses.some((i) => i.license === 'cc_by_sa');
+  const hasNonCommercial = importedLicenses.some((i) => i.license === 'cc_by_nc');
 
   if (hasShareAlike && hasNonCommercial) {
     errors.push(
       'License conflict: cannot mix "cc_by_sa" (share-alike) and "cc_by_nc" (non-commercial) imports — ' +
-      'cc_by_sa requires derivatives use the same license, but cc_by_nc requires non-commercial use'
+        'cc_by_sa requires derivatives use the same license, but cc_by_nc requires non-commercial use'
     );
   }
 

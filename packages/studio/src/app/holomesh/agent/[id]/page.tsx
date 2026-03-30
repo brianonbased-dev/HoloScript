@@ -86,7 +86,9 @@ export default function AgentProfilePage() {
       if (!cancelled) setLoading(false);
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [agentId]);
 
   const tabs: { id: ProfileTab; label: string }[] = [
@@ -109,7 +111,9 @@ export default function AgentProfilePage() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error || 'Agent not found'}
         </div>
-        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">Back to HoloMesh</Link>
+        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
+          Back to HoloMesh
+        </Link>
       </div>
     );
   }
@@ -132,7 +136,10 @@ export default function AgentProfilePage() {
 
       {/* Fallback header */}
       {(composition.loading || composition.nodes.length === 0) && (
-        <header className="shrink-0 border-b border-studio-border px-6 py-6" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}>
+        <header
+          className="shrink-0 border-b border-studio-border px-6 py-6"
+          style={{ background: 'linear-gradient(135deg, #1a0533 0%, #0a1628 100%)' }}
+        >
           <div className="flex items-center gap-4">
             <div
               className="h-14 w-14 rounded-full flex items-center justify-center text-xl font-bold text-white"
@@ -144,16 +151,30 @@ export default function AgentProfilePage() {
               <h1 className="text-xl font-bold text-studio-text">{profile.agent.name}</h1>
               <div className="flex items-center gap-3 mt-1">
                 <ReputationBadge score={profile.reputation.score} tier={profile.reputation.tier} />
-                <span className="text-xs text-studio-muted">{profile.agent.contributionCount} contributions</span>
+                <span className="text-xs text-studio-muted">
+                  {profile.agent.contributionCount} contributions
+                </span>
               </div>
             </div>
           </div>
           {/* Stats */}
           <div className="flex gap-8 mt-4">
             <Stat label="Reputation" value={profile.reputation.score.toFixed(1)} color="#6366f1" />
-            <Stat label="Contributions" value={String(profile.reputation.contributions)} color="#10b981" />
-            <Stat label="Queries Answered" value={String(profile.reputation.queriesAnswered)} color="#f59e0b" />
-            <Stat label="Reuse Rate" value={`${(profile.reputation.reuseRate * 100).toFixed(0)}%`} color="#ec4899" />
+            <Stat
+              label="Contributions"
+              value={String(profile.reputation.contributions)}
+              color="#10b981"
+            />
+            <Stat
+              label="Queries Answered"
+              value={String(profile.reputation.queriesAnswered)}
+              color="#f59e0b"
+            />
+            <Stat
+              label="Reuse Rate"
+              value={`${(profile.reputation.reuseRate * 100).toFixed(0)}%`}
+              color="#ec4899"
+            />
           </div>
         </header>
       )}
@@ -166,14 +187,19 @@ export default function AgentProfilePage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`rounded-lg px-4 py-1.5 text-xs font-medium transition-colors ${
-                tab === t.id ? 'bg-studio-accent text-white' : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
+                tab === t.id
+                  ? 'bg-studio-accent text-white'
+                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel'
               }`}
             >
               {t.label}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-3">
-            <Link href="/holomesh" className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors">
+            <Link
+              href="/holomesh"
+              className="rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+            >
               Back to Mesh
             </Link>
           </div>
@@ -188,7 +214,9 @@ export default function AgentProfilePage() {
             {entries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <p className="text-sm text-studio-muted">No contributions yet</p>
-                <p className="mt-1 text-xs text-studio-muted/60">This agent hasn&apos;t shared any knowledge entries</p>
+                <p className="mt-1 text-xs text-studio-muted/60">
+                  This agent hasn&apos;t shared any knowledge entries
+                </p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -227,20 +255,30 @@ export default function AgentProfilePage() {
         {tab === 'about' && (
           <div className="max-w-2xl space-y-6">
             <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">Identity</h3>
+              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+                Identity
+              </h3>
               <div className="space-y-2">
                 <InfoRow label="Agent ID" value={profile.agent.id} mono />
                 <InfoRow label="Workspace" value={profile.agent.workspace} />
-                <InfoRow label="Joined" value={new Date(profile.agent.joinedAt).toLocaleDateString()} />
+                <InfoRow
+                  label="Joined"
+                  value={new Date(profile.agent.joinedAt).toLocaleDateString()}
+                />
               </div>
             </div>
 
             <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">Traits</h3>
+              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+                Traits
+              </h3>
               <div className="flex flex-wrap gap-1.5">
                 {profile.agent.traits.length > 0 ? (
                   profile.agent.traits.map((t) => (
-                    <span key={t} className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-xs text-studio-text">
+                    <span
+                      key={t}
+                      className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-xs text-studio-text"
+                    >
                       {t}
                     </span>
                   ))
@@ -251,23 +289,41 @@ export default function AgentProfilePage() {
             </div>
 
             <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">Reputation Breakdown</h3>
+              <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+                Reputation Breakdown
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">{profile.reputation.contributions}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">Contributions</div>
+                  <div className="text-lg font-bold text-studio-text">
+                    {profile.reputation.contributions}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
+                    Contributions
+                  </div>
                 </div>
                 <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">{profile.reputation.queriesAnswered}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">Queries Answered</div>
+                  <div className="text-lg font-bold text-studio-text">
+                    {profile.reputation.queriesAnswered}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
+                    Queries Answered
+                  </div>
                 </div>
                 <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">{(profile.reputation.reuseRate * 100).toFixed(0)}%</div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">Reuse Rate</div>
+                  <div className="text-lg font-bold text-studio-text">
+                    {(profile.reputation.reuseRate * 100).toFixed(0)}%
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
+                    Reuse Rate
+                  </div>
                 </div>
                 <div className="rounded-lg bg-[#0f172a] p-3 text-center">
-                  <div className="text-lg font-bold text-studio-text">{profile.reputation.score.toFixed(1)}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">Total Score</div>
+                  <div className="text-lg font-bold text-studio-text">
+                    {profile.reputation.score.toFixed(1)}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted">
+                    Total Score
+                  </div>
                 </div>
               </div>
             </div>
@@ -285,7 +341,9 @@ export default function AgentProfilePage() {
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="text-center">
-      <div className="text-lg font-bold" style={{ color }}>{value}</div>
+      <div className="text-lg font-bold" style={{ color }}>
+        {value}
+      </div>
       <div className="text-[10px] uppercase tracking-wider text-studio-muted">{label}</div>
     </div>
   );

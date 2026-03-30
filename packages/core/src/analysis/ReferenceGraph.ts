@@ -186,7 +186,7 @@ export class ReferenceGraph {
         line: node.loc?.start.line || 1,
         column: node.loc?.start.column || 1,
         isEntryPoint: true,
-          metadata: { fromAST: true },
+        metadata: { fromAST: true },
       });
     }
 
@@ -499,8 +499,10 @@ export class ReferenceGraph {
 
     // Add explicit name-based dependencies used by legacy tests and programmatic callers.
     for (const dep of this.pendingDependencies) {
-      const sourceId = this.findDefinitionId(dep.source, 'function') || this.findDefinitionIdByName(dep.source);
-      const targetId = this.findDefinitionId(dep.target, 'function') || this.findDefinitionIdByName(dep.target);
+      const sourceId =
+        this.findDefinitionId(dep.source, 'function') || this.findDefinitionIdByName(dep.source);
+      const targetId =
+        this.findDefinitionId(dep.target, 'function') || this.findDefinitionIdByName(dep.target);
       if (!sourceId || !targetId) continue;
 
       const sourceNode = this.nodes.get(sourceId);
@@ -524,10 +526,7 @@ export class ReferenceGraph {
       );
 
     for (const [id, node] of this.nodes) {
-      if (
-        node.definition.isEntryPoint ||
-        node.definition.type === 'composition'
-      ) {
+      if (node.definition.isEntryPoint || node.definition.type === 'composition') {
         this.entryPoints.add(id);
       }
 
@@ -572,7 +571,16 @@ export class ReferenceGraph {
   /**
    * Backward-compatible alias used by legacy tests.
    */
-  addSymbol(def: SymbolDefinition & { startLine?: number; startColumn?: number; signature?: string; documentation?: string; hasTests?: boolean; isPublic?: boolean }): void {
+  addSymbol(
+    def: SymbolDefinition & {
+      startLine?: number;
+      startColumn?: number;
+      signature?: string;
+      documentation?: string;
+      hasTests?: boolean;
+      isPublic?: boolean;
+    }
+  ): void {
     this.addDefinition({
       ...def,
       line: def.line ?? def.startLine ?? 1,

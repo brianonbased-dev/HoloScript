@@ -259,11 +259,12 @@ export class HoloScriptSandbox {
       const errorMessage: string = errObj?.message ?? 'Unknown execution error';
       const errorCode: string | undefined = errObj?.code;
       const errorStack: string | undefined = errObj?.stack;
-      const isTimeout = errorCode === 'ERR_SCRIPT_EXECUTION_TIMEOUT' ||
+      const isTimeout =
+        errorCode === 'ERR_SCRIPT_EXECUTION_TIMEOUT' ||
         errorMessage.toLowerCase().includes('timed out') ||
         errorMessage.toLowerCase().includes('timeout');
-      const isSyntaxError = errObj?.constructor?.name === 'SyntaxError' ||
-        errorMessage.includes('Unexpected token');
+      const isSyntaxError =
+        errObj?.constructor?.name === 'SyntaxError' || errorMessage.includes('Unexpected token');
 
       if (isTimeout) {
         this.log({

@@ -75,10 +75,7 @@ export class VFSSandbox {
 
   constructor(options: VFSSandboxOptions) {
     this.allowedRoots = options.allowedRoots.map((r) => path.resolve(r));
-    this.deniedPatterns = [
-      ...DEFAULT_DENIED_PATTERNS,
-      ...(options.deniedPatterns ?? []),
-    ];
+    this.deniedPatterns = [...DEFAULT_DENIED_PATTERNS, ...(options.deniedPatterns ?? [])];
     this.auditOnly = options.auditOnly ?? false;
     this.enableAudit = options.enableAudit ?? true;
   }
@@ -95,12 +92,16 @@ export class VFSSandbox {
     // 1. Path traversal detection
     if (this.hasTraversal(filePath)) {
       this.audit(operation, resolved, false, 'Path traversal detected');
-      return { allowed: false, resolvedPath: resolved, reason: 'Path contains traversal sequences (../)' };
+      return {
+        allowed: false,
+        resolvedPath: resolved,
+        reason: 'Path contains traversal sequences (../)',
+      };
     }
 
     // 2. Check allowlist
-    const isUnderAllowedRoot = this.allowedRoots.some((root) =>
-      resolved.startsWith(root + path.sep) || resolved === root
+    const isUnderAllowedRoot = this.allowedRoots.some(
+      (root) => resolved.startsWith(root + path.sep) || resolved === root
     );
 
     if (!isUnderAllowedRoot) {
@@ -279,10 +280,6 @@ export function createProjectSandbox(projectRoot: string): VFSSandbox {
       path.join(root, 'packages'),
       path.join(root, 'docs'),
     ],
-    deniedPatterns: [
-      ...DEFAULT_DENIED_PATTERNS,
-      'node_modules/**',
-      '.git/**',
-    ],
+    deniedPatterns: [...DEFAULT_DENIED_PATTERNS, 'node_modules/**', '.git/**'],
   });
 }

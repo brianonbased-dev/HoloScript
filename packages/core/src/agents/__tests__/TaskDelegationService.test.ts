@@ -33,9 +33,7 @@ function makeRemoteAgent(overrides: Partial<AgentManifest> = {}): AgentManifest 
     name: 'Remote Agent',
     version: '1.0.0',
     capabilities: [{ type: 'transform', domain: 'spatial' }],
-    endpoints: [
-      { protocol: 'https', address: 'https://remote.example.com/a2a', primary: true },
-    ],
+    endpoints: [{ protocol: 'https', address: 'https://remote.example.com/a2a', primary: true }],
     trustLevel: 'external',
     status: 'online',
     ...overrides,
@@ -125,7 +123,7 @@ describe('TaskDelegationService', () => {
       await registry.register(makeRemoteAgent());
 
       const service = new TaskDelegationService(registry, undefined, {
-        fetchFn: async () => ({ ok: false, status: 500 } as Response),
+        fetchFn: async () => ({ ok: false, status: 500 }) as Response,
       });
 
       const result = await service.delegateTo({

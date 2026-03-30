@@ -26,7 +26,7 @@ import { ExportManager } from '@holoscript/core/compiler';
 import { parse } from '@holoscript/core/parser';
 
 const manager = new ExportManager({
-  generateDocs: true,  // ← Enable triple-output
+  generateDocs: true, // ← Enable triple-output
   docsOptions: {
     serviceUrl: 'https://my-service.example.com',
     serviceVersion: '1.0.0',
@@ -38,9 +38,9 @@ const composition = parse(holoScriptCode);
 const result = await manager.export('r3f', composition);
 
 // Access the three outputs
-console.log(result.documentation.llmsTxt);        // AI-readable summary
-console.log(result.documentation.wellKnownMcp);   // MCP server card
-console.log(result.documentation.markdownDocs);   // Full markdown docs
+console.log(result.documentation.llmsTxt); // AI-readable summary
+console.log(result.documentation.wellKnownMcp); // MCP server card
+console.log(result.documentation.markdownDocs); // Full markdown docs
 ```
 
 ### Direct Generator Usage
@@ -69,6 +69,7 @@ const docs = generator.generate(composition, 'r3f', compiledCode);
 Concise project summary optimized for LLM context windows. Follows the [llms.txt specification](https://llmstxt.org/).
 
 **Format:**
+
 ```
 # Scene Name
 
@@ -103,6 +104,7 @@ Fog: enabled
 JSON metadata conforming to Model Context Protocol specification (SEP-1649 serverInfo + SEP-1960 endpoints).
 
 **Schema:**
+
 ```json
 {
   "mcpVersion": "2025-03-26",
@@ -155,6 +157,7 @@ JSON metadata conforming to Model Context Protocol specification (SEP-1649 serve
 Comprehensive human-readable documentation bundle with table of contents, scene graph, trait descriptions, state management, and compilation output details.
 
 **Structure:**
+
 - Title and metadata (target, timestamp)
 - Table of contents
 - Overview (object count, lights, spatial groups)
@@ -177,16 +180,16 @@ Enable triple-output documentation generation. Default: `false`.
 
 Fine-tune documentation generation:
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `serviceUrl` | `string` | `'http://localhost:3000'` | Base URL for MCP server card endpoints |
-| `serviceVersion` | `string` | `'1.0.0'` | Service version (semver) |
-| `maxLlmsTxtTokens` | `number` | `800` | Maximum tokens for llms.txt (truncates if exceeded) |
-| `includeTraitDocs` | `boolean` | `true` | Include trait documentation in markdown (future: query trait registry) |
-| `includeExamples` | `boolean` | `true` | Include examples in markdown |
-| `mcpTransportType` | `string` | `'streamable-http'` | MCP transport type (streamable-http, sse, stdio) |
-| `contactRepository` | `string` | `''` | Repository URL for MCP server card contact info |
-| `contactDocumentation` | `string` | `''` | Documentation URL for MCP server card contact info |
+| Option                 | Type      | Default                   | Description                                                            |
+| ---------------------- | --------- | ------------------------- | ---------------------------------------------------------------------- |
+| `serviceUrl`           | `string`  | `'http://localhost:3000'` | Base URL for MCP server card endpoints                                 |
+| `serviceVersion`       | `string`  | `'1.0.0'`                 | Service version (semver)                                               |
+| `maxLlmsTxtTokens`     | `number`  | `800`                     | Maximum tokens for llms.txt (truncates if exceeded)                    |
+| `includeTraitDocs`     | `boolean` | `true`                    | Include trait documentation in markdown (future: query trait registry) |
+| `includeExamples`      | `boolean` | `true`                    | Include examples in markdown                                           |
+| `mcpTransportType`     | `string`  | `'streamable-http'`       | MCP transport type (streamable-http, sse, stdio)                       |
+| `contactRepository`    | `string`  | `''`                      | Repository URL for MCP server card contact info                        |
+| `contactDocumentation` | `string`  | `''`                      | Documentation URL for MCP server card contact info                     |
 
 ---
 
@@ -241,9 +244,10 @@ Fine-tune documentation generation:
 let documentation: ExportResult['documentation'] | undefined;
 if (options.generateDocs && circuitResult.success && circuitResult.data) {
   const docGen = new CompilerDocumentationGenerator(options.docsOptions);
-  const outputStr = typeof circuitResult.data === 'string'
-    ? circuitResult.data
-    : JSON.stringify(circuitResult.data);
+  const outputStr =
+    typeof circuitResult.data === 'string'
+      ? circuitResult.data
+      : JSON.stringify(circuitResult.data);
   const tripleOutput = docGen.generate(composition, target, outputStr);
   documentation = {
     llmsTxt: tripleOutput.llmsTxt,
@@ -285,7 +289,7 @@ pnpm vitest run CompilerDocumentationGenerator.test.ts
 - **.well-known/mcp generation:**
   - SEP-1649 serverInfo schema compliance
   - SEP-1960 tool manifest schema compliance
-  - Tool generation for templates (instantiate_*)
+  - Tool generation for templates (instantiate\_\*)
   - State update tool generation
   - Composition name sanitization (lowercase, alphanumeric+dash)
   - Contact information fields
@@ -340,7 +344,7 @@ This enables clients to discover all service endpoints from a single `.well-know
 Each composition generates MCP tools based on its structure:
 
 1. **compile_composition** — Always present, enables recompilation
-2. **instantiate_{template_name}** — One per template (max 10), enables template instantiation
+2. **instantiate\_{template_name}** — One per template (max 10), enables template instantiation
 3. **update_state** — Present if composition has state, enables state updates
 
 Tool schemas include JSON Schema `inputSchema` for parameter validation.
@@ -352,6 +356,7 @@ Tool schemas include JSON Schema `inputSchema` for parameter validation.
 ### 1. AI Agent Integration
 
 AI agents can fetch the `.well-known/mcp` server card to discover:
+
 - What tools are available
 - How to compile the composition
 - What templates can be instantiated
@@ -362,6 +367,7 @@ The `llms.txt` file provides a concise summary for LLM context windows.
 ### 2. Human Documentation
 
 The markdown bundle serves as automatically-generated reference documentation:
+
 - Scene overview
 - Object inventory
 - Trait usage
@@ -371,6 +377,7 @@ The markdown bundle serves as automatically-generated reference documentation:
 ### 3. MCP Server Auto-Discovery
 
 Publishing `.well-known/mcp` enables:
+
 - MCP clients to auto-discover the service
 - Tool manifest browsing
 - Endpoint URL resolution
@@ -379,6 +386,7 @@ Publishing `.well-known/mcp` enables:
 ### 4. Composition Registry
 
 Compositions can be indexed by their triple-output:
+
 - llms.txt for semantic search
 - .well-known/mcp for capability matching
 - Markdown for human browsing
@@ -390,6 +398,7 @@ Compositions can be indexed by their triple-output:
 ### Trait Documentation Integration
 
 Currently, `getTraitDocumentation()` is a stub. Future versions will query:
+
 - Trait registry metadata
 - Trait category descriptions
 - Trait parameter schemas
@@ -398,6 +407,7 @@ Currently, `getTraitDocumentation()` is a stub. Future versions will query:
 ### Example Code Generation
 
 Future versions can include:
+
 - Example tool invocations in markdown
 - Example state updates
 - Example template instantiations
@@ -405,6 +415,7 @@ Future versions can include:
 ### Schema Export
 
 Future versions can export:
+
 - JSON Schema for composition structure
 - TypeScript type definitions
 - GraphQL schema
@@ -412,6 +423,7 @@ Future versions can export:
 ### Localization
 
 Future versions can support:
+
 - Multi-language markdown documentation
 - Localized trait descriptions
 - Region-specific formatting
@@ -457,12 +469,14 @@ However, this is **not required** — `ExportManager` handles documentation gene
 ### Memory Overhead
 
 Documentation generation is lazy-initialized:
+
 - Generator instance created only when `generateDocs: true`
 - No memory overhead when disabled
 
 ### Execution Time
 
 Documentation generation adds ~1-3ms per compilation:
+
 - llms.txt: ~0.5ms (string concatenation)
 - .well-known/mcp: ~1ms (JSON serialization)
 - Markdown: ~1.5ms (table rendering + string concatenation)
@@ -472,6 +486,7 @@ For typical compositions (10-50 objects), overhead is negligible.
 ### Token Limit
 
 llms.txt is truncated at `maxLlmsTxtTokens` (default 800):
+
 - Rough estimate: 1 token ≈ 4 characters
 - Large compositions truncate gracefully with `(truncated to fit token limit)` message
 
@@ -511,7 +526,10 @@ const result = await manager.export('r3f', composition);
 
 // Save outputs
 await fs.writeFile('public/llms.txt', result.documentation.llmsTxt);
-await fs.writeFile('public/.well-known/mcp', JSON.stringify(result.documentation.wellKnownMcp, null, 2));
+await fs.writeFile(
+  'public/.well-known/mcp',
+  JSON.stringify(result.documentation.wellKnownMcp, null, 2)
+);
 await fs.writeFile('docs/MyVRApp.md', result.documentation.markdownDocs);
 ```
 
@@ -542,6 +560,7 @@ await s3.upload('docs/API.md', result.documentation.markdownDocs);
 ### 2026-03-21 — v1.0.0 (Initial Release)
 
 **Added:**
+
 - `CompilerDocumentationGenerator` class
 - `TripleOutputResult` interface
 - `MCPServerCard`, `MCPTransportConfig`, `MCPCapabilities`, `MCPToolManifest` types
@@ -553,6 +572,7 @@ await s3.upload('docs/API.md', result.documentation.markdownDocs);
 - 27 comprehensive tests (100% pass rate)
 
 **Specifications:**
+
 - llms.txt format conformance
 - MCP SEP-1649 (serverInfo) conformance
 - MCP SEP-1960 (endpoints array) conformance

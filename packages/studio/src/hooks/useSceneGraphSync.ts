@@ -89,24 +89,23 @@ export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
   // Subscribe once to track user-edited nodes
   useEffect(() => {
     // Listen for transform updates and mark the node as user-edited
-    const unsub = useSceneGraphStore.subscribe(
-      (state, prevState) => {
-        // Compare nodes by reference — any node whose position/rotation/scale changed
-        // between states was edited by the user (not by this sync hook)
-        if (state.nodes !== prevState.nodes) {
-          for (const node of state.nodes) {
-            const prev = prevState.nodes.find((n) => n.id === node.id);
-            if (prev &&
-              (prev.position !== node.position ||
-               prev.rotation !== node.rotation ||
-               prev.scale !== node.scale)
-            ) {
-              userEditedRef.current.add(node.id);
-            }
+    const unsub = useSceneGraphStore.subscribe((state, prevState) => {
+      // Compare nodes by reference — any node whose position/rotation/scale changed
+      // between states was edited by the user (not by this sync hook)
+      if (state.nodes !== prevState.nodes) {
+        for (const node of state.nodes) {
+          const prev = prevState.nodes.find((n) => n.id === node.id);
+          if (
+            prev &&
+            (prev.position !== node.position ||
+              prev.rotation !== node.rotation ||
+              prev.scale !== node.scale)
+          ) {
+            userEditedRef.current.add(node.id);
           }
         }
       }
-    );
+    });
     return unsub;
   }, []);
 
@@ -161,12 +160,10 @@ export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
 
     // Only update if something actually changed
     const needsUpdate =
-      mergedNodes.length !== store.nodes.length ||
-      mergedNodes.some((n, i) => n !== store.nodes[i]);
+      mergedNodes.length !== store.nodes.length || mergedNodes.some((n, i) => n !== store.nodes[i]);
 
     if (needsUpdate) {
       useSceneGraphStore.setState({ nodes: mergedNodes });
     }
   }, [r3fTree]);
 }
-

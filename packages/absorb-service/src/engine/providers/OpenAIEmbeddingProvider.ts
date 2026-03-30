@@ -78,7 +78,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
         console.error(
           `[OpenAI] Rate limit hit (attempt ${attempt + 1}/${maxRetries}). ` +
-          `Retrying in ${Math.round(retryAfter / 1000)}s...`
+            `Retrying in ${Math.round(retryAfter / 1000)}s...`
         );
 
         await new Promise((resolve) => setTimeout(resolve, retryAfter));

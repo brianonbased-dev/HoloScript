@@ -7,11 +7,7 @@
  * @version 1.0.0
  */
 
-export {
-  RuleForge,
-  defaultRuleForge,
-  createRuleForge,
-} from './RuleForge';
+export { RuleForge, defaultRuleForge, createRuleForge } from './RuleForge';
 
 export type {
   Rule,

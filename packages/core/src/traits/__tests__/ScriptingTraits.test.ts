@@ -73,9 +73,7 @@ describe('PipelineTrait', () => {
   it('should auto-start when auto_start is true', () => {
     const config: Partial<PipelineConfig> = {
       auto_start: true,
-      steps: [
-        { name: 'only', type: 'action', action: 'do_it', params: {}, timeout_ms: 0 },
-      ],
+      steps: [{ name: 'only', type: 'action', action: 'do_it', params: {}, timeout_ms: 0 }],
     };
     attachTrait(pipelineHandler, node, config, ctx);
     expect((node as any).__pipelineState.running).toBe(true);

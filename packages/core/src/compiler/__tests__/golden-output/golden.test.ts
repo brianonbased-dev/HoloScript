@@ -49,15 +49,12 @@ function makeObject(
   name: string,
   geometry: string,
   traits: string[],
-  extraProps: Array<{ key: string; value: unknown }> = [],
+  extraProps: Array<{ key: string; value: unknown }> = []
 ): HoloObjectDecl {
   return {
     type: 'Object',
     name,
-    properties: [
-      { key: 'geometry', value: geometry },
-      ...extraProps,
-    ] as any,
+    properties: [{ key: 'geometry', value: geometry }, ...extraProps] as any,
     traits: traits.map(makeTrait),
   } as HoloObjectDecl;
 }
@@ -84,18 +81,33 @@ const CANONICAL: HoloComposition = {
     ],
   } as any,
   objects: [
-    makeObject('hero', 'humanoid', ['@grabbable', '@collidable', '@networked'], [
-      { key: 'color', value: '#00ffcc' },
-      { key: 'position', value: [0, 1.6, 0] },
-    ]),
-    makeObject('platform', 'cube', ['@collidable', '@physics'], [
-      { key: 'scale', value: [5, 0.1, 5] },
-      { key: 'position', value: [0, 0, 0] },
-    ]),
-    makeObject('collectible', 'sphere', ['@grabbable', '@glowing'], [
-      { key: 'color', value: '#ffcc00' },
-      { key: 'position', value: [2, 1, -3] },
-    ]),
+    makeObject(
+      'hero',
+      'humanoid',
+      ['@grabbable', '@collidable', '@networked'],
+      [
+        { key: 'color', value: '#00ffcc' },
+        { key: 'position', value: [0, 1.6, 0] },
+      ]
+    ),
+    makeObject(
+      'platform',
+      'cube',
+      ['@collidable', '@physics'],
+      [
+        { key: 'scale', value: [5, 0.1, 5] },
+        { key: 'position', value: [0, 0, 0] },
+      ]
+    ),
+    makeObject(
+      'collectible',
+      'sphere',
+      ['@grabbable', '@glowing'],
+      [
+        { key: 'color', value: '#ffcc00' },
+        { key: 'position', value: [2, 1, -3] },
+      ]
+    ),
   ],
   templates: [],
   spatialGroups: [],

@@ -8,11 +8,11 @@ Provides the base abstractions for all HoloScript Studio connectors (GitHub, Rai
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| `McpRegistrar` | Central MCP tool registration for all connectors |
-| `ConnectorInterface` | Abstract base for all connector implementations |
-| `ConnectorConfig` | Shared configuration types |
+| Component            | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| `McpRegistrar`       | Central MCP tool registration for all connectors |
+| `ConnectorInterface` | Abstract base for all connector implementations  |
+| `ConnectorConfig`    | Shared configuration types                       |
 
 ## Usage
 
@@ -31,23 +31,21 @@ import { ConnectorInterface } from '@holoscript/connector-core';
 
 export class MyConnector extends ConnectorInterface {
   name = 'my-service';
-  
+
   getTools() {
-    return [
-      { name: 'my_tool', description: '...', handler: this.handleTool },
-    ];
+    return [{ name: 'my_tool', description: '...', handler: this.handleTool }];
   }
 }
 ```
 
 ## Existing Connectors
 
-| Connector | Package | Service |
-|-----------|---------|---------|
-| GitHub | `@holoscript/connector-github` | Repository management |
-| Railway | `@holoscript/connector-railway` | Deployment |
-| Upstash | `@holoscript/connector-upstash` | Redis/Kafka |
-| App Store | `@holoscript/connector-appstore` | Plugin distribution |
+| Connector | Package                          | Service               |
+| --------- | -------------------------------- | --------------------- |
+| GitHub    | `@holoscript/connector-github`   | Repository management |
+| Railway   | `@holoscript/connector-railway`  | Deployment            |
+| Upstash   | `@holoscript/connector-upstash`  | Redis/Kafka           |
+| App Store | `@holoscript/connector-appstore` | Plugin distribution   |
 
 ## Related
 

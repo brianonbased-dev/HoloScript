@@ -39,14 +39,20 @@ export interface PhysicsProvider {
   raycast(
     origin: Vector3,
     direction: Vector3,
-    maxDistance: number,
+    maxDistance: number
   ): { point: Vector3; normal: Vector3; distance: number; nodeId: string } | null;
 }
 
 /** Implemented by platform spatial audio engine */
 export interface AudioProvider {
-  playSound(source: string, options?: { position?: Vector3; volume?: number; spatial?: boolean }): void;
-  updateSpatialSource?(nodeId: string, options: { hrtfProfile?: string; occlusion?: number; reverbWet?: number }): void;
+  playSound(
+    source: string,
+    options?: { position?: Vector3; volume?: number; spatial?: boolean }
+  ): void;
+  updateSpatialSource?(
+    nodeId: string,
+    options: { hrtfProfile?: string; occlusion?: number; reverbWet?: number }
+  ): void;
   registerAmbisonicSource?(nodeId: string, order: number): void;
   setAudioPortal?(portalId: string, targetZone: string, openingSize: number): void;
   updateAudioMaterial?(nodeId: string, absorption: number, reflection: number): void;
@@ -129,7 +135,9 @@ const NOOP_PHYSICS: PhysicsProvider = {
   applyVelocity() {},
   applyAngularVelocity() {},
   setKinematic() {},
-  raycast() { return null; },
+  raycast() {
+    return null;
+  },
 };
 
 const NOOP_AUDIO: AudioProvider = {
@@ -142,12 +150,24 @@ const NOOP_HAPTICS: HapticsProvider = {
 };
 
 const NOOP_VR: VRProvider = {
-  getLeftHand() { return null; },
-  getRightHand() { return null; },
-  getHeadsetPosition() { return [0, 1.6, 0] as unknown as Vector3; },
-  getHeadsetRotation() { return [0, 0, 0] as unknown as Vector3; },
-  getPointerRay() { return null; },
-  getDominantHand() { return null; },
+  getLeftHand() {
+    return null;
+  },
+  getRightHand() {
+    return null;
+  },
+  getHeadsetPosition() {
+    return [0, 1.6, 0] as unknown as Vector3;
+  },
+  getHeadsetRotation() {
+    return [0, 0, 0] as unknown as Vector3;
+  },
+  getPointerRay() {
+    return null;
+  },
+  getDominantHand() {
+    return null;
+  },
 };
 
 // =============================================================================
@@ -178,13 +198,27 @@ export class TraitContextFactory {
 
   // ---- Provider hot-swap (packages load asynchronously) -------------------
 
-  setPhysicsProvider(provider: PhysicsProvider): void { this.physicsProvider = provider; }
-  setAudioProvider(provider: AudioProvider): void { this.audioProvider = provider; }
-  setHapticsProvider(provider: HapticsProvider): void { this.hapticsProvider = provider; }
-  setAccessibilityProvider(provider: AccessibilityProvider): void { this.accessibilityProvider = provider; }
-  setVRProvider(provider: VRProvider): void { this.vrProvider = provider; }
-  setNetworkProvider(provider: NetworkProvider): void { this.networkProvider = provider; }
-  setRendererProvider(provider: RendererProvider): void { this.rendererProvider = provider; }
+  setPhysicsProvider(provider: PhysicsProvider): void {
+    this.physicsProvider = provider;
+  }
+  setAudioProvider(provider: AudioProvider): void {
+    this.audioProvider = provider;
+  }
+  setHapticsProvider(provider: HapticsProvider): void {
+    this.hapticsProvider = provider;
+  }
+  setAccessibilityProvider(provider: AccessibilityProvider): void {
+    this.accessibilityProvider = provider;
+  }
+  setVRProvider(provider: VRProvider): void {
+    this.vrProvider = provider;
+  }
+  setNetworkProvider(provider: NetworkProvider): void {
+    this.networkProvider = provider;
+  }
+  setRendererProvider(provider: RendererProvider): void {
+    this.rendererProvider = provider;
+  }
 
   // ---- Event bus ---------------------------------------------------------
 
@@ -223,12 +257,20 @@ export class TraitContextFactory {
 
     const vrContext: VRContext = {
       hands: {
-        get left() { return self.vrProvider.getLeftHand(); },
-        get right() { return self.vrProvider.getRightHand(); },
+        get left() {
+          return self.vrProvider.getLeftHand();
+        },
+        get right() {
+          return self.vrProvider.getRightHand();
+        },
       },
       headset: {
-        get position() { return self.vrProvider.getHeadsetPosition(); },
-        get rotation() { return self.vrProvider.getHeadsetRotation(); },
+        get position() {
+          return self.vrProvider.getHeadsetPosition();
+        },
+        get rotation() {
+          return self.vrProvider.getHeadsetRotation();
+        },
       },
       getPointerRay(hand: 'left' | 'right') {
         return self.vrProvider.getPointerRay(hand);
@@ -282,10 +324,18 @@ export class TraitContextFactory {
 
     const accessibilityContext: AccessibilityContext | undefined = self.accessibilityProvider
       ? {
-          announce(text: string) { self.accessibilityProvider!.announce(text); },
-          setScreenReaderFocus(nodeId: string) { self.accessibilityProvider!.setScreenReaderFocus(nodeId); },
-          setAltText(nodeId: string, text: string) { self.accessibilityProvider!.setAltText(nodeId, text); },
-          setHighContrast(enabled: boolean) { self.accessibilityProvider!.setHighContrast(enabled); },
+          announce(text: string) {
+            self.accessibilityProvider!.announce(text);
+          },
+          setScreenReaderFocus(nodeId: string) {
+            self.accessibilityProvider!.setScreenReaderFocus(nodeId);
+          },
+          setAltText(nodeId: string, text: string) {
+            self.accessibilityProvider!.setAltText(nodeId, text);
+          },
+          setHighContrast(enabled: boolean) {
+            self.accessibilityProvider!.setHighContrast(enabled);
+          },
         }
       : undefined;
 
@@ -309,8 +359,12 @@ export class TraitContextFactory {
 
   // ---- Accessors ---------------------------------------------------------
 
-  getNetworkProvider(): NetworkProvider | undefined { return this.networkProvider; }
-  getRendererProvider(): RendererProvider | undefined { return this.rendererProvider; }
+  getNetworkProvider(): NetworkProvider | undefined {
+    return this.networkProvider;
+  }
+  getRendererProvider(): RendererProvider | undefined {
+    return this.rendererProvider;
+  }
 
   dispose(): void {
     this.eventListeners.clear();
@@ -322,8 +376,6 @@ export class TraitContextFactory {
 // Factory Function
 // =============================================================================
 
-export function createTraitContextFactory(
-  config?: TraitContextFactoryConfig,
-): TraitContextFactory {
+export function createTraitContextFactory(config?: TraitContextFactoryConfig): TraitContextFactory {
   return new TraitContextFactory(config);
 }

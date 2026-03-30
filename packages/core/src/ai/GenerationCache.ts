@@ -193,7 +193,9 @@ export class GenerationCache {
       this.hits = data.stats.hits;
       this.misses = data.stats.misses;
     } catch (error) {
-      throw new Error(`Failed to deserialize cache: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to deserialize cache: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

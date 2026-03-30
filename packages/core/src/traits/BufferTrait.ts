@@ -139,7 +139,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
       }
 
       case 'buffer:force_flush': {
-        const channelId = payload.id as string ?? payload.channelId as string;
+        const channelId = (payload.id as string) ?? (payload.channelId as string);
         if (channelId) {
           const cs = state.channels.get(channelId);
           if (cs && cs.items.length > 0) {
@@ -160,7 +160,7 @@ export const bufferHandler: TraitHandler<BufferConfig> = {
         context.emit?.('buffer:status', {
           channelCount: state.channels.size,
           totalFlushed: state.totalFlushed,
-          channels: Array.from(state.channels.values()).map(cs => ({
+          channels: Array.from(state.channels.values()).map((cs) => ({
             id: cs.channel.id,
             source: cs.channel.source_event,
             buffered: cs.items.length,

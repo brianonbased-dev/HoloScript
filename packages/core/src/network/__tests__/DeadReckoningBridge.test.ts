@@ -261,7 +261,9 @@ describe('DeadReckoningPredictor — Correction', () => {
 describe('extractPhysicsSnapshot', () => {
   it('creates a valid snapshot with all fields', () => {
     const snap = extractPhysicsSnapshot(
-      'obj-1', 42, 5000,
+      'obj-1',
+      42,
+      5000,
       {
         position: { x: 1, y: 2, z: 3 },
         rotation: { x: 0, y: 0.707, z: 0, w: 0.707 },
@@ -272,7 +274,7 @@ describe('extractPhysicsSnapshot', () => {
         mass: 10,
         linearDamping: 0.1,
         useGravity: true,
-      },
+      }
     );
 
     expect(snap.entityId).toBe('obj-1');
@@ -289,9 +291,11 @@ describe('extractPhysicsSnapshot', () => {
 
   it('defaults optional fields', () => {
     const snap = extractPhysicsSnapshot(
-      'obj-2', 1, 0,
+      'obj-2',
+      1,
+      0,
       { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
-      { velocity: { x: 0, y: 0, z: 0 }, angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1 },
+      { velocity: { x: 0, y: 0, z: 0 }, angularVelocity: { x: 0, y: 0, z: 0 }, mass: 1 }
     );
 
     expect(snap.linearDamping).toBe(0);
@@ -467,14 +471,16 @@ describe('Dead-Reckoning Pipeline (integration)', () => {
     // Simulate 5 snapshots at 20Hz (50ms apart)
     for (let i = 0; i < 5; i++) {
       const t = i * 50;
-      snapshots.push(makeSnapshot({
-        timestamp: t,
-        sequence: i,
-        position: { x: i * 0.5, y: 0, z: 0 },
-        velocity: { x: 10, y: 0, z: 0 },
-        useGravity: false,
-        isKinematic: true,
-      }));
+      snapshots.push(
+        makeSnapshot({
+          timestamp: t,
+          sequence: i,
+          position: { x: i * 0.5, y: 0, z: 0 },
+          velocity: { x: 10, y: 0, z: 0 },
+          useGravity: false,
+          isKinematic: true,
+        })
+      );
     }
 
     // Feed snapshots and predict between them

@@ -45,7 +45,7 @@ export function useMonacoAutocomplete(monaco: Monaco | null, options?: Autocompl
 
     // Use structural typing for provider params to avoid deep ITextModel
     // resolution differences between the two pnpm installs of monaco-editor.
-     
+
     disposableRef.current = monaco.languages.registerInlineCompletionsProvider('holo', {
       provideInlineCompletions(
         model: {

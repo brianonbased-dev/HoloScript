@@ -51,7 +51,14 @@ function makeNode(id = 'node-1', type: 'agent' | 'tool' = 'agent'): WorkflowNode
       type: 'agent',
       label: 'Brittney',
       position: { x: 100, y: 100 },
-      data: { type: 'agent', agentId: 'brittney', systemPrompt: 'You are Brittney', temperature: 0.7, tools: [], maxTokens: 4096 },
+      data: {
+        type: 'agent',
+        agentId: 'brittney',
+        systemPrompt: 'You are Brittney',
+        temperature: 0.7,
+        tools: [],
+        maxTokens: 4096,
+      },
     };
   }
   return {
@@ -59,7 +66,13 @@ function makeNode(id = 'node-1', type: 'agent' | 'tool' = 'agent'): WorkflowNode
     type: 'tool',
     label: 'Compile',
     position: { x: 200, y: 100 },
-    data: { type: 'tool', server: 'test-server', toolName: 'compile_holo', args: {}, timeout: 30000 },
+    data: {
+      type: 'tool',
+      server: 'test-server',
+      toolName: 'compile_holo',
+      args: {},
+      timeout: 30000,
+    },
   };
 }
 
@@ -103,7 +116,13 @@ describe('orchestrationStore — MCP servers', () => {
   it('removeMCPServer deletes the server and its status/tools', () => {
     const store = useOrchestrationStore.getState();
     store.addMCPServer(makeServer());
-    store.setServerStatus('test-server', { name: 'test-server', isHealthy: true, lastCheck: new Date(), responseTime: 50, availableTools: 3 });
+    store.setServerStatus('test-server', {
+      name: 'test-server',
+      isHealthy: true,
+      lastCheck: new Date(),
+      responseTime: 50,
+      availableTools: 3,
+    });
     store.setMCPTools('test-server', [makeToolDef()]);
     store.removeMCPServer('test-server');
 
@@ -229,14 +248,24 @@ describe('orchestrationStore — workflows', () => {
 describe('orchestrationStore — events', () => {
   it('addEvent appends an event', () => {
     useOrchestrationStore.getState().addEvent({
-      id: 'e1', topic: 'compile', payload: {}, senderId: 'brittney', timestamp: Date.now(), receivedBy: [],
+      id: 'e1',
+      topic: 'compile',
+      payload: {},
+      senderId: 'brittney',
+      timestamp: Date.now(),
+      receivedBy: [],
     });
     expect(useOrchestrationStore.getState().events).toHaveLength(1);
   });
 
   it('clearEvents empties the list', () => {
     useOrchestrationStore.getState().addEvent({
-      id: 'e1', topic: 'compile', payload: {}, senderId: 'brittney', timestamp: Date.now(), receivedBy: [],
+      id: 'e1',
+      topic: 'compile',
+      payload: {},
+      senderId: 'brittney',
+      timestamp: Date.now(),
+      receivedBy: [],
     });
     useOrchestrationStore.getState().clearEvents();
     expect(useOrchestrationStore.getState().events).toHaveLength(0);
@@ -282,7 +311,9 @@ describe('orchestrationStore — behavior trees', () => {
     useOrchestrationStore.getState().createBehaviorTree('bt');
     useOrchestrationStore.getState().addBTNode('bt', makeBTNode('n1'));
     useOrchestrationStore.getState().updateBTNode('bt', 'n1', { label: 'Patched' });
-    expect(useOrchestrationStore.getState().behaviorTrees.get('bt')!.nodes[0].label).toBe('Patched');
+    expect(useOrchestrationStore.getState().behaviorTrees.get('bt')!.nodes[0].label).toBe(
+      'Patched'
+    );
   });
 
   it('addBTEdge + removeBTEdge', () => {
@@ -345,7 +376,14 @@ describe('orchestrationStore — reset', () => {
     store.addMCPServer(makeServer());
     store.createWorkflow('W', 'W');
     store.createBehaviorTree('bt');
-    store.addEvent({ id: 'e1', topic: 't', payload: {}, senderId: 's', timestamp: 0, receivedBy: [] });
+    store.addEvent({
+      id: 'e1',
+      topic: 't',
+      payload: {},
+      senderId: 's',
+      timestamp: 0,
+      receivedBy: [],
+    });
     store.addToolCall(makeToolCall());
 
     store.reset();

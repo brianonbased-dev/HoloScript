@@ -22,25 +22,25 @@ dist/
 
 ## What Gets Compiled to WASM
 
-| HoloScript System   | WASM Module               | Why WASM?                   |
-| ------------------- | ------------------------- | --------------------------- |
+| HoloScript System   | WASM Module               | Why WASM?                        |
+| ------------------- | ------------------------- | -------------------------------- |
 | Physics simulation  | `physics.wasm`            | 60fps rigid body at 100+ objects |
-| Pathfinding (A\*)   | `nav.wasm`                | Large navmesh without stutter |
-| Procedural geometry | `procgen.wasm`            | Real-time mesh generation   |
-| Collision detection | `collision.wasm`          | Sub-ms broad-phase          |
-| SNN / neuromorphic  | Via `NIRToWGSL` + compute | GPU path preferred          |
+| Pathfinding (A\*)   | `nav.wasm`                | Large navmesh without stutter    |
+| Procedural geometry | `procgen.wasm`            | Real-time mesh generation        |
+| Collision detection | `collision.wasm`          | Sub-ms broad-phase               |
+| SNN / neuromorphic  | Via `NIRToWGSL` + compute | GPU path preferred               |
 
 Rendering, networking, and XR input stay in JavaScript and call into WASM for computation.
 
 ## Trait Mapping
 
-| HoloScript Trait   | WASM Behaviour                         |
-| ------------------ | --------------------------------------- |
-| `@physics`         | Full WASM physics step per-frame        |
-| `@pathfinding`     | WASM A\* / flow-field                   |
-| `@collidable`      | WASM broad+narrow phase                 |
-| `@procedural`      | WASM mesh generation, JS receives verts |
-| All others         | Remain in JS bridge layer               |
+| HoloScript Trait | WASM Behaviour                          |
+| ---------------- | --------------------------------------- |
+| `@physics`       | Full WASM physics step per-frame        |
+| `@pathfinding`   | WASM A\* / flow-field                   |
+| `@collidable`    | WASM broad+narrow phase                 |
+| `@procedural`    | WASM mesh generation, JS receives verts |
+| All others       | Remain in JS bridge layer               |
 
 ## Example
 
@@ -69,25 +69,26 @@ holoscript compile bench.holo --target wasm
 
 ## Compiler Options
 
-| Option             | Default | Description                              |
-| ------------------ | ------- | ---------------------------------------- |
-| `--wasm-simd`      | true    | Enable WASM SIMD (128-bit vector ops)    |
-| `--wasm-threads`   | false   | Enable SharedArrayBuffer threading       |
-| `--wasm-gc`        | false   | Enable WASM GC proposal (experimental)  |
-| `--wasm-split`     | false   | Per-system module splitting              |
-| `--wasm-optimize`  | 2       | Binaryen optimization level (0-3)        |
+| Option            | Default | Description                            |
+| ----------------- | ------- | -------------------------------------- |
+| `--wasm-simd`     | true    | Enable WASM SIMD (128-bit vector ops)  |
+| `--wasm-threads`  | false   | Enable SharedArrayBuffer threading     |
+| `--wasm-gc`       | false   | Enable WASM GC proposal (experimental) |
+| `--wasm-split`    | false   | Per-system module splitting            |
+| `--wasm-optimize` | 2       | Binaryen optimization level (0-3)      |
 
 ## Browser Support
 
-| Feature       | Chrome | Firefox | Safari | Edge |
-| ------------- | ------ | ------- | ------ | ---- |
-| Base WASM     | 57+    | 52+     | 11+    | 16+  |
-| SIMD          | 91+    | 90+     | 16.4+  | 91+  |
-| Threads       | 74+    | 79+     | 15.2+  | 74+  |
+| Feature   | Chrome | Firefox | Safari | Edge |
+| --------- | ------ | ------- | ------ | ---- |
+| Base WASM | 57+    | 52+     | 11+    | 16+  |
+| SIMD      | 91+    | 90+     | 16.4+  | 91+  |
+| Threads   | 74+    | 79+     | 15.2+  | 74+  |
 
 ## Edge & Server
 
 The WASM output runs identically in:
+
 - Node.js (`--experimental-wasm-*`)
 - Deno (`import ... from './holoscript.wasm'`)
 - Cloudflare Workers (`wasm_modules`)

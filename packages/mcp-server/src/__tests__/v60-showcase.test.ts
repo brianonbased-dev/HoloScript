@@ -21,7 +21,10 @@ import { handleDeveloperTool, resetDeveloperSingletons } from '../developer-tool
 // FIXTURES
 // =============================================================================
 
-const SHOWCASE_PATH = resolve(__dirname, '../../../../examples/showcase/universal-semantic-platform.holo');
+const SHOWCASE_PATH = resolve(
+  __dirname,
+  '../../../../examples/showcase/universal-semantic-platform.holo'
+);
 
 // =============================================================================
 // TESTS
@@ -169,12 +172,36 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
     it('API docs generator covers full tool set', () => {
       const generator = new APIDocsGenerator();
       const tools = [
-        { name: 'parse_hs', description: 'Parse HoloScript', inputSchema: { type: 'object' as const, properties: {}, required: [] } },
-        { name: 'discover_agents', description: 'Find agents', inputSchema: { type: 'object' as const, properties: {}, required: [] } },
-        { name: 'query_traces', description: 'Query spans', inputSchema: { type: 'object' as const, properties: {}, required: [] } },
-        { name: 'install_plugin', description: 'Install plugin', inputSchema: { type: 'object' as const, properties: {}, required: [] } },
-        { name: 'check_agent_budget', description: 'Check budget', inputSchema: { type: 'object' as const, properties: {}, required: [] } },
-        { name: 'get_api_reference', description: 'Get API docs', inputSchema: { type: 'object' as const, properties: {}, required: [] } },
+        {
+          name: 'parse_hs',
+          description: 'Parse HoloScript',
+          inputSchema: { type: 'object' as const, properties: {}, required: [] },
+        },
+        {
+          name: 'discover_agents',
+          description: 'Find agents',
+          inputSchema: { type: 'object' as const, properties: {}, required: [] },
+        },
+        {
+          name: 'query_traces',
+          description: 'Query spans',
+          inputSchema: { type: 'object' as const, properties: {}, required: [] },
+        },
+        {
+          name: 'install_plugin',
+          description: 'Install plugin',
+          inputSchema: { type: 'object' as const, properties: {}, required: [] },
+        },
+        {
+          name: 'check_agent_budget',
+          description: 'Check budget',
+          inputSchema: { type: 'object' as const, properties: {}, required: [] },
+        },
+        {
+          name: 'get_api_reference',
+          description: 'Get API docs',
+          inputSchema: { type: 'object' as const, properties: {}, required: [] },
+        },
       ];
 
       const ref = generator.generate(tools);
@@ -192,9 +219,9 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
 
   describe('MCP tool count', () => {
     it('API reference reports >= 50 tools', async () => {
-      const result = await handleDeveloperTool('get_api_reference', {
+      const result = (await handleDeveloperTool('get_api_reference', {
         format: 'json',
-      }) as { format: string; reference: { totalTools: number } };
+      })) as { format: string; reference: { totalTools: number } };
 
       expect(result.format).toBe('json');
       // The tool set loaded at test time should have a substantial number
@@ -208,12 +235,33 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
 
   describe('developer tools', () => {
     it('inspect_trace_waterfall works end-to-end', async () => {
-      const result = await handleDeveloperTool('inspect_trace_waterfall', {
+      const result = (await handleDeveloperTool('inspect_trace_waterfall', {
         spans: [
-          { traceId: 'v6', spanId: 'root', name: 'graduation', kind: 'server', startTime: 0, endTime: 500, status: 'ok', attributes: { agentId: 'platform' } },
-          { traceId: 'v6', spanId: 'child', parentSpanId: 'root', name: 'validate', kind: 'internal', startTime: 50, endTime: 400, status: 'ok', attributes: { agentId: 'validator' } },
+          {
+            traceId: 'v6',
+            spanId: 'root',
+            name: 'graduation',
+            kind: 'server',
+            startTime: 0,
+            endTime: 500,
+            status: 'ok',
+            attributes: { agentId: 'platform' },
+          },
+          {
+            traceId: 'v6',
+            spanId: 'child',
+            parentSpanId: 'root',
+            name: 'validate',
+            kind: 'internal',
+            startTime: 50,
+            endTime: 400,
+            status: 'ok',
+            attributes: { agentId: 'validator' },
+          },
         ],
-      }) as { waterfall: { spanCount: number; agentCount: number; rows: Array<{ depth: number }> } };
+      })) as {
+        waterfall: { spanCount: number; agentCount: number; rows: Array<{ depth: number }> };
+      };
 
       expect(result.waterfall.spanCount).toBe(2);
       expect(result.waterfall.agentCount).toBe(2);
@@ -222,9 +270,9 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
     });
 
     it('get_dev_dashboard_state returns comprehensive data', async () => {
-      const result = await handleDeveloperTool('get_dev_dashboard_state', {
+      const result = (await handleDeveloperTool('get_dev_dashboard_state', {
         sections: ['traces', 'api', 'agents', 'plugins', 'economy'],
-      }) as { dashboard: Record<string, unknown>; sections: string[] };
+      })) as { dashboard: Record<string, unknown>; sections: string[] };
 
       expect(result.sections).toContain('traces');
       expect(result.sections).toContain('api');
@@ -234,9 +282,9 @@ describe('v6.0 Showcase — Universal Semantic Platform', () => {
     });
 
     it('get_api_reference returns markdown format', async () => {
-      const result = await handleDeveloperTool('get_api_reference', {
+      const result = (await handleDeveloperTool('get_api_reference', {
         format: 'markdown',
-      }) as { format: string; content: string };
+      })) as { format: string; content: string };
 
       expect(result.format).toBe('markdown');
       expect(result.content).toContain('# HoloScript MCP API Reference');

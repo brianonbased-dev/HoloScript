@@ -463,14 +463,14 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && (
           <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />
         )}
-        
+
         {/* Handles WebM video recording of the Canvas stream */}
         <ContentCameraCapture />
 
         {/* Gap 6: Progressive loader for streaming asset LODs */}
         <ProgressiveLoader entities={[]} visible={true} />
       </Canvas>
-      
+
       {/* Social Aspect Ratio Overlays & Recording UI */}
       <ContentCameraUI />
 

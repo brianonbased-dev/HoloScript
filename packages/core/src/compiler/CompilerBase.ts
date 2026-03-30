@@ -22,10 +22,7 @@ import type {
   VRRCompilationResult,
   IOSCompileResult,
 } from './CompilerTypes';
-import {
-  CapabilityRBAC,
-  getCapabilityRBAC,
-} from './identity/CapabilityRBAC';
+import { CapabilityRBAC, getCapabilityRBAC } from './identity/CapabilityRBAC';
 import type { CapabilityToken } from './identity/CapabilityToken';
 import {
   type CompilerName,
@@ -163,7 +160,14 @@ export interface BaseCompilerOptions {
  */
 export interface CompilationResult {
   /** Primary compilation output (code, GLTF, etc.) */
-  output: string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult | IOSCompileResult;
+  output:
+    | string
+    | Record<string, string>
+    | GLTFExportResult
+    | ARCompilationResult
+    | VRRCompilationResult
+    | AndroidXRCompileResult
+    | IOSCompileResult;
 
   /** Optional documentation bundle (if generateDocs enabled) */
   documentation?: TripleOutputResult;
@@ -186,7 +190,14 @@ export interface ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult | IOSCompileResult;
+  ):
+    | string
+    | Record<string, string>
+    | GLTFExportResult
+    | ARCompilationResult
+    | VRRCompilationResult
+    | AndroidXRCompileResult
+    | IOSCompileResult;
 }
 
 /**
@@ -237,8 +248,142 @@ export class UnauthorizedCompilerAccessError extends Error {
  * }
  * ```
  */
+/**
+ * Supported compilation targets for string sanitization.
+ *
+ * SECURITY: Every target that generates code must have an entry here.
+ * Using the wrong target (e.g. 'TypeScript' for Kotlin output) is a
+ * Cross-Agent Compilation Injection vulnerability (CWE-94).
+ */
+export type EscapeTarget =
+  | 'Solidity'
+  | 'Swift'
+  | 'Kotlin'
+  | 'CSharp'
+  | 'GDScript'
+  | 'JSX'
+  | 'TypeScript'
+  | 'GLSL'
+  | 'HLSL'
+  | 'WGSL'
+  | 'Python'
+  | 'Lua'
+  | 'USD'
+  | 'XML'
+  | 'JSON'
+  | 'Rust';
+
+export function escapeStringValue(value: string, target: EscapeTarget): string {
+  if (!value) return value;
+  switch (target) {
+    case 'Solidity':
+    case 'CSharp':
+    case 'Swift':
+    case 'Kotlin':
+    case 'TypeScript':
+    case 'Rust':
+      // Standard C-style escape: backslashes, quotes, newlines, carriage returns, tabs, null bytes
+      return value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/\0/g, '\\0');
+    case 'GDScript':
+      // GDScript escaping (no \r support in GDScript strings)
+      return value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t')
+        .replace(/\0/g, '');
+    case 'JSX':
+      // React JSX escape: escape braces, angle brackets, quotes, ampersand
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/\{/g, '&#123;')
+        .replace(/\}/g, '&#125;');
+    case 'XML':
+      // XML attribute/content escape: angle brackets, quotes, ampersand
+      return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    case 'GLSL':
+    case 'HLSL':
+    case 'WGSL':
+      // Shader languages: no string literals, but sanitize for comments/identifiers
+      // Strip anything that could break out of a comment or inject preprocessor directives
+      return value
+        .replace(/\\/g, '')
+        .replace(/\*/g, '')
+        .replace(/\//g, '')
+        .replace(/#/g, '')
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, '');
+    case 'Python':
+      // Python string escape (inside double quotes)
+      return value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/\0/g, '\\x00');
+    case 'Lua':
+      // Lua string escape (inside double quotes)
+      return value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/'/g, "\\'")
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\0/g, '\\0');
+    case 'USD':
+      // Universal Scene Description string escape
+      return value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+    case 'JSON':
+      // JSON string escape (subset of C-style + unicode control chars)
+      return value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/[\x00-\x1f]/g, (ch) => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'));
+    default:
+      return value;
+  }
+}
+
 export abstract class CompilerBase implements ICompiler {
   protected rbac = getRBAC();
+
+  /**
+   * Sanitizes a string value for injection into a specific compiler target language.
+   * Mitigates Cross-Agent Compilation Injection attacks (e.g. CWE-94).
+   *
+   * @param value The raw string value from the AST
+   * @param target The compilation target language
+   * @returns The escaped/sanitized string safe for interpolation
+   */
+  protected escapeStringValue(value: string, target: EscapeTarget): string {
+    return escapeStringValue(value, target);
+  }
 
   /**
    * Lazy-initialized CapabilityRBAC adapter for UCAN token verification.
@@ -271,7 +416,14 @@ export abstract class CompilerBase implements ICompiler {
     composition: HoloComposition,
     agentToken: string,
     outputPath?: string
-  ): string | Record<string, string> | GLTFExportResult | ARCompilationResult | VRRCompilationResult | AndroidXRCompileResult | IOSCompileResult;
+  ):
+    | string
+    | Record<string, string>
+    | GLTFExportResult
+    | ARCompilationResult
+    | VRRCompilationResult
+    | AndroidXRCompileResult
+    | IOSCompileResult;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support

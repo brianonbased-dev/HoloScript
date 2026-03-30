@@ -19,15 +19,16 @@ object "Cube"      HoloCompositionParser.ts    R3FCompiler (or target)    VRTrai
 
 **Key files in pipeline:**
 
-| Stage | File | Lines |
-|-------|------|-------|
-| Parse | `core/src/parser/HoloCompositionParser.ts` | 2540–2625 |
-| Compile | `core/src/compiler/R3FCompiler.ts` | 2687–2850 |
-| Registry | `core/src/traits/VRTraitSystem.ts` | 1366–1934 |
-| Runtime | `core/src/runtime/TraitRuntimeIntegration.ts` | 55–150 |
-| Constants | `core/src/traits/constants/index.ts` | 124–295 |
+| Stage     | File                                          | Lines     |
+| --------- | --------------------------------------------- | --------- |
+| Parse     | `core/src/parser/HoloCompositionParser.ts`    | 2540–2625 |
+| Compile   | `core/src/compiler/R3FCompiler.ts`            | 2687–2850 |
+| Registry  | `core/src/traits/VRTraitSystem.ts`            | 1366–1934 |
+| Runtime   | `core/src/runtime/TraitRuntimeIntegration.ts` | 55–150    |
+| Constants | `core/src/traits/constants/index.ts`          | 124–295   |
 
 **Two architectural patterns:**
+
 - **Inline handling** (Unity, Godot, Unreal, OpenXR) — `if/switch` on trait name inside compiler
 - **External trait maps** (visionOS, AndroidXR, AI Glasses, NIR) — dedicated `*TraitMap.ts` files
 
@@ -39,59 +40,59 @@ Legend: **F** = full | **P** = partial | **C** = comment/stub | **—** = unsupp
 
 ### Interaction Traits
 
-| Trait | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
-|-------|-----|-------|-------|--------|----------|-----------|--------|---------|------|-----|
-| `@grabbable` | C | F | P | F | F | F | P | F | — | — |
-| `@physics` | C | F | F | F | F | F | P | F | F | — |
-| `@hand_tracking` | C | F | P | F | F | F | F | P | — | P |
-| `@haptic` | C | F | P | F | F | F | F | P | — | — |
-| `@eye_tracking` | C | F | P | F | F | F | P | P | — | P |
-| `@hoverable` | F | F | F | F | F | F | P | F | — | — |
-| `@throwable` | C | F | F | F | P | P | P | F | — | — |
-| `@scalable` | F | F | F | F | F | F | P | F | — | — |
+| Trait            | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
+| ---------------- | --- | ----- | ----- | ------ | -------- | --------- | ------ | ------- | ---- | --- |
+| `@grabbable`     | C   | F     | P     | F      | F        | F         | P      | F       | —    | —   |
+| `@physics`       | C   | F     | F     | F      | F        | F         | P      | F       | F    | —   |
+| `@hand_tracking` | C   | F     | P     | F      | F        | F         | F      | P       | —    | P   |
+| `@haptic`        | C   | F     | P     | F      | F        | F         | F      | P       | —    | —   |
+| `@eye_tracking`  | C   | F     | P     | F      | F        | F         | P      | P       | —    | P   |
+| `@hoverable`     | F   | F     | F     | F      | F        | F         | P      | F       | —    | —   |
+| `@throwable`     | C   | F     | F     | F      | P        | P         | P      | F       | —    | —   |
+| `@scalable`      | F   | F     | F     | F      | F        | F         | P      | F       | —    | —   |
 
 ### Spatial & AR Traits
 
-| Trait | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
-|-------|-----|-------|-------|--------|----------|-----------|--------|---------|------|-----|
-| `@anchor` | C | F | P | F | F | F | F | F | — | — |
-| `@plane_detection` | C | F | P | F | F | F | C | P | — | — |
-| `@image_tracking` | — | F | — | F | F | F | — | — | — | — |
-| `@passthrough` | — | F | P | F | F | F | F | — | — | — |
-| `@spatial_audio` | F | F | F | F | F | F | P | F | — | — |
-| `@networked` | C | F | F | F | F | F | — | C | F | — |
-| `@lod` | F | F | F | F | P | P | — | F | — | — |
+| Trait              | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
+| ------------------ | --- | ----- | ----- | ------ | -------- | --------- | ------ | ------- | ---- | --- |
+| `@anchor`          | C   | F     | P     | F      | F        | F         | F      | F       | —    | —   |
+| `@plane_detection` | C   | F     | P     | F      | F        | F         | C      | P       | —    | —   |
+| `@image_tracking`  | —   | F     | —     | F      | F        | F         | —      | —       | —    | —   |
+| `@passthrough`     | —   | F     | P     | F      | F        | F         | F      | —       | —    | —   |
+| `@spatial_audio`   | F   | F     | F     | F      | F        | F         | P      | F       | —    | —   |
+| `@networked`       | C   | F     | F     | F      | F        | F         | —      | C       | F    | —   |
+| `@lod`             | F   | F     | F     | F      | P        | P         | —      | F       | —    | —   |
 
 ### Rendering Traits
 
-| Trait | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
-|-------|-----|-------|-------|--------|----------|-----------|--------|---------|------|-----|
-| `@shader` | F | F | F | F | F | F | P | F | — | — |
-| `@emissive` | F | F | F | F | F | F | P | F | P | — |
-| `@material` | F | F | F | F | F | F | P | F | P | — |
-| `@draft` | F | — | — | — | — | — | — | — | — | — |
+| Trait       | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
+| ----------- | --- | ----- | ----- | ------ | -------- | --------- | ------ | ------- | ---- | --- |
+| `@shader`   | F   | F     | F     | F      | F        | F         | P      | F       | —    | —   |
+| `@emissive` | F   | F     | F     | F      | F        | F         | P      | F       | P    | —   |
+| `@material` | F   | F     | F     | F      | F        | F         | P      | F       | P    | —   |
+| `@draft`    | F   | —     | —     | —      | —        | —         | —      | —       | —    | —   |
 
 ### AI & Behavior Traits
 
-| Trait | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
-|-------|-----|-------|-------|--------|----------|-----------|--------|---------|------|-----|
-| `@ai_agent` | C | F | F | F | P | P | — | P | F | F |
-| `@behavior_tree` | C | F | F | F | P | P | — | P | F | F |
-| `@snn` | — | — | — | — | — | — | — | — | — | F |
-| `@npc` | C | F | F | F | P | P | — | P | F | F |
+| Trait            | R3F | Unity | Godot | Unreal | visionOS | AndroidXR | OpenXR | Babylon | URDF | NIR |
+| ---------------- | --- | ----- | ----- | ------ | -------- | --------- | ------ | ------- | ---- | --- |
+| `@ai_agent`      | C   | F     | F     | F      | P        | P         | —      | P       | F    | F   |
+| `@behavior_tree` | C   | F     | F     | F      | P        | P         | —      | P       | F    | F   |
+| `@snn`           | —   | —     | —     | —      | —        | —         | —      | —       | —    | F   |
+| `@npc`           | C   | F     | F     | F      | P        | P         | —      | P       | F    | F   |
 
 ### Robotics Traits (URDF/ROS 2)
 
-| Trait | URDF Element | ROS 2 Integration |
-|-------|--------------|-------------------|
-| `@physics` | `<inertial>` with `<mass>` + `<inertia>` tensor | Gazebo physics sim |
-| `@sensor` | `<sensor>` plugin (camera, IMU, lidar, force-torque) | `sensor_msgs/` topics |
-| `@actuator` | `<transmission>` + `ros2_control` | Joint controllers |
-| `@joint` | `<joint>` (revolute, prismatic, continuous) | MoveIt2 planning |
-| `@camera` | `<sensor type="camera">` | `sensor_msgs/Image` |
-| `@lidar` | `<sensor type="ray">` | `sensor_msgs/LaserScan` |
-| `@ai_agent` | ROS 2 `nav2` stack | BehaviorTree.CPP |
-| `@networked` | DDS topics | Inter-robot comms |
+| Trait        | URDF Element                                         | ROS 2 Integration       |
+| ------------ | ---------------------------------------------------- | ----------------------- |
+| `@physics`   | `<inertial>` with `<mass>` + `<inertia>` tensor      | Gazebo physics sim      |
+| `@sensor`    | `<sensor>` plugin (camera, IMU, lidar, force-torque) | `sensor_msgs/` topics   |
+| `@actuator`  | `<transmission>` + `ros2_control`                    | Joint controllers       |
+| `@joint`     | `<joint>` (revolute, prismatic, continuous)          | MoveIt2 planning        |
+| `@camera`    | `<sensor type="camera">`                             | `sensor_msgs/Image`     |
+| `@lidar`     | `<sensor type="ray">`                                | `sensor_msgs/LaserScan` |
+| `@ai_agent`  | ROS 2 `nav2` stack                                   | BehaviorTree.CPP        |
+| `@networked` | DDS topics                                           | Inter-robot comms       |
 
 ---
 
@@ -100,6 +101,7 @@ Legend: **F** = full | **P** = partial | **C** = comment/stub | **—** = unsupp
 ### `@grabbable` — Same Trait, 6 Native Outputs
 
 **Unity** (`UnityCompiler.ts:465–615`):
+
 ```csharp
 var cubeRB = cubeGO.AddComponent<Rigidbody>();
 cubeRB.mass = 2.5f;
@@ -108,6 +110,7 @@ var cubeGrab = cubeGO.AddComponent<XRGrabInteractable>();
 ```
 
 **visionOS** (`VisionOSTraitMap.ts:116–141`):
+
 ```swift
 cube.components.set(InputTargetComponent(allowedInputTypes: .indirect))
 cube.components.set(HoverEffectComponent())
@@ -119,6 +122,7 @@ let dragGesture = DragGesture()
 ```
 
 **AndroidXR** (`AndroidXRTraitMap.ts:88–100`):
+
 ```kotlin
 val cubeMovable = MovableComponent.createSystemMovable(session)
 cube.addComponent(cubeMovable)
@@ -131,6 +135,7 @@ val cubeInteractable = InteractableComponent.create(session, executor) { event -
 ```
 
 **OpenXR** (`OpenXRCompiler.ts`):
+
 ```cpp
 bool cube_grabbed = false;
 XrActionStateFloat grabState;
@@ -141,6 +146,7 @@ if (grabState.currentState > 0.8f && !cube_grabbed) {
 ```
 
 **Godot** (`GodotCompiler.ts`):
+
 ```gdscript
 var cube_body = RigidBody3D.new()
 cube_body.mass = 2.5
@@ -148,6 +154,7 @@ cube_body.mass = 2.5
 ```
 
 **Unreal** (`UnrealCompiler.ts`):
+
 ```cpp
 auto* CubeGrab = NewObject<UGrabComponent>(CubeActor);
 CubeGrab->SetupAttachment(CubeActor->GetRootComponent());
@@ -159,6 +166,7 @@ CubeGrab->RegisterComponent();
 ### `@physics` — Same Trait, 5 Native Outputs
 
 **Unity**:
+
 ```csharp
 var cubeRB = cubeGO.AddComponent<Rigidbody>();
 cubeRB.mass = 2.5f;
@@ -167,6 +175,7 @@ cubeRB.isKinematic = false;
 ```
 
 **visionOS** (`VisionOSTraitMap.ts:57–76`):
+
 ```swift
 cube.components.set(CollisionComponent(
     shapes: [.generateConvex(from: cubeMesh)]
@@ -179,6 +188,7 @@ cube.components.set(cubePhysics)
 ```
 
 **URDF** (`URDFCompiler.ts`):
+
 ```xml
 <inertial>
   <mass value="2.5"/>
@@ -188,6 +198,7 @@ cube.components.set(cubePhysics)
 ```
 
 **OpenXR** (`OpenXRCompiler.ts`):
+
 ```cpp
 glm::vec3 cube_velocity(0.0f);
 float cube_mass = 2.5f;
@@ -197,6 +208,7 @@ cube_position += cube_velocity * deltaTime;
 ```
 
 **Godot**:
+
 ```gdscript
 var cube_body = RigidBody3D.new()
 cube_body.mass = 2.5
@@ -208,6 +220,7 @@ cube_body.gravity_scale = 1.0
 ### `@hand_tracking` — Platform Divergence
 
 **OpenXR** (full 26-joint skeleton, `OpenXRCompiler.ts:1016–1076`):
+
 ```cpp
 XrHandTrackerCreateInfoEXT createInfo{XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT};
 createInfo.hand = XR_HAND_LEFT_EXT;
@@ -221,6 +234,7 @@ xrLocateHandJointsEXT(handTrackerLeft, &locateInfo, &locations);
 ```
 
 **NIR** (spike-encoded gesture classification, `NIRTraitMap.ts:702–735`):
+
 ```python
 nodes: [
   { id: "hand_pose_encoder", type: "SpikeEncoder",
@@ -239,6 +253,7 @@ edges: [
 ### `@anchor` — Spatial Anchor Across Platforms
 
 **OpenXR** (`OpenXRCompiler.ts:601–618`):
+
 ```cpp
 XrSpatialAnchorMSFT cube_anchor = XR_NULL_HANDLE;
 XrSpatialAnchorCreateInfoMSFT anchorInfo{XR_TYPE_SPATIAL_ANCHOR_CREATE_INFO_MSFT};
@@ -248,6 +263,7 @@ xrCreateSpatialAnchorMSFT(session, &anchorInfo, &cube_anchor);
 ```
 
 **visionOS** (`VisionOSTraitMap.ts:255–270`):
+
 ```swift
 let cubeAnchor = AnchorEntity(.world(transform: cubeTransform))
 cube.setParent(cubeAnchor)
@@ -257,21 +273,22 @@ cube.setParent(cubeAnchor)
 
 ## Platform Coverage Summary
 
-| Platform | Full | Partial | Comment | Unsupported | Trait Map File |
-|----------|------|---------|---------|-------------|----------------|
-| **Unity** | 75+ | 15 | 10 | 5 | Inline (`UnityCompiler.ts`, 861 LOC) |
-| **Unreal** | 80+ | 10 | 5 | 10 | Inline (`UnrealCompiler.ts`, 821 LOC) |
-| **visionOS** | 100+ | 5 | 2 | 0 | `VisionOSTraitMap.ts` (1,330 LOC) |
-| **AndroidXR** | 100+ | 3 | 2 | 0 | `AndroidXRTraitMap.ts` (2,026 LOC) |
-| **Godot** | 60+ | 20 | 10 | 15 | Inline (`GodotCompiler.ts`, 846 LOC) |
-| **BabylonJS** | 50+ | 25 | 15 | 15 | Inline (`BabylonCompiler.ts`, 922 LOC) |
-| **R3F** | 30+ | 20 | 40 | 15 | Inline (`R3FCompiler.ts`, 3,619 LOC) |
-| **OpenXR** | 20+ | 30 | 40 | 15 | Inline (`OpenXRCompiler.ts`, 1,195 LOC) |
-| **NIR** | 25 | 10 | 5 | 65 | `NIRTraitMap.ts` (984 LOC) |
-| **AI Glasses** | 23 | 12 | 13 | 60 | `AIGlassesTraitMap.ts` (1,228 LOC) |
-| **URDF** | 15 | 5 | 0 | 85 | Inline (`URDFCompiler.ts`, 2,009 LOC) |
+| Platform       | Full | Partial | Comment | Unsupported | Trait Map File                          |
+| -------------- | ---- | ------- | ------- | ----------- | --------------------------------------- |
+| **Unity**      | 75+  | 15      | 10      | 5           | Inline (`UnityCompiler.ts`, 861 LOC)    |
+| **Unreal**     | 80+  | 10      | 5       | 10          | Inline (`UnrealCompiler.ts`, 821 LOC)   |
+| **visionOS**   | 100+ | 5       | 2       | 0           | `VisionOSTraitMap.ts` (1,330 LOC)       |
+| **AndroidXR**  | 100+ | 3       | 2       | 0           | `AndroidXRTraitMap.ts` (2,026 LOC)      |
+| **Godot**      | 60+  | 20      | 10      | 15          | Inline (`GodotCompiler.ts`, 846 LOC)    |
+| **BabylonJS**  | 50+  | 25      | 15      | 15          | Inline (`BabylonCompiler.ts`, 922 LOC)  |
+| **R3F**        | 30+  | 20      | 40      | 15          | Inline (`R3FCompiler.ts`, 3,619 LOC)    |
+| **OpenXR**     | 20+  | 30      | 40      | 15          | Inline (`OpenXRCompiler.ts`, 1,195 LOC) |
+| **NIR**        | 25   | 10      | 5       | 65          | `NIRTraitMap.ts` (984 LOC)              |
+| **AI Glasses** | 23   | 12      | 13      | 60          | `AIGlassesTraitMap.ts` (1,228 LOC)      |
+| **URDF**       | 15   | 5       | 0       | 85          | Inline (`URDFCompiler.ts`, 2,009 LOC)   |
 
 **AI Glasses constraint breakdown** (`AIGlassesTraitMap.ts:1194–1206`):
+
 - 55.6% traits blocked by form factor (no 3D rendering, no depth sensors, no hand tracking)
 - 21.3% fully supported (2D overlays, voice, touchpad, notifications)
 
@@ -281,26 +298,26 @@ cube.setParent(cubeAnchor)
 
 ### visionOS Only (Apple Vision Pro)
 
-| Trait | Native Code | Requires |
-|-------|-------------|----------|
-| `@spatial_persona` | `SpatialPersonaSession` | visionOS 2.0+ |
-| `@shareplay` | `GroupSession` | FaceTime integration |
-| `@object_capture` | `ObjectCaptureSession` | Photogrammetry |
+| Trait              | Native Code             | Requires             |
+| ------------------ | ----------------------- | -------------------- |
+| `@spatial_persona` | `SpatialPersonaSession` | visionOS 2.0+        |
+| `@shareplay`       | `GroupSession`          | FaceTime integration |
+| `@object_capture`  | `ObjectCaptureSession`  | Photogrammetry       |
 
 ### AndroidXR Only (Google)
 
-| Trait | Native Code | Requires |
-|-------|-------------|----------|
-| `@face_tracking` | `FaceTrackingComponent` (68 blendshapes) | ARCore |
-| `@follows_head` | `FollowsHeadComponent` | Jetpack XR |
-| `@drm_video` | `DRMVideoComponent` | Widevine |
+| Trait            | Native Code                              | Requires   |
+| ---------------- | ---------------------------------------- | ---------- |
+| `@face_tracking` | `FaceTrackingComponent` (68 blendshapes) | ARCore     |
+| `@follows_head`  | `FollowsHeadComponent`                   | Jetpack XR |
+| `@drm_video`     | `DRMVideoComponent`                      | Widevine   |
 
 ### NIR Only (Neuromorphic)
 
-| Trait | Native Code | Hardware |
-|-------|-------------|----------|
-| `@snn` | LIF/CubaLIF neurons, spike encoders | Loihi 2, SpiNNaker 2, SynSense |
-| `@hand_tracking` | Spike-train gesture classifier | Neuromorphic coprocessor |
+| Trait            | Native Code                         | Hardware                       |
+| ---------------- | ----------------------------------- | ------------------------------ |
+| `@snn`           | LIF/CubaLIF neurons, spike encoders | Loihi 2, SpiNNaker 2, SynSense |
+| `@hand_tracking` | Spike-train gesture classifier      | Neuromorphic coprocessor       |
 
 ---
 
@@ -312,10 +329,10 @@ Every trait handler in `VRTraitSystem.ts` follows this interface:
 interface TraitHandler<T = unknown> {
   name: VRTraitName;
   defaultConfig: T;
-  onAttach?(node, config, context): void;   // Scene enter
-  onUpdate?(node, config, context, delta): void;  // Per-frame
-  onEvent?(node, config, context, event): void;   // Reactive
-  onDetach?(node, context): void;            // Scene exit
+  onAttach?(node, config, context): void; // Scene enter
+  onUpdate?(node, config, context, delta): void; // Per-frame
+  onEvent?(node, config, context, event): void; // Reactive
+  onDetach?(node, context): void; // Scene exit
 }
 ```
 

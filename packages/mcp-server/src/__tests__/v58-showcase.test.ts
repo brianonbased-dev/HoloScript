@@ -294,9 +294,9 @@ describe('v5.8 Showcase — Live Economy', () => {
 
   describe('MCP economy tools', () => {
     it('check_agent_budget returns budget state', async () => {
-      const result = await handleEconomyTool('check_agent_budget', {
+      const result = (await handleEconomyTool('check_agent_budget', {
         agentId: 'test-agent',
-      }) as { agentId: string; state: null | Record<string, unknown> };
+      })) as { agentId: string; state: null | Record<string, unknown> };
 
       expect(result.agentId).toBe('test-agent');
       // No budget set yet, so state is null
@@ -304,28 +304,28 @@ describe('v5.8 Showcase — Live Economy', () => {
     });
 
     it('check_agent_budget with authorization check', async () => {
-      const result = await handleEconomyTool('check_agent_budget', {
+      const result = (await handleEconomyTool('check_agent_budget', {
         agentId: 'budget-agent',
         amount: 1000,
-      }) as { authorization: { authorized: boolean } };
+      })) as { authorization: { authorized: boolean } };
 
       expect(result.authorization.authorized).toBe(true);
     });
 
     it('get_usage_summary returns global summary', async () => {
-      const result = await handleEconomyTool('get_usage_summary', {
+      const result = (await handleEconomyTool('get_usage_summary', {
         period: 'monthly',
-      }) as { period: string; summary: { totalCalls: number } };
+      })) as { period: string; summary: { totalCalls: number } };
 
       expect(result.period).toBe('monthly');
       expect(result.summary.totalCalls).toBe(0);
     });
 
     it('get_creator_earnings returns earnings data', async () => {
-      const result = await handleEconomyTool('get_creator_earnings', {
+      const result = (await handleEconomyTool('get_creator_earnings', {
         creatorId: 'test-creator',
         period: 'all-time',
-      }) as { creatorId: string; earnings: { totalGross: number }; platformFeeRate: number };
+      })) as { creatorId: string; earnings: { totalGross: number }; platformFeeRate: number };
 
       expect(result.creatorId).toBe('test-creator');
       expect(result.earnings.totalGross).toBe(0);

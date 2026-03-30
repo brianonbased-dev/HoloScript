@@ -9,31 +9,17 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import {
-  Users,
-  ListTodo,
-  Activity,
-  Search,
-  ChevronRight,
-} from 'lucide-react';
+import { Users, ListTodo, Activity, Search, ChevronRight } from 'lucide-react';
 import { AgentCard } from './AgentCard';
 import { TaskFlowView } from './TaskFlowView';
 import { EconomyPanel } from './EconomyPanel';
-import type {
-  Agent,
-  Task,
-  TaskState,
-  AgentDashboardProps,
-} from './types';
+import type { Agent, Task, TaskState, AgentDashboardProps } from './types';
 
 // =============================================================================
 // TASK STATE BADGE HELPERS
 // =============================================================================
 
-const TASK_STATE_BADGE: Record<
-  TaskState,
-  { label: string; bgClass: string; textClass: string }
-> = {
+const TASK_STATE_BADGE: Record<TaskState, { label: string; bgClass: string; textClass: string }> = {
   submitted: { label: 'Submitted', bgClass: 'bg-gray-500/20', textClass: 'text-gray-300' },
   working: { label: 'Working', bgClass: 'bg-blue-500/20', textClass: 'text-blue-300' },
   'input-required': {
@@ -302,10 +288,7 @@ export function AgentDashboard({
 
           {/* ECONOMY TAB */}
           {activeTab === 'economy' && (
-            <EconomyPanel
-              transactions={transactions}
-              stats={settlementStats}
-            />
+            <EconomyPanel transactions={transactions} stats={settlementStats} />
           )}
         </div>
 
@@ -336,9 +319,7 @@ export function AgentDashboard({
             </div>
           )}
 
-          {activeTab === 'tasks' && selectedTask && (
-            <TaskFlowView task={selectedTask} />
-          )}
+          {activeTab === 'tasks' && selectedTask && <TaskFlowView task={selectedTask} />}
 
           {activeTab === 'tasks' && !selectedTask && (
             <div className="flex items-center justify-center h-full text-studio-muted text-[12px]">

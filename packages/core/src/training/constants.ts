@@ -27,12 +27,7 @@ export type TrainingCategory = (typeof TRAINING_CATEGORIES)[number];
 /**
  * 4 difficulty levels for training data
  */
-export const DIFFICULTY_LEVELS = [
-  'beginner',
-  'intermediate',
-  'advanced',
-  'production',
-] as const;
+export const DIFFICULTY_LEVELS = ['beginner', 'intermediate', 'advanced', 'production'] as const;
 
 export type DifficultyLevel = (typeof DIFFICULTY_LEVELS)[number];
 

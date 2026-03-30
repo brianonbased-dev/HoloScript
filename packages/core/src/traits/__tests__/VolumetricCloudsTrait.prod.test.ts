@@ -86,7 +86,12 @@ describe('volumetricCloudsHandler — onUpdate', () => {
 describe('volumetricCloudsHandler — onEvent', () => {
   it('clouds_set_coverage emits update with coverage', () => {
     const { node, ctx, cfg } = attach();
-    volumetricCloudsHandler.onEvent!(node, cfg, ctx as any, { type: 'clouds_set_coverage', coverage: 0.9 } as any);
+    volumetricCloudsHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      { type: 'clouds_set_coverage', coverage: 0.9 } as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'volumetric_clouds_update');
     expect(ev?.payload.coverage).toBe(0.9);
   });
@@ -103,7 +108,12 @@ describe('volumetricCloudsHandler — onEvent', () => {
   });
   it('no-op when no state', () => {
     expect(() =>
-      volumetricCloudsHandler.onEvent!(mkNode() as any, mkCfg(), mkCtx() as any, { type: 'clouds_pause' } as any)
+      volumetricCloudsHandler.onEvent!(
+        mkNode() as any,
+        mkCfg(),
+        mkCtx() as any,
+        { type: 'clouds_pause' } as any
+      )
     ).not.toThrow();
   });
 });

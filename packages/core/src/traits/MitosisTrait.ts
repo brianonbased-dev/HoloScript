@@ -76,8 +76,8 @@ export const mitosisHandler: TraitHandler<MitosisConfig> = {
         context.emit?.('on_mitosis_spawned', { childId, parentId: node.id });
       }
     } else if (event.type === 'mitosis_child_complete') {
-      const childId = 'childId' in event ? event.childId as string : '';
-      const parentId = 'parentId' in event ? event.parentId as string : '';
+      const childId = 'childId' in event ? (event.childId as string) : '';
+      const parentId = 'parentId' in event ? (event.parentId as string) : '';
       const result = 'result' in event ? event.result : undefined;
 
       if (node.id === parentId) {

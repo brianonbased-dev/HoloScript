@@ -11,7 +11,6 @@ export type { WardrobeSlot, WardrobeItem } from './wardrobeStore';
 // Shared state between the R3F canvas (GlbViewer) and DOM panels (SkeletonPanel etc.)
 // Wardrobe state extracted to wardrobeStore.ts (Sprint 13 P1)
 
-
 interface CharacterState {
   /** Object URL of the loaded .glb file */
   glbUrl: string | null;

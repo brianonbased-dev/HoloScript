@@ -4,17 +4,17 @@ import { join } from 'path';
 // Mock browser globals
 const mockConsole = {
   log: vi.fn(),
-  error: vi.fn()
+  error: vi.fn(),
 };
 
 const mockPerformance = {
-  now: vi.fn()
+  now: vi.fn(),
 };
 
 // Mock CompilerBridge
 const mockCompilerBridge = {
   parse: vi.fn(),
-  compile: vi.fn()
+  compile: vi.fn(),
 };
 
 // Setup browser environment
@@ -23,7 +23,7 @@ const setupBrowserMocks = () => {
     CompilerBridge: mockCompilerBridge,
     runBenchmark: undefined,
     quickBenchmark: undefined,
-    BenchmarkUtils: undefined
+    BenchmarkUtils: undefined,
   } as any;
   global.console = mockConsole as any;
   global.performance = mockPerformance as any;
@@ -33,11 +33,11 @@ const setupBrowserMocks = () => {
 const loadBenchmarkScript = () => {
   const scriptPath = join(__dirname, '../public/browser-benchmark.js');
   const scriptContent = readFileSync(scriptPath, 'utf8');
-  
+
   // Execute the script in our mocked environment
   const scriptFunction = new Function(scriptContent);
   scriptFunction();
-  
+
   return (global.window as any).quickBenchmark;
 };
 
@@ -50,18 +50,18 @@ describe('quickBenchmark', () => {
     // Store originals
     originalConsole = global.console;
     originalPerformance = global.performance;
-    
+
     // Setup mocks
     vi.clearAllMocks();
     setupBrowserMocks();
-    
+
     // Mock performance.now() to return incrementing values
     let time = 0;
     mockPerformance.now.mockImplementation(() => {
       time += Math.random() * 5; // Random execution time 0-5ms
       return time;
     });
-    
+
     // Load the script
     quickBenchmark = loadBenchmarkScript();
   });
@@ -82,10 +82,12 @@ describe('quickBenchmark', () => {
   it('should log startup message and return early when CompilerBridge is undefined', async () => {
     // Remove CompilerBridge
     (global.window as any).CompilerBridge = undefined;
-    
+
     const result = await quickBenchmark();
-    
-    expect(mockConsole.log).toHaveBeenCalledWith('⚡ Running quick benchmark (1 scenario, 20 iterations)...\n');
+
+    expect(mockConsole.log).toHaveBeenCalledWith(
+      '⚡ Running quick benchmark (1 scenario, 20 iterations)...\n'
+    );
     expect(mockConsole.error).toHaveBeenCalledWith('❌ CompilerBridge not available');
     expect(result).toBeUndefined();
   });
@@ -94,26 +96,30 @@ describe('quickBenchmark', () => {
     // Mock successful compiler operations
     mockCompilerBridge.parse.mockResolvedValue({ success: true });
     mockCompilerBridge.compile.mockResolvedValue({ success: true });
-    
+
     const result = await quickBenchmark();
-    
+
     // Should log startup message
-    expect(mockConsole.log).toHaveBeenCalledWith('⚡ Running quick benchmark (1 scenario, 20 iterations)...\n');
-    
+    expect(mockConsole.log).toHaveBeenCalledWith(
+      '⚡ Running quick benchmark (1 scenario, 20 iterations)...\n'
+    );
+
     // Should call parse 20 times
     expect(mockCompilerBridge.parse).toHaveBeenCalledTimes(20);
-    expect(mockCompilerBridge.parse).toHaveBeenCalledWith('composition "Quick" { object "O" { geometry: "sphere" } }');
-    
+    expect(mockCompilerBridge.parse).toHaveBeenCalledWith(
+      'composition "Quick" { object "O" { geometry: "sphere" } }'
+    );
+
     // Should call compile 20 times
     expect(mockCompilerBridge.compile).toHaveBeenCalledTimes(20);
     expect(mockCompilerBridge.compile).toHaveBeenCalledWith(
       'composition "Quick" { object "O" { geometry: "sphere" } }',
       { target: 'threejs' }
     );
-    
+
     // Should log results
     expect(mockConsole.log).toHaveBeenCalledWith('Quick Benchmark Results:');
-    
+
     // Should return benchmark results
     expect(result).toEqual({
       parse: expect.objectContaining({
@@ -121,15 +127,15 @@ describe('quickBenchmark', () => {
         min: expect.any(Number),
         max: expect.any(Number),
         p95: expect.any(Number),
-        iterations: 20
+        iterations: 20,
       }),
       compile: expect.objectContaining({
         avg: expect.any(Number),
         min: expect.any(Number),
         max: expect.any(Number),
         p95: expect.any(Number),
-        iterations: 20
-      })
+        iterations: 20,
+      }),
     });
   });
 
@@ -137,7 +143,7 @@ describe('quickBenchmark', () => {
     // Mock compiler to throw errors
     mockCompilerBridge.parse.mockRejectedValue(new Error('Parse failed'));
     mockCompilerBridge.compile.mockRejectedValue(new Error('Compile failed'));
-    
+
     // measureOperationAsync does not catch errors, so quickBenchmark rejects
     await expect(quickBenchmark()).rejects.toThrow();
   });
@@ -145,24 +151,26 @@ describe('quickBenchmark', () => {
   it('should use correct test code and compilation target', async () => {
     mockCompilerBridge.parse.mockResolvedValue({ success: true });
     mockCompilerBridge.compile.mockResolvedValue({ success: true });
-    
+
     await quickBenchmark();
-    
+
     const expectedTestCode = 'composition "Quick" { object "O" { geometry: "sphere" } }';
-    
+
     expect(mockCompilerBridge.parse).toHaveBeenCalledWith(expectedTestCode);
-    expect(mockCompilerBridge.compile).toHaveBeenCalledWith(expectedTestCode, { target: 'threejs' });
+    expect(mockCompilerBridge.compile).toHaveBeenCalledWith(expectedTestCode, {
+      target: 'threejs',
+    });
   });
 
   it('should perform exactly 20 iterations for both operations', async () => {
     mockCompilerBridge.parse.mockResolvedValue({ success: true });
     mockCompilerBridge.compile.mockResolvedValue({ success: true });
-    
+
     const result = await quickBenchmark();
-    
+
     expect(mockCompilerBridge.parse).toHaveBeenCalledTimes(20);
     expect(mockCompilerBridge.compile).toHaveBeenCalledTimes(20);
-    
+
     expect(result.parse.iterations).toBe(20);
     expect(result.compile.iterations).toBe(20);
   });
@@ -170,18 +178,20 @@ describe('quickBenchmark', () => {
   it('should log performance results in the expected format', async () => {
     mockCompilerBridge.parse.mockResolvedValue({ success: true });
     mockCompilerBridge.compile.mockResolvedValue({ success: true });
-    
+
     await quickBenchmark();
-    
+
     // Check that result logging calls were made
-    const logCalls = mockConsole.log.mock.calls.map(call => call[0]);
-    
+    const logCalls = mockConsole.log.mock.calls.map((call) => call[0]);
+
     expect(logCalls).toContain('Quick Benchmark Results:');
-    
+
     // Should log parse and compile results with timing info
     const parseLog = logCalls.find((log: string) => log.includes('Parse:') && log.includes('ms'));
-    const compileLog = logCalls.find((log: string) => log.includes('Compile:') && log.includes('ms'));
-    
+    const compileLog = logCalls.find(
+      (log: string) => log.includes('Compile:') && log.includes('ms')
+    );
+
     expect(parseLog).toBeDefined();
     expect(compileLog).toBeDefined();
   });
@@ -220,7 +230,7 @@ describe('BenchmarkUtils', () => {
       min: 10,
       max: 10,
       p95: 10,
-      iterations: 5
+      iterations: 5,
     });
   });
 });

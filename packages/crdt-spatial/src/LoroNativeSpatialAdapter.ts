@@ -275,16 +275,12 @@ export class LoroNativeSpatialAdapter {
   private onNodeCreated: ((treeId: TreeID, name: string) => void) | null = null;
   private onNodeMoved: ((treeId: TreeID) => void) | null = null;
   private onNodeDeleted: ((treeId: TreeID) => void) | null = null;
-  private onTransformChanged:
-    | ((treeId: TreeID, transform: SpatialTransform) => void)
-    | null = null;
+  private onTransformChanged: ((treeId: TreeID, transform: SpatialTransform) => void) | null = null;
 
   // ---- Cached transform state (render tier performance) ----
   /** Local cache of latest transform per node for fast render-tier reads */
-  private transformCache: Map<
-    string,
-    { transform: SpatialTransform; timestamp: number }
-  > = new Map();
+  private transformCache: Map<string, { transform: SpatialTransform; timestamp: number }> =
+    new Map();
 
   constructor(config: Partial<NativeAdapterConfig> = {}) {
     this.config = { ...DEFAULT_NATIVE_CONFIG, ...config };
@@ -395,9 +391,7 @@ export class LoroNativeSpatialAdapter {
     // Initialize local caches
     const identity = { ...NATIVE_IDENTITY_TRANSFORM };
     this.transformCache.set(String(treeId), { transform: identity, timestamp: now });
-    this.interpolationBuffers.set(String(treeId), [
-      { transform: identity, timestamp: now },
-    ]);
+    this.interpolationBuffers.set(String(treeId), [{ transform: identity, timestamp: now }]);
 
     this.onNodeCreated?.(treeId, name);
     return treeId;
@@ -540,10 +534,19 @@ export class LoroNativeSpatialAdapter {
     // Collect custom metadata (everything except transform fields)
     const metadata: Record<string, unknown> = {};
     const transformKeys = new Set([
-      'name', 'pos_x', 'pos_y', 'pos_z',
-      'rot_x', 'rot_y', 'rot_z', 'rot_w',
-      'scale_x', 'scale_y', 'scale_z',
-      'last_update_ms', 'writer_peer',
+      'name',
+      'pos_x',
+      'pos_y',
+      'pos_z',
+      'rot_x',
+      'rot_y',
+      'rot_z',
+      'rot_w',
+      'scale_x',
+      'scale_y',
+      'scale_z',
+      'last_update_ms',
+      'writer_peer',
     ]);
     for (const key of data.keys()) {
       if (!transformKeys.has(key)) {

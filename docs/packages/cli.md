@@ -170,44 +170,44 @@ Create `holoscript.config.js` in your project root:
 export default {
   // Default compilation target
   defaultTarget: 'webgpu',
-  
+
   // Compiler options
   compiler: {
-    optimize: 'balanced',  // 'off' | 'balanced' | 'aggressive'
+    optimize: 'balanced', // 'off' | 'balanced' | 'aggressive'
     parallel: true,
-    cache: true
+    cache: true,
   },
-  
+
   // Linting rules
   lint: {
     enabled: true,
     rules: {
       'unknown-trait': 'warn',
       'unused-object': 'warn',
-      'circular-ref': 'error'
-    }
+      'circular-ref': 'error',
+    },
   },
-  
+
   // Formatting
   format: {
     indent: 2,
     trailingNewline: true,
-    semiColons: false
+    semiColons: false,
   },
-  
+
   // Build settings
   build: {
     outDir: 'dist',
     target: 'webgpu',
-    version: '1.0.0'
+    version: '1.0.0',
   },
-  
+
   // Dev server
   dev: {
     port: 5173,
     open: true,
-    hmr: true
-  }
+    hmr: true,
+  },
 };
 ```
 

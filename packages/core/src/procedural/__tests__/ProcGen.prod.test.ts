@@ -74,9 +74,9 @@ describe('ProcGen Extreme Determinism & Seed Stability', () => {
   describe('Dungeon Layout Stability', () => {
     it('produces structurally identical graphs regardless of the order of querying', () => {
       const config = { width: 100, height: 100, seed: 4242, maxRooms: 20 };
-      
+
       const runA = new DungeonGenerator(config).generate();
-      
+
       // Let's add slight delays or re-runs, and generating B
       const runB = new DungeonGenerator(config).generate();
 
@@ -95,14 +95,14 @@ describe('ProcGen Extreme Determinism & Seed Stability', () => {
     it('generates fully connected biomes even in restrictive spaces without infinite looping', () => {
       // 10x10 with 50 rooms is impossible, should gracefully halt and not loop
       const config = { width: 10, height: 10, seed: 101, maxRooms: 50 };
-      
+
       const start = performance.now();
       const dungeon = new DungeonGenerator(config);
       const output = dungeon.generate();
       const time = performance.now() - start;
 
       // Ensure it halted cleanly
-      expect(time).toBeLessThan(100); 
+      expect(time).toBeLessThan(100);
 
       // It should still maintain the connective graph property
       expect(dungeon.isFullyConnected()).toBe(true);

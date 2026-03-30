@@ -2,8 +2,8 @@
 
 ## The Cognitive Habitat for Autonomous Intelligence
 
-> **The world's first spatial OS with native cognitive protocols (uAAL) and autonomous A2A settlement (x402).**
-> Deploy autonomous agents that build, own, and trade in high-fidelity 3D environments.
+> Spatial OS with native cognitive protocols (uAAL) and autonomous A2A settlement (x402).
+> Agents build, own, and trade in high-fidelity 3D environments. MCP server at `mcp.holoscript.net` — parse, compile, analyze, render, exchange. No auth for reads.
 
 HoloScript is a **semantic specification language**: **2,000+ traits** across 40 trait categories + **30+ compile targets** + **AI studio** + **bidirectional absorb pipeline**. Traits describe WHAT things are. The compiler handles HOW they run. [Read the V6 Vision →](./VISION.md)
 
@@ -321,7 +321,7 @@ flowchart TD
 
     %% Dependency Edges
     F_core --> F_crdt
-    
+
     L_parser --> F_core
     L_traits --> F_core
     L_linter --> F_core
@@ -330,16 +330,16 @@ flowchart TD
     L_compiler --> L_parser
     L_lsp --> F_core
     L_lsp --> L_linter
-    
+
     R_engine --> F_core
     R_runtime --> F_core
     R_holovm --> F_core
     R_vmbridge --> R_holovm
     R_vmbridge --> R_uaal
-    
+
     A_intel --> F_core
     A_val --> F_core
-    
+
     D_cli --> F_core
     D_cli --> A_llm
     D_cli --> D_sdk
@@ -351,12 +351,12 @@ flowchart TD
     D_bench --> F_core
     D_bench --> L_formatter
     D_bench --> L_lsp
-    
+
     C_github --> C_core
     C_railway --> C_core
     C_upstash --> C_core
     C_appstore --> C_core
-    
+
     S_studio --> F_core
     S_studio --> S_r3f
     S_studio --> F_std
@@ -364,7 +364,7 @@ flowchart TD
     S_r3f --> F_core
     S_play --> F_core
     S_play --> F_std
-    
+
     M_graphql --> F_auth
     M_graphql --> F_core
     M_api --> F_auth
@@ -375,18 +375,18 @@ flowchart TD
 
 ### Monorepo Map
 
-With over **71 active packages** organized into specialized domain boundaries, HoloScript uses `pnpm workspaces` to manage interdependencies. The primary packages are classified as follows:
+With **68 packages** organized into specialized domain boundaries, HoloScript uses `pnpm workspaces` to manage interdependencies. The primary packages are classified as follows:
 
-| Layer | Primary Packages | Path Location |
-| ----- | ---------------- | ------------- |
-| **Foundation** | The bedrock of the system: `@holoscript/core` (types, traits, abstract compilers), CRDT state, standard library. | [`packages/core`](./packages/core) • [`packages/crdt`](./packages/crdt) • [`packages/std`](./packages/std) • [`packages/auth`](./packages/auth) |
-| **Language** | Handling `.hs`, `.hsplus`, `.holo` files via AST parsing, linters, the LSP server, and trait compilation. | [`packages/parser`](./packages/parser) • [`packages/traits`](./packages/traits) • [`packages/compiler`](./packages/compiler) • [`packages/lsp`](./packages/lsp) • [`packages/linter`](./packages/linter) • [`packages/formatter`](./packages/formatter) |
-| **Runtime** | Headless execution, native Spatial VM state trees, and Cognitive OS (uAAL) bridge processing. | [`packages/engine`](./packages/engine) • [`packages/runtime`](./packages/runtime) • [`packages/holo-vm`](./packages/holo-vm) • [`packages/uaal`](./packages/uaal) • [`packages/vm-bridge`](./packages/vm-bridge) |
-| **AI Layer** | Ecosystem MCP configurations, AI hallucination validators, and LLM provider SDK shims. | [`packages/intelligence`](./packages/intelligence) • [`packages/llm-provider`](./packages/llm-provider) • [`packages/ai-validator`](./packages/ai-validator) |
-| **Dev Tools** | Node.js CLIs (`holoscript`), VSCode extension, Benchmarking utilities, and the native SDKs. | [`packages/cli`](./packages/cli) • [`packages/mcp-server`](./packages/mcp-server) • [`packages/vscode-extension`](./packages/vscode-extension) • [`packages/benchmark`](./packages/benchmark) • [`packages/sdk`](./packages/sdk) |
-| **Connectors** | Dedicated integration layers for 3rd-party services (GitHub repos, Railway deployments, Upstash caches). | [`packages/connector-core`](./packages/connector-core) • [`packages/connector-github`](./packages/connector-github) • [`packages/connector-railway`](./packages/connector-railway) • [`packages/connector-upstash`](./packages/connector-upstash) • [`packages/connector-appstore`](./packages/connector-appstore) |
-| **Studio** | WebGL/R3F rendering pipelines, full React Studio authoring interfaces, and web playgrounds. | [`packages/studio`](./packages/studio) • [`packages/r3f-renderer`](./packages/r3f-renderer) • [`packages/studio-plugin-sdk`](./packages/studio-plugin-sdk) • [`packages/playground`](./packages/playground) |
-| **Marketplace** | Agent-to-Agent settlement gateways, spatial object registries, and GraphQL access nodes. | [`packages/graphql-api`](./packages/graphql-api) • [`packages/marketplace-api`](./packages/marketplace-api) • [`packages/marketplace-web`](./packages/marketplace-web) • [`packages/registry`](./packages/registry) |
+| Layer           | Primary Packages                                                                                                 | Path Location                                                                                                                                                                                                                                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Foundation**  | The bedrock of the system: `@holoscript/core` (types, traits, abstract compilers), CRDT state, standard library. | [`packages/core`](./packages/core) • [`packages/crdt`](./packages/crdt) • [`packages/std`](./packages/std) • [`packages/auth`](./packages/auth)                                                                                                                                                                    |
+| **Language**    | Handling `.hs`, `.hsplus`, `.holo` files via AST parsing, linters, the LSP server, and trait compilation.        | [`packages/parser`](./packages/parser) • [`packages/traits`](./packages/traits) • [`packages/compiler`](./packages/compiler) • [`packages/lsp`](./packages/lsp) • [`packages/linter`](./packages/linter) • [`packages/formatter`](./packages/formatter)                                                            |
+| **Runtime**     | Headless execution, native Spatial VM state trees, and Cognitive OS (uAAL) bridge processing.                    | [`packages/engine`](./packages/engine) • [`packages/runtime`](./packages/runtime) • [`packages/holo-vm`](./packages/holo-vm) • [`packages/uaal`](./packages/uaal) • [`packages/vm-bridge`](./packages/vm-bridge)                                                                                                   |
+| **AI Layer**    | Ecosystem MCP configurations, AI hallucination validators, and LLM provider SDK shims.                           | [`packages/intelligence`](./packages/intelligence) • [`packages/llm-provider`](./packages/llm-provider) • [`packages/ai-validator`](./packages/ai-validator)                                                                                                                                                       |
+| **Dev Tools**   | Node.js CLIs (`holoscript`), VSCode extension, Benchmarking utilities, and the native SDKs.                      | [`packages/cli`](./packages/cli) • [`packages/mcp-server`](./packages/mcp-server) • [`packages/vscode-extension`](./packages/vscode-extension) • [`packages/benchmark`](./packages/benchmark) • [`packages/sdk`](./packages/sdk)                                                                                   |
+| **Connectors**  | Dedicated integration layers for 3rd-party services (GitHub repos, Railway deployments, Upstash caches).         | [`packages/connector-core`](./packages/connector-core) • [`packages/connector-github`](./packages/connector-github) • [`packages/connector-railway`](./packages/connector-railway) • [`packages/connector-upstash`](./packages/connector-upstash) • [`packages/connector-appstore`](./packages/connector-appstore) |
+| **Studio**      | WebGL/R3F rendering pipelines, full React Studio authoring interfaces, and web playgrounds.                      | [`packages/studio`](./packages/studio) • [`packages/r3f-renderer`](./packages/r3f-renderer) • [`packages/studio-plugin-sdk`](./packages/studio-plugin-sdk) • [`packages/playground`](./packages/playground)                                                                                                        |
+| **Marketplace** | Agent-to-Agent settlement gateways, spatial object registries, and GraphQL access nodes.                         | [`packages/graphql-api`](./packages/graphql-api) • [`packages/marketplace-api`](./packages/marketplace-api) • [`packages/marketplace-web`](./packages/marketplace-web) • [`packages/registry`](./packages/registry)                                                                                                |
 
 ### 3. Three-Format Architecture
 
@@ -425,7 +425,7 @@ Write **one** HoloScript file. Compile to:
 
 - ✅ **2,000+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — 122 MCP tools, Brittney agent, scene generation from natural language
+- ✅ **AI-Native** — MCP tools across 6 domains (parse, compile, analyze, render, mesh, debug), Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
@@ -515,14 +515,14 @@ narrative "Tutorial" {
 
 ### HoloScript CLI
 
-| Command | Description |
-| ------- | ----------- |
-| `holoscript run <file>` | Execute `.hs`/`.hsplus`/`.holo` headlessly with optional `--target node\|python` and `--profile headless\|minimal\|full` |
-| `holoscript test <file>` | Run `@script_test` blocks with real assertion evaluation, runtime state binding, and colorized output |
-| `holoscript compile <file>` | Compile to Node.js or Python with `--target` and `--output` flags |
-| `holoscript absorb <file>` | **Reverse-mode**: Convert Python/TypeScript/JavaScript → typed `.hsplus` agents. Extracts classes (with methods), functions, imports, constants |
-| `holoscript preview <file>` | Launch 3D preview in browser |
-| `holoscript query <query>` | Semantic GraphRAG search over an absorbed codebase. Supports `bm25`, `xenova`, `openai`, `ollama` backends. Add `--with-llm` for LLM-synthesized answers. [Full guide →](./docs/guides/codebase-intelligence.md) |
+| Command                     | Description                                                                                                                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holoscript run <file>`     | Execute `.hs`/`.hsplus`/`.holo` headlessly with optional `--target node\|python` and `--profile headless\|minimal\|full`                                                                                         |
+| `holoscript test <file>`    | Run `@script_test` blocks with real assertion evaluation, runtime state binding, and colorized output                                                                                                            |
+| `holoscript compile <file>` | Compile to Node.js or Python with `--target` and `--output` flags                                                                                                                                                |
+| `holoscript absorb <file>`  | **Reverse-mode**: Convert Python/TypeScript/JavaScript → typed `.hsplus` agents. Extracts classes (with methods), functions, imports, constants                                                                  |
+| `holoscript preview <file>` | Launch 3D preview in browser                                                                                                                                                                                     |
+| `holoscript query <query>`  | Semantic GraphRAG search over an absorbed codebase. Supports `bm25`, `xenova`, `openai`, `ollama` backends. Add `--with-llm` for LLM-synthesized answers. [Full guide →](./docs/guides/codebase-intelligence.md) |
 
 ### Native Testing (`@script_test`)
 
@@ -580,7 +580,7 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server (122 tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/guides/mcp-server.md)**
+- **MCP Server** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent. 6 domains, `mcp.holoscript.net`. **[Full guide →](./docs/guides/mcp-server.md)**
 - **LSP Server** — IntelliSense for 2,000+ traits with completions, hover docs, and diagnostics
 - **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.
 - **Plugin System** — Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
@@ -621,14 +621,14 @@ HoloScript v5.0.0 ships **Autonomous Agent Networks**, **Economic Primitives**, 
 
 13 real-world v5 compositions — each implemented in `.holo`, `.hsplus`, `.hs`, and `.scenario.ts` — covering quantum materials discovery, ethical AI sandboxes, wildfire response, healthspan twins, disaster robotics, and more.
 
-| Domain | Use Case | Formats |
-| --- | --- | --- |
-| Materials Science | Quantum Materials Arena | `.holo` `.hsplus` `.hs` `.ts` |
-| AI Safety | Ethical AI Sandbox | `.holo` `.hsplus` `.hs` `.ts` |
-| Robotics | Robot Training Metaverse | `.holo` `.hsplus` `.hs` `.ts` |
-| Healthcare | Healthspan Twin | `.holo` `.hsplus` `.hs` `.ts` |
-| Emergency Response | Wildfire Response Swarm | `.holo` `.hsplus` `.hs` `.ts` |
-| Cultural Heritage | Heritage Revival Museum | `.holo` `.hsplus` `.hs` `.ts` |
+| Domain             | Use Case                 | Formats                       |
+| ------------------ | ------------------------ | ----------------------------- |
+| Materials Science  | Quantum Materials Arena  | `.holo` `.hsplus` `.hs` `.ts` |
+| AI Safety          | Ethical AI Sandbox       | `.holo` `.hsplus` `.hs` `.ts` |
+| Robotics           | Robot Training Metaverse | `.holo` `.hsplus` `.hs` `.ts` |
+| Healthcare         | Healthspan Twin          | `.holo` `.hsplus` `.hs` `.ts` |
+| Emergency Response | Wildfire Response Swarm  | `.holo` `.hsplus` `.hs` `.ts` |
+| Cultural Heritage  | Heritage Revival Museum  | `.holo` `.hsplus` `.hs` `.ts` |
 
 **[View all 13 use cases with full format matrix →](./examples/novel-use-cases/INDEX.md)**
 
@@ -718,9 +718,9 @@ HoloScript is governed by the **HoloScript Foundation** (community-driven, neutr
 
 - **No owner advantage**: Hololand uses public APIs only
 - **Community roadmap**: Major decisions via RFC process
-- **Corporate sponsors**: Foundation funded by Meta, Unity, Epic (coming soon)
+- **Corporate sponsors**: Foundation structure defined, sponsors not yet confirmed
 
-**[💰 Sponsor HoloScript →](./FUNDING.md)** | **[🗺️ Roadmap](./docs/strategy/ROADMAP.md)** | **[🏛️ Foundation](./docs/FOUNDATION.md)** (coming soon)
+**[💰 Sponsor HoloScript →](./FUNDING.md)** | **[🗺️ Roadmap](./docs/strategy/ROADMAP.md)** | **[🏛️ Foundation](./docs/FOUNDATION.md)**
 
 ---
 

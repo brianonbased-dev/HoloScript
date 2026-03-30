@@ -291,28 +291,24 @@ export class SpikeDecoder {
     }
     this.tuningCurveBuffer = this.bufferManager.createStorageBuffer(tuningData, 'tuning-curves');
 
-      // Bind group: only Population and FirstSpike modes use tuning_curves (binding 3).
-      // Rate and Temporal auto-layouts only include bindings 0,1,2 — passing binding 3 causes
-      // a WebGPU validation error ("binding index 3 not present in bind group layout").
-      const entryPoint = DECODE_ENTRY_POINTS[decodingMode];
-      const needsTuningCurves =
-        decodingMode === DecodingMode.Population || decodingMode === DecodingMode.FirstSpike;
-      this.bindGroup = this.pipelineFactory.createBindGroup(
-        entryPoint,
-        needsTuningCurves
-          ? [
-              this.paramsBuffer.buffer,
-              this.spikeTrainBuffer.buffer,
-              this.outputBuffer.buffer,
-              this.tuningCurveBuffer.buffer,
-            ]
-          : [
-              this.paramsBuffer.buffer,
-              this.spikeTrainBuffer.buffer,
-              this.outputBuffer.buffer,
-            ],
-        'decode-bind-group'
-      );
+    // Bind group: only Population and FirstSpike modes use tuning_curves (binding 3).
+    // Rate and Temporal auto-layouts only include bindings 0,1,2 — passing binding 3 causes
+    // a WebGPU validation error ("binding index 3 not present in bind group layout").
+    const entryPoint = DECODE_ENTRY_POINTS[decodingMode];
+    const needsTuningCurves =
+      decodingMode === DecodingMode.Population || decodingMode === DecodingMode.FirstSpike;
+    this.bindGroup = this.pipelineFactory.createBindGroup(
+      entryPoint,
+      needsTuningCurves
+        ? [
+            this.paramsBuffer.buffer,
+            this.spikeTrainBuffer.buffer,
+            this.outputBuffer.buffer,
+            this.tuningCurveBuffer.buffer,
+          ]
+        : [this.paramsBuffer.buffer, this.spikeTrainBuffer.buffer, this.outputBuffer.buffer],
+      'decode-bind-group'
+    );
 
     this.initialized = true;
   }

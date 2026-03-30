@@ -116,8 +116,8 @@ export function truncate(s: string, maxLength: number, ellipsis = '...'): string
 export function truncateMiddle(s: string, maxLength: number, ellipsis = '...'): string {
   if (s.length <= maxLength) return s;
   const availableLength = maxLength - ellipsis.length;
-    const leftLength = Math.floor(availableLength / 2);
-    const rightLength = Math.ceil(availableLength / 2);
+  const leftLength = Math.floor(availableLength / 2);
+  const rightLength = Math.ceil(availableLength / 2);
   return s.slice(0, leftLength) + ellipsis + s.slice(-rightLength);
 }
 
@@ -144,7 +144,7 @@ export function count(s: string, substring: string): number {
   let pos = 0;
   while ((pos = s.indexOf(substring, pos)) !== -1) {
     count++;
-     pos += 1;
+    pos += 1;
   }
   return count;
 }
@@ -281,7 +281,7 @@ export function numberWithCommas(n: number): string {
 export function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
-    if (bytes < 0) return `${bytes} B`;
+  if (bytes < 0) return `${bytes} B`;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];

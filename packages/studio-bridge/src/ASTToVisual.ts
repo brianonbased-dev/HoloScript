@@ -503,7 +503,10 @@ export class ASTToVisual {
       if (Array.isArray(falsePath)) {
         let prevNodeId = nodeId;
         for (let i = 0; i < falsePath.length; i++) {
-          const childId = this.processASTNode(falsePath[i] as ASTNode, `${astPath}.falsePath[${i}]`);
+          const childId = this.processASTNode(
+            falsePath[i] as ASTNode,
+            `${astPath}.falsePath[${i}]`
+          );
           if (childId) {
             this.createEdge(prevNodeId, childId, i === 0 ? 'false' : 'flow', 'flow');
             prevNodeId = childId;
@@ -515,7 +518,11 @@ export class ASTToVisual {
     return nodeId;
   }
 
-  private processRuleBasedNode(node: ASTNode, rule: ASTNodeVisualRule, astPath: string): string | null {
+  private processRuleBasedNode(
+    node: ASTNode,
+    rule: ASTNodeVisualRule,
+    astPath: string
+  ): string | null {
     const nodeId = this.createVisualNode(rule.visualType, rule.category, {
       label: this.formatLabel(rule.visualType),
       properties: rule.defaultProperties || {},
@@ -541,7 +548,7 @@ export class ASTToVisual {
     overrides: {
       label?: string;
       properties?: Record<string, unknown>;
-    } = {},
+    } = {}
   ): string {
     const id = `bridge_node_${this.nodeIdCounter++}`;
     const definition = getBridgeNodeDefinition(type);
@@ -576,7 +583,7 @@ export class ASTToVisual {
     sourceId: string,
     targetId: string,
     sourceHandle: string,
-    targetHandle: string,
+    targetHandle: string
   ): string {
     const id = `bridge_edge_${this.edgeIdCounter++}`;
 
@@ -638,7 +645,7 @@ export class ASTToVisual {
     this.layoutColumn(
       logicNodes,
       this.options.startX + this.options.spacingX,
-      currentY + actionNodes.length * this.options.spacingY + this.options.spacingY,
+      currentY + actionNodes.length * this.options.spacingY + this.options.spacingY
     );
 
     // Data on the right
@@ -848,11 +855,13 @@ export class ASTToVisual {
       if (handlerMatch && currentOrb) {
         handlers.push({
           type: 'event-handler',
-          directives: [{
-            type: 'lifecycle',
-            hook: handlerMatch[1],
-            body: [],
-          }],
+          directives: [
+            {
+              type: 'lifecycle',
+              hook: handlerMatch[1],
+              body: [],
+            },
+          ],
         });
         continue;
       }
@@ -925,9 +934,7 @@ export class ASTToVisual {
   }
 
   private formatLabel(type: string): string {
-    return type
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
 
@@ -936,7 +943,7 @@ export class ASTToVisual {
  */
 export function astToVisual(
   astNodes: ASTNode[],
-  options?: Partial<ASTToVisualOptions>,
+  options?: Partial<ASTToVisualOptions>
 ): ASTToVisualResult {
   const translator = new ASTToVisual(options);
   return translator.translate(astNodes);
@@ -947,7 +954,7 @@ export function astToVisual(
  */
 export function codeToVisual(
   code: string,
-  options?: Partial<ASTToVisualOptions>,
+  options?: Partial<ASTToVisualOptions>
 ): ASTToVisualResult {
   const translator = new ASTToVisual(options);
   return translator.translateFromCode(code);

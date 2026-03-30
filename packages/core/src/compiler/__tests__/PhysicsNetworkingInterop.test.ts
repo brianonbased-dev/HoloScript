@@ -27,7 +27,7 @@ function makeDomainBlock(
   keyword: string,
   name: string,
   properties: Record<string, any> = {},
-  children: any[] = [],
+  children: any[] = []
 ): HoloDomainBlock {
   return {
     type: 'DomainBlock',
@@ -56,7 +56,6 @@ function makeRigidbodyBlock(name: string, props: Record<string, any> = {}): Holo
 // =============================================================================
 
 describe('Physics ↔ Networking Trait Audit', () => {
-
   describe('rigidbody compilation baseline', () => {
     it('compiles rigidbody with standard properties', () => {
       const block = makeRigidbodyBlock('Ball');

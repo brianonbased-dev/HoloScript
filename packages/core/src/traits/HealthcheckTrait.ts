@@ -35,11 +35,15 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
   onAttach(node: any): void {
     node.__healthcheckState = { checks: new Map<string, HealthCheck>(), lastRun: 0 };
   },
-  onDetach(node: any): void { delete node.__healthcheckState; },
+  onDetach(node: any): void {
+    delete node.__healthcheckState;
+  },
 
   onUpdate(node: any, config: HealthcheckConfig, context: any, _delta: number): void {
     if (config.auto_interval_ms <= 0) return;
-    const state = node.__healthcheckState as { checks: Map<string, HealthCheck>; lastRun: number } | undefined;
+    const state = node.__healthcheckState as
+      | { checks: Map<string, HealthCheck>; lastRun: number }
+      | undefined;
     if (!state) return;
     const now = Date.now();
     if (now - state.lastRun >= config.auto_interval_ms) {
@@ -49,7 +53,9 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
   },
 
   onEvent(node: any, _config: HealthcheckConfig, context: any, event: any): void {
-    const state = node.__healthcheckState as { checks: Map<string, HealthCheck>; lastRun: number } | undefined;
+    const state = node.__healthcheckState as
+      | { checks: Map<string, HealthCheck>; lastRun: number }
+      | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 
@@ -68,12 +74,20 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
       }
       case 'healthcheck:check_ok': {
         const check = state.checks.get(event.checkId as string);
-        if (check) { check.lastStatus = 'pass'; check.lastChecked = Date.now(); check.error = null; }
+        if (check) {
+          check.lastStatus = 'pass';
+          check.lastChecked = Date.now();
+          check.error = null;
+        }
         break;
       }
       case 'healthcheck:check_fail': {
         const check = state.checks.get(event.checkId as string);
-        if (check) { check.lastStatus = 'fail'; check.lastChecked = Date.now(); check.error = (event.error as string) ?? 'unknown'; }
+        if (check) {
+          check.lastStatus = 'fail';
+          check.lastChecked = Date.now();
+          check.error = (event.error as string) ?? 'unknown';
+        }
         break;
       }
       case 'healthcheck:run': {
@@ -87,11 +101,11 @@ export const healthcheckHandler: TraitHandler<HealthcheckConfig> = {
 
 function emitResult(state: { checks: Map<string, HealthCheck> }, context: any): void {
   const checks = [...state.checks.values()];
-  const allPass = checks.every(c => c.lastStatus === 'pass');
-  const anyFail = checks.some(c => c.lastStatus === 'fail');
+  const allPass = checks.every((c) => c.lastStatus === 'pass');
+  const anyFail = checks.some((c) => c.lastStatus === 'fail');
   context.emit?.('healthcheck:result', {
     status: anyFail ? 'unhealthy' : allPass ? 'healthy' : 'degraded',
-    checks: checks.map(c => ({ id: c.id, type: c.type, status: c.lastStatus, error: c.error })),
+    checks: checks.map((c) => ({ id: c.id, type: c.type, status: c.lastStatus, error: c.error })),
     timestamp: Date.now(),
   });
 }

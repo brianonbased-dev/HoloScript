@@ -10,10 +10,7 @@ import type { ASTNode, OrbNode } from '../types';
 // Test Helpers
 // ============================================================================
 
-function createOrbNode(
-  name: string,
-  overrides: Partial<OrbNode> = {},
-): OrbNode {
+function createOrbNode(name: string, overrides: Partial<OrbNode> = {}): OrbNode {
   return {
     type: 'orb',
     name,
@@ -27,22 +24,26 @@ function createOrbNode(
 function createEventHandlerNode(hookName: string, body: ASTNode[] = []): ASTNode {
   return {
     type: 'event-handler',
-    directives: [{
-      type: 'lifecycle',
-      hook: hookName,
-      body,
-    }],
+    directives: [
+      {
+        type: 'lifecycle',
+        hook: hookName,
+        body,
+      },
+    ],
   };
 }
 
 function createActionNode(traitName: string, config: Record<string, unknown> = {}): ASTNode {
   return {
     type: 'action',
-    directives: [{
-      type: 'trait',
-      name: traitName,
-      config,
-    }],
+    directives: [
+      {
+        type: 'trait',
+        name: traitName,
+        config,
+      },
+    ],
   };
 }
 
@@ -80,9 +81,7 @@ describe('ASTToVisual', () => {
   describe('OrbNode translation', () => {
     it('should process an OrbNode and create visual nodes from its children', () => {
       const orb = createOrbNode('testOrb', {
-        children: [
-          createEventHandlerNode('on_click'),
-        ],
+        children: [createEventHandlerNode('on_click')],
       });
       const result = astToVisual([orb]);
 
@@ -112,9 +111,7 @@ describe('ASTToVisual', () => {
       });
       const result = astToVisual([orb]);
 
-      const clickNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'on_click',
-      );
+      const clickNodes = result.graph.nodes.filter((n) => n.data.type === 'on_click');
       expect(clickNodes.length).toBeGreaterThan(0);
     });
 
@@ -124,9 +121,7 @@ describe('ASTToVisual', () => {
       });
       const result = astToVisual([orb]);
 
-      const hoverNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'on_hover',
-      );
+      const hoverNodes = result.graph.nodes.filter((n) => n.data.type === 'on_hover');
       expect(hoverNodes.length).toBeGreaterThan(0);
     });
 
@@ -136,18 +131,14 @@ describe('ASTToVisual', () => {
       });
       const result = astToVisual([orb]);
 
-      const grabNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'on_grab',
-      );
+      const grabNodes = result.graph.nodes.filter((n) => n.data.type === 'on_grab');
       expect(grabNodes.length).toBeGreaterThan(0);
     });
 
     it('should translate event handler with action body', () => {
       const orb = createOrbNode('testOrb', {
         children: [
-          createEventHandlerNode('on_click', [
-            createActionNode('audio', { url: 'click.mp3' }),
-          ]),
+          createEventHandlerNode('on_click', [createActionNode('audio', { url: 'click.mp3' })]),
         ],
       });
       const result = astToVisual([orb]);
@@ -163,9 +154,7 @@ describe('ASTToVisual', () => {
       const actionNode = createActionNode('audio', { url: 'sound.mp3', volume: 0.5 });
       const result = astToVisual([actionNode]);
 
-      const soundNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'play_sound',
-      );
+      const soundNodes = result.graph.nodes.filter((n) => n.data.type === 'play_sound');
       expect(soundNodes.length).toBeGreaterThan(0);
       expect(soundNodes[0].data.properties.url).toBe('sound.mp3');
     });
@@ -177,9 +166,7 @@ describe('ASTToVisual', () => {
       });
       const result = astToVisual([actionNode]);
 
-      const animNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'play_animation',
-      );
+      const animNodes = result.graph.nodes.filter((n) => n.data.type === 'play_animation');
       expect(animNodes.length).toBeGreaterThan(0);
       expect(animNodes[0].data.properties.animation).toBe('spin');
     });
@@ -188,9 +175,7 @@ describe('ASTToVisual', () => {
       const actionNode = createActionNode('spawn', { template: 'particle' });
       const result = astToVisual([actionNode]);
 
-      const spawnNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'spawn',
-      );
+      const spawnNodes = result.graph.nodes.filter((n) => n.data.type === 'spawn');
       expect(spawnNodes.length).toBeGreaterThan(0);
       expect(spawnNodes[0].data.properties.template).toBe('particle');
     });
@@ -199,9 +184,7 @@ describe('ASTToVisual', () => {
       const destroyNode: ASTNode = { type: 'action' };
       const result = astToVisual([destroyNode]);
 
-      const destroyNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'destroy',
-      );
+      const destroyNodes = result.graph.nodes.filter((n) => n.data.type === 'destroy');
       expect(destroyNodes.length).toBeGreaterThan(0);
     });
   });
@@ -210,38 +193,38 @@ describe('ASTToVisual', () => {
     it('should translate assignment to set_property visual node', () => {
       const assignNode: ASTNode = {
         type: 'assignment',
-        directives: [{
-          type: 'state',
-          body: {
-            property: 'color',
-            value: '#ff0000',
+        directives: [
+          {
+            type: 'state',
+            body: {
+              property: 'color',
+              value: '#ff0000',
+            },
           },
-        }],
+        ],
       };
       const result = astToVisual([assignNode]);
 
-      const propNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'set_property',
-      );
+      const propNodes = result.graph.nodes.filter((n) => n.data.type === 'set_property');
       expect(propNodes.length).toBeGreaterThan(0);
     });
 
     it('should translate toggle assignment', () => {
       const toggleNode: ASTNode = {
         type: 'assignment',
-        directives: [{
-          type: 'state',
-          body: {
-            property: 'visible',
-            toggle: true,
+        directives: [
+          {
+            type: 'state',
+            body: {
+              property: 'visible',
+              toggle: true,
+            },
           },
-        }],
+        ],
       };
       const result = astToVisual([toggleNode]);
 
-      const toggleNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'toggle',
-      );
+      const toggleNodes = result.graph.nodes.filter((n) => n.data.type === 'toggle');
       expect(toggleNodes.length).toBeGreaterThan(0);
     });
   });
@@ -250,20 +233,20 @@ describe('ASTToVisual', () => {
     it('should translate gate to if_else visual node', () => {
       const gateNode: ASTNode = {
         type: 'gate',
-        directives: [{
-          type: 'state',
-          body: {
-            condition: true,
-            truePath: [],
-            falsePath: [],
+        directives: [
+          {
+            type: 'state',
+            body: {
+              condition: true,
+              truePath: [],
+              falsePath: [],
+            },
           },
-        }],
+        ],
       };
       const result = astToVisual([gateNode]);
 
-      const ifNodes = result.graph.nodes.filter(
-        (n) => n.data.type === 'if_else',
-      );
+      const ifNodes = result.graph.nodes.filter((n) => n.data.type === 'if_else');
       expect(ifNodes.length).toBeGreaterThan(0);
     });
   });
@@ -277,17 +260,16 @@ describe('ASTToVisual', () => {
       expect(result.diagnostics).toContainEqual(
         expect.objectContaining({
           code: 'BRIDGE_UNMAPPED_AST',
-        }),
+        })
       );
     });
   });
 
   describe('layout algorithms', () => {
     it('should apply auto layout by default', () => {
-      const result = astToVisual([
-        createEventHandlerNode('on_click'),
-        createActionNode('audio'),
-      ], { layout: 'auto' });
+      const result = astToVisual([createEventHandlerNode('on_click'), createActionNode('audio')], {
+        layout: 'auto',
+      });
 
       for (const node of result.graph.nodes) {
         expect(node.position).toBeDefined();
@@ -297,25 +279,25 @@ describe('ASTToVisual', () => {
     });
 
     it('should apply grid layout', () => {
-      const result = astToVisual([
-        createEventHandlerNode('on_click'),
-        createActionNode('audio'),
-        createActionNode('animation'),
-      ], { layout: 'grid' });
+      const result = astToVisual(
+        [
+          createEventHandlerNode('on_click'),
+          createActionNode('audio'),
+          createActionNode('animation'),
+        ],
+        { layout: 'grid' }
+      );
 
       // All nodes should have different positions
-      const positions = result.graph.nodes.map(
-        (n) => `${n.position.x},${n.position.y}`,
-      );
+      const positions = result.graph.nodes.map((n) => `${n.position.x},${n.position.y}`);
       const uniquePositions = new Set(positions);
       expect(uniquePositions.size).toBe(result.graph.nodes.length);
     });
 
     it('should apply tree layout', () => {
-      const result = astToVisual([
-        createEventHandlerNode('on_click'),
-        createActionNode('audio'),
-      ], { layout: 'tree' });
+      const result = astToVisual([createEventHandlerNode('on_click'), createActionNode('audio')], {
+        layout: 'tree',
+      });
 
       for (const node of result.graph.nodes) {
         expect(node.position.x).toBeGreaterThanOrEqual(0);
@@ -324,11 +306,14 @@ describe('ASTToVisual', () => {
     });
 
     it('should apply force-directed layout', () => {
-      const result = astToVisual([
-        createEventHandlerNode('on_click'),
-        createActionNode('audio'),
-        createActionNode('animation'),
-      ], { layout: 'force-directed' });
+      const result = astToVisual(
+        [
+          createEventHandlerNode('on_click'),
+          createActionNode('audio'),
+          createActionNode('animation'),
+        ],
+        { layout: 'force-directed' }
+      );
 
       for (const node of result.graph.nodes) {
         expect(typeof node.position.x).toBe('number');
@@ -337,9 +322,11 @@ describe('ASTToVisual', () => {
     });
 
     it('should respect custom start position', () => {
-      const result = astToVisual([
-        createEventHandlerNode('on_click'),
-      ], { layout: 'grid', startX: 500, startY: 300 });
+      const result = astToVisual([createEventHandlerNode('on_click')], {
+        layout: 'grid',
+        startX: 500,
+        startY: 300,
+      });
 
       expect(result.graph.nodes[0].position.x).toBe(500);
       expect(result.graph.nodes[0].position.y).toBe(300);
@@ -350,9 +337,7 @@ describe('ASTToVisual', () => {
     it('should create mappings for all translated nodes', () => {
       const orb = createOrbNode('testOrb', {
         children: [
-          createEventHandlerNode('on_click', [
-            createActionNode('audio', { url: 'click.mp3' }),
-          ]),
+          createEventHandlerNode('on_click', [createActionNode('audio', { url: 'click.mp3' })]),
         ],
       });
       const result = astToVisual([orb]);

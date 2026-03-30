@@ -30,7 +30,7 @@ function createNode(
   label: string,
   properties: Record<string, unknown> = {},
   inputs: Array<{ id: string; label: string; type: string }> = [],
-  outputs: Array<{ id: string; label: string; type: string }> = [],
+  outputs: Array<{ id: string; label: string; type: string }> = []
 ): HoloNode {
   return {
     id,
@@ -52,7 +52,7 @@ function createEdge(
   source: string,
   target: string,
   sourceHandle?: string,
-  targetHandle?: string,
+  targetHandle?: string
 ): HoloEdge {
   return {
     id,
@@ -108,7 +108,7 @@ describe('VisualToAST', () => {
         expect.objectContaining({
           severity: 'warning',
           code: 'BRIDGE_NO_EVENTS',
-        }),
+        })
       );
     });
   });
@@ -116,8 +116,15 @@ describe('VisualToAST', () => {
   describe('event node translation', () => {
     it('should translate on_click event to AST handler', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -129,8 +136,15 @@ describe('VisualToAST', () => {
 
     it('should translate on_hover event', () => {
       const nodes = [
-        createNode('ev1', 'on_hover', 'event', 'On Hover', {}, [],
-          [{ id: 'enter', label: 'On Enter', type: 'flow' }]),
+        createNode(
+          'ev1',
+          'on_hover',
+          'event',
+          'On Hover',
+          {},
+          [],
+          [{ id: 'enter', label: 'On Enter', type: 'flow' }]
+        ),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -141,8 +155,15 @@ describe('VisualToAST', () => {
 
     it('should translate on_grab event', () => {
       const nodes = [
-        createNode('ev1', 'on_grab', 'event', 'On Grab', {}, [],
-          [{ id: 'grab', label: 'On Grab', type: 'flow' }]),
+        createNode(
+          'ev1',
+          'on_grab',
+          'event',
+          'On Grab',
+          {},
+          [],
+          [{ id: 'grab', label: 'On Grab', type: 'flow' }]
+        ),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -153,8 +174,15 @@ describe('VisualToAST', () => {
 
     it('should translate on_collision event with collidable trait', () => {
       const nodes = [
-        createNode('ev1', 'on_collision', 'event', 'On Collision', {}, [],
-          [{ id: 'enter', label: 'On Enter', type: 'flow' }]),
+        createNode(
+          'ev1',
+          'on_collision',
+          'event',
+          'On Collision',
+          {},
+          [],
+          [{ id: 'enter', label: 'On Enter', type: 'flow' }]
+        ),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -165,8 +193,15 @@ describe('VisualToAST', () => {
 
     it('should translate on_tick event', () => {
       const nodes = [
-        createNode('ev1', 'on_tick', 'event', 'On Tick', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
+        createNode(
+          'ev1',
+          'on_tick',
+          'event',
+          'On Tick',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -178,12 +213,24 @@ describe('VisualToAST', () => {
   describe('event -> action chain translation', () => {
     it('should translate on_click -> play_sound chain', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'play_sound', 'action', 'Play Sound',
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'play_sound',
+          'action',
+          'Play Sound',
           { url: 'click.mp3', volume: 0.8 },
           [{ id: 'flow', label: 'Execute', type: 'flow' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -196,12 +243,24 @@ describe('VisualToAST', () => {
 
     it('should translate on_click -> play_animation chain', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'play_animation', 'action', 'Play Animation',
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'play_animation',
+          'action',
+          'Play Animation',
           { animation: 'spin', duration: 2000 },
           [{ id: 'flow', label: 'Execute', type: 'flow' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -213,12 +272,27 @@ describe('VisualToAST', () => {
 
     it('should translate set_property action', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'set_property', 'action', 'Set Property',
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'set_property',
+          'action',
+          'Set Property',
           { property: 'color', value: '#ff0000' },
-          [{ id: 'flow', label: 'Execute', type: 'flow' }, { id: 'value', label: 'Value', type: 'any' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [
+            { id: 'flow', label: 'Execute', type: 'flow' },
+            { id: 'value', label: 'Value', type: 'any' },
+          ],
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -229,12 +303,24 @@ describe('VisualToAST', () => {
 
     it('should translate toggle action', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'toggle', 'action', 'Toggle',
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'toggle',
+          'action',
+          'Toggle',
           { property: 'visible' },
           [{ id: 'flow', label: 'Execute', type: 'flow' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -245,12 +331,24 @@ describe('VisualToAST', () => {
 
     it('should translate spawn action', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'spawn', 'action', 'Spawn',
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'spawn',
+          'action',
+          'Spawn',
           { template: 'particle' },
           [{ id: 'flow', label: 'Execute', type: 'flow' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -261,11 +359,24 @@ describe('VisualToAST', () => {
 
     it('should translate destroy action', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'destroy', 'action', 'Destroy', {},
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'destroy',
+          'action',
+          'Destroy',
+          {},
           [{ id: 'flow', label: 'Execute', type: 'flow' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -278,8 +389,7 @@ describe('VisualToAST', () => {
   describe('data node translation', () => {
     it('should translate constant nodes to state properties', () => {
       const nodes = [
-        createNode('d1', 'constant', 'data', 'Constant',
-          { type: 'number', value: 42 }),
+        createNode('d1', 'constant', 'data', 'Constant', { type: 'number', value: 42 }),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -305,8 +415,7 @@ describe('VisualToAST', () => {
 
     it('should infer animated trait from play_animation', () => {
       const nodes = [
-        createNode('act1', 'play_animation', 'action', 'Play Animation',
-          { animation: 'idle' }),
+        createNode('act1', 'play_animation', 'action', 'Play Animation', { animation: 'idle' }),
       ];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
@@ -330,9 +439,7 @@ describe('VisualToAST', () => {
 
   describe('code format output', () => {
     it('should generate hsplus format by default', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       const result = visualToAST(graph, { format: 'hsplus' });
 
       expect(result.format).toBe('hsplus');
@@ -340,9 +447,7 @@ describe('VisualToAST', () => {
     });
 
     it('should generate hs format', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       const result = visualToAST(graph, { format: 'hs' });
 
       expect(result.format).toBe('hs');
@@ -350,9 +455,7 @@ describe('VisualToAST', () => {
     });
 
     it('should generate holo format with composition wrapper', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       const result = visualToAST(graph, { format: 'holo' });
 
       expect(result.format).toBe('holo');
@@ -385,9 +488,7 @@ describe('VisualToAST', () => {
 
   describe('validation', () => {
     it('should detect disconnected action nodes', () => {
-      const nodes = [
-        createNode('act1', 'play_sound', 'action', 'Play Sound'),
-      ];
+      const nodes = [createNode('act1', 'play_sound', 'action', 'Play Sound')];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph, { validate: true });
 
@@ -395,34 +496,28 @@ describe('VisualToAST', () => {
         expect.objectContaining({
           code: 'BRIDGE_DISCONNECTED',
           visualNodeId: 'act1',
-        }),
+        })
       );
     });
 
     it('should warn about unknown node types', () => {
-      const nodes = [
-        createNode('x1', 'unknown_type', 'action', 'Unknown'),
-      ];
+      const nodes = [createNode('x1', 'unknown_type', 'action', 'Unknown')];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph, { validate: true });
 
       expect(result.diagnostics).toContainEqual(
         expect.objectContaining({
           code: 'BRIDGE_UNKNOWN_TYPE',
-        }),
+        })
       );
     });
 
     it('should skip validation when disabled', () => {
-      const nodes = [
-        createNode('x1', 'unknown_type', 'action', 'Unknown'),
-      ];
+      const nodes = [createNode('x1', 'unknown_type', 'action', 'Unknown')];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph, { validate: false });
 
-      const validationDiags = result.diagnostics.filter(
-        (d) => d.code === 'BRIDGE_UNKNOWN_TYPE',
-      );
+      const validationDiags = result.diagnostics.filter((d) => d.code === 'BRIDGE_UNKNOWN_TYPE');
       expect(validationDiags).toHaveLength(0);
     });
   });
@@ -430,12 +525,24 @@ describe('VisualToAST', () => {
   describe('source map generation', () => {
     it('should generate source map when enabled', () => {
       const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click', {}, [],
-          [{ id: 'flow', label: 'Execute', type: 'flow' }]),
-        createNode('act1', 'play_sound', 'action', 'Play Sound',
+        createNode(
+          'ev1',
+          'on_click',
+          'event',
+          'On Click',
+          {},
+          [],
+          [{ id: 'flow', label: 'Execute', type: 'flow' }]
+        ),
+        createNode(
+          'act1',
+          'play_sound',
+          'action',
+          'Play Sound',
           { url: 'click.mp3' },
           [{ id: 'flow', label: 'Execute', type: 'flow' }],
-          [{ id: 'flow', label: 'Then', type: 'flow' }]),
+          [{ id: 'flow', label: 'Then', type: 'flow' }]
+        ),
       ];
       const edges = [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')];
       const graph = createTestGraph(nodes, edges);
@@ -447,9 +554,7 @@ describe('VisualToAST', () => {
     });
 
     it('should not generate source map when disabled', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       const result = visualToAST(graph, { generateSourceMap: false });
 
       expect(result.sourceMap).toBeUndefined();
@@ -458,9 +563,7 @@ describe('VisualToAST', () => {
 
   describe('bridge mappings', () => {
     it('should create mappings for event nodes', () => {
-      const nodes = [
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ];
+      const nodes = [createNode('ev1', 'on_click', 'event', 'On Click')];
       const graph = createTestGraph(nodes);
       const result = visualToAST(graph);
 

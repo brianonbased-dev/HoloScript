@@ -23,11 +23,14 @@ export interface StreamConfig {
 }
 
 export interface StreamState {
-  topics: Map<string, {
-    subscribers: Set<string>;
-    buffer: Array<{ data: unknown; sequence: number }>;
-    sequence: number;
-  }>;
+  topics: Map<
+    string,
+    {
+      subscribers: Set<string>;
+      buffer: Array<{ data: unknown; sequence: number }>;
+      sequence: number;
+    }
+  >;
 }
 
 export const streamHandler: TraitHandler<StreamConfig> = {
@@ -63,7 +66,11 @@ export const streamHandler: TraitHandler<StreamConfig> = {
         }
         const t = state.topics.get(topic)!;
         if (config.enable_backpressure && t.buffer.length >= config.max_buffer) {
-          context.emit?.('stream:backpressure', { topic, pending: t.buffer.length, maxBuffer: config.max_buffer });
+          context.emit?.('stream:backpressure', {
+            topic,
+            pending: t.buffer.length,
+            maxBuffer: config.max_buffer,
+          });
           break;
         }
         t.sequence++;
@@ -83,12 +90,12 @@ export const streamHandler: TraitHandler<StreamConfig> = {
         if (!state.topics.has(topic)) {
           state.topics.set(topic, { subscribers: new Set(), buffer: [], sequence: 0 });
         }
-        state.topics.get(topic)!.subscribers.add(event.subscriberId as string ?? 'default');
+        state.topics.get(topic)!.subscribers.add((event.subscriberId as string) ?? 'default');
         break;
       }
       case 'stream:unsubscribe': {
         const t = state.topics.get(event.topic as string);
-        t?.subscribers.delete(event.subscriberId as string ?? 'default');
+        t?.subscribers.delete((event.subscriberId as string) ?? 'default');
         break;
       }
       case 'stream:replay': {

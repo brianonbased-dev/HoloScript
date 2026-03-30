@@ -91,10 +91,7 @@ export const deformableTerrainHandler: TraitHandler<DeformableTerrainConfig> = {
         erosionRate: config.erosion_rate * precipitationIntensity,
         sedimentCapacity: config.sediment_capacity,
         thermalThreshold: config.thermal_threshold,
-        windDirection: [
-          weatherBlackboard.wind_vector[0],
-          weatherBlackboard.wind_vector[2],
-        ],
+        windDirection: [weatherBlackboard.wind_vector[0], weatherBlackboard.wind_vector[2]],
       });
     }
   },

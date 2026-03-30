@@ -583,7 +583,11 @@ function registerHoloScript(monaco: Monaco) {
           if (traitName === '@wisdom' || traitName === '@gotcha') {
             const totalLines = model.getLineCount();
             let blockText = '';
-            for (let ln = position.lineNumber; ln <= Math.min(position.lineNumber + 10, totalLines); ln++) {
+            for (
+              let ln = position.lineNumber;
+              ln <= Math.min(position.lineNumber + 10, totalLines);
+              ln++
+            ) {
               blockText += model.getLineContent(ln) + '\n';
               if (model.getLineContent(ln).includes('}')) break;
             }
@@ -591,7 +595,9 @@ function registerHoloScript(monaco: Monaco) {
               const descMatch = blockText.match(/description:\s*"([^"]*)"/);
               const sourceMatch = blockText.match(/source:\s*"([^"]*)"/);
               if (descMatch) {
-                contents.push({ value: `---\n**Insight:** ${descMatch[1]}${sourceMatch ? `\n\n*Source: ${sourceMatch[1]}*` : ''}` });
+                contents.push({
+                  value: `---\n**Insight:** ${descMatch[1]}${sourceMatch ? `\n\n*Source: ${sourceMatch[1]}*` : ''}`,
+                });
               }
             } else {
               const warnMatch = blockText.match(/warning:\s*"([^"]*)"/);
@@ -600,7 +606,9 @@ function registerHoloScript(monaco: Monaco) {
               if (warnMatch) {
                 const sev = sevMatch?.[1] || 'warning';
                 const icon = sev === 'critical' ? '🔴' : sev === 'warning' ? '🟡' : '🔵';
-                contents.push({ value: `---\n${icon} **${sev.toUpperCase()}:** ${warnMatch[1]}${mitMatch ? `\n\n*Mitigation: ${mitMatch[1]}*` : ''}` });
+                contents.push({
+                  value: `---\n${icon} **${sev.toUpperCase()}:** ${warnMatch[1]}${mitMatch ? `\n\n*Mitigation: ${mitMatch[1]}*` : ''}`,
+                });
               }
             }
           }

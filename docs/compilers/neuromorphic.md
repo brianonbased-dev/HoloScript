@@ -8,10 +8,10 @@ Neuromorphic computing processes information using networks of artificial neuron
 
 HoloScript has two neuromorphic output targets:
 
-| Compiler       | Target              | Output              |
-| -------------- | ------------------- | ------------------- |
-| `NIRCompiler`  | Physical chips      | NIR JSON + bitfile  |
-| `NIRToWGSL`    | Browser (WebGPU)    | WGSL compute shader |
+| Compiler      | Target           | Output              |
+| ------------- | ---------------- | ------------------- |
+| `NIRCompiler` | Physical chips   | NIR JSON + bitfile  |
+| `NIRToWGSL`   | Browser (WebGPU) | WGSL compute shader |
 
 ```bash
 # Compile to neuromorphic chip (Intel Loihi2)
@@ -23,11 +23,11 @@ holoscript compile snn.holo --target nir-wgsl --output ./web/
 
 ## Supported Hardware
 
-| Backend      | Chip              | Organization          |
-| ------------ | ----------------- | --------------------- |
-| `loihi2`     | Intel Loihi 2     | Intel Labs            |
-| `spinnaker`  | SpiNNaker 2       | University of Manchester |
-| `synsense`   | Xylo / Speck      | SynSense AG           |
+| Backend     | Chip          | Organization             |
+| ----------- | ------------- | ------------------------ |
+| `loihi2`    | Intel Loihi 2 | Intel Labs               |
+| `spinnaker` | SpiNNaker 2   | University of Manchester |
+| `synsense`  | Xylo / Speck  | SynSense AG              |
 
 The `nir-wgsl` backend runs the same SNN model in a WebGPU compute shader — no hardware required, runs in any WebGPU-capable browser.
 
@@ -75,9 +75,7 @@ The NIR compiler produces a JSON graph consumable by chip SDKs:
     { "id": "N1", "type": "LIF", "tau_m": 20, "v_thresh": -55, "v_reset": -70 },
     { "id": "N2", "type": "LIF", "tau_m": 20, "v_thresh": -55, "v_reset": -70 }
   ],
-  "synapses": [
-    { "pre": "N1", "post": "N2", "weight": 1.0, "delay": 1 }
-  ],
+  "synapses": [{ "pre": "N1", "post": "N2", "weight": 1.0, "delay": 1 }],
   "inputs": ["N1"],
   "outputs": ["N3"]
 }
@@ -105,19 +103,19 @@ This is backed by `@holoscript/snn-poc` and `@holoscript/snn-webgpu` packages.
 
 ## Related Packages
 
-| Package                  | Role                                |
-| ------------------------ | ----------------------------------- |
+| Package                  | Role                                 |
+| ------------------------ | ------------------------------------ |
 | `@holoscript/snn-poc`    | Reference LIF implementation + tests |
-| `@holoscript/snn-webgpu` | GPU-accelerated SNN compute shaders |
+| `@holoscript/snn-webgpu` | GPU-accelerated SNN compute shaders  |
 
 ## Compiler Options
 
-| Option              | Default   | Description                           |
-| ------------------- | --------- | ------------------------------------- |
-| `--nir-backend`     | `wgsl`    | `loihi2`, `spinnaker`, `synsense`, `wgsl` |
-| `--nir-timestep`    | `1.0`     | Simulation timestep in ms             |
-| `--nir-duration`    | `100`     | Default sim duration in ms            |
-| `--nir-dt`          | `0.1`     | Integration step for continuous model |
+| Option           | Default | Description                               |
+| ---------------- | ------- | ----------------------------------------- |
+| `--nir-backend`  | `wgsl`  | `loihi2`, `spinnaker`, `synsense`, `wgsl` |
+| `--nir-timestep` | `1.0`   | Simulation timestep in ms                 |
+| `--nir-duration` | `100`   | Default sim duration in ms                |
+| `--nir-dt`       | `0.1`   | Integration step for continuous model     |
 
 ## See Also
 

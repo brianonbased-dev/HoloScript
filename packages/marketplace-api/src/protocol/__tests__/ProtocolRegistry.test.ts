@@ -36,9 +36,7 @@ const MOCK_PROVENANCE = {
 const MOCK_REMIX_PROVENANCE = {
   ...MOCK_PROVENANCE,
   publishMode: 'remix' as const,
-  imports: [
-    { path: '@maria/warrior', hash: 'maria-hash-abc', author: 'maria' },
-  ],
+  imports: [{ path: '@maria/warrior', hash: 'maria-hash-abc', author: 'maria' }],
 };
 
 const MOCK_SOURCE = 'scene test { object cube { position: [0,0,0] } }';
@@ -80,8 +78,8 @@ describe('ProtocolRegistry — previewRevenue', () => {
     expect(dist.totalPrice).toBe(ethToWei('0.01'));
     expect(dist.flows).toHaveLength(2); // platform + creator
 
-    const platform = dist.flows.find(f => f.reason === 'platform')!;
-    const creator = dist.flows.find(f => f.reason === 'creator')!;
+    const platform = dist.flows.find((f) => f.reason === 'platform')!;
+    const creator = dist.flows.find((f) => f.reason === 'creator')!;
 
     expect(platform.bps).toBe(250);
     expect(creator.recipient).toBe('@brian');
@@ -94,7 +92,7 @@ describe('ProtocolRegistry — previewRevenue', () => {
 
     const dist = registry.previewRevenue('0.01', '@brian', imports);
 
-    const royalty = dist.flows.find(f => f.reason === 'import_royalty')!;
+    const royalty = dist.flows.find((f) => f.reason === 'import_royalty')!;
     expect(royalty.recipient).toBe('@maria');
     expect(royalty.bps).toBe(500); // 5%
   });
@@ -104,7 +102,7 @@ describe('ProtocolRegistry — previewRevenue', () => {
       referrer: '@curator',
     });
 
-    const referral = dist.flows.find(f => f.reason === 'referral')!;
+    const referral = dist.flows.find((f) => f.reason === 'referral')!;
     expect(referral.recipient).toBe('@curator');
     expect(referral.bps).toBe(200); // 2%
   });
@@ -117,10 +115,10 @@ describe('ProtocolRegistry — previewRevenue', () => {
   it('all flows sum to total price', () => {
     const imports: ImportChainNode[] = [
       {
-        contentHash: 'a', author: '@a', depth: 1,
-        children: [
-          { contentHash: 'b', author: '@b', depth: 2, children: [] },
-        ],
+        contentHash: 'a',
+        author: '@a',
+        depth: 1,
+        children: [{ contentHash: 'b', author: '@b', depth: 2, children: [] }],
       },
     ];
 
@@ -222,8 +220,28 @@ describe('ProtocolRegistry — getByAuthor', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => [
-        { contentHash: 'a', author: '0x1', price: '0', importHashes: [], license: 'free', publishMode: 'original', timestamp: 1, metadataURI: '', referralBps: 200 },
-        { contentHash: 'b', author: '0x1', price: '100', importHashes: [], license: 'cc_by', publishMode: 'original', timestamp: 2, metadataURI: '', referralBps: 200 },
+        {
+          contentHash: 'a',
+          author: '0x1',
+          price: '0',
+          importHashes: [],
+          license: 'free',
+          publishMode: 'original',
+          timestamp: 1,
+          metadataURI: '',
+          referralBps: 200,
+        },
+        {
+          contentHash: 'b',
+          author: '0x1',
+          price: '100',
+          importHashes: [],
+          license: 'cc_by',
+          publishMode: 'original',
+          timestamp: 2,
+          metadataURI: '',
+          referralBps: 200,
+        },
       ],
     });
 
@@ -261,7 +279,11 @@ describe('ProtocolRegistry — publish (server-side only)', () => {
     // Mock registry registration
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ sceneId: 'abc123de', sceneUrl: 'https://test.holoscript.net/scene/abc123de', embedUrl: 'https://test.holoscript.net/embed/abc123de' }),
+      json: async () => ({
+        sceneId: 'abc123de',
+        sceneUrl: 'https://test.holoscript.net/scene/abc123de',
+        embedUrl: 'https://test.holoscript.net/embed/abc123de',
+      }),
     });
 
     const result = await registry.publish(MOCK_PROVENANCE, MOCK_SOURCE, {
@@ -378,7 +400,7 @@ describe('ProtocolRegistry — collect (server-side only)', () => {
     });
 
     expect(result.pricePaid).toBe('0.01');
-    const referral = result.revenueFlows.find(f => f.reason === 'referral');
+    const referral = result.revenueFlows.find((f) => f.reason === 'referral');
     expect(referral).toBeDefined();
     expect(referral!.recipient).toBe('@curator');
   });

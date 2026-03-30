@@ -86,7 +86,13 @@ export interface ImportResolutionError {
   /** Error message */
   message: string;
   /** 'cycle' | 'not_found' | 'parse_error' | 'named_not_exported' | 'registry_unavailable' */
-  code: 'cycle' | 'not_found' | 'parse_error' | 'named_not_exported' | 'max_depth' | 'registry_unavailable';
+  code:
+    | 'cycle'
+    | 'not_found'
+    | 'parse_error'
+    | 'named_not_exported'
+    | 'max_depth'
+    | 'registry_unavailable';
   /** The cycle chain if code === 'cycle' (e.g., ['a.hs', 'b.hs', 'a.hs']) */
   cycle?: string[];
 }
@@ -223,9 +229,10 @@ export class ImportResolver {
 
     for (const imp of imports) {
       // Registry imports (@username/name) are used as-is; file paths are resolved
-      const canonicalPath = isRegistryImport(imp.path) || isCrdtImport(imp.path)
-        ? imp.path
-        : resolveImportPath(imp.path, baseDir);
+      const canonicalPath =
+        isRegistryImport(imp.path) || isCrdtImport(imp.path)
+          ? imp.path
+          : resolveImportPath(imp.path, baseDir);
 
       // ── Resolve the module (cycle errors bubble up via throw) ─────────────
       let mod: ResolvedModule;
@@ -322,13 +329,17 @@ export class ImportResolver {
         try {
           source = await this._fetchRegistrySource(canonicalPath, options.registryBaseUrl);
         } catch {
-          throw new Error(`Registry unavailable for '${canonicalPath}' (imported from '${importedBy}')`);
+          throw new Error(
+            `Registry unavailable for '${canonicalPath}' (imported from '${importedBy}')`
+          );
         }
       } else if (isCrdtImport(canonicalPath)) {
         try {
           source = await this._fetchCrdtSource(canonicalPath);
         } catch (err: any) {
-          throw new Error(`CRDT feed unavailable for '${canonicalPath}' (imported from '${importedBy}'): ${err.message}`);
+          throw new Error(
+            `CRDT feed unavailable for '${canonicalPath}' (imported from '${importedBy}'): ${err.message}`
+          );
         }
       } else {
         try {
@@ -360,9 +371,10 @@ export class ImportResolver {
       const baseDir = canonicalPath.replace(/\/[^/]+$/, '');
 
       for (const subImp of subImports) {
-        const subPath = isRegistryImport(subImp.path) || isCrdtImport(subImp.path)
-          ? subImp.path
-          : resolveImportPath(subImp.path, baseDir);
+        const subPath =
+          isRegistryImport(subImp.path) || isCrdtImport(subImp.path)
+            ? subImp.path
+            : resolveImportPath(subImp.path, baseDir);
         transitiveDeps.push(subPath);
 
         if (!this.cache.has(subPath)) {
@@ -429,10 +441,10 @@ export class ImportResolver {
       // The HoloMesh Agent uses .holomesh/worldstate.crdt
       const crdtPath = path.resolve(process.cwd(), '.holomesh/worldstate.crdt');
       const bytes = await fs.readFile(crdtPath);
-      
+
       const doc = new LoroDoc();
       doc.import(bytes);
-      
+
       const feed = doc.getText('feed');
       return feed.toString();
     } catch (e: any) {
@@ -458,7 +470,7 @@ export class ImportResolver {
       throw new Error(`Registry returned ${response.status} for '${importPath}'`);
     }
 
-    const data = await response.json() as { code?: string };
+    const data = (await response.json()) as { code?: string };
     if (!data.code || typeof data.code !== 'string') {
       throw new Error(`Registry returned no code for '${importPath}'`);
     }

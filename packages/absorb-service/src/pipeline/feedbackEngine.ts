@@ -173,9 +173,7 @@ export function aggregateFeedback(signals: FeedbackSignal[]): TrendSummary {
 /**
  * Count consecutive plateau signals at the end of a layer's history.
  */
-export function countConsecutivePlateaus(
-  history: LayerCycleResult[],
-): number {
+export function countConsecutivePlateaus(history: LayerCycleResult[]): number {
   let count = 0;
   for (let i = history.length - 1; i >= 0; i--) {
     if (Math.abs(history[i].qualityDelta) < PLATEAU_THRESHOLD) {

@@ -87,7 +87,8 @@ export const worldHeartbeatHandler: TraitHandler<WorldHeartbeatConfig> = {
     if (config.redundancy === 1 && node.traits?.has('networked')) {
       context.emit('heartbeat_error', {
         node,
-        warning: 'redundancy=1 on a networked object. A single emitter failure will desynchronize world services.',
+        warning:
+          'redundancy=1 on a networked object. A single emitter failure will desynchronize world services.',
       });
     }
 
@@ -122,7 +123,12 @@ export const worldHeartbeatHandler: TraitHandler<WorldHeartbeatConfig> = {
     delete (node as HeartbeatNode).__worldHeartbeatState;
   },
 
-  onUpdate(node: HSPlusNode, config: WorldHeartbeatConfig, context: TraitContext, delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: WorldHeartbeatConfig,
+    context: TraitContext,
+    delta: number
+  ): void {
     const hbNode = node as HeartbeatNode;
     const state = hbNode.__worldHeartbeatState;
     if (!state?.initialized) return;
@@ -135,7 +141,7 @@ export const worldHeartbeatHandler: TraitHandler<WorldHeartbeatConfig> = {
       state.lastTickAt = Date.now();
 
       // Find primary emitter
-      const primary = state.emitters.find(e => e.id === state.primaryEmitter);
+      const primary = state.emitters.find((e) => e.id === state.primaryEmitter);
       if (primary) {
         primary.lastTickAt = state.lastTickAt;
         primary.missedBeats = 0;
@@ -150,14 +156,19 @@ export const worldHeartbeatHandler: TraitHandler<WorldHeartbeatConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: WorldHeartbeatConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    config: WorldHeartbeatConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const hbNode = node as HeartbeatNode;
     const state = hbNode.__worldHeartbeatState;
     if (!state?.initialized) return;
 
     if (event.type === 'heartbeat_emitter_failure') {
       const failedId = event.emitterId as string;
-      const failed = state.emitters.find(e => e.id === failedId);
+      const failed = state.emitters.find((e) => e.id === failedId);
       if (!failed) return;
 
       failed.active = false;
@@ -165,7 +176,7 @@ export const worldHeartbeatHandler: TraitHandler<WorldHeartbeatConfig> = {
 
       // Failover if primary failed and threshold exceeded
       if (failedId === state.primaryEmitter && failed.missedBeats >= config.failover_threshold) {
-        const standby = state.emitters.find(e => e.id !== failedId && e.active !== false);
+        const standby = state.emitters.find((e) => e.id !== failedId && e.active !== false);
         if (standby) {
           standby.active = true;
           state.primaryEmitter = standby.id;

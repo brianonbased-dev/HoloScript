@@ -150,7 +150,11 @@ export const gpuPhysicsHandler: TraitHandler<GPUPhysicsConfig> = {
         // Forward force to soft body (Implementation pending in adapter)
       } else {
         const engine = getPhysicsEngine(state.engineId || 'webgpu');
-        engine?.applyForce(node.name || '', (event as Record<string, unknown>).data.force, (event as Record<string, unknown>).data.point);
+        engine?.applyForce(
+          node.name || '',
+          (event as Record<string, unknown>).data.force,
+          (event as Record<string, unknown>).data.point
+        );
       }
     }
   },

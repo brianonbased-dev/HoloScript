@@ -132,17 +132,17 @@ Stop it with `Ctrl+C` — the daemon writes a lock file (`.holoscript/daemon.loc
 
 Override the auto-rotation with a specific focus:
 
-| Focus | What it fixes |
-| ----- | ------------- |
-| `typefix` | TypeScript type errors (`tsc --noEmit`) |
-| `lint` | ESLint violations |
-| `coverage` | Low-coverage code paths |
-| `docs` | Missing JSDoc / outdated docs |
-| `target-sweep` | Compiler target output correctness |
-| `trait-sampling` | Trait registration and validation |
-| `runtime-matrix` | HeadlessRuntime integration tests |
-| `absorb-roundtrip` | Absorb pipeline parse/emit consistency |
-| `all` | Everything in one pass |
+| Focus              | What it fixes                           |
+| ------------------ | --------------------------------------- |
+| `typefix`          | TypeScript type errors (`tsc --noEmit`) |
+| `lint`             | ESLint violations                       |
+| `coverage`         | Low-coverage code paths                 |
+| `docs`             | Missing JSDoc / outdated docs           |
+| `target-sweep`     | Compiler target output correctness      |
+| `trait-sampling`   | Trait registration and validation       |
+| `runtime-matrix`   | HeadlessRuntime integration tests       |
+| `absorb-roundtrip` | Absorb pipeline parse/emit consistency  |
+| `all`              | Everything in one pass                  |
 
 ```bash
 # Fix lint errors for 3 cycles
@@ -157,15 +157,15 @@ npx tsx packages/core/src/cli/holoscript-runner.ts daemon \
 
 All state lives in `.holoscript/` at the repo root:
 
-| File | Contents |
-| ---- | -------- |
-| `daemon-state.json` | Cycle count, quality scores, cost totals, focus index |
-| `daemon-file-state.json` | Committed files, quarantined files (too many failures) |
-| `fix-ledger.json` | Full provenance for every committed/rolled-back fix (last 200) |
-| `accumulated-wisdom.json` | LLM-distilled lessons learned from past cycles |
-| `daemon.lock` | PID + heartbeat — proves daemon is alive |
-| `inbox.jsonl` | External task injection (one JSON task per line) |
-| `outbox.jsonl` | Completed task results |
+| File                      | Contents                                                       |
+| ------------------------- | -------------------------------------------------------------- |
+| `daemon-state.json`       | Cycle count, quality scores, cost totals, focus index          |
+| `daemon-file-state.json`  | Committed files, quarantined files (too many failures)         |
+| `fix-ledger.json`         | Full provenance for every committed/rolled-back fix (last 200) |
+| `accumulated-wisdom.json` | LLM-distilled lessons learned from past cycles                 |
+| `daemon.lock`             | PID + heartbeat — proves daemon is alive                       |
+| `inbox.jsonl`             | External task injection (one JSON task per line)               |
+| `outbox.jsonl`            | Completed task results                                         |
 
 Delete them to start fresh:
 

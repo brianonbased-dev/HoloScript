@@ -29,16 +29,16 @@ web3/
 
 ## Trait → Web3 Mapping
 
-| HoloScript Trait    | Web3 Behaviour                              |
-| ------------------- | ------------------------------------------- |
-| `@nft_asset`        | Asset is tokenized as ERC-1155              |
-| `@token_gated`      | Requires NFT ownership to spawn/enter       |
-| `@marketplace`      | Listed in HoloScript marketplace            |
-| `@wallet`           | User wallet connection (MetaMask/Coinbase)  |
-| `@zora_coins`       | Zora Protocol ERC-20 creator coins          |
-| `@economy_primitive`| In-world economy (crafting, trading)        |
-| `@persistent`       | State synced to on-chain via IPFS + events  |
-| `@owned`            | Ownership tracked to wallet address         |
+| HoloScript Trait     | Web3 Behaviour                             |
+| -------------------- | ------------------------------------------ |
+| `@nft_asset`         | Asset is tokenized as ERC-1155             |
+| `@token_gated`       | Requires NFT ownership to spawn/enter      |
+| `@marketplace`       | Listed in HoloScript marketplace           |
+| `@wallet`            | User wallet connection (MetaMask/Coinbase) |
+| `@zora_coins`        | Zora Protocol ERC-20 creator coins         |
+| `@economy_primitive` | In-world economy (crafting, trading)       |
+| `@persistent`        | State synced to on-chain via IPFS + events |
+| `@owned`             | Ownership tracked to wallet address        |
 
 ## Example
 
@@ -94,17 +94,18 @@ composition "VirtualArmoury" {
 
 ## Supported Chains
 
-| Chain      | Standard  | Gas Optimization                   |
-| ---------- | --------- | ---------------------------------- |
-| Polygon    | ERC-1155  | `GasOptimizationAnalyzer` runs auto |
-| Ethereum   | ERC-721   | Estimated gas in output report     |
-| Base       | ERC-1155  | OP Stack L2, low gas               |
-| Zora       | Zora Creator | Zora coins + creator rewards    |
-| Arbitrum   | ERC-1155  | OP rollup                          |
+| Chain    | Standard     | Gas Optimization                    |
+| -------- | ------------ | ----------------------------------- |
+| Polygon  | ERC-1155     | `GasOptimizationAnalyzer` runs auto |
+| Ethereum | ERC-721      | Estimated gas in output report      |
+| Base     | ERC-1155     | OP Stack L2, low gas                |
+| Zora     | Zora Creator | Zora coins + creator rewards        |
+| Arbitrum | ERC-1155     | OP rollup                           |
 
 ## Gas Optimization
 
 The compiler includes `GasOptimizationAnalyzer` which automatically:
+
 - Batches mint operations into multi-mint calls
 - Uses `ERC-1155` over `ERC-721` for multiple editions
 - Suggests lazy minting for large collections
@@ -112,13 +113,13 @@ The compiler includes `GasOptimizationAnalyzer` which automatically:
 
 ## Compiler Options
 
-| Option                  | Default      | Description                              |
-| ----------------------- | ------------ | ---------------------------------------- |
-| `--chain`               | `polygon`    | Target blockchain                        |
-| `--standard`            | `erc1155`    | Token standard: `erc721` or `erc1155`    |
-| `--ipfs-gateway`        | `nft.storage`| IPFS pin service                         |
-| `--royalty`             | `5`          | Default creator royalty (%)              |
-| `--marketplace-backend` | `hololand`   | Marketplace: `hololand`, `opensea`, `zora`|
+| Option                  | Default       | Description                                |
+| ----------------------- | ------------- | ------------------------------------------ |
+| `--chain`               | `polygon`     | Target blockchain                          |
+| `--standard`            | `erc1155`     | Token standard: `erc721` or `erc1155`      |
+| `--ipfs-gateway`        | `nft.storage` | IPFS pin service                           |
+| `--royalty`             | `5`           | Default creator royalty (%)                |
+| `--marketplace-backend` | `hololand`    | Marketplace: `hololand`, `opensea`, `zora` |
 
 ## See Also
 

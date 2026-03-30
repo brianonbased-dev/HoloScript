@@ -92,7 +92,6 @@ export class ModuleResolver {
     this.loader =
       options?.loader ??
       ((p: string) => {
-         
         const fs = require('fs') as typeof import('fs');
         if (!fs.existsSync(p)) throw new ModuleNotFoundError(p, '');
         return fs.readFileSync(p, 'utf8');

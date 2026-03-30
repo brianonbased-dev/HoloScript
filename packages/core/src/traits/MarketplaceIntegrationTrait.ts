@@ -177,9 +177,7 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
   },
 
   onUpdate(node, config, context, _delta) {
-    const state = node.__marketplaceIntegrationState as
-      | MarketplaceIntegrationState
-      | undefined;
+    const state = node.__marketplaceIntegrationState as MarketplaceIntegrationState | undefined;
     if (!state) return;
 
     // Check for auto-updates on installed traits
@@ -193,9 +191,7 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
   },
 
   onEvent(node, config, context, event) {
-    const state = node.__marketplaceIntegrationState as
-      | MarketplaceIntegrationState
-      | undefined;
+    const state = node.__marketplaceIntegrationState as MarketplaceIntegrationState | undefined;
     if (!state) return;
 
     // -------------------------------------------------------------------------

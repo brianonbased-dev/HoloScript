@@ -56,13 +56,7 @@ function createTask(overrides: Partial<Task> = {}): Task {
 // ── Task State Machine Tests ─────────────────────────────────────────────────
 
 describe('TaskFlowView — state machine', () => {
-  const ALL_STATES: TaskState[] = [
-    'submitted',
-    'working',
-    'input-required',
-    'completed',
-    'failed',
-  ];
+  const ALL_STATES: TaskState[] = ['submitted', 'working', 'input-required', 'completed', 'failed'];
 
   it('all 5 task states are valid', () => {
     expect(ALL_STATES).toHaveLength(5);
@@ -123,13 +117,7 @@ describe('TaskFlowView — state badges', () => {
   };
 
   it('every task state has a corresponding badge with label, bg, and text class', () => {
-    const states: TaskState[] = [
-      'submitted',
-      'working',
-      'input-required',
-      'completed',
-      'failed',
-    ];
+    const states: TaskState[] = ['submitted', 'working', 'input-required', 'completed', 'failed'];
     for (const state of states) {
       const meta = STATE_META[state];
       expect(meta).toBeDefined();

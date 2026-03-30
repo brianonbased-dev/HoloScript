@@ -301,9 +301,7 @@ export class LoroSpatialAdapter {
   private onNodeCreated: ((nodeId: string, name: string) => void) | null = null;
   private onNodeMoved: ((nodeId: string, newParentId: string | null) => void) | null = null;
   private onNodeDeleted: ((nodeId: string) => void) | null = null;
-  private onTransformChanged:
-    | ((nodeId: string, transform: SpatialTransform) => void)
-    | null = null;
+  private onTransformChanged: ((nodeId: string, transform: SpatialTransform) => void) | null = null;
 
   // ---- Internal ID counter ----
   private nodeCounter: number = 0;
@@ -884,7 +882,10 @@ export class LoroSpatialAdapter {
    * @param fromVersion - Version vector to diff against (for 'update' mode)
    * @returns Binary state update
    */
-  exportUpdate(mode: 'snapshot' | 'update' = 'snapshot', fromVersion?: Map<number, number>): Uint8Array {
+  exportUpdate(
+    mode: 'snapshot' | 'update' = 'snapshot',
+    fromVersion?: Map<number, number>
+  ): Uint8Array {
     const state: ExportedState = {
       mode,
       peerId: this.config.peerId,

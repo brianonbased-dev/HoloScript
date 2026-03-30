@@ -35,11 +35,15 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
   onAttach(node: any): void {
     node.__snapshotState = { snapshots: new Map<string, SnapshotEntry>(), lastCapture: 0 };
   },
-  onDetach(node: any): void { delete node.__snapshotState; },
+  onDetach(node: any): void {
+    delete node.__snapshotState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: SnapshotConfig, context: any, event: any): void {
-    const state = node.__snapshotState as { snapshots: Map<string, SnapshotEntry>; lastCapture: number } | undefined;
+    const state = node.__snapshotState as
+      | { snapshots: Map<string, SnapshotEntry>; lastCapture: number }
+      | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 
@@ -57,7 +61,11 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
           scope: (event.scope as string) ?? 'full',
         };
         state.snapshots.set(id, entry);
-        context.emit?.('snapshot:captured', { snapshotId: id, size: JSON.stringify(entry.data).length, timestamp: entry.timestamp });
+        context.emit?.('snapshot:captured', {
+          snapshotId: id,
+          size: JSON.stringify(entry.data).length,
+          timestamp: entry.timestamp,
+        });
         break;
       }
       case 'snapshot:restore': {
@@ -71,7 +79,11 @@ export const snapshotHandler: TraitHandler<SnapshotConfig> = {
         break;
       }
       case 'snapshot:list': {
-        const list = [...state.snapshots.values()].map(s => ({ id: s.id, timestamp: s.timestamp, scope: s.scope }));
+        const list = [...state.snapshots.values()].map((s) => ({
+          id: s.id,
+          timestamp: s.timestamp,
+          scope: s.scope,
+        }));
         context.emit?.('snapshot:info', { snapshots: list, count: list.length });
         break;
       }

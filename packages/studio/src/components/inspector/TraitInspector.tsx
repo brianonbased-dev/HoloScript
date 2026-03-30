@@ -139,7 +139,12 @@ function TraitCard({
         >
           @{trait.name}
           {trait.name === 'gotcha' && trait.properties.severity === 'critical' && (
-            <span className="ml-1 text-red-400 text-[10px]" title="Critical gotcha — blocks --enforce-gotchas builds">CRIT</span>
+            <span
+              className="ml-1 text-red-400 text-[10px]"
+              title="Critical gotcha — blocks --enforce-gotchas builds"
+            >
+              CRIT
+            </span>
           )}
         </span>
         {isMaterial && onOpenShaderEditor && (

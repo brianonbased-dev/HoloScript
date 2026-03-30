@@ -49,7 +49,7 @@ export function AssetPipelinePanel() {
     (nodeId: string, maturity: AssetMaturity) => {
       emit('pipeline:setMaturity', { nodeId, maturity });
     },
-    [emit],
+    [emit]
   );
 
   const handleBatchSet = useCallback(
@@ -60,7 +60,7 @@ export function AssetPipelinePanel() {
         }
       }
     },
-    [nodes, emit],
+    [nodes, emit]
   );
 
   const handlePromoteAll = useCallback(() => {
@@ -83,9 +83,7 @@ export function AssetPipelinePanel() {
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <span>🔄</span> Asset Pipeline
         </h3>
-        <p className="text-[10px] text-studio-muted mt-0.5">
-          Draft → Mesh → Final maturity stages
-        </p>
+        <p className="text-[10px] text-studio-muted mt-0.5">Draft → Mesh → Final maturity stages</p>
       </div>
 
       {/* Stats bar */}
@@ -168,9 +166,7 @@ export function AssetPipelinePanel() {
                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: meta.color }}
                 />
-                <span className="font-mono text-[10px] truncate">
-                  {node.id || node.type}
-                </span>
+                <span className="font-mono text-[10px] truncate">{node.id || node.type}</span>
               </div>
               <div className="flex items-center gap-0.5 flex-shrink-0">
                 {MATURITY_ORDER.map((stage) => (
@@ -179,9 +175,11 @@ export function AssetPipelinePanel() {
                     onClick={() => node.id && handleSetMaturity(node.id, stage)}
                     title={MATURITY_META[stage].label}
                     className={`w-5 h-5 rounded text-[10px] transition
-                      ${m === stage
-                        ? 'bg-studio-accent/30 text-studio-text'
-                        : 'text-studio-muted hover:bg-studio-panel/50 hover:text-studio-text'}`}
+                      ${
+                        m === stage
+                          ? 'bg-studio-accent/30 text-studio-text'
+                          : 'text-studio-muted hover:bg-studio-panel/50 hover:text-studio-text'
+                      }`}
                   >
                     {MATURITY_META[stage].icon}
                   </button>

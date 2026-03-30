@@ -243,9 +243,7 @@ export function SurgicalRehearsalPanel() {
         <div style={{ fontSize: 12 }}>
           <span style={{ color: '#06b6d4', fontWeight: 600 }}>{config.agentName}</span> ·{' '}
           {config.type} · {config.dosePerKg}mg/kg · {config.durationMin}min
-          <div
-            style={{ marginTop: 4, color: anesOk ? '#4ade80' : '#ef4444', fontWeight: 600 }}
-          >
+          <div style={{ marginTop: 4, color: anesOk ? '#4ade80' : '#ef4444', fontWeight: 600 }}>
             {anesOk ? '✅ Cleared' : '⚠️ Warning: Review protocol'}
           </div>
         </div>

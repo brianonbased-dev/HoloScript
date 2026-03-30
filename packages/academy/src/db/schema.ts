@@ -377,10 +377,7 @@ export const activityFeed = pgTable(
     metadata: jsonb('metadata').default({}),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   },
-  (t) => [
-    index('idx_activity_actor').on(t.actorId),
-    index('idx_activity_time').on(t.createdAt),
-  ]
+  (t) => [index('idx_activity_actor').on(t.actorId), index('idx_activity_time').on(t.createdAt)]
 );
 
 // =============================================================================

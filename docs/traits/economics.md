@@ -118,13 +118,13 @@ object "ShopKeeper" @economy_primitive {
 
 ## Compiler Targets
 
-| Trait | Compiler |
-|-------|---------|
-| `@nft_asset` | [NFT Marketplace Compiler](../compilers/nft-marketplace) |
+| Trait          | Compiler                                                 |
+| -------------- | -------------------------------------------------------- |
+| `@nft_asset`   | [NFT Marketplace Compiler](../compilers/nft-marketplace) |
 | `@token_gated` | [NFT Marketplace Compiler](../compilers/nft-marketplace) |
 | `@marketplace` | [NFT Marketplace Compiler](../compilers/nft-marketplace) |
-| `@wallet` | Browser Web3 (MetaMask / WalletConnect) |
-| `@zora_coins` | Zora Protocol SDK |
+| `@wallet`      | Browser Web3 (MetaMask / WalletConnect)                  |
+| `@zora_coins`  | Zora Protocol SDK                                        |
 
 ---
 

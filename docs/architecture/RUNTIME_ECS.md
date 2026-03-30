@@ -39,13 +39,13 @@ The runtime system takes parsed AST and executes it as a live scene with entitie
 
 ## Key Classes
 
-| Class | File | Purpose |
-|-------|------|---------|
-| `SceneRunner` | `src/runtime/SceneRunner.ts:41` | Core scene executor — walks AST tree, spawns entities |
-| `HeadlessRuntime` | `src/runtime/profiles/HeadlessRuntime.ts:95` | GUI-less execution for tests and servers |
-| `RuntimeBridge` | `src/runtime/RuntimeBridge.ts:47` | Bridges scene runner to platform renderers |
-| `RuntimeRenderer` | `src/runtime/RuntimeRenderer.ts:237` | Base renderer — particle systems, materials |
-| `HeadlessRuntimeImpl` | `src/runtime/HeadlessRuntime.ts:91` | Headless runtime implementation |
+| Class                 | File                                         | Purpose                                               |
+| --------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| `SceneRunner`         | `src/runtime/SceneRunner.ts:41`              | Core scene executor — walks AST tree, spawns entities |
+| `HeadlessRuntime`     | `src/runtime/profiles/HeadlessRuntime.ts:95` | GUI-less execution for tests and servers              |
+| `RuntimeBridge`       | `src/runtime/RuntimeBridge.ts:47`            | Bridges scene runner to platform renderers            |
+| `RuntimeRenderer`     | `src/runtime/RuntimeRenderer.ts:237`         | Base renderer — particle systems, materials           |
+| `HeadlessRuntimeImpl` | `src/runtime/HeadlessRuntime.ts:91`          | Headless runtime implementation                       |
 
 ## Entity-Component-System (ECS)
 
@@ -68,11 +68,11 @@ for (const entity of runner.spawnedEntities) {
 
 ## Runtime Profiles
 
-| Profile | Class | Use Case |
-|---------|-------|----------|
-| **Full** | `RuntimeRenderer` | Visual rendering with R3F/WebGPU |
-| **Headless** | `HeadlessRuntime` | No-GUI — testing, CI, servers |
-| **Minimal** | — | Lightweight for mobile/embedded |
+| Profile      | Class             | Use Case                         |
+| ------------ | ----------------- | -------------------------------- |
+| **Full**     | `RuntimeRenderer` | Visual rendering with R3F/WebGPU |
+| **Headless** | `HeadlessRuntime` | No-GUI — testing, CI, servers    |
+| **Minimal**  | —                 | Lightweight for mobile/embedded  |
 
 ## Scene Lifecycle
 

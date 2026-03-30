@@ -6,11 +6,11 @@ Practical workflow for exporting HoloScript scenes to Unity projects and VRChat 
 
 Current export flow is compiler-target based.
 
-| Tool | Role |
-| --- | --- |
-| @holoscript/cli | Primary compile/export interface |
+| Tool                 | Role                             |
+| -------------------- | -------------------------------- |
+| @holoscript/cli      | Primary compile/export interface |
 | @holoscript/compiler | Programmatic compiler entrypoint |
-| @holoscript/core | Parsing and AST utilities |
+| @holoscript/core     | Parsing and AST utilities        |
 
 ## Recommended Workflow
 
@@ -62,11 +62,11 @@ holoscript dev scene.hsplus
 
 ## Troubleshooting
 
-| Issue | Resolution |
-| --- | --- |
-| Missing VRChat scripts/components | Confirm VCC project has World SDK + UdonSharp |
-| Unity import errors | Verify target Unity version and package dependencies |
-| Compile failures | Run holoscript validate first and fix parser/trait diagnostics |
+| Issue                             | Resolution                                                     |
+| --------------------------------- | -------------------------------------------------------------- |
+| Missing VRChat scripts/components | Confirm VCC project has World SDK + UdonSharp                  |
+| Unity import errors               | Verify target Unity version and package dependencies           |
+| Compile failures                  | Run holoscript validate first and fix parser/trait diagnostics |
 
 ## See Also
 

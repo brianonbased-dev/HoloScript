@@ -13,9 +13,9 @@ export interface HoloScriptLogger {
 
 /**
  * No-operation logger implementation that discards all log messages.
- * Used as a fallback when no specific logger is configured or when 
+ * Used as a fallback when no specific logger is configured or when
  * logging should be completely disabled for performance reasons.
- * 
+ *
  * @example
  * ```typescript
  * const logger = new NoOpLogger();
@@ -29,21 +29,21 @@ class NoOpLogger implements HoloScriptLogger {
    * @param meta - Optional metadata to discard
    */
   debug(message: string, meta?: Record<string, unknown>): void {}
-  
+
   /**
    * Info-level logging (no-op implementation).
    * @param message - Info message to discard
    * @param meta - Optional metadata to discard
    */
   info(message: string, meta?: Record<string, unknown>): void {}
-  
+
   /**
    * Warning-level logging (no-op implementation).
    * @param message - Warning message to discard
    * @param meta - Optional metadata to discard
    */
   warn(message: string, meta?: Record<string, unknown>): void {}
-  
+
   /**
    * Error-level logging (no-op implementation).
    * @param message - Error message to discard

@@ -120,10 +120,7 @@ describe('classifyPublishMode', () => {
 describe('extractImports', () => {
   it('extracts imports with path field', () => {
     const ast = {
-      imports: [
-        { path: '@maria/warrior' },
-        { path: './local-file' },
-      ],
+      imports: [{ path: '@maria/warrior' }, { path: './local-file' }],
     };
     const result = extractImports(ast);
     expect(result).toHaveLength(2);
@@ -142,11 +139,13 @@ describe('extractImports', () => {
 
   it('preserves hash and author when present', () => {
     const ast = {
-      imports: [{
-        path: '@maria/warrior',
-        hash: 'abc123',
-        author: 'maria',
-      }],
+      imports: [
+        {
+          path: '@maria/warrior',
+          hash: 'abc123',
+          author: 'maria',
+        },
+      ],
     };
     const result = extractImports(ast);
     expect(result[0].hash).toBe('abc123');
@@ -155,11 +154,7 @@ describe('extractImports', () => {
 
   it('filters out imports with empty paths', () => {
     const ast = {
-      imports: [
-        { path: '' },
-        { path: '@valid/import' },
-        {},
-      ],
+      imports: [{ path: '' }, { path: '@valid/import' }, {}],
     };
     const result = extractImports(ast);
     expect(result).toHaveLength(1);

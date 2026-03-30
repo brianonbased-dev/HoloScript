@@ -20,7 +20,14 @@ function makeMockPhysics(): PhysicsProvider {
     applyVelocity: vi.fn(),
     applyAngularVelocity: vi.fn(),
     setKinematic: vi.fn(),
-    raycast: vi.fn().mockReturnValue({ point: { x: 1, y: 2, z: 3 }, normal: { x: 0, y: 1, z: 0 }, distance: 5, nodeId: 'hit-1' }),
+    raycast: vi
+      .fn()
+      .mockReturnValue({
+        point: { x: 1, y: 2, z: 3 },
+        normal: { x: 0, y: 1, z: 0 },
+        distance: 5,
+        nodeId: 'hit-1',
+      }),
   };
 }
 
@@ -52,11 +59,31 @@ function makeMockAccessibility(): AccessibilityProvider {
 
 function makeMockVR(): VRProvider {
   return {
-    getLeftHand: vi.fn().mockReturnValue({ id: 'left', position: { x: -0.3, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grip: 0, trigger: 0 }),
-    getRightHand: vi.fn().mockReturnValue({ id: 'right', position: { x: 0.3, y: 1, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grip: 0, trigger: 0 }),
+    getLeftHand: vi
+      .fn()
+      .mockReturnValue({
+        id: 'left',
+        position: { x: -0.3, y: 1, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        velocity: { x: 0, y: 0, z: 0 },
+        grip: 0,
+        trigger: 0,
+      }),
+    getRightHand: vi
+      .fn()
+      .mockReturnValue({
+        id: 'right',
+        position: { x: 0.3, y: 1, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        velocity: { x: 0, y: 0, z: 0 },
+        grip: 0,
+        trigger: 0,
+      }),
     getHeadsetPosition: vi.fn().mockReturnValue({ x: 0, y: 1.6, z: 0 }),
     getHeadsetRotation: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0 }),
-    getPointerRay: vi.fn().mockReturnValue({ origin: { x: 0, y: 1, z: 0 }, direction: { x: 0, y: 0, z: -1 } }),
+    getPointerRay: vi
+      .fn()
+      .mockReturnValue({ origin: { x: 0, y: 1, z: 0 }, direction: { x: 0, y: 0, z: -1 } }),
     getDominantHand: vi.fn().mockReturnValue(null),
   };
 }
@@ -206,7 +233,12 @@ describe('TraitContextFactory', () => {
 
       const result = ctx.physics.raycast({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -1 }, 50);
       expect(physics.raycast).toHaveBeenCalledWith({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: -1 }, 50);
-      expect(result).toEqual({ point: { x: 1, y: 2, z: 3 }, normal: { x: 0, y: 1, z: 0 }, distance: 5, nodeId: 'hit-1' });
+      expect(result).toEqual({
+        point: { x: 1, y: 2, z: 3 },
+        normal: { x: 0, y: 1, z: 0 },
+        distance: 5,
+        nodeId: 'hit-1',
+      });
     });
 
     it('audio context delegates to provider including optional methods', () => {

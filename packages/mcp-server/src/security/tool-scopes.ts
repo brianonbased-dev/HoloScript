@@ -246,7 +246,7 @@ export interface AuthorizationResult {
  */
 export function authorizeToolCall(
   toolName: string,
-  tokenScopes: OAuthScope[],
+  tokenScopes: OAuthScope[]
 ): AuthorizationResult {
   // admin:* grants everything
   if (tokenScopes.includes('admin:*')) {
@@ -280,7 +280,7 @@ export function authorizeToolCall(
   }
 
   // Check if token has ANY of the required scopes
-  const hasScope = requiredScopes.some(required => tokenScopes.includes(required));
+  const hasScope = requiredScopes.some((required) => tokenScopes.includes(required));
 
   if (!hasScope) {
     return {

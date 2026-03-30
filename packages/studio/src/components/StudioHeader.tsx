@@ -46,12 +46,14 @@ import { STUDIO_PRESETS } from '@/lib/presets/studioPresets';
 import { StudioEvents } from '@/lib/analytics';
 
 const StudioSetupWizard = dynamic(
-  () => import('@/components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
+  () =>
+    import('@/components/wizard/StudioSetupWizard').then((m) => ({ default: m.StudioSetupWizard })),
   { ssr: false }
 );
 
 const ImportRepoWizard = dynamic(
-  () => import('@/components/wizard/ImportRepoWizard').then((m) => ({ default: m.ImportRepoWizard })),
+  () =>
+    import('@/components/wizard/ImportRepoWizard').then((m) => ({ default: m.ImportRepoWizard })),
   { ssr: false }
 );
 
@@ -268,7 +270,7 @@ export function StudioHeader() {
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
   const setShowBenchmark = useEditorStore((s) => s.setShowBenchmark);
   const togglePerfOverlay = useEditorStore((s) => s.togglePerfOverlay);
-  
+
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
   const setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
   const showConformancePanel = useEditorStore((s) => s.showConformancePanel);
@@ -493,11 +495,13 @@ export function StudioHeader() {
               }
             }}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
-              isExpert ? "bg-studio-accent text-white shadow-md shadow-studio-accent/20" : "bg-studio-panel border border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-surface"
+              isExpert
+                ? 'bg-studio-accent text-white shadow-md shadow-studio-accent/20'
+                : 'bg-studio-panel border border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-surface'
             }`}
           >
             <Settings2 className="h-3.5 w-3.5" />
-            {isExpert ? "Massive IDE" : "Expert Mode"}
+            {isExpert ? 'Massive IDE' : 'Expert Mode'}
           </button>
         </div>
 
@@ -598,7 +602,9 @@ export function StudioHeader() {
               >
                 <Settings2 className="h-3.5 w-3.5" />
                 {activePreset && (
-                  <span className="hidden lg:inline text-emerald-400">{activePreset.emoji} {activePreset.label}</span>
+                  <span className="hidden lg:inline text-emerald-400">
+                    {activePreset.emoji} {activePreset.label}
+                  </span>
                 )}
                 {!activePreset && <span className="hidden lg:inline">Setup</span>}
               </button>
@@ -613,7 +619,9 @@ export function StudioHeader() {
             {presetDropdownOpen && (
               <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border border-studio-border bg-studio-panel shadow-2xl shadow-black/40 animate-scale-in overflow-hidden">
                 <div className="px-3 py-2 border-b border-studio-border">
-                  <p className="text-[10px] font-semibold text-studio-muted uppercase tracking-wider">Quick Switch Preset</p>
+                  <p className="text-[10px] font-semibold text-studio-muted uppercase tracking-wider">
+                    Quick Switch Preset
+                  </p>
                 </div>
                 <div className="p-1.5 space-y-0.5 max-h-[50vh] overflow-y-auto">
                   {STUDIO_PRESETS.map((preset) => (
@@ -628,7 +636,7 @@ export function StudioHeader() {
                             artStyle: 'stylized',
                             platforms: ['web'],
                           },
-                          experienceLevel,
+                          experienceLevel
                         );
                         setPresetDropdownOpen(false);
                       }}
@@ -641,7 +649,9 @@ export function StudioHeader() {
                       <span className="text-base shrink-0">{preset.emoji}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-medium truncate">{preset.label}</p>
-                        <p className="text-[9px] text-studio-muted/70 truncate">{preset.description}</p>
+                        <p className="text-[9px] text-studio-muted/70 truncate">
+                          {preset.description}
+                        </p>
                       </div>
                       {activePresetId === preset.id && (
                         <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
@@ -651,14 +661,20 @@ export function StudioHeader() {
                 </div>
                 <div className="px-3 py-2 border-t border-studio-border flex flex-col gap-1.5">
                   <button
-                    onClick={() => { setShowSetupWizard(true); setPresetDropdownOpen(false); }}
+                    onClick={() => {
+                      setShowSetupWizard(true);
+                      setPresetDropdownOpen(false);
+                    }}
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-studio-accent/20 px-3 py-1.5 text-[10px] font-semibold text-studio-accent transition hover:bg-studio-accent/30"
                   >
                     <Sparkles className="h-3 w-3" />
                     Full Setup Wizard
                   </button>
                   <button
-                    onClick={() => { setShowImportWizard(true); setPresetDropdownOpen(false); }}
+                    onClick={() => {
+                      setShowImportWizard(true);
+                      setPresetDropdownOpen(false);
+                    }}
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-500/20 px-3 py-1.5 text-[10px] font-semibold text-blue-400 transition hover:bg-blue-500/30"
                   >
                     <FolderGit2 className="h-3 w-3" />
@@ -1249,7 +1265,9 @@ export function StudioHeader() {
       )}
       {(usePanelVisibilityStore.getState() as any).holoDiffOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-[520px] max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <HoloDiffPanel onClose={() => usePanelVisibilityStore.getState().setHoloDiffOpen(false)} />
+          <HoloDiffPanel
+            onClose={() => usePanelVisibilityStore.getState().setHoloDiffOpen(false)}
+          />
         </div>
       )}
       {(usePanelVisibilityStore.getState() as any).sliderInspectorOpen && (
@@ -1294,14 +1312,10 @@ export function StudioHeader() {
       )}
 
       {/* Studio Setup Wizard (re-open from header button) */}
-      {showSetupWizard && (
-        <StudioSetupWizard onClose={() => setShowSetupWizard(false)} />
-      )}
+      {showSetupWizard && <StudioSetupWizard onClose={() => setShowSetupWizard(false)} />}
 
       {/* Import Repo Wizard */}
-      {showImportWizard && (
-        <ImportRepoWizard onClose={() => setShowImportWizard(false)} />
-      )}
+      {showImportWizard && <ImportRepoWizard onClose={() => setShowImportWizard(false)} />}
     </>
   );
 }

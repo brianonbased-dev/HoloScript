@@ -22,11 +22,7 @@ import {
   type DaemonProvider,
   type DaemonToolProfile,
 } from './daemon-prompt-profiles';
-import {
-  parseTscOutput,
-  aggregatePatterns,
-  type ErrorCategory,
-} from './daemon-error-taxonomy';
+import { parseTscOutput, aggregatePatterns, type ErrorCategory } from './daemon-error-taxonomy';
 import type { HostCapabilities } from '@holoscript/core/traits';
 import {
   createStdlibActions,
@@ -106,7 +102,11 @@ export interface DaemonHost {
   readFile(filePath: string): string;
   writeFile(filePath: string, content: string): void;
   exists(filePath: string): boolean;
-  exec(command: string, args?: string[], opts?: { cwd?: string; timeoutMs?: number }): Promise<DaemonExecResult>;
+  exec(
+    command: string,
+    args?: string[],
+    opts?: { cwd?: string; timeoutMs?: number }
+  ): Promise<DaemonExecResult>;
 }
 
 // ── Contamination Check ──────────────────────────────────────────────────────
@@ -120,18 +120,18 @@ const CONTAMINATION_SIGNATURES = [
 ];
 
 function isContaminatedEdit(content: string): boolean {
-  return CONTAMINATION_SIGNATURES.some(re => re.test(content));
+  return CONTAMINATION_SIGNATURES.some((re) => re.test(content));
 }
 
 // ── Quality Scorer ───────────────────────────────────────────────────────────
 
 /** Count type errors from tsc output, optionally scoped to a path prefix */
 function countTypeErrors(output: string, scopeFilter?: RegExp): number {
-  const lines = output.split('\n').filter(l =>
-    /error TS\d{4}:/.test(l) && !l.includes('node_modules')
-  );
+  const lines = output
+    .split('\n')
+    .filter((l) => /error TS\d{4}:/.test(l) && !l.includes('node_modules'));
   if (!scopeFilter) return lines.length;
-  return lines.filter(l => scopeFilter.test(l)).length;
+  return lines.filter((l) => scopeFilter.test(l)).length;
 }
 
 /**
@@ -148,11 +148,14 @@ async function computeQuality(
   /** Only count type errors matching this pattern (e.g., /packages\/core\/src\//) */
   errorScopeFilter?: RegExp,
   /** Current cycle focus — affects type score calculation */
-  focus?: string,
+  focus?: string
 ): Promise<{ score: number; typeErrors: number; testsPassed: number; testsTotal: number }> {
   const [tsc, test] = await Promise.all([
     host.exec('npx', tscCheckArgs(stateDir), { cwd: repoRoot, timeoutMs: 120_000 }),
-    host.exec('npx', ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'], { cwd: repoRoot, timeoutMs: 120_000 }),
+    host.exec('npx', ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'], {
+      cwd: repoRoot,
+      timeoutMs: 120_000,
+    }),
   ]);
 
   const typeErrors = countTypeErrors(tsc.stdout + tsc.stderr, errorScopeFilter);
@@ -163,8 +166,12 @@ async function computeQuality(
   // For typefix: measure improvement (1 - errors/baseline).
   // For lint/coverage/other: maintaining type safety = full marks (no regressions).
   const typeScore = isTypefixFocus
-    ? (baseline === 0 ? 1 : Math.max(0, Math.min(1, 1 - typeErrors / Math.max(baseline, 1))))
-    : (typeErrors <= baseline ? 1 : 0);
+    ? baseline === 0
+      ? 1
+      : Math.max(0, Math.min(1, 1 - typeErrors / Math.max(baseline, 1)))
+    : typeErrors <= baseline
+      ? 1
+      : 0;
 
   let testsPassed = 0;
   let testsTotal = 0;
@@ -173,7 +180,7 @@ async function computeQuality(
     const json = JSON.parse(test.stdout);
     testsTotal = json.numTotalTests || 0;
     testsPassed = json.numPassedTests || 0;
-    testScore = testsTotal > 0 ? testsPassed / testsTotal : (test.code === 0 ? 1 : 0.5);
+    testScore = testsTotal > 0 ? testsPassed / testsTotal : test.code === 0 ? 1 : 0.5;
   } catch {
     // JSON parse failed — infer from exit code
     testsPassed = test.code === 0 ? 1 : 0;
@@ -222,11 +229,13 @@ async function computeDownstreamImpact(
   for (const [file] of candidates) {
     if (graphContext) {
       // 1. Structural Native Path
-      const fileNormalized = path.relative(repoRoot, path.resolve(repoRoot, file)).replace(/\\/g, '/');
+      const fileNormalized = path
+        .relative(repoRoot, path.resolve(repoRoot, file))
+        .replace(/\\/g, '/');
       const symbols = graphContext.graph.getSymbolsInFile(fileNormalized) || [];
       let totalImpact = 0;
       for (const sym of symbols) {
-         totalImpact += graphContext.graph.getSymbolImpact(sym.name, sym.owner).size;
+        totalImpact += graphContext.graph.getSymbolImpact(sym.name, sym.owner).size;
       }
       impact.set(file, totalImpact);
     } else {
@@ -236,16 +245,26 @@ async function computeDownstreamImpact(
         const re = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
         let m: RegExpExecArray | null;
         while ((m = re.exec(content))) {
-          const importedBase = m[1].split('/').pop()?.replace(/\.(ts|tsx|js)$/, '') || '';
+          const importedBase =
+            m[1]
+              .split('/')
+              .pop()
+              ?.replace(/\.(ts|tsx|js)$/, '') || '';
           for (const [cFile] of candidates) {
             if (cFile === file) continue;
-            const cBase = cFile.split(/[/\\]/).pop()?.replace(/\.(ts|tsx)$/, '') || '';
+            const cBase =
+              cFile
+                .split(/[/\\]/)
+                .pop()
+                ?.replace(/\.(ts|tsx)$/, '') || '';
             if (importedBase === cBase) {
               impact.set(cFile, (impact.get(cFile) || 0) + 1);
             }
           }
         }
-      } catch { /* skip unreadable */ }
+      } catch {
+        /* skip unreadable */
+      }
     }
   }
   return impact;
@@ -255,8 +274,15 @@ async function computeDownstreamImpact(
 
 /** tsc args with incremental caching — subsequent runs in same cycle reuse .tsbuildinfo */
 function tscCheckArgs(stateDir: string): string[] {
-  return ['tsc', '--noEmit', '--pretty', 'false',
-    '--incremental', '--tsBuildInfoFile', `${stateDir}/.daemon-tsbuildinfo`];
+  return [
+    'tsc',
+    '--noEmit',
+    '--pretty',
+    'false',
+    '--incremental',
+    '--tsBuildInfoFile',
+    `${stateDir}/.daemon-tsbuildinfo`,
+  ];
 }
 
 // ── Lightweight Import Graph (GraphRAG-lite) ─────────────────────────────────
@@ -276,14 +302,17 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
       try {
         if (host.exists(resolved)) {
           const depContent = host.readFile(resolved);
-          const exportLines = depContent.split('\n')
-            .filter(l => /^export\s/.test(l))
+          const exportLines = depContent
+            .split('\n')
+            .filter((l) => /^export\s/.test(l))
             .slice(0, 10)
             .join('\n');
           if (exportLines) exports.push(`// ${im[1]}:\n${exportLines}`);
           break;
         }
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
   }
   return exports.length > 0 ? `\n\nImported type signatures:\n${exports.join('\n')}` : '';
@@ -294,26 +323,42 @@ function extractDependencyContext(content: string, file: string, host: DaemonHos
  * Returns array of { path, content } for files the LLM can patch alongside the candidate.
  * Paths are normalized to project-relative format for consistent matching in patch application.
  */
-interface RelatedFile { path: string; content: string; relation: string }
+interface RelatedFile {
+  path: string;
+  content: string;
+  relation: string;
+}
 
-async function resolveRelatedFiles(content: string, file: string, host: DaemonHost, errorContext: string, repoRoot: string): Promise<RelatedFile[]> {
+async function resolveRelatedFiles(
+  content: string,
+  file: string,
+  host: DaemonHost,
+  errorContext: string,
+  repoRoot: string
+): Promise<RelatedFile[]> {
   const related: RelatedFile[] = [];
   const fileNormalized = path.relative(repoRoot, path.resolve(repoRoot, file)).replace(/\\/g, '/');
   const graphContext = await getGraphEngine();
-  
+
   if (graphContext) {
     // 1. Structural Graph Context: precise caller/callee chains
     const symbols = graphContext.graph.getSymbolsInFile(fileNormalized) || [];
     for (const sym of symbols) {
       const callers = graphContext.graph.getCallersOf(sym.name, sym.owner);
-      const callees = graphContext.graph.getCalleesOf(sym.owner ? `${sym.owner}.${sym.name}` : sym.name);
-      
+      const callees = graphContext.graph.getCalleesOf(
+        sym.owner ? `${sym.owner}.${sym.name}` : sym.name
+      );
+
       for (const caller of callers.slice(0, 2)) {
         if (caller.callerFilePath && caller.callerFilePath !== fileNormalized) {
           try {
             const absPath = path.resolve(repoRoot, caller.callerFilePath);
             if (host.exists(absPath)) {
-              related.push({ path: caller.callerFilePath, content: host.readFile(absPath), relation: `structural caller (${caller.callerId})` });
+              related.push({
+                path: caller.callerFilePath,
+                content: host.readFile(absPath),
+                relation: `structural caller (${caller.callerId})`,
+              });
             }
           } catch {}
         }
@@ -323,38 +368,46 @@ async function resolveRelatedFiles(content: string, file: string, host: DaemonHo
           try {
             const absPath = path.resolve(repoRoot, callee.calleeFilePath);
             if (host.exists(absPath)) {
-              related.push({ path: callee.calleeFilePath, content: host.readFile(absPath), relation: `structural callee (${callee.calleeName})` });
+              related.push({
+                path: callee.calleeFilePath,
+                content: host.readFile(absPath),
+                relation: `structural callee (${callee.calleeName})`,
+              });
             }
           } catch {}
         }
       }
     }
-    
+
     if (related.length > 0) return related.slice(0, 3);
   }
 
   // 2. Fallback regex logic if graph is unresolvable
   // Find types mentioned in error messages that aren't defined in the candidate file
-  const errorTypeMatch = errorContext.match(/Type '(\w+)' is not assignable|missing.*from type '(\w+)'|Argument of type '(\w+)'/);
+  const errorTypeMatch = errorContext.match(
+    /Type '(\w+)' is not assignable|missing.*from type '(\w+)'|Argument of type '(\w+)'/
+  );
   if (errorTypeMatch) {
     const typeName = errorTypeMatch[1] || errorTypeMatch[2] || errorTypeMatch[3];
     const importRe = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
     let im: RegExpExecArray | null;
     const dir = file.replace(/[/\\][^/\\]+$/, '');
-    
+
     while ((im = importRe.exec(content))) {
       for (const ext of ['.ts', '.tsx', '/index.ts']) {
         const resolved = path.resolve(dir, im[1] + ext);
         const relPath = path.relative(repoRoot, resolved).replace(/\\/g, '/');
         try {
-          if (host.exists(resolved) && !related.some(r => r.path === relPath)) {
+          if (host.exists(resolved) && !related.some((r) => r.path === relPath)) {
             const depContent = host.readFile(resolved);
             if (depContent.includes(typeName)) {
               related.push({ path: relPath, content: depContent, relation: `defines ${typeName}` });
               break;
             }
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
   }
@@ -364,7 +417,7 @@ async function resolveRelatedFiles(content: string, file: string, host: DaemonHo
   // This gives the LLM evidence of the "correct" approach (what the sibling did to match the base).
   if (extendsMatch && related.length > 0) {
     const baseClass = extendsMatch[1];
-    const baseRelated = related.find(r => r.relation.includes('base class'));
+    const baseRelated = related.find((r) => r.relation.includes('base class'));
     if (baseRelated) {
       const siblingDir = path.dirname(file);
       try {
@@ -379,19 +432,27 @@ async function resolveRelatedFiles(content: string, file: string, host: DaemonHo
             if (siblingPath === normalizeRepoPath(file)) continue;
             // Sibling must be in same directory and not already in related
             if (path.dirname(siblingPath) !== path.dirname(normalizeRepoPath(file))) continue;
-            if (related.some(r => normalizeRepoPath(r.path) === siblingPath)) continue;
+            if (related.some((r) => normalizeRepoPath(r.path) === siblingPath)) continue;
             try {
               if (!host.exists(siblingPath)) continue;
               const sibContent = host.readFile(siblingPath);
               // Verify it extends the same base class
               if (sibContent.includes(`extends ${baseClass}`)) {
-                related.push({ path: siblingPath, content: sibContent, relation: `sibling (also extends ${baseClass}, recently fixed by daemon)` });
+                related.push({
+                  path: siblingPath,
+                  content: sibContent,
+                  relation: `sibling (also extends ${baseClass}, recently fixed by daemon)`,
+                });
                 break; // One sibling is enough
               }
-            } catch { /* skip */ }
+            } catch {
+              /* skip */
+            }
           }
         }
-      } catch { /* skip directory listing */ }
+      } catch {
+        /* skip directory listing */
+      }
     }
   }
 
@@ -403,9 +464,9 @@ async function resolveRelatedFiles(content: string, file: string, host: DaemonHo
 
 interface SymbolInvestigation {
   symbol: string;
-  definition?: string;   // File + line range where symbol is defined
-  contract?: string;     // Interface/base class shape
-  importers: string[];   // Files that import this symbol (max 3)
+  definition?: string; // File + line range where symbol is defined
+  contract?: string; // Interface/base class shape
+  importers: string[]; // Files that import this symbol (max 3)
   recentDaemonTouches: string[]; // Recent daemon commits in this area
 }
 
@@ -421,7 +482,7 @@ function investigateSymbols(
   content: string,
   file: string,
   host: DaemonHost,
-  repoRoot: string,
+  repoRoot: string
 ): SymbolInvestigation[] {
   const investigations: SymbolInvestigation[] = [];
   const dir = file.replace(/[/\\][^/\\]+$/, '');
@@ -459,7 +520,10 @@ function investigateSymbols(
           if (!host.exists(resolved)) continue;
           const depContent = host.readFile(resolved);
           // Find the symbol's definition block (interface, class, type, function)
-          const defRe = new RegExp(`(?:export\\s+)?(?:interface|class|type|function|const|enum)\\s+${symbol}[\\s<({]`, 'm');
+          const defRe = new RegExp(
+            `(?:export\\s+)?(?:interface|class|type|function|const|enum)\\s+${symbol}[\\s<({]`,
+            'm'
+          );
           const defMatch = defRe.exec(depContent);
           if (defMatch) {
             const lines = depContent.split('\n');
@@ -471,19 +535,29 @@ function investigateSymbols(
             investigation.contract = lines.slice(start, end).join('\n');
             break;
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
     }
 
     // Find importers of the candidate file by checking known candidates
     // (avoids async fs scan — uses content already loaded during diagnose)
-    const candBaseName = file.split(/[/\\]/).pop()?.replace(/\.tsx?$/, '') || '';
+    const candBaseName =
+      file
+        .split(/[/\\]/)
+        .pop()
+        ?.replace(/\.tsx?$/, '') || '';
     const importPattern = new RegExp(`['"]\\./[^'"]*${candBaseName}['"]`);
     // Scan imports in the candidate file's own content for reverse dependency hints
     const importRe2 = /(?:import|from)\s+['"](\.[^'"]+)['"]/g;
     let im2: RegExpExecArray | null;
     while ((im2 = importRe2.exec(content))) {
-      const importedBase = im2[1].split('/').pop()?.replace(/\.(ts|tsx|js)$/, '') || '';
+      const importedBase =
+        im2[1]
+          .split('/')
+          .pop()
+          ?.replace(/\.(ts|tsx|js)$/, '') || '';
       if (importedBase && importPattern.test(im2[0])) {
         investigation.importers.push(im2[1]);
       }
@@ -506,7 +580,12 @@ function formatInvestigations(investigations: SymbolInvestigation[]): string {
     if (inv.definition) parts.push(`  Defined at: ${inv.definition}`);
     if (inv.contract) {
       parts.push('  Contract:');
-      parts.push(inv.contract.split('\n').map(l => `    ${l}`).join('\n'));
+      parts.push(
+        inv.contract
+          .split('\n')
+          .map((l) => `    ${l}`)
+          .join('\n')
+      );
     }
     if (inv.importers.length > 0) parts.push(`  Imported by: ${inv.importers.join(', ')}`);
   }
@@ -547,13 +626,19 @@ function recordProvenance(record: FixProvenanceRecord, stateDir: string, host: D
     const ledgerPath = `${stateDir}/fix-ledger.json`;
     let existing: FixProvenanceRecord[] = [];
     if (host.exists(ledgerPath)) {
-      try { existing = JSON.parse(host.readFile(ledgerPath)); } catch { /* start fresh */ }
+      try {
+        existing = JSON.parse(host.readFile(ledgerPath));
+      } catch {
+        /* start fresh */
+      }
     }
     existing.push(record);
     // Keep last 200 records
     while (existing.length > 200) existing.shift();
     host.writeFile(ledgerPath, JSON.stringify(existing, null, 2));
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // ── File-Local Error Delta ──────────────────────────────────────────────────
@@ -565,7 +650,7 @@ function recordProvenance(record: FixProvenanceRecord, stateDir: string, host: D
 function countFileErrors(errorOutput: string, filePath: string): number {
   const normalized = filePath.replace(/\\/g, '/');
   const baseName = normalized.split('/').pop() || '';
-  return errorOutput.split('\n').filter(l => {
+  return errorOutput.split('\n').filter((l) => {
     if (!/error TS\d{4}:/.test(l)) return false;
     const m = l.match(/^(.+?)\(\d+,\d+\):/);
     if (!m) return false;
@@ -583,26 +668,41 @@ function resolvePolicy(config: DaemonConfig) {
   const econ = config.economyConfig ?? {};
   // Economy budget: @economy { budget: X } sets a per-cycle spend ceiling in USD.
   // default_spend_limit from the trait config is the fallback.
-  const budgetUSD = typeof econ.budget === 'number' && econ.budget > 0
-    ? econ.budget
-    : typeof econ.default_spend_limit === 'number' && econ.default_spend_limit > 0
-      ? econ.default_spend_limit
-      : 0; // 0 = unlimited
+  const budgetUSD =
+    typeof econ.budget === 'number' && econ.budget > 0
+      ? econ.budget
+      : typeof econ.default_spend_limit === 'number' && econ.default_spend_limit > 0
+        ? econ.default_spend_limit
+        : 0; // 0 = unlimited
   return {
     allowShell: policy.allowShell ?? false,
-    allowedShellCommands: (policy.allowedShellCommands ?? []).map(c => c.trim()).filter(Boolean),
-    allowedPaths: (policy.allowedPaths ?? ['packages/core/src', 'packages/studio/src', 'compositions', '.holoscript'])
-      .map(p => p.replace(/\\/g, '/').replace(/^\.\//, '').trim())
+    allowedShellCommands: (policy.allowedShellCommands ?? []).map((c) => c.trim()).filter(Boolean),
+    allowedPaths: (
+      policy.allowedPaths ?? [
+        'packages/core/src',
+        'packages/studio/src',
+        'compositions',
+        '.holoscript',
+      ]
+    )
+      .map((p) => p.replace(/\\/g, '/').replace(/^\.\//, '').trim())
       .filter(Boolean),
-    allowedHosts: (policy.allowedHosts ?? ['api.anthropic.com', 'api.x.ai', 'api.openai.com', 'localhost', '127.0.0.1'])
-      .map(h => h.toLowerCase().trim())
+    allowedHosts: (
+      policy.allowedHosts ?? [
+        'api.anthropic.com',
+        'api.x.ai',
+        'api.openai.com',
+        'localhost',
+        '127.0.0.1',
+      ]
+    )
+      .map((h) => h.toLowerCase().trim())
       .filter(Boolean),
     maxFileBytes: Math.max(1_024, policy.maxFileBytes ?? 2 * 1024 * 1024),
     maxShellOutputBytes: Math.max(1_024, policy.maxShellOutputBytes ?? 100_000),
     requireSignedInbox: policy.requireSignedInbox ?? false,
-    inboxSignatureSecret: typeof policy.inboxSignatureSecret === 'string'
-      ? policy.inboxSignatureSecret
-      : '',
+    inboxSignatureSecret:
+      typeof policy.inboxSignatureSecret === 'string' ? policy.inboxSignatureSecret : '',
     budgetUSD,
     spentUSD: 0,
   };
@@ -615,7 +715,7 @@ function stableJson(value: unknown): string {
   if (value && typeof value === 'object') {
     const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj).sort();
-    return `{${keys.map(k => `${JSON.stringify(k)}:${stableJson(obj[k])}`).join(',')}}`;
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(obj[k])}`).join(',')}}`;
   }
   return JSON.stringify(value);
 }
@@ -633,7 +733,7 @@ function parseHexSignature(signature: string): Buffer | null {
 function verifyInboxEnvelopeSignature(
   envelope: Record<string, unknown>,
   signature: string,
-  secret: string,
+  secret: string
 ): boolean {
   const signedPayload: Record<string, unknown> = {
     timestamp: envelope.timestamp ?? null,
@@ -736,7 +836,7 @@ async function runCompilerSweep(
   host: DaemonHost,
   repoRoot: string,
   stateDir: string,
-  compositionFile: string,
+  compositionFile: string
 ): Promise<CompilerSweepResult[]> {
   const runner = 'packages/core/src/cli/holoscript-runner.ts';
   const safeName = sanitizeName(compositionFile.split(/[/\\]/).pop() || 'composition.hsplus');
@@ -744,19 +844,14 @@ async function runCompilerSweep(
 
   for (const target of SWEEP_TARGETS) {
     const output = `${stateDir}/sweep-${safeName}.${target === 'python' ? 'py' : 'js'}`;
-    const execResult = await host.exec('npx', [
-      'tsx',
-      runner,
-      'compile',
-      compositionFile,
-      '--target',
-      target,
-      '--output',
-      output,
-    ], {
-      cwd: repoRoot,
-      timeoutMs: 120_000,
-    });
+    const execResult = await host.exec(
+      'npx',
+      ['tsx', runner, 'compile', compositionFile, '--target', target, '--output', output],
+      {
+        cwd: repoRoot,
+        timeoutMs: 120_000,
+      }
+    );
 
     results.push({
       target,
@@ -772,25 +867,20 @@ async function runCompilerSweep(
 async function runRuntimeProfileMatrix(
   host: DaemonHost,
   repoRoot: string,
-  compositionFile: string,
+  compositionFile: string
 ): Promise<RuntimeProfileResult[]> {
   const runner = 'packages/core/src/cli/holoscript-runner.ts';
   const results: RuntimeProfileResult[] = [];
 
   for (const profile of PROFILE_MATRIX) {
-    const execResult = await host.exec('npx', [
-      'tsx',
-      runner,
-      'run',
-      compositionFile,
-      '--profile',
-      profile,
-      '--ticks',
-      '1',
-    ], {
-      cwd: repoRoot,
-      timeoutMs: 120_000,
-    });
+    const execResult = await host.exec(
+      'npx',
+      ['tsx', runner, 'run', compositionFile, '--profile', profile, '--ticks', '1'],
+      {
+        cwd: repoRoot,
+        timeoutMs: 120_000,
+      }
+    );
 
     results.push({
       profile,
@@ -806,40 +896,33 @@ async function runAbsorbRoundtrip(
   host: DaemonHost,
   repoRoot: string,
   stateDir: string,
-  sourceFile: string,
+  sourceFile: string
 ): Promise<AbsorbRoundtripResult> {
   const runner = 'packages/core/src/cli/holoscript-runner.ts';
   const safeName = sanitizeName(sourceFile.split(/[/\\]/).pop() || 'source.ts');
   const absorbedFile = `${stateDir}/roundtrip-${safeName}.hsplus`;
   const compiledFile = `${stateDir}/roundtrip-${safeName}.js`;
 
-  const absorbResult = await host.exec('npx', [
-    'tsx',
-    runner,
-    'absorb',
-    sourceFile,
-    '--output',
-    absorbedFile,
-  ], {
-    cwd: repoRoot,
-    timeoutMs: 120_000,
-  });
-
-  const compileResult = absorbResult.code === 0
-    ? await host.exec('npx', [
-      'tsx',
-      runner,
-      'compile',
-      absorbedFile,
-      '--target',
-      'node',
-      '--output',
-      compiledFile,
-    ], {
+  const absorbResult = await host.exec(
+    'npx',
+    ['tsx', runner, 'absorb', sourceFile, '--output', absorbedFile],
+    {
       cwd: repoRoot,
       timeoutMs: 120_000,
-    })
-    : { code: 1, stdout: '', stderr: 'absorb step failed' };
+    }
+  );
+
+  const compileResult =
+    absorbResult.code === 0
+      ? await host.exec(
+          'npx',
+          ['tsx', runner, 'compile', absorbedFile, '--target', 'node', '--output', compiledFile],
+          {
+            cwd: repoRoot,
+            timeoutMs: 120_000,
+          }
+        )
+      : { code: 1, stdout: '', stderr: 'absorb step failed' };
 
   return {
     sourceFile,
@@ -880,7 +963,11 @@ function parsePatchResponse(text: string): PatchResponse | null {
     const patches: Patch[] = [];
     for (const p of parsed.patches) {
       if (typeof p.old === 'string' && typeof p.new === 'string' && p.old !== p.new) {
-        patches.push({ old: p.old, new: p.new, file: typeof p.file === 'string' ? p.file : undefined });
+        patches.push({
+          old: p.old,
+          new: p.new,
+          file: typeof p.file === 'string' ? p.file : undefined,
+        });
       }
     }
 
@@ -894,7 +981,10 @@ function parsePatchResponse(text: string): PatchResponse | null {
 }
 
 /** Apply patches to file content via exact string matching (like Edit tool's old→new) */
-function applyPatches(content: string, patches: Patch[]): { result: string; applied: number; failed: string[] } {
+function applyPatches(
+  content: string,
+  patches: Patch[]
+): { result: string; applied: number; failed: string[] } {
   let result = content;
   let applied = 0;
   const failed: string[] = [];
@@ -918,20 +1008,29 @@ function applyPatches(content: string, patches: Patch[]): { result: string; appl
 }
 
 /** Safety guards — reject destructive LLM edits */
-function validatePatchSafety(original: string, patched: string): { safe: boolean; reason?: string } {
+function validatePatchSafety(
+  original: string,
+  patched: string
+): { safe: boolean; reason?: string } {
   const origLines = original.split('\n').length;
   const patchedLines = patched.split('\n').length;
 
   // Guard 1: Reject if >20% of lines deleted
   if (patchedLines < origLines * 0.8) {
-    return { safe: false, reason: `Deleted ${origLines - patchedLines} lines (${((1 - patchedLines / origLines) * 100).toFixed(0)}% reduction)` };
+    return {
+      safe: false,
+      reason: `Deleted ${origLines - patchedLines} lines (${((1 - patchedLines / origLines) * 100).toFixed(0)}% reduction)`,
+    };
   }
 
   // Guard 2: Reject if too many `as any` added
   const origAsAny = (original.match(/as any/g) || []).length;
   const patchedAsAny = (patched.match(/as any/g) || []).length;
   if (patchedAsAny - origAsAny > 2) {
-    return { safe: false, reason: `Added ${patchedAsAny - origAsAny} "as any" casts (max 2 allowed)` };
+    return {
+      safe: false,
+      reason: `Added ${patchedAsAny - origAsAny} "as any" casts (max 2 allowed)`,
+    };
   }
 
   // Guard 3: Reject if exported symbols decreased
@@ -947,24 +1046,22 @@ function validatePatchSafety(original: string, patched: string): { safe: boolean
 // ── Wisdom Readback ──────────────────────────────────────────────────────────
 
 /** Extract relevant prior wisdom entries for a specific file + focus */
-function extractFileWisdom(
-  wisdom: unknown,
-  filePath: string,
-  focus: string,
-): string[] {
+function extractFileWisdom(wisdom: unknown, filePath: string, focus: string): string[] {
   if (!Array.isArray(wisdom)) return [];
   const normalized = filePath.replace(/\\/g, '/');
   const baseName = normalized.split('/').pop() || '';
-  const relevant = (wisdom as Array<Record<string, unknown>>).filter(w => {
+  const relevant = (wisdom as Array<Record<string, unknown>>).filter((w) => {
     const candidate = String(w.candidate || '').replace(/\\/g, '/');
-    return (candidate.includes(baseName) || candidate === normalized) &&
-           (w.focus === focus || w.focus === 'all');
+    return (
+      (candidate.includes(baseName) || candidate === normalized) &&
+      (w.focus === focus || w.focus === 'all')
+    );
   });
   if (relevant.length === 0) return [];
   // Summarize: show last 3 attempts with their delta
-  return relevant.slice(-3).map(w =>
-    `- ${w.focus} attempt (delta: ${w.delta}): ${w.candidate || 'unknown file'}`,
-  );
+  return relevant
+    .slice(-3)
+    .map((w) => `- ${w.focus} attempt (delta: ${w.delta}): ${w.candidate || 'unknown file'}`);
 }
 
 /**
@@ -988,7 +1085,11 @@ function buildErrorFocusedContext(content: string, errorLines: string[]): string
   const CONTEXT_RADIUS = 10;
   const contextSet = new Set<number>();
   for (const n of errorLineNums) {
-    for (let i = Math.max(1, n - CONTEXT_RADIUS); i <= Math.min(lines.length, n + CONTEXT_RADIUS); i++) {
+    for (
+      let i = Math.max(1, n - CONTEXT_RADIUS);
+      i <= Math.min(lines.length, n + CONTEXT_RADIUS);
+      i++
+    ) {
       contextSet.add(i);
     }
   }
@@ -998,7 +1099,9 @@ function buildErrorFocusedContext(content: string, errorLines: string[]): string
   let prev = -1;
   for (const ln of sorted) {
     if (prev !== -1 && ln > prev + 1) out.push('  ... omitted ...');
-    out.push(`${String(ln).padStart(4)}: ${lines[ln - 1]}${errorLineNums.has(ln) ? '  // ← ERROR' : ''}`);
+    out.push(
+      `${String(ln).padStart(4)}: ${lines[ln - 1]}${errorLineNums.has(ln) ? '  // ← ERROR' : ''}`
+    );
     prev = ln;
   }
   return out.join('\n');
@@ -1052,7 +1155,7 @@ export interface DaemonActionsResult {
 export function createDaemonActions(
   host: DaemonHost,
   llm: LLMProvider,
-  config: DaemonConfig,
+  config: DaemonConfig
 ): DaemonActionsResult {
   // Apply composition-driven quarantine threshold
   if (config.quarantineThreshold !== undefined) {
@@ -1080,7 +1183,7 @@ export function createDaemonActions(
 
   const promptContext = buildDaemonPromptContext(
     config.provider || 'anthropic',
-    config.toolProfile || 'standard',
+    config.toolProfile || 'standard'
   );
   const { provider, toolProfile } = promptContext;
   const policy = resolvePolicy(config);
@@ -1118,7 +1221,9 @@ export function createDaemonActions(
       readFile: async (p: string) => host.readFile(p),
       writeFile: async (p: string, c: string) => host.writeFile(p, c),
       exists: async (p: string) => host.exists(p),
-      listDir: async () => { throw new Error('listDir not supported by daemon host'); },
+      listDir: async () => {
+        throw new Error('listDir not supported by daemon host');
+      },
     },
     process: {
       exec: async (command: string, options?: any) => {
@@ -1139,15 +1244,15 @@ export function createDaemonActions(
         response.headers.forEach((value, key) => {
           headersRecord[key] = value;
         });
-        return { 
-          status: response.status, 
-          ok: response.ok, 
+        return {
+          status: response.status,
+          ok: response.ok,
           text,
           headers: headersRecord,
           body: text,
           json: async () => JSON.parse(text),
           arrayBuffer: async () => new ArrayBuffer(0),
-          blob: async () => new Blob()
+          blob: async () => new Blob(),
         };
       },
     },
@@ -1186,7 +1291,10 @@ export function createDaemonActions(
       const result = await stdlib.fs_read({ ...params, into: 'file_read' }, bb, ctx);
       ctx.emit('daemon:tool:file_read', {
         path: typeof params.path === 'string' ? params.path : '',
-        bytes: typeof bb.file_read_content === 'string' ? Buffer.byteLength(bb.file_read_content as string, 'utf-8') : 0,
+        bytes:
+          typeof bb.file_read_content === 'string'
+            ? Buffer.byteLength(bb.file_read_content as string, 'utf-8')
+            : 0,
       });
       return result;
     },
@@ -1217,7 +1325,11 @@ export function createDaemonActions(
         bb.create_skill_error = 'name is required';
         return false;
       }
-      const safeName = name.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const safeName = name
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
       if (!safeName) {
         bb.create_skill_error = 'name must contain alphanumeric characters';
         return false;
@@ -1232,9 +1344,10 @@ export function createDaemonActions(
         return false;
       }
       const targetPath = `${skillsRoot.rel}/${safeName}.hsplus`;
-      const content = typeof params.content === 'string' && params.content.trim().length > 0
-        ? params.content
-        : `composition "${safeName}" {\n  // Generated by create_skill\n  action "${safeName}" {\n    // Fill implementation\n  }\n}\n`;
+      const content =
+        typeof params.content === 'string' && params.content.trim().length > 0
+          ? params.content
+          : `composition "${safeName}" {\n  // Generated by create_skill\n  action "${safeName}" {\n    // Fill implementation\n  }\n}\n`;
 
       if (Buffer.byteLength(content, 'utf-8') > policy.maxFileBytes) {
         bb.create_skill_error = `skill content exceeds max size (${policy.maxFileBytes} bytes)`;
@@ -1275,7 +1388,11 @@ export function createDaemonActions(
         bb.channel_ingest_ok = false;
         return false;
       }
-      const lines = host.readFile(inboxPath).split('\n').map(l => l.trim()).filter(Boolean);
+      const lines = host
+        .readFile(inboxPath)
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
       if (lines.length === 0) {
         bb.channel_ingest_ok = false;
         return false;
@@ -1286,13 +1403,15 @@ export function createDaemonActions(
         if (policy.requireSignedInbox) {
           const secret = policy.inboxSignatureSecret;
           if (!secret) {
-            bb.channel_ingest_error = 'Signed inbox required, but inboxSignatureSecret is not configured';
+            bb.channel_ingest_error =
+              'Signed inbox required, but inboxSignatureSecret is not configured';
             return false;
           }
 
-          const metadata = latest.metadata && typeof latest.metadata === 'object'
-            ? latest.metadata as Record<string, unknown>
-            : {};
+          const metadata =
+            latest.metadata && typeof latest.metadata === 'object'
+              ? (latest.metadata as Record<string, unknown>)
+              : {};
           const signature = typeof metadata.signature === 'string' ? metadata.signature : '';
           if (!signature) {
             bb.channel_ingest_error = 'Inbox envelope missing metadata.signature';
@@ -1353,7 +1472,12 @@ export function createDaemonActions(
       const focus = (bb.focus as string) || 'typefix';
       log(`Diagnosing with focus: ${focus}`);
       const daemonCompositionFile = (bb.daemon_file as string) || '';
-      const validationFocuses = new Set(['target-sweep', 'trait-sampling', 'runtime-matrix', 'absorb-roundtrip']);
+      const validationFocuses = new Set([
+        'target-sweep',
+        'trait-sampling',
+        'runtime-matrix',
+        'absorb-roundtrip',
+      ]);
       bb.validation_focus = validationFocuses.has(focus);
       bb.edit_focus = !bb.validation_focus;
 
@@ -1362,9 +1486,12 @@ export function createDaemonActions(
       if (focus === 'typefix' || focus === 'all') {
         // Run tsc and collect files with type errors (incremental for speed)
         const result = await host.exec('npx', tscCheckArgs(config.stateDir), {
-          cwd: config.repoRoot, timeoutMs: 120_000,
+          cwd: config.repoRoot,
+          timeoutMs: 120_000,
         });
-        const errorLines = (result.stdout + result.stderr).split('\n').filter(l => /error TS\d{4}:/.test(l));
+        const errorLines = (result.stdout + result.stderr)
+          .split('\n')
+          .filter((l) => /error TS\d{4}:/.test(l));
 
         // Count errors per file for prioritization
         const errorCounts = new Map<string, number>();
@@ -1417,25 +1544,35 @@ export function createDaemonActions(
         bb.perFileErrors = perFileErrors;
 
         // G.ARCH.002: Semantic error categorization — enables pattern-aware learning
-        const tscOutput = (result.stdout + result.stderr);
+        const tscOutput = result.stdout + result.stderr;
         const semanticErrors = parseTscOutput(tscOutput);
         const failurePatterns = aggregatePatterns(semanticErrors);
-        bb.errorCategories = failurePatterns.map(p => p.category);
-        bb.errorSymbols = failurePatterns.flatMap(p => p.symbols).slice(0, 10);
+        bb.errorCategories = failurePatterns.map((p) => p.category);
+        bb.errorSymbols = failurePatterns.flatMap((p) => p.symbols).slice(0, 10);
         bb.dominantFailure = failurePatterns[0]?.category;
         bb.failurePatterns = failurePatterns.slice(0, 5);
         if (failurePatterns.length > 0) {
-          log(`Error taxonomy: ${failurePatterns.map(p => `${p.category}(${p.count})`).join(', ')}`);
+          log(
+            `Error taxonomy: ${failurePatterns.map((p) => `${p.category}(${p.count})`).join(', ')}`
+          );
         }
       } else if (focus === 'coverage') {
         // Find source files that lack corresponding test files
         const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
-          cwd: config.repoRoot, timeoutMs: 120_000,
+          cwd: config.repoRoot,
+          timeoutMs: 120_000,
         });
-        const sourceFiles = (result.stdout + result.stderr).split('\n')
-          .map(l => l.trim())
-          .filter(f => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
-          .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
+        const sourceFiles = (result.stdout + result.stderr)
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((f) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(
+            (f) =>
+              /\.ts$/.test(f) &&
+              !f.includes('.test.') &&
+              !f.includes('__tests__') &&
+              !f.includes('.d.ts')
+          );
 
         for (const f of sourceFiles) {
           const testFile = f.replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
@@ -1447,23 +1584,35 @@ export function createDaemonActions(
         candidates.sort((a, b) => {
           try {
             return host.readFile(a).length - host.readFile(b).length;
-          } catch { return 0; }
+          } catch {
+            return 0;
+          }
         });
         bb.typeErrorCount = 0;
       } else if (focus === 'lint') {
         // Find files with common lint issues: unused imports, any casts, console.log
         const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
-          cwd: config.repoRoot, timeoutMs: 120_000,
+          cwd: config.repoRoot,
+          timeoutMs: 120_000,
         });
-        const sourceFiles = (result.stdout + result.stderr).split('\n')
-          .map(l => l.trim())
-          .filter(f => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
-          .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
+        const sourceFiles = (result.stdout + result.stderr)
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((f) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(
+            (f) =>
+              /\.ts$/.test(f) &&
+              !f.includes('.test.') &&
+              !f.includes('__tests__') &&
+              !f.includes('.d.ts')
+          );
 
         for (const f of sourceFiles) {
           // tsc --listFiles emits absolute paths on Windows; normalise to relative for consistent
           // quarantine/committed checks, git operations, and ledger recording.
-          const relF = path.isAbsolute(f) ? path.relative(config.repoRoot, f).replace(/\\/g, '/') : f;
+          const relF = path.isAbsolute(f)
+            ? path.relative(config.repoRoot, f).replace(/\\/g, '/')
+            : f;
           if (isQuarantined(relF) || isCommitted(relF)) continue;
           try {
             const content = host.readFile(f);
@@ -1475,7 +1624,9 @@ export function createDaemonActions(
               /\/\/\s*@ts-ignore/.test(content) ||
               /console\.(log|warn|error)\(/.test(codeOnly);
             if (hasLintIssues) candidates.push(relF);
-          } catch { /* skip unreadable */ }
+          } catch {
+            /* skip unreadable */
+          }
         }
         // Sort by fix-type priority: console.log removals (~100% success) first,
         // then @ts-ignore removals (~90%), then as any casts (~50%).
@@ -1487,40 +1638,67 @@ export function createDaemonActions(
             const caCode = ca.replace(/\/\*[\s\S]*?\*\//g, '');
             const cbCode = cb.replace(/\/\*[\s\S]*?\*\//g, '');
             // Tier: 0 = console-only, 1 = ts-ignore, 2 = as any
-            const tierA = /console\.(log|warn|error)\(/.test(caCode) && !/\bas\s+any\b/.test(ca) ? 0
-              : /\/\/\s*@ts-ignore/.test(ca) && !/\bas\s+any\b/.test(ca) ? 1 : 2;
-            const tierB = /console\.(log|warn|error)\(/.test(cbCode) && !/\bas\s+any\b/.test(cb) ? 0
-              : /\/\/\s*@ts-ignore/.test(cb) && !/\bas\s+any\b/.test(cb) ? 1 : 2;
+            const tierA =
+              /console\.(log|warn|error)\(/.test(caCode) && !/\bas\s+any\b/.test(ca)
+                ? 0
+                : /\/\/\s*@ts-ignore/.test(ca) && !/\bas\s+any\b/.test(ca)
+                  ? 1
+                  : 2;
+            const tierB =
+              /console\.(log|warn|error)\(/.test(cbCode) && !/\bas\s+any\b/.test(cb)
+                ? 0
+                : /\/\/\s*@ts-ignore/.test(cb) && !/\bas\s+any\b/.test(cb)
+                  ? 1
+                  : 2;
             if (tierA !== tierB) return tierA - tierB;
             return ca.length - cb.length;
-          } catch { return 0; }
+          } catch {
+            return 0;
+          }
         });
         bb.typeErrorCount = 0;
       } else if (focus === 'docs') {
         // Find exported functions/classes missing JSDoc descriptions
         const result = await host.exec('npx', ['tsc', '--noEmit', '--listFiles'], {
-          cwd: config.repoRoot, timeoutMs: 120_000,
+          cwd: config.repoRoot,
+          timeoutMs: 120_000,
         });
-        const sourceFiles = (result.stdout + result.stderr).split('\n')
-          .map(l => l.trim())
-          .filter(f => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
-          .filter(f => /\.ts$/.test(f) && !f.includes('.test.') && !f.includes('__tests__') && !f.includes('.d.ts'));
+        const sourceFiles = (result.stdout + result.stderr)
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((f) => /packages\/core\/src\//.test(f.replace(/\\/g, '/')))
+          .filter(
+            (f) =>
+              /\.ts$/.test(f) &&
+              !f.includes('.test.') &&
+              !f.includes('__tests__') &&
+              !f.includes('.d.ts')
+          );
 
         for (const f of sourceFiles) {
-          const relF = path.isAbsolute(f) ? path.relative(config.repoRoot, f).replace(/\\/g, '/') : f;
+          const relF = path.isAbsolute(f)
+            ? path.relative(config.repoRoot, f).replace(/\\/g, '/')
+            : f;
           if (isQuarantined(relF) || isCommitted(relF)) continue;
           try {
             const content = host.readFile(f);
             // Check for undocumented exports (export without preceding JSDoc)
-            if (/^export\s+(function|class|const|interface|type|enum)\s/m.test(content) &&
-                !/\/\*\*[\s\S]*?\*\/\s*\nexport\s/m.test(content)) {
+            if (
+              /^export\s+(function|class|const|interface|type|enum)\s/m.test(content) &&
+              !/\/\*\*[\s\S]*?\*\/\s*\nexport\s/m.test(content)
+            ) {
               candidates.push(relF);
             }
-          } catch { /* skip unreadable */ }
+          } catch {
+            /* skip unreadable */
+          }
         }
         candidates.sort((a, b) => {
-          try { return host.readFile(a).length - host.readFile(b).length; }
-          catch { return 0; }
+          try {
+            return host.readFile(a).length - host.readFile(b).length;
+          } catch {
+            return 0;
+          }
         });
         bb.typeErrorCount = 0;
       } else if (focus === 'target-sweep') {
@@ -1532,9 +1710,14 @@ export function createDaemonActions(
           return true;
         }
 
-        const sweepResults = await runCompilerSweep(host, config.repoRoot, config.stateDir, daemonCompositionFile);
+        const sweepResults = await runCompilerSweep(
+          host,
+          config.repoRoot,
+          config.stateDir,
+          daemonCompositionFile
+        );
         bb.sweep_results = sweepResults;
-        bb.sweep_passed = sweepResults.every(r => r.ok);
+        bb.sweep_passed = sweepResults.every((r) => r.ok);
         candidates = [daemonCompositionFile];
         bb.typeErrorCount = 0;
       } else if (focus === 'trait-sampling') {
@@ -1568,7 +1751,7 @@ export function createDaemonActions(
 
         const matrix = await runRuntimeProfileMatrix(host, config.repoRoot, daemonCompositionFile);
         bb.runtime_matrix = matrix;
-        bb.runtime_matrix_passed = matrix.every(r => r.ok);
+        bb.runtime_matrix_passed = matrix.every((r) => r.ok);
         candidates = [daemonCompositionFile];
         bb.typeErrorCount = 0;
       } else if (focus === 'absorb-roundtrip') {
@@ -1581,7 +1764,12 @@ export function createDaemonActions(
           return true;
         }
 
-        const roundtrip = await runAbsorbRoundtrip(host, config.repoRoot, config.stateDir, sourceFile);
+        const roundtrip = await runAbsorbRoundtrip(
+          host,
+          config.repoRoot,
+          config.stateDir,
+          sourceFile
+        );
         bb.absorb_roundtrip = roundtrip;
         bb.absorb_roundtrip_passed = roundtrip.absorbOk && roundtrip.compileOk;
         candidates = [sourceFile];
@@ -1602,7 +1790,7 @@ export function createDaemonActions(
         const ledgerPath = `${config.stateDir}/fix-ledger.json`;
         if (host.exists(ledgerPath)) {
           const allRecords = JSON.parse(host.readFile(ledgerPath)) as FixProvenanceRecord[];
-          const recentRollbacks = allRecords.filter(r => r.result === 'rolled_back').slice(-20);
+          const recentRollbacks = allRecords.filter((r) => r.result === 'rolled_back').slice(-20);
           const categoryFreq = new Map<string, number>();
           for (const r of recentRollbacks) {
             const category = r.dominantFailure || r.rollbackReason || 'unclassified';
@@ -1610,11 +1798,16 @@ export function createDaemonActions(
           }
           for (const [cat, count] of categoryFreq) {
             if (count >= 3) {
-              log(`SYSTEMIC: ${count} recent rollbacks share failure category '${cat}' — consider addressing root cause`, 'warn');
+              log(
+                `SYSTEMIC: ${count} recent rollbacks share failure category '${cat}' — consider addressing root cause`,
+                'warn'
+              );
             }
           }
         }
-      } catch { /* non-fatal — ledger may not exist yet */ }
+      } catch {
+        /* non-fatal — ledger may not exist yet */
+      }
 
       return true;
     },
@@ -1634,7 +1827,8 @@ export function createDaemonActions(
 
         // Store file-local error count before fix for delta scoring
         const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
-        const fileErrs = perFileErrors[filePath] || perFileErrors[filePath.replace(/\\/g, '/')] || [];
+        const fileErrs =
+          perFileErrors[filePath] || perFileErrors[filePath.replace(/\\/g, '/')] || [];
         bb.fileErrorsBefore = fileErrs.length;
 
         log(`Read candidate: ${filePath} (${fileErrs.length} file-local errors)`);
@@ -1651,11 +1845,17 @@ export function createDaemonActions(
     fetch_docs: async (_params, bb) => {
       const file = bb.currentCandidate as string;
       const content = bb.candidateContent as string;
-      if (!file || !content) { bb.docsContext = ''; return true; }
+      if (!file || !content) {
+        bb.docsContext = '';
+        return true;
+      }
 
       const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
       const fileErrors = perFileErrors[file] || perFileErrors[file.replace(/\\/g, '/')] || [];
-      if (fileErrors.length === 0) { bb.docsContext = ''; return true; }
+      if (fileErrors.length === 0) {
+        bb.docsContext = '';
+        return true;
+      }
 
       // Extract external (non-relative) imports
       const externalImports = new Map<string, string[]>();
@@ -1664,18 +1864,24 @@ export function createDaemonActions(
       while ((im = importRe.exec(content))) {
         const pkg = im[2];
         if (pkg.startsWith('.') || pkg.startsWith('@holoscript')) continue;
-        const names = im[1].split(',').map(n => n.trim().replace(/\s+as\s+\w+/, '')).filter(Boolean);
+        const names = im[1]
+          .split(',')
+          .map((n) => n.trim().replace(/\s+as\s+\w+/, ''))
+          .filter(Boolean);
         externalImports.set(pkg, [...(externalImports.get(pkg) || []), ...names]);
       }
 
-      if (externalImports.size === 0) { bb.docsContext = ''; return true; }
+      if (externalImports.size === 0) {
+        bb.docsContext = '';
+        return true;
+      }
 
       // Find which external symbols appear in error messages
       const errorText = fileErrors.join('\n');
       const relevantDocs: string[] = [];
 
       for (const [pkg, names] of externalImports) {
-        const relevantNames = names.filter(n => errorText.includes(n));
+        const relevantNames = names.filter((n) => errorText.includes(n));
         if (relevantNames.length === 0) continue;
 
         // Try to find the package's type definitions in node_modules
@@ -1692,7 +1898,10 @@ export function createDaemonActions(
 
             // Extract definitions for the relevant symbols (±5 lines)
             for (const name of relevantNames) {
-              const defRe = new RegExp(`(?:export\\s+)?(?:interface|class|type|function|declare)\\s+${name}[\\s<({]`, 'm');
+              const defRe = new RegExp(
+                `(?:export\\s+)?(?:interface|class|type|function|declare)\\s+${name}[\\s<({]`,
+                'm'
+              );
               const match = defRe.exec(dtsContent);
               if (match) {
                 const defLine = dtsContent.slice(0, match.index).split('\n').length - 1;
@@ -1701,18 +1910,22 @@ export function createDaemonActions(
                 relevantDocs.push(
                   `// From ${pkg} (${typesPath}):`,
                   lines.slice(start, end).join('\n'),
-                  '',
+                  ''
                 );
               }
             }
             break; // Found types for this package
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
       }
 
       if (relevantDocs.length > 0) {
         bb.docsContext = relevantDocs.join('\n').slice(0, 3000); // Cap at 3KB
-        log(`Fetched docs for ${externalImports.size} packages (${relevantDocs.length} symbol defs)`);
+        log(
+          `Fetched docs for ${externalImports.size} packages (${relevantDocs.length} symbol defs)`
+        );
       } else {
         bb.docsContext = '';
       }
@@ -1725,7 +1938,9 @@ export function createDaemonActions(
     generate_fix: async (_params, bb, ctx) => {
       // Economy budget gate: refuse to generate if budget exhausted
       if (isBudgetExhausted()) {
-        log(`Economy: budget exhausted ($${policy.spentUSD.toFixed(3)} / $${policy.budgetUSD.toFixed(2)})`);
+        log(
+          `Economy: budget exhausted ($${policy.spentUSD.toFixed(3)} / $${policy.budgetUSD.toFixed(2)})`
+        );
         bb.budget_exhausted = true;
         return false;
       }
@@ -1737,21 +1952,36 @@ export function createDaemonActions(
       if (focus === 'coverage') {
         const systemPrompt = getDaemonSystemPrompt('coverage', promptContext);
         try {
-          const result = await llm.chat({ system: systemPrompt, prompt: `File: ${file}\n\n${content}`, maxTokens: 8192 });
+          const result = await llm.chat({
+            system: systemPrompt,
+            prompt: `File: ${file}\n\n${content}`,
+            maxTokens: 8192,
+          });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
           const spendCost = trackSpend(result.inputTokens, result.outputTokens);
-          ctx.emit('economy:spend', { agentId: 'daemon', amount: spendCost, reason: `generate_fix:${focus}`, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          ctx.emit('economy:spend', {
+            agentId: 'daemon',
+            amount: spendCost,
+            reason: `generate_fix:${focus}`,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+          });
           const edited = result.text.trim();
           if (edited.length > 10 && !isContaminatedEdit(edited)) {
-            const testPath = file.replace(/\\/g, '/').replace(/\.ts$/, '.test.ts').replace(/\/src\//, '/src/__tests__/');
+            const testPath = file
+              .replace(/\\/g, '/')
+              .replace(/\.ts$/, '.test.ts')
+              .replace(/\/src\//, '/src/__tests__/');
             host.writeFile(testPath, edited);
             bb.fileEdited = true;
             bb.generatedTestFile = testPath;
             log(`Generated test: ${testPath.split('/').pop()}`);
             return true;
           }
-        } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
+        } catch (err: unknown) {
+          log(`LLM error: ${(err as Error).message}`);
+        }
         advanceCandidate(bb);
         return false;
       }
@@ -1760,8 +1990,8 @@ export function createDaemonActions(
         const sweep = (bb.sweep_results as CompilerSweepResult[]) || [];
         bb.fileEdited = false;
         bb.generatedTestFile = undefined;
-        log(`Target sweep: ${sweep.filter(r => r.ok).length}/${sweep.length} targets passed`);
-        return sweep.length > 0 && sweep.every(r => r.ok);
+        log(`Target sweep: ${sweep.filter((r) => r.ok).length}/${sweep.length} targets passed`);
+        return sweep.length > 0 && sweep.every((r) => r.ok);
       }
 
       if (focus === 'trait-sampling') {
@@ -1772,7 +2002,9 @@ export function createDaemonActions(
           log('Trait sampling: no data');
           return false;
         }
-        log(`Trait sampling: ${sampling.sampledTraits} traits across ${sampling.sampledCategories} categories`);
+        log(
+          `Trait sampling: ${sampling.sampledTraits} traits across ${sampling.sampledCategories} categories`
+        );
         return sampling.sampledCategories >= 3;
       }
 
@@ -1780,8 +2012,10 @@ export function createDaemonActions(
         const matrix = (bb.runtime_matrix as RuntimeProfileResult[]) || [];
         bb.fileEdited = false;
         bb.generatedTestFile = undefined;
-        log(`Runtime matrix: ${matrix.filter(r => r.ok).length}/${matrix.length} profiles passed`);
-        return matrix.length > 0 && matrix.every(r => r.ok);
+        log(
+          `Runtime matrix: ${matrix.filter((r) => r.ok).length}/${matrix.length} profiles passed`
+        );
+        return matrix.length > 0 && matrix.every((r) => r.ok);
       }
 
       if (focus === 'absorb-roundtrip') {
@@ -1792,7 +2026,9 @@ export function createDaemonActions(
           log('Absorb roundtrip: no result');
           return false;
         }
-        log(`Absorb roundtrip: absorb=${roundtrip.absorbOk ? 'ok' : 'fail'} compile=${roundtrip.compileOk ? 'ok' : 'fail'}`);
+        log(
+          `Absorb roundtrip: absorb=${roundtrip.absorbOk ? 'ok' : 'fail'} compile=${roundtrip.compileOk ? 'ok' : 'fail'}`
+        );
         return roundtrip.absorbOk && roundtrip.compileOk;
       }
 
@@ -1808,10 +2044,16 @@ export function createDaemonActions(
             if (/\*\//.test(line)) inBlockComment = false;
             continue;
           }
-          if (/\/\*/.test(line) && !/\*\//.test(line)) { inBlockComment = true; continue; }
-          if (/\bas\s+any\b/.test(line)) lintErrors.push(`${file}(${i + 1}): lint: unsafe 'as any' cast`);
-          if (/\/\/\s*@ts-ignore/.test(line)) lintErrors.push(`${file}(${i + 1}): lint: @ts-ignore suppression`);
-          if (/console\.(log|warn|error)\(/.test(line) && !file.includes('cli/')) lintErrors.push(`${file}(${i + 1}): lint: console statement in library code`);
+          if (/\/\*/.test(line) && !/\*\//.test(line)) {
+            inBlockComment = true;
+            continue;
+          }
+          if (/\bas\s+any\b/.test(line))
+            lintErrors.push(`${file}(${i + 1}): lint: unsafe 'as any' cast`);
+          if (/\/\/\s*@ts-ignore/.test(line))
+            lintErrors.push(`${file}(${i + 1}): lint: @ts-ignore suppression`);
+          if (/console\.(log|warn|error)\(/.test(line) && !file.includes('cli/'))
+            lintErrors.push(`${file}(${i + 1}): lint: console statement in library code`);
         }
         if (lintErrors.length === 0) {
           advanceCandidate(bb);
@@ -1822,24 +2064,32 @@ export function createDaemonActions(
 
         // Extract type context from imports and interfaces so the LLM can choose correct types.
         const typeContext: string[] = [];
-        const importLines = lines.filter(l => /^\s*(import\s|export\s+type|interface\s|type\s+\w+\s*=)/.test(l));
+        const importLines = lines.filter((l) =>
+          /^\s*(import\s|export\s+type|interface\s|type\s+\w+\s*=)/.test(l)
+        );
         if (importLines.length > 0) {
-          typeContext.push('Available types (from file imports/declarations):', ...importLines.slice(0, 30));
+          typeContext.push(
+            'Available types (from file imports/declarations):',
+            ...importLines.slice(0, 30)
+          );
         }
         // Check related files for type declarations used by this file
         try {
           const relatedFiles = resolveRelatedFiles(content, file, host, '', config.repoRoot);
           const relatedTypes: string[] = [];
           for (const rel of relatedFiles) {
-            const relLines = rel.content.split('\n')
-              .filter(l => /^\s*(export\s+)?(interface|type|enum)\s+\w+/.test(l));
+            const relLines = rel.content
+              .split('\n')
+              .filter((l) => /^\s*(export\s+)?(interface|type|enum)\s+\w+/.test(l));
             if (relLines.length > 0) {
               relatedTypes.push(`// From ${rel.path.split('/').pop()} (${rel.relation}):`);
               relatedTypes.push(...relLines.slice(0, 15));
             }
           }
           if (relatedTypes.length > 0) typeContext.push('', ...relatedTypes);
-        } catch { /* skip related type resolution if it fails */ }
+        } catch {
+          /* skip related type resolution if it fails */
+        }
 
         const lintPromptParts = [
           `File: ${file}`,
@@ -1856,17 +2106,27 @@ export function createDaemonActions(
             'IMPORTANT: A previous fix attempt caused these compile errors (do NOT introduce these again):',
             compileErrors.slice(0, 10).join('\n'),
             '',
-            'Only fix lint issues where you can provide a type-safe replacement. Skip issues where removing `as any` would require changes to external type definitions.',
+            'Only fix lint issues where you can provide a type-safe replacement. Skip issues where removing `as any` would require changes to external type definitions.'
           );
         }
         lintPromptParts.push('', `Source (${lines.length} lines):`, content);
         const lintPrompt = lintPromptParts.join('\n');
         try {
-          const result = await llm.chat({ system: systemPrompt, prompt: lintPrompt, maxTokens: 4096 });
+          const result = await llm.chat({
+            system: systemPrompt,
+            prompt: lintPrompt,
+            maxTokens: 4096,
+          });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
           const lintSpendCost = trackSpend(result.inputTokens, result.outputTokens);
-          ctx.emit('economy:spend', { agentId: 'daemon', amount: lintSpendCost, reason: 'generate_fix:lint', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          ctx.emit('economy:spend', {
+            agentId: 'daemon',
+            amount: lintSpendCost,
+            reason: 'generate_fix:lint',
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+          });
           const patchResponse = parsePatchResponse(result.text);
           if (!patchResponse || patchResponse.patches.length === 0) {
             // LLM analyzed but couldn't produce patches — mark as committed to skip in future cycles
@@ -1882,13 +2142,22 @@ export function createDaemonActions(
             return false;
           }
           const safety = validatePatchSafety(content, patched);
-          if (!safety.safe) { log(`SAFETY REJECT: ${safety.reason}`); advanceCandidate(bb); return false; }
-          if (isContaminatedEdit(patched)) { advanceCandidate(bb); return false; }
+          if (!safety.safe) {
+            log(`SAFETY REJECT: ${safety.reason}`);
+            advanceCandidate(bb);
+            return false;
+          }
+          if (isContaminatedEdit(patched)) {
+            advanceCandidate(bb);
+            return false;
+          }
           host.writeFile(file, patched);
           bb.fileEdited = true;
           log(`Applied ${applied} lint fixes to ${file.split(/[/\\]/).pop()}`);
           return true;
-        } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
+        } catch (err: unknown) {
+          log(`LLM error: ${(err as Error).message}`);
+        }
         advanceCandidate(bb);
         return false;
       }
@@ -1905,11 +2174,16 @@ export function createDaemonActions(
             // Check if preceding line has JSDoc
             const prev = i > 0 ? lines[i - 1].trim() : '';
             if (!prev.endsWith('*/')) {
-              undocumented.push(`${file}(${i + 1}): missing JSDoc for: ${line.trim().slice(0, 80)}`);
+              undocumented.push(
+                `${file}(${i + 1}): missing JSDoc for: ${line.trim().slice(0, 80)}`
+              );
             }
           }
         }
-        if (undocumented.length === 0) { advanceCandidate(bb); return false; }
+        if (undocumented.length === 0) {
+          advanceCandidate(bb);
+          return false;
+        }
 
         const systemPrompt = getDaemonSystemPrompt('typefix', promptContext);
         const docsPrompt = [
@@ -1929,22 +2203,61 @@ export function createDaemonActions(
         ].join('\n');
 
         try {
-          const result = await llm.chat({ system: systemPrompt, prompt: docsPrompt, maxTokens: 4096 });
+          const result = await llm.chat({
+            system: systemPrompt,
+            prompt: docsPrompt,
+            maxTokens: 4096,
+          });
           bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
           bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
-          ctx.emit('economy:spend', { agentId: 'daemon', amount: trackSpend(result.inputTokens, result.outputTokens), reason: 'generate_fix:docs', inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+          ctx.emit('economy:spend', {
+            agentId: 'daemon',
+            amount: trackSpend(result.inputTokens, result.outputTokens),
+            reason: 'generate_fix:docs',
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
+          });
           const patchResponse = parsePatchResponse(result.text);
-          if (!patchResponse || patchResponse.patches.length === 0) { advanceCandidate(bb); return false; }
+          if (!patchResponse || patchResponse.patches.length === 0) {
+            advanceCandidate(bb);
+            return false;
+          }
           if (patchResponse.analysis) log(`Analysis: ${patchResponse.analysis.slice(0, 200)}`);
           const { result: patched, applied } = applyPatches(content, patchResponse.patches);
-          if (applied === 0) { advanceCandidate(bb); return false; }
+          if (applied === 0) {
+            advanceCandidate(bb);
+            return false;
+          }
           const safety = validatePatchSafety(content, patched);
-          if (!safety.safe) { log(`SAFETY REJECT: ${safety.reason}`); advanceCandidate(bb); return false; }
-          if (isContaminatedEdit(patched)) { advanceCandidate(bb); return false; }
+          if (!safety.safe) {
+            log(`SAFETY REJECT: ${safety.reason}`);
+            advanceCandidate(bb);
+            return false;
+          }
+          if (isContaminatedEdit(patched)) {
+            advanceCandidate(bb);
+            return false;
+          }
 
           // Docs-specific guard: verify only comment lines were added (no code changes)
-          const origCode = content.split('\n').filter(l => !l.trim().startsWith('*') && !l.trim().startsWith('/**') && !l.trim().startsWith('*/') && l.trim() !== '');
-          const patchedCode = patched.split('\n').filter(l => !l.trim().startsWith('*') && !l.trim().startsWith('/**') && !l.trim().startsWith('*/') && l.trim() !== '');
+          const origCode = content
+            .split('\n')
+            .filter(
+              (l) =>
+                !l.trim().startsWith('*') &&
+                !l.trim().startsWith('/**') &&
+                !l.trim().startsWith('*/') &&
+                l.trim() !== ''
+            );
+          const patchedCode = patched
+            .split('\n')
+            .filter(
+              (l) =>
+                !l.trim().startsWith('*') &&
+                !l.trim().startsWith('/**') &&
+                !l.trim().startsWith('*/') &&
+                l.trim() !== ''
+            );
           if (origCode.join('\n') !== patchedCode.join('\n')) {
             log(`DOCS SAFETY: LLM changed code lines, not just comments. Rejecting.`);
             advanceCandidate(bb);
@@ -1955,7 +2268,9 @@ export function createDaemonActions(
           bb.fileEdited = true;
           log(`Applied docs to ${file.split(/[/\\]/).pop()}`);
           return true;
-        } catch (err: unknown) { log(`LLM error: ${(err as Error).message}`); }
+        } catch (err: unknown) {
+          log(`LLM error: ${(err as Error).message}`);
+        }
         advanceCandidate(bb);
         return false;
       }
@@ -1970,15 +2285,14 @@ export function createDaemonActions(
       const baseName = file.split(/[/\\]/).pop() || '';
 
       // Prefer exact path match from diagnose, fall back to basename match from verify
-      const fileErrors = perFileErrors[file]
-        || perFileErrors[file.replace(/\\/g, '/')]
-        || compileErrors.filter(e => {
+      const fileErrors =
+        perFileErrors[file] ||
+        perFileErrors[file.replace(/\\/g, '/')] ||
+        compileErrors.filter((e) => {
           const m = e.match(/^(.+?)\(\d+,\d+\):/);
           return m && m[1].replace(/\\/g, '/') === file.replace(/\\/g, '/');
         });
-      const errorContext = fileErrors.length > 0
-        ? fileErrors.join('\n')
-        : '';
+      const errorContext = fileErrors.length > 0 ? fileErrors.join('\n') : '';
 
       // Skip LLM call entirely if no errors belong to this file — saves tokens
       if (!errorContext) {
@@ -1999,8 +2313,10 @@ export function createDaemonActions(
       // Investigate error symbols before building the prompt
       const investigations = investigateSymbols(errorContext, content, file, host, config.repoRoot);
       if (investigations.length > 0) {
-        bb.symbolsTargeted = investigations.map(i => i.symbol);
-        log(`Investigated ${investigations.length} symbols: ${investigations.map(i => i.symbol).join(', ')}`);
+        bb.symbolsTargeted = investigations.map((i) => i.symbol);
+        log(
+          `Investigated ${investigations.length} symbols: ${investigations.map((i) => i.symbol).join(', ')}`
+        );
       }
 
       // Build prompt — include related file content for coordinated patches
@@ -2015,12 +2331,15 @@ export function createDaemonActions(
       // Error-focused context: only the lines around each error (±10 lines).
       // This steers the LLM to patch the exact failing span instead of making
       // unrelated changes across the whole file.
-      const focusedCtx = buildErrorFocusedContext(content, fileErrors.length > 0 ? fileErrors : errorContext.split('\n'));
+      const focusedCtx = buildErrorFocusedContext(
+        content,
+        fileErrors.length > 0 ? fileErrors : errorContext.split('\n')
+      );
       promptParts.push(
         '',
         '=== ERROR-FOCUSED CONTEXT (error lines ± 10 lines each) ===',
         'Your patches MUST target the lines marked with ← ERROR.',
-        focusedCtx,
+        focusedCtx
       );
 
       // Inject wisdom context if this file has been attempted before
@@ -2030,7 +2349,7 @@ export function createDaemonActions(
           '=== PRIOR ATTEMPTS ON THIS FILE ===',
           'The daemon has already attempted fixes on this file. Avoid repeating the same approach:',
           ...priorWisdom,
-          '',
+          ''
         );
       }
 
@@ -2047,7 +2366,7 @@ export function createDaemonActions(
           '',
           '=== EXTERNAL PACKAGE TYPE DEFINITIONS ===',
           'Use these type definitions to ensure correct usage of external APIs:',
-          docsContext,
+          docsContext
         );
       }
 
@@ -2055,7 +2374,9 @@ export function createDaemonActions(
       // but failed tests, include the test file content and failure output.
       // This lets the LLM understand what the tests expect and produce a fix
       // that satisfies BOTH type safety AND test assertions.
-      const testCtx = bb.testFailureContext as { testFile: string; testContent: string; failOutput: string } | undefined;
+      const testCtx = bb.testFailureContext as
+        | { testFile: string; testContent: string; failOutput: string }
+        | undefined;
       if (testCtx) {
         promptParts.push(
           '',
@@ -2068,16 +2389,12 @@ export function createDaemonActions(
           testCtx.testContent,
           '',
           'Test failure output:',
-          testCtx.failOutput,
+          testCtx.failOutput
         );
         log(`Test-aware: injected ${testCtx.testFile.split('/').pop()} context into prompt`);
       }
 
-      promptParts.push(
-        '',
-        `Full source reference (${content.split('\n').length} lines):`,
-        content,
-      );
+      promptParts.push('', `Full source reference (${content.split('\n').length} lines):`, content);
 
       // Add related files (base classes, type definitions)
       if (relatedFiles.length > 0) {
@@ -2087,20 +2404,33 @@ export function createDaemonActions(
             '',
             `Related file (${rf.relation}): ${rf.path}`,
             `Source (${rf.content.split('\n').length} lines):`,
-            rf.content,
+            rf.content
           );
         }
-        promptParts.push('', 'NOTE: To patch a related file, add "file": "<path>" to the patch object. Patches without a "file" field apply to the primary file.');
+        promptParts.push(
+          '',
+          'NOTE: To patch a related file, add "file": "<path>" to the patch object. Patches without a "file" field apply to the primary file.'
+        );
       }
 
       const prompt = promptParts.join('\n');
 
       try {
-        const result = await llm.chat({ system: systemPrompt, prompt, maxTokens: relatedFiles.length > 0 ? 6144 : 4096 });
+        const result = await llm.chat({
+          system: systemPrompt,
+          prompt,
+          maxTokens: relatedFiles.length > 0 ? 6144 : 4096,
+        });
         bb.inputTokens = ((bb.inputTokens as number) || 0) + result.inputTokens;
         bb.outputTokens = ((bb.outputTokens as number) || 0) + result.outputTokens;
         const typefixSpendCost = trackSpend(result.inputTokens, result.outputTokens);
-        ctx.emit('economy:spend', { agentId: 'daemon', amount: typefixSpendCost, reason: `generate_fix:${focus}`, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
+        ctx.emit('economy:spend', {
+          agentId: 'daemon',
+          amount: typefixSpendCost,
+          reason: `generate_fix:${focus}`,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+        });
 
         // Parse structured response
         const patchResponse = parsePatchResponse(result.text);
@@ -2121,7 +2451,7 @@ export function createDaemonActions(
         }
 
         // Group patches by file (multi-file support)
-        const primaryPatches = patchResponse.patches.filter(p => !p.file);
+        const primaryPatches = patchResponse.patches.filter((p) => !p.file);
         const relatedPatchGroups = new Map<string, Patch[]>();
         for (const p of patchResponse.patches) {
           if (p.file) {
@@ -2133,7 +2463,14 @@ export function createDaemonActions(
 
         // Apply primary file patches
         let totalApplied = 0;
-        const { result: patched, applied, failed } = applyPatches(content, primaryPatches.length > 0 ? primaryPatches : patchResponse.patches.filter(p => !p.file));
+        const {
+          result: patched,
+          applied,
+          failed,
+        } = applyPatches(
+          content,
+          primaryPatches.length > 0 ? primaryPatches : patchResponse.patches.filter((p) => !p.file)
+        );
         totalApplied += applied;
 
         if (applied === 0 && relatedPatchGroups.size === 0) {
@@ -2143,7 +2480,9 @@ export function createDaemonActions(
           return false;
         }
         if (failed.length > 0) {
-          log(`${applied}/${primaryPatches.length || patchResponse.patches.length} patches applied (${failed.length} failed) in ${baseName}`);
+          log(
+            `${applied}/${primaryPatches.length || patchResponse.patches.length} patches applied (${failed.length} failed) in ${baseName}`
+          );
         }
 
         // Safety validation — reject destructive edits
@@ -2165,13 +2504,18 @@ export function createDaemonActions(
         for (const [relPath, relPatches] of relatedPatchGroups) {
           // Match exact path first, then allow repo-relative suffix matching.
           const requestedPath = normalizeRepoPath(relPath);
-          const rf = relatedFiles.find(r => {
+          const rf = relatedFiles.find((r) => {
             const candidatePath = normalizeRepoPath(r.path);
-            return candidatePath === requestedPath
-              || candidatePath.endsWith(`/${requestedPath}`)
-              || requestedPath.endsWith(`/${candidatePath}`);
+            return (
+              candidatePath === requestedPath ||
+              candidatePath.endsWith(`/${requestedPath}`) ||
+              requestedPath.endsWith(`/${candidatePath}`)
+            );
           });
-          if (!rf) { log(`Related file ${relPath} not found, skipping its patches`); continue; }
+          if (!rf) {
+            log(`Related file ${relPath} not found, skipping its patches`);
+            continue;
+          }
           const { result: relPatched, applied: relApplied } = applyPatches(rf.content, relPatches);
           if (relApplied > 0) {
             const relSafety = validatePatchSafety(rf.content, relPatched);
@@ -2187,10 +2531,12 @@ export function createDaemonActions(
         if (applied > 0) host.writeFile(file, patched);
         for (const edit of relatedEdits) host.writeFile(edit.path, edit.patched);
         // Track related files for rollback
-        bb.relatedEdits = relatedEdits.map(e => ({ path: e.path, original: e.original }));
+        bb.relatedEdits = relatedEdits.map((e) => ({ path: e.path, original: e.original }));
 
         bb.fileEdited = true;
-        log(`Applied ${totalApplied} patches to ${baseName}${relatedEdits.length > 0 ? ` + ${relatedEdits.length} related file(s)` : ''}`);
+        log(
+          `Applied ${totalApplied} patches to ${baseName}${relatedEdits.length > 0 ? ` + ${relatedEdits.length} related file(s)` : ''}`
+        );
         return true;
       } catch (err: unknown) {
         log(`LLM error: ${(err as Error).message}`);
@@ -2203,10 +2549,11 @@ export function createDaemonActions(
     // for the BT condition node to decide commit vs rollback path.
     verify_compilation: async (_params, bb) => {
       const result = await host.exec('npx', tscCheckArgs(config.stateDir), {
-        cwd: config.repoRoot, timeoutMs: 120_000,
+        cwd: config.repoRoot,
+        timeoutMs: 120_000,
       });
       const errorOutput = result.stdout + result.stderr;
-      const errors = errorOutput.split('\n').filter(l => /error TS\d{4}:/.test(l));
+      const errors = errorOutput.split('\n').filter((l) => /error TS\d{4}:/.test(l));
       bb.compileErrors = errors.slice(0, 20);
 
       // File-local error delta: must be computed BEFORE compilation_passed for non-typefix modes.
@@ -2217,21 +2564,24 @@ export function createDaemonActions(
         fileErrorsAfterCount = countFileErrors(errorOutput, candidateFile);
         bb.fileErrorsAfter = fileErrorsAfterCount;
         if (fileErrorsBeforeCount !== fileErrorsAfterCount) {
-          log(`File-local errors: ${fileErrorsBeforeCount} → ${fileErrorsAfterCount} (delta: ${fileErrorsAfterCount - fileErrorsBeforeCount})`);
+          log(
+            `File-local errors: ${fileErrorsBeforeCount} → ${fileErrorsAfterCount} (delta: ${fileErrorsAfterCount - fileErrorsBeforeCount})`
+          );
         }
       }
 
       // compilation_passed: typefix checks global count; other modes only check for file-local regressions.
       // In non-typefix modes bb.typeErrorCount is 0 (lint count), so comparing against global tsc errors
       // (~3500) would always fail — we gate on file-local delta instead.
-      const isTypefixFocus = !config.cycleFocus || config.cycleFocus === 'typefix' || config.cycleFocus === 'all';
+      const isTypefixFocus =
+        !config.cycleFocus || config.cycleFocus === 'typefix' || config.cycleFocus === 'all';
       if (isTypefixFocus) {
         // CRITICAL: Count only scoped errors (packages/core|studio/src/) to match diagnose baseline.
         // Raw `errors` includes ALL repo errors (~3500) but baseline is scoped (~1490).
         const scopeFilterStr = (bb.scopeFilter as string) || '';
         const thisScopeFilter = scopeFilterStr ? new RegExp(scopeFilterStr) : undefined;
         const scopedErrors = thisScopeFilter
-          ? errors.filter(l => thisScopeFilter.test(l))
+          ? errors.filter((l) => thisScopeFilter.test(l))
           : errors;
         const baseline = (bb.typeErrorCount as number) ?? Infinity;
         bb.compilation_passed = scopedErrors.length === 0 || scopedErrors.length <= baseline;
@@ -2244,24 +2594,29 @@ export function createDaemonActions(
       }
 
       if (candidateFile) {
-
         // Multi-file delta: include candidate + any related files that were edited.
         const relatedEdits = (bb.relatedEdits as { path: string }[] | undefined) || [];
         const perFileErrors = (bb.perFileErrors as Record<string, string[]>) || {};
-        const touchedFiles = [candidateFile, ...relatedEdits.map(e => e.path)];
+        const touchedFiles = [candidateFile, ...relatedEdits.map((e) => e.path)];
         const touchedBefore = touchedFiles.reduce((sum, f) => {
           const normalized = normalizeRepoPath(f);
-          const errs = perFileErrors[normalized]
-            || perFileErrors[f]
-            || perFileErrors[f.replace(/\\/g, '/')]
-            || [];
+          const errs =
+            perFileErrors[normalized] ||
+            perFileErrors[f] ||
+            perFileErrors[f.replace(/\\/g, '/')] ||
+            [];
           return sum + errs.length;
         }, 0);
-        const touchedAfter = touchedFiles.reduce((sum, f) => sum + countFileErrors(errorOutput, f), 0);
+        const touchedAfter = touchedFiles.reduce(
+          (sum, f) => sum + countFileErrors(errorOutput, f),
+          0
+        );
         bb.touchedErrorsBefore = touchedBefore;
         bb.touchedErrorsAfter = touchedAfter;
         if (touchedBefore !== touchedAfter) {
-          log(`Touched-file errors: ${touchedBefore} → ${touchedAfter} (delta: ${touchedAfter - touchedBefore})`);
+          log(
+            `Touched-file errors: ${touchedBefore} → ${touchedAfter} (delta: ${touchedAfter - touchedBefore})`
+          );
         }
       }
 
@@ -2304,14 +2659,18 @@ export function createDaemonActions(
           const relatedFiles = await resolveRelatedFiles(content, file, host, '', config.repoRoot);
           for (const rel of relatedFiles) {
             for (const typeName of typeRefs) {
-              const defRegex = new RegExp(`(export\\s+)?(interface|type|class)\\s+${typeName}[\\s{<]`);
+              const defRegex = new RegExp(
+                `(export\\s+)?(interface|type|class)\\s+${typeName}[\\s{<]`
+              );
               if (defRegex.test(rel.content)) {
                 // Extract the definition (up to 15 lines)
                 const lines = rel.content.split('\n');
                 for (let i = 0; i < lines.length; i++) {
                   if (defRegex.test(lines[i])) {
                     const defLines = lines.slice(i, i + 15).join('\n');
-                    enrichedErrors.push(`\n// Type definition for ${typeName} (from ${rel.path.split('/').pop()}):\n${defLines}`);
+                    enrichedErrors.push(
+                      `\n// Type definition for ${typeName} (from ${rel.path.split('/').pop()}):\n${defLines}`
+                    );
                     break;
                   }
                 }
@@ -2319,7 +2678,9 @@ export function createDaemonActions(
             }
           }
         }
-      } catch { /* type resolution failed, continue with original errors */ }
+      } catch {
+        /* type resolution failed, continue with original errors */
+      }
 
       bb.compileErrors = enrichedErrors;
       // Invoke generate_fix with the enriched compile error context
@@ -2339,7 +2700,7 @@ export function createDaemonActions(
         normalized.replace(/\.ts$/, '.spec.ts').replace(/\/src\//, '/src/__tests__/'),
       ];
 
-      const testFile = testCandidates.find(t => host.exists(t));
+      const testFile = testCandidates.find((t) => host.exists(t));
 
       if (!testFile) {
         // No test file exists — pass (don't block fixes on missing tests)
@@ -2348,9 +2709,14 @@ export function createDaemonActions(
         return true;
       }
 
-      const result = await host.exec('npx', ['vitest', 'run', '--no-color', '--passWithNoTests', testFile], {
-        cwd: config.repoRoot, timeoutMs: 120_000,
-      });
+      const result = await host.exec(
+        'npx',
+        ['vitest', 'run', '--no-color', '--passWithNoTests', testFile],
+        {
+          cwd: config.repoRoot,
+          timeoutMs: 120_000,
+        }
+      );
       bb.tests_passed = result.code === 0;
       log(`Tests: ${bb.tests_passed ? 'PASS' : 'FAIL'} (${testFile.split('/').pop()})`);
 
@@ -2362,14 +2728,20 @@ export function createDaemonActions(
           const testContent = host.readFile(testFile);
           // Extract just the failing test output (last 80 lines, avoid noise)
           const failOutput = (result.stdout + '\n' + result.stderr)
-            .split('\n').slice(-80).join('\n');
+            .split('\n')
+            .slice(-80)
+            .join('\n');
           bb.testFailureContext = {
             testFile,
             testContent: testContent.slice(0, 4000), // Cap at 4K chars
             failOutput: failOutput.slice(0, 2000),
           };
-          log(`Test-aware: captured ${testFile.split('/').pop()} (${testContent.split('\n').length} lines) for retry context`);
-        } catch { /* test file unreadable, skip context */ }
+          log(
+            `Test-aware: captured ${testFile.split('/').pop()} (${testContent.split('\n').length} lines) for retry context`
+          );
+        } catch {
+          /* test file unreadable, skip context */
+        }
       } else {
         bb.testFailureContext = undefined;
       }
@@ -2381,15 +2753,23 @@ export function createDaemonActions(
     validate_quality: async (_params, bb, ctx) => {
       // Use persistent baseline from config (historical reference, e.g. 3506).
       // Fall back to cycle-level baseline, then to per-diagnosis count.
-      const baselineErrors = config.typeErrorBaseline
-        || (bb.typeErrorBaseline as number)
-        || (bb.typeErrorCount as number)
-        || undefined;
+      const baselineErrors =
+        config.typeErrorBaseline ||
+        (bb.typeErrorBaseline as number) ||
+        (bb.typeErrorCount as number) ||
+        undefined;
       // Scope quality scoring to packages the daemon works on (avoids counting
       // errors from examples/, marketplace-web/, etc. that inflate the denominator).
       const scopeFilter = /packages\/(core|studio)\/src\//;
       const focus = config.cycleFocus || (bb.focus as string) || 'typefix';
-      const result = await computeQuality(host, config.repoRoot, config.stateDir, baselineErrors, scopeFilter, focus);
+      const result = await computeQuality(
+        host,
+        config.repoRoot,
+        config.stateDir,
+        baselineErrors,
+        scopeFilter,
+        focus
+      );
       const qualityBefore = config.qualityBefore ?? (bb.quality_before as number) ?? 0;
 
       bb.quality_after = result.score;
@@ -2413,22 +2793,31 @@ export function createDaemonActions(
       const touchedAfter = (bb.touchedErrorsAfter as number) ?? 0;
       const touchedErrorsReduced = touchedBefore > 0 && touchedAfter < touchedBefore;
 
-      bb.quality_improved = result.score > qualityBefore || errorsReduced || fileErrorsReduced || touchedErrorsReduced;
+      bb.quality_improved =
+        result.score > qualityBefore || errorsReduced || fileErrorsReduced || touchedErrorsReduced;
 
       // Emit quality metrics to @feedback_loop trait (native telemetry pipeline)
       ctx.emit('feedback:update_metric', { name: 'quality_score', value: result.score });
 
       if (errorsReduced) {
-        log(`Error count reduced: ${errorsAtDiagnosis} → ${result.typeErrors} (committing even without quality delta)`);
+        log(
+          `Error count reduced: ${errorsAtDiagnosis} → ${result.typeErrors} (committing even without quality delta)`
+        );
       }
       if (fileErrorsReduced) {
-        log(`File-local errors reduced: ${fileBefore} → ${fileAfter} (committing on file-level improvement)`);
+        log(
+          `File-local errors reduced: ${fileBefore} → ${fileAfter} (committing on file-level improvement)`
+        );
       }
       if (touchedErrorsReduced) {
-        log(`Touched-file errors reduced: ${touchedBefore} → ${touchedAfter} (committing on multi-file improvement)`);
+        log(
+          `Touched-file errors reduced: ${touchedBefore} → ${touchedAfter} (committing on multi-file improvement)`
+        );
       }
-      log(`Quality: ${qualityBefore.toFixed(3)} -> ${result.score.toFixed(3)} | ` +
-        `types: ${result.typeErrors} errors | tests: ${result.testsPassed}/${result.testsTotal} passed`);
+      log(
+        `Quality: ${qualityBefore.toFixed(3)} -> ${result.score.toFixed(3)} | ` +
+          `types: ${result.typeErrors} errors | tests: ${result.testsPassed}/${result.testsTotal} passed`
+      );
       return bb.quality_improved as boolean;
     },
 
@@ -2447,7 +2836,8 @@ export function createDaemonActions(
         const file = bb.currentCandidate as string;
         const testFile = bb.generatedTestFile as string | undefined;
         if (file) await host.exec('git', ['checkout', '--', file], { cwd: config.repoRoot });
-        if (testFile) await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
+        if (testFile)
+          await host.exec('git', ['checkout', '--', testFile], { cwd: config.repoRoot });
         bb.generatedTestFile = undefined;
         advanceCandidate(bb);
         return true;
@@ -2459,19 +2849,26 @@ export function createDaemonActions(
 
       // Multi-agent safety: if another agent has staged files, stash them
       // so our commit only includes the daemon's own edits.
-      const preStagedResult = await host.exec('git', ['diff', '--cached', '--name-only'], { cwd: config.repoRoot });
-      const previouslyStaged = (preStagedResult.stdout || '').split('\n').map(f => f.trim()).filter(Boolean);
+      const preStagedResult = await host.exec('git', ['diff', '--cached', '--name-only'], {
+        cwd: config.repoRoot,
+      });
+      const previouslyStaged = (preStagedResult.stdout || '')
+        .split('\n')
+        .map((f) => f.trim())
+        .filter(Boolean);
       if (previouslyStaged.length > 0) {
-        log(`Multi-agent guard: ${previouslyStaged.length} files already staged by another agent — stashing`);
-        await host.exec('git', ['stash', 'push', '--staged', '-m', 'daemon-commit-guard'], { cwd: config.repoRoot });
+        log(
+          `Multi-agent guard: ${previouslyStaged.length} files already staged by another agent — stashing`
+        );
+        await host.exec('git', ['stash', 'push', '--staged', '-m', 'daemon-commit-guard'], {
+          cwd: config.repoRoot,
+        });
       }
 
       // Stage modified/created files
-      const filesToAdd = Array.from(new Set([
-        file,
-        ...(testFile ? [testFile] : []),
-        ...relatedEdits.map(e => e.path),
-      ]));
+      const filesToAdd = Array.from(
+        new Set([file, ...(testFile ? [testFile] : []), ...relatedEdits.map((e) => e.path)])
+      );
       for (const f of filesToAdd) {
         const addResult = await host.exec('git', ['add', f], { cwd: config.repoRoot });
         if (addResult.code !== 0) {
@@ -2482,9 +2879,9 @@ export function createDaemonActions(
       const baseName = file.split(/[/\\]/).pop() || file;
       const commitType = focus === 'coverage' ? 'test' : focus === 'docs' ? 'docs' : 'fix';
       const msg = `${commitType}(${focus}): auto-fix ${baseName} [daemon]`;
-      const result = await host.exec('git', [
-        'commit', '--no-verify', '-m', `"${msg}"`,
-      ], { cwd: config.repoRoot });
+      const result = await host.exec('git', ['commit', '--no-verify', '-m', `"${msg}"`], {
+        cwd: config.repoRoot,
+      });
       bb.committed = result.code === 0;
 
       // Multi-agent safety: restore other agent's staged work
@@ -2497,40 +2894,54 @@ export function createDaemonActions(
       } else {
         committedFiles.add(file.replace(/\\/g, '/'));
         // Extract commit SHA for provenance
-        const shaResult = await host.exec('git', ['rev-parse', '--short', 'HEAD'], { cwd: config.repoRoot });
+        const shaResult = await host.exec('git', ['rev-parse', '--short', 'HEAD'], {
+          cwd: config.repoRoot,
+        });
         const commitSha = shaResult.code === 0 ? shaResult.stdout.trim() : undefined;
         log(`Commit: OK (${commitSha || 'unknown SHA'})`);
 
         // Reward via @economy trait: task_completion_reward from composition config
-        const reward = config.economyConfig?.task_completion_reward ?? 0.10;
+        const reward = config.economyConfig?.task_completion_reward ?? 0.1;
         ctx.emit('economy:earn', { agentId: 'daemon', amount: reward, reason: 'task_completion' });
 
         // Record fix provenance
-        recordProvenance({
-          timestamp: new Date().toISOString(),
-          candidate: file,
-          focus,
-          errorsBefore: (bb.typeErrorCount as number) || 0,
-          errorsAfter: (bb.quality_typeErrors as number) || 0,
-          fileErrorsBefore: (bb.fileErrorsBefore as number) || 0,
-          fileErrorsAfter: (bb.fileErrorsAfter as number) || 0,
-          symbolsTargeted: (bb.symbolsTargeted as string[]) || [],
-          relatedFilesTouched: (bb.relatedEdits as { path: string }[] || []).map(e => e.path),
-          patchCount: 1,
-          commitSha,
-          result: 'committed',
-          // G.ARCH.002: Semantic error data
-          errorCategories: Array.isArray(bb.errorCategories) ? bb.errorCategories as string[] : undefined,
-          errorSymbols: Array.isArray(bb.errorSymbols) ? bb.errorSymbols as string[] : undefined,
-          dominantFailure: bb.dominantFailure as string | undefined,
-          sessionId: config.sessionId,
-        }, config.stateDir, host);
+        recordProvenance(
+          {
+            timestamp: new Date().toISOString(),
+            candidate: file,
+            focus,
+            errorsBefore: (bb.typeErrorCount as number) || 0,
+            errorsAfter: (bb.quality_typeErrors as number) || 0,
+            fileErrorsBefore: (bb.fileErrorsBefore as number) || 0,
+            fileErrorsAfter: (bb.fileErrorsAfter as number) || 0,
+            symbolsTargeted: (bb.symbolsTargeted as string[]) || [],
+            relatedFilesTouched: ((bb.relatedEdits as { path: string }[]) || []).map((e) => e.path),
+            patchCount: 1,
+            commitSha,
+            result: 'committed',
+            // G.ARCH.002: Semantic error data
+            errorCategories: Array.isArray(bb.errorCategories)
+              ? (bb.errorCategories as string[])
+              : undefined,
+            errorSymbols: Array.isArray(bb.errorSymbols)
+              ? (bb.errorSymbols as string[])
+              : undefined,
+            dominantFailure: bb.dominantFailure as string | undefined,
+            sessionId: config.sessionId,
+          },
+          config.stateDir,
+          host
+        );
 
         // Graph-RAG: cascade un-quarantine — if we just committed a root-cause file
         // (base class, shared type definition), re-enable quarantined files that
         // depend on it. This lets subclasses retry after their base class is fixed.
         const committedNorm = normalizeRepoPath(file);
-        const committedBase = committedNorm.split('/').pop()?.replace(/\.tsx?$/, '') || '';
+        const committedBase =
+          committedNorm
+            .split('/')
+            .pop()
+            ?.replace(/\.tsx?$/, '') || '';
         const unquarantined: string[] = [];
         for (const [quarantinedFile, count] of failureCounts) {
           if (count < quarantineThreshold) continue; // not quarantined
@@ -2539,7 +2950,8 @@ export function createDaemonActions(
             if (!host.exists(quarantinedFile)) continue;
             const qContent = host.readFile(quarantinedFile);
             // Check if the quarantined file imports or extends the committed file
-            const importsCommitted = qContent.includes(`'${committedBase}'`) ||
+            const importsCommitted =
+              qContent.includes(`'${committedBase}'`) ||
               qContent.includes(`"${committedBase}"`) ||
               qContent.includes(`/${committedBase}'`) ||
               qContent.includes(`/${committedBase}"`);
@@ -2548,10 +2960,14 @@ export function createDaemonActions(
               failureCounts.set(quarantinedFile, 0);
               unquarantined.push(quarantinedFile);
             }
-          } catch { /* skip unreadable */ }
+          } catch {
+            /* skip unreadable */
+          }
         }
         if (unquarantined.length > 0) {
-          log(`Cascade un-quarantine: ${unquarantined.length} files re-enabled after fixing ${baseName}`);
+          log(
+            `Cascade un-quarantine: ${unquarantined.length} files re-enabled after fixing ${baseName}`
+          );
           for (const f of unquarantined) {
             log(`  Re-enabled: ${f.split('/').pop()}`);
           }
@@ -2607,36 +3023,45 @@ export function createDaemonActions(
 
         // Record rollback provenance
         const focus = (bb.focus as string) || 'typefix';
-        const rollbackReason = (bb.compilation_passed === undefined)
-          ? 'stage_not_reached'
-          : !(bb.compilation_passed as boolean)
-            ? 'compilation_failed'
-            : !(bb.tests_passed as boolean)
-              ? 'tests_failed'
-              : !(bb.quality_improved as boolean)
-                ? 'no_quality_improvement'
-                : (bb.budget_exceeded as boolean)
-                  ? 'budget_exceeded'
-                  : 'unknown';
-        recordProvenance({
-          timestamp: new Date().toISOString(),
-          candidate: file,
-          focus,
-          errorsBefore: (bb.typeErrorCount as number) || 0,
-          errorsAfter: (bb.quality_typeErrors as number) || 0,
-          fileErrorsBefore: (bb.fileErrorsBefore as number) || 0,
-          fileErrorsAfter: (bb.fileErrorsAfter as number) || 0,
-          symbolsTargeted: (bb.symbolsTargeted as string[]) || [],
-          relatedFilesTouched: (relatedEdits || []).map(e => e.path),
-          patchCount: 1,
-          rollbackReason,
-          result: 'rolled_back',
-          // G.ARCH.002: Semantic error data
-          errorCategories: Array.isArray(bb.errorCategories) ? bb.errorCategories as string[] : undefined,
-          errorSymbols: Array.isArray(bb.errorSymbols) ? bb.errorSymbols as string[] : undefined,
-          dominantFailure: bb.dominantFailure as string | undefined,
-          sessionId: config.sessionId,
-        }, config.stateDir, host);
+        const rollbackReason =
+          bb.compilation_passed === undefined
+            ? 'stage_not_reached'
+            : !(bb.compilation_passed as boolean)
+              ? 'compilation_failed'
+              : !(bb.tests_passed as boolean)
+                ? 'tests_failed'
+                : !(bb.quality_improved as boolean)
+                  ? 'no_quality_improvement'
+                  : (bb.budget_exceeded as boolean)
+                    ? 'budget_exceeded'
+                    : 'unknown';
+        recordProvenance(
+          {
+            timestamp: new Date().toISOString(),
+            candidate: file,
+            focus,
+            errorsBefore: (bb.typeErrorCount as number) || 0,
+            errorsAfter: (bb.quality_typeErrors as number) || 0,
+            fileErrorsBefore: (bb.fileErrorsBefore as number) || 0,
+            fileErrorsAfter: (bb.fileErrorsAfter as number) || 0,
+            symbolsTargeted: (bb.symbolsTargeted as string[]) || [],
+            relatedFilesTouched: (relatedEdits || []).map((e) => e.path),
+            patchCount: 1,
+            rollbackReason,
+            result: 'rolled_back',
+            // G.ARCH.002: Semantic error data
+            errorCategories: Array.isArray(bb.errorCategories)
+              ? (bb.errorCategories as string[])
+              : undefined,
+            errorSymbols: Array.isArray(bb.errorSymbols)
+              ? (bb.errorSymbols as string[])
+              : undefined,
+            dominantFailure: bb.dominantFailure as string | undefined,
+            sessionId: config.sessionId,
+          },
+          config.stateDir,
+          host
+        );
       }
       bb.generatedTestFile = undefined;
       return true;
@@ -2667,8 +3092,8 @@ export function createDaemonActions(
       const testsTotal = (bb.quality_testsTotal as number) ?? '?';
       console.log(
         `[daemon] Cycle complete | quality: ${after.toFixed(3)} (${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) | ` +
-        `types: ${typeErrors} errors | tests: ${testsPassed}/${testsTotal} | ` +
-        `tokens: ${iTokens}i/${oTokens}o`,
+          `types: ${typeErrors} errors | tests: ${testsPassed}/${testsTotal} | ` +
+          `tokens: ${iTokens}i/${oTokens}o`
       );
       return true;
     },
@@ -2687,8 +3112,10 @@ export function createDaemonActions(
 
       if (delta !== 0 || bb.fileEdited) {
         // G.ARCH.002: Include semantic failure data in wisdom entries
-        const errorCategories = Array.isArray(bb.errorCategories) ? bb.errorCategories as string[] : [];
-        const errorSymbols = Array.isArray(bb.errorSymbols) ? bb.errorSymbols as string[] : [];
+        const errorCategories = Array.isArray(bb.errorCategories)
+          ? (bb.errorCategories as string[])
+          : [];
+        const errorSymbols = Array.isArray(bb.errorSymbols) ? (bb.errorSymbols as string[]) : [];
 
         wisdom.push({
           cycle: bb.cycleNumber,
@@ -2729,25 +3156,36 @@ export function createDaemonActions(
     // are registered via runtime.registerAction() to respond.
 
     'daemon:quality_heartbeat': async (_params, _bb, ctx) => {
-      const tsc = await host.exec('npx', tscCheckArgs(config.stateDir),
-        { cwd: config.repoRoot, timeoutMs: 120_000 });
-      const errors = (tsc.stdout + tsc.stderr).split('\n')
-        .filter(l => /error TS\d{4}:/.test(l)).length;
-      ctx.emit('daemon:raw_quality', { value: errors === 0 ? 1 : Math.max(0, 1 - errors / 3500), source: 'heartbeat' });
+      const tsc = await host.exec('npx', tscCheckArgs(config.stateDir), {
+        cwd: config.repoRoot,
+        timeoutMs: 120_000,
+      });
+      const errors = (tsc.stdout + tsc.stderr)
+        .split('\n')
+        .filter((l) => /error TS\d{4}:/.test(l)).length;
+      ctx.emit('daemon:raw_quality', {
+        value: errors === 0 ? 1 : Math.max(0, 1 - errors / 3500),
+        source: 'heartbeat',
+      });
       log(`Quality heartbeat: ${errors} type errors`);
       return true;
     },
 
     'daemon:test_watchdog': async (_params, _bb, ctx) => {
-      const test = await host.exec('npx',
+      const test = await host.exec(
+        'npx',
         ['vitest', 'run', '--reporter=json', '--no-color', '--passWithNoTests'],
-        { cwd: config.repoRoot, timeoutMs: 120_000 });
-      let passed = 0, total = 0;
+        { cwd: config.repoRoot, timeoutMs: 120_000 }
+      );
+      let passed = 0,
+        total = 0;
       try {
         const json = JSON.parse(test.stdout);
         total = json.numTotalTests || 0;
         passed = json.numPassedTests || 0;
-      } catch { /* parse failure */ }
+      } catch {
+        /* parse failure */
+      }
       ctx.emit('daemon:test_watchdog_result', { passed, total, exitCode: test.code });
       log(`Test watchdog: ${passed}/${total} passed`);
       return true;
@@ -2797,8 +3235,14 @@ export function createDaemonActions(
           runtime.emit('feedback:update_metric', { name: 'quality_score', value: p.qualityAfter });
         }
         if (typeof p?.costUSD === 'number' && typeof p?.qualityAfter === 'number') {
-          const efficiency = p.qualityAfter > 0 ? (p.qualityAfter as number) / Math.max(0.001, p.costUSD as number) : 0;
-          runtime.emit('feedback:update_metric', { name: 'cost_efficiency', value: Math.min(1, efficiency) });
+          const efficiency =
+            p.qualityAfter > 0
+              ? (p.qualityAfter as number) / Math.max(0.001, p.costUSD as number)
+              : 0;
+          runtime.emit('feedback:update_metric', {
+            name: 'cost_efficiency',
+            value: Math.min(1, efficiency),
+          });
         }
       });
     },

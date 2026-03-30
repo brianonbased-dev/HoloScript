@@ -22,7 +22,8 @@ import type { OTLPExporterConfig } from '@holoscript/core';
 export const observabilityTools: Tool[] = [
   {
     name: 'query_traces',
-    description: 'Query distributed trace spans by traceId, agent, or time range. Returns OTel-format spans for debugging agent orchestration.',
+    description:
+      'Query distributed trace spans by traceId, agent, or time range. Returns OTel-format spans for debugging agent orchestration.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -43,7 +44,8 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'export_traces_otlp',
-    description: 'Export collected trace spans to an OTLP/HTTP endpoint. Requires an endpoint URL. Returns export result with span count and status.',
+    description:
+      'Export collected trace spans to an OTLP/HTTP endpoint. Requires an endpoint URL. Returns export result with span count and status.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -61,7 +63,8 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'get_agent_health',
-    description: 'Get health status of registered agents including count, status breakdown, and telemetry stats.',
+    description:
+      'Get health status of registered agents including count, status breakdown, and telemetry stats.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -69,7 +72,8 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'get_metrics_prometheus',
-    description: 'Get all collected metrics in Prometheus exposition text format. Use for monitoring dashboards and alerting.',
+    description:
+      'Get all collected metrics in Prometheus exposition text format. Use for monitoring dashboards and alerting.',
     inputSchema: {
       type: 'object',
       properties: {

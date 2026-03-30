@@ -10,7 +10,14 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const filePath = resolve(
-  __dirname, '..', 'packages', 'studio', 'src', 'lib', 'presets', 'wizardTemplates.ts',
+  __dirname,
+  '..',
+  'packages',
+  'studio',
+  'src',
+  'lib',
+  'presets',
+  'wizardTemplates.ts'
 );
 
 let src = readFileSync(filePath, 'utf-8');
@@ -24,7 +31,7 @@ const dataPath = resolve(__dirname, 'hologram-templates-data.json');
 const data = JSON.parse(readFileSync(dataPath, 'utf-8'));
 
 function buildEntry(key, meta, code) {
-  const tagsStr = meta.tags.map(t => "'" + t + "'").join(', ');
+  const tagsStr = meta.tags.map((t) => "'" + t + "'").join(', ');
   return [
     '',
     "  '" + key + "': {",
@@ -39,9 +46,14 @@ function buildEntry(key, meta, code) {
   ].join('\n');
 }
 
-const sectionHeader = '\n  // ─── Hologram ─────────────────────────────────────────────────────────────────────\n';
+const sectionHeader =
+  '\n  // ─── Hologram ─────────────────────────────────────────────────────────────────────\n';
 
-const e1 = buildEntry('holographic-gallery', data['holographic-gallery'].meta, data['holographic-gallery'].code);
+const e1 = buildEntry(
+  'holographic-gallery',
+  data['holographic-gallery'].meta,
+  data['holographic-gallery'].code
+);
 const e2 = buildEntry('memory-wall', data['memory-wall'].meta, data['memory-wall'].code);
 const e3 = buildEntry('video-portal', data['video-portal'].meta, data['video-portal'].code);
 

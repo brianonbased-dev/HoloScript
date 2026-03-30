@@ -26,15 +26,15 @@ playcanvas-project/
 
 ## Trait Mapping
 
-| HoloScript Trait | PlayCanvas Component   |
-| ---------------- | ---------------------- |
-| `@physics`       | `pc.RigidBodyComponent` |
-| `@collidable`    | `pc.CollisionComponent` |
-| `@animated`      | `pc.AnimComponent`      |
-| `@networked`     | Custom sync script      |
-| `@grabbable`     | Drag script             |
+| HoloScript Trait | PlayCanvas Component      |
+| ---------------- | ------------------------- |
+| `@physics`       | `pc.RigidBodyComponent`   |
+| `@collidable`    | `pc.CollisionComponent`   |
+| `@animated`      | `pc.AnimComponent`        |
+| `@networked`     | Custom sync script        |
+| `@grabbable`     | Drag script               |
 | `@glowing`       | Emissive material + bloom |
-| `@billboard`     | `pc.BillboardComponent` |
+| `@billboard`     | `pc.BillboardComponent`   |
 
 ## Example
 
@@ -60,12 +60,12 @@ Compiles to a PlayCanvas scene with a drag-to-rotate 3D model viewer in under 30
 
 ## Compiler Options
 
-| Option               | Default | Description                                  |
-| -------------------- | ------- | -------------------------------------------- |
-| `--pc-version`       | latest  | PlayCanvas engine version                    |
-| `--pc-hosted`        | false   | Emit hosted CDN script tags instead of local |
-| `--pc-typescript`    | false   | Emit TypeScript scripts                      |
-| `--pc-physics`       | ammo    | Physics engine: `ammo` or `cannon`           |
+| Option            | Default | Description                                  |
+| ----------------- | ------- | -------------------------------------------- |
+| `--pc-version`    | latest  | PlayCanvas engine version                    |
+| `--pc-hosted`     | false   | Emit hosted CDN script tags instead of local |
+| `--pc-typescript` | false   | Emit TypeScript scripts                      |
+| `--pc-physics`    | ammo    | Physics engine: `ammo` or `cannon`           |
 
 ## See Also
 

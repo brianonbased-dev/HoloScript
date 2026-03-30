@@ -15,10 +15,18 @@ import type { ISoftBodyConfig, ISoftBodyState, IVector3 } from '../PhysicsTypes'
 // ── Test Mesh: Quad (2 triangles, 4 vertices) ────────────────────────────
 
 const QUAD_POSITIONS = new Float32Array([
-  0, 1, 0,   // v0 — top-left (pinned)
-  1, 1, 0,   // v1 — top-right (pinned)
-  1, 0, 0,   // v2 — bottom-right
-  0, 0, 0,   // v3 — bottom-left
+  0,
+  1,
+  0, // v0 — top-left (pinned)
+  1,
+  1,
+  0, // v1 — top-right (pinned)
+  1,
+  0,
+  0, // v2 — bottom-right
+  0,
+  0,
+  0, // v3 — bottom-left
 ]);
 
 const QUAD_INDICES = new Uint32Array([0, 1, 2, 0, 2, 3]);
@@ -53,7 +61,7 @@ function createGridConfig(gridSize: number = 3): ISoftBodyConfig {
       positions[i * 3] = x;
       positions[i * 3 + 1] = 2; // Start above ground
       positions[i * 3 + 2] = z;
-      masses[i] = (z === 0) ? 0 : 1; // Pin top row
+      masses[i] = z === 0 ? 0 : 1; // Pin top row
     }
   }
 
@@ -132,9 +140,11 @@ describe('PBDSolverCPU', () => {
     });
 
     it('pinned vertices (mass=0) do not move', () => {
-      const solver = new PBDSolverCPU(createQuadConfig({
-        gravity: { x: 0, y: -9.81, z: 0 },
-      }));
+      const solver = new PBDSolverCPU(
+        createQuadConfig({
+          gravity: { x: 0, y: -9.81, z: 0 },
+        })
+      );
 
       for (let i = 0; i < 60; i++) {
         solver.step(1 / 60);
@@ -152,9 +162,11 @@ describe('PBDSolverCPU', () => {
     });
 
     it('free vertices fall under gravity', () => {
-      const solver = new PBDSolverCPU(createQuadConfig({
-        gravity: { x: 0, y: -9.81, z: 0 },
-      }));
+      const solver = new PBDSolverCPU(
+        createQuadConfig({
+          gravity: { x: 0, y: -9.81, z: 0 },
+        })
+      );
 
       const initialY_v2 = QUAD_POSITIONS[7]; // v2.y = 0
       solver.step(1 / 60);
@@ -189,7 +201,10 @@ describe('PBDSolverCPU', () => {
 
       const states: ISoftBodyState[] = [];
       for (let i = 0; i < 10; i++) {
-        states.push({ ...solver.step(1 / 60), positions: new Float32Array(solver.getState().positions) });
+        states.push({
+          ...solver.step(1 / 60),
+          positions: new Float32Array(solver.getState().positions),
+        });
       }
 
       // Free vertices should progressively move
@@ -278,8 +293,8 @@ describe('PBDSolverCPU', () => {
 
       solver.applyImpulse(
         { x: 0.5, y: 0.5, z: 0 }, // Center of quad
-        { x: 10, y: 0, z: 0 },     // Push right
-        2.0,                         // Large radius (covers all vertices)
+        { x: 10, y: 0, z: 0 }, // Push right
+        2.0 // Large radius (covers all vertices)
       );
 
       solver.step(1 / 60);
@@ -295,11 +310,7 @@ describe('PBDSolverCPU', () => {
       const solver = new PBDSolverCPU(config);
 
       // Apply impulse near v0 (0,1,0)
-      solver.applyImpulse(
-        { x: 0, y: 1, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        1.0,
-      );
+      solver.applyImpulse({ x: 0, y: 1, z: 0 }, { x: 10, y: 0, z: 0 }, 1.0);
 
       const state = solver.getState();
       const v0_vx = state.velocities[0]; // v0 is at impulse center
@@ -309,11 +320,7 @@ describe('PBDSolverCPU', () => {
 
     it('does not affect pinned vertices (mass=0)', () => {
       const solver = new PBDSolverCPU(createQuadConfig()); // v0, v1 pinned
-      solver.applyImpulse(
-        { x: 0.5, y: 0.5, z: 0 },
-        { x: 100, y: 0, z: 0 },
-        5.0,
-      );
+      solver.applyImpulse({ x: 0.5, y: 0.5, z: 0 }, { x: 100, y: 0, z: 0 }, 5.0);
       const state = solver.getState();
       expect(state.velocities[0]).toBe(0); // v0 pinned
       expect(state.velocities[3]).toBe(0); // v1 pinned
@@ -324,9 +331,11 @@ describe('PBDSolverCPU', () => {
 
   describe('setActive', () => {
     it('inactive solver does not update on step', () => {
-      const solver = new PBDSolverCPU(createQuadConfig({
-        gravity: { x: 0, y: -9.81, z: 0 },
-      }));
+      const solver = new PBDSolverCPU(
+        createQuadConfig({
+          gravity: { x: 0, y: -9.81, z: 0 },
+        })
+      );
       solver.setActive(false);
 
       const before = new Float32Array(solver.getState().positions);
@@ -339,17 +348,19 @@ describe('PBDSolverCPU', () => {
     });
 
     it('reactivation resumes simulation', () => {
-      const solver = new PBDSolverCPU(createQuadConfig({
-        masses: new Float32Array([1, 1, 1, 1]),
-        gravity: { x: 0, y: -9.81, z: 0 },
-      }));
+      const solver = new PBDSolverCPU(
+        createQuadConfig({
+          masses: new Float32Array([1, 1, 1, 1]),
+          gravity: { x: 0, y: -9.81, z: 0 },
+        })
+      );
       solver.setActive(false);
       solver.step(1 / 60);
       solver.setActive(true);
       solver.step(1 / 60);
       const state = solver.getState();
       // Should have moved
-      expect(state.velocities.some(v => v !== 0)).toBe(true);
+      expect(state.velocities.some((v) => v !== 0)).toBe(true);
     });
   });
 
@@ -357,10 +368,12 @@ describe('PBDSolverCPU', () => {
 
   describe('reset', () => {
     it('restores positions to rest shape', () => {
-      const solver = new PBDSolverCPU(createQuadConfig({
-        masses: new Float32Array([1, 1, 1, 1]),
-        gravity: { x: 0, y: -9.81, z: 0 },
-      }));
+      const solver = new PBDSolverCPU(
+        createQuadConfig({
+          masses: new Float32Array([1, 1, 1, 1]),
+          gravity: { x: 0, y: -9.81, z: 0 },
+        })
+      );
 
       for (let i = 0; i < 60; i++) solver.step(1 / 60);
       solver.reset();
@@ -377,11 +390,13 @@ describe('PBDSolverCPU', () => {
 
   describe('ground collision', () => {
     it('vertices do not pass through y=0 ground plane', () => {
-      const solver = new PBDSolverCPU(createQuadConfig({
-        masses: new Float32Array([1, 1, 1, 1]), // All free
-        gravity: { x: 0, y: -9.81, z: 0 },
-        collisionMargin: 0.01,
-      }));
+      const solver = new PBDSolverCPU(
+        createQuadConfig({
+          masses: new Float32Array([1, 1, 1, 1]), // All free
+          gravity: { x: 0, y: -9.81, z: 0 },
+          collisionMargin: 0.01,
+        })
+      );
 
       for (let i = 0; i < 300; i++) solver.step(1 / 60);
 

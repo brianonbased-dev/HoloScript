@@ -24,12 +24,35 @@
  * Export target identifier (mirrors compiler/CircuitBreaker.ts)
  */
 export type ExportTarget =
-  | 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat'
-  | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'ar'
-  | 'babylon' | 'webgpu' | 'r3f' | 'wasm' | 'playcanvas'
-  | 'usd' | 'usdz' | 'dtdl' | 'vrr' | 'multi-layer'
-  | 'incremental' | 'state' | 'trait-composition' | 'tsl'
-  | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities';
+  | 'urdf'
+  | 'sdf'
+  | 'unity'
+  | 'unreal'
+  | 'godot'
+  | 'vrchat'
+  | 'openxr'
+  | 'android'
+  | 'android-xr'
+  | 'ios'
+  | 'visionos'
+  | 'ar'
+  | 'babylon'
+  | 'webgpu'
+  | 'r3f'
+  | 'wasm'
+  | 'playcanvas'
+  | 'usd'
+  | 'usdz'
+  | 'dtdl'
+  | 'vrr'
+  | 'multi-layer'
+  | 'incremental'
+  | 'state'
+  | 'trait-composition'
+  | 'tsl'
+  | 'a2a-agent-card'
+  | 'nir'
+  | 'openxr-spatial-entities';
 
 /**
  * Deployment environment.
@@ -477,14 +500,17 @@ export interface DeploymentConfig {
 
 /** Non-critical targets that can be disabled during degradation */
 const DEGRADABLE_TARGETS: ExportTarget[] = [
-  'tsl', 'a2a-agent-card', 'nir', 'openxr-spatial-entities',
-  'vrr', 'multi-layer', 'dtdl',
+  'tsl',
+  'a2a-agent-card',
+  'nir',
+  'openxr-spatial-entities',
+  'vrr',
+  'multi-layer',
+  'dtdl',
 ];
 
 /** Targets that are never disabled (core rendering pipeline) */
-const ESSENTIAL_TARGETS: ExportTarget[] = [
-  'r3f', 'webgpu', 'babylon', 'wasm',
-];
+const ESSENTIAL_TARGETS: ExportTarget[] = ['r3f', 'webgpu', 'babylon', 'wasm'];
 
 export const DEFAULT_DEGRADATION_CONFIG: DegradationConfig = {
   levels: [
@@ -519,14 +545,18 @@ export const DEFAULT_DEGRADATION_CONFIG: DegradationConfig = {
       serveStale: true,
       maxConcurrentCompilations: 4,
       rateLimitRps: 20,
-      clientMessage: 'System operating in reduced capacity. Only essential export targets available.',
+      clientMessage:
+        'System operating in reduced capacity. Only essential export targets available.',
     },
     {
       name: 'emergency',
       severity: 3,
-      disabledTargets: DEGRADABLE_TARGETS.concat(
-        ['unity', 'unreal', 'godot', 'playcanvas'] as ExportTarget[]
-      ),
+      disabledTargets: DEGRADABLE_TARGETS.concat([
+        'unity',
+        'unreal',
+        'godot',
+        'playcanvas',
+      ] as ExportTarget[]),
       enableCaching: true,
       cacheTtlMs: 24 * 60 * 60 * 1000,
       serveStale: true,
@@ -634,7 +664,8 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
     severity: 'critical',
     condition: 'holoscript_cb_circuit_state{target=~"r3f|webgpu|babylon"} == 1',
     forDurationMs: 60 * 1000,
-    messageTemplate: 'Circuit breaker OPEN for critical target {{ $labels.target }} in {{ $labels.environment }}',
+    messageTemplate:
+      'Circuit breaker OPEN for critical target {{ $labels.target }} in {{ $labels.environment }}',
     channels: ['slack-ops', 'pagerduty'],
     labels: { team: 'platform', component: 'circuit-breaker' },
     annotations: { runbook: 'https://holoscript.dev/runbooks/circuit-breaker-open' },
@@ -667,7 +698,8 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
     severity: 'page',
     condition: 'holoscript_cb_degradation_level >= 3',
     forDurationMs: 60 * 1000,
-    messageTemplate: 'EMERGENCY: System in emergency mode in {{ $labels.environment }}. Only essential targets available.',
+    messageTemplate:
+      'EMERGENCY: System in emergency mode in {{ $labels.environment }}. Only essential targets available.',
     channels: ['slack-ops', 'pagerduty', 'email-oncall'],
     labels: { team: 'platform', component: 'circuit-breaker', priority: 'P1' },
     annotations: { runbook: 'https://holoscript.dev/runbooks/emergency-mode' },
@@ -678,7 +710,8 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
     severity: 'warning',
     condition: 'histogram_quantile(0.95, holoscript_cb_compilation_duration_ms) > 5000',
     forDurationMs: 10 * 60 * 1000,
-    messageTemplate: 'P95 compilation latency {{ $value }}ms exceeds 5s threshold for {{ $labels.target }}',
+    messageTemplate:
+      'P95 compilation latency {{ $value }}ms exceeds 5s threshold for {{ $labels.target }}',
     channels: ['slack-ops'],
     labels: { team: 'platform', component: 'circuit-breaker' },
     annotations: { summary: 'Compilation performance degraded' },
@@ -714,7 +747,8 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
 
 export const DEFAULT_DASHBOARD: DashboardConfig = {
   name: 'HoloScript Circuit Breaker',
-  description: 'Production monitoring dashboard for the circuit breaker system across all export targets',
+  description:
+    'Production monitoring dashboard for the circuit breaker system across all export targets',
   tags: ['holoscript', 'circuit-breaker', 'production'],
   defaultTimeRange: { from: 'now-1h', to: 'now' },
   autoRefreshMs: 10000,
@@ -785,9 +819,7 @@ export const DEFAULT_DASHBOARD: DashboardConfig = {
       type: 'graph',
       queries: ['histogram_quantile(0.95, rate(holoscript_cb_compilation_duration_ms_bucket[5m]))'],
       position: { x: 8, y: 10, w: 7, h: 6 },
-      thresholds: [
-        { value: 5000, color: '#ef4444', label: 'SLA Breach' },
-      ],
+      thresholds: [{ value: 5000, color: '#ef4444', label: 'SLA Breach' }],
       refreshIntervalMs: 10000,
     },
 
@@ -912,7 +944,7 @@ export function createDeploymentConfig(
                 endpoint: process.env.OTEL_ENDPOINT || 'http://otel-collector:4318',
                 intervalMs: 30000,
                 headers: {
-                  'Authorization': `Bearer ${process.env.OTEL_TOKEN || ''}`,
+                  Authorization: `Bearer ${process.env.OTEL_TOKEN || ''}`,
                 },
                 batchSize: 1000,
                 compress: true,
@@ -924,9 +956,9 @@ export function createDeploymentConfig(
     },
 
     alerting: {
-      rules: isProduction ? DEFAULT_ALERT_RULES : DEFAULT_ALERT_RULES.filter(
-        (r) => r.severity === 'critical' || r.severity === 'page'
-      ),
+      rules: isProduction
+        ? DEFAULT_ALERT_RULES
+        : DEFAULT_ALERT_RULES.filter((r) => r.severity === 'critical' || r.severity === 'page'),
       channels: [
         {
           name: 'slack-ops',
@@ -1018,13 +1050,16 @@ export function createDeploymentConfig(
  */
 export class HealthCheckManager {
   private readonly probes: Map<string, HealthProbe> = new Map();
-  private readonly probeState: Map<string, {
-    consecutiveFailures: number;
-    consecutiveSuccesses: number;
-    lastResult: HealthCheckResult;
-    lastCheck: Date;
-    status: HealthStatus;
-  }> = new Map();
+  private readonly probeState: Map<
+    string,
+    {
+      consecutiveFailures: number;
+      consecutiveSuccesses: number;
+      lastResult: HealthCheckResult;
+      lastCheck: Date;
+      status: HealthStatus;
+    }
+  > = new Map();
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
   private readonly startTime: Date;
 
@@ -1216,9 +1251,11 @@ export class DegradationManager {
     // Apply hysteresis for recovery (require higher score to go back down)
     if (targetLevel < this.currentLevel) {
       const thresholdForCurrentLevel =
-        this.currentLevel === 3 ? this.config.thresholds.emergencyBelow :
-        this.currentLevel === 2 ? this.config.thresholds.severeBelow :
-        this.config.thresholds.degradedBelow;
+        this.currentLevel === 3
+          ? this.config.thresholds.emergencyBelow
+          : this.currentLevel === 2
+            ? this.config.thresholds.severeBelow
+            : this.config.thresholds.degradedBelow;
 
       if (healthScore < thresholdForCurrentLevel + this.config.recoveryMargin) {
         // Not enough margin to recover, stay at current level
@@ -1336,15 +1373,21 @@ export function formatDeploymentReport(config: DeploymentConfig): string {
   for (const probe of config.healthChecks) {
     lines.push(`  ${probe.name} (${probe.type})`);
     lines.push(`    Interval: ${probe.intervalMs}ms | Timeout: ${probe.timeoutMs}ms`);
-    lines.push(`    Failure Threshold: ${probe.failureThreshold} | Success Threshold: ${probe.successThreshold}`);
+    lines.push(
+      `    Failure Threshold: ${probe.failureThreshold} | Success Threshold: ${probe.successThreshold}`
+    );
   }
   lines.push('');
 
   lines.push('--- Degradation Levels ---');
   for (const level of config.degradation.levels) {
     lines.push(`  ${level.name} (severity ${level.severity})`);
-    lines.push(`    Disabled targets: ${level.disabledTargets.length > 0 ? level.disabledTargets.join(', ') : 'none'}`);
-    lines.push(`    Max concurrent: ${level.maxConcurrentCompilations} | Rate limit: ${level.rateLimitRps} rps`);
+    lines.push(
+      `    Disabled targets: ${level.disabledTargets.length > 0 ? level.disabledTargets.join(', ') : 'none'}`
+    );
+    lines.push(
+      `    Max concurrent: ${level.maxConcurrentCompilations} | Rate limit: ${level.rateLimitRps} rps`
+    );
   }
   lines.push('');
 

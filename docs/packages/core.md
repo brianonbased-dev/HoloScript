@@ -41,7 +41,7 @@ const ast = parser.parse(source);
 // Validate
 const diagnostics = validateAST(ast);
 if (diagnostics.errors.length > 0) {
-  diagnostics.errors.forEach(err => console.error(err.message));
+  diagnostics.errors.forEach((err) => console.error(err.message));
 }
 ```
 
@@ -52,10 +52,10 @@ import { getCompiler } from '@holoscript/core';
 
 const compiler = getCompiler('unity'); // Also: 'godot', 'webgpu', 'ros2', etc.
 const result = await compiler.compile(ast, {
-  optimize: 'balanced'
+  optimize: 'balanced',
 });
 
-console.log(result.code);  // C# code ready for Unity
+console.log(result.code); // C# code ready for Unity
 ```
 
 ### Query the AST
@@ -64,9 +64,7 @@ console.log(result.code);  // C# code ready for Unity
 import { walkAST, findObjects } from '@holoscript/core';
 
 // Find all objects with @grabbable trait
-const grabbable = findObjects(ast, (obj) => 
-  obj.traits.some(t => t.name === '@grabbable')
-);
+const grabbable = findObjects(ast, (obj) => obj.traits.some((t) => t.name === '@grabbable'));
 
 // Walk entire tree
 walkAST(ast, (node) => {
@@ -100,7 +98,7 @@ interface Template {
 interface HoloObject {
   type: 'object';
   name: string;
-  templateName?: string;  // 'using' keyword
+  templateName?: string; // 'using' keyword
   traits: Trait[];
   properties: Property[];
   events: EventHandler[];
@@ -108,8 +106,8 @@ interface HoloObject {
 
 // Trait (semantic annotation)
 interface Trait {
-  name: string;           // e.g., '@grabbable'
-  category: string;       // e.g., 'interaction'
+  name: string; // e.g., '@grabbable'
+  category: string; // e.g., 'interaction'
   params?: Record<string, any>;
 }
 ```
@@ -139,8 +137,8 @@ import { validateAST, validateNode } from '@holoscript/core';
 
 // Full validation
 const diagnostics = validateAST(ast);
-console.log(diagnostics.errors);      // Critical errors
-console.log(diagnostics.warnings);    // Non-critical
+console.log(diagnostics.errors); // Critical errors
+console.log(diagnostics.warnings); // Non-critical
 
 // Single node
 const nodeDiags = validateNode(ast, node);
@@ -157,7 +155,7 @@ const all = listTraits();
 // Get specific trait info
 const grabbable = getTrait('@grabbable');
 console.log(grabbable.description);
-console.log(grabbable.platforms);     // Where it's supported
+console.log(grabbable.platforms); // Where it's supported
 
 // Search by keyword
 const physics = searchTraits('physics');
@@ -166,12 +164,7 @@ const physics = searchTraits('physics');
 ### Compilation
 
 ```typescript
-import { 
-  compile, 
-  listCompilers, 
-  getCompiler,
-  CompileOptions 
-} from '@holoscript/core';
+import { compile, listCompilers, getCompiler, CompileOptions } from '@holoscript/core';
 
 // List available compilers
 console.log(listCompilers());
@@ -181,7 +174,7 @@ console.log(listCompilers());
 const options: CompileOptions = {
   target: 'webgpu',
   optimize: 'aggressive',
-  debugInfo: false
+  debugInfo: false,
 };
 
 const result = await compile(ast, options);
@@ -199,7 +192,7 @@ import { BaseCompiler } from '@holoscript/core';
 class MyLanguageCompiler extends BaseCompiler {
   compileObject(obj: HoloObject): string {
     let code = `object ${obj.name} {\n`;
-    obj.traits.forEach(t => {
+    obj.traits.forEach((t) => {
       code += `  apply_trait("${t.name}")\n`;
     });
     code += `}\n`;
@@ -220,7 +213,7 @@ import { transformAST, NodeTransformer } from '@holoscript/core';
 class AddGlowTransformer extends NodeTransformer {
   visitObject(obj: HoloObject) {
     // Add @glowing to all objects
-    if (!obj.traits.some(t => t.name === '@glowing')) {
+    if (!obj.traits.some((t) => t.name === '@glowing')) {
       obj.traits.push({ name: '@glowing', category: 'visual' });
     }
     return obj;

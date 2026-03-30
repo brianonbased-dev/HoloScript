@@ -29,13 +29,7 @@ export const attackPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Sword And Shield Attack',
     pack: 'Combat',
-    alternatives: [
-      'Punch',
-      'Kick',
-      'Slash',
-      'Great Sword Slash',
-      'Standing Melee Attack Downward',
-    ],
+    alternatives: ['Punch', 'Kick', 'Slash', 'Great Sword Slash', 'Standing Melee Attack Downward'],
   },
   tags: ['combat', 'melee', 'one-shot', 'action'],
 };
@@ -44,6 +38,4 @@ export const attackPreset: AnimationPreset = {
 // All Combat Presets
 // ---------------------------------------------------------------------------
 
-export const combatPresets: AnimationPreset[] = [
-  attackPreset,
-];
+export const combatPresets: AnimationPreset[] = [attackPreset];

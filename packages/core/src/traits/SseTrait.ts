@@ -25,7 +25,9 @@ export const sseHandler: TraitHandler<SseConfig> = {
   onAttach(node: any): void {
     node.__sseState = { clients: new Set<string>(), totalBroadcasts: 0 };
   },
-  onDetach(node: any): void { delete node.__sseState; },
+  onDetach(node: any): void {
+    delete node.__sseState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: SseConfig, context: any, event: any): void {
@@ -47,7 +49,10 @@ export const sseHandler: TraitHandler<SseConfig> = {
         context.emit?.('sse:sent', { event: event.event, clientCount: state.clients.size });
         break;
       case 'sse:get_status':
-        context.emit?.('sse:status', { clients: state.clients.size, totalBroadcasts: state.totalBroadcasts });
+        context.emit?.('sse:status', {
+          clients: state.clients.size,
+          totalBroadcasts: state.totalBroadcasts,
+        });
         break;
     }
   },

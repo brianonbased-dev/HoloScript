@@ -10,7 +10,7 @@ import { CompilerBase, type BaseCompilerOptions } from '@holoscript/core';
 import type { HoloComposition, HoloObjectDecl } from '@holoscript/core-types/composition';
 
 export interface FlatSemanticCompilerOptions extends BaseCompilerOptions {
-  format?: 'react'; 
+  format?: 'react';
 }
 
 export class FlatSemanticCompiler extends CompilerBase {
@@ -25,7 +25,7 @@ export class FlatSemanticCompiler extends CompilerBase {
     this.validateCompilerAccess(agentToken, outputPath);
 
     const elements = composition.ui?.elements || composition.objects || [];
-    
+
     // Extract canvas traits
     const traits = this.extractTraits(composition);
     const canvasConfig = traits['2d_canvas'] || {};
@@ -53,11 +53,17 @@ export class FlatSemanticCompiler extends CompilerBase {
   // ============================================================================
   // CODE GENERATION
   // ============================================================================
-  
-  private generateReactComponent(name: string, objects: HoloObjectDecl[] | any[], _canvasConfig: any): string {
+
+  private generateReactComponent(
+    name: string,
+    objects: HoloObjectDecl[] | any[],
+    _canvasConfig: any
+  ): string {
     const safeName = name.replace(/[^a-zA-Z0-9]/g, '');
-    
-    const semanticNodes = objects.map((obj) => this.generateSemanticNode(obj)).join('\n            ');
+
+    const semanticNodes = objects
+      .map((obj) => this.generateSemanticNode(obj))
+      .join('\n            ');
 
     return `import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -124,11 +130,11 @@ export default ${safeName}Component;
 
   private generateSemanticNode(obj: any): string {
     const traits = this.extractTraits(obj);
-    
+
     // We analyze V6 traits to build the React tree
     const isEntity = !!traits['semantic_entity'];
     const type = traits['semantic_entity']?.type || 'generic';
-    
+
     // Process layout and children
     let classes = 'relative ';
     if (traits.tailwind?.classes) classes += traits.tailwind.classes + ' ';
@@ -139,16 +145,17 @@ export default ${safeName}Component;
       const flow = layout.flow || 'semantic';
       if (flow === 'cluster') classes += 'flex flex-wrap gap-4 justify-center items-center ';
       else if (flow === 'priority') classes += 'flex flex-col gap-3 ';
-      else if (flow === 'radial') classes += 'grid place-items-center gap-4 p-8 rounded-full border border-white/10 ';
+      else if (flow === 'radial')
+        classes += 'grid place-items-center gap-4 p-8 rounded-full border border-white/10 ';
       else classes += 'flex flex-row gap-4 items-start ';
-      
+
       const spacing = layout.spacing || 12;
       classes += `p-[${spacing}px] `;
     }
 
     // React to Agent Swarm Panels
     const hasSwarm = !!traits['agent_attention'];
-    
+
     let rawChildren = obj.children || obj.objects || [];
     if (rawChildren.length === 0 && traits['semantic_entity']?.children) {
       rawChildren = traits['semantic_entity'].children;
@@ -159,49 +166,97 @@ export default ${safeName}Component;
       .join('\n');
 
     let content = traits.text?.content || '';
-    if (content) content = "{`" + content.replace(new RegExp("`", "g"), "\\`").replace(/\\$/g, "\\\\$") + "`}";
+    if (content)
+      content = '{`' + content.replace(new RegExp('`', 'g'), '\\`').replace(/\\$/g, '\\\\$') + '`}';
 
     // Semantic Mapping
     if (type === 'data-cluster' || type === 'section') {
-      return '<section className="' + classes + '">\n' +
-        content + '\n' +
-        childrenMarkup + '\n' +
-      '</section>';
+      return (
+        '<section className="' +
+        classes +
+        '">\n' +
+        content +
+        '\n' +
+        childrenMarkup +
+        '\n' +
+        '</section>'
+      );
     }
-    
+
     if (type === 'metric-card') {
-      return '<div className="lift-card p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all ' + classes + '">\n' +
-        content + '\n' +
-        childrenMarkup + '\n' +
-      '</div>';
+      return (
+        '<div className="lift-card p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all ' +
+        classes +
+        '">\n' +
+        content +
+        '\n' +
+        childrenMarkup +
+        '\n' +
+        '</div>'
+      );
     }
-    
+
     // X402 Interactions
     let interactionProps = '';
     if (traits['agent_attention'] && traits['agent_attention'].bounty_threshold) {
-      interactionProps = ' onClick={() => alert(\'Bounty Negotiated: ' + traits['agent_attention'].bounty_threshold + ' credits\')} ';
+      interactionProps =
+        " onClick={() => alert('Bounty Negotiated: " +
+        traits['agent_attention'].bounty_threshold +
+        " credits')} ";
     } else if (traits['intent_driven']) {
-      interactionProps = ' onClick={() => console.log(\'Intent Emitted: ' + (traits['intent_driven'].intents?.[0] || 'action') + '\')} ';
+      interactionProps =
+        " onClick={() => console.log('Intent Emitted: " +
+        (traits['intent_driven'].intents?.[0] || 'action') +
+        "')} ";
     }
 
     if (traits.link || type === 'link') {
-      return '<a href="' + (traits.link?.href || '#') + '" className="' + classes + '"' + interactionProps + '>\n' +
-        content + '\n' +
-        childrenMarkup + '\n' +
-      '</a>';
+      return (
+        '<a href="' +
+        (traits.link?.href || '#') +
+        '" className="' +
+        classes +
+        '"' +
+        interactionProps +
+        '>\n' +
+        content +
+        '\n' +
+        childrenMarkup +
+        '\n' +
+        '</a>'
+      );
     }
 
     if (traits.image) {
-      return '<img src="' + traits.image.src + '" className="' + classes + '" alt="' + (traits.image.alt || '') + '" />';
+      return (
+        '<img src="' +
+        traits.image.src +
+        '" className="' +
+        classes +
+        '" alt="' +
+        (traits.image.alt || '') +
+        '" />'
+      );
     }
 
     // Default Fallback
-    const swarmHtml = hasSwarm ? '<div className="text-xs text-purple-400 mt-2 font-mono flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span> Agent Swarm Active</div>' : '';
-    
-    return '<div className="' + classes + '"' + interactionProps + '>\n' +
-      content + '\n' +
-      swarmHtml + '\n' +
-      childrenMarkup + '\n' +
-    '</div>';
+    const swarmHtml = hasSwarm
+      ? '<div className="text-xs text-purple-400 mt-2 font-mono flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span> Agent Swarm Active</div>'
+      : '';
+
+    return (
+      '<div className="' +
+      classes +
+      '"' +
+      interactionProps +
+      '>\n' +
+      content +
+      '\n' +
+      swarmHtml +
+      '\n' +
+      childrenMarkup +
+      '\n' +
+      '</div>'
+    );
   }
 }

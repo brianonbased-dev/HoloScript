@@ -16,8 +16,12 @@ import { useAgentStore } from '@/lib/stores/agentStore';
 
 function reset() {
   useAgentStore.setState({
-    isRunning: false, currentPhase: 'idle', currentAction: '',
-    cycleCount: 0, recentCycles: [], lastError: null,
+    isRunning: false,
+    currentPhase: 'idle',
+    currentAction: '',
+    cycleCount: 0,
+    recentCycles: [],
+    lastError: null,
   });
 }
 
@@ -53,8 +57,14 @@ describe('AgentMonitorPanel — UI contract (store layer)', () => {
     // The PHASE_META object in AgentMonitorPanel maps each phase to a colour class.
     // Validate all 9 phases are covered by checking transitions work.
     const phases = [
-      'intake', 'reflect', 'execute', 'compress',
-      'reintake', 'grow', 'evolve', 'autonomize',
+      'intake',
+      'reflect',
+      'execute',
+      'compress',
+      'reintake',
+      'grow',
+      'evolve',
+      'autonomize',
     ] as const;
 
     useAgentStore.getState().startCycle(3);

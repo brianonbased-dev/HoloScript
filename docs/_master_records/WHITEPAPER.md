@@ -9,7 +9,7 @@
 
 ## Abstract
 
-Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through *executable semantics*. By utilizing a robust library of over 2,000 standard traits organized across 13 semantic categories and a compiler fleet of 30+ platform-level compile targets (with 9 additional internal compilation modes), HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
+Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial intelligence has struggled with a fundamental limitation: algorithms manipulate symbols (syntax) without any inherent understanding of their physical meaning (semantics). While Large Language Models exhibit high-level reasoning, they remain disembodied — lacking a deterministic bridge between text and physical consequence. This paper introduces HoloScript, a novel three-format spatial computing architecture (`.hs`, `.hsplus`, `.holo`) that resolves this limitation through _executable semantics_. By utilizing a robust library of over 2,000 standard traits organized across 13 semantic categories and a compiler fleet of 30+ platform-level compile targets (with 9 additional internal compilation modes), HoloScript ensures that declarative syntax directly instantiates physical reality. When an AI generates a semantic tag such as `@physics(mass: 5)`, the compiler deterministically translates this into a rigid body mass constraint within a spatial engine. In this framework, the notation inherently includes its own physical interpretation. We demonstrate how HoloScript establishes a bidirectional link where symbols dictate physics, and physics validates symbols — offering a scalable solution to embodied AI, deterministic synthetic data generation, and the long-term preservation of spatial computing environments.
 
 ---
 
@@ -19,21 +19,21 @@ Since Stevan Harnad formalized the Symbol Grounding Problem in 1990, artificial 
 
 In 1990, Stevan Harnad identified a structural vulnerability at the heart of all symbolic AI systems: the Symbol Grounding Problem [1]. A symbol such as `"apple"` acquires meaning only through its relationship to other symbols (`"red"`, `"round"`, `"edible"`), but no chain of symbolic definitions ever escapes the symbolic domain. To a purely symbolic system, `"apple"` is definitionally hollow — a token pointing to other tokens, recursively, without ground truth.
 
-For three decades, this remained a theoretical objection. Neural networks grounded meaning through perceptual correlates (images, audio, sensor data), producing statistical relationships that approximate semantics. Large Language Models amplified this further: trained on vast corpora, they produce text that *behaves as if* grounded in physical reality, yet the underlying mechanism is distributional pattern matching, not physical constraint satisfaction.
+For three decades, this remained a theoretical objection. Neural networks grounded meaning through perceptual correlates (images, audio, sensor data), producing statistical relationships that approximate semantics. Large Language Models amplified this further: trained on vast corpora, they produce text that _behaves as if_ grounded in physical reality, yet the underlying mechanism is distributional pattern matching, not physical constraint satisfaction.
 
-The limitation has measurable consequences. A state-of-the-art language model asked to simulate a ball with `mass: 5kg` falling under gravity cannot guarantee Newton's second law governs the result. The model may generate plausible-looking dynamics, but there is no deterministic compiler enforcing $F = ma$. The output is a statistically likely *description* of physics, not physics itself.
+The limitation has measurable consequences. A state-of-the-art language model asked to simulate a ball with `mass: 5kg` falling under gravity cannot guarantee Newton's second law governs the result. The model may generate plausible-looking dynamics, but there is no deterministic compiler enforcing $F = ma$. The output is a statistically likely _description_ of physics, not physics itself.
 
 ### 1.2 The Spatial AI Gap
 
 As spatial computing expands across VR, AR, robotics, and mixed reality platforms, two failure modes compound Harnad's problem:
 
-**Binary format opacity.** The dominant 3D content formats — FBX, glTF, USD, USDZ — are binary or semi-structured formats designed for render pipelines, not semantic interrogation. An AI agent parsing a `.fbx` file cannot determine whether a sphere is decorative or a physics actor, networked or standalone, an NPC trigger or a projectile. Semantics are absent by design: these formats encode *appearance*, not *behavior*.
+**Binary format opacity.** The dominant 3D content formats — FBX, glTF, USD, USDZ — are binary or semi-structured formats designed for render pipelines, not semantic interrogation. An AI agent parsing a `.fbx` file cannot determine whether a sphere is decorative or a physics actor, networked or standalone, an NPC trigger or a projectile. Semantics are absent by design: these formats encode _appearance_, not _behavior_.
 
 **Platform fragmentation.** Unity, Unreal Engine, Godot, VRChat, WebXR, iOS ARKit, Android ARCore, ROS/URDF for robotics — each platform encodes spatial semantics differently. A `Rigidbody` in Unity is a `UPhysicsConstraintComponent` in Unreal and an `<inertial>` element in URDF. No shared semantic layer exists. Every AI agent reasoning about spatial behavior must learn platform-specific encodings, or produce outputs that cannot be mechanically validated.
 
 ### 1.3 Thesis
 
-This paper demonstrates that HoloScript's three-format spatial compiler architecture constitutes the first production implementation of *executable semantics* for spatial computing. Our central claim is:
+This paper demonstrates that HoloScript's three-format spatial compiler architecture constitutes the first production implementation of _executable semantics_ for spatial computing. Our central claim is:
 
 > **When an AI agent writes HoloScript, each semantic declaration is simultaneously a physical contract. The compiler enforces that contract deterministically across 30+ runtime targets. Symbol and ground truth are unified at the language level.**
 
@@ -143,25 +143,25 @@ composition "Marketplace" {
 
 The 2,000+ standard trait library is organized into 13 semantic categories. The following table presents 7 representative categories:
 
-| Category | Representative Traits |
-| --- | --- |
-| Interaction | `@grabbable`, `@throwable`, `@clickable`, `@draggable` |
-| Physics | `@physics`, `@collidable`, `@kinematic`, `@trigger` |
-| Networking | `@networked`, `@synced`, `@persistent`, `@replicated` |
-| AI/Behavior | `@npc`, `@pathfinding`, `@llm_agent`, `@state_machine` |
-| Spatial/AR | `@anchor`, `@tracked`, `@world_locked`, `@plane_detected` |
-| Audio | `@spatial_audio`, `@ambient`, `@voice_activated` |
-| IoT | `@iot_sensor`, `@digital_twin`, `@mqtt_bridge` |
+| Category    | Representative Traits                                     |
+| ----------- | --------------------------------------------------------- |
+| Interaction | `@grabbable`, `@throwable`, `@clickable`, `@draggable`    |
+| Physics     | `@physics`, `@collidable`, `@kinematic`, `@trigger`       |
+| Networking  | `@networked`, `@synced`, `@persistent`, `@replicated`     |
+| AI/Behavior | `@npc`, `@pathfinding`, `@llm_agent`, `@state_machine`    |
+| Spatial/AR  | `@anchor`, `@tracked`, `@world_locked`, `@plane_detected` |
+| Audio       | `@spatial_audio`, `@ambient`, `@voice_activated`          |
+| IoT         | `@iot_sensor`, `@digital_twin`, `@mqtt_bridge`            |
 
-*Additional categories include Animation, Security, Visual/Rendering, State Management, Economic Primitives, and Procedural Generation. The full trait census is maintained in the `@holoscript/core` package.*
+_Additional categories include Animation, Security, Visual/Rendering, State Management, Economic Primitives, and Procedural Generation. The full trait census is maintained in the `@holoscript/core` package._
 
-Each trait is a *closed-world declaration*: it specifies exactly what physical and behavioral properties the runtime system must provide for an object decorated with that trait. This mirrors the role of frame axioms in classical AI planning — with a critical difference. Frame axioms in STRIPS-style planners are stated separately from object definitions. In HoloScript, the frame axioms *are* the object definitions.
+Each trait is a _closed-world declaration_: it specifies exactly what physical and behavioral properties the runtime system must provide for an object decorated with that trait. This mirrors the role of frame axioms in classical AI planning — with a critical difference. Frame axioms in STRIPS-style planners are stated separately from object definitions. In HoloScript, the frame axioms _are_ the object definitions.
 
 ### 2.3 Graph Grammar and Trait Composition
 
 HoloScript's `GraphGrammar` module (`packages/core/src/grammar/GraphGrammar.ts`) implements a context-free graph grammar over the trait space. The key property, documented in the module header, is:
 
-> *"Trait compositions (`@turret = @physics + @ai_npc`) map to production rules"*
+> _"Trait compositions (`@turret = @physics + @ai_npc`) map to production rules"_
 
 This allows composite behavioral patterns to be expressed as single semantic tokens. `@turret` does not merely suggest "turret behavior" — it expands deterministically into a subgraph of `@physics`, `@ai_npc`, plus targeting logic. The grammar's `ProductionRule` interface ensures expansion is both unambiguous and exhaustive:
 
@@ -181,7 +181,7 @@ This is the formal structure underlying HoloScript's semantic guarantee: every c
 
 ### 3.1 The Compilation Chain
 
-The core claim of this paper — that HoloScript provides *executable semantics* — rests on a specific architectural property: every syntactic declaration in a `.hs`, `.hsplus`, or `.holo` file has a single deterministic compiler path to physical instantiation in any supported runtime.
+The core claim of this paper — that HoloScript provides _executable semantics_ — rests on a specific architectural property: every syntactic declaration in a `.hs`, `.hsplus`, or `.holo` file has a single deterministic compiler path to physical instantiation in any supported runtime.
 
 We demonstrate this concretely with the physics subsystem, the hardest test case. Physical simulation is the domain where the gap between "symbol that says mass" and "constraint enforced by a physics engine" is most consequential.
 
@@ -206,7 +206,7 @@ object "Rock" {
 }
 ```
 
-The declaration `mass: 5.0` is not a comment, a label, or a user interface annotation. It is the *only* source of truth for this object's inertia across all compile targets.
+The declaration `mass: 5.0` is not a comment, a label, or a user interface annotation. It is the _only_ source of truth for this object's inertia across all compile targets.
 
 #### Step 2: AST Compilation to Intermediate Representation
 
@@ -287,7 +287,7 @@ The output is an XML fragment consumed directly by ROS's physics simulation (Gaz
 
 ### 3.2 The Bidirectional Grounding Proof
 
-A one-directional compiler (HoloScript → runtime) grounds symbols in the forward direction: syntax produces physics. This is necessary but not sufficient to *close the loop*. A fully grounded system must also allow the inverse: physical reality can be read back as semantic declarations.
+A one-directional compiler (HoloScript → runtime) grounds symbols in the forward direction: syntax produces physics. This is necessary but not sufficient to _close the loop_. A fully grounded system must also allow the inverse: physical reality can be read back as semantic declarations.
 
 HoloScript implements this through `UnityToHoloScriptConverter.ts` (`packages/core/src/traits/UnityToHoloScriptConverter.ts`), a bidirectional converter that translates Unity scene data — C# MonoBehaviour component configurations, material properties, prefab hierarchies — back into HoloScript DSL:
 
@@ -334,7 +334,7 @@ The executable semantics claim requires three formal properties. We state each a
 
 **Composability.** Compound semantic declarations must preserve the semantics of their components. The `GraphGrammar`'s production rule semantics ensures that `@turret = @physics + @ai_npc` compiles to the union of `@physics` and `@ai_npc` compile outputs plus their interaction semantics. There is no emergent surprise from trait combination that violates the declared semantics of the component traits.
 
-Together, these three properties constitute executable semantics in the formal sense: the HoloScript notation is not a description of intended behavior — it *is* the behavior, up to the semantics of the target runtime.
+Together, these three properties constitute executable semantics in the formal sense: the HoloScript notation is not a description of intended behavior — it _is_ the behavior, up to the semantics of the target runtime.
 
 ### 3.4 Compiler-Enforced Alignment
 
@@ -352,9 +352,9 @@ This is not merely convenient. It is a qualitative shift in what it means for an
 
 We acknowledge three important limitations of HoloScript's executable semantics:
 
-**Runtime physics divergence.** While HoloScript guarantees deterministic *specification* (the same mass value is always emitted), the physical *simulation* behavior at runtime depends on the target engine's physics solver. Unity's PhysX, Unreal's Chaos, Godot's Bullet, and ROS's Gazebo produce subtly different simulation trajectories for identical initial conditions. HoloScript grounds the specification, not the solver. Determinism is at the declaration level, not the timestep level.
+**Runtime physics divergence.** While HoloScript guarantees deterministic _specification_ (the same mass value is always emitted), the physical _simulation_ behavior at runtime depends on the target engine's physics solver. Unity's PhysX, Unreal's Chaos, Godot's Bullet, and ROS's Gazebo produce subtly different simulation trajectories for identical initial conditions. HoloScript grounds the specification, not the solver. Determinism is at the declaration level, not the timestep level.
 
-**Declared vs. emergent semantics.** The trait system covers *declared* behaviors — properties that the developer explicitly specifies. Emergent behaviors arising from complex trait interactions (e.g., a `@physics` + `@cloth` + `@networked` object creating unexpected visual artifacts under latency) are not captured by the semantic contract. The compiler enforces the frame axioms of each trait independently; cross-trait emergent effects remain a runtime concern.
+**Declared vs. emergent semantics.** The trait system covers _declared_ behaviors — properties that the developer explicitly specifies. Emergent behaviors arising from complex trait interactions (e.g., a `@physics` + `@cloth` + `@networked` object creating unexpected visual artifacts under latency) are not captured by the semantic contract. The compiler enforces the frame axioms of each trait independently; cross-trait emergent effects remain a runtime concern.
 
 **Bidirectional converter coverage.** The `UnityToHoloScriptConverter` demonstrates the bidirectional grounding loop for the Unity target. Equivalent reverse converters for Unreal, Godot, VRChat, and robotics targets are planned but not yet implemented. The forward direction (HoloScript → all targets) is complete; the inverse is currently asymmetric.
 
@@ -364,7 +364,7 @@ We acknowledge three important limitations of HoloScript's executable semantics:
 
 ### 5.1 HoloScript as the LaTeX of Spatial Computing
 
-Academic papers are written in LaTeX, not in PDFs. The source format is human-readable, semantically structured, and editable. The output format — PDF — is fixed, rendered, and not intended for editing. LaTeX's key innovation was separating *content* (mathematical notation, citations, structure) from *presentation* (typesetting, font metrics, column layout).
+Academic papers are written in LaTeX, not in PDFs. The source format is human-readable, semantically structured, and editable. The output format — PDF — is fixed, rendered, and not intended for editing. LaTeX's key innovation was separating _content_ (mathematical notation, citations, structure) from _presentation_ (typesetting, font metrics, column layout).
 
 Spatial computing has historically lacked an equivalent. The dominant workflow is: author in Unity → export to binary FBX → never meaningfully edit the source again. The source and the output are conflated in the same tool, and the "source" has no formal semantics beyond what Unity interprets it to mean.
 
@@ -380,7 +380,7 @@ This has three commercial consequences: (1) medical simulation training environm
 
 ### 5.3 Deterministic Synthetic Data Generation
 
-The synthetic data market is projected to reach $15 billion by 2028 [14]. The primary bottleneck is not generation — it is *correctness*. Synthetically generated training data for robotics, autonomous vehicles, and XR systems must obey physical laws to produce models that transfer to real-world deployment. Probabilistically generated 3D scenes regularly violate physics, producing training data that degrades real-world model performance.
+The synthetic data market is projected to reach $15 billion by 2028 [14]. The primary bottleneck is not generation — it is _correctness_. Synthetically generated training data for robotics, autonomous vehicles, and XR systems must obey physical laws to produce models that transfer to real-world deployment. Probabilistically generated 3D scenes regularly violate physics, producing training data that degrades real-world model performance.
 
 HoloScript's executable semantics guarantee that any 3D scene generated by an AI writing `.hsplus` or `.holo` will have correctly specified physics properties, properly configured collision geometry, and consistent behavioral contracts. An AI agent can generate a thousand variations of a robot manipulation training environment — varying object mass, friction coefficients, collider shapes, and lighting conditions — with deterministic physical correctness enforced by the same compiler that builds the production deployment.
 
@@ -396,21 +396,21 @@ HoloScript v5 extends executable semantics into autonomous, self-governing spati
 
 To demonstrate the breadth of this stack, we present 13 novel compositions spanning materials science, climate response, AI safety, physical robotics, healthcare, cultural heritage, and co-creative art. Each composition ships to 30+ compile targets from a single source file.
 
-| # | Composition | Domain | Key v5 Traits | Lines |
-| --- | --- | --- | --- | --- |
-| 1 | Quantum Materials Arena | Materials Science | agent\_portal, economy, feedback\_loop, post\_quantum\_audit | ~230 |
-| 2 | Sci-Fi Future Vision | Film / Art | agent\_portal, economy, cultural\_profile, feedback\_loop | ~210 |
-| 3 | Water-Scarcity Swarm | Climate / Water | agent\_portal, economy, cultural\_profile, feedback\_loop, digital\_twin, ROS2Bridge | ~260 |
-| 4 | Ethical AI Sandbox | AI Safety | cultural\_profile, norm\_compliant, cultural\_memory, feedback\_loop, tenant | ~260 |
-| 5 | Robot Training Metaverse | Physical AI | agent\_portal, economy, feedback\_loop, digital\_twin, ROS2Bridge | ~270 |
-| 6 | Neurodiverse Therapy | Healthcare | agent\_portal, economy, cultural\_profile, feedback\_loop, tenant | ~250 |
-| 7 | Wildfire Response Swarm | Wildfire | agent\_portal, economy, cultural\_profile, feedback\_loop, post\_quantum\_audit, ROS2Bridge | ~200 |
-| 8 | Healthspan Twin | Longevity | agent\_portal, economy, feedback\_loop, tenant, cultural\_profile | ~195 |
-| 9 | Sci-Fi Co-Creation | Co-Creation | agent\_portal, economy, cultural\_profile, cultural\_memory, feedback\_loop | ~220 |
-| 10 | Urban Planning Governance | Smart City | agent\_portal, economy, norm\_compliant, feedback\_loop, tenant | ~210 |
-| 11 | Sensory Therapy Worlds | Mental Health | agent\_portal, economy, cultural\_profile, feedback\_loop, tenant | ~195 |
-| 12 | Heritage Revival Museum | Cultural Heritage | agent\_portal, economy, cultural\_profile, cultural\_memory, cultural\_trace | ~220 |
-| 13 | Disaster Robotics Swarm | Disaster Response | agent\_portal, economy, feedback\_loop, digital\_twin, ROS2Bridge | ~230 |
+| #   | Composition               | Domain            | Key v5 Traits                                                                          | Lines |
+| --- | ------------------------- | ----------------- | -------------------------------------------------------------------------------------- | ----- |
+| 1   | Quantum Materials Arena   | Materials Science | agent_portal, economy, feedback_loop, post_quantum_audit                               | ~230  |
+| 2   | Sci-Fi Future Vision      | Film / Art        | agent_portal, economy, cultural_profile, feedback_loop                                 | ~210  |
+| 3   | Water-Scarcity Swarm      | Climate / Water   | agent_portal, economy, cultural_profile, feedback_loop, digital_twin, ROS2Bridge       | ~260  |
+| 4   | Ethical AI Sandbox        | AI Safety         | cultural_profile, norm_compliant, cultural_memory, feedback_loop, tenant               | ~260  |
+| 5   | Robot Training Metaverse  | Physical AI       | agent_portal, economy, feedback_loop, digital_twin, ROS2Bridge                         | ~270  |
+| 6   | Neurodiverse Therapy      | Healthcare        | agent_portal, economy, cultural_profile, feedback_loop, tenant                         | ~250  |
+| 7   | Wildfire Response Swarm   | Wildfire          | agent_portal, economy, cultural_profile, feedback_loop, post_quantum_audit, ROS2Bridge | ~200  |
+| 8   | Healthspan Twin           | Longevity         | agent_portal, economy, feedback_loop, tenant, cultural_profile                         | ~195  |
+| 9   | Sci-Fi Co-Creation        | Co-Creation       | agent_portal, economy, cultural_profile, cultural_memory, feedback_loop                | ~220  |
+| 10  | Urban Planning Governance | Smart City        | agent_portal, economy, norm_compliant, feedback_loop, tenant                           | ~210  |
+| 11  | Sensory Therapy Worlds    | Mental Health     | agent_portal, economy, cultural_profile, feedback_loop, tenant                         | ~195  |
+| 12  | Heritage Revival Museum   | Cultural Heritage | agent_portal, economy, cultural_profile, cultural_memory, cultural_trace               | ~220  |
+| 13  | Disaster Robotics Swarm   | Disaster Response | agent_portal, economy, feedback_loop, digital_twin, ROS2Bridge                         | ~230  |
 
 A representative pattern from the Wildfire Response composition demonstrates how five trait families compose in a single agent:
 
@@ -445,7 +445,7 @@ These compositions are available in `examples/novel-use-cases/` and each include
 
 The Symbol Grounding Problem has persisted for thirty-five years because proposed solutions — embodied robotics, neural-symbolic architectures, multimodal language models — address the problem at the model level, not at the language level. These approaches make models smarter about physical reality, but they do not change the fact that the model's outputs (text, images, code) are not themselves physically constrained. The bridge from symbol to referent remains probabilistic.
 
-HoloScript closes the gap at the language level. The innovation is not in the model — it is in the notation. A notation where `@physics` is not a string that suggests physics but a compiler directive that *instantiates* physics is a notation where symbols carry their own referents. The compiler is not an interpreter of intent; it is the mechanism by which intent becomes constraint.
+HoloScript closes the gap at the language level. The innovation is not in the model — it is in the notation. A notation where `@physics` is not a string that suggests physics but a compiler directive that _instantiates_ physics is a notation where symbols carry their own referents. The compiler is not an interpreter of intent; it is the mechanism by which intent becomes constraint.
 
 The three formal properties of HoloScript's executable semantics — determinism, exhaustiveness, and composability — provide the foundation for a class of AI systems that reason about spatial behavior without requiring post-hoc physical validation. An AI that writes HoloScript is not guessing at physics. It is specifying physics, and the compiler ensures that specification is honored.
 
@@ -469,14 +469,16 @@ The compiler is available. The format is documented. The 30-year bottleneck has 
 
 ### 7.1 The Generalization
 
-Sections 2–3 demonstrated executable semantics for spatial computing: `@physics(mass: 5)` compiles to a rigid body constraint. But the architectural mechanism is not specific to physics. The trait-compiler pipeline works identically for *any* domain where a declarative specification can be deterministically compiled to platform-specific code.
+Sections 2–3 demonstrated executable semantics for spatial computing: `@physics(mass: 5)` compiles to a rigid body constraint. But the architectural mechanism is not specific to physics. The trait-compiler pipeline works identically for _any_ domain where a declarative specification can be deterministically compiled to platform-specific code.
 
 Consider an AI agent protocol. In TypeScript, a 7-phase execution cycle is expressed as a class with methods:
 
 ```typescript
 class BaseAgent {
   private phase: number = 0;
-  async execute() { /* imperative logic */ }
+  async execute() {
+    /* imperative logic */
+  }
 }
 ```
 
@@ -511,17 +513,17 @@ object "CodebaseGraph" @class @public {
 }
 ```
 
-Every class, interface, function, and method becomes a HoloScript entity with metadata traits. The `CodebaseGraph` class is not a 3D object — it is a semantic entity that *can* be rendered spatially, queried via Graph RAG, or compiled to documentation. The spatial position is one trait among many; the semantic identity is what matters.
+Every class, interface, function, and method becomes a HoloScript entity with metadata traits. The `CodebaseGraph` class is not a 3D object — it is a semantic entity that _can_ be rendered spatially, queried via Graph RAG, or compiled to documentation. The spatial position is one trait among many; the semantic identity is what matters.
 
 ### 7.3 The Coverage Gradient
 
 Not all code can be expressed as traits. Empirical analysis of a production AI service platform (9 services, 36+ repositories) reveals a coverage gradient:
 
-| Coverage | Examples | Mechanism |
-| --- | --- | --- |
-| **Full (~40%)** | Agent definitions, protocol state machines, knowledge schemas, entity relationships, economic models | Traits compile deterministically to typed implementations |
-| **Partial (~30%)** | MCP tool registration, resilience patterns, auth policies, mesh networking topology | Traits describe the contract; compiler generates boilerplate; imperative gaps filled by developer or AI |
-| **None (~30%)** | SQL queries, Express middleware chains, error handling plumbing, third-party API calls, file I/O | Inherently imperative — no declarative specification exists |
+| Coverage           | Examples                                                                                             | Mechanism                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Full (~40%)**    | Agent definitions, protocol state machines, knowledge schemas, entity relationships, economic models | Traits compile deterministically to typed implementations                                               |
+| **Partial (~30%)** | MCP tool registration, resilience patterns, auth policies, mesh networking topology                  | Traits describe the contract; compiler generates boilerplate; imperative gaps filled by developer or AI |
+| **None (~30%)**    | SQL queries, Express middleware chains, error handling plumbing, third-party API calls, file I/O     | Inherently imperative — no declarative specification exists                                             |
 
 The critical observation: the 40% that HoloScript handles natively is the **highest-value** code — the domain model, architecture, and design decisions. The 30% it cannot handle is infrastructure plumbing that rarely embodies novel design decisions.
 
@@ -540,34 +542,34 @@ The trait system is a **semantic vocabulary** with 2,000+ entries across 14 cate
 
 ## References
 
-[1] Harnad, S. (1990). The Symbol Grounding Problem. *Physica D: Nonlinear Phenomena*, 42(1–3), 335–346.
+[1] Harnad, S. (1990). The Symbol Grounding Problem. _Physica D: Nonlinear Phenomena_, 42(1–3), 335–346.
 
-[2] Brooks, R. A. (1991). Intelligence Without Representation. *Artificial Intelligence*, 47(1–3), 139–159.
+[2] Brooks, R. A. (1991). Intelligence Without Representation. _Artificial Intelligence_, 47(1–3), 139–159.
 
-[3] Newell, A., & Simon, H. A. (1976). Computer Science as Empirical Inquiry: Symbols and Search. *Communications of the ACM*, 19(3), 113–126.
+[3] Newell, A., & Simon, H. A. (1976). Computer Science as Empirical Inquiry: Symbols and Search. _Communications of the ACM_, 19(3), 113–126.
 
-[4] Dreyfus, H. L. (1972). *What Computers Can't Do: A Critique of Artificial Reason*. Harper & Row.
+[4] Dreyfus, H. L. (1972). _What Computers Can't Do: A Critique of Artificial Reason_. Harper & Row.
 
-[5] LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep Learning. *Nature*, 521, 436–444.
+[5] LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep Learning. _Nature_, 521, 436–444.
 
-[6] Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., & Bengio, Y. (2014). Generative Adversarial Nets. *Advances in Neural Information Processing Systems*, 27, 2672–2680.
+[6] Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., & Bengio, Y. (2014). Generative Adversarial Nets. _Advances in Neural Information Processing Systems_, 27, 2672–2680.
 
-[7] ISO 19139:2007. *Geographic Information — Metadata — XML Schema Implementation*.
+[7] ISO 19139:2007. _Geographic Information — Metadata — XML Schema Implementation_.
 
-[8] ROS Industrial (2022). *Unified Robot Description Format (URDF) Specification*, Open Robotics.
+[8] ROS Industrial (2022). _Unified Robot Description Format (URDF) Specification_, Open Robotics.
 
-[9] Unity Technologies (2024). *Unity Scripting Reference: Rigidbody*. Unity Documentation.
+[9] Unity Technologies (2024). _Unity Scripting Reference: Rigidbody_. Unity Documentation.
 
-[10] Khronos Group (2022). *glTF 2.0 Specification*. Khronos Group.
+[10] Khronos Group (2022). _glTF 2.0 Specification_. Khronos Group.
 
-[11] Srivastava, S., et al. (2022). Behavior-1K: A Benchmark for Embodied AI with 1,000 Everyday Activities. *Conference on Robot Learning (CoRL)*.
+[11] Srivastava, S., et al. (2022). Behavior-1K: A Benchmark for Embodied AI with 1,000 Everyday Activities. _Conference on Robot Learning (CoRL)_.
 
-[12] OpenXR Working Group (2023). *OpenXR Specification 1.0*. Khronos Group.
+[12] OpenXR Working Group (2023). _OpenXR Specification 1.0_. Khronos Group.
 
-[13] FDA 21 CFR Part 11 (2023). *Electronic Records; Electronic Signatures*. U.S. Food & Drug Administration.
+[13] FDA 21 CFR Part 11 (2023). _Electronic Records; Electronic Signatures_. U.S. Food & Drug Administration.
 
-[14] Grand View Research (2024). *Synthetic Data Generation Market Size, Share & Trends Analysis Report, 2024–2030*. Grand View Research.
+[14] Grand View Research (2024). _Synthetic Data Generation Market Size, Share & Trends Analysis Report, 2024–2030_. Grand View Research.
 
 ---
 
-*This document is part of the HoloScript Research Archive. Source code cited in this paper is available in the `@holoscript/core` package. Key files: `packages/core/src/compiler/DomainBlockCompilerMixin.ts`, `packages/core/src/compiler/UnityCompiler.ts`, `packages/core/src/compiler/VRChatCompiler.ts`, `packages/core/src/traits/UnityToHoloScriptConverter.ts`, `packages/core/src/grammar/GraphGrammar.ts`.*
+_This document is part of the HoloScript Research Archive. Source code cited in this paper is available in the `@holoscript/core` package. Key files: `packages/core/src/compiler/DomainBlockCompilerMixin.ts`, `packages/core/src/compiler/UnityCompiler.ts`, `packages/core/src/compiler/VRChatCompiler.ts`, `packages/core/src/traits/UnityToHoloScriptConverter.ts`, `packages/core/src/grammar/GraphGrammar.ts`._

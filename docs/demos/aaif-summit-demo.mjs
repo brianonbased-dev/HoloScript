@@ -34,26 +34,122 @@ const API_KEY = 'demo-api-key-aaif-2026';
 
 /** Simulated MCP tools (subset representing the 82+ real tools) */
 const MOCK_TOOLS = [
-  { name: 'parse_hs', description: 'Parse HoloScript (.hs) code into an AST', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'parse_holo', description: 'Parse HoloScript (.holo) composition files', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'validate_holoscript', description: 'Validate HoloScript code for errors', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'compile_holoscript', description: 'Compile HoloScript to any of 28+ targets', inputSchema: { type: 'object', properties: { code: { type: 'string' }, target: { type: 'string' } }, required: ['code', 'target'] } },
-  { name: 'suggest_traits', description: 'AI-suggest VR traits for an object', inputSchema: { type: 'object', properties: { description: { type: 'string' } }, required: ['description'] } },
-  { name: 'generate_scene', description: 'Generate HoloScript from natural language', inputSchema: { type: 'object', properties: { prompt: { type: 'string' } }, required: ['prompt'] } },
-  { name: 'render_preview', description: 'Render a 3D preview of a HoloScript scene', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'generate_3d_object', description: 'Generate a 3D object from text description', inputSchema: { type: 'object', properties: { description: { type: 'string' }, tier: { type: 'string' } }, required: ['description'] } },
-  { name: 'holo_absorb_repo', description: 'Scan repository for codebase intelligence', inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } },
-  { name: 'holo_ask_codebase', description: 'Ask questions about absorbed codebase', inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
-  { name: 'holo_self_diagnose', description: 'Run autonomous self-diagnostic pipeline', inputSchema: { type: 'object', properties: {} } },
-  { name: 'list_traits', description: 'List all 1800+ semantic VR traits', inputSchema: { type: 'object', properties: {} } },
-  { name: 'explain_trait', description: 'Explain a specific VR trait', inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } },
-  { name: 'holo_parse_to_graph', description: 'Parse HoloScript to dependency graph', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'holo_semantic_search', description: 'Semantic search over codebase', inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
-  { name: 'compile_to_unity', description: 'Compile to Unity C# format', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'compile_to_unreal', description: 'Compile to Unreal C++ format', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'compile_to_webgpu', description: 'Compile to WebGPU WGSL shaders', inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] } },
-  { name: 'browser_launch', description: 'Launch headless browser for preview', inputSchema: { type: 'object', properties: {} } },
-  { name: 'browser_screenshot', description: 'Take a screenshot of the current page', inputSchema: { type: 'object', properties: {} } },
+  {
+    name: 'parse_hs',
+    description: 'Parse HoloScript (.hs) code into an AST',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'parse_holo',
+    description: 'Parse HoloScript (.holo) composition files',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'validate_holoscript',
+    description: 'Validate HoloScript code for errors',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_holoscript',
+    description: 'Compile HoloScript to any of 28+ targets',
+    inputSchema: {
+      type: 'object',
+      properties: { code: { type: 'string' }, target: { type: 'string' } },
+      required: ['code', 'target'],
+    },
+  },
+  {
+    name: 'suggest_traits',
+    description: 'AI-suggest VR traits for an object',
+    inputSchema: {
+      type: 'object',
+      properties: { description: { type: 'string' } },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'generate_scene',
+    description: 'Generate HoloScript from natural language',
+    inputSchema: {
+      type: 'object',
+      properties: { prompt: { type: 'string' } },
+      required: ['prompt'],
+    },
+  },
+  {
+    name: 'render_preview',
+    description: 'Render a 3D preview of a HoloScript scene',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'generate_3d_object',
+    description: 'Generate a 3D object from text description',
+    inputSchema: {
+      type: 'object',
+      properties: { description: { type: 'string' }, tier: { type: 'string' } },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'holo_absorb_repo',
+    description: 'Scan repository for codebase intelligence',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+  },
+  {
+    name: 'holo_ask_codebase',
+    description: 'Ask questions about absorbed codebase',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
+  },
+  {
+    name: 'holo_self_diagnose',
+    description: 'Run autonomous self-diagnostic pipeline',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_traits',
+    description: 'List all 1800+ semantic VR traits',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'explain_trait',
+    description: 'Explain a specific VR trait',
+    inputSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
+  },
+  {
+    name: 'holo_parse_to_graph',
+    description: 'Parse HoloScript to dependency graph',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'holo_semantic_search',
+    description: 'Semantic search over codebase',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
+  },
+  {
+    name: 'compile_to_unity',
+    description: 'Compile to Unity C# format',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_unreal',
+    description: 'Compile to Unreal C++ format',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_webgpu',
+    description: 'Compile to WebGPU WGSL shaders',
+    inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+  },
+  {
+    name: 'browser_launch',
+    description: 'Launch headless browser for preview',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'browser_screenshot',
+    description: 'Take a screenshot of the current page',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ];
 
 // Pad to 82 skills with generated stubs
@@ -69,11 +165,18 @@ while (MOCK_TOOLS.length < 82) {
 /** Derive skill tags (simplified version of real deriveSkillTags) */
 function deriveSkillTags(name) {
   const tags = ['holoscript'];
-  if (name.startsWith('parse_') || name === 'validate_holoscript') tags.push('parsing', 'validation', 'language');
+  if (name.startsWith('parse_') || name === 'validate_holoscript')
+    tags.push('parsing', 'validation', 'language');
   else if (name.includes('trait')) tags.push('traits', 'spatial', 'vr');
-  else if (name.startsWith('generate_') || name === 'generate_scene') tags.push('generation', 'ai', 'codegen');
+  else if (name.startsWith('generate_') || name === 'generate_scene')
+    tags.push('generation', 'ai', 'codegen');
   else if (name.startsWith('compile_')) tags.push('compilation', 'export', 'multi-target');
-  else if (name.startsWith('holo_absorb') || name.startsWith('holo_query') || name.startsWith('holo_ask')) tags.push('codebase', 'analysis', 'intelligence');
+  else if (
+    name.startsWith('holo_absorb') ||
+    name.startsWith('holo_query') ||
+    name.startsWith('holo_ask')
+  )
+    tags.push('codebase', 'analysis', 'intelligence');
   else if (name.startsWith('holo_self')) tags.push('quality', 'self-improvement', 'testing');
   else if (name.startsWith('browser_')) tags.push('browser', 'preview', 'rendering');
   else tags.push('utility');
@@ -84,7 +187,7 @@ function deriveSkillTags(name) {
 function toolToSkill(tool) {
   return {
     id: tool.name,
-    name: tool.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    name: tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     description: tool.description,
     tags: deriveSkillTags(tool.name),
     examples: [],
@@ -103,15 +206,25 @@ function buildAgentCard() {
   return {
     id: 'holoscript-agent',
     name: 'HoloScript Agent',
-    description: 'HoloScript language tooling agent -- parse, validate, compile, render, and generate spatial computing code across 28+ export targets.',
+    description:
+      'HoloScript language tooling agent -- parse, validate, compile, render, and generate spatial computing code across 28+ export targets.',
     endpoint: `${BASE_URL}/a2a`,
     version: '1.0.0',
     documentationUrl: 'https://github.com/buildwithholoscript/HoloScript',
     provider: { organization: 'HoloScript', url: 'https://holoscript.net' },
     capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: true },
     securitySchemes: {
-      apiKey: { type: 'apiKey', description: 'API key passed via x-api-key header', name: 'x-api-key', in: 'header' },
-      bearerAuth: { type: 'http', description: 'Bearer token via Authorization header', scheme: 'bearer' },
+      apiKey: {
+        type: 'apiKey',
+        description: 'API key passed via x-api-key header',
+        name: 'x-api-key',
+        in: 'header',
+      },
+      bearerAuth: {
+        type: 'http',
+        description: 'Bearer token via Authorization header',
+        scheme: 'bearer',
+      },
       oauth2: {
         type: 'oauth2',
         description: 'OAuth 2.1 with PKCE (S256) and client credentials flows',
@@ -124,7 +237,7 @@ function buildAgentCard() {
               'tools:execute': 'Execute tools that produce output (compile, render, generate)',
               'tasks:read': 'Read A2A task state and history',
               'tasks:write': 'Create, send, and cancel A2A tasks',
-              'admin': 'Full administrative access to all tools and endpoints',
+              admin: 'Full administrative access to all tools and endpoints',
             },
           },
           clientCredentials: {
@@ -179,49 +292,81 @@ function executeTool(skillId, args) {
   switch (skillId) {
     case 'parse_hs': {
       const code = args.code || '';
-      return JSON.stringify({
-        type: 'composition',
-        objects: [{
-          name: code.match(/object\s+(\w+)/)?.[1] || 'Unknown',
-          properties: { position: [0, 1, 0], color: '#ff0000' },
-          traits: [],
-        }],
-        metadata: { parser: 'holoscript-v5', parseTimeMs: 1.2 },
-      }, null, 2);
+      return JSON.stringify(
+        {
+          type: 'composition',
+          objects: [
+            {
+              name: code.match(/object\s+(\w+)/)?.[1] || 'Unknown',
+              properties: { position: [0, 1, 0], color: '#ff0000' },
+              traits: [],
+            },
+          ],
+          metadata: { parser: 'holoscript-v5', parseTimeMs: 1.2 },
+        },
+        null,
+        2
+      );
     }
     case 'compile_holoscript': {
       const target = args.target || 'threejs';
-      return JSON.stringify({
-        target,
-        success: true,
-        output: `// Compiled to ${target}\n// ${args.code || ''}\nexport function createScene(renderer) {\n  const cube = new THREE.Mesh(\n    new THREE.BoxGeometry(1, 1, 1),\n    new THREE.MeshStandardMaterial({ color: 0xff0000 })\n  );\n  cube.position.set(0, 1, 0);\n  return cube;\n}`,
-        stats: { lines: 8, compileTimeMs: 4.7, target },
-      }, null, 2);
+      return JSON.stringify(
+        {
+          target,
+          success: true,
+          output: `// Compiled to ${target}\n// ${args.code || ''}\nexport function createScene(renderer) {\n  const cube = new THREE.Mesh(\n    new THREE.BoxGeometry(1, 1, 1),\n    new THREE.MeshStandardMaterial({ color: 0xff0000 })\n  );\n  cube.position.set(0, 1, 0);\n  return cube;\n}`,
+          stats: { lines: 8, compileTimeMs: 4.7, target },
+        },
+        null,
+        2
+      );
     }
     case 'generate_3d_object': {
       if (args.tier === 'premium') {
-        return JSON.stringify({
-          error: 'payment_required',
-          x402: {
-            x402Version: 1,
-            accepts: [{
-              scheme: 'exact',
-              network: 'base',
-              maxAmountRequired: '50000',
-              resource: '/api/generate-3d/premium',
-              description: 'Premium 3D model generation (high-poly, PBR textures)',
-              payTo: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
-              asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-              maxTimeoutSeconds: 60,
-            }],
-            error: 'X-PAYMENT header is required',
+        return JSON.stringify(
+          {
+            error: 'payment_required',
+            x402: {
+              x402Version: 1,
+              accepts: [
+                {
+                  scheme: 'exact',
+                  network: 'base',
+                  maxAmountRequired: '50000',
+                  resource: '/api/generate-3d/premium',
+                  description: 'Premium 3D model generation (high-poly, PBR textures)',
+                  payTo: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+                  asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+                  maxTimeoutSeconds: 60,
+                },
+              ],
+              error: 'X-PAYMENT header is required',
+            },
           },
-        }, null, 2);
+          null,
+          2
+        );
       }
-      return JSON.stringify({ modelUrl: 'https://cdn.holoscript.net/models/sword_abc123.glb', vertices: 12400, textures: ['diffuse', 'normal', 'roughness'] }, null, 2);
+      return JSON.stringify(
+        {
+          modelUrl: 'https://cdn.holoscript.net/models/sword_abc123.glb',
+          vertices: 12400,
+          textures: ['diffuse', 'normal', 'roughness'],
+        },
+        null,
+        2
+      );
     }
     case 'holo_self_diagnose':
-      return JSON.stringify({ error: 'insufficient_scope', required: 'admin', message: 'Self-diagnostic requires admin scope' }, null, 2);
+      return JSON.stringify(
+        {
+          error: 'insufficient_scope',
+          required: 'admin',
+          message: 'Self-diagnostic requires admin scope',
+        },
+        null,
+        2
+      );
     default:
       return JSON.stringify({ result: `Executed ${skillId} successfully`, args }, null, 2);
   }
@@ -249,7 +394,11 @@ function executeTask(task, skillId, args) {
     task.status = { state: 'completed', message: agentMsg, timestamp: now() };
     task.updatedAt = now();
   } catch (err) {
-    const agentMsg = { role: 'agent', parts: [{ type: 'text', text: `Error: ${err.message}` }], timestamp: now() };
+    const agentMsg = {
+      role: 'agent',
+      parts: [{ type: 'text', text: `Error: ${err.message}` }],
+      timestamp: now(),
+    };
     task.history.push(agentMsg);
     task.status = { state: 'failed', message: agentMsg, timestamp: now() };
     task.updatedAt = now();
@@ -330,7 +479,9 @@ function verifyS256(verifier, challenge) {
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', chunk => { data += chunk; });
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
     req.on('end', () => {
       try {
         resolve(data ? JSON.parse(data) : {});
@@ -343,7 +494,11 @@ function parseBody(req) {
 }
 
 function sendJson(res, status, body, headers = {}) {
-  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...headers });
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    ...headers,
+  });
   res.end(JSON.stringify(body, null, 2));
 }
 
@@ -398,10 +553,11 @@ function handleRequest(req, res) {
 
   // ── A2A JSON-RPC Endpoint ──────────────────────────────────────────────
   if (path === '/a2a' && method === 'POST') {
-    return parseBody(req).then(body => {
+    return parseBody(req).then((body) => {
       if (body.jsonrpc !== '2.0') {
         return sendJson(res, 200, {
-          jsonrpc: '2.0', id: body.id || null,
+          jsonrpc: '2.0',
+          id: body.id || null,
           error: { code: -32600, message: 'Invalid JSON-RPC: missing jsonrpc "2.0"' },
         });
       }
@@ -412,7 +568,8 @@ function handleRequest(req, res) {
         case 'a2a.sendMessage': {
           if (!params?.message) {
             return sendJson(res, 200, {
-              jsonrpc: '2.0', id,
+              jsonrpc: '2.0',
+              id,
               error: { code: -32602, message: 'Missing required parameter: message' },
             });
           }
@@ -450,7 +607,8 @@ function handleRequest(req, res) {
           }
 
           return sendJson(res, 200, {
-            jsonrpc: '2.0', id,
+            jsonrpc: '2.0',
+            id,
             result: {
               id: task.id,
               sessionId: task.sessionId,
@@ -466,37 +624,48 @@ function handleRequest(req, res) {
           const taskId = params?.id;
           if (!taskId) {
             return sendJson(res, 200, {
-              jsonrpc: '2.0', id,
+              jsonrpc: '2.0',
+              id,
               error: { code: -32602, message: 'Missing required parameter: id' },
             });
           }
           const task = taskStore.get(taskId);
           if (!task) {
             return sendJson(res, 200, {
-              jsonrpc: '2.0', id,
+              jsonrpc: '2.0',
+              id,
               error: { code: -32001, message: `Task not found: ${taskId}` },
             });
           }
           return sendJson(res, 200, {
-            jsonrpc: '2.0', id,
+            jsonrpc: '2.0',
+            id,
             result: {
-              id: task.id, sessionId: task.sessionId, contextId: task.contextId,
-              status: task.status, artifacts: task.artifacts, history: task.history,
+              id: task.id,
+              sessionId: task.sessionId,
+              contextId: task.contextId,
+              status: task.status,
+              artifacts: task.artifacts,
+              history: task.history,
             },
           });
         }
 
         case 'a2a.listTasks': {
           let tasks = [...taskStore.values()];
-          if (params?.state) tasks = tasks.filter(t => t.status.state === params.state);
+          if (params?.state) tasks = tasks.filter((t) => t.status.state === params.state);
           tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           const limit = params?.limit || 50;
           const offset = params?.offset || 0;
           return sendJson(res, 200, {
-            jsonrpc: '2.0', id,
+            jsonrpc: '2.0',
+            id,
             result: {
-              tasks: tasks.slice(offset, offset + limit).map(t => ({
-                id: t.id, status: t.status, artifacts: t.artifacts, history: t.history,
+              tasks: tasks.slice(offset, offset + limit).map((t) => ({
+                id: t.id,
+                status: t.status,
+                artifacts: t.artifacts,
+                history: t.history,
               })),
               total: tasks.length,
             },
@@ -508,20 +677,23 @@ function handleRequest(req, res) {
           const task = taskStore.get(taskId);
           if (!task) {
             return sendJson(res, 200, {
-              jsonrpc: '2.0', id,
+              jsonrpc: '2.0',
+              id,
               error: { code: -32001, message: `Task not found: ${taskId}` },
             });
           }
           task.status = { state: 'canceled', timestamp: new Date().toISOString() };
           return sendJson(res, 200, {
-            jsonrpc: '2.0', id,
+            jsonrpc: '2.0',
+            id,
             result: { id: task.id, status: task.status },
           });
         }
 
         default:
           return sendJson(res, 200, {
-            jsonrpc: '2.0', id,
+            jsonrpc: '2.0',
+            id,
             error: { code: -32601, message: `Unknown method: ${rpcMethod}` },
           });
       }
@@ -534,16 +706,18 @@ function handleRequest(req, res) {
     if (!xPayment) {
       return sendJson(res, 402, {
         x402Version: 1,
-        accepts: [{
-          scheme: 'exact',
-          network: 'base',
-          maxAmountRequired: '50000',
-          resource: '/x402/demo',
-          description: 'Premium demo resource access',
-          payTo: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
-          asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-          maxTimeoutSeconds: 60,
-        }],
+        accepts: [
+          {
+            scheme: 'exact',
+            network: 'base',
+            maxAmountRequired: '50000',
+            resource: '/x402/demo',
+            description: 'Premium demo resource access',
+            payTo: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18',
+            asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+            maxTimeoutSeconds: 60,
+          },
+        ],
         error: 'X-PAYMENT header is required',
       });
     }
@@ -552,28 +726,42 @@ function handleRequest(req, res) {
     try {
       const decoded = JSON.parse(Buffer.from(xPayment, 'base64').toString('utf-8'));
       const settlementId = `tx_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
-      const responsePayload = Buffer.from(JSON.stringify({
-        success: true,
-        transaction: settlementId,
-        network: decoded.network || 'base',
-        payer: decoded.payload?.authorization?.from || 'unknown',
-      })).toString('base64');
-
-      return sendJson(res, 200, {
-        resource: 'Premium demo content unlocked',
-        settlement: {
+      const responsePayload = Buffer.from(
+        JSON.stringify({
           success: true,
           transaction: settlementId,
-          mode: parseInt(decoded.payload?.authorization?.value || '0', 10) < 100000 ? 'in_memory' : 'on_chain',
           network: decoded.network || 'base',
+          payer: decoded.payload?.authorization?.from || 'unknown',
+        })
+      ).toString('base64');
+
+      return sendJson(
+        res,
+        200,
+        {
+          resource: 'Premium demo content unlocked',
+          settlement: {
+            success: true,
+            transaction: settlementId,
+            mode:
+              parseInt(decoded.payload?.authorization?.value || '0', 10) < 100000
+                ? 'in_memory'
+                : 'on_chain',
+            network: decoded.network || 'base',
+          },
+          auditTrail: [
+            { event: 'payment:verification_started', timestamp: new Date().toISOString() },
+            { event: 'payment:verification_passed', timestamp: new Date().toISOString() },
+            { event: 'payment:settlement_started', timestamp: new Date().toISOString() },
+            {
+              event: 'payment:settlement_completed',
+              timestamp: new Date().toISOString(),
+              transaction: settlementId,
+            },
+          ],
         },
-        auditTrail: [
-          { event: 'payment:verification_started', timestamp: new Date().toISOString() },
-          { event: 'payment:verification_passed', timestamp: new Date().toISOString() },
-          { event: 'payment:settlement_started', timestamp: new Date().toISOString() },
-          { event: 'payment:settlement_completed', timestamp: new Date().toISOString(), transaction: settlementId },
-        ],
-      }, { 'X-PAYMENT-RESPONSE': responsePayload });
+        { 'X-PAYMENT-RESPONSE': responsePayload }
+      );
     } catch {
       return sendJson(res, 400, { error: 'Invalid X-PAYMENT header encoding' });
     }
@@ -581,7 +769,7 @@ function handleRequest(req, res) {
 
   // ── OAuth: Client Registration ─────────────────────────────────────────
   if (path === '/oauth/register' && method === 'POST') {
-    return parseBody(req).then(body => {
+    return parseBody(req).then((body) => {
       if (!body.clientName || !body.redirectUris || !body.scopes) {
         return sendJson(res, 400, {
           error: 'invalid_request',
@@ -604,15 +792,24 @@ function handleRequest(req, res) {
     const state = url.searchParams.get('state');
 
     if (responseType !== 'code') {
-      return sendJson(res, 400, { error: 'unsupported_response_type', error_description: 'Only response_type=code is supported' });
+      return sendJson(res, 400, {
+        error: 'unsupported_response_type',
+        error_description: 'Only response_type=code is supported',
+      });
     }
     if (!clientId || !redirectUri || !codeChallenge || codeChallengeMethod !== 'S256') {
-      return sendJson(res, 400, { error: 'invalid_request', error_description: 'Missing PKCE parameters' });
+      return sendJson(res, 400, {
+        error: 'invalid_request',
+        error_description: 'Missing PKCE parameters',
+      });
     }
 
     const client = clients.get(clientId);
     if (!client) {
-      return sendJson(res, 400, { error: 'invalid_client', error_description: 'Unknown client_id' });
+      return sendJson(res, 400, {
+        error: 'invalid_client',
+        error_description: 'Unknown client_id',
+      });
     }
 
     return sendJson(res, 200, {
@@ -625,24 +822,34 @@ function handleRequest(req, res) {
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
       },
-      instructions: 'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
+      instructions:
+        'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
     });
   }
 
   // ── OAuth: Authorize (POST) ────────────────────────────────────────────
   if (path === '/oauth/authorize' && method === 'POST') {
-    return parseBody(req).then(body => {
+    return parseBody(req).then((body) => {
       const { client_id, redirect_uri, scope, code_challenge, code_challenge_method, state } = body;
       if (!client_id || !redirect_uri || !code_challenge) {
-        return sendJson(res, 400, { error: 'invalid_request', error_description: 'Missing required parameters' });
+        return sendJson(res, 400, {
+          error: 'invalid_request',
+          error_description: 'Missing required parameters',
+        });
       }
       if (code_challenge_method && code_challenge_method !== 'S256') {
-        return sendJson(res, 400, { error: 'invalid_request', error_description: 'Only S256 is supported' });
+        return sendJson(res, 400, {
+          error: 'invalid_request',
+          error_description: 'Only S256 is supported',
+        });
       }
 
       const client = clients.get(client_id);
       if (!client) {
-        return sendJson(res, 400, { error: 'invalid_client', error_description: 'Unknown client_id' });
+        return sendJson(res, 400, {
+          error: 'invalid_client',
+          error_description: 'Unknown client_id',
+        });
       }
 
       const scopes = (scope || 'tools:read').split(' ').filter(Boolean);
@@ -653,79 +860,119 @@ function handleRequest(req, res) {
 
   // ── OAuth: Token ───────────────────────────────────────────────────────
   if (path === '/oauth/token' && method === 'POST') {
-    return parseBody(req).then(body => {
+    return parseBody(req).then((body) => {
       const { grant_type } = body;
 
       if (grant_type === 'authorization_code') {
         const { code, client_id, client_secret, redirect_uri, code_verifier } = body;
         if (!code || !client_id || !client_secret || !redirect_uri || !code_verifier) {
-          return sendJson(res, 400, { error: 'invalid_request', error_description: 'Missing required parameters' });
+          return sendJson(res, 400, {
+            error: 'invalid_request',
+            error_description: 'Missing required parameters',
+          });
         }
 
         const authCode = authCodes.get(code);
         if (!authCode || authCode.used || authCode.expiresAt < Date.now()) {
-          return sendJson(res, 400, { error: 'invalid_grant', error_description: 'Invalid or expired authorization code' });
+          return sendJson(res, 400, {
+            error: 'invalid_grant',
+            error_description: 'Invalid or expired authorization code',
+          });
         }
         if (authCode.clientId !== client_id || authCode.redirectUri !== redirect_uri) {
-          return sendJson(res, 400, { error: 'invalid_grant', error_description: 'Client or redirect URI mismatch' });
+          return sendJson(res, 400, {
+            error: 'invalid_grant',
+            error_description: 'Client or redirect URI mismatch',
+          });
         }
 
         const client = clients.get(client_id);
         if (!client) {
-          return sendJson(res, 400, { error: 'invalid_client', error_description: 'Unknown client' });
+          return sendJson(res, 400, {
+            error: 'invalid_client',
+            error_description: 'Unknown client',
+          });
         }
         const secretHash = createHash('sha256').update(client_secret).digest('hex');
         if (secretHash !== client.clientSecretHash) {
-          return sendJson(res, 400, { error: 'invalid_client', error_description: 'Invalid client credentials' });
+          return sendJson(res, 400, {
+            error: 'invalid_client',
+            error_description: 'Invalid client credentials',
+          });
         }
 
         // Verify PKCE
         if (!verifyS256(code_verifier, authCode.codeChallenge)) {
-          return sendJson(res, 400, { error: 'invalid_grant', error_description: 'PKCE verification failed' });
+          return sendJson(res, 400, {
+            error: 'invalid_grant',
+            error_description: 'PKCE verification failed',
+          });
         }
 
         authCode.used = true;
         const tokens = issueTokens(client_id, authCode.scopes);
-        return sendJson(res, 200, {
-          access_token: tokens.accessToken,
-          token_type: 'Bearer',
-          expires_in: 3600,
-          refresh_token: tokens.refreshToken,
-          scope: authCode.scopes.join(' '),
-        }, { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' });
+        return sendJson(
+          res,
+          200,
+          {
+            access_token: tokens.accessToken,
+            token_type: 'Bearer',
+            expires_in: 3600,
+            refresh_token: tokens.refreshToken,
+            scope: authCode.scopes.join(' '),
+          },
+          { 'Cache-Control': 'no-store', Pragma: 'no-cache' }
+        );
       }
 
       if (grant_type === 'client_credentials') {
         const { client_id, client_secret, scope } = body;
         if (!client_id || !client_secret) {
-          return sendJson(res, 400, { error: 'invalid_request', error_description: 'Missing client_id or client_secret' });
+          return sendJson(res, 400, {
+            error: 'invalid_request',
+            error_description: 'Missing client_id or client_secret',
+          });
         }
         const client = clients.get(client_id);
         if (!client) {
-          return sendJson(res, 400, { error: 'invalid_client', error_description: 'Unknown client' });
+          return sendJson(res, 400, {
+            error: 'invalid_client',
+            error_description: 'Unknown client',
+          });
         }
         const secretHash = createHash('sha256').update(client_secret).digest('hex');
         if (secretHash !== client.clientSecretHash) {
-          return sendJson(res, 400, { error: 'invalid_client', error_description: 'Invalid credentials' });
+          return sendJson(res, 400, {
+            error: 'invalid_client',
+            error_description: 'Invalid credentials',
+          });
         }
         const scopes = scope ? scope.split(' ') : client.scopes;
         const tokens = issueTokens(client_id, scopes);
-        return sendJson(res, 200, {
-          access_token: tokens.accessToken,
-          token_type: 'Bearer',
-          expires_in: 3600,
-          refresh_token: tokens.refreshToken,
-          scope: scopes.join(' '),
-        }, { 'Cache-Control': 'no-store', 'Pragma': 'no-cache' });
+        return sendJson(
+          res,
+          200,
+          {
+            access_token: tokens.accessToken,
+            token_type: 'Bearer',
+            expires_in: 3600,
+            refresh_token: tokens.refreshToken,
+            scope: scopes.join(' '),
+          },
+          { 'Cache-Control': 'no-store', Pragma: 'no-cache' }
+        );
       }
 
-      return sendJson(res, 400, { error: 'unsupported_grant_type', error_description: `Unsupported: ${grant_type}` });
+      return sendJson(res, 400, {
+        error: 'unsupported_grant_type',
+        error_description: `Unsupported: ${grant_type}`,
+      });
     });
   }
 
   // ── OAuth: Introspect ──────────────────────────────────────────────────
   if (path === '/oauth/introspect' && method === 'POST') {
-    return parseBody(req).then(body => {
+    return parseBody(req).then((body) => {
       const stored = accessTokens.get(body.token);
       if (!stored || stored.expiresAt < Date.now()) {
         return sendJson(res, 200, { active: false });
@@ -808,7 +1055,7 @@ async function runAct1() {
   });
 
   step(2, 'Inspect parse_hs skill');
-  const parseSkill = card.skills.find(s => s.id === 'parse_hs');
+  const parseSkill = card.skills.find((s) => s.id === 'parse_hs');
   output('Skill: parse_hs', {
     id: parseSkill.id,
     name: parseSkill.name,
@@ -819,11 +1066,19 @@ async function runAct1() {
   });
 
   step(3, 'Security schemes');
-  output('Security Schemes', Object.fromEntries(
-    Object.entries(card.securitySchemes).map(([k, v]) => [k, { type: v.type, description: v.description }])
-  ));
+  output(
+    'Security Schemes',
+    Object.fromEntries(
+      Object.entries(card.securitySchemes).map(([k, v]) => [
+        k,
+        { type: v.type, description: v.description },
+      ])
+    )
+  );
 
-  console.log(`${GREEN}  [ACT 1 COMPLETE]${RESET} ${card.skills.length} skills, ${Object.keys(card.securitySchemes).length} security schemes discovered.\n`);
+  console.log(
+    `${GREEN}  [ACT 1 COMPLETE]${RESET} ${card.skills.length} skills, ${Object.keys(card.securitySchemes).length} security schemes discovered.\n`
+  );
 }
 
 async function runAct2() {
@@ -833,7 +1088,9 @@ async function runAct2() {
   const result1 = await fetchJson('/a2a', {
     method: 'POST',
     body: {
-      jsonrpc: '2.0', id: 'demo-1', method: 'a2a.sendMessage',
+      jsonrpc: '2.0',
+      id: 'demo-1',
+      method: 'a2a.sendMessage',
       params: {
         skillId: 'parse_hs',
         arguments: { code: 'object Cube { position: [0, 1, 0]; color: "#ff0000" }' },
@@ -852,7 +1109,9 @@ async function runAct2() {
   const result2 = await fetchJson('/a2a', {
     method: 'POST',
     body: {
-      jsonrpc: '2.0', id: 'demo-2', method: 'a2a.getTask',
+      jsonrpc: '2.0',
+      id: 'demo-2',
+      method: 'a2a.getTask',
       params: { id: taskId },
     },
   });
@@ -868,16 +1127,20 @@ async function runAct2() {
   const result3 = await fetchJson('/a2a', {
     method: 'POST',
     body: {
-      jsonrpc: '2.0', id: 'demo-3', method: 'a2a.listTasks',
+      jsonrpc: '2.0',
+      id: 'demo-3',
+      method: 'a2a.listTasks',
       params: { limit: 5 },
     },
   });
   output('Task list', {
     total: result3.result.total,
-    states: result3.result.tasks.map(t => t.status.state),
+    states: result3.result.tasks.map((t) => t.status.state),
   });
 
-  console.log(`${GREEN}  [ACT 2 COMPLETE]${RESET} JSON-RPC 2.0 transport with full task lifecycle.\n`);
+  console.log(
+    `${GREEN}  [ACT 2 COMPLETE]${RESET} JSON-RPC 2.0 transport with full task lifecycle.\n`
+  );
 }
 
 async function runAct3() {
@@ -927,7 +1190,9 @@ async function runAct3() {
   step(3, 'Audit trail');
   output('PaymentGateway Events', result2.auditTrail);
 
-  console.log(`${GREEN}  [ACT 3 COMPLETE]${RESET} x402 payment flow: 402 -> sign -> settle -> access.\n`);
+  console.log(
+    `${GREEN}  [ACT 3 COMPLETE]${RESET} x402 payment flow: 402 -> sign -> settle -> access.\n`
+  );
 }
 
 async function runAct4() {
@@ -944,17 +1209,44 @@ async function runAct4() {
 
   step(2, 'Simulated headless execution (3 cycles)');
   const debate = [
-    { agent: 'Moderator',   type: 'topic',     text: 'Should AI agents manage their own budgets autonomously?' },
-    { agent: 'Optimist',    type: 'argument',   text: 'With x402 payment protocol, agents can autonomously pay for resources. Budget caps and audit trails prevent runaway spend.' },
-    { agent: 'Skeptic',     type: 'rebuttal',   text: 'The daemon burn incident (W.090) shows agents spent $180 in orphaned processes. Autonomy without guardrails is dangerous.' },
-    { agent: 'Synthesizer', type: 'synthesis',  text: 'Autonomous budgets with hard caps ($10 per session), kill-before-start protocol, and human review gates at L1/L2.' },
-    { agent: 'Moderator',   type: 'consensus',  text: 'Tiered autonomy: L0 agents get micro-budgets (<$2/cycle), L1/L2 require human approval for spend > $5.' },
+    {
+      agent: 'Moderator',
+      type: 'topic',
+      text: 'Should AI agents manage their own budgets autonomously?',
+    },
+    {
+      agent: 'Optimist',
+      type: 'argument',
+      text: 'With x402 payment protocol, agents can autonomously pay for resources. Budget caps and audit trails prevent runaway spend.',
+    },
+    {
+      agent: 'Skeptic',
+      type: 'rebuttal',
+      text: 'The daemon burn incident (W.090) shows agents spent $180 in orphaned processes. Autonomy without guardrails is dangerous.',
+    },
+    {
+      agent: 'Synthesizer',
+      type: 'synthesis',
+      text: 'Autonomous budgets with hard caps ($10 per session), kill-before-start protocol, and human review gates at L1/L2.',
+    },
+    {
+      agent: 'Moderator',
+      type: 'consensus',
+      text: 'Tiered autonomy: L0 agents get micro-budgets (<$2/cycle), L1/L2 require human approval for spend > $5.',
+    },
   ];
 
   for (const msg of debate) {
-    const color = msg.agent === 'Moderator' ? YELLOW : msg.agent === 'Optimist' ? GREEN : msg.agent === 'Skeptic' ? RED : CYAN;
+    const color =
+      msg.agent === 'Moderator'
+        ? YELLOW
+        : msg.agent === 'Optimist'
+          ? GREEN
+          : msg.agent === 'Skeptic'
+            ? RED
+            : CYAN;
     console.log(`  ${color}[${msg.agent}]${RESET} ${DIM}(${msg.type})${RESET} ${msg.text}`);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
   }
   console.log();
 
@@ -973,7 +1265,9 @@ async function runAct4() {
     total_size: '0.4KB',
   });
 
-  console.log(`${GREEN}  [ACT 4 COMPLETE]${RESET} Multi-agent orchestration via broadcast channels.\n`);
+  console.log(
+    `${GREEN}  [ACT 4 COMPLETE]${RESET} Multi-agent orchestration via broadcast channels.\n`
+  );
 }
 
 async function runAct5() {
@@ -1040,9 +1334,11 @@ async function runAct5() {
   step(4, 'Use Bearer token to call a tool');
   const toolResult = await fetchJson('/a2a', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${tokenResult.access_token}` },
+    headers: { Authorization: `Bearer ${tokenResult.access_token}` },
     body: {
-      jsonrpc: '2.0', id: 'auth-demo-1', method: 'a2a.sendMessage',
+      jsonrpc: '2.0',
+      id: 'auth-demo-1',
+      method: 'a2a.sendMessage',
       params: {
         skillId: 'compile_holoscript',
         arguments: { code: 'object Cube { position: [0,1,0] }', target: 'threejs' },
@@ -1065,7 +1361,9 @@ async function runAct5() {
     scopes: oidc.scopes_supported,
   });
 
-  console.log(`${GREEN}  [ACT 5 COMPLETE]${RESET} OAuth 2.1 with PKCE: register -> authorize -> token -> call.\n`);
+  console.log(
+    `${GREEN}  [ACT 5 COMPLETE]${RESET} OAuth 2.1 with PKCE: register -> authorize -> token -> call.\n`
+  );
 }
 
 // =============================================================================
@@ -1074,8 +1372,10 @@ async function runAct5() {
 
 async function main() {
   const args = process.argv.slice(2);
-  const actFlag = args.find(a => a.startsWith('--act'));
-  const actNum = actFlag ? parseInt(args[args.indexOf(actFlag) + 1] || actFlag.replace('--act', '').replace('=', ''), 10) : 0;
+  const actFlag = args.find((a) => a.startsWith('--act'));
+  const actNum = actFlag
+    ? parseInt(args[args.indexOf(actFlag) + 1] || actFlag.replace('--act', '').replace('=', ''), 10)
+    : 0;
   const serverOnly = args.includes('--server');
   const dryRun = args.includes('--dry-run');
 
@@ -1114,7 +1414,9 @@ async function main() {
     });
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`  ${RED}Port ${PORT} is already in use. Set DEMO_PORT env var or stop the other process.${RESET}`);
+        console.error(
+          `  ${RED}Port ${PORT} is already in use. Set DEMO_PORT env var or stop the other process.${RESET}`
+        );
         process.exit(1);
       }
       reject(err);
@@ -1128,7 +1430,7 @@ async function main() {
   }
 
   // Small delay to ensure server is ready
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 200));
 
   try {
     const acts = {
@@ -1151,7 +1453,7 @@ async function main() {
         await fn();
         if (parseInt(num) < 5) {
           console.log(`${DIM}  --- Pause (press Enter for next act, or wait 2s) ---${RESET}`);
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 2000));
         }
       }
 
@@ -1172,7 +1474,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(`${RED}Error: ${err.message}${RESET}`);
   process.exit(1);
 });

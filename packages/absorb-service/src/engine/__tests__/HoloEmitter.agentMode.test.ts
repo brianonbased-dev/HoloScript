@@ -250,7 +250,13 @@ describe('HoloEmitter — agent mode', () => {
         },
       ],
       imports: [
-        { fromFile: 'src/a.ts', toModule: 'src/b.ts', resolvedPath: 'src/b.ts', namedImports: ['FuncB'], line: 1 },
+        {
+          fromFile: 'src/a.ts',
+          toModule: 'src/b.ts',
+          resolvedPath: 'src/b.ts',
+          namedImports: ['FuncB'],
+          line: 1,
+        },
       ],
       calls: [],
     });
@@ -270,7 +276,13 @@ describe('HoloEmitter — agent mode', () => {
         },
       ],
       imports: [
-        { fromFile: 'src/b.ts', toModule: 'src/a.ts', resolvedPath: 'src/a.ts', namedImports: ['FuncA'], line: 1 },
+        {
+          fromFile: 'src/b.ts',
+          toModule: 'src/a.ts',
+          resolvedPath: 'src/a.ts',
+          namedImports: ['FuncA'],
+          line: 1,
+        },
       ],
       calls: [],
     });
@@ -391,7 +403,13 @@ describe('HoloEmitter — agent mode', () => {
       loc: 100,
       symbols: [],
       imports: [
-        { fromFile: 'src/featureA.ts', toModule: 'src/core.ts', resolvedPath: 'src/core.ts', namedImports: ['CoreHelper'], line: 1 },
+        {
+          fromFile: 'src/featureA.ts',
+          toModule: 'src/core.ts',
+          resolvedPath: 'src/core.ts',
+          namedImports: ['CoreHelper'],
+          line: 1,
+        },
       ],
       calls: [],
     });
@@ -401,7 +419,13 @@ describe('HoloEmitter — agent mode', () => {
       loc: 100,
       symbols: [],
       imports: [
-        { fromFile: 'src/featureB.ts', toModule: 'src/core.ts', resolvedPath: 'src/core.ts', namedImports: ['CoreHelper'], line: 1 },
+        {
+          fromFile: 'src/featureB.ts',
+          toModule: 'src/core.ts',
+          resolvedPath: 'src/core.ts',
+          namedImports: ['CoreHelper'],
+          line: 1,
+        },
       ],
       calls: [],
     });

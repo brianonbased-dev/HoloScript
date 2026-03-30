@@ -72,7 +72,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
   // @ts-expect-error - NFTMarketplace uses specialized AST instead of standard HoloComposition
   compile(marketplace: NFTMarketplaceAST): NFTMarketplaceCompilationOutput {
     if (marketplace.name && !/^[a-zA-Z0-9_]+$/.test(marketplace.name)) {
-      throw new Error(`Invalid marketplace name: "${marketplace.name}". Names must be alphanumeric to prevent injection attacks.`);
+      throw new Error(
+        `Invalid marketplace name: "${marketplace.name}". Names must be alphanumeric to prevent injection attacks.`
+      );
     }
 
     const contracts: CompiledContract[] = [];
@@ -138,7 +140,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
     gasOptimization?: GasOptimizationConfig
   ): string {
     if (!/^[a-zA-Z0-9_]+$/.test(contract.name)) {
-      throw new Error(`Invalid contract name: "${contract.name}". Contract names must be alphanumeric to prevent injection attacks.`);
+      throw new Error(
+        `Invalid contract name: "${contract.name}". Contract names must be alphanumeric to prevent injection attacks.`
+      );
     }
 
     this.lines = [];
@@ -163,7 +167,9 @@ export class NFTMarketplaceCompiler extends CompilerBase {
 
     // Contract declaration
     const inheritance = this.buildInheritance(contract, royalties);
-    this.emit(`contract ${this.escapeStringValue(contract.name, 'Solidity')} is ${inheritance.join(', ')} {`);
+    this.emit(
+      `contract ${this.escapeStringValue(contract.name, 'Solidity')} is ${inheritance.join(', ')} {`
+    );
     this.indentLevel++;
 
     // State variables (optimized storage layout)
@@ -351,7 +357,10 @@ export class NFTMarketplaceCompiler extends CompilerBase {
 
     if (contract.accessControl) {
       for (const role of contract.accessControl.roles) {
-        const roleName = this.escapeStringValue(role.name.toUpperCase().replace(/\s+/g, '_'), 'Solidity');
+        const roleName = this.escapeStringValue(
+          role.name.toUpperCase().replace(/\s+/g, '_'),
+          'Solidity'
+        );
         this.emit(`bytes32 public constant ${roleName}_ROLE = keccak256("${roleName}_ROLE");`);
       }
     }
@@ -471,7 +480,10 @@ export class NFTMarketplaceCompiler extends CompilerBase {
       this.emit('// Grant roles to deployer');
       this.emit('_grantRole(DEFAULT_ADMIN_ROLE, msg.sender);');
       for (const role of contract.accessControl.roles) {
-        const roleName = this.escapeStringValue(role.name.toUpperCase().replace(/\s+/g, '_'), 'Solidity');
+        const roleName = this.escapeStringValue(
+          role.name.toUpperCase().replace(/\s+/g, '_'),
+          'Solidity'
+        );
         this.emit(`_grantRole(${roleName}_ROLE, msg.sender);`);
       }
     }

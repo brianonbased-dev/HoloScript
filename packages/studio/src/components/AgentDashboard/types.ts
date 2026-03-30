@@ -33,12 +33,7 @@ export interface Agent {
 // TASK TYPES (A2A Task Lifecycle)
 // =============================================================================
 
-export type TaskState =
-  | 'submitted'
-  | 'working'
-  | 'input-required'
-  | 'completed'
-  | 'failed';
+export type TaskState = 'submitted' | 'working' | 'input-required' | 'completed' | 'failed';
 
 export interface TaskArtifact {
   id: string;

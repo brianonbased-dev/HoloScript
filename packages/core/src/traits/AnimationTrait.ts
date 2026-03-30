@@ -447,7 +447,7 @@ export class AnimationTrait {
         this.activeAnimations,
         this.crossfades,
         (anim, dt) => this.updateAnimation(anim, dt),
-        (event) => this.emit(event as AnimationEvent),
+        (event) => this.emit(event as AnimationEvent)
       );
       layerIndex++;
     }

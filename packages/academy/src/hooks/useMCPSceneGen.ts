@@ -54,17 +54,14 @@ const INITIAL_STATE: MCPSceneGenState = {
 
 // ─── MCP proxy call ───────────────────────────────────────────────────────────
 
-async function callMCPTool(
-  tool: string,
-  input: Record<string, string>
-): Promise<unknown> {
+async function callMCPTool(tool: string, input: Record<string, string>): Promise<unknown> {
   // Use internal Next.js API route to proxy MCP calls (avoids CORS)
   const res = await fetch('/api/mcp/call', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tool, input }),
   });
-  const json = await res.json() as { result?: unknown; error?: string; offline?: boolean };
+  const json = (await res.json()) as { result?: unknown; error?: string; offline?: boolean };
   if (!res.ok || json.error) {
     const msg = json.error ?? `MCP proxy error: ${res.status}`;
     throw Object.assign(new Error(msg), { offline: json.offline });

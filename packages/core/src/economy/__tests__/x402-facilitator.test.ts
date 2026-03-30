@@ -51,23 +51,26 @@ function createTestConfig(overrides: Partial<X402FacilitatorConfig> = {}): X402F
   };
 }
 
-function createTestPayment(overrides: Partial<{
-  from: string;
-  to: string;
-  value: string;
-  nonce: string;
-  network: SettlementChain;
-  validAfter: string;
-  validBefore: string;
-  signature: string;
-}> = {}): X402PaymentPayload {
+function createTestPayment(
+  overrides: Partial<{
+    from: string;
+    to: string;
+    value: string;
+    nonce: string;
+    network: SettlementChain;
+    validAfter: string;
+    validBefore: string;
+    signature: string;
+  }> = {}
+): X402PaymentPayload {
   const now = Math.floor(Date.now() / 1000);
   return {
     x402Version: X402_VERSION,
     scheme: 'exact',
     network: overrides.network ?? 'base',
     payload: {
-      signature: overrides.signature ?? '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      signature:
+        overrides.signature ?? '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       authorization: {
         from: overrides.from ?? '0xPayerAddress1234567890abcdef12345678',
         to: overrides.to ?? '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
@@ -227,7 +230,7 @@ describe('X402Facilitator', () => {
       const f = new X402Facilitator(
         createTestConfig({ secondaryChain: 'solana' as SettlementChain })
       );
-      const pr = f.createPaymentRequired('/api/data', 1.00);
+      const pr = f.createPaymentRequired('/api/data', 1.0);
 
       expect(pr.accepts).toHaveLength(2);
       expect(pr.accepts[0].network).toBe('base');
@@ -243,7 +246,7 @@ describe('X402Facilitator', () => {
     });
 
     it('correctly converts USDC amounts to base units', () => {
-      const pr = facilitator.createPaymentRequired('/r', 1.50);
+      const pr = facilitator.createPaymentRequired('/r', 1.5);
       expect(pr.accepts[0].maxAmountRequired).toBe('1500000'); // 1.50 * 1_000_000
     });
 
@@ -469,9 +472,7 @@ describe('X402Facilitator', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const f = new X402Facilitator(
-        createTestConfig({ optimisticExecution: false })
-      );
+      const f = new X402Facilitator(createTestConfig({ optimisticExecution: false }));
 
       const payment = createTestPayment({ value: '200000' });
       const result = await f.processPayment(payment, '/api/premium', '200000');
@@ -487,9 +488,7 @@ describe('X402Facilitator', () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('Network timeout'));
       vi.stubGlobal('fetch', mockFetch);
 
-      const f = new X402Facilitator(
-        createTestConfig({ optimisticExecution: false })
-      );
+      const f = new X402Facilitator(createTestConfig({ optimisticExecution: false }));
 
       const payment = createTestPayment({ value: '200000' });
       const result = await f.processPayment(payment, '/api/premium', '200000');
@@ -518,9 +517,7 @@ describe('X402Facilitator', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const f = new X402Facilitator(
-        createTestConfig({ optimisticExecution: true })
-      );
+      const f = new X402Facilitator(createTestConfig({ optimisticExecution: true }));
 
       const payment = createTestPayment({ value: '200000' });
       const result = await f.processPayment(payment, '/api/premium', '200000');
@@ -611,9 +608,7 @@ describe('X402Facilitator', () => {
 
       // Decode and verify
       const decoded = JSON.parse(
-        typeof atob === 'function'
-          ? atob(header)
-          : Buffer.from(header, 'base64').toString('utf-8')
+        typeof atob === 'function' ? atob(header) : Buffer.from(header, 'base64').toString('utf-8')
       );
       expect(decoded.success).toBe(true);
       expect(decoded.transaction).toBe('0xabc');
@@ -978,7 +973,7 @@ describe('PaymentGateway', () => {
       const events: SettlementEvent[] = [];
       gateway.on('payment:authorization_created', (e) => events.push(e));
 
-      gateway.createPaymentAuthorization('/api/premium', 1.00);
+      gateway.createPaymentAuthorization('/api/premium', 1.0);
 
       expect(events.length).toBe(1);
       expect(events[0].amount).toBe('1000000');
@@ -997,7 +992,9 @@ describe('PaymentGateway', () => {
 
       expect(result.isValid).toBe(true);
       expect(result.decodedPayload).not.toBeNull();
-      expect(result.decodedPayload!.payload.authorization.from).toBe(payment.payload.authorization.from);
+      expect(result.decodedPayload!.payload.authorization.from).toBe(
+        payment.payload.authorization.from
+      );
     });
 
     it('verifies a valid base64-encoded X-PAYMENT header', () => {
@@ -1099,9 +1096,7 @@ describe('PaymentGateway', () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
       vi.stubGlobal('fetch', mockFetch);
 
-      const g = new PaymentGateway(
-        createTestConfig({ optimisticExecution: false })
-      );
+      const g = new PaymentGateway(createTestConfig({ optimisticExecution: false }));
 
       const events: SettlementEvent[] = [];
       g.on('*', (e) => events.push(e));
@@ -1290,7 +1285,11 @@ describe('PaymentGateway', () => {
       gateway.on('*', (e) => auditTrail.push(e));
 
       // Step 1: Create payment authorization (402 response)
-      const auth = gateway.createPaymentAuthorization('/api/premium-scene', 0.05, 'Premium VR Scene');
+      const auth = gateway.createPaymentAuthorization(
+        '/api/premium-scene',
+        0.05,
+        'Premium VR Scene'
+      );
       expect(auth.x402Version).toBe(X402_VERSION);
       expect(auth.chainId).toBe(8453);
       expect(auth.accepts[0].maxAmountRequired).toBe('50000');

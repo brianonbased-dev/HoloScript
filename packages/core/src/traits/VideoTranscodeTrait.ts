@@ -6,14 +6,21 @@
 
 import type { TraitHandler } from './TraitTypes';
 
-export interface VideoTranscodeConfig { default_codec: string; max_bitrate: number; }
+export interface VideoTranscodeConfig {
+  default_codec: string;
+  max_bitrate: number;
+}
 
 export const videoTranscodeHandler: TraitHandler<VideoTranscodeConfig> = {
   name: 'video_transcode',
   defaultConfig: { default_codec: 'h264', max_bitrate: 8000 },
 
-  onAttach(node: any): void { node.__videoState = { jobs: 0 }; },
-  onDetach(node: any): void { delete node.__videoState; },
+  onAttach(node: any): void {
+    node.__videoState = { jobs: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__videoState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: VideoTranscodeConfig, context: any, event: any): void {

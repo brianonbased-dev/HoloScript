@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  InvisibleWallet,
-  InvisibleWalletError,
-  createKeystore,
-} from '../InvisibleWallet';
+import { InvisibleWallet, InvisibleWalletError, createKeystore } from '../InvisibleWallet';
 import { base, baseGoerli } from 'viem/chains';
 
 // =============================================================================
@@ -45,7 +41,8 @@ describe('InvisibleWallet.fromEnvironment', () => {
   });
 
   it('creates wallet from env var', () => {
-    process.env.HOLOSCRIPT_WALLET_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+    process.env.HOLOSCRIPT_WALLET_KEY =
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const wallet = InvisibleWallet.fromEnvironment();
 
     expect(wallet.getAddress()).toBe('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
@@ -53,7 +50,8 @@ describe('InvisibleWallet.fromEnvironment', () => {
   });
 
   it('uses testnet when configured', () => {
-    process.env.HOLOSCRIPT_WALLET_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+    process.env.HOLOSCRIPT_WALLET_KEY =
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const wallet = InvisibleWallet.fromEnvironment({ testnet: true });
 
     expect(wallet.getChainId()).toBe(baseGoerli.id);
@@ -67,7 +65,7 @@ describe('InvisibleWallet.fromEnvironment', () => {
 describe('InvisibleWallet.fromPrivateKey', () => {
   it('accepts 0x-prefixed key', () => {
     const wallet = InvisibleWallet.fromPrivateKey(
-      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
     );
     expect(wallet.getAddress()).toBeDefined();
     expect(wallet.getWalletClient()).toBeDefined();
@@ -76,14 +74,14 @@ describe('InvisibleWallet.fromPrivateKey', () => {
 
   it('accepts key without 0x prefix', () => {
     const wallet = InvisibleWallet.fromPrivateKey(
-      'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
     );
     expect(wallet.getAddress()).toBeDefined();
   });
 
   it('creates mainnet wallet by default', () => {
     const wallet = InvisibleWallet.fromPrivateKey(
-      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
     );
     expect(wallet.getChain().id).toBe(base.id);
   });
@@ -91,7 +89,7 @@ describe('InvisibleWallet.fromPrivateKey', () => {
   it('creates testnet wallet when configured', () => {
     const wallet = InvisibleWallet.fromPrivateKey(
       '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-      { testnet: true },
+      { testnet: true }
     );
     expect(wallet.getChain().id).toBe(baseGoerli.id);
   });
@@ -104,7 +102,7 @@ describe('InvisibleWallet.fromPrivateKey', () => {
 describe('InvisibleWallet.toWalletConnection', () => {
   it('converts to WalletConnection', () => {
     const wallet = InvisibleWallet.fromPrivateKey(
-      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
     );
     const connection = wallet.toWalletConnection();
     expect(connection).toBeDefined();
@@ -120,7 +118,7 @@ describe('createKeystore', () => {
   it('creates a v1 keystore', async () => {
     const keystore = await createKeystore(
       '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-      'test-passphrase',
+      'test-passphrase'
     );
 
     expect(keystore.version).toBe(1);

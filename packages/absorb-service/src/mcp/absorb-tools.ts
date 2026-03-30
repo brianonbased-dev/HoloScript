@@ -27,9 +27,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 function getStudioUrl(): string {
   return (
-    process.env.HOLOSCRIPT_STUDIO_URL ||
-    process.env.STUDIO_URL ||
-    'https://studio.holoscript.net'
+    process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://studio.holoscript.net'
   );
 }
 
@@ -54,7 +52,8 @@ async function studioFetch(
       ok: false,
       status: 401,
       data: {
-        error: 'No API key provided. Set ABSORB_API_KEY env var or pass apiKey argument. Get a free key at https://studio.holoscript.net/absorb',
+        error:
+          'No API key provided. Set ABSORB_API_KEY env var or pass apiKey argument. Get a free key at https://studio.holoscript.net/absorb',
       },
     };
   }
@@ -147,8 +146,7 @@ export const absorbServiceTools: Tool[] = [
       properties: {
         apiKey: {
           type: 'string',
-          description:
-            'Absorb API key. Falls back to ABSORB_API_KEY env var.',
+          description: 'Absorb API key. Falls back to ABSORB_API_KEY env var.',
         },
       },
     },
@@ -422,7 +420,8 @@ async function handleFreeQuery(args: Record<string, unknown>): Promise<unknown> 
 
   if (!isGraphRAGReady()) {
     return {
-      error: 'No codebase loaded. Call holo_absorb_repo first to scan a codebase (free, runs locally).',
+      error:
+        'No codebase loaded. Call holo_absorb_repo first to scan a codebase (free, runs locally).',
       hint: 'Example: holo_absorb_repo with rootDir pointing to your project directory.',
     };
   }
@@ -463,14 +462,16 @@ async function handleFreeDiff(args: Record<string, unknown>): Promise<unknown> {
 
     // Try the semantic diff engine
     if (mod.SemanticDiffEngine || mod.semanticDiff) {
-      const diffFn = mod.semanticDiff || ((a: string, b: string) => {
-        const engine = new mod.SemanticDiffEngine();
-        // Parse both sources, then diff the ASTs
-        const parser = new (mod.HoloScriptPlusParser || mod.HoloScriptParser)();
-        const astA = parser.parse(a);
-        const astB = parser.parse(b);
-        return engine.diff(astA, astB);
-      });
+      const diffFn =
+        mod.semanticDiff ||
+        ((a: string, b: string) => {
+          const engine = new mod.SemanticDiffEngine();
+          // Parse both sources, then diff the ASTs
+          const parser = new (mod.HoloScriptPlusParser || mod.HoloScriptParser)();
+          const astA = parser.parse(a);
+          const astB = parser.parse(b);
+          return engine.diff(astA, astB);
+        });
 
       const result = diffFn(sourceA, sourceB);
       return {
@@ -552,11 +553,7 @@ async function handleCheckCredits(args: Record<string, unknown>): Promise<unknow
   };
 
   if (includeHistory) {
-    const historyRes = await studioFetch(
-      '/api/absorb/credits/history?limit=20',
-      'GET',
-      apiKey
-    );
+    const historyRes = await studioFetch('/api/absorb/credits/history?limit=20', 'GET', apiKey);
     if (historyRes.ok) {
       result.recentTransactions = historyRes.data.transactions;
     }

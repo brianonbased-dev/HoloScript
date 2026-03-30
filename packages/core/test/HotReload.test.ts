@@ -71,5 +71,7 @@ describe('Hot-Reload & State Migration', () => {
   });
 
   it.todo('should detect template version increase and run migration blocks');
-  it.todo('should execute migration body expressions when template version increases (requires JS evaluator)');
+  it.todo(
+    'should execute migration body expressions when template version increases (requires JS evaluator)'
+  );
 });

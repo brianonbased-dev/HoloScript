@@ -172,7 +172,9 @@ describe('Scenario: Robot Engineer — URDF Import', () => {
     const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     const trait = jointToTrait(j1);
     expect(trait).toContain('axis: [0, 1, 0]');
-    expect(trait).toContain('limits: { min: -1.571, max: 1.571, effort: 100.000, velocity: 1.000 }');
+    expect(trait).toContain(
+      'limits: { min: -1.571, max: 1.571, effort: 100.000, velocity: 1.000 }'
+    );
   });
 
   it('workspace bounds visualized as a sphere mesh in the 3D viewport', () => {

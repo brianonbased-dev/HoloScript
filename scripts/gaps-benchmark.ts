@@ -82,7 +82,7 @@ async function main() {
     console.log(`\n=== ${file} — parsed in ${parseTime.toFixed(1)}ms ===`);
 
     if (!parseResult.ast) {
-      console.error(`  Parse failed: ${parseResult.errors.map(e => e.message).join(', ')}`);
+      console.error(`  Parse failed: ${parseResult.errors.map((e) => e.message).join(', ')}`);
       continue;
     }
 
@@ -94,9 +94,10 @@ async function main() {
         const start = performance.now();
         // R3FCompiler.compile() expects HSPlusAST, use compileComposition() for .holo
         // Pass undefined to skip RBAC (CompilerBase line 541)
-        const output = typeof compiler.compileComposition === 'function'
-          ? compiler.compileComposition(composition, undefined)
-          : compiler.compile(composition, undefined);
+        const output =
+          typeof compiler.compileComposition === 'function'
+            ? compiler.compileComposition(composition, undefined)
+            : compiler.compile(composition, undefined);
         const elapsed = performance.now() - start;
 
         const outputStr = typeof output === 'string' ? output : JSON.stringify(output, null, 2);
@@ -111,7 +112,9 @@ async function main() {
           outputLines: lines.length,
           preview: lines.slice(0, 15).join('\n'),
         });
-        console.log(`  ✓ ${target.padEnd(14)} ${elapsed.toFixed(1)}ms  ${Buffer.byteLength(outputStr).toLocaleString()} bytes  ${lines.length} lines`);
+        console.log(
+          `  ✓ ${target.padEnd(14)} ${elapsed.toFixed(1)}ms  ${Buffer.byteLength(outputStr).toLocaleString()} bytes  ${lines.length} lines`
+        );
       } catch (err: any) {
         results.push({
           composition: file,
@@ -135,14 +138,15 @@ async function main() {
 
   // Summary
   const total = results.length;
-  const passed = results.filter(r => r.success).length;
+  const passed = results.filter((r) => r.success).length;
   const failed = total - passed;
-  const avgTime = results.filter(r => r.success).reduce((s, r) => s + r.timeMs, 0) / (passed || 1);
-  const totalBytes = results.filter(r => r.success).reduce((s, r) => s + r.outputBytes, 0);
+  const avgTime =
+    results.filter((r) => r.success).reduce((s, r) => s + r.timeMs, 0) / (passed || 1);
+  const totalBytes = results.filter((r) => r.success).reduce((s, r) => s + r.outputBytes, 0);
 
   console.log(`\n=== SUMMARY ===`);
   console.log(`Total:    ${total} compilations`);
-  console.log(`Passed:   ${passed} (${((passed/total)*100).toFixed(1)}%)`);
+  console.log(`Passed:   ${passed} (${((passed / total) * 100).toFixed(1)}%)`);
   console.log(`Failed:   ${failed}`);
   console.log(`Avg time: ${avgTime.toFixed(1)}ms`);
   console.log(`Total output: ${(totalBytes / 1024).toFixed(1)} KB`);

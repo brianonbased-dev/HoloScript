@@ -473,9 +473,11 @@ export class StudioBridge {
 
   /** Find an object by name (searches all levels) */
   findObject(name: string): HoloObjectDecl | null {
-    return this.findObjectInList(name, this.ast.objects) ??
+    return (
+      this.findObjectInList(name, this.ast.objects) ??
       this.findObjectInGroups(name, this.ast.spatialGroups) ??
-      null;
+      null
+    );
   }
 
   /** Find a spatial group by name */
@@ -507,10 +509,7 @@ export class StudioBridge {
   // Mutation application
   // ---------------------------------------------------------------------------
 
-  private applyMutation(
-    ast: HoloComposition,
-    mutation: ASTMutation
-  ): MutationResult {
+  private applyMutation(ast: HoloComposition, mutation: ASTMutation): MutationResult {
     try {
       switch (mutation.type) {
         case 'addObject':
@@ -563,7 +562,11 @@ export class StudioBridge {
         case 'reorderObjects':
           return this.applyReorderObjects(ast, mutation);
         default:
-          return { success: false, ast, errors: [`Unknown mutation type: ${(mutation as MutationBase).type}`] };
+          return {
+            success: false,
+            ast,
+            errors: [`Unknown mutation type: ${(mutation as MutationBase).type}`],
+          };
       }
     } catch (err) {
       return {
@@ -609,7 +612,8 @@ export class StudioBridge {
     ast: HoloComposition,
     mutation: UpdateObjectPropertyMutation
   ): MutationResult {
-    const obj = this.findObjectInList(mutation.objectName, ast.objects) ??
+    const obj =
+      this.findObjectInList(mutation.objectName, ast.objects) ??
       this.findObjectInGroups(mutation.objectName, ast.spatialGroups);
     if (!obj) {
       return { success: false, ast, errors: [`Object "${mutation.objectName}" not found`] };
@@ -630,7 +634,8 @@ export class StudioBridge {
   }
 
   private applyAddTrait(ast: HoloComposition, mutation: AddTraitMutation): MutationResult {
-    const obj = this.findObjectInList(mutation.objectName, ast.objects) ??
+    const obj =
+      this.findObjectInList(mutation.objectName, ast.objects) ??
       this.findObjectInGroups(mutation.objectName, ast.spatialGroups);
     if (!obj) {
       return { success: false, ast, errors: [`Object "${mutation.objectName}" not found`] };
@@ -638,7 +643,11 @@ export class StudioBridge {
 
     // Check for duplicate
     if (obj.traits.some((t) => t.name === mutation.trait.name)) {
-      return { success: false, ast, errors: [`Trait "${mutation.trait.name}" already exists on "${mutation.objectName}"`] };
+      return {
+        success: false,
+        ast,
+        errors: [`Trait "${mutation.trait.name}" already exists on "${mutation.objectName}"`],
+      };
     }
 
     obj.traits.push(mutation.trait);
@@ -646,7 +655,8 @@ export class StudioBridge {
   }
 
   private applyRemoveTrait(ast: HoloComposition, mutation: RemoveTraitMutation): MutationResult {
-    const obj = this.findObjectInList(mutation.objectName, ast.objects) ??
+    const obj =
+      this.findObjectInList(mutation.objectName, ast.objects) ??
       this.findObjectInGroups(mutation.objectName, ast.spatialGroups);
     if (!obj) {
       return { success: false, ast, errors: [`Object "${mutation.objectName}" not found`] };
@@ -654,7 +664,11 @@ export class StudioBridge {
 
     const idx = obj.traits.findIndex((t) => t.name === mutation.traitName);
     if (idx === -1) {
-      return { success: false, ast, errors: [`Trait "${mutation.traitName}" not found on "${mutation.objectName}"`] };
+      return {
+        success: false,
+        ast,
+        errors: [`Trait "${mutation.traitName}" not found on "${mutation.objectName}"`],
+      };
     }
 
     obj.traits.splice(idx, 1);
@@ -665,7 +679,8 @@ export class StudioBridge {
     ast: HoloComposition,
     mutation: UpdateTraitConfigMutation
   ): MutationResult {
-    const obj = this.findObjectInList(mutation.objectName, ast.objects) ??
+    const obj =
+      this.findObjectInList(mutation.objectName, ast.objects) ??
       this.findObjectInGroups(mutation.objectName, ast.spatialGroups);
     if (!obj) {
       return { success: false, ast, errors: [`Object "${mutation.objectName}" not found`] };
@@ -673,7 +688,11 @@ export class StudioBridge {
 
     const trait = obj.traits.find((t) => t.name === mutation.traitName);
     if (!trait) {
-      return { success: false, ast, errors: [`Trait "${mutation.traitName}" not found on "${mutation.objectName}"`] };
+      return {
+        success: false,
+        ast,
+        errors: [`Trait "${mutation.traitName}" not found on "${mutation.objectName}"`],
+      };
     }
 
     trait.config[mutation.configKey] = mutation.configValue;
@@ -687,7 +706,11 @@ export class StudioBridge {
     if (mutation.parentGroup) {
       const parent = this.findGroupByName(mutation.parentGroup, ast.spatialGroups);
       if (!parent) {
-        return { success: false, ast, errors: [`Parent group "${mutation.parentGroup}" not found`] };
+        return {
+          success: false,
+          ast,
+          errors: [`Parent group "${mutation.parentGroup}" not found`],
+        };
       }
       if (!parent.groups) parent.groups = [];
       parent.groups.push(mutation.group);
@@ -734,7 +757,8 @@ export class StudioBridge {
     key: string,
     value: [number, number, number]
   ): MutationResult {
-    const obj = this.findObjectInList(objectName, ast.objects) ??
+    const obj =
+      this.findObjectInList(objectName, ast.objects) ??
       this.findObjectInGroups(objectName, ast.spatialGroups);
     if (!obj) {
       return { success: false, ast, errors: [`Object "${objectName}" not found`] };
@@ -842,7 +866,9 @@ export class StudioBridge {
       ast.environment = { type: 'Environment', properties: [] };
     }
 
-    const existing = ast.environment.properties.find((p: HoloGroupProperty) => p.key === mutation.key);
+    const existing = ast.environment.properties.find(
+      (p: HoloGroupProperty) => p.key === mutation.key
+    );
     if (existing) {
       existing.value = mutation.value;
     } else {
@@ -857,7 +883,8 @@ export class StudioBridge {
   }
 
   private applyRenameObject(ast: HoloComposition, mutation: RenameObjectMutation): MutationResult {
-    const obj = this.findObjectInList(mutation.oldName, ast.objects) ??
+    const obj =
+      this.findObjectInList(mutation.oldName, ast.objects) ??
       this.findObjectInGroups(mutation.oldName, ast.spatialGroups);
     if (!obj) {
       return { success: false, ast, errors: [`Object "${mutation.oldName}" not found`] };
@@ -871,7 +898,8 @@ export class StudioBridge {
     ast: HoloComposition,
     mutation: DuplicateObjectMutation
   ): MutationResult {
-    const original = this.findObjectInList(mutation.objectName, ast.objects) ??
+    const original =
+      this.findObjectInList(mutation.objectName, ast.objects) ??
       this.findObjectInGroups(mutation.objectName, ast.spatialGroups);
     if (!original) {
       return { success: false, ast, errors: [`Object "${mutation.objectName}" not found`] };
@@ -1004,10 +1032,7 @@ export class StudioBridge {
     return false;
   }
 
-  private extractObjectFromGroup(
-    name: string,
-    group: HoloSpatialGroup
-  ): HoloObjectDecl | null {
+  private extractObjectFromGroup(name: string, group: HoloSpatialGroup): HoloObjectDecl | null {
     const idx = group.objects.findIndex((o: HoloObjectDecl) => o.name === name);
     if (idx !== -1) {
       return group.objects.splice(idx, 1)[0];

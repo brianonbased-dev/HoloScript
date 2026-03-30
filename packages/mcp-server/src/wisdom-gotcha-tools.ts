@@ -45,7 +45,8 @@ export const wisdomGotchaTools: Tool[] = [
         },
         compositionFile: {
           type: 'string',
-          description: 'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
+          description:
+            'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
         },
       },
       required: ['rootDir'],
@@ -75,7 +76,8 @@ export const wisdomGotchaTools: Tool[] = [
         },
         compositionFile: {
           type: 'string',
-          description: 'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
+          description:
+            'Specific .holo or .hsplus file to scan. If omitted, scans all compositions.',
         },
       },
       required: ['rootDir'],
@@ -224,7 +226,7 @@ function extractArrayProp(block: string, name: string): string[] {
   if (!match) return [];
   return match[1]
     .split(',')
-    .map(s => s.trim().replace(/^["@]|"$/g, ''))
+    .map((s) => s.trim().replace(/^["@]|"$/g, ''))
     .filter(Boolean);
 }
 
@@ -234,7 +236,7 @@ function extractArrayProp(block: string, name: string): string[] {
 
 export async function handleWisdomGotchaTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_query_wisdom':
@@ -278,15 +280,13 @@ async function handleQueryWisdom(args: Record<string, unknown>): Promise<unknown
   // Apply filters
   if (traitFilter) {
     const normalized = traitFilter.replace(/^@/, '');
-    allWisdoms = allWisdoms.filter(w =>
-      w.applies_to.some(t => t.replace(/^@/, '') === normalized),
+    allWisdoms = allWisdoms.filter((w) =>
+      w.applies_to.some((t) => t.replace(/^@/, '') === normalized)
     );
   }
   if (keyword) {
     const lower = keyword.toLowerCase();
-    allWisdoms = allWisdoms.filter(w =>
-      w.description.toLowerCase().includes(lower),
-    );
+    allWisdoms = allWisdoms.filter((w) => w.description.toLowerCase().includes(lower));
   }
 
   return {
@@ -324,17 +324,17 @@ async function handleListGotchas(args: Record<string, unknown>): Promise<unknown
   }
 
   if (severityFilter) {
-    allGotchas = allGotchas.filter(g => g.severity === severityFilter);
+    allGotchas = allGotchas.filter((g) => g.severity === severityFilter);
   }
   if (triggerFilter) {
-    allGotchas = allGotchas.filter(g => g.triggers_on.includes(triggerFilter));
+    allGotchas = allGotchas.filter((g) => g.triggers_on.includes(triggerFilter));
   }
 
   return {
     count: allGotchas.length,
     gotchas: allGotchas,
     filesScanned: files.length,
-    criticalCount: allGotchas.filter(g => g.severity === 'critical').length,
+    criticalCount: allGotchas.filter((g) => g.severity === 'critical').length,
   };
 }
 
@@ -356,9 +356,9 @@ async function handleCheckGotchas(args: Record<string, unknown>): Promise<unknow
 
   const source = fs.readFileSync(filePath, 'utf-8');
   const gotchas = extractGotchasFromSource(source, compositionFile);
-  const critical = gotchas.filter(g => g.severity === 'critical');
-  const warnings = gotchas.filter(g => g.severity === 'warning');
-  const infos = gotchas.filter(g => g.severity === 'info');
+  const critical = gotchas.filter((g) => g.severity === 'critical');
+  const warnings = gotchas.filter((g) => g.severity === 'warning');
+  const infos = gotchas.filter((g) => g.severity === 'info');
 
   const passed = !failOnCritical || critical.length === 0;
 
@@ -371,13 +371,13 @@ async function handleCheckGotchas(args: Record<string, unknown>): Promise<unknow
       warning: warnings.length,
       info: infos.length,
     },
-    criticalGotchas: critical.map(g => ({
+    criticalGotchas: critical.map((g) => ({
       warning: g.warning,
       mitigation: g.mitigation,
       triggers_on: g.triggers_on,
       object: g.objectName,
     })),
-    warningGotchas: warnings.map(g => ({
+    warningGotchas: warnings.map((g) => ({
       warning: g.warning,
       mitigation: g.mitigation,
     })),

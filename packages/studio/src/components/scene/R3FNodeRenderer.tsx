@@ -209,7 +209,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'gltfModel': {
       const animTrait = node.traits?.get('animation' as any);
-      const action = animTrait ? (animTrait.properties?.state as string ?? 'idle') : 'idle';
+      const action = animTrait ? ((animTrait.properties?.state as string) ?? 'idle') : 'idle';
       return (
         <GLTFModelNode
           node={node}

@@ -17,8 +17,7 @@
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 const ORCHESTRATOR_URL =
-  process.env.MCP_ORCHESTRATOR_URL ||
-  'https://mcp-orchestrator-production-45f9.up.railway.app';
+  process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 const API_KEY = process.env.MCP_API_KEY;
 
@@ -63,7 +62,7 @@ async function fetchJson<T>(url: string, label: string): Promise<T> {
     method: 'GET',
     headers: {
       'x-mcp-api-key': API_KEY!,
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
@@ -172,7 +171,7 @@ async function main() {
   try {
     const health = await fetchJson<Record<string, unknown>>(
       `${ORCHESTRATOR_URL}/health`,
-      'Orchestrator /health',
+      'Orchestrator /health'
     );
     console.log(`  ✅  Orchestrator is healthy`);
     if (health.uptime) console.log(`      Uptime: ${health.uptime}`);
@@ -190,7 +189,7 @@ async function main() {
   try {
     const raw = await fetchJson<RegisteredServer[] | { servers: RegisteredServer[] }>(
       `${ORCHESTRATOR_URL}/servers`,
-      'Orchestrator /servers',
+      'Orchestrator /servers'
     );
     servers = Array.isArray(raw) ? raw : (raw.servers ?? []);
   } catch (err) {
@@ -222,9 +221,7 @@ async function main() {
     const icon = result.stdioMode ? '📡' : result.healthy ? '✅' : '❌';
     const mode = result.stdioMode ? ` (stdio, ${result.toolCount} tools)` : '';
     const time = result.responseTimeMs > 0 ? ` (${result.responseTimeMs.toFixed(0)}ms)` : '';
-    const heartbeat = result.lastHeartbeat
-      ? ` | last seen: ${result.lastHeartbeat}`
-      : '';
+    const heartbeat = result.lastHeartbeat ? ` | last seen: ${result.lastHeartbeat}` : '';
 
     console.log(`  ${icon}  ${result.name}${mode}${time}${heartbeat}`);
     if (result.error) {
@@ -245,7 +242,8 @@ async function main() {
 
   // 5. Prune ghost servers (--prune flag)
   if (args.includes('--prune')) {
-    const maxAgeMs = parseInt(args[args.indexOf('--prune-age') + 1] || '', 10) || 7 * 24 * 60 * 60 * 1000; // default 7 days
+    const maxAgeMs =
+      parseInt(args[args.indexOf('--prune-age') + 1] || '', 10) || 7 * 24 * 60 * 60 * 1000; // default 7 days
     console.log(`── Pruning (max age: ${Math.round(maxAgeMs / 86400000)}d) ──`);
 
     const staleCutoff = Date.now() - maxAgeMs;
@@ -262,7 +260,7 @@ async function main() {
         try {
           const res = await fetch(`${ORCHESTRATOR_URL}/servers/${encodeURIComponent(id)}`, {
             method: 'DELETE',
-            headers: { 'x-mcp-api-key': API_KEY!, 'Accept': 'application/json' },
+            headers: { 'x-mcp-api-key': API_KEY!, Accept: 'application/json' },
             signal: AbortSignal.timeout(TIMEOUT_MS),
           });
           console.log(res.ok ? 'DELETED' : `FAILED (${res.status})`);
@@ -294,7 +292,9 @@ async function main() {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       const body = await res.json().catch(() => ({}));
-      console.log(res.ok ? `  ✅ Heartbeat acknowledged` : `  ❌ Heartbeat rejected: ${res.status}`);
+      console.log(
+        res.ok ? `  ✅ Heartbeat acknowledged` : `  ❌ Heartbeat rejected: ${res.status}`
+      );
       if (body.lastSeen) console.log(`  Last seen: ${body.lastSeen}`);
     } catch (err) {
       console.log(`  ❌ Heartbeat failed: ${err instanceof Error ? err.message : err}`);

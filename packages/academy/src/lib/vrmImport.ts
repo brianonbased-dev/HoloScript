@@ -147,7 +147,10 @@ export function formatFileSize(bytes: number): string {
 /**
  * Check if the VRM license is compatible with the current project/workspace.
  */
-export function isLicenseCompatible(metadata: VRMMetadata, requireCommercial: boolean = false): boolean {
+export function isLicenseCompatible(
+  metadata: VRMMetadata,
+  requireCommercial: boolean = false
+): boolean {
   if (requireCommercial && !isCommerciallyUsable(metadata)) {
     return false;
   }
@@ -170,7 +173,7 @@ export async function createVRMAvatarFromFile(file: File): Promise<VRMModel> {
       violentUsage: 'disallow',
       sexualUsage: 'disallow',
       commercialUsage: 'allow',
-      license: 'Other'
+      license: 'Other',
     },
     boneCount: 0,
     blendshapeCount: 0,
@@ -182,6 +185,6 @@ export async function createVRMAvatarFromFile(file: File): Promise<VRMModel> {
     hasSpringBones: false,
     hasExpressions: false,
     hasLookAt: false,
-    thumbnail: undefined
+    thumbnail: undefined,
   };
 }

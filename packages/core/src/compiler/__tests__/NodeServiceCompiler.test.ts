@@ -25,7 +25,7 @@ function makeServiceComposition(
   serviceName: string,
   props: Record<string, unknown> = {},
   children: any[] = [],
-  traits: string[] = [],
+  traits: string[] = []
 ): HoloComposition {
   return makeComposition({
     domainBlocks: [
@@ -159,7 +159,7 @@ describe('NodeServiceCompiler', () => {
     it('sets up route imports for each service', () => {
       const comp = makeServiceComposition('ItemAPI');
       const result = compiler.compile(comp, 'test-token');
-      expect(result['index.ts']).toContain("import { itemapiRoutes }");
+      expect(result['index.ts']).toContain('import { itemapiRoutes }');
       expect(result['index.ts']).toContain("app.use('/api', itemapiRoutes)");
     });
 
@@ -244,21 +244,17 @@ describe('NodeServiceCompiler', () => {
     });
 
     it('extracts routes from nested objects with @http trait', () => {
-      const comp = makeServiceComposition(
-        'ItemAPI',
-        {},
-        [
-          {
-            name: 'ListItems',
-            properties: [
-              { key: 'method', value: 'GET' },
-              { key: 'path', value: '/items' },
-              { key: 'handler', value: 'listItems' },
-            ],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('ItemAPI', {}, [
+        {
+          name: 'ListItems',
+          properties: [
+            { key: 'method', value: 'GET' },
+            { key: 'path', value: '/items' },
+            { key: 'handler', value: 'listItems' },
+          ],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       const routeFile = result['routes/ItemAPI.ts'];
       expect(routeFile).toContain("'/items'");
@@ -266,28 +262,24 @@ describe('NodeServiceCompiler', () => {
     });
 
     it('extracts multiple routes from nested objects', () => {
-      const comp = makeServiceComposition(
-        'CRUD',
-        {},
-        [
-          {
-            name: 'Create',
-            properties: [
-              { key: 'method', value: 'POST' },
-              { key: 'path', value: '/items' },
-            ],
-            traits: [{ name: 'http' }],
-          },
-          {
-            name: 'Read',
-            properties: [
-              { key: 'method', value: 'GET' },
-              { key: 'path', value: '/items/:id' },
-            ],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('CRUD', {}, [
+        {
+          name: 'Create',
+          properties: [
+            { key: 'method', value: 'POST' },
+            { key: 'path', value: '/items' },
+          ],
+          traits: [{ name: 'http' }],
+        },
+        {
+          name: 'Read',
+          properties: [
+            { key: 'method', value: 'GET' },
+            { key: 'path', value: '/items/:id' },
+          ],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       const routeFile = result['routes/CRUD.ts'];
       expect(routeFile).toContain('router.post');
@@ -315,7 +307,7 @@ describe('NodeServiceCompiler', () => {
             traits: [{ name: 'http' }, { name: 'auth' }],
           },
         ],
-        ['cors', 'rate_limit'],
+        ['cors', 'rate_limit']
       );
       const result = compiler.compile(comp, 'test-token');
       expect(result['middleware/index.ts']).toBeDefined();
@@ -372,7 +364,7 @@ describe('NodeServiceCompiler', () => {
     it('imports Request/Response types when typescript', () => {
       const comp = makeServiceComposition('API');
       const result = compiler.compile(comp, 'test-token');
-      expect(result['routes/API.ts']).toContain("import type { Request, Response }");
+      expect(result['routes/API.ts']).toContain('import type { Request, Response }');
     });
 
     it('creates Router instance', () => {
@@ -388,40 +380,32 @@ describe('NodeServiceCompiler', () => {
     });
 
     it('generates route handlers with correct HTTP method', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [
-          {
-            name: 'DeleteItem',
-            properties: [
-              { key: 'method', value: 'DELETE' },
-              { key: 'path', value: '/items/:id' },
-            ],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'DeleteItem',
+          properties: [
+            { key: 'method', value: 'DELETE' },
+            { key: 'path', value: '/items/:id' },
+          ],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result['routes/API.ts']).toContain("router.delete('/items/:id'");
     });
 
     it('includes TODO comment for handler implementation', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [
-          {
-            name: 'GetItem',
-            properties: [
-              { key: 'method', value: 'GET' },
-              { key: 'path', value: '/items' },
-              { key: 'handler', value: 'getItem' },
-            ],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'GetItem',
+          properties: [
+            { key: 'method', value: 'GET' },
+            { key: 'path', value: '/items' },
+            { key: 'handler', value: 'getItem' },
+          ],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result['routes/API.ts']).toContain('TODO: Implement getItem');
     });
@@ -439,32 +423,28 @@ describe('NodeServiceCompiler', () => {
     it('imports FastifyInstance type', () => {
       const comp = makeServiceComposition('API');
       const result = fastifyCompiler.compile(comp, 'test-token');
-      expect(result['routes/API.ts']).toContain("import type { FastifyInstance }");
+      expect(result['routes/API.ts']).toContain('import type { FastifyInstance }');
     });
 
     it('exports async plugin function', () => {
       const comp = makeServiceComposition('UserAPI');
       const result = fastifyCompiler.compile(comp, 'test-token');
       expect(result['routes/UserAPI.ts']).toContain(
-        'export async function userapiRoutes(app: FastifyInstance)',
+        'export async function userapiRoutes(app: FastifyInstance)'
       );
     });
 
     it('generates fastify route with request/reply', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [
-          {
-            name: 'GetItem',
-            properties: [
-              { key: 'method', value: 'GET' },
-              { key: 'path', value: '/items' },
-            ],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'GetItem',
+          properties: [
+            { key: 'method', value: 'GET' },
+            { key: 'path', value: '/items' },
+          ],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = fastifyCompiler.compile(comp, 'test-token');
       expect(result['routes/API.ts']).toContain("app.get('/items', async (request, reply)");
     });
@@ -474,49 +454,33 @@ describe('NodeServiceCompiler', () => {
 
   describe('middleware generation', () => {
     it('generates middleware index when middleware traits present', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [
-          {
-            name: 'Login',
-            properties: [
-              { key: 'method', value: 'POST' },
-              { key: 'path', value: '/login' },
-            ],
-            traits: [{ name: 'http' }, { name: 'auth' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'Login',
+          properties: [
+            { key: 'method', value: 'POST' },
+            { key: 'path', value: '/login' },
+          ],
+          traits: [{ name: 'http' }, { name: 'auth' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result['middleware/index.ts']).toBeDefined();
     });
 
     it('express middleware has correct signature', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [],
-        ['cors'],
-      );
+      const comp = makeServiceComposition('API', {}, [], ['cors']);
       const result = compiler.compile(comp, 'test-token');
       expect(result['middleware/index.ts']).toContain(
-        'req: Request, _res: Response, next: NextFunction',
+        'req: Request, _res: Response, next: NextFunction'
       );
     });
 
     it('fastify middleware has correct signature', () => {
       const c = new NodeServiceCompiler({ framework: 'fastify' });
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [],
-        ['auth'],
-      );
+      const comp = makeServiceComposition('API', {}, [], ['auth']);
       const result = c.compile(comp, 'test-token');
-      expect(result['middleware/index.ts']).toContain(
-        'request: FastifyRequest',
-      );
+      expect(result['middleware/index.ts']).toContain('request: FastifyRequest');
     });
 
     it('does not generate middleware when none present', () => {
@@ -609,33 +573,25 @@ describe('NodeServiceCompiler', () => {
     });
 
     it('defaults HTTP method to GET', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [
-          {
-            name: 'Something',
-            properties: [{ key: 'path', value: '/test' }],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'Something',
+          properties: [{ key: 'path', value: '/test' }],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result['routes/API.ts']).toContain("router.get('/test'");
     });
 
     it('generates path from object name when path not specified', () => {
-      const comp = makeServiceComposition(
-        'API',
-        {},
-        [
-          {
-            name: 'GetUsers',
-            properties: [{ key: 'method', value: 'GET' }],
-            traits: [{ name: 'http' }],
-          },
-        ],
-      );
+      const comp = makeServiceComposition('API', {}, [
+        {
+          name: 'GetUsers',
+          properties: [{ key: 'method', value: 'GET' }],
+          traits: [{ name: 'http' }],
+        },
+      ]);
       const result = compiler.compile(comp, 'test-token');
       expect(result['routes/API.ts']).toContain('/get-users');
     });

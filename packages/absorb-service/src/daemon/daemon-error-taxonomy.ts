@@ -14,19 +14,19 @@
 // ── Error Categories ────────────────────────────────────────────────────────
 
 export type ErrorCategory =
-  | 'missing_symbol'       // TS2304: Cannot find name
-  | 'type_mismatch'        // TS2345: Argument not assignable
-  | 'missing_property'     // TS2339: Property does not exist on type
-  | 'missing_member'       // TS2741: Property missing in type but required
-  | 'wrong_arity'          // TS2554: Expected N arguments, got M
-  | 'incompatible_types'   // TS2322: Type X is not assignable to type Y
-  | 'import_resolution'    // TS2307: Cannot find module
-  | 'generic_constraint'   // TS2344: Type does not satisfy constraint
-  | 'null_safety'          // TS2531/TS18047: Object is possibly null/undefined
-  | 'abstract_incomplete'  // TS2515: Non-abstract class missing abstract member
-  | 'overload_mismatch'    // TS2769: No overload matches this call
-  | 'readonly_violation'   // TS2540: Cannot assign to read-only property
-  | 'lint_issue'           // Non-TS errors from lint focus
+  | 'missing_symbol' // TS2304: Cannot find name
+  | 'type_mismatch' // TS2345: Argument not assignable
+  | 'missing_property' // TS2339: Property does not exist on type
+  | 'missing_member' // TS2741: Property missing in type but required
+  | 'wrong_arity' // TS2554: Expected N arguments, got M
+  | 'incompatible_types' // TS2322: Type X is not assignable to type Y
+  | 'import_resolution' // TS2307: Cannot find module
+  | 'generic_constraint' // TS2344: Type does not satisfy constraint
+  | 'null_safety' // TS2531/TS18047: Object is possibly null/undefined
+  | 'abstract_incomplete' // TS2515: Non-abstract class missing abstract member
+  | 'overload_mismatch' // TS2769: No overload matches this call
+  | 'readonly_violation' // TS2540: Cannot assign to read-only property
+  | 'lint_issue' // Non-TS errors from lint focus
   | 'unknown';
 
 // ── Semantic Error ──────────────────────────────────────────────────────────
@@ -64,26 +64,26 @@ export interface FailurePattern {
 // ── Code → Category Map ────────────────────────────────────────────────────
 
 const CODE_TO_CATEGORY: Record<string, ErrorCategory> = {
-  'TS2304': 'missing_symbol',
-  'TS2305': 'missing_symbol',
-  'TS2306': 'import_resolution',
-  'TS2307': 'import_resolution',
-  'TS2322': 'incompatible_types',
-  'TS2339': 'missing_property',
-  'TS2344': 'generic_constraint',
-  'TS2345': 'type_mismatch',
-  'TS2349': 'type_mismatch',
-  'TS2352': 'type_mismatch',
-  'TS2416': 'type_mismatch',
-  'TS2515': 'abstract_incomplete',
-  'TS2531': 'null_safety',
-  'TS2540': 'readonly_violation',
-  'TS2554': 'wrong_arity',
-  'TS2555': 'wrong_arity',
-  'TS2741': 'missing_member',
-  'TS2769': 'overload_mismatch',
-  'TS18047': 'null_safety',
-  'TS18048': 'null_safety',
+  TS2304: 'missing_symbol',
+  TS2305: 'missing_symbol',
+  TS2306: 'import_resolution',
+  TS2307: 'import_resolution',
+  TS2322: 'incompatible_types',
+  TS2339: 'missing_property',
+  TS2344: 'generic_constraint',
+  TS2345: 'type_mismatch',
+  TS2349: 'type_mismatch',
+  TS2352: 'type_mismatch',
+  TS2416: 'type_mismatch',
+  TS2515: 'abstract_incomplete',
+  TS2531: 'null_safety',
+  TS2540: 'readonly_violation',
+  TS2554: 'wrong_arity',
+  TS2555: 'wrong_arity',
+  TS2741: 'missing_member',
+  TS2769: 'overload_mismatch',
+  TS18047: 'null_safety',
+  TS18048: 'null_safety',
 };
 
 // ── Public Functions ────────────────────────────────────────────────────────
@@ -146,12 +146,15 @@ export function parseTscOutput(output: string): SemanticError[] {
  * Groups by error category, collecting unique files and symbols.
  */
 export function aggregatePatterns(errors: SemanticError[]): FailurePattern[] {
-  const byCategory = new Map<ErrorCategory, {
-    files: Set<string>;
-    symbols: Set<string>;
-    exemplar: string;
-    count: number;
-  }>();
+  const byCategory = new Map<
+    ErrorCategory,
+    {
+      files: Set<string>;
+      symbols: Set<string>;
+      exemplar: string;
+      count: number;
+    }
+  >();
 
   for (const e of errors) {
     const existing = byCategory.get(e.category);

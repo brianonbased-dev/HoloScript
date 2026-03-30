@@ -216,9 +216,7 @@ export function parseHsplus(source: string): BridgeResult<ParsedSkill> {
   const sourceComments = extractLeadingComments(source);
 
   // --- Extract composition name ---
-  const compositionMatch = source.match(
-    /composition\s+"([^"]+)"\s*\{/
-  );
+  const compositionMatch = source.match(/composition\s+"([^"]+)"\s*\{/);
   if (!compositionMatch) {
     errors.push('No composition declaration found. Expected: composition "name" { ... }');
     return { success: false, errors, warnings };
@@ -251,7 +249,7 @@ export function parseHsplus(source: string): BridgeResult<ParsedSkill> {
   const objects = extractObjectNames(source);
 
   // --- Extract spend limit from @economy trait ---
-  const economyTrait = traits.find(t => t.name === 'economy');
+  const economyTrait = traits.find((t) => t.name === 'economy');
   const spendLimit = economyTrait?.config?.default_spend_limit as number | undefined;
 
   // --- Extract input/output schemas ---
@@ -261,7 +259,10 @@ export function parseHsplus(source: string): BridgeResult<ParsedSkill> {
   // --- Extract tags from leading comments (@tags ...) ---
   const tagsMatch = source.match(/@tags\s+(.+)/);
   const tags = tagsMatch
-    ? tagsMatch[1].split(',').map(t => t.trim()).filter(Boolean)
+    ? tagsMatch[1]
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
     : undefined;
 
   const metadata: SkillMetadata = {
@@ -366,7 +367,7 @@ export function toSkillMd(skill: ParsedSkill): BridgeResult<string> {
   // --- Title ---
   const titleName = skill.metadata.name
     .split('-')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
   lines.push(`# ${titleName}`);
   lines.push('');
@@ -388,9 +389,12 @@ export function toSkillMd(skill: ParsedSkill): BridgeResult<string> {
     lines.push('## Traits');
     lines.push('');
     for (const trait of skill.traits) {
-      const configStr = Object.keys(trait.config).length > 0
-        ? ` (${Object.entries(trait.config).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')})`
-        : '';
+      const configStr =
+        Object.keys(trait.config).length > 0
+          ? ` (${Object.entries(trait.config)
+              .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+              .join(', ')})`
+          : '';
       lines.push(`- \`@${trait.name}\`${configStr}`);
     }
     lines.push('');
@@ -416,8 +420,11 @@ export function toSkillMd(skill: ParsedSkill): BridgeResult<string> {
     lines.push('|-------|------|----------|-------------|');
     for (const field of skill.metadata.inputSchema) {
       const req = field.required ? 'yes' : 'no';
-      const defaultStr = field.default !== undefined ? ` (default: \`${JSON.stringify(field.default)}\`)` : '';
-      lines.push(`| \`${field.name}\` | ${field.type} | ${req} | ${field.description}${defaultStr} |`);
+      const defaultStr =
+        field.default !== undefined ? ` (default: \`${JSON.stringify(field.default)}\`)` : '';
+      lines.push(
+        `| \`${field.name}\` | ${field.type} | ${req} | ${field.description}${defaultStr} |`
+      );
     }
     lines.push('');
   }
@@ -456,9 +463,12 @@ export function toSkillMd(skill: ParsedSkill): BridgeResult<string> {
         lines.push(`### ${step.description || step.action}`);
         lines.push('');
       } else {
-        const paramsStr = Object.keys(step.params).length > 0
-          ? ` (${Object.entries(step.params).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')})`
-          : '';
+        const paramsStr =
+          Object.keys(step.params).length > 0
+            ? ` (${Object.entries(step.params)
+                .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+                .join(', ')})`
+            : '';
         lines.push(`${stepNum}. **${step.action}**${paramsStr}`);
         if (step.description) {
           lines.push(`   ${step.description}`);
@@ -642,7 +652,9 @@ export function toHsplus(skill: ParsedSkill): BridgeResult<string> {
   const lines: string[] = [];
 
   // --- Leading comment block ---
-  lines.push(`// ${titleCase(skill.metadata.name)} -- ${skill.metadata.description.split('\n')[0]}`);
+  lines.push(
+    `// ${titleCase(skill.metadata.name)} -- ${skill.metadata.description.split('\n')[0]}`
+  );
   if (skill.metadata.description.includes('\n')) {
     for (const line of skill.metadata.description.split('\n').slice(1)) {
       if (line.trim()) lines.push(`// ${line.trim()}`);
@@ -765,17 +777,13 @@ export function generateClawHubManifest(
     holoScript: {
       format: 'hsplus',
       minCliVersion: skill.metadata.holoCliVersion || '5.0.0',
-      traits: skill.traits.map(t => t.name),
-      stateVars: skill.state.map(s => s.name),
+      traits: skill.traits.map((t) => t.name),
+      stateVars: skill.state.map((s) => s.name),
       testCount: skill.tests.length,
-      inputFields: (skill.metadata.inputSchema || []).map(f => f.name),
-      outputFields: (skill.metadata.outputSchema || []).map(f => f.name),
+      inputFields: (skill.metadata.inputSchema || []).map((f) => f.name),
+      outputFields: (skill.metadata.outputSchema || []).map((f) => f.name),
     },
-    files: [
-      `${skill.metadata.name}.hsplus`,
-      'SKILL.md',
-      'clawhub.json',
-    ],
+    files: [`${skill.metadata.name}.hsplus`, 'SKILL.md', 'clawhub.json'],
   };
 }
 
@@ -902,7 +910,10 @@ function extractTraits(source: string): SkillTraitDecl[] {
 
 function parseTraitConfig(configStr: string, config: Record<string, unknown>): void {
   // Parse key: value pairs from trait config
-  const pairs = configStr.split(/,|\n/).map(s => s.trim()).filter(Boolean);
+  const pairs = configStr
+    .split(/,|\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   for (const pair of pairs) {
     const colonIdx = pair.indexOf(':');
     if (colonIdx === -1) continue;
@@ -1099,7 +1110,8 @@ function extractSchemaFields(source: string, blockName: string): SchemaField[] {
   const block = source.slice(startIdx, i - 1);
 
   // Parse each line: name: type [(required)] [= default] ["description"]
-  const lineRegex = /^\s*(\w+)\s*:\s*(\w+)(?:\s*\(required\))?(?:\s*=\s*([^\s"]+))?(?:\s*"([^"]*)")?/gm;
+  const lineRegex =
+    /^\s*(\w+)\s*:\s*(\w+)(?:\s*\(required\))?(?:\s*=\s*([^\s"]+))?(?:\s*"([^"]*)")?/gm;
   let lineMatch: RegExpExecArray | null;
   while ((lineMatch = lineRegex.exec(block)) !== null) {
     const name = lineMatch[1];
@@ -1235,7 +1247,7 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
         result[key] = rawVal
           .slice(1, -1)
           .split(',')
-          .map(s => s.trim())
+          .map((s) => s.trim())
           .filter(Boolean);
         continue;
       }
@@ -1376,9 +1388,7 @@ function extractEnvironmentFromMd(body: string): Record<string, unknown> | null 
  */
 function extractSection(body: string, heading: string): string | null {
   const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const sectionRegex = new RegExp(
-    `##\\s+${escapedHeading}\\s*\n([\\s\\S]*?)(?=\\n##\\s|$)`
-  );
+  const sectionRegex = new RegExp(`##\\s+${escapedHeading}\\s*\n([\\s\\S]*?)(?=\\n##\\s|$)`);
   const match = body.match(sectionRegex);
   return match ? match[1].trim() : null;
 }
@@ -1399,10 +1409,13 @@ function parseFrontmatterSchemaList(raw: unknown): SchemaField[] {
   // If already parsed as array (by enhanced YAML parser), use directly
   if (Array.isArray(raw)) {
     return raw
-      .filter((item: unknown) => item && typeof item === 'object' && 'name' in (item as Record<string, unknown>))
+      .filter(
+        (item: unknown) =>
+          item && typeof item === 'object' && 'name' in (item as Record<string, unknown>)
+      )
       .map((item: Record<string, unknown>) => ({
         name: String(item.name || ''),
-        type: (String(item.type || 'string')) as SchemaField['type'],
+        type: String(item.type || 'string') as SchemaField['type'],
         required: item.required === true || item.required === 'true' || undefined,
         description: String(item.description || item.name || ''),
         default: item.default,
@@ -1468,7 +1481,7 @@ function extractOutputSchemaFromMd(body: string): SchemaField[] {
 function getDefaultTraits(): SkillTraitDecl[] {
   return [
     { name: 'rate_limiter', config: {} },
-    { name: 'economy', config: { default_spend_limit: 0.10 } },
+    { name: 'economy', config: { default_spend_limit: 0.1 } },
     { name: 'timeout_guard', config: {} },
   ];
 }
@@ -1485,7 +1498,7 @@ function formatHsplusValue(value: unknown): string {
 function titleCase(kebab: string): string {
   return kebab
     .split('-')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 }
 
@@ -1547,7 +1560,7 @@ function groupStepsIntoSequences(steps: SkillActionStep[]): BTTreeNode[] {
       name: 'main',
       description: 'main',
       params: {},
-      children: steps.map(s => ({
+      children: steps.map((s) => ({
         type: 'action' as const,
         name: s.action,
         description: s.description,
@@ -1629,14 +1642,14 @@ export function toHoloClawSkill(parsed: ParsedSkill): HoloClawSkill {
     description: parsed.metadata.description,
     version: parsed.metadata.version,
     author: parsed.metadata.author,
-    inputs: (parsed.metadata.inputSchema || []).map(f => ({
+    inputs: (parsed.metadata.inputSchema || []).map((f) => ({
       name: f.name,
       type: f.type,
       required: f.required ?? false,
       description: f.description,
       default: f.default,
     })),
-    outputs: (parsed.metadata.outputSchema || []).map(f => ({
+    outputs: (parsed.metadata.outputSchema || []).map((f) => ({
       name: f.name,
       type: f.type,
       description: f.description,
@@ -1651,7 +1664,7 @@ export function toHoloClawSkill(parsed: ParsedSkill): HoloClawSkill {
  * for distribution via ClawHub.
  */
 export function fromHoloClawSkill(skill: HoloClawSkill): ParsedSkill {
-  const inputSchema: SchemaField[] = skill.inputs.map(i => ({
+  const inputSchema: SchemaField[] = skill.inputs.map((i) => ({
     name: i.name,
     type: i.type,
     required: i.required || undefined,
@@ -1659,7 +1672,7 @@ export function fromHoloClawSkill(skill: HoloClawSkill): ParsedSkill {
     default: i.default,
   }));
 
-  const outputSchema: SchemaField[] = skill.outputs.map(o => ({
+  const outputSchema: SchemaField[] = skill.outputs.map((o) => ({
     name: o.name,
     type: o.type as SchemaField['type'],
     description: o.description,

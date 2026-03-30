@@ -1,9 +1,9 @@
 /**
  * Dynamic Tenant Authentication
- * 
+ *
  * Bridges the static OAuth21 configuration to a high-speed database store
  * (PostgreSQL or Upstash Redis) to allow multi-tenant, enterprise consumption.
- * 
+ *
  * @module security/tenant-auth
  */
 
@@ -44,7 +44,9 @@ const mockTenantStore = new Map<string, TenantContext>([
 /**
  * Validates a dynamic API key against the configured backend store.
  */
-export async function validateTenantKey(apiKey: string): Promise<TokenIntrospectionWithTenant | null> {
+export async function validateTenantKey(
+  apiKey: string
+): Promise<TokenIntrospectionWithTenant | null> {
   let tenant: TenantContext | undefined;
 
   // 1. Try PostgreSQL if configured
@@ -52,13 +54,22 @@ export async function validateTenantKey(apiKey: string): Promise<TokenIntrospect
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false });
-      const res = await pool.query('SELECT tenant_id, tier, limits FROM api_keys WHERE key = $1 AND revoked = false', [apiKey]);
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
+      });
+      const res = await pool.query(
+        'SELECT tenant_id, tier, limits FROM api_keys WHERE key = $1 AND revoked = false',
+        [apiKey]
+      );
       if (res.rows.length > 0) {
         tenant = {
           tenantId: res.rows[0].tenant_id,
           subscriptionTier: res.rows[0].tier,
-          limits: typeof res.rows[0].limits === 'string' ? JSON.parse(res.rows[0].limits) : res.rows[0].limits,
+          limits:
+            typeof res.rows[0].limits === 'string'
+              ? JSON.parse(res.rows[0].limits)
+              : res.rows[0].limits,
         };
       }
     } catch (e) {
@@ -70,7 +81,7 @@ export async function validateTenantKey(apiKey: string): Promise<TokenIntrospect
   if (!tenant && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     try {
       const resp = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/apikey:${apiKey}`, {
-        headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` }
+        headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
       });
       const data = await resp.json();
       if (data && data.result) {

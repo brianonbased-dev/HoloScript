@@ -61,7 +61,19 @@ export const contractHandler: TraitHandler<ContractConfig> = {
 
 // ── Schema Trait ───────────────────────────────────────────────────────────────
 
-export type SchemaFieldType = 'string' | 'number' | 'boolean' | 'uuid' | 'email' | 'url' | 'date' | 'datetime' | 'json' | 'binary' | 'array' | 'object';
+export type SchemaFieldType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'uuid'
+  | 'email'
+  | 'url'
+  | 'date'
+  | 'datetime'
+  | 'json'
+  | 'binary'
+  | 'array'
+  | 'object';
 
 export interface SchemaConfig {
   /** Schema name */

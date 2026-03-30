@@ -51,10 +51,7 @@ export type CSGOperation =
   | 'smooth_intersect'
   | 'smooth_difference';
 
-export type DomainOperation =
-  | 'repeat'
-  | 'twist'
-  | 'bend';
+export type DomainOperation = 'repeat' | 'twist' | 'bend';
 
 export interface SDFNode {
   type: 'primitive' | 'csg' | 'domain';
@@ -171,9 +168,12 @@ function compileNode(node: SDFNode): string {
     }
     if (node.rotate) {
       const [rx, ry, rz] = node.rotate;
-      if (rx !== 0) lines += `  ${p}.yz = mat2(cos(${rx.toFixed(4)}), -sin(${rx.toFixed(4)}), sin(${rx.toFixed(4)}), cos(${rx.toFixed(4)})) * ${p}.yz;\n`;
-      if (ry !== 0) lines += `  ${p}.xz = mat2(cos(${ry.toFixed(4)}), -sin(${ry.toFixed(4)}), sin(${ry.toFixed(4)}), cos(${ry.toFixed(4)})) * ${p}.xz;\n`;
-      if (rz !== 0) lines += `  ${p}.xy = mat2(cos(${rz.toFixed(4)}), -sin(${rz.toFixed(4)}), sin(${rz.toFixed(4)}), cos(${rz.toFixed(4)})) * ${p}.xy;\n`;
+      if (rx !== 0)
+        lines += `  ${p}.yz = mat2(cos(${rx.toFixed(4)}), -sin(${rx.toFixed(4)}), sin(${rx.toFixed(4)}), cos(${rx.toFixed(4)})) * ${p}.yz;\n`;
+      if (ry !== 0)
+        lines += `  ${p}.xz = mat2(cos(${ry.toFixed(4)}), -sin(${ry.toFixed(4)}), sin(${ry.toFixed(4)}), cos(${ry.toFixed(4)})) * ${p}.xz;\n`;
+      if (rz !== 0)
+        lines += `  ${p}.xy = mat2(cos(${rz.toFixed(4)}), -sin(${rz.toFixed(4)}), sin(${rz.toFixed(4)}), cos(${rz.toFixed(4)})) * ${p}.xy;\n`;
     }
     if (node.scale) {
       lines += `  ${p} /= vec3(${node.scale.join(', ')});\n`;
@@ -247,14 +247,16 @@ function compileNode(node: SDFNode): string {
       const prevId = i === 1 ? firstId : resultId - 2;
 
       if (isSmooth) {
-        const fnName = op === 'smooth_union' ? 'opSmoothUnion'
-          : op === 'smooth_intersect' ? 'opSmoothIntersect'
-          : 'opSmoothDifference';
+        const fnName =
+          op === 'smooth_union'
+            ? 'opSmoothUnion'
+            : op === 'smooth_intersect'
+              ? 'opSmoothIntersect'
+              : 'opSmoothDifference';
         lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId}, ${k});\n`;
       } else {
-        const fnName = op === 'union' ? 'opUnion'
-          : op === 'intersect' ? 'opIntersect'
-          : 'opDifference';
+        const fnName =
+          op === 'union' ? 'opUnion' : op === 'intersect' ? 'opIntersect' : 'opDifference';
         lines += `  float d${resultId} = ${fnName}(d${prevId}, d${secondId});\n`;
       }
     }
@@ -268,7 +270,12 @@ function compileNode(node: SDFNode): string {
 /**
  * Compile an SDFNode tree into a complete GLSL ray marching shader pair.
  */
-export function compileSDFScene(root: SDFNode, maxSteps = 128, maxDist = 100.0, epsilon = 0.001): SDFCompileResult {
+export function compileSDFScene(
+  root: SDFNode,
+  maxSteps = 128,
+  maxDist = 100.0,
+  epsilon = 0.001
+): SDFCompileResult {
   _nodeCounter = 0;
 
   const usedPrimitives = new Set<SDFPrimitive>();

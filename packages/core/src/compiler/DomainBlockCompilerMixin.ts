@@ -11,7 +11,19 @@
  */
 
 import type { HoloDomainBlock, HoloDomainType, HoloValue } from '../parser/HoloCompositionTypes';
+import { escapeStringValue, type EscapeTarget } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+
+/**
+ * Escape a string for safe interpolation into a specific target language.
+ * Convenience alias for DomainBlockCompilerMixin standalone functions.
+ *
+ * SECURITY: All user-controlled strings interpolated into generated code
+ * MUST go through this function to prevent CWE-94 injection attacks.
+ */
+function esc(value: string, target: EscapeTarget): string {
+  return escapeStringValue(value, target);
+}
 
 // =============================================================================
 // Material Compilation
@@ -330,8 +342,10 @@ export interface TierContext {
 export function particlesToR3F(ps: CompiledParticleSystem, tier?: TierContext): string {
   const scale = tier?.particleScale ?? 1.0;
   const props: string[] = [];
-  if (ps.properties.rate) props.push(`rate={${Math.round((ps.properties.rate as number) * scale)}}`);
-  if (ps.properties.max_particles) props.push(`maxParticles={${Math.round((ps.properties.max_particles as number) * scale)}}`);
+  if (ps.properties.rate)
+    props.push(`rate={${Math.round((ps.properties.rate as number) * scale)}}`);
+  if (ps.properties.max_particles)
+    props.push(`maxParticles={${Math.round((ps.properties.max_particles as number) * scale)}}`);
   if (ps.properties.start_lifetime) {
     const lt = ps.properties.start_lifetime;
     props.push(Array.isArray(lt) ? `lifetime={[${lt.join(', ')}]}` : `lifetime={${lt}}`);
@@ -443,7 +457,9 @@ export function materialToR3F(mat: CompiledMaterial, tier?: TierContext): string
     const props = [
       mat.baseColor ? `color="${mat.baseColor}"` : '',
       mat.opacity !== undefined ? `opacity={${mat.opacity}} transparent` : '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
     return `<meshBasicMaterial ${props} />`;
   }
 
@@ -1031,7 +1047,10 @@ export function audioSourceToUnreal(audio: CompiledAudioSource, varPrefix: strin
     lines.push(`${varPrefix}Audio->SetVolumeMultiplier(${audio.properties.volume}f);`);
   if (audio.properties.loop !== undefined)
     lines.push(`${varPrefix}Audio->bIsLooping = ${audio.properties.loop ? 'true' : 'false'};`);
-  if (audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0)) {
+  if (
+    audio.traits.includes('spatial') ||
+    (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0)
+  ) {
     lines.push(`${varPrefix}Audio->bOverrideAttenuation = true;`);
     if (audio.properties.max_distance)
       lines.push(
@@ -1205,7 +1224,9 @@ export function postProcessingToGodot(pp: CompiledPostProcessing): string {
 export function audioSourceToGodot(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`# Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
+  const isSpatial =
+    audio.traits.includes('spatial') ||
+    (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
   const nodeType = isSpatial ? 'AudioStreamPlayer3D' : 'AudioStreamPlayer';
   lines.push(`var ${varPrefix}_audio = ${nodeType}.new()`);
   lines.push(`${varPrefix}_audio.name = "${audio.name}"`);
@@ -1345,7 +1366,9 @@ export function particlesToVisionOS(ps: CompiledParticleSystem, varPrefix: strin
 export function audioSourceToVisionOS(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
+  const isSpatial =
+    audio.traits.includes('spatial') ||
+    (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
   if (isSpatial) {
     lines.push(`let ${varPrefix}Audio = Entity()`);
     lines.push(`${varPrefix}Audio.spatialAudio = SpatialAudioComponent()`);
@@ -1752,10 +1775,9 @@ export function particlesToBabylon(ps: CompiledParticleSystem, varPrefix: string
     }
   }
   if (ps.properties.gravity_modifier !== undefined) {
-    const gravMod = typeof ps.properties.gravity_modifier === 'number' ? ps.properties.gravity_modifier : 1;
-    lines.push(
-      `${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * gravMod}, 0);`
-    );
+    const gravMod =
+      typeof ps.properties.gravity_modifier === 'number' ? ps.properties.gravity_modifier : 1;
+    lines.push(`${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * gravMod}, 0);`);
   }
   lines.push(`${varPrefix}PS.start();`);
   return lines.join('\n');
@@ -1797,7 +1819,9 @@ export function postProcessingToBabylon(pp: CompiledPostProcessing): string {
 export function audioSourceToBabylon(audio: CompiledAudioSource, varPrefix: string): string {
   const lines: string[] = [];
   lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
-  const isSpatial = audio.traits.includes('spatial') || (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
+  const isSpatial =
+    audio.traits.includes('spatial') ||
+    (typeof audio.properties.spatial_blend === 'number' && audio.properties.spatial_blend > 0);
   lines.push(
     `const ${varPrefix}Sound = new BABYLON.Sound("${audio.name}", "${audio.properties.clip || ''}", scene, null, {`
   );
@@ -1992,9 +2016,10 @@ export function physicsToSDF(physics: CompiledPhysics): string {
       }
       if (j.properties.limits) {
         const limVals = Array.isArray(j.properties.limits) ? j.properties.limits : undefined;
-        if (limVals) lines.push(
-          `  <axis><limit><lower>${limVals[0]}</lower><upper>${limVals[1]}</upper></limit></axis>`
-        );
+        if (limVals)
+          lines.push(
+            `  <axis><limit><lower>${limVals[0]}</lower><upper>${limVals[1]}</upper></limit></axis>`
+          );
       }
       lines.push('</joint>');
     }
@@ -2485,7 +2510,7 @@ export function narrativeToVRChat(narrative: CompiledNarrative): string {
   lines.push(`public class ${safeName}Narrative : UdonSharpBehaviour {`);
   lines.push('    [UdonSynced] public int currentChapter = 0;');
   lines.push(
-    `    private string[] chapterNames = new string[] { ${narrative.chapters.map((c) => `"${c.name}"`).join(', ')} };`
+    `    private string[] chapterNames = new string[] { ${narrative.chapters.map((c) => `"${esc(c.name, 'CSharp')}"`).join(', ')} };`
   );
   lines.push('');
 
@@ -2720,7 +2745,7 @@ export function paymentToUnity(paywall: CompiledPaywall): string {
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
     lines.push(
-      `    public string[] gatedObjects = new string[] { ${paywall.gatedContent.map((g) => `"${g}"`).join(', ')} };`
+      `    public string[] gatedObjects = new string[] { ${paywall.gatedContent.map((g) => `"${esc(g, 'CSharp')}"`).join(', ')} };`
     );
   }
   if (paywall.revenueSplit) {
@@ -2766,7 +2791,7 @@ export function paymentToGodot(paywall: CompiledPaywall): string {
   lines.push('var is_unlocked: bool = false');
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
     lines.push(
-      `var gated_objects: Array = [${paywall.gatedContent.map((g) => `"${g}"`).join(', ')}]`
+      `var gated_objects: Array = [${paywall.gatedContent.map((g) => `"${esc(g, 'GDScript')}"`).join(', ')}]`
     );
   }
   lines.push('');
@@ -2846,7 +2871,7 @@ export function paymentToR3F(paywall: CompiledPaywall): string {
     lines.push(`  description: "${paywall.description}",`);
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
-    lines.push(`  gatedContent: [${paywall.gatedContent.map((g) => `"${g}"`).join(', ')}],`);
+    lines.push(`  gatedContent: [${paywall.gatedContent.map((g) => `"${esc(g, 'TypeScript')}"`).join(', ')}],`);
   }
   if (paywall.revenueSplit) {
     lines.push(
@@ -2876,7 +2901,7 @@ export function paymentToUSDA(paywall: CompiledPaywall): string {
   }
   if (paywall.gatedContent && paywall.gatedContent.length > 0) {
     lines.push(
-      `    custom string[] holoscript:gatedContent = [${paywall.gatedContent.map((g) => `"${g}"`).join(', ')}]`
+      `    custom string[] holoscript:gatedContent = [${paywall.gatedContent.map((g) => `"${esc(g, 'USD')}"`).join(', ')}]`
     );
   }
   if (paywall.revenueSplit) {
@@ -2970,16 +2995,18 @@ export function healthcareToR3F(healthcare: CompiledHealthcare): string {
     lines.push(`  bodySystem: "${healthcare.bodySystem}",`);
   }
   if (healthcare.dicomWindow) {
-    lines.push(`  dicomWindow: { center: ${healthcare.dicomWindow.center}, width: ${healthcare.dicomWindow.width} },`);
+    lines.push(
+      `  dicomWindow: { center: ${healthcare.dicomWindow.center}, width: ${healthcare.dicomWindow.width} },`
+    );
   }
   if (healthcare.vitalSigns) {
-    lines.push(`  vitalSigns: [${healthcare.vitalSigns.map((v) => `"${v}"`).join(', ')}],`);
+    lines.push(`  vitalSigns: [${healthcare.vitalSigns.map((v) => `"${esc(v, 'TypeScript')}"`).join(', ')}],`);
   }
   if (healthcare.alertThresholds) {
     lines.push(`  alertThresholds: ${JSON.stringify(healthcare.alertThresholds)},`);
   }
   if (healthcare.procedureSteps) {
-    lines.push(`  steps: [${healthcare.procedureSteps.map((s) => `"${s}"`).join(', ')}],`);
+    lines.push(`  steps: [${healthcare.procedureSteps.map((s) => `"${esc(s, 'TypeScript')}"`).join(', ')}],`);
   }
   lines.push('};');
 
@@ -3005,10 +3032,14 @@ export function healthcareToUnity(healthcare: CompiledHealthcare): string {
     lines.push(`    public float windowWidth = ${healthcare.dicomWindow.width}f;`);
   }
   if (healthcare.vitalSigns) {
-    lines.push(`    public string[] vitalSigns = new string[] { ${healthcare.vitalSigns.map((v) => `"${v}"`).join(', ')} };`);
+    lines.push(
+      `    public string[] vitalSigns = new string[] { ${healthcare.vitalSigns.map((v) => `"${esc(v, 'CSharp')}"`).join(', ')} };`
+    );
   }
   if (healthcare.procedureSteps) {
-    lines.push(`    public string[] procedureSteps = new string[] { ${healthcare.procedureSteps.map((s) => `"${s}"`).join(', ')} };`);
+    lines.push(
+      `    public string[] procedureSteps = new string[] { ${healthcare.procedureSteps.map((s) => `"${esc(s, 'CSharp')}"`).join(', ')} };`
+    );
   }
   lines.push('');
   if (healthcare.dicomWindow) {
@@ -3016,8 +3047,12 @@ export function healthcareToUnity(healthcare: CompiledHealthcare): string {
     lines.push('    void Start() {');
     lines.push('        var renderer = GetComponent<Renderer>();');
     lines.push('        if (renderer != null) {');
-    lines.push(`            renderer.material.SetFloat("_WindowCenter", ${healthcare.dicomWindow.center}f);`);
-    lines.push(`            renderer.material.SetFloat("_WindowWidth", ${healthcare.dicomWindow.width}f);`);
+    lines.push(
+      `            renderer.material.SetFloat("_WindowCenter", ${healthcare.dicomWindow.center}f);`
+    );
+    lines.push(
+      `            renderer.material.SetFloat("_WindowWidth", ${healthcare.dicomWindow.width}f);`
+    );
     lines.push('        }');
     lines.push('    }');
   }
@@ -3045,7 +3080,9 @@ export function healthcareToGodot(healthcare: CompiledHealthcare): string {
     lines.push(`@export var window_width: float = ${healthcare.dicomWindow.width}`);
   }
   if (healthcare.vitalSigns) {
-    lines.push(`@export var vital_signs: PackedStringArray = [${healthcare.vitalSigns.map((v) => `"${v}"`).join(', ')}]`);
+    lines.push(
+      `@export var vital_signs: PackedStringArray = [${healthcare.vitalSigns.map((v) => `"${esc(v, 'GDScript')}"`).join(', ')}]`
+    );
   }
   if (healthcare.dicomWindow) {
     lines.push('');
@@ -3116,7 +3153,12 @@ export function compileRoboticsBlock(block: HoloDomainBlock): CompiledRobotics {
 
   // Extract joint limits
   let jointLimits: CompiledRobotics['jointLimits'];
-  if (props.lower != null || props.upper != null || props.effort != null || props.velocity != null) {
+  if (
+    props.lower != null ||
+    props.upper != null ||
+    props.effort != null ||
+    props.velocity != null
+  ) {
     jointLimits = {
       lower: (props.lower as number) ?? -3.14159,
       upper: (props.upper as number) ?? 3.14159,
@@ -3172,7 +3214,9 @@ export function roboticsToR3F(robotics: CompiledRobotics): string {
     lines.push(`  jointType: "${robotics.jointType}",`);
   }
   if (robotics.jointLimits) {
-    lines.push(`  jointLimits: { lower: ${robotics.jointLimits.lower}, upper: ${robotics.jointLimits.upper}, effort: ${robotics.jointLimits.effort}, velocity: ${robotics.jointLimits.velocity} },`);
+    lines.push(
+      `  jointLimits: { lower: ${robotics.jointLimits.lower}, upper: ${robotics.jointLimits.upper}, effort: ${robotics.jointLimits.effort}, velocity: ${robotics.jointLimits.velocity} },`
+    );
   }
   if (robotics.driveType) {
     lines.push(`  driveType: "${robotics.driveType}",`);
@@ -3203,7 +3247,9 @@ export function roboticsToUnity(robotics: CompiledRobotics): string {
   lines.push(`public class ${safeName}Robotics : MonoBehaviour {`);
   lines.push(`    public string roboticsType = "${robotics.keyword}";`);
   if (robotics.jointType) {
-    lines.push(`    public ArticulationJointType jointType = ArticulationJointType.${capitalizeFirst(robotics.jointType)};`);
+    lines.push(
+      `    public ArticulationJointType jointType = ArticulationJointType.${capitalizeFirst(robotics.jointType)};`
+    );
   }
   if (robotics.jointLimits) {
     lines.push(`    public float lowerLimit = ${robotics.jointLimits.lower}f;`);
@@ -3272,7 +3318,9 @@ export function roboticsToGodot(robotics: CompiledRobotics): string {
     lines.push('');
     lines.push('func set_joint_angle(angle: float) -> void:');
     if (robotics.jointLimits) {
-      lines.push(`    angle = clampf(angle, ${robotics.jointLimits.lower}, ${robotics.jointLimits.upper})`);
+      lines.push(
+        `    angle = clampf(angle, ${robotics.jointLimits.lower}, ${robotics.jointLimits.upper})`
+      );
     }
     lines.push('    current_angle = angle');
     lines.push('    rotation.x = angle');
@@ -3385,10 +3433,11 @@ export function iotToR3F(iot: CompiledIoT): string {
   lines.push(`  name: "${iot.name}",`);
   lines.push(`  type: "${iot.keyword}",`);
   if (iot.deviceType) lines.push(`  deviceType: "${iot.deviceType}",`);
-  if (iot.protocol) lines.push(`  protocol: "${iot.protocol}",`);
-  if (iot.telemetryFields) lines.push(`  telemetryFields: [${iot.telemetryFields.map((f) => `"${f}"`).join(', ')}],`);
+  if (iot.protocol) lines.push(`  protocol: "${esc(iot.protocol, 'TypeScript')}",`);
+  if (iot.telemetryFields)
+    lines.push(`  telemetryFields: [${iot.telemetryFields.map((f) => `"${esc(f, 'TypeScript')}"`).join(', ')}],`);
   if (iot.updateInterval) lines.push(`  updateInterval: ${iot.updateInterval},`);
-  if (iot.twinModel) lines.push(`  twinModel: "${iot.twinModel}",`);
+  if (iot.twinModel) lines.push(`  twinModel: "${esc(iot.twinModel, 'TypeScript')}",`);
   lines.push('};');
   return lines.join('\n');
 }
@@ -3398,11 +3447,15 @@ export function iotToUnity(iot: CompiledIoT): string {
   const lines: string[] = [];
   lines.push(`// IoT: ${iot.name}`);
   lines.push(`public class ${safeName}IoT : MonoBehaviour {`);
-  lines.push(`    public string deviceType = "${iot.keyword}";`);
-  if (iot.protocol) lines.push(`    public string protocol = "${iot.protocol}";`);
-  if (iot.updateInterval) lines.push(`    public float updateInterval = ${iot.updateInterval / 1000}f;`);
-  if (iot.telemetryFields) lines.push(`    public string[] telemetryFields = new string[] { ${iot.telemetryFields.map((f) => `"${f}"`).join(', ')} };`);
-  if (iot.twinModel) lines.push(`    public string twinModel = "${iot.twinModel}";`);
+  lines.push(`    public string deviceType = "${esc(iot.keyword, 'CSharp')}";`);
+  if (iot.protocol) lines.push(`    public string protocol = "${esc(iot.protocol, 'CSharp')}";`);
+  if (iot.updateInterval)
+    lines.push(`    public float updateInterval = ${iot.updateInterval / 1000}f;`);
+  if (iot.telemetryFields)
+    lines.push(
+      `    public string[] telemetryFields = new string[] { ${iot.telemetryFields.map((f) => `"${esc(f, 'CSharp')}"`).join(', ')} };`
+    );
+  if (iot.twinModel) lines.push(`    public string twinModel = "${esc(iot.twinModel, 'CSharp')}";`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -3412,11 +3465,15 @@ export function iotToGodot(iot: CompiledIoT): string {
   lines.push(`# IoT: ${iot.name}`);
   lines.push('extends Node');
   lines.push('');
-  lines.push(`@export var device_type: String = "${iot.keyword}"`);
-  if (iot.protocol) lines.push(`@export var protocol: String = "${iot.protocol}"`);
-  if (iot.updateInterval) lines.push(`@export var update_interval: float = ${iot.updateInterval / 1000}`);
-  if (iot.telemetryFields) lines.push(`@export var telemetry_fields: PackedStringArray = [${iot.telemetryFields.map((f) => `"${f}"`).join(', ')}]`);
-  if (iot.twinModel) lines.push(`@export var twin_model: String = "${iot.twinModel}"`);
+  lines.push(`@export var device_type: String = "${esc(iot.keyword, 'GDScript')}"`);
+  if (iot.protocol) lines.push(`@export var protocol: String = "${esc(iot.protocol, 'GDScript')}"`);
+  if (iot.updateInterval)
+    lines.push(`@export var update_interval: float = ${iot.updateInterval / 1000}`);
+  if (iot.telemetryFields)
+    lines.push(
+      `@export var telemetry_fields: PackedStringArray = [${iot.telemetryFields.map((f) => `"${esc(f, 'GDScript')}"`).join(', ')}]`
+    );
+  if (iot.twinModel) lines.push(`@export var twin_model: String = "${esc(iot.twinModel, 'GDScript')}"`);
   lines.push('');
   lines.push('signal telemetry_received(field: String, value: float)');
   lines.push('signal connection_changed(connected: bool)');
@@ -3431,7 +3488,8 @@ export function iotToVRChat(iot: CompiledIoT): string {
   lines.push(`public class ${safeName}IoT : UdonSharpBehaviour {`);
   lines.push(`    public string deviceType = "${iot.keyword}";`);
   if (iot.telemetryFields) lines.push(`    [UdonSynced] public string telemetryData = "";`);
-  if (iot.updateInterval) lines.push(`    public float updateInterval = ${iot.updateInterval / 1000}f;`);
+  if (iot.updateInterval)
+    lines.push(`    public float updateInterval = ${iot.updateInterval / 1000}f;`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -3442,7 +3500,8 @@ export function iotToUSDA(iot: CompiledIoT): string {
   lines.push(`def Scope "IoT_${safeName}" {`);
   lines.push(`    custom string holoscript:deviceType = "${iot.keyword}"`);
   if (iot.protocol) lines.push(`    custom string holoscript:protocol = "${iot.protocol}"`);
-  if (iot.updateInterval) lines.push(`    custom float holoscript:updateInterval = ${iot.updateInterval}`);
+  if (iot.updateInterval)
+    lines.push(`    custom float holoscript:updateInterval = ${iot.updateInterval}`);
   if (iot.twinModel) lines.push(`    custom string holoscript:twinModel = "${iot.twinModel}"`);
   lines.push('}');
   return lines.join('\n');
@@ -3459,7 +3518,11 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
     axes = { x: props.x_axis as string, y: props.y_axis as string, z: props.z_axis as string };
   } else if (props.axes && typeof props.axes === 'object') {
     const a = props.axes as Record<string, unknown>;
-    axes = { x: a.x as string | undefined, y: a.y as string | undefined, z: a.z as string | undefined };
+    axes = {
+      x: a.x as string | undefined,
+      y: a.y as string | undefined,
+      z: a.z as string | undefined,
+    };
   }
   let dimensions: CompiledDataViz['dimensions'];
   if (props.width != null || props.height != null) {
@@ -3491,7 +3554,8 @@ export function datavizToR3F(dv: CompiledDataViz): string {
   if (dv.axes) lines.push(`  axes: ${JSON.stringify(dv.axes)},`);
   if (dv.aggregation) lines.push(`  aggregation: "${dv.aggregation}",`);
   if (dv.refreshInterval) lines.push(`  refreshInterval: ${dv.refreshInterval},`);
-  if (dv.dimensions) lines.push(`  dimensions: { width: ${dv.dimensions.width}, height: ${dv.dimensions.height} },`);
+  if (dv.dimensions)
+    lines.push(`  dimensions: { width: ${dv.dimensions.width}, height: ${dv.dimensions.height} },`);
   lines.push('};');
   return lines.join('\n');
 }
@@ -3504,7 +3568,8 @@ export function datavizToUnity(dv: CompiledDataViz): string {
   lines.push(`    public string vizType = "${dv.keyword}";`);
   if (dv.chartType) lines.push(`    public string chartType = "${dv.chartType}";`);
   if (dv.dataSource) lines.push(`    public string dataSource = "${dv.dataSource}";`);
-  if (dv.refreshInterval) lines.push(`    public float refreshInterval = ${dv.refreshInterval / 1000}f;`);
+  if (dv.refreshInterval)
+    lines.push(`    public float refreshInterval = ${dv.refreshInterval / 1000}f;`);
   if (dv.dimensions) {
     lines.push(`    public float width = ${dv.dimensions.width}f;`);
     lines.push(`    public float height = ${dv.dimensions.height}f;`);
@@ -3521,7 +3586,8 @@ export function datavizToGodot(dv: CompiledDataViz): string {
   lines.push(`@export var viz_type: String = "${dv.keyword}"`);
   if (dv.chartType) lines.push(`@export var chart_type: String = "${dv.chartType}"`);
   if (dv.dataSource) lines.push(`@export var data_source: String = "${dv.dataSource}"`);
-  if (dv.refreshInterval) lines.push(`@export var refresh_interval: float = ${dv.refreshInterval / 1000}`);
+  if (dv.refreshInterval)
+    lines.push(`@export var refresh_interval: float = ${dv.refreshInterval / 1000}`);
   if (dv.dimensions) {
     lines.push(`@export var chart_width: float = ${dv.dimensions.width}`);
     lines.push(`@export var chart_height: float = ${dv.dimensions.height}`);
@@ -3568,7 +3634,9 @@ export function compileEducationBlock(block: HoloDomainBlock): CompiledEducation
   let questions: CompiledEducation['questions'];
   if (Array.isArray(props.questions)) {
     questions = (props.questions as unknown[]).map((q) =>
-      typeof q === 'string' ? { question: q } : (q as { question: string; options?: string[]; answer?: string })
+      typeof q === 'string'
+        ? { question: q }
+        : (q as { question: string; options?: string[]; answer?: string })
     );
   }
   // Extract questions from children (quiz sub-blocks)
@@ -3604,11 +3672,13 @@ export function educationToR3F(edu: CompiledEducation): string {
   lines.push(`export const ${safeName}Config = {`);
   lines.push(`  name: "${edu.name}",`);
   lines.push(`  type: "${edu.keyword}",`);
-  if (edu.difficulty) lines.push(`  difficulty: "${edu.difficulty}",`);
-  if (edu.objectives) lines.push(`  objectives: [${edu.objectives.map((o) => `"${o}"`).join(', ')}],`);
+  if (edu.difficulty) lines.push(`  difficulty: "${esc(edu.difficulty, 'TypeScript')}",`);
+  if (edu.objectives)
+    lines.push(`  objectives: [${edu.objectives.map((o) => `"${esc(o, 'TypeScript')}"`).join(', ')}],`);
   if (edu.duration) lines.push(`  duration: ${edu.duration},`);
   if (edu.questions) lines.push(`  questions: ${JSON.stringify(edu.questions)},`);
-  if (edu.prerequisites) lines.push(`  prerequisites: [${edu.prerequisites.map((p) => `"${p}"`).join(', ')}],`);
+  if (edu.prerequisites)
+    lines.push(`  prerequisites: [${edu.prerequisites.map((p) => `"${esc(p, 'TypeScript')}"`).join(', ')}],`);
   lines.push('};');
   return lines.join('\n');
 }
@@ -3618,10 +3688,13 @@ export function educationToUnity(edu: CompiledEducation): string {
   const lines: string[] = [];
   lines.push(`// Education: ${edu.name}`);
   lines.push(`public class ${safeName}Education : MonoBehaviour {`);
-  lines.push(`    public string contentType = "${edu.keyword}";`);
-  if (edu.difficulty) lines.push(`    public string difficulty = "${edu.difficulty}";`);
+  lines.push(`    public string contentType = "${esc(edu.keyword, 'CSharp')}";`);
+  if (edu.difficulty) lines.push(`    public string difficulty = "${esc(edu.difficulty, 'CSharp')}";`);
   if (edu.duration) lines.push(`    public int durationMinutes = ${edu.duration};`);
-  if (edu.objectives) lines.push(`    public string[] objectives = new string[] { ${edu.objectives.map((o) => `"${o}"`).join(', ')} };`);
+  if (edu.objectives)
+    lines.push(
+      `    public string[] objectives = new string[] { ${edu.objectives.map((o) => `"${esc(o, 'CSharp')}"`).join(', ')} };`
+    );
   if (edu.questions) lines.push(`    public int questionCount = ${edu.questions.length};`);
   lines.push('}');
   return lines.join('\n');
@@ -3632,10 +3705,13 @@ export function educationToGodot(edu: CompiledEducation): string {
   lines.push(`# Education: ${edu.name}`);
   lines.push('extends Node');
   lines.push('');
-  lines.push(`@export var content_type: String = "${edu.keyword}"`);
-  if (edu.difficulty) lines.push(`@export var difficulty: String = "${edu.difficulty}"`);
+  lines.push(`@export var content_type: String = "${esc(edu.keyword, 'GDScript')}"`);
+  if (edu.difficulty) lines.push(`@export var difficulty: String = "${esc(edu.difficulty, 'GDScript')}"`);
   if (edu.duration) lines.push(`@export var duration_minutes: int = ${edu.duration}`);
-  if (edu.objectives) lines.push(`@export var objectives: PackedStringArray = [${edu.objectives.map((o) => `"${o}"`).join(', ')}]`);
+  if (edu.objectives)
+    lines.push(
+      `@export var objectives: PackedStringArray = [${edu.objectives.map((o) => `"${esc(o, 'GDScript')}"`).join(', ')}]`
+    );
   lines.push('');
   lines.push('signal lesson_completed(score: float)');
   lines.push('signal quiz_submitted(answers: Dictionary)');
@@ -3711,9 +3787,9 @@ export function musicToR3F(music: CompiledMusic): string {
   if (music.instrumentType) lines.push(`  instrumentType: "${music.instrumentType}",`);
   if (music.bpm) lines.push(`  bpm: ${music.bpm},`);
   if (music.timeSignature) lines.push(`  timeSignature: [${music.timeSignature.join(', ')}],`);
-  if (music.key) lines.push(`  key: "${music.key}",`);
-  if (music.effects) lines.push(`  effects: [${music.effects.map((e) => `"${e}"`).join(', ')}],`);
-  if (music.pattern) lines.push(`  pattern: "${music.pattern}",`);
+  if (music.key) lines.push(`  key: "${esc(music.key, 'TypeScript')}",`);
+  if (music.effects) lines.push(`  effects: [${music.effects.map((e) => `"${esc(e, 'TypeScript')}"`).join(', ')}],`);
+  if (music.pattern) lines.push(`  pattern: "${esc(music.pattern, 'TypeScript')}",`);
   if (music.bars) lines.push(`  bars: ${music.bars},`);
   lines.push('};');
   return lines.join('\n');
@@ -3724,11 +3800,15 @@ export function musicToUnity(music: CompiledMusic): string {
   const lines: string[] = [];
   lines.push(`// Music: ${music.name}`);
   lines.push(`public class ${safeName}Music : MonoBehaviour {`);
-  lines.push(`    public string musicType = "${music.keyword}";`);
-  if (music.instrumentType) lines.push(`    public string instrumentType = "${music.instrumentType}";`);
+  lines.push(`    public string musicType = "${esc(music.keyword, 'CSharp')}";`);
+  if (music.instrumentType)
+    lines.push(`    public string instrumentType = "${esc(music.instrumentType, 'CSharp')}";`);
   if (music.bpm) lines.push(`    public float bpm = ${music.bpm}f;`);
-  if (music.key) lines.push(`    public string musicalKey = "${music.key}";`);
-  if (music.effects) lines.push(`    public string[] effects = new string[] { ${music.effects.map((e) => `"${e}"`).join(', ')} };`);
+  if (music.key) lines.push(`    public string musicalKey = "${esc(music.key, 'CSharp')}";`);
+  if (music.effects)
+    lines.push(
+      `    public string[] effects = new string[] { ${music.effects.map((e) => `"${esc(e, 'CSharp')}"`).join(', ')} };`
+    );
   lines.push('}');
   return lines.join('\n');
 }
@@ -3739,7 +3819,8 @@ export function musicToGodot(music: CompiledMusic): string {
   lines.push('extends Node');
   lines.push('');
   lines.push(`@export var music_type: String = "${music.keyword}"`);
-  if (music.instrumentType) lines.push(`@export var instrument_type: String = "${music.instrumentType}"`);
+  if (music.instrumentType)
+    lines.push(`@export var instrument_type: String = "${music.instrumentType}"`);
   if (music.bpm) lines.push(`@export var bpm: float = ${music.bpm}`);
   if (music.key) lines.push(`@export var musical_key: String = "${music.key}"`);
   if (music.bars) lines.push(`@export var bars: int = ${music.bars}`);
@@ -3757,7 +3838,8 @@ export function musicToVRChat(music: CompiledMusic): string {
   lines.push(`public class ${safeName}Music : UdonSharpBehaviour {`);
   lines.push(`    public string musicType = "${music.keyword}";`);
   if (music.bpm) lines.push(`    [UdonSynced] public float bpm = ${music.bpm}f;`);
-  if (music.instrumentType) lines.push(`    public string instrumentType = "${music.instrumentType}";`);
+  if (music.instrumentType)
+    lines.push(`    public string instrumentType = "${music.instrumentType}";`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -3767,7 +3849,8 @@ export function musicToUSDA(music: CompiledMusic): string {
   const lines: string[] = [];
   lines.push(`def Scope "Music_${safeName}" {`);
   lines.push(`    custom string holoscript:musicType = "${music.keyword}"`);
-  if (music.instrumentType) lines.push(`    custom string holoscript:instrumentType = "${music.instrumentType}"`);
+  if (music.instrumentType)
+    lines.push(`    custom string holoscript:instrumentType = "${music.instrumentType}"`);
   if (music.bpm) lines.push(`    custom float holoscript:bpm = ${music.bpm}`);
   if (music.key) lines.push(`    custom string holoscript:key = "${music.key}"`);
   lines.push('}');
@@ -3824,7 +3907,8 @@ export function architectureToUnity(arch: CompiledArchitecture): string {
   if (arch.wallMaterial) lines.push(`    public string wallMaterial = "${arch.wallMaterial}";`);
   if (arch.floorMaterial) lines.push(`    public string floorMaterial = "${arch.floorMaterial}";`);
   if (arch.capacity) lines.push(`    public int capacity = ${arch.capacity};`);
-  if (arch.temperatureSetpoint) lines.push(`    public float temperatureSetpoint = ${arch.temperatureSetpoint}f;`);
+  if (arch.temperatureSetpoint)
+    lines.push(`    public float temperatureSetpoint = ${arch.temperatureSetpoint}f;`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -3838,7 +3922,8 @@ export function architectureToGodot(arch: CompiledArchitecture): string {
   if (arch.area) lines.push(`@export var area: float = ${arch.area}`);
   if (arch.height) lines.push(`@export var height: float = ${arch.height}`);
   if (arch.wallMaterial) lines.push(`@export var wall_material: String = "${arch.wallMaterial}"`);
-  if (arch.floorMaterial) lines.push(`@export var floor_material: String = "${arch.floorMaterial}"`);
+  if (arch.floorMaterial)
+    lines.push(`@export var floor_material: String = "${arch.floorMaterial}"`);
   if (arch.capacity) lines.push(`@export var capacity: int = ${arch.capacity}`);
   if (arch.temperatureSetpoint) {
     lines.push(`@export var temperature_setpoint: float = ${arch.temperatureSetpoint}`);
@@ -3869,7 +3954,8 @@ export function architectureToUSDA(arch: CompiledArchitecture): string {
   lines.push(`    custom string holoscript:structureType = "${arch.keyword}"`);
   if (arch.area) lines.push(`    custom float holoscript:area = ${arch.area}`);
   if (arch.height) lines.push(`    custom float holoscript:height = ${arch.height}`);
-  if (arch.wallMaterial) lines.push(`    custom string holoscript:wallMaterial = "${arch.wallMaterial}"`);
+  if (arch.wallMaterial)
+    lines.push(`    custom string holoscript:wallMaterial = "${arch.wallMaterial}"`);
   if (arch.capacity) lines.push(`    custom int holoscript:capacity = ${arch.capacity}`);
   lines.push('}');
   return lines.join('\n');
@@ -3914,8 +4000,9 @@ export function web3ToR3F(web3: CompiledWeb3): string {
   lines.push(`  type: "${web3.keyword}",`);
   if (web3.standard) lines.push(`  standard: "${web3.standard}",`);
   if (web3.network) lines.push(`  network: "${web3.network}",`);
-  if (web3.contractAddress) lines.push(`  contractAddress: "${web3.contractAddress}",`);
-  if (web3.functions) lines.push(`  functions: [${web3.functions.map((f) => `"${f}"`).join(', ')}],`);
+  if (web3.contractAddress) lines.push(`  contractAddress: "${esc(web3.contractAddress, 'TypeScript')}",`);
+  if (web3.functions)
+    lines.push(`  functions: [${web3.functions.map((f) => `"${esc(f, 'TypeScript')}"`).join(', ')}],`);
   if (web3.supply) lines.push(`  supply: ${web3.supply},`);
   if (web3.votingThreshold) lines.push(`  votingThreshold: ${web3.votingThreshold},`);
   lines.push('};');
@@ -3930,7 +4017,8 @@ export function web3ToUnity(web3: CompiledWeb3): string {
   lines.push(`    public string web3Type = "${web3.keyword}";`);
   if (web3.standard) lines.push(`    public string standard = "${web3.standard}";`);
   if (web3.network) lines.push(`    public string network = "${web3.network}";`);
-  if (web3.contractAddress) lines.push(`    public string contractAddress = "${web3.contractAddress}";`);
+  if (web3.contractAddress)
+    lines.push(`    public string contractAddress = "${web3.contractAddress}";`);
   if (web3.supply) lines.push(`    public long totalSupply = ${web3.supply};`);
   lines.push('}');
   return lines.join('\n');
@@ -3944,7 +4032,8 @@ export function web3ToGodot(web3: CompiledWeb3): string {
   lines.push(`@export var web3_type: String = "${web3.keyword}"`);
   if (web3.standard) lines.push(`@export var standard: String = "${web3.standard}"`);
   if (web3.network) lines.push(`@export var network: String = "${web3.network}"`);
-  if (web3.contractAddress) lines.push(`@export var contract_address: String = "${web3.contractAddress}"`);
+  if (web3.contractAddress)
+    lines.push(`@export var contract_address: String = "${web3.contractAddress}"`);
   lines.push('');
   lines.push('signal transaction_confirmed(tx_hash: String)');
   lines.push('signal wallet_connected(address: String)');
@@ -3972,7 +4061,8 @@ export function web3ToUSDA(web3: CompiledWeb3): string {
   lines.push(`    custom string holoscript:web3Type = "${web3.keyword}"`);
   if (web3.standard) lines.push(`    custom string holoscript:standard = "${web3.standard}"`);
   if (web3.network) lines.push(`    custom string holoscript:network = "${web3.network}"`);
-  if (web3.contractAddress) lines.push(`    custom string holoscript:contractAddress = "${web3.contractAddress}"`);
+  if (web3.contractAddress)
+    lines.push(`    custom string holoscript:contractAddress = "${web3.contractAddress}"`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -4113,7 +4203,9 @@ export function compileRenderingBlock(block: HoloDomainBlock): CompiledRendering
   let lodLevels: CompiledRendering['lodLevels'];
   if (Array.isArray(props.levels)) {
     lodLevels = (props.levels as unknown[]).map((l) =>
-      typeof l === 'object' && l !== null ? (l as { distance: number; mesh?: string; detail?: number }) : { distance: l as number }
+      typeof l === 'object' && l !== null
+        ? (l as { distance: number; mesh?: string; detail?: number })
+        : { distance: l as number }
     );
   }
   // Extract LOD levels from children
@@ -4169,13 +4261,16 @@ export function renderingToUnity(rendering: CompiledRendering): string {
     lines.push(`        var lods = new LOD[${rendering.lodLevels.length}];`);
     rendering.lodLevels.forEach((l, i) => {
       const screenHeight = 1 / (1 + l.distance * 0.01);
-      lines.push(`        lods[${i}] = new LOD(${screenHeight.toFixed(3)}f, GetComponentsInChildren<Renderer>());`);
+      lines.push(
+        `        lods[${i}] = new LOD(${screenHeight.toFixed(3)}f, GetComponentsInChildren<Renderer>());`
+      );
     });
     lines.push('        lodGroup.SetLODs(lods);');
     lines.push('    }');
   }
   if (rendering.shadowMode) {
-    const mode = rendering.shadowMode === 'none' ? 'Off' : rendering.shadowMode === 'cast' ? 'On' : 'TwoSided';
+    const mode =
+      rendering.shadowMode === 'none' ? 'Off' : rendering.shadowMode === 'cast' ? 'On' : 'TwoSided';
     lines.push(`    public ShadowCastingMode shadowMode = ShadowCastingMode.${mode};`);
   }
   lines.push('}');
@@ -4188,9 +4283,12 @@ export function renderingToGodot(rendering: CompiledRendering): string {
   lines.push('extends Node3D');
   lines.push('');
   lines.push(`@export var render_type: String = "${rendering.keyword}"`);
-  if (rendering.shadowMode) lines.push(`@export var shadow_mode: String = "${rendering.shadowMode}"`);
-  if (rendering.cullingMode) lines.push(`@export var culling_mode: String = "${rendering.cullingMode}"`);
-  if (rendering.sortOrder != null) lines.push(`@export var sort_order: int = ${rendering.sortOrder}`);
+  if (rendering.shadowMode)
+    lines.push(`@export var shadow_mode: String = "${rendering.shadowMode}"`);
+  if (rendering.cullingMode)
+    lines.push(`@export var culling_mode: String = "${rendering.cullingMode}"`);
+  if (rendering.sortOrder != null)
+    lines.push(`@export var sort_order: int = ${rendering.sortOrder}`);
   if (rendering.lodLevels) {
     lines.push('');
     for (let i = 0; i < rendering.lodLevels.length; i++) {
@@ -4218,9 +4316,12 @@ export function renderingToUSDA(rendering: CompiledRendering): string {
   const lines: string[] = [];
   lines.push(`def Scope "Rendering_${safeName}" {`);
   lines.push(`    custom string holoscript:renderType = "${rendering.keyword}"`);
-  if (rendering.shadowMode) lines.push(`    custom string holoscript:shadowMode = "${rendering.shadowMode}"`);
-  if (rendering.cullingMode) lines.push(`    custom string holoscript:cullingMode = "${rendering.cullingMode}"`);
-  if (rendering.lodLevels) lines.push(`    custom int holoscript:lodLevels = ${rendering.lodLevels.length}`);
+  if (rendering.shadowMode)
+    lines.push(`    custom string holoscript:shadowMode = "${rendering.shadowMode}"`);
+  if (rendering.cullingMode)
+    lines.push(`    custom string holoscript:cullingMode = "${rendering.cullingMode}"`);
+  if (rendering.lodLevels)
+    lines.push(`    custom int holoscript:lodLevels = ${rendering.lodLevels.length}`);
   lines.push('}');
   return lines.join('\n');
 }
@@ -4281,7 +4382,8 @@ export function navigationToUnity(nav: CompiledNavigation): string {
     if (nav.agentRadius) lines.push(`        agent.radius = ${nav.agentRadius}f;`);
     if (nav.agentHeight) lines.push(`        agent.height = ${nav.agentHeight}f;`);
     if (nav.stepHeight) lines.push(`        agent.baseOffset = ${nav.stepHeight}f;`);
-    if (nav.avoidancePriority != null) lines.push(`        agent.avoidancePriority = ${nav.avoidancePriority};`);
+    if (nav.avoidancePriority != null)
+      lines.push(`        agent.avoidancePriority = ${nav.avoidancePriority};`);
   }
   lines.push('    }');
   lines.push('}');
@@ -4302,7 +4404,8 @@ export function navigationToGodot(nav: CompiledNavigation): string {
     if (nav.speed) lines.push(`@export var speed: float = ${nav.speed}`);
     if (nav.agentRadius) lines.push(`@export var agent_radius: float = ${nav.agentRadius}`);
     if (nav.agentHeight) lines.push(`@export var agent_height: float = ${nav.agentHeight}`);
-    if (nav.avoidancePriority != null) lines.push(`@export var avoidance_priority: int = ${nav.avoidancePriority}`);
+    if (nav.avoidancePriority != null)
+      lines.push(`@export var avoidance_priority: int = ${nav.avoidancePriority}`);
   }
   lines.push('');
   lines.push('signal navigation_finished');
@@ -4382,7 +4485,8 @@ export function inputToUnity(input: CompiledInput): string {
   if (input.binding) lines.push(`    public string binding = "${input.binding}";`);
   if (input.action) lines.push(`    public string action = "${input.action}";`);
   if (input.threshold) lines.push(`    public float threshold = ${input.threshold}f;`);
-  if (input.interactionDistance) lines.push(`    public float interactionDistance = ${input.interactionDistance}f;`);
+  if (input.interactionDistance)
+    lines.push(`    public float interactionDistance = ${input.interactionDistance}f;`);
   if (input.platform === 'vr_controller') {
     lines.push('    void Update() {');
     lines.push('        // XR input polling');
@@ -4403,7 +4507,8 @@ export function inputToGodot(input: CompiledInput): string {
   if (input.binding) lines.push(`@export var binding: String = "${input.binding}"`);
   if (input.action) lines.push(`@export var action_name: String = "${input.action}"`);
   if (input.threshold) lines.push(`@export var threshold: float = ${input.threshold}`);
-  if (input.interactionDistance) lines.push(`@export var interaction_distance: float = ${input.interactionDistance}`);
+  if (input.interactionDistance)
+    lines.push(`@export var interaction_distance: float = ${input.interactionDistance}`);
   lines.push('');
   lines.push('signal action_triggered(action: String, value: float)');
   lines.push('signal gesture_recognized(gesture: String)');
@@ -4417,7 +4522,8 @@ export function inputToVRChat(input: CompiledInput): string {
   lines.push(`public class ${safeName}Input : UdonSharpBehaviour {`);
   lines.push(`    public string inputType = "${input.keyword}";`);
   if (input.action) lines.push(`    public string action = "${input.action}";`);
-  if (input.interactionDistance) lines.push(`    public float interactionDistance = ${input.interactionDistance}f;`);
+  if (input.interactionDistance)
+    lines.push(`    public float interactionDistance = ${input.interactionDistance}f;`);
   if (input.keyword === 'interaction' || input.keyword === 'gesture_profile') {
     lines.push('    public override void Interact() {');
     lines.push('        // Handle VRChat interaction');
@@ -4434,7 +4540,8 @@ export function inputToUSDA(input: CompiledInput): string {
   lines.push(`    custom string holoscript:inputType = "${input.keyword}"`);
   if (input.binding) lines.push(`    custom string holoscript:binding = "${input.binding}"`);
   if (input.action) lines.push(`    custom string holoscript:action = "${input.action}"`);
-  if (input.interactionDistance) lines.push(`    custom float holoscript:interactionDistance = ${input.interactionDistance}`);
+  if (input.interactionDistance)
+    lines.push(`    custom float holoscript:interactionDistance = ${input.interactionDistance}`);
   lines.push('}');
   return lines.join('\n');
 }

@@ -55,19 +55,13 @@ export interface Web3Connector {
   }>;
 
   /** Get wallet balance */
-  getBalance?(params: {
-    address: string;
-    chainId: number;
-  }): Promise<{ balance: string }>;
+  getBalance?(params: { address: string; chainId: number }): Promise<{ balance: string }>;
 
   /** Switch wallet chain */
   switchChain?(params: { targetChainId: number }): Promise<void>;
 
   /** Sign a message */
-  signMessage?(params: {
-    address: string;
-    message: string;
-  }): Promise<{ signature: string }>;
+  signMessage?(params: { address: string; message: string }): Promise<{ signature: string }>;
 
   /** Initiate NFT transfer */
   transferNFT?(params: {
@@ -93,11 +87,7 @@ export class MockWeb3Connector implements Web3Connector {
     };
   }
 
-  async verifyNFTOwnership(params: {
-    chain: string;
-    contractAddress: string;
-    tokenId: string;
-  }) {
+  async verifyNFTOwnership(params: { chain: string; contractAddress: string; tokenId: string }) {
     return {
       ownerAddress: '0x' + '0'.repeat(40),
       standard: 'ERC721',
@@ -237,7 +227,7 @@ export function createWeb3EventBridge(connector: Web3Connector, emit: EmitFn) {
       const handler = handlers[event];
       if (handler) {
         handler(data).catch((err) =>
-          emit('web3_connector_error', { event, error: (err as Error).message }),
+          emit('web3_connector_error', { event, error: (err as Error).message })
         );
         return true;
       }

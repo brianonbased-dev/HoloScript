@@ -9,6 +9,7 @@ Upstash MCP Connector for HoloScript Studio Integration Hub.
 Compiled scene caching, session state, and user preferences via `@upstash/redis` HTTP client.
 
 **Features:**
+
 - Scene cache with TTL (24h default)
 - Session state persistence
 - User preferences storage
@@ -16,6 +17,7 @@ Compiled scene caching, session state, and user preferences via `@upstash/redis`
 - JSON serialization for complex objects
 
 **MCP Tools:**
+
 - `upstash_redis_cache_get` - Retrieve cached scene
 - `upstash_redis_cache_set` - Store compiled scene with TTL
 - `upstash_redis_session_get` - Load session state
@@ -28,6 +30,7 @@ Compiled scene caching, session state, and user preferences via `@upstash/redis`
 Extends `semantic-search-hub` on MCP orchestrator with composition embeddings for "find similar" search.
 
 **Features:**
+
 - Upsert composition embeddings (code → vector)
 - Semantic similarity search
 - Metadata filtering (traits, targets, tags)
@@ -35,6 +38,7 @@ Extends `semantic-search-hub` on MCP orchestrator with composition embeddings fo
 - Namespace isolation (per-user/per-project)
 
 **MCP Tools:**
+
 - `upstash_vector_upsert` - Add composition embedding
 - `upstash_vector_search` - Find similar compositions
 - `upstash_vector_delete` - Remove embedding
@@ -46,6 +50,7 @@ Extends `semantic-search-hub` on MCP orchestrator with composition embeddings fo
 Scheduled compilation triggers, health monitoring, and deployment scheduling via `@upstash/qstash`.
 
 **Features:**
+
 - Cron-based compilation schedules
 - One-time delayed tasks
 - Webhook callbacks for CI/CD
@@ -53,6 +58,7 @@ Scheduled compilation triggers, health monitoring, and deployment scheduling via
 - Health monitoring pings
 
 **MCP Tools:**
+
 - `upstash_qstash_schedule` - Create cron schedule
 - `upstash_qstash_publish` - One-time message
 - `upstash_qstash_list` - List scheduled jobs
@@ -90,21 +96,21 @@ await connector.connect();
 await connector.executeTool('upstash_redis_cache_set', {
   key: 'scene:my-vr-world',
   value: compiledOutput,
-  ttl: 86400 // 24 hours
+  ttl: 86400, // 24 hours
 });
 
 // Find similar compositions
 const similar = await connector.executeTool('upstash_vector_search', {
   query: embeddingVector,
   topK: 10,
-  filter: 'traits:@physics AND target:unity'
+  filter: 'traits:@physics AND target:unity',
 });
 
 // Schedule nightly compilation
 await connector.executeTool('upstash_qstash_schedule', {
   cron: '0 2 * * *', // 2 AM daily
   url: 'https://api.holoscript.net/compile',
-  body: { target: 'unity', scene: 'production/main.holo' }
+  body: { target: 'unity', scene: 'production/main.holo' },
 });
 ```
 

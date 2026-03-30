@@ -95,7 +95,7 @@ export class LipSyncEngine {
     track: LipSyncTrack,
     time: number,
     emotion?: string,
-    emotionIntensity: number = 1.0,
+    emotionIntensity: number = 1.0
   ): Map<number, number> {
     // Find surrounding keyframes
     const { prev, next, t } = this.findBracketingKeyframes(track, time);
@@ -137,7 +137,7 @@ export class LipSyncEngine {
 
     // Apply emotion overlay
     if (this.config.emotionOverlay && emotion) {
-      const emotionPreset = EXPRESSION_PRESETS.find(e => e.name === emotion);
+      const emotionPreset = EXPRESSION_PRESETS.find((e) => e.name === emotion);
       if (emotionPreset) {
         const emoBlend = this.config.emotionBlend * emotionIntensity;
         const visBlend = 1.0 - emoBlend;
@@ -199,7 +199,7 @@ export class LipSyncEngine {
 
   private findBracketingKeyframes(
     track: LipSyncTrack,
-    time: number,
+    time: number
   ): { prev?: VisemeKeyframe; next?: VisemeKeyframe; t: number } {
     if (track.keyframes.length === 0) return { t: 0 };
 

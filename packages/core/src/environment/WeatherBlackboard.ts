@@ -81,7 +81,7 @@ const DEFAULT_STATE: WeatherBlackboardState = {
   precipitation_type: 'none',
   temperature: 20,
   humidity: 0.5,
-  sun_position: [0.5, 0.866, 0],  // ~60 degree elevation, noon
+  sun_position: [0.5, 0.866, 0], // ~60 degree elevation, noon
   sun_intensity: 1.0,
   cloud_density: 0.3,
   cloud_altitude: 2000,
@@ -115,7 +115,12 @@ export const weatherBlackboard: WeatherBlackboardState = { ...DEFAULT_STATE };
  * Called by WeatherHubTrait.onUpdate() each frame.
  */
 export function updateWeatherBlackboard(
-  partial: Partial<Omit<WeatherBlackboardState, 'is_night' | 'surface_wetness' | 'wind_speed' | 'visibility_range' | 'frame'>>
+  partial: Partial<
+    Omit<
+      WeatherBlackboardState,
+      'is_night' | 'surface_wetness' | 'wind_speed' | 'visibility_range' | 'frame'
+    >
+  >
 ): void {
   // Apply core state updates
   Object.assign(weatherBlackboard, partial);
@@ -133,13 +138,10 @@ export function updateWeatherBlackboard(
   if (weatherBlackboard.precipitation > 0 && weatherBlackboard.precipitation_type === 'rain') {
     weatherBlackboard.surface_wetness = Math.min(
       1.0,
-      weatherBlackboard.surface_wetness + weatherBlackboard.precipitation * 0.01,
+      weatherBlackboard.surface_wetness + weatherBlackboard.precipitation * 0.01
     );
   } else {
-    weatherBlackboard.surface_wetness = Math.max(
-      0,
-      weatherBlackboard.surface_wetness - 0.001,
-    );
+    weatherBlackboard.surface_wetness = Math.max(0, weatherBlackboard.surface_wetness - 0.001);
   }
 
   weatherBlackboard.frame++;
@@ -166,13 +168,13 @@ export function resetWeatherBlackboard(): void {
  */
 export function computeSunPosition(
   timeOfDay: number,
-  latitude: number = 45,
+  latitude: number = 45
 ): [number, number, number] {
   const hourAngle = (timeOfDay - 12) * (Math.PI / 12); // -PI to PI
   const latRad = latitude * (Math.PI / 180);
-  const maxElevation = Math.PI / 2 - Math.abs(latRad - 23.5 * Math.PI / 180);
+  const maxElevation = Math.PI / 2 - Math.abs(latRad - (23.5 * Math.PI) / 180);
 
-  const elevation = Math.sin(Math.PI * timeOfDay / 24) * maxElevation;
+  const elevation = Math.sin((Math.PI * timeOfDay) / 24) * maxElevation;
 
   const x = Math.cos(hourAngle) * Math.cos(elevation);
   const y = Math.sin(elevation);

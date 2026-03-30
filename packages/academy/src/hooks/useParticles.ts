@@ -125,23 +125,25 @@ export function useParticles(): UseParticlesReturn {
     setActiveCount(sysRef.current.getActiveCount());
     setIsEmitting(sysRef.current.isEmitting());
     setParticles(
-      alive.map((p: {
-        x: number;
-        y: number;
-        z: number;
-        size: number;
-        color: Color4;
-        age: number;
-        lifetime: number;
-      }) => ({
-        x: p.x,
-        y: p.y,
-        z: p.z,
-        size: p.size,
-        color: p.color,
-        age: p.age,
-        lifetime: p.lifetime,
-      }))
+      alive.map(
+        (p: {
+          x: number;
+          y: number;
+          z: number;
+          size: number;
+          color: Color4;
+          age: number;
+          lifetime: number;
+        }) => ({
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          size: p.size,
+          color: p.color,
+          age: p.age,
+          lifetime: p.lifetime,
+        })
+      )
     );
   }, []);
 

@@ -97,8 +97,8 @@ export class GitChangeDetector {
       return output
         .trim()
         .split('\n')
-        .filter(line => line.length > 0)
-        .map(line => line.replace(/\\/g, '/'));
+        .filter((line) => line.length > 0)
+        .map((line) => line.replace(/\\/g, '/'));
     } catch {
       return [];
     }
@@ -156,16 +156,13 @@ export class GitChangeDetector {
 
     // Get diff
     try {
-      const output = execSync(
-        `git diff --name-status ${storedCommit} ${headCommit}`,
-        {
-          cwd: this.rootDir,
-          encoding: 'utf-8',
-          windowsHide: true,
-          stdio: ['pipe', 'pipe', 'pipe'],
-          maxBuffer: 10 * 1024 * 1024, // 10MB for large repos
-        },
-      );
+      const output = execSync(`git diff --name-status ${storedCommit} ${headCommit}`, {
+        cwd: this.rootDir,
+        encoding: 'utf-8',
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        maxBuffer: 10 * 1024 * 1024, // 10MB for large repos
+      });
 
       const added: string[] = [];
       const modified: string[] = [];
@@ -201,7 +198,14 @@ export class GitChangeDetector {
         if (!added.includes(f)) added.push(f);
       }
 
-      return { headCommit, added, modified, deleted, notGitRepo: false, storedCommitMissing: false };
+      return {
+        headCommit,
+        added,
+        modified,
+        deleted,
+        notGitRepo: false,
+        storedCommitMissing: false,
+      };
     } catch {
       return { ...empty, storedCommitMissing: true };
     }
@@ -233,13 +237,13 @@ export class GitChangeDetector {
    */
   filterByContentHash(
     gitChangedFiles: string[],
-    storedHashes: Record<string, string>,
+    storedHashes: Record<string, string>
   ): { trulyChanged: string[]; unchanged: string[] } {
     const trulyChanged: string[] = [];
     const unchanged: string[] = [];
 
     const currentHashes = this.computeFileHashes(gitChangedFiles);
-    const currentMap = new Map(currentHashes.map(h => [h.filePath, h.hash]));
+    const currentMap = new Map(currentHashes.map((h) => [h.filePath, h.hash]));
 
     for (const file of gitChangedFiles) {
       const stored = storedHashes[file];

@@ -3,8 +3,8 @@
  * @version 1.0.0
  */
 export const FEATURE_FLAGS_TRAITS = [
-  'abtest',             // A/B test variant assignment
-  'rollout',            // Gradual percentage-based rollout
+  'abtest', // A/B test variant assignment
+  'rollout', // Gradual percentage-based rollout
 ] as const;
 
 export type FeatureFlagsTraitName = (typeof FEATURE_FLAGS_TRAITS)[number];

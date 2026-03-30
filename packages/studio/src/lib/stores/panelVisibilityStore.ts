@@ -232,7 +232,9 @@ export const usePanelVisibilityStore = create<PanelVisibilityState>()(
         togglers[togglerName] = () =>
           set(
             (s) =>
-              ({ [field]: !(s as unknown as Record<string, boolean>)[field] }) as Partial<PanelVisibilityState>
+              ({
+                [field]: !(s as unknown as Record<string, boolean>)[field],
+              }) as Partial<PanelVisibilityState>
           );
       }
 

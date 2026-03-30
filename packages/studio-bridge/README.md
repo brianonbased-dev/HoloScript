@@ -15,12 +15,12 @@ Visual Editor State ←──→ Studio Bridge ←──→ HoloScript AST
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| `VisualToAST` | Converts visual editor state to HoloScript AST |
-| `ASTToVisual` | Converts HoloScript AST to visual editor state |
-| `BridgeSync` | Real-time bidirectional synchronization |
-| `ChangeTracker` | Tracks and merges concurrent edits |
+| Component       | Purpose                                        |
+| --------------- | ---------------------------------------------- |
+| `VisualToAST`   | Converts visual editor state to HoloScript AST |
+| `ASTToVisual`   | Converts HoloScript AST to visual editor state |
+| `BridgeSync`    | Real-time bidirectional synchronization        |
+| `ChangeTracker` | Tracks and merges concurrent edits             |
 
 ## Usage
 

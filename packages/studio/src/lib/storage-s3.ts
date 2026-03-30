@@ -12,7 +12,12 @@
  * Falls back gracefully when credentials are not configured.
  */
 
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 let _client: S3Client | null = null;
@@ -105,10 +110,7 @@ export async function getPresignedUploadUrl(
 /**
  * Generate a presigned download URL.
  */
-export async function getPresignedDownloadUrl(
-  key: string,
-  expiresIn = 3600
-): Promise<string> {
+export async function getPresignedDownloadUrl(key: string, expiresIn = 3600): Promise<string> {
   const client = getS3Client();
   if (!client) throw new Error('S3 storage not configured');
 

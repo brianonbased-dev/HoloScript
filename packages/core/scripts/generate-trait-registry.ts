@@ -9,16 +9,22 @@ const CORE_DIR = path.resolve(__dirname, '../');
 
 async function generateRegistry() {
   console.log('🔄 Scanning @holoscript/core trait exports...');
-  
+
   // We dynamically import from the compiled index or source index
   const traitsModule = await import('../src/traits/index');
   const { defaultTraitRegistry } = await import('../src/traits/TraitDefinition');
 
   let importedCount = 0;
-  
+
   // Find all exported TraitDefinition objects (they have id, category, properties)
   for (const [key, exp] of Object.entries(traitsModule)) {
-    if (exp && typeof exp === 'object' && 'id' in exp && 'category' in exp && Array.isArray((exp as any).properties)) {
+    if (
+      exp &&
+      typeof exp === 'object' &&
+      'id' in exp &&
+      'category' in exp &&
+      Array.isArray((exp as any).properties)
+    ) {
       // Actually, if it's already a TraitDefinition, register it
       if (!defaultTraitRegistry.has((exp as any).id)) {
         defaultTraitRegistry.register(exp as any);
@@ -38,7 +44,7 @@ async function generateRegistry() {
           composable: handler.composable || [],
           conflicts: handler.conflicts || [],
           source: 'holoscript',
-          training: handler.training
+          training: handler.training,
         });
         importedCount++;
       }
@@ -47,11 +53,11 @@ async function generateRegistry() {
 
   console.log(`✅ Loaded ${importedCount} traits into the local register.`);
   console.log(`📊 Registry Size: ${defaultTraitRegistry.size} total traits.`);
-  
+
   const summary = defaultTraitRegistry.getSummary();
   console.log('--- Summary ---');
   console.log(summary);
-  
+
   const outputPath = path.resolve(CORE_DIR, 'src/traits/trait-registry.json');
   fs.writeFileSync(outputPath, JSON.stringify(defaultTraitRegistry.toJSON(), null, 2), 'utf-8');
   console.log(`💾 Successfully saved trait-registry.json to ${outputPath}`);

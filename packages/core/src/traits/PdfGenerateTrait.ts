@@ -6,14 +6,20 @@
 
 import type { TraitHandler } from './TraitTypes';
 
-export interface PdfGenerateConfig { page_size: string; }
+export interface PdfGenerateConfig {
+  page_size: string;
+}
 
 export const pdfGenerateHandler: TraitHandler<PdfGenerateConfig> = {
   name: 'pdf_generate',
   defaultConfig: { page_size: 'A4' },
 
-  onAttach(node: any): void { node.__pdfState = { generated: 0 }; },
-  onDetach(node: any): void { delete node.__pdfState; },
+  onAttach(node: any): void {
+    node.__pdfState = { generated: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__pdfState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: PdfGenerateConfig, context: any, event: any): void {

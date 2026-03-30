@@ -46,7 +46,7 @@ describe('validate_composition', () => {
         }
       `);
       expect(result.valid).toBe(true);
-      expect(result.diagnostics.filter(d => d.severity === 'error')).toHaveLength(0);
+      expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
     });
 
     it('returns valid for correctly constrained spatial traits', async () => {
@@ -61,7 +61,7 @@ describe('validate_composition', () => {
         }
       `);
       expect(result.valid).toBe(true);
-      expect(result.diagnostics.filter(d => d.severity === 'error')).toHaveLength(0);
+      expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
     });
   });
 
@@ -76,10 +76,10 @@ describe('validate_composition', () => {
         }
       `);
       expect(result.valid).toBe(false);
-      const errors = result.diagnostics.filter(d => d.severity === 'error');
+      const errors = result.diagnostics.filter((d) => d.severity === 'error');
       expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(e => e.code === 'CONSTRAINT_REQUIRES')).toBe(true);
-      expect(errors.some(e => e.message.includes('physics'))).toBe(true);
+      expect(errors.some((e) => e.code === 'CONSTRAINT_REQUIRES')).toBe(true);
+      expect(errors.some((e) => e.message.includes('physics'))).toBe(true);
     });
   });
 
@@ -99,7 +99,7 @@ describe('validate_composition', () => {
         diagnostics: Array<{ code: string }>;
       };
       expect(result.valid).toBe(false);
-      expect(result.diagnostics.some(d => d.code === 'MISSING_INPUT')).toBe(true);
+      expect(result.diagnostics.some((d) => d.code === 'MISSING_INPUT')).toBe(true);
     });
   });
 
@@ -137,8 +137,8 @@ describe('validate_composition', () => {
           }
         }
       `);
-      const errors = result.diagnostics.filter(d => d.severity === 'error');
-      expect(errors.some(e => e.suggestion && e.suggestion.length > 0)).toBe(true);
+      const errors = result.diagnostics.filter((d) => d.severity === 'error');
+      expect(errors.some((e) => e.suggestion && e.suggestion.length > 0)).toBe(true);
     });
   });
 });

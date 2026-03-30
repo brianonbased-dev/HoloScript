@@ -311,15 +311,60 @@ export default function WorkspacePage() {
               <span className="text-sm font-medium text-white/70">Import from GitHub</span>
               <ArrowRight className="ml-auto h-4 w-4 text-white/20" />
             </button>
-            <QuickAction icon={Cog} label="HoloDaemon Dashboard" href="/holodaemon" color="text-sky-400" />
-            <QuickAction icon={Zap} label="HoloClaw Shelf" href="/holoclaw" color="text-amber-400" />
-            <QuickAction icon={RefreshCw} label="Recursive Pipeline" href="/pipeline" color="text-purple-400" />
-            <QuickAction icon={Shield} label="Create RBAC Policy" href="/workspace/skills?category=rbac_policy" color="text-blue-400" />
-            <QuickAction icon={Code} label="New MCP Tool Bundle" href="/workspace/skills?category=mcp_bundle" color="text-emerald-400" />
-            <QuickAction icon={Sparkles} label="AI Prompt Template" href="/workspace/skills?category=prompt_template" color="text-violet-400" />
-            <QuickAction icon={Database} label="Forge Training Data" href="/workspace/training-data/new" color="text-purple-400" />
-            <QuickAction icon={Bot} label="Train an Agent" href="/workspace/agents/new" color="text-cyan-400" />
-            <QuickAction icon={Layers} label="Browse Marketplace" href="/registry" color="text-rose-400" />
+            <QuickAction
+              icon={Cog}
+              label="HoloDaemon Dashboard"
+              href="/holodaemon"
+              color="text-sky-400"
+            />
+            <QuickAction
+              icon={Zap}
+              label="HoloClaw Shelf"
+              href="/holoclaw"
+              color="text-amber-400"
+            />
+            <QuickAction
+              icon={RefreshCw}
+              label="Recursive Pipeline"
+              href="/pipeline"
+              color="text-purple-400"
+            />
+            <QuickAction
+              icon={Shield}
+              label="Create RBAC Policy"
+              href="/workspace/skills?category=rbac_policy"
+              color="text-blue-400"
+            />
+            <QuickAction
+              icon={Code}
+              label="New MCP Tool Bundle"
+              href="/workspace/skills?category=mcp_bundle"
+              color="text-emerald-400"
+            />
+            <QuickAction
+              icon={Sparkles}
+              label="AI Prompt Template"
+              href="/workspace/skills?category=prompt_template"
+              color="text-violet-400"
+            />
+            <QuickAction
+              icon={Database}
+              label="Forge Training Data"
+              href="/workspace/training-data/new"
+              color="text-purple-400"
+            />
+            <QuickAction
+              icon={Bot}
+              label="Train an Agent"
+              href="/workspace/agents/new"
+              color="text-cyan-400"
+            />
+            <QuickAction
+              icon={Layers}
+              label="Browse Marketplace"
+              href="/registry"
+              color="text-rose-400"
+            />
           </div>
         </div>
 

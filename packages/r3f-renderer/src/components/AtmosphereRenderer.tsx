@@ -158,10 +158,7 @@ export function AtmosphereRenderer({
 }: AtmosphereRendererProps) {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  const sunDir = useMemo(
-    () => new THREE.Vector3(...sunDirection).normalize(),
-    [sunDirection],
-  );
+  const sunDir = useMemo(() => new THREE.Vector3(...sunDirection).normalize(), [sunDirection]);
   const groundCol = useMemo(() => new THREE.Color(groundColor), [groundColor]);
   const topCol = useMemo(() => new THREE.Color(gradientTop), [gradientTop]);
   const bottomCol = useMemo(() => new THREE.Color(gradientBottom), [gradientBottom]);
@@ -183,7 +180,18 @@ export function AtmosphereRenderer({
       uExposure: { value: exposure },
       uGroundColor: { value: groundCol },
     };
-  }, [model, sunDir, turbidity, rayleigh, mieCoefficient, mieDirectional, exposure, groundCol, topCol, bottomCol]);
+  }, [
+    model,
+    sunDir,
+    turbidity,
+    rayleigh,
+    mieCoefficient,
+    mieDirectional,
+    exposure,
+    groundCol,
+    topCol,
+    bottomCol,
+  ]);
 
   useFrame(() => {
     if (model === 'bruneton') {

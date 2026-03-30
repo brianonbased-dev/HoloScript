@@ -55,7 +55,8 @@ describe('HttpClientTrait', () => {
         ok: true,
         status: 200,
         headers: {
-          forEach: (cb: (value: string, key: string) => void) => cb('application/json', 'content-type'),
+          forEach: (cb: (value: string, key: string) => void) =>
+            cb('application/json', 'content-type'),
         },
         json: async () => ({ ok: true, id: 'abc' }),
         text: async () => JSON.stringify({ ok: true, id: 'abc' }),

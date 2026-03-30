@@ -8,7 +8,16 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { PanelTab } from '../types/panels';
 
-export type DomainProfile = 'all' | 'game' | 'vr' | 'iot' | 'film' | 'science' | 'robotics' | 'creator' | 'hologram';
+export type DomainProfile =
+  | 'all'
+  | 'game'
+  | 'vr'
+  | 'iot'
+  | 'film'
+  | 'science'
+  | 'robotics'
+  | 'creator'
+  | 'hologram';
 
 const STORAGE_KEY = 'holoscript-studio-favorites';
 
@@ -247,7 +256,11 @@ const DOMAIN_INFO: Record<DomainProfile, { icon: string; label: string; descript
   science: { icon: '🔬', label: 'Science', description: 'Science/Medical focus (16 panels)' },
   robotics: { icon: '🦾', label: 'Robotics', description: 'Robotics/Automation focus (18 panels)' },
   creator: { icon: '🎭', label: 'Creator', description: 'Creator Economy focus (18 panels)' },
-  hologram: { icon: '🔮', label: 'Hologram', description: '2D-to-3D holographic media (16 panels)' },
+  hologram: {
+    icon: '🔮',
+    label: 'Hologram',
+    description: '2D-to-3D holographic media (16 panels)',
+  },
 };
 
 function loadFavorites(): Set<PanelTab> {
@@ -285,7 +298,13 @@ function loadDomainProfile(): DomainProfile {
   try {
     if (typeof window === 'undefined') return 'all';
     const saved = localStorage.getItem('holoscript-domain-profile') as DomainProfile | null;
-    if (saved && ['all', 'game', 'vr', 'iot', 'film', 'science', 'robotics', 'creator', 'hologram'].includes(saved)) return saved;
+    if (
+      saved &&
+      ['all', 'game', 'vr', 'iot', 'film', 'science', 'robotics', 'creator', 'hologram'].includes(
+        saved
+      )
+    )
+      return saved;
   } catch {}
   return 'all';
 }

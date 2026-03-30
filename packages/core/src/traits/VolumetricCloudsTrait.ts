@@ -85,7 +85,8 @@ export const volumetricCloudsHandler: TraitHandler<VolumetricCloudsConfig> = {
 
     // Read weather blackboard for wind and cloud density
     let coverage = config.coverage;
-    let windX = 0, windZ = 0;
+    let windX = 0,
+      windZ = 0;
 
     if (config.use_weather) {
       coverage = weatherBlackboard.cloud_density;

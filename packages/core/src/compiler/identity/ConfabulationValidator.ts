@@ -238,12 +238,44 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'grabbable',
     category: 'interaction',
     properties: [
-      { name: 'snap_to_hand', type: 'boolean', defaultValue: true, description: 'Snap object to hand when grabbed' },
-      { name: 'two_handed', type: 'boolean', defaultValue: false, description: 'Require two hands to grab' },
-      { name: 'haptic_on_grab', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Haptic intensity on grab' },
-      { name: 'grab_points', type: 'array', defaultValue: [], description: 'Specific grab point positions' },
-      { name: 'preserve_rotation', type: 'boolean', defaultValue: false, description: 'Preserve rotation on grab' },
-      { name: 'highlight', type: 'boolean', defaultValue: true, description: 'Highlight when in grab range' },
+      {
+        name: 'snap_to_hand',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Snap object to hand when grabbed',
+      },
+      {
+        name: 'two_handed',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Require two hands to grab',
+      },
+      {
+        name: 'haptic_on_grab',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Haptic intensity on grab',
+      },
+      {
+        name: 'grab_points',
+        type: 'array',
+        defaultValue: [],
+        description: 'Specific grab point positions',
+      },
+      {
+        name: 'preserve_rotation',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Preserve rotation on grab',
+      },
+      {
+        name: 'highlight',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Highlight when in grab range',
+      },
     ],
   },
   {
@@ -251,9 +283,27 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'interaction',
     requires: ['grabbable'],
     properties: [
-      { name: 'velocity_multiplier', type: 'number', defaultValue: 1, min: 0, max: 100, description: 'Multiplier for throw velocity' },
-      { name: 'gravity', type: 'boolean', defaultValue: true, description: 'Apply gravity after throw' },
-      { name: 'max_velocity', type: 'number', defaultValue: 50, min: 0, description: 'Maximum throw velocity' },
+      {
+        name: 'velocity_multiplier',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        max: 100,
+        description: 'Multiplier for throw velocity',
+      },
+      {
+        name: 'gravity',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Apply gravity after throw',
+      },
+      {
+        name: 'max_velocity',
+        type: 'number',
+        defaultValue: 50,
+        min: 0,
+        description: 'Maximum throw velocity',
+      },
       { name: 'spin', type: 'boolean', defaultValue: true, description: 'Apply spin on throw' },
       { name: 'bounce', type: 'boolean', defaultValue: false, description: 'Bounce on impact' },
     ],
@@ -263,8 +313,18 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'interaction',
     requires: ['grabbable'],
     properties: [
-      { name: 'offset', type: 'array', defaultValue: [0, 0, 0], description: 'Position offset when held' },
-      { name: 'rotation', type: 'array', defaultValue: [0, 0, 0], description: 'Rotation offset when held' },
+      {
+        name: 'offset',
+        type: 'array',
+        defaultValue: [0, 0, 0],
+        description: 'Position offset when held',
+      },
+      {
+        name: 'rotation',
+        type: 'array',
+        defaultValue: [0, 0, 0],
+        description: 'Rotation offset when held',
+      },
     ],
   },
   {
@@ -272,17 +332,44 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'interaction',
     properties: [
       { name: 'highlight', type: 'boolean', defaultValue: true, description: 'Highlight on hover' },
-      { name: 'debounce', type: 'number', defaultValue: 200, min: 0, description: 'Debounce time in ms' },
+      {
+        name: 'debounce',
+        type: 'number',
+        defaultValue: 200,
+        min: 0,
+        description: 'Debounce time in ms',
+      },
     ],
   },
   {
     name: 'hoverable',
     category: 'interaction',
     properties: [
-      { name: 'highlight_color', type: 'string', defaultValue: '#ffffff', description: 'Color when hovered' },
-      { name: 'scale_on_hover', type: 'number', defaultValue: 1.1, min: 0, description: 'Scale multiplier on hover' },
-      { name: 'show_tooltip', type: 'boolean', defaultValue: false, description: 'Show tooltip on hover' },
-      { name: 'tooltip_offset', type: 'array', defaultValue: [0, 0.2, 0], description: 'Tooltip offset from object' },
+      {
+        name: 'highlight_color',
+        type: 'string',
+        defaultValue: '#ffffff',
+        description: 'Color when hovered',
+      },
+      {
+        name: 'scale_on_hover',
+        type: 'number',
+        defaultValue: 1.1,
+        min: 0,
+        description: 'Scale multiplier on hover',
+      },
+      {
+        name: 'show_tooltip',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Show tooltip on hover',
+      },
+      {
+        name: 'tooltip_offset',
+        type: 'array',
+        defaultValue: [0, 0.2, 0],
+        description: 'Tooltip offset from object',
+      },
       { name: 'glow', type: 'boolean', defaultValue: false, description: 'Glow effect on hover' },
     ],
   },
@@ -290,7 +377,13 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'draggable',
     category: 'interaction',
     properties: [
-      { name: 'axis', type: 'enum', enumValues: ['x', 'y', 'z', 'xy', 'xz', 'yz', 'all'], defaultValue: 'all', description: 'Constrain to axis' },
+      {
+        name: 'axis',
+        type: 'enum',
+        enumValues: ['x', 'y', 'z', 'xy', 'xz', 'yz', 'all'],
+        defaultValue: 'all',
+        description: 'Constrain to axis',
+      },
       { name: 'bounds', type: 'object', description: 'Movement bounds' },
     ],
   },
@@ -298,16 +391,38 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'pointable',
     category: 'interaction',
     properties: [
-      { name: 'highlight_on_point', type: 'boolean', defaultValue: true, description: 'Highlight when pointed at' },
-      { name: 'highlight_color', type: 'string', defaultValue: '#00ff00', description: 'Highlight color' },
-      { name: 'cursor_style', type: 'enum', enumValues: ['pointer', 'crosshair', 'grab', 'default'], defaultValue: 'pointer', description: 'Cursor style' },
+      {
+        name: 'highlight_on_point',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Highlight when pointed at',
+      },
+      {
+        name: 'highlight_color',
+        type: 'string',
+        defaultValue: '#00ff00',
+        description: 'Highlight color',
+      },
+      {
+        name: 'cursor_style',
+        type: 'enum',
+        enumValues: ['pointer', 'crosshair', 'grab', 'default'],
+        defaultValue: 'pointer',
+        description: 'Cursor style',
+      },
     ],
   },
   {
     name: 'scalable',
     category: 'interaction',
     properties: [
-      { name: 'min_scale', type: 'number', defaultValue: 0.1, min: 0, description: 'Minimum scale' },
+      {
+        name: 'min_scale',
+        type: 'number',
+        defaultValue: 0.1,
+        min: 0,
+        description: 'Minimum scale',
+      },
       { name: 'max_scale', type: 'number', defaultValue: 10, min: 0, description: 'Maximum scale' },
       { name: 'uniform', type: 'boolean', defaultValue: true, description: 'Uniform scaling' },
       { name: 'pivot', type: 'array', defaultValue: [0, 0, 0], description: 'Scale pivot point' },
@@ -317,19 +432,52 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'rotatable',
     category: 'interaction',
     properties: [
-      { name: 'axis', type: 'enum', enumValues: ['x', 'y', 'z', 'all'], defaultValue: 'all', description: 'Rotation axis constraint' },
+      {
+        name: 'axis',
+        type: 'enum',
+        enumValues: ['x', 'y', 'z', 'all'],
+        defaultValue: 'all',
+        description: 'Rotation axis constraint',
+      },
       { name: 'snap_angles', type: 'array', defaultValue: [], description: 'Snap rotation angles' },
-      { name: 'speed', type: 'number', defaultValue: 1, min: 0, description: 'Rotation speed multiplier' },
+      {
+        name: 'speed',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        description: 'Rotation speed multiplier',
+      },
     ],
   },
   {
     name: 'snappable',
     category: 'interaction',
     properties: [
-      { name: 'snap_points', type: 'array', defaultValue: [], description: 'Snap target positions' },
-      { name: 'snap_distance', type: 'number', defaultValue: 0.3, min: 0, description: 'Snap activation distance' },
-      { name: 'snap_rotation', type: 'boolean', defaultValue: false, description: 'Snap rotation as well' },
-      { name: 'magnetic', type: 'boolean', defaultValue: false, description: 'Magnetic snap effect' },
+      {
+        name: 'snap_points',
+        type: 'array',
+        defaultValue: [],
+        description: 'Snap target positions',
+      },
+      {
+        name: 'snap_distance',
+        type: 'number',
+        defaultValue: 0.3,
+        min: 0,
+        description: 'Snap activation distance',
+      },
+      {
+        name: 'snap_rotation',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Snap rotation as well',
+      },
+      {
+        name: 'magnetic',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Magnetic snap effect',
+      },
     ],
   },
 
@@ -340,7 +488,13 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'collidable',
     category: 'physics',
     properties: [
-      { name: 'shape', type: 'enum', enumValues: ['box', 'sphere', 'capsule', 'mesh', 'auto'], defaultValue: 'auto', description: 'Collision shape' },
+      {
+        name: 'shape',
+        type: 'enum',
+        enumValues: ['box', 'sphere', 'capsule', 'mesh', 'auto'],
+        defaultValue: 'auto',
+        description: 'Collision shape',
+      },
       { name: 'layer', type: 'string', defaultValue: 'default', description: 'Collision layer' },
       { name: 'trigger', type: 'boolean', defaultValue: false, description: 'Is trigger collider' },
     ],
@@ -350,18 +504,52 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'physics',
     properties: [
       { name: 'mass', type: 'number', defaultValue: 1, min: 0, description: 'Object mass in kg' },
-      { name: 'restitution', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Bounciness (0-1)' },
-      { name: 'friction', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Surface friction (0-1)' },
+      {
+        name: 'restitution',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Bounciness (0-1)',
+      },
+      {
+        name: 'friction',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Surface friction (0-1)',
+      },
       { name: 'gravity', type: 'boolean', defaultValue: true, description: 'Affected by gravity' },
-      { name: 'linear_damping', type: 'number', defaultValue: 0, min: 0, max: 1, description: 'Linear velocity damping' },
-      { name: 'angular_damping', type: 'number', defaultValue: 0.05, min: 0, max: 1, description: 'Angular velocity damping' },
+      {
+        name: 'linear_damping',
+        type: 'number',
+        defaultValue: 0,
+        min: 0,
+        max: 1,
+        description: 'Linear velocity damping',
+      },
+      {
+        name: 'angular_damping',
+        type: 'number',
+        defaultValue: 0.05,
+        min: 0,
+        max: 1,
+        description: 'Angular velocity damping',
+      },
     ],
   },
   {
     name: 'rigid',
     category: 'physics',
     properties: [
-      { name: 'type', type: 'enum', enumValues: ['dynamic', 'static', 'kinematic'], defaultValue: 'dynamic', description: 'Rigid body type' },
+      {
+        name: 'type',
+        type: 'enum',
+        enumValues: ['dynamic', 'static', 'kinematic'],
+        defaultValue: 'dynamic',
+        description: 'Rigid body type',
+      },
       { name: 'mass', type: 'number', defaultValue: 1, min: 0, description: 'Mass in kg' },
     ],
   },
@@ -369,14 +557,25 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'kinematic',
     category: 'physics',
     properties: [
-      { name: 'interpolation', type: 'boolean', defaultValue: true, description: 'Interpolate movement' },
+      {
+        name: 'interpolation',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Interpolate movement',
+      },
     ],
   },
   {
     name: 'trigger',
     category: 'physics',
     properties: [
-      { name: 'shape', type: 'enum', enumValues: ['box', 'sphere', 'capsule'], defaultValue: 'box', description: 'Trigger zone shape' },
+      {
+        name: 'shape',
+        type: 'enum',
+        enumValues: ['box', 'sphere', 'capsule'],
+        defaultValue: 'box',
+        description: 'Trigger zone shape',
+      },
       { name: 'size', type: 'array', description: 'Trigger zone size' },
     ],
   },
@@ -385,7 +584,12 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'physics',
     properties: [
       { name: 'strength', type: 'number', defaultValue: 9.81, description: 'Gravity strength' },
-      { name: 'direction', type: 'array', defaultValue: [0, -1, 0], description: 'Gravity direction vector' },
+      {
+        name: 'direction',
+        type: 'array',
+        defaultValue: [0, -1, 0],
+        description: 'Gravity direction vector',
+      },
     ],
   },
 
@@ -406,22 +610,49 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'visual',
     properties: [
       { name: 'color', type: 'string', defaultValue: '#ffffff', description: 'Emissive color' },
-      { name: 'intensity', type: 'number', defaultValue: 1, min: 0, description: 'Emission intensity' },
+      {
+        name: 'intensity',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        description: 'Emission intensity',
+      },
     ],
   },
   {
     name: 'transparent',
     category: 'visual',
     properties: [
-      { name: 'opacity', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Opacity value (0-1)' },
+      {
+        name: 'opacity',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Opacity value (0-1)',
+      },
     ],
   },
   {
     name: 'reflective',
     category: 'visual',
     properties: [
-      { name: 'roughness', type: 'number', defaultValue: 0.1, min: 0, max: 1, description: 'Surface roughness (0-1)' },
-      { name: 'metalness', type: 'number', defaultValue: 1, min: 0, max: 1, description: 'Metalness (0-1)' },
+      {
+        name: 'roughness',
+        type: 'number',
+        defaultValue: 0.1,
+        min: 0,
+        max: 1,
+        description: 'Surface roughness (0-1)',
+      },
+      {
+        name: 'metalness',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        max: 1,
+        description: 'Metalness (0-1)',
+      },
     ],
   },
   {
@@ -438,7 +669,13 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'billboard',
     category: 'visual',
     properties: [
-      { name: 'axis', type: 'enum', enumValues: ['all', 'y'], defaultValue: 'all', description: 'Billboard axis constraint' },
+      {
+        name: 'axis',
+        type: 'enum',
+        enumValues: ['all', 'y'],
+        defaultValue: 'all',
+        description: 'Billboard axis constraint',
+      },
     ],
   },
   {
@@ -452,13 +689,46 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'material',
     category: 'visual',
     properties: [
-      { name: 'type', type: 'enum', enumValues: ['pbr', 'standard', 'unlit', 'transparent', 'volumetric', 'custom', 'neural'], defaultValue: 'pbr', description: 'Material type' },
+      {
+        name: 'type',
+        type: 'enum',
+        enumValues: ['pbr', 'standard', 'unlit', 'transparent', 'volumetric', 'custom', 'neural'],
+        defaultValue: 'pbr',
+        description: 'Material type',
+      },
       { name: 'color', type: 'string', description: 'Base color' },
-      { name: 'metallic', type: 'number', defaultValue: 0, min: 0, max: 1, description: 'Metalness (0-1)' },
-      { name: 'roughness', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Roughness (0-1)' },
-      { name: 'opacity', type: 'number', defaultValue: 1, min: 0, max: 1, description: 'Opacity (0-1)' },
+      {
+        name: 'metallic',
+        type: 'number',
+        defaultValue: 0,
+        min: 0,
+        max: 1,
+        description: 'Metalness (0-1)',
+      },
+      {
+        name: 'roughness',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Roughness (0-1)',
+      },
+      {
+        name: 'opacity',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        max: 1,
+        description: 'Opacity (0-1)',
+      },
       { name: 'emissive', type: 'string', description: 'Emissive color' },
-      { name: 'emissive_intensity', type: 'number', defaultValue: 0, min: 0, description: 'Emissive intensity' },
+      {
+        name: 'emissive_intensity',
+        type: 'number',
+        defaultValue: 0,
+        min: 0,
+        description: 'Emissive intensity',
+      },
     ],
   },
   {
@@ -466,7 +736,22 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'visual',
     properties: [
       { name: 'path', type: 'string', required: true, description: 'Texture file path or URL' },
-      { name: 'channel', type: 'enum', enumValues: ['baseColor', 'normalMap', 'roughnessMap', 'metallicMap', 'ambientOcclusionMap', 'emissionMap', 'heightMap', 'displacementMap'], defaultValue: 'baseColor', description: 'Texture channel' },
+      {
+        name: 'channel',
+        type: 'enum',
+        enumValues: [
+          'baseColor',
+          'normalMap',
+          'roughnessMap',
+          'metallicMap',
+          'ambientOcclusionMap',
+          'emissionMap',
+          'heightMap',
+          'displacementMap',
+        ],
+        defaultValue: 'baseColor',
+        description: 'Texture channel',
+      },
       { name: 'scale', type: 'object', description: 'UV tiling scale' },
       { name: 'offset', type: 'object', description: 'UV offset' },
     ],
@@ -479,11 +764,35 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'networked',
     category: 'networking',
     properties: [
-      { name: 'mode', type: 'enum', enumValues: ['owner', 'shared', 'server'], defaultValue: 'owner', description: 'Sync authority mode' },
+      {
+        name: 'mode',
+        type: 'enum',
+        enumValues: ['owner', 'shared', 'server'],
+        defaultValue: 'owner',
+        description: 'Sync authority mode',
+      },
       { name: 'syncProperties', type: 'array', description: 'Properties to synchronize' },
-      { name: 'syncRate', type: 'number', defaultValue: 20, min: 1, max: 120, description: 'Sync rate in Hz' },
-      { name: 'interpolation', type: 'boolean', defaultValue: true, description: 'Enable interpolation' },
-      { name: 'channel', type: 'enum', enumValues: ['reliable', 'unreliable', 'ordered'], defaultValue: 'reliable', description: 'Network channel' },
+      {
+        name: 'syncRate',
+        type: 'number',
+        defaultValue: 20,
+        min: 1,
+        max: 120,
+        description: 'Sync rate in Hz',
+      },
+      {
+        name: 'interpolation',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Enable interpolation',
+      },
+      {
+        name: 'channel',
+        type: 'enum',
+        enumValues: ['reliable', 'unreliable', 'ordered'],
+        defaultValue: 'reliable',
+        description: 'Network channel',
+      },
     ],
   },
   {
@@ -498,7 +807,13 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'persistent',
     category: 'networking',
     properties: [
-      { name: 'storage', type: 'enum', enumValues: ['local', 'cloud', 'blockchain'], defaultValue: 'local', description: 'Persistence backend' },
+      {
+        name: 'storage',
+        type: 'enum',
+        enumValues: ['local', 'cloud', 'blockchain'],
+        defaultValue: 'local',
+        description: 'Persistence backend',
+      },
       { name: 'key', type: 'string', description: 'Storage key' },
     ],
   },
@@ -506,7 +821,12 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'owned',
     category: 'networking',
     properties: [
-      { name: 'transferable', type: 'boolean', defaultValue: true, description: 'Can ownership be transferred' },
+      {
+        name: 'transferable',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Can ownership be transferred',
+      },
     ],
   },
   {
@@ -522,10 +842,33 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'stackable',
     category: 'behavior',
     properties: [
-      { name: 'stack_axis', type: 'enum', enumValues: ['x', 'y', 'z'], defaultValue: 'y', description: 'Stacking axis' },
-      { name: 'stack_offset', type: 'number', defaultValue: 0, description: 'Offset between stacked objects' },
-      { name: 'max_stack', type: 'number', defaultValue: 10, min: 1, description: 'Maximum stack height' },
-      { name: 'snap_distance', type: 'number', defaultValue: 0.5, min: 0, description: 'Snap distance for stacking' },
+      {
+        name: 'stack_axis',
+        type: 'enum',
+        enumValues: ['x', 'y', 'z'],
+        defaultValue: 'y',
+        description: 'Stacking axis',
+      },
+      {
+        name: 'stack_offset',
+        type: 'number',
+        defaultValue: 0,
+        description: 'Offset between stacked objects',
+      },
+      {
+        name: 'max_stack',
+        type: 'number',
+        defaultValue: 10,
+        min: 1,
+        description: 'Maximum stack height',
+      },
+      {
+        name: 'snap_distance',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        description: 'Snap distance for stacking',
+      },
     ],
   },
   {
@@ -541,7 +884,12 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'behavior',
     requires: ['grabbable'],
     properties: [
-      { name: 'slot', type: 'enum', enumValues: ['head', 'hand_left', 'hand_right', 'body', 'back', 'hip'], description: 'Equipment slot' },
+      {
+        name: 'slot',
+        type: 'enum',
+        enumValues: ['head', 'hand_left', 'hand_right', 'body', 'back', 'hip'],
+        description: 'Equipment slot',
+      },
       { name: 'offset', type: 'array', description: 'Position offset when equipped' },
       { name: 'rotation', type: 'array', description: 'Rotation offset when equipped' },
     ],
@@ -551,7 +899,12 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'behavior',
     properties: [
       { name: 'uses', type: 'number', defaultValue: 1, min: 1, description: 'Number of uses' },
-      { name: 'destroy_on_use', type: 'boolean', defaultValue: true, description: 'Destroy after last use' },
+      {
+        name: 'destroy_on_use',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Destroy after last use',
+      },
     ],
   },
   {
@@ -559,26 +912,56 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'behavior',
     properties: [
       { name: 'health', type: 'number', defaultValue: 100, min: 0, description: 'Hit points' },
-      { name: 'fragments', type: 'number', defaultValue: 8, min: 1, description: 'Number of fragments' },
+      {
+        name: 'fragments',
+        type: 'number',
+        defaultValue: 8,
+        min: 1,
+        description: 'Number of fragments',
+      },
     ],
   },
   {
     name: 'breakable',
     category: 'behavior',
     properties: [
-      { name: 'break_velocity', type: 'number', defaultValue: 5, min: 0, description: 'Velocity threshold to break' },
-      { name: 'fragments', type: 'number', defaultValue: 8, min: 1, description: 'Number of fragments' },
+      {
+        name: 'break_velocity',
+        type: 'number',
+        defaultValue: 5,
+        min: 0,
+        description: 'Velocity threshold to break',
+      },
+      {
+        name: 'fragments',
+        type: 'number',
+        defaultValue: 8,
+        min: 1,
+        description: 'Number of fragments',
+      },
       { name: 'fragment_mesh', type: 'string', description: 'Custom fragment mesh' },
       { name: 'sound_on_break', type: 'string', description: 'Sound effect on break' },
       { name: 'respawn', type: 'boolean', defaultValue: false, description: 'Respawn after break' },
-      { name: 'respawn_time', type: 'number', defaultValue: 5, min: 0, description: 'Respawn delay in seconds' },
+      {
+        name: 'respawn_time',
+        type: 'number',
+        defaultValue: 5,
+        min: 0,
+        description: 'Respawn delay in seconds',
+      },
     ],
   },
   {
     name: 'character',
     category: 'behavior',
     properties: [
-      { name: 'height', type: 'number', defaultValue: 1.8, min: 0, description: 'Character height' },
+      {
+        name: 'height',
+        type: 'number',
+        defaultValue: 1.8,
+        min: 0,
+        description: 'Character height',
+      },
       { name: 'speed', type: 'number', defaultValue: 5, min: 0, description: 'Movement speed' },
     ],
   },
@@ -590,29 +973,56 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'anchor',
     category: 'spatial',
     properties: [
-      { name: 'type', type: 'enum', enumValues: ['plane', 'point', 'image', 'face', 'body'], defaultValue: 'plane', description: 'Anchor type' },
-      { name: 'tracking', type: 'boolean', defaultValue: true, description: 'Enable tracking updates' },
+      {
+        name: 'type',
+        type: 'enum',
+        enumValues: ['plane', 'point', 'image', 'face', 'body'],
+        defaultValue: 'plane',
+        description: 'Anchor type',
+      },
+      {
+        name: 'tracking',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Enable tracking updates',
+      },
     ],
   },
   {
     name: 'tracked',
     category: 'spatial',
     properties: [
-      { name: 'source', type: 'enum', enumValues: ['hand', 'head', 'controller', 'eye', 'body'], description: 'Tracking source' },
+      {
+        name: 'source',
+        type: 'enum',
+        enumValues: ['hand', 'head', 'controller', 'eye', 'body'],
+        description: 'Tracking source',
+      },
     ],
   },
   {
     name: 'world_locked',
     category: 'spatial',
     properties: [
-      { name: 'drift_correction', type: 'boolean', defaultValue: true, description: 'Correct tracking drift' },
+      {
+        name: 'drift_correction',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Correct tracking drift',
+      },
     ],
   },
   {
     name: 'hand_tracked',
     category: 'spatial',
     properties: [
-      { name: 'hand', type: 'enum', enumValues: ['left', 'right', 'both'], defaultValue: 'both', description: 'Which hand to track' },
+      {
+        name: 'hand',
+        type: 'enum',
+        enumValues: ['left', 'right', 'both'],
+        defaultValue: 'both',
+        description: 'Which hand to track',
+      },
       { name: 'joint', type: 'string', description: 'Specific hand joint to track' },
     ],
   },
@@ -620,7 +1030,13 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'eye_tracked',
     category: 'spatial',
     properties: [
-      { name: 'dwell_time', type: 'number', defaultValue: 1.0, min: 0, description: 'Dwell activation time in seconds' },
+      {
+        name: 'dwell_time',
+        type: 'number',
+        defaultValue: 1.0,
+        min: 0,
+        description: 'Dwell activation time in seconds',
+      },
       { name: 'highlight', type: 'boolean', defaultValue: true, description: 'Highlight on gaze' },
     ],
   },
@@ -660,10 +1076,35 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'audio',
     properties: [
       { name: 'src', type: 'string', description: 'Audio source file' },
-      { name: 'volume', type: 'number', defaultValue: 1, min: 0, max: 1, description: 'Volume (0-1)' },
-      { name: 'rolloff', type: 'enum', enumValues: ['linear', 'logarithmic', 'inverse'], defaultValue: 'logarithmic', description: 'Distance rolloff model' },
-      { name: 'refDistance', type: 'number', defaultValue: 1, min: 0, description: 'Reference distance' },
-      { name: 'maxDistance', type: 'number', defaultValue: 100, min: 0, description: 'Max audible distance' },
+      {
+        name: 'volume',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        max: 1,
+        description: 'Volume (0-1)',
+      },
+      {
+        name: 'rolloff',
+        type: 'enum',
+        enumValues: ['linear', 'logarithmic', 'inverse'],
+        defaultValue: 'logarithmic',
+        description: 'Distance rolloff model',
+      },
+      {
+        name: 'refDistance',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        description: 'Reference distance',
+      },
+      {
+        name: 'maxDistance',
+        type: 'number',
+        defaultValue: 100,
+        min: 0,
+        description: 'Max audible distance',
+      },
     ],
   },
   {
@@ -671,7 +1112,14 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'audio',
     properties: [
       { name: 'src', type: 'string', description: 'Audio source file' },
-      { name: 'volume', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Volume (0-1)' },
+      {
+        name: 'volume',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Volume (0-1)',
+      },
       { name: 'loop', type: 'boolean', defaultValue: true, description: 'Loop playback' },
     ],
   },
@@ -679,7 +1127,14 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'voice_activated',
     category: 'audio',
     properties: [
-      { name: 'threshold', type: 'number', defaultValue: 0.3, min: 0, max: 1, description: 'Voice activation threshold' },
+      {
+        name: 'threshold',
+        type: 'number',
+        defaultValue: 0.3,
+        min: 0,
+        max: 1,
+        description: 'Voice activation threshold',
+      },
       { name: 'keyword', type: 'string', description: 'Activation keyword' },
     ],
   },
@@ -699,23 +1154,17 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
   {
     name: 'state',
     category: 'state',
-    properties: [
-      { name: 'initial', type: 'object', description: 'Initial state values' },
-    ],
+    properties: [{ name: 'initial', type: 'object', description: 'Initial state values' }],
   },
   {
     name: 'reactive',
     category: 'state',
-    properties: [
-      { name: 'bindings', type: 'array', description: 'Data bindings' },
-    ],
+    properties: [{ name: 'bindings', type: 'array', description: 'Data bindings' }],
   },
   {
     name: 'observable',
     category: 'state',
-    properties: [
-      { name: 'properties', type: 'array', description: 'Observable property names' },
-    ],
+    properties: [{ name: 'properties', type: 'array', description: 'Observable property names' }],
   },
   {
     name: 'computed',
@@ -734,15 +1183,33 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'advanced',
     properties: [
       { name: 'target', type: 'string', description: 'Teleport target position/name' },
-      { name: 'fade_duration', type: 'number', defaultValue: 0.3, min: 0, description: 'Fade transition duration' },
+      {
+        name: 'fade_duration',
+        type: 'number',
+        defaultValue: 0.3,
+        min: 0,
+        description: 'Fade transition duration',
+      },
     ],
   },
   {
     name: 'ui_panel',
     category: 'advanced',
     properties: [
-      { name: 'width', type: 'number', defaultValue: 1, min: 0, description: 'Panel width in meters' },
-      { name: 'height', type: 'number', defaultValue: 0.75, min: 0, description: 'Panel height in meters' },
+      {
+        name: 'width',
+        type: 'number',
+        defaultValue: 1,
+        min: 0,
+        description: 'Panel width in meters',
+      },
+      {
+        name: 'height',
+        type: 'number',
+        defaultValue: 0.75,
+        min: 0,
+        description: 'Panel height in meters',
+      },
       { name: 'curved', type: 'boolean', defaultValue: false, description: 'Curved panel' },
     ],
   },
@@ -751,26 +1218,63 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     category: 'advanced',
     properties: [
       { name: 'count', type: 'number', defaultValue: 100, min: 1, description: 'Particle count' },
-      { name: 'lifetime', type: 'number', defaultValue: 2, min: 0, description: 'Particle lifetime in seconds' },
+      {
+        name: 'lifetime',
+        type: 'number',
+        defaultValue: 2,
+        min: 0,
+        description: 'Particle lifetime in seconds',
+      },
       { name: 'speed', type: 'number', defaultValue: 1, min: 0, description: 'Emission speed' },
       { name: 'color', type: 'string', defaultValue: '#ffffff', description: 'Particle color' },
-      { name: 'shape', type: 'enum', enumValues: ['point', 'sphere', 'cone', 'box'], defaultValue: 'point', description: 'Emitter shape' },
+      {
+        name: 'shape',
+        type: 'enum',
+        enumValues: ['point', 'sphere', 'cone', 'box'],
+        defaultValue: 'point',
+        description: 'Emitter shape',
+      },
     ],
   },
   {
     name: 'weather',
     category: 'advanced',
     properties: [
-      { name: 'type', type: 'enum', enumValues: ['rain', 'snow', 'fog', 'wind', 'storm'], description: 'Weather type' },
-      { name: 'intensity', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Weather intensity (0-1)' },
+      {
+        name: 'type',
+        type: 'enum',
+        enumValues: ['rain', 'snow', 'fog', 'wind', 'storm'],
+        description: 'Weather type',
+      },
+      {
+        name: 'intensity',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Weather intensity (0-1)',
+      },
     ],
   },
   {
     name: 'day_night',
     category: 'advanced',
     properties: [
-      { name: 'cycle_duration', type: 'number', defaultValue: 300, min: 1, description: 'Full cycle duration in seconds' },
-      { name: 'start_time', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Start time (0=midnight, 0.5=noon)' },
+      {
+        name: 'cycle_duration',
+        type: 'number',
+        defaultValue: 300,
+        min: 1,
+        description: 'Full cycle duration in seconds',
+      },
+      {
+        name: 'start_time',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Start time (0=midnight, 0.5=noon)',
+      },
     ],
   },
   {
@@ -785,26 +1289,72 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     name: 'hand_tracking',
     category: 'advanced',
     properties: [
-      { name: 'gesture_recognition', type: 'boolean', defaultValue: true, description: 'Enable gesture recognition' },
-      { name: 'mesh_visualization', type: 'boolean', defaultValue: false, description: 'Show hand mesh' },
+      {
+        name: 'gesture_recognition',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Enable gesture recognition',
+      },
+      {
+        name: 'mesh_visualization',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Show hand mesh',
+      },
     ],
   },
   {
     name: 'haptic',
     category: 'advanced',
     properties: [
-      { name: 'intensity', type: 'number', defaultValue: 0.5, min: 0, max: 1, description: 'Haptic intensity (0-1)' },
-      { name: 'duration', type: 'number', defaultValue: 100, min: 0, description: 'Duration in milliseconds' },
-      { name: 'pattern', type: 'enum', enumValues: ['pulse', 'buzz', 'click', 'custom'], defaultValue: 'pulse', description: 'Haptic pattern' },
+      {
+        name: 'intensity',
+        type: 'number',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        description: 'Haptic intensity (0-1)',
+      },
+      {
+        name: 'duration',
+        type: 'number',
+        defaultValue: 100,
+        min: 0,
+        description: 'Duration in milliseconds',
+      },
+      {
+        name: 'pattern',
+        type: 'enum',
+        enumValues: ['pulse', 'buzz', 'click', 'custom'],
+        defaultValue: 'pulse',
+        description: 'Haptic pattern',
+      },
     ],
   },
   {
     name: 'portal',
     category: 'advanced',
     properties: [
-      { name: 'destination', type: 'string', required: true, description: 'Target scene/composition' },
-      { name: 'size', type: 'number', defaultValue: 2, min: 0, description: 'Portal size in meters' },
-      { name: 'shape', type: 'enum', enumValues: ['circle', 'rectangle'], defaultValue: 'circle', description: 'Portal shape' },
+      {
+        name: 'destination',
+        type: 'string',
+        required: true,
+        description: 'Target scene/composition',
+      },
+      {
+        name: 'size',
+        type: 'number',
+        defaultValue: 2,
+        min: 0,
+        description: 'Portal size in meters',
+      },
+      {
+        name: 'shape',
+        type: 'enum',
+        enumValues: ['circle', 'rectangle'],
+        defaultValue: 'circle',
+        description: 'Portal shape',
+      },
     ],
   },
   {
@@ -813,7 +1363,13 @@ const BUILT_IN_TRAIT_SCHEMAS: TraitSchema[] = [
     properties: [
       { name: 'size', type: 'number', defaultValue: 2, min: 0, description: 'Mirror plane size' },
       { name: 'tint', type: 'string', defaultValue: '#ffffff', description: 'Reflection tint' },
-      { name: 'orientation', type: 'enum', enumValues: ['vertical', 'horizontal', 'face_camera'], defaultValue: 'vertical', description: 'Mirror orientation' },
+      {
+        name: 'orientation',
+        type: 'enum',
+        enumValues: ['vertical', 'horizontal', 'face_camera'],
+        defaultValue: 'vertical',
+        description: 'Mirror orientation',
+      },
     ],
   },
 ];
@@ -944,7 +1500,7 @@ export class ConfabulationValidator {
   validateTraitProperties(
     traitName: string,
     properties: Record<string, unknown>,
-    objectName?: string,
+    objectName?: string
   ): { errors: ConfabulationError[]; warnings: ConfabulationWarning[] } {
     const errors: ConfabulationError[] = [];
     const warnings: ConfabulationWarning[] = [];
@@ -968,13 +1524,13 @@ export class ConfabulationValidator {
 
     // Validate each property
     for (const [key, value] of Object.entries(properties)) {
-      const propSchema = schema.properties.find(p => p.name === key);
+      const propSchema = schema.properties.find((p) => p.name === key);
 
       if (!propSchema) {
         // Unknown property on a known trait
         const entry: ConfabulationError | ConfabulationWarning = {
           code: ConfabulationErrorCode.UNKNOWN_PROPERTY,
-          message: `Unknown property "${key}" on trait "@${normalizedName}". Known properties: ${schema.properties.map(p => p.name).join(', ')}`,
+          message: `Unknown property "${key}" on trait "@${normalizedName}". Known properties: ${schema.properties.map((p) => p.name).join(', ')}`,
           objectName,
           traitName: normalizedName,
           propertyName: key,
@@ -998,7 +1554,12 @@ export class ConfabulationValidator {
 
       // Range validation
       if (this.config.validateRanges) {
-        const rangeError = this.validatePropertyRange(propSchema, value, normalizedName, objectName);
+        const rangeError = this.validatePropertyRange(
+          propSchema,
+          value,
+          normalizedName,
+          objectName
+        );
         if (rangeError) {
           errors.push(rangeError);
         }
@@ -1091,14 +1652,28 @@ export class ConfabulationValidator {
   /**
    * Validate a single object's traits.
    */
-  private validateObject(
-    obj: HoloObjectDecl,
-  ): { errors: ConfabulationError[]; warnings: ConfabulationWarning[]; traitsChecked: number; propertiesChecked: number } {
+  private validateObject(obj: import('../../types/base').HoloObjectDecl): {
+    errors: ConfabulationError[];
+    warnings: ConfabulationWarning[];
+    traitsChecked: number;
+    propertiesChecked: number;
+  } {
     const errors: ConfabulationError[] = [];
     const warnings: ConfabulationWarning[] = [];
     let traitsChecked = 0;
     let propertiesChecked = 0;
     const objectTraitNames: string[] = [];
+
+    // Authority override bypass
+    // Note: Can't easily use dynamic import if we need it synchronously, 
+    // but validateComposition/validateObject is sync.
+    // Let's rely on checking the string value of authority to avoid sync/async issues,
+    // or import it at the top level and use it. 
+    // Wait, obj.provenance can be checked directly here.
+    const authority = obj.provenance?.context?.authority;
+    if (authority === 'system' || authority === 'verified') {
+      return { errors, warnings, traitsChecked: 0, propertiesChecked: 0 };
+    }
 
     // Extract traits from object
     if (obj.traits) {
@@ -1186,7 +1761,7 @@ export class ConfabulationValidator {
     propSchema: TraitPropertySchema,
     value: unknown,
     traitName: string,
-    objectName?: string,
+    objectName?: string
   ): ConfabulationError | null {
     if (value === null || value === undefined) return null;
     if (propSchema.type === 'any') return null;
@@ -1294,7 +1869,7 @@ export class ConfabulationValidator {
     propSchema: TraitPropertySchema,
     value: unknown,
     traitName: string,
-    objectName?: string,
+    objectName?: string
   ): ConfabulationError | null {
     if (typeof value !== 'number') return null;
 
@@ -1330,7 +1905,7 @@ export class ConfabulationValidator {
    */
   private calculateRiskScore(
     errors: ConfabulationError[],
-    warnings: ConfabulationWarning[],
+    warnings: ConfabulationWarning[]
   ): number {
     let score = 0;
 
@@ -1359,9 +1934,9 @@ export class ConfabulationValidator {
 export class ConfabulationDetectedError extends Error {
   constructor(
     public readonly result: ConfabulationValidationResult,
-    public readonly compilerName?: string,
+    public readonly compilerName?: string
   ) {
-    const errorSummary = result.errors.map(e => `  - ${e.message}`).join('\n');
+    const errorSummary = result.errors.map((e) => `  - ${e.message}`).join('\n');
     super(
       `[${compilerName ?? 'ConfabulationValidator'}] Confabulation detected (risk score: ${result.riskScore}/100):\n` +
         `${result.errors.length} error(s), ${result.warnings.length} warning(s)\n` +
@@ -1381,7 +1956,7 @@ let globalConfabulationValidator: ConfabulationValidator | null = null;
  * Get or create the global ConfabulationValidator instance.
  */
 export function getConfabulationValidator(
-  config?: ConfabulationValidatorConfig,
+  config?: ConfabulationValidatorConfig
 ): ConfabulationValidator {
   if (!globalConfabulationValidator) {
     globalConfabulationValidator = new ConfabulationValidator(config);

@@ -44,7 +44,9 @@ const mockAudioContext = {
   destination: {},
 };
 
-global.AudioContext = vi.fn().mockImplementation(function () { return mockAudioContext; }) as any;
+global.AudioContext = vi.fn().mockImplementation(function () {
+  return mockAudioContext;
+}) as any;
 
 // Mock Canvas API
 const mockCanvasContext = {

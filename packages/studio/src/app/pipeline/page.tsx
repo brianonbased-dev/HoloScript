@@ -45,13 +45,19 @@ export default function PipelinePage() {
     store.resumePipeline();
   }, [store]);
 
-  const handleApprove = useCallback((layerId: LayerId) => {
-    store.approveReview(layerId);
-  }, [store]);
+  const handleApprove = useCallback(
+    (layerId: LayerId) => {
+      store.approveReview(layerId);
+    },
+    [store]
+  );
 
-  const handleReject = useCallback((layerId: LayerId) => {
-    store.rejectReview(layerId);
-  }, [store]);
+  const handleReject = useCallback(
+    (layerId: LayerId) => {
+      store.rejectReview(layerId);
+    },
+    [store]
+  );
 
   // Collect all feedback signals for the timeline
   const allFeedback = store.globalFeedback;
@@ -62,10 +68,7 @@ export default function PipelinePage() {
       <header className="border-b border-studio-border px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-studio-muted hover:text-studio-text text-sm"
-            >
+            <Link href="/" className="text-studio-muted hover:text-studio-text text-sm">
               Studio
             </Link>
             <span className="text-studio-muted">/</span>
@@ -144,21 +147,31 @@ export default function PipelinePage() {
 
         {/* Error display */}
         {error && (
-          <div className="mt-2 text-sm text-red-400 bg-red-900/20 px-3 py-1.5 rounded">
-            {error}
-          </div>
+          <div className="mt-2 text-sm text-red-400 bg-red-900/20 px-3 py-1.5 rounded">{error}</div>
         )}
 
         {/* Pipeline summary bar */}
         {pipeline && (
           <div className="mt-2 flex items-center gap-4 text-xs text-studio-muted">
-            <span>Mode: <span className="text-studio-text">{pipeline.mode}</span></span>
-            <span>Target: <span className="text-studio-text">{pipeline.targetProject}</span></span>
-            <span>Cost: <span className="text-studio-text">${pipeline.totalCostUSD.toFixed(2)}</span></span>
-            <span>Duration: <span className="text-studio-text">{Math.round(pipeline.totalDurationMs / 1000)}s</span></span>
+            <span>
+              Mode: <span className="text-studio-text">{pipeline.mode}</span>
+            </span>
+            <span>
+              Target: <span className="text-studio-text">{pipeline.targetProject}</span>
+            </span>
+            <span>
+              Cost: <span className="text-studio-text">${pipeline.totalCostUSD.toFixed(2)}</span>
+            </span>
+            <span>
+              Duration:{' '}
+              <span className="text-studio-text">
+                {Math.round(pipeline.totalDurationMs / 1000)}s
+              </span>
+            </span>
             {pipeline.humanReviewsPending > 0 && (
               <span className="text-yellow-500 font-medium">
-                {pipeline.humanReviewsPending} review{pipeline.humanReviewsPending > 1 ? 's' : ''} pending
+                {pipeline.humanReviewsPending} review{pipeline.humanReviewsPending > 1 ? 's' : ''}{' '}
+                pending
               </span>
             )}
           </div>
@@ -252,10 +265,15 @@ export default function PipelinePage() {
                   <span className="font-mono">{run.id}</span>
                   <span>{run.mode}</span>
                   <span>${run.totalCostUSD.toFixed(2)}</span>
-                  <span className={
-                    run.status === 'completed' ? 'text-green-500' :
-                    run.status === 'failed' ? 'text-red-500' : ''
-                  }>
+                  <span
+                    className={
+                      run.status === 'completed'
+                        ? 'text-green-500'
+                        : run.status === 'failed'
+                          ? 'text-red-500'
+                          : ''
+                    }
+                  >
                     {run.status}
                   </span>
                 </div>

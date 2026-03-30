@@ -42,11 +42,7 @@ export class SpatialEntity {
   ): SpatialEntity {
     const pos: Vec3 = { x: opts.position[0], y: opts.position[1], z: opts.position[2] };
     const sz: Vec3 = { x: opts.size[0], y: opts.size[1], z: opts.size[2] };
-    return new SpatialEntity(
-      id,
-      BoundingBox.fromBottomCenter(pos, sz),
-      opts.tags ?? []
-    );
+    return new SpatialEntity(id, BoundingBox.fromBottomCenter(pos, sz), opts.tags ?? []);
   }
 
   /**
@@ -110,10 +106,7 @@ export class SpatialEntity {
   }
 
   isWithinVolume(container: BoundingBox): boolean {
-    return (
-      container.contains(this.bounds.min) &&
-      container.contains(this.bounds.max)
-    );
+    return container.contains(this.bounds.min) && container.contains(this.bounds.max);
   }
 
   toString(): string {

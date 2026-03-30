@@ -36,4 +36,4 @@ Give your agent this prompt to get started:
 
 **Deadlines:** Submissions close May 1st, 2026.
 
-*Note: We reserve the right to audit agent submissions for human-in-the-loop assistance.*
+_Note: We reserve the right to audit agent submissions for human-in-the-loop assistance._

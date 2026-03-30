@@ -6,16 +6,16 @@ Use this page when you are navigating the repo itself and need to understand wha
 
 ## Support Surface At A Glance
 
-| Directory | Status | Purpose |
-| --------- | ------ | ------- |
-| `.perf-metrics/` | Internal data | Local or generated performance output |
-| `components/` | Source library | Reusable `.holo` scene and gameplay templates |
-| `intellij/` | IDE integration source | JetBrains plugin project for HoloScript |
-| `plugins/` | Extension workspace | Domain-specific plugin prototypes and previews |
-| `python-bindings/` | Language binding source | Python package source, examples, and tests |
-| `shader-preview-wgpu/` | Native tooling crate | Rust `wgpu` shader preview renderer |
-| `spatial-engine/` | Native engine crate | Bevy-based spatial engine and persistence stack |
-| `spatial-engine-wasm/` | Native/WASM crate | WebAssembly build of spatial hot-path systems |
+| Directory              | Status                  | Purpose                                         |
+| ---------------------- | ----------------------- | ----------------------------------------------- |
+| `.perf-metrics/`       | Internal data           | Local or generated performance output           |
+| `components/`          | Source library          | Reusable `.holo` scene and gameplay templates   |
+| `intellij/`            | IDE integration source  | JetBrains plugin project for HoloScript         |
+| `plugins/`             | Extension workspace     | Domain-specific plugin prototypes and previews  |
+| `python-bindings/`     | Language binding source | Python package source, examples, and tests      |
+| `shader-preview-wgpu/` | Native tooling crate    | Rust `wgpu` shader preview renderer             |
+| `spatial-engine/`      | Native engine crate     | Bevy-based spatial engine and persistence stack |
+| `spatial-engine-wasm/` | Native/WASM crate       | WebAssembly build of spatial hot-path systems   |
 
 `node_modules/` is intentionally omitted from this reference because it is an installed dependency tree, not a maintained repo surface.
 

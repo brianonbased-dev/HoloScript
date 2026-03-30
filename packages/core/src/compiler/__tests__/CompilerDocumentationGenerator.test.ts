@@ -28,9 +28,7 @@ describe('CompilerDocumentationGenerator', () => {
         type: 'Object',
         name: 'light1',
         shape: 'sphere',
-        traits: new Map([
-          ['emissive', { intensity: 2.0 }],
-        ]),
+        traits: new Map([['emissive', { intensity: 2.0 }]]),
       },
     ],
     spatialGroups: [],
@@ -308,9 +306,7 @@ describe('CompilerDocumentationGenerator', () => {
       const generator = new CompilerDocumentationGenerator();
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
-      const renderTool = result.wellKnownMcp.tools.find(
-        (t: any) => t.name === 'render_preview'
-      );
+      const renderTool = result.wellKnownMcp.tools.find((t: any) => t.name === 'render_preview');
       expect(renderTool).toBeDefined();
       expect(renderTool?.description).toContain('preview');
     });
@@ -319,9 +315,7 @@ describe('CompilerDocumentationGenerator', () => {
       const generator = new CompilerDocumentationGenerator();
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
-      const traitTool = result.wellKnownMcp.tools.find(
-        (t: any) => t.name === 'list_traits'
-      );
+      const traitTool = result.wellKnownMcp.tools.find((t: any) => t.name === 'list_traits');
       expect(traitTool).toBeDefined();
     });
 
@@ -329,9 +323,7 @@ describe('CompilerDocumentationGenerator', () => {
       const generator = new CompilerDocumentationGenerator();
       const result = generator.generate(mockComposition, 'r3f', 'code');
 
-      const queryTool = result.wellKnownMcp.tools.find(
-        (t: any) => t.name === 'query_objects'
-      );
+      const queryTool = result.wellKnownMcp.tools.find((t: any) => t.name === 'query_objects');
       expect(queryTool).toBeDefined();
       expect(queryTool?.description).toContain('2 objects');
     });

@@ -92,7 +92,9 @@ export interface WebhookProcessingResult {
 /**
  * Webhook handler function type.
  */
-export type WebhookHandler = (payload: WebhookPayload) => Promise<WebhookProcessingResult> | WebhookProcessingResult;
+export type WebhookHandler = (
+  payload: WebhookPayload
+) => Promise<WebhookProcessingResult> | WebhookProcessingResult;
 
 /**
  * Configuration for the webhook service.
@@ -140,7 +142,7 @@ function computeHmac(payload: string, secret: string): string {
     const combined = payload + secret;
     for (let i = 0; i < combined.length; i++) {
       const char = combined.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(16).padStart(8, '0');
@@ -164,7 +166,9 @@ function timingSafeEqual(a: string, b: string): boolean {
 // =============================================================================
 
 export class PaymentWebhookService {
-  private config: Required<Omit<WebhookServiceConfig, 'telemetry'>> & { telemetry?: TelemetryCollector };
+  private config: Required<Omit<WebhookServiceConfig, 'telemetry'>> & {
+    telemetry?: TelemetryCollector;
+  };
   private handlers: Map<WebhookEventType, WebhookHandler[]> = new Map();
   private processedEvents: Set<string> = new Set();
   private retryQueue: RetryEntry[] = [];
@@ -408,7 +412,8 @@ export class PaymentWebhookService {
     if (existing) {
       existing.attempts++;
       existing.lastError = error;
-      existing.nextRetryAt = Date.now() + this.config.retryBackoffMs * Math.pow(2, existing.attempts - 1);
+      existing.nextRetryAt =
+        Date.now() + this.config.retryBackoffMs * Math.pow(2, existing.attempts - 1);
       return;
     }
 
@@ -447,9 +452,7 @@ export class PaymentWebhookService {
     }
 
     // Remove entries that exceeded max retries
-    this.retryQueue = this.retryQueue.filter(
-      (r) => r.attempts < this.config.maxRetries
-    );
+    this.retryQueue = this.retryQueue.filter((r) => r.attempts < this.config.maxRetries);
 
     return processed;
   }
@@ -498,7 +501,10 @@ export class PaymentWebhookService {
   private emitTelemetry(type: string, data?: Record<string, unknown>): void {
     this.config.telemetry?.record({
       type,
-      severity: type.includes('error') || type.includes('failed') || type.includes('invalid') ? 'error' : 'info',
+      severity:
+        type.includes('error') || type.includes('failed') || type.includes('invalid')
+          ? 'error'
+          : 'info',
       agentId: 'payment-webhook-service',
       data,
     });

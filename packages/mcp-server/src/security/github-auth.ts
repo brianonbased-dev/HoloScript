@@ -28,7 +28,7 @@ const ADMIN_USERNAMES = new Set(
   (process.env.ADMIN_GITHUB_USERNAMES || 'brianonbased-dev')
     .split(',')
     .map((s) => s.trim().toLowerCase())
-    .filter(Boolean),
+    .filter(Boolean)
 );
 
 async function fetchGitHubUser(token: string): Promise<GitHubUser | null> {
@@ -70,7 +70,15 @@ export async function resolveGitHubTokenForMcp(token: string): Promise<TokenIntr
     clientId: `github:${ghUser.login}`,
     agentId: `github:${ghUser.id}`,
     scopes: isAdmin
-      ? ['admin:*', 'tools:read', 'tools:write', 'tools:codebase', 'a2a:tasks', 'scenes:read', 'scenes:write']
+      ? [
+          'admin:*',
+          'tools:read',
+          'tools:write',
+          'tools:codebase',
+          'a2a:tasks',
+          'scenes:read',
+          'scenes:write',
+        ]
       : ['tools:read', 'tools:write', 'tools:codebase', 'scenes:read'],
   };
 

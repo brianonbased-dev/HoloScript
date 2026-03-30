@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const componentMatch = info.componentStack?.match(/at\s+([A-Za-z0-9_]+)/);
     const componentName = componentMatch ? componentMatch[1] : 'Unknown';
     const astPath = `AST_PATH::[Component:${componentName}]`;
-    
+
     console.error(`[HoloScript Studio] AST_PATH_ERROR ${astPath}:`, error, info.componentStack);
     this.setState({ astPath });
   }

@@ -118,7 +118,10 @@ describe('PluginSandboxRunner', () => {
     });
 
     it('enforces max handlers budget', () => {
-      const small = createRunner(['handler:register'], { ...DEFAULT_CAPABILITY_BUDGET, maxHandlers: 1 });
+      const small = createRunner(['handler:register'], {
+        ...DEFAULT_CAPABILITY_BUDGET,
+        maxHandlers: 1,
+      });
       small.registerHandler('a', () => {});
       expect(() => small.registerHandler('b', () => {})).toThrow('exceeded max handlers');
     });
@@ -131,7 +134,9 @@ describe('PluginSandboxRunner', () => {
   describe('event emission', () => {
     it('calls registered handlers on emit', () => {
       let received: unknown = null;
-      runner.registerHandler('test-event', (payload) => { received = payload; });
+      runner.registerHandler('test-event', (payload) => {
+        received = payload;
+      });
       runner.emitEvent('test-event', { value: 42 });
       expect(received).toEqual({ value: 42 });
     });
@@ -185,7 +190,10 @@ describe('PluginSandboxRunner', () => {
     });
 
     it('enforces CPU time limit', async () => {
-      const fast = createRunner(['tool:register'], { ...DEFAULT_CAPABILITY_BUDGET, maxCpuTimeMs: 50 });
+      const fast = createRunner(['tool:register'], {
+        ...DEFAULT_CAPABILITY_BUDGET,
+        maxCpuTimeMs: 50,
+      });
       const result = await fast.execute('while(true) {}');
       expect(result.success).toBe(false);
       expect(result.error).toContain('time limit');
@@ -208,7 +216,10 @@ describe('PluginSandboxRunner', () => {
 
   describe('rate limiting', () => {
     it('enforces API call rate limit', () => {
-      const limited = createRunner(['tool:register'], { ...DEFAULT_CAPABILITY_BUDGET, maxApiCallsPerMinute: 3 });
+      const limited = createRunner(['tool:register'], {
+        ...DEFAULT_CAPABILITY_BUDGET,
+        maxApiCallsPerMinute: 3,
+      });
       limited.registerTool('a', 'A', () => 1);
       limited.registerTool('b', 'B', () => 2);
       limited.registerTool('c', 'C', () => 3);

@@ -27,9 +27,9 @@ export interface TokenStoreTTL {
 }
 
 export const DEFAULT_TTL: TokenStoreTTL = {
-  accessTokenTTL: 3600,       // 1 hour
-  refreshTokenTTL: 2592000,   // 30 days
-  authCodeTTL: 300,           // 5 minutes
+  accessTokenTTL: 3600, // 1 hour
+  refreshTokenTTL: 2592000, // 30 days
+  authCodeTTL: 300, // 5 minutes
 };
 
 // ── Token Types ──────────────────────────────────────────────────────────────
@@ -421,9 +421,7 @@ export class TokenStore {
   }
 
   verifyS256Challenge(verifier: string, challenge: string): boolean {
-    const computed = createHash('sha256')
-      .update(verifier)
-      .digest('base64url');
+    const computed = createHash('sha256').update(verifier).digest('base64url');
     return computed === challenge;
   }
 

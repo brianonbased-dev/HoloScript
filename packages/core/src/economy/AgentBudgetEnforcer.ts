@@ -237,7 +237,12 @@ export class AgentBudgetEnforcer {
     if (wouldExceed) {
       switch (tracker.budget.mode) {
         case 'hard':
-          this.emitTelemetry('budget_hard_denied', { agentId, amount, spent: tracker.spent, limit: tracker.budget.maxSpend });
+          this.emitTelemetry('budget_hard_denied', {
+            agentId,
+            amount,
+            spent: tracker.spent,
+            limit: tracker.budget.maxSpend,
+          });
           return {
             authorized: false,
             reason: `Budget exhausted (hard limit): spent ${tracker.spent} + ${amount} > limit ${tracker.budget.maxSpend}`,
@@ -270,7 +275,7 @@ export class AgentBudgetEnforcer {
         authorized: true,
         state: this.buildState(tracker),
         warning: true,
-        warningMessage: `Approaching budget limit: ${Math.round((tracker.spent + amount) / tracker.budget.maxSpend * 100)}% used`,
+        warningMessage: `Approaching budget limit: ${Math.round(((tracker.spent + amount) / tracker.budget.maxSpend) * 100)}% used`,
       };
     }
 
@@ -431,15 +436,18 @@ export class AgentBudgetEnforcer {
       periodStart: new Date(tracker.periodStart).toISOString(),
       requestCount: tracker.requestCount,
       circuitBreaker: {
-        isOpen: tracker.circuitBreakerTrippedAt !== null &&
-          (Date.now() - tracker.circuitBreakerTrippedAt) < this.config.circuitBreakerResetMs,
+        isOpen:
+          tracker.circuitBreakerTrippedAt !== null &&
+          Date.now() - tracker.circuitBreakerTrippedAt < this.config.circuitBreakerResetMs,
         consecutiveFailures: tracker.consecutiveFailures,
         threshold: cbThreshold,
         trippedAt: tracker.circuitBreakerTrippedAt
           ? new Date(tracker.circuitBreakerTrippedAt).toISOString()
           : null,
         resetAt: tracker.circuitBreakerTrippedAt
-          ? new Date(tracker.circuitBreakerTrippedAt + this.config.circuitBreakerResetMs).toISOString()
+          ? new Date(
+              tracker.circuitBreakerTrippedAt + this.config.circuitBreakerResetMs
+            ).toISOString()
           : null,
       },
     };
@@ -449,7 +457,7 @@ export class AgentBudgetEnforcer {
     this.config.telemetry?.record({
       type,
       severity: type.includes('denied') || type.includes('tripped') ? 'warning' : 'info',
-      agentId: data?.agentId as string || 'budget-enforcer',
+      agentId: (data?.agentId as string) || 'budget-enforcer',
       data,
     });
   }

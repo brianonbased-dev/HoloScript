@@ -55,14 +55,15 @@ function requireApiKey(): string {
   if (!key) {
     throw new Error(
       'MCP_API_KEY environment variable is required. ' +
-      'Set it in .env or pass --api-key on the command line.',
+        'Set it in .env or pass --api-key on the command line.'
     );
   }
   return key;
 }
 
 const DEFAULT_CONFIG: RegistrationConfig = {
-  orchestratorUrl: process.env.MCP_ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app',
+  orchestratorUrl:
+    process.env.MCP_ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app',
   apiKey: requireApiKey(),
   serverName: process.env.MCP_SERVER_NAME ?? 'holoscript-tools',
   serverDescription:
@@ -265,7 +266,9 @@ async function main(): Promise<void> {
       console.log('Usage: npx tsx registerWithOrchestrator.ts [options]');
       console.log();
       console.log('Options:');
-      console.log('  --url <url>            Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)');
+      console.log(
+        '  --url <url>            Orchestrator URL (default: https://mcp-orchestrator-production-45f9.up.railway.app)'
+      );
       console.log('  --api-key <key>        API key (or set MCP_API_KEY env var)');
       console.log('  --server-name <name>   Server name (default: holoscript-tools)');
       console.log('  --unregister           Remove registration instead of registering');

@@ -21,10 +21,7 @@
  * @package @holoscript/core/compiler
  */
 
-import type {
-  HoloComposition,
-  HoloValue,
-} from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloValue } from '../parser/HoloCompositionTypes';
 
 // =============================================================================
 // TYPES
@@ -114,9 +111,7 @@ export function createSeededRNG(seed: number = DEFAULT_SEED): SeededRNG {
   function nextUUID(): string {
     // Generate a UUID-like string from seeded random values
     const hex = (n: number, len: number): string =>
-      Array.from({ length: len }, () =>
-        nextInt(0, 15).toString(16)
-      ).join('');
+      Array.from({ length: len }, () => nextInt(0, 15).toString(16)).join('');
 
     return `${hex(0, 8)}-${hex(0, 4)}-4${hex(0, 3)}-${(8 + nextInt(0, 3)).toString(16)}${hex(0, 3)}-${hex(0, 12)}`;
   }
@@ -265,7 +260,9 @@ export function createReproducibilityContext(
   }
 
   function randomInt(min: number, max: number): number {
-    return fullConfig.enabled ? rng.nextInt(min, max) : Math.floor(Math.random() * (max - min + 1)) + min;
+    return fullConfig.enabled
+      ? rng.nextInt(min, max)
+      : Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   function timestamp(): string {
@@ -307,9 +304,7 @@ export function createReproducibilityContext(
   }
 
   function stringify(value: unknown, indent: number = 2): string {
-    const processed = fullConfig.enabled && fullConfig.sortKeys
-      ? sortKeysDeep(value)
-      : value;
+    const processed = fullConfig.enabled && fullConfig.sortKeys ? sortKeysDeep(value) : value;
     return JSON.stringify(processed, null, indent);
   }
 
@@ -342,9 +337,7 @@ export function createReproducibilityContext(
  *   --reproducible-timestamp="2026-06-01T00:00:00Z"   Custom fixed timestamp
  *   --no-reproducible         Explicitly disable
  */
-export function parseReproducibilityFlags(
-  args: string[]
-): ReproducibilityConfig {
+export function parseReproducibilityFlags(args: string[]): ReproducibilityConfig {
   const config: ReproducibilityConfig = { enabled: false };
 
   for (const arg of args) {

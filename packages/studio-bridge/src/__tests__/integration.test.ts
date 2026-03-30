@@ -20,7 +20,7 @@ function createNode(
   type: string,
   category: 'event' | 'action' | 'logic' | 'data',
   label: string,
-  properties: Record<string, unknown> = {},
+  properties: Record<string, unknown> = {}
 ): HoloNode {
   return {
     id,
@@ -42,7 +42,7 @@ function createEdge(
   source: string,
   target: string,
   sourceHandle?: string,
-  targetHandle?: string,
+  targetHandle?: string
 ): HoloEdge {
   return {
     id,
@@ -78,9 +78,7 @@ function createTestGraph(nodes: HoloNode[], edges: HoloEdge[] = []): VisualGraph
 describe('Studio Bridge Integration', () => {
   describe('round-trip: Visual -> AST -> Visual', () => {
     it('should round-trip a single event node', () => {
-      const originalGraph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const originalGraph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
 
       const forward = new VisualToAST();
       const reverse = new ASTToVisual();
@@ -95,9 +93,7 @@ describe('Studio Bridge Integration', () => {
       expect(reverseResult.graph.nodes.length).toBeGreaterThan(0);
 
       // The round-trip should preserve the on_click event
-      const clickNodes = reverseResult.graph.nodes.filter(
-        (n) => n.data.type === 'on_click',
-      );
+      const clickNodes = reverseResult.graph.nodes.filter((n) => n.data.type === 'on_click');
       expect(clickNodes.length).toBeGreaterThan(0);
     });
 
@@ -107,7 +103,7 @@ describe('Studio Bridge Integration', () => {
           createNode('ev1', 'on_click', 'event', 'On Click'),
           createNode('act1', 'play_sound', 'action', 'Play Sound', { url: 'click.mp3' }),
         ],
-        [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')],
+        [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')]
       );
 
       const forward = new VisualToAST();
@@ -167,7 +163,7 @@ describe('Studio Bridge Integration', () => {
           createNode('ev1', 'on_click', 'event', 'On Click'),
           createNode('act1', 'play_sound', 'action', 'Play Sound', { url: 'test.mp3' }),
         ],
-        [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')],
+        [createEdge('e1', 'ev1', 'act1', 'flow', 'flow')]
       );
 
       const hsResult = new VisualToAST({ format: 'hs' }).translate(graph);
@@ -187,9 +183,7 @@ describe('Studio Bridge Integration', () => {
 
   describe('mapping consistency', () => {
     it('should produce consistent mappings between forward and reverse translation', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
 
       const forward = new VisualToAST();
       const forwardResult = forward.translate(graph);
@@ -208,9 +202,7 @@ describe('Studio Bridge Integration', () => {
       const engine = new SyncEngine({ debounceMs: 0 });
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
 
       const result = engine.syncNow('visual-to-ast');
       // No data yet, should be null
@@ -228,20 +220,26 @@ describe('Studio Bridge Integration', () => {
       const engine = new SyncEngine({ debounceMs: 0 });
       engine.start();
 
-      const astNodes = [{
-        type: 'orb',
-        name: 'syncTest',
-        properties: {},
-        methods: [],
-        children: [{
-          type: 'event-handler',
-          directives: [{
-            type: 'lifecycle',
-            hook: 'on_click',
-            body: [],
-          }],
-        }],
-      }] as any[];
+      const astNodes = [
+        {
+          type: 'orb',
+          name: 'syncTest',
+          properties: {},
+          methods: [],
+          children: [
+            {
+              type: 'event-handler',
+              directives: [
+                {
+                  type: 'lifecycle',
+                  hook: 'on_click',
+                  body: [],
+                },
+              ],
+            },
+          ],
+        },
+      ] as any[];
 
       engine.onASTChanged(astNodes);
       const syncResult = engine.syncNow('ast-to-visual');
@@ -294,12 +292,15 @@ describe('Studio Bridge Integration', () => {
           createNode('ev1', 'on_click', 'event', 'On Click'),
           createNode('act1', 'play_sound', 'action', 'Play Sound', { url: 'click.mp3' }),
           createNode('ev2', 'on_hover', 'event', 'On Hover'),
-          createNode('act2', 'set_property', 'action', 'Set Color', { property: 'color', value: '#ff0000' }),
+          createNode('act2', 'set_property', 'action', 'Set Color', {
+            property: 'color',
+            value: '#ff0000',
+          }),
         ],
         [
           createEdge('e1', 'ev1', 'act1', 'flow', 'flow'),
           createEdge('e2', 'ev2', 'act2', 'enter', 'flow'),
-        ],
+        ]
       );
 
       const forward = new VisualToAST();
@@ -321,7 +322,7 @@ describe('Studio Bridge Integration', () => {
         [
           createEdge('e1', 'ev1', 'act1', 'flow', 'flow'),
           createEdge('e2', 'act1', 'act2', 'flow', 'flow'),
-        ],
+        ]
       );
 
       const forward = new VisualToAST();

@@ -30,13 +30,7 @@ import type { AnimationPreset, PresetName } from '../types.js';
 
 const VALID_LOOP_MODES = ['once', 'loop', 'pingpong', 'clamp'] as const;
 
-const VALID_CATEGORIES = [
-  'locomotion',
-  'combat',
-  'social',
-  'emote',
-  'environmental',
-] as const;
+const VALID_CATEGORIES = ['locomotion', 'combat', 'social', 'emote', 'environmental'] as const;
 
 const VALID_EASINGS = [
   'linear',
@@ -280,9 +274,7 @@ describe('Animation Presets', () => {
 
     it('alternative clip names should not include the primary clip', () => {
       for (const preset of allPresets) {
-        expect(preset.mixamoClip.alternatives).not.toContain(
-          preset.mixamoClip.clipName,
-        );
+        expect(preset.mixamoClip.alternatives).not.toContain(preset.mixamoClip.clipName);
       }
     });
   });

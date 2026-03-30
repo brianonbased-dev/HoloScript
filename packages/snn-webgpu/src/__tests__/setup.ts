@@ -48,7 +48,9 @@ async function tryDawnGPU(): Promise<boolean> {
     console.log('[snn-webgpu] ✅ Live GPU detected via Dawn');
     const info = (adapter as any).info ?? { vendor: 'unknown', architecture: 'unknown' };
     console.log(`[snn-webgpu]    Vendor: ${info.vendor}, Arch: ${info.architecture}`);
-    console.log(`[snn-webgpu]    maxBufferSize: ${(adapter as any).limits?.maxBufferSize ?? 'unknown'}`);
+    console.log(
+      `[snn-webgpu]    maxBufferSize: ${(adapter as any).limits?.maxBufferSize ?? 'unknown'}`
+    );
     return true;
   } catch (e: any) {
     // Dawn not installed or failed — fall through to mocks

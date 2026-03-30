@@ -20,15 +20,9 @@
  * @package @holoscript/core/compiler
  */
 
-import type {
-  HoloComposition,
-} from '../parser/HoloCompositionTypes';
+import type { HoloComposition } from '../parser/HoloCompositionTypes';
 
-import type {
-  GLTFPipelineOptions,
-  GLTFExportResult,
-  GLTFExportStats,
-} from './GLTFPipeline';
+import type { GLTFPipelineOptions, GLTFExportResult, GLTFExportStats } from './GLTFPipeline';
 
 // =============================================================================
 // MCP TOOL TYPES (matching MCP specification)
@@ -288,9 +282,7 @@ export async function handleGLTFToolCall(
 // INDIVIDUAL TOOL HANDLERS
 // =============================================================================
 
-async function handleExport(
-  args: Record<string, unknown>
-): Promise<MCPToolCallResponse> {
+async function handleExport(args: Record<string, unknown>): Promise<MCPToolCallResponse> {
   const composition = args.composition as HoloComposition;
   if (!composition || !composition.name) {
     return {
@@ -307,11 +299,11 @@ async function handleExport(
 
   const pipeline = new GLTFPipeline({
     format,
-    dracoCompression: args.dracoCompression as boolean ?? false,
-    quantize: args.quantize as boolean ?? false,
-    prune: args.prune as boolean ?? true,
-    dedupe: args.dedupe as boolean ?? true,
-    embedTextures: args.embedTextures as boolean ?? true,
+    dracoCompression: (args.dracoCompression as boolean) ?? false,
+    quantize: (args.quantize as boolean) ?? false,
+    prune: (args.prune as boolean) ?? true,
+    dedupe: (args.dedupe as boolean) ?? true,
+    embedTextures: (args.embedTextures as boolean) ?? true,
   });
 
   const result = pipeline.compile(composition, agentToken) as GLTFExportResult;
@@ -354,9 +346,7 @@ async function handleExport(
   return { isError: false, content };
 }
 
-async function handleInspect(
-  args: Record<string, unknown>
-): Promise<MCPToolCallResponse> {
+async function handleInspect(args: Record<string, unknown>): Promise<MCPToolCallResponse> {
   const composition = args.composition as HoloComposition;
   if (!composition || !composition.name) {
     return {
@@ -387,9 +377,7 @@ async function handleInspect(
   };
 }
 
-async function handleValidate(
-  args: Record<string, unknown>
-): Promise<MCPToolCallResponse> {
+async function handleValidate(args: Record<string, unknown>): Promise<MCPToolCallResponse> {
   const composition = args.composition as HoloComposition;
   if (!composition || !composition.name) {
     return {
@@ -411,9 +399,7 @@ async function handleValidate(
   };
 }
 
-async function handleOptimize(
-  args: Record<string, unknown>
-): Promise<MCPToolCallResponse> {
+async function handleOptimize(args: Record<string, unknown>): Promise<MCPToolCallResponse> {
   const composition = args.composition as HoloComposition;
   if (!composition || !composition.name) {
     return {
@@ -443,9 +429,7 @@ async function handleOptimize(
   };
 }
 
-async function handleMaterialList(
-  args: Record<string, unknown>
-): Promise<MCPToolCallResponse> {
+async function handleMaterialList(args: Record<string, unknown>): Promise<MCPToolCallResponse> {
   const filter = (args.filter as string) ?? '';
 
   // Import MATERIAL_PRESETS from R3FCompiler
@@ -534,7 +518,8 @@ function inspectComposition(composition: HoloComposition): InspectionStats {
     shapeCount: composition.shapes?.length ?? 0,
     domainBlockCount: composition.domainBlocks?.length ?? 0,
     traitCount,
-    estimatedNodeCount: objectCount + (composition.spatialGroups?.length ?? 0) + (composition.lights?.length ?? 0),
+    estimatedNodeCount:
+      objectCount + (composition.spatialGroups?.length ?? 0) + (composition.lights?.length ?? 0),
     estimatedMeshCount: objectCount,
   };
 }
@@ -553,13 +538,19 @@ function validateForGLTF(composition: HoloComposition): ValidationResult {
     errors.push('Composition is missing a name');
   }
 
-  if (!composition.objects?.length && !composition.spatialGroups?.length && !composition.shapes?.length) {
+  if (
+    !composition.objects?.length &&
+    !composition.spatialGroups?.length &&
+    !composition.shapes?.length
+  ) {
     warnings.push('Composition has no objects, spatial groups, or shapes to export');
   }
 
   // Check for unsupported features
   if (composition.npcs?.length) {
-    warnings.push(`${composition.npcs.length} NPC(s) will be exported as basic meshes (no behavior trees in glTF)`);
+    warnings.push(
+      `${composition.npcs.length} NPC(s) will be exported as basic meshes (no behavior trees in glTF)`
+    );
   }
 
   if (composition.stateMachines?.length) {
@@ -574,8 +565,9 @@ function validateForGLTF(composition: HoloComposition): ValidationResult {
   function checkObjects(objects: HoloComposition['objects']): void {
     for (const obj of objects ?? []) {
       const hasGeometry =
-        obj.properties.some((p) => p.key === 'geometry' || p.key === 'shape' || p.key === 'model') ||
-        obj.traits?.some((t) => t.name === 'geometry' || t.name === 'mesh');
+        obj.properties.some(
+          (p) => p.key === 'geometry' || p.key === 'shape' || p.key === 'model'
+        ) || obj.traits?.some((t) => t.name === 'geometry' || t.name === 'mesh');
 
       if (!hasGeometry) {
         warnings.push(`Object "${obj.name}" has no explicit geometry; will default to cube`);
@@ -601,9 +593,7 @@ interface OptimizationRecommendation {
   action?: string;
 }
 
-function analyzeOptimizations(
-  composition: HoloComposition
-): OptimizationRecommendation[] {
+function analyzeOptimizations(composition: HoloComposition): OptimizationRecommendation[] {
   const recommendations: OptimizationRecommendation[] = [];
   const stats = inspectComposition(composition);
 
@@ -639,7 +629,8 @@ function analyzeOptimizations(
   recommendations.push({
     category: 'filesize',
     severity: 'info',
-    message: 'Enable vertex quantization to reduce vertex attribute precision and save ~30% on geometry data.',
+    message:
+      'Enable vertex quantization to reduce vertex attribute precision and save ~30% on geometry data.',
     action: 'Set quantize: true in GLTFPipelineOptions.',
   });
 
@@ -707,7 +698,10 @@ async function importGLTFPipeline(): Promise<{ GLTFPipeline: any }> {
  * ```
  */
 export function registerGLTFTools(server: {
-  registerTool(definition: MCPToolDefinition, handler: (req: MCPToolCallRequest) => Promise<MCPToolCallResponse>): void;
+  registerTool(
+    definition: MCPToolDefinition,
+    handler: (req: MCPToolCallRequest) => Promise<MCPToolCallResponse>
+  ): void;
 }): void {
   for (const tool of GLTF_PIPELINE_TOOLS) {
     server.registerTool(tool, handleGLTFToolCall);
@@ -718,10 +712,6 @@ export function registerGLTFTools(server: {
 // EXPORTS
 // =============================================================================
 
-export {
-  inspectComposition,
-  validateForGLTF,
-  analyzeOptimizations,
-};
+export { inspectComposition, validateForGLTF, analyzeOptimizations };
 
 export default handleGLTFToolCall;

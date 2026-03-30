@@ -256,4 +256,3 @@ export function EscapeRoomPanel() {
 }
 
 export default EscapeRoomPanel;
-

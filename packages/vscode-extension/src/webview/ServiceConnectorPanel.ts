@@ -2,66 +2,75 @@ import * as vscode from 'vscode';
 import { McpOrchestratorClient } from '../services/McpOrchestratorClient';
 
 export class ServiceConnectorPanel {
-    public static currentPanel: ServiceConnectorPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private _disposables: vscode.Disposable[] = [];
+  public static currentPanel: ServiceConnectorPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private _disposables: vscode.Disposable[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, private mcpClient: McpOrchestratorClient) {
-        this._panel = panel;
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._update();
+  private constructor(
+    panel: vscode.WebviewPanel,
+    extensionUri: vscode.Uri,
+    private mcpClient: McpOrchestratorClient
+  ) {
+    this._panel = panel;
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+    this._update();
+  }
+
+  public static createOrShow(extensionUri: vscode.Uri, mcpClient: McpOrchestratorClient) {
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
+
+    if (ServiceConnectorPanel.currentPanel) {
+      ServiceConnectorPanel.currentPanel._panel.reveal(column);
+      return;
     }
 
-    public static createOrShow(extensionUri: vscode.Uri, mcpClient: McpOrchestratorClient) {
-        const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+    const panel = vscode.window.createWebviewPanel(
+      'serviceHub',
+      'Service Connector Hub',
+      column || vscode.ViewColumn.One,
+      { enableScripts: true }
+    );
 
-        if (ServiceConnectorPanel.currentPanel) {
-            ServiceConnectorPanel.currentPanel._panel.reveal(column);
-            return;
-        }
+    ServiceConnectorPanel.currentPanel = new ServiceConnectorPanel(panel, extensionUri, mcpClient);
+  }
 
-        const panel = vscode.window.createWebviewPanel(
-            'serviceHub',
-            'Service Connector Hub',
-            column || vscode.ViewColumn.One,
-            { enableScripts: true }
-        );
+  private async _update() {
+    const webview = this._panel.webview;
+    this._panel.webview.html = await this._getHtmlForWebview(webview);
 
-        ServiceConnectorPanel.currentPanel = new ServiceConnectorPanel(panel, extensionUri, mcpClient);
-    }
+    webview.onDidReceiveMessage(async (message) => {
+      switch (message.command) {
+        case 'connect':
+          await this.mcpClient.connectToService(message.serverId);
+          this._update();
+          break;
+        case 'refresh':
+          this._update();
+          break;
+      }
+    });
+  }
 
-    private async _update() {
-        const webview = this._panel.webview;
-        this._panel.webview.html = await this._getHtmlForWebview(webview);
-        
-        webview.onDidReceiveMessage(async (message) => {
-            switch (message.command) {
-                case 'connect':
-                    await this.mcpClient.connectToService(message.serverId);
-                    this._update();
-                    break;
-                case 'refresh':
-                    this._update();
-                    break;
-            }
-        });
-    }
+  private async _getHtmlForWebview(webview: vscode.Webview) {
+    const servers = await this.mcpClient.getServers();
 
-    private async _getHtmlForWebview(webview: vscode.Webview) {
-        const servers = await this.mcpClient.getServers();
-        
-        const serverList = servers.map(s => {
-            const isActive = s.status === 'active';
-            const toolsHtml = isActive ? `
+    const serverList = servers
+      .map((s) => {
+        const isActive = s.status === 'active';
+        const toolsHtml = isActive
+          ? `
                 <div class="tool-list">
                     <h4>Available Tools</h4>
                     <ul>
                         ${(s as any).tools?.map((t: any) => `<li><code>${t.name}</code></li>`).join('') || '<li>No tools exposed</li>'}
                     </ul>
                 </div>
-            ` : '';
+            `
+          : '';
 
-            return `
+        return `
             <div class="server-card ${isActive ? 'active' : ''}">
                 <div class="card-header">
                     <div class="status-indicator ${s.status}"></div>
@@ -76,9 +85,11 @@ export class ServiceConnectorPanel {
                     ${isActive ? '<button class="btn-secondary" onclick="deploy()">Run Pipeline</button>' : ''}
                 </div>
             </div>
-        `}).join('');
+        `;
+      })
+      .join('');
 
-        return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
@@ -219,14 +230,14 @@ export class ServiceConnectorPanel {
                 </script>
             </body>
             </html>`;
-    }
+  }
 
-    public dispose() {
-        ServiceConnectorPanel.currentPanel = undefined;
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) x.dispose();
-        }
+  public dispose() {
+    ServiceConnectorPanel.currentPanel = undefined;
+    this._panel.dispose();
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) x.dispose();
     }
+  }
 }

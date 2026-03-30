@@ -211,8 +211,13 @@ export const useShaderGraph = create<ShaderGraphState>((set, get) => {
       const newGraph = new ShaderGraph('Untitled Shader');
       const snapshot = takeSnapshot(newGraph);
       set({
-        graph: newGraph, nodes: [], connections: [], compiled: null,
-        isDirty: false, history: [snapshot], historyIndex: 0,
+        graph: newGraph,
+        nodes: [],
+        connections: [],
+        compiled: null,
+        isDirty: false,
+        history: [snapshot],
+        historyIndex: 0,
       });
     },
 
@@ -274,8 +279,13 @@ export const useShaderGraph = create<ShaderGraphState>((set, get) => {
       const newGraph = new ShaderGraph('Untitled Shader');
       const snapshot = takeSnapshot(newGraph);
       set({
-        graph: newGraph, nodes: [], connections: [], compiled: null,
-        isDirty: false, history: [snapshot], historyIndex: 0,
+        graph: newGraph,
+        nodes: [],
+        connections: [],
+        compiled: null,
+        isDirty: false,
+        history: [snapshot],
+        historyIndex: 0,
       });
     },
 

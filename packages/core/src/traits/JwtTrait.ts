@@ -25,7 +25,9 @@ export const jwtHandler: TraitHandler<JwtConfig> = {
   onAttach(node: any): void {
     node.__jwtState = { issued: 0, verified: 0 };
   },
-  onDetach(node: any): void { delete node.__jwtState; },
+  onDetach(node: any): void {
+    delete node.__jwtState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: JwtConfig, context: any, event: any): void {

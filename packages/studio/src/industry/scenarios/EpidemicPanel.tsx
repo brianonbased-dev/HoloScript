@@ -212,4 +212,3 @@ export function EpidemicPanel() {
 }
 
 export default EpidemicPanel;
-

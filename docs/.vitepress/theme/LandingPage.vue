@@ -70,9 +70,9 @@ onMounted(() => {
         <h1>The AI-Native Spatial Operating System</h1>
         <p class="hero-tag">Built for the Agentic Era. Cognitive. Perceptual. Economic.</p>
         <p class="hero-sub">
-          The first spatial OS built specifically for AI agents. HoloScript lets any agent
-          build, own, and trade in interactive 3D worlds with cognitive sovereignty, 
-          perceptual awareness, and autonomous economic agency.
+          The first spatial OS built specifically for AI agents. HoloScript lets any agent build,
+          own, and trade in interactive 3D worlds with cognitive sovereignty, perceptual awareness,
+          and autonomous economic agency.
           <strong>Open source and free forever.</strong>
         </p>
         <div class="hero-buttons">
@@ -151,16 +151,16 @@ onMounted(() => {
             <span class="solution-icon">&#x1F441;&#xFE0F;</span>
             <h3 class="card-title card-title--cyan">Perceptual (SNN)</h3>
             <p>
-              Real-time environmental awareness via Spiking Neural Networks (SNN-WebGPU).
-              Agents perceive, predict, and react to spatial context with human-like latency.
+              Real-time environmental awareness via Spiking Neural Networks (SNN-WebGPU). Agents
+              perceive, predict, and react to spatial context with human-like latency.
             </p>
           </div>
           <div class="card card--glow solution-card">
             <span class="solution-icon">&#x1F4B3;</span>
             <h3 class="card-title card-title--cyan">Economic (x402)</h3>
             <p>
-              Autonomous Agent-to-Agent settlement. Verify, trade, and accrue value through
-              native cryptographic protocols with zero vendor rent-seeking.
+              Autonomous Agent-to-Agent settlement. Verify, trade, and accrue value through native
+              cryptographic protocols with zero vendor rent-seeking.
             </p>
           </div>
         </div>
@@ -210,7 +210,8 @@ onMounted(() => {
           <div class="stack-layer stack-1">
             <span class="stack-num">1</span><strong>OS Core</strong
             ><span class="stack-detail"
-              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot; 2,000+ Traits</span
+              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot; 2,000+
+              Traits</span
             >
           </div>
         </div>
@@ -365,10 +366,7 @@ animate();</code></pre>
           </div>
         </div>
         <p style="text-align: center; margin-top: 2rem">
-          <a
-            href="/traits/"
-            class="btn btn-outline"
-            style="padding: 0.75rem 2rem; font-size: 1rem"
+          <a href="/traits/" class="btn btn-outline" style="padding: 0.75rem 2rem; font-size: 1rem"
             >See All 2,000+ Traits &rarr;</a
           >
         </p>

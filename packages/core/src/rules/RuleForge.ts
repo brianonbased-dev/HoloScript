@@ -90,10 +90,7 @@ export class RuleForge {
    * @param compositionRuleVersion - Optional rule version for grandfathering (G.GAP.06)
    * @returns ValidationResult with errors, warnings, and suggestions
    */
-  validate(
-    traitComposition: string[],
-    compositionRuleVersion?: string
-  ): ValidationResult {
+  validate(traitComposition: string[], compositionRuleVersion?: string): ValidationResult {
     const errors: RuleViolation[] = [];
     const warnings: RuleViolation[] = [];
     const suggestions: TraitSuggestion[] = [];
@@ -114,7 +111,7 @@ export class RuleForge {
 
     // In warning-only mode, downgrade errors to warnings
     if (this.warningOnlyMode) {
-      warnings.push(...errors.map(e => ({ ...e, severity: 'warning' as const })));
+      warnings.push(...errors.map((e) => ({ ...e, severity: 'warning' as const })));
       return {
         valid: true,
         errors: [],
@@ -158,9 +155,9 @@ export class RuleForge {
 
     // Check composition rules for compatible traits
     for (const rule of this.rulesByType.get('composition') ?? []) {
-      const matchedTraits = rule.traits.filter(t => traitSet.has(t));
+      const matchedTraits = rule.traits.filter((t) => traitSet.has(t));
       if (matchedTraits.length > 0 && matchedTraits.length < rule.traits.length) {
-        const missing = rule.traits.filter(t => !traitSet.has(t));
+        const missing = rule.traits.filter((t) => !traitSet.has(t));
         for (const m of missing) {
           suggestions.push({
             trait: m,
@@ -190,7 +187,7 @@ export class RuleForge {
         continue;
       }
 
-      const matchedTraits = rule.traits.filter(t => traitSet.has(t));
+      const matchedTraits = rule.traits.filter((t) => traitSet.has(t));
       if (matchedTraits.length >= 2) {
         // If commutative, any 2+ matched = conflict
         // If not commutative, order matters (check sequential pairs)
@@ -281,11 +278,11 @@ export class RuleForge {
     suggestions: TraitSuggestion[]
   ): void {
     for (const rule of this.rulesByType.get('composition') ?? []) {
-      const matched = rule.traits.filter(t => traitSet.has(t));
+      const matched = rule.traits.filter((t) => traitSet.has(t));
       if (matched.length > 0 && matched.length < rule.traits.length) {
-        const missing = rule.traits.filter(t => !traitSet.has(t));
+        const missing = rule.traits.filter((t) => !traitSet.has(t));
         for (const m of missing) {
-          if (!suggestions.some(s => s.trait === m)) {
+          if (!suggestions.some((s) => s.trait === m)) {
             suggestions.push({
               trait: m,
               reason: `Pairs well with @${matched.join(', @')}: ${rule.description}`,

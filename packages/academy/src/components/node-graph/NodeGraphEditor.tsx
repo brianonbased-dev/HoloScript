@@ -28,7 +28,17 @@ import type { GNode } from '@/lib/nodeGraphStore';
 import { useNodeGraphHistory } from '@/hooks/useNodeGraphHistory';
 
 import { compileNodeGraph } from '@/lib/nodeGraphCompiler';
-import { Play, RotateCcw, Plus, Undo2, Redo2, Code2, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Play,
+  RotateCcw,
+  Plus,
+  Undo2,
+  Redo2,
+  Code2,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 // ─── Handle color ────────────────────────────────────────────────────────────
 
@@ -452,7 +462,11 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
         >
           <Code2 className="h-3 w-3" />
           GLSL Output
-          {showGLSL ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronUp className="h-3 w-3 ml-auto" />}
+          {showGLSL ? (
+            <ChevronDown className="h-3 w-3 ml-auto" />
+          ) : (
+            <ChevronUp className="h-3 w-3 ml-auto" />
+          )}
         </button>
         {showGLSL && (
           <div className="relative max-h-40 overflow-auto bg-black/50 px-3 py-2">

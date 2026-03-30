@@ -94,7 +94,8 @@ function createDemoResult(): CompilationResult {
           nodeCount: 84,
           depth: 7,
           sizeBytes: 14200,
-          preview: '{\n  "type": "Composition",\n  "name": "MyScene",\n  "objects": [{ "type": "Object", "shape": "sphere", ... }],\n  "traits": [{ "@material": "glass" }, ...]\n}',
+          preview:
+            '{\n  "type": "Composition",\n  "name": "MyScene",\n  "objects": [{ "type": "Object", "shape": "sphere", ... }],\n  "traits": [{ "@material": "glass" }, ...]\n}',
         },
         metrics: {
           tokens: 342,
@@ -133,7 +134,8 @@ function createDemoResult(): CompilationResult {
           nodeCount: 84,
           depth: 7,
           sizeBytes: 15800,
-          preview: '{\n  "type": "ValidatedComposition",\n  "resolvedTraits": [...],\n  "typeAnnotations": {...}\n}',
+          preview:
+            '{\n  "type": "ValidatedComposition",\n  "resolvedTraits": [...],\n  "typeAnnotations": {...}\n}',
         },
         metrics: {
           traitsResolved: 12,
@@ -162,13 +164,14 @@ function createDemoResult(): CompilationResult {
           nodeCount: 71,
           depth: 6,
           sizeBytes: 12400,
-          preview: '{\n  "type": "OptimizedScene",\n  "batchGroups": [{ "material": "glass", "count": 3 }],\n  "lodTiers": [...]\n}',
+          preview:
+            '{\n  "type": "OptimizedScene",\n  "batchGroups": [{ "material": "glass", "count": 3 }],\n  "lodTiers": [...]\n}',
         },
         metrics: {
           nodesRemoved: 13,
           batchGroups: 4,
           lodTiers: 3,
-          'sizeReduction': '21.5%',
+          sizeReduction: '21.5%',
         },
       },
       {
@@ -191,7 +194,8 @@ function createDemoResult(): CompilationResult {
           nodeCount: 71,
           depth: 6,
           sizeBytes: 8900,
-          preview: '<group>\n  <mesh position={[0, 1, 0]}>\n    <sphereGeometry />\n    <meshPhysicalMaterial color="#4488ff" />\n  </mesh>\n  ...\n</group>',
+          preview:
+            '<group>\n  <mesh position={[0, 1, 0]}>\n    <sphereGeometry />\n    <meshPhysicalMaterial color="#4488ff" />\n  </mesh>\n  ...\n</group>',
         },
         metrics: {
           components: 71,
@@ -263,11 +267,19 @@ export function CompilationPipelineVisualizer({
   );
 
   const totalErrors = useMemo(
-    () => result.stages.reduce((sum, s) => sum + s.errors.filter((e) => e.severity === 'error').length, 0),
+    () =>
+      result.stages.reduce(
+        (sum, s) => sum + s.errors.filter((e) => e.severity === 'error').length,
+        0
+      ),
     [result.stages]
   );
   const totalWarnings = useMemo(
-    () => result.stages.reduce((sum, s) => sum + s.errors.filter((e) => e.severity === 'warning').length, 0),
+    () =>
+      result.stages.reduce(
+        (sum, s) => sum + s.errors.filter((e) => e.severity === 'warning').length,
+        0
+      ),
     [result.stages]
   );
 
@@ -334,7 +346,11 @@ export function CompilationPipelineVisualizer({
               <div className="mt-1.5 h-1 bg-black/20 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    stage.status === 'error' ? 'bg-red-400' : stage.status === 'warning' ? 'bg-amber-400' : 'bg-emerald-400'
+                    stage.status === 'error'
+                      ? 'bg-red-400'
+                      : stage.status === 'warning'
+                        ? 'bg-amber-400'
+                        : 'bg-emerald-400'
                   }`}
                   style={{ width: `${(stage.durationMs / result.totalDurationMs) * 100}%` }}
                 />
@@ -349,7 +365,9 @@ export function CompilationPipelineVisualizer({
                   {Object.entries(stage.metrics).map(([key, value]) => (
                     <div key={key} className="bg-studio-panel/30 rounded px-1.5 py-1 text-center">
                       <div className="text-studio-text font-mono text-[10px]">{value}</div>
-                      <div className="text-studio-muted text-[8px] capitalize">{key.replace(/([A-Z])/g, ' $1')}</div>
+                      <div className="text-studio-muted text-[8px] capitalize">
+                        {key.replace(/([A-Z])/g, ' $1')}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -358,10 +376,14 @@ export function CompilationPipelineVisualizer({
                 {stage.outputIR && (
                   <div className="space-y-0.5">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setShowIR((prev) => !prev); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowIR((prev) => !prev);
+                      }}
                       className="text-[10px] text-studio-accent hover:underline"
                     >
-                      {showIR ? '▼' : '▶'} {stage.outputIR.format} ({stage.outputIR.nodeCount} nodes, {formatBytes(stage.outputIR.sizeBytes)})
+                      {showIR ? '▼' : '▶'} {stage.outputIR.format} ({stage.outputIR.nodeCount}{' '}
+                      nodes, {formatBytes(stage.outputIR.sizeBytes)})
                     </button>
                     {showIR && (
                       <pre className="bg-black/30 rounded p-2 text-[9px] text-studio-text/80 font-mono overflow-x-auto max-h-[120px] whitespace-pre-wrap">
@@ -382,7 +404,8 @@ export function CompilationPipelineVisualizer({
                         <div className="flex items-center gap-1">
                           {err.line && (
                             <span className="font-mono opacity-70">
-                              L{err.line}{err.column ? `:${err.column}` : ''}
+                              L{err.line}
+                              {err.column ? `:${err.column}` : ''}
                             </span>
                           )}
                           <span>{err.message}</span>
@@ -391,7 +414,9 @@ export function CompilationPipelineVisualizer({
                           <pre className="mt-0.5 font-mono text-[9px] opacity-60">{err.source}</pre>
                         )}
                         {err.suggestion && (
-                          <div className="mt-0.5 text-[9px] opacity-80 italic">{err.suggestion}</div>
+                          <div className="mt-0.5 text-[9px] opacity-80 italic">
+                            {err.suggestion}
+                          </div>
                         )}
                       </div>
                     ))}

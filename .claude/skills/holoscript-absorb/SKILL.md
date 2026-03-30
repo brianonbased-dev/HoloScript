@@ -37,13 +37,13 @@ holoscript query "what calls buildIndex"
 
 ## Production Endpoints
 
-| Service | URL | Auth |
-|---------|-----|------|
-| MCP Server (122 tools) | `https://mcp.holoscript.net` | None (free tools) |
-| Absorb Service | `https://absorb.holoscript.net` | Bearer `ABSORB_API_KEY` |
-| MCP Protocol | `POST https://mcp.holoscript.net/mcp` | None |
-| Studio (paid ops) | `https://studio.holoscript.net` | Bearer `ABSORB_API_KEY` |
-| Orchestrator | `https://mcp-orchestrator-production-45f9.up.railway.app` | `x-mcp-api-key` header |
+| Service                | URL                                                       | Auth                    |
+| ---------------------- | --------------------------------------------------------- | ----------------------- |
+| MCP Server (122 tools) | `https://mcp.holoscript.net`                              | None (free tools)       |
+| Absorb Service         | `https://absorb.holoscript.net`                           | Bearer `ABSORB_API_KEY` |
+| MCP Protocol           | `POST https://mcp.holoscript.net/mcp`                     | None                    |
+| Studio (paid ops)      | `https://studio.holoscript.net`                           | Bearer `ABSORB_API_KEY` |
+| Orchestrator           | `https://mcp-orchestrator-production-45f9.up.railway.app` | `x-mcp-api-key` header  |
 
 **Auth**: `ABSORB_API_KEY` from `HoloScript/.env`. Admin/founder tier = all tools free, no rate limits.
 
@@ -51,68 +51,68 @@ holoscript query "what calls buildIndex"
 
 ### Codebase Scanning
 
-| Tool | Description | When to Use |
-|------|-------------|-------------|
-| `holo_graph_status` | Cache age, stats, loaded state | **Always first** — check before scanning |
-| `holo_absorb_repo` | Full scan → graph → emit pipeline | Before refactoring. `force: false` = ~21ms from cache |
-| `holo_get_absorb_status` | Poll running absorb job by `jobId` | Long-running scans |
-| `holo_detect_drift` | Fast content-hash check without re-scan | Quick staleness check |
-| `absorb_typescript` | Convert TypeScript → `.holo` composition | Detect routes, models, queues, patterns |
+| Tool                     | Description                              | When to Use                                           |
+| ------------------------ | ---------------------------------------- | ----------------------------------------------------- |
+| `holo_graph_status`      | Cache age, stats, loaded state           | **Always first** — check before scanning              |
+| `holo_absorb_repo`       | Full scan → graph → emit pipeline        | Before refactoring. `force: false` = ~21ms from cache |
+| `holo_get_absorb_status` | Poll running absorb job by `jobId`       | Long-running scans                                    |
+| `holo_detect_drift`      | Fast content-hash check without re-scan  | Quick staleness check                                 |
+| `absorb_typescript`      | Convert TypeScript → `.holo` composition | Detect routes, models, queues, patterns               |
 
 ### Graph Queries
 
-| Tool | Description | When to Use |
-|------|-------------|-------------|
-| `holo_query_codebase` | Graph traversal: callers, callees, imports, symbols, find, trace, communities, stats | Dependency analysis |
-| `holo_impact_analysis` | Transitive blast radius for changed files/symbols | Before modifying shared code |
-| `holo_detect_changes` | Structural diff between two graph snapshots | Compare before/after git refs |
-| `holo_resolve_symbol` | Federated symbol resolution across knowledge mesh | Cross-package lookups |
+| Tool                   | Description                                                                          | When to Use                   |
+| ---------------------- | ------------------------------------------------------------------------------------ | ----------------------------- |
+| `holo_query_codebase`  | Graph traversal: callers, callees, imports, symbols, find, trace, communities, stats | Dependency analysis           |
+| `holo_impact_analysis` | Transitive blast radius for changed files/symbols                                    | Before modifying shared code  |
+| `holo_detect_changes`  | Structural diff between two graph snapshots                                          | Compare before/after git refs |
+| `holo_resolve_symbol`  | Federated symbol resolution across knowledge mesh                                    | Cross-package lookups         |
 
 ### Semantic Search & RAG
 
-| Tool | Description | When to Use |
-|------|-------------|-------------|
-| `holo_semantic_search` | Vector/BM25 search over symbols, docs, paths | Find related code |
-| `holo_ask_codebase` | Graph RAG: search + graph + LLM synthesis | Natural language Q&A with citations |
-| `absorb_query` | Branded wrapper for `holo_semantic_search` | Same as above |
-| `absorb_diff` | Semantic AST diff between two code snippets | Detect renames, moves, structural changes |
+| Tool                   | Description                                  | When to Use                               |
+| ---------------------- | -------------------------------------------- | ----------------------------------------- |
+| `holo_semantic_search` | Vector/BM25 search over symbols, docs, paths | Find related code                         |
+| `holo_ask_codebase`    | Graph RAG: search + graph + LLM synthesis    | Natural language Q&A with citations       |
+| `absorb_query`         | Branded wrapper for `holo_semantic_search`   | Same as above                             |
+| `absorb_diff`          | Semantic AST diff between two code snippets  | Detect renames, moves, structural changes |
 
 ### Project Management (Studio)
 
-| Tool | Description |
-|------|-------------|
-| `absorb_list_projects` | List all Studio absorb projects |
+| Tool                    | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| `absorb_list_projects`  | List all Studio absorb projects             |
 | `absorb_create_project` | Create project (github/local/upload source) |
-| `absorb_delete_project` | Delete project by ID |
-| `absorb_check_credits` | Check balance, tier, transaction history |
+| `absorb_delete_project` | Delete project by ID                        |
+| `absorb_check_credits`  | Check balance, tier, transaction history    |
 
 ## MCP Tools — PAID (Studio, Credits Deducted)
 
-| Tool | Credits | Description |
-|------|---------|-------------|
-| `absorb_run_absorb` | 10 (shallow) / 50 (deep) | Full cloud absorption with persistent storage |
-| `absorb_run_improve` | 25-150 | HoloDaemon improvement cycle (quick/balanced/deep) |
-| `absorb_run_query_ai` | 15+ metered tokens | AI-powered Q&A with LLM synthesis |
-| `absorb_run_render` | 3-5 | Screenshot (PNG/JPEG/WebP) or PDF export |
-| `absorb_run_pipeline` | 100+ | Recursive self-improvement pipeline (L0/L1/L2) |
+| Tool                  | Credits                  | Description                                        |
+| --------------------- | ------------------------ | -------------------------------------------------- |
+| `absorb_run_absorb`   | 10 (shallow) / 50 (deep) | Full cloud absorption with persistent storage      |
+| `absorb_run_improve`  | 25-150                   | HoloDaemon improvement cycle (quick/balanced/deep) |
+| `absorb_run_query_ai` | 15+ metered tokens       | AI-powered Q&A with LLM synthesis                  |
+| `absorb_run_render`   | 3-5                      | Screenshot (PNG/JPEG/WebP) or PDF export           |
+| `absorb_run_pipeline` | 100+                     | Recursive self-improvement pipeline (L0/L1/L2)     |
 
 ### Credit Costs (from pricing.ts — authoritative)
 
-| Operation | Credits |
-|-----------|---------|
-| `absorb_shallow` | 10 |
-| `absorb_deep` | 50 |
-| `daemon_quick` | 50 |
-| `daemon_balanced` | 100 |
-| `daemon_deep` | 250 |
-| `pipeline_l0` | 100 |
-| `pipeline_l1` | 75 |
-| `pipeline_l2` | 150 |
-| `query_basic` | 2 |
-| `query_with_llm` | 10 + metered |
-| `screenshot` | 3 |
-| `pdf_export` | 5 |
-| `semantic_diff` | 2 |
+| Operation         | Credits      |
+| ----------------- | ------------ |
+| `absorb_shallow`  | 10           |
+| `absorb_deep`     | 50           |
+| `daemon_quick`    | 50           |
+| `daemon_balanced` | 100          |
+| `daemon_deep`     | 250          |
+| `pipeline_l0`     | 100          |
+| `pipeline_l1`     | 75           |
+| `pipeline_l2`     | 150          |
+| `query_basic`     | 2            |
+| `query_with_llm`  | 10 + metered |
+| `screenshot`      | 3            |
+| `pdf_export`      | 5            |
+| `semantic_diff`   | 2            |
 
 1 credit = $0.01. LLM tokens metered at 15% markup.
 
@@ -169,6 +169,7 @@ holoscript self-improve --daemon                 # Continuous until convergence
 **Required**: Set `EMBEDDING_PROVIDER=openai` or ensure `OPENAI_API_KEY` is in the environment.
 
 Provider priority (auto-detected):
+
 1. `EMBEDDING_PROVIDER` env var (explicit override) — **set to `openai`**
 2. `openai` — if `OPENAI_API_KEY` set (**this is what we want**)
 3. `ollama` — local, acceptable fallback if OpenAI unavailable
@@ -234,12 +235,12 @@ Provider priority (auto-detected):
 
 ## Source Files Reference
 
-| File | Purpose |
-|------|---------|
-| `packages/absorb-service/src/mcp/codebase-tools.ts` | Free scan/query tool definitions |
-| `packages/absorb-service/src/mcp/graph-rag-tools.ts` | Semantic search + RAG tools |
-| `packages/absorb-service/src/mcp/absorb-tools.ts` | Studio proxy + paid tools |
-| `packages/absorb-service/src/mcp/absorb-typescript-tools.ts` | TypeScript → .holo converter |
-| `packages/absorb-service/src/credits/pricing.ts` | Authoritative credit costs |
-| `packages/absorb-service/src/pipeline/types.ts` | L0/L1/L2 pipeline types |
-| `infrastructure/Dockerfile.mcp-server` | Production container |
+| File                                                         | Purpose                          |
+| ------------------------------------------------------------ | -------------------------------- |
+| `packages/absorb-service/src/mcp/codebase-tools.ts`          | Free scan/query tool definitions |
+| `packages/absorb-service/src/mcp/graph-rag-tools.ts`         | Semantic search + RAG tools      |
+| `packages/absorb-service/src/mcp/absorb-tools.ts`            | Studio proxy + paid tools        |
+| `packages/absorb-service/src/mcp/absorb-typescript-tools.ts` | TypeScript → .holo converter     |
+| `packages/absorb-service/src/credits/pricing.ts`             | Authoritative credit costs       |
+| `packages/absorb-service/src/pipeline/types.ts`              | L0/L1/L2 pipeline types          |
+| `infrastructure/Dockerfile.mcp-server`                       | Production container             |

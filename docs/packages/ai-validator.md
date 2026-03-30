@@ -28,12 +28,12 @@ const result = await validator.validate({
       color: "#00ff00"
       emission: { intensity: 0.8 }
     }
-  `
+  `,
 });
 
-console.log(result.valid);         // true
-console.log(result.confidence);    // 0.95 (95% match)
-console.log(result.hallucinations);// []
+console.log(result.valid); // true
+console.log(result.confidence); // 0.95 (95% match)
+console.log(result.hallucinations); // []
 ```
 
 ## Detecting Hallucinations
@@ -48,37 +48,37 @@ const result = await validator.validate({
       color: "#ff0000"
     }
   `,
-  expectedTraits: ['@glowing']
+  expectedTraits: ['@glowing'],
 });
 
-console.log(result.hallucinations);  // [{ issue: 'missing_trait', expected: '@glowing' }]
+console.log(result.hallucinations); // [{ issue: 'missing_trait', expected: '@glowing' }]
 ```
 
 ### Types of Hallucinations Detected
 
-| Hallucination | Detection | Fix |
-|--------------|-----------|-----|
-| **Missing trait** | User asks for "grabbable" but code lacks `@grabbable` | Add trait |
-| **Wrong geometry** | User wants "cylinder" but code has "cube" | Check shape names |
-| **Invalid property** | Code uses `postion` instead of `position` | Spell-check against schema |
-| **Type mismatch** | Color as string vs. number array | Validate property types |
-| **Logical error** | Action with no implementation | Parse AST for logic trees |
-| **Performance issue** | Unbounded loop, no timeout | Detect algorithmic complexity |
+| Hallucination         | Detection                                             | Fix                           |
+| --------------------- | ----------------------------------------------------- | ----------------------------- |
+| **Missing trait**     | User asks for "grabbable" but code lacks `@grabbable` | Add trait                     |
+| **Wrong geometry**    | User wants "cylinder" but code has "cube"             | Check shape names             |
+| **Invalid property**  | Code uses `postion` instead of `position`             | Spell-check against schema    |
+| **Type mismatch**     | Color as string vs. number array                      | Validate property types       |
+| **Logical error**     | Action with no implementation                         | Parse AST for logic trees     |
+| **Performance issue** | Unbounded loop, no timeout                            | Detect algorithmic complexity |
 
 ## Semantic Analysis
 
 ```typescript
 // Check semantic correctness
 const analysis = await validator.analyzeSemantics(code, {
-  checkTraitUsage: true,       // Traits used correctly
-  checkPropertyTypes: true,    // Properties match schema
-  checkGeometry: true,         // Geometry values valid
-  checkLogic: true,            // Action logic valid
-  checkPerformance: true       // No obvious inefficiencies
+  checkTraitUsage: true, // Traits used correctly
+  checkPropertyTypes: true, // Properties match schema
+  checkGeometry: true, // Geometry values valid
+  checkLogic: true, // Action logic valid
+  checkPerformance: true, // No obvious inefficiencies
 });
 
-console.log(analysis.issues);  // Array of semantic problems
-console.log(analysis.severity);// 'high', 'medium', 'low'
+console.log(analysis.issues); // Array of semantic problems
+console.log(analysis.severity); // 'high', 'medium', 'low'
 ```
 
 ## Levenshtein Distance Matching
@@ -87,12 +87,12 @@ console.log(analysis.severity);// 'high', 'medium', 'low'
 // Fuzzy match user request to generated code
 const match = await validator.fuzzyMatch({
   request: 'Create interactive button',
-  generated: code
+  generated: code,
 });
 
-console.log(match.similarity);     // 0-1 score
-console.log(match.missingConcepts);// ['interactive']
-console.log(match.extraConcepts);  // []
+console.log(match.similarity); // 0-1 score
+console.log(match.missingConcepts); // ['interactive']
+console.log(match.extraConcepts); // []
 ```
 
 ## Confidence Scoring
@@ -100,10 +100,10 @@ console.log(match.extraConcepts);  // []
 ```typescript
 const result = await validator.validate({
   userRequest: 'Create a physics-based ball you can throw',
-  generatedCode: code
+  generatedCode: code,
 });
 
-console.log(result.confidence);    // 0.87 (87% - good match)
+console.log(result.confidence); // 0.87 (87% - good match)
 // Breakdown:
 //   - Trait matching: 100% (@physics, @collidable, @throwable present)
 //   - Property correctness: 95% (mass and physics params correct)
@@ -115,15 +115,15 @@ console.log(result.confidence);    // 0.87 (87% - good match)
 
 ```typescript
 const validator = new AIValidator({
-  strictMode: true,           // Fail on any issue vs. warnings
-  semanticDepth: 'deep',      // Check logic trees deeply
-  performanceAnalysis: true,  // Analyze algorithmic complexity
-  securityCheck: true         // Detect security issues
+  strictMode: true, // Fail on any issue vs. warnings
+  semanticDepth: 'deep', // Check logic trees deeply
+  performanceAnalysis: true, // Analyze algorithmic complexity
+  securityCheck: true, // Detect security issues
 });
 
 const result = await validator.validate(options, {
-  ignoreWarnings: false,      // Treat warnings as failures
-  maxHallucinations: 0        // Fail if any hallucinations
+  ignoreWarnings: false, // Treat warnings as failures
+  maxHallucinations: 0, // Fail if any hallucinations
 });
 ```
 
@@ -139,20 +139,20 @@ async function generateAndValidate(userRequest) {
   // Generate code using LLM
   const generated = await generateScene({
     description: userRequest,
-    traits: ['@grabbable', '@physics']
+    traits: ['@grabbable', '@physics'],
   });
-  
+
   // Validate immediately
   const validation = await validator.validate({
     userRequest,
-    generatedCode: generated.code
+    generatedCode: generated.code,
   });
-  
+
   if (validation.confidence < 0.8) {
     console.warn('Low confidence generation, regenerating');
     return generateAndValidate(userRequest);
   }
-  
+
   return generated.code;
 }
 ```
@@ -177,11 +177,11 @@ result.errors.securityErrors;  // Potential security issues
 validator.addRule({
   name: 'no-large-arrays',
   check: (ast) => {
-    const arrays = ast.findAll(n => n.type === 'ArrayLiteral');
-    return arrays.filter(a => a.elements.length > 1000);
+    const arrays = ast.findAll((n) => n.type === 'ArrayLiteral');
+    return arrays.filter((a) => a.elements.length > 1000);
   },
   severity: 'warning',
-  message: 'Arrays over 1000 elements may cause performance issues'
+  message: 'Arrays over 1000 elements may cause performance issues',
 });
 ```
 
@@ -193,12 +193,12 @@ const codes = [generated1, generated2, generated3];
 const results = await validator.validateBatch(
   codes.map((code, i) => ({
     userRequest: requests[i],
-    generatedCode: code
+    generatedCode: code,
   }))
 );
 
-console.log(results.map(r => r.confidence));  // Array of scores
-console.log(results.filter(r => !r.valid)); // Failed validations
+console.log(results.map((r) => r.confidence)); // Array of scores
+console.log(results.filter((r) => !r.valid)); // Failed validations
 ```
 
 ## Metrics & Reporting
@@ -207,7 +207,7 @@ console.log(results.filter(r => !r.valid)); // Failed validations
 const report = await validator.generateReport({
   validations: results,
   includeMetrics: true,
-  outputFormat: 'markdown'
+  outputFormat: 'markdown',
 });
 
 console.log(report);

@@ -229,4 +229,3 @@ export function ArchaeologyPanel() {
 }
 
 export default ArchaeologyPanel;
-

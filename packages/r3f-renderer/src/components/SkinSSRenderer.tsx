@@ -49,9 +49,12 @@ export interface SkinSSRendererProps {
  * Precomputed diffusion profile kernel based on scatter distance.
  * Uses 7-sample Gaussian fit per Jimenez et al. 2015.
  */
-function computeDiffusionKernel(
-  scatterDistance: [number, number, number],
-): { offsets: number[]; weightsR: number[]; weightsG: number[]; weightsB: number[] } {
+function computeDiffusionKernel(scatterDistance: [number, number, number]): {
+  offsets: number[];
+  weightsR: number[];
+  weightsG: number[];
+  weightsB: number[];
+} {
   const samples = 7;
   const offsets: number[] = [];
   const weightsR: number[] = [];
@@ -177,14 +180,16 @@ export const SkinSSRenderer: React.FC<SkinSSRendererProps> = ({
   // Pre-compute diffusion kernel for potential post-process pass
   const kernel = useMemo(
     () => computeDiffusionKernel(scatterDistance),
-    [scatterDistance[0], scatterDistance[1], scatterDistance[2]],
+    [scatterDistance[0], scatterDistance[1], scatterDistance[2]]
   );
 
   const uniforms = useMemo(() => {
     const color = new THREE.Color(baseColor);
     return {
       uBaseColor: { value: new THREE.Vector3(color.r, color.g, color.b) },
-      uScatterColor: { value: new THREE.Vector3(scatterColor[0], scatterColor[1], scatterColor[2]) },
+      uScatterColor: {
+        value: new THREE.Vector3(scatterColor[0], scatterColor[1], scatterColor[2]),
+      },
       uRoughness: { value: roughness },
       uSpecular: { value: specular },
       uPoreScale: { value: poreScale },

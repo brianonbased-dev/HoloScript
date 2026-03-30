@@ -81,7 +81,7 @@ function toolGuideFor(toolProfile: DaemonToolProfile): string {
 
 export function buildDaemonPromptContext(
   provider: DaemonProvider = 'anthropic',
-  toolProfile: DaemonToolProfile = 'standard',
+  toolProfile: DaemonToolProfile = 'standard'
 ): DaemonPromptContext {
   return {
     provider,
@@ -93,7 +93,7 @@ export function buildDaemonPromptContext(
 
 export function getDaemonSystemPrompt(
   action: DaemonPromptAction,
-  context: DaemonPromptContext,
+  context: DaemonPromptContext
 ): string {
   const { modelStyleGuide, toolGuide, toolProfile } = context;
   const repoContext = [HOLOSCRIPT_IDENTITY, HOLOSCRIPT_WISDOM, HOLOSCRIPT_GOTCHAS].join(' ');

@@ -52,6 +52,15 @@ export interface SafetyPassConfig {
   linearCheckerConfig?: LinearCheckerConfig;
   /** Whether to generate a certificate on success */
   generateCertificate?: boolean;
+  /**
+   * V11 (L4 Blueprint 4): Per-node trait config overrides from composition AST.
+   * Maps node names to their trait configs, enabling ResourceBudgetAnalyzer to
+   * use actual declared values (e.g., max_splats) instead of flat defaults.
+   *
+   * This reconciles the 5.6% vs 278% contradiction between
+   * ResourceBudgetAnalyzer and GaussianBudgetAnalyzer for the same composition.
+   */
+  traitConfigs?: Record<string, Record<string, Record<string, number>>>;
 }
 
 /** Result of the full safety pass */
@@ -108,6 +117,9 @@ export function runSafetyPass(
     traits: n.traits || [],
     calls: n.calls || [],
     count: 1,
+    // V11 (L4 Blueprint 4): Forward trait configs so ResourceBudgetAnalyzer
+    // uses actual declared values instead of flat defaults
+    traitConfigs: config.traitConfigs?.[n.name || '<anonymous>'],
   }));
   const budgetResult = budgetAnalyzer.analyze(resourceNodes);
 

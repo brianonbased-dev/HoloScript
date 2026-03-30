@@ -41,7 +41,7 @@ function projectPoint(
   rotY: number,
   zoom: number,
   cx: number,
-  cy: number,
+  cy: number
 ): [number, number] {
   const cosR = Math.cos(rotY);
   const sinR = Math.sin(rotY);
@@ -59,12 +59,18 @@ function computeStats(creature: CreatureComposition, lod: LODLevel) {
   const baseVerts = creature.parts.reduce((sum, p) => {
     const s = lod.segments;
     switch (p.geometry) {
-      case 'sphere': return sum + (s + 1) * (s + 1);
-      case 'box': return sum + 8;
-      case 'cylinder': return sum + s * 2 + 2;
-      case 'cone': return sum + s + 2;
-      case 'torus': return sum + s * s;
-      default: return sum + s * s;
+      case 'sphere':
+        return sum + (s + 1) * (s + 1);
+      case 'box':
+        return sum + 8;
+      case 'cylinder':
+        return sum + s * 2 + 2;
+      case 'cone':
+        return sum + s + 2;
+      case 'torus':
+        return sum + s * s;
+      default:
+        return sum + s * s;
     }
   }, 0);
   const tris = Math.floor(baseVerts * 1.8 * lod.polyMultiplier);
@@ -84,13 +90,62 @@ function computeStats(creature: CreatureComposition, lod: LODLevel) {
 const SAMPLE_DRAGON: CreatureComposition = {
   name: 'Fire Dragon',
   parts: [
-    { name: 'Body', geometry: 'sphere', position: [0, 0, 0], scale: [1.2, 0.8, 1.5], color: '#cc3300', traits: ['physics_body', 'animated'] },
-    { name: 'Head', geometry: 'sphere', position: [0, 0.6, 1.2], scale: [0.5, 0.5, 0.6], color: '#dd4400', traits: ['glowing', 'interactive'] },
-    { name: 'Tail', geometry: 'cone', position: [0, -0.1, -1.5], scale: [0.3, 0.3, 1.2], color: '#bb2200', traits: ['animated', 'particles'] },
-    { name: 'Wing Left', geometry: 'box', position: [-1.3, 0.4, 0], scale: [1.0, 0.05, 0.7], color: '#992200', traits: ['animated'] },
-    { name: 'Wing Right', geometry: 'box', position: [1.3, 0.4, 0], scale: [1.0, 0.05, 0.7], color: '#992200', traits: ['animated'] },
-    { name: 'Horn Left', geometry: 'cone', position: [-0.2, 1.0, 1.3], scale: [0.08, 0.08, 0.3], color: '#ffaa00', traits: ['material'] },
-    { name: 'Horn Right', geometry: 'cone', position: [0.2, 1.0, 1.3], scale: [0.08, 0.08, 0.3], color: '#ffaa00', traits: ['material'] },
+    {
+      name: 'Body',
+      geometry: 'sphere',
+      position: [0, 0, 0],
+      scale: [1.2, 0.8, 1.5],
+      color: '#cc3300',
+      traits: ['physics_body', 'animated'],
+    },
+    {
+      name: 'Head',
+      geometry: 'sphere',
+      position: [0, 0.6, 1.2],
+      scale: [0.5, 0.5, 0.6],
+      color: '#dd4400',
+      traits: ['glowing', 'interactive'],
+    },
+    {
+      name: 'Tail',
+      geometry: 'cone',
+      position: [0, -0.1, -1.5],
+      scale: [0.3, 0.3, 1.2],
+      color: '#bb2200',
+      traits: ['animated', 'particles'],
+    },
+    {
+      name: 'Wing Left',
+      geometry: 'box',
+      position: [-1.3, 0.4, 0],
+      scale: [1.0, 0.05, 0.7],
+      color: '#992200',
+      traits: ['animated'],
+    },
+    {
+      name: 'Wing Right',
+      geometry: 'box',
+      position: [1.3, 0.4, 0],
+      scale: [1.0, 0.05, 0.7],
+      color: '#992200',
+      traits: ['animated'],
+    },
+    {
+      name: 'Horn Left',
+      geometry: 'cone',
+      position: [-0.2, 1.0, 1.3],
+      scale: [0.08, 0.08, 0.3],
+      color: '#ffaa00',
+      traits: ['material'],
+    },
+    {
+      name: 'Horn Right',
+      geometry: 'cone',
+      position: [0.2, 1.0, 1.3],
+      scale: [0.08, 0.08, 0.3],
+      color: '#ffaa00',
+      traits: ['material'],
+    },
   ],
   totalTraits: ['physics_body', 'animated', 'glowing', 'interactive', 'particles', 'material'],
 };
@@ -126,7 +181,7 @@ describe('DragonPreview', () => {
     });
 
     it('LOD labels are Low, Medium, High, Ultra', () => {
-      expect(LOD_LEVELS.map(l => l.label)).toEqual(['Low', 'Medium', 'High', 'Ultra']);
+      expect(LOD_LEVELS.map((l) => l.label)).toEqual(['Low', 'Medium', 'High', 'Ultra']);
     });
   });
 
@@ -270,7 +325,16 @@ describe('DragonPreview', () => {
     it('creature with single box part has 8 vertices at any LOD', () => {
       const singleBox: CreatureComposition = {
         name: 'Box',
-        parts: [{ name: 'Cube', geometry: 'box', position: [0, 0, 0], scale: [1, 1, 1], color: '#ffffff', traits: [] }],
+        parts: [
+          {
+            name: 'Cube',
+            geometry: 'box',
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+            color: '#ffffff',
+            traits: [],
+          },
+        ],
         totalTraits: [],
       };
       for (const lod of LOD_LEVELS) {
@@ -282,7 +346,16 @@ describe('DragonPreview', () => {
     it('creature with cylinder uses segment-based vertex count', () => {
       const singleCyl: CreatureComposition = {
         name: 'Cylinder',
-        parts: [{ name: 'Pipe', geometry: 'cylinder', position: [0, 0, 0], scale: [1, 1, 1], color: '#00ff00', traits: [] }],
+        parts: [
+          {
+            name: 'Pipe',
+            geometry: 'cylinder',
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+            color: '#00ff00',
+            traits: [],
+          },
+        ],
         totalTraits: [],
       };
       // cylinder verts = segments * 2 + 2
@@ -293,7 +366,16 @@ describe('DragonPreview', () => {
     it('creature with torus uses segments^2 vertex count', () => {
       const singleTorus: CreatureComposition = {
         name: 'Torus',
-        parts: [{ name: 'Ring', geometry: 'torus', position: [0, 0, 0], scale: [1, 1, 1], color: '#0000ff', traits: [] }],
+        parts: [
+          {
+            name: 'Ring',
+            geometry: 'torus',
+            position: [0, 0, 0],
+            scale: [1, 1, 1],
+            color: '#0000ff',
+            traits: [],
+          },
+        ],
         totalTraits: [],
       };
       // torus verts = segments^2

@@ -71,7 +71,9 @@ export function LightingPanel() {
           <div
             className="w-4 h-4 rounded"
             style={{
-              backgroundColor: Array.isArray(ambient.color) ? `rgb(${(ambient.color as number[]).map((c: number) => Math.round(c * 255)).join(',')})` : String(ambient.color),
+              backgroundColor: Array.isArray(ambient.color)
+                ? `rgb(${(ambient.color as number[]).map((c: number) => Math.round(c * 255)).join(',')})`
+                : String(ambient.color),
             }}
           />
           <span className="text-studio-muted">Intensity: {ambient.intensity.toFixed(1)}</span>
@@ -92,7 +94,9 @@ export function LightingPanel() {
               <div
                 className="w-3 h-3 rounded-full"
                 style={{
-                  backgroundColor: Array.isArray(l.color) ? `rgb(${(l.color as number[]).map((c: number) => Math.round(c * 255)).join(',')})` : String(l.color),
+                  backgroundColor: Array.isArray(l.color)
+                    ? `rgb(${(l.color as number[]).map((c: number) => Math.round(c * 255)).join(',')})`
+                    : String(l.color),
                 }}
               />
             </div>

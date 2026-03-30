@@ -156,7 +156,8 @@ export const memoryCrystalHandler: TraitHandler<MemoryCrystalConfig> = {
       if (memState && !memState.db) {
         context.emit('crystal_threshold_warn', {
           node,
-          warning: 'semantic capacity requires embedding-capable backend. Falling back to keyword search.',
+          warning:
+            'semantic capacity requires embedding-capable backend. Falling back to keyword search.',
         });
       }
     }
@@ -182,7 +183,12 @@ export const memoryCrystalHandler: TraitHandler<MemoryCrystalConfig> = {
     const usage = getUsageRatio(memState, config.max_entries);
     if (usage >= config.prune_threshold) {
       const targetCount = Math.floor(config.max_entries * config.prune_threshold * 0.9);
-      const pruned = pruneByCapacity(memState, config.capacity, targetCount, config.time_window_ttl);
+      const pruned = pruneByCapacity(
+        memState,
+        config.capacity,
+        targetCount,
+        config.time_window_ttl
+      );
 
       if (pruned.length > 0) {
         crystalState.pruneCount += pruned.length;
@@ -198,7 +204,12 @@ export const memoryCrystalHandler: TraitHandler<MemoryCrystalConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: MemoryCrystalConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    config: MemoryCrystalConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const crystalNode = node as CrystalNode;
     const crystalState = crystalNode.__memoryCrystalState;
     if (!crystalState?.initialized) return;
@@ -243,7 +254,12 @@ export const memoryCrystalHandler: TraitHandler<MemoryCrystalConfig> = {
       if (memState) {
         const keepPercent = (event.keep_percent as number) ?? 0.5;
         const targetCount = Math.floor(config.max_entries * keepPercent);
-        const pruned = pruneByCapacity(memState, config.capacity, targetCount, config.time_window_ttl);
+        const pruned = pruneByCapacity(
+          memState,
+          config.capacity,
+          targetCount,
+          config.time_window_ttl
+        );
         crystalState.pruneCount += pruned.length;
         crystalState.lastPruneAt = Date.now();
 

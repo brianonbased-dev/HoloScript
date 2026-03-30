@@ -28,7 +28,7 @@ function rankCandidates(
   candidates: { formula: string; energy: number; fidelity: number }[]
 ): { formula: string; score: number }[] {
   return candidates
-    .map(c => ({
+    .map((c) => ({
       formula: c.formula,
       score: (1 - Math.abs(c.energy + 1.17)) * c.fidelity,
     }))
@@ -78,7 +78,7 @@ describe('Scenario: Quantum Materials — Candidate Ranking', () => {
   it('rankCandidates() sorts by score descending', () => {
     const candidates = [
       { formula: 'LiCoO2', energy: -1.15, fidelity: 0.95 },
-      { formula: 'NaMnO2', energy: -1.10, fidelity: 0.90 },
+      { formula: 'NaMnO2', energy: -1.1, fidelity: 0.9 },
       { formula: 'FePO4', energy: -1.17, fidelity: 0.98 },
     ];
     const ranked = rankCandidates(candidates);

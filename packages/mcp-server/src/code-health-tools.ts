@@ -111,9 +111,8 @@ async function analyzeHoloScript(code: string, filePath: string): Promise<Health
 
   // --- Trait Coherence (20%) ---
   // Ratio of unique traits to total usages — too many repeated traits = low coherence
-  const uniqueRatio = result.traits.totalUsages > 0
-    ? result.traits.uniqueTraits / result.traits.totalUsages
-    : 1.0;
+  const uniqueRatio =
+    result.traits.totalUsages > 0 ? result.traits.uniqueTraits / result.traits.totalUsages : 1.0;
   // Objects with excessive traits reduce coherence
   const avgTraitsPerObj = result.summary.avgTraitsPerObject;
   const traitPenalty = avgTraitsPerObj > 10 ? Math.min(3, (avgTraitsPerObj - 10) * 0.3) : 0;
@@ -131,9 +130,9 @@ async function analyzeHoloScript(code: string, filePath: string): Promise<Health
   if (commentRatio >= 0.1 && commentRatio <= 0.3) {
     docScore = 10;
   } else if (commentRatio >= 0.05) {
-    docScore = 5 + (commentRatio - 0.05) / 0.05 * 5;
+    docScore = 5 + ((commentRatio - 0.05) / 0.05) * 5;
   } else {
-    docScore = commentRatio / 0.05 * 5;
+    docScore = (commentRatio / 0.05) * 5;
   }
   docScore = Math.max(0, Math.min(10, docScore));
 
@@ -144,7 +143,8 @@ async function analyzeHoloScript(code: string, filePath: string): Promise<Health
 
   // --- Test Presence (15%) ---
   // Heuristic: does the file path suggest tests exist nearby?
-  const hasTestIndicator = filePath.includes('__tests__') || filePath.includes('.test.') || filePath.includes('.spec.');
+  const hasTestIndicator =
+    filePath.includes('__tests__') || filePath.includes('.test.') || filePath.includes('.spec.');
   const hasAssertions = /\b(expect|assert|describe|it|test)\s*\(/.test(code);
   const testScore = hasTestIndicator || hasAssertions ? 10 : 3;
 
@@ -165,13 +165,15 @@ async function analyzeHoloScript(code: string, filePath: string): Promise<Health
   }
 
   // --- Weighted composite ---
-  const score = Number((
-    complexityHealth * 0.40 +
-    traitCoherence * 0.20 +
-    docScore * 0.15 +
-    testScore * 0.15 +
-    issueDensityScore * 0.10
-  ).toFixed(1));
+  const score = Number(
+    (
+      complexityHealth * 0.4 +
+      traitCoherence * 0.2 +
+      docScore * 0.15 +
+      testScore * 0.15 +
+      issueDensityScore * 0.1
+    ).toFixed(1)
+  );
 
   return {
     score,
@@ -218,7 +220,10 @@ function analyzeTypeScript(code: string, filePath: string): HealthResult {
   }
 
   const complexityPerLine = totalLines > 0 ? decisionPoints / totalLines : 0;
-  const complexityScore = Math.max(0, Math.min(10, 10 - complexityPerLine * 50 - (maxNesting > 5 ? (maxNesting - 5) : 0)));
+  const complexityScore = Math.max(
+    0,
+    Math.min(10, 10 - complexityPerLine * 50 - (maxNesting > 5 ? maxNesting - 5 : 0))
+  );
 
   if (maxNesting > 5) {
     issues.push(`Deep nesting: max depth ${maxNesting}`);
@@ -230,13 +235,13 @@ function analyzeTypeScript(code: string, filePath: string): HealthResult {
   }
 
   // --- Trait Coherence (20%) — N/A for TS, use import coherence instead ---
-  const importLines = lines.filter(l => l.trim().startsWith('import ')).length;
+  const importLines = lines.filter((l) => l.trim().startsWith('import ')).length;
   const importRatio = totalLines > 0 ? importLines / totalLines : 0;
   // Too many imports relative to code = low coherence
   const coherenceScore = Math.max(0, Math.min(10, importRatio < 0.3 ? 10 - importRatio * 20 : 4));
 
   // --- Documentation (15%) ---
-  const commentLines = lines.filter(l => {
+  const commentLines = lines.filter((l) => {
     const t = l.trim();
     return t.startsWith('//') || t.startsWith('/*') || t.startsWith('*') || t.startsWith('/**');
   }).length;
@@ -247,9 +252,9 @@ function analyzeTypeScript(code: string, filePath: string): HealthResult {
   if (commentRatio >= 0.1 && commentRatio <= 0.3) {
     docScore = 10;
   } else if (commentRatio >= 0.05) {
-    docScore = 5 + (commentRatio - 0.05) / 0.05 * 5;
+    docScore = 5 + ((commentRatio - 0.05) / 0.05) * 5;
   } else {
-    docScore = commentRatio / 0.05 * 5;
+    docScore = (commentRatio / 0.05) * 5;
   }
   docScore = Math.max(0, Math.min(10, docScore + (jsdocCount > 0 ? 1 : 0)));
 
@@ -258,7 +263,8 @@ function analyzeTypeScript(code: string, filePath: string): HealthResult {
   }
 
   // --- Test Presence (15%) ---
-  const hasTestIndicator = filePath.includes('__tests__') || filePath.includes('.test.') || filePath.includes('.spec.');
+  const hasTestIndicator =
+    filePath.includes('__tests__') || filePath.includes('.test.') || filePath.includes('.spec.');
   const hasAssertions = /\b(expect|assert|describe|it|test)\s*\(/.test(code);
   const testScore = hasTestIndicator || hasAssertions ? 10 : 3;
 
@@ -275,13 +281,15 @@ function analyzeTypeScript(code: string, filePath: string): HealthResult {
   }
 
   // --- Weighted composite ---
-  const score = Number((
-    complexityScore * 0.40 +
-    coherenceScore * 0.20 +
-    docScore * 0.15 +
-    testScore * 0.15 +
-    issueDensityScore * 0.10
-  ).toFixed(1));
+  const score = Number(
+    (
+      complexityScore * 0.4 +
+      coherenceScore * 0.2 +
+      docScore * 0.15 +
+      testScore * 0.15 +
+      issueDensityScore * 0.1
+    ).toFixed(1)
+  );
 
   return {
     score,

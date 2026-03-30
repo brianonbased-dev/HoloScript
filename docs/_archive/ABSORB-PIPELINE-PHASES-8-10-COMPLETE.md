@@ -29,6 +29,7 @@ Combined with the earlier CLI cache implementation (25-150x speedup), the absorb
 **File**: `packages/mcp-server/src/codebase-tools.ts`
 
 Added job tracking system for absorb operations:
+
 ```typescript
 interface AbsorbJob {
   jobId: string;
@@ -82,6 +83,7 @@ curl -N -X POST http://localhost:3000/api/daemon/absorb/stream \
 ### Implementation
 
 **New Files**:
+
 1. **`packages/core/src/codebase/workers/embedding-worker.ts`**
    - Worker thread for parallel embedding generation
    - Supports all providers: OpenAI, Ollama, Xenova, BM25
@@ -93,6 +95,7 @@ curl -N -X POST http://localhost:3000/api/daemon/absorb/stream \
    - Graceful error handling and cleanup
 
 **Modified**: `packages/core/src/codebase/EmbeddingIndex.ts`
+
 - Added `useWorkers` and `concurrentBatches` options
 - Implemented `buildIndexParallel()` method
 - Progress callback: `buildIndex(graph, onProgress)`
@@ -100,11 +103,11 @@ curl -N -X POST http://localhost:3000/api/daemon/absorb/stream \
 
 ### Performance Improvements
 
-| Scenario | Before | After | Speedup |
-|----------|--------|-------|---------|
-| **10,000 symbols (OpenAI)** | 47s | 6-12s | **4-8x faster** |
-| **1,000 files (Tree-sitter parsing)** | 2s | 250-500ms | **4-8x faster** |
-| **Progress granularity** | 1 event | 313 events | **Per-batch updates** |
+| Scenario                              | Before  | After      | Speedup               |
+| ------------------------------------- | ------- | ---------- | --------------------- |
+| **10,000 symbols (OpenAI)**           | 47s     | 6-12s      | **4-8x faster**       |
+| **1,000 files (Tree-sitter parsing)** | 2s      | 250-500ms  | **4-8x faster**       |
+| **Progress granularity**              | 1 event | 313 events | **Per-batch updates** |
 
 ### Architecture
 
@@ -132,9 +135,9 @@ curl -N -X POST http://localhost:3000/api/daemon/absorb/stream \
 ```typescript
 const embeddingIndex = new EmbeddingIndex({
   provider,
-  batchSize: 32,              // Symbols per API call
-  useWorkers: true,           // Enable parallel processing
-  concurrentBatches: 4,       // Parallel batches (auto-scaled)
+  batchSize: 32, // Symbols per API call
+  useWorkers: true, // Enable parallel processing
+  concurrentBatches: 4, // Parallel batches (auto-scaled)
 });
 
 await embeddingIndex.buildIndex(graph, (batchNum, totalBatches, symbolsProcessed) => {
@@ -151,18 +154,22 @@ await embeddingIndex.dispose(); // Cleanup workers
 ### Implementation
 
 **New File**: `packages/cli/src/commands/setup-hooks.ts`
+
 - `setupGitHooks(options)` — Install post-commit hook
 - `removeGitHooks(options)` — Uninstall hook
 
 **CLI Commands**:
+
 - `holoscript setup-hooks [projectPath] [--studio-url=URL]`
 - `holoscript remove-hooks [projectPath]`
 
 **Modified**: `packages/cli/src/cli.ts` (lines 2831-2860)
+
 - Registered `setup-hooks` command at line 2831
 - Registered `remove-hooks` command at line 2848
 
 **Modified**: `packages/cli/src/args.ts`
+
 - Added `'setup-hooks'` and `'remove-hooks'` to command type (lines 55-56)
 - Added `studioUrl` option to CLIOptions interface (line 185)
 - Added `--studio-url` flag parsing (line 488)
@@ -234,16 +241,17 @@ cat .holoscript/absorb-state.json.log
 
 ### Combined Speedup
 
-| Operation | Original | With Cache | With Workers | With Hooks | Total Speedup |
-|-----------|----------|------------|--------------|------------|---------------|
-| **First query (no cache)** | 20-30 min | N/A | 5-10 min (4-8x) | N/A | **4-8x faster** |
-| **Subsequent query (cached)** | 20-30 min | 12 sec | N/A | N/A | **100-150x faster** |
-| **Manual absorb (large repo)** | 60s | N/A | 10-15s | N/A | **4-6x faster** |
-| **Post-commit absorb** | Manual | N/A | 1-5s (incremental) | Auto (0s overhead) | **Zero-friction** |
+| Operation                      | Original  | With Cache | With Workers       | With Hooks         | Total Speedup       |
+| ------------------------------ | --------- | ---------- | ------------------ | ------------------ | ------------------- |
+| **First query (no cache)**     | 20-30 min | N/A        | 5-10 min (4-8x)    | N/A                | **4-8x faster**     |
+| **Subsequent query (cached)**  | 20-30 min | 12 sec     | N/A                | N/A                | **100-150x faster** |
+| **Manual absorb (large repo)** | 60s       | N/A        | 10-15s             | N/A                | **4-6x faster**     |
+| **Post-commit absorb**         | Manual    | N/A        | 1-5s (incremental) | Auto (0s overhead) | **Zero-friction**   |
 
 ### User Experience Journey
 
 **Before**:
+
 ```
 Developer commits code → Nothing happens
 Developer wants to query → Waits 20 minutes for full rescan
@@ -252,6 +260,7 @@ Developer gives up and uses grep
 ```
 
 **After (All Phases Complete)**:
+
 ```
 Developer commits code → Hook auto-absorbs in background (1-5s)
 Developer wants to query → Instant (12s cached)
@@ -393,15 +402,15 @@ holoscript remove-hooks
 
 ## Performance Targets (All Achieved ✅)
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **Cached query time** | <15s | 12s | ✅ **Achieved** |
-| **Embedding time (10K symbols)** | 6-12s | 6-12s | ✅ **Achieved** |
-| **Parse time (1000 files)** | <500ms | 250-500ms | ✅ **Exceeded** |
-| **Progress granularity** | Per-batch | Per-batch | ✅ **Achieved** |
-| **Hook overhead** | <100ms | <50ms | ✅ **Exceeded** |
-| **Worker threads** | 4-8 | 4-8 (auto-scaled) | ✅ **Achieved** |
-| **Zero-friction commits** | Non-blocking | Always exit 0 | ✅ **Achieved** |
+| Metric                           | Target       | Actual            | Status          |
+| -------------------------------- | ------------ | ----------------- | --------------- |
+| **Cached query time**            | <15s         | 12s               | ✅ **Achieved** |
+| **Embedding time (10K symbols)** | 6-12s        | 6-12s             | ✅ **Achieved** |
+| **Parse time (1000 files)**      | <500ms       | 250-500ms         | ✅ **Exceeded** |
+| **Progress granularity**         | Per-batch    | Per-batch         | ✅ **Achieved** |
+| **Hook overhead**                | <100ms       | <50ms             | ✅ **Exceeded** |
+| **Worker threads**               | 4-8          | 4-8 (auto-scaled) | ✅ **Achieved** |
+| **Zero-friction commits**        | Non-blocking | Always exit 0     | ✅ **Achieved** |
 
 ---
 
@@ -410,12 +419,14 @@ holoscript remove-hooks
 **Status**: ✅ All three phases complete and production-ready
 
 **Total Impact**:
+
 - **100-150x speedup** for cached queries (CLI cache)
 - **4-8x speedup** for cold scans (worker parallelization)
 - **Zero-friction workflow** (git hook auto-absorb)
 - **Real-time UX** (SSE progress streaming)
 
 **Developer Experience**:
+
 - Query the codebase instantly (12 seconds)
 - Knowledge graph auto-updates on every commit (background)
 - See real-time progress for large operations (SSE)

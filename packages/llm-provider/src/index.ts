@@ -98,7 +98,13 @@ import { MockAdapter } from './adapters/mock';
 import { BitNetAdapter } from './adapters/bitnet';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { LLMProviderManager } from './provider-manager';
-import type { OpenAIProviderConfig, AnthropicProviderConfig, GeminiProviderConfig, BitNetProviderConfig, LocalLLMProviderConfig } from './types';
+import type {
+  OpenAIProviderConfig,
+  AnthropicProviderConfig,
+  GeminiProviderConfig,
+  BitNetProviderConfig,
+  LocalLLMProviderConfig,
+} from './types';
 
 /**
  * Create an OpenAI adapter from environment variables.
@@ -225,7 +231,8 @@ export function createProviderManager(): LLMProviderManager {
     typeof process !== 'undefined' ? process.env.HOLOSCRIPT_LOCAL_LLM_URL : undefined;
   if (localLlmUrl) {
     const localLlmTimeoutMs = Number(
-      (typeof process !== 'undefined' ? process.env.HOLOSCRIPT_LOCAL_LLM_TIMEOUT_MS : undefined) ?? 120000
+      (typeof process !== 'undefined' ? process.env.HOLOSCRIPT_LOCAL_LLM_TIMEOUT_MS : undefined) ??
+        120000
     );
     providers['local-llm'] = new LocalLLMAdapter({
       baseURL: localLlmUrl,
@@ -235,11 +242,11 @@ export function createProviderManager(): LLMProviderManager {
 
   // BitNet: only registered when explicitly configured via HOLOSCRIPT_BITNET_URL
   // bitnet.cpp runs on a separate port from the generic local LLM server
-  const bitnetUrl =
-    typeof process !== 'undefined' ? process.env.HOLOSCRIPT_BITNET_URL : undefined;
+  const bitnetUrl = typeof process !== 'undefined' ? process.env.HOLOSCRIPT_BITNET_URL : undefined;
   if (bitnetUrl) {
     const bitnetTimeoutMs = Number(
-      (typeof process !== 'undefined' ? process.env.HOLOSCRIPT_BITNET_TIMEOUT_MS : undefined) ?? 60000
+      (typeof process !== 'undefined' ? process.env.HOLOSCRIPT_BITNET_TIMEOUT_MS : undefined) ??
+        60000
     );
     const bitnetMaxRetries = Number(
       (typeof process !== 'undefined' ? process.env.HOLOSCRIPT_BITNET_MAX_RETRIES : undefined) ?? 2

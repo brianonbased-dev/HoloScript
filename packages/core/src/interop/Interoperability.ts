@@ -230,7 +230,9 @@ export class AsyncFunctionHandler {
   /**
    * Wrap async function for HoloScript
    */
-  wrapAsyncFunction(fn: (...args: unknown[]) => Promise<unknown>): (...args: unknown[]) => Promise<unknown> {
+  wrapAsyncFunction(
+    fn: (...args: unknown[]) => Promise<unknown>
+  ): (...args: unknown[]) => Promise<unknown> {
     return async (...args: unknown[]) => {
       try {
         return await fn(...args);
@@ -255,7 +257,9 @@ export class AsyncFunctionHandler {
   /**
    * Convert callback to promise
    */
-  callbackToPromise(fn: (callback: (err: unknown, result: unknown) => void) => void): Promise<unknown> {
+  callbackToPromise(
+    fn: (callback: (err: unknown, result: unknown) => void) => void
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       fn((err: unknown, result: unknown) => {
         if (err) {

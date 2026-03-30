@@ -305,9 +305,7 @@ export function QuickStartWizard({ onClose }: QuickStartWizardProps) {
           </AnimatedStep>
 
           <AnimatedStep visible={step === 2} direction={direction}>
-            <p className="mb-4 text-sm text-studio-muted">
-              Add NPCs and characters to your world
-            </p>
+            <p className="mb-4 text-sm text-studio-muted">Add NPCs and characters to your world</p>
 
             {/* NPC grid or code preview */}
             {showPreview ? (

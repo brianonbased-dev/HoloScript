@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Play, CheckCircle2, AlertCircle, X, Award, RotateCcw } from 'lucide-react';
+import {
+  ChevronRight,
+  ChevronLeft,
+  Play,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Award,
+  RotateCcw,
+} from 'lucide-react';
 import { Button } from '@holoscript/ui';
 
 export interface TutorialStep {
@@ -20,7 +29,13 @@ export interface TutorialEngineProps {
   onExit?: () => void;
 }
 
-export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, onExit }: TutorialEngineProps) {
+export function TutorialEngineWrapper({
+  title,
+  moduleName,
+  steps,
+  onComplete,
+  onExit,
+}: TutorialEngineProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [code, setCode] = useState(steps[0]?.initialCode || '');
   const [validationState, setValidationState] = useState<'idle' | 'success' | 'error'>('idle');
@@ -35,7 +50,7 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(curr => curr + 1);
+      setCurrentStep((curr) => curr + 1);
     } else {
       onComplete?.();
     }
@@ -43,7 +58,7 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
 
   const handlePrev = () => {
     if (currentStep > 0) {
-      setCurrentStep(curr => curr - 1);
+      setCurrentStep((curr) => curr - 1);
     }
   };
 
@@ -65,7 +80,7 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
       {/* ── Top Navigation Bar ── */}
       <header className="h-14 shrink-0 border-b border-slate-800 bg-slate-900/50 flex items-center px-4 justify-between select-none">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={onExit}
             className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
           >
@@ -82,11 +97,13 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
         {/* Progress Tracker */}
         <div className="flex flex-col items-center justify-center w-48 sm:w-64">
           <div className="flex justify-between w-full text-[10px] text-slate-400 mb-1.5 font-medium">
-            <span>Step {currentStep + 1} of {steps.length}</span>
+            <span>
+              Step {currentStep + 1} of {steps.length}
+            </span>
             <span>{Math.round(progressPct)}%</span>
           </div>
           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300 ease-out"
               style={{ width: `${progressPct}%` }}
             />
@@ -96,7 +113,7 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
         <div className="flex items-center gap-2">
           {validationState === 'success' && currentStep === steps.length - 1 && (
             <div className="hidden sm:flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">
-               <Award size={14} /> Tutorial Complete!
+              <Award size={14} /> Tutorial Complete!
             </div>
           )}
         </div>
@@ -104,20 +121,21 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
 
       {/* ── Main Split View ── */}
       <div className="flex-1 flex overflow-hidden">
-        
         {/* Left Pane: Instructions */}
         <div className="w-1/3 min-w-[300px] border-r border-slate-800 bg-slate-900/80 flex flex-col">
           <div className="flex-1 overflow-auto p-6 prose prose-invert prose-emerald max-w-none">
             <h2 className="text-2xl font-bold mb-4 text-emerald-50">{steps[currentStep].title}</h2>
             {/* Simple markdown rendering placeholder. In full app, use react-markdown */}
-            <div 
+            <div
               className="space-y-4 text-slate-300 text-sm leading-relaxed"
               dangerouslySetInnerHTML={{ __html: steps[currentStep].markdown }}
             />
-            
+
             {showSolution && steps[currentStep].solutionCode && (
               <div className="mt-8 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wide mb-2">Solution</h4>
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wide mb-2">
+                  Solution
+                </h4>
                 <pre className="text-xs text-slate-300 overflow-x-auto bg-slate-950 p-3 rounded-lg border border-slate-800">
                   <code>{steps[currentStep].solutionCode}</code>
                 </pre>
@@ -133,21 +151,21 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
                 <span>That didn't quite work. Try again or check the hint.</span>
               </div>
             )}
-            
+
             <div className="flex justify-between items-center gap-2">
-              <button 
+              <button
                 onClick={handlePrev}
                 disabled={currentStep === 0}
                 className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
               >
                 <ChevronLeft size={18} />
               </button>
-              
+
               <div className="flex gap-2">
                 {!showSolution && steps[currentStep].solutionCode && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowSolution(true)}
                     className="text-xs text-slate-400 border-slate-700"
                   >
@@ -155,14 +173,15 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
                   </Button>
                 )}
                 {validationState === 'success' ? (
-                  <Button 
+                  <Button
                     className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
                     onClick={handleNext}
                   >
-                    {currentStep === steps.length - 1 ? 'Finish' : 'Next Step'} <ChevronRight size={16} className="ml-1" />
+                    {currentStep === steps.length - 1 ? 'Finish' : 'Next Step'}{' '}
+                    <ChevronRight size={16} className="ml-1" />
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     className="bg-cyan-500 hover:bg-cyan-600 text-white shadow-lg shadow-cyan-500/20"
                     onClick={handleRunAndValidate}
                   >
@@ -180,9 +199,11 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
           <div className="h-1/2 border-b border-slate-800 flex flex-col">
             <div className="h-10 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between">
               <div className="flex items-center gap-2">
-                <div className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">main.hs</div>
+                <div className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">
+                  main.hs
+                </div>
               </div>
-              <button 
+              <button
                 onClick={() => setCode(steps[currentStep].initialCode)}
                 className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 transition"
               >
@@ -199,24 +220,25 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
               />
             </div>
           </div>
-          
+
           {/* Mock Preview Area */}
           <div className="h-1/2 relative bg-black/60 overflow-hidden flex flex-col">
             <div className="absolute top-2 left-2 z-10 text-[10px] font-semibold tracking-widest uppercase text-slate-500 bg-black/50 px-2 py-1 rounded">
               3D Live Preview
             </div>
-            
+
             <div className="flex-1 flex items-center justify-center relative">
               {/* Fake 3D Scene based on validation state */}
-              <div className={`w-32 h-32 rounded-xl border-2 shadow-2xl transition-all duration-700 ${
-                  validationState === 'success' 
-                    ? 'border-emerald-500 bg-emerald-500/20 shadow-emerald-500/20 rotate-12 scale-110' 
+              <div
+                className={`w-32 h-32 rounded-xl border-2 shadow-2xl transition-all duration-700 ${
+                  validationState === 'success'
+                    ? 'border-emerald-500 bg-emerald-500/20 shadow-emerald-500/20 rotate-12 scale-110'
                     : validationState === 'error'
                       ? 'border-rose-500 bg-rose-500/20 shadow-rose-500/20 -rotate-6'
                       : 'border-cyan-500/30 bg-cyan-500/10 shadow-cyan-500/10'
-                }`} 
+                }`}
               />
-              
+
               {/* Success overlay */}
               {validationState === 'success' && (
                 <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center backdrop-blur-[2px] animate-in fade-in duration-300">
@@ -229,7 +251,6 @@ export function TutorialEngineWrapper({ title, moduleName, steps, onComplete, on
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

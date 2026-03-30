@@ -22,7 +22,7 @@ const EXAMPLES_DIR = join(__dirname, '..', '..', '..', '..', 'examples', 'novel-
 
 function getFiles(ext: string): string[] {
   return readdirSync(EXAMPLES_DIR)
-    .filter(f => f.endsWith(ext))
+    .filter((f) => f.endsWith(ext))
     .sort();
 }
 
@@ -135,9 +135,9 @@ describe('Novel Use Cases — .hs Structural', () => {
 
 describe('Novel Use Cases — Format Coverage', () => {
   it('all 13 use cases have all 3 source formats', () => {
-    const holoFiles = new Set(getFiles('.holo').map(f => f.replace('.holo', '')));
-    const hsplusFiles = new Set(getFiles('.hsplus').map(f => f.replace('.hsplus', '')));
-    const hsFiles = new Set(getFiles('.hs').map(f => f.replace('.hs', '')));
+    const holoFiles = new Set(getFiles('.holo').map((f) => f.replace('.holo', '')));
+    const hsplusFiles = new Set(getFiles('.hsplus').map((f) => f.replace('.hsplus', '')));
+    const hsFiles = new Set(getFiles('.hs').map((f) => f.replace('.hs', '')));
 
     // Each use case should exist in all 3 formats
     for (const useCase of holoFiles) {

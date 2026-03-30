@@ -19,16 +19,16 @@ function makeMaterialBlock(
   name: string,
   props: Array<{ key: string; value: ASTNode }> = [],
   traits: string[] = [],
-  extras: ASTNode[] = [],
+  extras: ASTNode[] = []
 ): ASTNode {
   const children: ASTNode[] = [
     makeNode(materialType, materialType), // type keyword child
-    makeNode('string', `"${name}"`),       // name child
+    makeNode('string', `"${name}"`), // name child
   ];
 
   // Add trait_list if any
   if (traits.length > 0) {
-    const traitChildren = traits.map(t => makeNode('identifier', t));
+    const traitChildren = traits.map((t) => makeNode('identifier', t));
     children.push(makeNode('trait_list', undefined, traitChildren));
   }
 
@@ -36,11 +36,7 @@ function makeMaterialBlock(
   for (const p of props) {
     const propNode: ASTNode = {
       type: 'property',
-      children: [
-        makeNode('identifier', p.key),
-        makeNode(':', ':'),
-        p.value,
-      ],
+      children: [makeNode('identifier', p.key), makeNode(':', ':'), p.value],
       namedChildren: [makeNode('identifier', p.key), p.value],
     };
     children.push(propNode);
@@ -99,9 +95,7 @@ describe('HoloScriptMaterialParser', () => {
     });
 
     it('returns default name "Unnamed" when no name node exists', () => {
-      const node = makeNode('material_block', undefined, [
-        makeNode('material', 'material'),
-      ]);
+      const node = makeNode('material_block', undefined, [makeNode('material', 'material')]);
       const result = HoloScriptMaterialParser.parse(node);
       expect(result.name).toBe('Unnamed');
     });
@@ -120,10 +114,7 @@ describe('HoloScriptMaterialParser', () => {
     it('finds nested material_block nodes', () => {
       const mat1 = makeMaterialBlock('material', 'Mat1');
       const mat2 = makeMaterialBlock('glass_material', 'Mat2');
-      const root = makeNode('program', undefined, [
-        makeNode('zone', undefined, [mat1]),
-        mat2,
-      ]);
+      const root = makeNode('program', undefined, [makeNode('zone', undefined, [mat1]), mat2]);
 
       const results = HoloScriptMaterialParser.parseAll(root);
       expect(results).toHaveLength(2);
@@ -132,9 +123,7 @@ describe('HoloScriptMaterialParser', () => {
     });
 
     it('returns empty array when no material blocks exist', () => {
-      const root = makeNode('program', undefined, [
-        makeNode('zone', undefined, []),
-      ]);
+      const root = makeNode('program', undefined, [makeNode('zone', undefined, [])]);
       const results = HoloScriptMaterialParser.parseAll(root);
       expect(results).toHaveLength(0);
     });
@@ -241,9 +230,7 @@ describe('HoloScriptMaterialParser', () => {
         {
           type: 'material',
           name: 'Textured',
-          textureMaps: [
-            { channel: 'albedo_map', source: 'brick.png' },
-          ],
+          textureMaps: [{ channel: 'albedo_map', source: 'brick.png' }],
         },
       ];
       const results = HoloScriptMaterialParser.parseFromComposition(nodes);
@@ -264,10 +251,7 @@ describe('HoloScriptMaterialParser', () => {
           makeNode(':', ':'),
           makeNode('string', '"diffuse.png"'),
         ],
-        namedChildren: [
-          makeNode('identifier', 'albedo_map'),
-          makeNode('string', '"diffuse.png"'),
-        ],
+        namedChildren: [makeNode('identifier', 'albedo_map'), makeNode('string', '"diffuse.png"')],
       };
 
       const matNode = makeMaterialBlock('material', 'Textured', [], [], [textureNode]);

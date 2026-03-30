@@ -43,9 +43,9 @@ export interface PerformanceRegressionState {
 }
 
 export const PERF_REGRESSION_DEFAULTS: PerformanceRegressionConfig = {
-  thresholdMs: 9.0,        // 90Hz VR: 11.1ms budget, 2ms overhead
-  consecutiveFrames: 5,     // 5 bad frames before regression
-  recoveryFrames: 30,       // 30 good frames before recovery (~333ms at 90Hz)
+  thresholdMs: 9.0, // 90Hz VR: 11.1ms budget, 2ms overhead
+  consecutiveFrames: 5, // 5 bad frames before regression
+  recoveryFrames: 30, // 30 good frames before recovery (~333ms at 90Hz)
   recoveryThresholdMs: 7.0, // Must sustain 7ms or better to recover
   enabled: true,
 };
@@ -89,8 +89,7 @@ export class PerformanceRegressionMonitor {
     if (this.frameTimes.length > this.windowSize) {
       this.frameTimes.shift();
     }
-    const avg =
-      this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
+    const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
     this.state.avgFrameTimeMs = avg;
 
     if (!this.state.isRegressed) {

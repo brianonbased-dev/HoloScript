@@ -347,7 +347,9 @@ export class WindZoneManager {
    * @returns Aggregate wind force vector
    */
   computeWindAt(worldPos: IVector3, weather?: WeatherBlackboardState): IVector3 {
-    let wx = 0, wy = 0, wz = 0;
+    let wx = 0,
+      wy = 0,
+      wz = 0;
 
     // Add ambient wind from WeatherBlackboard
     if (weather) {
@@ -393,7 +395,7 @@ export class WindZoneManager {
       const tx = Math.sin(this.time * 2.17 + pos.x * 0.5) * noiseScale;
       const ty = Math.sin(this.time * 1.83 + pos.y * 0.5) * noiseScale;
       const tz = Math.sin(this.time * 3.07 + pos.z * 0.5) * noiseScale;
-      forceMagnitude *= (1.0 + tx + ty + tz);
+      forceMagnitude *= 1.0 + tx + ty + tz;
     }
 
     switch (zone.type) {
@@ -418,7 +420,7 @@ export class WindZoneManager {
         }
 
         // Falloff: linear from center to radius
-        const falloff = 1.0 - (dist / zone.radius);
+        const falloff = 1.0 - dist / zone.radius;
         const f = forceMagnitude * falloff;
 
         // Direction: zone.direction (e.g., updraft = [0,1,0])
@@ -531,8 +533,8 @@ export class VelocitySmoother {
   getSpeed(): number {
     return Math.sqrt(
       this.smoothedX * this.smoothedX +
-      this.smoothedY * this.smoothedY +
-      this.smoothedZ * this.smoothedZ,
+        this.smoothedY * this.smoothedY +
+        this.smoothedZ * this.smoothedZ
     );
   }
 
@@ -555,10 +557,7 @@ export class VelocitySmoother {
  * Evaluates the physics intensity (0-1) from a speed value using
  * the configured intensity curve (piecewise linear interpolation).
  */
-export function evaluateIntensityCurve(
-  speed: number,
-  curve: IntensityCurvePoint[],
-): number {
+export function evaluateIntensityCurve(speed: number, curve: IntensityCurvePoint[]): number {
   if (curve.length === 0) return 0;
   if (speed <= curve[0].speed) return curve[0].intensity;
   if (speed >= curve[curve.length - 1].speed) return curve[curve.length - 1].intensity;
@@ -584,10 +583,7 @@ export function evaluateIntensityCurve(
  * @param scale - Self-wind scale factor (0-1)
  * @returns Opposing wind force vector
  */
-export function computeSelfWind(
-  smoothedVelocity: IVector3,
-  scale: number,
-): IVector3 {
+export function computeSelfWind(smoothedVelocity: IVector3, scale: number): IVector3 {
   return {
     x: -smoothedVelocity.x * scale,
     y: -smoothedVelocity.y * scale,
@@ -672,7 +668,9 @@ export class PhysicsActivationController {
     // Determine locomotion config: explicit undefined = disabled, object = merge with defaults
     const hasExplicitLocomotion = config && 'locomotion' in config;
     const locomotionConfig = hasExplicitLocomotion
-      ? (config!.locomotion ? { ...DEFAULT_LOCOMOTION_CONFIG, ...config!.locomotion } : undefined)
+      ? config!.locomotion
+        ? { ...DEFAULT_LOCOMOTION_CONFIG, ...config!.locomotion }
+        : undefined
       : DEFAULT_LOCOMOTION_CONFIG;
 
     this.config = {
@@ -784,7 +782,10 @@ export class PhysicsActivationController {
   getEffectiveDamping(baseDamping: number): number {
     if (this.state === PhysicsActivationState.SETTLING) {
       // During settling, increase damping toward 1.0 (full damping)
-      return Math.min(1.0, baseDamping + (1.0 - baseDamping) * (1.0 - 1.0 / this.config.settleDamping));
+      return Math.min(
+        1.0,
+        baseDamping + (1.0 - baseDamping) * (1.0 - 1.0 / this.config.settleDamping)
+      );
     }
     return baseDamping;
   }

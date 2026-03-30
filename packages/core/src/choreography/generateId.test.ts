@@ -48,12 +48,12 @@ describe('generateId', () => {
     it('should have different timestamp parts when called with delay', async () => {
       const id1 = generateId();
       // Small delay to ensure different timestamp
-      await new Promise(resolve => setTimeout(resolve, 2));
+      await new Promise((resolve) => setTimeout(resolve, 2));
       const id2 = generateId();
-      
+
       const [timestamp1] = id1.split('_');
       const [timestamp2] = id2.split('_');
-      
+
       // Timestamps should be different (or at minimum, IDs should be different due to random part)
       expect(id1).not.toBe(id2);
     });
@@ -89,10 +89,10 @@ describe('generateId', () => {
 
     it('should maintain consistent structure length', () => {
       const ids = Array.from({ length: 10 }, () => generateId());
-      const lengths = ids.map(id => id.split('_')[1].length); // Random part length
-      
+      const lengths = ids.map((id) => id.split('_')[1].length); // Random part length
+
       // All random parts should be exactly 8 characters
-      lengths.forEach(length => {
+      lengths.forEach((length) => {
         expect(length).toBe(8);
       });
     });
@@ -107,21 +107,21 @@ describe('generateId', () => {
         // Busy wait for a couple milliseconds
       }
       const id2 = generateId();
-      
+
       const [timestamp1] = id1.split('_');
       const [timestamp2] = id2.split('_');
-      
+
       // Convert back to numbers for comparison
       const time1 = parseInt(timestamp1, 36);
       const time2 = parseInt(timestamp2, 36);
-      
+
       expect(time2).toBeGreaterThanOrEqual(time1);
     });
 
     it('should produce valid base36 timestamp', () => {
       const id = generateId();
       const [timestampPart] = id.split('_');
-      
+
       // Should be able to parse back to a number
       const parsed = parseInt(timestampPart, 36);
       expect(parsed).toBeGreaterThan(0);

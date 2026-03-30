@@ -19,8 +19,12 @@ function makeMockCapabilities(files: Record<string, string> = {}): HostCapabilit
   return {
     fileSystem: {
       readFile: vi.fn((p: string) => files[p] ?? ''),
-      writeFile: vi.fn((p: string, c: string) => { files[p] = c; }),
-      deleteFile: vi.fn((p: string) => { delete files[p]; }),
+      writeFile: vi.fn((p: string, c: string) => {
+        files[p] = c;
+      }),
+      deleteFile: vi.fn((p: string) => {
+        delete files[p];
+      }),
       exists: vi.fn((p: string) => p in files),
     },
     process: {
@@ -32,7 +36,10 @@ function makeMockCapabilities(files: Record<string, string> = {}): HostCapabilit
   };
 }
 
-function makeOptions(overrides: Partial<StdlibPolicy> = {}, files: Record<string, string> = {}): StdlibOptions {
+function makeOptions(
+  overrides: Partial<StdlibPolicy> = {},
+  files: Record<string, string> = {}
+): StdlibOptions {
   const caps = makeMockCapabilities(files);
   return {
     policy: {
@@ -82,7 +89,10 @@ describe('fs_read', () => {
 
   it('rejects files exceeding max size', async () => {
     const bigContent = 'x'.repeat(100);
-    const opts = makeOptions({ allowedPaths: ['src'], maxFileBytes: 50 }, { 'src/big.txt': bigContent });
+    const opts = makeOptions(
+      { allowedPaths: ['src'], maxFileBytes: 50 },
+      { 'src/big.txt': bigContent }
+    );
     const actions = createStdlibActions(opts);
     const bb: Record<string, unknown> = {};
     const ctx = { emit: vi.fn() };
@@ -247,7 +257,9 @@ describe('registerStdlib', () => {
   it('registers all 6 handlers on a runtime', () => {
     const registered: string[] = [];
     const mockRuntime = {
-      registerAction: (name: string) => { registered.push(name); },
+      registerAction: (name: string) => {
+        registered.push(name);
+      },
     };
 
     registerStdlib(mockRuntime, makeOptions());

@@ -61,8 +61,8 @@ export interface SurgicalInstrument {
 
 export interface PatientVitals {
   heartRateBPM: number;
-  spO2: number;        // 0-100%
-  systolicBP: number;  // mmHg
+  spO2: number; // 0-100%
+  systolicBP: number; // mmHg
   diastolicBP: number; // mmHg
   respiratoryRate: number; // breaths/min
 }
@@ -120,14 +120,14 @@ export function distance3D(a: Vec3, b: Vec3): number {
 export function distanceToSegment(p: Vec3, a: Vec3, b: Vec3): number {
   const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
   const ap = { x: p.x - a.x, y: p.y - a.y, z: p.z - a.z };
-  
+
   const lenSq = ab.x ** 2 + ab.y ** 2 + ab.z ** 2;
   // If a == b, return distance from p to a
   if (lenSq === 0) return distance3D(p, a);
 
   // Project p onto ab, but deferring the division by lenSq
   let t = (ap.x * ab.x + ap.y * ab.y + ap.z * ab.z) / lenSq;
-  
+
   // Clamp t to [0, 1] to limit to the segment
   if (t < 0) t = 0;
   else if (t > 1) t = 1;
@@ -136,7 +136,7 @@ export function distanceToSegment(p: Vec3, a: Vec3, b: Vec3): number {
   const closest = {
     x: a.x + t * ab.x,
     y: a.y + t * ab.y,
-    z: a.z + t * ab.z
+    z: a.z + t * ab.z,
   };
 
   return distance3D(p, closest);
@@ -148,12 +148,12 @@ export function isNearCriticalStructure(
 ): AnatomicalLandmark | null {
   for (const lm of landmarks) {
     if (!lm.critical) continue;
-    
+
     // Use CCD segment test if we have previous position to prevent high-velocity tunneling
-    const dist = instrument.previousTipPosition 
+    const dist = instrument.previousTipPosition
       ? distanceToSegment(lm.position, instrument.previousTipPosition, instrument.tipPosition)
       : distance3D(instrument.tipPosition, lm.position);
-      
+
     if (dist < instrument.safetyRadius) return lm;
   }
   return null;
@@ -180,7 +180,7 @@ export function processVitalsTelemetry(vitals: PatientVitals): MedicalTelemetry 
     timestamp: Date.now(),
     vitals,
     hapticMultiplier,
-    warningState
+    warningState,
   };
 }
 
@@ -290,18 +290,24 @@ export interface AnesthesiaConfig {
   monitoringLevel: string;
 }
 
-export function overallRiskLevel(procedure: ProcedureStep[], patient: any): 'low' | 'moderate' | 'high' | 'critical' {
-  const hasCritical = procedure.some(p => p.riskLevel === 'critical');
+export function overallRiskLevel(
+  procedure: ProcedureStep[],
+  patient: any
+): 'low' | 'moderate' | 'high' | 'critical' {
+  const hasCritical = procedure.some((p) => p.riskLevel === 'critical');
   return hasCritical ? 'high' : 'moderate';
 }
 
-export function bloodLossRisk(procedure: ProcedureStep[], patient: any): 'low' | 'moderate' | 'high' | 'critical' {
+export function bloodLossRisk(
+  procedure: ProcedureStep[],
+  patient: any
+): 'low' | 'moderate' | 'high' | 'critical' {
   return 'low';
 }
 
 export function toolsRequired(procedure: ProcedureStep[]): InstrumentType[] {
   const tools = new Set<InstrumentType>();
-  procedure.forEach(p => tools.add(p.instrumentRequired));
+  procedure.forEach((p) => tools.add(p.instrumentRequired));
   return Array.from(tools);
 }
 

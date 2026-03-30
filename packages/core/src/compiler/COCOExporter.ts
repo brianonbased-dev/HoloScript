@@ -154,17 +154,42 @@ const DEFAULT_SHAPE_SIZES: Record<string, [number, number, number]> = {
 // =============================================================================
 
 const NPC_KEYPOINT_NAMES = [
-  'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-  'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-  'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
-  'left_knee', 'right_knee', 'left_ankle', 'right_ankle',
+  'nose',
+  'left_eye',
+  'right_eye',
+  'left_ear',
+  'right_ear',
+  'left_shoulder',
+  'right_shoulder',
+  'left_elbow',
+  'right_elbow',
+  'left_wrist',
+  'right_wrist',
+  'left_hip',
+  'right_hip',
+  'left_knee',
+  'right_knee',
+  'left_ankle',
+  'right_ankle',
 ];
 
 const NPC_SKELETON: [number, number][] = [
-  [0, 1], [0, 2], [1, 3], [2, 4],       // head
-  [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], // arms
-  [5, 11], [6, 12], [11, 12],              // torso
-  [11, 13], [13, 15], [12, 14], [14, 16],  // legs
+  [0, 1],
+  [0, 2],
+  [1, 3],
+  [2, 4], // head
+  [5, 6],
+  [5, 7],
+  [7, 9],
+  [6, 8],
+  [8, 10], // arms
+  [5, 11],
+  [6, 12],
+  [11, 12], // torso
+  [11, 13],
+  [13, 15],
+  [12, 14],
+  [14, 16], // legs
 ];
 
 // =============================================================================
@@ -368,10 +393,7 @@ class COCOExporterImpl {
   // Annotation generation
   // ---------------------------------------------------------------------------
 
-  private annotateComposition(
-    composition: HoloComposition,
-    imageId: number
-  ): COCOAnnotation[] {
+  private annotateComposition(composition: HoloComposition, imageId: number): COCOAnnotation[] {
     const annotations: COCOAnnotation[] = [];
 
     // Objects
@@ -542,8 +564,7 @@ class COCOExporterImpl {
     position: [number, number, number],
     size: [number, number, number]
   ): [number, number, number, number] | null {
-    const focalLength =
-      (this.imageWidth / 2) / Math.tan((this.fov * Math.PI) / 360);
+    const focalLength = this.imageWidth / 2 / Math.tan((this.fov * Math.PI) / 360);
 
     // Camera-relative position (simplified: assume camera looks along -Z)
     const cx = position[0] - this.cameraPosition[0];
@@ -597,9 +618,7 @@ class COCOExporterImpl {
     return pos;
   }
 
-  private extractScale(
-    properties: HoloObjectDecl['properties']
-  ): [number, number, number] {
+  private extractScale(properties: HoloObjectDecl['properties']): [number, number, number] {
     for (const prop of properties) {
       if (prop.key === 'scale') {
         if (typeof prop.value === 'number') {
@@ -717,23 +736,23 @@ class COCOExporterImpl {
     // Approximate keypoint positions as ratios within the bounding box
     // [xRatio, yRatio] from top-left of bbox
     const keypointRatios: [number, number][] = [
-      [0.50, 0.05],  // nose
-      [0.45, 0.04],  // left_eye
-      [0.55, 0.04],  // right_eye
-      [0.40, 0.06],  // left_ear
-      [0.60, 0.06],  // right_ear
-      [0.35, 0.22],  // left_shoulder
-      [0.65, 0.22],  // right_shoulder
-      [0.28, 0.40],  // left_elbow
-      [0.72, 0.40],  // right_elbow
-      [0.25, 0.55],  // left_wrist
-      [0.75, 0.55],  // right_wrist
-      [0.38, 0.55],  // left_hip
-      [0.62, 0.55],  // right_hip
-      [0.36, 0.75],  // left_knee
-      [0.64, 0.75],  // right_knee
-      [0.34, 0.95],  // left_ankle
-      [0.66, 0.95],  // right_ankle
+      [0.5, 0.05], // nose
+      [0.45, 0.04], // left_eye
+      [0.55, 0.04], // right_eye
+      [0.4, 0.06], // left_ear
+      [0.6, 0.06], // right_ear
+      [0.35, 0.22], // left_shoulder
+      [0.65, 0.22], // right_shoulder
+      [0.28, 0.4], // left_elbow
+      [0.72, 0.4], // right_elbow
+      [0.25, 0.55], // left_wrist
+      [0.75, 0.55], // right_wrist
+      [0.38, 0.55], // left_hip
+      [0.62, 0.55], // right_hip
+      [0.36, 0.75], // left_knee
+      [0.64, 0.75], // right_knee
+      [0.34, 0.95], // left_ankle
+      [0.66, 0.95], // right_ankle
     ];
 
     const keypoints: number[] = [];

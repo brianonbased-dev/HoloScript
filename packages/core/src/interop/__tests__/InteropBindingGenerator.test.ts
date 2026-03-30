@@ -15,7 +15,14 @@ describe('InteropBindingGenerator', () => {
 
   describe('extractExports', () => {
     it('extracts function declarations', () => {
-      const ast = makeAST([{ type: 'FunctionDeclaration', name: 'greet', params: [{ name: 'name', type: 'string' }], returnType: 'string' }]);
+      const ast = makeAST([
+        {
+          type: 'FunctionDeclaration',
+          name: 'greet',
+          params: [{ name: 'name', type: 'string' }],
+          returnType: 'string',
+        },
+      ]);
       const exports = generator.extractExports(ast);
       expect(exports).toHaveLength(1);
       expect(exports[0].name).toBe('greet');
@@ -46,7 +53,14 @@ describe('InteropBindingGenerator', () => {
 
   describe('generatePythonBindings', () => {
     it('generates valid Python with docstring', () => {
-      const ast = makeAST([{ type: 'FunctionDeclaration', name: 'calculate', params: [{ name: 'x', type: 'number' }], returnType: 'number' }]);
+      const ast = makeAST([
+        {
+          type: 'FunctionDeclaration',
+          name: 'calculate',
+          params: [{ name: 'x', type: 'number' }],
+          returnType: 'number',
+        },
+      ]);
       const result = generator.generatePythonBindings(ast, 'test.hsplus');
       expect(result.language).toBe('python');
       expect(result.code).toContain('def calculate');
@@ -64,7 +78,13 @@ describe('InteropBindingGenerator', () => {
     });
 
     it('handles optional parameters', () => {
-      const ast = makeAST([{ type: 'FunctionDeclaration', name: 'setup', params: [{ name: 'debug', type: 'boolean', optional: true }] }]);
+      const ast = makeAST([
+        {
+          type: 'FunctionDeclaration',
+          name: 'setup',
+          params: [{ name: 'debug', type: 'boolean', optional: true }],
+        },
+      ]);
       const result = generator.generatePythonBindings(ast, 'test.hs');
       expect(result.code).toContain('debug: bool = None');
     });

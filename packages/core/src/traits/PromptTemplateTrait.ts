@@ -27,7 +27,9 @@ export const promptTemplateHandler: TraitHandler<PromptTemplateConfig> = {
   onAttach(node: any): void {
     node.__promptState = { templates: new Map<string, PromptEntry>() };
   },
-  onDetach(node: any): void { delete node.__promptState; },
+  onDetach(node: any): void {
+    delete node.__promptState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: PromptTemplateConfig, context: any, event: any): void {

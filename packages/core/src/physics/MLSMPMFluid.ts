@@ -100,16 +100,16 @@ export class MLSMPMFluid {
   private disposed = false;
 
   // GPU Buffers
-  private particlePositions: GPUBuffer | null = null;   // vec4(x, y, z, volume)
-  private particleVelocities: GPUBuffer | null = null;  // vec4(vx, vy, vz, mass)
-  private particleC: GPUBuffer | null = null;            // mat4x4 affine momentum
-  private particleJ: GPUBuffer | null = null;            // f32 deformation gradient det
+  private particlePositions: GPUBuffer | null = null; // vec4(x, y, z, volume)
+  private particleVelocities: GPUBuffer | null = null; // vec4(vx, vy, vz, mass)
+  private particleC: GPUBuffer | null = null; // mat4x4 affine momentum
+  private particleJ: GPUBuffer | null = null; // f32 deformation gradient det
 
-  private gridMass: GPUBuffer | null = null;             // atomic<i32>
-  private gridMomentumX: GPUBuffer | null = null;        // atomic<i32>
-  private gridMomentumY: GPUBuffer | null = null;        // atomic<i32>
-  private gridMomentumZ: GPUBuffer | null = null;        // atomic<i32>
-  private gridVelocity: GPUBuffer | null = null;         // vec4<f32>
+  private gridMass: GPUBuffer | null = null; // atomic<i32>
+  private gridMomentumX: GPUBuffer | null = null; // atomic<i32>
+  private gridMomentumY: GPUBuffer | null = null; // atomic<i32>
+  private gridMomentumZ: GPUBuffer | null = null; // atomic<i32>
+  private gridVelocity: GPUBuffer | null = null; // vec4<f32>
 
   private simParamsBuffer: GPUBuffer | null = null;
 
@@ -222,7 +222,13 @@ export class MLSMPMFluid {
     if (!this.device || !this.particlePositions) {
       throw new Error('MLSMPMFluid not initialized. Call init() first.');
     }
-    this.device.queue.writeBuffer(this.particlePositions, 0, positions.buffer, positions.byteOffset, positions.byteLength);
+    this.device.queue.writeBuffer(
+      this.particlePositions,
+      0,
+      positions.buffer,
+      positions.byteOffset,
+      positions.byteLength
+    );
   }
 
   /**
@@ -230,10 +236,10 @@ export class MLSMPMFluid {
    */
   generateParticleBlock(
     min: [number, number, number],
-    max: [number, number, number],
+    max: [number, number, number]
   ): Float32Array {
     const { particleCount, domainSize, restDensity } = this.config;
-    const volume = (domainSize ** 3) / particleCount;
+    const volume = domainSize ** 3 / particleCount;
     const mass = volume * restDensity;
 
     const data = new Float32Array(particleCount * 4);
@@ -513,20 +519,30 @@ export class MLSMPMFluid {
   private updateUniforms(dt: number): void {
     if (!this.device || !this.simParamsBuffer) return;
 
-    const { gridResolution, particleCount, domainSize, gravity, restDensity, bulkModulus, viscosity } = this.config;
-    const dx = domainSize / gridResolution;
-
-    const data = new Float32Array([
-      gridResolution,  // grid_res (reinterpreted as u32)
-      particleCount,   // num_particles (reinterpreted as u32)
-      dt,
-      dx,
-      1.0 / dx,        // inv_dx
+    const {
+      gridResolution,
+      particleCount,
+      domainSize,
       gravity,
       restDensity,
       bulkModulus,
       viscosity,
-      this.externalForce[0], this.externalForce[1], this.externalForce[2],  // wind xyz
+    } = this.config;
+    const dx = domainSize / gridResolution;
+
+    const data = new Float32Array([
+      gridResolution, // grid_res (reinterpreted as u32)
+      particleCount, // num_particles (reinterpreted as u32)
+      dt,
+      dx,
+      1.0 / dx, // inv_dx
+      gravity,
+      restDensity,
+      bulkModulus,
+      viscosity,
+      this.externalForce[0],
+      this.externalForce[1],
+      this.externalForce[2], // wind xyz
     ]);
 
     // Write grid_res and num_particles as u32

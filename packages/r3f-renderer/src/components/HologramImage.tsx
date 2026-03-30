@@ -121,12 +121,7 @@ export function HologramImage({
   }
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      rotation={rotation}
-      geometry={geometry}
-    >
+    <mesh ref={meshRef} position={position} rotation={rotation} geometry={geometry}>
       <meshStandardMaterial
         map={imageTexture}
         displacementMap={depthTexture}

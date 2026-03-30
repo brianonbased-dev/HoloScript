@@ -13,15 +13,17 @@ export const TraitRegistryExplorer: React.FC = () => {
 
   useEffect(() => {
     // In a real implementation this would fetch from the API or import the JSON
-    import('@holoscript/core/src/traits/trait-registry.json').then((registry: any) => {
+    import('@holoscript/core/src/traits/trait-registry.json')
+      .then((registry: any) => {
         const traitsList = Object.values(registry) as TraitDefinition[];
         setTraits(traitsList);
-    }).catch(() => {
+      })
+      .catch(() => {
         setTraits([{ id: 'mock_trait', category: 'interaction', source: 'holoscript' }]);
-    });
+      });
   }, []);
 
-  const filteredTraits = traits.filter(t => filter === 'all' || t.source === filter);
+  const filteredTraits = traits.filter((t) => filter === 'all' || t.source === filter);
 
   return (
     <div className="trait-registry-container p-6 bg-slate-900 border border-slate-700 text-white rounded-xl shadow-2xl">
@@ -30,16 +32,22 @@ export const TraitRegistryExplorer: React.FC = () => {
           Unified Trait Registry
         </h2>
         <div className="badges space-x-2">
-          <span className="bg-blue-900 px-3 py-1 rounded text-sm">HoloScript: {traits.filter(t => t.source === 'holoscript').length}</span>
-          <span className="bg-emerald-900 px-3 py-1 rounded text-sm">TrainingMonkey: {traits.filter(t => t.source === 'trainingmonkey').length}</span>
-          <span className="bg-purple-900 px-3 py-1 rounded text-sm">Hololand: {traits.filter(t => t.source === 'hololand').length}</span>
+          <span className="bg-blue-900 px-3 py-1 rounded text-sm">
+            HoloScript: {traits.filter((t) => t.source === 'holoscript').length}
+          </span>
+          <span className="bg-emerald-900 px-3 py-1 rounded text-sm">
+            TrainingMonkey: {traits.filter((t) => t.source === 'trainingmonkey').length}
+          </span>
+          <span className="bg-purple-900 px-3 py-1 rounded text-sm">
+            Hololand: {traits.filter((t) => t.source === 'hololand').length}
+          </span>
         </div>
       </div>
-      
+
       <div className="controls mb-4">
-        <select 
+        <select
           className="bg-slate-800 border border-slate-600 rounded p-2 text-white"
-          value={filter} 
+          value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
           <option value="all">All Sources</option>
@@ -50,8 +58,11 @@ export const TraitRegistryExplorer: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTraits.map(t => (
-          <div key={t.id} className={`p-4 rounded border ${t.deprecated ? 'border-red-500 bg-red-900/20' : 'border-slate-700 bg-slate-800'}`}>
+        {filteredTraits.map((t) => (
+          <div
+            key={t.id}
+            className={`p-4 rounded border ${t.deprecated ? 'border-red-500 bg-red-900/20' : 'border-slate-700 bg-slate-800'}`}
+          >
             <div className="flex justify-between">
               <span className="font-mono text-blue-300">@{t.id}</span>
               <span className="text-xs text-slate-400 uppercase tracking-widest">{t.category}</span>

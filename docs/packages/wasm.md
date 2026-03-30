@@ -31,10 +31,10 @@ console.log(result.diagnostics);
 ```typescript
 const result = wasm.compile(ast, {
   target: 'webgpu',
-  optimize: 'balanced'
+  optimize: 'balanced',
 });
 
-console.log(result.code);  // Compiled output
+console.log(result.code); // Compiled output
 ```
 
 ### Real-time Validation
@@ -45,7 +45,7 @@ const validator = wasm.createStreamingValidator();
 document.addEventListener('input', (e) => {
   const code = e.target.value;
   const errors = validator.validate(code);
-  
+
   // Show errors in UI
   showErrors(errors);
 });
@@ -61,6 +61,7 @@ document.addEventListener('input', (e) => {
 ## Supported Targets
 
 All 30+ compiler targets work in the browser:
+
 - WebGPU
 - Three.js
 - GraphQL schema

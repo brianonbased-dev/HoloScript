@@ -29,7 +29,9 @@ export const indexHandler: TraitHandler<IndexConfig> = {
   onAttach(node: any): void {
     node.__indexState = { indices: new Map() } as IndexState;
   },
-  onDetach(node: any): void { delete node.__indexState; },
+  onDetach(node: any): void {
+    delete node.__indexState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: IndexConfig, context: any, event: any): void {

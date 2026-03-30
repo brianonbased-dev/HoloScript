@@ -60,13 +60,7 @@ export const emotePreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Victory',
     pack: 'Emotes',
-    alternatives: [
-      'Clapping',
-      'Cheering',
-      'Laughing',
-      'Shrug',
-      'Fist Pump',
-    ],
+    alternatives: ['Clapping', 'Cheering', 'Laughing', 'Shrug', 'Fist Pump'],
   },
   tags: ['emote', 'expression', 'reaction', 'one-shot', 'celebration'],
 };
@@ -75,7 +69,4 @@ export const emotePreset: AnimationPreset = {
 // All Emote Presets
 // ---------------------------------------------------------------------------
 
-export const emotePresets: AnimationPreset[] = [
-  dancePreset,
-  emotePreset,
-];
+export const emotePresets: AnimationPreset[] = [dancePreset, emotePreset];

@@ -85,35 +85,38 @@ export function useProfiler(): UseProfilerReturn {
     });
   }, []);
 
-  const tick = useCallback((time: number) => {
-    if (!runningRef.current) return;
+  const tick = useCallback(
+    (time: number) => {
+      if (!runningRef.current) return;
 
-    const prev = prevTimeRef.current;
-    prevTimeRef.current = time;
+      const prev = prevTimeRef.current;
+      prevTimeRef.current = time;
 
-    // First frame — no delta yet, use default 16.67ms
-    const delta = prev !== null ? time - prev : 16.67;
+      // First frame — no delta yet, use default 16.67ms
+      const delta = prev !== null ? time - prev : 16.67;
 
-    // Record frame time
-    historyRef.current.push(round1(delta));
-    if (historyRef.current.length > MAX_HISTORY) {
-      historyRef.current.shift();
-    }
+      // Record frame time
+      historyRef.current.push(round1(delta));
+      if (historyRef.current.length > MAX_HISTORY) {
+        historyRef.current.shift();
+      }
 
-    // Count dropped frames
-    if (delta > DROPPED_THRESHOLD) {
-      droppedRef.current++;
-    }
+      // Count dropped frames
+      if (delta > DROPPED_THRESHOLD) {
+        droppedRef.current++;
+      }
 
-    frameCountRef.current++;
+      frameCountRef.current++;
 
-    // Throttled state update every UPDATE_INTERVAL frames
-    if (frameCountRef.current % UPDATE_INTERVAL === 0) {
-      flushSnap(true);
-    }
+      // Throttled state update every UPDATE_INTERVAL frames
+      if (frameCountRef.current % UPDATE_INTERVAL === 0) {
+        flushSnap(true);
+      }
 
-    rafRef.current = requestAnimationFrame(tick);
-  }, [flushSnap]);
+      rafRef.current = requestAnimationFrame(tick);
+    },
+    [flushSnap]
+  );
 
   const start = useCallback(() => {
     if (runningRef.current) return;

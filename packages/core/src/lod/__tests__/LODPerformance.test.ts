@@ -617,7 +617,9 @@ describe('LOD Performance - Performance Regression', () => {
 
     // Log relative performance; not asserted since timing is unreliable under CI/parallel load
     const speedup = duration1 / duration2;
-    console.log(`Single: ${duration1.toFixed(2)}ms, Batch: ${duration2.toFixed(2)}ms, Speedup: ${speedup.toFixed(2)}x`);
+    console.log(
+      `Single: ${duration1.toFixed(2)}ms, Batch: ${duration2.toFixed(2)}ms, Speedup: ${speedup.toFixed(2)}x`
+    );
   });
 
   it('should prevent transition stuttering with budget', () => {

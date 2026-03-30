@@ -182,7 +182,14 @@ export const handlerHandler: TraitHandler<HandlerConfig> = {
 
 // ── Middleware Trait ───────────────────────────────────────────────────────────
 
-export type MiddlewareType = 'auth' | 'cors' | 'rate_limit' | 'logging' | 'compression' | 'validation' | 'custom';
+export type MiddlewareType =
+  | 'auth'
+  | 'cors'
+  | 'rate_limit'
+  | 'logging'
+  | 'compression'
+  | 'validation'
+  | 'custom';
 export type MiddlewarePosition = 'before' | 'after' | 'error';
 
 export interface MiddlewareConfig {

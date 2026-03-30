@@ -24,7 +24,9 @@ export const queryHandler: TraitHandler<QueryConfig> = {
   onAttach(node: any): void {
     node.__queryState = { totalQueries: 0 };
   },
-  onDetach(node: any): void { delete node.__queryState; },
+  onDetach(node: any): void {
+    delete node.__queryState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: QueryConfig, context: any, event: any): void {

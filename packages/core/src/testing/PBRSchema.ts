@@ -400,10 +400,7 @@ export function parseColorToRGB(color: string | number[] | undefined): RGB {
 /**
  * Convert a parser MaterialDefinition's color to an RGBA object.
  */
-export function parseColorToRGBA(
-  color: string | number[] | undefined,
-  opacity?: number
-): RGBA {
+export function parseColorToRGBA(color: string | number[] | undefined, opacity?: number): RGBA {
   const rgb = parseColorToRGB(color);
   let a = opacity ?? 1;
   if (Array.isArray(color) && color.length >= 4) {

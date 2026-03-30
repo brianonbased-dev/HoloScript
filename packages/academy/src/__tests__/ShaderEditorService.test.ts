@@ -13,7 +13,10 @@ import {
   ShaderEditorService,
   getShaderEditorService,
 } from '../features/shader-editor/ShaderEditorService';
-import type { ShaderGraphMetadata, ShaderGraphVersion } from '../features/shader-editor/ShaderEditorService';
+import type {
+  ShaderGraphMetadata,
+  ShaderGraphVersion,
+} from '../features/shader-editor/ShaderEditorService';
 
 // ── IDB Mock ──────────────────────────────────────────────────────────────────
 //
@@ -35,10 +38,18 @@ function makeStores(): Record<string, Store> {
 function makeStoreProxy(stores: Record<string, Store>, name: string) {
   const s = stores[name];
   return {
-    add: async (val: any) => { s.set(val.id ?? val.key, val); return val.id ?? val.key; },
-    put: async (val: any) => { s.set(val.id ?? val.key, val); return val.id ?? val.key; },
+    add: async (val: any) => {
+      s.set(val.id ?? val.key, val);
+      return val.id ?? val.key;
+    },
+    put: async (val: any) => {
+      s.set(val.id ?? val.key, val);
+      return val.id ?? val.key;
+    },
     get: async (key: string) => s.get(key) ?? undefined,
-    delete: async (key: string) => { s.delete(key); },
+    delete: async (key: string) => {
+      s.delete(key);
+    },
     getAll: async () => Array.from(s.values()),
     getAllKeys: async () => Array.from(s.keys()),
     index: (idxName: string) => ({
@@ -64,9 +75,15 @@ function makeDb(stores: Record<string, Store>) {
   return {
     stores,
     get: async (storeName: string, key: string) => stores[storeName]?.get(key),
-    add: async (storeName: string, val: any) => { stores[storeName]?.set(val.id ?? val.key, val); },
-    put: async (storeName: string, val: any) => { stores[storeName]?.set(val.id ?? val.key, val); },
-    delete: async (storeName: string, key: string) => { stores[storeName]?.delete(key); },
+    add: async (storeName: string, val: any) => {
+      stores[storeName]?.set(val.id ?? val.key, val);
+    },
+    put: async (storeName: string, val: any) => {
+      stores[storeName]?.set(val.id ?? val.key, val);
+    },
+    delete: async (storeName: string, key: string) => {
+      stores[storeName]?.delete(key);
+    },
     getAll: async (storeName: string) => Array.from(stores[storeName]?.values() ?? []),
     transaction: (storeNames: string | string[], _mode?: string) => {
       const names = Array.isArray(storeNames) ? storeNames : [storeNames];
@@ -93,10 +110,16 @@ vi.mock('idb', () => {
   function makeProxy2(stores: Record<string, Map<string, unknown>>, name: string) {
     const s = stores[name];
     return {
-      add: async (val: any) => { s.set(val.id ?? val.key, val); },
-      put: async (val: any) => { s.set(val.id ?? val.key, val); },
+      add: async (val: any) => {
+        s.set(val.id ?? val.key, val);
+      },
+      put: async (val: any) => {
+        s.set(val.id ?? val.key, val);
+      },
       get: async (key: string) => s.get(key),
-      delete: async (key: string) => { s.delete(key); },
+      delete: async (key: string) => {
+        s.delete(key);
+      },
       getAll: async () => [...s.values()],
       getAllKeys: async () => [...s.keys()],
       index: (idxName: string) => ({
@@ -119,9 +142,15 @@ vi.mock('idb', () => {
       const stores = makeStores2();
       const db = {
         get: async (sn: string, k: string) => stores[sn]?.get(k),
-        add: async (sn: string, v: any) => { stores[sn]?.set(v.id ?? v.key, v); },
-        put: async (sn: string, v: any) => { stores[sn]?.set(v.id ?? v.key, v); },
-        delete: async (sn: string, k: string): Promise<void> => { stores[sn]?.delete(k); },
+        add: async (sn: string, v: any) => {
+          stores[sn]?.set(v.id ?? v.key, v);
+        },
+        put: async (sn: string, v: any) => {
+          stores[sn]?.set(v.id ?? v.key, v);
+        },
+        delete: async (sn: string, k: string): Promise<void> => {
+          stores[sn]?.delete(k);
+        },
         getAll: async (sn: string) => [...(stores[sn]?.values() ?? [])],
         transaction: (sn: string | string[], _m?: string) => {
           const names = Array.isArray(sn) ? sn : [sn];
@@ -408,7 +437,10 @@ describe('ShaderEditorService — exportBinary / importBinary', () => {
 
   it('importBinary() throws on unsupported version byte', async () => {
     const buf = new Uint8Array(8);
-    buf[0] = 0x48; buf[1] = 0x53; buf[2] = 0x47; buf[3] = 0x99; // bad version
+    buf[0] = 0x48;
+    buf[1] = 0x53;
+    buf[2] = 0x47;
+    buf[3] = 0x99; // bad version
     await expect(service.importBinary(buf.buffer)).rejects.toThrow('Unsupported .shader version');
   });
 });

@@ -85,7 +85,10 @@ describe('FederatedRegistryAdapter', () => {
     it('converts an A2A AgentCard to an AgentManifest', () => {
       const adapter = new FederatedRegistryAdapter(registry);
       const card = makeAgentCard();
-      const manifest = adapter.a2aCardToManifest(card, 'https://remote.example.com/.well-known/agent-card.json');
+      const manifest = adapter.a2aCardToManifest(
+        card,
+        'https://remote.example.com/.well-known/agent-card.json'
+      );
 
       expect(manifest.id).toBe('remote-agent-1');
       expect(manifest.name).toBe('Remote Agent');
@@ -98,14 +101,22 @@ describe('FederatedRegistryAdapter', () => {
       expect(manifest.endpoints[0].protocol).toBe('https');
       expect(manifest.endpoints[0].address).toBe('https://remote.example.com/a2a');
       expect(manifest.capabilities.length).toBeGreaterThan(0);
-      expect(manifest.metadata?.sourceUrl).toBe('https://remote.example.com/.well-known/agent-card.json');
+      expect(manifest.metadata?.sourceUrl).toBe(
+        'https://remote.example.com/.well-known/agent-card.json'
+      );
     });
 
     it('extracts capability type from skill tags', () => {
       const adapter = new FederatedRegistryAdapter(registry);
       const card = makeAgentCard({
         skills: [
-          { id: 'skill-1', name: 'Analyzer', tags: ['analysis', 'nlp'], inputModes: [], outputModes: [] },
+          {
+            id: 'skill-1',
+            name: 'Analyzer',
+            tags: ['analysis', 'nlp'],
+            inputModes: [],
+            outputModes: [],
+          },
         ],
       });
       const manifest = adapter.a2aCardToManifest(card, 'https://example.com');
@@ -118,9 +129,27 @@ describe('FederatedRegistryAdapter', () => {
       const adapter = new FederatedRegistryAdapter(registry);
       const card = makeAgentCard({
         skills: [
-          { id: 's1', name: 'Parse 1', tags: ['parsing', 'spatial'], inputModes: [], outputModes: [] },
-          { id: 's2', name: 'Parse 2', tags: ['parsing', 'spatial'], inputModes: [], outputModes: [] },
-          { id: 's3', name: 'Compile', tags: ['compilation', 'spatial'], inputModes: [], outputModes: [] },
+          {
+            id: 's1',
+            name: 'Parse 1',
+            tags: ['parsing', 'spatial'],
+            inputModes: [],
+            outputModes: [],
+          },
+          {
+            id: 's2',
+            name: 'Parse 2',
+            tags: ['parsing', 'spatial'],
+            inputModes: [],
+            outputModes: [],
+          },
+          {
+            id: 's3',
+            name: 'Compile',
+            tags: ['compilation', 'spatial'],
+            inputModes: [],
+            outputModes: [],
+          },
         ],
       });
       const manifest = adapter.a2aCardToManifest(card, 'https://example.com');
@@ -180,8 +209,7 @@ describe('FederatedRegistryAdapter', () => {
 
     it('returns null when card is missing required fields', async () => {
       const adapter = new FederatedRegistryAdapter(registry, {
-        fetchFn: async () =>
-          ({ ok: true, json: async () => ({ version: '1.0.0' }) } as Response),
+        fetchFn: async () => ({ ok: true, json: async () => ({ version: '1.0.0' }) }) as Response,
       });
 
       const manifest = await adapter.fetchAndRegister('https://bad.example.com');
@@ -310,7 +338,13 @@ describe('FederatedRegistryAdapter', () => {
             id: 'remote-1',
             name: 'Remote 1',
             skills: [
-              { id: 's1', name: 'Analyze', tags: ['analysis', 'spatial'], inputModes: [], outputModes: [] },
+              {
+                id: 's1',
+                name: 'Analyze',
+                tags: ['analysis', 'spatial'],
+                inputModes: [],
+                outputModes: [],
+              },
             ],
           }),
         }),

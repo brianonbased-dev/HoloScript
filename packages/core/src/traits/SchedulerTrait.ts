@@ -132,7 +132,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
       }
 
       case 'scheduler:remove_job': {
-        const jobId = payload.jobId as string ?? payload.id as string;
+        const jobId = (payload.jobId as string) ?? (payload.id as string);
         const js = state.jobs.get(jobId);
         if (js) {
           if (js.timer) clearInterval(js.timer);
@@ -143,7 +143,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
       }
 
       case 'scheduler:pause_job': {
-        const jobId = payload.jobId as string ?? payload.id as string;
+        const jobId = (payload.jobId as string) ?? (payload.id as string);
         const js = state.jobs.get(jobId);
         if (js && !js.paused) {
           js.paused = true;
@@ -157,7 +157,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
       }
 
       case 'scheduler:resume_job': {
-        const jobId = payload.jobId as string ?? payload.id as string;
+        const jobId = (payload.jobId as string) ?? (payload.id as string);
         const js = state.jobs.get(jobId);
         if (js && js.paused) {
           js.paused = false;
@@ -168,7 +168,7 @@ export const schedulerHandler: TraitHandler<SchedulerConfig> = {
       }
 
       case 'scheduler:get_status': {
-        const jobSummaries = Array.from(state.jobs.values()).map(js => ({
+        const jobSummaries = Array.from(state.jobs.values()).map((js) => ({
           id: js.job.id,
           paused: js.paused,
           executionCount: js.executionCount,
@@ -190,7 +190,7 @@ function addJob(
   state: SchedulerState,
   job: SchedulerJob,
   config: SchedulerConfig,
-  context: any,
+  context: any
 ): void {
   if (state.jobs.size >= config.max_jobs) {
     context.emit?.('scheduler:job_error', {

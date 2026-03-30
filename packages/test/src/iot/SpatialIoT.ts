@@ -166,10 +166,7 @@ export function estimateLoad(zone: ThermalZone, outsideTemp: number): number {
  * in each zone. This is the core "intelligence" layer that translates
  * spatial math into actionable IoT commands.
  */
-export function generateHVACCommands(
-  zones: ThermalZone[],
-  outsideTemp: number
-): HVACCommand[] {
+export function generateHVACCommands(zones: ThermalZone[], outsideTemp: number): HVACCommand[] {
   const commands: HVACCommand[] = [];
 
   for (const zone of zones) {

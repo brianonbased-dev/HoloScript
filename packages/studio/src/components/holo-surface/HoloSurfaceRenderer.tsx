@@ -106,17 +106,20 @@ function evaluateExpression(
     const context: Record<string, unknown> = { ...state, ...computed };
 
     // Replace $varName with context lookups
-    const transformed = expr.replace(
-      /\$([a-zA-Z_][a-zA-Z0-9_]*)/g,
-      (_, varName) => varName
-    );
+    const transformed = expr.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, varName) => varName);
 
     const contextKeys = Object.keys(context);
     const contextValues = Object.values(context);
 
     const fn = new Function(
       ...contextKeys,
-      'Math', 'String', 'Number', 'Boolean', 'Date', 'JSON', 'Array',
+      'Math',
+      'String',
+      'Number',
+      'Boolean',
+      'Date',
+      'JSON',
+      'Array',
       `"use strict"; return (${transformed})`
     );
 
@@ -143,13 +146,20 @@ function renderNode(
 
   // Merge template defaults if using "X"
   const templateRef = props.__templateRef as string | undefined;
-  const templateDefaults = templateRef ? templates.get(templateRef) ?? {} : {};
+  const templateDefaults = templateRef ? (templates.get(templateRef) ?? {}) : {};
   const merged = { ...templateDefaults, ...props };
 
   const uiType = resolveValue(merged.uiType ?? merged.type, state, computed) as string;
 
   // Skip non-UI nodes (behavior trees, logic blocks, etc.)
-  if (uiType !== 'panel' && uiType !== 'text' && uiType !== 'button' && uiType !== 'input' && uiType !== 'progress' && uiType !== 'ui') {
+  if (
+    uiType !== 'panel' &&
+    uiType !== 'text' &&
+    uiType !== 'button' &&
+    uiType !== 'input' &&
+    uiType !== 'progress' &&
+    uiType !== 'ui'
+  ) {
     return null;
   }
 

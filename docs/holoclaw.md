@@ -79,22 +79,22 @@ holoscript test compositions/skills/code-health.hsplus
 
 ### State (14 variables)
 
-| Variable | Type | Default | Purpose |
-|----------|------|---------|---------|
-| `agentName` | string | `"HoloClaw"` | Identity |
-| `agentVersion` | string | `"0.1.0"` | Version |
-| `agentStatus` | string | `"idle"` | `idle` / `running` / `error` |
-| `cycleCount` | number | `0` | Total BT cycles completed |
-| `costUSD` | number | `0` | Cumulative API spend |
-| `tokensBurned` | number | `0` | Total tokens consumed |
-| `budgetRemaining` | number | `10` | Remaining credits |
-| `skillsLoaded` | number | `0` | Installed skill count |
-| `messagesReceived` | number | `0` | Inbound channel messages |
-| `messagesSent` | number | `0` | Outbound channel messages |
-| `healthScore` | number | `1.0` | Repo health (0–1) |
-| `typeErrorCount` | number | `0` | Current tsc errors |
-| `activeTab` | string | `"shelf"` | UI tab state |
-| `streamingConnected` | boolean | `false` | SSE connection status |
+| Variable             | Type    | Default      | Purpose                      |
+| -------------------- | ------- | ------------ | ---------------------------- |
+| `agentName`          | string  | `"HoloClaw"` | Identity                     |
+| `agentVersion`       | string  | `"0.1.0"`    | Version                      |
+| `agentStatus`        | string  | `"idle"`     | `idle` / `running` / `error` |
+| `cycleCount`         | number  | `0`          | Total BT cycles completed    |
+| `costUSD`            | number  | `0`          | Cumulative API spend         |
+| `tokensBurned`       | number  | `0`          | Total tokens consumed        |
+| `budgetRemaining`    | number  | `10`         | Remaining credits            |
+| `skillsLoaded`       | number  | `0`          | Installed skill count        |
+| `messagesReceived`   | number  | `0`          | Inbound channel messages     |
+| `messagesSent`       | number  | `0`          | Outbound channel messages    |
+| `healthScore`        | number  | `1.0`        | Repo health (0–1)            |
+| `typeErrorCount`     | number  | `0`          | Current tsc errors           |
+| `activeTab`          | string  | `"shelf"`    | UI tab state                 |
+| `streamingConnected` | boolean | `false`      | SSE connection status        |
 
 ### Behavior Tree
 
@@ -109,23 +109,23 @@ holoclaw_cycle (sequence, restart_on_complete: true)
 
 ### Safety Traits
 
-| Trait | Config | Purpose |
-|-------|--------|---------|
-| `@rate_limiter` | 20 tokens max, refill 5/60s | Prevent runaway API calls |
-| `@timeout_guard` | 120s default | Kill stuck operations |
-| `@circuit_breaker` | 5 failures in 5min trips | Stop cascading failures |
-| `@economy` | $10 balance, $2/hr limit, $0.01 task reward | Budget enforcement |
-| `@structured_logger` | 1000 buffer, 200 rotation | Audit trail |
+| Trait                | Config                                      | Purpose                   |
+| -------------------- | ------------------------------------------- | ------------------------- |
+| `@rate_limiter`      | 20 tokens max, refill 5/60s                 | Prevent runaway API calls |
+| `@timeout_guard`     | 120s default                                | Kill stuck operations     |
+| `@circuit_breaker`   | 5 failures in 5min trips                    | Stop cascading failures   |
+| `@economy`           | $10 balance, $2/hr limit, $0.01 task reward | Budget enforcement        |
+| `@structured_logger` | 1000 buffer, 200 rotation                   | Audit trail               |
 
 ### Event Handlers
 
-| Event | Action |
-|-------|--------|
-| `on_start()` | Set status to `"running"`, emit `holoclaw:started` |
-| `daemon:tool:shell_exec` | Update `lastHealthCheck` |
-| `daemon:channel:send` | Increment `messagesSent`, `cycleCount` |
-| `user:message` | Increment `messagesReceived` |
-| `daemon:skill_created` | Increment `skillsLoaded` |
+| Event                    | Action                                             |
+| ------------------------ | -------------------------------------------------- |
+| `on_start()`             | Set status to `"running"`, emit `holoclaw:started` |
+| `daemon:tool:shell_exec` | Update `lastHealthCheck`                           |
+| `daemon:channel:send`    | Increment `messagesSent`, `cycleCount`             |
+| `user:message`           | Increment `messagesReceived`                       |
+| `daemon:skill_created`   | Increment `skillsLoaded`                           |
 
 ### UI Surface (343 lines)
 
@@ -141,15 +141,15 @@ Native dashboard rendered via `HoloSurfaceRenderer` — no React for stats:
 
 All in `compositions/skills/`. Each is a standalone `.hsplus` composition with its own state, BT, economy budget, safety traits, and tests.
 
-| Skill | Lines | Budget | What It Does |
-|-------|-------|--------|--------------|
-| **code-health** | 61 | $0.10 | `tsc --noEmit` + lint scan + vitest → health score |
-| **lint-sweep** | 103 | $0.50 | Find console.log / @ts-ignore / `as any` → auto-fix via `generate_fix` |
-| **test-runner** | 56 | $0.05 | Targeted vitest for specific packages |
-| **dependency-audit** | 56 | $0.05 | `npm audit` + `ncu --jsonUpgraded` → CVE + outdated report |
-| **dead-code-finder** | 51 | $0.10 | `ts-prune` → unused export detection |
-| **git-digest** | 59 | $0.02 | `git log --since=24h` → commit summary for standups |
-| **bundle-analyzer** | 60 | $0.20 | `next build` → bundle size tracking with regression alerts |
+| Skill                | Lines | Budget | What It Does                                                           |
+| -------------------- | ----- | ------ | ---------------------------------------------------------------------- |
+| **code-health**      | 61    | $0.10  | `tsc --noEmit` + lint scan + vitest → health score                     |
+| **lint-sweep**       | 103   | $0.50  | Find console.log / @ts-ignore / `as any` → auto-fix via `generate_fix` |
+| **test-runner**      | 56    | $0.05  | Targeted vitest for specific packages                                  |
+| **dependency-audit** | 56    | $0.05  | `npm audit` + `ncu --jsonUpgraded` → CVE + outdated report             |
+| **dead-code-finder** | 51    | $0.10  | `ts-prune` → unused export detection                                   |
+| **git-digest**       | 59    | $0.02  | `git log --since=24h` → commit summary for standups                    |
+| **bundle-analyzer**  | 60    | $0.20  | `next build` → bundle size tracking with regression alerts             |
 
 **Totals**: 446 lines, 29 `@test` blocks, all hot-reload compatible.
 
@@ -199,14 +199,14 @@ CLI flag: `--skills-dir <path>` (default: `compositions/skills`)
 
 `packages/core/src/traits/EconomyPrimitivesTrait.ts`
 
-| Feature | Config | Description |
-|---------|--------|-------------|
-| **Credits** | initial_balance: 100 | Agents earn by completing tasks, spend on inference |
-| **Spend limits** | per hour, configurable | Prevents runaway spending |
-| **Bounties** | 5min deadline, max 10/agent | Post task with escrow → agents compete → winner paid |
-| **Escrow** | enabled by default | Funds locked until task verified |
-| **Subscriptions** | recurring allocations | Periodic credit grants |
-| **Transaction log** | max 200 entries | Full audit trail per account |
+| Feature             | Config                      | Description                                          |
+| ------------------- | --------------------------- | ---------------------------------------------------- |
+| **Credits**         | initial_balance: 100        | Agents earn by completing tasks, spend on inference  |
+| **Spend limits**    | per hour, configurable      | Prevents runaway spending                            |
+| **Bounties**        | 5min deadline, max 10/agent | Post task with escrow → agents compete → winner paid |
+| **Escrow**          | enabled by default          | Funds locked until task verified                     |
+| **Subscriptions**   | recurring allocations       | Periodic credit grants                               |
+| **Transaction log** | max 200 entries             | Full audit trail per account                         |
 
 ### Bounty Lifecycle
 
@@ -217,14 +217,14 @@ open → claimed (agent accepts) → completed (escrow released)
 
 ### Events
 
-| Event | Trigger |
-|-------|---------|
-| `economy:account_created` | New agent registers |
-| `economy:credit_earned` | Task completion reward |
-| `economy:credit_spent` | API call or tool use |
-| `economy:bounty_posted` | New bounty with escrow |
-| `economy:bounty_completed` | Winner verified, escrow released |
-| `economy:insufficient_funds` | Spend rejected |
+| Event                        | Trigger                          |
+| ---------------------------- | -------------------------------- |
+| `economy:account_created`    | New agent registers              |
+| `economy:credit_earned`      | Task completion reward           |
+| `economy:credit_spent`       | API call or tool use             |
+| `economy:bounty_posted`      | New bounty with escrow           |
+| `economy:bounty_completed`   | Winner verified, escrow released |
+| `economy:insufficient_funds` | Spend rejected                   |
 
 ### x402 Payment Protocol
 
@@ -256,17 +256,18 @@ Networks: Base L2, Ethereum, Solana. Assets: USDC, ETH, SOL.
 
 **Hybrid architecture**: HoloSurfaceRenderer for dashboard stats (native `.hsplus` rendering) + React for interactive elements.
 
-| Tab | Content |
-|-----|---------|
-| **Shelf** | Installed skill list with trait badges, action counts, state counts |
-| **Create** | 4 templates (basic-action, bt-workflow, channel-listener, scheduled-task) → name → content → Install |
-| **Activity** | SSE stream from daemon outbox with live indicator |
+| Tab          | Content                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| **Shelf**    | Installed skill list with trait badges, action counts, state counts                                  |
+| **Create**   | 4 templates (basic-action, bt-workflow, channel-listener, scheduled-task) → name → content → Install |
+| **Activity** | SSE stream from daemon outbox with live indicator                                                    |
 
 ### API Endpoints
 
 **`GET /api/holoclaw`** — List installed skills
 
 Returns `{ skills: SkillMeta[], total: number }` where each skill has:
+
 - `name`, `fileName`, `path`, `size`, `modifiedAt`
 - `actions[]` (extracted from BT action nodes)
 - `traits[]` (extracted from `@` annotations)
@@ -301,10 +302,10 @@ interface AgentCommitMetadata {
   agentChecksum: string;
   workflowId: string;
   workflowStep: number;
-  delegationChain: string[];    // Chain of custody
+  delegationChain: string[]; // Chain of custody
   signedAt: number;
-  signature: string;            // Ed25519 signature
-  changeSetDigest: string;      // Hash of all file changes
+  signature: string; // Ed25519 signature
+  changeSetDigest: string; // Hash of all file changes
   publicKey: string;
 }
 ```
@@ -339,11 +340,11 @@ Well-known path: `/.well-known/agent-card.json`
 
 Agents communicate via file-based channels:
 
-| Channel | File | Direction |
-|---------|------|-----------|
-| Inbox | `.holoscript/inbox.jsonl` | External → Agent |
-| Outbox | `.holoscript/outbox.jsonl` | Agent → External |
-| Wisdom | `.holoscript/accumulated-wisdom.json` | Persistent knowledge |
+| Channel | File                                  | Direction            |
+| ------- | ------------------------------------- | -------------------- |
+| Inbox   | `.holoscript/inbox.jsonl`             | External → Agent     |
+| Outbox  | `.holoscript/outbox.jsonl`            | Agent → External     |
+| Wisdom  | `.holoscript/accumulated-wisdom.json` | Persistent knowledge |
 
 **Actions** (`daemon-actions.ts`):
 
@@ -359,13 +360,13 @@ Agents communicate via file-based channels:
 
 Runtime skill system with 5 built-in skills:
 
-| Skill | Description |
-|-------|-------------|
-| `web_fetch` | HTTP GET with json/text/html response parsing |
-| `file_read` | Virtual FS read (browser File System Access API or Node fs) |
-| `file_write` | Virtual FS write |
+| Skill            | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `web_fetch`      | HTTP GET with json/text/html response parsing                |
+| `file_read`      | Virtual FS read (browser File System Access API or Node fs)  |
+| `file_write`     | Virtual FS write                                             |
 | `json_transform` | Parse JSON + dot-notation extraction (`"data.users.0.name"`) |
-| `text_truncate` | Max chars with ellipsis |
+| `text_truncate`  | Max chars with ellipsis                                      |
 
 Config: `max_skills: 200`, `timeout_ms: 30000`, permission controls (`allow_shell`, `allow_fs`, `allow_fetch`, `allowed_domains[]`).
 
@@ -377,13 +378,13 @@ Config: `max_skills: 200`, `timeout_ms: 30000`, permission controls (`allow_shel
 
 Full marketplace API for skill discovery, publishing, and installation:
 
-| Method | Description |
-|--------|-------------|
-| `publishSkill()` | Create skill package with signature hash |
-| `searchSkills()` | Full-text search with category/platform/pricing facets |
-| `purchaseSkill()` | Returns download URL (x402 integration planned) |
-| `installSkill()` | Write skill to workspace |
-| `testSkill()` | Test skill against prompt |
+| Method            | Description                                            |
+| ----------------- | ------------------------------------------------------ |
+| `publishSkill()`  | Create skill package with signature hash               |
+| `searchSkills()`  | Full-text search with category/platform/pricing facets |
+| `purchaseSkill()` | Returns download URL (x402 integration planned)        |
+| `installSkill()`  | Write skill to workspace                               |
+| `testSkill()`     | Test skill against prompt                              |
 
 **Categories**: agent_framework, workflow, rbac_policy, orchestration, mcp_bundle, ecosystem_script, decision_template, prompt_template, code_generator.
 
@@ -395,32 +396,32 @@ Full marketplace API for skill discovery, publishing, and installation:
 
 ### Compositions (1,080 lines)
 
-| File | Lines | Tests |
-|------|-------|-------|
-| `compositions/holoclaw.hsplus` | 634 | 8 |
-| `compositions/skills/code-health.hsplus` | 61 | 4 |
-| `compositions/skills/lint-sweep.hsplus` | 103 | 5 |
-| `compositions/skills/test-runner.hsplus` | 56 | 4 |
-| `compositions/skills/dependency-audit.hsplus` | 56 | 4 |
-| `compositions/skills/dead-code-finder.hsplus` | 51 | 4 |
-| `compositions/skills/git-digest.hsplus` | 59 | 4 |
-| `compositions/skills/bundle-analyzer.hsplus` | 60 | 4 |
+| File                                          | Lines | Tests |
+| --------------------------------------------- | ----- | ----- |
+| `compositions/holoclaw.hsplus`                | 634   | 8     |
+| `compositions/skills/code-health.hsplus`      | 61    | 4     |
+| `compositions/skills/lint-sweep.hsplus`       | 103   | 5     |
+| `compositions/skills/test-runner.hsplus`      | 56    | 4     |
+| `compositions/skills/dependency-audit.hsplus` | 56    | 4     |
+| `compositions/skills/dead-code-finder.hsplus` | 51    | 4     |
+| `compositions/skills/git-digest.hsplus`       | 59    | 4     |
+| `compositions/skills/bundle-analyzer.hsplus`  | 60    | 4     |
 
 ### Infrastructure
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `studio/src/app/holoclaw/page.tsx` | 484 | Studio UI |
-| `studio/src/app/api/holoclaw/route.ts` | 134 | Skill REST API |
-| `studio/src/app/api/holoclaw/activity/route.ts` | 97 | SSE stream |
-| `core/src/traits/SkillRegistryTrait.ts` | 425 | Skill runtime |
-| `core/src/traits/EconomyPrimitivesTrait.ts` | 585 | Economy system |
-| `core/src/traits/HotReloadTrait.ts` | 216 | File watcher |
-| `core/src/cli/daemon-actions.ts` | 1,270+ | Skill loader, channels |
-| `core/src/compiler/identity/AgentCommitSigner.ts` | 300+ | Ed25519 signing |
-| `core/src/compiler/A2AAgentCardCompiler.ts` | 852 | A2A agent cards |
-| `marketplace-api/src/SkillMarketplaceService.ts` | 556 | Marketplace API |
-| `marketplace-api/src/x402PaymentService.ts` | 347 | Payment protocol |
+| File                                              | Lines  | Purpose                |
+| ------------------------------------------------- | ------ | ---------------------- |
+| `studio/src/app/holoclaw/page.tsx`                | 484    | Studio UI              |
+| `studio/src/app/api/holoclaw/route.ts`            | 134    | Skill REST API         |
+| `studio/src/app/api/holoclaw/activity/route.ts`   | 97     | SSE stream             |
+| `core/src/traits/SkillRegistryTrait.ts`           | 425    | Skill runtime          |
+| `core/src/traits/EconomyPrimitivesTrait.ts`       | 585    | Economy system         |
+| `core/src/traits/HotReloadTrait.ts`               | 216    | File watcher           |
+| `core/src/cli/daemon-actions.ts`                  | 1,270+ | Skill loader, channels |
+| `core/src/compiler/identity/AgentCommitSigner.ts` | 300+   | Ed25519 signing        |
+| `core/src/compiler/A2AAgentCardCompiler.ts`       | 852    | A2A agent cards        |
+| `marketplace-api/src/SkillMarketplaceService.ts`  | 556    | Marketplace API        |
+| `marketplace-api/src/x402PaymentService.ts`       | 347    | Payment protocol       |
 
 ### Verification
 

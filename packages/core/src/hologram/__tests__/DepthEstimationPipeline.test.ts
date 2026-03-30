@@ -46,10 +46,10 @@ describe('DepthEstimationService — pipeline path', () => {
         for (let x = 0; x < width; x++) {
           const idx = (y * width + x) * 4;
           const brightness = Math.round((x / (width - 1)) * 255);
-          data[idx] = brightness;     // R
+          data[idx] = brightness; // R
           data[idx + 1] = brightness; // G
           data[idx + 2] = brightness; // B
-          data[idx + 3] = 255;        // A
+          data[idx + 3] = 255; // A
         }
       }
 
@@ -111,7 +111,7 @@ describe('DepthEstimationService — pipeline path', () => {
 
       const results = await service.estimateDepthSequence(frames);
       expect(results).toHaveLength(3);
-      results.forEach(r => {
+      results.forEach((r) => {
         expect(r.depthMap).toBeInstanceOf(Float32Array);
         expect(r.normalMap).toBeInstanceOf(Float32Array);
       });

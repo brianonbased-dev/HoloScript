@@ -18,7 +18,11 @@ export class AnthropicLLMProvider implements LLMProvider {
     this.model = model;
   }
 
-  async chat(params: { system: string; prompt: string; maxTokens: number }): Promise<{ text: string }> {
+  async chat(params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }): Promise<{ text: string }> {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -41,10 +45,11 @@ export class AnthropicLLMProvider implements LLMProvider {
     }
 
     const data = await res.json();
-    const text = data.content
-      ?.filter((c: { type: string }) => c.type === 'text')
-      .map((c: { text: string }) => c.text)
-      .join('') ?? '';
+    const text =
+      data.content
+        ?.filter((c: { type: string }) => c.type === 'text')
+        .map((c: { text: string }) => c.text)
+        .join('') ?? '';
 
     return { text };
   }
@@ -61,7 +66,11 @@ export class OpenAILLMProvider implements LLMProvider {
     this.model = model;
   }
 
-  async chat(params: { system: string; prompt: string; maxTokens: number }): Promise<{ text: string }> {
+  async chat(params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }): Promise<{ text: string }> {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -102,7 +111,11 @@ export class XAILLMProvider implements LLMProvider {
     this.model = model;
   }
 
-  async chat(params: { system: string; prompt: string; maxTokens: number }): Promise<{ text: string }> {
+  async chat(params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }): Promise<{ text: string }> {
     const res = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -142,7 +155,11 @@ export class OllamaLLMProvider implements LLMProvider {
     this.model = model;
   }
 
-  async chat(params: { system: string; prompt: string; maxTokens: number }): Promise<{ text: string }> {
+  async chat(params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }): Promise<{ text: string }> {
     const res = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -194,7 +211,8 @@ export function createLLMProvider(): LLMProvider {
     return new OpenAILLMProvider(openaiKey, model);
   }
 
-  const ollamaUrl = process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+  const ollamaUrl =
+    process.env.OLLAMA_URL ?? process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
   const ollamaModel = process.env.OLLAMA_MODEL ?? process.env.BRITTNEY_MODEL ?? 'llama3.1:8b';
   return new OllamaLLMProvider(ollamaUrl, ollamaModel);
 }

@@ -26,10 +26,10 @@ interface AutomergeDoc {
 export class AutomergeAdapter implements CRDTAdapter {
   /** Adapter name for benchmark identification */
   name = 'automerge';
-  
+
   /** Automerge document instance */
   private doc: A.Doc<AutomergeDoc>;
-  
+
   /** Current operation mode for tracking data type usage */
   private mode: 'text' | 'counter' | 'set' = 'text';
 

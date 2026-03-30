@@ -112,9 +112,11 @@ export class WebCodecsDepthPipeline {
    * Check if WebCodecs API is available in the current environment.
    */
   static isSupported(): boolean {
-    return typeof globalThis !== 'undefined'
-      && 'VideoDecoder' in globalThis
-      && 'VideoFrame' in globalThis;
+    return (
+      typeof globalThis !== 'undefined' &&
+      'VideoDecoder' in globalThis &&
+      'VideoFrame' in globalThis
+    );
   }
 
   /**
@@ -133,7 +135,10 @@ export class WebCodecsDepthPipeline {
     });
 
     // Create OffscreenCanvas for GPU → pixel data extraction
-    this.canvas = new OffscreenCanvas(this.config.maxDepthResolution, this.config.maxDepthResolution);
+    this.canvas = new OffscreenCanvas(
+      this.config.maxDepthResolution,
+      this.config.maxDepthResolution
+    );
     this.ctx = this.canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
 
     // Create VideoDecoder
@@ -181,7 +186,8 @@ export class WebCodecsDepthPipeline {
       framesProcessed: this._framesProcessed,
       framesSkipped: this._framesSkipped,
       avgDecodeMs: this._framesDecoded > 0 ? this._totalDecodeMs / this._framesDecoded : 0,
-      avgInferenceMs: this._framesProcessed > 0 ? this._totalInferenceMs / this._framesProcessed : 0,
+      avgInferenceMs:
+        this._framesProcessed > 0 ? this._totalInferenceMs / this._framesProcessed : 0,
       running: this._running,
     };
   }

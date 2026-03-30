@@ -58,15 +58,23 @@ describe('Scenario: Co-Creation — Balance', () => {
 interface StigmergicMarker {
   id: string;
   position: [number, number]; // x, y on map
-  weight: number;             // 0–1 intensity
+  weight: number; // 0–1 intensity
   faction: string;
   ageMs: number;
 }
 
-function decayMarkers(markers: StigmergicMarker[], decayRate: number, dtMs: number): StigmergicMarker[] {
+function decayMarkers(
+  markers: StigmergicMarker[],
+  decayRate: number,
+  dtMs: number
+): StigmergicMarker[] {
   return markers
-    .map(m => ({ ...m, weight: m.weight * Math.exp(-decayRate * dtMs / 1000), ageMs: m.ageMs + dtMs }))
-    .filter(m => m.weight > 0.01);
+    .map((m) => ({
+      ...m,
+      weight: m.weight * Math.exp((-decayRate * dtMs) / 1000),
+      ageMs: m.ageMs + dtMs,
+    }))
+    .filter((m) => m.weight > 0.01);
 }
 
 function clusterMarkers(markers: StigmergicMarker[], radius: number): StigmergicMarker[][] {
@@ -74,12 +82,12 @@ function clusterMarkers(markers: StigmergicMarker[], radius: number): Stigmergic
   const clusters: StigmergicMarker[][] = [];
   for (const m of markers) {
     if (visited.has(m.id)) continue;
-    const cluster = markers.filter(o => {
+    const cluster = markers.filter((o) => {
       const dx = m.position[0] - o.position[0];
       const dy = m.position[1] - o.position[1];
       return Math.sqrt(dx * dx + dy * dy) <= radius;
     });
-    cluster.forEach(c => visited.add(c.id));
+    cluster.forEach((c) => visited.add(c.id));
     clusters.push(cluster);
   }
   return clusters;
@@ -105,17 +113,20 @@ interface TimelineBranch {
   votes: number;
 }
 
-function exportTimelineDAG(branches: TimelineBranch[]): { nodes: string[]; edges: [string, string][] } {
-  const nodes = branches.map(b => b.id);
+function exportTimelineDAG(branches: TimelineBranch[]): {
+  nodes: string[];
+  edges: [string, string][];
+} {
+  const nodes = branches.map((b) => b.id);
   const edges: [string, string][] = branches
-    .filter(b => b.parentId !== null)
-    .map(b => [b.parentId!, b.id]);
+    .filter((b) => b.parentId !== null)
+    .map((b) => [b.parentId!, b.id]);
   return { nodes, edges };
 }
 
 function winningBranch(branches: TimelineBranch[]): TimelineBranch | null {
   if (branches.length === 0) return null;
-  return branches.reduce((best, b) => b.votes > best.votes ? b : best);
+  return branches.reduce((best, b) => (b.votes > best.votes ? b : best));
 }
 
 describe('Scenario: Co-Creation — Stigmergic Markers Visualization', () => {
@@ -128,7 +139,7 @@ describe('Scenario: Co-Creation — Stigmergic Markers Visualization', () => {
   it('decayMarkers() reduces weight over time', () => {
     const decayed = decayMarkers(markers, 0.5, 2000);
     expect(decayed[0].weight).toBeLessThan(0.8);
-    expect(decayed.every(m => m.weight > 0)).toBe(true);
+    expect(decayed.every((m) => m.weight > 0)).toBe(true);
   });
   it('decayMarkers() removes near-zero markers', () => {
     const decayed = decayMarkers(markers, 10, 5000); // aggressive decay

@@ -16,7 +16,13 @@ import type {
 } from './types/AdvancedTypeSystem';
 
 import type { HSPlusNode } from './types/HoloScriptPlus';
-import type { VRTraitName, ASTNode, SpatialPosition, HologramShape, HologramProperties } from './types/base';
+import type {
+  VRTraitName,
+  ASTNode,
+  SpatialPosition,
+  HologramShape,
+  HologramProperties,
+} from './types/base';
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
 

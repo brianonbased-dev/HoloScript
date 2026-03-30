@@ -19,8 +19,12 @@ export const mqttPubHandler: TraitHandler<MqttPubConfig> = {
   name: 'mqtt_pub',
   defaultConfig: { broker_url: '', default_qos: 1 },
 
-  onAttach(node: any): void { node.__mqttPubState = { published: 0 }; },
-  onDetach(node: any): void { delete node.__mqttPubState; },
+  onAttach(node: any): void {
+    node.__mqttPubState = { published: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__mqttPubState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: MqttPubConfig, context: any, event: any): void {

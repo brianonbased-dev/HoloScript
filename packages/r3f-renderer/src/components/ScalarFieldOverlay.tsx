@@ -164,7 +164,7 @@ export function ScalarFieldOverlay({
       uRangeMax: { value: range[1] },
       uOpacity: { value: opacity },
     }),
-    [range, opacity],
+    [range, opacity]
   );
 
   useFrame(() => {

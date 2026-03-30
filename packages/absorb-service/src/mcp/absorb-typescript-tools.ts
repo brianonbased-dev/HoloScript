@@ -63,7 +63,8 @@ function detectEndpoints(code: string): DetectedEndpoint[] {
   const endpoints: DetectedEndpoint[] = [];
 
   // Match: app.get('/path', handler) or router.post('/path', async (req, res) => { ... })
-  const routeRegex = /(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*((?:async\s+)?(?:\([^)]*\)|[a-zA-Z_]\w*)\s*(?:=>|{)[^]*?(?:\n\s*\}[);]*))/g;
+  const routeRegex =
+    /(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*((?:async\s+)?(?:\([^)]*\)|[a-zA-Z_]\w*)\s*(?:=>|{)[^]*?(?:\n\s*\}[);]*))/g;
   let match;
   while ((match = routeRegex.exec(code)) !== null) {
     endpoints.push({
@@ -75,7 +76,8 @@ function detectEndpoints(code: string): DetectedEndpoint[] {
 
   // Fallback: simpler pattern for named handler functions
   if (endpoints.length === 0) {
-    const simpleRouteRegex = /(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(\w+)\s*\)/g;
+    const simpleRouteRegex =
+      /(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(\w+)\s*\)/g;
     while ((match = simpleRouteRegex.exec(code)) !== null) {
       endpoints.push({
         method: match[1].toUpperCase(),
@@ -101,7 +103,8 @@ function detectModels(code: string): DetectedModel[] {
   while ((match = prismaRegex.exec(code)) !== null) {
     const fields: DetectedModel['fields'] = [];
     const body = match[2];
-    const fieldRegex = /^\s+(\w+)\s+(String|Int|Float|Boolean|DateTime|BigInt|Decimal|Bytes|Json|\w+)(\?)?/gm;
+    const fieldRegex =
+      /^\s+(\w+)\s+(String|Int|Float|Boolean|DateTime|BigInt|Decimal|Bytes|Json|\w+)(\?)?/gm;
     let fieldMatch;
     while ((fieldMatch = fieldRegex.exec(body)) !== null) {
       fields.push({
@@ -115,7 +118,8 @@ function detectModels(code: string): DetectedModel[] {
 
   // TypeScript interface/class with @Entity() or plain interfaces
   if (models.length === 0) {
-    const interfaceRegex = /(?:export\s+)?(?:interface|class)\s+(\w+)(?:\s+extends\s+\w+)?\s*\{([^}]+)\}/g;
+    const interfaceRegex =
+      /(?:export\s+)?(?:interface|class)\s+(\w+)(?:\s+extends\s+\w+)?\s*\{([^}]+)\}/g;
     while ((match = interfaceRegex.exec(code)) !== null) {
       const fields: DetectedModel['fields'] = [];
       const body = match[2];
@@ -274,7 +278,12 @@ function generateHolo(
   }
 
   // If nothing was detected, produce a skeleton
-  if (endpoints.length === 0 && models.length === 0 && queues.length === 0 && containerPatterns.length === 0) {
+  if (
+    endpoints.length === 0 &&
+    models.length === 0 &&
+    queues.length === 0 &&
+    containerPatterns.length === 0
+  ) {
     lines.push('  // No recognizable patterns detected.');
     lines.push('  // Add your service, data, pipeline, or container blocks here.');
     lines.push('  service {');

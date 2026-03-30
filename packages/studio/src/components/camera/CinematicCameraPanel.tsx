@@ -54,7 +54,13 @@ export interface CameraKeyframe {
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
 }
 
-export type CinematicPreset = 'crane' | 'steadicam' | 'orbit' | 'flythrough' | 'dollyZoom' | 'whipPan';
+export type CinematicPreset =
+  | 'crane'
+  | 'steadicam'
+  | 'orbit'
+  | 'flythrough'
+  | 'dollyZoom'
+  | 'whipPan';
 
 export interface CameraPath {
   name: string;
@@ -131,17 +137,66 @@ function generatePresetKeyframes(preset: CinematicPreset, camera: CameraState): 
   switch (preset) {
     case 'crane':
       return [
-        { id: generateId(), time: 0, camera: { ...base, position: { ...base.position, y: 0.5 } }, dof, interpolation: 'bezier', easing: 'ease-in-out' },
-        { id: generateId(), time: 2, camera: { ...base, position: { ...base.position, y: 4 } }, dof, interpolation: 'bezier', easing: 'ease-in-out' },
-        { id: generateId(), time: 4, camera: { ...base, position: { ...base.position, y: 8, z: base.position.z - 2 } }, dof, interpolation: 'bezier', easing: 'ease-out' },
+        {
+          id: generateId(),
+          time: 0,
+          camera: { ...base, position: { ...base.position, y: 0.5 } },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-in-out',
+        },
+        {
+          id: generateId(),
+          time: 2,
+          camera: { ...base, position: { ...base.position, y: 4 } },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-in-out',
+        },
+        {
+          id: generateId(),
+          time: 4,
+          camera: { ...base, position: { ...base.position, y: 8, z: base.position.z - 2 } },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-out',
+        },
       ];
 
     case 'steadicam':
       return [
-        { id: generateId(), time: 0, camera: { ...base }, dof, interpolation: 'catmull-rom', easing: 'linear' },
-        { id: generateId(), time: 1.5, camera: { ...base, position: { ...base.position, z: base.position.z - 2 } }, dof, interpolation: 'catmull-rom', easing: 'linear' },
-        { id: generateId(), time: 3, camera: { ...base, position: { ...base.position, z: base.position.z - 4 } }, dof, interpolation: 'catmull-rom', easing: 'linear' },
-        { id: generateId(), time: 4.5, camera: { ...base, position: { ...base.position, z: base.position.z - 6 } }, dof, interpolation: 'catmull-rom', easing: 'ease-out' },
+        {
+          id: generateId(),
+          time: 0,
+          camera: { ...base },
+          dof,
+          interpolation: 'catmull-rom',
+          easing: 'linear',
+        },
+        {
+          id: generateId(),
+          time: 1.5,
+          camera: { ...base, position: { ...base.position, z: base.position.z - 2 } },
+          dof,
+          interpolation: 'catmull-rom',
+          easing: 'linear',
+        },
+        {
+          id: generateId(),
+          time: 3,
+          camera: { ...base, position: { ...base.position, z: base.position.z - 4 } },
+          dof,
+          interpolation: 'catmull-rom',
+          easing: 'linear',
+        },
+        {
+          id: generateId(),
+          time: 4.5,
+          camera: { ...base, position: { ...base.position, z: base.position.z - 6 } },
+          dof,
+          interpolation: 'catmull-rom',
+          easing: 'ease-out',
+        },
       ];
 
     case 'orbit':
@@ -167,22 +222,78 @@ function generatePresetKeyframes(preset: CinematicPreset, camera: CameraState): 
 
     case 'flythrough':
       return [
-        { id: generateId(), time: 0, camera: { ...base, position: { x: -10, y: 3, z: 10 }, fov: 65 }, dof, interpolation: 'bezier', easing: 'ease-in' },
-        { id: generateId(), time: 1.5, camera: { ...base, position: { x: -3, y: 2, z: 3 }, fov: 55 }, dof, interpolation: 'bezier', easing: 'linear' },
-        { id: generateId(), time: 3, camera: { ...base, position: { x: 0, y: 1.5, z: 0.5 }, fov: 40 }, dof, interpolation: 'bezier', easing: 'linear' },
-        { id: generateId(), time: 4.5, camera: { ...base, position: { x: 5, y: 3, z: -5 }, fov: 50 }, dof, interpolation: 'bezier', easing: 'ease-out' },
+        {
+          id: generateId(),
+          time: 0,
+          camera: { ...base, position: { x: -10, y: 3, z: 10 }, fov: 65 },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-in',
+        },
+        {
+          id: generateId(),
+          time: 1.5,
+          camera: { ...base, position: { x: -3, y: 2, z: 3 }, fov: 55 },
+          dof,
+          interpolation: 'bezier',
+          easing: 'linear',
+        },
+        {
+          id: generateId(),
+          time: 3,
+          camera: { ...base, position: { x: 0, y: 1.5, z: 0.5 }, fov: 40 },
+          dof,
+          interpolation: 'bezier',
+          easing: 'linear',
+        },
+        {
+          id: generateId(),
+          time: 4.5,
+          camera: { ...base, position: { x: 5, y: 3, z: -5 }, fov: 50 },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-out',
+        },
       ];
 
     case 'dollyZoom':
       return [
-        { id: generateId(), time: 0, camera: { ...base, position: { ...base.position, z: 10 }, fov: 20 }, dof: { ...dof, enabled: true, focusDistance: 10 }, interpolation: 'linear', easing: 'linear' },
-        { id: generateId(), time: 3, camera: { ...base, position: { ...base.position, z: 2 }, fov: 80 }, dof: { ...dof, enabled: true, focusDistance: 2 }, interpolation: 'linear', easing: 'linear' },
+        {
+          id: generateId(),
+          time: 0,
+          camera: { ...base, position: { ...base.position, z: 10 }, fov: 20 },
+          dof: { ...dof, enabled: true, focusDistance: 10 },
+          interpolation: 'linear',
+          easing: 'linear',
+        },
+        {
+          id: generateId(),
+          time: 3,
+          camera: { ...base, position: { ...base.position, z: 2 }, fov: 80 },
+          dof: { ...dof, enabled: true, focusDistance: 2 },
+          interpolation: 'linear',
+          easing: 'linear',
+        },
       ];
 
     case 'whipPan':
       return [
-        { id: generateId(), time: 0, camera: { ...base, target: { x: -5, y: 0, z: 0 } }, dof, interpolation: 'bezier', easing: 'ease-in' },
-        { id: generateId(), time: 0.3, camera: { ...base, target: { x: 5, y: 0, z: 0 } }, dof, interpolation: 'bezier', easing: 'ease-out' },
+        {
+          id: generateId(),
+          time: 0,
+          camera: { ...base, target: { x: -5, y: 0, z: 0 } },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-in',
+        },
+        {
+          id: generateId(),
+          time: 0.3,
+          camera: { ...base, target: { x: 5, y: 0, z: 0 } },
+          dof,
+          interpolation: 'bezier',
+          easing: 'ease-out',
+        },
       ];
 
     default:
@@ -206,14 +317,19 @@ export function CinematicCameraPanel({
   const [pathName, setPathName] = useState('Untitled Path');
   const [loop, setLoop] = useState(false);
   const [pathType, setPathType] = useState<InterpolationMode>('catmull-rom');
-  const [activeTab, setActiveTab] = useState<'controls' | 'dof' | 'timeline' | 'presets'>('controls');
+  const [activeTab, setActiveTab] = useState<'controls' | 'dof' | 'timeline' | 'presets'>(
+    'controls'
+  );
 
   // ─── Camera Movement ──────────────────────────────────────────────────
 
   const moveCamera = useCallback(
     (axis: 'x' | 'y' | 'z', delta: number) => {
       setCamera((prev) => {
-        const next = { ...prev, position: { ...prev.position, [axis]: prev.position[axis] + delta } };
+        const next = {
+          ...prev,
+          position: { ...prev.position, [axis]: prev.position[axis] + delta },
+        };
         onCameraUpdate?.(next);
         return next;
       });
@@ -289,7 +405,9 @@ export function CinematicCameraPanel({
 
   const updateKeyframeTime = useCallback((id: string, time: number) => {
     setKeyframes((prev) =>
-      prev.map((kf) => (kf.id === id ? { ...kf, time: Math.max(0, time) } : kf)).sort((a, b) => a.time - b.time)
+      prev
+        .map((kf) => (kf.id === id ? { ...kf, time: Math.max(0, time) } : kf))
+        .sort((a, b) => a.time - b.time)
     );
   }, []);
 
@@ -382,7 +500,9 @@ export function CinematicCameraPanel({
                 <div key={axis}>
                   <span className="text-studio-muted">{axis.toUpperCase()}</span>
                   <br />
-                  <span className="text-studio-text font-mono">{camera.position[axis].toFixed(2)}</span>
+                  <span className="text-studio-text font-mono">
+                    {camera.position[axis].toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -392,30 +512,48 @@ export function CinematicCameraPanel({
           <div className="space-y-1">
             <div className="text-[10px] text-studio-muted">Dolly (Z)</div>
             <div className="flex gap-1">
-              <button onClick={() => moveCamera('z', -MOVE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => moveCamera('z', -MOVE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ← In
               </button>
-              <button onClick={() => moveCamera('z', MOVE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => moveCamera('z', MOVE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 Out →
               </button>
             </div>
 
             <div className="text-[10px] text-studio-muted">Truck (X)</div>
             <div className="flex gap-1">
-              <button onClick={() => moveCamera('x', -MOVE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => moveCamera('x', -MOVE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ← Left
               </button>
-              <button onClick={() => moveCamera('x', MOVE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => moveCamera('x', MOVE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 Right →
               </button>
             </div>
 
             <div className="text-[10px] text-studio-muted">Pedestal (Y)</div>
             <div className="flex gap-1">
-              <button onClick={() => moveCamera('y', -MOVE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => moveCamera('y', -MOVE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ↓ Down
               </button>
-              <button onClick={() => moveCamera('y', MOVE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => moveCamera('y', MOVE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ↑ Up
               </button>
             </div>
@@ -425,16 +563,28 @@ export function CinematicCameraPanel({
           <div className="space-y-1">
             <div className="text-[10px] text-studio-muted">Pan / Tilt</div>
             <div className="flex gap-1">
-              <button onClick={() => rotateCamera('pan', -ROTATE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => rotateCamera('pan', -ROTATE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ↻ Pan L
               </button>
-              <button onClick={() => rotateCamera('pan', ROTATE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => rotateCamera('pan', ROTATE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 Pan R ↺
               </button>
-              <button onClick={() => rotateCamera('tilt', ROTATE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => rotateCamera('tilt', ROTATE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ↑ Tilt
               </button>
-              <button onClick={() => rotateCamera('tilt', -ROTATE_STEP)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+              <button
+                onClick={() => rotateCamera('tilt', -ROTATE_STEP)}
+                className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+              >
                 ↓ Tilt
               </button>
             </div>
@@ -442,21 +592,36 @@ export function CinematicCameraPanel({
 
           {/* Zoom / FOV */}
           <div className="flex gap-1">
-            <button onClick={() => adjustZoom(0.1)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+            <button
+              onClick={() => adjustZoom(0.1)}
+              className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+            >
               + Zoom
             </button>
-            <button onClick={() => adjustZoom(-0.1)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+            <button
+              onClick={() => adjustZoom(-0.1)}
+              className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+            >
               - Zoom
             </button>
-            <button onClick={() => adjustFov(-5)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+            <button
+              onClick={() => adjustFov(-5)}
+              className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+            >
               + FOV
             </button>
-            <button onClick={() => adjustFov(5)} className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition">
+            <button
+              onClick={() => adjustFov(5)}
+              className="flex-1 px-2 py-1 bg-studio-panel text-studio-muted rounded hover:text-studio-text transition"
+            >
               - FOV
             </button>
           </div>
 
-          <button onClick={resetCamera} className="w-full px-2 py-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition">
+          <button
+            onClick={resetCamera}
+            className="w-full px-2 py-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition"
+          >
             ↺ Reset Camera
           </button>
         </div>
@@ -470,7 +635,9 @@ export function CinematicCameraPanel({
             <button
               onClick={() => setDof((prev) => ({ ...prev, enabled: !prev.enabled }))}
               className={`px-2 py-0.5 rounded text-[10px] transition ${
-                dof.enabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-studio-panel text-studio-muted'
+                dof.enabled
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : 'bg-studio-panel text-studio-muted'
               }`}
             >
               {dof.enabled ? 'ON' : 'OFF'}
@@ -486,9 +653,14 @@ export function CinematicCameraPanel({
                     <span className="text-studio-text font-mono">f/{dof.aperture.toFixed(1)}</span>
                   </div>
                   <input
-                    type="range" min="1.4" max="22" step="0.1"
+                    type="range"
+                    min="1.4"
+                    max="22"
+                    step="0.1"
                     value={dof.aperture}
-                    onChange={(e) => setDof((prev) => ({ ...prev, aperture: parseFloat(e.target.value) }))}
+                    onChange={(e) =>
+                      setDof((prev) => ({ ...prev, aperture: parseFloat(e.target.value) }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -496,12 +668,19 @@ export function CinematicCameraPanel({
                 <div>
                   <div className="flex justify-between text-[10px]">
                     <span className="text-studio-muted">Focus Distance</span>
-                    <span className="text-studio-text font-mono">{dof.focusDistance.toFixed(1)}m</span>
+                    <span className="text-studio-text font-mono">
+                      {dof.focusDistance.toFixed(1)}m
+                    </span>
                   </div>
                   <input
-                    type="range" min="0.1" max="100" step="0.1"
+                    type="range"
+                    min="0.1"
+                    max="100"
+                    step="0.1"
                     value={dof.focusDistance}
-                    onChange={(e) => setDof((prev) => ({ ...prev, focusDistance: parseFloat(e.target.value) }))}
+                    onChange={(e) =>
+                      setDof((prev) => ({ ...prev, focusDistance: parseFloat(e.target.value) }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -512,9 +691,14 @@ export function CinematicCameraPanel({
                     <span className="text-studio-text font-mono">{dof.focalLength}mm</span>
                   </div>
                   <input
-                    type="range" min="18" max="200" step="1"
+                    type="range"
+                    min="18"
+                    max="200"
+                    step="1"
                     value={dof.focalLength}
-                    onChange={(e) => setDof((prev) => ({ ...prev, focalLength: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setDof((prev) => ({ ...prev, focalLength: parseInt(e.target.value) }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -525,9 +709,14 @@ export function CinematicCameraPanel({
                     <span className="text-studio-text font-mono">{dof.bokehScale.toFixed(1)}</span>
                   </div>
                   <input
-                    type="range" min="0" max="5" step="0.1"
+                    type="range"
+                    min="0"
+                    max="5"
+                    step="0.1"
                     value={dof.bokehScale}
-                    onChange={(e) => setDof((prev) => ({ ...prev, bokehScale: parseFloat(e.target.value) }))}
+                    onChange={(e) =>
+                      setDof((prev) => ({ ...prev, bokehScale: parseFloat(e.target.value) }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -571,7 +760,9 @@ export function CinematicCameraPanel({
             <button
               onClick={() => setLoop((prev) => !prev)}
               className={`px-2 py-1 rounded text-[10px] transition ${
-                loop ? 'bg-studio-accent/20 text-studio-accent' : 'bg-studio-panel text-studio-muted'
+                loop
+                  ? 'bg-studio-accent/20 text-studio-accent'
+                  : 'bg-studio-panel text-studio-muted'
               }`}
             >
               {loop ? '↻ Loop' : '→ Once'}
@@ -632,7 +823,8 @@ export function CinematicCameraPanel({
                   <span className="text-studio-accent font-mono w-4">{idx + 1}</span>
                   <span className="text-studio-muted font-mono">{kf.time.toFixed(1)}s</span>
                   <span className="text-studio-text">
-                    ({kf.camera.position.x.toFixed(1)}, {kf.camera.position.y.toFixed(1)}, {kf.camera.position.z.toFixed(1)})
+                    ({kf.camera.position.x.toFixed(1)}, {kf.camera.position.y.toFixed(1)},{' '}
+                    {kf.camera.position.z.toFixed(1)})
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -646,7 +838,10 @@ export function CinematicCameraPanel({
                     min="0"
                   />
                   <button
-                    onClick={(e) => { e.stopPropagation(); removeKeyframe(kf.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeKeyframe(kf.id);
+                    }}
                     className="text-studio-muted hover:text-red-400 transition text-[10px]"
                   >
                     ✕
@@ -676,7 +871,9 @@ export function CinematicCameraPanel({
             >
               <span className="text-base">{PRESET_ICONS[preset]}</span>
               <div>
-                <div className="text-studio-text text-[11px] font-medium capitalize">{preset.replace(/([A-Z])/g, ' $1')}</div>
+                <div className="text-studio-text text-[11px] font-medium capitalize">
+                  {preset.replace(/([A-Z])/g, ' $1')}
+                </div>
                 <div className="text-studio-muted text-[9px]">{PRESET_DESCRIPTIONS[preset]}</div>
               </div>
             </button>

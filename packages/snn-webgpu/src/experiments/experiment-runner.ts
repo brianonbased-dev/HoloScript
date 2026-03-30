@@ -48,9 +48,7 @@ import { BackpropRetrievalModel } from './backprop-retrieval-model.js';
  * @param config - Experiment configuration (defaults used if not provided)
  * @returns Complete experiment results with summary comparison
  */
-export function runExperiment(
-  config: Partial<ExperimentConfig> = {},
-): ExperimentResults {
+export function runExperiment(config: Partial<ExperimentConfig> = {}): ExperimentResults {
   const cfg: ExperimentConfig = {
     ...DEFAULT_EXPERIMENT_CONFIG,
     ...config,
@@ -60,7 +58,7 @@ export function runExperiment(
 
   // Step 1: Build knowledge base
   const kb = buildTraitKnowledgeBase();
-  const traitNames = kb.facts.map(f => f.name);
+  const traitNames = kb.facts.map((f) => f.name);
   const inputDim = Math.min(kb.facts.length, 64); // dense encoding
 
   // Step 2: Run trials
@@ -74,18 +72,34 @@ export function runExperiment(
 
     // --- SNN Trial ---
     const snnModel = new SNNRetrievalModel(cfg.snn, kb.facts.length, traitNames);
-    const snnTrialResult = runTrial(snnModel, train, test, cfg.epochs, trial, kb.facts.length, inputDim);
+    const snnTrialResult = runTrial(
+      snnModel,
+      train,
+      test,
+      cfg.epochs,
+      trial,
+      kb.facts.length,
+      inputDim
+    );
     allTrials.push(snnTrialResult);
 
     // --- Backprop Trial ---
     const backpropModel = new BackpropRetrievalModel(cfg.backprop, kb.facts.length, traitNames);
-    const backpropTrialResult = runTrial(backpropModel, train, test, cfg.epochs, trial, kb.facts.length, inputDim);
+    const backpropTrialResult = runTrial(
+      backpropModel,
+      train,
+      test,
+      cfg.epochs,
+      trial,
+      kb.facts.length,
+      inputDim
+    );
     allTrials.push(backpropTrialResult);
   }
 
   // Step 3: Aggregate results
-  const snnTrials = allTrials.filter(t => t.modelType === 'snn');
-  const backpropTrials = allTrials.filter(t => t.modelType === 'backprop');
+  const snnTrials = allTrials.filter((t) => t.modelType === 'snn');
+  const backpropTrials = allTrials.filter((t) => t.modelType === 'backprop');
 
   const snnAggregate = computeAggregate(snnTrials);
   const backpropAggregate = computeAggregate(backpropTrials);
@@ -123,7 +137,7 @@ function runTrial(
   epochs: number,
   trialIndex: number,
   totalTraits: number,
-  inputDim: number,
+  inputDim: number
 ): TrialResult {
   // Train
   const training = model.train(trainFacts, epochs);
@@ -211,11 +225,11 @@ function computeAggregate(trials: TrialResult[]): AggregateMetrics {
     };
   }
 
-  const accuracies = trials.map(t => t.accuracy);
-  const mses = trials.map(t => t.mse);
-  const trainTimes = trials.map(t => t.training.trainingTimeMs);
-  const infTimes = trials.map(t => t.meanInferenceTimeMs);
-  const losses = trials.map(t => t.training.finalLoss);
+  const accuracies = trials.map((t) => t.accuracy);
+  const mses = trials.map((t) => t.mse);
+  const trainTimes = trials.map((t) => t.training.trainingTimeMs);
+  const infTimes = trials.map((t) => t.meanInferenceTimeMs);
+  const losses = trials.map((t) => t.training.finalLoss);
 
   const meanAcc = mean(accuracies);
   const stdAcc = std(accuracies, meanAcc);
@@ -233,30 +247,27 @@ function computeAggregate(trials: TrialResult[]): AggregateMetrics {
 function buildSummary(
   snn: AggregateMetrics,
   backprop: AggregateMetrics,
-  snnTrials: TrialResult[],
+  snnTrials: TrialResult[]
 ): ExperimentSummary {
   const accuracyDelta = snn.meanAccuracy - backprop.meanAccuracy;
   const mseDelta = snn.meanMSE - backprop.meanMSE;
-  const trainingTimeRatio = backprop.meanTrainingTimeMs > 0
-    ? snn.meanTrainingTimeMs / backprop.meanTrainingTimeMs
-    : 0;
-  const inferenceTimeRatio = backprop.meanInferenceTimeMs > 0
-    ? snn.meanInferenceTimeMs / backprop.meanInferenceTimeMs
-    : 0;
+  const trainingTimeRatio =
+    backprop.meanTrainingTimeMs > 0 ? snn.meanTrainingTimeMs / backprop.meanTrainingTimeMs : 0;
+  const inferenceTimeRatio =
+    backprop.meanInferenceTimeMs > 0 ? snn.meanInferenceTimeMs / backprop.meanInferenceTimeMs : 0;
 
   // Energy efficiency: compare backprop MAC ops vs SNN spikes
-  const meanSNNSpikes = snnTrials.length > 0
-    ? mean(snnTrials.map(t => t.meanSpikesPerInference ?? 0))
-    : 0;
+  const meanSNNSpikes =
+    snnTrials.length > 0 ? mean(snnTrials.map((t) => t.meanSpikesPerInference ?? 0)) : 0;
 
   // Rough energy ratio: 1 MAC ~ 4.6pJ, 1 spike ~ 0.9pJ (Loihi 2 data)
   // So energy efficiency = (backprop_ops * 4.6) / (snn_spikes * 0.9)
-  const backpropOpsPerInference = snnTrials.length > 0
-    ? 64 * 64 + 64 * 32 + 32 * 6 // input*h1 + h1*h2 + h2*output
-    : 0;
-  const energyEfficiencyRatio = meanSNNSpikes > 0
-    ? (backpropOpsPerInference * 4.6) / (meanSNNSpikes * 0.9)
-    : 0;
+  const backpropOpsPerInference =
+    snnTrials.length > 0
+      ? 64 * 64 + 64 * 32 + 32 * 6 // input*h1 + h1*h2 + h2*output
+      : 0;
+  const energyEfficiencyRatio =
+    meanSNNSpikes > 0 ? (backpropOpsPerInference * 4.6) / (meanSNNSpikes * 0.9) : 0;
 
   // Determine winner
   let winner: 'snn' | 'backprop' | 'tie';
@@ -269,14 +280,28 @@ function buildSummary(
 
   // Build analysis
   const analysisLines: string[] = [];
-  analysisLines.push(`SNN Accuracy: ${(snn.meanAccuracy * 100).toFixed(1)}% +/- ${(snn.stdAccuracy * 100).toFixed(1)}%`);
-  analysisLines.push(`Backprop Accuracy: ${(backprop.meanAccuracy * 100).toFixed(1)}% +/- ${(backprop.stdAccuracy * 100).toFixed(1)}%`);
-  analysisLines.push(`Accuracy Delta: ${(accuracyDelta * 100).toFixed(1)}% (${accuracyDelta > 0 ? 'SNN better' : 'Backprop better'})`);
+  analysisLines.push(
+    `SNN Accuracy: ${(snn.meanAccuracy * 100).toFixed(1)}% +/- ${(snn.stdAccuracy * 100).toFixed(1)}%`
+  );
+  analysisLines.push(
+    `Backprop Accuracy: ${(backprop.meanAccuracy * 100).toFixed(1)}% +/- ${(backprop.stdAccuracy * 100).toFixed(1)}%`
+  );
+  analysisLines.push(
+    `Accuracy Delta: ${(accuracyDelta * 100).toFixed(1)}% (${accuracyDelta > 0 ? 'SNN better' : 'Backprop better'})`
+  );
   analysisLines.push(`MSE: SNN=${snn.meanMSE.toFixed(4)}, Backprop=${backprop.meanMSE.toFixed(4)}`);
-  analysisLines.push(`Training Time: SNN=${snn.meanTrainingTimeMs.toFixed(1)}ms, Backprop=${backprop.meanTrainingTimeMs.toFixed(1)}ms (ratio: ${trainingTimeRatio.toFixed(2)}x)`);
-  analysisLines.push(`Inference Time: SNN=${snn.meanInferenceTimeMs.toFixed(3)}ms, Backprop=${backprop.meanInferenceTimeMs.toFixed(3)}ms (ratio: ${inferenceTimeRatio.toFixed(2)}x)`);
-  analysisLines.push(`Energy Proxy: SNN uses ${meanSNNSpikes.toFixed(0)} spikes/query vs ${backpropOpsPerInference} MACs/query`);
-  analysisLines.push(`Estimated Energy Ratio: ${energyEfficiencyRatio.toFixed(2)}x (>1 = SNN more efficient on neuromorphic HW)`);
+  analysisLines.push(
+    `Training Time: SNN=${snn.meanTrainingTimeMs.toFixed(1)}ms, Backprop=${backprop.meanTrainingTimeMs.toFixed(1)}ms (ratio: ${trainingTimeRatio.toFixed(2)}x)`
+  );
+  analysisLines.push(
+    `Inference Time: SNN=${snn.meanInferenceTimeMs.toFixed(3)}ms, Backprop=${backprop.meanInferenceTimeMs.toFixed(3)}ms (ratio: ${inferenceTimeRatio.toFixed(2)}x)`
+  );
+  analysisLines.push(
+    `Energy Proxy: SNN uses ${meanSNNSpikes.toFixed(0)} spikes/query vs ${backpropOpsPerInference} MACs/query`
+  );
+  analysisLines.push(
+    `Estimated Energy Ratio: ${energyEfficiencyRatio.toFixed(2)}x (>1 = SNN more efficient on neuromorphic HW)`
+  );
   analysisLines.push(`Winner: ${winner.toUpperCase()}`);
 
   return {
@@ -328,7 +353,9 @@ export function formatExperimentReport(results: ExperimentResults): string {
   lines.push('CONFIGURATION:');
   lines.push(`  Epochs: ${results.config.epochs}`);
   lines.push(`  Trials: ${results.config.trials}`);
-  lines.push(`  Train/Test Split: ${(results.config.trainSplit * 100).toFixed(0)}/${((1 - results.config.trainSplit) * 100).toFixed(0)}`);
+  lines.push(
+    `  Train/Test Split: ${(results.config.trainSplit * 100).toFixed(0)}/${((1 - results.config.trainSplit) * 100).toFixed(0)}`
+  );
   lines.push(`  Seed: ${results.config.seed}`);
   lines.push('');
 
@@ -382,7 +409,11 @@ export function formatExperimentReport(results: ExperimentResults): string {
     if (trial.totalSpikeCount !== undefined) {
       lines.push(`    Spikes: ${trial.meanSpikesPerInference?.toFixed(0)}/query`);
     }
-    lines.push(`    Per-property: ${Object.entries(trial.perPropertyAccuracy).map(([k, v]) => `${k}=${(v * 100).toFixed(0)}%`).join(', ')}`);
+    lines.push(
+      `    Per-property: ${Object.entries(trial.perPropertyAccuracy)
+        .map(([k, v]) => `${k}=${(v * 100).toFixed(0)}%`)
+        .join(', ')}`
+    );
     lines.push('');
   }
 

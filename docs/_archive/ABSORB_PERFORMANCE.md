@@ -6,13 +6,13 @@
 
 ## Performance at a Glance
 
-| Feature | Before | After | Benefit |
-|---------|--------|-------|---------|
-| **Parsing** (1000 files) | 20s | 3-5s | 4-8x faster |
-| **Embeddings** (10K symbols) | 47s | 6-12s | 4-8x faster |
-| **Incremental** (10 changed files) | 60s | 1-2s | 30-60x faster |
-| **Progress visibility** | 1 event | 313 events | Real-time updates |
-| **Commit overhead** | Manual | <50ms | Zero-friction |
+| Feature                            | Before  | After      | Benefit           |
+| ---------------------------------- | ------- | ---------- | ----------------- |
+| **Parsing** (1000 files)           | 20s     | 3-5s       | 4-8x faster       |
+| **Embeddings** (10K symbols)       | 47s     | 6-12s      | 4-8x faster       |
+| **Incremental** (10 changed files) | 60s     | 1-2s       | 30-60x faster     |
+| **Progress visibility**            | 1 event | 313 events | Real-time updates |
+| **Commit overhead**                | Manual  | <50ms      | Zero-friction     |
 
 ---
 

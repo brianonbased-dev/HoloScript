@@ -87,7 +87,7 @@ export function RoomPortalRenderer({
       uColor: { value: portalColor },
       uActive: { value: isActive ? 1.0 : 0.2 },
     }),
-    [portalColor, isActive],
+    [portalColor, isActive]
   );
 
   useFrame((_, delta) => {
@@ -117,10 +117,7 @@ export function RoomPortalRenderer({
       )}
 
       {/* Portal surface (swirl shader) */}
-      <mesh
-        position={[0, portalHeight / 2, 0]}
-        onClick={onTraverse}
-      >
+      <mesh position={[0, portalHeight / 2, 0]} onClick={onTraverse}>
         {style === 'vortex' ? (
           <circleGeometry args={[portalWidth / 2, 64]} />
         ) : (
@@ -140,11 +137,27 @@ export function RoomPortalRenderer({
       {/* Glow rings for vortex/rift styles */}
       {(style === 'vortex' || style === 'rift') && (
         <>
-          <Ring args={[portalWidth / 2, portalWidth / 2 + 0.08, 64]} position={[0, portalHeight / 2, 0.01]}>
-            <meshBasicMaterial color={color} transparent opacity={isActive ? 0.6 : 0.15} side={THREE.DoubleSide} />
+          <Ring
+            args={[portalWidth / 2, portalWidth / 2 + 0.08, 64]}
+            position={[0, portalHeight / 2, 0.01]}
+          >
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={isActive ? 0.6 : 0.15}
+              side={THREE.DoubleSide}
+            />
           </Ring>
-          <Ring args={[portalWidth / 2 + 0.1, portalWidth / 2 + 0.15, 64]} position={[0, portalHeight / 2, 0.02]}>
-            <meshBasicMaterial color={color} transparent opacity={isActive ? 0.3 : 0.05} side={THREE.DoubleSide} />
+          <Ring
+            args={[portalWidth / 2 + 0.1, portalWidth / 2 + 0.15, 64]}
+            position={[0, portalHeight / 2, 0.02]}
+          >
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={isActive ? 0.3 : 0.05}
+              side={THREE.DoubleSide}
+            />
           </Ring>
         </>
       )}
@@ -162,12 +175,7 @@ export function RoomPortalRenderer({
 
       {/* Target info */}
       {targetDid && (
-        <Text
-          position={[0, -0.2, 0]}
-          fontSize={0.1}
-          color="#64748b"
-          anchorX="center"
-        >
+        <Text position={[0, -0.2, 0]} fontSize={0.1} color="#64748b" anchorX="center">
           → {targetRoom} ({targetDid.slice(0, 16)}...)
         </Text>
       )}
@@ -186,7 +194,12 @@ export function RoomPortalRenderer({
 
       {/* Point light for glow */}
       {isActive && (
-        <pointLight position={[0, portalHeight / 2, 0.5]} intensity={0.5} color={color} distance={4} />
+        <pointLight
+          position={[0, portalHeight / 2, 0.5]}
+          intensity={0.5}
+          color={color}
+          distance={4}
+        />
       )}
     </group>
   );

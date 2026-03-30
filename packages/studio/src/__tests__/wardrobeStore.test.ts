@@ -19,7 +19,13 @@ describe('wardrobeStore', () => {
   });
 
   it('equipItem equips by slot', () => {
-    const item = { id: 'h1', name: 'Mohawk', slot: 'hair' as const, thumbnail: '💇', category: 'punk' };
+    const item = {
+      id: 'h1',
+      name: 'Mohawk',
+      slot: 'hair' as const,
+      thumbnail: '💇',
+      category: 'punk',
+    };
     useWardrobeStore.getState().equipItem(item);
     expect(useWardrobeStore.getState().equippedItems.hair).toEqual(item);
   });
@@ -49,9 +55,7 @@ describe('wardrobeStore', () => {
   });
 
   it('setWardrobeItems sets catalog', () => {
-    const items = [
-      { id: 'h1', name: 'A', slot: 'hair' as const, thumbnail: '💇', category: 'a' },
-    ];
+    const items = [{ id: 'h1', name: 'A', slot: 'hair' as const, thumbnail: '💇', category: 'a' }];
     useWardrobeStore.getState().setWardrobeItems(items);
     expect(useWardrobeStore.getState().wardrobeItems).toHaveLength(1);
   });

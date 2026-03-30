@@ -11,7 +11,12 @@
 import { Suspense, useMemo, useCallback } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { Detailed } from '@react-three/drei';
-import { getGeometry, getMaterialProps, isScaledBody, type LODDetail } from '../utils/materialUtils';
+import {
+  getGeometry,
+  getMaterialProps,
+  isScaledBody,
+  type LODDetail,
+} from '../utils/materialUtils';
 import { useHoloTextures, hasTextures } from '../hooks/useHoloTextures';
 import { useProceduralTexture } from '../hooks/useProceduralTexture';
 
@@ -162,9 +167,8 @@ export function LODMeshNode({
   }, [lodConfig, legacyDistances]);
 
   // Forced detail level for debugging
-  const forcedDetail = lodConfig?.forcedLevel !== undefined
-    ? getDetailForLevel(lodConfig.forcedLevel)
-    : undefined;
+  const forcedDetail =
+    lodConfig?.forcedLevel !== undefined ? getDetailForLevel(lodConfig.forcedLevel) : undefined;
 
   const matProps = getMaterialProps(node);
   const proceduralMaps = useProceduralTexture(isScaledBody(hsType) ? 'scaleFull' : null, {
@@ -212,5 +216,10 @@ export function LODMeshNode({
 
 /** Check if a node has LOD configuration */
 export function hasLOD(node: R3FNode): boolean {
-  return !!(node.props.lod || node.props.lodDistances || node.props.lodEnabled || node.props.lodConfig);
+  return !!(
+    node.props.lod ||
+    node.props.lodDistances ||
+    node.props.lodEnabled ||
+    node.props.lodConfig
+  );
 }

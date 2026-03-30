@@ -22,11 +22,15 @@ export const rollbackHandler: TraitHandler<RollbackConfig> = {
   onAttach(node: any): void {
     node.__rollbackState = { history: [] as Array<{ version: string; timestamp: number }> };
   },
-  onDetach(node: any): void { delete node.__rollbackState; },
+  onDetach(node: any): void {
+    delete node.__rollbackState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: RollbackConfig, context: any, event: any): void {
-    const state = node.__rollbackState as { history: Array<{ version: string; timestamp: number }> } | undefined;
+    const state = node.__rollbackState as
+      | { history: Array<{ version: string; timestamp: number }> }
+      | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 
@@ -39,7 +43,10 @@ export const rollbackHandler: TraitHandler<RollbackConfig> = {
         break;
       }
       case 'rollback:get_history': {
-        context.emit?.('rollback:history', { entries: [...state.history], count: state.history.length });
+        context.emit?.('rollback:history', {
+          entries: [...state.history],
+          count: state.history.length,
+        });
         break;
       }
     }

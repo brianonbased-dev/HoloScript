@@ -97,7 +97,8 @@ function CommentNode({
           <span>{timeSince(comment.createdAt)}</span>
           {comment.voteCount !== 0 && (
             <span className={comment.voteCount > 0 ? 'text-emerald-400' : 'text-red-400'}>
-              {comment.voteCount > 0 ? '+' : ''}{comment.voteCount}
+              {comment.voteCount > 0 ? '+' : ''}
+              {comment.voteCount}
             </span>
           )}
         </div>
@@ -147,7 +148,10 @@ function CommentNode({
                     {submitting ? 'Posting...' : 'Reply'}
                   </button>
                   <button
-                    onClick={() => { setReplying(false); setReplyContent(''); }}
+                    onClick={() => {
+                      setReplying(false);
+                      setReplyContent('');
+                    }}
                     className="rounded-lg px-3 py-1 text-xs text-studio-muted hover:text-studio-text"
                   >
                     Cancel

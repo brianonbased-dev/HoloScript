@@ -29,12 +29,7 @@ export interface ProjectDNA {
   recommendedMode: 'quick' | 'balanced' | 'deep';
 }
 
-export type WorkspaceStatus =
-  | 'importing'
-  | 'cloning'
-  | 'absorbing'
-  | 'ready'
-  | 'error';
+export type WorkspaceStatus = 'importing' | 'cloning' | 'absorbing' | 'ready' | 'error';
 
 export interface Workspace {
   id: string;
@@ -76,21 +71,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         workspaces: [],
         activeWorkspaceId: null,
 
-        addWorkspace: (ws) =>
-          set((s) => ({ workspaces: [...s.workspaces, ws] })),
+        addWorkspace: (ws) => set((s) => ({ workspaces: [...s.workspaces, ws] })),
 
         updateWorkspace: (id, patch) =>
           set((s) => ({
-            workspaces: s.workspaces.map((ws) =>
-              ws.id === id ? { ...ws, ...patch } : ws,
-            ),
+            workspaces: s.workspaces.map((ws) => (ws.id === id ? { ...ws, ...patch } : ws)),
           })),
 
         removeWorkspace: (id) =>
           set((s) => ({
             workspaces: s.workspaces.filter((ws) => ws.id !== id),
-            activeWorkspaceId:
-              s.activeWorkspaceId === id ? null : s.activeWorkspaceId,
+            activeWorkspaceId: s.activeWorkspaceId === id ? null : s.activeWorkspaceId,
           })),
 
         setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
@@ -106,8 +97,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           workspaces: state.workspaces,
           activeWorkspaceId: state.activeWorkspaceId,
         }),
-      },
+      }
     ),
-    { name: 'workspace-store' },
-  ),
+    { name: 'workspace-store' }
+  )
 );

@@ -193,7 +193,11 @@ export class InstancedRenderer {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
 
-    this.device.queue.writeBuffer(this.vertexBuffer, 0, vertices as unknown as Float32Array<ArrayBuffer>);
+    this.device.queue.writeBuffer(
+      this.vertexBuffer,
+      0,
+      vertices as unknown as Float32Array<ArrayBuffer>
+    );
   }
 
   /**
@@ -206,7 +210,11 @@ export class InstancedRenderer {
       usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     });
 
-    this.device.queue.writeBuffer(this.indexBuffer, 0, indices as unknown as Uint16Array<ArrayBuffer>);
+    this.device.queue.writeBuffer(
+      this.indexBuffer,
+      0,
+      indices as unknown as Uint16Array<ArrayBuffer>
+    );
   }
 
   /**

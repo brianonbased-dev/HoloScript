@@ -24,9 +24,12 @@ function navigateHistory(
   direction: 'up' | 'down'
 ): { index: number; value: string } {
   if (history.length === 0) return { index: -1, value: '' };
-  const next = direction === 'up'
-    ? Math.max(0, currentIndex === -1 ? history.length - 1 : currentIndex - 1)
-    : currentIndex === -1 ? -1 : Math.min(history.length - 1, currentIndex + 1);
+  const next =
+    direction === 'up'
+      ? Math.max(0, currentIndex === -1 ? history.length - 1 : currentIndex - 1)
+      : currentIndex === -1
+        ? -1
+        : Math.min(history.length - 1, currentIndex + 1);
   return { index: next, value: history[next]?.prompt ?? '' };
 }
 
@@ -49,7 +52,7 @@ describe('Scenario: PromptBar — history navigation + char count', () => {
     useAIStore.getState().addPrompt({ id: '1', prompt: 'scene A', code: '', timestamp: 1 });
     const history = useAIStore.getState().promptHistory as PromptEntry[];
 
-    const first = navigateHistory(history, -1, 'up');    // → index 0
+    const first = navigateHistory(history, -1, 'up'); // → index 0
     const again = navigateHistory(history, first.index, 'up'); // → still 0
     expect(again.value).toBe('scene A');
     expect(again.index).toBe(0);
@@ -66,7 +69,7 @@ describe('Scenario: PromptBar — history navigation + char count', () => {
   it('character count predicate: max 2000 chars means trimmed input is valid', () => {
     const MAX = 2000;
     const short = 'Add a glow effect'; // 17 chars → valid
-    const long = 'x'.repeat(2001);     // 2001 chars → exceeds max
+    const long = 'x'.repeat(2001); // 2001 chars → exceeds max
 
     expect(short.length <= MAX).toBe(true);
     expect(long.length <= MAX).toBe(false);
@@ -78,9 +81,9 @@ describe('Scenario: PromptBar — history navigation + char count', () => {
       return (e.key === 'Enter' && !e.shiftKey) || (e.key === 'Enter' && e.ctrlKey);
     }
 
-    expect(shouldSubmit({ key: 'Enter', ctrlKey: false, shiftKey: false })).toBe(true);  // Enter
-    expect(shouldSubmit({ key: 'Enter', ctrlKey: true, shiftKey: false })).toBe(true);   // Ctrl+Enter
-    expect(shouldSubmit({ key: 'Enter', ctrlKey: false, shiftKey: true })).toBe(false);  // Shift+Enter (new line)
-    expect(shouldSubmit({ key: 'a', ctrlKey: false, shiftKey: false })).toBe(false);     // typing
+    expect(shouldSubmit({ key: 'Enter', ctrlKey: false, shiftKey: false })).toBe(true); // Enter
+    expect(shouldSubmit({ key: 'Enter', ctrlKey: true, shiftKey: false })).toBe(true); // Ctrl+Enter
+    expect(shouldSubmit({ key: 'Enter', ctrlKey: false, shiftKey: true })).toBe(false); // Shift+Enter (new line)
+    expect(shouldSubmit({ key: 'a', ctrlKey: false, shiftKey: false })).toBe(false); // typing
   });
 });

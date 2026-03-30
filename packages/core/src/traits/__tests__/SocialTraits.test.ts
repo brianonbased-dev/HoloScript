@@ -183,7 +183,10 @@ describe('collaborativeHandler', () => {
 
       const event = getLastEvent(ctx, 'on_edit');
       expect(event).toBeDefined();
-      expect((event as Record<string, unknown>).edit).toEqual({ type: 'move', position: [1, 2, 3] });
+      expect((event as Record<string, unknown>).edit).toEqual({
+        type: 'move',
+        position: [1, 2, 3],
+      });
     });
 
     it('should emit on_voice_stream event when voice_stream_received', () => {

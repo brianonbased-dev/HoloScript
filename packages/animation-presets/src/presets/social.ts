@@ -29,12 +29,7 @@ export const speakPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Talking',
     pack: 'Conversation',
-    alternatives: [
-      'Arguing',
-      'Explaining',
-      'Storytelling',
-      'Talking On Phone',
-    ],
+    alternatives: ['Arguing', 'Explaining', 'Storytelling', 'Talking On Phone'],
   },
   tags: ['social', 'dialogue', 'gesture', 'npc', 'upper-body'],
 };
@@ -59,12 +54,7 @@ export const wavePreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Waving',
     pack: 'Greeting',
-    alternatives: [
-      'Happy Hand Wave',
-      'Quick Wave',
-      'Salute',
-      'Nod Yes',
-    ],
+    alternatives: ['Happy Hand Wave', 'Quick Wave', 'Salute', 'Nod Yes'],
   },
   tags: ['social', 'greeting', 'gesture', 'one-shot', 'friendly'],
 };
@@ -73,7 +63,4 @@ export const wavePreset: AnimationPreset = {
 // All Social Presets
 // ---------------------------------------------------------------------------
 
-export const socialPresets: AnimationPreset[] = [
-  speakPreset,
-  wavePreset,
-];
+export const socialPresets: AnimationPreset[] = [speakPreset, wavePreset];

@@ -9,15 +9,18 @@ Extended the HoloScript VSCode extension with MCP server definition provider, en
 ### 1. MCP Server Definition Provider
 
 **Files Created:**
+
 - `src/services/HoloScriptMcpProvider.ts` - Main MCP provider implementation
 - `src/types/vscode-mcp.d.ts` - TypeScript type definitions for VS Code MCP API
 
 **Files Modified:**
+
 - `package.json` - Added `mcpServerDefinitionProviders` contribution point with ID `holoscriptMcp`
 - `package.json` - Added configuration setting `holoscript.mcp.holoscriptMcpEnabled`
 - `src/extension.ts` - Registered MCP provider in activation function
 
 **Features:**
+
 - Registers HoloScript MCP server at `https://mcp.holoscript.net/mcp` with VS Code
 - Uses Streamable HTTP transport for GitHub Copilot and AI agent integration
 - Provides 65+ HoloScript language tools to AI agents
@@ -25,6 +28,7 @@ Extended the HoloScript VSCode extension with MCP server definition provider, en
 - Graceful fallback if MCP API not available (VS Code < 1.96)
 
 **Configuration:**
+
 ```json
 {
   "holoscript.mcp.holoscriptMcpEnabled": true
@@ -34,24 +38,29 @@ Extended the HoloScript VSCode extension with MCP server definition provider, en
 ### 2. Enhanced Live Preview Command
 
 **Files Modified:**
+
 - `package.json` - Added `holoscript.openStudioPreview` command
 - `src/extension.ts` - Implemented Studio live preview launcher
 
 **Features:**
+
 - Opens HoloScript files in Studio (https://holoscript.net/studio) for live 3D preview
 - Encodes current file content in URL for instant preview
 - Launches in external browser with full Studio viewport
 
 **Usage:**
+
 - Command Palette: "HoloScript: Open Studio Live Preview"
 - Opens current .holo or .hsplus file in Studio web interface
 
 ### 3. Enhanced Syntax Highlighting
 
 **Files Modified:**
+
 - `syntaxes/holoscript.tmLanguage.json`
 
 **Enhancements:**
+
 - **Interaction traits:** Added `resizable`, `attachable`
 - **Visual traits:** Added `dissolve`, `fade`, `shimmer`, `holographic`
 - **AI/Behavior traits:** Added `decision_tree`, `state_machine`, `planning`, `learning`
@@ -68,6 +77,7 @@ Extended the HoloScript VSCode extension with MCP server definition provider, en
 - **Primitives:** Added `torus`, `capsule`, `point_cloud`, `trigger_zone`, `BehaviorTree`, `Node`, `Sequence`, `Selector`, `Action`, `Condition`
 
 **Total Trait Coverage:**
+
 - 100+ traits now have category-specific syntax highlighting
 - 10 trait categories for color-coded visual distinction
 - Future-proof catch-all pattern for custom traits
@@ -75,12 +85,15 @@ Extended the HoloScript VSCode extension with MCP server definition provider, en
 ## Testing & Verification
 
 ### Build Status
+
 - TypeScript compilation: ✅ No errors in new files
 - Type safety: ✅ Full IntelliSense support via type declarations
 - Extension manifest: ✅ Valid contribution points
 
 ### Pre-existing Issues
+
 The extension has some pre-existing test failures unrelated to these changes:
+
 - AgentKitService test type mismatches (missing `to` field in RoyaltyEvent)
 - HoverProvider mock vs real vscode Position interface differences
 - QuestBuilderService missing `id` field in test fixtures
@@ -91,11 +104,13 @@ These are legacy test issues and don't affect the new MCP integration.
 ## VS Code Version Requirements
 
 ### MCP Server Definition Provider
+
 - **Minimum:** VS Code 1.96+ (Insiders as of March 2026)
 - **Fallback:** Extension detects API availability and gracefully skips registration on older versions
 - **Check:** Uses `if (vscode.lm && vscode.lm.registerMcpServerDefinitionProvider)` guard
 
 ### Other Features
+
 - **Live Preview:** Works on all VS Code versions (uses external browser)
 - **Syntax Highlighting:** Works on all VS Code versions
 
@@ -104,6 +119,7 @@ These are legacy test issues and don't affect the new MCP integration.
 Once registered, GitHub Copilot and other AI agents in VS Code can access HoloScript MCP tools:
 
 **Example queries:**
+
 - "Parse this HoloScript code and check for errors"
 - "Generate a 3D scene with a rotating cube"
 - "What traits are available for physics simulation?"
@@ -111,6 +127,7 @@ Once registered, GitHub Copilot and other AI agents in VS Code can access HoloSc
 - "Search the codebase for all uses of @grabbable"
 
 **Available Tool Categories:**
+
 - Code parsing and validation (15 tools)
 - Graph understanding (6 tools)
 - IDE integration (9 tools)

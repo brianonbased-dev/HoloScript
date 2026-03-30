@@ -89,9 +89,8 @@ export const softBodyProHandler: TraitHandler<SoftBodyProConfig> = {
         state.totalConstraints = e.totalCount ?? state.totalConstraints;
         context.emit('on_soft_body_tear', {
           tornConstraints: state.tornConstraints,
-          tearRatio: state.totalConstraints > 0
-            ? state.tornConstraints / state.totalConstraints
-            : 0,
+          tearRatio:
+            state.totalConstraints > 0 ? state.tornConstraints / state.totalConstraints : 0,
         });
         break;
       }

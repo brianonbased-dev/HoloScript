@@ -67,10 +67,10 @@ export interface QuickFix {
  *  - HSL = Lint warnings (HSL001–HSL999)
  */
 export const ERROR_CODE_RANGES = {
-  parser:   { prefix: 'HSP', range: [1, 999] },
+  parser: { prefix: 'HSP', range: [1, 999] },
   compiler: { prefix: 'HSC', range: [1, 999] },
-  runtime:  { prefix: 'HSR', range: [1, 999] },
-  lint:     { prefix: 'HSL', range: [1, 999] },
+  runtime: { prefix: 'HSR', range: [1, 999] },
+  lint: { prefix: 'HSL', range: [1, 999] },
 } as const;
 
 // Common compiler error codes
@@ -139,7 +139,9 @@ export function compilerDiagnostic(
   message: string,
   line: number,
   column: number,
-  options: Partial<Pick<HoloDiagnostic, 'severity' | 'suggestion' | 'context' | 'file' | 'quickFixes'>> = {}
+  options: Partial<
+    Pick<HoloDiagnostic, 'severity' | 'suggestion' | 'context' | 'file' | 'quickFixes'>
+  > = {}
 ): HoloDiagnostic {
   return {
     code,
@@ -258,7 +260,9 @@ export function formatDiagnostics(diagnostics: HoloDiagnostic[]): string {
     errors.length > 0 ? `${errors.length} error(s)` : null,
     warnings.length > 0 ? `${warnings.length} warning(s)` : null,
     infos.length > 0 ? `${infos.length} info(s)` : null,
-  ].filter(Boolean).join(', ');
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   sections.push(`\n${summary}`);
 

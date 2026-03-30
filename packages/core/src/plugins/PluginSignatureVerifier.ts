@@ -192,7 +192,11 @@ export class PluginSignatureVerifier {
     // Check if signature is present
     if (!signedPackage.signature) {
       if (this.config.requireSignature) {
-        return { ...baseResult, verified: false, error: 'Package is unsigned and signatures are required' };
+        return {
+          ...baseResult,
+          verified: false,
+          error: 'Package is unsigned and signatures are required',
+        };
       }
       return { ...baseResult, verified: true, keyId: undefined, keyLabel: 'unsigned-allowed' };
     }
@@ -251,7 +255,9 @@ export class PluginSignatureVerifier {
 
 let defaultVerifier: PluginSignatureVerifier | null = null;
 
-export function getPluginSignatureVerifier(config?: Partial<SignatureVerifierConfig>): PluginSignatureVerifier {
+export function getPluginSignatureVerifier(
+  config?: Partial<SignatureVerifierConfig>
+): PluginSignatureVerifier {
   if (!defaultVerifier) {
     defaultVerifier = new PluginSignatureVerifier(config);
   }

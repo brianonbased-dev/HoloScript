@@ -14,19 +14,12 @@ export {
   parseTscOutput,
   aggregatePatterns,
 } from './daemon-error-taxonomy.js';
-export type {
-  ErrorCategory,
-  SemanticError,
-  FailurePattern,
-} from './daemon-error-taxonomy.js';
+export type { ErrorCategory, SemanticError, FailurePattern } from './daemon-error-taxonomy.js';
 
 // Daemon Error Taxonomy exports stop here
 
 // Prompt profiles
-export {
-  buildDaemonPromptContext,
-  getDaemonSystemPrompt,
-} from './daemon-prompt-profiles.js';
+export { buildDaemonPromptContext, getDaemonSystemPrompt } from './daemon-prompt-profiles.js';
 
 export type {
   DaemonProvider,
@@ -35,14 +28,6 @@ export type {
 } from './daemon-prompt-profiles.js';
 
 // Action handlers (requires @holoscript/core peer dependency)
-export {
-  createDaemonActions,
-  getDaemonFileState,
-} from './daemon-actions.js';
+export { createDaemonActions, getDaemonFileState } from './daemon-actions.js';
 
-export type {
-  DaemonConfig,
-  DaemonExecResult,
-  DaemonHost,
-  LLMProvider,
-} from './daemon-actions.js';
+export type { DaemonConfig, DaemonExecResult, DaemonHost, LLMProvider } from './daemon-actions.js';

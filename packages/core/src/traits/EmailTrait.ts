@@ -24,7 +24,9 @@ export const emailHandler: TraitHandler<EmailConfig> = {
   onAttach(node: any): void {
     node.__emailState = { queued: 0, sent: 0, failed: 0 };
   },
-  onDetach(node: any): void { delete node.__emailState; },
+  onDetach(node: any): void {
+    delete node.__emailState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: EmailConfig, context: any, event: any): void {
@@ -51,7 +53,11 @@ export const emailHandler: TraitHandler<EmailConfig> = {
         break;
       }
       case 'email:get_status': {
-        context.emit?.('email:status', { queued: state.queued, sent: state.sent, failed: state.failed });
+        context.emit?.('email:status', {
+          queued: state.queued,
+          sent: state.sent,
+          failed: state.failed,
+        });
         break;
       }
     }

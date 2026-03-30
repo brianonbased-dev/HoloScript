@@ -25,11 +25,15 @@ export const modelLoadHandler: TraitHandler<ModelLoadConfig> = {
   onAttach(node: any): void {
     node.__modelLoadState = { loaded: new Map<string, { provider: string; loadedAt: number }>() };
   },
-  onDetach(node: any): void { delete node.__modelLoadState; },
+  onDetach(node: any): void {
+    delete node.__modelLoadState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: ModelLoadConfig, context: any, event: any): void {
-    const state = node.__modelLoadState as { loaded: Map<string, { provider: string; loadedAt: number }> } | undefined;
+    const state = node.__modelLoadState as
+      | { loaded: Map<string, { provider: string; loadedAt: number }> }
+      | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 
@@ -41,8 +45,15 @@ export const modelLoadHandler: TraitHandler<ModelLoadConfig> = {
           context.emit?.('model:error', { modelId, error: 'max_loaded_exceeded' });
           break;
         }
-        state.loaded.set(modelId, { provider: (event.provider as string) ?? 'local', loadedAt: Date.now() });
-        context.emit?.('model:loaded', { modelId, warmupRounds: config.warmup_rounds, warmupMs: 0 });
+        state.loaded.set(modelId, {
+          provider: (event.provider as string) ?? 'local',
+          loadedAt: Date.now(),
+        });
+        context.emit?.('model:loaded', {
+          modelId,
+          warmupRounds: config.warmup_rounds,
+          warmupMs: 0,
+        });
         break;
       }
       case 'model:unload': {

@@ -262,7 +262,10 @@ export class CompositionTestRunner {
     while ((assertMatch = assertRegex.exec(body)) !== null) {
       const assertBody = assertMatch[1].trim();
       // Split on newlines or semicolons for multiple assertions
-      const lines = assertBody.split(/[;\n]/).map(l => l.trim()).filter(Boolean);
+      const lines = assertBody
+        .split(/[;\n]/)
+        .map((l) => l.trim())
+        .filter(Boolean);
       for (const line of lines) {
         assertions.push({ expression: line });
       }
@@ -288,8 +291,10 @@ export class CompositionTestRunner {
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
 
     // Quoted string
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    if (
+      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    ) {
       return trimmed.slice(1, -1);
     }
 
@@ -301,15 +306,17 @@ export class CompositionTestRunner {
 
     // Complex expression — use safe Function evaluation
     try {
-      const transformed = trimmed.replace(
-        /\$([a-zA-Z_][a-zA-Z0-9_]*)/g,
-        (_, varName) => varName
-      );
+      const transformed = trimmed.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, varName) => varName);
       const keys = Object.keys(state);
       const values = Object.values(state);
       const fn = new Function(
         ...keys,
-        'Math', 'String', 'Number', 'Boolean', 'Date', 'JSON',
+        'Math',
+        'String',
+        'Number',
+        'Boolean',
+        'Date',
+        'JSON',
         `"use strict"; return (${transformed})`
       );
       return fn(...values, Math, String, Number, Boolean, Date, JSON);
@@ -326,17 +333,19 @@ export class CompositionTestRunner {
     const trimmed = expr.trim();
 
     // Transform $var references to plain variable names for Function evaluation
-    const transformed = trimmed.replace(
-      /\$([a-zA-Z_][a-zA-Z0-9_]*)/g,
-      (_, varName) => varName
-    );
+    const transformed = trimmed.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, varName) => varName);
 
     try {
       const keys = Object.keys(state);
       const values = Object.values(state);
       const fn = new Function(
         ...keys,
-        'Math', 'String', 'Number', 'Boolean', 'Date', 'JSON',
+        'Math',
+        'String',
+        'Number',
+        'Boolean',
+        'Date',
+        'JSON',
         `"use strict"; return !!(${transformed})`
       );
       return fn(...values, Math, String, Number, Boolean, Date, JSON);
@@ -361,7 +370,12 @@ export class CompositionTestRunner {
         const values = Object.values(state);
         const fn = new Function(
           ...keys,
-          'Math', 'String', 'Number', 'Boolean', 'Date', 'JSON',
+          'Math',
+          'String',
+          'Number',
+          'Boolean',
+          'Date',
+          'JSON',
           `"use strict"; return (${transformed})`
         );
         result[def.name] = fn(...values, Math, String, Number, Boolean, Date, JSON);
@@ -468,7 +482,10 @@ function parseNestedBlock(body: string): Record<string, unknown> {
 
     // Parse key
     const keyMatch = body.slice(i).match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*/);
-    if (!keyMatch) { i++; continue; }
+    if (!keyMatch) {
+      i++;
+      continue;
+    }
 
     const key = keyMatch[1];
     i += keyMatch[0].length;
@@ -522,8 +539,7 @@ function parseStateValue(raw: string): unknown {
   if (v === 'false') return false;
   if (v === 'null') return null;
   if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
-  if ((v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))) {
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
     return v.slice(1, -1);
   }
   return v;
@@ -543,7 +559,13 @@ export const TEST_TRAIT = {
     { name: 'name', type: 'string', required: true, description: 'Test name' },
     { name: 'setup', type: 'object', required: false, description: 'State setup assignments' },
     { name: 'assert', type: 'object', required: true, description: 'Assertion expressions' },
-    { name: 'skip', type: 'boolean', required: false, default: false, description: 'Skip this test' },
+    {
+      name: 'skip',
+      type: 'boolean',
+      required: false,
+      default: false,
+      description: 'Skip this test',
+    },
   ],
 };
 

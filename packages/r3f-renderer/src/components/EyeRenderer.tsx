@@ -167,33 +167,47 @@ export const EyeRenderer: React.FC<EyeRendererProps> = ({
 
   const effectivePupilSize = pupilDilation ?? pupilSize;
 
-  const irisUniforms = useMemo(() => ({
-    uIrisColor: { value: new THREE.Vector3(irisColor[0], irisColor[1], irisColor[2]) },
-    uPupilSize: { value: effectivePupilSize },
-    uScleraColor: { value: new THREE.Vector3(scleraColor[0], scleraColor[1], scleraColor[2]) },
-    uIrisDepth: { value: irisDepth },
-    uTime: { value: 0 },
-  }), [irisColor, effectivePupilSize, scleraColor, irisDepth]);
+  const irisUniforms = useMemo(
+    () => ({
+      uIrisColor: { value: new THREE.Vector3(irisColor[0], irisColor[1], irisColor[2]) },
+      uPupilSize: { value: effectivePupilSize },
+      uScleraColor: { value: new THREE.Vector3(scleraColor[0], scleraColor[1], scleraColor[2]) },
+      uIrisDepth: { value: irisDepth },
+      uTime: { value: 0 },
+    }),
+    [irisColor, effectivePupilSize, scleraColor, irisDepth]
+  );
 
-  const corneaUniforms = useMemo(() => ({
-    uIOR: { value: corneaIOR },
-    uRoughness: { value: corneaRoughness },
-    uWetRoughness: { value: wetLayerRoughness },
-  }), [corneaIOR, corneaRoughness, wetLayerRoughness]);
+  const corneaUniforms = useMemo(
+    () => ({
+      uIOR: { value: corneaIOR },
+      uRoughness: { value: corneaRoughness },
+      uWetRoughness: { value: wetLayerRoughness },
+    }),
+    [corneaIOR, corneaRoughness, wetLayerRoughness]
+  );
 
-  const irisMaterial = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: EYE_VERTEX_SHADER,
-    fragmentShader: IRIS_FRAGMENT_SHADER,
-    uniforms: irisUniforms,
-  }), [irisUniforms]);
+  const irisMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: EYE_VERTEX_SHADER,
+        fragmentShader: IRIS_FRAGMENT_SHADER,
+        uniforms: irisUniforms,
+      }),
+    [irisUniforms]
+  );
 
-  const corneaMaterial = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: EYE_VERTEX_SHADER,
-    fragmentShader: CORNEA_FRAGMENT_SHADER,
-    uniforms: corneaUniforms,
-    transparent: true,
-    depthWrite: false,
-  }), [corneaUniforms]);
+  const corneaMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: EYE_VERTEX_SHADER,
+        fragmentShader: CORNEA_FRAGMENT_SHADER,
+        uniforms: corneaUniforms,
+        transparent: true,
+        depthWrite: false,
+      }),
+    [corneaUniforms]
+  );
 
   // Micro-saccade animation
   useFrame((_, delta) => {

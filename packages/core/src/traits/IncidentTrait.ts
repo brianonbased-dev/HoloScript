@@ -42,7 +42,9 @@ export const incidentHandler: TraitHandler<IncidentConfig> = {
   onAttach(node: any): void {
     node.__incidentState = { incidents: new Map<string, Incident>() };
   },
-  onDetach(node: any): void { delete node.__incidentState; },
+  onDetach(node: any): void {
+    delete node.__incidentState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: IncidentConfig, context: any, event: any): void {
@@ -56,7 +58,10 @@ export const incidentHandler: TraitHandler<IncidentConfig> = {
         if (state.incidents.size >= config.max_incidents) {
           // Archive oldest resolved
           for (const [key, inc] of state.incidents) {
-            if (inc.status === 'resolved') { state.incidents.delete(key); break; }
+            if (inc.status === 'resolved') {
+              state.incidents.delete(key);
+              break;
+            }
           }
         }
         const incident: Incident = {
@@ -71,7 +76,11 @@ export const incidentHandler: TraitHandler<IncidentConfig> = {
           resolution: null,
         };
         state.incidents.set(id, incident);
-        context.emit?.('incident:updated', { incidentId: id, status: 'open', severity: incident.severity });
+        context.emit?.('incident:updated', {
+          incidentId: id,
+          status: 'open',
+          severity: incident.severity,
+        });
         break;
       }
       case 'incident:acknowledge': {
@@ -89,15 +98,25 @@ export const incidentHandler: TraitHandler<IncidentConfig> = {
           inc.status = 'resolved';
           inc.resolvedAt = Date.now();
           inc.resolution = (event.resolution as string) ?? null;
-          context.emit?.('incident:updated', { incidentId: inc.id, status: 'resolved', resolution: inc.resolution });
+          context.emit?.('incident:updated', {
+            incidentId: inc.id,
+            status: 'resolved',
+            resolution: inc.resolution,
+          });
         }
         break;
       }
       case 'incident:list': {
-        const list = [...state.incidents.values()].map(i => ({
-          id: i.id, title: i.title, severity: i.severity, status: i.status,
+        const list = [...state.incidents.values()].map((i) => ({
+          id: i.id,
+          title: i.title,
+          severity: i.severity,
+          status: i.status,
         }));
-        context.emit?.('incident:info', { incidents: list, open: list.filter(i => i.status !== 'resolved').length });
+        context.emit?.('incident:info', {
+          incidents: list,
+          open: list.filter((i) => i.status !== 'resolved').length,
+        });
         break;
       }
     }

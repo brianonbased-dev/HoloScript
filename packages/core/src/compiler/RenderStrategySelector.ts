@@ -66,7 +66,10 @@ export interface StrategyResult {
 // GPU Tier Defaults
 // =============================================================================
 
-const GPU_TIER_LIMITS: Record<GPUTier, { maxInstances: number; maxDrawCalls: number; maxTriangles: number }> = {
+const GPU_TIER_LIMITS: Record<
+  GPUTier,
+  { maxInstances: number; maxDrawCalls: number; maxTriangles: number }
+> = {
   low: { maxInstances: 10_000, maxDrawCalls: 100, maxTriangles: 500_000 },
   medium: { maxInstances: 100_000, maxDrawCalls: 500, maxTriangles: 5_000_000 },
   high: { maxInstances: 500_000, maxDrawCalls: 2000, maxTriangles: 20_000_000 },
@@ -106,7 +109,9 @@ export function selectStrategy(group: DrawGroup, context: StrategyContext): Stra
   // Compute rasterize: massive counts with WebGPU
   if (count > 1_000_000 && context.hasWebGPU) {
     if (count > limits.maxInstances) {
-      warnings.push(`Shape count ${count} exceeds tier ${context.gpuTier} limit of ${limits.maxInstances}`);
+      warnings.push(
+        `Shape count ${count} exceeds tier ${context.gpuTier} limit of ${limits.maxInstances}`
+      );
     }
     return {
       strategy: 'compute_rasterize',
@@ -196,12 +201,9 @@ function estimateComputeTime(count: number, ctx: StrategyContext): number {
 /**
  * Select strategies for multiple draw groups and return them sorted by priority.
  */
-export function selectStrategies(
-  groups: DrawGroup[],
-  context: StrategyContext,
-): StrategyResult[] {
+export function selectStrategies(groups: DrawGroup[], context: StrategyContext): StrategyResult[] {
   return groups
-    .map(g => selectStrategy(g, context))
+    .map((g) => selectStrategy(g, context))
     .sort((a, b) => a.estimatedGPUTimeMs - b.estimatedGPUTimeMs);
 }
 

@@ -103,7 +103,9 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         meshComponent = <StudioShaderMeshNode node={node} />;
       } else if (isLODMesh) {
         const distances = props.lodDistances || [0, 25, 50];
-        meshComponent = <LODMeshNode node={node} distances={distances} lodConfig={{}} onLODChange={() => {}} />;
+        meshComponent = (
+          <LODMeshNode node={node} distances={distances} lodConfig={{}} onLODChange={() => {}} />
+        );
       } else if (hasKeyframes) {
         meshComponent = <StudioAnimatedMeshNode node={node} />;
       } else {
@@ -210,7 +212,7 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'gltfModel': {
       const animTrait = node.traits?.get('animation' as any);
-      const action = animTrait ? (animTrait.properties?.state as string ?? 'idle') : 'idle';
+      const action = animTrait ? ((animTrait.properties?.state as string) ?? 'idle') : 'idle';
       return (
         <GLTFModelNode
           node={node}

@@ -65,7 +65,7 @@ import { startMCPServer } from '@holoscript/mcp-server';
 
 const server = await startMCPServer({
   port: 3000,
-  verbose: true
+  verbose: true,
 });
 ```
 
@@ -73,43 +73,43 @@ const server = await startMCPServer({
 
 ### Parsing & Analysis
 
-| Tool | Purpose |
-|------|---------|
-| `parse_hs` | Parse `.hs` files into AST |
-| `parse_hsplus` | Parse `.hsplus` files with VR traits |
-| `parse_holo` | Parse `.holo` composition files |
-| `validate_holoscript` | Check syntax without full parse |
-| `analyze_code` | Get complexity metrics |
-| `explain_code` | Describe code in English |
+| Tool                  | Purpose                              |
+| --------------------- | ------------------------------------ |
+| `parse_hs`            | Parse `.hs` files into AST           |
+| `parse_hsplus`        | Parse `.hsplus` files with VR traits |
+| `parse_holo`          | Parse `.holo` composition files      |
+| `validate_holoscript` | Check syntax without full parse      |
+| `analyze_code`        | Get complexity metrics               |
+| `explain_code`        | Describe code in English             |
 
 ### Code Generation
 
-| Tool | Purpose |
-|------|---------|
-| `generate_object` | Create object from description |
-| `generate_scene` | Create full composition |
-| `generate_template` | Create reusable template |
-| `suggest_traits` | Recommend traits for description |
-| `list_traits` | Show available traits |
-| `explain_trait` | Get trait documentation |
+| Tool                | Purpose                          |
+| ------------------- | -------------------------------- |
+| `generate_object`   | Create object from description   |
+| `generate_scene`    | Create full composition          |
+| `generate_template` | Create reusable template         |
+| `suggest_traits`    | Recommend traits for description |
+| `list_traits`       | Show available traits            |
+| `explain_trait`     | Get trait documentation          |
 
 ### Compilation
 
-| Tool | Purpose |
-|------|---------|
-| `compile_holo` | Compile to specific target |
-| `list_compilers` | Show all 30+ targets |
-| `get_compiler_info` | Details about target |
+| Tool                | Purpose                    |
+| ------------------- | -------------------------- |
+| `compile_holo`      | Compile to specific target |
+| `list_compilers`    | Show all 30+ targets       |
+| `get_compiler_info` | Details about target       |
 
 ### Codebase Intelligence
 
-| Tool | Purpose |
-|------|---------|
-| `absorb_repo` | Scan codebase into knowledge graph |
-| `query_codebase` | Ask questions about code |
-| `find_usages` | Locate symbol references |
-| `impact_analysis` | Blast radius of changes |
-| `detect_patterns` | Find common patterns |
+| Tool              | Purpose                            |
+| ----------------- | ---------------------------------- |
+| `absorb_repo`     | Scan codebase into knowledge graph |
+| `query_codebase`  | Ask questions about code           |
+| `find_usages`     | Locate symbol references           |
+| `impact_analysis` | Blast radius of changes            |
+| `detect_patterns` | Find common patterns               |
 
 ## Example: AI Generates a VR Game
 
@@ -215,16 +215,19 @@ Output:
 ## Best Practices
 
 1. **Always validate** before compiling:
+
    ```
    validate_holoscript() → compile_holo()
    ```
 
 2. **Suggest traits first** when generating from descriptions:
+
    ```
    suggest_traits() → generate_object()
    ```
 
 3. **Use analysis** before large changes:
+
    ```
    impact_analysis() → make changes → run tests
    ```

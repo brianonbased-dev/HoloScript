@@ -74,10 +74,7 @@ describe('generateValidationReport', () => {
   });
 
   it('generates full report for TM traits', () => {
-    const report = generateValidationReport(
-      TM_REGISTERED_TRAITS as unknown as string[],
-      hsTraits
-    );
+    const report = generateValidationReport(TM_REGISTERED_TRAITS as unknown as string[], hsTraits);
     expect(report.total).toBe(48);
     expect(report.matched + report.unmatched + report.deprecated).toBe(48);
   });

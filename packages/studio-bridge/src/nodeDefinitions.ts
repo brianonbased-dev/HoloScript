@@ -430,7 +430,7 @@ export const BRIDGE_NODE_DEFINITIONS: BridgeNodeDefinition[] = [
  * Node registry for quick lookup
  */
 const BRIDGE_NODE_REGISTRY = new Map<string, BridgeNodeDefinition>(
-  BRIDGE_NODE_DEFINITIONS.map((node) => [node.type, node]),
+  BRIDGE_NODE_DEFINITIONS.map((node) => [node.type, node])
 );
 
 /**

@@ -26,11 +26,7 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type {
-  LLMProviderConfig,
-  LLMCompletionRequest,
-  LLMCompletionResponse,
-} from '../types';
+import type { LLMProviderConfig, LLMCompletionRequest, LLMCompletionResponse } from '../types';
 import { LLMProviderError } from '../types';
 
 type BitNetAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
@@ -44,8 +40,8 @@ type BitNetAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
 // =============================================================================
 
 export const BITNET_MODELS = [
-  'microsoft/bitnet-b1.58-2B-4T',  // 2B params, trained on 4T tokens (recommended)
-  '1bitLLM/bitnet_b1_58-large',    // Older reference model (~700M params)
+  'microsoft/bitnet-b1.58-2B-4T', // 2B params, trained on 4T tokens (recommended)
+  '1bitLLM/bitnet_b1_58-large', // Older reference model (~700M params)
 ] as const;
 
 export type BitNetModel = (typeof BITNET_MODELS)[number];
@@ -111,7 +107,7 @@ export class BitNetAdapter extends BaseLLMAdapter {
     const body = JSON.stringify({
       model,
       messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
-      max_tokens: request.maxTokens ?? 512,   // BitNet 2B has shorter optimal generation length
+      max_tokens: request.maxTokens ?? 512, // BitNet 2B has shorter optimal generation length
       temperature: request.temperature ?? 0.1, // Low temp for deterministic code output
       top_p: request.topP ?? 1,
       stop: request.stop,

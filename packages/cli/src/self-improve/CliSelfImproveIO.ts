@@ -94,10 +94,10 @@ export class CliSelfImproveIO implements SelfImproveIO {
     if (fs.existsSync(holoPath)) {
       const content = fs.readFileSync(holoPath, 'utf-8');
       const statLine = content.split('\n').find((l) => l.includes('// Codebase:'));
-      
+
       let filesScanned = 0;
       let symbolsIndexed = 0;
-      
+
       if (statLine) {
         const match = statLine.match(/(\d+) files, (\d+) symbols, (\d+) LOC/);
         if (match) {
@@ -325,9 +325,6 @@ export class CliSelfImproveIO implements SelfImproveIO {
       duration: 0,
     };
   }
-
-
-
 
   // -------------------------------------------------------------------------
   // runTypeCheck

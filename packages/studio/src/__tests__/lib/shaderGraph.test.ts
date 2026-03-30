@@ -21,7 +21,10 @@ import {
 
 // ── Helper ───────────────────────────────────────────────────────────────────
 
-function makeNode(id: string, type: 'color' | 'multiply' | 'add' | 'texture-sample' = 'color'): ShaderNode {
+function makeNode(
+  id: string,
+  type: 'color' | 'multiply' | 'add' | 'texture-sample' = 'color'
+): ShaderNode {
   return {
     id,
     type,
@@ -31,9 +34,7 @@ function makeNode(id: string, type: 'color' | 'multiply' | 'add' | 'texture-samp
       { name: 'in1', dataType: 'vec3', connected: false },
       { name: 'in2', dataType: 'vec3', connected: false },
     ],
-    outputs: [
-      { name: 'out', dataType: 'vec3', connected: false },
-    ],
+    outputs: [{ name: 'out', dataType: 'vec3', connected: false }],
     params: {},
   };
 }

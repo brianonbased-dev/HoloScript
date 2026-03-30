@@ -143,9 +143,7 @@ interface RefactorPlan {
   estimatedImpact: string;
 }
 
-async function handleGenerateRefactorPlan(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleGenerateRefactorPlan(args: Record<string, unknown>): Promise<unknown> {
   const target = args.target as string;
   const goal = args.goal as string;
   const scope = (args.scope as number) ?? 10;
@@ -158,8 +156,7 @@ async function handleGenerateRefactorPlan(
   const { isGraphRAGReady } = await import('@holoscript/absorb-service/mcp');
   if (!isGraphRAGReady()) {
     return {
-      error:
-        'No Graph RAG engine initialized. Call holo_absorb_repo first.',
+      error: 'No Graph RAG engine initialized. Call holo_absorb_repo first.',
       hint: 'The refactor plan generator needs the knowledge graph to analyze dependencies.',
     };
   }
@@ -182,8 +179,8 @@ async function handleGenerateRefactorPlan(
   const context = contextResult as Record<string, unknown>;
   const patterns = patternResult as Record<string, unknown>;
 
-  const contextEntries = ((context?.context ?? []) as Array<Record<string, unknown>>);
-  const patternEntries = ((patterns?.results ?? []) as Array<Record<string, unknown>>);
+  const contextEntries = (context?.context ?? []) as Array<Record<string, unknown>>;
+  const patternEntries = (patterns?.results ?? []) as Array<Record<string, unknown>>;
 
   // Extract affected files from context
   const affectedFiles = new Set<string>();
@@ -196,7 +193,9 @@ async function handleGenerateRefactorPlan(
   const codebasePatterns: string[] = [];
   for (const p of patternEntries.slice(0, 3)) {
     if (p?.name && p?.type) {
-      codebasePatterns.push(`${String(p.type)} "${String(p.name)}" at ${String(p.file)}:${String(p.line)}`);
+      codebasePatterns.push(
+        `${String(p.type)} "${String(p.name)}" at ${String(p.file)}:${String(p.line)}`
+      );
     }
   }
 
@@ -468,13 +467,10 @@ function calculateRiskScore(
   const blastFactor = Math.min(1, affectedFileCount / 20);
 
   // Scale by coupling density
-  const callerCount = contextEntries.reduce(
-    (sum, e) => {
-      const callers = e?.callers as unknown[] | undefined;
-      return sum + (callers?.length ?? 0);
-    },
-    0
-  );
+  const callerCount = contextEntries.reduce((sum, e) => {
+    const callers = e?.callers as unknown[] | undefined;
+    return sum + (callers?.length ?? 0);
+  }, 0);
   const couplingFactor = Math.min(1, callerCount / 50);
 
   return Math.min(1, base * 0.5 + blastFactor * 0.3 + couplingFactor * 0.2);
@@ -495,9 +491,7 @@ interface ConventionProfile {
   fileNaming: 'camelCase' | 'PascalCase' | 'kebab-case' | 'snake_case';
 }
 
-async function handleScaffoldCode(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleScaffoldCode(args: Record<string, unknown>): Promise<unknown> {
   const scaffoldType = args.type as string;
   const name = args.name as string;
   const targetDir = args.targetDir as string;
@@ -515,7 +509,8 @@ async function handleScaffoldCode(
   let symbolContext: Record<string, unknown> | null = null;
   if (context) {
     try {
-      const { isGraphRAGReady, handleGraphRagTool } = await import('@holoscript/absorb-service/mcp');
+      const { isGraphRAGReady, handleGraphRagTool } =
+        await import('@holoscript/absorb-service/mcp');
       if (isGraphRAGReady()) {
         symbolContext = (await handleGraphRagTool('holo_semantic_search', {
           query: context,
@@ -580,9 +575,11 @@ function detectConventions(dir: string): ConventionProfile {
   if (!fs.existsSync(dir)) return defaults;
 
   try {
-    const files = fs.readdirSync(dir).filter((f) =>
-      f.endsWith('.ts') || f.endsWith('.js') || f.endsWith('.tsx') || f.endsWith('.jsx')
-    );
+    const files = fs
+      .readdirSync(dir)
+      .filter(
+        (f) => f.endsWith('.ts') || f.endsWith('.js') || f.endsWith('.tsx') || f.endsWith('.jsx')
+      );
 
     if (files.length === 0) return defaults;
 
@@ -610,7 +607,11 @@ function detectConventions(dir: string): ConventionProfile {
 
           // Semicolons
           if (line.trimEnd().endsWith(';')) semiCount++;
-          else if (line.trim().length > 0 && !line.trim().startsWith('//') && !line.trim().startsWith('*'))
+          else if (
+            line.trim().length > 0 &&
+            !line.trim().startsWith('//') &&
+            !line.trim().startsWith('*')
+          )
             noSemiCount++;
 
           // Quotes
@@ -642,10 +643,11 @@ function detectConventions(dir: string): ConventionProfile {
       trailingComma: true, // hard to detect reliably
       hasJSDoc: jsdocCount > 0,
       importStyle: cjsRequireCount > esmImportCount ? 'commonjs' : 'esm',
-      testFramework: fs.existsSync(path.join(dir, '..', 'vitest.config.ts'))
-        || fs.existsSync(path.join(dir, '..', '..', 'vitest.config.ts'))
-        ? 'vitest'
-        : 'jest',
+      testFramework:
+        fs.existsSync(path.join(dir, '..', 'vitest.config.ts')) ||
+        fs.existsSync(path.join(dir, '..', '..', 'vitest.config.ts'))
+          ? 'vitest'
+          : 'jest',
       fileNaming,
     };
   } catch {
@@ -666,21 +668,24 @@ function generateScaffold(
   const ind = conventions.indentation;
 
   // Extract context info for richer scaffolds
-  const contextSymbols = ((symbolContext as Record<string, unknown>)?.results ?? []) as Array<Record<string, unknown>>;
-  const contextHint: Record<string, unknown> | null = contextSymbols.length > 0
-    ? contextSymbols[0]
-    : null;
+  const contextSymbols = ((symbolContext as Record<string, unknown>)?.results ?? []) as Array<
+    Record<string, unknown>
+  >;
+  const contextHint: Record<string, unknown> | null =
+    contextSymbols.length > 0 ? contextSymbols[0] : null;
 
   switch (scaffoldType) {
     case 'test': {
-      const testFile = conventions.fileNaming === 'kebab-case'
-        ? `${toKebabCase(name)}.test.ts`
-        : `${name}.test.ts`;
+      const testFile =
+        conventions.fileNaming === 'kebab-case'
+          ? `${toKebabCase(name)}.test.ts`
+          : `${name}.test.ts`;
       const filePath = path.join(targetDir, testFile);
       const framework = conventions.testFramework;
-      const importLine = framework === 'vitest'
-        ? `import { describe, it, expect, beforeEach } from ${q}vitest${q}${semi}`
-        : '';
+      const importLine =
+        framework === 'vitest'
+          ? `import { describe, it, expect, beforeEach } from ${q}vitest${q}${semi}`
+          : '';
       const contextImport = contextHint
         ? `import { ${String(contextHint.name)} } from ${q}./${contextHint.file ? path.basename(String(contextHint.file), '.ts') : name}${q}${semi}`
         : `// import { ${name} } from ${q}./${name}${q}${semi}`;
@@ -727,9 +732,10 @@ function generateScaffold(
     }
 
     case 'interface': {
-      const fileName = conventions.fileNaming === 'kebab-case'
-        ? `${toKebabCase(name)}.interface.ts`
-        : `${name}.interface.ts`;
+      const fileName =
+        conventions.fileNaming === 'kebab-case'
+          ? `${toKebabCase(name)}.interface.ts`
+          : `${name}.interface.ts`;
       const filePath = path.join(targetDir, fileName);
 
       const methods: string[] = [];
@@ -760,15 +766,12 @@ function generateScaffold(
     }
 
     case 'module': {
-      const fileName = conventions.fileNaming === 'kebab-case'
-        ? `${toKebabCase(name)}.ts`
-        : `${name}.ts`;
+      const fileName =
+        conventions.fileNaming === 'kebab-case' ? `${toKebabCase(name)}.ts` : `${name}.ts`;
       const filePath = path.join(targetDir, fileName);
 
       const content = [
-        conventions.hasJSDoc
-          ? `/**\n * ${name} Module\n *\n * @module ${name}\n */`
-          : '',
+        conventions.hasJSDoc ? `/**\n * ${name} Module\n *\n * @module ${name}\n */` : '',
         '',
         `// =============================================================================`,
         `// TYPES`,
@@ -836,15 +839,14 @@ function generateScaffold(
     }
 
     case 'component': {
-      const fileName = conventions.fileNaming === 'kebab-case'
-        ? `${toKebabCase(name)}.component.ts`
-        : `${name}Component.ts`;
+      const fileName =
+        conventions.fileNaming === 'kebab-case'
+          ? `${toKebabCase(name)}.component.ts`
+          : `${name}Component.ts`;
       const filePath = path.join(targetDir, fileName);
 
       const content = [
-        conventions.hasJSDoc
-          ? `/**\n * ${name} Component\n *\n * @component\n */`
-          : '',
+        conventions.hasJSDoc ? `/**\n * ${name} Component\n *\n * @component\n */` : '',
         '',
         `export interface ${name}Props {`,
         `${ind}// TODO: Define props`,

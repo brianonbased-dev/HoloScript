@@ -59,7 +59,9 @@ describe('PluginSignatureVerifier', () => {
 
     it('rejects duplicate key IDs', () => {
       verifier.addTrustedKey('key-1', keyPair.publicKey, 'Key 1');
-      expect(() => verifier.addTrustedKey('key-1', keyPair.publicKey, 'Key 1b')).toThrow('already exists');
+      expect(() => verifier.addTrustedKey('key-1', keyPair.publicKey, 'Key 1b')).toThrow(
+        'already exists'
+      );
     });
 
     it('removes keys', () => {

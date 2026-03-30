@@ -7,6 +7,7 @@ Integrates with **Apple App Store Connect** and **Google Play Developer API** fo
 ## Features
 
 ### Apple App Store Connect
+
 - ✅ JWT authentication with App Store Connect API
 - ✅ iOS and visionOS build upload (.ipa)
 - ✅ TestFlight beta distribution
@@ -15,6 +16,7 @@ Integrates with **Apple App Store Connect** and **Google Play Developer API** fo
 - ✅ Beta review tracking
 
 ### Google Play Developer
+
 - ✅ Service account authentication
 - ✅ Android build upload (.apk, .aab)
 - ✅ Internal/Alpha/Beta/Production track management
@@ -23,6 +25,7 @@ Integrates with **Apple App Store Connect** and **Google Play Developer API** fo
 - ✅ Store listing metadata updates
 
 ### Cross-Platform
+
 - ✅ Unified API for both platforms
 - ✅ Unity build artifact auto-detection
 - ✅ Webhook notifications for build status
@@ -96,7 +99,7 @@ await connector.executeTool('apple_build_upload', {
   bundleId: 'com.company.app',
   version: '1.0.0',
   buildNumber: '42',
-  platform: 'ios'
+  platform: 'ios',
 });
 
 // Upload Android build to Google Play
@@ -105,7 +108,7 @@ await connector.executeTool('google_build_upload', {
   packageName: 'com.company.app',
   version: '1.0.0',
   buildNumber: '42',
-  track: 'internal'
+  track: 'internal',
 });
 
 // Disconnect
@@ -127,7 +130,7 @@ const result = await connector.executeTool('appstore_unity_publish', {
   appleBundleId: 'com.company.app',
   googlePackageName: 'com.company.app',
   androidTrack: 'internal',
-  submitToTestFlight: true
+  submitToTestFlight: true,
 });
 
 console.log('Summary:', result.summary);
@@ -178,7 +181,7 @@ app.post('/webhooks/google', async (req, res) => {
 // Get track status
 const track = await connector.executeTool('google_track_get', {
   packageName: 'com.company.app',
-  track: 'internal'
+  track: 'internal',
 });
 
 console.log('Version codes:', track.versionCodes);
@@ -189,14 +192,14 @@ await connector.executeTool('google_release_promote', {
   packageName: 'com.company.app',
   fromTrack: 'internal',
   toTrack: 'alpha',
-  versionCodes: [42, 43]
+  versionCodes: [42, 43],
 });
 
 // Update production rollout to 50%
 await connector.executeTool('google_rollout_update', {
   packageName: 'com.company.app',
   versionCodes: [42],
-  percentage: 50
+  percentage: 50,
 });
 ```
 
@@ -206,19 +209,19 @@ await connector.executeTool('google_rollout_update', {
 // List all builds
 const builds = await connector.executeTool('apple_builds_list', {
   bundleId: 'com.company.app',
-  limit: 10
+  limit: 10,
 });
 
 console.log('Recent builds:', builds);
 
 // Submit to TestFlight
 await connector.executeTool('apple_testflight_submit', {
-  buildId: 'build-123'
+  buildId: 'build-123',
 });
 
 // Check beta review status
 const status = await connector.executeTool('apple_beta_review_status', {
-  buildId: 'build-123'
+  buildId: 'build-123',
 });
 
 console.log('Beta review status:', status);
@@ -229,6 +232,7 @@ console.log('Beta review status:', status);
 This connector provides 16 MCP tools for use in HoloScript Studio:
 
 ### Apple Tools
+
 - `apple_app_get` - Get app information
 - `apple_build_upload` - Upload iOS/visionOS build
 - `apple_build_get` - Get build details
@@ -238,6 +242,7 @@ This connector provides 16 MCP tools for use in HoloScript Studio:
 - `apple_metadata_update` - Update app metadata
 
 ### Google Tools
+
 - `google_app_get` - Get app information
 - `google_build_upload` - Upload Android build
 - `google_track_get` - Get track information
@@ -247,6 +252,7 @@ This connector provides 16 MCP tools for use in HoloScript Studio:
 - `google_listing_update` - Update store listing
 
 ### Cross-Platform Tools
+
 - `appstore_health` - Check platform health
 - `appstore_unity_publish` - Publish Unity builds
 
@@ -305,7 +311,7 @@ const result = await connector.executeTool('appstore_unity_publish', {
   releaseNotes: process.env.RELEASE_NOTES,
   appleBundleId: 'com.company.app',
   googlePackageName: 'com.company.app',
-  androidTrack: 'internal'
+  androidTrack: 'internal',
 });
 
 if (result.summary.failed > 0) {
@@ -338,7 +344,7 @@ await connector.executeTool('appstore_unity_publish', {
   version: '1.0.0',
   buildNumber: '42',
   appleBundleId: 'com.company.app',
-  googlePackageName: 'com.company.app'
+  googlePackageName: 'com.company.app',
 });
 ```
 
@@ -350,13 +356,13 @@ See [API Documentation](./docs/api.md) for full TypeScript API reference.
 
 Both platforms send notifications for build status changes:
 
-| Event | Description | Platforms |
-|-------|-------------|-----------|
-| `build.processing` | Build is being processed | Apple, Google |
-| `build.ready` | Build is ready for distribution | Apple, Google |
-| `build.invalid` | Build failed validation | Apple |
-| `review.approved` | App review approved | Apple, Google |
-| `review.rejected` | App review rejected | Apple, Google |
+| Event              | Description                     | Platforms     |
+| ------------------ | ------------------------------- | ------------- |
+| `build.processing` | Build is being processed        | Apple, Google |
+| `build.ready`      | Build is ready for distribution | Apple, Google |
+| `build.invalid`    | Build failed validation         | Apple         |
+| `review.approved`  | App review approved             | Apple, Google |
+| `review.rejected`  | App review rejected             | Apple, Google |
 
 ## Security
 

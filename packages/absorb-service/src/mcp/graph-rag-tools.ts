@@ -75,15 +75,18 @@ export const graphRagTools: Tool[] = [
         llmProvider: {
           type: 'string',
           enum: ['openai', 'anthropic', 'gemini', 'ollama'],
-          description: 'LLM provider for answer generation (default: ollama). Use "gemini" for Google Gemini, "openai" for GPT models, "anthropic" for Claude.',
+          description:
+            'LLM provider for answer generation (default: ollama). Use "gemini" for Google Gemini, "openai" for GPT models, "anthropic" for Claude.',
         },
         llmApiKey: {
           type: 'string',
-          description: 'API key for the LLM provider (required for openai/anthropic/gemini, not needed for ollama). Falls back to OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variables if not provided.',
+          description:
+            'API key for the LLM provider (required for openai/anthropic/gemini, not needed for ollama). Falls back to OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY environment variables if not provided.',
         },
         llmModel: {
           type: 'string',
-          description: 'Model name override (e.g., "gpt-4o-mini", "claude-3-haiku-20240307", "gemini-1.5-flash"). Defaults to provider-specific defaults.',
+          description:
+            'Model name override (e.g., "gpt-4o-mini", "claude-3-haiku-20240307", "gemini-1.5-flash"). Defaults to provider-specific defaults.',
         },
       },
       required: ['question'],
@@ -203,19 +206,19 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           case 'openai':
             llmAdapter = new llmPkg.OpenAIAdapter({
               apiKey,
-              defaultModel: llmModel ?? 'gpt-4o-mini'
+              defaultModel: llmModel ?? 'gpt-4o-mini',
             });
             break;
           case 'anthropic':
             llmAdapter = new llmPkg.AnthropicAdapter({
               apiKey,
-              defaultModel: llmModel ?? 'claude-3-haiku-20240307'
+              defaultModel: llmModel ?? 'claude-3-haiku-20240307',
             });
             break;
           case 'gemini':
             llmAdapter = new llmPkg.GeminiAdapter({
               apiKey,
-              defaultModel: llmModel ?? 'gemini-1.5-flash'
+              defaultModel: llmModel ?? 'gemini-1.5-flash',
             });
             break;
           default:
@@ -266,9 +269,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   } catch (err: any) {
     return {
       error: `Graph RAG query failed: ${err.message}`,
-      hint: llmProvider && llmProvider !== 'ollama'
-        ? `Ensure ${llmProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`
-        : 'Ensure Ollama is running with both nomic-embed-text and a chat model.',
+      hint:
+        llmProvider && llmProvider !== 'ollama'
+          ? `Ensure ${llmProvider.toUpperCase()}_API_KEY is set or passed via llmApiKey parameter`
+          : 'Ensure Ollama is running with both nomic-embed-text and a chat model.',
     };
   }
 }

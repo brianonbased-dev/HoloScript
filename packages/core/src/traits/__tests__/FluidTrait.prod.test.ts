@@ -22,8 +22,7 @@ describe('fluidHandler — defaultConfig', () => {
   it('particle_count = 50000', () =>
     expect(fluidHandler.defaultConfig?.particle_count).toBe(50000));
   it('viscosity = 0.01', () => expect(fluidHandler.defaultConfig?.viscosity).toBe(0.01));
-  it('render_mode = ssfr', () =>
-    expect(fluidHandler.defaultConfig?.render_mode).toBe('ssfr'));
+  it('render_mode = ssfr', () => expect(fluidHandler.defaultConfig?.render_mode).toBe('ssfr'));
   it('gravity = [0,-9.81,0]', () =>
     expect(fluidHandler.defaultConfig?.gravity).toEqual([0, -9.81, 0]));
 });

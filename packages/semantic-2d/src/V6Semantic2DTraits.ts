@@ -22,7 +22,7 @@ export interface V6Canvas2DConfig {
 
 export interface V6SemanticEntityConfig {
   id?: string;
-  type?: string; 
+  type?: string;
   meaning?: string;
   priority?: number;
   layout?: Record<string, unknown>;
@@ -68,7 +68,6 @@ export interface V6LiveMetricConfig {
   threshold_alert?: number;
 }
 
-
 // ============================================================================
 // HANDLERS
 // ============================================================================
@@ -76,49 +75,67 @@ export interface V6LiveMetricConfig {
 export const v6Canvas2DHandler: TraitHandler<V6Canvas2DConfig> = {
   name: '2d_canvas',
   defaultConfig: { projection: 'flat-semantic', responsive: true, economy_enabled: true },
-  onAttach(node: any, config: any) { (node as any).__isV6Canvas = true; (node as any).__v6Canvas = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__isV6Canvas = true;
+    (node as any).__v6Canvas = config;
+  },
 };
 
 export const v6SemanticEntityHandler: TraitHandler<V6SemanticEntityConfig> = {
   name: 'semantic_entity',
   defaultConfig: { priority: 1.0 },
-  onAttach(node: any, config: any) { (node as any).__isV6Entity = true; (node as any).__v6Entity = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__isV6Entity = true;
+    (node as any).__v6Entity = config;
+  },
 };
 
 export const v6SemanticLayoutHandler: TraitHandler<V6SemanticLayoutConfig> = {
   name: 'semantic_layout',
   defaultConfig: { wrap: true, spacing: 12, adaptive_scale: true },
-  onAttach(node: any, config: any) { (node as any).__v6SemanticLayout = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__v6SemanticLayout = config;
+  },
 };
 
 export const v6DynamicVisualHandler: TraitHandler<V6DynamicVisualConfig> = {
   name: 'dynamic_visual',
-  defaultConfig: { },
-  onAttach(node: any, config: any) { (node as any).__v6DynamicVisual = config; }
+  defaultConfig: {},
+  onAttach(node: any, config: any) {
+    (node as any).__v6DynamicVisual = config;
+  },
 };
 
 export const v6ParticleFeedbackHandler: TraitHandler<V6ParticleFeedbackConfig> = {
   name: 'particle_feedback',
   defaultConfig: { intensity: 1.0 },
-  onAttach(node: any, config: any) { (node as any).__v6ParticleFeedback = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__v6ParticleFeedback = config;
+  },
 };
 
 export const v6AgentAttentionHandler: TraitHandler<V6AgentAttentionConfig> = {
   name: 'agent_attention',
   defaultConfig: { swarm_size: 3, bounty_threshold: 50 },
-  onAttach(node: any, config: any) { (node as any).__v6AgentAttention = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__v6AgentAttention = config;
+  },
 };
 
 export const v6IntentDrivenHandler: TraitHandler<V6IntentDrivenConfig> = {
   name: 'intent_driven',
   defaultConfig: { intents: [] },
-  onAttach(node: any, config: any) { (node as any).__v6IntentDriven = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__v6IntentDriven = config;
+  },
 };
 
 export const v6LiveMetricHandler: TraitHandler<V6LiveMetricConfig> = {
   name: 'live_metric',
   defaultConfig: { adaptive_color: true },
-  onAttach(node: any, config: any) { (node as any).__v6LiveMetric = config; }
+  onAttach(node: any, config: any) {
+    (node as any).__v6LiveMetric = config;
+  },
 };
 
 // ============================================================================
@@ -133,5 +150,5 @@ export const V6_SEMANTIC_2D_TRAIT_HANDLERS = [
   v6ParticleFeedbackHandler,
   v6AgentAttentionHandler,
   v6IntentDrivenHandler,
-  v6LiveMetricHandler
+  v6LiveMetricHandler,
 ];

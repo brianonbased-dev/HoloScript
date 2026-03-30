@@ -7,5 +7,13 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   treeshake: true,
-  external: ['react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', '@react-three/rapier'],
+  external: [
+    'react',
+    'react-dom',
+    'three',
+    '@react-three/fiber',
+    '@react-three/drei',
+    '@react-three/postprocessing',
+    '@react-three/rapier',
+  ],
 });

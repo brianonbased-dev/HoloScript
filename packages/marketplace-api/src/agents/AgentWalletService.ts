@@ -71,7 +71,9 @@ export class AgentWalletService {
       console.log(`[AgentWalletService] Autonomous Wallet Live: ${this.walletAddress}`);
       return this.walletAddress as string;
     } catch (e) {
-      console.error('[AgentWalletService] Initialization failed!', { error: e instanceof Error ? e.message : String(e) });
+      console.error('[AgentWalletService] Initialization failed!', {
+        error: e instanceof Error ? e.message : String(e),
+      });
       throw e;
     }
   }

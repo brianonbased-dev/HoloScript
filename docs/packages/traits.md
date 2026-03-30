@@ -19,6 +19,7 @@ object "Sword" {
 ```
 
 When compiled, `@grabbable` might translate to:
+
 - **Unity**: An Interactable component using the XR Interaction Toolkit
 - **Unreal**: A UGripMotionControllerComponent
 - **WebGPU**: JavaScript grab detection based on pointer proximity
@@ -220,7 +221,7 @@ object "SmartDoor" {
   @animated         // Door swing animation
   @networked        // Synchronized across players
   @voice_activated  // "Open sesame"
-  
+
   state { locked: true }
   on_click { this.state.locked = !this.state.locked }
 }
@@ -253,8 +254,8 @@ const hyperlocal = {
   compilers: {
     unity: () => `// Limit visibility to 10m radius`,
     webgpu: () => `// Cull if distance > 10m`,
-    ros2: () => `// Broadcast on /hyperlocal topic`
-  }
+    ros2: () => `// Broadcast on /hyperlocal topic`,
+  },
 };
 
 registerTrait(hyperlocal);
@@ -312,6 +313,7 @@ const physicTraits = searchTraits('physics');
 ## Performance
 
 Traits are **compile-time annotations** with zero runtime cost:
+
 - No trait lookups at runtime
 - No inheritance overhead
 - Compiled away to native platform code

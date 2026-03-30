@@ -11,7 +11,7 @@ function provenanceChainLength(chain: { verifier: string }[]): number {
 }
 
 function isFullyVerified(chain: { verifier: string }[], minVerifiers: number): boolean {
-  const unique = new Set(chain.map(c => c.verifier)).size;
+  const unique = new Set(chain.map((c) => c.verifier)).size;
   return unique >= minVerifiers;
 }
 
@@ -90,7 +90,7 @@ function topExhibits(traces: ExhibitTrace[], n: number): ExhibitTrace[] {
 }
 
 function coldSpots(traces: ExhibitTrace[], threshold: number): ExhibitTrace[] {
-  return traces.filter(t => traceIntensity(t) < threshold);
+  return traces.filter((t) => traceIntensity(t) < threshold);
 }
 
 describe('Scenario: Heritage — Stigmergic Trace Visualization', () => {
@@ -122,6 +122,6 @@ describe('Scenario: Heritage — Stigmergic Trace Visualization', () => {
   it('coldSpots() finds under-visited exhibits', () => {
     const cold = coldSpots(traces, 0.1);
     expect(cold.length).toBeGreaterThan(0);
-    expect(cold.some(c => c.exhibitId === 'pottery_shard')).toBe(true);
+    expect(cold.some((c) => c.exhibitId === 'pottery_shard')).toBe(true);
   });
 });

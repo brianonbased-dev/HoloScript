@@ -179,7 +179,12 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'scripting', icon: '📝', label: 'REPL', title: 'HoloScript REPL' },
       { id: 'security', icon: '🔒', label: 'Sandbox', title: 'Security sandbox' },
       { id: 'saveload', icon: '💾', label: 'Save', title: 'Save/load manager' },
-      { id: 'diagnostics', icon: '🔍', label: 'Diag', title: 'Unified diagnostics (errors, warnings, hints)' },
+      {
+        id: 'diagnostics',
+        icon: '🔍',
+        label: 'Diag',
+        title: 'Unified diagnostics (errors, warnings, hints)',
+      },
     ],
   },
   {
@@ -241,7 +246,7 @@ export function RightPanelSidebar({
               setActiveTab('animation');
               if (!isOpen) setIsOpen(true);
             } else if (node.type === 'mesh') {
-               // For standard props/meshes
+              // For standard props/meshes
               setActiveTab('traits');
               if (!isOpen) setIsOpen(true);
             }

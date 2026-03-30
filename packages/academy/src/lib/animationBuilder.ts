@@ -86,7 +86,8 @@ export function sampleTrack(track: AnimationTrack, time: number): number {
   if (keyframes.length === 1) return keyframes[0].value as number;
 
   // Clamp or loop
-  const t = track.loop && track.duration > 0 ? time % track.duration : Math.min(time, track.duration);
+  const t =
+    track.loop && track.duration > 0 ? time % track.duration : Math.min(time, track.duration);
 
   // Find surrounding keyframes
   let prev = keyframes[0];

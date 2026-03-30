@@ -339,9 +339,7 @@ describe('SkillWorkflowEngine', () => {
       const workflow: WorkflowDefinition = {
         id: 'timeout-test',
         name: 'Timeout Test',
-        steps: [
-          { id: 'slow', skillId: 'slow_skill', inputs: {}, timeout: 50 },
-        ],
+        steps: [{ id: 'slow', skillId: 'slow_skill', inputs: {}, timeout: 50 }],
       };
 
       const slowExecutor: SkillExecutor = async () => {

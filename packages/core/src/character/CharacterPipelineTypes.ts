@@ -26,7 +26,11 @@ export interface SculptRegion {
   name: string;
   geometry: GeometryPrimitive;
   scale: [number, number, number];
-  bounds?: { center: [number, number, number]; radius?: number; extents?: [number, number, number] };
+  bounds?: {
+    center: [number, number, number];
+    radius?: number;
+    extents?: [number, number, number];
+  };
   path?: { type: 'bezier'; points: [number, number, number][] };
   fill: FillMode;
   thickness?: number;
@@ -200,7 +204,10 @@ export interface MarschnerHairConfig {
   melaninRedness: number;
 }
 
-export type CharacterMaterial = SubsurfaceMaterialConfig | RefractiveEyeConfig | MarschnerHairConfig;
+export type CharacterMaterial =
+  | SubsurfaceMaterialConfig
+  | RefractiveEyeConfig
+  | MarschnerHairConfig;
 
 export type ClothingType = 'baked' | 'layered_shell' | 'cloth_simulation';
 

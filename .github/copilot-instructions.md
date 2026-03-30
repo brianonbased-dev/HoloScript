@@ -92,17 +92,18 @@ When asked to build features:
 
 > **Use these before editing TypeScript. Cache-first: `force=false` returns in ~21ms if cache is < 24h old.**
 
-| Tool                    | When to Use                                            |
-| ----------------------- | ------------------------------------------------------ |
-| `holo_graph_status`     | **First**: check cache freshness before absorbing      |
-| `holo_absorb_repo`      | Scan codebase — omit `force` to use cache (~21ms)      |
-| `holo_query_codebase`   | Query codebase graph (auto-loads cache if needed)      |
-| `holo_impact_analysis`  | Blast radius for a symbol (auto-loads cache)           |
-| `holo_detect_changes`   | Compare two git refs — always fresh                    |
-| `holo_semantic_search`  | Semantic search (requires Ollama)                      |
-| `holo_ask_codebase`     | Natural language questions (requires Ollama)           |
+| Tool                   | When to Use                                       |
+| ---------------------- | ------------------------------------------------- |
+| `holo_graph_status`    | **First**: check cache freshness before absorbing |
+| `holo_absorb_repo`     | Scan codebase — omit `force` to use cache (~21ms) |
+| `holo_query_codebase`  | Query codebase graph (auto-loads cache if needed) |
+| `holo_impact_analysis` | Blast radius for a symbol (auto-loads cache)      |
+| `holo_detect_changes`  | Compare two git refs — always fresh               |
+| `holo_semantic_search` | Semantic search (requires Ollama)                 |
+| `holo_ask_codebase`    | Natural language questions (requires Ollama)      |
 
 **Workflow for TypeScript refactoring:**
+
 ```
 1. holo_graph_status({})                          → Check cache age
 2. holo_absorb_repo({ rootDir: "packages/core" }) → Use cache if fresh
@@ -123,12 +124,12 @@ If any MCP tool call fails or returns an error:
 3. **Verify** — retry `holo_graph_status({})` or `list_traits({})` (lightest calls)
 4. **CLI fallbacks** if server won't start:
 
-| Failed Tool | CLI Equivalent |
-| ----------- | -------------- |
-| `holo_absorb_repo` | `npx tsx packages/cli/src/cli.ts absorb <dir> --json` |
-| `holo_query_codebase` | `npx tsx packages/cli/src/cli.ts query "<question>"` |
-| `validate_holoscript` | `npx tsx packages/cli/src/cli.ts parse <file>` |
-| `suggest_traits`, `generate_*` | No CLI equivalent — LLM-based only |
+| Failed Tool                    | CLI Equivalent                                        |
+| ------------------------------ | ----------------------------------------------------- |
+| `holo_absorb_repo`             | `npx tsx packages/cli/src/cli.ts absorb <dir> --json` |
+| `holo_query_codebase`          | `npx tsx packages/cli/src/cli.ts query "<question>"`  |
+| `validate_holoscript`          | `npx tsx packages/cli/src/cli.ts parse <file>`        |
+| `suggest_traits`, `generate_*` | No CLI equivalent — LLM-based only                    |
 
 5. **Notify user**: `"MCP server is down. Start it: npx tsx packages/mcp-server/src/index.ts"`
 
@@ -464,22 +465,22 @@ object Portal @collidable {
 
 ## Package Structure
 
-| Package                    | Purpose                                   |
-| -------------------------- | ----------------------------------------- |
+| Package                      | Purpose                                         |
+| ---------------------------- | ----------------------------------------------- |
 | `@holoscript/core`           | Parser, AST, 2,000+ traits, 30+ compile targets |
-| `@holoscript/mcp-server`     | 65 MCP tools for AI agents                |
-| `@holoscript/cli`            | holo build · holo compile · holo validate |
-| `@holoscript/runtime`        | Scene execution runtime                   |
-| `@holoscript/lsp`            | Language Server Protocol                  |
-| `@holoscript/llm-provider`   | OpenAI / Anthropic / Gemini SDK           |
-| `@holoscript/partner-sdk`    | Webhooks and analytics                    |
-| `@holoscript/agent-protocol` | uAA2++ 7-phase agent lifecycle framework  |
-| `@holoscript/uaal`           | Universal Autonomous Agent Language VM    |
-| `@holoscript/studio`         | Visual IDE (desktop + browser)            |
-| `@holoscript/snn-poc`        | Spiking Neural Network / neuromorphic POC |
-| `@holoscript/crdt`           | Conflict-free replicated spatial state    |
-| `@holoscript/std`            | HoloScript standard library               |
-| `holoscript` (PyPI)          | Python bindings + robotics module         |
+| `@holoscript/mcp-server`     | 65 MCP tools for AI agents                      |
+| `@holoscript/cli`            | holo build · holo compile · holo validate       |
+| `@holoscript/runtime`        | Scene execution runtime                         |
+| `@holoscript/lsp`            | Language Server Protocol                        |
+| `@holoscript/llm-provider`   | OpenAI / Anthropic / Gemini SDK                 |
+| `@holoscript/partner-sdk`    | Webhooks and analytics                          |
+| `@holoscript/agent-protocol` | uAA2++ 7-phase agent lifecycle framework        |
+| `@holoscript/uaal`           | Universal Autonomous Agent Language VM          |
+| `@holoscript/studio`         | Visual IDE (desktop + browser)                  |
+| `@holoscript/snn-poc`        | Spiking Neural Network / neuromorphic POC       |
+| `@holoscript/crdt`           | Conflict-free replicated spatial state          |
+| `@holoscript/std`            | HoloScript standard library                     |
+| `holoscript` (PyPI)          | Python bindings + robotics module               |
 
 > **Note**: `@holoscript/traits` is a separate package (named trait constants).
 > Core trait implementations and all 30+ compiler targets live inside `@holoscript/core`.

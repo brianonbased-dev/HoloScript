@@ -40,13 +40,16 @@ export interface AgentRoomRendererProps {
 // Environment color palettes
 // ---------------------------------------------------------------------------
 
-const ENV_COLORS: Record<string, { floor: string; walls: string; ceiling: string; ambient: string }> = {
-  default:  { floor: '#1a1b26', walls: '#111827', ceiling: '#0f172a', ambient: '#334155' },
-  sunset:   { floor: '#2d1b2e', walls: '#1a0f1f', ceiling: '#0d0512', ambient: '#f97316' },
-  ocean:    { floor: '#0c1929', walls: '#0a1628', ceiling: '#061018', ambient: '#0ea5e9' },
-  forest:   { floor: '#0f1f0d', walls: '#0a1a0a', ceiling: '#061206', ambient: '#22c55e' },
-  void:     { floor: '#050505', walls: '#030303', ceiling: '#010101', ambient: '#6366f1' },
-  neon:     { floor: '#0d0d14', walls: '#0a0a0f', ceiling: '#050508', ambient: '#f0abfc' },
+const ENV_COLORS: Record<
+  string,
+  { floor: string; walls: string; ceiling: string; ambient: string }
+> = {
+  default: { floor: '#1a1b26', walls: '#111827', ceiling: '#0f172a', ambient: '#334155' },
+  sunset: { floor: '#2d1b2e', walls: '#1a0f1f', ceiling: '#0d0512', ambient: '#f97316' },
+  ocean: { floor: '#0c1929', walls: '#0a1628', ceiling: '#061018', ambient: '#0ea5e9' },
+  forest: { floor: '#0f1f0d', walls: '#0a1a0a', ceiling: '#061206', ambient: '#22c55e' },
+  void: { floor: '#050505', walls: '#030303', ceiling: '#010101', ambient: '#6366f1' },
+  neon: { floor: '#0d0d14', walls: '#0a0a0f', ceiling: '#050508', ambient: '#f0abfc' },
 };
 
 // ---------------------------------------------------------------------------
@@ -64,7 +67,14 @@ function useSurfaceMaterial(preset: string, color: string) {
       case 'holographic':
         return { color: c, roughness: 0, metalness: 1, iridescence: 1, iridescenceIOR: 1.5 };
       case 'glass':
-        return { color: c, roughness: 0, metalness: 0, transmission: 0.8, transparent: true, opacity: 0.3 };
+        return {
+          color: c,
+          roughness: 0,
+          metalness: 0,
+          transmission: 0.8,
+          transparent: true,
+          opacity: 0.3,
+        };
       default: // matte
         return { color: c, roughness: 0.9, metalness: 0.1 };
     }
@@ -97,7 +107,12 @@ export function AgentRoomRenderer({
     <group ref={groupRef} name="agent-room">
       {/* Ambient light */}
       <ambientLight intensity={0.3} color={env.ambient} />
-      <pointLight position={[0, h - 0.5, 0]} intensity={0.6} color={themeColor} distance={w * 1.5} />
+      <pointLight
+        position={[0, h - 0.5, 0]}
+        intensity={0.6}
+        color={themeColor}
+        distance={w * 1.5}
+      />
 
       {/* Floor */}
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -155,15 +170,17 @@ export function AgentRoomRenderer({
 
       {/* Visitor counter */}
       <Html position={[w / 2 - 0.5, h - 0.3, -d / 2 + 0.1]} transform>
-        <div style={{
-          background: 'rgba(0,0,0,0.7)',
-          color: visitorCount >= maxVisitors ? '#f87171' : '#06b6d4',
-          padding: '2px 8px',
-          borderRadius: '6px',
-          fontSize: '11px',
-          fontFamily: 'monospace',
-          whiteSpace: 'nowrap',
-        }}>
+        <div
+          style={{
+            background: 'rgba(0,0,0,0.7)',
+            color: visitorCount >= maxVisitors ? '#f87171' : '#06b6d4',
+            padding: '2px 8px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontFamily: 'monospace',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {visitorCount}/{maxVisitors}
         </div>
       </Html>
@@ -184,13 +201,13 @@ export function AgentRoomRenderer({
 // ---------------------------------------------------------------------------
 
 const FURNITURE_SHAPES: Record<string, { size: [number, number, number]; color: string }> = {
-  table:    { size: [1.5, 0.8, 0.8], color: '#4a3728' },
-  chair:    { size: [0.5, 0.9, 0.5], color: '#374151' },
-  shelf:    { size: [2, 1.5, 0.4], color: '#44403c' },
-  lamp:     { size: [0.3, 1.2, 0.3], color: '#fbbf24' },
-  plant:    { size: [0.4, 0.8, 0.4], color: '#16a34a' },
-  screen:   { size: [1.6, 1, 0.05], color: '#1e40af' },
-  generic:  { size: [0.8, 0.8, 0.8], color: '#6b7280' },
+  table: { size: [1.5, 0.8, 0.8], color: '#4a3728' },
+  chair: { size: [0.5, 0.9, 0.5], color: '#374151' },
+  shelf: { size: [2, 1.5, 0.4], color: '#44403c' },
+  lamp: { size: [0.3, 1.2, 0.3], color: '#fbbf24' },
+  plant: { size: [0.4, 0.8, 0.4], color: '#16a34a' },
+  screen: { size: [1.6, 1, 0.05], color: '#1e40af' },
+  generic: { size: [0.8, 0.8, 0.8], color: '#6b7280' },
 };
 
 function FurniturePiece({ item, accentColor }: { item: FurnitureItem; accentColor: string }) {

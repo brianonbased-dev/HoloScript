@@ -18,21 +18,21 @@ export function ContentCameraCapture() {
   useEffect(() => {
     const handleStartRecord = () => {
       if (isRecording) return;
-      
+
       const canvas = gl.domElement;
       const stream = canvas.captureStream(60); // 60 FPS
-      
+
       try {
         const recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
         mediaRecorderRef.current = recorder;
         chunksRef.current = [];
-        
+
         recorder.ondataavailable = (e) => {
           if (e.data.size > 0) {
             chunksRef.current.push(e.data);
           }
         };
-        
+
         recorder.onstop = () => {
           const blob = new Blob(chunksRef.current, { type: 'video/webm' });
           const url = URL.createObjectURL(blob);
@@ -45,11 +45,11 @@ export function ContentCameraCapture() {
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
         };
-        
+
         recorder.start();
         setIsRecording(true);
       } catch (e) {
-        console.error("Failed to start MediaRecorder", e);
+        console.error('Failed to start MediaRecorder', e);
       }
     };
 
@@ -103,7 +103,9 @@ export function ContentCameraUI() {
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
@@ -118,7 +120,6 @@ export function ContentCameraUI() {
           <div className="bg-black/80 flex-1 transition-all duration-300 backdrop-blur-sm" />
         </div>
       )}
-      
       {aspect === '16:9' && (
         <div className="absolute inset-0 flex flex-col">
           <div className="bg-black/80 flex-1 transition-all duration-300 backdrop-blur-sm" />
@@ -126,7 +127,6 @@ export function ContentCameraUI() {
           <div className="bg-black/80 flex-1 transition-all duration-300 backdrop-blur-sm" />
         </div>
       )}
-
       {/* Top Toolbar */}
       <div className="pointer-events-auto flex items-center justify-between p-4">
         <div className="flex gap-2 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur shadow-lg">
@@ -156,25 +156,28 @@ export function ContentCameraUI() {
         <div className="flex gap-3 items-center">
           {isRecording && (
             <div className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-red-400 backdrop-blur animate-pulse font-mono text-sm tracking-widest shadow-lg">
-               <div className="w-2 h-2 rounded-full bg-red-500" />
-               {formatTime(recordingTime)}
+              <div className="w-2 h-2 rounded-full bg-red-500" />
+              {formatTime(recordingTime)}
             </div>
           )}
-          
+
           <button
             onClick={toggleRecording}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold tracking-wide transition shadow-lg ${
-              isRecording 
-                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/50' 
+              isRecording
+                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/50'
                 : 'bg-studio-accent text-white hover:bg-indigo-500 border border-studio-accent/50'
             }`}
           >
-            {isRecording ? <StopSquare className="w-4 h-4 fill-current" /> : <Camera className="w-4 h-4" />}
+            {isRecording ? (
+              <StopSquare className="w-4 h-4 fill-current" />
+            ) : (
+              <Camera className="w-4 h-4" />
+            )}
             {isRecording ? 'STOP' : 'RECORD'}
           </button>
         </div>
       </div>
-      
       <div /> {/* Spacer for flex-col spacing */}
     </div>
   );

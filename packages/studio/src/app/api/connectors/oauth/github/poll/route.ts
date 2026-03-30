@@ -4,10 +4,7 @@ const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 
 export async function POST(req: NextRequest) {
   if (!GITHUB_CLIENT_ID) {
-    return NextResponse.json(
-      { error: 'GitHub Client ID not configured.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'GitHub Client ID not configured.' }, { status: 500 });
   }
 
   try {
@@ -20,7 +17,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -46,9 +43,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error polling GitHub OAuth:', error);
-    return NextResponse.json(
-      { error: 'Failed to poll GitHub OAuth.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to poll GitHub OAuth.' }, { status: 500 });
   }
 }

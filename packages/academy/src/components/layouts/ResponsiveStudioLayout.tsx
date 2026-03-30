@@ -55,7 +55,11 @@ interface TouchState {
 // =============================================================================
 
 function useBreakpoint(): { breakpoint: Breakpoint; orientation: Orientation; width: number } {
-  const [state, setState] = useState<{ breakpoint: Breakpoint; orientation: Orientation; width: number }>({
+  const [state, setState] = useState<{
+    breakpoint: Breakpoint;
+    orientation: Orientation;
+    width: number;
+  }>({
     breakpoint: 'desktop',
     orientation: 'landscape',
     width: 1280,
@@ -228,9 +232,7 @@ function PanelSplitter({
       `}
       onMouseDown={onMouseDown}
     >
-      <GripVertical
-        className={`h-3 w-3 text-studio-muted/40 ${isVertical ? '' : 'rotate-90'}`}
-      />
+      <GripVertical className={`h-3 w-3 text-studio-muted/40 ${isVertical ? '' : 'rotate-90'}`} />
     </div>
   );
 }
@@ -366,31 +368,25 @@ export function ResponsiveStudioLayout({
     }
   }, [breakpoint]);
 
-  const resizeLeft = useCallback(
-    (delta: number) => {
-      setPanels((prev) => ({
-        ...prev,
-        left: {
-          ...prev.left,
-          width: Math.max(180, Math.min(400, prev.left.width + delta)),
-        },
-      }));
-    },
-    []
-  );
+  const resizeLeft = useCallback((delta: number) => {
+    setPanels((prev) => ({
+      ...prev,
+      left: {
+        ...prev.left,
+        width: Math.max(180, Math.min(400, prev.left.width + delta)),
+      },
+    }));
+  }, []);
 
-  const resizeRight = useCallback(
-    (delta: number) => {
-      setPanels((prev) => ({
-        ...prev,
-        right: {
-          ...prev.right,
-          width: Math.max(180, Math.min(400, prev.right.width - delta)),
-        },
-      }));
-    },
-    []
-  );
+  const resizeRight = useCallback((delta: number) => {
+    setPanels((prev) => ({
+      ...prev,
+      right: {
+        ...prev.right,
+        width: Math.max(180, Math.min(400, prev.right.width - delta)),
+      },
+    }));
+  }, []);
 
   const toggleFullscreen = useCallback(() => {
     if (fullscreen) {
@@ -428,18 +424,18 @@ export function ResponsiveStudioLayout({
             title={`Toggle ${leftTitle}`}
             aria-label={`Toggle ${leftTitle} panel`}
           >
-            {breakpoint === 'mobile' ? <Menu className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            {breakpoint === 'mobile' ? (
+              <Menu className="h-4 w-4" />
+            ) : (
+              <PanelLeft className="h-4 w-4" />
+            )}
           </button>
         )}
 
         {/* Center: breakpoint info */}
         <div className="flex-1 flex items-center justify-center">
           {showDebug && (
-            <BreakpointIndicator
-              breakpoint={breakpoint}
-              orientation={orientation}
-              width={width}
-            />
+            <BreakpointIndicator breakpoint={breakpoint} orientation={orientation} width={width} />
           )}
         </div>
 
@@ -492,9 +488,7 @@ export function ResponsiveStudioLayout({
             </aside>
 
             {/* Splitter */}
-            {breakpoint === 'desktop' && (
-              <PanelSplitter onDrag={resizeLeft} />
-            )}
+            {breakpoint === 'desktop' && <PanelSplitter onDrag={resizeLeft} />}
           </>
         )}
 
@@ -504,9 +498,7 @@ export function ResponsiveStudioLayout({
         {/* ── Desktop: Right Panel ── */}
         {breakpoint !== 'mobile' && rightPanel && panels.right.visible && (
           <>
-            {breakpoint === 'desktop' && (
-              <PanelSplitter onDrag={resizeRight} />
-            )}
+            {breakpoint === 'desktop' && <PanelSplitter onDrag={resizeRight} />}
 
             <aside
               className={`shrink-0 flex flex-col overflow-hidden border-l border-studio-border bg-studio-bg ${transitionClass}`}

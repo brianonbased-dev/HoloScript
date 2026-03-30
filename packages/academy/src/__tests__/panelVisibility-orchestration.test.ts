@@ -63,7 +63,9 @@ describe('panelVisibilityStore — orchestration keys', () => {
   it('closeAll resets all orchestration keys', () => {
     // Open a few
     for (const key of orchestrationKeys.slice(0, 5)) {
-      (usePanelVisibilityStore.getState() as any)[`set${key.charAt(0).toUpperCase() + key.slice(1)}Open`](true);
+      (usePanelVisibilityStore.getState() as any)[
+        `set${key.charAt(0).toUpperCase() + key.slice(1)}Open`
+      ](true);
     }
     usePanelVisibilityStore.getState().closeAll();
     const state = usePanelVisibilityStore.getState();

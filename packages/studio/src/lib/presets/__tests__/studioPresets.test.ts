@@ -38,9 +38,18 @@ describe('STUDIO_PRESETS', () => {
   it('covers all 12 domain categories', () => {
     const categories = new Set(STUDIO_PRESETS.map((p) => p.category));
     for (const cat of [
-      'game', 'film', 'art', 'web', 'iot', 'education',
-      'robotics', 'science', 'healthcare', 'architecture',
-      'agriculture', 'creator',
+      'game',
+      'film',
+      'art',
+      'web',
+      'iot',
+      'education',
+      'robotics',
+      'science',
+      'healthcare',
+      'architecture',
+      'agriculture',
+      'creator',
     ]) {
       expect(categories.has(cat as any)).toBe(true);
     }
@@ -65,9 +74,18 @@ describe('SUBCATEGORIES', () => {
   it('has entries for all 12 domain categories', () => {
     const keys = Object.keys(SUBCATEGORIES);
     for (const cat of [
-      'game', 'film', 'art', 'web', 'iot', 'education',
-      'robotics', 'science', 'healthcare', 'architecture',
-      'agriculture', 'creator',
+      'game',
+      'film',
+      'art',
+      'web',
+      'iot',
+      'education',
+      'robotics',
+      'science',
+      'healthcare',
+      'architecture',
+      'agriculture',
+      'creator',
     ]) {
       expect(keys).toContain(cat);
     }
@@ -85,7 +103,9 @@ describe('SUBCATEGORIES', () => {
   });
 
   it('every sub-category id is unique globally', () => {
-    const allIds = Object.values(SUBCATEGORIES).flat().map((s) => s.id);
+    const allIds = Object.values(SUBCATEGORIES)
+      .flat()
+      .map((s) => s.id);
     expect(new Set(allIds).size).toBe(allIds.length);
   });
 
@@ -106,7 +126,9 @@ describe('SUBCATEGORY_PRESET_MAP', () => {
   });
 
   it('every sub-category defined in SUBCATEGORIES has a mapping', () => {
-    const allSubIds = Object.values(SUBCATEGORIES).flat().map((s) => s.id);
+    const allSubIds = Object.values(SUBCATEGORIES)
+      .flat()
+      .map((s) => s.id);
     for (const subId of allSubIds) {
       expect(SUBCATEGORY_PRESET_MAP[subId]).toBeTruthy();
     }

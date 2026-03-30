@@ -4,17 +4,17 @@
 
 ## Overview
 
-The engine package provides the spatial computation layer for HoloScript. It bridges parsed HoloScript compositions to live 3D rendering via React Three Fiber,  WebGPU, and native platform renderers.
+The engine package provides the spatial computation layer for HoloScript. It bridges parsed HoloScript compositions to live 3D rendering via React Three Fiber, WebGPU, and native platform renderers.
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| **RuntimeRenderer** | Base renderer with particle systems, PBR materials |
-| **SceneRunner** | AST walker that spawns entities and runs compositions |
-| **RuntimeBridge** | Connects SceneRunner to platform-specific renderers |
-| **HeadlessRuntime** | No-GUI execution for testing, servers, CI |
-| **ECS** | Entity-Component-System architecture |
+| Component           | Purpose                                               |
+| ------------------- | ----------------------------------------------------- |
+| **RuntimeRenderer** | Base renderer with particle systems, PBR materials    |
+| **SceneRunner**     | AST walker that spawns entities and runs compositions |
+| **RuntimeBridge**   | Connects SceneRunner to platform-specific renderers   |
+| **HeadlessRuntime** | No-GUI execution for testing, servers, CI             |
+| **ECS**             | Entity-Component-System architecture                  |
 
 ## Features
 

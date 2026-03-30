@@ -160,13 +160,13 @@ class RobotAgent(BaseAgent):
       expect(result.classes).toHaveLength(1);
       const cls = result.classes[0];
       expect(cls.methods.length).toBeGreaterThanOrEqual(2); // __init__, move, get_status
-      
+
       // Check method extraction
       const moveMethod = cls.methods.find((m) => m.name === 'move');
       expect(moveMethod).toBeDefined();
       expect(moveMethod!.isAsync).toBe(true);
       expect(moveMethod!.params.length).toBeGreaterThanOrEqual(2); // x, y (self filtered)
-      
+
       const getStatus = cls.methods.find((m) => m.name === 'get_status');
       expect(getStatus).toBeDefined();
       expect(getStatus!.returnType).toBe('str');
@@ -201,13 +201,13 @@ export class UserService extends BaseService {
       const cls = result.classes[0];
       expect(cls.baseClass).toBe('BaseService');
       expect(cls.isExported).toBe(true);
-      
+
       // Methods
       expect(cls.methods.length).toBeGreaterThanOrEqual(2);
       const fetchUser = cls.methods.find((m) => m.name === 'fetchUser');
       expect(fetchUser).toBeDefined();
       expect(fetchUser!.isAsync).toBe(true);
-      
+
       // Generated .hsplus should include methods
       expect(result.generatedHSPlus).toContain('template "UserService"');
       expect(result.generatedHSPlus).toContain('on fetchUser');
@@ -266,7 +266,7 @@ class ChatBot:
     it('is imported alongside ScriptTestRunner', async () => {
       const { ScriptTestRunner } = await import('../ScriptTestTrait');
       const runner = new ScriptTestRunner();
-      
+
       // Test with real expression assertions
       const source = `
 @script_test "numeric comparison" {

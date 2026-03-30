@@ -31,7 +31,11 @@ export interface UsePathfindingReturn {
   reset: () => void;
 }
 
-function createGridMesh(cols: number, rows: number, cellSize: number): InstanceType<typeof NavMesh> {
+function createGridMesh(
+  cols: number,
+  rows: number,
+  cellSize: number
+): InstanceType<typeof NavMesh> {
   const mesh = new NavMesh();
   const polyIds: string[][] = [];
 

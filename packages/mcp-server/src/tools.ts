@@ -10,7 +10,13 @@ import { graphTools } from './graph-tools';
 import { ideTools } from './ide-tools';
 import { brittneyLiteTools } from './brittney-lite';
 import { PluginManager } from './PluginManager';
-import { codebaseTools, graphRagTools, absorbServiceTools, absorbTypescriptTools, oracleTools } from '@holoscript/absorb-service/mcp';
+import {
+  codebaseTools,
+  graphRagTools,
+  absorbServiceTools,
+  absorbTypescriptTools,
+  oracleTools,
+} from '@holoscript/absorb-service/mcp';
 import { selfImproveTools } from './self-improve-tools';
 import { gltfImportTools } from './gltf-import-tools';
 import { editHoloTools } from './edit-holo-tools';
@@ -187,8 +193,18 @@ export const coreTools: Tool[] = [
         },
         domain: {
           type: 'string',
-          enum: ['service', 'contract', 'data', 'network', 'pipeline', 'metric', 'container', 'resilience'],
-          description: 'Filter suggestions to a specific domain. Omit for cross-domain suggestions.',
+          enum: [
+            'service',
+            'contract',
+            'data',
+            'network',
+            'pipeline',
+            'metric',
+            'container',
+            'resilience',
+          ],
+          description:
+            'Filter suggestions to a specific domain. Omit for cross-domain suggestions.',
         },
         context: {
           type: 'string',
@@ -273,7 +289,8 @@ export const coreTools: Tool[] = [
       properties: {
         description: {
           type: 'string',
-          description: 'Natural language description of the UI to create (e.g., "an admin dashboard with a sidebar and metric cards")',
+          description:
+            'Natural language description of the UI to create (e.g., "an admin dashboard with a sidebar and metric cards")',
         },
       },
       required: ['description'],

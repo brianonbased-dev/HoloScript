@@ -2144,14 +2144,18 @@ export class PBDSolverCPU {
     for (let p = 0; p < numParticles; p++) {
       const vi = this.densityParticles[p];
       const i3 = vi * 3;
-      const pix = pred[i3], piy = pred[i3 + 1], piz = pred[i3 + 2];
+      const pix = pred[i3],
+        piy = pred[i3 + 1],
+        piz = pred[i3 + 2];
       const neighbors = this.densityNeighbors[p];
 
       // Compute density
       let density = poly6Coeff * Math.pow(h2, 3) * masses[vi]; // self
       for (const nj of neighbors) {
         const j3 = nj * 3;
-        const dx = pix - pred[j3], dy = piy - pred[j3 + 1], dz = piz - pred[j3 + 2];
+        const dx = pix - pred[j3],
+          dy = piy - pred[j3 + 1],
+          dz = piz - pred[j3 + 2];
         const r2 = dx * dx + dy * dy + dz * dz;
         if (r2 < h2) {
           const diff = h2 - r2;
@@ -2160,21 +2164,32 @@ export class PBDSolverCPU {
       }
 
       const C = density / restDensity - 1;
-      if (C <= 0) { lambdas[p] = 0; continue; }
+      if (C <= 0) {
+        lambdas[p] = 0;
+        continue;
+      }
 
       // Compute gradient denominator
       let gradSumSq = 0;
-      let giX = 0, giY = 0, giZ = 0;
+      let giX = 0,
+        giY = 0,
+        giZ = 0;
       for (const nj of neighbors) {
         const j3 = nj * 3;
-        const dx = pix - pred[j3], dy = piy - pred[j3 + 1], dz = piz - pred[j3 + 2];
+        const dx = pix - pred[j3],
+          dy = piy - pred[j3 + 1],
+          dz = piz - pred[j3 + 2];
         const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (r > 1e-7 && r < h) {
           const diff = h - r;
-          const s = spikyCoeff * diff * diff / (restDensity * r);
-          const gjX = dx * s, gjY = dy * s, gjZ = dz * s;
+          const s = (spikyCoeff * diff * diff) / (restDensity * r);
+          const gjX = dx * s,
+            gjY = dy * s,
+            gjZ = dz * s;
           gradSumSq += gjX * gjX + gjY * gjY + gjZ * gjZ;
-          giX += gjX; giY += gjY; giZ += gjZ;
+          giX += gjX;
+          giY += gjY;
+          giZ += gjZ;
         }
       }
       gradSumSq += giX * giX + giY * giY + giZ * giZ;
@@ -2186,18 +2201,24 @@ export class PBDSolverCPU {
     for (let p = 0; p < numParticles; p++) {
       const vi = this.densityParticles[p];
       const i3 = vi * 3;
-      const pix = pred[i3], piy = pred[i3 + 1], piz = pred[i3 + 2];
+      const pix = pred[i3],
+        piy = pred[i3 + 1],
+        piz = pred[i3 + 2];
       const neighbors = this.densityNeighbors[p];
       const lambdaI = lambdas[p];
 
-      let corrX = 0, corrY = 0, corrZ = 0;
+      let corrX = 0,
+        corrY = 0,
+        corrZ = 0;
       for (const nj of neighbors) {
         const j3 = nj * 3;
-        const dx = pix - pred[j3], dy = piy - pred[j3 + 1], dz = piz - pred[j3 + 2];
+        const dx = pix - pred[j3],
+          dy = piy - pred[j3 + 1],
+          dz = piz - pred[j3 + 2];
         const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (r > 1e-7 && r < h) {
           const diff = h - r;
-          const s = spikyCoeff * diff * diff / (restDensity * r);
+          const s = (spikyCoeff * diff * diff) / (restDensity * r);
           corrX += dx * (lambdaI + lambdaI) * s;
           corrY += dy * (lambdaI + lambdaI) * s;
           corrZ += dz * (lambdaI + lambdaI) * s;
@@ -2219,7 +2240,7 @@ export class PBDSolverCPU {
     neighbors: number[][],
     restDensity = 1000,
     kernelRadius = 0.1,
-    compliance = 0.0001,
+    compliance = 0.0001
   ): void {
     this.densityParticles = particleIndices;
     this.densityNeighbors = neighbors;

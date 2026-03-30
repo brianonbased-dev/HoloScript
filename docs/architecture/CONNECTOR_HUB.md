@@ -103,12 +103,12 @@ await pipeline.execute({
 
 ## Connector MCP Tools
 
-| Connector | Tools |
-|-----------|-------|
-| **GitHub** | `github_list_repos`, `github_create_pr`, `github_get_file`, `github_run_action` |
-| **Railway** | `railway_deploy`, `railway_logs`, `railway_env_vars`, `railway_services` |
-| **Upstash** | `upstash_redis_get`, `upstash_redis_set`, `upstash_kafka_publish` |
-| **App Store** | `appstore_publish`, `appstore_review`, `appstore_install` |
+| Connector     | Tools                                                                           |
+| ------------- | ------------------------------------------------------------------------------- |
+| **GitHub**    | `github_list_repos`, `github_create_pr`, `github_get_file`, `github_run_action` |
+| **Railway**   | `railway_deploy`, `railway_logs`, `railway_env_vars`, `railway_services`        |
+| **Upstash**   | `upstash_redis_get`, `upstash_redis_set`, `upstash_kafka_publish`               |
+| **App Store** | `appstore_publish`, `appstore_review`, `appstore_install`                       |
 
 ## Adding a New Connector
 

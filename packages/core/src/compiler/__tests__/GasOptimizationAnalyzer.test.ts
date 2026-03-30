@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  GasOptimizationAnalyzer,
-  ANALYZER_PRESETS,
-} from '../GasOptimizationAnalyzer';
+import { GasOptimizationAnalyzer, ANALYZER_PRESETS } from '../GasOptimizationAnalyzer';
 
 describe('GasOptimizationAnalyzer', () => {
   // ─── Constructor / Options ───────────────────────────────────────────
@@ -20,7 +17,9 @@ describe('GasOptimizationAnalyzer', () => {
         items[i].process();
       }
     `;
-    const allAnalyzer = new GasOptimizationAnalyzer({ categories: ['loops', 'arithmetic', 'storage'] });
+    const allAnalyzer = new GasOptimizationAnalyzer({
+      categories: ['loops', 'arithmetic', 'storage'],
+    });
     const loopOnly = new GasOptimizationAnalyzer({ categories: ['loops'] });
 
     const allReport = allAnalyzer.analyze(code);
@@ -63,7 +62,9 @@ describe('GasOptimizationAnalyzer', () => {
       const analyzer = new GasOptimizationAnalyzer({ categories: ['storage'] });
       const report = analyzer.analyze(code);
       // Mapping resets slot, so no wasted slot between a and b
-      expect(report.optimizations.filter((o) => o.id.startsWith('STORAGE-PACK')).length).toBeLessThanOrEqual(1);
+      expect(
+        report.optimizations.filter((o) => o.id.startsWith('STORAGE-PACK')).length
+      ).toBeLessThanOrEqual(1);
     });
   });
 
@@ -150,9 +151,7 @@ describe('GasOptimizationAnalyzer', () => {
       const longReport = longAnalyzer.analyze(longCode);
 
       if (shortReport.optimizations.length > 0 && longReport.optimizations.length > 0) {
-        expect(longReport.totalPotentialSavings).toBeGreaterThan(
-          shortReport.totalPotentialSavings
-        );
+        expect(longReport.totalPotentialSavings).toBeGreaterThan(shortReport.totalPotentialSavings);
       }
     });
   });
@@ -225,8 +224,9 @@ describe('GasOptimizationAnalyzer', () => {
       const analyzer = new GasOptimizationAnalyzer();
       const report = analyzer.analyze(code);
 
-      expect(report.criticalCount + report.highCount + report.mediumCount + report.lowCount)
-        .toBe(report.totalOptimizations);
+      expect(report.criticalCount + report.highCount + report.mediumCount + report.lowCount).toBe(
+        report.totalOptimizations
+      );
     });
   });
 
@@ -235,7 +235,10 @@ describe('GasOptimizationAnalyzer', () => {
   describe('applyAutoFixes', () => {
     it('applies auto-fixes to code', () => {
       const code = `  i++;`;
-      const analyzer = new GasOptimizationAnalyzer({ enableAutoFix: true, categories: ['arithmetic'] });
+      const analyzer = new GasOptimizationAnalyzer({
+        enableAutoFix: true,
+        categories: ['arithmetic'],
+      });
       analyzer.analyze(code);
 
       const result = analyzer.applyAutoFixes(code);

@@ -125,11 +125,13 @@ describe('DependencyResolver', () => {
       resolver.addPlugin({ id: 'a', version: '1.0.0', dependencies: { b: '^1.0.0' } });
       resolver.addPlugin({ id: 'b', version: '1.0.0', dependencies: {} });
 
-      expect(resolver.wouldCreateCycle({
-        id: 'b',
-        version: '1.0.0',
-        dependencies: { a: '^1.0.0' },
-      })).toBe(true);
+      expect(
+        resolver.wouldCreateCycle({
+          id: 'b',
+          version: '1.0.0',
+          dependencies: { a: '^1.0.0' },
+        })
+      ).toBe(true);
     });
   });
 
@@ -140,7 +142,8 @@ describe('DependencyResolver', () => {
   describe('missing dependencies', () => {
     it('reports missing dependencies', () => {
       resolver.addPlugin({
-        id: 'a', version: '1.0.0',
+        id: 'a',
+        version: '1.0.0',
         dependencies: { 'not-installed': '^1.0.0' },
       });
       const result = resolver.resolve();
@@ -151,8 +154,9 @@ describe('DependencyResolver', () => {
 
     it('fails resolution when required deps are missing', () => {
       resolver.addPlugin({
-        id: 'a', version: '1.0.0',
-        dependencies: { 'missing': '^1.0.0' },
+        id: 'a',
+        version: '1.0.0',
+        dependencies: { missing: '^1.0.0' },
       });
       const result = resolver.resolve();
       expect(result.success).toBe(false);

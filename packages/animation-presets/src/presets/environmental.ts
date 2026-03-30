@@ -60,12 +60,7 @@ export const sitPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Sitting Down',
     pack: 'Basic',
-    alternatives: [
-      'Sit Cross Legged',
-      'Sitting Idle',
-      'Sit On Chair',
-      'Sitting Clap',
-    ],
+    alternatives: ['Sit Cross Legged', 'Sitting Idle', 'Sit On Chair', 'Sitting Clap'],
   },
   tags: ['environmental', 'resting', 'seated', 'transition'],
 };
@@ -90,12 +85,7 @@ export const sleepPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Sleeping',
     pack: 'Basic',
-    alternatives: [
-      'Sleeping Idle',
-      'Lying Down',
-      'Resting',
-      'Unconscious',
-    ],
+    alternatives: ['Sleeping Idle', 'Lying Down', 'Resting', 'Unconscious'],
   },
   tags: ['environmental', 'resting', 'ambient', 'slow', 'passive'],
 };
@@ -104,8 +94,4 @@ export const sleepPreset: AnimationPreset = {
 // All Environmental Presets
 // ---------------------------------------------------------------------------
 
-export const environmentalPresets: AnimationPreset[] = [
-  idlePreset,
-  sitPreset,
-  sleepPreset,
-];
+export const environmentalPresets: AnimationPreset[] = [idlePreset, sitPreset, sleepPreset];

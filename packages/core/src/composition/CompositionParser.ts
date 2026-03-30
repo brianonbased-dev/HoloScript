@@ -92,8 +92,8 @@ interface GenericProperty {
 
 function getProp<T = unknown>(props: unknown[] | undefined, key: string): T | undefined {
   if (!props) return undefined;
-  const found = (props as GenericProperty[]).find(p => p.key === key);
-  return found ? found.value as T : undefined;
+  const found = (props as GenericProperty[]).find((p) => p.key === key);
+  return found ? (found.value as T) : undefined;
 }
 
 function getPropsAsRecord(props: unknown[] | undefined): Record<string, unknown> {
@@ -117,7 +117,7 @@ export class CompositionParser {
     actions: new Map(),
     eventHandlers: new Map(),
     frameHandlers: [],
-    keyboardHandlers: new Map()
+    keyboardHandlers: new Map(),
   };
   private environment: EnvironmentConfig = {};
   private name = 'Untitled';
@@ -146,7 +146,7 @@ export class CompositionParser {
       state: this.state,
       logic: this.logic,
       templates: this.templates,
-      environment: this.environment
+      environment: this.environment,
     };
   }
 
@@ -186,7 +186,7 @@ export class CompositionParser {
       skybox: getProp<string>(env.properties, 'skybox'),
       ambientLight: getProp<number>(env.properties, 'ambient_light'),
       grid: getProp<boolean>(env.properties, 'grid'),
-      fog: getProp<{ color: string; near: number; far: number }>(env.properties, 'fog')
+      fog: getProp<{ color: string; near: number; far: number }>(env.properties, 'fog'),
     };
   }
 
@@ -198,28 +198,29 @@ export class CompositionParser {
       traits: traitsFromProps,
       state: template.state ? getPropsAsRecord(template.state.properties) : {},
       actions: new Map(),
-      children: []
+      children: [],
     };
 
     for (const action of template.actions || []) {
       def.actions.set(action.name, {
         name: action.name,
         params: action.parameters?.map((p: any) => p.name) || [],
-        body: action.body
+        body: action.body,
       });
     }
 
     this.templates.set(template.name, def);
   }
 
-  private processSpatialGroup(
-    group: HoloSpatialGroup,
-    parentOffset?: Vec3
-  ): void {
+  private processSpatialGroup(group: HoloSpatialGroup, parentOffset?: Vec3): void {
     const positionValue = getProp(group.properties, 'position');
     const groupPos = parsePosition(positionValue);
     const offset = parentOffset
-      ? { x: groupPos.x + parentOffset.x, y: groupPos.y + parentOffset.y, z: groupPos.z + parentOffset.z }
+      ? {
+          x: groupPos.x + parentOffset.x,
+          y: groupPos.y + parentOffset.y,
+          z: groupPos.z + parentOffset.z,
+        }
       : groupPos;
 
     for (const obj of group.objects || []) {
@@ -261,9 +262,9 @@ export class CompositionParser {
         ...allProps,
         traits: [...traits, ...(template?.traits || [])],
         color,
-        material
+        material,
       },
-      children
+      children,
     };
   }
 
@@ -272,7 +273,7 @@ export class CompositionParser {
       this.logic.actions.set(action.name, {
         name: action.name,
         params: action.parameters?.map((p: any) => p.name) || [],
-        body: action.body
+        body: action.body,
       });
     }
 
@@ -280,12 +281,16 @@ export class CompositionParser {
       if (handler.event === 'frame') {
         this.logic.frameHandlers.push({ name: 'on_frame', params: [], body: handler.body });
       } else if (handler.event === 'keydown') {
-        this.logic.keyboardHandlers.set('on_keydown', { name: 'on_keydown', params: ['event'], body: handler.body });
+        this.logic.keyboardHandlers.set('on_keydown', {
+          name: 'on_keydown',
+          params: ['event'],
+          body: handler.body,
+        });
       } else {
         this.logic.eventHandlers.set(handler.event, {
           name: handler.event,
           params: handler.parameters?.map((p: any) => p.name) || ['event'],
-          body: handler.body
+          body: handler.body,
         });
       }
     }
@@ -308,11 +313,11 @@ export class CompositionParser {
   private processHsPlusObject(d: any): ParsedObject {
     return {
       id: d.name,
-      type: d.type === 'orb' ? 'sphere' : (d.props?.geometry || 'box'),
+      type: d.type === 'orb' ? 'sphere' : d.props?.geometry || 'box',
       position: parsePosition(d.props?.position),
       scale: parseScale(d.props?.scale),
       metadata: { ...d.props, traits: d.traits || [] },
-      children: []
+      children: [],
     };
   }
 }
@@ -352,7 +357,10 @@ export function parseScale(scale: unknown): Vec3 {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export class CompositionParseError extends Error {
-  constructor(message: string, public errors: unknown[]) {
+  constructor(
+    message: string,
+    public errors: unknown[]
+  ) {
     super(`${message}: ${JSON.stringify(errors)}`);
     this.name = 'CompositionParseError';
   }
@@ -362,7 +370,10 @@ export class CompositionParseError extends Error {
 // CONVENIENCE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function parseComposition(source: string, fileType: 'holo' | 'hsplus' | 'hs' = 'holo'): ParsedComposition {
+export function parseComposition(
+  source: string,
+  fileType: 'holo' | 'hsplus' | 'hs' = 'holo'
+): ParsedComposition {
   const parser = new CompositionParser();
   return parser.parse(source, fileType);
 }

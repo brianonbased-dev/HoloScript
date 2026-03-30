@@ -79,7 +79,14 @@ interface TraitMatrixEntry {
 // =============================================================================
 
 const PLATFORM_KEYS: (keyof TraitPlatformSupport)[] = [
-  'r3f', 'gltf', 'unity', 'unreal', 'babylon', 'webxr', 'arcore', 'arkit',
+  'r3f',
+  'gltf',
+  'unity',
+  'unreal',
+  'babylon',
+  'webxr',
+  'arcore',
+  'arkit',
 ];
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -110,7 +117,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'grabbable',
     category: 'interaction',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: true, webxr: true, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: false,
+      arkit: false,
+    },
     features: ['snap_to_hand', 'two_handed', 'haptic_feedback'],
     properties: [
       { name: 'snap_to_hand', type: 'boolean', required: false, default: true },
@@ -124,7 +140,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'glowing',
     category: 'visual',
-    platforms: { r3f: true, gltf: true, unity: true, unreal: true, babylon: true, webxr: true, arcore: true, arkit: true },
+    platforms: {
+      r3f: true,
+      gltf: true,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: true,
+      arkit: true,
+    },
     features: ['emissive_color', 'pulse_animation', 'intensity'],
     properties: [
       { name: 'color', type: 'string', required: false, default: '#ffffff' },
@@ -138,7 +163,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'animated',
     category: 'animation',
-    platforms: { r3f: true, gltf: true, unity: true, unreal: true, babylon: true, webxr: true, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: true,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: false,
+      arkit: false,
+    },
     features: ['keyframe', 'loop', 'blend'],
     properties: [
       { name: 'clip', type: 'string', required: true },
@@ -152,7 +186,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'physics_body',
     category: 'physics',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: true, webxr: false, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: false,
+      arcore: false,
+      arkit: false,
+    },
     features: ['rigidbody', 'collider', 'mass', 'friction'],
     properties: [
       { name: 'mass', type: 'number', required: false, default: 1.0 },
@@ -167,7 +210,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'networked',
     category: 'networking',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: false, webxr: true, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: false,
+      webxr: true,
+      arcore: false,
+      arkit: false,
+    },
     features: ['sync_transform', 'ownership', 'interpolation'],
     properties: [
       { name: 'sync_rate', type: 'number', required: false, default: 20 },
@@ -181,7 +233,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'interactive',
     category: 'interaction',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: true, webxr: true, arcore: true, arkit: true },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: true,
+      arkit: true,
+    },
     features: ['click', 'hover', 'focus', 'pointer_events'],
     properties: [
       { name: 'cursor', type: 'string', required: false, default: 'pointer' },
@@ -194,7 +255,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'spatial_audio',
     category: 'audio',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: true, webxr: true, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: false,
+      arkit: false,
+    },
     features: ['3d_positioning', 'occlusion', 'reverb'],
     properties: [
       { name: 'src', type: 'string', required: true },
@@ -209,7 +279,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'npc_behavior',
     category: 'intelligence',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: false, webxr: false, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: false,
+      webxr: false,
+      arcore: false,
+      arkit: false,
+    },
     features: ['patrol', 'dialogue', 'state_machine'],
     properties: [
       { name: 'behavior_tree', type: 'string', required: true },
@@ -223,7 +302,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'ar_anchor',
     category: 'xr',
-    platforms: { r3f: false, gltf: false, unity: true, unreal: false, babylon: false, webxr: true, arcore: true, arkit: true },
+    platforms: {
+      r3f: false,
+      gltf: false,
+      unity: true,
+      unreal: false,
+      babylon: false,
+      webxr: true,
+      arcore: true,
+      arkit: true,
+    },
     features: ['surface_detection', 'persistence', 'cloud_anchor'],
     properties: [
       { name: 'anchor_type', type: 'string', required: false, default: 'plane' },
@@ -236,7 +324,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'material',
     category: 'visual',
-    platforms: { r3f: true, gltf: true, unity: true, unreal: true, babylon: true, webxr: true, arcore: true, arkit: true },
+    platforms: {
+      r3f: true,
+      gltf: true,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: true,
+      arkit: true,
+    },
     features: ['pbr', 'textures', 'clearcoat', 'sheen', 'transmission'],
     properties: [
       { name: 'color', type: 'string', required: false, default: '#ffffff' },
@@ -251,7 +348,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'particles',
     category: 'visual',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: true, babylon: true, webxr: true, arcore: false, arkit: false },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: true,
+      babylon: true,
+      webxr: true,
+      arcore: false,
+      arkit: false,
+    },
     features: ['emission_rate', 'lifetime', 'forces', 'color_over_life'],
     properties: [
       { name: 'count', type: 'number', required: false, default: 100 },
@@ -266,7 +372,16 @@ const SAMPLE_TRAITS: TraitMatrixEntry[] = [
   {
     name: 'a11y_narrate',
     category: 'accessibility',
-    platforms: { r3f: true, gltf: false, unity: true, unreal: false, babylon: false, webxr: true, arcore: false, arkit: true },
+    platforms: {
+      r3f: true,
+      gltf: false,
+      unity: true,
+      unreal: false,
+      babylon: false,
+      webxr: true,
+      arcore: false,
+      arkit: true,
+    },
     features: ['screen_reader', 'spatial_description', 'alt_text'],
     properties: [
       { name: 'label', type: 'string', required: true },
@@ -294,7 +409,11 @@ function coverageScore(c: TraitCoverage): number {
   return (c.hasExample ? 1 : 0) + (c.hasTest ? 1 : 0) + (c.hasDoc ? 1 : 0);
 }
 
-function sortTraits(traits: TraitMatrixEntry[], field: SortField, dir: SortDir): TraitMatrixEntry[] {
+function sortTraits(
+  traits: TraitMatrixEntry[],
+  field: SortField,
+  dir: SortDir
+): TraitMatrixEntry[] {
   const sorted = [...traits].sort((a, b) => {
     switch (field) {
       case 'name':
@@ -488,9 +607,7 @@ export function TraitSupportMatrixDashboard({
 
     // Platform
     if (platformFilter !== 'all') {
-      result = result.filter(
-        (t) => t.platforms[platformFilter as keyof TraitPlatformSupport]
-      );
+      result = result.filter((t) => t.platforms[platformFilter as keyof TraitPlatformSupport]);
     }
 
     // Coverage
@@ -586,7 +703,10 @@ export function TraitSupportMatrixDashboard({
           <>
             <span className="text-studio-border">|</span>
             {Object.entries(stats.catCounts).map(([cat, count]) => (
-              <span key={cat} className={`rounded px-1 py-0.5 text-[8px] ${CATEGORY_COLORS[cat] || CATEGORY_COLORS.other}`}>
+              <span
+                key={cat}
+                className={`rounded px-1 py-0.5 text-[8px] ${CATEGORY_COLORS[cat] || CATEGORY_COLORS.other}`}
+              >
                 {cat}: {count}
               </span>
             ))}
@@ -664,7 +784,10 @@ export function TraitSupportMatrixDashboard({
                 <SortButton field="category" label="Category" />
               </th>
               {PLATFORM_KEYS.map((p) => (
-                <th key={p} className="text-center px-1 py-2 text-[8px] font-semibold text-studio-muted uppercase tracking-wider">
+                <th
+                  key={p}
+                  className="text-center px-1 py-2 text-[8px] font-semibold text-studio-muted uppercase tracking-wider"
+                >
                   {PLATFORM_LABELS[p]}
                 </th>
               ))}
@@ -710,13 +833,13 @@ export function TraitSupportMatrixDashboard({
                         <span className="text-[11px] font-mono font-semibold text-studio-text">
                           @{trait.name}
                         </span>
-                        {hasWarning && (
-                          <AlertTriangle className="h-3 w-3 text-amber-400/60" />
-                        )}
+                        {hasWarning && <AlertTriangle className="h-3 w-3 text-amber-400/60" />}
                       </div>
                     </td>
                     <td className="px-2 py-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${CATEGORY_COLORS[trait.category] || CATEGORY_COLORS.other}`}>
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${CATEGORY_COLORS[trait.category] || CATEGORY_COLORS.other}`}
+                      >
                         {trait.category}
                       </span>
                     </td>
@@ -740,7 +863,11 @@ export function TraitSupportMatrixDashboard({
                     </td>
                     <td className="px-2 py-2">
                       <div className="flex items-center justify-center gap-1">
-                        <CoverageBadge has={trait.coverage.hasExample} label="Ex" icon={FileCheck} />
+                        <CoverageBadge
+                          has={trait.coverage.hasExample}
+                          label="Ex"
+                          icon={FileCheck}
+                        />
                         <CoverageBadge has={trait.coverage.hasTest} label="Ts" icon={TestTube2} />
                         <CoverageBadge has={trait.coverage.hasDoc} label="Dc" icon={BookOpen} />
                       </div>

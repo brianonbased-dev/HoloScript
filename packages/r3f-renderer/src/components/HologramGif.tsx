@@ -54,10 +54,12 @@ export function HologramGif({
   loop = true,
 }: HologramGifProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const [frames, setFrames] = useState<Array<{
-    texture: THREE.DataTexture;
-    delayMs: number;
-  }>>([]);
+  const [frames, setFrames] = useState<
+    Array<{
+      texture: THREE.DataTexture;
+      delayMs: number;
+    }>
+  >([]);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [aspect, setAspect] = useState(1);
   const elapsed = useRef(0);
@@ -82,7 +84,7 @@ export function HologramGif({
     });
 
     return () => {
-      frames.forEach(f => f.texture.dispose());
+      frames.forEach((f) => f.texture.dispose());
     };
   }, [src]);
 
@@ -95,11 +97,11 @@ export function HologramGif({
     if (paused || frames.length <= 1) return;
 
     elapsed.current += delta * 1000;
-    const frameDelay = fps ? (1000 / fps) : (frames[currentFrame]?.delayMs ?? 100);
+    const frameDelay = fps ? 1000 / fps : (frames[currentFrame]?.delayMs ?? 100);
 
     if (elapsed.current >= frameDelay) {
       elapsed.current -= frameDelay;
-      setCurrentFrame(prev => {
+      setCurrentFrame((prev) => {
         const next = prev + 1;
         if (next >= frames.length) return loop ? 0 : prev;
         return next;
@@ -127,16 +129,8 @@ export function HologramGif({
   }
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      geometry={geometry}
-    >
-      <meshStandardMaterial
-        map={currentTexture}
-        transparent
-        side={THREE.DoubleSide}
-      />
+    <mesh ref={meshRef} position={position} geometry={geometry}>
+      <meshStandardMaterial map={currentTexture} transparent side={THREE.DoubleSide} />
     </mesh>
   );
 }

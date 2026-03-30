@@ -223,11 +223,7 @@ describe('WGSLTranslator — math nodes', () => {
       node('add', 'AddNode'),
       node('out', 'output'),
     ];
-    const edges_ = [
-      edge('a', 'add', 'a'),
-      edge('b', 'add', 'b'),
-      edge('add', 'out'),
-    ];
+    const edges_ = [edge('a', 'add', 'a'), edge('b', 'add', 'b'), edge('add', 'out')];
     const result = compile(nodes, edges_);
     expect(result.wgsl).toMatch(/\(.*\+.*\)/);
   });
@@ -239,7 +235,11 @@ describe('WGSLTranslator — math nodes', () => {
       node('mul', 'MultiplyNode'),
       node('out', 'output'),
     ];
-    const result = compile(nodes, [edge('a', 'mul', 'a'), edge('b', 'mul', 'b'), edge('mul', 'out')]);
+    const result = compile(nodes, [
+      edge('a', 'mul', 'a'),
+      edge('b', 'mul', 'b'),
+      edge('mul', 'out'),
+    ]);
     expect(result.wgsl).toMatch(/\(.*\*.*\)/);
   });
 
@@ -389,11 +389,7 @@ describe('WGSLTranslator — texture nodes', () => {
   });
 
   it('multiple texture nodes emit sequential binding indices', () => {
-    const nodes = [
-      node('t1', 'Texture2D'),
-      node('t2', 'Texture2D'),
-      node('out', 'output'),
-    ];
+    const nodes = [node('t1', 'Texture2D'), node('t2', 'Texture2D'), node('out', 'output')];
     const result = compile(nodes, [edge('t1', 'out'), edge('t2', 'out')]);
     expect(result.ok).toBe(true);
     // Should have at least binding(0) and binding(2)
@@ -402,11 +398,7 @@ describe('WGSLTranslator — texture nodes', () => {
   });
 
   it('time uniform gets binding(0), texture gets binding(1) when both present', () => {
-    const nodes = [
-      node('t', 'TimeInput'),
-      node('tex', 'Texture2D'),
-      node('out', 'output'),
-    ];
+    const nodes = [node('t', 'TimeInput'), node('tex', 'Texture2D'), node('out', 'output')];
     const result = compile(nodes, [edge('t', 'out'), edge('tex', 'out')]);
     expect(result.wgsl).toContain('@binding(0)'); // Uniforms struct
     expect(result.wgsl).toContain('@binding(1)'); // texture_2d
@@ -534,10 +526,7 @@ describe('WGSLTranslator — PBROutput node', () => {
   });
 
   it('PBROutput uses connected albedo node when edge present', () => {
-    const nodes = [
-      node('color', 'vec3', { value: [1.0, 0.0, 0.0] }),
-      node('pbr', 'PBROutput'),
-    ];
+    const nodes = [node('color', 'vec3', { value: [1.0, 0.0, 0.0] }), node('pbr', 'PBROutput')];
     const edges_ = [edge('color', 'pbr', 'albedo')];
     const result = compile(nodes, edges_);
     expect(result.ok).toBe(true);
@@ -547,10 +536,7 @@ describe('WGSLTranslator — PBROutput node', () => {
   });
 
   it('PBROutput uses connected roughness node when edge present', () => {
-    const nodes = [
-      node('rough', 'float', { value: 0.1 }),
-      node('pbr', 'PBROutput'),
-    ];
+    const nodes = [node('rough', 'float', { value: 0.1 }), node('pbr', 'PBROutput')];
     const result = compile(nodes, [edge('rough', 'pbr', 'roughness')]);
     expect(result.ok).toBe(true);
     expect(result.wgsl).toContain('0.1');
@@ -620,11 +606,7 @@ describe('WGSLTranslator — type inference', () => {
       node('m', 'mathNode', { op: 'dot' }),
       node('out', 'output'),
     ];
-    const result = compile(nodes, [
-      edge('a', 'm', 'a'),
-      edge('b', 'm', 'b'),
-      edge('m', 'out'),
-    ]);
+    const result = compile(nodes, [edge('a', 'm', 'a'), edge('b', 'm', 'b'), edge('m', 'out')]);
     expect(result.wgsl).toContain('let var_m: f32 =');
   });
 });
@@ -640,11 +622,7 @@ describe('WGSLTranslator — topological resolution', () => {
       node('add', 'AddNode'),
       node('out', 'output'),
     ];
-    const edges_ = [
-      edge('f', 'sin', 'x'),
-      edge('sin', 'add', 'a'),
-      edge('add', 'out'),
-    ];
+    const edges_ = [edge('f', 'sin', 'x'), edge('sin', 'add', 'a'), edge('add', 'out')];
     const result = compile(nodes, edges_);
     expect(result.ok).toBe(true);
     // All three variables should appear in body
@@ -660,11 +638,7 @@ describe('WGSLTranslator — topological resolution', () => {
       node('add', 'AddNode'),
       node('out', 'output'),
     ];
-    const edges_ = [
-      edge('f', 'add', 'a'),
-      edge('f', 'add', 'b'),
-      edge('add', 'out'),
-    ];
+    const edges_ = [edge('f', 'add', 'a'), edge('f', 'add', 'b'), edge('add', 'out')];
     const result = compile(nodes, edges_);
     expect(result.ok).toBe(true);
     // var_f should appear exactly once as a let declaration
@@ -685,10 +659,7 @@ describe('WGSLTranslator — topological resolution', () => {
 
 describe('WGSLTranslator — compile idempotency', () => {
   it('calling compile() twice on the same translator produces identical output', () => {
-    const nodes = [
-      node('v', 'vec3', { value: [0.5, 0.5, 0.5] }),
-      node('pbr', 'PBROutput'),
-    ];
+    const nodes = [node('v', 'vec3', { value: [0.5, 0.5, 0.5] }), node('pbr', 'PBROutput')];
     const edges_ = [edge('v', 'pbr', 'albedo')];
     const translator = new WGSLTranslator(nodes, edges_);
     const result1 = translator.compile();

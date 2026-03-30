@@ -47,20 +47,20 @@ await connector.connect();
 await connector.executeTool('upstash_redis_cache_set', {
   key: 'scene:demo',
   value: { compiled: true, timestamp: Date.now() },
-  ttl: 3600
+  ttl: 3600,
 });
 
 // Use Vector for similarity search
 await connector.executeTool('upstash_vector_search_text', {
   query: 'physics simulation with rigidbody',
-  topK: 5
+  topK: 5,
 });
 
 // Use QStash for scheduling
 await connector.executeTool('upstash_schedule_nightly_compilation', {
   url: 'https://api.holoscript.net/compile',
   target: 'unity',
-  scene: 'production/main.holo'
+  scene: 'production/main.holo',
 });
 ```
 
@@ -69,6 +69,7 @@ await connector.executeTool('upstash_schedule_nightly_compilation', {
 ### 1. Redis Subsystem
 
 **Use Cases:**
+
 - Cache compiled scenes to avoid re-compilation
 - Persist session state across CLI command invocations
 - Store user preferences (theme, layout, defaults)
@@ -99,20 +100,21 @@ await connector.executeTool('upstash_redis_session_set', {
   state: {
     lastCommand: 'compile',
     workingDirectory: '/path/to/project',
-    compilationTarget: 'unity'
+    compilationTarget: 'unity',
   },
-  ttl: 3600 // 1 hour
+  ttl: 3600, // 1 hour
 });
 
 // Restore context in next command
 const session = await connector.executeTool('upstash_redis_session_get', {
-  sessionId: 'cli-session-abc'
+  sessionId: 'cli-session-abc',
 });
 ```
 
 ### 2. Vector Subsystem
 
 **Use Cases:**
+
 - Find similar compositions by embedding
 - Semantic search: "find all physics simulations"
 - Composition recommendations
@@ -163,7 +165,7 @@ upstash_vector_info({})
 const similar = await connector.executeTool('upstash_vector_search_text', {
   query: 'bouncing ball physics simulation',
   topK: 5,
-  filter: 'traits INCLUDES "@physics"'
+  filter: 'traits INCLUDES "@physics"',
 });
 
 // Returns:
@@ -177,6 +179,7 @@ const similar = await connector.executeTool('upstash_vector_search_text', {
 ### 3. QStash Subsystem
 
 **Use Cases:**
+
 - Nightly compilation of production scenes
 - Health monitoring pings
 - Delayed deployment triggers
@@ -190,34 +193,34 @@ upstash_qstash_schedule({
   cron: '0 2 * * *', // 2 AM daily
   url: 'https://api.holoscript.net/compile',
   body: { target: 'unity', scene: 'main.holo' },
-  retries: 3
-})
+  retries: 3,
+});
 
 // Publish One-Time Message
 upstash_qstash_publish({
   url: 'https://webhook.site/...',
   body: { event: 'compilation_complete' },
-  delay: 300 // 5 minutes
-})
+  delay: 300, // 5 minutes
+});
 
 // List Schedules
-upstash_qstash_list({})
+upstash_qstash_list({});
 
 // Pause/Resume
-upstash_qstash_pause({ scheduleId: 'sched-123' })
-upstash_qstash_resume({ scheduleId: 'sched-123' })
+upstash_qstash_pause({ scheduleId: 'sched-123' });
+upstash_qstash_resume({ scheduleId: 'sched-123' });
 
 // Delete
-upstash_qstash_delete({ scheduleId: 'sched-123' })
+upstash_qstash_delete({ scheduleId: 'sched-123' });
 
 // Dead Letter Queue
-upstash_qstash_dlq_list({})
-upstash_qstash_dlq_delete({ messageId: 'dlq-456' })
+upstash_qstash_dlq_list({});
+upstash_qstash_dlq_delete({ messageId: 'dlq-456' });
 
 // Convenience Methods
-upstash_schedule_nightly_compilation({ url, target, scene, hour: 2 })
-upstash_schedule_health_ping({ url, intervalMinutes: 5 })
-upstash_trigger_deployment({ deploymentUrl, delaySeconds: 300 })
+upstash_schedule_nightly_compilation({ url, target, scene, hour: 2 });
+upstash_schedule_health_ping({ url, intervalMinutes: 5 });
+upstash_trigger_deployment({ deploymentUrl, delaySeconds: 300 });
 ```
 
 **Example: CI/CD Pipeline**
@@ -228,7 +231,7 @@ const scheduleId = await connector.executeTool('upstash_schedule_nightly_compila
   url: 'https://ci.holoscript.net/build',
   target: 'unity',
   scene: 'production/scenes/main.holo',
-  hour: 2 // 2 AM UTC
+  hour: 2, // 2 AM UTC
 });
 
 // Trigger deployment after 5-minute delay (canary rollout)
@@ -238,8 +241,8 @@ const messageId = await connector.executeTool('upstash_trigger_deployment', {
   metadata: {
     version: '5.1.0',
     environment: 'production',
-    target: 'unity'
-  }
+    target: 'unity',
+  },
 });
 
 // Check for failed deployments
@@ -271,7 +274,7 @@ async function compileScene(code: string, target: string) {
   await connector.executeTool('upstash_redis_cache_set', {
     key: cacheKey,
     value: compiled,
-    ttl: 86400
+    ttl: 86400,
   });
 
   return compiled;
@@ -294,7 +297,7 @@ async function onCompositionSave(composition: Composition) {
     traits: extractTraits(composition.code),
     targets: composition.targets || [],
     tags: composition.tags || [],
-    namespace: composition.userId
+    namespace: composition.userId,
   });
 }
 ```
@@ -305,7 +308,7 @@ async function onCompositionSave(composition: Composition) {
 // Monitor Studio API health
 await connector.executeTool('upstash_schedule_health_ping', {
   url: 'https://studio.holoscript.net/api/health',
-  intervalMinutes: 5
+  intervalMinutes: 5,
 });
 ```
 
@@ -335,7 +338,7 @@ The Vector subsystem extends `semantic-search-hub` for composition discovery:
 const embedding = await generateEmbeddingViaOrchestrator(query);
 const results = await connector.executeTool('upstash_vector_search', {
   vector: embedding,
-  topK: 10
+  topK: 10,
 });
 ```
 
@@ -350,8 +353,8 @@ await connector.executeTool('upstash_qstash_schedule', {
   body: {
     skillId: 'optimize-scene',
     sceneId: 'main.holo',
-    budget: 0.50
-  }
+    budget: 0.5,
+  },
 });
 ```
 
@@ -432,6 +435,7 @@ setInterval(async () => {
 ### "RedisSubsystem not connected"
 
 Check environment variables:
+
 ```bash
 echo $UPSTASH_REDIS_URL
 echo $UPSTASH_REDIS_TOKEN

@@ -194,7 +194,7 @@ describe('SpreadOperatorValidator — Unit', () => {
       const ctx = makeContext();
       const v = new SpreadOperatorValidator(ctx);
       v.validateArraySpread(makeSpread({ a: 1 }), 0); // fail: object in array
-      v.validateObjectSpread(makeSpread([1]), 'k');     // fail: array in object
+      v.validateObjectSpread(makeSpread([1]), 'k'); // fail: array in object
       expect(ctx.errors).toHaveLength(2);
     });
 
@@ -222,7 +222,9 @@ describe('SpreadOperatorValidator — Unit', () => {
   // ─── hasSpreads edge cases ───────────────────────────────────────
   describe('hasSpreads edge cases', () => {
     it('nested spread in array', () => {
-      expect(hasSpreads({ type: 'array', elements: [{ type: 'spread', argument: 'x' }] })).toBe(true);
+      expect(hasSpreads({ type: 'array', elements: [{ type: 'spread', argument: 'x' }] })).toBe(
+        true
+      );
     });
 
     it('returns false for undefined', () => {

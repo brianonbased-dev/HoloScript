@@ -134,15 +134,10 @@ export function CodebaseInspectorPanel({
                     key={hub.path}
                     className="flex items-center justify-between px-3 py-1 text-[10px] hover:bg-studio-surface"
                   >
-                    <span
-                      className="truncate text-studio-muted"
-                      title={hub.path}
-                    >
+                    <span className="truncate text-studio-muted" title={hub.path}>
                       {hub.path.split('/').slice(-2).join('/')}
                     </span>
-                    <span className="ml-2 shrink-0 text-amber-400/70">
-                      ←{hub.inDegree}
-                    </span>
+                    <span className="ml-2 shrink-0 text-amber-400/70">←{hub.inDegree}</span>
                   </li>
                 ))}
               </ul>
@@ -158,7 +153,8 @@ export function CodebaseInspectorPanel({
               </div>
               {absorb?.inDegree?.[selectedNode] !== undefined && (
                 <div className="mt-0.5 text-[10px] text-studio-muted">
-                  {absorb.inDegree[selectedNode]} file{absorb.inDegree[selectedNode] !== 1 ? 's' : ''} depend on this
+                  {absorb.inDegree[selectedNode]} file
+                  {absorb.inDegree[selectedNode] !== 1 ? 's' : ''} depend on this
                 </div>
               )}
             </div>

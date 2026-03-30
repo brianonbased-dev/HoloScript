@@ -157,7 +157,12 @@ export const wisdomHandler: TraitHandler<WisdomConfig> = {
     // No per-frame work
   },
 
-  onEvent(node: HSPlusNode, _config: WisdomConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: WisdomConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const wNode = node as WisdomNode;
     const state = wNode.__wisdomState;
     if (!state?.initialized) return;

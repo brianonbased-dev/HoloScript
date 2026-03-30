@@ -13,7 +13,13 @@ function resolveRunnerCommand(): { args: string[] } {
   const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
   const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
   return {
-    args: [tsxCliPath, path.resolve(__dirname, '../holoscript-runner.ts'), 'daemon', 'status', '--json'],
+    args: [
+      tsxCliPath,
+      path.resolve(__dirname, '../holoscript-runner.ts'),
+      'daemon',
+      'status',
+      '--json',
+    ],
   };
 }
 

@@ -321,7 +321,10 @@ export class UsageMeter {
   /**
    * Get top tools by usage cost.
    */
-  getTopTools(period: UsagePeriod = 'monthly', limit = 10): Array<{ toolId: string; calls: number; cost: number }> {
+  getTopTools(
+    period: UsagePeriod = 'monthly',
+    limit = 10
+  ): Array<{ toolId: string; calls: number; cost: number }> {
     const { start, end } = this.getPeriodBounds(period);
     const toolMap = new Map<string, { calls: number; cost: number }>();
 

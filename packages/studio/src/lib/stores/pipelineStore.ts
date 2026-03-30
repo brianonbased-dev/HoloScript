@@ -29,7 +29,7 @@ const DEFAULT_LAYER_CONFIGS: Record<LayerId, LayerConfig> = {
     id: 0,
     name: 'Code Fixer',
     description: 'Fixes type errors, lint issues, test failures',
-    budget: { maxCostUSD: 2.00, maxDurationMs: 300_000, maxCycles: 3, cooldownMs: 5_000 },
+    budget: { maxCostUSD: 2.0, maxDurationMs: 300_000, maxCycles: 3, cooldownMs: 5_000 },
     requiresHumanReview: false,
     enabled: true,
     autoEscalate: true,
@@ -38,7 +38,7 @@ const DEFAULT_LAYER_CONFIGS: Record<LayerId, LayerConfig> = {
     id: 1,
     name: 'Strategy Optimizer',
     description: 'Adjusts L0 focus rotation, passes, and profiles based on trends',
-    budget: { maxCostUSD: 1.00, maxDurationMs: 120_000, maxCycles: 2, cooldownMs: 30_000 },
+    budget: { maxCostUSD: 1.0, maxDurationMs: 120_000, maxCycles: 2, cooldownMs: 30_000 },
     requiresHumanReview: true,
     enabled: true,
     autoEscalate: true,
@@ -47,7 +47,7 @@ const DEFAULT_LAYER_CONFIGS: Record<LayerId, LayerConfig> = {
     id: 2,
     name: 'Meta-Strategist',
     description: 'Generates new skills, evolves strategies, captures wisdom',
-    budget: { maxCostUSD: 1.50, maxDurationMs: 180_000, maxCycles: 1, cooldownMs: 60_000 },
+    budget: { maxCostUSD: 1.5, maxDurationMs: 180_000, maxCycles: 1, cooldownMs: 60_000 },
     requiresHumanReview: true,
     enabled: true,
     autoEscalate: false,
@@ -325,10 +325,10 @@ export const usePipelineStore = create<PipelineState>()(
           layerConfigs: state.layerConfigs,
           globalFeedback: state.globalFeedback,
         }),
-      },
+      }
     ),
-    { name: 'pipeline-store' },
-  ),
+    { name: 'pipeline-store' }
+  )
 );
 
 export { DEFAULT_LAYER_CONFIGS };

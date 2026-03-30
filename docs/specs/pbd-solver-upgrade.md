@@ -7,6 +7,7 @@
 ## Context
 
 ### What Exists (40% Complete)
+
 - **PBDSolver.ts** (2400+ lines): GPU PBD solver with 5 constraint types (distance, volume, bending, collision, attachment), graph coloring, SDF collision, WGSL compute shaders, CPU fallback
 - **FluidSim.ts** (244 lines): CPU-only SPH with Poly6/Spiky/Viscosity kernels, ~500 particle practical limit, no rendering
 - **spatial-grid.wgsl**: GPU spatial hash grid with 27-neighbor checking, atomicAdd, collision force accumulation
@@ -14,6 +15,7 @@
 - **SpatialHash.ts**: CPU spatial hash for broad-phase collision
 
 ### What's Missing (GAPS Research)
+
 - **Unified particle buffer**: All physics types (fluid, cloth, rigid, crowd) as particles in one solver
 - **MLS-MPM algorithm**: GPU P2G/G2P exchange for fluid (100K+ particles on iGPU)
 - **Density constraints**: Missing from PBD constraint types (needed for fluid coupling)
@@ -30,11 +32,11 @@ Extend `PBDSolver.ts` to treat all physics entities as particles in a single buf
 ```typescript
 // New enum in PhysicsTypes.ts
 export enum ParticleType {
-  CLOTH = 0,      // Existing PBD mesh vertices
-  FLUID = 1,      // MLS-MPM fluid particles
-  RIGID = 2,      // Rigid body sample points
-  DEBRIS = 3,     // Destruction fragments
-  CROWD = 4,      // Crowd agent proxies
+  CLOTH = 0, // Existing PBD mesh vertices
+  FLUID = 1, // MLS-MPM fluid particles
+  RIGID = 2, // Rigid body sample points
+  DEBRIS = 3, // Destruction fragments
+  CROWD = 4, // Crowd agent proxies
 }
 
 // Extended particle layout (GPU buffer)
@@ -45,6 +47,7 @@ export enum ParticleType {
 ```
 
 **Changes to PBDSolver.ts:**
+
 1. Add `attributes` storage buffer alongside existing `positions`/`velocities`/`predicted`/`masses`
 2. Add `ParticleType` field to attributes buffer
 3. Constraint shaders check particle type before applying (fluid particles skip distance constraints, cloth particles skip density constraints)
@@ -65,6 +68,7 @@ New WGSL compute shaders for MLS-MPM (Moving Least Squares Material Point Method
 ```
 
 **New files:**
+
 - `src/gpu/shaders/mls-mpm-p2g.wgsl` — Particle-to-Grid transfer with atomicAdd
 - `src/gpu/shaders/mls-mpm-grid.wgsl` — Grid update (gravity, boundaries)
 - `src/gpu/shaders/mls-mpm-g2p.wgsl` — Grid-to-Particle gather + APIC
@@ -73,6 +77,7 @@ New WGSL compute shaders for MLS-MPM (Moving Least Squares Material Point Method
 - `src/gpu/shaders/ssfr-shade.wgsl` — Final shading with refraction
 
 **New class:**
+
 ```typescript
 // src/physics/MLSMPMFluid.ts
 export class MLSMPMFluid {
@@ -84,7 +89,7 @@ export class MLSMPMFluid {
   dispose(): void;
 
   // Integration with unified buffer
-  getParticleBuffer(): GPUBuffer;  // Shares with PBDSolver
+  getParticleBuffer(): GPUBuffer; // Shares with PBDSolver
   getParticleCount(): number;
 
   // SSFR rendering
@@ -96,10 +101,10 @@ export interface FluidConfig {
   type: 'liquid' | 'gas';
   particleCount: number;
   viscosity: number;
-  gridResolution: number;        // MLS-MPM grid cells per axis
-  resolutionScale: number;       // SSFR half-res by default (0.5)
+  gridResolution: number; // MLS-MPM grid cells per axis
+  resolutionScale: number; // SSFR half-res by default (0.5)
   restDensity: number;
-  bulkModulus: number;           // Compressibility
+  bulkModulus: number; // Compressibility
   boundaryMin: [number, number, number];
   boundaryMax: [number, number, number];
 }
@@ -133,6 +138,7 @@ object Ocean {
 ```
 
 **Trait handler** in `src/traits/FluidTrait.ts`:
+
 ```typescript
 export const fluidHandler: TraitHandler<FluidConfig> = {
   name: 'fluid',
@@ -158,13 +164,13 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
 
 ## Test Targets
 
-| Test | Target | Method |
-|------|--------|--------|
-| MLS-MPM 100K particles | 60 FPS on iGPU | Vitest + WebGPU mock for unit, manual for perf |
-| MLS-MPM 300K particles | 30 FPS on discrete GPU | Manual benchmark |
-| Unified buffer coupling | Cloth + fluid interact | Integration test: cloth drapes into fluid |
-| SSFR rendering | Visual correctness | Screenshot comparison |
-| @fluid trait HoloScript | Parses and compiles | Parser + compiler integration test |
+| Test                    | Target                 | Method                                         |
+| ----------------------- | ---------------------- | ---------------------------------------------- |
+| MLS-MPM 100K particles  | 60 FPS on iGPU         | Vitest + WebGPU mock for unit, manual for perf |
+| MLS-MPM 300K particles  | 30 FPS on discrete GPU | Manual benchmark                               |
+| Unified buffer coupling | Cloth + fluid interact | Integration test: cloth drapes into fluid      |
+| SSFR rendering          | Visual correctness     | Screenshot comparison                          |
+| @fluid trait HoloScript | Parses and compiles    | Parser + compiler integration test             |
 
 ## Dependencies
 
@@ -173,19 +179,19 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
 
 ## Files Changed
 
-| File | Action |
-|------|--------|
-| `src/physics/PhysicsTypes.ts` | Add `ParticleType` enum, `FluidConfig` interface |
-| `src/physics/PBDSolver.ts` | Add attributes buffer, particle type filtering in constraint shaders |
-| `src/physics/MLSMPMFluid.ts` | **NEW** — MLS-MPM fluid simulation class |
-| `src/gpu/shaders/mls-mpm-p2g.wgsl` | **NEW** — P2G compute shader |
-| `src/gpu/shaders/mls-mpm-grid.wgsl` | **NEW** — Grid update shader |
-| `src/gpu/shaders/mls-mpm-g2p.wgsl` | **NEW** — G2P compute shader |
-| `src/gpu/shaders/ssfr-depth.wgsl` | **NEW** — SSFR depth pass |
-| `src/gpu/shaders/ssfr-filter.wgsl` | **NEW** — Bilateral filter |
-| `src/gpu/shaders/ssfr-shade.wgsl` | **NEW** — Final shading |
-| `src/traits/FluidTrait.ts` | **NEW** — @fluid trait handler |
-| `src/traits/constants/physics-expansion.ts` | Add 'fluid' to trait list |
+| File                                        | Action                                                               |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| `src/physics/PhysicsTypes.ts`               | Add `ParticleType` enum, `FluidConfig` interface                     |
+| `src/physics/PBDSolver.ts`                  | Add attributes buffer, particle type filtering in constraint shaders |
+| `src/physics/MLSMPMFluid.ts`                | **NEW** — MLS-MPM fluid simulation class                             |
+| `src/gpu/shaders/mls-mpm-p2g.wgsl`          | **NEW** — P2G compute shader                                         |
+| `src/gpu/shaders/mls-mpm-grid.wgsl`         | **NEW** — Grid update shader                                         |
+| `src/gpu/shaders/mls-mpm-g2p.wgsl`          | **NEW** — G2P compute shader                                         |
+| `src/gpu/shaders/ssfr-depth.wgsl`           | **NEW** — SSFR depth pass                                            |
+| `src/gpu/shaders/ssfr-filter.wgsl`          | **NEW** — Bilateral filter                                           |
+| `src/gpu/shaders/ssfr-shade.wgsl`           | **NEW** — Final shading                                              |
+| `src/traits/FluidTrait.ts`                  | **NEW** — @fluid trait handler                                       |
+| `src/traits/constants/physics-expansion.ts` | Add 'fluid' to trait list                                            |
 
 ## Risks
 

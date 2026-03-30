@@ -50,15 +50,15 @@ The trait system is the semantic core of HoloScript. Traits like `@physics`, `@g
 
 ## Key Classes
 
-| Class | File | Role |
-|-------|------|------|
-| `CrossRealityTraitRegistry` | `src/compiler/platform/CrossRealityTraitRegistry.ts` | Central registry — register, query, bulk-load traits |
-| `TraitDependencyGraph` | `src/compiler/TraitDependencyGraph.ts` | Object-to-trait mapping and dependency resolution |
-| `TraitSupportMatrix` | `src/traits/TraitSupportMatrix.ts` | Auto-detect trait category from file path and content |
-| `MoMETraitDatabase` | `src/traits/MoMETraitDatabase.ts` | Mixture-of-Memory-Experts — expert-based trait lookup |
-| `ShaderTrait` | `src/traits/ShaderTrait.ts` | Shader compilation across targets |
-| `GLTFTrait` | `src/traits/GLTFTrait.ts` | glTF extension requirements |
-| `AgentCardExporter` | `src/export/agent-card/AgentCardExporter.ts` | Export agent's supported traits |
+| Class                       | File                                                 | Role                                                  |
+| --------------------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| `CrossRealityTraitRegistry` | `src/compiler/platform/CrossRealityTraitRegistry.ts` | Central registry — register, query, bulk-load traits  |
+| `TraitDependencyGraph`      | `src/compiler/TraitDependencyGraph.ts`               | Object-to-trait mapping and dependency resolution     |
+| `TraitSupportMatrix`        | `src/traits/TraitSupportMatrix.ts`                   | Auto-detect trait category from file path and content |
+| `MoMETraitDatabase`         | `src/traits/MoMETraitDatabase.ts`                    | Mixture-of-Memory-Experts — expert-based trait lookup |
+| `ShaderTrait`               | `src/traits/ShaderTrait.ts`                          | Shader compilation across targets                     |
+| `GLTFTrait`                 | `src/traits/GLTFTrait.ts`                            | glTF extension requirements                           |
+| `AgentCardExporter`         | `src/export/agent-card/AgentCardExporter.ts`         | Export agent's supported traits                       |
 
 ## Adding a Custom Trait
 

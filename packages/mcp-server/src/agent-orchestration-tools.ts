@@ -364,7 +364,8 @@ async function handleGetTaskStatus(args: Record<string, unknown>): Promise<unkno
     return {
       taskId,
       status: 'not_found',
-      message: 'Task not found in delegation history. It may have been evicted from the history buffer.',
+      message:
+        'Task not found in delegation history. It may have been evicted from the history buffer.',
     };
   }
 

@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import {
-  suggestTraits,
-  generateObject,
-  generateScene,
-} from '../generators';
+import { suggestTraits, generateObject, generateScene } from '../generators';
 
 vi.mock('@holoscript/llm-provider', () => ({
   createProviderManager: vi.fn(() => ({
@@ -307,4 +303,3 @@ describe('generateScene', () => {
     expect(result.code).toBeDefined();
   });
 });
-

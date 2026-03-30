@@ -4,13 +4,24 @@
  */
 import type { TraitHandler } from './TraitTypes';
 
-export interface FormBuilderConfig { max_fields: number; }
+export interface FormBuilderConfig {
+  max_fields: number;
+}
 
 export const formBuilderHandler: TraitHandler<FormBuilderConfig> = {
   name: 'form_builder',
   defaultConfig: { max_fields: 100 },
-  onAttach(node: any): void { node.__formState = { forms: new Map<string, { fields: Array<{ name: string; type: string; required: boolean }>; submitted: boolean }>() }; },
-  onDetach(node: any): void { delete node.__formState; },
+  onAttach(node: any): void {
+    node.__formState = {
+      forms: new Map<
+        string,
+        { fields: Array<{ name: string; type: string; required: boolean }>; submitted: boolean }
+      >(),
+    };
+  },
+  onDetach(node: any): void {
+    delete node.__formState;
+  },
   onUpdate(): void {},
   onEvent(node: any, config: FormBuilderConfig, context: any, event: any): void {
     const state = node.__formState as { forms: Map<string, any> } | undefined;
@@ -24,14 +35,20 @@ export const formBuilderHandler: TraitHandler<FormBuilderConfig> = {
       case 'form:add_field': {
         const f = state.forms.get(event.formId as string);
         if (f && f.fields.length < config.max_fields) {
-          f.fields.push({ name: event.name, type: event.fieldType ?? 'text', required: event.required ?? false });
+          f.fields.push({
+            name: event.name,
+            type: event.fieldType ?? 'text',
+            required: event.required ?? false,
+          });
           context.emit?.('form:field_added', { formId: event.formId, name: event.name });
         }
         break;
       }
       case 'form:submit': {
         const f = state.forms.get(event.formId as string);
-        if (f) { f.submitted = true; }
+        if (f) {
+          f.submitted = true;
+        }
         context.emit?.('form:submitted', { formId: event.formId, fields: f?.fields.length ?? 0 });
         break;
       }

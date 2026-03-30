@@ -511,7 +511,8 @@ export class USDPhysicsCompiler extends CompilerBase {
             return weatherToUSD(weather);
           },
         },
-        (block) => `# Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`
+        (block) =>
+          `# Domain block: ${block.domain}/${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}"`
       );
 
       for (const output of compiled) {
@@ -674,13 +675,17 @@ export class USDPhysicsCompiler extends CompilerBase {
     // Emit prim definition
     if (apiSchemas.length > 0) {
       const schemasStr = apiSchemas.map((s) => `"${s}"`).join(', ');
-      this.emit(`def ${prim.typeName} "${this.escapeStringValue(prim.name as string, 'TypeScript')}" (`);
+      this.emit(
+        `def ${prim.typeName} "${this.escapeStringValue(prim.name as string, 'TypeScript')}" (`
+      );
       this.indentLevel++;
       this.emit(`prepend apiSchemas = [${schemasStr}]`);
       this.indentLevel--;
       this.emit(`)`);
     } else {
-      this.emit(`def ${prim.typeName} "${this.escapeStringValue(prim.name as string, 'TypeScript')}"`);
+      this.emit(
+        `def ${prim.typeName} "${this.escapeStringValue(prim.name as string, 'TypeScript')}"`
+      );
     }
 
     this.emit(`{`);

@@ -86,7 +86,7 @@ export function registerServerKey(config: ServerKeyConfig): void {
  */
 export function validateServerKey(
   incomingKey: string,
-  expectedServerId?: string,
+  expectedServerId?: string
 ): ServerKeyValidation {
   if (!incomingKey) {
     return { valid: false, reason: 'No API key provided' };
@@ -173,7 +173,7 @@ export function initializeServerKeys(): void {
 
   console.log(
     `[ServerKeys] Initialized ${serverKeyRegistry.size} server key(s): ` +
-    Array.from(serverKeyRegistry.keys()).join(', '),
+      Array.from(serverKeyRegistry.keys()).join(', ')
   );
 }
 

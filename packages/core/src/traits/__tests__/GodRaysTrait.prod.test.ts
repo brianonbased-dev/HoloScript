@@ -83,7 +83,12 @@ describe('godRaysHandler — onUpdate', () => {
 describe('godRaysHandler — onEvent', () => {
   it('god_rays_set_params emits update with overridden values', () => {
     const { node, ctx, cfg } = attach();
-    godRaysHandler.onEvent!(node, cfg, ctx as any, { type: 'god_rays_set_params', decay: 0.8, exposure: 0.5 } as any);
+    godRaysHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      { type: 'god_rays_set_params', decay: 0.8, exposure: 0.5 } as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'god_rays_update');
     expect(ev?.payload.decay).toBe(0.8);
     expect(ev?.payload.exposure).toBe(0.5);

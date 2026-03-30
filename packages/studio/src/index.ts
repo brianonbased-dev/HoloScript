@@ -117,4 +117,9 @@ export { ResponsiveStudioLayout } from './components/layouts/ResponsiveStudioLay
 // ═══════════════════════════════════════════════════════════════════
 
 export { default as StudioBridge } from './lib/StudioBridge';
-export type { ASTMutation, MutationResult, ASTChangeEvent, StudioBridgeOptions } from './lib/StudioBridge';
+export type {
+  ASTMutation,
+  MutationResult,
+  ASTChangeEvent,
+  StudioBridgeOptions,
+} from './lib/StudioBridge';

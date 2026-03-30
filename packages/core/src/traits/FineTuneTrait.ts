@@ -20,13 +20,19 @@ export const fineTuneHandler: TraitHandler<FineTuneConfig> = {
   defaultConfig: { max_concurrent: 2 },
 
   onAttach(node: any): void {
-    node.__fineTuneState = { jobs: new Map<string, { modelId: string; status: string; progress: number }>() };
+    node.__fineTuneState = {
+      jobs: new Map<string, { modelId: string; status: string; progress: number }>(),
+    };
   },
-  onDetach(node: any): void { delete node.__fineTuneState; },
+  onDetach(node: any): void {
+    delete node.__fineTuneState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: FineTuneConfig, context: any, event: any): void {
-    const state = node.__fineTuneState as { jobs: Map<string, { modelId: string; status: string; progress: number }> } | undefined;
+    const state = node.__fineTuneState as
+      | { jobs: Map<string, { modelId: string; status: string; progress: number }> }
+      | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 
@@ -38,7 +44,12 @@ export const fineTuneHandler: TraitHandler<FineTuneConfig> = {
         }
         const jobId = `ft_${Date.now()}`;
         state.jobs.set(jobId, { modelId: event.modelId as string, status: 'running', progress: 0 });
-        context.emit?.('finetune:status', { jobId, modelId: event.modelId, status: 'running', progress: 0 });
+        context.emit?.('finetune:status', {
+          jobId,
+          modelId: event.modelId,
+          status: 'running',
+          progress: 0,
+        });
         break;
       }
       case 'finetune:get_status': {

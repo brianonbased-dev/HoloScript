@@ -99,9 +99,9 @@ export class TreeSitterManager {
     try {
       // Dynamic require so the server still starts when tree-sitter
       // native bindings are not compiled for this platform.
-       
+
       const ParserModule = require('tree-sitter') as typeof Parser;
-       
+
       const HoloScriptModule = require('tree-sitter-holoscript');
 
       if (!HoloScriptModule || HoloScriptModule.isWasm === null) {
@@ -139,7 +139,7 @@ export class TreeSitterManager {
       console.error('[TreeSitter] Attempting WASM fallback...');
 
       // Try loading via the tree-sitter-holoscript async WASM loader
-       
+
       const HoloScriptModule = require('tree-sitter-holoscript');
 
       if (HoloScriptModule && typeof HoloScriptModule.initWasm === 'function') {
@@ -153,7 +153,7 @@ export class TreeSitterManager {
       }
 
       // Direct web binding import as last resort
-       
+
       const webBinding = require('tree-sitter-holoscript/wasm');
       const { parser, language } = await webBinding.initHoloScript();
       this.parser = parser;

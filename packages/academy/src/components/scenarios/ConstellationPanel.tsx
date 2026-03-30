@@ -3,10 +3,7 @@
  * Powered by constellationStory.ts
  */
 import React, { useState, useMemo } from 'react';
-import {
-  type Star,
-  type ConstellationDef as Constellation,
-} from '@/lib/constellationStory';
+import { type Star, type ConstellationDef as Constellation } from '@/lib/constellationStory';
 
 export function constellationsByMonth(constellations: any[], month: number) {
   // Simple logic: visible if bestMonth is within +/- 2 months

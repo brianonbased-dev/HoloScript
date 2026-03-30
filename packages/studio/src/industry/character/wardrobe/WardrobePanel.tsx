@@ -9,7 +9,12 @@
  */
 
 import { useState } from 'react';
-import { useCharacterStore, useWardrobeStore, type WardrobeSlot, type WardrobeItem } from '@/lib/stores';
+import {
+  useCharacterStore,
+  useWardrobeStore,
+  type WardrobeSlot,
+  type WardrobeItem,
+} from '@/lib/stores';
 import { Shirt, Scissors, Footprints, Sparkles, X } from 'lucide-react';
 import { BUILTIN_ITEMS } from '@/data/wardrobeItems';
 

@@ -63,9 +63,9 @@ export function usePlatformTargets(initial: XRPlatformTarget = 'quest3'): UsePla
   const grouped = useMemo(() => {
     const groups: Partial<Record<XRPlatformCategory, PlatformInfo[]>> = {};
     for (const cat of Object.keys(XR_PLATFORM_CATEGORIES)) {
-      groups[cat as XRPlatformCategory] = (XR_PLATFORM_CATEGORIES[cat as XRPlatformCategory] as XRPlatformTarget[]).map(
-        buildInfo
-      );
+      groups[cat as XRPlatformCategory] = (
+        XR_PLATFORM_CATEGORIES[cat as XRPlatformCategory] as XRPlatformTarget[]
+      ).map(buildInfo);
     }
     return groups as Record<XRPlatformCategory, PlatformInfo[]>;
   }, []);

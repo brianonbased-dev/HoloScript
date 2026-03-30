@@ -5,7 +5,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-const { useHistoryStore, setNextHistoryLabel, getLastHistoryLabel } = await import('@/lib/historyStore');
+const { useHistoryStore, setNextHistoryLabel, getLastHistoryLabel } =
+  await import('@/lib/historyStore');
 
 function reset() {
   useHistoryStore.setState({ nodes: [] });

@@ -72,7 +72,9 @@ describe('getWizardTemplate', () => {
   });
 
   it('returns template for every SUBCATEGORIES entry', () => {
-    const allSubIds = Object.values(SUBCATEGORIES).flat().map((s) => s.id);
+    const allSubIds = Object.values(SUBCATEGORIES)
+      .flat()
+      .map((s) => s.id);
     for (const subId of allSubIds) {
       const t = getWizardTemplate(subId);
       expect(t).not.toBeNull();
@@ -131,9 +133,19 @@ describe('cross-references', () => {
 
   it('wizard template categories match known categories', () => {
     const validCategories = new Set([
-      'game', 'film', 'art', 'web', 'iot', 'education',
-      'robotics', 'science', 'healthcare', 'architecture',
-      'agriculture', 'creator', 'hologram',
+      'game',
+      'film',
+      'art',
+      'web',
+      'iot',
+      'education',
+      'robotics',
+      'science',
+      'healthcare',
+      'architecture',
+      'agriculture',
+      'creator',
+      'hologram',
     ]);
     for (const t of getAllWizardTemplates()) {
       expect(validCategories.has(t.category)).toBe(true);

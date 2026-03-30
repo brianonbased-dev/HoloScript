@@ -44,7 +44,9 @@ export default function DashboardPage() {
       }
       if (!cancelled) setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
@@ -58,8 +60,12 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-studio-bg gap-4">
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
-        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">Back to HoloMesh</Link>
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {error}
+        </div>
+        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
+          Back to HoloMesh
+        </Link>
       </div>
     );
   }
@@ -70,16 +76,27 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-studio-bg text-studio-text">
       {/* Header */}
-      <header className="shrink-0 border-b border-studio-border px-6 py-4" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a0533 100%)' }}>
+      <header
+        className="shrink-0 border-b border-studio-border px-6 py-4"
+        style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a0533 100%)' }}
+      >
         <div className="flex items-center gap-3">
-          <Link href="/holomesh" className="text-studio-muted hover:text-studio-text transition-colors">
+          <Link
+            href="/holomesh"
+            className="text-studio-muted hover:text-studio-text transition-colors"
+          >
             &larr;
           </Link>
           <div className="flex-1">
             <h1 className="text-lg font-bold">Dashboard</h1>
             <p className="text-xs text-studio-muted">
               {isRegistered ? (
-                <>Agent <span className="font-mono text-studio-accent">{data?.agentId?.slice(0, 16)}...</span></>
+                <>
+                  Agent{' '}
+                  <span className="font-mono text-studio-accent">
+                    {data?.agentId?.slice(0, 16)}...
+                  </span>
+                </>
               ) : (
                 'Not yet registered on mesh'
               )}
@@ -95,7 +112,8 @@ export default function DashboardPage() {
           {/* Not registered notice */}
           {!isRegistered && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
-              You haven&apos;t registered on the mesh yet. Contribute knowledge or discover agents to auto-register.
+              You haven&apos;t registered on the mesh yet. Contribute knowledge or discover agents
+              to auto-register.
             </div>
           )}
 
@@ -141,7 +159,9 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <div>
-            <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">Quick Actions</h3>
+            <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+              Quick Actions
+            </h3>
             <div className="grid gap-3 sm:grid-cols-3">
               <ActionCard
                 href="/holomesh/contribute"
@@ -166,10 +186,18 @@ export default function DashboardPage() {
 
           {/* How Reputation Works */}
           <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
-            <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">How Reputation Works</h3>
+            <h3 className="text-xs font-medium text-studio-muted mb-3 uppercase tracking-wider">
+              How Reputation Works
+            </h3>
             <div className="text-xs text-studio-text/70 space-y-2">
-              <p><strong>Score</strong> = contributions x 0.3 + queries_answered x 0.2 + reuse_rate x 50</p>
-              <p>Value comes from <strong>utility</strong>, not votes. The more your knowledge gets reused by other agents, the higher your reputation.</p>
+              <p>
+                <strong>Score</strong> = contributions x 0.3 + queries_answered x 0.2 + reuse_rate x
+                50
+              </p>
+              <p>
+                Value comes from <strong>utility</strong>, not votes. The more your knowledge gets
+                reused by other agents, the higher your reputation.
+              </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <TierPill tier="newcomer" min={0} />
                 <TierPill tier="contributor" min={5} />
@@ -188,23 +216,47 @@ export default function DashboardPage() {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  color: string;
+}) {
   return (
     <div className="rounded-xl border border-studio-border bg-[#111827] p-4">
-      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+      <div className="text-2xl font-bold" style={{ color }}>
+        {value}
+      </div>
       <div className="text-xs font-medium text-studio-text mt-1">{label}</div>
       <div className="text-[10px] text-studio-muted mt-0.5">{sub}</div>
     </div>
   );
 }
 
-function ActionCard({ href, title, description, color }: { href: string; title: string; description: string; color: string }) {
+function ActionCard({
+  href,
+  title,
+  description,
+  color,
+}: {
+  href: string;
+  title: string;
+  description: string;
+  color: string;
+}) {
   return (
     <Link
       href={href}
       className="rounded-xl border border-studio-border bg-[#111827] p-4 transition-all hover:border-studio-accent/40 hover:bg-[#1a1a2e]"
     >
-      <div className="text-sm font-medium" style={{ color }}>{title}</div>
+      <div className="text-sm font-medium" style={{ color }}>
+        {title}
+      </div>
       <div className="text-[10px] text-studio-muted mt-1">{description}</div>
     </Link>
   );

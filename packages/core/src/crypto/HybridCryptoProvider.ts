@@ -179,7 +179,9 @@ function generateId(): string {
       bytes[i] = Math.floor(Math.random() * 256);
     }
   }
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -226,7 +228,7 @@ export class HybridCryptoProvider {
     } catch (e) {
       throw new Error(
         'Post-quantum cryptography requires @noble/post-quantum. ' +
-        'Install with: npm install @noble/post-quantum'
+          'Install with: npm install @noble/post-quantum'
       );
     }
   }
@@ -283,7 +285,7 @@ export class HybridCryptoProvider {
 
     this.config.logger(
       `[HybridCrypto] Generated signing key pair: ${keyPair.id} ` +
-      `(${keyPair.classicalAlgorithm} + ${keyPair.pqAlgorithm})`
+        `(${keyPair.classicalAlgorithm} + ${keyPair.pqAlgorithm})`
     );
 
     return keyPair;
@@ -386,7 +388,7 @@ export class HybridCryptoProvider {
   async verify(
     message: Uint8Array,
     signature: HybridSignature,
-    publicKeys: { classicalPublicKey: string; pqPublicKey: string },
+    publicKeys: { classicalPublicKey: string; pqPublicKey: string }
   ): Promise<HybridVerificationResult> {
     const pq = await this.loadPQModule();
 
@@ -420,17 +422,13 @@ export class HybridCryptoProvider {
       pqValid = false;
     }
 
-    const valid = this.config.requireBoth
-      ? (classicalValid && pqValid)
-      : (classicalValid || pqValid);
+    const valid = this.config.requireBoth ? classicalValid && pqValid : classicalValid || pqValid;
 
     return {
       valid,
       classicalValid,
       pqValid,
-      error: !valid
-        ? `Verification failed: classical=${classicalValid}, pq=${pqValid}`
-        : undefined,
+      error: !valid ? `Verification failed: classical=${classicalValid}, pq=${pqValid}` : undefined,
     };
   }
 
@@ -438,9 +436,10 @@ export class HybridCryptoProvider {
    * Perform hybrid key encapsulation (key exchange).
    * Generates a shared secret using both classical and PQ key exchange.
    */
-  async encapsulate(
-    recipientPublicKeys: { classicalPublicKey: string; pqPublicKey: string },
-  ): Promise<HybridEncapsulation> {
+  async encapsulate(recipientPublicKeys: {
+    classicalPublicKey: string;
+    pqPublicKey: string;
+  }): Promise<HybridEncapsulation> {
     const pq = await this.loadPQModule();
 
     // Classical key exchange (placeholder)
@@ -505,9 +504,7 @@ export class HybridCryptoProvider {
 
 let _globalProvider: HybridCryptoProvider | null = null;
 
-export function getHybridCryptoProvider(
-  config?: HybridCryptoConfig,
-): HybridCryptoProvider {
+export function getHybridCryptoProvider(config?: HybridCryptoConfig): HybridCryptoProvider {
   if (!_globalProvider) {
     _globalProvider = new HybridCryptoProvider(config);
   }

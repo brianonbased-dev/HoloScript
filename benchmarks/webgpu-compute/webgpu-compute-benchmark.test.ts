@@ -30,7 +30,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         stage:"compute",
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(3);
       expect(result.vertex).toBe(0);
       expect(result.fragment).toBe(0);
@@ -49,7 +49,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         }
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(0);
       expect(result.vertex).toBe(2);
       expect(result.fragment).toBe(0);
@@ -70,7 +70,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         @fragment fn inline_fragment() {}
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(0);
       expect(result.vertex).toBe(0);
       expect(result.fragment).toBe(3);
@@ -104,7 +104,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         }
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(2);
       expect(result.vertex).toBe(2);
       expect(result.fragment).toBe(1);
@@ -113,7 +113,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
 
     it('handles empty source correctly', () => {
       const result = analyzeShaders('', '');
-      
+
       expect(result.compute).toBe(0);
       expect(result.vertex).toBe(0);
       expect(result.fragment).toBe(0);
@@ -134,7 +134,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         let CONSTANT = 42;
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(0);
       expect(result.vertex).toBe(0);
       expect(result.fragment).toBe(0);
@@ -151,7 +151,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         stage : 'compute',
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(6);
       expect(result.total).toBe(6);
     });
@@ -172,7 +172,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         @fragment
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(1);
       expect(result.vertex).toBe(1);
       expect(result.fragment).toBe(1);
@@ -209,7 +209,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         }
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(1);
       expect(result.vertex).toBe(1);
       expect(result.fragment).toBe(1);
@@ -228,7 +228,7 @@ describe('WebGPU Compute Benchmark - analyzeShaders', () => {
         @fragment
       `;
       const result = analyzeShaders('', source);
-      
+
       expect(result.compute).toBe(1);
       expect(result.vertex).toBe(1);
       expect(result.fragment).toBe(1);

@@ -56,7 +56,9 @@ const mockIDB = () => {
           Object.defineProperty(req, 'onsuccess', {
             enumerable: true,
             configurable: true,
-            get() { return null; },
+            get() {
+              return null;
+            },
             set(fn: any) {
               setTimeout(() => fn?.call(req), 0);
             },

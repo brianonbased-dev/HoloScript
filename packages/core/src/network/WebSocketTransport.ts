@@ -103,7 +103,9 @@ export class WebSocketTransport {
             const handler = this.messageHandlers.get(msg.type);
             if (handler) handler(msg);
           } catch (err) {
-            logger.error('Failed to parse WebSocket message', { error: err instanceof Error ? err.message : String(err) });
+            logger.error('Failed to parse WebSocket message', {
+              error: err instanceof Error ? err.message : String(err),
+            });
           }
         };
 
@@ -193,7 +195,9 @@ export class WebSocketTransport {
 
     setTimeout(() => {
       this.connect().catch((err) => {
-        logger.error('Reconnection failed', { error: err instanceof Error ? err.message : String(err) });
+        logger.error('Reconnection failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         this.attemptReconnect();
       });
     }, backoff);

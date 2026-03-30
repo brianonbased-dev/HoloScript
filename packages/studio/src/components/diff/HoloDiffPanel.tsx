@@ -95,7 +95,10 @@ function parseHolo(source: string): HoloComposition {
 
     // Match trait (@trait_name)
     if (currentObject && line.startsWith('@')) {
-      const traitName = line.replace(/^@/, '').replace(/\s*\{.*$/, '').trim();
+      const traitName = line
+        .replace(/^@/, '')
+        .replace(/\s*\{.*$/, '')
+        .trim();
       currentObject.traits.push({ name: traitName, line: i });
       continue;
     }
@@ -420,17 +423,16 @@ function ObjectDiffCard({
   return (
     <div className={`rounded-lg border ${STATUS_BG[diff.status]} mb-2`}>
       {/* Object header */}
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left"
-      >
+      <button onClick={onToggle} className="flex w-full items-center gap-2 px-3 py-2 text-left">
         {expanded ? (
           <ChevronDown className="h-3 w-3 text-studio-muted flex-shrink-0" />
         ) : (
           <ChevronRight className="h-3 w-3 text-studio-muted flex-shrink-0" />
         )}
         <span className="text-xs font-semibold text-studio-text font-mono">{diff.name}</span>
-        <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_BADGE[diff.status]}`}>
+        <span
+          className={`ml-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_BADGE[diff.status]}`}
+        >
           {diff.status}
         </span>
         {changedCount > 0 && diff.status !== 'added' && diff.status !== 'removed' && (
@@ -639,14 +641,10 @@ export function HoloDiffPanel({
       {/* Composition names */}
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel/50 px-3 py-1.5">
         <FileText className="h-3 w-3 text-red-400" />
-        <span className="text-[10px] text-red-400 font-mono">
-          A: {compA.name || '(unnamed)'}
-        </span>
+        <span className="text-[10px] text-red-400 font-mono">A: {compA.name || '(unnamed)'}</span>
         <ArrowLeftRight className="h-3 w-3 text-studio-muted" />
         <FileText className="h-3 w-3 text-green-400" />
-        <span className="text-[10px] text-green-400 font-mono">
-          B: {compB.name || '(unnamed)'}
-        </span>
+        <span className="text-[10px] text-green-400 font-mono">B: {compB.name || '(unnamed)'}</span>
       </div>
 
       {/* Content */}
@@ -705,9 +703,7 @@ export function HoloDiffPanel({
               </p>
             )}
             {textDiffs.every((d) => d.type === 'same') && textDiffs.length > 0 && (
-              <p className="py-4 text-center text-[10px] text-green-500/80">
-                Files are identical
-              </p>
+              <p className="py-4 text-center text-[10px] text-green-500/80">Files are identical</p>
             )}
             <table className="w-full border-collapse">
               <tbody>
@@ -721,12 +717,7 @@ export function HoloDiffPanel({
       </div>
 
       {/* Source editor (collapsed by default, expandable) */}
-      <SourceEditorDrawer
-        codeA={codeA}
-        codeB={codeB}
-        onChangeA={setCodeA}
-        onChangeB={setCodeB}
-      />
+      <SourceEditorDrawer codeA={codeA} codeB={codeB} onChangeA={setCodeA} onChangeB={setCodeB} />
     </div>
   );
 }

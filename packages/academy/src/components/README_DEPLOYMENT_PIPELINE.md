@@ -44,21 +44,21 @@ See `docs/DEPLOYMENT_PIPELINE_UI.md` for complete API reference, examples, and i
 
 ## Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `source` | `string?` | HoloScript source code |
-| `onDeployStart` | `(tier: QualityTier) => void?` | Called when deployment begins |
-| `onDeployComplete` | `(success: boolean) => void?` | Called when deployment finishes |
-| `onRollback` | `() => Promise<void>?` | Async rollback callback |
+| Prop               | Type                           | Description                     |
+| ------------------ | ------------------------------ | ------------------------------- |
+| `source`           | `string?`                      | HoloScript source code          |
+| `onDeployStart`    | `(tier: QualityTier) => void?` | Called when deployment begins   |
+| `onDeployComplete` | `(success: boolean) => void?`  | Called when deployment finishes |
+| `onRollback`       | `() => Promise<void>?`         | Async rollback callback         |
 
 ## Quality Tiers
 
-| Tier | Target | Provider | Use Case |
-|------|--------|----------|----------|
-| `low` | Development | vercel-edge | Fast iteration |
-| `med` | Staging | cloudflare-workers | Testing |
-| `high` | Production | aws-lambda | Live deployment |
-| `ultra` | Global CDN | cloudflare-workers | Maximum performance |
+| Tier    | Target      | Provider           | Use Case            |
+| ------- | ----------- | ------------------ | ------------------- |
+| `low`   | Development | vercel-edge        | Fast iteration      |
+| `med`   | Staging     | cloudflare-workers | Testing             |
+| `high`  | Production  | aws-lambda         | Live deployment     |
+| `ultra` | Global CDN  | cloudflare-workers | Maximum performance |
 
 ## Status Types
 

@@ -7,7 +7,7 @@ export default function LearnPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <header className="h-14 border-b border-slate-800 flex items-center px-4 bg-slate-900 shrink-0">
-        <Link 
+        <Link
           href="/"
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
         >
@@ -19,7 +19,9 @@ export default function LearnPage() {
           <span className="font-semibold text-sm mr-24">Interactive Tutorials</span>
         </div>
         <div className="ml-auto">
-          <Button variant="outline" size="sm">Student Login</Button>
+          <Button variant="outline" size="sm">
+            Student Login
+          </Button>
         </div>
       </header>
 
@@ -30,7 +32,8 @@ export default function LearnPage() {
               Master Spatial Computing
             </h1>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Learn the foundations of HoloScript through interactive step-by-step challenges. Write code, see it render instantly in 3D, and earn badges.
+              Learn the foundations of HoloScript through interactive step-by-step challenges. Write
+              code, see it render instantly in 3D, and earn badges.
             </p>
           </header>
 
@@ -42,15 +45,25 @@ export default function LearnPage() {
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-400">
                     <Star size={24} />
                   </div>
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">Level 1</span>
+                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">
+                    Level 1
+                  </span>
                 </div>
-              <h2 className="text-xl font-bold mb-2 group-hover:text-emerald-400 transition-colors">Primitives & Positioning</h2>
-              <p className="text-slate-400 text-sm mb-6">Learn how to spawn basic shapes and move them in 3D space using coordinates.</p>
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-1"><Clock size={14} /> 15 mins</div>
-                <div className="flex items-center gap-1"><Award size={14} /> 1 Badge</div>
+                <h2 className="text-xl font-bold mb-2 group-hover:text-emerald-400 transition-colors">
+                  Primitives & Positioning
+                </h2>
+                <p className="text-slate-400 text-sm mb-6">
+                  Learn how to spawn basic shapes and move them in 3D space using coordinates.
+                </p>
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center gap-1">
+                    <Clock size={14} /> 15 mins
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Award size={14} /> 1 Badge
+                  </div>
+                </div>
               </div>
-            </div>
             </Link>
 
             {/* Intermediate */}
@@ -60,15 +73,26 @@ export default function LearnPage() {
                   <div className="w-12 h-12 bg-cyan-500/10 rounded-lg flex items-center justify-center text-cyan-400">
                     <BookOpen size={24} />
                   </div>
-                  <span className="text-xs font-semibold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">Level 2</span>
+                  <span className="text-xs font-semibold text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">
+                    Level 2
+                  </span>
                 </div>
-              <h2 className="text-xl font-bold mb-2 group-hover:text-cyan-400 transition-colors">Materials & Lighting</h2>
-              <p className="text-slate-400 text-sm mb-6">Make your objects look realistic by applying textures, roughness, and dynamic light sources.</p>
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-1"><Clock size={14} /> 25 mins</div>
-                <div className="flex items-center gap-1"><Award size={14} /> 1 Badge</div>
+                <h2 className="text-xl font-bold mb-2 group-hover:text-cyan-400 transition-colors">
+                  Materials & Lighting
+                </h2>
+                <p className="text-slate-400 text-sm mb-6">
+                  Make your objects look realistic by applying textures, roughness, and dynamic
+                  light sources.
+                </p>
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center gap-1">
+                    <Clock size={14} /> 25 mins
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Award size={14} /> 1 Badge
+                  </div>
+                </div>
               </div>
-            </div>
             </Link>
           </div>
         </div>

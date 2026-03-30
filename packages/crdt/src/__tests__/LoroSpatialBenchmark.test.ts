@@ -111,7 +111,10 @@ class CurrentCRDTStateManager {
     this.clientId = clientId;
   }
 
-  createOperation(key: string, value: unknown): { clientId: string; clock: number; key: string; value: unknown } {
+  createOperation(
+    key: string,
+    value: unknown
+  ): { clientId: string; clock: number; key: string; value: unknown } {
     this.clock++;
     return { clientId: this.clientId, clock: this.clock, key, value };
   }
@@ -348,7 +351,9 @@ describe('LoroSpatialAdapter Benchmarks', () => {
       const snapshot = adapter.exportUpdate('snapshot');
       const snapshotSize = snapshot.byteLength;
 
-      console.log(`  Snapshot size (100 nodes): ${snapshotSize} bytes (${(snapshotSize / 1024).toFixed(2)} KB)`);
+      console.log(
+        `  Snapshot size (100 nodes): ${snapshotSize} bytes (${(snapshotSize / 1024).toFixed(2)} KB)`
+      );
       // 100 nodes with transforms should be under 50KB
       expect(snapshotSize).toBeLessThan(50 * 1024);
 

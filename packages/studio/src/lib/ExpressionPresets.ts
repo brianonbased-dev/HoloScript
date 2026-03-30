@@ -124,7 +124,13 @@ export const EXPRESSION_PRESETS: ExpressionPreset[] = [
   // ═══════════════════════════════════════════════════════════════════
   // Viseme Presets (lip-sync)
   // ═══════════════════════════════════════════════════════════════════
-  { id: 'vis_aa', name: 'viseme-AA', emoji: '🅰️', category: 'viseme', weights: { jawOpen: 0.6, mouthFunnel: 0.1 } },
+  {
+    id: 'vis_aa',
+    name: 'viseme-AA',
+    emoji: '🅰️',
+    category: 'viseme',
+    weights: { jawOpen: 0.6, mouthFunnel: 0.1 },
+  },
   {
     id: 'vis_ee',
     name: 'viseme-EE',
@@ -146,7 +152,13 @@ export const EXPRESSION_PRESETS: ExpressionPreset[] = [
     category: 'viseme',
     weights: { mouthFunnel: 0.3, mouthLowerDownLeft: 0.3, mouthLowerDownRight: 0.3 },
   },
-  { id: 'vis_th', name: 'viseme-TH', emoji: '🇹', category: 'viseme', weights: { tongueOut: 0.4, jawOpen: 0.1 } },
+  {
+    id: 'vis_th',
+    name: 'viseme-TH',
+    emoji: '🇹',
+    category: 'viseme',
+    weights: { tongueOut: 0.4, jawOpen: 0.1 },
+  },
   {
     id: 'vis_mm',
     name: 'viseme-MM',

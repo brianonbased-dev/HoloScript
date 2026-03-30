@@ -10,10 +10,10 @@ export type ExportFormat = 'glb' | 'gltf' | 'obj' | 'fbx' | 'usd' | 'holoscript'
 
 /**
  * Configuration options for exporting HoloScript scenes to various 3D formats.
- * 
+ *
  * Used by HoloScript Studio's export system to control output quality,
  * optimization level, and asset bundling behavior.
- * 
+ *
  * @interface ExportOptions
  */
 export interface ExportOptions {
@@ -33,10 +33,10 @@ export interface ExportOptions {
 
 /**
  * Result data returned after successfully exporting a HoloScript scene.
- * 
+ *
  * Contains the exported data, metadata about the export process,
  * and any warnings encountered during conversion.
- * 
+ *
  * @interface ExportResult
  */
 export interface ExportResult {

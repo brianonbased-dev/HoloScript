@@ -15,14 +15,18 @@ describe('GenerationCache — Production', () => {
   const mockDateNow = (offsetMs: number) => {
     const originalNow = Date.now;
     Date.now = vi.fn(() => originalNow() + offsetMs);
-    return () => { Date.now = originalNow; };
+    return () => {
+      Date.now = originalNow;
+    };
   };
-  
+
   const mockDateNowIncrementing = (startOffset: number = 0) => {
     const originalNow = Date.now;
     let counter = startOffset;
     Date.now = vi.fn(() => originalNow() + counter++);
-    return () => { Date.now = originalNow; };
+    return () => {
+      Date.now = originalNow;
+    };
   };
 
   // ─── Basic Get/Set ────────────────────────────────────────────────

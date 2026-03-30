@@ -241,7 +241,11 @@ describe('extractWorldSettings', () => {
 
   it('maps "background" property to skybox', () => {
     const props: CoreOrbProperty[] = [
-      { type: 'OrbProperty', name: 'background', value: { type: 'ColorLiteral', value: '#87CEEB' } },
+      {
+        type: 'OrbProperty',
+        name: 'background',
+        value: { type: 'ColorLiteral', value: '#87CEEB' },
+      },
     ];
     const settings = extractWorldSettings(props);
     expect(settings.skybox).toBe('#87CEEB');
@@ -288,7 +292,11 @@ describe('orbToASTNode', () => {
       type: 'OrbDeclaration',
       name: 'MainCam',
       properties: [
-        { type: 'OrbProperty', name: 'geometry', value: { type: 'StringLiteral', value: 'camera' } },
+        {
+          type: 'OrbProperty',
+          name: 'geometry',
+          value: { type: 'StringLiteral', value: 'camera' },
+        },
       ],
     };
     const node = orbToASTNode(orb);
@@ -352,14 +360,22 @@ describe('programToInternalAST', () => {
           type: 'WorldDeclaration',
           name: 'TestWorld',
           properties: [
-            { type: 'OrbProperty', name: 'background', value: { type: 'ColorLiteral', value: '#000' } },
+            {
+              type: 'OrbProperty',
+              name: 'background',
+              value: { type: 'ColorLiteral', value: '#000' },
+            },
           ],
           children: [
             {
               type: 'OrbDeclaration',
               name: 'Sphere',
               properties: [
-                { type: 'OrbProperty', name: 'geometry', value: { type: 'StringLiteral', value: 'sphere' } },
+                {
+                  type: 'OrbProperty',
+                  name: 'geometry',
+                  value: { type: 'StringLiteral', value: 'sphere' },
+                },
               ],
             },
           ],

@@ -38,70 +38,380 @@ export interface ActionUnitDefinition {
 
 export const FACS_ACTION_UNITS: ActionUnitDefinition[] = [
   // Upper Face — Brow & Forehead
-  { id: 1, name: 'Inner Brow Raise', region: 'brow', description: 'Frontalis (medial)', bilateral: true, arkitMapping: ['browInnerUp'] },
-  { id: 2, name: 'Outer Brow Raise', region: 'brow', description: 'Frontalis (lateral)', bilateral: true, arkitMapping: ['browOuterUpLeft', 'browOuterUpRight'] },
-  { id: 4, name: 'Brow Lowerer', region: 'brow', description: 'Corrugator supercilii + Depressor supercilii', bilateral: true, arkitMapping: ['browDownLeft', 'browDownRight'] },
+  {
+    id: 1,
+    name: 'Inner Brow Raise',
+    region: 'brow',
+    description: 'Frontalis (medial)',
+    bilateral: true,
+    arkitMapping: ['browInnerUp'],
+  },
+  {
+    id: 2,
+    name: 'Outer Brow Raise',
+    region: 'brow',
+    description: 'Frontalis (lateral)',
+    bilateral: true,
+    arkitMapping: ['browOuterUpLeft', 'browOuterUpRight'],
+  },
+  {
+    id: 4,
+    name: 'Brow Lowerer',
+    region: 'brow',
+    description: 'Corrugator supercilii + Depressor supercilii',
+    bilateral: true,
+    arkitMapping: ['browDownLeft', 'browDownRight'],
+  },
 
   // Upper Face — Eyes
-  { id: 5, name: 'Upper Lid Raise', region: 'eye', description: 'Levator palpebrae superioris', bilateral: true, arkitMapping: ['eyeWideLeft', 'eyeWideRight'] },
-  { id: 6, name: 'Cheek Raise', region: 'eye', description: 'Orbicularis oculi (orbital)', bilateral: true, arkitMapping: ['cheekSquintLeft', 'cheekSquintRight'] },
-  { id: 7, name: 'Lid Tightener', region: 'eye', description: 'Orbicularis oculi (palpebral)', bilateral: true, arkitMapping: ['eyeSquintLeft', 'eyeSquintRight'] },
-  { id: 43, name: 'Eyes Closed', region: 'eye', description: 'Relaxation of Levator palpebrae superioris', bilateral: true, arkitMapping: ['eyeBlinkLeft', 'eyeBlinkRight'] },
-  { id: 45, name: 'Blink', region: 'eye', description: 'Rapid Orbicularis oculi contraction', bilateral: true, arkitMapping: ['eyeBlinkLeft', 'eyeBlinkRight'] },
-  { id: 46, name: 'Wink', region: 'eye', description: 'Unilateral Orbicularis oculi', bilateral: false, arkitMapping: ['eyeBlinkLeft'] },
+  {
+    id: 5,
+    name: 'Upper Lid Raise',
+    region: 'eye',
+    description: 'Levator palpebrae superioris',
+    bilateral: true,
+    arkitMapping: ['eyeWideLeft', 'eyeWideRight'],
+  },
+  {
+    id: 6,
+    name: 'Cheek Raise',
+    region: 'eye',
+    description: 'Orbicularis oculi (orbital)',
+    bilateral: true,
+    arkitMapping: ['cheekSquintLeft', 'cheekSquintRight'],
+  },
+  {
+    id: 7,
+    name: 'Lid Tightener',
+    region: 'eye',
+    description: 'Orbicularis oculi (palpebral)',
+    bilateral: true,
+    arkitMapping: ['eyeSquintLeft', 'eyeSquintRight'],
+  },
+  {
+    id: 43,
+    name: 'Eyes Closed',
+    region: 'eye',
+    description: 'Relaxation of Levator palpebrae superioris',
+    bilateral: true,
+    arkitMapping: ['eyeBlinkLeft', 'eyeBlinkRight'],
+  },
+  {
+    id: 45,
+    name: 'Blink',
+    region: 'eye',
+    description: 'Rapid Orbicularis oculi contraction',
+    bilateral: true,
+    arkitMapping: ['eyeBlinkLeft', 'eyeBlinkRight'],
+  },
+  {
+    id: 46,
+    name: 'Wink',
+    region: 'eye',
+    description: 'Unilateral Orbicularis oculi',
+    bilateral: false,
+    arkitMapping: ['eyeBlinkLeft'],
+  },
 
   // Nose
-  { id: 9, name: 'Nose Wrinkler', region: 'nose', description: 'Levator labii superioris alaeque nasi', bilateral: true, arkitMapping: ['noseSneerLeft', 'noseSneerRight'] },
-  { id: 10, name: 'Upper Lip Raiser', region: 'nose', description: 'Levator labii superioris', bilateral: true },
-  { id: 11, name: 'Nasolabial Deepener', region: 'nose', description: 'Zygomaticus minor', bilateral: true },
+  {
+    id: 9,
+    name: 'Nose Wrinkler',
+    region: 'nose',
+    description: 'Levator labii superioris alaeque nasi',
+    bilateral: true,
+    arkitMapping: ['noseSneerLeft', 'noseSneerRight'],
+  },
+  {
+    id: 10,
+    name: 'Upper Lip Raiser',
+    region: 'nose',
+    description: 'Levator labii superioris',
+    bilateral: true,
+  },
+  {
+    id: 11,
+    name: 'Nasolabial Deepener',
+    region: 'nose',
+    description: 'Zygomaticus minor',
+    bilateral: true,
+  },
 
   // Mouth — Lip Position
-  { id: 12, name: 'Lip Corner Puller', region: 'mouth', description: 'Zygomaticus major', bilateral: true, arkitMapping: ['mouthSmileLeft', 'mouthSmileRight'] },
-  { id: 13, name: 'Sharp Lip Puller', region: 'mouth', description: 'Levator anguli oris (caninus)', bilateral: true },
-  { id: 14, name: 'Dimpler', region: 'mouth', description: 'Buccinator', bilateral: true, arkitMapping: ['mouthDimpleLeft', 'mouthDimpleRight'] },
-  { id: 15, name: 'Lip Corner Depressor', region: 'mouth', description: 'Depressor anguli oris (triangularis)', bilateral: true, arkitMapping: ['mouthFrownLeft', 'mouthFrownRight'] },
-  { id: 16, name: 'Lower Lip Depressor', region: 'mouth', description: 'Depressor labii inferioris', bilateral: true, arkitMapping: ['mouthLowerDownLeft', 'mouthLowerDownRight'] },
+  {
+    id: 12,
+    name: 'Lip Corner Puller',
+    region: 'mouth',
+    description: 'Zygomaticus major',
+    bilateral: true,
+    arkitMapping: ['mouthSmileLeft', 'mouthSmileRight'],
+  },
+  {
+    id: 13,
+    name: 'Sharp Lip Puller',
+    region: 'mouth',
+    description: 'Levator anguli oris (caninus)',
+    bilateral: true,
+  },
+  {
+    id: 14,
+    name: 'Dimpler',
+    region: 'mouth',
+    description: 'Buccinator',
+    bilateral: true,
+    arkitMapping: ['mouthDimpleLeft', 'mouthDimpleRight'],
+  },
+  {
+    id: 15,
+    name: 'Lip Corner Depressor',
+    region: 'mouth',
+    description: 'Depressor anguli oris (triangularis)',
+    bilateral: true,
+    arkitMapping: ['mouthFrownLeft', 'mouthFrownRight'],
+  },
+  {
+    id: 16,
+    name: 'Lower Lip Depressor',
+    region: 'mouth',
+    description: 'Depressor labii inferioris',
+    bilateral: true,
+    arkitMapping: ['mouthLowerDownLeft', 'mouthLowerDownRight'],
+  },
   { id: 17, name: 'Chin Raiser', region: 'mouth', description: 'Mentalis', bilateral: false },
-  { id: 18, name: 'Lip Pucker', region: 'mouth', description: 'Incisivii labii + Orbicularis oris', bilateral: false, arkitMapping: ['mouthPucker'] },
-  { id: 20, name: 'Lip Stretcher', region: 'mouth', description: 'Risorius + Platysma', bilateral: true, arkitMapping: ['mouthStretchLeft', 'mouthStretchRight'] },
-  { id: 22, name: 'Lip Funneler', region: 'mouth', description: 'Orbicularis oris', bilateral: false, arkitMapping: ['mouthFunnel'] },
-  { id: 23, name: 'Lip Tightener', region: 'mouth', description: 'Orbicularis oris', bilateral: false, arkitMapping: ['mouthPressLeft', 'mouthPressRight'] },
-  { id: 24, name: 'Lip Pressor', region: 'mouth', description: 'Orbicularis oris', bilateral: false },
-  { id: 25, name: 'Lips Part', region: 'mouth', description: 'Depressor labii + Mentalis', bilateral: false },
-  { id: 26, name: 'Jaw Drop', region: 'jaw', description: 'Masseter + internal pterygoid relaxation', bilateral: false, arkitMapping: ['jawOpen'] },
-  { id: 27, name: 'Mouth Stretch', region: 'jaw', description: 'Pterygoids + Digastric', bilateral: false },
-  { id: 28, name: 'Lip Suck', region: 'mouth', description: 'Mentalis', bilateral: false, arkitMapping: ['mouthRollLower', 'mouthRollUpper'] },
+  {
+    id: 18,
+    name: 'Lip Pucker',
+    region: 'mouth',
+    description: 'Incisivii labii + Orbicularis oris',
+    bilateral: false,
+    arkitMapping: ['mouthPucker'],
+  },
+  {
+    id: 20,
+    name: 'Lip Stretcher',
+    region: 'mouth',
+    description: 'Risorius + Platysma',
+    bilateral: true,
+    arkitMapping: ['mouthStretchLeft', 'mouthStretchRight'],
+  },
+  {
+    id: 22,
+    name: 'Lip Funneler',
+    region: 'mouth',
+    description: 'Orbicularis oris',
+    bilateral: false,
+    arkitMapping: ['mouthFunnel'],
+  },
+  {
+    id: 23,
+    name: 'Lip Tightener',
+    region: 'mouth',
+    description: 'Orbicularis oris',
+    bilateral: false,
+    arkitMapping: ['mouthPressLeft', 'mouthPressRight'],
+  },
+  {
+    id: 24,
+    name: 'Lip Pressor',
+    region: 'mouth',
+    description: 'Orbicularis oris',
+    bilateral: false,
+  },
+  {
+    id: 25,
+    name: 'Lips Part',
+    region: 'mouth',
+    description: 'Depressor labii + Mentalis',
+    bilateral: false,
+  },
+  {
+    id: 26,
+    name: 'Jaw Drop',
+    region: 'jaw',
+    description: 'Masseter + internal pterygoid relaxation',
+    bilateral: false,
+    arkitMapping: ['jawOpen'],
+  },
+  {
+    id: 27,
+    name: 'Mouth Stretch',
+    region: 'jaw',
+    description: 'Pterygoids + Digastric',
+    bilateral: false,
+  },
+  {
+    id: 28,
+    name: 'Lip Suck',
+    region: 'mouth',
+    description: 'Mentalis',
+    bilateral: false,
+    arkitMapping: ['mouthRollLower', 'mouthRollUpper'],
+  },
 
   // Tongue & Cheeks
-  { id: 19, name: 'Tongue Show', region: 'tongue', description: 'Tongue protrusion', bilateral: false, arkitMapping: ['tongueOut'] },
+  {
+    id: 19,
+    name: 'Tongue Show',
+    region: 'tongue',
+    description: 'Tongue protrusion',
+    bilateral: false,
+    arkitMapping: ['tongueOut'],
+  },
   { id: 21, name: 'Neck Tightener', region: 'jaw', description: 'Platysma', bilateral: false },
-  { id: 29, name: 'Jaw Thrust', region: 'jaw', description: 'External pterygoid', bilateral: false, arkitMapping: ['jawForward'] },
-  { id: 30, name: 'Jaw Sideways', region: 'jaw', description: 'Lateral pterygoid', bilateral: false, arkitMapping: ['jawLeft', 'jawRight'] },
-  { id: 31, name: 'Jaw Clench', region: 'jaw', description: 'Masseter + Temporalis', bilateral: false },
-  { id: 32, name: 'Lip Bite', region: 'mouth', description: 'Lower lip drawn under upper teeth', bilateral: false },
-  { id: 33, name: 'Cheek Blow', region: 'cheek', description: 'Buccinator expansion', bilateral: true, arkitMapping: ['cheekPuff'] },
-  { id: 34, name: 'Cheek Puff', region: 'cheek', description: 'Unilateral cheek inflation', bilateral: false },
-  { id: 35, name: 'Cheek Suck', region: 'cheek', description: 'Buccinator contraction', bilateral: true },
-  { id: 36, name: 'Tongue Bulge', region: 'tongue', description: 'Tongue pressed into cheek', bilateral: false },
+  {
+    id: 29,
+    name: 'Jaw Thrust',
+    region: 'jaw',
+    description: 'External pterygoid',
+    bilateral: false,
+    arkitMapping: ['jawForward'],
+  },
+  {
+    id: 30,
+    name: 'Jaw Sideways',
+    region: 'jaw',
+    description: 'Lateral pterygoid',
+    bilateral: false,
+    arkitMapping: ['jawLeft', 'jawRight'],
+  },
+  {
+    id: 31,
+    name: 'Jaw Clench',
+    region: 'jaw',
+    description: 'Masseter + Temporalis',
+    bilateral: false,
+  },
+  {
+    id: 32,
+    name: 'Lip Bite',
+    region: 'mouth',
+    description: 'Lower lip drawn under upper teeth',
+    bilateral: false,
+  },
+  {
+    id: 33,
+    name: 'Cheek Blow',
+    region: 'cheek',
+    description: 'Buccinator expansion',
+    bilateral: true,
+    arkitMapping: ['cheekPuff'],
+  },
+  {
+    id: 34,
+    name: 'Cheek Puff',
+    region: 'cheek',
+    description: 'Unilateral cheek inflation',
+    bilateral: false,
+  },
+  {
+    id: 35,
+    name: 'Cheek Suck',
+    region: 'cheek',
+    description: 'Buccinator contraction',
+    bilateral: true,
+  },
+  {
+    id: 36,
+    name: 'Tongue Bulge',
+    region: 'tongue',
+    description: 'Tongue pressed into cheek',
+    bilateral: false,
+  },
   { id: 37, name: 'Lip Wipe', region: 'mouth', description: 'Tongue wipes lips', bilateral: false },
-  { id: 38, name: 'Nostril Dilator', region: 'nose', description: 'Nasalis (alar)', bilateral: true },
-  { id: 39, name: 'Nostril Compressor', region: 'nose', description: 'Nasalis (transverse)', bilateral: true },
+  {
+    id: 38,
+    name: 'Nostril Dilator',
+    region: 'nose',
+    description: 'Nasalis (alar)',
+    bilateral: true,
+  },
+  {
+    id: 39,
+    name: 'Nostril Compressor',
+    region: 'nose',
+    description: 'Nasalis (transverse)',
+    bilateral: true,
+  },
 
   // Head Position
-  { id: 51, name: 'Head Turn Left', region: 'head', description: 'Neck rotation left', bilateral: false },
-  { id: 52, name: 'Head Turn Right', region: 'head', description: 'Neck rotation right', bilateral: false },
+  {
+    id: 51,
+    name: 'Head Turn Left',
+    region: 'head',
+    description: 'Neck rotation left',
+    bilateral: false,
+  },
+  {
+    id: 52,
+    name: 'Head Turn Right',
+    region: 'head',
+    description: 'Neck rotation right',
+    bilateral: false,
+  },
   { id: 53, name: 'Head Up', region: 'head', description: 'Neck extension', bilateral: false },
   { id: 54, name: 'Head Down', region: 'head', description: 'Neck flexion', bilateral: false },
-  { id: 55, name: 'Head Tilt Left', region: 'head', description: 'Lateral neck flexion left', bilateral: false },
-  { id: 56, name: 'Head Tilt Right', region: 'head', description: 'Lateral neck flexion right', bilateral: false },
-  { id: 57, name: 'Head Forward', region: 'head', description: 'Cervical protraction', bilateral: false },
-  { id: 58, name: 'Head Back', region: 'head', description: 'Cervical retraction', bilateral: false },
+  {
+    id: 55,
+    name: 'Head Tilt Left',
+    region: 'head',
+    description: 'Lateral neck flexion left',
+    bilateral: false,
+  },
+  {
+    id: 56,
+    name: 'Head Tilt Right',
+    region: 'head',
+    description: 'Lateral neck flexion right',
+    bilateral: false,
+  },
+  {
+    id: 57,
+    name: 'Head Forward',
+    region: 'head',
+    description: 'Cervical protraction',
+    bilateral: false,
+  },
+  {
+    id: 58,
+    name: 'Head Back',
+    region: 'head',
+    description: 'Cervical retraction',
+    bilateral: false,
+  },
 
   // Eye Gaze
-  { id: 61, name: 'Eyes Turn Left', region: 'gaze', description: 'Lateral rectus (left), Medial rectus (right)', bilateral: false, arkitMapping: ['eyeLookOutLeft', 'eyeLookInRight'] },
-  { id: 62, name: 'Eyes Turn Right', region: 'gaze', description: 'Medial rectus (left), Lateral rectus (right)', bilateral: false, arkitMapping: ['eyeLookInLeft', 'eyeLookOutRight'] },
-  { id: 63, name: 'Eyes Up', region: 'gaze', description: 'Superior rectus', bilateral: false, arkitMapping: ['eyeLookUpLeft', 'eyeLookUpRight'] },
-  { id: 64, name: 'Eyes Down', region: 'gaze', description: 'Inferior rectus', bilateral: false, arkitMapping: ['eyeLookDownLeft', 'eyeLookDownRight'] },
+  {
+    id: 61,
+    name: 'Eyes Turn Left',
+    region: 'gaze',
+    description: 'Lateral rectus (left), Medial rectus (right)',
+    bilateral: false,
+    arkitMapping: ['eyeLookOutLeft', 'eyeLookInRight'],
+  },
+  {
+    id: 62,
+    name: 'Eyes Turn Right',
+    region: 'gaze',
+    description: 'Medial rectus (left), Lateral rectus (right)',
+    bilateral: false,
+    arkitMapping: ['eyeLookInLeft', 'eyeLookOutRight'],
+  },
+  {
+    id: 63,
+    name: 'Eyes Up',
+    region: 'gaze',
+    description: 'Superior rectus',
+    bilateral: false,
+    arkitMapping: ['eyeLookUpLeft', 'eyeLookUpRight'],
+  },
+  {
+    id: 64,
+    name: 'Eyes Down',
+    region: 'gaze',
+    description: 'Inferior rectus',
+    bilateral: false,
+    arkitMapping: ['eyeLookDownLeft', 'eyeLookDownRight'],
+  },
 ];
 
 // =============================================================================
@@ -191,7 +501,7 @@ export function computeSparseMorphTarget(
   name: string,
   neutral: Float32Array,
   deformed: Float32Array,
-  epsilon: number = 0.0001,
+  epsilon: number = 0.0001
 ): SparseMorphTarget {
   const totalVertices = neutral.length / 3;
   const deltas: VertexDelta[] = [];
@@ -219,7 +529,7 @@ export function computeSparseMorphTarget(
  */
 export function applyMorphTargets(
   basePositions: Float32Array,
-  targets: Array<{ target: SparseMorphTarget; weight: number }>,
+  targets: Array<{ target: SparseMorphTarget; weight: number }>
 ): void {
   for (const { target, weight } of targets) {
     if (weight === 0) continue;
@@ -236,7 +546,7 @@ export function applyMorphTargets(
  * Evaluate a compound expression into individual AU weights.
  */
 export function evaluateExpression(expressionName: string): Record<number, number> {
-  const preset = EXPRESSION_PRESETS.find(e => e.name === expressionName);
+  const preset = EXPRESSION_PRESETS.find((e) => e.name === expressionName);
   return preset ? { ...preset.weights } : {};
 }
 
@@ -244,12 +554,12 @@ export function evaluateExpression(expressionName: string): Record<number, numbe
  * Get AU definition by ID.
  */
 export function getActionUnit(id: number): ActionUnitDefinition | undefined {
-  return FACS_ACTION_UNITS.find(au => au.id === id);
+  return FACS_ACTION_UNITS.find((au) => au.id === id);
 }
 
 /**
  * Get viseme definition by name.
  */
 export function getViseme(name: string): VisemeDefinition | undefined {
-  return VISEME_15.find(v => v.name === name);
+  return VISEME_15.find((v) => v.name === name);
 }

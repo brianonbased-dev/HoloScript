@@ -42,9 +42,7 @@ function registerObservableAgents() {
     id: 'sensor-agent-01',
     name: 'SensorAgent',
     version: '1.0.0',
-    capabilities: [
-      { type: 'analyze', domain: 'iot', name: 'collect' },
-    ],
+    capabilities: [{ type: 'analyze', domain: 'iot', name: 'collect' }],
     endpoints: [{ protocol: 'local', address: 'local://sensor-agent-01', primary: true }],
     trustLevel: 'local',
     status: 'online',
@@ -55,9 +53,7 @@ function registerObservableAgents() {
     id: 'analytics-agent-01',
     name: 'AnalyticsAgent',
     version: '1.0.0',
-    capabilities: [
-      { type: 'transform', domain: 'iot', name: 'aggregate' },
-    ],
+    capabilities: [{ type: 'transform', domain: 'iot', name: 'aggregate' }],
     endpoints: [{ protocol: 'local', address: 'local://analytics-agent-01', primary: true }],
     trustLevel: 'local',
     status: 'online',
@@ -68,9 +64,7 @@ function registerObservableAgents() {
     id: 'dashboard-agent-01',
     name: 'DashboardAgent',
     version: '1.0.0',
-    capabilities: [
-      { type: 'render', domain: 'spatial', name: 'dashboard' },
-    ],
+    capabilities: [{ type: 'render', domain: 'spatial', name: 'dashboard' }],
     endpoints: [{ protocol: 'local', address: 'local://dashboard-agent-01', primary: true }],
     trustLevel: 'local',
     status: 'offline',
@@ -145,7 +139,10 @@ describe('v5.6 Showcase — Observable Platform', () => {
       });
 
       // Create spans
-      const span1 = collector.startSpan('collect-sensors', { agentId: 'sensor-agent-01', kind: 'server' });
+      const span1 = collector.startSpan('collect-sensors', {
+        agentId: 'sensor-agent-01',
+        kind: 'server',
+      });
       collector.addSpanEvent(span1.id, 'reading_received', { device: 'temp-01' });
       collector.endSpan(span1.id, 'ok');
 
@@ -308,7 +305,7 @@ describe('v5.6 Showcase — Observable Platform', () => {
       const span = collector.startSpan('test-trace', { agentId: 'agent-1' });
       collector.endSpan(span.id, 'ok');
 
-      const result = await handleObservabilityTool('query_traces', {}) as {
+      const result = (await handleObservabilityTool('query_traces', {})) as {
         spans: unknown[];
         totalSpans: number;
         stats: { totalSpans: number };
@@ -323,7 +320,7 @@ describe('v5.6 Showcase — Observable Platform', () => {
     it('get_agent_health returns registry and telemetry status', async () => {
       registerObservableAgents();
 
-      const result = await handleObservabilityTool('get_agent_health', {}) as {
+      const result = (await handleObservabilityTool('get_agent_health', {})) as {
         registrySize: number;
         agents: Array<{ id: string; status: string }>;
         statusBreakdown: Record<string, number>;
@@ -342,7 +339,7 @@ describe('v5.6 Showcase — Observable Platform', () => {
       metrics.registerCounter('test_counter', 'A test counter');
       metrics.incCounter('test_counter', {}, 42);
 
-      const result = await handleObservabilityTool('get_metrics_prometheus', {}) as {
+      const result = (await handleObservabilityTool('get_metrics_prometheus', {})) as {
         format: string;
         metricCount: number;
         text: string;
@@ -354,9 +351,9 @@ describe('v5.6 Showcase — Observable Platform', () => {
     });
 
     it('export_traces_otlp handles empty trace set', async () => {
-      const result = await handleObservabilityTool('export_traces_otlp', {
+      const result = (await handleObservabilityTool('export_traces_otlp', {
         endpoint: 'http://localhost:4318/v1/traces',
-      }) as { success: boolean; spanCount: number };
+      })) as { success: boolean; spanCount: number };
 
       expect(result.success).toBe(true);
       expect(result.spanCount).toBe(0);

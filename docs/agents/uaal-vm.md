@@ -31,14 +31,14 @@ Spatial Scene                 Neuromorphic Hardware
 
 UAAL is a stack-based bytecode format optimised for spatial agent programs. A compiled agent typically contains:
 
-| Section | Purpose |
-|---------|---------|
-| `header` | Agent ID, version, capabilities, protocol version |
-| `perception` | Bytecode for the Perceive phase |
-| `reasoning` | Bytecode for the Reason phase |
-| `actions` | Bytecode for Execute phase action handlers |
-| `state_schema` | Typed state layout for CRDT synchronisation |
-| `event_handlers` | Spatial event subscriptions |
+| Section          | Purpose                                           |
+| ---------------- | ------------------------------------------------- |
+| `header`         | Agent ID, version, capabilities, protocol version |
+| `perception`     | Bytecode for the Perceive phase                   |
+| `reasoning`      | Bytecode for the Reason phase                     |
+| `actions`        | Bytecode for Execute phase action handlers        |
+| `state_schema`   | Typed state layout for CRDT synchronisation       |
+| `event_handlers` | Spatial event subscriptions                       |
 
 Example header (binary represented as structured YAML for readability):
 
@@ -63,8 +63,8 @@ import { UAALVirtualMachine } from '@holoscript/uaal';
 const vm = new UAALVirtualMachine({
   maxMemory: '64mb',
   maxCycles: 1_000_000,
-  sandbox: true,           // isolate from host filesystem
-  deterministic: true,     // enables replay
+  sandbox: true, // isolate from host filesystem
+  deterministic: true, // enables replay
 });
 
 // Load compiled bytecode
@@ -82,7 +82,7 @@ await vm.start();
 ```ts
 // Watch for bytecode changes and reload without restarting the scene
 vm.watch('./agents/patrol-agent.uaal', {
-  strategy: 'state-preserving',  // migrate current state to new version
+  strategy: 'state-preserving', // migrate current state to new version
 });
 ```
 
@@ -101,8 +101,8 @@ await vm.replay(recording, { speed: 2.0 });
 ```ts
 // Get a cryptographic log of agent actions
 const log = await vm.exportLog();
-console.log(log.hash);      // SHA-256 of execution trace
-console.log(log.entries);   // timestamped action records
+console.log(log.hash); // SHA-256 of execution trace
+console.log(log.entries); // timestamped action records
 ```
 
 ---
@@ -163,7 +163,7 @@ const vm = new UAALVirtualMachine({
   limits: {
     memory: '32mb',
     cycles: 500_000,
-    wallTime: 5_000,  // ms
+    wallTime: 5_000, // ms
   },
 });
 ```
@@ -181,7 +181,7 @@ import { SpatialCRDT } from '@holoscript/crdt';
 const crdt = new SpatialCRDT({ transport: 'websocket' });
 
 const vm = new UAALVirtualMachine({
-  stateSync: crdt,  // agent state auto-syncs across replicas
+  stateSync: crdt, // agent state auto-syncs across replicas
 });
 ```
 

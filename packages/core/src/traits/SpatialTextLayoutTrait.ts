@@ -1,6 +1,6 @@
 /**
  * SpatialTextLayoutTrait — v5.1
- * 
+ *
  * Projects text into 3D volumes (Sphere, Cylinder, Wave, Spiral).
  */
 
@@ -27,7 +27,9 @@ export const spatialTextLayoutHandler: TraitHandler<SpatialTextLayoutConfig> = {
   },
 
   onAttach(node: HSPlusNode, config: SpatialTextLayoutConfig): void {
-    console.log(`[SpatialText] Attaching ${config.layout} layout with radius ${config.radius} to ${node.id}`);
+    console.log(
+      `[SpatialText] Attaching ${config.layout} layout with radius ${config.radius} to ${node.id}`
+    );
     (node as any).__spatialTextState = { initialized: true, rotationY: 0 };
   },
 
@@ -35,20 +37,30 @@ export const spatialTextLayoutHandler: TraitHandler<SpatialTextLayoutConfig> = {
     delete (node as any).__spatialTextState;
   },
 
-  onUpdate(_node: HSPlusNode, _config: SpatialTextLayoutConfig, _context: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: SpatialTextLayoutConfig,
+    _context: TraitContext,
+    _delta: number
+  ): void {
     // Math logic for projection would happen here in the renderer adapter
   },
 
-  onEvent(node: HSPlusNode, _config: SpatialTextLayoutConfig, context: TraitContext, event: any): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: SpatialTextLayoutConfig,
+    context: TraitContext,
+    event: any
+  ): void {
     if ((typeof event === 'string' ? event : event.type) === 'spatial:rotate') {
       if (event.target === node.id || event.target === 'all') {
         const delta = event.delta ?? 0;
         const dampening = 0.005;
         // Emit rotation event to the renderer
-        context.emit?.('node:rotate', { 
-          id: node.id, 
+        context.emit?.('node:rotate', {
+          id: node.id,
           rotation: [0, delta * dampening, 0],
-          relative: true 
+          relative: true,
         });
       }
     }

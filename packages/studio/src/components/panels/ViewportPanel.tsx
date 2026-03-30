@@ -30,7 +30,7 @@ function HistoricGhostMesh({ entity }: { entity: ViewportEntity }) {
   // In production, an alternate historic AST is fetched via GitService
   // For Sprint 2 Phase 1 UI mockup, we render the current entity with an offset
   // and a translucent green/red "diff overlay" material to mimic an old state.
-  
+
   const ghostPosition = useMemo(() => {
     return new THREE.Vector3(
       entity.position[0] - 1.5, // Translate historic object left
@@ -41,13 +41,20 @@ function HistoricGhostMesh({ entity }: { entity: ViewportEntity }) {
 
   const geometry = useMemo(() => {
     switch (entity.type) {
-      case 'box': return <boxGeometry args={[1, 1, 1]} />;
-      case 'sphere': return <sphereGeometry args={[0.5, 32, 32]} />;
-      case 'plane': return <planeGeometry args={[1, 1]} />;
-      case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
-      case 'cone': return <coneGeometry args={[0.5, 1, 32]} />;
-      case 'torus': return <torusGeometry args={[0.5, 0.2, 16, 32]} />;
-      default: return <boxGeometry args={[1, 1, 1]} />;
+      case 'box':
+        return <boxGeometry args={[1, 1, 1]} />;
+      case 'sphere':
+        return <sphereGeometry args={[0.5, 32, 32]} />;
+      case 'plane':
+        return <planeGeometry args={[1, 1]} />;
+      case 'cylinder':
+        return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
+      case 'cone':
+        return <coneGeometry args={[0.5, 1, 32]} />;
+      case 'torus':
+        return <torusGeometry args={[0.5, 0.2, 16, 32]} />;
+      default:
+        return <boxGeometry args={[1, 1, 1]} />;
     }
   }, [entity.type]);
 
@@ -55,9 +62,18 @@ function HistoricGhostMesh({ entity }: { entity: ViewportEntity }) {
     <>
       <mesh position={ghostPosition} rotation={entity.rotation} scale={entity.scale}>
         {geometry}
-        <meshStandardMaterial color="#fca5a5" wireframe transparent opacity={0.3} metalness={0} roughness={1} emissive="#ef4444" emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color="#fca5a5"
+          wireframe
+          transparent
+          opacity={0.3}
+          metalness={0}
+          roughness={1}
+          emissive="#ef4444"
+          emissiveIntensity={0.2}
+        />
       </mesh>
-      
+
       {/* Diff mapping line linking current mesh to historic mesh */}
       <line>
         <bufferGeometry>
@@ -65,14 +81,26 @@ function HistoricGhostMesh({ entity }: { entity: ViewportEntity }) {
           <bufferAttribute
             attach="attributes-position"
             count={2}
-            array={new Float32Array([
-              entity.position[0], entity.position[1], entity.position[2],
-              ghostPosition.x, ghostPosition.y, ghostPosition.z
-            ])}
+            array={
+              new Float32Array([
+                entity.position[0],
+                entity.position[1],
+                entity.position[2],
+                ghostPosition.x,
+                ghostPosition.y,
+                ghostPosition.z,
+              ])
+            }
             itemSize={3}
           />
         </bufferGeometry>
-        <lineDashedMaterial color="#818cf8" dashSize={0.2} gapSize={0.1} opacity={0.5} transparent />
+        <lineDashedMaterial
+          color="#818cf8"
+          dashSize={0.2}
+          gapSize={0.1}
+          opacity={0.5}
+          transparent
+        />
       </line>
     </>
   );
@@ -94,11 +122,11 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
 
   const handleClick = async (e: any) => {
     e.stopPropagation(); // Prevent canvas background click
-    
+
     // Show loading state
     setSpatialBlameTooltip(
-      true, 
-      e.clientX, 
+      true,
+      e.clientX,
       e.clientY - 40,
       <div className="flex items-center gap-2 p-1 text-slate-300 text-xs">
         <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-500"></div>
@@ -109,7 +137,7 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
     try {
       const { GitService } = await import('../../services/GitService');
       // In a real environment, this would be the actual path of the loaded composition
-      const service = new GitService(process.cwd()); 
+      const service = new GitService(process.cwd());
       const blame = await service.getBlameForNode('example.holo', entity.id);
 
       if (blame) {
@@ -120,8 +148,12 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
           <div className="flex flex-col gap-1">
             <span className="font-bold text-indigo-300">@{blame.author.name}</span>
             <span>Added {entity.name || entity.type} geometry</span>
-            <span className="text-[9px] text-slate-400 font-mono mt-1">commit: {blame.oid.substring(0, 7)}</span>
-            <span className="text-[9px] text-slate-500 mt-1 max-w-[150px] truncate">{blame.message}</span>
+            <span className="text-[9px] text-slate-400 font-mono mt-1">
+              commit: {blame.oid.substring(0, 7)}
+            </span>
+            <span className="text-[9px] text-slate-500 mt-1 max-w-[150px] truncate">
+              {blame.message}
+            </span>
           </div>
         );
       } else {
@@ -134,7 +166,7 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
           </div>
         );
       }
-    } catch(err) {
+    } catch (err) {
       setSpatialBlameTooltip(
         true,
         e.clientX,
@@ -180,10 +212,10 @@ function EntityMesh({ entity, mode }: { entity: ViewportEntity; mode: ViewportMo
   }, [entity.color, entity.selected, mode, isWireframe]);
 
   return (
-    <mesh 
-      ref={meshRef} 
-      position={entity.position} 
-      rotation={entity.rotation} 
+    <mesh
+      ref={meshRef}
+      position={entity.position}
+      rotation={entity.rotation}
       scale={entity.scale}
       onClick={handleClick}
       onPointerMissed={() => setSpatialBlameTooltip(false)}
@@ -272,14 +304,15 @@ export function ViewportPanel() {
             onClick={() => setMode(m)}
             className={`px-1.5 py-0.5 rounded transition ${state.mode === m ? 'bg-indigo-500/20 text-indigo-400' : 'text-studio-muted hover:text-studio-text'}`}
           >
-            {m === 'scene' ? '🎨' : m === 'wireframe' ? '🔲' : m === 'normals' ? '🧭' : '🌌'} {m === 'flat-semantic' ? '2d-revolution' : m}
+            {m === 'scene' ? '🎨' : m === 'wireframe' ? '🔲' : m === 'normals' ? '🧭' : '🌌'}{' '}
+            {m === 'flat-semantic' ? '2d-revolution' : m}
           </button>
         ))}
 
         <div className="w-px h-3 bg-studio-border/30 mx-1" />
 
         <button
-          onClick={() => alert("Absorb HTML into Semantic2D via Graph pipeline.")}
+          onClick={() => alert('Absorb HTML into Semantic2D via Graph pipeline.')}
           className="px-1.5 py-0.5 rounded text-fuchsia-400 hover:bg-fuchsia-500/20 transition ml-1 flex items-center gap-1"
         >
           ✨ Absorb HTML
@@ -306,7 +339,11 @@ export function ViewportPanel() {
         <Canvas
           shadows
           orthographic={state.mode === 'flat-semantic'}
-          camera={{ position: state.mode === 'flat-semantic' ? [0, 0, 10] : [8, 6, 8], fov: 50, zoom: state.mode === 'flat-semantic' ? 50 : 1 }}
+          camera={{
+            position: state.mode === 'flat-semantic' ? [0, 0, 10] : [8, 6, 8],
+            fov: 50,
+            zoom: state.mode === 'flat-semantic' ? 50 : 1,
+          }}
           style={{ background: state.backgroundColor }}
           gl={{ antialias: true, alpha: false }}
         >

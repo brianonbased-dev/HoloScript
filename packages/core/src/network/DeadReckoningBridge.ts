@@ -105,19 +105,19 @@ export interface PhysicsSnapshot {
 
 /** Byte size estimate for bandwidth calculations */
 export const SNAPSHOT_BYTE_SIZE =
-  4 +   // entityId hash
-  8 +   // timestamp
-  4 +   // sequence
-  12 +  // position (3 × f32)
-  16 +  // rotation (4 × f32)
-  12 +  // velocity
-  12 +  // angularVelocity
-  12 +  // appliedForce
-  4 +   // mass
-  4 +   // linearDamping
-  1 +   // useGravity
-  1;    // isKinematic
-  // Total: 90 bytes per snapshot
+  4 + // entityId hash
+  8 + // timestamp
+  4 + // sequence
+  12 + // position (3 × f32)
+  16 + // rotation (4 × f32)
+  12 + // velocity
+  12 + // angularVelocity
+  12 + // appliedForce
+  4 + // mass
+  4 + // linearDamping
+  1 + // useGravity
+  1; // isKinematic
+// Total: 90 bytes per snapshot
 
 // =============================================================================
 // Dead-Reckoning Predictor
@@ -156,9 +156,7 @@ export class DeadReckoningPredictor {
    * Get the latest received snapshot.
    */
   getLatestSnapshot(): PhysicsSnapshot | null {
-    return this.snapshots.length > 0
-      ? this.snapshots[this.snapshots.length - 1]
-      : null;
+    return this.snapshots.length > 0 ? this.snapshots[this.snapshots.length - 1] : null;
   }
 
   /**
@@ -195,14 +193,17 @@ export class DeadReckoningPredictor {
         const dqx = (wx / len) * sinHalf;
         const dqy = (wy / len) * sinHalf;
         const dqz = (wz / len) * sinHalf;
-        
-        const qx = nextRotation.x, qy = nextRotation.y, qz = nextRotation.z, qw = nextRotation.w;
+
+        const qx = nextRotation.x,
+          qy = nextRotation.y,
+          qz = nextRotation.z,
+          qw = nextRotation.w;
         // Quaternion multiply nextRotation = dq * rotation
         const nx = dqw * qx + dqx * qw + dqy * qz - dqz * qy;
         const ny = dqw * qy - dqx * qz + dqy * qw + dqz * qx;
         const nz = dqw * qz + dqx * qy - dqy * qx + dqz * qw;
         const nw = dqw * qw - dqx * qx - dqy * qy - dqz * qz;
-        
+
         const norm = Math.sqrt(nx * nx + ny * ny + nz * nz + nw * nw) || 1;
         nextRotation = { x: nx / norm, y: ny / norm, z: nz / norm, w: nw / norm };
       }
@@ -227,11 +228,14 @@ export class DeadReckoningPredictor {
     const invMass = latest.mass > 0 ? 1 / latest.mass : 0;
 
     // Compute acceleration: a = F/m + g
-    const ax = latest.appliedForce.x * invMass +
+    const ax =
+      latest.appliedForce.x * invMass +
       (latest.useGravity && this.config.applyGravity ? this.config.gravity.x : 0);
-    const ay = latest.appliedForce.y * invMass +
+    const ay =
+      latest.appliedForce.y * invMass +
       (latest.useGravity && this.config.applyGravity ? this.config.gravity.y : 0);
-    const az = latest.appliedForce.z * invMass +
+    const az =
+      latest.appliedForce.z * invMass +
       (latest.useGravity && this.config.applyGravity ? this.config.gravity.z : 0);
 
     // Velocity update: v' = v * dampFactor + a * dt
@@ -257,10 +261,7 @@ export class DeadReckoningPredictor {
    * Compute the correction needed when a new authoritative state arrives.
    * Returns the error magnitude and recommended correction strategy.
    */
-  computeCorrection(
-    predicted: PhysicsSnapshot,
-    authoritative: PhysicsSnapshot,
-  ): CorrectionResult {
+  computeCorrection(predicted: PhysicsSnapshot, authoritative: PhysicsSnapshot): CorrectionResult {
     const error = distanceVector3(predicted.position, authoritative.position);
     const { thresholds } = this.config;
 
@@ -376,7 +377,7 @@ export function extractPhysicsSnapshot(
     linearDamping?: number;
     useGravity?: boolean;
     isKinematic?: boolean;
-  },
+  }
 ): PhysicsSnapshot {
   return {
     entityId,
@@ -425,11 +426,7 @@ export class PhysicsAuthorityResolver {
    * Request authority transfer. Returns true if granted immediately
    * (owner-mode grants to requester, server-mode queues for server decision).
    */
-  requestAuthority(
-    entityId: string,
-    requesterId: string,
-    mode: AuthorityMode,
-  ): boolean {
+  requestAuthority(entityId: string, requesterId: string, mode: AuthorityMode): boolean {
     if (mode === 'owner') {
       // Owner mode: any peer can claim unowned or transfer from current owner
       this.ownership.set(entityId, requesterId);
@@ -452,9 +449,7 @@ export class PhysicsAuthorityResolver {
   }
 
   /** Process queued authority requests (server-side). */
-  processQueue(
-    decider: (request: AuthorityRequest) => boolean,
-  ): AuthorityRequest[] {
+  processQueue(decider: (request: AuthorityRequest) => boolean): AuthorityRequest[] {
     const granted: AuthorityRequest[] = [];
     const remaining: AuthorityRequest[] = [];
 
@@ -512,7 +507,7 @@ export interface AuthorityRequest {
  */
 export function estimatePhysicsBandwidth(
   entityCount: number,
-  syncRate: number = 20,
+  syncRate: number = 20
 ): BandwidthEstimate {
   const bytesPerSecond = entityCount * SNAPSHOT_BYTE_SIZE * syncRate;
   return {

@@ -69,9 +69,7 @@ function registerIoTAgents() {
     id: 'dashboard-agent-01',
     name: 'DashboardAgent',
     version: '1.0.0',
-    capabilities: [
-      { type: 'render', domain: 'spatial', name: 'dashboard' },
-    ],
+    capabilities: [{ type: 'render', domain: 'spatial', name: 'dashboard' }],
     endpoints: [{ protocol: 'local', address: 'local://dashboard-agent-01', primary: true }],
     trustLevel: 'local',
     status: 'online',
@@ -231,10 +229,11 @@ describe('v5.5 Showcase — Agents as Universal Orchestrators', () => {
     };
 
     it('validates the IoT workflow DAG', async () => {
-      const result = (await handleAgentOrchestrationTool(
-        'compose_workflow',
-        iotWorkflow
-      )) as { valid: boolean; stepCount: number; executionPlan: { groups: string[][] } };
+      const result = (await handleAgentOrchestrationTool('compose_workflow', iotWorkflow)) as {
+        valid: boolean;
+        stepCount: number;
+        executionPlan: { groups: string[][] };
+      };
 
       expect(result.valid).toBe(true);
       expect(result.stepCount).toBe(4);

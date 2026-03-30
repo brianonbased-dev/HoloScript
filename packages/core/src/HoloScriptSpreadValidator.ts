@@ -230,7 +230,7 @@ export class SpreadOperatorValidator {
 /**
  * Helper to check if a node contains spread operations
  */
- 
+
 export function hasSpreads(node: unknown): boolean {
   if (!node) return false;
 

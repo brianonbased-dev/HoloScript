@@ -48,7 +48,9 @@ export interface ScriptTestRunnerOptions {
  * ScriptTestRunner — Executes @script_test blocks headlessly
  */
 export class ScriptTestRunner {
-  private options: Required<Omit<ScriptTestRunnerOptions, 'runtimeState'>> & { runtimeState: Record<string, unknown> };
+  private options: Required<Omit<ScriptTestRunnerOptions, 'runtimeState'>> & {
+    runtimeState: Record<string, unknown>;
+  };
   private tests: ScriptTestBlock[] = [];
 
   constructor(options: ScriptTestRunnerOptions = {}) {
@@ -242,14 +244,22 @@ export class ScriptTestRunner {
         const right = this.resolveValue(trimmed.substring(idx + op.length).trim());
 
         switch (op) {
-          case '===': return left === right;
-          case '!==': return left !== right;
-          case '==': return left == right;
-          case '!=': return left != right;
-          case '>=': return Number(left) >= Number(right);
-          case '<=': return Number(left) <= Number(right);
-          case '>': return Number(left) > Number(right);
-          case '<': return Number(left) < Number(right);
+          case '===':
+            return left === right;
+          case '!==':
+            return left !== right;
+          case '==':
+            return left == right;
+          case '!=':
+            return left != right;
+          case '>=':
+            return Number(left) >= Number(right);
+          case '<=':
+            return Number(left) <= Number(right);
+          case '>':
+            return Number(left) > Number(right);
+          case '<':
+            return Number(left) < Number(right);
         }
       }
     }
@@ -285,7 +295,8 @@ export class ScriptTestRunner {
       if (t in state) {
         const val = state[t];
         if (val === null || val === undefined) return null;
-        if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'string') return val;
+        if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'string')
+          return val;
         return String(val);
       }
 
@@ -294,12 +305,20 @@ export class ScriptTestRunner {
         const parts = t.split('.');
         let current: unknown = state;
         for (const part of parts) {
-          if (current == null || typeof current !== 'object') { current = undefined; break; }
+          if (current == null || typeof current !== 'object') {
+            current = undefined;
+            break;
+          }
           current = (current as Record<string, unknown>)[part];
         }
         if (current !== undefined) {
           if (current === null) return null;
-          if (typeof current === 'number' || typeof current === 'boolean' || typeof current === 'string') return current;
+          if (
+            typeof current === 'number' ||
+            typeof current === 'boolean' ||
+            typeof current === 'string'
+          )
+            return current;
           return String(current);
         }
       }
@@ -338,8 +357,20 @@ export const SCRIPT_TEST_TRAIT = {
   requiresRenderer: false,
   parameters: [
     { name: 'name', type: 'string', required: true, description: 'Test name' },
-    { name: 'timeout', type: 'number', required: false, default: 5000, description: 'Timeout in ms' },
-    { name: 'skip', type: 'boolean', required: false, default: false, description: 'Skip this test' },
+    {
+      name: 'timeout',
+      type: 'number',
+      required: false,
+      default: 5000,
+      description: 'Timeout in ms',
+    },
+    {
+      name: 'skip',
+      type: 'boolean',
+      required: false,
+      default: false,
+      description: 'Skip this test',
+    },
   ],
 };
 

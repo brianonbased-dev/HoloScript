@@ -23,7 +23,15 @@ export interface DeprecatedSymbol {
   /** File path where the symbol is defined */
   filePath: string;
   /** Type of export */
-  exportType: 'function' | 'class' | 'interface' | 'type' | 'const' | 'enum' | 'default' | 'unknown';
+  exportType:
+    | 'function'
+    | 'class'
+    | 'interface'
+    | 'type'
+    | 'const'
+    | 'enum'
+    | 'default'
+    | 'unknown';
   /** Classification based on usage analysis */
   classification: SymbolClassification;
   /** Number of files that import this symbol */
@@ -98,7 +106,7 @@ export class DeprecatedInventoryBuilder {
    * Record an import site for a deprecated symbol
    */
   recordImporter(symbolName: string, importerFile: string): void {
-    const symbol = this.symbols.find(s => s.symbolName === symbolName);
+    const symbol = this.symbols.find((s) => s.symbolName === symbolName);
     if (symbol) {
       if (!symbol.importerFiles.includes(importerFile)) {
         symbol.importerFiles.push(importerFile);
@@ -112,7 +120,7 @@ export class DeprecatedInventoryBuilder {
    * Mark a symbol as dynamically referenced (string-based)
    */
   markDynamic(symbolName: string): void {
-    const symbol = this.symbols.find(s => s.symbolName === symbolName);
+    const symbol = this.symbols.find((s) => s.symbolName === symbolName);
     if (symbol) {
       symbol.classification = 'DYNAMIC';
     }
@@ -122,7 +130,7 @@ export class DeprecatedInventoryBuilder {
    * Mark a symbol as used in MCP runtime
    */
   markMCPRuntime(symbolName: string): void {
-    const symbol = this.symbols.find(s => s.symbolName === symbolName);
+    const symbol = this.symbols.find((s) => s.symbolName === symbolName);
     if (symbol) {
       symbol.usedInMCPRuntime = true;
       // MCP runtime usage elevates to REFERENCED even if statically dead
@@ -136,7 +144,7 @@ export class DeprecatedInventoryBuilder {
    * Set suggested replacement for a symbol
    */
   setSuggestedReplacement(symbolName: string, replacement: string): void {
-    const symbol = this.symbols.find(s => s.symbolName === symbolName);
+    const symbol = this.symbols.find((s) => s.symbolName === symbolName);
     if (symbol) {
       symbol.suggestedReplacement = replacement;
     }
@@ -150,9 +158,9 @@ export class DeprecatedInventoryBuilder {
       generatedAt: new Date().toISOString(),
       totalSymbols: this.symbols.length,
       byClassification: {
-        DEAD: this.symbols.filter(s => s.classification === 'DEAD').length,
-        REFERENCED: this.symbols.filter(s => s.classification === 'REFERENCED').length,
-        DYNAMIC: this.symbols.filter(s => s.classification === 'DYNAMIC').length,
+        DEAD: this.symbols.filter((s) => s.classification === 'DEAD').length,
+        REFERENCED: this.symbols.filter((s) => s.classification === 'REFERENCED').length,
+        DYNAMIC: this.symbols.filter((s) => s.classification === 'DYNAMIC').length,
       },
       symbols: [...this.symbols],
     };
@@ -162,7 +170,7 @@ export class DeprecatedInventoryBuilder {
    * Generate migration plans for all symbols
    */
   generateMigrationPlans(): MigrationPlan[] {
-    return this.symbols.map(symbol => {
+    return this.symbols.map((symbol) => {
       if (symbol.classification === 'DEAD') {
         return {
           symbol,
@@ -185,7 +193,7 @@ export class DeprecatedInventoryBuilder {
         return {
           symbol,
           action: 'codemod' as MigrationAction,
-          riskLevel: symbol.importerCount > 10 ? 'high' as const : 'medium' as const,
+          riskLevel: symbol.importerCount > 10 ? ('high' as const) : ('medium' as const),
           codemodDescription: `Replace imports of '${symbol.symbolName}' with '${symbol.suggestedReplacement}'`,
         };
       }
@@ -225,7 +233,9 @@ export function createDeprecatedInventoryBuilder(): DeprecatedInventoryBuilder {
 /**
  * Extract export names from a TypeScript source file (lightweight parser)
  */
-export function extractExportsFromSource(source: string): Array<{ name: string; type: DeprecatedSymbol['exportType'] }> {
+export function extractExportsFromSource(
+  source: string
+): Array<{ name: string; type: DeprecatedSymbol['exportType'] }> {
   const exports: Array<{ name: string; type: DeprecatedSymbol['exportType'] }> = [];
 
   // Match export declarations
@@ -250,7 +260,16 @@ export function extractExportsFromSource(source: string): Array<{ name: string; 
   const reExportPattern = /export\s*\{([^}]+)\}/g;
   let reMatch;
   while ((reMatch = reExportPattern.exec(source)) !== null) {
-    const names = reMatch[1].split(',').map(n => n.trim().split(/\s+as\s+/).pop()?.trim()).filter(Boolean);
+    const names = reMatch[1]
+      .split(',')
+      .map((n) =>
+        n
+          .trim()
+          .split(/\s+as\s+/)
+          .pop()
+          ?.trim()
+      )
+      .filter(Boolean);
     for (const name of names) {
       if (name && !name.startsWith('type ')) {
         exports.push({ name, type: 'unknown' });

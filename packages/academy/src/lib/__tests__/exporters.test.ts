@@ -65,11 +65,11 @@ describe('Exporters Utilities', () => {
       const glbSize = estimateExportSize(100, 'glb');
       const holoscriptSize = estimateExportSize(100, 'holoscript');
       const fbxSize = estimateExportSize(100, 'fbx');
-      
+
       // HoloScript should be smallest, FBX should be largest
       expect(holoscriptSize).toBeLessThan(glbSize);
       expect(glbSize).toBeLessThan(fbxSize);
-      
+
       // All should be positive
       expect(glbSize).toBeGreaterThan(0);
       expect(holoscriptSize).toBeGreaterThan(0);
@@ -86,8 +86,8 @@ describe('Exporters Utilities', () => {
 
     it('should include all expected formats', () => {
       const formats = supportedFormats();
-      const formatValues = formats.map(f => f.format);
-      
+      const formatValues = formats.map((f) => f.format);
+
       expect(formatValues).toContain('glb');
       expect(formatValues).toContain('gltf');
       expect(formatValues).toContain('obj');
@@ -97,8 +97,8 @@ describe('Exporters Utilities', () => {
 
     it('should include GLB format with correct metadata', () => {
       const formats = supportedFormats();
-      const glb = formats.find(f => f.format === 'glb');
-      
+      const glb = formats.find((f) => f.format === 'glb');
+
       expect(glb).toBeDefined();
       expect(glb?.label).toBe('glTF Binary');
       expect(glb?.extension).toBe('.glb');
@@ -106,8 +106,8 @@ describe('Exporters Utilities', () => {
 
     it('should include GLTF format with correct metadata', () => {
       const formats = supportedFormats();
-      const gltf = formats.find(f => f.format === 'gltf');
-      
+      const gltf = formats.find((f) => f.format === 'gltf');
+
       expect(gltf).toBeDefined();
       expect(gltf?.label).toBe('glTF JSON');
       expect(gltf?.extension).toBe('.gltf');
@@ -115,8 +115,8 @@ describe('Exporters Utilities', () => {
 
     it('should include OBJ format with correct metadata', () => {
       const formats = supportedFormats();
-      const obj = formats.find(f => f.format === 'obj');
-      
+      const obj = formats.find((f) => f.format === 'obj');
+
       expect(obj).toBeDefined();
       expect(obj?.label).toBe('Wavefront OBJ');
       expect(obj?.extension).toBe('.obj');
@@ -124,8 +124,8 @@ describe('Exporters Utilities', () => {
 
     it('should include USD format with correct metadata', () => {
       const formats = supportedFormats();
-      const usd = formats.find(f => f.format === 'usd');
-      
+      const usd = formats.find((f) => f.format === 'usd');
+
       expect(usd).toBeDefined();
       expect(usd?.label).toBe('Universal Scene Description');
       expect(usd?.extension).toBe('.usda');
@@ -133,8 +133,8 @@ describe('Exporters Utilities', () => {
 
     it('should include HoloScript format with correct metadata', () => {
       const formats = supportedFormats();
-      const holoscript = formats.find(f => f.format === 'holoscript');
-      
+      const holoscript = formats.find((f) => f.format === 'holoscript');
+
       expect(holoscript).toBeDefined();
       expect(holoscript?.label).toBe('HoloScript Source');
       expect(holoscript?.extension).toBe('.holo');
@@ -143,14 +143,14 @@ describe('Exporters Utilities', () => {
     it('should return consistent results on multiple calls', () => {
       const formats1 = supportedFormats();
       const formats2 = supportedFormats();
-      
+
       expect(formats1).toEqual(formats2);
     });
 
     it('should return objects with required properties', () => {
       const formats = supportedFormats();
-      
-      formats.forEach(format => {
+
+      formats.forEach((format) => {
         expect(format).toHaveProperty('format');
         expect(format).toHaveProperty('label');
         expect(format).toHaveProperty('extension');
@@ -163,16 +163,16 @@ describe('Exporters Utilities', () => {
 
     it('should have unique format values', () => {
       const formats = supportedFormats();
-      const formatValues = formats.map(f => f.format);
+      const formatValues = formats.map((f) => f.format);
       const uniqueFormats = [...new Set(formatValues)];
-      
+
       expect(formatValues).toHaveLength(uniqueFormats.length);
     });
 
     it('should have descriptive labels', () => {
       const formats = supportedFormats();
-      
-      formats.forEach(format => {
+
+      formats.forEach((format) => {
         expect(format.label.length).toBeGreaterThan(3);
         expect(format.label).not.toBe(format.format); // Label should be more descriptive than format
       });
@@ -182,8 +182,8 @@ describe('Exporters Utilities', () => {
   describe('Integration Tests', () => {
     it('should have size estimates for all supported formats', () => {
       const formats = supportedFormats();
-      
-      formats.forEach(format => {
+
+      formats.forEach((format) => {
         const size = estimateExportSize(10, format.format);
         expect(size).toBeGreaterThan(0);
         expect(typeof size).toBe('number');
@@ -192,12 +192,13 @@ describe('Exporters Utilities', () => {
     });
 
     it('should maintain format consistency between functions', () => {
-      const supportedFormatValues = supportedFormats().map(f => f.format);
+      const supportedFormatValues = supportedFormats().map((f) => f.format);
       const testFormats: ExportFormat[] = ['glb', 'gltf', 'obj', 'fbx', 'usd', 'holoscript'];
-      
+
       // All test formats should be covered by supportedFormats (except fbx which is legacy)
-      testFormats.forEach(format => {
-        if (format !== 'fbx') { // FBX not in supportedFormats but handled by estimateExportSize
+      testFormats.forEach((format) => {
+        if (format !== 'fbx') {
+          // FBX not in supportedFormats but handled by estimateExportSize
           expect(supportedFormatValues).toContain(format);
         }
       });

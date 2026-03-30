@@ -24,9 +24,13 @@ interface MaterialSnapshot {
 
 function makeNode(id: string): SceneNode {
   return {
-    id, name: 'Cube', type: 'mesh',
+    id,
+    name: 'Cube',
+    type: 'mesh',
     parentId: null,
-    position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
     traits: [{ name: 'material', properties: { color: '#ffffff', roughness: 0.5 } }],
   };
 }
@@ -53,7 +57,9 @@ describe('Scenario: Material Undo — round-trip restore', () => {
     // Snapshot before
     const before = getMaterialProps('m1');
     // Apply change
-    useSceneGraphStore.getState().applyTransientMaterial('m1', { color: '#ff0000', roughness: 0.9 });
+    useSceneGraphStore
+      .getState()
+      .applyTransientMaterial('m1', { color: '#ff0000', roughness: 0.9 });
     const after = getMaterialProps('m1');
 
     undoStack.push({ nodeId: 'm1', before, after });

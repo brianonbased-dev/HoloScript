@@ -70,18 +70,10 @@ export interface ParserRegistrationResult {
 // =============================================================================
 
 /** Valid HSPlus trait decorators */
-const VALID_DECORATORS = [
-  '@material',
-  '@trait',
-  '@shader',
-  '@animation',
-  '@interaction',
-];
+const VALID_DECORATORS = ['@material', '@trait', '@shader', '@animation', '@interaction'];
 
 /** Valid HSPlus property type annotations */
-const VALID_PROPERTY_TYPES = [
-  ':number', ':color', ':enum', ':boolean', ':string', ':vec3',
-];
+const VALID_PROPERTY_TYPES = [':number', ':color', ':enum', ':boolean', ':string', ':vec3'];
 
 /** Reserved keywords that should not appear in HSPlus code */
 const RESERVED_KEYWORDS = ['override', 'interface', 'abstract', 'virtual'];

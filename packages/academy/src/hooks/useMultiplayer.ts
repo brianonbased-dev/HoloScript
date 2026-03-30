@@ -23,7 +23,7 @@ interface TransformComponent {
 
 // Local numeric constants matching ComponentType const enum (cannot cross isolatedModules boundary)
 const CT_Transform = 0b00001; // ComponentType.Transform
-const CT_Velocity  = 0b00010; // ComponentType.Velocity
+const CT_Velocity = 0b00010; // ComponentType.Velocity
 
 export interface NetworkedEntity {
   id: number;

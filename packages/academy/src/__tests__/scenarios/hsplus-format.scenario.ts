@@ -68,9 +68,7 @@ describe('Scenario: HoloScript+ Format — Trait Authorship', () => {
   });
 
   it('multiple traits on a single orb all parse — @grabbable @throwable @hoverable', () => {
-    const result = parseHsplus(
-      'orb#test @grabbable @throwable @hoverable { position: [0, 0, 0] }'
-    );
+    const result = parseHsplus('orb#test @grabbable @throwable @hoverable { position: [0, 0, 0] }');
     expect(result.ast.root.traits.has('grabbable')).toBe(true);
     expect(result.ast.root.traits.has('throwable')).toBe(true);
     expect(result.ast.root.traits.has('hoverable')).toBe(true);
@@ -118,16 +116,22 @@ orb#parent @grabbable {
 
 describe('Scenario: HoloScript+ Format — VR Trait Coverage', () => {
   const CORE_VR_TRAITS = [
-    'grabbable', 'throwable', 'hoverable', 'pointable',
-    'skeleton', 'stretchable', 'networked', 'glowing',
-    'breakable', 'trigger', 'anchor',
+    'grabbable',
+    'throwable',
+    'hoverable',
+    'pointable',
+    'skeleton',
+    'stretchable',
+    'networked',
+    'glowing',
+    'breakable',
+    'trigger',
+    'anchor',
   ];
 
   it('Zara verifies all core VR traits parse without throwing', () => {
     for (const trait of CORE_VR_TRAITS) {
-      expect(
-        () => parser.parse(`orb#test @${trait} { position: [0, 0, 0] }`)
-      ).not.toThrow();
+      expect(() => parser.parse(`orb#test @${trait} { position: [0, 0, 0] }`)).not.toThrow();
     }
   });
 
@@ -270,9 +274,17 @@ describe('Scenario: HoloScript+ Format — Backlog', () => {
 
   it('HoloScript+ Trait Library: parser recognizes 10+ core VR traits', () => {
     const traits = [
-      'grabbable', 'throwable', 'hoverable', 'pointable',
-      'skeleton', 'stretchable', 'networked', 'glowing',
-      'breakable', 'trigger', 'anchor',
+      'grabbable',
+      'throwable',
+      'hoverable',
+      'pointable',
+      'skeleton',
+      'stretchable',
+      'networked',
+      'glowing',
+      'breakable',
+      'trigger',
+      'anchor',
     ];
     let recognized = 0;
     for (const trait of traits) {
@@ -283,15 +295,14 @@ describe('Scenario: HoloScript+ Format — Backlog', () => {
   });
 
   it('@platform(quest3) constraint parses as parameterized trait', () => {
-    const result = parseHsplus(
-      'orb#vrObj @platform(quest3) @grabbable { position: [0, 1, 0] }'
-    );
+    const result = parseHsplus('orb#vrObj @platform(quest3) @grabbable { position: [0, 1, 0] }');
     expect(result.ast).toBeDefined();
     expect(result.ast.root.traits.has('platform')).toBe(true);
   });
 
   it('Named import syntax is handled by parser without crashing', () => {
-    const source = '@import { Player, NPC } from "./characters.hs"\norb#scene @grabbable { position: [0, 0, 0] }';
+    const source =
+      '@import { Player, NPC } from "./characters.hs"\norb#scene @grabbable { position: [0, 0, 0] }';
     expect(() => parser.parse(source)).not.toThrow();
   });
 });

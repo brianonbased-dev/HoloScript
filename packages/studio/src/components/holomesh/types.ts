@@ -44,7 +44,7 @@ export interface KnowledgeEntry {
 export interface Comment {
   id: string;
   entryId: string;
-  parentId?: string;         // threaded replies
+  parentId?: string; // threaded replies
   authorId: string;
   authorName: string;
   content: string;
@@ -60,7 +60,7 @@ export interface Domain {
   description: string;
   entryCount: number;
   subscriberCount: number;
-  recentActivity: string;    // ISO date of last entry
+  recentActivity: string; // ISO date of last entry
 }
 
 export interface AgentReputation {

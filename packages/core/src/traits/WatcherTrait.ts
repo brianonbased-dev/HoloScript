@@ -39,7 +39,7 @@ export interface WatcherState {
   lastChange: number;
   changeCount: number;
   debounceTimer: ReturnType<typeof setTimeout> | null;
-  watchers: any[];  // fs.FSWatcher references
+  watchers: any[]; // fs.FSWatcher references
   stateUnsubscribers: Array<() => void>;
 }
 
@@ -108,7 +108,7 @@ export const watcherHandler: TraitHandler<WatcherConfig> = {
       default: {
         // For event-type watchers, check if this event matches a watched pattern
         if (config.watch_type === 'event' && state.active) {
-          const matches = config.patterns.some(p => {
+          const matches = config.patterns.some((p) => {
             if (p.endsWith('*')) return eventType.startsWith(p.slice(0, -1));
             return eventType === p;
           });
@@ -136,13 +136,17 @@ function startWatching(node: any, config: WatcherConfig, context: any): void {
       const fs = require('fs');
       for (const pattern of config.patterns) {
         try {
-          const watcher = fs.watch(pattern, { recursive: config.recursive }, (eventType: string, filename: string) => {
-            emitDebouncedChange(state, config, context, {
-              type: eventType,
-              path: filename ?? pattern,
-              timestamp: Date.now(),
-            });
-          });
+          const watcher = fs.watch(
+            pattern,
+            { recursive: config.recursive },
+            (eventType: string, filename: string) => {
+              emitDebouncedChange(state, config, context, {
+                type: eventType,
+                path: filename ?? pattern,
+                timestamp: Date.now(),
+              });
+            }
+          );
           state.watchers.push(watcher);
         } catch (err: any) {
           context.emit?.('watcher:error', { error: err.message, watchType: 'file' });
@@ -162,11 +166,19 @@ function startWatching(node: any, config: WatcherConfig, context: any): void {
 function stopWatching(state: WatcherState): void {
   state.active = false;
   for (const w of state.watchers) {
-    try { w.close(); } catch { /* best effort */ }
+    try {
+      w.close();
+    } catch {
+      /* best effort */
+    }
   }
   state.watchers = [];
   for (const unsub of state.stateUnsubscribers) {
-    try { unsub(); } catch { /* best effort */ }
+    try {
+      unsub();
+    } catch {
+      /* best effort */
+    }
   }
   state.stateUnsubscribers = [];
   if (state.debounceTimer) {
@@ -179,7 +191,7 @@ function emitDebouncedChange(
   state: WatcherState,
   config: WatcherConfig,
   context: any,
-  changeData: { type: string; path: string; timestamp: number },
+  changeData: { type: string; path: string; timestamp: number }
 ): void {
   if (config.debounce_ms <= 0) {
     state.changeCount++;

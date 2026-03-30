@@ -60,18 +60,18 @@ composition "TreatmentEffect" {
 ```json
 {
   "variables": [
-    { "name": "Treatment",  "type": "binary",     "exogenous": false },
-    { "name": "Outcome",    "type": "binary",     "exogenous": false },
-    { "name": "Confounder", "type": "continuous", "exogenous": true  }
+    { "name": "Treatment", "type": "binary", "exogenous": false },
+    { "name": "Outcome", "type": "binary", "exogenous": false },
+    { "name": "Confounder", "type": "continuous", "exogenous": true }
   ],
   "edges": [
     { "from": "Confounder", "to": "Treatment", "weight": 1.0 },
-    { "from": "Confounder", "to": "Outcome",   "weight": 1.0 },
-    { "from": "Treatment",  "to": "Outcome",   "weight": 1.0 }
+    { "from": "Confounder", "to": "Outcome", "weight": 1.0 },
+    { "from": "Treatment", "to": "Outcome", "weight": 1.0 }
   ],
   "structural_equations": {
     "Treatment": "f(Confounder)",
-    "Outcome":   "f(Treatment, Confounder)"
+    "Outcome": "f(Treatment, Confounder)"
   },
   "do_calculus_compatible": true
 }
@@ -81,13 +81,13 @@ composition "TreatmentEffect" {
 
 The SCM JSON output is directly consumable by:
 
-| Library         | Language | Usage                                  |
-| --------------- | -------- | -------------------------------------- |
-| `causallearn`   | Python   | `from_json('model.scm.json')`          |
-| `DoWhy`         | Python   | Load as `CausalGraph`                  |
-| `CausalNex`     | Python   | Import DAG edges                       |
-| `dagitty`       | R        | Import via JSON adapter                |
-| `Judea Pearl's CausalFusion` | Web | Direct DAG import |
+| Library                      | Language | Usage                         |
+| ---------------------------- | -------- | ----------------------------- |
+| `causallearn`                | Python   | `from_json('model.scm.json')` |
+| `DoWhy`                      | Python   | Load as `CausalGraph`         |
+| `CausalNex`                  | Python   | Import DAG edges              |
+| `dagitty`                    | R        | Import via JSON adapter       |
+| `Judea Pearl's CausalFusion` | Web      | Direct DAG import             |
 
 ```python
 # Python example
@@ -104,12 +104,12 @@ identified = causal_model.identify_effect()
 
 ## Compiler Options
 
-| Option               | Default   | Description                                    |
-| -------------------- | --------- | ---------------------------------------------- |
-| `--scm-format`       | `json`    | Output format: `json`, `gml`, `dot`, `dagitty` |
-| `--scm-exogenous`    | auto      | Comma-separated list of exogenous variables    |
-| `--scm-validate`     | `true`    | Check for cycles (DAG validity)                |
-| `--scm-annotate`     | `true`    | Include HoloScript source positions in output  |
+| Option            | Default | Description                                    |
+| ----------------- | ------- | ---------------------------------------------- |
+| `--scm-format`    | `json`  | Output format: `json`, `gml`, `dot`, `dagitty` |
+| `--scm-exogenous` | auto    | Comma-separated list of exogenous variables    |
+| `--scm-validate`  | `true`  | Check for cycles (DAG validity)                |
+| `--scm-annotate`  | `true`  | Include HoloScript source positions in output  |
 
 ## Use Cases
 

@@ -19,15 +19,15 @@ import { X, Activity, Loader2, CheckCircle, XCircle, ZapOff, Trash2 } from 'luci
 // ─── Phase metadata ───────────────────────────────────────────────────────────
 
 const PHASE_META: Record<AgentPhase, { label: string; color: string }> = {
-  idle:       { label: 'Idle',       color: 'text-studio-muted' },
-  intake:     { label: '0 Intake',   color: 'text-sky-400' },
-  reflect:    { label: '1 Reflect',  color: 'text-violet-400' },
-  execute:    { label: '2 Execute',  color: 'text-emerald-400' },
-  compress:   { label: '3 Compress', color: 'text-amber-400' },
-  reintake:   { label: '4 Re-intake',color: 'text-sky-300' },
-  grow:       { label: '5 Grow',     color: 'text-lime-400' },
-  evolve:     { label: '6 Evolve',   color: 'text-fuchsia-400' },
-  autonomize: { label: '7 Autonomize',color:'text-rose-400' },
+  idle: { label: 'Idle', color: 'text-studio-muted' },
+  intake: { label: '0 Intake', color: 'text-sky-400' },
+  reflect: { label: '1 Reflect', color: 'text-violet-400' },
+  execute: { label: '2 Execute', color: 'text-emerald-400' },
+  compress: { label: '3 Compress', color: 'text-amber-400' },
+  reintake: { label: '4 Re-intake', color: 'text-sky-300' },
+  grow: { label: '5 Grow', color: 'text-lime-400' },
+  evolve: { label: '6 Evolve', color: 'text-fuchsia-400' },
+  autonomize: { label: '7 Autonomize', color: 'text-rose-400' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -46,12 +46,8 @@ function CycleRow({ entry }: { entry: AgentCycleEntry }) {
       {entry.status === 'running' && (
         <Loader2 className="h-3 w-3 shrink-0 animate-spin text-studio-accent" />
       )}
-      {entry.status === 'done' && (
-        <CheckCircle className="h-3 w-3 shrink-0 text-emerald-400" />
-      )}
-      {entry.status === 'error' && (
-        <XCircle className="h-3 w-3 shrink-0 text-rose-400" />
-      )}
+      {entry.status === 'done' && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-400" />}
+      {entry.status === 'error' && <XCircle className="h-3 w-3 shrink-0 text-rose-400" />}
 
       {/* Cycle index */}
       <span className="w-6 shrink-0 font-mono text-studio-muted">#{entry.cycleId}</span>
@@ -75,14 +71,14 @@ export interface AgentMonitorPanelProps {
 }
 
 export function AgentMonitorPanel({ onClose }: AgentMonitorPanelProps) {
-  const isRunning      = useAgentStore((s) => s.isRunning);
-  const currentPhase   = useAgentStore((s) => s.currentPhase);
-  const currentAction  = useAgentStore((s) => s.currentAction);
-  const cycleCount     = useAgentStore((s) => s.cycleCount);
-  const recentCycles   = useAgentStore((s) => s.recentCycles);
-  const lastError      = useAgentStore((s) => s.lastError);
-  const stopAgent      = useAgentStore((s) => s.stopAgent);
-  const clearHistory   = useAgentStore((s) => s.clearHistory);
+  const isRunning = useAgentStore((s) => s.isRunning);
+  const currentPhase = useAgentStore((s) => s.currentPhase);
+  const currentAction = useAgentStore((s) => s.currentAction);
+  const cycleCount = useAgentStore((s) => s.cycleCount);
+  const recentCycles = useAgentStore((s) => s.recentCycles);
+  const lastError = useAgentStore((s) => s.lastError);
+  const stopAgent = useAgentStore((s) => s.stopAgent);
+  const clearHistory = useAgentStore((s) => s.clearHistory);
 
   const currentMeta = PHASE_META[currentPhase];
 
@@ -94,7 +90,10 @@ export function AgentMonitorPanel({ onClose }: AgentMonitorPanelProps) {
           <Activity className="h-4 w-4 text-studio-accent" />
           <span className="text-xs font-semibold text-studio-text">Agent Monitor</span>
           {isRunning && (
-            <span className="flex h-2 w-2 animate-pulse rounded-full bg-emerald-400" title="Running" />
+            <span
+              className="flex h-2 w-2 animate-pulse rounded-full bg-emerald-400"
+              title="Running"
+            />
           )}
         </div>
         <button
@@ -110,9 +109,13 @@ export function AgentMonitorPanel({ onClose }: AgentMonitorPanelProps) {
       <div className="shrink-0 border-b border-studio-border bg-studio-surface/40 px-3 py-2 space-y-1">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className={clsx('text-xs font-bold', currentMeta.color)}>{currentMeta.label}</span>
+            <span className={clsx('text-xs font-bold', currentMeta.color)}>
+              {currentMeta.label}
+            </span>
             {currentAction && (
-              <span className="truncate text-[11px] text-studio-muted max-w-[160px]">{currentAction}</span>
+              <span className="truncate text-[11px] text-studio-muted max-w-[160px]">
+                {currentAction}
+              </span>
             )}
           </div>
           <div className="flex items-center gap-2">

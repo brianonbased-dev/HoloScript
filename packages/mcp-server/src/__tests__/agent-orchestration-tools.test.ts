@@ -309,9 +309,7 @@ describe('Agent Orchestration MCP Tools', () => {
 
       expect(result.status).toBe('completed');
       const steps = result.steps as Array<Record<string, unknown>>;
-      expect(
-        (steps[0].output as Record<string, unknown>).note
-      ).toContain('dry run');
+      expect((steps[0].output as Record<string, unknown>).note).toContain('dry run');
     });
 
     it('fails on invalid workflow', async () => {

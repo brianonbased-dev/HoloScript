@@ -21,7 +21,13 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 export type AssetFormat = 'gltf' | 'glb' | 'obj' | 'fbx' | 'usd' | 'usdz' | 'unknown';
 
-export type ImportStatus = 'pending' | 'validating' | 'importing' | 'processing' | 'complete' | 'error';
+export type ImportStatus =
+  | 'pending'
+  | 'validating'
+  | 'importing'
+  | 'processing'
+  | 'complete'
+  | 'error';
 
 export interface AssetImportEntry {
   id: string;
@@ -306,9 +312,7 @@ export function AssetImportDropZone({
           const errorMsg = err instanceof Error ? err.message : 'Import failed';
           setEntries((prev) =>
             prev.map((e) =>
-              e.id === entry.id
-                ? { ...e, status: 'error' as ImportStatus, error: errorMsg }
-                : e
+              e.id === entry.id ? { ...e, status: 'error' as ImportStatus, error: errorMsg } : e
             )
           );
           onImportError?.(entry, errorMsg);
@@ -322,7 +326,8 @@ export function AssetImportDropZone({
 
   // Notify completion
   useEffect(() => {
-    const allDone = entries.length > 0 && entries.every((e) => e.status === 'complete' || e.status === 'error');
+    const allDone =
+      entries.length > 0 && entries.every((e) => e.status === 'complete' || e.status === 'error');
     if (allDone && !isProcessing) {
       const completed = entries.filter((e) => e.status === 'complete');
       if (completed.length > 0) {
@@ -343,7 +348,12 @@ export function AssetImportDropZone({
 
   const retryFailed = useCallback(() => {
     const failed = entries.filter((e) => e.status === 'error' && !e.error?.includes('Unsupported'));
-    const reset = failed.map((e) => ({ ...e, status: 'pending' as ImportStatus, progress: 0, error: undefined }));
+    const reset = failed.map((e) => ({
+      ...e,
+      status: 'pending' as ImportStatus,
+      progress: 0,
+      error: undefined,
+    }));
     setEntries((prev) =>
       prev.map((e) => {
         const r = reset.find((re) => re.id === e.id);
@@ -358,7 +368,9 @@ export function AssetImportDropZone({
 
   const completedCount = entries.filter((e) => e.status === 'complete').length;
   const failedCount = entries.filter((e) => e.status === 'error').length;
-  const pendingCount = entries.filter((e) => e.status !== 'complete' && e.status !== 'error').length;
+  const pendingCount = entries.filter(
+    (e) => e.status !== 'complete' && e.status !== 'error'
+  ).length;
   const totalSize = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
 
   // ─── Render ───────────────────────────────────────────────────────────
@@ -499,9 +511,7 @@ export function AssetImportDropZone({
             )}
 
             {/* Error message */}
-            {entry.error && (
-              <div className="mt-0.5 text-red-400/80 text-[9px]">{entry.error}</div>
-            )}
+            {entry.error && <div className="mt-0.5 text-red-400/80 text-[9px]">{entry.error}</div>}
 
             {/* Metadata summary on completion */}
             {entry.status === 'complete' && entry.metadata && (
@@ -526,9 +536,7 @@ export function AssetImportDropZone({
             .map(([format, icon]) => (
               <div key={format} className="flex items-center gap-1">
                 <span>{icon}</span>
-                <span className={FORMAT_COLORS[format as AssetFormat]}>
-                  {format.toUpperCase()}
-                </span>
+                <span className={FORMAT_COLORS[format as AssetFormat]}>{format.toUpperCase()}</span>
               </div>
             ))}
         </div>

@@ -72,7 +72,11 @@ function mockFetchError(message: string): void {
 function mockFetchAbort(): void {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockRejectedValue(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }))
+    vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('The operation was aborted'), { name: 'AbortError' })
+      )
   );
 }
 
@@ -302,7 +306,9 @@ describe('MCPClient — callToolWithRetry()', () => {
 
   it('uses config retryPolicy when options omitted', async () => {
     mockFetch({});
-    const client = new MCPClient(makeConfig({ retryPolicy: { maxRetries: 2, backoffMultiplier: 1 } }));
+    const client = new MCPClient(
+      makeConfig({ retryPolicy: { maxRetries: 2, backoffMultiplier: 1 } })
+    );
     const resp = await client.callToolWithRetry(request);
     expect(resp.success).toBe(true);
   });

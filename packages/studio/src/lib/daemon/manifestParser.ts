@@ -17,7 +17,12 @@
  * @module daemon/manifestParser
  */
 
-import type { DaemonProjectDNA, DaemonProjectKind, DaemonProfile, ManifestData } from '@/lib/daemon/types';
+import type {
+  DaemonProjectDNA,
+  DaemonProjectKind,
+  DaemonProfile,
+  ManifestData,
+} from '@/lib/daemon/types';
 
 // ---------------------------------------------------------------------------
 // Known framework/stack detectors
@@ -44,10 +49,21 @@ const FRAMEWORK_SIGNALS: FrameworkSignal[] = [
 
   // Spatial/XR
   { dependency: 'three', stack: ['three.js'], kind: 'spatial', confidenceBoost: 0.2 },
-  { dependency: '@react-three/fiber', stack: ['react', 'r3f'], kind: 'spatial', confidenceBoost: 0.2 },
+  {
+    dependency: '@react-three/fiber',
+    stack: ['react', 'r3f'],
+    kind: 'spatial',
+    confidenceBoost: 0.2,
+  },
   { dependency: '@babylonjs/core', stack: ['babylon.js'], kind: 'spatial', confidenceBoost: 0.2 },
   { dependency: 'aframe', stack: ['a-frame'], kind: 'spatial', confidenceBoost: 0.2 },
-  { dependency: '@holoscript/core', stack: ['holoscript'], kind: 'spatial', confidenceBoost: 0.25, profileHint: 'balanced' },
+  {
+    dependency: '@holoscript/core',
+    stack: ['holoscript'],
+    kind: 'spatial',
+    confidenceBoost: 0.25,
+    profileHint: 'balanced',
+  },
 
   // Service/Backend
   { dependency: 'express', stack: ['express', 'node'], kind: 'service', confidenceBoost: 0.15 },
@@ -57,8 +73,20 @@ const FRAMEWORK_SIGNALS: FrameworkSignal[] = [
   { dependency: 'hono', stack: ['hono'], kind: 'service', confidenceBoost: 0.15 },
 
   // Data/ML
-  { dependency: 'tensorflow', stack: ['tensorflow'], kind: 'data', confidenceBoost: 0.2, profileHint: 'deep' },
-  { dependency: 'torch', stack: ['pytorch'], kind: 'data', confidenceBoost: 0.2, profileHint: 'deep' },
+  {
+    dependency: 'tensorflow',
+    stack: ['tensorflow'],
+    kind: 'data',
+    confidenceBoost: 0.2,
+    profileHint: 'deep',
+  },
+  {
+    dependency: 'torch',
+    stack: ['pytorch'],
+    kind: 'data',
+    confidenceBoost: 0.2,
+    profileHint: 'deep',
+  },
   { dependency: 'pandas', stack: ['pandas', 'python'], kind: 'data', confidenceBoost: 0.18 },
   { dependency: 'numpy', stack: ['numpy', 'python'], kind: 'data', confidenceBoost: 0.15 },
   { dependency: 'scikit-learn', stack: ['scikit-learn'], kind: 'data', confidenceBoost: 0.18 },
@@ -119,7 +147,12 @@ function detectPackageManager(pkg: Record<string, unknown>): string {
  */
 export function parseRequirementsTxt(content: string): ManifestData | null {
   const lines = content.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
-  const deps = lines.map((l) => l.split(/[=<>!~]/)[0].trim().toLowerCase());
+  const deps = lines.map((l) =>
+    l
+      .split(/[=<>!~]/)[0]
+      .trim()
+      .toLowerCase()
+  );
 
   const keyDeps: string[] = [];
   for (const signal of FRAMEWORK_SIGNALS) {
@@ -151,16 +184,30 @@ export function parsePyprojectToml(content: string): ManifestData | null {
   if (depMatch) {
     const items = depMatch[1].match(/"([^"]+)"/g) ?? [];
     for (const item of items) {
-      deps.push(item.replace(/"/g, '').split(/[=<>!~]/)[0].trim().toLowerCase());
+      deps.push(
+        item
+          .replace(/"/g, '')
+          .split(/[=<>!~]/)[0]
+          .trim()
+          .toLowerCase()
+      );
     }
   }
 
   // Extract optional/dev dependencies
-  const devMatch = content.match(/\[project\.optional-dependencies\][\s\S]*?dev\s*=\s*\[([\s\S]*?)\]/);
+  const devMatch = content.match(
+    /\[project\.optional-dependencies\][\s\S]*?dev\s*=\s*\[([\s\S]*?)\]/
+  );
   if (devMatch) {
     const items = devMatch[1].match(/"([^"]+)"/g) ?? [];
     for (const item of items) {
-      devDeps.push(item.replace(/"/g, '').split(/[=<>!~]/)[0].trim().toLowerCase());
+      devDeps.push(
+        item
+          .replace(/"/g, '')
+          .split(/[=<>!~]/)[0]
+          .trim()
+          .toLowerCase()
+      );
     }
   }
 
@@ -207,7 +254,9 @@ export function parseCargoToml(content: string): ManifestData | null {
     buildSystem: 'cargo',
     dependencyCount: deps.length,
     devDependencyCount: 0,
-    keyDependencies: deps.filter((d) => ['tokio', 'serde', 'wgpu', 'bevy', 'actix-web', 'axum'].includes(d)),
+    keyDependencies: deps.filter((d) =>
+      ['tokio', 'serde', 'wgpu', 'bevy', 'actix-web', 'axum'].includes(d)
+    ),
     scripts: [],
   };
 }
@@ -231,7 +280,9 @@ export function parseGoMod(content: string): ManifestData | null {
     buildSystem: 'go',
     dependencyCount: deps.length,
     devDependencyCount: 0,
-    keyDependencies: deps.filter((d) => d.includes('gin-gonic') || d.includes('echo') || d.includes('fiber')),
+    keyDependencies: deps.filter(
+      (d) => d.includes('gin-gonic') || d.includes('echo') || d.includes('fiber')
+    ),
     scripts: [],
   };
 }
@@ -246,7 +297,7 @@ export function parseGoMod(content: string): ManifestData | null {
  */
 export function analyzeManifests(
   files: Map<string, string>,
-  baseDna: DaemonProjectDNA,
+  baseDna: DaemonProjectDNA
 ): DaemonProjectDNA {
   const manifests: ManifestData[] = [];
   const additionalStack: string[] = [];
@@ -307,7 +358,9 @@ export function analyzeManifests(
 
   const notes = [...baseDna.notes];
   for (const m of manifests) {
-    notes.push(`Parsed ${m.fileName}: ${m.dependencyCount} deps, ${m.devDependencyCount} devDeps (${m.buildSystem})`);
+    notes.push(
+      `Parsed ${m.fileName}: ${m.dependencyCount} deps, ${m.devDependencyCount} devDeps (${m.buildSystem})`
+    );
     if (m.keyDependencies.length > 0) {
       notes.push(`Key deps: ${m.keyDependencies.join(', ')}`);
     }

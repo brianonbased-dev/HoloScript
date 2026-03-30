@@ -133,7 +133,7 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
 
   // Auto-generated effect mappings
 
-// Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ NEW TRAIT_EFFECTS Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰
+  // Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ NEW TRAIT_EFFECTS Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰
   '@absorb': [],
   '@abtest': [],
   '@accessible': [],

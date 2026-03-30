@@ -1971,16 +1971,8 @@ function SceneContent({
       )}
       {lighting.id === 'day' && (
         <>
-          <Cloud
-            position={[-8, 12, -10]}
-            speed={0.2}
-            opacity={0.4}
-          />
-          <Cloud
-            position={[6, 14, -15]}
-            speed={0.15}
-            opacity={0.3}
-          />
+          <Cloud position={[-8, 12, -10]} speed={0.2} opacity={0.4} />
+          <Cloud position={[6, 14, -15]} speed={0.15} opacity={0.3} />
         </>
       )}
       <Environment
@@ -2086,7 +2078,15 @@ export default function PlayPage() {
         harvestCount,
       });
     }
-  }, [objects.length, physicsEnabled, transformMode, activeTool.type, gardenActive, harvestCount, composition.loading]);
+  }, [
+    objects.length,
+    physicsEnabled,
+    transformMode,
+    activeTool.type,
+    gardenActive,
+    harvestCount,
+    composition.loading,
+  ]);
 
   const selectedObj = selectedId ? objects.find((o) => o.id === selectedId) : null;
   const lighting = LIGHTING_PRESETS[lightingIdx];

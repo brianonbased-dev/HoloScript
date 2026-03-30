@@ -318,7 +318,10 @@ export class SkillWorkflowEngine {
         return await Promise.race([
           executor(step.skillId, resolvedInputs),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Step "${step.id}" timed out after ${step.timeout}ms`)), step.timeout)
+            setTimeout(
+              () => reject(new Error(`Step "${step.id}" timed out after ${step.timeout}ms`)),
+              step.timeout
+            )
           ),
         ]);
       }
@@ -432,9 +435,7 @@ export class SkillWorkflowEngine {
 
     // BFS layer by layer
     const groups: string[][] = [];
-    let ready = [...inDegree.entries()]
-      .filter(([, deg]) => deg === 0)
-      .map(([id]) => id);
+    let ready = [...inDegree.entries()].filter(([, deg]) => deg === 0).map(([id]) => id);
 
     while (ready.length > 0) {
       groups.push([...ready]);

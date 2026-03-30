@@ -85,7 +85,10 @@ export const shareableHandler: TraitHandler<ShareableConfig> = {
 
   onEvent(node, config, context, event) {
     if (event.type === 'share') {
-      context.emit('on_share', { node, platform: (event as Record<string, unknown>).platform || 'x' });
+      context.emit('on_share', {
+        node,
+        platform: (event as Record<string, unknown>).platform || 'x',
+      });
     }
   },
 };

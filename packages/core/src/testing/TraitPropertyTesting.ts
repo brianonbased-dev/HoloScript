@@ -196,12 +196,7 @@ function createValueGenerator(rng: SeededRNG): ValueGenerator {
       const u3 = rng.nextFloat() * 2 * Math.PI;
       const a = Math.sqrt(1 - u1);
       const b = Math.sqrt(u1);
-      return [
-        a * Math.sin(u2),
-        a * Math.cos(u2),
-        b * Math.sin(u3),
-        b * Math.cos(u3),
-      ];
+      return [a * Math.sin(u2), a * Math.cos(u2), b * Math.sin(u3), b * Math.cos(u3)];
     },
 
     array<T>(length: number, gen: () => T): T[] {
@@ -225,7 +220,7 @@ export function property<TConfig = Record<string, unknown>>(
   name: string,
   generate: (gen: ValueGenerator) => TConfig,
   predicate: (config: TConfig) => boolean,
-  shrink?: (config: TConfig) => TConfig[],
+  shrink?: (config: TConfig) => TConfig[]
 ): TraitProperty<TConfig> {
   return { name, generate, predicate, shrink };
 }
@@ -251,14 +246,9 @@ export interface PropertyTestOptions {
 export function traitPropertyTest(
   traitName: string,
   properties: TraitProperty[],
-  options: PropertyTestOptions = {},
+  options: PropertyTestOptions = {}
 ): PropertyTestResult {
-  const {
-    numCases = 100,
-    seed = Date.now(),
-    maxShrinkAttempts = 50,
-    verbose = false,
-  } = options;
+  const { numCases = 100, seed = Date.now(), maxShrinkAttempts = 50, verbose = false } = options;
 
   const startTime = Date.now();
   const results: PropertyResult[] = [];
@@ -363,25 +353,25 @@ export function traitPropertyTest(
 export const PHYSICS_PROPERTIES: TraitProperty[] = [
   property(
     'mass normalization clamps to non-negative',
-    gen => ({
+    (gen) => ({
       mass: gen.float(-100, 100),
       restitution: gen.float(0, 1),
       friction: gen.float(0, 1),
     }),
-    config => {
+    (config) => {
       const mass = Math.max(0, config.mass as number);
       return mass >= 0;
-    },
+    }
   ),
   property(
     'restitution stays within 0-1',
-    gen => ({
+    (gen) => ({
       restitution: gen.float(-1, 2),
     }),
-    config => {
+    (config) => {
       const r = Math.max(0, Math.min(1, config.restitution as number));
       return r >= 0 && r <= 1;
-    },
+    }
   ),
 ];
 
@@ -391,27 +381,27 @@ export const PHYSICS_PROPERTIES: TraitProperty[] = [
 export const MATERIAL_PROPERTIES: TraitProperty[] = [
   property(
     'metallic and roughness are always 0-1 after clamping',
-    gen => ({
+    (gen) => ({
       metallic: gen.float(-0.5, 1.5),
       roughness: gen.float(-0.5, 1.5),
     }),
-    config => {
+    (config) => {
       const m = Math.max(0, Math.min(1, config.metallic as number));
       const r = Math.max(0, Math.min(1, config.roughness as number));
       return m >= 0 && m <= 1 && r >= 0 && r <= 1;
-    },
+    }
   ),
   property(
     'opacity enables transparency when < 1',
-    gen => ({
+    (gen) => ({
       opacity: gen.float(0, 1),
     }),
-    config => {
+    (config) => {
       const opacity = config.opacity as number;
       const shouldBeTransparent = opacity < 1;
       // If opacity < 1, transparency should be enabled
       return true; // This validates the relationship
-    },
+    }
   ),
 ];
 
@@ -421,37 +411,37 @@ export const MATERIAL_PROPERTIES: TraitProperty[] = [
 export const TRANSFORM_PROPERTIES: TraitProperty[] = [
   property(
     'position vector always has 3 finite components',
-    gen => ({
+    (gen) => ({
       position: gen.vector3(-1000, 1000),
     }),
-    config => {
+    (config) => {
       const pos = config.position as number[];
-      return pos.length === 3 && pos.every(v => isFinite(v));
-    },
+      return pos.length === 3 && pos.every((v) => isFinite(v));
+    }
   ),
   property(
     'quaternion rotation is always normalized (length ~1)',
-    gen => ({
+    (gen) => ({
       rotation: gen.quaternion(),
     }),
-    config => {
+    (config) => {
       const q = config.rotation as number[];
       const len = Math.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2);
       return Math.abs(len - 1) < 0.001;
-    },
+    }
   ),
   property(
     'scale components are always positive',
-    gen => ({
+    (gen) => ({
       scale: [
         Math.abs(gen.float(0.01, 10)),
         Math.abs(gen.float(0.01, 10)),
         Math.abs(gen.float(0.01, 10)),
       ] as [number, number, number],
     }),
-    config => {
+    (config) => {
       const s = config.scale as number[];
-      return s.every(v => v > 0);
-    },
+      return s.every((v) => v > 0);
+    }
   ),
 ];

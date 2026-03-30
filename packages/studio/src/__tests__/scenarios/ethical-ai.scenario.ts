@@ -7,22 +7,25 @@
 import { describe, it, expect } from 'vitest';
 
 type Enforcement = 'hard' | 'soft';
-function normCheck(enforcement: Enforcement, intentionScore: number): { allowed: boolean; enforcement: Enforcement } {
+function normCheck(
+  enforcement: Enforcement,
+  intentionScore: number
+): { allowed: boolean; enforcement: Enforcement } {
   return { allowed: intentionScore >= 0.5, enforcement };
 }
 
 function dilemmaComplexity(factors: number, stakeholders: number): number {
-  return Math.min(1.0, (factors * 0.15 + stakeholders * 0.1));
+  return Math.min(1.0, factors * 0.15 + stakeholders * 0.1);
 }
 
 function confidenceFromDeliberation(checks: { allowed: boolean }[]): number {
   if (checks.length === 0) return 0;
-  const passRate = checks.filter(c => c.allowed).length / checks.length;
+  const passRate = checks.filter((c) => c.allowed).length / checks.length;
   return passRate * 0.9;
 }
 
 function shouldBlockAction(checks: { allowed: boolean; enforcement: Enforcement }[]): boolean {
-  return checks.some(c => !c.allowed && c.enforcement === 'hard');
+  return checks.some((c) => !c.allowed && c.enforcement === 'hard');
 }
 
 describe('Scenario: Ethical AI — Norm Checking', () => {
@@ -49,16 +52,20 @@ describe('Scenario: Ethical AI — Deliberation', () => {
     expect(confidenceFromDeliberation(checks)).toBeCloseTo(0.45);
   });
   it('shouldBlockAction() blocks on any hard norm failure', () => {
-    expect(shouldBlockAction([
-      { allowed: true, enforcement: 'hard' },
-      { allowed: false, enforcement: 'hard' },
-    ])).toBe(true);
+    expect(
+      shouldBlockAction([
+        { allowed: true, enforcement: 'hard' },
+        { allowed: false, enforcement: 'hard' },
+      ])
+    ).toBe(true);
   });
   it('shouldBlockAction() does not block on soft-only violations', () => {
-    expect(shouldBlockAction([
-      { allowed: true, enforcement: 'hard' },
-      { allowed: false, enforcement: 'soft' },
-    ])).toBe(false);
+    expect(
+      shouldBlockAction([
+        { allowed: true, enforcement: 'hard' },
+        { allowed: false, enforcement: 'soft' },
+      ])
+    ).toBe(false);
   });
   it('dilemmaComplexity() caps at 1.0', () => {
     expect(dilemmaComplexity(10, 10)).toBe(1.0);

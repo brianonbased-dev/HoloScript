@@ -8,7 +8,14 @@
 // Re-export THREE.js IK solver class
 export { IKSolver } from './sculpt/ikSolver';
 
-import { vec3Normalize, vec3Length, vec3Distance, vec3Sub, vec3Add, vec3Scale } from '@holoscript/core/math/vec3.js';
+import {
+  vec3Normalize,
+  vec3Length,
+  vec3Distance,
+  vec3Sub,
+  vec3Add,
+  vec3Scale,
+} from '@holoscript/core/math/vec3.js';
 
 /*
  */

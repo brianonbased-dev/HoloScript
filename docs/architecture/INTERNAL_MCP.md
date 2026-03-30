@@ -41,11 +41,11 @@ HoloScript implements MCP (Model Context Protocol) at two levels:
 
 The `src/agents/spatial-comms/` directory implements a **3-layer communication protocol** for agents in spatial environments:
 
-| Layer | File | Purpose |
-|-------|------|---------|
+| Layer                  | File                | Purpose                                         |
+| ---------------------- | ------------------- | ----------------------------------------------- |
 | **Layer 1: Real-Time** | `Layer1RealTime.ts` | Low-latency spatial messaging (position, state) |
-| **Layer 2: A2A** | `Layer2A2A.ts` | Agent-to-Agent structured communication |
-| **Layer 3: MCP** | `Layer3MCP.ts` | MCP tool calls between spatial agents |
+| **Layer 2: A2A**       | `Layer2A2A.ts`      | Agent-to-Agent structured communication         |
+| **Layer 3: MCP**       | `Layer3MCP.ts`      | MCP tool calls between spatial agents           |
 
 ### Layer3MCP (Agent MCP Client)
 
@@ -87,15 +87,15 @@ import { SPATIAL_MCP_TOOLS } from '@holoscript/core/agents/spatial-comms';
 
 Located in `src/agents/`:
 
-| Class | Purpose |
-|-------|---------|
-| `AgentRegistry` | Register and discover agents |
-| `AgentManifest` | Declare agent capabilities |
-| `CapabilityMatcher` | Match agent capabilities to tasks |
-| `CrossRealityHandoff` | Transfer agents across platforms |
-| `SpatialCommClient` | Unified spatial communication client |
-| `NormEngine` | Social norm enforcement for agent communities |
-| `CulturalMemory` | Persistent cultural knowledge for agent groups |
+| Class                 | Purpose                                        |
+| --------------------- | ---------------------------------------------- |
+| `AgentRegistry`       | Register and discover agents                   |
+| `AgentManifest`       | Declare agent capabilities                     |
+| `CapabilityMatcher`   | Match agent capabilities to tasks              |
+| `CrossRealityHandoff` | Transfer agents across platforms               |
+| `SpatialCommClient`   | Unified spatial communication client           |
+| `NormEngine`          | Social norm enforcement for agent communities  |
+| `CulturalMemory`      | Persistent cultural knowledge for agent groups |
 
 ## Registration with Orchestrator
 

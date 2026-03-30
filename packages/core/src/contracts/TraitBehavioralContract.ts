@@ -139,7 +139,7 @@ export class TraitContractBuilder {
   pre(
     description: string,
     evaluate: (props: Record<string, unknown>) => boolean,
-    severity: 'error' | 'warning' = 'error',
+    severity: 'error' | 'warning' = 'error'
   ): this {
     this.contract.preconditions.push({
       description,
@@ -154,7 +154,7 @@ export class TraitContractBuilder {
   post(
     description: string,
     evaluate: (props: Record<string, unknown>) => boolean,
-    severity: 'error' | 'warning' = 'error',
+    severity: 'error' | 'warning' = 'error'
   ): this {
     this.contract.postconditions.push({
       description,
@@ -169,7 +169,7 @@ export class TraitContractBuilder {
   invariant(
     description: string,
     evaluate: (props: Record<string, unknown>) => boolean,
-    severity: 'error' | 'warning' = 'error',
+    severity: 'error' | 'warning' = 'error'
   ): this {
     this.contract.invariants.push({
       description,
@@ -247,7 +247,7 @@ export class ContractValidator {
   validatePreconditions(
     traitName: string,
     props: Record<string, unknown>,
-    appliedTraits: string[] = [],
+    appliedTraits: string[] = []
   ): ContractValidationResult {
     const contract = this.registry.get(traitName);
     if (!contract) {
@@ -304,7 +304,7 @@ export class ContractValidator {
       }
     }
 
-    const hasErrors = violations.some(v => v.condition.severity === 'error');
+    const hasErrors = violations.some((v) => v.condition.severity === 'error');
     return { valid: !hasErrors, violations, traitName, phase: 'precondition' };
   }
 
@@ -313,7 +313,7 @@ export class ContractValidator {
    */
   validatePostconditions(
     traitName: string,
-    props: Record<string, unknown>,
+    props: Record<string, unknown>
   ): ContractValidationResult {
     const contract = this.registry.get(traitName);
     if (!contract) {
@@ -337,17 +337,14 @@ export class ContractValidator {
       }
     }
 
-    const hasErrors = violations.some(v => v.condition.severity === 'error');
+    const hasErrors = violations.some((v) => v.condition.severity === 'error');
     return { valid: !hasErrors, violations, traitName, phase: 'postcondition' };
   }
 
   /**
    * Validate invariants during the trait's lifetime.
    */
-  validateInvariants(
-    traitName: string,
-    props: Record<string, unknown>,
-  ): ContractValidationResult {
+  validateInvariants(traitName: string, props: Record<string, unknown>): ContractValidationResult {
     const contract = this.registry.get(traitName);
     if (!contract) {
       return { valid: true, violations: [], traitName, phase: 'invariant' };
@@ -370,7 +367,7 @@ export class ContractValidator {
       }
     }
 
-    const hasErrors = violations.some(v => v.condition.severity === 'error');
+    const hasErrors = violations.some((v) => v.condition.severity === 'error');
     return { valid: !hasErrors, violations, traitName, phase: 'invariant' };
   }
 
@@ -380,7 +377,7 @@ export class ContractValidator {
   validateAll(
     traitName: string,
     props: Record<string, unknown>,
-    appliedTraits: string[] = [],
+    appliedTraits: string[] = []
   ): ContractValidationResult[] {
     return [
       this.validatePreconditions(traitName, props, appliedTraits),
@@ -404,16 +401,16 @@ export function createDefaultContractRegistry(): TraitContractRegistry {
   registry.register(
     TraitContractBuilder.for('physics')
       .requires('collidable')
-      .pre('mass must be non-negative', p => (p.mass as number ?? 1) >= 0)
-      .pre('restitution must be 0-1', p => {
-        const r = p.restitution as number ?? 0.5;
+      .pre('mass must be non-negative', (p) => ((p.mass as number) ?? 1) >= 0)
+      .pre('restitution must be 0-1', (p) => {
+        const r = (p.restitution as number) ?? 0.5;
         return r >= 0 && r <= 1;
       })
-      .pre('friction must be 0-1', p => {
-        const f = p.friction as number ?? 0.5;
+      .pre('friction must be 0-1', (p) => {
+        const f = (p.friction as number) ?? 0.5;
         return f >= 0 && f <= 1;
       })
-      .invariant('mass remains non-negative', p => (p.mass as number ?? 1) >= 0)
+      .invariant('mass remains non-negative', (p) => ((p.mass as number) ?? 1) >= 0)
       .build()
   );
 
@@ -421,27 +418,23 @@ export function createDefaultContractRegistry(): TraitContractRegistry {
   registry.register(
     TraitContractBuilder.for('throwable')
       .requires('grabbable')
-      .pre('velocity_multiplier non-negative', p => (p.velocity_multiplier as number ?? 1) >= 0)
-      .pre('max_velocity positive', p => (p.max_velocity as number ?? 50) > 0)
+      .pre('velocity_multiplier non-negative', (p) => ((p.velocity_multiplier as number) ?? 1) >= 0)
+      .pre('max_velocity positive', (p) => ((p.max_velocity as number) ?? 50) > 0)
       .build()
   );
 
   // Holdable requires grabbable
-  registry.register(
-    TraitContractBuilder.for('holdable')
-      .requires('grabbable')
-      .build()
-  );
+  registry.register(TraitContractBuilder.for('holdable').requires('grabbable').build());
 
   // Networked trait contracts
   registry.register(
     TraitContractBuilder.for('networked')
-      .pre('sync_rate must be positive', p => (p.sync_rate as number ?? 20) > 0)
-      .pre('interpolation must be valid', p => {
-        const interp = p.interpolation as string ?? 'linear';
+      .pre('sync_rate must be positive', (p) => ((p.sync_rate as number) ?? 20) > 0)
+      .pre('interpolation must be valid', (p) => {
+        const interp = (p.interpolation as string) ?? 'linear';
         return ['linear', 'hermite', 'none'].includes(interp);
       })
-      .invariant('ownership is valid', p => {
+      .invariant('ownership is valid', (p) => {
         const owner = p.owner as string;
         return !owner || typeof owner === 'string';
       })
@@ -451,20 +444,20 @@ export function createDefaultContractRegistry(): TraitContractRegistry {
   // Material trait contracts
   registry.register(
     TraitContractBuilder.for('material')
-      .pre('metallic must be 0-1', p => {
-        const m = p.metallic as number ?? 0;
+      .pre('metallic must be 0-1', (p) => {
+        const m = (p.metallic as number) ?? 0;
         return m >= 0 && m <= 1;
       })
-      .pre('roughness must be 0-1', p => {
-        const r = p.roughness as number ?? 0.5;
+      .pre('roughness must be 0-1', (p) => {
+        const r = (p.roughness as number) ?? 0.5;
         return r >= 0 && r <= 1;
       })
-      .pre('opacity must be 0-1', p => {
-        const o = p.opacity as number ?? 1;
+      .pre('opacity must be 0-1', (p) => {
+        const o = (p.opacity as number) ?? 1;
         return o >= 0 && o <= 1;
       })
-      .invariant('metallic stays 0-1', p => {
-        const m = p.metallic as number ?? 0;
+      .invariant('metallic stays 0-1', (p) => {
+        const m = (p.metallic as number) ?? 0;
         return m >= 0 && m <= 1;
       })
       .build()
@@ -473,8 +466,8 @@ export function createDefaultContractRegistry(): TraitContractRegistry {
   // Transparent excludes opaque rendering
   registry.register(
     TraitContractBuilder.for('transparent')
-      .pre('opacity must be 0-1', p => {
-        const o = p.opacity as number ?? 0.5;
+      .pre('opacity must be 0-1', (p) => {
+        const o = (p.opacity as number) ?? 0.5;
         return o >= 0 && o <= 1;
       })
       .build()
@@ -483,17 +476,17 @@ export function createDefaultContractRegistry(): TraitContractRegistry {
   // Animated trait contracts
   registry.register(
     TraitContractBuilder.for('animated')
-      .pre('speed must be non-negative', p => (p.speed as number ?? 1) >= 0)
+      .pre('speed must be non-negative', (p) => ((p.speed as number) ?? 1) >= 0)
       .build()
   );
 
   // Scalable contracts
   registry.register(
     TraitContractBuilder.for('scalable')
-      .pre('min_scale must be positive', p => (p.min_scale as number ?? 0.1) > 0)
-      .pre('max_scale must exceed min_scale', p => {
-        const min = p.min_scale as number ?? 0.1;
-        const max = p.max_scale as number ?? 10;
+      .pre('min_scale must be positive', (p) => ((p.min_scale as number) ?? 0.1) > 0)
+      .pre('max_scale must exceed min_scale', (p) => {
+        const min = (p.min_scale as number) ?? 0.1;
+        const max = (p.max_scale as number) ?? 10;
         return max > min;
       })
       .build()

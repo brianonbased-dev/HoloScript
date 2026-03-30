@@ -5,8 +5,6 @@
  * Falls back to Node.js crypto module for older Node.js versions.
  */
 
- 
-
 /**
  * Convert string to Uint8Array
  */

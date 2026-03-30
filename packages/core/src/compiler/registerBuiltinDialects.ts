@@ -31,9 +31,20 @@ export function registerBuiltinDialects(): void {
       domain: 'gamedev',
       description: 'Compiles to Unity C# MonoBehaviours',
       supportedTraits: [
-        'physics', 'collidable', 'grabbable', 'throwable', 'audio',
-        'spatial_audio', 'animation', 'particles', 'material', 'ui',
-        'networked', 'behavior_tree', 'navmesh', 'lod',
+        'physics',
+        'collidable',
+        'grabbable',
+        'throwable',
+        'audio',
+        'spatial_audio',
+        'animation',
+        'particles',
+        'material',
+        'ui',
+        'networked',
+        'behavior_tree',
+        'navmesh',
+        'lod',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -47,9 +58,18 @@ export function registerBuiltinDialects(): void {
       domain: 'gamedev',
       description: 'Compiles to Unreal Engine C++ actors',
       supportedTraits: [
-        'physics', 'collidable', 'grabbable', 'audio', 'animation',
-        'particles', 'material', 'niagara', 'landscape', 'behavior_tree',
-        'navmesh', 'lod',
+        'physics',
+        'collidable',
+        'grabbable',
+        'audio',
+        'animation',
+        'particles',
+        'material',
+        'niagara',
+        'landscape',
+        'behavior_tree',
+        'navmesh',
+        'lod',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -63,8 +83,15 @@ export function registerBuiltinDialects(): void {
       domain: 'gamedev',
       description: 'Compiles to Godot GDScript nodes',
       supportedTraits: [
-        'physics', 'collidable', 'grabbable', 'audio', 'animation',
-        'particles', 'material', 'behavior_tree', 'navmesh',
+        'physics',
+        'collidable',
+        'grabbable',
+        'audio',
+        'animation',
+        'particles',
+        'material',
+        'behavior_tree',
+        'navmesh',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -80,9 +107,19 @@ export function registerBuiltinDialects(): void {
       domain: 'web3d',
       description: 'Compiles to React Three Fiber JSX components',
       supportedTraits: [
-        'physics', 'collidable', 'grabbable', 'audio', 'spatial_audio',
-        'animation', 'particles', 'material', 'ui', 'behavior_tree',
-        'lod', 'vr_only', 'ar_only',
+        'physics',
+        'collidable',
+        'grabbable',
+        'audio',
+        'spatial_audio',
+        'animation',
+        'particles',
+        'material',
+        'ui',
+        'behavior_tree',
+        'lod',
+        'vr_only',
+        'ar_only',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -96,8 +133,13 @@ export function registerBuiltinDialects(): void {
       domain: 'web3d',
       description: 'Compiles to Babylon.js scene code',
       supportedTraits: [
-        'physics', 'collidable', 'audio', 'animation', 'particles',
-        'material', 'behavior_tree',
+        'physics',
+        'collidable',
+        'audio',
+        'animation',
+        'particles',
+        'material',
+        'behavior_tree',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -110,9 +152,7 @@ export function registerBuiltinDialects(): void {
       name: 'playcanvas',
       domain: 'web3d',
       description: 'Compiles to PlayCanvas engine scripts',
-      supportedTraits: [
-        'physics', 'collidable', 'audio', 'animation', 'material',
-      ],
+      supportedTraits: ['physics', 'collidable', 'audio', 'animation', 'material'],
       riskTier: 'standard',
       factory: (opts) => {
         const { PlayCanvasCompiler } = require('./PlayCanvasCompiler');
@@ -127,8 +167,12 @@ export function registerBuiltinDialects(): void {
       domain: 'xr',
       description: 'Compiles to OpenXR C++ application layer',
       supportedTraits: [
-        'physics', 'hand_tracking', 'spatial_anchor', 'input',
-        'collidable', 'grabbable',
+        'physics',
+        'hand_tracking',
+        'spatial_anchor',
+        'input',
+        'collidable',
+        'grabbable',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -142,8 +186,14 @@ export function registerBuiltinDialects(): void {
       domain: 'social-vr',
       description: 'Compiles to VRChat UdonSharp scripts',
       supportedTraits: [
-        'physics', 'collidable', 'grabbable', 'audio', 'animation',
-        'networked', 'ui', 'interaction',
+        'physics',
+        'collidable',
+        'grabbable',
+        'audio',
+        'animation',
+        'networked',
+        'ui',
+        'interaction',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -157,8 +207,12 @@ export function registerBuiltinDialects(): void {
       domain: 'xr',
       description: 'Compiles to visionOS RealityKit Swift',
       supportedTraits: [
-        'physics', 'hand_tracking', 'spatial_anchor', 'animation',
-        'material', 'collidable',
+        'physics',
+        'hand_tracking',
+        'spatial_anchor',
+        'animation',
+        'material',
+        'collidable',
       ],
       riskTier: 'standard',
       factory: (opts) => {
@@ -171,10 +225,7 @@ export function registerBuiltinDialects(): void {
       name: 'android-xr',
       domain: 'xr',
       description: 'Compiles to Android XR OpenXR Kotlin',
-      supportedTraits: [
-        'physics', 'hand_tracking', 'spatial_anchor', 'input',
-        'collidable',
-      ],
+      supportedTraits: ['physics', 'hand_tracking', 'spatial_anchor', 'input', 'collidable'],
       riskTier: 'standard',
       factory: (opts) => {
         const { AndroidXRCompiler } = require('./AndroidXRCompiler');
@@ -188,9 +239,7 @@ export function registerBuiltinDialects(): void {
       name: 'ios',
       domain: 'mobile',
       description: 'Compiles to iOS ARKit Swift',
-      supportedTraits: [
-        'physics', 'ar_anchor', 'animation', 'material', 'collidable',
-      ],
+      supportedTraits: ['physics', 'ar_anchor', 'animation', 'material', 'collidable'],
       riskTier: 'standard',
       factory: (opts) => {
         const { IOSCompiler } = require('./IOSCompiler');
@@ -202,9 +251,7 @@ export function registerBuiltinDialects(): void {
       name: 'android',
       domain: 'mobile',
       description: 'Compiles to Android ARCore Kotlin',
-      supportedTraits: [
-        'physics', 'ar_anchor', 'animation', 'material', 'collidable',
-      ],
+      supportedTraits: ['physics', 'ar_anchor', 'animation', 'material', 'collidable'],
       riskTier: 'standard',
       factory: (opts) => {
         const { AndroidCompiler } = require('./AndroidCompiler');
@@ -216,10 +263,7 @@ export function registerBuiltinDialects(): void {
       name: 'ar',
       domain: 'mobile',
       description: 'Compiles to generic AR platform code',
-      supportedTraits: [
-        'physics', 'ar_anchor', 'spatial_anchor', 'collidable',
-        'material',
-      ],
+      supportedTraits: ['physics', 'ar_anchor', 'spatial_anchor', 'collidable', 'material'],
       riskTier: 'standard',
       factory: (opts) => {
         const { ARCompiler } = require('./ARCompiler');
@@ -233,9 +277,7 @@ export function registerBuiltinDialects(): void {
       name: 'wasm',
       domain: 'runtime',
       description: 'Compiles to WebAssembly modules',
-      supportedTraits: [
-        'physics', 'animation', 'audio',
-      ],
+      supportedTraits: ['physics', 'animation', 'audio'],
       riskTier: 'high',
       factory: (opts) => {
         const { WASMCompiler } = require('./WASMCompiler');
@@ -247,9 +289,7 @@ export function registerBuiltinDialects(): void {
       name: 'webgpu',
       domain: 'shader',
       description: 'Compiles to WebGPU compute shaders (WGSL)',
-      supportedTraits: [
-        'physics', 'particles', 'fluid', 'material', 'compute',
-      ],
+      supportedTraits: ['physics', 'particles', 'fluid', 'material', 'compute'],
       riskTier: 'standard',
       factory: (opts) => {
         const { WebGPUCompiler } = require('./WebGPUCompiler');
@@ -263,9 +303,7 @@ export function registerBuiltinDialects(): void {
       name: 'urdf',
       domain: 'robotics',
       description: 'Compiles to URDF robot descriptions',
-      supportedTraits: [
-        'joint', 'actuator', 'sensor', 'collider', 'end_effector',
-      ],
+      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'end_effector'],
       riskTier: 'standard',
       factory: (opts) => {
         const { URDFCompiler } = require('./URDFCompiler');
@@ -277,10 +315,7 @@ export function registerBuiltinDialects(): void {
       name: 'sdf',
       domain: 'robotics',
       description: 'Compiles to SDF simulation descriptions (Gazebo)',
-      supportedTraits: [
-        'joint', 'actuator', 'sensor', 'collider', 'physics',
-        'environment',
-      ],
+      supportedTraits: ['joint', 'actuator', 'sensor', 'collider', 'physics', 'environment'],
       riskTier: 'standard',
       factory: (opts) => {
         const { SDFCompiler } = require('./SDFCompiler');
@@ -292,9 +327,7 @@ export function registerBuiltinDialects(): void {
       name: 'dtdl',
       domain: 'iot',
       description: 'Compiles to DTDL digital twin definitions',
-      supportedTraits: [
-        'sensor', 'telemetry', 'property', 'command', 'relationship',
-      ],
+      supportedTraits: ['sensor', 'telemetry', 'property', 'command', 'relationship'],
       riskTier: 'standard',
       factory: (opts) => {
         const { DTDLCompiler } = require('./DTDLCompiler');
@@ -371,8 +404,14 @@ export function registerBuiltinDialects(): void {
       domain: 'service',
       description: 'Compiles @service traits to Express/Fastify applications',
       supportedTraits: [
-        'service', 'endpoint', 'route', 'handler', 'middleware',
-        'cors_policy', 'rate_limiter', 'health_endpoint',
+        'service',
+        'endpoint',
+        'route',
+        'handler',
+        'middleware',
+        'cors_policy',
+        'rate_limiter',
+        'health_endpoint',
       ],
       riskTier: 'standard',
       factory: (opts) => {

@@ -84,6 +84,11 @@ state {
   profileBio: ""
   profileCustomTitle: ""
   profileThemeColor: "#6366f1"
+
+  // V11 Resource Pressure (L4 Blueprint 1)
+  resourcePressure: 0
+  suggestedLOD: 0
+  hardLimitBreached: false
 }
 
 // ── Computed ──
@@ -93,7 +98,8 @@ computed {
   isRunning: $status == "running"
   peerCount: $peers.length
   budgetRemaining: $budgetCapUSD - $spentUSD
-  hasBudget: $budgetRemaining > 0
+  // V11: budget gate now checks BOTH economic balance AND rendering pressure
+  hasBudget: $budgetRemaining > 0 && $resourcePressure < 0.95
   netRevenue: $earningsUSD - $spentUSD
   contributionRate: $cycles > 0 ? $totalContributions / $cycles : 0
   queryRate: $cycles > 0 ? $totalQueries / $cycles : 0
@@ -116,7 +122,9 @@ object "MeshAgent" {
       type: "sequence",
       name: "mesh_cycle",
       children: [
-        // Gate: check budget before doing anything
+        // V11: Update resource pressure from UnifiedBudgetOptimizer before gate
+        { type: "action", name: "check_pressure", action: "mesh_check_resource_pressure" },
+        // Gate: check budget (economic + rendering pressure) before doing anything
         {
           type: "condition",
           name: "budget_gate",

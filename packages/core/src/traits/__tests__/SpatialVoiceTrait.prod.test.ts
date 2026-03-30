@@ -82,7 +82,12 @@ describe('spatialVoiceHandler — onUpdate', () => {
 describe('spatialVoiceHandler — onEvent', () => {
   it('voice_peer_connected adds peer and emits joined', () => {
     const { node, ctx, cfg } = attach();
-    spatialVoiceHandler.onEvent!(node, cfg, ctx as any, { type: 'voice_peer_connected', peerId: 'p1' } as any);
+    spatialVoiceHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      { type: 'voice_peer_connected', peerId: 'p1' } as any
+    );
     expect((node as any).__spatialVoiceState.connectedPeers.has('p1')).toBe(true);
     const ev = ctx.emitted.find((e: any) => e.type === 'spatial_voice_peer_joined');
     expect(ev?.payload.peerId).toBe('p1');
@@ -90,9 +95,19 @@ describe('spatialVoiceHandler — onEvent', () => {
   });
   it('voice_peer_disconnected removes peer and emits left', () => {
     const { node, ctx, cfg } = attach();
-    spatialVoiceHandler.onEvent!(node, cfg, ctx as any, { type: 'voice_peer_connected', peerId: 'p2' } as any);
+    spatialVoiceHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      { type: 'voice_peer_connected', peerId: 'p2' } as any
+    );
     ctx.emitted.length = 0;
-    spatialVoiceHandler.onEvent!(node, cfg, ctx as any, { type: 'voice_peer_disconnected', peerId: 'p2' } as any);
+    spatialVoiceHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      { type: 'voice_peer_disconnected', peerId: 'p2' } as any
+    );
     expect((node as any).__spatialVoiceState.connectedPeers.has('p2')).toBe(false);
     const ev = ctx.emitted.find((e: any) => e.type === 'spatial_voice_peer_left');
     expect(ev?.payload.peerCount).toBe(0);
@@ -113,11 +128,16 @@ describe('spatialVoiceHandler — onEvent', () => {
   });
   it('voice_vad_event updates speaking state and emits activity', () => {
     const { node, ctx, cfg } = attach();
-    spatialVoiceHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'voice_vad_event',
-      speaking: true,
-      volume: 0.8,
-    } as any);
+    spatialVoiceHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'voice_vad_event',
+        speaking: true,
+        volume: 0.8,
+      } as any
+    );
     expect((node as any).__spatialVoiceState.isSpeaking).toBe(true);
     const ev = ctx.emitted.find((e: any) => e.type === 'on_voice_activity');
     expect(ev?.payload.speaking).toBe(true);
@@ -125,7 +145,12 @@ describe('spatialVoiceHandler — onEvent', () => {
   });
   it('no-op when no state', () => {
     expect(() =>
-      spatialVoiceHandler.onEvent!(mkNode() as any, mkCfg(), mkCtx() as any, { type: 'voice_mute' } as any)
+      spatialVoiceHandler.onEvent!(
+        mkNode() as any,
+        mkCfg(),
+        mkCtx() as any,
+        { type: 'voice_mute' } as any
+      )
     ).not.toThrow();
   });
 });

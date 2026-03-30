@@ -81,13 +81,20 @@ function parseDuration(duration: string): number {
   const unit = match[2].toLowerCase();
 
   switch (unit) {
-    case 'ms': return value;
-    case 's': return value * 1000;
-    case 'm': return value * 60 * 1000;
-    case 'h': return value * 60 * 60 * 1000;
-    case 'd': return value * 24 * 60 * 60 * 1000;
-    case 'w': return value * 7 * 24 * 60 * 60 * 1000;
-    default: return -1;
+    case 'ms':
+      return value;
+    case 's':
+      return value * 1000;
+    case 'm':
+      return value * 60 * 1000;
+    case 'h':
+      return value * 60 * 60 * 1000;
+    case 'd':
+      return value * 24 * 60 * 60 * 1000;
+    case 'w':
+      return value * 7 * 24 * 60 * 60 * 1000;
+    default:
+      return -1;
   }
 }
 
@@ -138,12 +145,18 @@ function evaluatePredicate(predicate: ParsedPredicate, memory: Memory): boolean 
   }
 
   switch (predicate.op) {
-    case '<': return fieldValue < predicate.value;
-    case '>': return fieldValue > predicate.value;
-    case '<=': return fieldValue <= predicate.value;
-    case '>=': return fieldValue >= predicate.value;
-    case '==': return fieldValue === predicate.value;
-    case '!=': return fieldValue !== predicate.value;
+    case '<':
+      return fieldValue < predicate.value;
+    case '>':
+      return fieldValue > predicate.value;
+    case '<=':
+      return fieldValue <= predicate.value;
+    case '>=':
+      return fieldValue >= predicate.value;
+    case '==':
+      return fieldValue === predicate.value;
+    case '!=':
+      return fieldValue !== predicate.value;
   }
 }
 
@@ -295,7 +308,12 @@ export const forgetPolicyHandler: TraitHandler<ForgetPolicyConfig> = {
     });
   },
 
-  onEvent(node: HSPlusNode, config: ForgetPolicyConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ForgetPolicyConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const forgetNode = node as ForgetNode;
     const state = forgetNode.__forgetPolicyState;
     if (!state?.initialized) return;

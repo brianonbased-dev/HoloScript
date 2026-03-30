@@ -27,15 +27,67 @@ const DIM = 1024;
 
 // Common English + code stop-words — filtered out to reduce noise.
 const STOP_WORDS = new Set([
-  'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be',
-  'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
-  'would', 'could', 'should', 'may', 'might', 'must', 'shall',
-  'this', 'that', 'these', 'those', 'it', 'its',
+  'a',
+  'an',
+  'the',
+  'and',
+  'or',
+  'but',
+  'in',
+  'on',
+  'at',
+  'to',
+  'for',
+  'of',
+  'with',
+  'by',
+  'from',
+  'as',
+  'is',
+  'was',
+  'are',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'could',
+  'should',
+  'may',
+  'might',
+  'must',
+  'shall',
+  'this',
+  'that',
+  'these',
+  'those',
+  'it',
+  'its',
   // Code noise
-  'null', 'undefined', 'void', 'true', 'false',
-  'function', 'return', 'const', 'let', 'var', 'type', 'interface',
-  'class', 'import', 'export', 'default', 'from',
+  'null',
+  'undefined',
+  'void',
+  'true',
+  'false',
+  'function',
+  'return',
+  'const',
+  'let',
+  'var',
+  'type',
+  'interface',
+  'class',
+  'import',
+  'export',
+  'default',
+  'from',
 ]);
 
 // =============================================================================
@@ -65,15 +117,17 @@ function fnv1a(s: string): number {
  *   - snake_case, kebab-case, path separators
  */
 function tokenise(text: string): string[] {
-  return text
-    // camelCase: lowercase before uppercase  →  "fooBar" → "foo Bar"
-    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
-    // ACRONYM before trailing uppercase + lowercase  →  "parseAST" → "parse AST"
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    // Split on non-alphanumeric characters
-    .split(/[^a-zA-Z0-9]+/)
-    .map((t) => t.toLowerCase())
-    .filter((t) => t.length > 1 && !STOP_WORDS.has(t) && !/^\d+$/.test(t));
+  return (
+    text
+      // camelCase: lowercase before uppercase  →  "fooBar" → "foo Bar"
+      .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+      // ACRONYM before trailing uppercase + lowercase  →  "parseAST" → "parse AST"
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      // Split on non-alphanumeric characters
+      .split(/[^a-zA-Z0-9]+/)
+      .map((t) => t.toLowerCase())
+      .filter((t) => t.length > 1 && !STOP_WORDS.has(t) && !/^\d+$/.test(t))
+  );
 }
 
 // =============================================================================

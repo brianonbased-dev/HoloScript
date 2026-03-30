@@ -67,7 +67,7 @@ export function generateKeyPair(): Ed25519KeyPair {
   // Use Node.js crypto module
   try {
     // Dynamic import to avoid bundler issues in browser contexts
-     
+
     const nodeCrypto = require('crypto') as typeof import('crypto');
     const { publicKey, privateKey } = nodeCrypto.generateKeyPairSync('ed25519', {
       publicKeyEncoding: { type: 'spki', format: 'der' },
@@ -100,7 +100,6 @@ export function generateKeyPair(): Ed25519KeyPair {
  */
 export function signPackage(content: string, privateKeyBase64: string): string {
   try {
-     
     const nodeCrypto = require('crypto') as typeof import('crypto');
 
     const privateKeyDer = base64ToBuffer(privateKeyBase64);
@@ -131,7 +130,6 @@ export function verifySignature(
   publicKeyBase64: string
 ): boolean {
   try {
-     
     const nodeCrypto = require('crypto') as typeof import('crypto');
 
     const publicKeyDer = base64ToBuffer(publicKeyBase64);
@@ -213,7 +211,6 @@ export function canonicalizeManifest(manifest: PackageManifest): string {
  */
 async function computeSha256(data: string): Promise<string> {
   try {
-     
     const nodeCrypto = require('crypto') as typeof import('crypto');
     const hash = nodeCrypto.createHash('sha256');
     hash.update(data, 'utf-8');

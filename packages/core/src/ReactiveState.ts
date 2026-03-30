@@ -14,7 +14,9 @@ export class ReactiveState implements IReactiveState {
     this.proxy = this.createReactiveProxy(this.state);
   }
 
-  private createReactiveProxy(target: Record<string, HoloScriptValue>): Record<string, HoloScriptValue> {
+  private createReactiveProxy(
+    target: Record<string, HoloScriptValue>
+  ): Record<string, HoloScriptValue> {
     const self = this;
     return new Proxy(target, {
       get(obj, key) {

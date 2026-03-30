@@ -236,8 +236,6 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
     return { valid: errors.length === 0, errors };
   }
 
-
-
   protected sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }

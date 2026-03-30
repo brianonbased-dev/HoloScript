@@ -29,9 +29,9 @@ interface AntiGriefConfig {
 }
 
 interface BehaviorRecord {
-  kills: number[];     // timestamps
+  kills: number[]; // timestamps
   destructions: number[]; // timestamps
-  reports: number[];   // timestamps from other players
+  reports: number[]; // timestamps from other players
   griefScore: number;
 }
 
@@ -94,15 +94,18 @@ export const antiGriefHandler: TraitHandler<AntiGriefConfig> = {
     // Compute grief scores for monitored players
     for (const [playerId, record] of state.players) {
       // Prune old events
-      record.kills = record.kills.filter(t => now - t < windowMs);
-      record.destructions = record.destructions.filter(t => now - t < windowMs);
-      record.reports = record.reports.filter(t => now - t < windowMs);
+      record.kills = record.kills.filter((t) => now - t < windowMs);
+      record.destructions = record.destructions.filter((t) => now - t < windowMs);
+      record.reports = record.reports.filter((t) => now - t < windowMs);
 
       // Compute score
       const killRatio = record.kills.length / config.kill_threshold;
       const destructionRatio = record.destructions.length / config.destruction_threshold;
       const reportBonus = record.reports.length * 0.2;
-      record.griefScore = Math.min(1, (killRatio + destructionRatio + reportBonus) * config.sensitivity);
+      record.griefScore = Math.min(
+        1,
+        (killRatio + destructionRatio + reportBonus) * config.sensitivity
+      );
 
       // Shield victim if griefer detected
       if (record.griefScore >= config.shield_threshold && !state.shieldedPlayers.has(playerId)) {

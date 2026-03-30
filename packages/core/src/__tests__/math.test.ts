@@ -3,7 +3,7 @@ import {
   calculateAverage,
   calculateSuccessRate,
   calculateStandardDeviation,
-  calculateMedian
+  calculateMedian,
 } from '../utils/math';
 
 describe('Math utilities', () => {

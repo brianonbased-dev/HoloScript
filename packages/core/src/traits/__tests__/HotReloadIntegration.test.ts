@@ -96,7 +96,9 @@ describe('@hot_reload Integration', () => {
     watcher.stop();
 
     // Should have 0 events (txt file not watched)
-    const hsEvents = events.filter((p) => p.endsWith('.hs') || p.endsWith('.hsplus') || p.endsWith('.holo'));
+    const hsEvents = events.filter(
+      (p) => p.endsWith('.hs') || p.endsWith('.hsplus') || p.endsWith('.holo')
+    );
     // txt modifications should not appear
     expect(events.filter((p) => p.endsWith('.txt'))).toHaveLength(0);
   });

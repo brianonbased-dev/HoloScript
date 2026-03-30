@@ -23,10 +23,7 @@ import {
  * Create a mock TextDocument that returns a predetermined word and range
  * for getWordRangeAtPosition.
  */
-function createMockDocument(
-  text: string,
-  wordAtPosition?: { word: string; range: Range }
-) {
+function createMockDocument(text: string, wordAtPosition?: { word: string; range: Range }) {
   return {
     getText: vi.fn((range?: Range) => {
       if (range && wordAtPosition) {
@@ -185,10 +182,7 @@ describe('HoloScriptHoverProvider', () => {
     for (const trait of ALL_TRAITS) {
       it(`should produce hover for ${trait.label}`, () => {
         const traitName = trait.label; // e.g. "@grabbable"
-        const range = new Range(
-          new Position(0, 0),
-          new Position(0, traitName.length)
-        );
+        const range = new Range(new Position(0, 0), new Position(0, traitName.length));
         const doc = createMockDocument(traitName, {
           word: traitName,
           range,
@@ -210,9 +204,7 @@ describe('HoloScriptHoverProvider', () => {
   describe('internal trait lookup map', () => {
     it('should resolve all 56 traits by name without @ prefix', () => {
       // Verify the lookup map that hoverProvider constructs at module load
-      const traitLookup = new Map(
-        ALL_TRAITS.map((t) => [t.label.slice(1), t])
-      );
+      const traitLookup = new Map(ALL_TRAITS.map((t) => [t.label.slice(1), t]));
 
       expect(traitLookup.size).toBe(56);
       expect(traitLookup.get('grabbable')?.label).toBe('@grabbable');

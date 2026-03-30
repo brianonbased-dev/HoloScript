@@ -8,15 +8,15 @@ The Agent Protocol implements the **uAA2++ 7-phase framework** for AI agents to 
 
 ### 7 Phases
 
-| Phase | Purpose | Agent Role |
-|-------|---------|------------|
-| **Initialize** | Load context, authenticate | Prepare workspace |
-| **Discover** | Find tools, parse capabilities | Map available MCP servers |
-| **Understand** | Analyze requirements, plan | Create execution strategy |
-| **Execute** | Run tools, generate code | Build HoloScript compositions |
-| **Verify** | Validate output, test | Check for errors |
-| **Report** | Document changes, log | Summarize work |
-| **Affirm** | Confirm completion, handoff | Mark task done |
+| Phase          | Purpose                        | Agent Role                    |
+| -------------- | ------------------------------ | ----------------------------- |
+| **Initialize** | Load context, authenticate     | Prepare workspace             |
+| **Discover**   | Find tools, parse capabilities | Map available MCP servers     |
+| **Understand** | Analyze requirements, plan     | Create execution strategy     |
+| **Execute**    | Run tools, generate code       | Build HoloScript compositions |
+| **Verify**     | Validate output, test          | Check for errors              |
+| **Report**     | Document changes, log          | Summarize work                |
+| **Affirm**     | Confirm completion, handoff    | Mark task done                |
 
 ## Installation
 
@@ -32,17 +32,17 @@ import { AgentProtocol } from '@holoscript/agent-protocol';
 const agent = new AgentProtocol({
   workspace: '/path/to/project',
   mcpServers: ['holoscript-language', 'brittney-ai'],
-  model: 'claude-3-5-sonnet'
+  model: 'claude-3-5-sonnet',
 });
 
 // Execute full protocol
 const result = await agent.executePhases({
   goal: 'Create an interactive marketplace scene',
-  userInstructions: 'Include NPC vendors, trading logic, and networking'
+  userInstructions: 'Include NPC vendors, trading logic, and networking',
 });
 
-console.log(result.createdFiles);    // Generated .holo files
-console.log(result.executionLog);    // Phase-by-phase details
+console.log(result.createdFiles); // Generated .holo files
+console.log(result.executionLog); // Phase-by-phase details
 ```
 
 ## Phase API
@@ -52,13 +52,13 @@ console.log(result.executionLog);    // Phase-by-phase details
 ```typescript
 const context = await agent.initialize({
   workspace: './my-project',
-  cache: true,                           // Use cached codebase graph if <24h old
-  authentication: { token: process.env.GITHUB_TOKEN }
+  cache: true, // Use cached codebase graph if <24h old
+  authentication: { token: process.env.GITHUB_TOKEN },
 });
 
-console.log(context.packageCount);       // 59 packages discovered
-console.log(context.cacheAge);           // '5 hours old'
-console.log(context.availableTools);     // List of MCP tools
+console.log(context.packageCount); // 59 packages discovered
+console.log(context.cacheAge); // '5 hours old'
+console.log(context.availableTools); // List of MCP tools
 ```
 
 ### Phase 2: Discover
@@ -66,10 +66,10 @@ console.log(context.availableTools);     // List of MCP tools
 ```typescript
 const discovery = await agent.discover();
 
-console.log(discovery.mcpServers);       // Connected servers
-console.log(discovery.tools);            // [{ name, description, params }]
-console.log(discovery.traits);           // [{ name, category, description }]
-console.log(discovery.compilers);        // [{ target, version }]
+console.log(discovery.mcpServers); // Connected servers
+console.log(discovery.tools); // [{ name, description, params }]
+console.log(discovery.traits); // [{ name, category, description }]
+console.log(discovery.compilers); // [{ target, version }]
 ```
 
 ### Phase 3: Understand
@@ -80,13 +80,13 @@ const plan = await agent.understand({
   constraints: {
     platforms: ['WebGPU', 'VRChat', 'Godot'],
     performanceBudget: '60fps',
-    maxFileSize: '50KB'
-  }
+    maxFileSize: '50KB',
+  },
 });
 
-console.log(plan.strategy);              // Execution steps
-console.log(plan.traits);                // Recommended traits
-console.log(plan.estimatedComplexity);   // 'moderate'
+console.log(plan.strategy); // Execution steps
+console.log(plan.traits); // Recommended traits
+console.log(plan.estimatedComplexity); // 'moderate'
 ```
 
 ### Phase 4: Execute
@@ -94,12 +94,12 @@ console.log(plan.estimatedComplexity);   // 'moderate'
 ```typescript
 const execution = await agent.execute(plan, {
   onProgress: (phase, percent) => console.log(`${phase}: ${percent}%`),
-  dryRun: false                          // Set true to preview only
+  dryRun: false, // Set true to preview only
 });
 
-console.log(execution.createdFiles);     // ['arena.holo', 'team-logic.hs']
-console.log(execution.executionTime);    // 'ms'
-console.log(execution.errors);           // Any issues encountered
+console.log(execution.createdFiles); // ['arena.holo', 'team-logic.hs']
+console.log(execution.executionTime); // 'ms'
+console.log(execution.errors); // Any issues encountered
 ```
 
 ### Phase 5: Verify
@@ -107,22 +107,22 @@ console.log(execution.errors);           // Any issues encountered
 ```typescript
 const validation = await agent.verify(execution.files);
 
-console.log(validation.syntaxValid);     // true
-console.log(validation.traitsUsed);      // Validated against registry
-console.log(validation.warnings);        // ['High memory usage on compile']
-console.log(validation.security);        // Security audit results
+console.log(validation.syntaxValid); // true
+console.log(validation.traitsUsed); // Validated against registry
+console.log(validation.warnings); // ['High memory usage on compile']
+console.log(validation.security); // Security audit results
 ```
 
 ### Phase 6: Report
 
 ```typescript
 const report = await agent.report({
-  format: 'markdown',                    // or 'json', 'html'
+  format: 'markdown', // or 'json', 'html'
   includeMetrics: true,
-  includeExecutionLog: true
+  includeExecutionLog: true,
 });
 
-console.log(report.markdown);            // Full report as markdown
+console.log(report.markdown); // Full report as markdown
 // Saves to ./AGENT_EXECUTION_REPORT.md
 ```
 
@@ -132,11 +132,11 @@ console.log(report.markdown);            // Full report as markdown
 const affirmation = await agent.affirm({
   completionStatus: 'success',
   nextSteps: 'User should test in Preview',
-  handoffTarget: 'user-review'           // or 'auto-deployment', etc.
+  handoffTarget: 'user-review', // or 'auto-deployment', etc.
 });
 
-console.log(affirmation.taskComplete);   // true
-console.log(affirmation.estimateQuality);// 0-1 confidence score
+console.log(affirmation.taskComplete); // true
+console.log(affirmation.estimateQuality); // 0-1 confidence score
 ```
 
 ## Complete Workflow Example
@@ -146,38 +146,38 @@ import { AgentProtocol } from '@holoscript/agent-protocol';
 
 async function buildScene() {
   const agent = new AgentProtocol({ workspace: './game' });
-  
+
   try {
     // Initialize
     const context = await agent.initialize();
     console.log(`Found ${context.packageCount} packages`);
-    
+
     // Discover available tools
     const discovery = await agent.discover();
     console.log(`${discovery.tools.length} tools available`);
-    
+
     // Plan approach
     const plan = await agent.understand({
-      userGoal: 'Create a cooperative dungeon crawler game'
+      userGoal: 'Create a cooperative dungeon crawler game',
     });
-    
+
     // Execute plan
     const execution = await agent.execute(plan);
     console.log(`Generated ${execution.createdFiles.length} files`);
-    
+
     // Validate
     const validation = await agent.verify(execution.files);
     if (!validation.syntaxValid) throw validation.errors;
-    
+
     // Document
     const report = await agent.report();
-    
+
     // Handoff
     await agent.affirm({
       completionStatus: 'success',
-      nextSteps: 'Test in Preview or VRChat'
+      nextSteps: 'Test in Preview or VRChat',
     });
-    
+
     return execution.createdFiles;
   } catch (error) {
     console.error('Agent execution failed:', error);
@@ -192,14 +192,14 @@ buildScene();
 
 ```typescript
 interface AgentProtocolConfig {
-  workspace: string;                     // Project directory
-  mcpServers: string[];                 // E.g. ['holoscript-language']
-  model: string;                        // 'claude-3-5-sonnet', etc.
-  cacheMode: 'use' | 'force' | 'skip';  // Cache strategy
-  maxTokens: number;                    // Token budget per phase
-  timeout: number;                      // Per-phase timeout (ms)
-  dryRun: boolean;                      // Preview only
-  verbose: boolean;                     // Debug output
+  workspace: string; // Project directory
+  mcpServers: string[]; // E.g. ['holoscript-language']
+  model: string; // 'claude-3-5-sonnet', etc.
+  cacheMode: 'use' | 'force' | 'skip'; // Cache strategy
+  maxTokens: number; // Token budget per phase
+  timeout: number; // Per-phase timeout (ms)
+  dryRun: boolean; // Preview only
+  verbose: boolean; // Debug output
 }
 ```
 
@@ -234,7 +234,7 @@ agent.registerTool({
   description: 'Does something special',
   execute: async (params) => {
     return { result: 'success' };
-  }
+  },
 });
 ```
 

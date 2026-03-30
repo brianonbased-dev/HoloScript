@@ -72,15 +72,18 @@ const CONFIDENCE_THRESHOLDS = {
   // below 0.4 = hallucinating
 };
 
-const LEVEL_CONFIG: Record<ConfidenceLevel, {
-  color: string;
-  bgColor: string;
-  ringColor: string;
-  label: string;
-  icon: string;
-  opacity: number;
-  description: string;
-}> = {
+const LEVEL_CONFIG: Record<
+  ConfidenceLevel,
+  {
+    color: string;
+    bgColor: string;
+    ringColor: string;
+    label: string;
+    icon: string;
+    opacity: number;
+    description: string;
+  }
+> = {
   confident: {
     color: 'text-emerald-400',
     bgColor: 'bg-emerald-500/10',
@@ -142,12 +145,54 @@ const DEFAULT_SAFETY_GUARDS: SafetyGuard[] = [
 ];
 
 const DEMO_ACTIONS: XRAction[] = [
-  { id: 'place-object', label: 'Place Object', icon: '📦', requiresConfidence: 0.3, dangerous: false, handler: () => {} },
-  { id: 'modify-trait', label: 'Modify Trait', icon: '🎨', requiresConfidence: 0.5, dangerous: false, handler: () => {} },
-  { id: 'compile-scene', label: 'Compile Scene', icon: '🔨', requiresConfidence: 0.4, dangerous: false, handler: () => {} },
-  { id: 'deploy-ar', label: 'Deploy to AR', icon: '📱', requiresConfidence: 0.7, dangerous: true, handler: () => {} },
-  { id: 'reset-scene', label: 'Reset Scene', icon: '🗑️', requiresConfidence: 0.8, dangerous: true, handler: () => {} },
-  { id: 'export-production', label: 'Export Production', icon: '🚀', requiresConfidence: 0.9, dangerous: true, handler: () => {} },
+  {
+    id: 'place-object',
+    label: 'Place Object',
+    icon: '📦',
+    requiresConfidence: 0.3,
+    dangerous: false,
+    handler: () => {},
+  },
+  {
+    id: 'modify-trait',
+    label: 'Modify Trait',
+    icon: '🎨',
+    requiresConfidence: 0.5,
+    dangerous: false,
+    handler: () => {},
+  },
+  {
+    id: 'compile-scene',
+    label: 'Compile Scene',
+    icon: '🔨',
+    requiresConfidence: 0.4,
+    dangerous: false,
+    handler: () => {},
+  },
+  {
+    id: 'deploy-ar',
+    label: 'Deploy to AR',
+    icon: '📱',
+    requiresConfidence: 0.7,
+    dangerous: true,
+    handler: () => {},
+  },
+  {
+    id: 'reset-scene',
+    label: 'Reset Scene',
+    icon: '🗑️',
+    requiresConfidence: 0.8,
+    dangerous: true,
+    handler: () => {},
+  },
+  {
+    id: 'export-production',
+    label: 'Export Production',
+    icon: '🚀',
+    requiresConfidence: 0.9,
+    dangerous: true,
+    handler: () => {},
+  },
 ];
 
 // =============================================================================
@@ -207,17 +252,11 @@ export function ConfidenceAwareXRUI({
 
   // ─── Confidence Simulation ────────────────────────────────────────────
 
-  const updateConfidence = useCallback(
-    (newScore: number, action: string) => {
-      const clamped = Math.max(0, Math.min(1, newScore));
-      setConfidence(clamped);
-      setHistory((prev) => [
-        ...prev.slice(-49),
-        { score: clamped, timestamp: Date.now(), action },
-      ]);
-    },
-    []
-  );
+  const updateConfidence = useCallback((newScore: number, action: string) => {
+    const clamped = Math.max(0, Math.min(1, newScore));
+    setConfidence(clamped);
+    setHistory((prev) => [...prev.slice(-49), { score: clamped, timestamp: Date.now(), action }]);
+  }, []);
 
   const simulateDrift = useCallback(() => {
     if (intervalRef.current) {
@@ -250,7 +289,10 @@ export function ConfidenceAwareXRUI({
     (action: XRAction) => {
       // Check if blocked
       if (confidence < action.requiresConfidence) {
-        onActionBlocked?.(action, `Requires confidence >= ${(action.requiresConfidence * 100).toFixed(0)}%`);
+        onActionBlocked?.(
+          action,
+          `Requires confidence >= ${(action.requiresConfidence * 100).toFixed(0)}%`
+        );
         return;
       }
 
@@ -301,14 +343,18 @@ export function ConfidenceAwareXRUI({
           <div className="relative w-16 h-16 flex-shrink-0">
             <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90">
               <circle
-                cx="32" cy="32" r="28"
+                cx="32"
+                cy="32"
+                r="28"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="4"
                 className="text-studio-panel/30"
               />
               <circle
-                cx="32" cy="32" r="28"
+                cx="32"
+                cy="32"
+                r="28"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="4"
@@ -341,10 +387,7 @@ export function ConfidenceAwareXRUI({
       <div className="space-y-1">
         <div className="flex justify-between text-[10px]">
           <span className="text-studio-muted">Adjust Confidence</span>
-          <button
-            onClick={simulateDrift}
-            className="text-studio-accent hover:underline text-[9px]"
-          >
+          <button onClick={simulateDrift} className="text-studio-accent hover:underline text-[9px]">
             {intervalRef.current ? 'Stop Drift' : 'Simulate Drift'}
           </button>
         </div>
@@ -417,8 +460,8 @@ export function ConfidenceAwareXRUI({
           </div>
           <div className="text-[10px] text-studio-text">
             "{pendingConfirm.label}" is a dangerous action. Agent confidence is at{' '}
-            <span className={config.color}>{(confidence * 100).toFixed(0)}%</span>.
-            Proceed with caution?
+            <span className={config.color}>{(confidence * 100).toFixed(0)}%</span>. Proceed with
+            caution?
           </div>
           <div className="flex gap-1">
             <button
@@ -444,7 +487,9 @@ export function ConfidenceAwareXRUI({
           className="text-[10px] text-studio-muted hover:text-studio-text transition flex items-center gap-1"
         >
           <span>{showGuards ? '▼' : '▶'}</span>
-          <span>Safety Guards ({activeGuards.length}/{guards.length} active)</span>
+          <span>
+            Safety Guards ({activeGuards.length}/{guards.length} active)
+          </span>
         </button>
         {showGuards && (
           <div className="mt-1 space-y-0.5">
@@ -466,7 +511,9 @@ export function ConfidenceAwareXRUI({
                       {guard.name}
                     </span>
                   </div>
-                  <span className={`text-[9px] ${active ? 'text-red-400' : 'text-studio-muted/50'}`}>
+                  <span
+                    className={`text-[9px] ${active ? 'text-red-400' : 'text-studio-muted/50'}`}
+                  >
                     &lt;{(guard.activeBelow * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -487,25 +534,25 @@ export function ConfidenceAwareXRUI({
         </button>
         {showHistory && (
           <div className="mt-1 max-h-[100px] overflow-y-auto space-y-0">
-            {[...history].reverse().slice(0, 20).map((snap, i) => {
-              const snapLevel = getConfidenceLevel(snap.score);
-              return (
-                <div
-                  key={i}
-                  className="flex items-center justify-between text-[9px] px-1 py-0.5"
-                >
-                  <div className="flex items-center gap-1">
-                    <span className={LEVEL_CONFIG[snapLevel].color}>
-                      {(snap.score * 100).toFixed(0)}%
+            {[...history]
+              .reverse()
+              .slice(0, 20)
+              .map((snap, i) => {
+                const snapLevel = getConfidenceLevel(snap.score);
+                return (
+                  <div key={i} className="flex items-center justify-between text-[9px] px-1 py-0.5">
+                    <div className="flex items-center gap-1">
+                      <span className={LEVEL_CONFIG[snapLevel].color}>
+                        {(snap.score * 100).toFixed(0)}%
+                      </span>
+                      <span className="text-studio-muted">{snap.action}</span>
+                    </div>
+                    <span className="text-studio-muted/50 font-mono">
+                      {new Date(snap.timestamp).toLocaleTimeString()}
                     </span>
-                    <span className="text-studio-muted">{snap.action}</span>
                   </div>
-                  <span className="text-studio-muted/50 font-mono">
-                    {new Date(snap.timestamp).toLocaleTimeString()}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         )}
       </div>

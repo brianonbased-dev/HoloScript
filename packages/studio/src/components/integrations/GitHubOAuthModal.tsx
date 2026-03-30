@@ -20,13 +20,7 @@ interface GitHubOAuthModalProps {
   onClose: () => void;
 }
 
-type OAuthState =
-  | 'initializing'
-  | 'waiting_for_user'
-  | 'polling'
-  | 'success'
-  | 'error'
-  | 'expired';
+type OAuthState = 'initializing' | 'waiting_for_user' | 'polling' | 'success' | 'error' | 'expired';
 
 interface DeviceCodeData {
   device_code: string;

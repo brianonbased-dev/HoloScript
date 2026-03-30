@@ -11,12 +11,7 @@ describe('GodFileDetector', () => {
   describe('computeMetrics', () => {
     it('counts lines of code excluding comments and blanks', () => {
       const detector = new GodFileDetector();
-      const content = [
-        'const x = 1;',
-        '// comment',
-        '',
-        'const y = 2;',
-      ].join('\n');
+      const content = ['const x = 1;', '// comment', '', 'const y = 2;'].join('\n');
 
       const metrics = detector.computeMetrics('test.ts', content);
       expect(metrics.loc).toBe(2);
@@ -49,11 +44,9 @@ describe('GodFileDetector', () => {
 
     it('counts classes', () => {
       const detector = new GodFileDetector();
-      const content = [
-        'class Foo {}',
-        'class Bar extends Foo {}',
-        'export class Baz {}',
-      ].join('\n');
+      const content = ['class Foo {}', 'class Bar extends Foo {}', 'export class Baz {}'].join(
+        '\n'
+      );
 
       const metrics = detector.computeMetrics('test.ts', content);
       expect(metrics.classCount).toBe(3);
@@ -90,9 +83,10 @@ describe('GodFileDetector', () => {
 
     it('detects god files by function count', () => {
       const detector = createGodFileDetector();
-      const functions = Array(50).fill(null).map((_, i) =>
-        `export function fn${i}(x: number): number { return x * ${i}; }`
-      ).join('\n');
+      const functions = Array(50)
+        .fill(null)
+        .map((_, i) => `export function fn${i}(x: number): number { return x * ${i}; }`)
+        .join('\n');
 
       const report = detector.analyze('many-fns.ts', functions);
       expect(report.classification).toBe('god_file');
@@ -131,7 +125,7 @@ describe('GodFileDetector', () => {
       const plan = detector.suggestSplit('test.ts', content, metrics);
 
       expect(plan.totalSegments).toBeGreaterThan(0);
-      expect(plan.segments.some(s => s.type === 'function-group')).toBe(true);
+      expect(plan.segments.some((s) => s.type === 'function-group')).toBe(true);
     });
   });
 });

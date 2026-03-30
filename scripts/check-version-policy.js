@@ -14,7 +14,9 @@ function readJson(filePath) {
 }
 
 function parseMajor(version) {
-  const match = String(version || '').trim().match(/^(\d+)\./);
+  const match = String(version || '')
+    .trim()
+    .match(/^(\d+)\./);
   return match ? Number(match[1]) : null;
 }
 

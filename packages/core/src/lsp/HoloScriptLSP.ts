@@ -910,8 +910,7 @@ const TRAIT_COMPLETIONS: Record<string, { detail: string; documentation: string 
   // ── Phase 20: Concurrency ──────────────────────────────────────────
   '@actor': {
     detail: 'Actor model',
-    documentation:
-      'Message-passing actor with mailbox.\n\n```holo\n@actor(mailbox_size: 10)\n```',
+    documentation: 'Message-passing actor with mailbox.\n\n```holo\n@actor(mailbox_size: 10)\n```',
   },
   '@csp_channel': {
     detail: 'CSP channel',
@@ -928,7 +927,6 @@ const TRAIT_COMPLETIONS: Record<string, { detail: string; documentation: string 
     documentation:
       'Tracks resource ownership and prevents deadlocks.\n\n```holo\n@deadlock_free(max_resources: 100)\n```',
   },
-
 
   // ── Auto-generated completions ──
 };

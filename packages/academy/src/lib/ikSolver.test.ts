@@ -28,7 +28,7 @@ describe('IK Solver', () => {
   it('should solve simple 2-joint chain', () => {
     const chain = createChain([origin, joint1], target, 0.1, 10);
     const result = fabrikSolve(chain);
-    
+
     expect(result.joints).toHaveLength(2);
     expect(result.iterations).toBeGreaterThanOrEqual(0);
     expect(result.iterations).toBeLessThanOrEqual(10);
@@ -40,7 +40,7 @@ describe('IK Solver', () => {
     const farTarget: Vec3 = { x: 10, y: 10, z: 0 };
     const chain = createChain([origin, joint1], farTarget, 0.1, 10);
     const result = fabrikSolve(chain);
-    
+
     expect(result.reached).toBe(false);
     expect(result.finalDistance).toBeGreaterThan(0);
   });
@@ -48,7 +48,7 @@ describe('IK Solver', () => {
   it('should handle chains with fewer than 2 joints', () => {
     const chain = createChain([origin], target, 0.1, 10);
     const result = fabrikSolve(chain);
-    
+
     expect(result.joints).toHaveLength(1);
     expect(result.reached).toBe(false);
     expect(result.iterations).toBe(0);

@@ -42,7 +42,13 @@ import { CompilerBase } from './CompilerBase';
 import type { ANSCapabilityPathValue } from './identity/ANSNamespace';
 import { ANSCapabilityPath } from './identity/ANSNamespace';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
-import type { HoloDomainBlock, HoloObjectDecl, HoloObjectTrait, HoloObjectProperty, HoloValue } from '../parser/HoloCompositionTypes';
+import type {
+  HoloDomainBlock,
+  HoloObjectDecl,
+  HoloObjectTrait,
+  HoloObjectProperty,
+  HoloValue,
+} from '../parser/HoloCompositionTypes';
 import { DialectRegistry } from './DialectRegistry';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -107,7 +113,7 @@ export class NodeServiceCompiler extends CompilerBase {
   compile(
     composition: HoloComposition,
     agentToken: string,
-    outputPath?: string,
+    outputPath?: string
   ): Record<string, string> {
     this.validateCompilerAccess(agentToken, outputPath);
 
@@ -125,8 +131,7 @@ export class NodeServiceCompiler extends CompilerBase {
 
     // Generate route modules
     for (const service of this.services) {
-      output[this.ext(`routes/${this.toFileName(service.name)}`)] =
-        this.emitRouteModule(service);
+      output[this.ext(`routes/${this.toFileName(service.name)}`)] = this.emitRouteModule(service);
     }
 
     // Generate middleware stubs
@@ -233,9 +238,7 @@ export class NodeServiceCompiler extends CompilerBase {
     };
 
     if (obj.traits) {
-      service.middleware = this.extractMiddlewareFromTraits(
-        obj.traits.map((t) => t.name),
-      );
+      service.middleware = this.extractMiddlewareFromTraits(obj.traits.map((t) => t.name));
     }
 
     // Extract route from object itself
@@ -250,12 +253,17 @@ export class NodeServiceCompiler extends CompilerBase {
     const traits = (obj.traits || []).map((t: HoloObjectTrait) => t.name);
 
     // Look for @http or route properties
-    const method = this.resolveString(propMap.get('method'))?.toUpperCase() as HttpMethod || 'GET';
+    const method =
+      (this.resolveString(propMap.get('method'))?.toUpperCase() as HttpMethod) || 'GET';
     const path = this.resolveString(propMap.get('path')) || `/${this.toKebab(obj.name)}`;
     const handlerName = this.resolveString(propMap.get('handler')) || this.toCamelCase(obj.name);
 
     // Only generate route if there are http-related properties or traits
-    const hasHttpInfo = propMap.has('method') || propMap.has('path') || traits.includes('http') || traits.includes('route');
+    const hasHttpInfo =
+      propMap.has('method') ||
+      propMap.has('path') ||
+      traits.includes('http') ||
+      traits.includes('route');
     if (!hasHttpInfo) return null;
 
     return {
@@ -283,7 +291,13 @@ export class NodeServiceCompiler extends CompilerBase {
   private extractMiddlewareFromTraits(traits: string[]): string[] {
     const mw: string[] = [];
     for (const t of traits) {
-      if (t === 'middleware' || t === 'auth' || t === 'rate_limit' || t === 'cors' || t === 'validation') {
+      if (
+        t === 'middleware' ||
+        t === 'auth' ||
+        t === 'rate_limit' ||
+        t === 'cors' ||
+        t === 'validation'
+      ) {
         mw.push(t);
       }
     }
@@ -326,7 +340,9 @@ export class NodeServiceCompiler extends CompilerBase {
       lines.push('');
       for (const service of this.services) {
         const importName = `${this.toCamelCase(service.name)}Routes`;
-        lines.push(`app.use('${this.escapeStringValue(this.options.apiPrefix, 'TypeScript')}', ${importName});`);
+        lines.push(
+          `app.use('${this.escapeStringValue(this.options.apiPrefix, 'TypeScript')}', ${importName});`
+        );
       }
       lines.push('');
       lines.push(`const PORT = process.env['PORT'] || ${this.options.port};`);
@@ -347,7 +363,9 @@ export class NodeServiceCompiler extends CompilerBase {
       lines.push('');
       for (const service of this.services) {
         const importName = `${this.toCamelCase(service.name)}Routes`;
-        lines.push(`app.register(${importName}, { prefix: '${this.escapeStringValue(this.options.apiPrefix, 'TypeScript')}' });`);
+        lines.push(
+          `app.register(${importName}, { prefix: '${this.escapeStringValue(this.options.apiPrefix, 'TypeScript')}' });`
+        );
       }
       lines.push('');
       lines.push(`const PORT = Number(process.env['PORT']) || ${this.options.port};`);
@@ -383,18 +401,25 @@ export class NodeServiceCompiler extends CompilerBase {
 
       for (const route of service.routes) {
         const methodLower = route.method.toLowerCase();
-        const mwArgs = route.middleware.length > 0
-          ? route.middleware.map((mw) => `/* ${mw} */`).join(', ') + ', '
-          : '';
+        const mwArgs =
+          route.middleware.length > 0
+            ? route.middleware.map((mw) => `/* ${mw} */`).join(', ') + ', '
+            : '';
 
         lines.push(`// ${route.method} ${route.path}`);
         if (this.options.typescript) {
-          lines.push(`router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req: Request, res: Response) => {`);
+          lines.push(
+            `router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req: Request, res: Response) => {`
+          );
         } else {
-          lines.push(`router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req, res) => {`);
+          lines.push(
+            `router.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', ${mwArgs}(req, res) => {`
+          );
         }
         lines.push(`  // TODO: Implement ${route.handlerName}`);
-        lines.push(`  res.json({ message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' });`);
+        lines.push(
+          `  res.json({ message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' });`
+        );
         lines.push(`});`);
         lines.push('');
       }
@@ -407,7 +432,9 @@ export class NodeServiceCompiler extends CompilerBase {
         } else {
           lines.push(`router.get('/health', (_req, res) => {`);
         }
-        lines.push(`  res.json({ status: 'ok', service: '${this.escapeStringValue(service.name, 'TypeScript')}' });`);
+        lines.push(
+          `  res.json({ status: 'ok', service: '${this.escapeStringValue(service.name, 'TypeScript')}' });`
+        );
         lines.push(`});`);
         lines.push('');
       }
@@ -422,9 +449,13 @@ export class NodeServiceCompiler extends CompilerBase {
       for (const route of service.routes) {
         const methodLower = route.method.toLowerCase();
         lines.push(`  // ${route.method} ${route.path}`);
-        lines.push(`  app.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', async (request, reply) => {`);
+        lines.push(
+          `  app.${methodLower}('${this.escapeStringValue(route.path, 'TypeScript')}', async (request, reply) => {`
+        );
         lines.push(`    // TODO: Implement ${route.handlerName}`);
-        lines.push(`    return { message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' };`);
+        lines.push(
+          `    return { message: '${this.escapeStringValue(route.handlerName, 'TypeScript')} not implemented' };`
+        );
         lines.push(`  });`);
         lines.push('');
       }
@@ -432,7 +463,9 @@ export class NodeServiceCompiler extends CompilerBase {
       if (service.routes.length === 0) {
         lines.push(`  // Default health check`);
         lines.push(`  app.get('/health', async () => {`);
-        lines.push(`    return { status: 'ok', service: '${this.escapeStringValue(service.name, 'TypeScript')}' };`);
+        lines.push(
+          `    return { status: 'ok', service: '${this.escapeStringValue(service.name, 'TypeScript')}' };`
+        );
         lines.push(`  });`);
         lines.push('');
       }
@@ -464,11 +497,15 @@ export class NodeServiceCompiler extends CompilerBase {
         lines.push('');
       }
     } else {
-      lines.push(`import type { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';`);
+      lines.push(
+        `import type { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from 'fastify';`
+      );
       lines.push('');
       for (const mw of middleware) {
         const fnName = this.toCamelCase(mw) + 'Middleware';
-        lines.push(`export function ${fnName}(request: FastifyRequest, _reply: FastifyReply, done: HookHandlerDoneFunction) {`);
+        lines.push(
+          `export function ${fnName}(request: FastifyRequest, _reply: FastifyReply, done: HookHandlerDoneFunction) {`
+        );
         lines.push(`  // TODO: Implement ${mw} middleware`);
         lines.push(`  done();`);
         lines.push(`}`);
@@ -500,9 +537,7 @@ export class NodeServiceCompiler extends CompilerBase {
               dev: 'node --watch index.js',
             }),
       },
-      dependencies: isExpress
-        ? { express: '^4.21.0' }
-        : { fastify: '^5.0.0' },
+      dependencies: isExpress ? { express: '^4.21.0' } : { fastify: '^5.0.0' },
       ...(this.options.typescript && {
         devDependencies: {
           typescript: '^5.5.0',
@@ -635,9 +670,19 @@ DialectRegistry.register({
   domain: 'service',
   description: 'Compiles @service traits to Express/Fastify Node.js applications',
   supportedTraits: [
-    'service', 'endpoint', 'route', 'handler', 'middleware',
-    'http', 'gateway', 'proxy', 'load_balancer',
-    'auth', 'cors', 'rate_limit', 'validation',
+    'service',
+    'endpoint',
+    'route',
+    'handler',
+    'middleware',
+    'http',
+    'gateway',
+    'proxy',
+    'load_balancer',
+    'auth',
+    'cors',
+    'rate_limit',
+    'validation',
   ],
   riskTier: 'standard',
   factory: (options) => new NodeServiceCompiler(options as NodeServiceCompilerOptions),

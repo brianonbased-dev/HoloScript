@@ -30,7 +30,7 @@ export function calculateSuccessRate(successCount: number, totalCount: number): 
 export function calculateStandardDeviation(numbers: number[]): number {
   if (numbers.length <= 1) return 0;
   const avg = calculateAverage(numbers);
-  const squaredDifferences = numbers.map(n => Math.pow(n - avg, 2));
+  const squaredDifferences = numbers.map((n) => Math.pow(n - avg, 2));
   const avgSquaredDiff = squaredDifferences.reduce((sum, n) => sum + n, 0) / (numbers.length - 1);
   return Math.sqrt(avgSquaredDiff);
 }
@@ -44,7 +44,5 @@ export function calculateMedian(numbers: number[]): number {
   if (numbers.length === 0) return 0;
   const sorted = [...numbers].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 
-    ? (sorted[mid - 1] + sorted[mid]) / 2 
-    : sorted[mid];
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }

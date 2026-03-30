@@ -82,9 +82,9 @@ const DEFAULT_CONFIG: MVHEVCConfig = {
 };
 
 const QUALITY_BITRATE: Record<string, number> = {
-  low: 10_000_000,    // 10 Mbps per eye
+  low: 10_000_000, // 10 Mbps per eye
   medium: 25_000_000, // 25 Mbps per eye
-  high: 50_000_000,   // 50 Mbps per eye
+  high: 50_000_000, // 50 Mbps per eye
 };
 
 // ── Compiler ─────────────────────────────────────────────────────────────────
@@ -92,11 +92,7 @@ const QUALITY_BITRATE: Record<string, number> = {
 export class MVHEVCCompiler extends CompilerBase {
   protected readonly compilerName = 'MVHEVCCompiler';
 
-  compile(
-    composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string
-  ): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateASTAccess(agentToken);
     this.validateCodeGeneration(agentToken);
     if (outputPath) this.validateOutputPath(agentToken, outputPath);
@@ -165,7 +161,7 @@ export class MVHEVCCompiler extends CompilerBase {
     const config = { ...DEFAULT_CONFIG };
 
     for (const obj of composition.objects) {
-      const svTrait = obj.traits?.find(t => t.name === 'spatial_video');
+      const svTrait = obj.traits?.find((t) => t.name === 'spatial_video');
       if (svTrait?.params) {
         const p = svTrait.params;
         if (typeof p['ipd'] === 'number') config.ipd = p['ipd'];
@@ -173,7 +169,8 @@ export class MVHEVCCompiler extends CompilerBase {
         if (typeof p['fps'] === 'number') config.fps = p['fps'];
         if (typeof p['convergence'] === 'number') config.convergenceDistance = p['convergence'];
         if (typeof p['fov'] === 'number') config.fovDegrees = p['fov'];
-        if (typeof p['quality'] === 'string') config.quality = p['quality'] as MVHEVCConfig['quality'];
+        if (typeof p['quality'] === 'string')
+          config.quality = p['quality'] as MVHEVCConfig['quality'];
       }
     }
 
@@ -184,10 +181,7 @@ export class MVHEVCCompiler extends CompilerBase {
   /**
    * Generate Swift code for spatial video playback on Apple Vision Pro.
    */
-  private generateSwiftCode(
-    composition: HoloComposition,
-    config: MVHEVCConfig
-  ): string {
+  private generateSwiftCode(composition: HoloComposition, config: MVHEVCConfig): string {
     const sceneName = composition.name || 'SpatialVideoScene';
     const bitrate = QUALITY_BITRATE[config.quality] ?? QUALITY_BITRATE.high;
 
@@ -330,7 +324,9 @@ extension StereoRenderPipeline {
    * Generate FFmpeg command for muxing separate L/R HEVC streams into MV-HEVC.
    */
   private generateMuxCommand(config: MVHEVCConfig): string {
-    const bitrate = Math.round((QUALITY_BITRATE[config.quality] ?? QUALITY_BITRATE.high) / 1_000_000);
+    const bitrate = Math.round(
+      (QUALITY_BITRATE[config.quality] ?? QUALITY_BITRATE.high) / 1_000_000
+    );
     return [
       'ffmpeg',
       '-i left_eye.hevc -i right_eye.hevc',

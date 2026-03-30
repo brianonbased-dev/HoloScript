@@ -21,7 +21,11 @@ function resourceAllocation(intensity: number): string {
   return intensity > 0.7 ? 'helicopters' : 'ground_crews';
 }
 
-function chainOfCommandValid(reporter: string, authorizer: string, roster: Record<string, string>): boolean {
+function chainOfCommandValid(
+  reporter: string,
+  authorizer: string,
+  roster: Record<string, string>
+): boolean {
   return roster[reporter] === authorizer;
 }
 
@@ -55,7 +59,7 @@ describe('Scenario: Wildfire — Resource Management', () => {
 
 describe('Scenario: Wildfire — Chain of Command', () => {
   it('chainOfCommandValid() — matches roster', () => {
-    const roster = { 'drone_alpha': 'captain_reyes', 'ground_01': 'captain_reyes' };
+    const roster = { drone_alpha: 'captain_reyes', ground_01: 'captain_reyes' };
     expect(chainOfCommandValid('drone_alpha', 'captain_reyes', roster)).toBe(true);
     expect(chainOfCommandValid('drone_alpha', 'unknown', roster)).toBe(false);
   });

@@ -19,7 +19,12 @@
  */
 
 import { LODGenerator, type MeshData } from './LODGenerator';
-import { type LODConfig, type LODTransition, type LODGenerationOptions, type GeneratedLODLevel } from './LODTypes';
+import {
+  type LODConfig,
+  type LODTransition,
+  type LODGenerationOptions,
+  type GeneratedLODLevel,
+} from './LODTypes';
 import { type AssetMaturity } from '../traits/DraftTrait';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -106,18 +111,20 @@ export class LODBridge {
     source: MeshData,
     maturity: AssetMaturity = 'mesh',
     distances?: number[],
-    transition?: LODTransition,
+    transition?: LODTransition
   ): LODChain {
     // If draft maturity, skip LOD computation — use source as-is
     if (maturity === 'draft') {
       const chain: LODChain = {
         entityId,
         source,
-        levels: [{
-          mesh: source,
-          triangleCount: source.indices.length / 3,
-          ratio: 1.0,
-        }],
+        levels: [
+          {
+            mesh: source,
+            triangleCount: source.indices.length / 3,
+            ratio: 1.0,
+          },
+        ],
         distances: [0],
         maturity,
         transition: transition ?? this.options.defaultTransition,

@@ -19,10 +19,24 @@ describe('ReferenceExporterRegistry', () => {
 
   it('has exporters for all registered targets', () => {
     const targets = [
-      'urdf', 'sdf', 'unity', 'unreal', 'godot',
-      'webgpu', 'r3f', 'babylon', 'openxr', 'vrchat',
-      'ios', 'android', 'android-xr', 'visionos',
-      'usd', 'usdz', 'dtdl', 'wasm',
+      'urdf',
+      'sdf',
+      'unity',
+      'unreal',
+      'godot',
+      'webgpu',
+      'r3f',
+      'babylon',
+      'openxr',
+      'vrchat',
+      'ios',
+      'android',
+      'android-xr',
+      'visionos',
+      'usd',
+      'usdz',
+      'dtdl',
+      'wasm',
     ];
     for (const target of targets) {
       expect(registry.hasExporter(target as any)).toBe(true);

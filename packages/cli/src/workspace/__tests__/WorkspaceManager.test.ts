@@ -161,10 +161,7 @@ describe('WorkspaceManager', () => {
       const manager = new WorkspaceManager(tempDir);
       manager.init('ws');
 
-      const resolution = manager.resolveImport(
-        'nonexistent/file',
-        join(tempDir, 'test.holo')
-      );
+      const resolution = manager.resolveImport('nonexistent/file', join(tempDir, 'test.holo'));
       expect(resolution.found).toBe(false);
     });
   });

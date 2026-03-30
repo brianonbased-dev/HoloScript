@@ -84,7 +84,7 @@ export function resolveRepoRelativePath(
 
 export function isPathAllowed(relPath: string, allowedRoots: string[]): boolean {
   const normalized = relPath.replace(/\\/g, '/');
-  return allowedRoots.some(root => normalized === root || normalized.startsWith(`${root}/`));
+  return allowedRoots.some((root) => normalized === root || normalized.startsWith(`${root}/`));
 }
 
 export function parseHostFromUrl(url: string): string | null {
@@ -105,7 +105,7 @@ export function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter((entry): entry is string => typeof entry === 'string')
-    .map(entry => entry.trim())
+    .map((entry) => entry.trim())
     .filter(Boolean);
 }
 
@@ -276,7 +276,7 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
 
       if (policy.allowedShellCommands.length > 0) {
         const executable = command.split(/\s+/)[0].toLowerCase();
-        const allowed = policy.allowedShellCommands.some(c => c.toLowerCase() === executable);
+        const allowed = policy.allowedShellCommands.some((c) => c.toLowerCase() === executable);
         if (!allowed) {
           bb[`${prefix}_error`] = `command "${executable}" is not allowlisted`;
           return false;
@@ -288,9 +288,10 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
         return false;
       }
 
-      const timeoutMs = typeof params.timeout === 'number' && Number.isFinite(params.timeout)
-        ? Math.max(1_000, Math.min(policy.shellTimeoutMs, Math.floor(params.timeout)))
-        : policy.shellTimeoutMs;
+      const timeoutMs =
+        typeof params.timeout === 'number' && Number.isFinite(params.timeout)
+          ? Math.max(1_000, Math.min(policy.shellTimeoutMs, Math.floor(params.timeout)))
+          : policy.shellTimeoutMs;
 
       const cwd = typeof params.cwd === 'string' ? params.cwd : policy.rootDir;
       const result = await Promise.resolve(caps.process.exec(command, args, { cwd, timeoutMs }));
@@ -324,8 +325,9 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       }
 
       if (policy.allowedHosts.length > 0) {
-        const allowed = policy.allowedHosts.includes(hostName) ||
-          policy.allowedHosts.some(h => hostName.endsWith(`.${h}`));
+        const allowed =
+          policy.allowedHosts.includes(hostName) ||
+          policy.allowedHosts.some((h) => hostName.endsWith(`.${h}`));
         if (!allowed) {
           bb[`${prefix}_error`] = `host "${hostName}" is not allowlisted`;
           return false;
@@ -334,13 +336,16 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
 
       if (caps?.network?.fetch) {
         try {
-          const response = await Promise.resolve(caps.network.fetch(url, {
-            method: typeof params.method === 'string' ? params.method : 'GET',
-            headers: typeof params.headers === 'object' && params.headers
-              ? params.headers as Record<string, string>
-              : undefined,
-            body: typeof params.body === 'string' ? params.body : undefined,
-          }));
+          const response = await Promise.resolve(
+            caps.network.fetch(url, {
+              method: typeof params.method === 'string' ? params.method : 'GET',
+              headers:
+                typeof params.headers === 'object' && params.headers
+                  ? (params.headers as Record<string, string>)
+                  : undefined,
+              body: typeof params.body === 'string' ? params.body : undefined,
+            })
+          );
           bb[`${prefix}_status`] = response.status;
           bb[`${prefix}_body`] = truncateText(response.text ?? '', policy.maxShellOutputBytes);
           bb[`${prefix}_ok`] = response.ok;
@@ -356,9 +361,10 @@ export function createStdlibActions(options: StdlibOptions): Record<string, Acti
       try {
         const response = await (globalThis.fetch as typeof fetch)(url, {
           method: typeof params.method === 'string' ? params.method : 'GET',
-          headers: typeof params.headers === 'object' && params.headers
-            ? params.headers as Record<string, string>
-            : undefined,
+          headers:
+            typeof params.headers === 'object' && params.headers
+              ? (params.headers as Record<string, string>)
+              : undefined,
         });
         const text = await response.text();
         bb[`${prefix}_status`] = response.status;

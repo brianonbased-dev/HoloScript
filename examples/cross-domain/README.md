@@ -4,11 +4,11 @@ Real-world applications rarely fit a single domain. These examples demonstrate c
 
 ## Available Examples
 
-| Example | Domains Combined | Key Features |
-|---|---|---|
-| **[Smart Building](smart-building.holo)** | IoT + Architecture + DataViz | BIM model with sensor heatmaps, occupancy charts, energy trends, HVAC control |
-| **[Concert Venue](concert-venue.holo)** | Music + Input + Rendering + Procedural | Spatial audio, hand-tracked instruments, volumetric fog, beat-synced particles |
-| **[Immersive Classroom](immersive-classroom.holo)** | Education + DataViz + Navigation + Web3 | Guided learning stations, interactive data exploration, NFT certificates |
+| Example                                             | Domains Combined                        | Key Features                                                                   |
+| --------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------ |
+| **[Smart Building](smart-building.holo)**           | IoT + Architecture + DataViz            | BIM model with sensor heatmaps, occupancy charts, energy trends, HVAC control  |
+| **[Concert Venue](concert-venue.holo)**             | Music + Input + Rendering + Procedural  | Spatial audio, hand-tracked instruments, volumetric fog, beat-synced particles |
+| **[Immersive Classroom](immersive-classroom.holo)** | Education + DataViz + Navigation + Web3 | Guided learning stations, interactive data exploration, NFT certificates       |
 
 ## How Cross-Domain Composition Works
 

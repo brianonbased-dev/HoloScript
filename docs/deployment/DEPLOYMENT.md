@@ -215,7 +215,7 @@ choco install holoscript
    ```
 
 2. Submit to Asset Store:
-  [Unity Asset Store Publisher Portal](https://publisher.assetstore.unity3d.com/)
+   [Unity Asset Store Publisher Portal](https://publisher.assetstore.unity3d.com/)
 
 3. Manual review: 4-6 weeks (Pattern G.005.01)
 

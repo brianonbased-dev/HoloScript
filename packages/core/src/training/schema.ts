@@ -93,28 +93,48 @@ export function validateTrainingExample(example: unknown): TrainingValidationRes
   const warnings: string[] = [];
 
   if (!example || typeof example !== 'object') {
-    return { valid: false, errors: [{ field: 'root', message: 'Example must be an object', severity: 'error' }], warnings };
+    return {
+      valid: false,
+      errors: [{ field: 'root', message: 'Example must be an object', severity: 'error' }],
+      warnings,
+    };
   }
 
   const ex = example as Record<string, unknown>;
 
   if (typeof ex.instruction !== 'string' || ex.instruction.length === 0) {
-    errors.push({ field: 'instruction', message: 'instruction must be a non-empty string', severity: 'error' });
+    errors.push({
+      field: 'instruction',
+      message: 'instruction must be a non-empty string',
+      severity: 'error',
+    });
   }
   if (typeof ex.input !== 'string') {
     errors.push({ field: 'input', message: 'input must be a string', severity: 'error' });
   }
   if (typeof ex.output !== 'string' || ex.output.length === 0) {
-    errors.push({ field: 'output', message: 'output must be a non-empty string', severity: 'error' });
+    errors.push({
+      field: 'output',
+      message: 'output must be a non-empty string',
+      severity: 'error',
+    });
   }
 
   if (ex.metadata && typeof ex.metadata === 'object') {
     const meta = ex.metadata as Record<string, unknown>;
     if (typeof meta.category !== 'string') {
-      errors.push({ field: 'metadata.category', message: 'category must be a string', severity: 'error' });
+      errors.push({
+        field: 'metadata.category',
+        message: 'category must be a string',
+        severity: 'error',
+      });
     }
     if (typeof meta.difficulty !== 'string') {
-      errors.push({ field: 'metadata.difficulty', message: 'difficulty must be a string', severity: 'error' });
+      errors.push({
+        field: 'metadata.difficulty',
+        message: 'difficulty must be a string',
+        severity: 'error',
+      });
     }
     if (!Array.isArray(meta.traits)) {
       warnings.push('metadata.traits should be an array');

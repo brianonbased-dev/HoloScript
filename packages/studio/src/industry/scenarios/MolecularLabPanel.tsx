@@ -228,4 +228,3 @@ export function MolecularLabPanel() {
 }
 
 export default MolecularLabPanel;
-

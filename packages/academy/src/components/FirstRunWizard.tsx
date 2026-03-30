@@ -633,9 +633,7 @@ export function FirstRunWizard({ onClose, onComplete }: FirstRunWizardProps) {
                 </div>
 
                 <div className="text-center max-w-md">
-                  <h3 className="text-xl font-semibold text-studio-text mb-2">
-                    You're All Set!
-                  </h3>
+                  <h3 className="text-xl font-semibold text-studio-text mb-2">You're All Set!</h3>
                   <p className="text-sm text-studio-muted mb-6">
                     Your HoloScript Studio is ready. Start creating immersive 3D experiences with
                     just a few lines of code.
@@ -737,7 +735,10 @@ export function FirstRunWizard({ onClose, onComplete }: FirstRunWizardProps) {
 
       {/* GitHub OAuth Modal */}
       {showGitHubModal && (
-        <GitHubOAuthModal onSuccess={handleGitHubSuccess} onClose={() => setShowGitHubModal(false)} />
+        <GitHubOAuthModal
+          onSuccess={handleGitHubSuccess}
+          onClose={() => setShowGitHubModal(false)}
+        />
       )}
     </>
   );

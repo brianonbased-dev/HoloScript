@@ -47,8 +47,12 @@ function makeCtx() {
 // =============================================================================
 
 describe('SchedulerTrait', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   function attach(extra: Partial<SchedulerConfig> = {}) {
     const node = {} as any;
@@ -106,7 +110,8 @@ describe('SchedulerTrait', () => {
       payload: { id: 'j1', action: 'x', interval_ms: 100, mode: 'repeat' },
     });
     schedulerHandler.onEvent!(node, config, ctx, {
-      type: 'scheduler:pause_job', payload: { jobId: 'j1' },
+      type: 'scheduler:pause_job',
+      payload: { jobId: 'j1' },
     });
     expect(ctx.of('scheduler:job_paused').length).toBe(1);
 
@@ -114,7 +119,8 @@ describe('SchedulerTrait', () => {
     expect(ctx.of('scheduler:job_triggered').length).toBe(0);
 
     schedulerHandler.onEvent!(node, config, ctx, {
-      type: 'scheduler:resume_job', payload: { jobId: 'j1' },
+      type: 'scheduler:resume_job',
+      payload: { jobId: 'j1' },
     });
     expect(ctx.of('scheduler:job_resumed').length).toBe(1);
   });
@@ -144,7 +150,17 @@ describe('SchedulerTrait', () => {
 
   it('pre-configured jobs register on attach', () => {
     const { node, ctx } = attach({
-      jobs: [{ id: 'pre', interval_ms: 100, action: 'x', params: {}, mode: 'repeat', max_executions: 0, paused: false }],
+      jobs: [
+        {
+          id: 'pre',
+          interval_ms: 100,
+          action: 'x',
+          params: {},
+          mode: 'repeat',
+          max_executions: 0,
+          paused: false,
+        },
+      ],
     });
     expect(node.__schedulerState.jobs.size).toBe(1);
     expect(ctx.of('scheduler:job_added').length).toBe(1);
@@ -292,17 +308,24 @@ describe('CircuitBreakerTrait', () => {
     });
     const cbId = (ctx.of('a')[0].payload as any).__circuitBreakerId;
     circuitBreakerHandler.onEvent!(node, config, ctx, {
-      type: 'circuit_breaker:result', payload: { cbId, success: false },
+      type: 'circuit_breaker:result',
+      payload: { cbId, success: false },
     });
     expect(node.__circuitBreakerState.state).toBe('open');
 
-    circuitBreakerHandler.onEvent!(node, config, ctx, { type: 'circuit_breaker:reset', payload: {} });
+    circuitBreakerHandler.onEvent!(node, config, ctx, {
+      type: 'circuit_breaker:reset',
+      payload: {},
+    });
     expect(node.__circuitBreakerState.state).toBe('closed');
   });
 
   it('reports status', () => {
     const { node, ctx, config } = attach();
-    circuitBreakerHandler.onEvent!(node, config, ctx, { type: 'circuit_breaker:get_status', payload: {} });
+    circuitBreakerHandler.onEvent!(node, config, ctx, {
+      type: 'circuit_breaker:get_status',
+      payload: {},
+    });
     const status = ctx.of('circuit_breaker:status')[0].payload as any;
     expect(status.state).toBe('closed');
     expect(status.totalRequests).toBe(0);
@@ -397,7 +420,8 @@ describe('RateLimiterTrait', () => {
       payload: { action: 'a', params: {} },
     });
     rateLimiterHandler.onEvent!(node, config, ctx, {
-      type: 'rate_limiter:reset', payload: { key: 'default' },
+      type: 'rate_limiter:reset',
+      payload: { key: 'default' },
     });
     rateLimiterHandler.onEvent!(node, config, ctx, {
       type: 'rate_limiter:execute',
@@ -408,7 +432,10 @@ describe('RateLimiterTrait', () => {
 
   it('reports status', () => {
     const { node, ctx, config } = attach();
-    rateLimiterHandler.onEvent!(node, config, ctx, { type: 'rate_limiter:get_status', payload: {} });
+    rateLimiterHandler.onEvent!(node, config, ctx, {
+      type: 'rate_limiter:get_status',
+      payload: {},
+    });
     const status = ctx.of('rate_limiter:status')[0].payload as any;
     expect(status.strategy).toBe('token_bucket');
   });
@@ -419,8 +446,12 @@ describe('RateLimiterTrait', () => {
 // =============================================================================
 
 describe('TimeoutGuardTrait', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   function attach(extra: Partial<TimeoutGuardConfig> = {}) {
     const node = {} as any;
@@ -459,7 +490,8 @@ describe('TimeoutGuardTrait', () => {
     });
     const guardId = (ctx.of('api')[0].payload as any).__timeoutGuardId;
     timeoutGuardHandler.onEvent!(node, config, ctx, {
-      type: 'timeout_guard:result', payload: { guardId },
+      type: 'timeout_guard:result',
+      payload: { guardId },
     });
     expect(ctx.of('timeout_guard:completed').length).toBe(1);
     expect(node.__timeoutGuardState.operations.size).toBe(0);
@@ -498,7 +530,8 @@ describe('TimeoutGuardTrait', () => {
     });
     const guardId = (ctx.of('api')[0].payload as any).__timeoutGuardId;
     timeoutGuardHandler.onEvent!(node, config, ctx, {
-      type: 'timeout_guard:cancel', payload: { guardId },
+      type: 'timeout_guard:cancel',
+      payload: { guardId },
     });
     expect(node.__timeoutGuardState.operations.size).toBe(0);
   });
@@ -515,7 +548,10 @@ describe('TimeoutGuardTrait', () => {
 
   it('reports status', () => {
     const { node, ctx, config } = attach();
-    timeoutGuardHandler.onEvent!(node, config, ctx, { type: 'timeout_guard:get_status', payload: {} });
+    timeoutGuardHandler.onEvent!(node, config, ctx, {
+      type: 'timeout_guard:get_status',
+      payload: {},
+    });
     const status = ctx.of('timeout_guard:status')[0].payload as any;
     expect(status.active).toBe(0);
   });
@@ -541,13 +577,19 @@ describe('TransformTrait', () => {
 
   it('applies pick transform', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'raw_data', output_event: 'clean_data', enabled: true,
-        ops: [{ type: 'pick', fields: ['name', 'score'] }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'raw_data',
+          output_event: 'clean_data',
+          enabled: true,
+          ops: [{ type: 'pick', fields: ['name', 'score'] }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'raw_data', payload: { name: 'Alice', score: 95, extra: 'removed' },
+      type: 'raw_data',
+      payload: { name: 'Alice', score: 95, extra: 'removed' },
     });
     const output = ctx.of('clean_data')[0].payload as any;
     expect(output.name).toBe('Alice');
@@ -557,13 +599,19 @@ describe('TransformTrait', () => {
 
   it('applies omit transform', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'data', output_event: 'clean', enabled: true,
-        ops: [{ type: 'omit', fields: ['password'] }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'data',
+          output_event: 'clean',
+          enabled: true,
+          ops: [{ type: 'omit', fields: ['password'] }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'data', payload: { user: 'Bob', password: 'secret' },
+      type: 'data',
+      payload: { user: 'Bob', password: 'secret' },
     });
     const output = ctx.of('clean')[0].payload as any;
     expect(output.user).toBe('Bob');
@@ -572,13 +620,19 @@ describe('TransformTrait', () => {
 
   it('applies rename transform', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'in', output_event: 'out', enabled: true,
-        ops: [{ type: 'rename', from: 'old_name', to: 'new_name' }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'in',
+          output_event: 'out',
+          enabled: true,
+          ops: [{ type: 'rename', from: 'old_name', to: 'new_name' }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'in', payload: { old_name: 'value' },
+      type: 'in',
+      payload: { old_name: 'value' },
     });
     const output = ctx.of('out')[0].payload as any;
     expect(output.new_name).toBe('value');
@@ -587,26 +641,38 @@ describe('TransformTrait', () => {
 
   it('applies filter transform — passes', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'metric', output_event: 'high_metric', enabled: true,
-        ops: [{ type: 'filter', field: 'value', op: 'gt', value: 50 }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'metric',
+          output_event: 'high_metric',
+          enabled: true,
+          ops: [{ type: 'filter', field: 'value', op: 'gt', value: 50 }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'metric', payload: { value: 75 },
+      type: 'metric',
+      payload: { value: 75 },
     });
     expect(ctx.of('high_metric').length).toBe(1);
   });
 
   it('applies filter transform — rejects', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'metric', output_event: 'high_metric', enabled: true,
-        ops: [{ type: 'filter', field: 'value', op: 'gt', value: 50 }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'metric',
+          output_event: 'high_metric',
+          enabled: true,
+          ops: [{ type: 'filter', field: 'value', op: 'gt', value: 50 }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'metric', payload: { value: 20 },
+      type: 'metric',
+      payload: { value: 20 },
     });
     expect(ctx.of('high_metric').length).toBe(0);
     expect(ctx.of('transform:filtered').length).toBe(1);
@@ -614,13 +680,19 @@ describe('TransformTrait', () => {
 
   it('applies default transform', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'in', output_event: 'out', enabled: true,
-        ops: [{ type: 'default', field: 'status', value: 'pending' }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'in',
+          output_event: 'out',
+          enabled: true,
+          ops: [{ type: 'default', field: 'status', value: 'pending' }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'in', payload: { name: 'test' },
+      type: 'in',
+      payload: { name: 'test' },
     });
     const output = ctx.of('out')[0].payload as any;
     expect(output.status).toBe('pending');
@@ -629,17 +701,23 @@ describe('TransformTrait', () => {
 
   it('chains multiple transforms', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'raw', output_event: 'processed', enabled: true,
-        ops: [
-          { type: 'pick', fields: ['name', 'score'] },
-          { type: 'rename', from: 'score', to: 'points' },
-          { type: 'default', field: 'rank', value: 'unranked' },
-        ],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'raw',
+          output_event: 'processed',
+          enabled: true,
+          ops: [
+            { type: 'pick', fields: ['name', 'score'] },
+            { type: 'rename', from: 'score', to: 'points' },
+            { type: 'default', field: 'rank', value: 'unranked' },
+          ],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'raw', payload: { name: 'Alice', score: 95, extra: 'x' },
+      type: 'raw',
+      payload: { name: 'Alice', score: 95, extra: 'x' },
     });
     const output = ctx.of('processed')[0].payload as any;
     expect(output.name).toBe('Alice');
@@ -651,10 +729,15 @@ describe('TransformTrait', () => {
 
   it('skips disabled rules', () => {
     const { node, ctx, config } = attach({
-      rules: [{
-        id: 'r1', source_event: 'in', output_event: 'out', enabled: false,
-        ops: [{ type: 'pick', fields: ['x'] }],
-      }],
+      rules: [
+        {
+          id: 'r1',
+          source_event: 'in',
+          output_event: 'out',
+          enabled: false,
+          ops: [{ type: 'pick', fields: ['x'] }],
+        },
+      ],
     });
     transformHandler.onEvent!(node, config, ctx, { type: 'in', payload: { x: 1 } });
     expect(ctx.of('out').length).toBe(0);
@@ -665,14 +748,18 @@ describe('TransformTrait', () => {
     transformHandler.onEvent!(node, config, ctx, {
       type: 'transform:add_rule',
       payload: {
-        id: 'dyn1', source_event: 'a', output_event: 'b', enabled: true,
+        id: 'dyn1',
+        source_event: 'a',
+        output_event: 'b',
+        enabled: true,
         ops: [{ type: 'pick', fields: ['x'] }],
       },
     });
     expect(node.__transformState.rules.size).toBe(1);
 
     transformHandler.onEvent!(node, config, ctx, {
-      type: 'transform:remove_rule', payload: { id: 'dyn1' },
+      type: 'transform:remove_rule',
+      payload: { id: 'dyn1' },
     });
     expect(node.__transformState.rules.size).toBe(0);
   });
@@ -692,8 +779,12 @@ describe('TransformTrait', () => {
 // =============================================================================
 
 describe('BufferTrait', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   function attach(extra: Partial<BufferConfig> = {}) {
     const node = {} as any;
@@ -710,15 +801,23 @@ describe('BufferTrait', () => {
 
   it('buffers events and flushes by count', () => {
     const { node, ctx, config } = attach({
-      channels: [{
-        id: 'ch1', source_event: 'tick', output_event: 'batch', max_count: 3,
-        max_wait_ms: 0, max_size: 100, enabled: true,
-      }],
+      channels: [
+        {
+          id: 'ch1',
+          source_event: 'tick',
+          output_event: 'batch',
+          max_count: 3,
+          max_wait_ms: 0,
+          max_size: 100,
+          enabled: true,
+        },
+      ],
     });
 
     for (let i = 0; i < 3; i++) {
       bufferHandler.onEvent!(node, config, ctx, {
-        type: 'tick', payload: { value: i },
+        type: 'tick',
+        payload: { value: i },
       });
     }
 
@@ -730,10 +829,17 @@ describe('BufferTrait', () => {
 
   it('flushes by time window', () => {
     const { node, ctx, config } = attach({
-      channels: [{
-        id: 'ch1', source_event: 'event', output_event: 'batch', max_count: 100,
-        max_wait_ms: 200, max_size: 100, enabled: true,
-      }],
+      channels: [
+        {
+          id: 'ch1',
+          source_event: 'event',
+          output_event: 'batch',
+          max_count: 100,
+          max_wait_ms: 200,
+          max_size: 100,
+          enabled: true,
+        },
+      ],
     });
 
     bufferHandler.onEvent!(node, config, ctx, { type: 'event', payload: { v: 1 } });
@@ -747,10 +853,17 @@ describe('BufferTrait', () => {
 
   it('drops oldest on overflow', () => {
     const { node, ctx, config } = attach({
-      channels: [{
-        id: 'ch1', source_event: 'e', output_event: 'b', max_count: 100,
-        max_wait_ms: 0, max_size: 2, enabled: true,
-      }],
+      channels: [
+        {
+          id: 'ch1',
+          source_event: 'e',
+          output_event: 'b',
+          max_count: 100,
+          max_wait_ms: 0,
+          max_size: 2,
+          enabled: true,
+        },
+      ],
     });
 
     for (let i = 0; i < 3; i++) {
@@ -761,15 +874,23 @@ describe('BufferTrait', () => {
 
   it('force flushes a channel', () => {
     const { node, ctx, config } = attach({
-      channels: [{
-        id: 'ch1', source_event: 'e', output_event: 'b', max_count: 100,
-        max_wait_ms: 0, max_size: 100, enabled: true,
-      }],
+      channels: [
+        {
+          id: 'ch1',
+          source_event: 'e',
+          output_event: 'b',
+          max_count: 100,
+          max_wait_ms: 0,
+          max_size: 100,
+          enabled: true,
+        },
+      ],
     });
 
     bufferHandler.onEvent!(node, config, ctx, { type: 'e', payload: { v: 1 } });
     bufferHandler.onEvent!(node, config, ctx, {
-      type: 'buffer:force_flush', payload: { id: 'ch1' },
+      type: 'buffer:force_flush',
+      payload: { id: 'ch1' },
     });
     expect(ctx.of('buffer:flush').length).toBe(1);
   });
@@ -779,24 +900,37 @@ describe('BufferTrait', () => {
     bufferHandler.onEvent!(node, config, ctx, {
       type: 'buffer:add_channel',
       payload: {
-        id: 'dyn', source_event: 'x', output_event: 'y', max_count: 5,
-        max_wait_ms: 0, max_size: 50, enabled: true,
+        id: 'dyn',
+        source_event: 'x',
+        output_event: 'y',
+        max_count: 5,
+        max_wait_ms: 0,
+        max_size: 50,
+        enabled: true,
       },
     });
     expect(node.__bufferState.channels.size).toBe(1);
 
     bufferHandler.onEvent!(node, config, ctx, {
-      type: 'buffer:remove_channel', payload: { id: 'dyn' },
+      type: 'buffer:remove_channel',
+      payload: { id: 'dyn' },
     });
     expect(node.__bufferState.channels.size).toBe(0);
   });
 
   it('skips disabled channels', () => {
     const { node, ctx, config } = attach({
-      channels: [{
-        id: 'ch1', source_event: 'e', output_event: 'b', max_count: 1,
-        max_wait_ms: 0, max_size: 100, enabled: false,
-      }],
+      channels: [
+        {
+          id: 'ch1',
+          source_event: 'e',
+          output_event: 'b',
+          max_count: 1,
+          max_wait_ms: 0,
+          max_size: 100,
+          enabled: false,
+        },
+      ],
     });
     bufferHandler.onEvent!(node, config, ctx, { type: 'e', payload: {} });
     expect(ctx.of('b').length).toBe(0);
@@ -804,10 +938,17 @@ describe('BufferTrait', () => {
 
   it('reports status', () => {
     const { node, ctx, config } = attach({
-      channels: [{
-        id: 'ch1', source_event: 'e', output_event: 'b', max_count: 10,
-        max_wait_ms: 0, max_size: 100, enabled: true,
-      }],
+      channels: [
+        {
+          id: 'ch1',
+          source_event: 'e',
+          output_event: 'b',
+          max_count: 10,
+          max_wait_ms: 0,
+          max_size: 100,
+          enabled: true,
+        },
+      ],
     });
     bufferHandler.onEvent!(node, config, ctx, { type: 'buffer:get_status', payload: {} });
     const status = ctx.of('buffer:status')[0].payload as any;
@@ -871,13 +1012,16 @@ describe('StructuredLoggerTrait', () => {
   it('respects min_level filter', () => {
     const { node, ctx, config } = attach({ min_level: 'warn' });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:debug', payload: { message: 'too low' },
+      type: 'logger:debug',
+      payload: { message: 'too low' },
     });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:info', payload: { message: 'too low' },
+      type: 'logger:info',
+      payload: { message: 'too low' },
     });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:warn', payload: { message: 'passes' },
+      type: 'logger:warn',
+      payload: { message: 'passes' },
     });
     expect(node.__structuredLoggerState.totalLogged).toBe(1);
     expect(ctx.of('logger:entry').length).toBe(1);
@@ -887,7 +1031,8 @@ describe('StructuredLoggerTrait', () => {
     const { node, ctx, config } = attach({ max_entries: 5, rotation_count: 3 });
     for (let i = 0; i < 6; i++) {
       structuredLoggerHandler.onEvent!(node, config, ctx, {
-        type: 'logger:info', payload: { message: `log ${i}` },
+        type: 'logger:info',
+        payload: { message: `log ${i}` },
       });
     }
     expect(ctx.of('logger:rotated').length).toBe(1);
@@ -898,11 +1043,13 @@ describe('StructuredLoggerTrait', () => {
     const { node, ctx, config } = attach();
     for (let i = 0; i < 5; i++) {
       structuredLoggerHandler.onEvent!(node, config, ctx, {
-        type: 'logger:info', payload: { message: `msg ${i}` },
+        type: 'logger:info',
+        payload: { message: `msg ${i}` },
       });
     }
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:get_logs', payload: { limit: 2, offset: 1 },
+      type: 'logger:get_logs',
+      payload: { limit: 2, offset: 1 },
     });
     const result = ctx.of('logger:logs')[0].payload as any;
     expect(result.entries.length).toBe(2);
@@ -913,13 +1060,16 @@ describe('StructuredLoggerTrait', () => {
   it('filters logs by level on retrieval', () => {
     const { node, ctx, config } = attach();
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:info', payload: { message: 'info msg' },
+      type: 'logger:info',
+      payload: { message: 'info msg' },
     });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:error', payload: { message: 'err msg' },
+      type: 'logger:error',
+      payload: { message: 'err msg' },
     });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:get_logs', payload: { level: 'error' },
+      type: 'logger:get_logs',
+      payload: { level: 'error' },
     });
     const result = ctx.of('logger:logs')[0].payload as any;
     expect(result.entries.length).toBe(1);
@@ -929,10 +1079,12 @@ describe('StructuredLoggerTrait', () => {
   it('clears all logs', () => {
     const { node, ctx, config } = attach();
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:info', payload: { message: 'x' },
+      type: 'logger:info',
+      payload: { message: 'x' },
     });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:clear', payload: {},
+      type: 'logger:clear',
+      payload: {},
     });
     expect(node.__structuredLoggerState.entries.length).toBe(0);
   });
@@ -942,7 +1094,8 @@ describe('StructuredLoggerTrait', () => {
       default_fields: { service: 'daemon', version: '1.0' },
     });
     structuredLoggerHandler.onEvent!(node, config, ctx, {
-      type: 'logger:info', payload: { message: 'test' },
+      type: 'logger:info',
+      payload: { message: 'test' },
     });
     const entry = ctx.of('logger:entry')[0].payload as any;
     expect(entry.fields.service).toBe('daemon');

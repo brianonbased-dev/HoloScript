@@ -50,22 +50,58 @@ export interface TraitValidationReport {
  */
 export const TM_REGISTERED_TRAITS = [
   // V43 Tier 1 Core AI
-  'llm_agent', 'behavior_tree', 'goal_oriented', 'neural_link', 'neural_forge',
-  'spatial_awareness', 'shared_world', 'eye_tracked', 'hand_tracking', 'vision',
+  'llm_agent',
+  'behavior_tree',
+  'goal_oriented',
+  'neural_link',
+  'neural_forge',
+  'spatial_awareness',
+  'shared_world',
+  'eye_tracked',
+  'hand_tracking',
+  'vision',
   // V43 Tier 2 visionOS
-  'spatial_persona', 'shareplay', 'object_tracking', 'scene_reconstruction',
-  'realitykit_mesh', 'room_mesh', 'volumetric_window', 'spatial_navigation',
+  'spatial_persona',
+  'shareplay',
+  'object_tracking',
+  'scene_reconstruction',
+  'realitykit_mesh',
+  'room_mesh',
+  'volumetric_window',
+  'spatial_navigation',
   // V43 Tier 2 AI Generative
-  'stable_diffusion', 'controlnet', 'ai_texture_gen', 'diffusion_realtime',
-  'ai_inpainting', 'ai_upscaling',
+  'stable_diffusion',
+  'controlnet',
+  'ai_texture_gen',
+  'diffusion_realtime',
+  'ai_inpainting',
+  'ai_upscaling',
   // V5.1 Hololand Exclusive
-  'networked', 'render_network', 'openxr_hal', 'hitl', 'zora_coins',
-  'neural_upscaling', 'grabbable', 'throwable', 'pointable', 'drawable',
-  'attachable', 'socket', 'billboard', 'ui_panel', 'hud', 'glowing',
-  'physics', 'persistent', 'tool',
+  'networked',
+  'render_network',
+  'openxr_hal',
+  'hitl',
+  'zora_coins',
+  'neural_upscaling',
+  'grabbable',
+  'throwable',
+  'pointable',
+  'drawable',
+  'attachable',
+  'socket',
+  'billboard',
+  'ui_panel',
+  'hud',
+  'glowing',
+  'physics',
+  'persistent',
+  'tool',
   // Physics Patterns
-  'conversion_tracking', 'impact_physics', 'fragment_conversion',
-  'damage_falloff', 'cross_system_integration',
+  'conversion_tracking',
+  'impact_physics',
+  'fragment_conversion',
+  'damage_falloff',
+  'cross_system_integration',
 ] as const;
 
 /**
@@ -77,9 +113,7 @@ export function validateTraitName(
   validTraits: ReadonlySet<string> | readonly string[]
 ): string | null {
   const normalized = traitName.toLowerCase().replace(/@/g, '').trim();
-  const traitSet = validTraits instanceof Set
-    ? validTraits
-    : new Set(validTraits);
+  const traitSet = validTraits instanceof Set ? validTraits : new Set(validTraits);
 
   if (traitSet.has(normalized)) return normalized;
   if (traitSet.has(traitName)) return traitName;
@@ -114,9 +148,9 @@ export function generateValidationReport(
   }
 
   return {
-    matched: details.filter(d => d.status === 'matched').length,
-    unmatched: details.filter(d => d.status === 'unmatched').length,
-    deprecated: details.filter(d => d.status === 'deprecated').length,
+    matched: details.filter((d) => d.status === 'matched').length,
+    unmatched: details.filter((d) => d.status === 'unmatched').length,
+    deprecated: details.filter((d) => d.status === 'deprecated').length,
     total: details.length,
     details,
   };

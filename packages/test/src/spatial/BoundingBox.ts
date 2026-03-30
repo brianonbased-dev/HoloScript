@@ -80,18 +80,24 @@ export class BoundingBox {
   /** True if the point is strictly inside (inclusive of boundary). */
   contains(point: Vec3): boolean {
     return (
-      point.x >= this.min.x && point.x <= this.max.x &&
-      point.y >= this.min.y && point.y <= this.max.y &&
-      point.z >= this.min.z && point.z <= this.max.z
+      point.x >= this.min.x &&
+      point.x <= this.max.x &&
+      point.y >= this.min.y &&
+      point.y <= this.max.y &&
+      point.z >= this.min.z &&
+      point.z <= this.max.z
     );
   }
 
   /** True if this box overlaps `other`. Touching edges count as intersection. */
   intersects(other: BoundingBox): boolean {
     return (
-      this.min.x <= other.max.x && this.max.x >= other.min.x &&
-      this.min.y <= other.max.y && this.max.y >= other.min.y &&
-      this.min.z <= other.max.z && this.max.z >= other.min.z
+      this.min.x <= other.max.x &&
+      this.max.x >= other.min.x &&
+      this.min.y <= other.max.y &&
+      this.max.y >= other.min.y &&
+      this.min.z <= other.max.z &&
+      this.max.z >= other.min.z
     );
   }
 

@@ -3,8 +3,4 @@
  * Several older studio modules import from src/lib/sceneGraphStore directly.
  */
 
-export {
-  useSceneGraphStore,
-  type SceneNode,
-  type TraitConfig,
-} from './stores/sceneGraphStore';
+export { useSceneGraphStore, type SceneNode, type TraitConfig } from './stores/sceneGraphStore';

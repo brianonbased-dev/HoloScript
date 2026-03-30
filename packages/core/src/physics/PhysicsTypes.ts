@@ -758,7 +758,13 @@ export type SoftBodyPreset = 'rubber' | 'cloth' | 'jelly' | 'flesh' | 'paper';
 /**
  * PBD constraint types (extended with density for unified fluid coupling)
  */
-export type PBDConstraintType = 'distance' | 'volume' | 'collision' | 'attachment' | 'bending' | 'density';
+export type PBDConstraintType =
+  | 'distance'
+  | 'volume'
+  | 'collision'
+  | 'attachment'
+  | 'bending'
+  | 'density';
 
 /**
  * PBD distance constraint — maintains rest length between two vertices

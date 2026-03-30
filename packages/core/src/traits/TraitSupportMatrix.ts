@@ -99,32 +99,46 @@ function detectPlatformSupport(traitSource: string, traitName: string): TraitPla
     r3f: true,
 
     // GLTF support detected by GLTF extension references or export mentions
-    gltf: lower.includes('gltf') || lower.includes('glb') ||
-          lower.includes('accessor') || lower.includes('buffer'),
+    gltf:
+      lower.includes('gltf') ||
+      lower.includes('glb') ||
+      lower.includes('accessor') ||
+      lower.includes('buffer'),
 
     // Unity support detected by Unity-specific APIs or C# codegen
-    unity: lower.includes('unity') || lower.includes('monobehaviour') ||
-           lower.includes('serializefield') || lower.includes('gameobject'),
+    unity:
+      lower.includes('unity') ||
+      lower.includes('monobehaviour') ||
+      lower.includes('serializefield') ||
+      lower.includes('gameobject'),
 
     // Unreal support detected by Unreal-specific APIs
-    unreal: lower.includes('unreal') || lower.includes('uobject') ||
-            lower.includes('uproperty') || lower.includes('blueprintcallable'),
+    unreal:
+      lower.includes('unreal') ||
+      lower.includes('uobject') ||
+      lower.includes('uproperty') ||
+      lower.includes('blueprintcallable'),
 
     // Babylon support
     babylon: lower.includes('babylon') || lower.includes('abstractmesh'),
 
     // WebXR support
-    webxr: lower.includes('webxr') || lower.includes('xrsession') ||
-           lower.includes('xrframe') || traitName.includes('xr') ||
-           traitName.includes('ar') || traitName.includes('vr'),
+    webxr:
+      lower.includes('webxr') ||
+      lower.includes('xrsession') ||
+      lower.includes('xrframe') ||
+      traitName.includes('xr') ||
+      traitName.includes('ar') ||
+      traitName.includes('vr'),
 
     // ARCore support
-    arcore: lower.includes('arcore') || lower.includes('anchor') &&
-            lower.includes('android'),
+    arcore: lower.includes('arcore') || (lower.includes('anchor') && lower.includes('android')),
 
     // ARKit support
-    arkit: lower.includes('arkit') || traitName.includes('lidar') ||
-           (lower.includes('anchor') && lower.includes('ios')),
+    arkit:
+      lower.includes('arkit') ||
+      traitName.includes('lidar') ||
+      (lower.includes('anchor') && lower.includes('ios')),
   };
 }
 
@@ -205,10 +219,13 @@ function detectCategory(filePath: string, traitSource: string): string {
 
   if (lower.includes('visual') || lower.includes('render')) return 'visual';
   if (lower.includes('physics')) return 'physics';
-  if (lower.includes('interaction') || lower.includes('grab') || lower.includes('click')) return 'interaction';
+  if (lower.includes('interaction') || lower.includes('grab') || lower.includes('click'))
+    return 'interaction';
   if (lower.includes('audio') || lower.includes('sound')) return 'audio';
-  if (lower.includes('network') || lower.includes('sync') || lower.includes('multiplayer')) return 'networking';
-  if (lower.includes('ai') || lower.includes('npc') || lower.includes('behavior')) return 'intelligence';
+  if (lower.includes('network') || lower.includes('sync') || lower.includes('multiplayer'))
+    return 'networking';
+  if (lower.includes('ai') || lower.includes('npc') || lower.includes('behavior'))
+    return 'intelligence';
   if (lower.includes('xr') || lower.includes('ar') || lower.includes('vr')) return 'xr';
   if (lower.includes('accessibility') || lower.includes('a11y')) return 'accessibility';
 
@@ -243,13 +260,19 @@ export function generateTraitSupportMatrix(
   traitFiles: TraitFileInfo[],
   exampleFiles: Set<string> = new Set(),
   testFiles: Set<string> = new Set(),
-  docFiles: Set<string> = new Set(),
+  docFiles: Set<string> = new Set()
 ): TraitSupportMatrixData {
   const traits: Record<string, TraitMatrixEntry> = {};
   const categories: Record<string, string[]> = {};
   const platformCounts: Record<string, number> = {
-    r3f: 0, gltf: 0, unity: 0, unreal: 0,
-    babylon: 0, webxr: 0, arcore: 0, arkit: 0,
+    r3f: 0,
+    gltf: 0,
+    unity: 0,
+    unreal: 0,
+    babylon: 0,
+    webxr: 0,
+    arcore: 0,
+    arkit: 0,
   };
 
   for (const file of traitFiles) {
@@ -266,15 +289,19 @@ export function generateTraitSupportMatrix(
     const conflicts: string[] = [];
     const requiresMatch = file.source.match(/requires\s*[:=]\s*\[([^\]]+)\]/);
     if (requiresMatch) {
-      requires.push(...requiresMatch[1].match(/['"](\w+)['"]/g)?.map(s => s.replace(/['"]/g, '')) || []);
+      requires.push(
+        ...(requiresMatch[1].match(/['"](\w+)['"]/g)?.map((s) => s.replace(/['"]/g, '')) || [])
+      );
     }
     const conflictsMatch = file.source.match(/conflictsWith\s*[:=]\s*\[([^\]]+)\]/);
     if (conflictsMatch) {
-      conflicts.push(...conflictsMatch[1].match(/['"](\w+)['"]/g)?.map(s => s.replace(/['"]/g, '')) || []);
+      conflicts.push(
+        ...(conflictsMatch[1].match(/['"](\w+)['"]/g)?.map((s) => s.replace(/['"]/g, '')) || [])
+      );
     }
 
     // Extract features
-    const features: string[] = properties.map(p => p.name);
+    const features: string[] = properties.map((p) => p.name);
 
     const coverage: TraitCoverage = {
       hasExample: exampleFiles.has(traitName),
@@ -305,7 +332,7 @@ export function generateTraitSupportMatrix(
 
   const totalTraits = Object.keys(traits).length;
   const coveredTraits = Object.values(traits).filter(
-    t => t.coverage.hasExample || t.coverage.hasTest
+    (t) => t.coverage.hasExample || t.coverage.hasTest
   ).length;
 
   return {

@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  PhysicsSyncSender,
-  PhysicsSyncReceiver,
-  parsePacketHeader,
-} from '../PhysicsSyncProtocol';
+import { PhysicsSyncSender, PhysicsSyncReceiver, parsePacketHeader } from '../PhysicsSyncProtocol';
 import { UnifiedParticleBuffer } from '../UnifiedParticleBuffer';
 import { ParticleType } from '../PhysicsTypes';
 

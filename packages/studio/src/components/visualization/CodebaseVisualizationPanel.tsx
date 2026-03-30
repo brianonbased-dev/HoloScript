@@ -15,7 +15,7 @@ import React, { useMemo } from 'react';
 // ─── Data types (mirrors CodebaseGraph serialized shape) ──────────────────────
 
 export interface VisNode {
-  id: string;    // file path or symbol id
+  id: string; // file path or symbol id
   label: string; // short display name
   community: number;
   degree: number; // number of connections (for sizing)
@@ -124,7 +124,10 @@ export const CodebaseVisualizationPanel: React.FC<CodebaseVisualizationPanelProp
   height = 480,
   onNodeClick,
 }) => {
-  const layouted = useMemo(() => layoutNodes(data.nodes, width, height), [data.nodes, width, height]);
+  const layouted = useMemo(
+    () => layoutNodes(data.nodes, width, height),
+    [data.nodes, width, height]
+  );
 
   const nodeMap = useMemo(() => {
     const m = new Map<string, LayoutNode>();
@@ -213,12 +216,7 @@ export const CodebaseVisualizationPanel: React.FC<CodebaseVisualizationPanelProp
                 style={{ cursor: onNodeClick ? 'pointer' : 'default' }}
                 data-testid={`vis-node-${node.id}`}
               >
-                <circle
-                  r={node.r}
-                  fill={node.color}
-                  stroke="rgba(0,0,0,0.4)"
-                  strokeWidth={0.5}
-                />
+                <circle r={node.r} fill={node.color} stroke="rgba(0,0,0,0.4)" strokeWidth={0.5} />
                 {node.r >= 5 && (
                   <text
                     x={node.r + 3}
@@ -271,14 +269,12 @@ export interface SerializedFileEntry {
   calls?: string[];
 }
 
-export function graphToVisualizationData(
-  serialized: {
-    version: number;
-    rootDir: string;
-    files: SerializedFileEntry[];
-    communities?: Record<string, number>;
-  }
-): CodebaseVisualizationData {
+export function graphToVisualizationData(serialized: {
+  version: number;
+  rootDir: string;
+  files: SerializedFileEntry[];
+  communities?: Record<string, number>;
+}): CodebaseVisualizationData {
   const communityMap = serialized.communities ?? {};
   const nodes: VisNode[] = serialized.files.map((f) => {
     const imports = f.imports ?? [];

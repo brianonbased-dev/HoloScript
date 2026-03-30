@@ -41,14 +41,17 @@ export interface ShellConfig {
 }
 
 export interface ShellState {
-  activeProcesses: Map<number, {
-    pid: number;
-    command: string;
-    startedAt: number;
-    stdout: string;
-    stderr: string;
-    timer: ReturnType<typeof setTimeout> | null;
-  }>;
+  activeProcesses: Map<
+    number,
+    {
+      pid: number;
+      command: string;
+      startedAt: number;
+      stdout: string;
+      stderr: string;
+      timer: ReturnType<typeof setTimeout> | null;
+    }
+  >;
   history: Array<{
     command: string;
     exitCode: number | null;
@@ -92,7 +95,9 @@ export const shellHandler: TraitHandler<ShellConfig> = {
         if (proc.timer) clearTimeout(proc.timer);
         try {
           process.kill(proc.pid);
-        } catch { /* best effort */ }
+        } catch {
+          /* best effort */
+        }
       }
       state.activeProcesses.clear();
     }
@@ -197,7 +202,11 @@ export const shellHandler: TraitHandler<ShellConfig> = {
           // Timeout
           if (config.timeout_ms > 0) {
             procEntry.timer = setTimeout(() => {
-              try { child.kill('SIGKILL'); } catch { /* best effort */ }
+              try {
+                child.kill('SIGKILL');
+              } catch {
+                /* best effort */
+              }
               context.emit?.('shell:timeout', {
                 pid,
                 command: procEntry.command,
@@ -263,7 +272,11 @@ export const shellHandler: TraitHandler<ShellConfig> = {
         const proc = state.activeProcesses.get(pid);
         if (proc) {
           if (proc.timer) clearTimeout(proc.timer);
-          try { process.kill(pid, payload.signal ?? 'SIGTERM'); } catch { /* best effort */ }
+          try {
+            process.kill(pid, payload.signal ?? 'SIGTERM');
+          } catch {
+            /* best effort */
+          }
         }
         break;
       }

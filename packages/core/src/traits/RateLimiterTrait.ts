@@ -103,7 +103,7 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
       // Prune old sliding window entries
       const cutoff = Date.now() - config.window_ms;
       for (const [, entry] of state.windows) {
-        entry.timestamps = entry.timestamps.filter(t => t >= cutoff);
+        entry.timestamps = entry.timestamps.filter((t) => t >= cutoff);
       }
     }
   },
@@ -121,9 +121,10 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
         const key = (payload.key as string) ?? config.default_key;
         if (!action) break;
 
-        const result = config.strategy === 'token_bucket'
-          ? checkTokenBucket(state, config, key)
-          : checkSlidingWindow(state, config, key);
+        const result =
+          config.strategy === 'token_bucket'
+            ? checkTokenBucket(state, config, key)
+            : checkSlidingWindow(state, config, key);
 
         if (result.allowed) {
           state.totalAllowed++;
@@ -186,7 +187,7 @@ export const rateLimiterHandler: TraitHandler<RateLimiterConfig> = {
 function checkTokenBucket(
   state: RateLimiterState,
   config: RateLimiterConfig,
-  key: string,
+  key: string
 ): { allowed: boolean; remaining: number; resetAt: number; retryAfterMs: number } {
   let bucket = state.buckets.get(key);
   if (!bucket) {
@@ -216,7 +217,7 @@ function checkTokenBucket(
 function checkSlidingWindow(
   state: RateLimiterState,
   config: RateLimiterConfig,
-  key: string,
+  key: string
 ): { allowed: boolean; remaining: number; resetAt: number; retryAfterMs: number } {
   let entry = state.windows.get(key);
   if (!entry) {
@@ -226,7 +227,7 @@ function checkSlidingWindow(
 
   const now = Date.now();
   const cutoff = now - config.window_ms;
-  entry.timestamps = entry.timestamps.filter(t => t >= cutoff);
+  entry.timestamps = entry.timestamps.filter((t) => t >= cutoff);
 
   if (entry.timestamps.length < config.max_requests) {
     entry.timestamps.push(now);

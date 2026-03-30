@@ -132,7 +132,7 @@ export function FluidRenderer({
       uOpacity: { value: 0.85 },
       uPointSize: { value: particleSize * 1000 },
     }),
-    [colorObj, particleSize],
+    [colorObj, particleSize]
   );
 
   // SSFR would be a multi-pass post-process — for now, use point rendering

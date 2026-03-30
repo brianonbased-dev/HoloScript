@@ -24,7 +24,12 @@ function makeNode(id: string, withMaterial = false): SceneNode {
     rotation: [0, 0, 0],
     scale: [1, 1, 1],
     traits: withMaterial
-      ? [{ name: 'material', properties: { color: '#ffffff', roughness: 0.5, metalness: 0.0, opacity: 1.0 } }]
+      ? [
+          {
+            name: 'material',
+            properties: { color: '#ffffff', roughness: 0.5, metalness: 0.0, opacity: 1.0 },
+          },
+        ]
       : [],
   };
 }

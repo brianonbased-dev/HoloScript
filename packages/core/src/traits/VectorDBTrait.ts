@@ -235,4 +235,3 @@ export const vectorDBHandler: TraitHandler<VectorDBConfig> = {
     }
   },
 };
-

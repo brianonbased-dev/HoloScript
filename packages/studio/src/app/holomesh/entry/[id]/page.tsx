@@ -39,7 +39,10 @@ export default function EntryDetailPage() {
     try {
       const res = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}`);
       const data = await res.json();
-      if (!data.success) { setError(data.error || 'Failed to load'); return; }
+      if (!data.success) {
+        setError(data.error || 'Failed to load');
+        return;
+      }
       setEntry(data.entry);
       setComments(data.comments || []);
     } catch (err) {
@@ -49,47 +52,62 @@ export default function EntryDetailPage() {
     }
   }, [entryId]);
 
-  useEffect(() => { fetchEntry(); }, [fetchEntry]);
+  useEffect(() => {
+    fetchEntry();
+  }, [fetchEntry]);
 
-  const handleVoteEntry = useCallback(async (value: 1 | -1) => {
-    try {
-      const res = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value }),
-      });
-      const data = await res.json();
-      if (data.success && entry) {
-        setEntry({ ...entry, voteCount: data.voteCount, userVote: data.userVote });
+  const handleVoteEntry = useCallback(
+    async (value: 1 | -1) => {
+      try {
+        const res = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        });
+        const data = await res.json();
+        if (data.success && entry) {
+          setEntry({ ...entry, voteCount: data.voteCount, userVote: data.userVote });
+        }
+      } catch {
+        /* silent */
       }
-    } catch { /* silent */ }
-  }, [entryId, entry]);
+    },
+    [entryId, entry]
+  );
 
-  const handleVoteComment = useCallback(async (commentId: string, value: 1 | -1) => {
-    try {
-      await fetch(`/api/holomesh/comment/${encodeURIComponent(commentId)}/vote`, {
+  const handleVoteComment = useCallback(
+    async (commentId: string, value: 1 | -1) => {
+      try {
+        await fetch(`/api/holomesh/comment/${encodeURIComponent(commentId)}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        });
+        // Refresh comments
+        const res = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/comments`);
+        const data = await res.json();
+        if (data.success) setComments(data.comments);
+      } catch {
+        /* silent */
+      }
+    },
+    [entryId]
+  );
+
+  const handleReply = useCallback(
+    async (_entryId: string, parentId: string, content: string) => {
+      await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value }),
+        body: JSON.stringify({ content, parentId }),
       });
-      // Refresh comments
+      // Refresh
       const res = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/comments`);
       const data = await res.json();
       if (data.success) setComments(data.comments);
-    } catch { /* silent */ }
-  }, [entryId]);
-
-  const handleReply = useCallback(async (_entryId: string, parentId: string, content: string) => {
-    await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/comment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, parentId }),
-    });
-    // Refresh
-    const res = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/comments`);
-    const data = await res.json();
-    if (data.success) setComments(data.comments);
-  }, [entryId]);
+    },
+    [entryId]
+  );
 
   const handlePostComment = useCallback(async () => {
     if (!newComment.trim() || posting) return;
@@ -130,7 +148,9 @@ export default function EntryDetailPage() {
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error || 'Entry not found'}
         </div>
-        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">Back to HoloMesh</Link>
+        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
+          Back to HoloMesh
+        </Link>
       </div>
     );
   }
@@ -143,12 +163,17 @@ export default function EntryDetailPage() {
       {/* Header */}
       <header className="shrink-0 border-b border-studio-border bg-[#0d0d14] px-6 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/holomesh" className="text-studio-muted hover:text-studio-text transition-colors">
+          <Link
+            href="/holomesh"
+            className="text-studio-muted hover:text-studio-text transition-colors"
+          >
             &larr;
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-bold ${typeClass}`}>
+              <span
+                className={`shrink-0 rounded border px-2 py-0.5 text-xs font-bold ${typeClass}`}
+              >
                 {typeLabel}
               </span>
               {entry.domain && (
@@ -161,10 +186,13 @@ export default function EntryDetailPage() {
               )}
               <span className="text-[10px] text-studio-muted">
                 by{' '}
-                <Link href={`/holomesh/agent/${entry.authorId}`} className="hover:text-studio-accent transition-colors">
+                <Link
+                  href={`/holomesh/agent/${entry.authorId}`}
+                  className="hover:text-studio-accent transition-colors"
+                >
                   {entry.authorName}
-                </Link>
-                {' '}{timeSince(entry.createdAt)}
+                </Link>{' '}
+                {timeSince(entry.createdAt)}
               </span>
             </div>
           </div>
@@ -201,10 +229,14 @@ export default function EntryDetailPage() {
               {(entry.tags?.length || entry.confidence != null) && (
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-studio-muted">
                   {entry.tags?.map((tag) => (
-                    <span key={tag} className="rounded bg-studio-panel px-1.5 py-0.5">#{tag}</span>
+                    <span key={tag} className="rounded bg-studio-panel px-1.5 py-0.5">
+                      #{tag}
+                    </span>
                   ))}
                   {entry.confidence != null && (
-                    <span className="ml-auto">{Math.round(entry.confidence * 100)}% confidence</span>
+                    <span className="ml-auto">
+                      {Math.round(entry.confidence * 100)}% confidence
+                    </span>
                   )}
                   {entry.price > 0 && (
                     <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-400 border border-emerald-500/30">
@@ -251,7 +283,9 @@ export default function EntryDetailPage() {
                 key={s}
                 onClick={() => setSort(s)}
                 className={`rounded px-2.5 py-1 text-xs transition-colors ${
-                  sort === s ? 'bg-studio-accent text-white' : 'text-studio-muted hover:text-studio-text'
+                  sort === s
+                    ? 'bg-studio-accent text-white'
+                    : 'text-studio-muted hover:text-studio-text'
                 }`}
               >
                 {s.charAt(0).toUpperCase() + s.slice(1)}

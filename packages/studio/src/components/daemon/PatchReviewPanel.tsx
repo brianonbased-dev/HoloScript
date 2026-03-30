@@ -121,7 +121,7 @@ function LogViewer({ logs }: { logs: DaemonLogEntry[] }) {
 
 export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProps) {
   const [selectedPatches, setSelectedPatches] = useState<Set<string>>(
-    () => new Set(job.patches?.map((p) => p.id) ?? []),
+    () => new Set(job.patches?.map((p) => p.id) ?? [])
   );
   const [expandedPatch, setExpandedPatch] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'patches' | 'logs' | 'metrics'>('patches');
@@ -192,7 +192,8 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
 
   const qualityDelta = job.metrics?.qualityDelta ?? 0;
   const deltaSign = qualityDelta >= 0 ? '+' : '';
-  const deltaColor = qualityDelta > 0 ? 'text-emerald-400' : qualityDelta < 0 ? 'text-red-400' : 'text-gray-400';
+  const deltaColor =
+    qualityDelta > 0 ? 'text-emerald-400' : qualityDelta < 0 ? 'text-red-400' : 'text-gray-400';
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -205,9 +206,13 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
               Job {job.id} -- {patches.length} patch{patches.length !== 1 ? 'es' : ''} proposed
               {job.metrics && (
                 <span className="ml-2">
-                  | Quality: <span className={deltaColor}>{deltaSign}{qualityDelta}</span>
-                  | {formatDuration(job.metrics.durationMs)}
-                  | {job.metrics.cycles} cycle{job.metrics.cycles !== 1 ? 's' : ''}
+                  | Quality:{' '}
+                  <span className={deltaColor}>
+                    {deltaSign}
+                    {qualityDelta}
+                  </span>
+                  | {formatDuration(job.metrics.durationMs)}| {job.metrics.cycles} cycle
+                  {job.metrics.cycles !== 1 ? 's' : ''}
                 </span>
               )}
             </p>
@@ -232,7 +237,11 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
                   : 'border-transparent text-studio-muted hover:text-studio-text'
               }`}
             >
-              {tab === 'patches' ? `Patches (${patches.length})` : tab === 'logs' ? `Logs (${logs.length})` : 'Metrics'}
+              {tab === 'patches'
+                ? `Patches (${patches.length})`
+                : tab === 'logs'
+                  ? `Logs (${logs.length})`
+                  : 'Metrics'}
             </button>
           ))}
         </div>
@@ -252,10 +261,16 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
                   {/* Selection controls */}
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
-                      <button onClick={selectAll} className="text-[10px] text-studio-accent hover:underline">
+                      <button
+                        onClick={selectAll}
+                        className="text-[10px] text-studio-accent hover:underline"
+                      >
                         Select all
                       </button>
-                      <button onClick={selectNone} className="text-[10px] text-studio-muted hover:underline">
+                      <button
+                        onClick={selectNone}
+                        className="text-[10px] text-studio-muted hover:underline"
+                      >
                         Deselect all
                       </button>
                       <span className="text-[10px] text-studio-muted">
@@ -264,7 +279,10 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
                     </div>
                     <div className="flex gap-1.5 text-[10px]">
                       {Object.entries(patchesByCategory).map(([cat, items]) => (
-                        <span key={cat} className={`px-1.5 py-0.5 rounded ${CATEGORY_COLORS[cat] || 'bg-gray-500/20 text-gray-400'}`}>
+                        <span
+                          key={cat}
+                          className={`px-1.5 py-0.5 rounded ${CATEGORY_COLORS[cat] || 'bg-gray-500/20 text-gray-400'}`}
+                        >
                           {cat}: {items.length}
                         </span>
                       ))}
@@ -293,13 +311,15 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
                             className="h-3.5 w-3.5 accent-studio-accent"
                           />
 
-                          <span className={`shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] font-mono font-bold ${
-                            patch.action === 'create'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : patch.action === 'delete'
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-blue-500/20 text-blue-400'
-                          }`}>
+                          <span
+                            className={`shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] font-mono font-bold ${
+                              patch.action === 'create'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : patch.action === 'delete'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : 'bg-blue-500/20 text-blue-400'
+                            }`}
+                          >
                             {ACTION_ICONS[patch.action]}
                           </span>
 
@@ -307,11 +327,17 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
                             onClick={() => setExpandedPatch(isExpanded ? null : patch.id)}
                             className="flex-1 text-left"
                           >
-                            <span className="text-xs font-mono text-studio-text">{patch.filePath}</span>
-                            <span className="ml-2 text-[10px] text-studio-muted">{patch.description}</span>
+                            <span className="text-xs font-mono text-studio-text">
+                              {patch.filePath}
+                            </span>
+                            <span className="ml-2 text-[10px] text-studio-muted">
+                              {patch.description}
+                            </span>
                           </button>
 
-                          <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] ${CATEGORY_COLORS[patch.category] || ''}`}>
+                          <span
+                            className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] ${CATEGORY_COLORS[patch.category] || ''}`}
+                          >
                             {patch.category}
                           </span>
 
@@ -340,27 +366,44 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
           {activeTab === 'metrics' && job.metrics && (
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
-                <p className="text-[10px] text-studio-muted uppercase tracking-wider">Quality Before</p>
-                <p className="text-2xl font-bold text-studio-text">{(job.metrics.qualityBefore * 100).toFixed(1)}%</p>
+                <p className="text-[10px] text-studio-muted uppercase tracking-wider">
+                  Quality Before
+                </p>
+                <p className="text-2xl font-bold text-studio-text">
+                  {(job.metrics.qualityBefore * 100).toFixed(1)}%
+                </p>
               </div>
               <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
-                <p className="text-[10px] text-studio-muted uppercase tracking-wider">Quality After</p>
-                <p className={`text-2xl font-bold ${deltaColor}`}>{(job.metrics.qualityAfter * 100).toFixed(1)}%</p>
+                <p className="text-[10px] text-studio-muted uppercase tracking-wider">
+                  Quality After
+                </p>
+                <p className={`text-2xl font-bold ${deltaColor}`}>
+                  {(job.metrics.qualityAfter * 100).toFixed(1)}%
+                </p>
               </div>
               <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
-                <p className="text-[10px] text-studio-muted uppercase tracking-wider">Quality Delta</p>
-                <p className={`text-2xl font-bold ${deltaColor}`}>{deltaSign}{(qualityDelta * 100).toFixed(1)}%</p>
+                <p className="text-[10px] text-studio-muted uppercase tracking-wider">
+                  Quality Delta
+                </p>
+                <p className={`text-2xl font-bold ${deltaColor}`}>
+                  {deltaSign}
+                  {(qualityDelta * 100).toFixed(1)}%
+                </p>
               </div>
               <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
                 <p className="text-[10px] text-studio-muted uppercase tracking-wider">Duration</p>
-                <p className="text-2xl font-bold text-studio-text">{formatDuration(job.metrics.durationMs)}</p>
+                <p className="text-2xl font-bold text-studio-text">
+                  {formatDuration(job.metrics.durationMs)}
+                </p>
               </div>
               <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
                 <p className="text-[10px] text-studio-muted uppercase tracking-wider">Cycles</p>
                 <p className="text-2xl font-bold text-studio-text">{job.metrics.cycles}</p>
               </div>
               <div className="rounded-lg border border-studio-border bg-studio-surface p-4">
-                <p className="text-[10px] text-studio-muted uppercase tracking-wider">Files Analyzed</p>
+                <p className="text-[10px] text-studio-muted uppercase tracking-wider">
+                  Files Analyzed
+                </p>
                 <p className="text-2xl font-bold text-studio-text">{job.metrics.filesAnalyzed}</p>
               </div>
             </div>
@@ -410,7 +453,9 @@ export function PatchReviewPanel({ job, onClose, onRerun }: PatchReviewPanelProp
               disabled={selectedPatches.size === 0 || applying}
               className="px-3 py-1.5 text-xs text-white bg-emerald-500 rounded hover:bg-emerald-600 transition disabled:opacity-50"
             >
-              {applying ? 'Applying...' : `Apply ${selectedPatches.size} Patch${selectedPatches.size !== 1 ? 'es' : ''}`}
+              {applying
+                ? 'Applying...'
+                : `Apply ${selectedPatches.size} Patch${selectedPatches.size !== 1 ? 'es' : ''}`}
             </button>
           </div>
         </div>

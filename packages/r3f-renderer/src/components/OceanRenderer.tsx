@@ -194,7 +194,17 @@ export function OceanRenderer({
       uFogColor: { value: fogCol },
       uFogDensity: { value: underwaterFogDensity },
     }),
-    [windSpeed, windDir, choppiness, colorObj, roughness, foamThreshold, sunPos, fogCol, underwaterFogDensity],
+    [
+      windSpeed,
+      windDir,
+      choppiness,
+      colorObj,
+      roughness,
+      foamThreshold,
+      sunPos,
+      fogCol,
+      underwaterFogDensity,
+    ]
   );
 
   useFrame((_, delta) => {
@@ -210,10 +220,11 @@ export function OceanRenderer({
       const t = timeRef.current;
       const k = (2 * Math.PI) / 60;
       const c = Math.sqrt(9.81 / k);
-      const phase = k * (windDirection[0] * worldX + windDirection[1] * worldZ - c * windSpeed * 0.1 * t);
+      const phase =
+        k * (windDirection[0] * worldX + windDirection[1] * worldZ - c * windSpeed * 0.1 * t);
       return altitude + Math.sin(phase) * choppiness;
     },
-    [altitude, windSpeed, windDirection, choppiness],
+    [altitude, windSpeed, windDirection, choppiness]
   );
 
   // Expose buoyancy API via userData

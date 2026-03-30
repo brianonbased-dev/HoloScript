@@ -8,12 +8,12 @@
 
 The Upstash connector provides **three integrated subsystems** for AI agents working with HoloScript:
 
-| Subsystem | Tools | Purpose |
-|-----------|-------|---------|
-| **Redis** | 7 | Scene caching, session state, user preferences |
-| **Vector** | 6 | Composition embeddings for semantic "find similar" |
-| **QStash** | 9 | Scheduled compilation, health monitoring, CI/CD |
-| **Convenience** | 3 | High-level operations (nightly builds, deployments) |
+| Subsystem       | Tools | Purpose                                             |
+| --------------- | ----- | --------------------------------------------------- |
+| **Redis**       | 7     | Scene caching, session state, user preferences      |
+| **Vector**      | 6     | Composition embeddings for semantic "find similar"  |
+| **QStash**      | 9     | Scheduled compilation, health monitoring, CI/CD     |
+| **Convenience** | 3     | High-level operations (nightly builds, deployments) |
 
 ---
 
@@ -45,6 +45,7 @@ export QSTASH_TOKEN=your-qstash-token
 **Use case**: Cache compiled scenes to avoid re-compiling unchanged code (100x speedup for large projects)
 
 #### 1. `upstash_redis_cache_set`
+
 Store compiled scene with TTL (time to live).
 
 ```json
@@ -65,11 +66,13 @@ Store compiled scene with TTL (time to live).
 **Response**: `{ "success": true }`
 
 **TTL defaults:**
+
 - Scenes: 86400 seconds (24 hours)
 - Sessions: 3600 seconds (1 hour)
 - Preferences: No expiration (persistent)
 
 #### 2. `upstash_redis_cache_get`
+
 Retrieve cached scene.
 
 ```json
@@ -84,6 +87,7 @@ Retrieve cached scene.
 **Response**: Cached value or `null` if not found/expired
 
 #### 3. `upstash_redis_cache_delete`
+
 Invalidate cache entry.
 
 ```json
@@ -104,6 +108,7 @@ Invalidate cache entry.
 **Use case**: Persist CLI session state across multiple commands (e.g., current project, last compilation target)
 
 #### 4. `upstash_redis_session_set`
+
 Save session state with automatic 1-hour expiration.
 
 ```json
@@ -122,6 +127,7 @@ Save session state with automatic 1-hour expiration.
 ```
 
 #### 5. `upstash_redis_session_get`
+
 Load session state.
 
 ```json
@@ -142,6 +148,7 @@ Load session state.
 **Use case**: Store user-specific settings (theme, default compiler target, IDE preferences)
 
 #### 6. `upstash_redis_prefs_set`
+
 Update user preferences (persistent, no TTL).
 
 ```json
@@ -159,6 +166,7 @@ Update user preferences (persistent, no TTL).
 ```
 
 #### 7. `upstash_redis_prefs_get`
+
 Get user preferences.
 
 ```json
@@ -179,6 +187,7 @@ Get user preferences.
 **Use case**: "Find compositions similar to this one" (e.g., find all scenes with physics + rigidbody)
 
 #### 8. `upstash_vector_upsert`
+
 Add or update composition embedding.
 
 ```json
@@ -201,6 +210,7 @@ Add or update composition embedding.
 **Cost**: ~$0.006 per 10,000 compositions (OpenAI)
 
 #### 9. `upstash_vector_search`
+
 Find similar compositions by embedding vector.
 
 ```json
@@ -216,6 +226,7 @@ Find similar compositions by embedding vector.
 ```
 
 **Response**:
+
 ```json
 [
   {
@@ -231,6 +242,7 @@ Find similar compositions by embedding vector.
 ```
 
 #### 10. `upstash_vector_search_text`
+
 Search by natural language query (generates embedding automatically).
 
 ```json
@@ -247,6 +259,7 @@ Search by natural language query (generates embedding automatically).
 **Note**: Requires MCP orchestrator for embedding generation.
 
 #### 11. `upstash_vector_fetch`
+
 Get composition by ID.
 
 ```json
@@ -259,6 +272,7 @@ Get composition by ID.
 ```
 
 #### 12. `upstash_vector_delete`
+
 Delete composition embedding.
 
 ```json
@@ -271,6 +285,7 @@ Delete composition embedding.
 ```
 
 #### 13. `upstash_vector_info`
+
 Get index statistics (dimensions, count, similarity function).
 
 ```json
@@ -281,6 +296,7 @@ Get index statistics (dimensions, count, similarity function).
 ```
 
 **Response**:
+
 ```json
 {
   "vectorCount": 1523,
@@ -298,6 +314,7 @@ Get index statistics (dimensions, count, similarity function).
 **Use case**: Nightly builds, periodic health checks, delayed deployments
 
 #### 14. `upstash_qstash_schedule`
+
 Create cron schedule for recurring tasks.
 
 ```json
@@ -321,6 +338,7 @@ Create cron schedule for recurring tasks.
 ```
 
 **Cron examples**:
+
 - `0 2 * * *` - Daily at 2 AM
 - `*/15 * * * *` - Every 15 minutes
 - `0 0 * * 0` - Weekly on Sunday midnight
@@ -328,6 +346,7 @@ Create cron schedule for recurring tasks.
 **Response**: `{ "scheduleId": "sched_abc123", "success": true }`
 
 #### 15. `upstash_qstash_publish`
+
 Send one-time message with optional delay.
 
 ```json
@@ -348,6 +367,7 @@ Send one-time message with optional delay.
 **Delay**: Seconds before delivery (default 0 for immediate)
 
 #### 16. `upstash_qstash_list`
+
 List all scheduled jobs.
 
 ```json
@@ -358,6 +378,7 @@ List all scheduled jobs.
 ```
 
 **Response**:
+
 ```json
 [
   {
@@ -371,6 +392,7 @@ List all scheduled jobs.
 ```
 
 #### 17. `upstash_qstash_get`
+
 Get schedule details by ID.
 
 ```json
@@ -383,6 +405,7 @@ Get schedule details by ID.
 ```
 
 #### 18. `upstash_qstash_delete`
+
 Delete scheduled job.
 
 ```json
@@ -395,6 +418,7 @@ Delete scheduled job.
 ```
 
 #### 19. `upstash_qstash_pause`
+
 Pause schedule without deleting.
 
 ```json
@@ -407,6 +431,7 @@ Pause schedule without deleting.
 ```
 
 #### 20. `upstash_qstash_resume`
+
 Resume paused schedule.
 
 ```json
@@ -425,6 +450,7 @@ Resume paused schedule.
 **Use case**: Handle failed webhook deliveries after all retries exhausted
 
 #### 21. `upstash_qstash_dlq_list`
+
 List messages that failed after all retries.
 
 ```json
@@ -435,6 +461,7 @@ List messages that failed after all retries.
 ```
 
 **Response**:
+
 ```json
 [
   {
@@ -449,6 +476,7 @@ List messages that failed after all retries.
 ```
 
 #### 22. `upstash_qstash_dlq_delete`
+
 Remove message from DLQ.
 
 ```json
@@ -467,6 +495,7 @@ Remove message from DLQ.
 High-level operations combining multiple subsystems.
 
 #### 23. `upstash_schedule_nightly_compilation`
+
 Shortcut for scheduling nightly builds.
 
 ```json
@@ -484,6 +513,7 @@ Shortcut for scheduling nightly builds.
 **Equivalent to**: `upstash_qstash_schedule` with cron `0 {hour} * * *` + retry config
 
 #### 24. `upstash_schedule_health_ping`
+
 Schedule periodic health checks.
 
 ```json
@@ -499,6 +529,7 @@ Schedule periodic health checks.
 **Equivalent to**: `upstash_qstash_schedule` with cron `*/{intervalMinutes} * * * *`
 
 #### 25. `upstash_trigger_deployment`
+
 Trigger deployment after delay (CI/CD integration).
 
 ```json
@@ -607,14 +638,15 @@ Trigger deployment after delay (CI/CD integration).
 
 ## Cost Estimates
 
-| Operation | Volume | Cost (Upstash Free Tier) |
-|-----------|--------|--------------------------|
-| **Redis cache operations** | 10K/day | Free up to 10K commands/day |
-| **Vector upsert** | 1K compositions | Free up to 10K vectors |
-| **Vector search** | 1K queries/day | Free up to 100K queries/month |
-| **QStash messages** | 100/day | Free up to 500 messages/day |
+| Operation                  | Volume          | Cost (Upstash Free Tier)      |
+| -------------------------- | --------------- | ----------------------------- |
+| **Redis cache operations** | 10K/day         | Free up to 10K commands/day   |
+| **Vector upsert**          | 1K compositions | Free up to 10K vectors        |
+| **Vector search**          | 1K queries/day  | Free up to 100K queries/month |
+| **QStash messages**        | 100/day         | Free up to 500 messages/day   |
 
 **Paid tiers**:
+
 - Redis: $0.20 per 100K commands
 - Vector: $0.40 per 100K queries
 - QStash: $1 per 100K messages
@@ -624,6 +656,7 @@ Trigger deployment after delay (CI/CD integration).
 ## Known Issues
 
 **3 test failures** (non-blocking, core functionality works):
+
 1. `QStashSubsystem > DLQ list` - @upstash/qstash v2.7.0 response format changed
 2. `QStashSubsystem > DLQ delete` - SDK method signature changed
 3. `UpstashConnector > listTools` - Expected 26 tools but array has 25 (test count is wrong)
@@ -635,6 +668,7 @@ Trigger deployment after delay (CI/CD integration).
 ## MCP Integration
 
 **Via orchestrator**:
+
 ```bash
 curl -X POST https://mcp-orchestrator-production-45f9.up.railway.app/tools/call \
   -H "x-mcp-api-key: $MCP_API_KEY" \
@@ -647,6 +681,7 @@ curl -X POST https://mcp-orchestrator-production-45f9.up.railway.app/tools/call 
 ```
 
 **Direct (local connector)**:
+
 ```typescript
 import { UpstashConnector } from '@holoscript/connector-upstash';
 
@@ -654,7 +689,7 @@ const connector = new UpstashConnector();
 await connector.connect();
 
 const result = await connector.executeTool('upstash_redis_cache_get', {
-  key: 'scene:main'
+  key: 'scene:main',
 });
 ```
 

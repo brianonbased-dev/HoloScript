@@ -16,7 +16,10 @@ export const OPERATION_COSTS = {
   pipeline_l2: { baseCostCents: 150, description: 'L2 Meta-Strategist' },
   skill_generate: { baseCostCents: 75, description: 'Generate HoloClaw skill' },
   query_basic: { baseCostCents: 5, description: 'Semantic codebase search' },
-  query_with_llm: { baseCostCents: 15, description: 'AI-powered codebase query (+ metered LLM tokens)' },
+  query_with_llm: {
+    baseCostCents: 15,
+    description: 'AI-powered codebase query (+ metered LLM tokens)',
+  },
   screenshot: { baseCostCents: 3, description: 'Render scene to PNG/JPEG/WebP' },
   pdf_export: { baseCostCents: 5, description: 'Render scene to PDF' },
   semantic_diff: { baseCostCents: 2, description: 'Compare two project versions' },
@@ -39,12 +42,15 @@ export type CreditPackageId = (typeof CREDIT_PACKAGES)[number]['id'];
 
 export type Tier = 'free' | 'pro' | 'enterprise';
 
-export const TIER_LIMITS: Record<Tier, {
-  freeCredits: number;
-  maxProjectsActive: number;
-  maxAbsorbDepth: 'shallow' | 'deep';
-  pipelineEnabled: boolean;
-}> = {
+export const TIER_LIMITS: Record<
+  Tier,
+  {
+    freeCredits: number;
+    maxProjectsActive: number;
+    maxAbsorbDepth: 'shallow' | 'deep';
+    pipelineEnabled: boolean;
+  }
+> = {
   free: {
     freeCredits: 100,
     maxProjectsActive: 1,
@@ -79,7 +85,7 @@ export const LLM_COSTS_PER_MTOK: Record<string, { input: number; output: number 
 export function estimateLLMCostCents(
   provider: string,
   inputTokens: number,
-  outputTokens: number,
+  outputTokens: number
 ): number {
   const costs = LLM_COSTS_PER_MTOK[provider] ?? LLM_COSTS_PER_MTOK.ollama;
   const inputCostCents = (inputTokens / 1_000_000) * costs.input * 100 * LLM_MARKUP;

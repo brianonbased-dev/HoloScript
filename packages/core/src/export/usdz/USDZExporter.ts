@@ -40,7 +40,6 @@ import type { USDAttributeType } from './USDTypes';
 export type { IUSDZExportOptions, IUSDZExportResult, IUSDZExportStats } from './USDTypes';
 import type { IUSDZExportOptions, IUSDZExportResult, IUSDZExportStats } from './USDTypes';
 
-
 // ============================================================================
 // USDZExporter Class
 // ============================================================================

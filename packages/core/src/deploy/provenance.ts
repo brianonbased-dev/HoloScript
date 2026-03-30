@@ -87,14 +87,17 @@ export function classifyPublishMode(ast: any): PublishMode {
 
   // Check if the composition has its own authored content
   const body = ast?.body ?? ast?.ast?.body ?? [];
-  const hasOwnContent = Array.isArray(body) && body.some((node: any) =>
-    node.type === 'composition' ||
-    node.type === 'ObjectDeclaration' ||
-    node.type === 'scene' ||
-    node.type === 'object' ||
-    node.type === 'character' ||
-    node.type === 'environment'
-  );
+  const hasOwnContent =
+    Array.isArray(body) &&
+    body.some(
+      (node: any) =>
+        node.type === 'composition' ||
+        node.type === 'ObjectDeclaration' ||
+        node.type === 'scene' ||
+        node.type === 'object' ||
+        node.type === 'character' ||
+        node.type === 'environment'
+    );
 
   if (hasOwnContent) return 'remix';
   return 'curated';
@@ -111,11 +114,13 @@ export function extractImports(ast: any): ProvenanceImport[] {
   const imports = ast?.imports ?? ast?.ast?.imports ?? [];
   if (!Array.isArray(imports)) return [];
 
-  return imports.map((imp: any) => ({
-    path: imp.path ?? imp.source ?? '',
-    hash: imp.hash,
-    author: imp.author,
-  })).filter((imp: ProvenanceImport) => imp.path.length > 0);
+  return imports
+    .map((imp: any) => ({
+      path: imp.path ?? imp.source ?? '',
+      hash: imp.hash,
+      author: imp.author,
+    }))
+    .filter((imp: ProvenanceImport) => imp.path.length > 0);
 }
 
 // =============================================================================

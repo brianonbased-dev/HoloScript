@@ -115,7 +115,8 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
 
         const guardId = `tg_${state.guardCounter++}`;
         const timeout_ms = (payload.timeout_ms as number) ?? config.default_timeout_ms;
-        const fallbackAction = (payload.fallback_action as string) ?? config.default_fallback_action;
+        const fallbackAction =
+          (payload.fallback_action as string) ?? config.default_fallback_action;
 
         const timer = setTimeout(() => {
           const op = state.operations.get(guardId);
@@ -203,7 +204,7 @@ export const timeoutGuardHandler: TraitHandler<TimeoutGuardConfig> = {
           totalStarted: state.totalStarted,
           totalCompleted: state.totalCompleted,
           totalTimedOut: state.totalTimedOut,
-          operations: Array.from(state.operations.values()).map(op => ({
+          operations: Array.from(state.operations.values()).map((op) => ({
             guardId: op.guardId,
             action: op.action,
             elapsed: Date.now() - op.startedAt,

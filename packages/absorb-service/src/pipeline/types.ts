@@ -7,11 +7,7 @@
  * Reuses existing daemon types from lib/daemon/types.ts.
  */
 
-import type {
-  DaemonPass,
-  DaemonProfile,
-  PatchProposal,
-} from '../daemon/types';
+import type { DaemonPass, DaemonProfile, PatchProposal } from '../daemon/types';
 
 // ─── Layer Identity ──────────────────────────────────────────────────────────
 
@@ -27,8 +23,8 @@ export type LayerStatus =
   | 'paused';
 
 export type PipelineMode =
-  | 'single'       // One complete L0→L1→L2 cycle
-  | 'continuous'   // Auto-repeat until budget exhausted
+  | 'single' // One complete L0→L1→L2 cycle
+  | 'continuous' // Auto-repeat until budget exhausted
   | 'self-target'; // Target HoloScript's own codebase
 
 // ─── Layer Configuration ─────────────────────────────────────────────────────
@@ -126,11 +122,7 @@ export interface FeedbackSignal {
 
 // ─── Cycle Results ───────────────────────────────────────────────────────────
 
-export type CycleStatus =
-  | 'success'
-  | 'failure'
-  | 'no_improvement'
-  | 'budget_exceeded';
+export type CycleStatus = 'success' | 'failure' | 'no_improvement' | 'budget_exceeded';
 
 export interface LayerCycleResult {
   layerId: LayerId;

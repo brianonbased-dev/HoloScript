@@ -100,9 +100,7 @@ function isPointGazedAt(
 
   // Distance to point
   const distance = Math.sqrt(
-    toPoint[0] * toPoint[0] +
-      toPoint[1] * toPoint[1] +
-      toPoint[2] * toPoint[2]
+    toPoint[0] * toPoint[0] + toPoint[1] * toPoint[1] + toPoint[2] * toPoint[2]
   );
 
   if (distance === 0) return true;

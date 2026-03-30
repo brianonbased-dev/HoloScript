@@ -15,8 +15,7 @@ import type { AnimationPreset } from '../types.js';
 
 export const walkPreset: AnimationPreset = {
   name: 'walk',
-  description:
-    'Standard bipedal walking cycle. Loops continuously with natural stride cadence.',
+  description: 'Standard bipedal walking cycle. Loops continuously with natural stride cadence.',
   category: 'locomotion',
   timing: {
     duration: 1.0,
@@ -29,12 +28,7 @@ export const walkPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Walking',
     pack: 'Locomotion',
-    alternatives: [
-      'Slow Walk',
-      'Walk With Briefcase',
-      'Sneaking Walk',
-      'Confident Walk',
-    ],
+    alternatives: ['Slow Walk', 'Walk With Briefcase', 'Sneaking Walk', 'Confident Walk'],
   },
   tags: ['locomotion', 'movement', 'bipedal', 'cycle'],
 };
@@ -45,8 +39,7 @@ export const walkPreset: AnimationPreset = {
 
 export const runPreset: AnimationPreset = {
   name: 'run',
-  description:
-    'Fast bipedal running cycle. Higher speed multiplier, tighter timing than walk.',
+  description: 'Fast bipedal running cycle. Higher speed multiplier, tighter timing than walk.',
   category: 'locomotion',
   timing: {
     duration: 0.7,
@@ -59,12 +52,7 @@ export const runPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Running',
     pack: 'Locomotion',
-    alternatives: [
-      'Fast Run',
-      'Sprint',
-      'Jog',
-      'Run Forward',
-    ],
+    alternatives: ['Fast Run', 'Sprint', 'Jog', 'Run Forward'],
   },
   tags: ['locomotion', 'movement', 'fast', 'bipedal', 'cycle'],
 };
@@ -89,12 +77,7 @@ export const jumpPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Jump',
     pack: 'Locomotion',
-    alternatives: [
-      'Standing Jump',
-      'Running Jump',
-      'Jump Up',
-      'Jump Forward',
-    ],
+    alternatives: ['Standing Jump', 'Running Jump', 'Jump Up', 'Jump Forward'],
   },
   tags: ['locomotion', 'movement', 'aerial', 'one-shot'],
 };
@@ -119,12 +102,7 @@ export const crouchPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Crouching Idle',
     pack: 'Locomotion',
-    alternatives: [
-      'Crouch Walk',
-      'Crouch To Stand',
-      'Stand To Crouch',
-      'Sneaking Idle',
-    ],
+    alternatives: ['Crouch Walk', 'Crouch To Stand', 'Stand To Crouch', 'Sneaking Idle'],
   },
   tags: ['locomotion', 'stance', 'stealth', 'low'],
 };
@@ -135,8 +113,7 @@ export const crouchPreset: AnimationPreset = {
 
 export const swimPreset: AnimationPreset = {
   name: 'swim',
-  description:
-    'Forward crawl swimming cycle. Continuous arm-over-arm stroke with body undulation.',
+  description: 'Forward crawl swimming cycle. Continuous arm-over-arm stroke with body undulation.',
   category: 'locomotion',
   timing: {
     duration: 1.8,
@@ -149,12 +126,7 @@ export const swimPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Swimming',
     pack: 'Aquatic',
-    alternatives: [
-      'Treading Water',
-      'Breaststroke',
-      'Backstroke',
-      'Float Idle',
-    ],
+    alternatives: ['Treading Water', 'Breaststroke', 'Backstroke', 'Float Idle'],
   },
   tags: ['locomotion', 'movement', 'aquatic', 'cycle'],
 };
@@ -179,12 +151,7 @@ export const flyPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Flying',
     pack: 'Aerial',
-    alternatives: [
-      'Hovering',
-      'Fly Forward',
-      'Fly Idle',
-      'Glide',
-    ],
+    alternatives: ['Hovering', 'Fly Forward', 'Fly Idle', 'Glide'],
   },
   tags: ['locomotion', 'movement', 'aerial', 'cycle', 'superhero'],
 };
@@ -195,8 +162,7 @@ export const flyPreset: AnimationPreset = {
 
 export const climbPreset: AnimationPreset = {
   name: 'climb',
-  description:
-    'Vertical climbing cycle with alternating hand-over-hand grip and leg push.',
+  description: 'Vertical climbing cycle with alternating hand-over-hand grip and leg push.',
   category: 'locomotion',
   timing: {
     duration: 1.5,
@@ -209,12 +175,7 @@ export const climbPreset: AnimationPreset = {
   mixamoClip: {
     clipName: 'Climbing',
     pack: 'Locomotion',
-    alternatives: [
-      'Wall Climb',
-      'Ladder Climb',
-      'Rock Climbing',
-      'Hang Idle',
-    ],
+    alternatives: ['Wall Climb', 'Ladder Climb', 'Rock Climbing', 'Hang Idle'],
   },
   tags: ['locomotion', 'movement', 'vertical', 'cycle', 'traversal'],
 };

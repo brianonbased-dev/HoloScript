@@ -204,13 +204,10 @@ export function TerrainRenderer({
       rock: new THREE.Color(biomes[3]?.color ?? '#6b6b6b'),
       snow: new THREE.Color(biomes[4]?.color ?? '#fafafa'),
     }),
-    [biomes],
+    [biomes]
   );
 
-  const sunPos = useMemo(
-    () => new THREE.Vector3(...sunPosition).normalize(),
-    [sunPosition],
-  );
+  const sunPos = useMemo(() => new THREE.Vector3(...sunPosition).normalize(), [sunPosition]);
 
   const uniforms = useMemo(
     () => ({
@@ -227,16 +224,11 @@ export function TerrainRenderer({
       uRockColor: { value: biomeColors.rock },
       uSnowColor: { value: biomeColors.snow },
     }),
-    [maxHeight, seed, octaves, persistence, lacunarity, sunPos, wireframe, biomeColors],
+    [maxHeight, seed, octaves, persistence, lacunarity, sunPos, wireframe, biomeColors]
   );
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      rotation={[-Math.PI / 2, 0, 0]}
-      frustumCulled={false}
-    >
+    <mesh ref={meshRef} position={position} rotation={[-Math.PI / 2, 0, 0]} frustumCulled={false}>
       <planeGeometry args={[size[0], size[1], resolution, resolution]} />
       <shaderMaterial
         vertexShader={TERRAIN_VERT}

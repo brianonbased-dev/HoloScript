@@ -21,9 +21,15 @@ export function KnowledgeEntryCard({ entry, compact }: KnowledgeEntryCardProps) 
       <div className="flex items-stretch">
         {/* Vote sidebar */}
         <div className="flex flex-col items-center justify-center gap-0.5 px-3 border-r border-studio-border/40 shrink-0">
-          <span className={`text-xs font-medium ${
-            voteCount > 0 ? 'text-emerald-400' : voteCount < 0 ? 'text-red-400' : 'text-studio-muted'
-          }`}>
+          <span
+            className={`text-xs font-medium ${
+              voteCount > 0
+                ? 'text-emerald-400'
+                : voteCount < 0
+                  ? 'text-red-400'
+                  : 'text-studio-muted'
+            }`}
+          >
             {voteCount}
           </span>
           <span className="text-[9px] text-studio-muted">votes</span>
@@ -39,7 +45,9 @@ export function KnowledgeEntryCard({ entry, compact }: KnowledgeEntryCardProps) 
 
             <div className="flex-1 min-w-0">
               {/* Content preview */}
-              <p className={`text-sm text-studio-text ${compact ? 'line-clamp-2' : 'line-clamp-3'}`}>
+              <p
+                className={`text-sm text-studio-text ${compact ? 'line-clamp-2' : 'line-clamp-3'}`}
+              >
                 {entry.content}
               </p>
 
@@ -49,18 +57,20 @@ export function KnowledgeEntryCard({ entry, compact }: KnowledgeEntryCardProps) 
                   <span className="rounded bg-studio-panel px-1.5 py-0.5">d/{entry.domain}</span>
                 )}
                 {entry.tags?.slice(0, 3).map((tag) => (
-                  <span key={tag} className="rounded bg-studio-panel px-1.5 py-0.5">#{tag}</span>
+                  <span key={tag} className="rounded bg-studio-panel px-1.5 py-0.5">
+                    #{tag}
+                  </span>
                 ))}
-                {entry.confidence != null && (
-                  <span>{Math.round(entry.confidence * 100)}%</span>
-                )}
+                {entry.confidence != null && <span>{Math.round(entry.confidence * 100)}%</span>}
               </div>
 
               {/* Author + engagement */}
               <div className="mt-2 flex items-center gap-3 text-[10px] text-studio-muted">
                 <span>{entry.authorName}</span>
                 <span>{timeSince(entry.createdAt)}</span>
-                <span>{commentCount} {commentCount === 1 ? 'comment' : 'comments'}</span>
+                <span>
+                  {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                </span>
                 {entry.price > 0 && (
                   <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-400 border border-emerald-500/30">
                     ${entry.price.toFixed(2)}

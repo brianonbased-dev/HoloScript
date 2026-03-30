@@ -127,7 +127,16 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
     opacity,
   });
 
-  const handleUpdate = (updates: Partial<{ albedo: string; roughness: number; metallic: number; emissive: string; emissiveIntensity: number; opacity: number }>) => {
+  const handleUpdate = (
+    updates: Partial<{
+      albedo: string;
+      roughness: number;
+      metallic: number;
+      emissive: string;
+      emissiveIntensity: number;
+      opacity: number;
+    }>
+  ) => {
     if (selectedObjectId) {
       applyTransientMaterial(selectedObjectId, updates);
     }
@@ -237,7 +246,9 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[9px] text-studio-muted">Glossiness</span>
-            <span className="font-mono text-[9px] text-studio-text">{(glossiness * 100).toFixed(0)}%</span>
+            <span className="font-mono text-[9px] text-studio-text">
+              {(glossiness * 100).toFixed(0)}%
+            </span>
           </div>
           <input
             type="range"
@@ -258,7 +269,9 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[9px] text-studio-muted">Metallic</span>
-            <span className="font-mono text-[9px] text-studio-text">{(metallic * 100).toFixed(0)}%</span>
+            <span className="font-mono text-[9px] text-studio-text">
+              {(metallic * 100).toFixed(0)}%
+            </span>
           </div>
           <input
             type="range"
@@ -322,7 +335,9 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[9px] text-studio-muted">Opacity</span>
-            <span className="font-mono text-[9px] text-studio-text">{(opacity * 100).toFixed(0)}%</span>
+            <span className="font-mono text-[9px] text-studio-text">
+              {(opacity * 100).toFixed(0)}%
+            </span>
           </div>
           <input
             type="range"

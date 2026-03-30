@@ -11,16 +11,43 @@ const vrtsContent = fs.readFileSync(vrtsPath, 'utf-8');
 
 // CLASS files that need handler wrappers
 const classFiles = [
-  'AbsorbTrait', 'AdvancedClothTrait', 'AIDriverTrait', 'AnimationTrait',
-  'CharacterTrait', 'ConsensusTrait', 'CRDTRoomTrait', 'DialogTrait',
-  'DraftTrait', 'EmotionDirectiveTrait', 'EnvironmentalAudioTrait',
-  'FluidSimulationTrait', 'GrabbableTrait', 'GranularMaterialTrait',
-  'HotReloadTrait', 'IKTrait', 'JointTrait', 'LightingTrait',
-  'LipSyncTrait', 'LobbyTrait', 'MaterialTrait', 'MorphTrait',
-  'MultiviewGaussianRendererTrait', 'NetworkedTrait', 'PIDControllerTrait',
-  'PressableTrait', 'RenderingTrait', 'RigidbodyTrait', 'ScriptTestTrait',
-  'ShaderTrait', 'SkeletonTrait', 'SlidableTrait', 'SpatialAwarenessTrait',
-  'SyncTierTrait', 'TriggerTrait', 'VoiceInputTrait', 'VoiceOutputTrait',
+  'AbsorbTrait',
+  'AdvancedClothTrait',
+  'AIDriverTrait',
+  'AnimationTrait',
+  'CharacterTrait',
+  'ConsensusTrait',
+  'CRDTRoomTrait',
+  'DialogTrait',
+  'DraftTrait',
+  'EmotionDirectiveTrait',
+  'EnvironmentalAudioTrait',
+  'FluidSimulationTrait',
+  'GrabbableTrait',
+  'GranularMaterialTrait',
+  'HotReloadTrait',
+  'IKTrait',
+  'JointTrait',
+  'LightingTrait',
+  'LipSyncTrait',
+  'LobbyTrait',
+  'MaterialTrait',
+  'MorphTrait',
+  'MultiviewGaussianRendererTrait',
+  'NetworkedTrait',
+  'PIDControllerTrait',
+  'PressableTrait',
+  'RenderingTrait',
+  'RigidbodyTrait',
+  'ScriptTestTrait',
+  'ShaderTrait',
+  'SkeletonTrait',
+  'SlidableTrait',
+  'SpatialAwarenessTrait',
+  'SyncTierTrait',
+  'TriggerTrait',
+  'VoiceInputTrait',
+  'VoiceOutputTrait',
   'VoronoiFractureTrait',
 ];
 
@@ -33,31 +60,31 @@ const exportNames: string[] = [];
 
 for (const basename of classFiles) {
   if (vrtsContent.includes(`from './${basename}'`)) continue;
-  
+
   const filePath = path.join(traitsDir, `${basename}.ts`);
   const content = fs.readFileSync(filePath, 'utf-8');
-  
+
   // Derive handler name from file: GrabbableTrait -> grabbableHandler
   const cleanName = basename.replace('Trait', '');
   const handlerName = cleanName.charAt(0).toLowerCase() + cleanName.slice(1) + 'Handler';
-  
+
   // Derive trait name (snake_case)
   const traitName = cleanName
     .replace(/([A-Z])/g, '_$1')
     .toLowerCase()
     .replace(/^_/, '')
     .replace(/_+/g, '_');
-  
+
   // Check if handler already exists in the file
   if (content.includes(`export const ${handlerName}`)) {
     console.log(`SKIP ${basename} — already has ${handlerName}`);
     continue;
   }
-  
+
   // Check if there's an existing class we can wrap
   const classMatch = content.match(/export\s+class\s+(\w+)/);
   const className = classMatch?.[1];
-  
+
   // Generate handler block
   const handler = `
 // ── Handler wrapper (auto-generated) ──
@@ -83,19 +110,22 @@ export const ${handlerName} = {
   onUpdate(_node: any, _config: any, _ctx: any, _dt: number): void {},
 } as const satisfies TraitHandler;
 `;
-  
+
   // Check if file already has TraitTypes import
   const hasTraitImport = content.includes("from './TraitTypes'");
-  
+
   // Append handler to the file
   let appendContent = handler;
   if (hasTraitImport) {
     // Remove the duplicate import line from handler
-    appendContent = appendContent.replace("import type { TraitHandler } from './TraitTypes';\n", '');
+    appendContent = appendContent.replace(
+      "import type { TraitHandler } from './TraitTypes';\n",
+      ''
+    );
   }
-  
+
   fs.appendFileSync(filePath, appendContent, 'utf-8');
-  
+
   traitNames.push(traitName);
   handlerNames.push(handlerName);
   importLines.push(`import { ${handlerName} } from './${basename}';`);
@@ -114,5 +144,5 @@ console.log('\n// ═══ REGISTRATIONS ═══');
 console.log(registerLines.join('\n'));
 console.log('\n// ═══ EXPORTS ═══');
 console.log('export {');
-console.log(exportNames.map(n => `  ${n},`).join('\n'));
+console.log(exportNames.map((n) => `  ${n},`).join('\n'));
 console.log('};');

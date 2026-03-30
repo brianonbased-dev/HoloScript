@@ -67,40 +67,40 @@ const DEFAULT_DATA: CalibrationData = {
     { domain: 'Code', confidence: 0.88, samples: 2100, trend: 'up' },
     { domain: 'Spatial', confidence: 0.72, samples: 560, trend: 'stable' },
   ],
-  history: [0.71, 0.73, 0.74, 0.72, 0.75, 0.77, 0.76, 0.78, 0.79, 0.78, 0.80, 0.78],
+  history: [0.71, 0.73, 0.74, 0.72, 0.75, 0.77, 0.76, 0.78, 0.79, 0.78, 0.8, 0.78],
   agentId: 'brittney-v3',
   lastUpdated: new Date().toISOString(),
 };
 
 function getConfidenceColor(value: number): string {
   if (value >= 0.85) return '#22c55e'; // green
-  if (value >= 0.70) return '#84cc16'; // lime
+  if (value >= 0.7) return '#84cc16'; // lime
   if (value >= 0.55) return '#f59e0b'; // amber
-  if (value >= 0.40) return '#f97316'; // orange
+  if (value >= 0.4) return '#f97316'; // orange
   return '#ef4444'; // red
 }
 
 function getConfidenceLevel(value: number): string {
-  if (value >= 0.90) return 'Very High';
+  if (value >= 0.9) return 'Very High';
   if (value >= 0.75) return 'High';
-  if (value >= 0.60) return 'Moderate';
-  if (value >= 0.40) return 'Low';
+  if (value >= 0.6) return 'Moderate';
+  if (value >= 0.4) return 'Low';
   return 'Very Low';
 }
 
 function getConfidenceTailwindBg(value: number): string {
   if (value >= 0.85) return 'bg-green-900/30';
-  if (value >= 0.70) return 'bg-lime-900/30';
+  if (value >= 0.7) return 'bg-lime-900/30';
   if (value >= 0.55) return 'bg-amber-900/30';
-  if (value >= 0.40) return 'bg-orange-900/30';
+  if (value >= 0.4) return 'bg-orange-900/30';
   return 'bg-red-900/30';
 }
 
 function getCalibrationLabel(score: number): string {
-  if (score >= 0.90) return 'Excellent';
+  if (score >= 0.9) return 'Excellent';
   if (score >= 0.75) return 'Good';
-  if (score >= 0.60) return 'Fair';
-  if (score >= 0.40) return 'Poor';
+  if (score >= 0.6) return 'Fair';
+  if (score >= 0.4) return 'Poor';
   return 'Unreliable';
 }
 
@@ -119,7 +119,15 @@ const TrendIcon = ({ trend }: { trend: 'up' | 'down' | 'stable' }) => {
 // Mini Sparkline Chart
 // =============================================================================
 
-function Sparkline({ data, width = 120, height = 24 }: { data: number[]; width?: number; height?: number }) {
+function Sparkline({
+  data,
+  width = 120,
+  height = 24,
+}: {
+  data: number[];
+  width?: number;
+  height?: number;
+}) {
   if (data.length < 2) return null;
 
   const min = Math.min(...data);
@@ -170,7 +178,15 @@ function Sparkline({ data, width = 120, height = 24 }: { data: number[]; width?:
 // Circular Gauge
 // =============================================================================
 
-function CircularGauge({ value, size = 80, strokeWidth = 6 }: { value: number; size?: number; strokeWidth?: number }) {
+function CircularGauge({
+  value,
+  size = 80,
+  strokeWidth = 6,
+}: {
+  value: number;
+  size?: number;
+  strokeWidth?: number;
+}) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - value);
@@ -178,7 +194,10 @@ function CircularGauge({ value, size = 80, strokeWidth = 6 }: { value: number; s
   const center = size / 2;
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Background ring */}
         <circle
@@ -236,7 +255,10 @@ export function CalibrationUncertaintyIndicator({
   const [hoveredDomain, setHoveredDomain] = useState<string | null>(null);
 
   const overallColor = useMemo(() => getConfidenceColor(data.overall), [data.overall]);
-  const calibColor = useMemo(() => getConfidenceColor(data.calibrationScore), [data.calibrationScore]);
+  const calibColor = useMemo(
+    () => getConfidenceColor(data.calibrationScore),
+    [data.calibrationScore]
+  );
 
   // Sort domains by confidence descending
   const sortedDomains = useMemo(
@@ -261,9 +283,7 @@ export function CalibrationUncertaintyIndicator({
         <span className="text-[11px] font-mono font-bold" style={{ color: overallColor }}>
           {Math.round(data.overall * 100)}%
         </span>
-        {data.calibrationScore < 0.6 && (
-          <AlertTriangle className="h-3 w-3 text-amber-400" />
-        )}
+        {data.calibrationScore < 0.6 && <AlertTriangle className="h-3 w-3 text-amber-400" />}
       </button>
     );
   }
@@ -290,14 +310,17 @@ export function CalibrationUncertaintyIndicator({
             <Shield className="h-3.5 w-3.5" style={{ color: calibColor }} />
             <span className="text-[10px] text-studio-muted">Calibration:</span>
             <span className="text-[11px] font-bold font-mono" style={{ color: calibColor }}>
-              {getCalibrationLabel(data.calibrationScore)} ({Math.round(data.calibrationScore * 100)}%)
+              {getCalibrationLabel(data.calibrationScore)} (
+              {Math.round(data.calibrationScore * 100)}%)
             </span>
           </div>
 
           {/* Sparkline */}
           {data.history.length > 0 && (
             <div>
-              <span className="text-[8px] text-studio-muted uppercase tracking-wider">Recent trend</span>
+              <span className="text-[8px] text-studio-muted uppercase tracking-wider">
+                Recent trend
+              </span>
               <Sparkline data={data.history} width={140} height={28} />
             </div>
           )}
@@ -386,7 +409,8 @@ export function CalibrationUncertaintyIndicator({
         <div className="flex items-center gap-2 px-3 py-2 bg-red-950/20">
           <AlertTriangle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
           <span className="text-[9px] text-red-300">
-            Overall confidence is critically low. Consider reviewing agent training data or switching models.
+            Overall confidence is critically low. Consider reviewing agent training data or
+            switching models.
           </span>
         </div>
       )}

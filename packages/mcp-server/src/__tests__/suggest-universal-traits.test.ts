@@ -328,7 +328,9 @@ describe('suggestUniversalTraits', () => {
 
     it('should have higher confidence for multi-domain matches', () => {
       const single = suggestUniversalTraits('a simple endpoint');
-      const multi = suggestUniversalTraits('REST API with Redis cache, Kafka queue, and Prometheus metrics');
+      const multi = suggestUniversalTraits(
+        'REST API with Redis cache, Kafka queue, and Prometheus metrics'
+      );
       expect(multi.confidence).toBeGreaterThan(single.confidence);
     });
   });
@@ -339,7 +341,8 @@ describe('suggestUniversalTraits', () => {
       const result = suggestUniversalTraits('REST API with Redis cache', 'service');
       for (const trait of result.traits) {
         // Filtered results should only be from service domain (plus auto-inferred)
-        const isServiceOrInferred = result.domains['service']?.includes(trait) ||
+        const isServiceOrInferred =
+          result.domains['service']?.includes(trait) ||
           result.reasoning[trait]?.includes('Auto-suggested');
         expect(isServiceOrInferred).toBe(true);
       }
@@ -363,7 +366,11 @@ describe('suggestUniversalTraits', () => {
 
     it('should use context parameter for additional matching', () => {
       const withoutContext = suggestUniversalTraits('user management');
-      const withContext = suggestUniversalTraits('user management', undefined, 'REST API with JWT auth');
+      const withContext = suggestUniversalTraits(
+        'user management',
+        undefined,
+        'REST API with JWT auth'
+      );
       expect(withContext.traits.length).toBeGreaterThan(withoutContext.traits.length);
     });
 

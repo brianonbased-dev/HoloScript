@@ -496,8 +496,7 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
     // Request to start XR session
     if (event.type === 'request_xr_session') {
       const p = event.payload as Record<string, unknown> | undefined;
-      const mode =
-        (p?.mode as 'immersive-vr' | 'immersive-ar' | 'inline') || 'immersive-vr';
+      const mode = (p?.mode as 'immersive-vr' | 'immersive-ar' | 'inline') || 'immersive-vr';
       requestXRSession(state, config, context, node, mode);
     }
 
@@ -751,7 +750,9 @@ function detectAvailableFeatures(
   }
 
   // Check for eye tracking support (gaze input)
-  const hasGazeInput = session.inputSources?.some((source: XRInputSourceLike) => source.targetRayMode === 'gaze');
+  const hasGazeInput = session.inputSources?.some(
+    (source: XRInputSourceLike) => source.targetRayMode === 'gaze'
+  );
   if (hasGazeInput || session.enabledFeatures?.includes('gaze')) {
     features.add('eye-tracking');
     state.eyeTrackingActive = true;
@@ -1158,7 +1159,11 @@ function calculateGripStrength(joints: Map<HandJoint, JointPose>): number {
  * Poll hand tracking joints per frame (Phase 3)
  * Requires XRHand API support (Quest Pro, Vision Pro)
  */
-function pollHandTracking(source: XRInputSourceLike, frame: XRFrameLike | null, referenceSpace: unknown): HandTrackingState | null {
+function pollHandTracking(
+  source: XRInputSourceLike,
+  frame: XRFrameLike | null,
+  referenceSpace: unknown
+): HandTrackingState | null {
   if (!source.hand) return null;
 
   const joints = new Map<HandJoint, JointPose>();
@@ -1219,7 +1224,11 @@ function _calculateForwardVector(quaternion: { x: number; y: number; z: number; 
  * Poll eye tracking gaze vector (Phase 3)
  * Requires eye tracking permission (Vision Pro, Quest Pro)
  */
-function pollEyeTracking(session: XRSessionLike, state: OpenXRHALState, frame: XRFrameLike | null): GazeRay | null {
+function pollEyeTracking(
+  session: XRSessionLike,
+  state: OpenXRHALState,
+  frame: XRFrameLike | null
+): GazeRay | null {
   if (!session.inputSources) return null;
 
   // Find gaze input source
@@ -1372,16 +1381,18 @@ function initializeOpenXR(
 ): void {
   // Check for WebXR support
   if (typeof navigator !== 'undefined' && 'xr' in navigator) {
-    (navigator as unknown as { xr?: XRSystemLike }).xr?.isSessionSupported('immersive-vr').then((supported: boolean) => {
-      if (supported) {
-        context.emit?.('openxr_available', { node, mode: 'immersive-vr' });
-      } else if (config.fallback_mode === 'simulate') {
-        createSimulatedSession(state, config);
-        context.emit?.('openxr_simulated', { node });
-      } else if (config.fallback_mode === 'error') {
-        context.emit?.('openxr_error', { node, error: 'WebXR not supported' });
-      }
-    });
+    (navigator as unknown as { xr?: XRSystemLike }).xr
+      ?.isSessionSupported('immersive-vr')
+      .then((supported: boolean) => {
+        if (supported) {
+          context.emit?.('openxr_available', { node, mode: 'immersive-vr' });
+        } else if (config.fallback_mode === 'simulate') {
+          createSimulatedSession(state, config);
+          context.emit?.('openxr_simulated', { node });
+        } else if (config.fallback_mode === 'error') {
+          context.emit?.('openxr_error', { node, error: 'WebXR not supported' });
+        }
+      });
   } else if (config.fallback_mode === 'simulate') {
     createSimulatedSession(state, config);
     context.emit?.('openxr_simulated', { node });
@@ -1392,10 +1403,18 @@ function createSimulatedSession(state: OpenXRHALState, config: OpenXRHALConfig):
   state.isInitialized = true;
   state.session = {
     simulated: true,
-    end() { /* no-op */ },
-    requestAnimationFrame() { return 0; },
-    requestReferenceSpace() { return Promise.resolve(null); },
-    addEventListener() { /* no-op */ },
+    end() {
+      /* no-op */
+    },
+    requestAnimationFrame() {
+      return 0;
+    },
+    requestReferenceSpace() {
+      return Promise.resolve(null);
+    },
+    addEventListener() {
+      /* no-op */
+    },
   };
   state.deviceProfile = {
     type: 'generic_openxr',

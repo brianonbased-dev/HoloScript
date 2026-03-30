@@ -41,7 +41,12 @@ function resolveModuleSpecifier(raw: string): string {
   if (!raw) return 'discord.js';
   const normalized = raw.trim();
   if (!normalized) return 'discord.js';
-  if (path.isAbsolute(normalized) || normalized.startsWith('.') || normalized.endsWith('.js') || normalized.endsWith('.mjs')) {
+  if (
+    path.isAbsolute(normalized) ||
+    normalized.startsWith('.') ||
+    normalized.endsWith('.js') ||
+    normalized.endsWith('.mjs')
+  ) {
     const abs = path.isAbsolute(normalized) ? normalized : path.resolve(process.cwd(), normalized);
     return pathToFileURL(abs).href;
   }
@@ -58,7 +63,7 @@ function stableJson(value: unknown): string {
   if (value && typeof value === 'object') {
     const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj).sort();
-    return `{${keys.map(k => `${JSON.stringify(k)}:${stableJson(obj[k])}`).join(',')}}`;
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(obj[k])}`).join(',')}}`;
   }
   return JSON.stringify(value);
 }
@@ -108,7 +113,11 @@ function appendJsonl(filePath: string, payload: Record<string, unknown>): void {
 
 function readJsonl(filePath: string): QueueEnvelope[] {
   if (!fs.existsSync(filePath)) return [];
-  const lines = fs.readFileSync(filePath, 'utf-8').split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = fs
+    .readFileSync(filePath, 'utf-8')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
   const out: QueueEnvelope[] = [];
   for (const line of lines) {
     try {
@@ -140,16 +149,23 @@ async function main(): Promise<void> {
   const statePath = path.join(stateDir, 'discord-bridge-state.json');
   const pollMs = Math.max(500, Number(process.env.DISCORD_BRIDGE_POLL_MS || 2000));
   const backoffBaseMs = Math.max(1000, Number(process.env.DISCORD_BRIDGE_BACKOFF_BASE_MS || 2000));
-  const backoffMaxMs = Math.max(backoffBaseMs, Number(process.env.DISCORD_BRIDGE_BACKOFF_MAX_MS || 60000));
+  const backoffMaxMs = Math.max(
+    backoffBaseMs,
+    Number(process.env.DISCORD_BRIDGE_BACKOFF_MAX_MS || 60000)
+  );
   const moduleSpec = resolveModuleSpecifier(process.env.DISCORD_BRIDGE_MODULE || 'discord.js');
   const inboundSignatureSecret = process.env.HOLODAEMON_INBOX_SIGNATURE_SECRET || '';
 
   let discordModule: Record<string, unknown>;
   try {
-    const dynamicImport = new Function('m', 'return import(m)') as (moduleName: string) => Promise<unknown>;
-    discordModule = await dynamicImport(moduleSpec) as Record<string, unknown>;
+    const dynamicImport = new Function('m', 'return import(m)') as (
+      moduleName: string
+    ) => Promise<unknown>;
+    discordModule = (await dynamicImport(moduleSpec)) as Record<string, unknown>;
   } catch {
-    console.error('[discord-bridge] discord.js not installed. Add it with: pnpm --filter @holoscript/core add discord.js');
+    console.error(
+      '[discord-bridge] discord.js not installed. Add it with: pnpm --filter @holoscript/core add discord.js'
+    );
     process.exit(1);
   }
 
@@ -181,7 +197,7 @@ async function main(): Promise<void> {
     const envelopes = readJsonl(outboxPath);
     if (state.outboxLineOffset >= envelopes.length) return;
 
-    const channel = await client.channels.fetch(requiredChannelId) as DiscordLikeChannel | null;
+    const channel = (await client.channels.fetch(requiredChannelId)) as DiscordLikeChannel | null;
     if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) {
       throw new Error('Discord channel unavailable or not text-based');
     }
@@ -211,7 +227,7 @@ async function main(): Promise<void> {
         backoff.nextAttemptAt = Date.now() + delay;
         console.error(
           `[discord-bridge] Outbox flush failed (#${backoff.failures}). Retrying in ${delay}ms:`,
-          (error as Error).message,
+          (error as Error).message
         );
       });
     }, pollMs);

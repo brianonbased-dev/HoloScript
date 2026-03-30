@@ -250,7 +250,10 @@ app.post('/api/certify/:name', async (req, res) => {
   const files = new Map<string, string>();
   // In a real implementation, extract and read package files
   // For now, provide minimal info for certification
-  files.set('package.json', JSON.stringify({ name: pkg.name, version: pkg.latest, dependencies: {} }));
+  files.set(
+    'package.json',
+    JSON.stringify({ name: pkg.name, version: pkg.latest, dependencies: {} })
+  );
 
   const checker = new CertificationChecker(packageInfo, files);
   const result = await checker.check();
@@ -294,7 +297,9 @@ if (BOOTSTRAP_TOKEN) {
     permissions: ['admin'],
     expiresIn: 365 * 24 * 60 * 60, // 1 year
   });
-  console.log(`[registry] Bootstrap admin token created (use REGISTRY_BOOTSTRAP_TOKEN env to disable)`);
+  console.log(
+    `[registry] Bootstrap admin token created (use REGISTRY_BOOTSTRAP_TOKEN env to disable)`
+  );
   console.log(`[registry] Token: ${rawToken}`);
 }
 

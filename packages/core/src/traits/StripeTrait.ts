@@ -6,14 +6,20 @@
 
 import type { TraitHandler } from './TraitTypes';
 
-export interface StripeConfig { currency: string; }
+export interface StripeConfig {
+  currency: string;
+}
 
 export const stripeHandler: TraitHandler<StripeConfig> = {
   name: 'stripe',
   defaultConfig: { currency: 'usd' },
 
-  onAttach(node: any): void { node.__stripeState = { charges: 0, totalAmount: 0 }; },
-  onDetach(node: any): void { delete node.__stripeState; },
+  onAttach(node: any): void {
+    node.__stripeState = { charges: 0, totalAmount: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__stripeState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: StripeConfig, context: any, event: any): void {
@@ -31,7 +37,11 @@ export const stripeHandler: TraitHandler<StripeConfig> = {
         customerId: event.customerId,
       });
     } else if (t === 'stripe:get_stats') {
-      context.emit?.('stripe:stats', { charges: state.charges, totalAmount: state.totalAmount, currency: config.currency });
+      context.emit?.('stripe:stats', {
+        charges: state.charges,
+        totalAmount: state.totalAmount,
+        currency: config.currency,
+      });
     }
   },
 };

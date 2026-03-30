@@ -87,15 +87,19 @@ describe('applyDraftMaturity', () => {
     const root: MockR3FNode = {
       type: 'scene',
       props: {},
-      children: [{
-        type: 'group',
-        props: {},
-        children: [{
-          type: 'mesh',
-          id: 'deep',
-          props: { draftMode: true },
-        }],
-      }],
+      children: [
+        {
+          type: 'group',
+          props: {},
+          children: [
+            {
+              type: 'mesh',
+              id: 'deep',
+              props: { draftMode: true },
+            },
+          ],
+        },
+      ],
     };
     applyDraftMaturity(root);
     expect(root.children![0].children![0].assetMaturity).toBe('draft');

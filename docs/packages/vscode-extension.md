@@ -10,6 +10,7 @@
 4. Click **Install** on the official Hololand extension
 
 Or from terminal:
+
 ```bash
 code --install-extension Hololand.holoscript
 ```
@@ -27,11 +28,11 @@ HoloScript code is beautifully colored:
 
 ```holo
 composition "MyScene" {         # ← Blue keyword
-  template "Player" {           # ← Blue keyword  
+  template "Player" {           # ← Blue keyword
     @grabbable                  # ← Magenta trait
     geometry: "humanoid"        # ← Orange string
   }
-  
+
   object "Hero" using "Player" {
     position: [0, 1, 0]        # ← Green numbers
   }
@@ -105,11 +106,13 @@ Shift+Alt+F   ← Auto-format entire file
 ```
 
 **Before:**
+
 ```holo
 object"Messy"{@grabbable geometry:"box"position:[0,1,0]}
 ```
 
 **After:**
+
 ```holo
 object "Messy" {
   @grabbable
@@ -148,16 +151,16 @@ Click to navigate to location
 
 Access via **Command Palette** (Ctrl+Shift+P):
 
-| Command | Description |
-|---------|-------------|
-| `HoloScript: Compile to Unity` | Compile current file to Unity C# |
-| `HoloScript: Compile to Godot` | Compile current file to Godot GDScript |
-| `HoloScript: Compile to WebGPU` | Compile current file to WebGPU |
-| `HoloScript: Preview Scene` | Open 3D preview of scene |
-| `HoloScript: Format Document` | Format current file |
-| `HoloScript: Lint` | Check for errors |
-| `HoloScript: Generate Scene` | AI generates scene from prompt |
-| `HoloScript: Open Documentation` | Browse HoloScript docs |
+| Command                          | Description                            |
+| -------------------------------- | -------------------------------------- |
+| `HoloScript: Compile to Unity`   | Compile current file to Unity C#       |
+| `HoloScript: Compile to Godot`   | Compile current file to Godot GDScript |
+| `HoloScript: Compile to WebGPU`  | Compile current file to WebGPU         |
+| `HoloScript: Preview Scene`      | Open 3D preview of scene               |
+| `HoloScript: Format Document`    | Format current file                    |
+| `HoloScript: Lint`               | Check for errors                       |
+| `HoloScript: Generate Scene`     | AI generates scene from prompt         |
+| `HoloScript: Open Documentation` | Browse HoloScript docs                 |
 
 ## Settings
 
@@ -171,19 +174,19 @@ Open **Settings** (Ctrl+,) and search "HoloScript":
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
-  
+
   // LSP
   "holoscript.lsp.trace": "verbose",
   "holoscript.lsp.enabled": true,
-  
+
   // Compiler
   "holoscript.compiler.defaultTarget": "webgpu",
   "holoscript.compiler.optimizationLevel": "balanced",
-  
+
   // Preview
   "holoscript.preview.enabled": true,
   "holoscript.preview.defaultBackground": "checkerboard",
-  
+
   // AI
   "holoscript.ai.enabled": true,
   "holoscript.ai.model": "gpt-4"
@@ -255,6 +258,7 @@ Syntax highlighting and IntelliSense work on all three.
 Ctrl+Shift+P → "Format Document"
 Or check if default formatter is set:
 ```
+
 ```json
 {
   "[holoscript]": {
@@ -268,7 +272,7 @@ Or check if default formatter is set:
 HoloScript extension integrates with:
 
 - **Hololand Studio** — Exported scenes auto-sync
-- **GitHub** — PR previews of 3D scenes  
+- **GitHub** — PR previews of 3D scenes
 - **VS Code AI** — Copilot integration for code generation
 - **Remote Development** — SSH and containers supported
 

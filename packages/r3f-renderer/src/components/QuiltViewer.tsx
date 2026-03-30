@@ -95,16 +95,19 @@ export function QuiltViewer({
   });
 
   // Mouse scrubbing: horizontal position maps to view index
-  const handlePointerMove = useCallback((event: THREE.Event & { uv?: THREE.Vector2 }) => {
-    if (autoAnimate || !event.uv) return;
-    const u = event.uv.x;
-    const viewIdx = Math.floor(u * totalViews) % totalViews;
-    setCurrentView(Math.max(0, Math.min(totalViews - 1, viewIdx)));
-  }, [autoAnimate, totalViews]);
+  const handlePointerMove = useCallback(
+    (event: THREE.Event & { uv?: THREE.Vector2 }) => {
+      if (autoAnimate || !event.uv) return;
+      const u = event.uv.x;
+      const viewIdx = Math.floor(u * totalViews) % totalViews;
+      setCurrentView(Math.max(0, Math.min(totalViews - 1, viewIdx)));
+    },
+    [autoAnimate, totalViews]
+  );
 
   // Tile aspect ratio for height calculation
   const tileAspect = quiltTexture
-    ? (quiltTexture.image.width / columns) / (quiltTexture.image.height / rows)
+    ? quiltTexture.image.width / columns / (quiltTexture.image.height / rows)
     : 16 / 9;
   const actualHeight = height ?? width / tileAspect;
 
@@ -118,12 +121,7 @@ export function QuiltViewer({
   }
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      rotation={rotation}
-      onPointerMove={handlePointerMove}
-    >
+    <mesh ref={meshRef} position={position} rotation={rotation} onPointerMove={handlePointerMove}>
       <planeGeometry args={[width, actualHeight]} />
       <meshBasicMaterial map={quiltTexture} side={THREE.DoubleSide} />
     </mesh>

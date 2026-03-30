@@ -62,11 +62,11 @@ interface SystemStats {
 }
 
 // Local numeric constants matching ComponentType const enum (cannot cross isolatedModules boundary)
-const CT_Transform  = 0b00001; // ComponentType.Transform
-const CT_Velocity   = 0b00010; // ComponentType.Velocity
-const CT_Collider   = 0b00100; // ComponentType.Collider
+const CT_Transform = 0b00001; // ComponentType.Transform
+const CT_Velocity = 0b00010; // ComponentType.Velocity
+const CT_Collider = 0b00100; // ComponentType.Collider
 const CT_Renderable = 0b01000; // ComponentType.Renderable
-const CT_Agent      = 0b10000; // ComponentType.Agent
+const CT_Agent = 0b10000; // ComponentType.Agent
 
 export interface EntityInfo {
   id: number;
@@ -97,11 +97,11 @@ export interface UseECSInspectorReturn {
 }
 
 const COMPONENT_NAMES: [number, string][] = [
-  [CT_Transform,  'Transform'],
-  [CT_Velocity,   'Velocity'],
-  [CT_Collider,   'Collider'],
+  [CT_Transform, 'Transform'],
+  [CT_Velocity, 'Velocity'],
+  [CT_Collider, 'Collider'],
   [CT_Renderable, 'Renderable'],
-  [CT_Agent,      'Agent'],
+  [CT_Agent, 'Agent'],
 ];
 
 export function useECSInspector(): UseECSInspectorReturn {
@@ -120,12 +120,7 @@ export function useECSInspector(): UseECSInspectorReturn {
   const syncEntities = useCallback(() => {
     const w = worldRef.current;
     // Query all entities (any component)
-    const allMask =
-      CT_Transform |
-      CT_Velocity |
-      CT_Collider |
-      CT_Renderable |
-      CT_Agent;
+    const allMask = CT_Transform | CT_Velocity | CT_Collider | CT_Renderable | CT_Agent;
     const ids = new Set<number>();
     for (const [mask] of COMPONENT_NAMES) {
       for (const id of w.query(mask)) ids.add(id);

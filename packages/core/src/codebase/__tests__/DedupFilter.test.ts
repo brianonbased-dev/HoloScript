@@ -54,9 +54,7 @@ describe('DedupFilter', () => {
 
     it('handles single item', () => {
       const filter = new DedupFilter();
-      const items: Dedupable[] = [
-        { id: 'a', content: 'solo item', quality: 1 },
-      ];
+      const items: Dedupable[] = [{ id: 'a', content: 'solo item', quality: 1 }];
 
       const { unique, removals } = filter.semanticDedup(items);
       expect(unique).toHaveLength(1);

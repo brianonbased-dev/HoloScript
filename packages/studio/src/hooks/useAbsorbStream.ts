@@ -27,7 +27,11 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { onAbsorbComplete, getBridgeConfig, type AbsorbCompletionEvent } from '@/lib/integrations/absorbPipelineBridge';
+import {
+  onAbsorbComplete,
+  getBridgeConfig,
+  type AbsorbCompletionEvent,
+} from '@/lib/integrations/absorbPipelineBridge';
 
 interface AbsorbStreamState {
   jobId: string | null;
@@ -162,10 +166,10 @@ export function useAbsorbStream() {
                       const event: AbsorbCompletionEvent = {
                         projectPath,
                         stats: {
-                          filesProcessed: stats.filesProcessed as number || 0,
-                          patternsDetected: stats.patternsDetected as number || 0,
+                          filesProcessed: (stats.filesProcessed as number) || 0,
+                          patternsDetected: (stats.patternsDetected as number) || 0,
                           technologiesFound: (stats.technologiesFound as string[]) || [],
-                          confidence: stats.confidence as number || 0,
+                          confidence: (stats.confidence as number) || 0,
                         },
                       };
                       const config = getBridgeConfig();

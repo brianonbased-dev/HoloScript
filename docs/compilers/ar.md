@@ -28,15 +28,15 @@ web/
 
 ## Trait → AR Behaviour
 
-| HoloScript Trait   | AR Behaviour                              |
-| ------------------ | ----------------------------------------- |
-| `@anchor`          | World-locked via hit test                 |
-| `@plane_detected`  | Surface detection + snapping              |
-| `@collidable`      | Mesh occlusion against real surfaces      |
-| `@tracked`         | 6DOF pose tracking                        |
-| `@grabbable`       | Touch/pinch to move in AR                 |
-| `@pointable`       | Gaze/screen-tap selection                 |
-| `@spatial_audio`   | 3D positioned audio                       |
+| HoloScript Trait  | AR Behaviour                         |
+| ----------------- | ------------------------------------ |
+| `@anchor`         | World-locked via hit test            |
+| `@plane_detected` | Surface detection + snapping         |
+| `@collidable`     | Mesh occlusion against real surfaces |
+| `@tracked`        | 6DOF pose tracking                   |
+| `@grabbable`      | Touch/pinch to move in AR            |
+| `@pointable`      | Gaze/screen-tap selection            |
+| `@spatial_audio`  | 3D positioned audio                  |
 
 ## Example
 
@@ -77,34 +77,34 @@ composition "FurniturePlacer" {
 
 ## Compiler Options
 
-| Option                 | Default        | Description                              |
-| ---------------------- | -------------- | ---------------------------------------- |
-| `--ar-occlusion`       | `false`        | Enable depth-based real-world occlusion  |
-| `--ar-lighting`        | `true`         | Match ambient light to real environment  |
-| `--ar-plane-types`     | `floor,table`  | Plane types to detect                    |
-| `--ar-hit-test`        | `true`         | Enable tap-to-place                      |
-| `--ar-dom-overlay`     | `true`         | Allow HTML UI overlaid on camera         |
-| `--ar-depth-sensing`   | `false`        | Enable raw depth data (ARCore only)      |
+| Option               | Default       | Description                             |
+| -------------------- | ------------- | --------------------------------------- |
+| `--ar-occlusion`     | `false`       | Enable depth-based real-world occlusion |
+| `--ar-lighting`      | `true`        | Match ambient light to real environment |
+| `--ar-plane-types`   | `floor,table` | Plane types to detect                   |
+| `--ar-hit-test`      | `true`        | Enable tap-to-place                     |
+| `--ar-dom-overlay`   | `true`        | Allow HTML UI overlaid on camera        |
+| `--ar-depth-sensing` | `false`       | Enable raw depth data (ARCore only)     |
 
 ## Progressive AR (No Headset Needed)
 
 The AR output degrades gracefully:
 
-| Capability Available | Experience                          |
-| -------------------- | ----------------------------------- |
-| WebXR immersive-ar   | Full AR with camera passthrough     |
-| WebXR inline         | 3D viewer on flat screen            |
-| No WebXR             | Static 3D model viewer (Three.js)   |
+| Capability Available | Experience                        |
+| -------------------- | --------------------------------- |
+| WebXR immersive-ar   | Full AR with camera passthrough   |
+| WebXR inline         | 3D viewer on flat screen          |
+| No WebXR             | Static 3D model viewer (Three.js) |
 
 ## Device Compatibility
 
-| Device/Browser          | Mode                  | Notes                          |
-| ----------------------- | --------------------- | ------------------------------ |
-| Android Chrome (ARCore)  | Full immersive-ar    | Best experience                |
-| iOS Safari 17+           | Limited immersive-ar | Hit test + anchors             |
-| iOS WebXR Viewer         | Full immersive-ar    | Via Mozllia WebXR Viewer app   |
-| Meta Quest (browser)     | Passthrough AR        | `--ar-occlusion` not supported |
-| Desktop Chrome           | Inline 3D only        | Graceful fallback              |
+| Device/Browser          | Mode                 | Notes                          |
+| ----------------------- | -------------------- | ------------------------------ |
+| Android Chrome (ARCore) | Full immersive-ar    | Best experience                |
+| iOS Safari 17+          | Limited immersive-ar | Hit test + anchors             |
+| iOS WebXR Viewer        | Full immersive-ar    | Via Mozllia WebXR Viewer app   |
+| Meta Quest (browser)    | Passthrough AR       | `--ar-occlusion` not supported |
+| Desktop Chrome          | Inline 3D only       | Graceful fallback              |
 
 ## See Also
 

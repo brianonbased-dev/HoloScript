@@ -8,12 +8,12 @@ The intelligence package provides higher-level AI capabilities built on top of `
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| **AgentIntelligence** | AI decision-making for spatial agents |
-| **SwarmCoordinator** | Multi-agent swarm behaviors and coordination |
-| **TrainingPipeline** | Training data collection and curriculum management |
-| **SelfImproveEngine** | Autonomous code evolution and optimization |
+| Component             | Purpose                                            |
+| --------------------- | -------------------------------------------------- |
+| **AgentIntelligence** | AI decision-making for spatial agents              |
+| **SwarmCoordinator**  | Multi-agent swarm behaviors and coordination       |
+| **TrainingPipeline**  | Training data collection and curriculum management |
+| **SelfImproveEngine** | Autonomous code evolution and optimization         |
 
 ## Usage
 

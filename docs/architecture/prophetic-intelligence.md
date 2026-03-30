@@ -26,11 +26,11 @@ A semantic resonance algorithm that weighs multiple predictive paths to find the
 
 ## Ecosystem Integration
 
-| Component | Prophetic Enhancement |
-| :--- | :--- |
-| **Absorb** | **Neuromorphic Discovery**: Instantaneous trait matching via SNNs. |
+| Component      | Prophetic Enhancement                                                                      |
+| :------------- | :----------------------------------------------------------------------------------------- |
+| **Absorb**     | **Neuromorphic Discovery**: Instantaneous trait matching via SNNs.                         |
 | **HoloDaemon** | **Predictive Orchestration**: Proactive codebase scanning before errors are even detected. |
-| **Studio AI** | **Predictive Vision**: Zero-latency UI previews through intent-based pre-rendering. |
+| **Studio AI**  | **Predictive Vision**: Zero-latency UI previews through intent-based pre-rendering.        |
 
 ## Implementation Status
 
@@ -40,4 +40,4 @@ A semantic resonance algorithm that weighs multiple predictive paths to find the
 
 ---
 
-*For technical implementation details, see @holoscript/snn-webgpu README.*
+_For technical implementation details, see @holoscript/snn-webgpu README._

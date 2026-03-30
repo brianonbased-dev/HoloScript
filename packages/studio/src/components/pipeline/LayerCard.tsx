@@ -7,11 +7,7 @@
  */
 
 import React from 'react';
-import type {
-  LayerState,
-  LayerId,
-  LayerStatus,
-} from '@/lib/recursive/types';
+import type { LayerState, LayerId, LayerStatus } from '@/lib/recursive/types';
 
 interface LayerCardProps {
   layerId: LayerId;
@@ -46,9 +42,10 @@ export function LayerCard({ layerId, state, onApprove, onReject }: LayerCardProp
   const { config, status, cyclesCompleted, history, lastOutput } = state;
   const color = LAYER_COLORS[layerId];
   const totalSpent = history.reduce((sum, r) => sum + r.costUSD, 0);
-  const budgetPercent = config.budget.maxCostUSD > 0
-    ? Math.min(100, Math.round((totalSpent / config.budget.maxCostUSD) * 100))
-    : 0;
+  const budgetPercent =
+    config.budget.maxCostUSD > 0
+      ? Math.min(100, Math.round((totalSpent / config.budget.maxCostUSD) * 100))
+      : 0;
   const lastResult = history[history.length - 1];
 
   return (
@@ -79,20 +76,22 @@ export function LayerCard({ layerId, state, onApprove, onReject }: LayerCardProp
           <div className="text-xs text-studio-muted">Cycles</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-mono text-studio-text">
-            ${totalSpent.toFixed(2)}
-          </div>
-          <div className="text-xs text-studio-muted">
-            / ${config.budget.maxCostUSD.toFixed(2)}
-          </div>
+          <div className="text-lg font-mono text-studio-text">${totalSpent.toFixed(2)}</div>
+          <div className="text-xs text-studio-muted">/ ${config.budget.maxCostUSD.toFixed(2)}</div>
         </div>
         {lastResult && (
           <div className="text-center">
-            <div className={`text-lg font-mono ${
-              lastResult.qualityDelta > 0 ? 'text-green-500' :
-              lastResult.qualityDelta < 0 ? 'text-red-500' : 'text-studio-muted'
-            }`}>
-              {lastResult.qualityDelta > 0 ? '+' : ''}{lastResult.qualityDelta.toFixed(4)}
+            <div
+              className={`text-lg font-mono ${
+                lastResult.qualityDelta > 0
+                  ? 'text-green-500'
+                  : lastResult.qualityDelta < 0
+                    ? 'text-red-500'
+                    : 'text-studio-muted'
+              }`}
+            >
+              {lastResult.qualityDelta > 0 ? '+' : ''}
+              {lastResult.qualityDelta.toFixed(4)}
             </div>
             <div className="text-xs text-studio-muted">Quality Delta</div>
           </div>
@@ -113,15 +112,17 @@ export function LayerCard({ layerId, state, onApprove, onReject }: LayerCardProp
       {lastOutput && (
         <div className="text-xs text-studio-muted bg-studio-bg rounded p-2 mb-3">
           {lastOutput.kind === 'code_patches' && (
-            <span>{(lastOutput).patches.length} patches, {(lastOutput).filesChanged} files changed</span>
+            <span>
+              {lastOutput.patches.length} patches, {lastOutput.filesChanged} files changed
+            </span>
           )}
           {lastOutput.kind === 'strategy_adjustment' && (
-            <span>Strategy: {(lastOutput).rationale?.slice(0, 120)}...</span>
+            <span>Strategy: {lastOutput.rationale?.slice(0, 120)}...</span>
           )}
           {lastOutput.kind === 'evolution' && (
             <span>
-              {(lastOutput).newSkills.length} skills generated,{' '}
-              {(lastOutput).wisdomEntries.length} wisdom entries
+              {lastOutput.newSkills.length} skills generated, {lastOutput.wisdomEntries.length}{' '}
+              wisdom entries
             </span>
           )}
         </div>

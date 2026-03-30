@@ -21,7 +21,11 @@ describe('SpatialEntity — factories', () => {
   });
 
   it('SpatialEntity.at() accepts tags', () => {
-    const e = SpatialEntity.at('npc', { position: [0, 0, 0], size: [1, 2, 1], tags: ['enemy', 'ai'] });
+    const e = SpatialEntity.at('npc', {
+      position: [0, 0, 0],
+      size: [1, 2, 1],
+      tags: ['enemy', 'ai'],
+    });
     expect(e.tags).toEqual(['enemy', 'ai']);
   });
 

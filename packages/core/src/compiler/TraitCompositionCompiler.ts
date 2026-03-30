@@ -22,6 +22,11 @@ import type { TraitDependencyGraph } from './TraitDependencyGraph';
 import type { TraitInheritanceResolver } from './TraitInheritanceResolver';
 import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
 import { WorkflowStep } from './identity/AgentIdentity';
+import {
+  ProvenanceSemiring,
+  type TraitApplication,
+  authorityWeight
+} from './traits/ProvenanceSemiring';
 
 // =============================================================================
 // TYPES
@@ -171,22 +176,48 @@ export class TraitCompositionCompiler {
       return { name, handler };
     });
 
-    // 2. Conflict detection
-    this.detectConflicts(handlers);
+    // 2. Conflict detection (bypassed for high-authority contexts)
+    if (authorityWeight(decl.provenance?.context) < 100) {
+      this.detectConflicts(handlers);
+    }
 
-    // 3. Merge configs — if inheritance resolver available, include inherited props
-    let merged: Record<string, unknown> = {};
+    // 3. Merge configs using ProvenanceSemiring instead of Object spread
+    const semiring = new ProvenanceSemiring();
+    const applications: TraitApplication[] = [];
+
     for (const { name, handler } of handlers) {
-      // First, try to get fully-resolved inherited properties
+      let configAccumulator: Record<string, unknown> = {};
+
       if (this.inheritanceResolver && this.inheritanceResolver.hasTrait(name)) {
         const resolvedProps = this.inheritanceResolver.getFlattenedProperties(name);
-        merged = { ...merged, ...resolvedProps };
+        configAccumulator = { ...resolvedProps };
       }
-      // Then apply handler's own defaultConfig (which may override inherited)
-      merged = { ...merged, ...(handler.defaultConfig ?? {}) };
+
+      if (handler.defaultConfig) {
+        configAccumulator = { ...configAccumulator, ...handler.defaultConfig };
+      }
+
+      applications.push({ name, config: configAccumulator });
     }
+
     if (decl.overrides) {
-      merged = { ...merged, ...decl.overrides };
+      applications.push({ 
+        name: `${decl.name}_overrides`, 
+        config: decl.overrides,
+        context: { authorityLevel: Number.MAX_SAFE_INTEGER } // Overrides always win!
+      });
+    }
+
+    const { config: merged, errors } = semiring.add(applications);
+
+    if (errors.length > 0) {
+      // Extract conflict attributes to throw right error type
+      const match = errors[0].match(/Composition conflict: @(.+) and @(.+) both supply '(.+)'/);
+      if (match) {
+        throw new CompositionConflictError(match[1], match[2], match[3]);
+      } else {
+        throw new CompositionConflictError('Merge', 'Failure', errors[0]);
+      }
     }
 
     // 4. Detect diamond inheritance in composed traits
@@ -222,10 +253,10 @@ export class TraitCompositionCompiler {
   private detectConflicts(handlers: Array<{ name: string; handler: ComponentTraitHandler }>): void {
     for (let i = 0; i < handlers.length; i++) {
       const a = handlers[i];
-      const aConflicts = a.handler.conflicts ?? [];
+      const aConflicts = (a.handler as { conflicts?: string[] }).conflicts ?? [];
       for (let j = i + 1; j < handlers.length; j++) {
         const b = handlers[j];
-        const bConflicts = b.handler.conflicts ?? [];
+        const bConflicts = (b.handler as { conflicts?: string[] }).conflicts ?? [];
         if (aConflicts.includes(b.name) || bConflicts.includes(a.name)) {
           throw new CompositionConflictError(a.name, b.name, b.name);
         }

@@ -3,21 +3,23 @@ title: HoloScript Semantic Dictionary
 description: Official guidelines, naming conventions, design principles, and best practices for creating and extending HoloScript traits.
 ---
 
-# HoloScript Semantic Dictionary  
+# HoloScript Semantic Dictionary
 
 **Version 0.2** — March 2026  
 **Purpose**: A living, authoritative reference that defines semantic guidelines, naming conventions, design principles, and best practices for creating and extending traits. This ensures traits remain consistent, highly composable, performant across 30+ compile targets, and naturally AI-generatable.
 
 ## 1. What Is a Semantic Trait?
+
 A **trait** is a declarative decorator (`@trait_name`) that attaches rich meaning, behavior, runtime state, lifecycle hooks, and cross-platform logic to objects, primitives, compositions, environments, or entire scenes.
 
-Traits are **semantic** when they focus on *what* something is or does in human-understandable terms, rather than low-level implementation details of any specific runtime.  
+Traits are **semantic** when they focus on _what_ something is or does in human-understandable terms, rather than low-level implementation details of any specific runtime.  
 Good example: `@physics`  
 Poor example: `@addRigidBodyWithColliderAndGravity`
 
 Core traits currently number **1,525+** (with the broader vision targeting **2,000+** across 40+ categories).
 
 ## 2. Core Design Principles
+
 1. **Semantic Priority**  
    Always name and design by real-world intent or domain meaning first. Implementation details belong in the compiler or target overrides.
 
@@ -43,6 +45,7 @@ Core traits currently number **1,525+** (with the broader vision targeting **2,0
    Configuration fields and trait names should read naturally so language models can generate, modify, and explain scenes with minimal friction.
 
 ## 3. Naming Conventions
+
 - **Decorator style** (`@trait_name`): Use `lower_snake_case` or `camelCase` consistently across the ecosystem (recommend `lower_snake_case` for clarity in .holo/.hsplus files).
 - **Internal/TypeScript name**: Use `PascalCase` for the exported constant (e.g., `MacroGroundEvolver`).
 - **Optional prefixes** for large modules or categories:
@@ -59,18 +62,19 @@ Core traits currently number **1,525+** (with the broader vision targeting **2,0
   - `@procedural_biome`
 
 ## 4. Trait Structure (Recommended TraitDefinition Pattern)
+
 ```typescript
 import { TraitDefinition, TraitContext, TraitConfig } from '@holoscript/core';
 
 interface MyTraitConfig extends TraitConfig {
-  intensity?: number;           // 0.0 – 1.0 typical range
+  intensity?: number; // 0.0 – 1.0 typical range
   mode?: 'default' | 'high_fidelity' | 'performance';
   scale?: 'normal' | 'macro' | 'galactic';
 }
 
 interface MyTraitState {
   lastUpdate: number;
-  internalData?: any;   // runtime-only
+  internalData?: any; // runtime-only
 }
 
 export const MySemanticTrait: TraitDefinition<MyTraitConfig, MyTraitState> = {
@@ -82,7 +86,7 @@ export const MySemanticTrait: TraitDefinition<MyTraitConfig, MyTraitState> = {
   defaultConfig: {
     intensity: 1.0,
     mode: 'default',
-    scale: 'normal'
+    scale: 'normal',
   },
 
   init(ctx: TraitContext<MyTraitConfig>) {
@@ -95,7 +99,9 @@ export const MySemanticTrait: TraitDefinition<MyTraitConfig, MyTraitState> = {
 
   methods: {
     // Exposed runtime API
-    triggerEffect(ctx, params: any) { /* ... */ }
+    triggerEffect(ctx, params: any) {
+      /* ... */
+    },
   },
 
   destroy(ctx, state) {
@@ -104,13 +110,18 @@ export const MySemanticTrait: TraitDefinition<MyTraitConfig, MyTraitState> = {
 
   // Optional: per-target overrides or extensions
   targetOverrides: {
-    webxr: { /* lighter implementation */ },
-    unity: { /* deeper native integration */ }
-  }
+    webxr: {
+      /* lighter implementation */
+    },
+    unity: {
+      /* deeper native integration */
+    },
+  },
 };
 ```
 
 ## 5. Trait Categories (Official Taxonomy v0.2)
+
 - **Geometry & Scale**
 - **Visual & Material** (PBR, procedural, splatting, etc.)
 - **Physics & Interaction**
@@ -125,6 +136,7 @@ export const MySemanticTrait: TraitDefinition<MyTraitConfig, MyTraitState> = {
 New traits should map clearly into one primary category while remaining orthogonal to others.
 
 ## 6. Best Practices for Groundbreaking Traits
+
 - Keep configuration self-documenting and readable as natural language.
 - Ship every trait with at least one ready-to-copy `.hsplus` example.
 - Include suggested AI prompts for common use cases.
@@ -133,7 +145,9 @@ New traits should map clearly into one primary category while remaining orthogon
 - Document performance characteristics and scale recommendations.
 
 ## 7. Trait Evaluation Checklist (New in v0.2)
+
 Before publishing a trait, verify:
+
 - [ ] Is the name purely semantic?
 - [ ] Does it compose cleanly with 3–5 existing traits?
 - [ ] Zero-config usage works immediately?
@@ -144,6 +158,7 @@ Before publishing a trait, verify:
 - [ ] Tested on at least two compile targets?
 
 ## 8. Anti-Patterns (New in v0.2)
+
 - God-traits that do too many unrelated things.
 - Names that describe implementation (e.g., `@useWebGPUBackend`).
 - Hard dependencies on a single target’s features.
@@ -151,6 +166,7 @@ Before publishing a trait, verify:
 - Overly complex configuration on first use.
 
 ## 9. How to Contribute a New Trait
+
 1. Implement using the TraitDefinition pattern in your module.
 2. Register it via `holoscript.config.ts`.
 3. Add full documentation and examples.

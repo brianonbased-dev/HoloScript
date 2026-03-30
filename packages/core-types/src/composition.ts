@@ -1079,8 +1079,6 @@ export interface HoloParserOptions {
   filename?: string;
 }
 
-
-
 /**
  * Compact import record stored in `ASTProgram.imports`.
  * Mirrors `ImportDirective` but is serialization-lightweight (no loc).

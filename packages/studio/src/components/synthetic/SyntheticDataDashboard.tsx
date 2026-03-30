@@ -194,7 +194,9 @@ export function SyntheticDataDashboard({
     estimatedRemainingMs: 0,
     errors: [],
   });
-  const [activeTab, setActiveTab] = useState<'camera' | 'lighting' | 'augmentation' | 'batch'>('camera');
+  const [activeTab, setActiveTab] = useState<'camera' | 'lighting' | 'augmentation' | 'batch'>(
+    'camera'
+  );
 
   // ─── Config assembly ──────────────────────────────────────────────────
 
@@ -219,7 +221,11 @@ export function SyntheticDataDashboard({
     const bytesPerImage = w * h * 3; // RGB
     const totalBytes = bytesPerImage * batch.totalImages;
     const withAnnotations = totalBytes * 1.15; // ~15% overhead for annotations
-    const multiplier = 1 + (batch.includeDepth ? 0.33 : 0) + (batch.includeNormals ? 0.33 : 0) + (batch.includeSegmentation ? 0.15 : 0);
+    const multiplier =
+      1 +
+      (batch.includeDepth ? 0.33 : 0) +
+      (batch.includeNormals ? 0.33 : 0) +
+      (batch.includeSegmentation ? 0.15 : 0);
     const total = withAnnotations * multiplier;
     if (total >= 1_073_741_824) return `${(total / 1_073_741_824).toFixed(1)} GB`;
     return `${(total / 1_048_576).toFixed(0)} MB`;
@@ -340,7 +346,10 @@ export function SyntheticDataDashboard({
               <span className="text-studio-text font-mono">{camera.count}</span>
             </div>
             <input
-              type="range" min="5" max="500" step="5"
+              type="range"
+              min="5"
+              max="500"
+              step="5"
               value={camera.count}
               onChange={(e) => setCamera((prev) => ({ ...prev, count: parseInt(e.target.value) }))}
               className="w-full accent-studio-accent h-1"
@@ -351,18 +360,28 @@ export function SyntheticDataDashboard({
             <div>
               <div className="text-[10px] text-studio-muted">Min Distance</div>
               <input
-                type="number" min="0.5" max="50" step="0.5"
+                type="number"
+                min="0.5"
+                max="50"
+                step="0.5"
                 value={camera.minDistance}
-                onChange={(e) => setCamera((prev) => ({ ...prev, minDistance: parseFloat(e.target.value) || 1 }))}
+                onChange={(e) =>
+                  setCamera((prev) => ({ ...prev, minDistance: parseFloat(e.target.value) || 1 }))
+                }
                 className="w-full bg-studio-panel/30 text-studio-text rounded px-2 py-1 text-[10px] outline-none"
               />
             </div>
             <div>
               <div className="text-[10px] text-studio-muted">Max Distance</div>
               <input
-                type="number" min="1" max="100" step="0.5"
+                type="number"
+                min="1"
+                max="100"
+                step="0.5"
                 value={camera.maxDistance}
-                onChange={(e) => setCamera((prev) => ({ ...prev, maxDistance: parseFloat(e.target.value) || 5 }))}
+                onChange={(e) =>
+                  setCamera((prev) => ({ ...prev, maxDistance: parseFloat(e.target.value) || 5 }))
+                }
                 className="w-full bg-studio-panel/30 text-studio-text rounded px-2 py-1 text-[10px] outline-none"
               />
             </div>
@@ -427,7 +446,9 @@ export function SyntheticDataDashboard({
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-studio-muted">Shadows</span>
             <button
-              onClick={() => setLighting((prev) => ({ ...prev, shadowsEnabled: !prev.shadowsEnabled }))}
+              onClick={() =>
+                setLighting((prev) => ({ ...prev, shadowsEnabled: !prev.shadowsEnabled }))
+              }
               className={`px-2 py-0.5 rounded text-[10px] transition ${
                 lighting.shadowsEnabled
                   ? 'bg-emerald-500/20 text-emerald-400'
@@ -444,9 +465,14 @@ export function SyntheticDataDashboard({
               <span className="text-studio-text font-mono">{lighting.directionalCount}</span>
             </div>
             <input
-              type="range" min="1" max="6" step="1"
+              type="range"
+              min="1"
+              max="6"
+              step="1"
               value={lighting.directionalCount}
-              onChange={(e) => setLighting((prev) => ({ ...prev, directionalCount: parseInt(e.target.value) }))}
+              onChange={(e) =>
+                setLighting((prev) => ({ ...prev, directionalCount: parseInt(e.target.value) }))
+              }
               className="w-full accent-studio-accent h-1"
             />
           </div>
@@ -474,7 +500,9 @@ export function SyntheticDataDashboard({
             <>
               <div className="text-[10px] text-studio-muted">Augmentation Types</div>
               <div className="grid grid-cols-3 gap-1">
-                {(['noise', 'blur', 'occlusion', 'colorJitter', 'cropResize'] as AugmentationType[]).map((type) => (
+                {(
+                  ['noise', 'blur', 'occlusion', 'colorJitter', 'cropResize'] as AugmentationType[]
+                ).map((type) => (
                   <button
                     key={type}
                     onClick={() => toggleAugType(type)}
@@ -493,12 +521,22 @@ export function SyntheticDataDashboard({
                 <div>
                   <div className="flex justify-between text-[10px]">
                     <span className="text-studio-muted">Noise Std Dev</span>
-                    <span className="text-studio-text font-mono">{augmentation.noiseStddev.toFixed(3)}</span>
+                    <span className="text-studio-text font-mono">
+                      {augmentation.noiseStddev.toFixed(3)}
+                    </span>
                   </div>
                   <input
-                    type="range" min="0" max="0.1" step="0.005"
+                    type="range"
+                    min="0"
+                    max="0.1"
+                    step="0.005"
                     value={augmentation.noiseStddev}
-                    onChange={(e) => setAugmentation((prev) => ({ ...prev, noiseStddev: parseFloat(e.target.value) }))}
+                    onChange={(e) =>
+                      setAugmentation((prev) => ({
+                        ...prev,
+                        noiseStddev: parseFloat(e.target.value),
+                      }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -508,12 +546,22 @@ export function SyntheticDataDashboard({
                 <div>
                   <div className="flex justify-between text-[10px]">
                     <span className="text-studio-muted">Blur Radius</span>
-                    <span className="text-studio-text font-mono">{augmentation.blurRadius.toFixed(1)}</span>
+                    <span className="text-studio-text font-mono">
+                      {augmentation.blurRadius.toFixed(1)}
+                    </span>
                   </div>
                   <input
-                    type="range" min="0" max="5" step="0.1"
+                    type="range"
+                    min="0"
+                    max="5"
+                    step="0.1"
                     value={augmentation.blurRadius}
-                    onChange={(e) => setAugmentation((prev) => ({ ...prev, blurRadius: parseFloat(e.target.value) }))}
+                    onChange={(e) =>
+                      setAugmentation((prev) => ({
+                        ...prev,
+                        blurRadius: parseFloat(e.target.value),
+                      }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -523,12 +571,22 @@ export function SyntheticDataDashboard({
                 <div>
                   <div className="flex justify-between text-[10px]">
                     <span className="text-studio-muted">Color Jitter</span>
-                    <span className="text-studio-text font-mono">{augmentation.colorJitterRange.toFixed(2)}</span>
+                    <span className="text-studio-text font-mono">
+                      {augmentation.colorJitterRange.toFixed(2)}
+                    </span>
                   </div>
                   <input
-                    type="range" min="0" max="0.5" step="0.01"
+                    type="range"
+                    min="0"
+                    max="0.5"
+                    step="0.01"
                     value={augmentation.colorJitterRange}
-                    onChange={(e) => setAugmentation((prev) => ({ ...prev, colorJitterRange: parseFloat(e.target.value) }))}
+                    onChange={(e) =>
+                      setAugmentation((prev) => ({
+                        ...prev,
+                        colorJitterRange: parseFloat(e.target.value),
+                      }))
+                    }
                     className="w-full accent-studio-accent h-1"
                   />
                 </div>
@@ -556,7 +614,9 @@ export function SyntheticDataDashboard({
               >
                 <span>{FORMAT_INFO[fmt].icon}</span>
                 <div>
-                  <div className="text-studio-text text-[10px] font-medium">{FORMAT_INFO[fmt].label}</div>
+                  <div className="text-studio-text text-[10px] font-medium">
+                    {FORMAT_INFO[fmt].label}
+                  </div>
                   <div className="text-studio-muted text-[9px]">{FORMAT_INFO[fmt].desc}</div>
                 </div>
               </button>
@@ -567,12 +627,19 @@ export function SyntheticDataDashboard({
           <div>
             <div className="flex justify-between text-[10px]">
               <span className="text-studio-muted">Total Images</span>
-              <span className="text-studio-text font-mono">{batch.totalImages.toLocaleString()}</span>
+              <span className="text-studio-text font-mono">
+                {batch.totalImages.toLocaleString()}
+              </span>
             </div>
             <input
-              type="range" min="100" max="50000" step="100"
+              type="range"
+              min="100"
+              max="50000"
+              step="100"
               value={batch.totalImages}
-              onChange={(e) => setBatch((prev) => ({ ...prev, totalImages: parseInt(e.target.value) }))}
+              onChange={(e) =>
+                setBatch((prev) => ({ ...prev, totalImages: parseInt(e.target.value) }))
+              }
               className="w-full accent-studio-accent h-1"
             />
           </div>
@@ -582,18 +649,34 @@ export function SyntheticDataDashboard({
             <div>
               <div className="text-[10px] text-studio-muted">Width</div>
               <input
-                type="number" min="256" max="4096" step="256"
+                type="number"
+                min="256"
+                max="4096"
+                step="256"
                 value={batch.resolution[0]}
-                onChange={(e) => setBatch((prev) => ({ ...prev, resolution: [parseInt(e.target.value) || 1024, prev.resolution[1]] }))}
+                onChange={(e) =>
+                  setBatch((prev) => ({
+                    ...prev,
+                    resolution: [parseInt(e.target.value) || 1024, prev.resolution[1]],
+                  }))
+                }
                 className="w-full bg-studio-panel/30 text-studio-text rounded px-2 py-1 text-[10px] outline-none"
               />
             </div>
             <div>
               <div className="text-[10px] text-studio-muted">Height</div>
               <input
-                type="number" min="256" max="4096" step="256"
+                type="number"
+                min="256"
+                max="4096"
+                step="256"
                 value={batch.resolution[1]}
-                onChange={(e) => setBatch((prev) => ({ ...prev, resolution: [prev.resolution[0], parseInt(e.target.value) || 1024] }))}
+                onChange={(e) =>
+                  setBatch((prev) => ({
+                    ...prev,
+                    resolution: [prev.resolution[0], parseInt(e.target.value) || 1024],
+                  }))
+                }
                 className="w-full bg-studio-panel/30 text-studio-text rounded px-2 py-1 text-[10px] outline-none"
               />
             </div>
@@ -604,7 +687,9 @@ export function SyntheticDataDashboard({
             <div className="text-[10px] text-studio-muted mb-1">Data Splits</div>
             <div className="grid grid-cols-3 gap-1 text-[10px]">
               <div className="text-center">
-                <div className="text-emerald-400 font-mono">{(batch.trainSplit * 100).toFixed(0)}%</div>
+                <div className="text-emerald-400 font-mono">
+                  {(batch.trainSplit * 100).toFixed(0)}%
+                </div>
                 <div className="text-studio-muted">Train ({splitSummary.train})</div>
               </div>
               <div className="text-center">
@@ -645,7 +730,9 @@ export function SyntheticDataDashboard({
             <input
               type="number"
               value={batch.seed}
-              onChange={(e) => setBatch((prev) => ({ ...prev, seed: parseInt(e.target.value) || 0 }))}
+              onChange={(e) =>
+                setBatch((prev) => ({ ...prev, seed: parseInt(e.target.value) || 0 }))
+              }
               className="w-20 bg-studio-panel/30 text-studio-text rounded px-2 py-1 text-[10px] outline-none font-mono"
             />
           </div>
@@ -658,7 +745,8 @@ export function SyntheticDataDashboard({
           <div className="flex justify-between text-[10px]">
             <span className="text-studio-accent animate-pulse">Generating...</span>
             <span className="text-studio-muted">
-              {progress.current}/{progress.total} · ~{formatDuration(progress.estimatedRemainingMs)} remaining
+              {progress.current}/{progress.total} · ~{formatDuration(progress.estimatedRemainingMs)}{' '}
+              remaining
             </span>
           </div>
           <div className="h-1.5 bg-studio-panel/50 rounded-full overflow-hidden">
@@ -672,7 +760,8 @@ export function SyntheticDataDashboard({
 
       {progress.status === 'complete' && (
         <div className="bg-emerald-500/10 rounded px-2 py-1.5 text-[10px] text-emerald-400">
-          Generation complete: {progress.total.toLocaleString()} images in {formatDuration(progress.elapsedMs)}
+          Generation complete: {progress.total.toLocaleString()} images in{' '}
+          {formatDuration(progress.elapsedMs)}
         </div>
       )}
 

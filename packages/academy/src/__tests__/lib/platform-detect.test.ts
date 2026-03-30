@@ -66,7 +66,12 @@ describe('detectPlatformSync() — Node.js environment', () => {
   });
 
   it('recommendedWorld is one of the valid values', () => {
-    const valid = ['holoscript-runtime', 'holoscript-parser', 'holoscript-compiler', 'holoscript-spatial'];
+    const valid = [
+      'holoscript-runtime',
+      'holoscript-parser',
+      'holoscript-compiler',
+      'holoscript-spatial',
+    ];
     expect(valid).toContain(detectPlatformSync().recommendedWorld);
   });
 
@@ -116,12 +121,16 @@ describe('PLATFORM_BUDGETS constants', () => {
   });
 
   it('browser budget is more constrained than tauri', () => {
-    expect(PLATFORM_BUDGETS.browser.maxWasmBinaryKB).toBeLessThan(PLATFORM_BUDGETS.tauri.maxWasmBinaryKB);
+    expect(PLATFORM_BUDGETS.browser.maxWasmBinaryKB).toBeLessThan(
+      PLATFORM_BUDGETS.tauri.maxWasmBinaryKB
+    );
     expect(PLATFORM_BUDGETS.browser.maxMemoryMB).toBeLessThan(PLATFORM_BUDGETS.tauri.maxMemoryMB);
   });
 
   it('mobile budget is most constrained', () => {
-    expect(PLATFORM_BUDGETS.mobile.maxWasmBinaryKB).toBeLessThan(PLATFORM_BUDGETS.browser.maxWasmBinaryKB);
+    expect(PLATFORM_BUDGETS.mobile.maxWasmBinaryKB).toBeLessThan(
+      PLATFORM_BUDGETS.browser.maxWasmBinaryKB
+    );
     expect(PLATFORM_BUDGETS.mobile.maxMemoryMB).toBeLessThan(PLATFORM_BUDGETS.browser.maxMemoryMB);
   });
 
@@ -180,7 +189,11 @@ describe('checkBudget()', () => {
   });
 
   it('reports multiple violations at once', () => {
-    const result = checkBudget('mobile', { maxWasmBinaryKB: 99999, maxMemoryMB: 99999, maxInitTimeMs: 99999 });
+    const result = checkBudget('mobile', {
+      maxWasmBinaryKB: 99999,
+      maxMemoryMB: 99999,
+      maxInitTimeMs: 99999,
+    });
     expect(result.violations.length).toBeGreaterThanOrEqual(3);
   });
 

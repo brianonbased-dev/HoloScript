@@ -65,7 +65,12 @@ export class SemanticValidator {
 
   private extractDefinitions(node: HSPlusNode): void {
     if (node.directives) {
-      const directives = (node.directives ?? []) as Array<{ type: string; name?: string; args?: unknown[]; config?: Record<string, unknown> }>;
+      const directives = (node.directives ?? []) as Array<{
+        type: string;
+        name?: string;
+        args?: unknown[];
+        config?: Record<string, unknown>;
+      }>;
       for (const directive of directives) {
         if (directive.name === 'semantic' && directive.args?.[0]) {
           const semanticName = directive.args[0] as string;
@@ -81,7 +86,9 @@ export class SemanticValidator {
           };
 
           if (config.properties) {
-            for (const [prop, typeSpec] of Object.entries(config.properties as Record<string, unknown>)) {
+            for (const [prop, typeSpec] of Object.entries(
+              config.properties as Record<string, unknown>
+            )) {
               // If it's an empty object or not a string, we still want to require the property
               const typeStr = typeof typeSpec === 'string' ? typeSpec : 'any';
               const type = this.resolveType(typeStr);
@@ -94,10 +101,14 @@ export class SemanticValidator {
           }
 
           if (config.methods) {
-            for (const [methodName, methodConfig] of Object.entries(config.methods as Record<string, unknown>)) {
+            for (const [methodName, methodConfig] of Object.entries(
+              config.methods as Record<string, unknown>
+            )) {
               const cfg = methodConfig as MethodConfigEntry;
               definition.requiredMethods.set(methodName, {
-                params: (cfg.params || []).map((p: string) => this.resolveType(p)).filter((t): t is HoloScriptType => t !== undefined),
+                params: (cfg.params || [])
+                  .map((p: string) => this.resolveType(p))
+                  .filter((t): t is HoloScriptType => t !== undefined),
                 returnType: this.resolveType(cfg.returnType || 'void') as HoloScriptType,
               });
             }
@@ -117,7 +128,12 @@ export class SemanticValidator {
 
   private validateNodes(node: HSPlusNode): void {
     if (node.directives) {
-      const directives = (node.directives ?? []) as Array<{ type: string; name?: string; args?: unknown[]; config?: Record<string, unknown> }>;
+      const directives = (node.directives ?? []) as Array<{
+        type: string;
+        name?: string;
+        args?: unknown[];
+        config?: Record<string, unknown>;
+      }>;
       for (const directive of directives) {
         if (directive.name === 'semantic_ref' && directive.args?.[0]) {
           const refName = directive.args[0] as string;
@@ -229,7 +245,9 @@ export class SemanticValidator {
   }
 
   private formatType(type: HoloScriptType): string {
-    return (this.typeChecker as unknown as { formatType(t: HoloScriptType): string }).formatType(type);
+    return (this.typeChecker as unknown as { formatType(t: HoloScriptType): string }).formatType(
+      type
+    );
   }
 
   private validateMethodSignature(

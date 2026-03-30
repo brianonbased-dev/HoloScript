@@ -174,8 +174,12 @@ describe('WindZoneManager', () => {
 
   it('removes zones', () => {
     mgr.addZone({
-      id: 'z1', type: WindZoneType.GLOBAL, direction: { x: 1, y: 0, z: 0 },
-      force: 1.0, turbulence: 0, enabled: true,
+      id: 'z1',
+      type: WindZoneType.GLOBAL,
+      direction: { x: 1, y: 0, z: 0 },
+      force: 1.0,
+      turbulence: 0,
+      enabled: true,
     });
     expect(mgr.removeZone('z1')).toBe(true);
     expect(mgr.getAllZones()).toHaveLength(0);
@@ -185,9 +189,12 @@ describe('WindZoneManager', () => {
   describe('GLOBAL wind zone', () => {
     it('applies uniform force everywhere', () => {
       mgr.addZone({
-        id: 'global', type: WindZoneType.GLOBAL,
+        id: 'global',
+        type: WindZoneType.GLOBAL,
         direction: { x: 0.7, y: 0, z: 0.3 },
-        force: 2.0, turbulence: 0, enabled: true,
+        force: 2.0,
+        turbulence: 0,
+        enabled: true,
       });
       const wind = mgr.computeWindAt({ x: 100, y: 0, z: -50 });
       expect(wind.x).toBeCloseTo(1.4, 5);
@@ -196,9 +203,12 @@ describe('WindZoneManager', () => {
 
     it('disabled zone contributes nothing', () => {
       mgr.addZone({
-        id: 'off', type: WindZoneType.GLOBAL,
+        id: 'off',
+        type: WindZoneType.GLOBAL,
         direction: { x: 1, y: 0, z: 0 },
-        force: 10.0, turbulence: 0, enabled: false,
+        force: 10.0,
+        turbulence: 0,
+        enabled: false,
       });
       const wind = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
       expect(wind.x).toBe(0);
@@ -208,11 +218,14 @@ describe('WindZoneManager', () => {
   describe('POINT wind zone', () => {
     it('falls off linearly from center to radius', () => {
       mgr.addZone({
-        id: 'fire', type: WindZoneType.POINT,
+        id: 'fire',
+        type: WindZoneType.POINT,
         position: { x: 0, y: 0, z: 0 },
         direction: { x: 0, y: 1, z: 0 },
-        force: 4.0, radius: 2.0,
-        turbulence: 0, enabled: true,
+        force: 4.0,
+        radius: 2.0,
+        turbulence: 0,
+        enabled: true,
       });
 
       // At center: full force
@@ -234,10 +247,12 @@ describe('WindZoneManager', () => {
 
     it('returns zero if missing position or radius', () => {
       mgr.addZone({
-        id: 'bad', type: WindZoneType.POINT,
+        id: 'bad',
+        type: WindZoneType.POINT,
         direction: { x: 0, y: 1, z: 0 },
         force: 4.0,
-        turbulence: 0, enabled: true,
+        turbulence: 0,
+        enabled: true,
       });
       const wind = mgr.computeWindAt({ x: 0, y: 0, z: 0 });
       expect(wind.x).toBe(0);
@@ -248,12 +263,14 @@ describe('WindZoneManager', () => {
   describe('DIRECTIONAL wind zone', () => {
     it('applies force within cone angle', () => {
       mgr.addZone({
-        id: 'window', type: WindZoneType.DIRECTIONAL,
+        id: 'window',
+        type: WindZoneType.DIRECTIONAL,
         position: { x: 0, y: 0, z: 0 },
         direction: { x: 1, y: 0, z: 0 },
         force: 5.0,
         coneAngle: Math.PI / 4, // 45 degrees
-        turbulence: 0, enabled: true,
+        turbulence: 0,
+        enabled: true,
       });
 
       // Directly in front (on-axis)
@@ -267,10 +284,12 @@ describe('WindZoneManager', () => {
 
     it('returns zero if missing position or coneAngle', () => {
       mgr.addZone({
-        id: 'bad2', type: WindZoneType.DIRECTIONAL,
+        id: 'bad2',
+        type: WindZoneType.DIRECTIONAL,
         direction: { x: 1, y: 0, z: 0 },
         force: 5.0,
-        turbulence: 0, enabled: true,
+        turbulence: 0,
+        enabled: true,
       });
       const wind = mgr.computeWindAt({ x: 5, y: 0, z: 0 });
       expect(wind.x).toBe(0);
@@ -290,9 +309,12 @@ describe('WindZoneManager', () => {
 
     it('combines weather wind with zone wind', () => {
       mgr.addZone({
-        id: 'g', type: WindZoneType.GLOBAL,
+        id: 'g',
+        type: WindZoneType.GLOBAL,
         direction: { x: 1, y: 0, z: 0 },
-        force: 2.0, turbulence: 0, enabled: true,
+        force: 2.0,
+        turbulence: 0,
+        enabled: true,
       });
       const weather = {
         wind_vector: [1, 0, 0] as [number, number, number],
@@ -306,9 +328,12 @@ describe('WindZoneManager', () => {
   describe('gust cycles', () => {
     it('applies gust force during gust window', () => {
       mgr.addZone({
-        id: 'gusty', type: WindZoneType.GLOBAL,
+        id: 'gusty',
+        type: WindZoneType.GLOBAL,
         direction: { x: 1, y: 0, z: 0 },
-        force: 1.0, turbulence: 0, enabled: true,
+        force: 1.0,
+        turbulence: 0,
+        enabled: true,
         gust: { interval: 4, strength: 3.0, duration: 0.8 },
       });
 
@@ -804,7 +829,7 @@ describe('PhysicsActivationController', () => {
         c.update(1 / 60, {});
       }
 
-      const simulating = controllers.filter(c => c.isSimulating()).length;
+      const simulating = controllers.filter((c) => c.isSimulating()).length;
       expect(simulating).toBe(0);
     });
 
@@ -816,13 +841,11 @@ describe('PhysicsActivationController', () => {
 
       // 3 walking, rest idle
       for (let i = 0; i < 20; i++) {
-        const vel = i < 3
-          ? { x: 1.5, y: 0, z: 0 }
-          : { x: 0, y: 0, z: 0 };
+        const vel = i < 3 ? { x: 1.5, y: 0, z: 0 } : { x: 0, y: 0, z: 0 };
         controllers[i].update(1 / 60, { characterVelocity: vel });
       }
 
-      const simulating = controllers.filter(c => c.isSimulating()).length;
+      const simulating = controllers.filter((c) => c.isSimulating()).length;
       expect(simulating).toBe(3);
     });
   });

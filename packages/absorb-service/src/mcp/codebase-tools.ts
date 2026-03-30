@@ -64,7 +64,9 @@ async function detectBestEmbeddingProvider(): Promise<string> {
 
     if (response.ok) {
       cachedProviderName = 'ollama';
-      console.error(`[EmbeddingProvider] Auto-detected: ${cachedProviderName} (running at ${ollamaUrl})`);
+      console.error(
+        `[EmbeddingProvider] Auto-detected: ${cachedProviderName} (running at ${ollamaUrl})`
+      );
       return cachedProviderName;
     }
   } catch {
@@ -73,8 +75,12 @@ async function detectBestEmbeddingProvider(): Promise<string> {
 
   // 4. Fallback — OpenAI without key will fail gracefully; warn user
   cachedProviderName = 'openai';
-  console.error(`[EmbeddingProvider] WARNING: No OPENAI_API_KEY or Ollama found. Defaulting to 'openai' which will fail without a key.`);
-  console.error(`[EmbeddingProvider] Set OPENAI_API_KEY in your environment for best quality semantic search.`);
+  console.error(
+    `[EmbeddingProvider] WARNING: No OPENAI_API_KEY or Ollama found. Defaulting to 'openai' which will fail without a key.`
+  );
+  console.error(
+    `[EmbeddingProvider] Set OPENAI_API_KEY in your environment for best quality semantic search.`
+  );
   return cachedProviderName;
 }
 
@@ -84,14 +90,14 @@ async function detectBestEmbeddingProvider(): Promise<string> {
 async function createDynamicEmbeddingIndex(
   mod: {
     EmbeddingIndex: new (provider: any) => any;
-    createEmbeddingProvider: (opts: any) => Promise<any>
+    createEmbeddingProvider: (opts: any) => Promise<any>;
   },
   embeddingProvider?: string,
   embeddingApiKey?: string,
   embeddingModel?: string
 ): Promise<any> {
   const { EmbeddingIndex, createEmbeddingProvider } = mod;
-  const providerName = embeddingProvider || await detectBestEmbeddingProvider();
+  const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
 
   const provider = await createEmbeddingProvider({
     provider: providerName as any,
@@ -101,7 +107,9 @@ async function createDynamicEmbeddingIndex(
     openaiModel: embeddingModel || process.env.OPENAI_MODEL,
     xenovaModel: process.env.XENOVA_MODEL,
   });
-  console.error(`[EmbeddingProvider] Created: ${provider.name}${embeddingProvider ? ' (agent-specified)' : ''}`);
+  console.error(
+    `[EmbeddingProvider] Created: ${provider.name}${embeddingProvider ? ' (agent-specified)' : ''}`
+  );
   return new EmbeddingIndex({ provider });
 }
 
@@ -173,9 +181,12 @@ function createAbsorbJob(rootDir: string): string {
   });
 
   // Auto-cleanup after 1 hour
-  setTimeout(() => {
-    absorbJobs.delete(jobId);
-  }, 60 * 60 * 1000);
+  setTimeout(
+    () => {
+      absorbJobs.delete(jobId);
+    },
+    60 * 60 * 1000
+  );
 
   return jobId;
 }
@@ -247,10 +258,14 @@ function saveGraphCache(
       embeddingProvider,
     };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
-    console.log(`[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir} version=2 git=${gitCommitHash?.slice(0, 7)}`);
+    console.log(
+      `[CacheDebug][codebase] save hit path=${CACHE_FILE} rootDir=${rootDir} version=2 git=${gitCommitHash?.slice(0, 7)}`
+    );
   } catch (err) {
     // Best-effort — don't break absorb if persistence fails
-    console.warn(`[CacheDebug][codebase] save miss path=${CACHE_FILE} error=${(err as Error)?.message ?? String(err)}`);
+    console.warn(
+      `[CacheDebug][codebase] save miss path=${CACHE_FILE} error=${(err as Error)?.message ?? String(err)}`
+    );
   }
 }
 
@@ -260,10 +275,14 @@ function saveEmbeddingsCache(index: any, rootDir: string): void {
     if (typeof index.serializeBinary === 'function') {
       const buffer = index.serializeBinary();
       fs.writeFileSync(EMBEDDINGS_FILE, buffer);
-      console.log(`[CacheDebug][codebase] save embeddings hit path=${EMBEDDINGS_FILE} rootDir=${rootDir}`);
+      console.log(
+        `[CacheDebug][codebase] save embeddings hit path=${EMBEDDINGS_FILE} rootDir=${rootDir}`
+      );
     }
   } catch (err) {
-    console.warn(`[CacheDebug][codebase] save embeddings miss path=${EMBEDDINGS_FILE} error=${(err as Error)?.message}`);
+    console.warn(
+      `[CacheDebug][codebase] save embeddings miss path=${EMBEDDINGS_FILE} error=${(err as Error)?.message}`
+    );
   }
 }
 
@@ -302,7 +321,9 @@ function loadGraphCache(): GraphCacheEnvelope | null {
       return null;
     }
 
-    console.log(`[CacheDebug][codebase] load hit path=${CACHE_FILE} rootDir=${envelope.rootDir} version=${envelope.version}`);
+    console.log(
+      `[CacheDebug][codebase] load hit path=${CACHE_FILE} rootDir=${envelope.rootDir} version=${envelope.version}`
+    );
     return envelope;
   } catch {
     console.warn(`[CacheDebug][codebase] load miss path=${CACHE_FILE} reason=parse-or-io-error`);
@@ -359,9 +380,7 @@ function buildAbsorbDiagnostics(
     }
   }
 
-  const errors = Array.isArray(scanResult?.stats?.errors)
-    ? scanResult?.stats?.errors
-    : [];
+  const errors = Array.isArray(scanResult?.stats?.errors) ? scanResult?.stats?.errors : [];
   const scanErrorSample = errors.slice(0, 5).map((e: any) => ({
     file: String(e?.file ?? ''),
     phase: String(e?.phase ?? ''),
@@ -469,15 +488,18 @@ export const codebaseTools: Tool[] = [
         embeddingProvider: {
           type: 'string',
           enum: ['openai', 'ollama', 'xenova', 'bm25'],
-          description: 'Embedding provider for semantic search (default: openai). "openai" uses OpenAI embeddings (best quality, requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model, "bm25" is deprecated keyword-only fallback.',
+          description:
+            'Embedding provider for semantic search (default: openai). "openai" uses OpenAI embeddings (best quality, requires API key), "ollama" uses local Ollama server, "xenova" uses local WASM model, "bm25" is deprecated keyword-only fallback.',
         },
         embeddingApiKey: {
           type: 'string',
-          description: 'API key for embedding provider (required for openai, not needed for ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
+          description:
+            'API key for embedding provider (required for openai, not needed for ollama/xenova). Falls back to OPENAI_API_KEY environment variable if not provided.',
         },
         embeddingModel: {
           type: 'string',
-          description: 'Model name for embeddings (e.g., "text-embedding-3-small" for OpenAI). Uses provider defaults if not specified.',
+          description:
+            'Model name for embeddings (e.g., "text-embedding-3-small" for OpenAI). Uses provider defaults if not specified.',
         },
       },
       required: ['rootDir'],
@@ -685,7 +707,9 @@ async function ensureCachedGraph(): Promise<{
           saveEmbeddingsCache(idx, cachedRootDir);
         }
         setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
-      } catch { /* Embedding provider may not be available */ }
+      } catch {
+        /* Embedding provider may not be available */
+      }
       const ageMs = Date.now() - envelope.timestamp;
       return { loaded: true, source: 'disk-cache', ageMs, rootDir: envelope.rootDir, stale: false };
     } catch {
@@ -769,7 +793,8 @@ async function runFullScan(
   embeddingApiKey?: string,
   embeddingModel?: string
 ): Promise<unknown> {
-  const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } = mod;
+  const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector } =
+    mod;
 
   const startTime = Date.now();
 
@@ -786,10 +811,10 @@ async function runFullScan(
     includeBuildArtifacts,
     onProgress: (processed: number, total: number, file: string) => {
       if (jobId) {
-        const scanPercent = 10 + ((processed / total) * 50); // 10-60%
+        const scanPercent = 10 + (processed / total) * 50; // 10-60%
         trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
       }
-    }
+    },
   });
 
   if (jobId) trackAbsorbProgress(jobId, 'Building graph', 65);
@@ -820,7 +845,7 @@ async function runFullScan(
 
   // Persist graph to disk
   const graphStats = graph.getStats();
-  const detectedProvider = embeddingProvider || await detectBestEmbeddingProvider();
+  const detectedProvider = embeddingProvider || (await detectBestEmbeddingProvider());
   saveGraphCache(graph, rootDir, graphStats, gitCommitHash, fileHashes, detectedProvider);
 
   if (jobId) trackAbsorbProgress(jobId, 'Creating embeddings', 80);
@@ -828,7 +853,12 @@ async function runFullScan(
   // Build embedding index with granular progress (Phase 8 Extension)
   try {
     const { GraphRAGEngine } = mod;
-    const embeddingIndex = await createDynamicEmbeddingIndex(mod, embeddingProvider, embeddingApiKey, embeddingModel);
+    const embeddingIndex = await createDynamicEmbeddingIndex(
+      mod,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
 
     // Wire progress callback for granular embedding updates
     await embeddingIndex.buildIndex(
@@ -963,7 +993,20 @@ async function runIncrementalPatch(
     graph = CodebaseGraph.deserialize(envelope.graphJson);
   } catch {
     console.warn('[AbsorbIncremental] deserialization failed → full scan');
-    return await runFullScan(mod, rootDir, undefined, undefined, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    return await runFullScan(
+      mod,
+      rootDir,
+      undefined,
+      undefined,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
   }
 
   if (jobId) trackAbsorbProgress(jobId, 'Detecting content changes', 20);
@@ -978,21 +1021,27 @@ async function runIncrementalPatch(
   const filesToRemove = [...changes.deleted, ...modifiedFiltered.trulyChanged];
   const filesToRescan = [...changes.added, ...modifiedFiltered.trulyChanged];
 
-  console.log(`[AbsorbIncremental] removing ${filesToRemove.length}, rescanning ${filesToRescan.length}`);
+  console.log(
+    `[AbsorbIncremental] removing ${filesToRemove.length}, rescanning ${filesToRescan.length}`
+  );
 
   if (jobId) trackAbsorbProgress(jobId, `Rescanning ${filesToRescan.length} changed files`, 30);
 
   // Rescan changed files
   const scanner = new CodebaseScanner();
-  const rescanResult = await scanner.scanFiles(rootDir, filesToRescan.map(f => path.join(rootDir, f)), {
-    includeBuildArtifacts,
-    onProgress: (processed: number, total: number, file: string) => {
-      if (jobId) {
-        const scanPercent = 30 + ((processed / total) * 30); // 30-60%
-        trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
-      }
+  const rescanResult = await scanner.scanFiles(
+    rootDir,
+    filesToRescan.map((f) => path.join(rootDir, f)),
+    {
+      includeBuildArtifacts,
+      onProgress: (processed: number, total: number, file: string) => {
+        if (jobId) {
+          const scanPercent = 30 + (processed / total) * 30; // 30-60%
+          trackAbsorbProgress(jobId, `Parsing ${file}`, scanPercent, processed, total);
+        }
+      },
     }
-  });
+  );
 
   if (jobId) trackAbsorbProgress(jobId, 'Patching graph', 65);
 
@@ -1015,7 +1064,7 @@ async function runIncrementalPatch(
     if (cachedGraph && cachedGraph === graph && false) {
       // In-memory cache hit (todo: global cached index not implemented)
     } else {
-      const providerName = embeddingProvider || await detectBestEmbeddingProvider();
+      const providerName = embeddingProvider || (await detectBestEmbeddingProvider());
       const providerObj = await mod.createEmbeddingProvider({
         provider: providerName as any,
         ollamaUrl: process.env.OLLAMA_URL,
@@ -1027,7 +1076,12 @@ async function runIncrementalPatch(
 
       index = await loadEmbeddingsCache(mod, providerObj);
       if (!index) {
-        index = await createDynamicEmbeddingIndex(mod, embeddingProvider, embeddingApiKey, embeddingModel);
+        index = await createDynamicEmbeddingIndex(
+          mod,
+          embeddingProvider,
+          embeddingApiKey,
+          embeddingModel
+        );
       }
 
       // Remove stale embeddings
@@ -1054,8 +1108,8 @@ async function runIncrementalPatch(
   cacheTimestamp = Date.now();
 
   const graphStats = graph.getStats();
-  const detectedProvider = embeddingProvider || await detectBestEmbeddingProvider();
-  
+  const detectedProvider = embeddingProvider || (await detectBestEmbeddingProvider());
+
   // Layout and Emission (Phase 8: Incremental Spatial)
   let holoSource = '';
   let interactiveScene: any = null;
@@ -1084,7 +1138,14 @@ async function runIncrementalPatch(
     }
   }
 
-  saveGraphCache(graph, rootDir, graphStats, graph.gitCommitHash, graph.fileHashes, detectedProvider);
+  saveGraphCache(
+    graph,
+    rootDir,
+    graphStats,
+    graph.gitCommitHash,
+    graph.fileHashes,
+    detectedProvider
+  );
 
   // Sync with mesh if truly changed (Phase 9)
   if (filesToRescan.length > 0) {
@@ -1156,7 +1217,20 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // ═══════════════════════════════════════════════════════════════════════════
   if (force) {
     console.log('[AbsorbIncremental] force=true → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    const result = await runFullScan(
+      mod,
+      rootDir,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
@@ -1166,19 +1240,58 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const envelope = loadGraphCache();
   if (!envelope) {
     console.log('[AbsorbIncremental] no cache → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    const result = await runFullScan(
+      mod,
+      rootDir,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   if (envelope.version === 1) {
     console.log('[AbsorbIncremental] v1 cache (no git data) → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    const result = await runFullScan(
+      mod,
+      rootDir,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   if (envelope.rootDir !== rootDir) {
     console.log('[AbsorbIncremental] different rootDir → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    const result = await runFullScan(
+      mod,
+      rootDir,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
@@ -1188,14 +1301,40 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const detector = new GitChangeDetector(rootDir);
   if (!detector.isGitRepo()) {
     console.log('[AbsorbIncremental] not a git repo → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    const result = await runFullScan(
+      mod,
+      rootDir,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
   const changes = detector.detectChanges(envelope.gitCommitHash ?? null);
   if (changes.storedCommitMissing) {
     console.log('[AbsorbIncremental] stored commit missing (force push?) → full scan');
-    const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId, embeddingProvider, embeddingApiKey, embeddingModel);
+    const result = await runFullScan(
+      mod,
+      rootDir,
+      languages,
+      maxFiles,
+      includeBuildArtifacts,
+      outputFormat,
+      layout,
+      interactive,
+      jobId,
+      embeddingProvider,
+      embeddingApiKey,
+      embeddingModel
+    );
     return { ...(result as Record<string, unknown>), jobId };
   }
 
@@ -1215,7 +1354,17 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
         cacheTimestamp = envelope.timestamp;
       } catch {
         console.warn('[AbsorbIncremental] deserialization failed → full scan');
-        const result = await runFullScan(mod, rootDir, languages, maxFiles, includeBuildArtifacts, outputFormat, layout, interactive, jobId);
+        const result = await runFullScan(
+          mod,
+          rootDir,
+          languages,
+          maxFiles,
+          includeBuildArtifacts,
+          outputFormat,
+          layout,
+          interactive,
+          jobId
+        );
         return { ...(result as Record<string, unknown>), jobId };
       }
     }
@@ -1409,13 +1558,14 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   if (!graphState.loaded) {
     return { error: 'No codebase loaded and no disk cache found. Call holo_absorb_repo first.' };
   }
-  const cacheNote = graphState.source === 'disk-cache'
-    ? `auto-loaded from disk cache (${
-        graphState.ageMs! < 3600000
-          ? `${Math.round(graphState.ageMs! / 60000)}m old`
-          : `${(graphState.ageMs! / 3600000).toFixed(1)}h old`
-      })`
-    : undefined;
+  const cacheNote =
+    graphState.source === 'disk-cache'
+      ? `auto-loaded from disk cache (${
+          graphState.ageMs! < 3600000
+            ? `${Math.round(graphState.ageMs! / 60000)}m old`
+            : `${(graphState.ageMs! / 3600000).toFixed(1)}h old`
+        })`
+      : undefined;
 
   const changedFiles = args.changedFiles as string[] | undefined;
   const changedSymbol = args.changedSymbol as string | undefined;
@@ -1423,8 +1573,11 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
 
   if (changedFiles && changedFiles.length > 0) {
     const communityImpact = cachedGraph.getCommunityAwareImpact(changedFiles);
-    const affectedCount = Array.from(communityImpact.values()).reduce((acc: number, files: any) => acc + (files as string[]).length, 0);
-    
+    const affectedCount = Array.from(communityImpact.values()).reduce(
+      (acc: number, files: any) => acc + (files as string[]).length,
+      0
+    );
+
     return {
       changedFiles,
       impactByCommunity: Object.fromEntries(communityImpact),
@@ -1530,9 +1683,10 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
     driftedFiles: drifted,
     driftCount: drifted.length,
     inSync: drifted.length === 0,
-    summary: drifted.length === 0 
-      ? 'Knowledge graph is perfectly in sync with filesystem.' 
-      : `Detected ${drifted.length} drifted files. Recommend running holo_absorb_repo.`,
+    summary:
+      drifted.length === 0
+        ? 'Knowledge graph is perfectly in sync with filesystem.'
+        : `Detected ${drifted.length} drifted files. Recommend running holo_absorb_repo.`,
   };
 }
 
@@ -1658,13 +1812,13 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-mcp-api-key': apiKey || ''
+        'x-mcp-api-key': apiKey || '',
       },
       body: JSON.stringify({
         search: symbolName,
         type: 'symbol',
-        limit
-      })
+        limit,
+      }),
     });
 
     if (!response.ok) {
@@ -1679,8 +1833,8 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
         filePath: r.metadata?.filePath,
         type: r.metadata?.symbolType,
         content: r.content,
-        relevance: r.relevance
-      }))
+        relevance: r.relevance,
+      })),
     };
   } catch (err) {
     return { error: `Federated lookup failed: ${err}` };
@@ -1705,8 +1859,8 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
       symbolName: s.name,
       symbolType: s.type,
       filePath: s.filePath,
-      repo: workspaceId
-    }
+      repo: workspaceId,
+    },
   }));
 
   if (entries.length === 0) return;
@@ -1716,12 +1870,12 @@ export async function syncWithMesh(graph: any, rootDir: string): Promise<void> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-mcp-api-key': apiKey || ''
+        'x-mcp-api-key': apiKey || '',
       },
       body: JSON.stringify({
         workspace_id: workspaceId,
-        entries
-      })
+        entries,
+      }),
     });
 
     if (response.ok) {

@@ -112,16 +112,19 @@ export function useDaemonJobs() {
     return json.telemetry;
   }, []);
 
-  const getOperationsSurface = useCallback(async (
-    kind: OperationsSurfaceResponse['kind'] = 'dashboard',
-  ): Promise<OperationsSurfaceResponse> => {
-    const response = await fetch(`/api/daemon/surface?kind=${kind}`);
-    const json = (await response.json()) as OperationsSurfaceResponse & { error?: string };
-    if (!response.ok) {
-      throw new Error(json.error || `Operations surface fetch failed (${response.status})`);
-    }
-    return json;
-  }, []);
+  const getOperationsSurface = useCallback(
+    async (
+      kind: OperationsSurfaceResponse['kind'] = 'dashboard'
+    ): Promise<OperationsSurfaceResponse> => {
+      const response = await fetch(`/api/daemon/surface?kind=${kind}`);
+      const json = (await response.json()) as OperationsSurfaceResponse & { error?: string };
+      if (!response.ok) {
+        throw new Error(json.error || `Operations surface fetch failed (${response.status})`);
+      }
+      return json;
+    },
+    []
+  );
 
   const getPatches = useCallback(async (jobId: string): Promise<PatchProposal[]> => {
     const response = await fetch(`/api/daemon/jobs/${jobId}?view=patches`);
@@ -141,17 +144,20 @@ export function useDaemonJobs() {
     return json.logs ?? [];
   }, []);
 
-  const recordPatchAction = useCallback(async (
-    jobId: string,
-    patchIds: string[],
-    action: 'apply' | 'export' | 'reject',
-  ): Promise<void> => {
-    await fetch(`/api/daemon/jobs/${jobId}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action, patchIds }),
-    });
-  }, []);
+  const recordPatchAction = useCallback(
+    async (
+      jobId: string,
+      patchIds: string[],
+      action: 'apply' | 'export' | 'reject'
+    ): Promise<void> => {
+      await fetch(`/api/daemon/jobs/${jobId}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action, patchIds }),
+      });
+    },
+    []
+  );
 
   return {
     createJob,

@@ -220,8 +220,6 @@ class RuntimeRegistryClass {
     // Use first compatible runtime (could be smarter about selection)
     const runtime = compatibleRuntimes[0];
 
-
-
     return runtime.initialize(composition, config);
   }
 

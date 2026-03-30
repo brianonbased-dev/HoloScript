@@ -280,7 +280,7 @@ async function executeRestricted(code: string, sandbox: Sandbox): Promise<unknow
     ];
 
     // Create sandboxed function
-     
+
     const sandboxedFn = new Function(...argNames, `"use strict";\n${code}`);
     const result = sandboxedFn(...argValues);
 

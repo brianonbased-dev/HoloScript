@@ -257,8 +257,6 @@ function generateLogicBlock(): string {
 `;
 }
 
-
-
 function extractGeometry(description: string): string {
   const lower = description.toLowerCase();
   const geometryMap: Record<string, string> = {
@@ -304,8 +302,6 @@ function extractName(description: string): string {
   const last = words[words.length - 1];
   return capitalize(last.replace(/[^a-zA-Z0-9]/g, ''));
 }
-
-
 
 function randomPosition(): string {
   const x = (Math.random() * 4 - 2).toFixed(1);

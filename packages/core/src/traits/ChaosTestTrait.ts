@@ -4,13 +4,19 @@
  */
 import type { TraitHandler } from './TraitTypes';
 
-export interface ChaosTestConfig { failure_rate: number; }
+export interface ChaosTestConfig {
+  failure_rate: number;
+}
 
 export const chaosTestHandler: TraitHandler<ChaosTestConfig> = {
   name: 'chaos_test',
   defaultConfig: { failure_rate: 0.1 },
-  onAttach(node: any): void { node.__chaosState = { injected: 0, types: [] as string[] }; },
-  onDetach(node: any): void { delete node.__chaosState; },
+  onAttach(node: any): void {
+    node.__chaosState = { injected: 0, types: [] as string[] };
+  },
+  onDetach(node: any): void {
+    delete node.__chaosState;
+  },
   onUpdate(): void {},
   onEvent(node: any, config: ChaosTestConfig, context: any, event: any): void {
     const state = node.__chaosState as { injected: number; types: string[] } | undefined;
@@ -21,7 +27,11 @@ export const chaosTestHandler: TraitHandler<ChaosTestConfig> = {
         state.injected++;
         const fault = (event.fault as string) ?? 'latency';
         state.types.push(fault);
-        context.emit?.('chaos:injected', { fault, count: state.injected, rate: config.failure_rate });
+        context.emit?.('chaos:injected', {
+          fault,
+          count: state.injected,
+          rate: config.failure_rate,
+        });
         break;
       }
       case 'chaos:report':

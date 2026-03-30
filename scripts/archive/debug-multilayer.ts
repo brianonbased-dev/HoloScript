@@ -14,27 +14,30 @@ const input = `
 
 const ast = parser.parse(input);
 if (!ast.success) {
-  console.log("AST Parsing Failed:", JSON.stringify(ast, null, 2));
+  console.log('AST Parsing Failed:', JSON.stringify(ast, null, 2));
 } else {
   const compiler = new ARCompiler({
     target: 'webxr',
     minify: false,
     source_maps: false,
-    features: { hit_test: false, image_tracking: true }
+    features: { hit_test: false, image_tracking: true },
   });
 
   const result = compiler.compile(ast.ast!);
-  console.log("Compilation Success:", result.success);
+  console.log('Compilation Success:', result.success);
   // We can hack to call the private method via any
   const extract = (compiler as any).extractNodesWithTrait.bind(compiler);
   const arNodes = extract(ast.ast, '@ar_beacon');
-  console.log("arNodes length:", arNodes.length);
+  console.log('arNodes length:', arNodes.length);
   if (arNodes.length > 0) {
-    console.log("First arNode name:", arNodes[0].name);
-    console.log("Trait config:", arNodes[0].traits);
+    console.log('First arNode name:', arNodes[0].name);
+    console.log('Trait config:', arNodes[0].traits);
   } else {
-    console.log("AST Tree Traits:", JSON.stringify(ast.ast?.spatialGroups![0].objects[0].traits, null, 2));
+    console.log(
+      'AST Tree Traits:',
+      JSON.stringify(ast.ast?.spatialGroups![0].objects[0].traits, null, 2)
+    );
   }
-  console.log("Generated code:");
+  console.log('Generated code:');
   console.log(result.code);
 }

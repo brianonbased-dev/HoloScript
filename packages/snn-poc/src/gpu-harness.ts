@@ -290,7 +290,11 @@ export class GPUHarness {
     const n = this.config.neuronCount;
     const dev = this.device!;
 
-    dev.queue.writeBuffer(this.membraneBuffer!, 0, new Float32Array(n).fill(this.config.lifParams.vRest));
+    dev.queue.writeBuffer(
+      this.membraneBuffer!,
+      0,
+      new Float32Array(n).fill(this.config.lifParams.vRest)
+    );
     dev.queue.writeBuffer(this.spikesBuffer!, 0, new Uint32Array(n));
     dev.queue.writeBuffer(this.refractoryBuffer!, 0, new Float32Array(n));
     dev.queue.writeBuffer(this.synapticInputBuffer!, 0, new Float32Array(n));

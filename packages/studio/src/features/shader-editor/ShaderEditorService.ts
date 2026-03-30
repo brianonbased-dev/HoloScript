@@ -458,8 +458,12 @@ export class ShaderEditorService {
     const oldNodeIds = new Set(oldGraph.nodes.map((n: any) => n.id));
     const newNodeIds = new Set(newGraph.nodes.map((n: any) => n.id));
 
-    const nodesAdded = newGraph.nodes.filter((n: any) => !oldNodeIds.has(n.id)).map((n: any) => n.id);
-    const nodesRemoved = oldGraph.nodes.filter((n: any) => !newNodeIds.has(n.id)).map((n: any) => n.id);
+    const nodesAdded = newGraph.nodes
+      .filter((n: any) => !oldNodeIds.has(n.id))
+      .map((n: any) => n.id);
+    const nodesRemoved = oldGraph.nodes
+      .filter((n: any) => !newNodeIds.has(n.id))
+      .map((n: any) => n.id);
 
     const nodesModified: string[] = [];
     const propertiesChanged: Record<string, { old: unknown; new: unknown }> = {};

@@ -204,7 +204,7 @@ function quaternionToEulerDeg(q: [number, number, number, number]): [number, num
   const cosyCosp = 1.0 - 2.0 * (y * y + z * z);
   const yaw = Math.atan2(sinyCosp, cosyCosp);
 
-  const toDeg = (rad: number): number => Math.round((rad * 180.0) / Math.PI * 1000) / 1000;
+  const toDeg = (rad: number): number => Math.round(((rad * 180.0) / Math.PI) * 1000) / 1000;
   return [toDeg(roll), toDeg(pitch), toDeg(yaw)];
 }
 
@@ -383,7 +383,8 @@ function extractPhysicsParams(node: GltfNode): string[] {
   if (rigid) {
     if (rigid.mass !== undefined) params.push(`mass: ${rigid.mass}`);
     if (rigid.linearVelocity) params.push(`linear_velocity: ${formatVec3(rigid.linearVelocity)}`);
-    if (rigid.angularVelocity) params.push(`angular_velocity: ${formatVec3(rigid.angularVelocity)}`);
+    if (rigid.angularVelocity)
+      params.push(`angular_velocity: ${formatVec3(rigid.angularVelocity)}`);
   }
 
   const msft = ext['MSFT_physics'];
@@ -401,12 +402,7 @@ function extractPhysicsParams(node: GltfNode): string[] {
 // Node-to-Holo Conversion
 // ---------------------------------------------------------------------------
 
-function nodeToHolo(
-  nodeIndex: number,
-  gltf: GltfData,
-  sourceName: string,
-  indent: number
-): string {
+function nodeToHolo(nodeIndex: number, gltf: GltfData, sourceName: string, indent: number): string {
   const nodes = gltf.nodes;
   if (!nodes || nodeIndex < 0 || nodeIndex >= nodes.length) return '';
 
@@ -567,9 +563,7 @@ function buildHoloComposition(gltf: GltfData, sourceName: string): string {
       for (const ch of anim.channels) {
         if (ch.target.node !== undefined) targetNodes.add(ch.target.node);
       }
-      const targetNames = [...targetNodes].map((idx) =>
-        gltf.nodes?.[idx]?.name || `node_${idx}`
-      );
+      const targetNames = [...targetNodes].map((idx) => gltf.nodes?.[idx]?.name || `node_${idx}`);
       lines.push(`  // "${animName}" -> targets: ${targetNames.join(', ')}`);
     }
   }
@@ -610,15 +604,8 @@ export interface GltfImportResult {
   error?: string;
 }
 
-export async function handleImportGltf(
-  args: Record<string, unknown>
-): Promise<GltfImportResult> {
-  const {
-    filePath,
-    gltfJson,
-    glbBase64,
-    sourceName: rawSourceName,
-  } = args as GltfImportOptions;
+export async function handleImportGltf(args: Record<string, unknown>): Promise<GltfImportResult> {
+  const { filePath, gltfJson, glbBase64, sourceName: rawSourceName } = args as GltfImportOptions;
 
   if (!filePath && !gltfJson && !glbBase64) {
     throw new Error(
@@ -762,7 +749,8 @@ export async function handleCompileToGltf(
     const parseResult = parseHolo(code);
     if (!parseResult.success || !parseResult.ast) {
       const errors =
-        parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'Unknown parse error';
+        parseResult.errors?.map((e: { message: string }) => e.message).join(', ') ||
+        'Unknown parse error';
       throw new Error(`Failed to parse composition: ${errors}`);
     }
 
@@ -921,7 +909,8 @@ export const gltfImportTools: Tool[] = [
         },
         generator: {
           type: 'string',
-          description: 'Generator string for glTF metadata (default: "HoloScript GLTFPipeline v1.0.0")',
+          description:
+            'Generator string for glTF metadata (default: "HoloScript GLTFPipeline v1.0.0")',
         },
         copyright: {
           type: 'string',

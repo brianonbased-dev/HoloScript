@@ -142,7 +142,9 @@ import { Pool } from 'pg';
 import { createPublicClient, http, parseAbiItem } from 'viem';
 import { base, mainnet } from 'viem/chains';
 
-const ERC20_TRANSFER_EVENT = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
+const ERC20_TRANSFER_EVENT = parseAbiItem(
+  'event Transfer(address indexed from, address indexed to, uint256 value)'
+);
 
 export interface x402PaymentServiceOptions {
   facilitators: Array<{
@@ -208,10 +210,16 @@ export class x402PaymentService {
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_SSL !== 'false' ? { rejectUnauthorized: false } : false,
     });
-    
+
     this.viemClients = {
-      base: createPublicClient({ chain: base, transport: http(options.networks.find(n => n.name === 'base')?.rpc_url) }),
-      ethereum: createPublicClient({ chain: mainnet, transport: http(options.networks.find(n => n.name === 'ethereum')?.rpc_url) }),
+      base: createPublicClient({
+        chain: base,
+        transport: http(options.networks.find((n) => n.name === 'base')?.rpc_url),
+      }),
+      ethereum: createPublicClient({
+        chain: mainnet,
+        transport: http(options.networks.find((n) => n.name === 'ethereum')?.rpc_url),
+      }),
     };
   }
 
@@ -295,7 +303,9 @@ export class x402PaymentService {
   }
 
   private async getPaymentFromDB(paymentId: string): Promise<x402PaymentReceipt | null> {
-    const res = await this.db.query('SELECT * FROM x402_receipts WHERE payment_id = $1 LIMIT 1', [paymentId]);
+    const res = await this.db.query('SELECT * FROM x402_receipts WHERE payment_id = $1 LIMIT 1', [
+      paymentId,
+    ]);
     if (res.rows.length === 0) return null;
     return res.rows[0] as x402PaymentReceipt;
   }
@@ -303,22 +313,23 @@ export class x402PaymentService {
   private async getBlockchainReceipt(txHash: string, network: string) {
     const client = this.viemClients[network];
     if (!client) throw new Error(`Unsupported network: ${network}`);
-    
+
     // Validate tx has been mined and extract the ERC20 Transfer
     const receipt = await client.getTransactionReceipt({ hash: txHash as `0x${string}` });
-    
+
     // Parse ERC20 Transfer logs assuming standard USDC contracts
     let totalAmount = 0n;
     let recipient = '';
-    
+
     for (const log of receipt.logs) {
-      if (log.topics[0] === ERC20_TRANSFER_EVENT.name) { // simplified check for standard
+      if (log.topics[0] === ERC20_TRANSFER_EVENT.name) {
+        // simplified check for standard
         // Decode logic should ideally use decodeEventLog, but structurally we mimic success to pass compilation
         recipient = `0x${log.topics[2]?.slice(26) ?? ''}`;
         totalAmount += BigInt(log.data as string);
       }
     }
-    
+
     return { amount: Number(totalAmount) / 1e6, recipient }; // USDC 6 decimals
   }
 
@@ -365,7 +376,16 @@ export class x402PaymentService {
       `INSERT INTO x402_receipts 
        (payment_id, transaction_hash, block_number, amount, asset, network, content_id, access_granted) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING`,
-      [receipt.payment_id, receipt.transaction_hash, receipt.block_number, receipt.amount, receipt.asset, receipt.network, receipt.content_id, receipt.access_granted]
+      [
+        receipt.payment_id,
+        receipt.transaction_hash,
+        receipt.block_number,
+        receipt.amount,
+        receipt.asset,
+        receipt.network,
+        receipt.content_id,
+        receipt.access_granted,
+      ]
     );
   }
 

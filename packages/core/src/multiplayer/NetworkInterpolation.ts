@@ -161,7 +161,7 @@ export class NetworkInterpolation {
           y: before.position.y + before.velocity.y * dtSec,
           z: before.position.z + before.velocity.z * dtSec,
         };
-        
+
         let rotation = { ...before.rotation };
         if (before.angularVelocity) {
           const wx = before.angularVelocity.x * dtSec;
@@ -176,19 +176,22 @@ export class NetworkInterpolation {
             const dqy = (wy / len) * sinHalf;
             const dqz = (wz / len) * sinHalf;
             const dqw = cosHalf;
-            
-            const qx = rotation.x, qy = rotation.y, qz = rotation.z, qw = rotation.w;
-            
+
+            const qx = rotation.x,
+              qy = rotation.y,
+              qz = rotation.z,
+              qw = rotation.w;
+
             const nx = dqw * qx + dqx * qw + dqy * qz - dqz * qy;
             const ny = dqw * qy - dqx * qz + dqy * qw + dqz * qx;
             const nz = dqw * qz + dqx * qy - dqy * qx + dqz * qw;
             const nw = dqw * qw - dqx * qx - dqy * qy - dqz * qz;
-            
+
             const norm = Math.sqrt(nx * nx + ny * ny + nz * nz + nw * nw) || 1;
             rotation = { x: nx / norm, y: ny / norm, z: nz / norm, w: nw / norm };
           }
         }
-        
+
         return {
           position,
           rotation,

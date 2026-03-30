@@ -52,7 +52,9 @@ async function createProvider(providerConfig: EmbeddingJob['provider']): Promise
         return new XenovaEmbeddingProvider(config.xenovaModel);
       }
       case 'bm25': {
-        console.error('[EmbeddingWorker] WARNING: BM25 is deprecated. Use "openai" for quality semantic search.');
+        console.error(
+          '[EmbeddingWorker] WARNING: BM25 is deprecated. Use "openai" for quality semantic search.'
+        );
         const { BM25EmbeddingProvider } = await import('../providers/BM25EmbeddingProvider');
         return new BM25EmbeddingProvider();
       }
@@ -60,7 +62,9 @@ async function createProvider(providerConfig: EmbeddingJob['provider']): Promise
         throw new Error(`Unknown provider: ${name}`);
     }
   } catch (err) {
-    throw new Error(`Failed to create ${name} provider: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `Failed to create ${name} provider: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }
 

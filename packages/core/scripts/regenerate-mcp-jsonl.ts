@@ -1,9 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 
-const AI_WORKSPACE = process.env.AI_WORKSPACE_PATH || path.join(require('os').homedir(), 'Documents', 'GitHub', 'AI_Workspace');
+const AI_WORKSPACE =
+  process.env.AI_WORKSPACE_PATH ||
+  path.join(require('os').homedir(), 'Documents', 'GitHub', 'AI_Workspace');
 const INPUT_FILE = path.join(AI_WORKSPACE, 'brittney-training', 'brittney-mcp-training.jsonl');
-const OUTPUT_FILE = path.join(AI_WORKSPACE, 'brittney-training', 'brittney-mcp-training-reasoning.jsonl');
+const OUTPUT_FILE = path.join(
+  AI_WORKSPACE,
+  'brittney-training',
+  'brittney-mcp-training-reasoning.jsonl'
+);
 
 // Heuristic mapping for thoughts based on tool names
 const TOOL_THOUGHTS: Record<string, (args: any) => string> = {

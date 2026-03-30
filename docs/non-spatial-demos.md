@@ -6,16 +6,16 @@ HoloScript is not a VR-only tool. The same `.holo` compositions that render in a
 
 ## Existing Examples
 
-| Example | Path | Lines | Vertical | Compiles To |
-|---------|------|-------|----------|-------------|
-| **Smart Home IoT** | `examples/domain-starters/iot/iot-starter.holo` | 357 | Consumer IoT | R3F, Unity, OpenXR |
-| **Smart Factory Twin** | `examples/specialized/iot/smart-factory-twin.holo` | 521 | Industrial | DTDL, Azure IoT |
-| **Smart Building BIM** | `examples/cross-domain/smart-building.holo` | 489 | Architecture+IoT | R3F, Unity, WebGPU |
-| **Robot Arm Simulation** | `examples/specialized/robotics/robot-arm-simulation.holo` | 617 | Robotics | URDF, SDF, ROS 2 |
-| **Robot Training Metaverse** | `examples/novel-use-cases/05-robot-training-metaverse.holo` | — | Sim-to-Real | URDF, SDF, Unity |
-| **Industrial Safety** | `examples/IndustrialExpansionPOC.holo` | 117 | Safety Monitoring | DTDL |
-| **Robotics Benchmark** | `benchmarks/cross-compilation/compositions/15-robotics.holo` | 86 | Robotics | URDF, SDF, DTDL |
-| **Manufacturing Benchmark** | `benchmarks/cross-compilation/compositions/06-manufacturing.holo` | 65 | Assembly Line | URDF, SDF, DTDL |
+| Example                      | Path                                                              | Lines | Vertical          | Compiles To        |
+| ---------------------------- | ----------------------------------------------------------------- | ----- | ----------------- | ------------------ |
+| **Smart Home IoT**           | `examples/domain-starters/iot/iot-starter.holo`                   | 357   | Consumer IoT      | R3F, Unity, OpenXR |
+| **Smart Factory Twin**       | `examples/specialized/iot/smart-factory-twin.holo`                | 521   | Industrial        | DTDL, Azure IoT    |
+| **Smart Building BIM**       | `examples/cross-domain/smart-building.holo`                       | 489   | Architecture+IoT  | R3F, Unity, WebGPU |
+| **Robot Arm Simulation**     | `examples/specialized/robotics/robot-arm-simulation.holo`         | 617   | Robotics          | URDF, SDF, ROS 2   |
+| **Robot Training Metaverse** | `examples/novel-use-cases/05-robot-training-metaverse.holo`       | —     | Sim-to-Real       | URDF, SDF, Unity   |
+| **Industrial Safety**        | `examples/IndustrialExpansionPOC.holo`                            | 117   | Safety Monitoring | DTDL               |
+| **Robotics Benchmark**       | `benchmarks/cross-compilation/compositions/15-robotics.holo`      | 86    | Robotics          | URDF, SDF, DTDL    |
+| **Manufacturing Benchmark**  | `benchmarks/cross-compilation/compositions/06-manufacturing.holo` | 65    | Assembly Line     | URDF, SDF, DTDL    |
 
 ---
 
@@ -241,25 +241,25 @@ composition "Robotics Benchmark" {
 
 Targets: **ROS 2, Gazebo, MoveIt 2, RViz2, Isaac Sim**
 
-| HoloScript Construct | URDF Output |
-|----------------------|-------------|
-| `object` | `<link>` with visual + collision geometry |
-| `@physics { mass: N }` | `<inertial>` with mass + inertia tensor |
-| `behavior "RevoluteJoint"` | `<joint type="revolute">` with limits |
-| `@sensor` | `<gazebo>` sensor plugin (camera, IMU, lidar) |
-| `@actuator` | `<transmission>` with `ros2_control` |
+| HoloScript Construct       | URDF Output                                   |
+| -------------------------- | --------------------------------------------- |
+| `object`                   | `<link>` with visual + collision geometry     |
+| `@physics { mass: N }`     | `<inertial>` with mass + inertia tensor       |
+| `behavior "RevoluteJoint"` | `<joint type="revolute">` with limits         |
+| `@sensor`                  | `<gazebo>` sensor plugin (camera, IMU, lidar) |
+| `@actuator`                | `<transmission>` with `ros2_control`          |
 
 ### DTDL Compiler (`DTDLCompiler.ts`)
 
 Target: **Azure Digital Twins Definition Language v3**
 
-| HoloScript Construct | DTDL Output |
-|----------------------|-------------|
-| `state { field: value }` | DTDL Property |
-| `emit("event")` | DTDL Telemetry |
-| Action handlers | DTDL Command |
-| Object hierarchy | DTDL Relationship |
-| Traits | DTDL Component |
+| HoloScript Construct     | DTDL Output       |
+| ------------------------ | ----------------- |
+| `state { field: value }` | DTDL Property     |
+| `emit("event")`          | DTDL Telemetry    |
+| Action handlers          | DTDL Command      |
+| Object hierarchy         | DTDL Relationship |
+| Traits                   | DTDL Component    |
 
 ### SDF Compiler (`SDFCompiler.ts`)
 
@@ -300,11 +300,11 @@ Produces full world files with physics config, ground plane, lighting, sensors, 
 
 ### Trait Implementations
 
-| Trait | File | Description |
-|-------|------|-------------|
-| `@mqtt` (sink) | `core/src/traits/MQTTSinkTrait.ts` | Publish state to MQTT topics |
-| `@mqtt` (source) | `core/src/traits/MQTTSourceTrait.ts` | Subscribe to MQTT topics |
-| `@wot` | `core/src/traits/WoTThingTrait.ts` | W3C Web of Things integration |
+| Trait            | File                                 | Description                   |
+| ---------------- | ------------------------------------ | ----------------------------- |
+| `@mqtt` (sink)   | `core/src/traits/MQTTSinkTrait.ts`   | Publish state to MQTT topics  |
+| `@mqtt` (source) | `core/src/traits/MQTTSourceTrait.ts` | Subscribe to MQTT topics      |
+| `@wot`           | `core/src/traits/WoTThingTrait.ts`   | W3C Web of Things integration |
 
 ---
 
@@ -312,15 +312,15 @@ Produces full world files with physics config, ground plane, lighting, sensors, 
 
 These examples demonstrate that HoloScript is a **backend scripting platform**, not just a VR previewer:
 
-| Use Case | What It Does | Key Traits | Deploy To |
-|----------|-------------|------------|-----------|
-| **Smart home dashboard** | 12 devices, MQTT telemetry, energy tracking | `@sensor`, `@actuator`, `@telemetry_stream` | R3F (tablet), Unity |
-| **Factory digital twin** | 48 devices, predictive maintenance, Azure sync | `@digital_twin`, `@sensor` | DTDL, Azure IoT |
-| **Smart building BIM** | 42 sensors, HVAC, occupancy, energy heatmaps | `@sensor`, `@bim_model`, `@heatmap` | R3F, Unity, WebGPU |
-| **Robot arm sim** | 6-DOF arm, ROS 2 bridge, physics | `@physics`, `@rotatable` | URDF, SDF, Gazebo |
-| **Industrial safety** | Vibration monitoring, autonomous agent response | `@digital_twin`, `@llm_agent` | DTDL |
-| **Assembly line QC** | Vision inspection, product tracking | `@sensor`, `@digital_twin` | DTDL, URDF |
-| **Sim-to-real transfer** | Train robot in sim, deploy to hardware | `@digital_twin`, `@agent_portal` | URDF, SDF, Unity |
+| Use Case                 | What It Does                                    | Key Traits                                  | Deploy To           |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------- | ------------------- |
+| **Smart home dashboard** | 12 devices, MQTT telemetry, energy tracking     | `@sensor`, `@actuator`, `@telemetry_stream` | R3F (tablet), Unity |
+| **Factory digital twin** | 48 devices, predictive maintenance, Azure sync  | `@digital_twin`, `@sensor`                  | DTDL, Azure IoT     |
+| **Smart building BIM**   | 42 sensors, HVAC, occupancy, energy heatmaps    | `@sensor`, `@bim_model`, `@heatmap`         | R3F, Unity, WebGPU  |
+| **Robot arm sim**        | 6-DOF arm, ROS 2 bridge, physics                | `@physics`, `@rotatable`                    | URDF, SDF, Gazebo   |
+| **Industrial safety**    | Vibration monitoring, autonomous agent response | `@digital_twin`, `@llm_agent`               | DTDL                |
+| **Assembly line QC**     | Vision inspection, product tracking             | `@sensor`, `@digital_twin`                  | DTDL, URDF          |
+| **Sim-to-real transfer** | Train robot in sim, deploy to hardware          | `@digital_twin`, `@agent_portal`            | URDF, SDF, Unity    |
 
 ### The Key Insight
 

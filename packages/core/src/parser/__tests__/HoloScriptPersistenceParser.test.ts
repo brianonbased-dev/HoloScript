@@ -2,7 +2,11 @@
  * Tests for HoloScriptPersistenceParser — memory/semantic/episodic/procedural blocks.
  */
 import { describe, it, expect } from 'vitest';
-import { HoloScriptPersistenceParser, type ParserContext, type Token } from '../../HoloScriptPersistenceParser';
+import {
+  HoloScriptPersistenceParser,
+  type ParserContext,
+  type Token,
+} from '../../HoloScriptPersistenceParser';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -14,8 +18,12 @@ function makeContext(tokens: Token[]): ParserContext {
   const ctx: ParserContext = {
     position: 0,
     tokens,
-    currentToken() { return tokens[ctx.position]; },
-    advance() { return tokens[ctx.position++]; },
+    currentToken() {
+      return tokens[ctx.position];
+    },
+    advance() {
+      return tokens[ctx.position++];
+    },
     check(type: string, value?: string) {
       const t = tokens[ctx.position];
       if (!t) return false;
@@ -24,12 +32,18 @@ function makeContext(tokens: Token[]): ParserContext {
       return true;
     },
     expect(type: string, value?: string) {
-      if (ctx.check(type, value)) { ctx.advance(); return true; }
+      if (ctx.check(type, value)) {
+        ctx.advance();
+        return true;
+      }
       return false;
     },
     expectIdentifier() {
       const t = tokens[ctx.position];
-      if (t && t.type === 'identifier') { ctx.advance(); return t.value; }
+      if (t && t.type === 'identifier') {
+        ctx.advance();
+        return t.value;
+      }
       return null;
     },
     parseObject() {
@@ -42,13 +56,18 @@ function makeContext(tokens: Token[]): ParserContext {
         ctx.advance();
         if (ctx.check('punctuation', ':')) ctx.advance();
         const val = tokens[ctx.position];
-        if (val) { obj[key.value] = val.value; ctx.advance(); }
+        if (val) {
+          obj[key.value] = val.value;
+          ctx.advance();
+        }
         if (ctx.check('punctuation', ',')) ctx.advance();
       }
       if (ctx.check('punctuation', '}')) ctx.advance();
       return obj;
     },
-    skipNewlines() { /* no-op for tests */ },
+    skipNewlines() {
+      /* no-op for tests */
+    },
   };
   return ctx;
 }
@@ -58,7 +77,10 @@ function makeContext(tokens: Token[]): ParserContext {
 describe('HoloScriptPersistenceParser', () => {
   describe('parseMemory', () => {
     it('should return null when not at a memory keyword', () => {
-      const tokens = makeTokens([['keyword', 'orb'], ['identifier', 'Foo']]);
+      const tokens = makeTokens([
+        ['keyword', 'orb'],
+        ['identifier', 'Foo'],
+      ]);
       const ctx = makeContext(tokens);
       const parser = new HoloScriptPersistenceParser(ctx);
       expect(parser.parseMemory()).toBeNull();

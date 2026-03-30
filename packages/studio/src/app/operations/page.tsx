@@ -35,13 +35,10 @@ export default function OperationsPage() {
   const syncStatus = typeof state.syncStatus === 'string' ? state.syncStatus : 'unknown';
   const workspaceName = typeof state.workspaceName === 'string' ? state.workspaceName : 'workspace';
   const branchName = typeof state.branchName === 'string' ? state.branchName : 'main';
-  const jobs = Array.isArray(state.jobs) ? state.jobs as Array<Record<string, unknown>> : [];
+  const jobs = Array.isArray(state.jobs) ? (state.jobs as Array<Record<string, unknown>>) : [];
   const runningJobs = jobs.filter((job) => job.status === 'running').length;
 
-  const healthLabel =
-    daemonHealth === null
-      ? 'n/a'
-      : `${Math.round(daemonHealth * 100)}%`;
+  const healthLabel = daemonHealth === null ? 'n/a' : `${Math.round(daemonHealth * 100)}%`;
 
   const healthTone =
     daemonHealth === null
@@ -62,12 +59,22 @@ export default function OperationsPage() {
       <header className="relative border-b border-white/10 bg-[#0b1220]/70 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-white/60 transition hover:text-white" aria-label="Back to Studio">
+            <Link
+              href="/"
+              className="text-white/60 transition hover:text-white"
+              aria-label="Back to Studio"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className={`${displayFont.className} text-base font-semibold tracking-tight sm:text-lg`}>Studio Operations</h1>
-              <p className="text-[11px] text-white/50 sm:text-xs">Hydrated from native composition surface</p>
+              <h1
+                className={`${displayFont.className} text-base font-semibold tracking-tight sm:text-lg`}
+              >
+                Studio Operations
+              </h1>
+              <p className="text-[11px] text-white/50 sm:text-xs">
+                Hydrated from native composition surface
+              </p>
             </div>
           </div>
 
@@ -90,23 +97,41 @@ export default function OperationsPage() {
         <section className="mb-4 grid grid-cols-2 gap-2.5 sm:mb-5 sm:gap-3 lg:grid-cols-5">
           <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Daemon Health</p>
-            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold sm:text-xl ${healthTone}`}>{healthLabel}</p>
+            <p
+              className={`${dataFont.className} mt-1.5 text-lg font-semibold sm:text-xl ${healthTone}`}
+            >
+              {healthLabel}
+            </p>
           </div>
           <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Running Jobs</p>
-            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}>{runningJobs}</p>
+            <p
+              className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}
+            >
+              {runningJobs}
+            </p>
           </div>
           <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Pending Reviews</p>
-            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}>{pendingReviews}</p>
+            <p
+              className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}
+            >
+              {pendingReviews}
+            </p>
           </div>
           <div className="metric-card rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-3.5">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Open Alerts</p>
-            <p className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}>{openAlerts}</p>
+            <p
+              className={`${dataFont.className} mt-1.5 text-lg font-semibold text-white sm:text-xl`}
+            >
+              {openAlerts}
+            </p>
           </div>
           <div className="metric-card col-span-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:col-span-1 sm:p-3.5 lg:col-span-1">
             <p className="text-[10px] uppercase tracking-[0.1em] text-white/45">Surface Endpoint</p>
-            <p className={`${dataFont.className} mt-1.5 truncate text-xs text-cyan-300 sm:text-sm`}>/api/surface/operations</p>
+            <p className={`${dataFont.className} mt-1.5 truncate text-xs text-cyan-300 sm:text-sm`}>
+              /api/surface/operations
+            </p>
           </div>
         </section>
 
@@ -149,13 +174,22 @@ export default function OperationsPage() {
         )}
 
         <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-white/50 sm:mt-4 sm:gap-2 sm:text-xs">
-          <Link href="/workspace" className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3">
+          <Link
+            href="/workspace"
+            className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3"
+          >
             Open Workspace
           </Link>
-          <Link href="/projects" className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3">
+          <Link
+            href="/projects"
+            className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3"
+          >
             Open Projects
           </Link>
-          <Link href="/holodaemon" className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3">
+          <Link
+            href="/holodaemon"
+            className="rounded-full border border-white/10 px-2.5 py-1 transition hover:bg-white/[0.05] hover:text-white/80 sm:px-3"
+          >
             HoloDaemon
           </Link>
         </div>

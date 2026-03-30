@@ -652,7 +652,9 @@ export class TSLCompiler extends CompilerBase {
           // Texture sampler bindings
           const texEntries = Object.entries(mat.textureMaps);
           if (texEntries.length > 0) {
-            lines.push(`// Texture bindings for "${this.escapeStringValue(mat.name as string, 'TypeScript')}"`);
+            lines.push(
+              `// Texture bindings for "${this.escapeStringValue(mat.name as string, 'TypeScript')}"`
+            );
             let texBinding = 1;
             for (const [mapName, _path] of texEntries) {
               lines.push(
@@ -667,7 +669,9 @@ export class TSLCompiler extends CompilerBase {
 
           // Fragment contribution snippet
           lines.push('');
-          lines.push(`// Fragment contribution for domain material "${this.escapeStringValue(mat.name as string, 'TypeScript')}"`);
+          lines.push(
+            `// Fragment contribution for domain material "${this.escapeStringValue(mat.name as string, 'TypeScript')}"`
+          );
           lines.push(`// Usage in fs_main:`);
           lines.push(`//   baseColor = domainMat_${safeName}.baseColor;`);
           lines.push(`//   roughness = domainMat_${safeName}.roughness;`);
@@ -1266,7 +1270,9 @@ ${contribution.computeCode}
     const lines: string[] = ['struct MaterialUniforms {'];
     for (const u of allUniforms) {
       const comment = this.options.debug ? ` // from @${u.sourceTrait}` : '';
-      lines.push(`  ${this.escapeStringValue(u.name as string, 'TypeScript')}: ${u.type},${comment}`);
+      lines.push(
+        `  ${this.escapeStringValue(u.name as string, 'TypeScript')}: ${u.type},${comment}`
+      );
     }
     lines.push('};');
     lines.push(
@@ -1297,7 +1303,9 @@ ${contribution.computeCode}
     } else {
       lines.push('// struct MaterialUniforms {');
       for (const u of uniforms) {
-        lines.push(`//   ${this.escapeStringValue(u.name as string, 'TypeScript')}: ${u.type}, // @${u.sourceTrait} — default: ${u.defaultValue}`);
+        lines.push(
+          `//   ${this.escapeStringValue(u.name as string, 'TypeScript')}: ${u.type}, // @${u.sourceTrait} — default: ${u.defaultValue}`
+        );
       }
       lines.push('// };');
     }
@@ -1343,7 +1351,9 @@ ${contribution.computeCode}
       lines.push('');
       lines.push('// Environment defaults:');
       for (const prop of composition.environment.properties) {
-        lines.push(`// ${this.escapeStringValue(prop.key as string, 'TypeScript')}: ${JSON.stringify(prop.value)}`);
+        lines.push(
+          `// ${this.escapeStringValue(prop.key as string, 'TypeScript')}: ${JSON.stringify(prop.value)}`
+        );
       }
     }
 
@@ -1352,7 +1362,9 @@ ${contribution.computeCode}
       lines.push('');
       lines.push(`// Scene lights: ${composition.lights.length}`);
       for (const light of composition.lights) {
-        lines.push(`// - ${this.escapeStringValue(light.name as string, 'TypeScript')} (${light.lightType})`);
+        lines.push(
+          `// - ${this.escapeStringValue(light.name as string, 'TypeScript')} (${light.lightType})`
+        );
       }
     }
 
@@ -1389,7 +1401,9 @@ ${contribution.computeCode}
       const traits = obj.traits || [];
       const computeTraits = traits.filter((t) => TRAIT_SHADER_MAP[t.name]?.computeContribution);
 
-      lines.push(`  // ─── Object: "${this.escapeStringValue(obj.name as string, 'TypeScript')}" ───`);
+      lines.push(
+        `  // ─── Object: "${this.escapeStringValue(obj.name as string, 'TypeScript')}" ───`
+      );
       lines.push(`  // Traits: ${traits.map((t) => '@' + t.name).join(', ') || 'none'}`);
       lines.push(`  {`);
       lines.push(
@@ -1434,7 +1448,9 @@ ${contribution.computeCode}
         lines.push(
           `    const ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}ComputeModule = device.createShaderModule({ code: ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}ComputeWGSL });`
         );
-        lines.push(`    const ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}Pipeline = device.createComputePipeline({`);
+        lines.push(
+          `    const ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}Pipeline = device.createComputePipeline({`
+        );
         lines.push(`      layout: 'auto',`);
         lines.push(
           `      compute: { module: ${safeName}_${this.escapeStringValue(ct.name as string, 'TypeScript')}ComputeModule, entryPoint: 'cs_${ct.name === 'gpu_particle' ? 'particle_update' : ct.name === 'gpu_physics' ? 'physics_step' : 'generic'}' },`

@@ -21,7 +21,6 @@ export interface RegistryPack {
 }
 
 declare global {
-   
   var __registryStore__: RegistryPack[] | undefined;
 }
 

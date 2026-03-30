@@ -323,7 +323,9 @@ export const spatialHandTrackingHandler: TraitHandler<SpatialHandTrackingConfig>
 
     if (event.type === 'spatial_hand_data') {
       const hand = (event as Record<string, unknown>).hand as 'left' | 'right';
-      const jointData = (event as Record<string, unknown>).joints as Record<string, SpatialHandJointPose> | undefined;
+      const jointData = (event as Record<string, unknown>).joints as
+        | Record<string, SpatialHandJointPose>
+        | undefined;
       const pinch = (event as Record<string, unknown>).pinchStrength as number | undefined;
       const grip = (event as Record<string, unknown>).gripStrength as number | undefined;
       const tracked = (event as Record<string, unknown>).tracked as boolean;
@@ -805,7 +807,10 @@ export const spatialAnchorSharedHandler: TraitHandler<SpatialAnchorSharedConfig>
     } else if (event.type === 'shared_anchor_transform_sync' && config.sync_transforms) {
       // Receive transform from peer
       const peerId = (event as Record<string, unknown>).peerId as string;
-      const transform = (event as Record<string, unknown>).transform as { position: Vec3; rotation: Quat };
+      const transform = (event as Record<string, unknown>).transform as {
+        position: Vec3;
+        rotation: Quat;
+      };
       context.emit?.('shared_anchor_peer_transform', {
         node,
         peerId,
@@ -1007,7 +1012,9 @@ export const spatialControllerInputHandler: TraitHandler<SpatialControllerInputC
       }
 
       // Update buttons
-      const buttons = (event as Record<string, unknown>).buttons as Record<string, SpatialButtonState> | undefined;
+      const buttons = (event as Record<string, unknown>).buttons as
+        | Record<string, SpatialButtonState>
+        | undefined;
       if (buttons) {
         for (const [btnName, btnState] of Object.entries(buttons)) {
           const button = btnName as SpatialControllerButton;

@@ -63,9 +63,7 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
-        Loading profile...
-      </div>
+      <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Loading profile...</div>
     );
   }
 
@@ -132,7 +130,13 @@ export default function UserProfilePage() {
       {projects.length > 0 && (
         <section style={{ marginBottom: 32 }}>
           <h2 style={{ fontSize: 18, marginBottom: 12 }}>Projects</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: 12,
+            }}
+          >
             {projects.map((p) => (
               <a
                 key={p.id}
@@ -163,7 +167,13 @@ export default function UserProfilePage() {
       {listings.length > 0 && (
         <section>
           <h2 style={{ fontSize: 18, marginBottom: 12 }}>Marketplace</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: 12,
+            }}
+          >
             {listings.map((l) => (
               <div
                 key={l.id}

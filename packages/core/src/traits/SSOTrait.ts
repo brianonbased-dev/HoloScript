@@ -448,8 +448,11 @@ export const ssoSamlHandler: TraitHandler<SSOConfig> = {
 
       // Extract user info from callback
       const externalUserId = (event as Record<string, unknown>).externalUserId as string;
-      const attributes = ((event as Record<string, unknown>).attributes as Record<string, string>) || ({} as Record<string, string>);
-      const internalUserId = ((event as Record<string, unknown>).internalUserId as string) || externalUserId;
+      const attributes =
+        ((event as Record<string, unknown>).attributes as Record<string, string>) ||
+        ({} as Record<string, string>);
+      const internalUserId =
+        ((event as Record<string, unknown>).internalUserId as string) || externalUserId;
 
       // Map roles from IdP
       const mappedRoles: string[] = [];

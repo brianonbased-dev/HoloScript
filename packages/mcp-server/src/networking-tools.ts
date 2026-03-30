@@ -23,10 +23,14 @@ function loadStateFromDisk(): Record<string, any> {
       );
       return parsed;
     }
-    console.log(`[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=file-not-found`);
+    console.log(
+      `[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=file-not-found`
+    );
   } catch {
     // Corrupt file — start fresh
-    console.warn(`[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=parse-or-io-error`);
+    console.warn(
+      `[CacheDebug][networking] load miss path=${STATE_AUTHORITY_FILE} reason=parse-or-io-error`
+    );
   }
   return {};
 }

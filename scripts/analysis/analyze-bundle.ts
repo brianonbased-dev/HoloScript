@@ -18,7 +18,6 @@ interface BundleStats {
   sizeFormatted: string;
 }
 
-
 function analyzeBundle() {
   console.log('📊 HoloScript Bundle Analysis\n');
   console.log('='.repeat(80));

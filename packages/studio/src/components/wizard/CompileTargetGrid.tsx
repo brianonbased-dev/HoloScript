@@ -152,8 +152,8 @@ export function CompileTargetGrid({
         <p className="text-2xl font-light tracking-tight text-white">One more thing.</p>
         <p className="mt-1 text-sm text-gray-400">
           Your code compiles to{' '}
-          <span className="font-semibold text-blue-400">{COMPILE_TARGETS.length} targets</span>
-          {' '}simultaneously.
+          <span className="font-semibold text-blue-400">{COMPILE_TARGETS.length} targets</span>{' '}
+          simultaneously.
         </p>
       </div>
 
@@ -227,9 +227,7 @@ export function CompileTargetGrid({
               )}
             </>
           ) : (
-            <span className="text-gray-600">
-              Write once. Deploy everywhere.
-            </span>
+            <span className="text-gray-600">Write once. Deploy everywhere.</span>
           )}
         </p>
       </div>

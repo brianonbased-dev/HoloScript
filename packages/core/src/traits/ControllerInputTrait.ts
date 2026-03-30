@@ -30,7 +30,7 @@ type ControllerHand = 'left' | 'right';
  * Spatial pose information for a VR/AR controller.
  * Represents the complete 6DOF (six degrees of freedom) tracking data
  * including position, orientation, and motion vectors in 3D space.
- * 
+ *
  * @example
  * ```typescript
  * const pose: ControllerPose = {

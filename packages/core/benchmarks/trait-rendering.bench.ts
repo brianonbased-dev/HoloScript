@@ -34,16 +34,31 @@ function mockTraitConfig(traitName: string, propCount: number): Record<string, u
 /**
  * Generate a mock object with N traits.
  */
-function mockObject(name: string, traitCount: number): {
+function mockObject(
+  name: string,
+  traitCount: number
+): {
   name: string;
   traits: Record<string, unknown>[];
   properties: Record<string, unknown>;
 } {
   const traits: Record<string, unknown>[] = [];
   const traitNames = [
-    'physics', 'grabbable', 'throwable', 'collidable', 'glowing',
-    'animated', 'networked', 'holdable', 'hoverable', 'clickable',
-    'draggable', 'scalable', 'rotatable', 'material', 'shadow',
+    'physics',
+    'grabbable',
+    'throwable',
+    'collidable',
+    'glowing',
+    'animated',
+    'networked',
+    'holdable',
+    'hoverable',
+    'clickable',
+    'draggable',
+    'scalable',
+    'rotatable',
+    'material',
+    'shadow',
   ];
 
   for (let i = 0; i < traitCount; i++) {
@@ -57,7 +72,9 @@ function mockObject(name: string, traitCount: number): {
       position: [Math.random() * 100, Math.random() * 50, Math.random() * 100],
       rotation: [0, Math.random() * Math.PI * 2, 0],
       scale: [1 + Math.random(), 1 + Math.random(), 1 + Math.random()],
-      color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
+      color: `#${Math.floor(Math.random() * 16777215)
+        .toString(16)
+        .padStart(6, '0')}`,
       geometry: ['sphere', 'cube', 'cylinder', 'cone'][Math.floor(Math.random() * 4)],
     },
   };
@@ -66,7 +83,10 @@ function mockObject(name: string, traitCount: number): {
 /**
  * Generate a mock composition with N objects.
  */
-function mockComposition(objectCount: number, traitsPerObject: number): {
+function mockComposition(
+  objectCount: number,
+  traitsPerObject: number
+): {
   name: string;
   objects: ReturnType<typeof mockObject>[];
 } {
@@ -87,7 +107,7 @@ function mockComposition(objectCount: number, traitsPerObject: number): {
  */
 function resolveTraits(
   objectTraits: Record<string, unknown>[],
-  templateTraits: Record<string, unknown>[],
+  templateTraits: Record<string, unknown>[]
 ): Record<string, unknown>[] {
   const merged = new Map<string, Record<string, unknown>>();
 
@@ -124,7 +144,7 @@ function detectConflicts(traits: Record<string, unknown>[]): string[] {
     ['frozen', 'animated'],
   ];
 
-  const traitNames = new Set(traits.map(t => t.__trait as string));
+  const traitNames = new Set(traits.map((t) => t.__trait as string));
 
   for (const [a, b] of CONFLICT_PAIRS) {
     if (traitNames.has(a) && traitNames.has(b)) {
@@ -145,7 +165,7 @@ function detectConflicts(traits: Record<string, unknown>[]): string[] {
  */
 function evaluateScalarField(
   gridSize: number,
-  blobs: Array<{ center: number[]; radius: number }>,
+  blobs: Array<{ center: number[]; radius: number }>
 ): Float32Array {
   const total = gridSize * gridSize * gridSize;
   const field = new Float32Array(total);
@@ -177,10 +197,7 @@ function evaluateScalarField(
 /**
  * Simulate spline curve evaluation (Catmull-Rom).
  */
-function evaluateSpline(
-  points: number[][],
-  segments: number,
-): number[][] {
+function evaluateSpline(points: number[][], segments: number): number[][] {
   const result: number[][] = [];
 
   for (let i = 0; i < points.length - 1; i++) {
@@ -194,20 +211,26 @@ function evaluateSpline(
       const t2 = t * t;
       const t3 = t2 * t;
 
-      const x = 0.5 * ((2 * p1[0]) +
-        (-p0[0] + p2[0]) * t +
-        (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
-        (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+      const x =
+        0.5 *
+        (2 * p1[0] +
+          (-p0[0] + p2[0]) * t +
+          (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
+          (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
 
-      const y = 0.5 * ((2 * p1[1]) +
-        (-p0[1] + p2[1]) * t +
-        (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
-        (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+      const y =
+        0.5 *
+        (2 * p1[1] +
+          (-p0[1] + p2[1]) * t +
+          (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
+          (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
 
-      const z = 0.5 * ((2 * p1[2]) +
-        (-p0[2] + p2[2]) * t +
-        (2 * p0[2] - 5 * p1[2] + 4 * p2[2] - p3[2]) * t2 +
-        (-p0[2] + 3 * p1[2] - 3 * p2[2] + p3[2]) * t3);
+      const z =
+        0.5 *
+        (2 * p1[2] +
+          (-p0[2] + p2[2]) * t +
+          (2 * p0[2] - 5 * p1[2] + 4 * p2[2] - p3[2]) * t2 +
+          (-p0[2] + 3 * p1[2] - 3 * p2[2] + p3[2]) * t3);
 
       result.push([x, y, z]);
     }
@@ -272,7 +295,7 @@ function computePBRMaterial(props: Record<string, unknown>): Record<string, unkn
 function validateTraitConfig(
   traitName: string,
   config: Record<string, unknown>,
-  schema: Record<string, { type: string; min?: number; max?: number; values?: string[] }>,
+  schema: Record<string, { type: string; min?: number; max?: number; values?: string[] }>
 ): { valid: boolean; errors: string[]; riskScore: number } {
   const errors: string[] = [];
   let riskScore = 0;
@@ -308,7 +331,9 @@ function validateTraitConfig(
 
       case 'enum':
         if (rule.values && !rule.values.includes(value as string)) {
-          errors.push(`${traitName}.${prop}: invalid value '${value}', expected one of: ${rule.values.join(', ')}`);
+          errors.push(
+            `${traitName}.${prop}: invalid value '${value}', expected one of: ${rule.values.join(', ')}`
+          );
           riskScore += 0.4;
         }
         break;
@@ -339,7 +364,7 @@ interface MockCondition {
 
 function evaluateContracts(
   conditions: MockCondition[],
-  props: Record<string, unknown>,
+  props: Record<string, unknown>
 ): { passed: number; failed: number } {
   let passed = 0;
   let failed = 0;
@@ -369,7 +394,7 @@ function evaluateContracts(
 function serializeGeometryToBuffer(
   vertices: Float32Array,
   normals: Float32Array,
-  indices: Uint32Array,
+  indices: Uint32Array
 ): ArrayBuffer {
   const totalBytes = vertices.byteLength + normals.byteLength + indices.byteLength;
   const buffer = new ArrayBuffer(totalBytes);
@@ -447,16 +472,14 @@ export async function runTraitRenderingBench(): Promise<Bench> {
 
   // ---- Scalar Field (Marching Cubes) Benchmarks ----
 
-  const blob1 = [
-    { center: [0, 0, 0], radius: 1.0 },
-  ];
+  const blob1 = [{ center: [0, 0, 0], radius: 1.0 }];
   const blob3 = [
     { center: [0, 0, 0], radius: 1.0 },
     { center: [1, 0, 0], radius: 0.8 },
     { center: [0, 1, 0], radius: 0.6 },
   ];
   const blob8 = Array.from({ length: 8 }, (_, i) => ({
-    center: [Math.cos(i * Math.PI / 4), Math.sin(i * Math.PI / 4), 0],
+    center: [Math.cos((i * Math.PI) / 4), Math.sin((i * Math.PI) / 4), 0],
     radius: 0.5 + Math.random() * 0.5,
   }));
 
@@ -478,9 +501,16 @@ export async function runTraitRenderingBench(): Promise<Bench> {
 
   // ---- Spline Evaluation Benchmarks ----
 
-  const splinePoints4 = [[0, 0, 0], [1, 2, 0], [3, 1, 0], [5, 3, 0]];
+  const splinePoints4 = [
+    [0, 0, 0],
+    [1, 2, 0],
+    [3, 1, 0],
+    [5, 3, 0],
+  ];
   const splinePoints10 = Array.from({ length: 10 }, (_, i) => [
-    i * 0.5, Math.sin(i * 0.5) * 2, Math.cos(i * 0.3),
+    i * 0.5,
+    Math.sin(i * 0.5) * 2,
+    Math.cos(i * 0.3),
   ]);
 
   bench.add('spline-4-points-20-segments', () => {
@@ -520,7 +550,9 @@ export async function runTraitRenderingBench(): Promise<Bench> {
   bench.add('pbr-material-batch-100', () => {
     for (let i = 0; i < 100; i++) {
       computePBRMaterial({
-        color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
+        color: `#${Math.floor(Math.random() * 16777215)
+          .toString(16)
+          .padStart(6, '0')}`,
         metallic: Math.random(),
         roughness: Math.random(),
         opacity: 0.5 + Math.random() * 0.5,
@@ -540,7 +572,12 @@ export async function runTraitRenderingBench(): Promise<Bench> {
   };
 
   const validConfig = { mass: 5, restitution: 0.5, friction: 0.3, isStatic: false };
-  const invalidConfig = { mass: -1, restitution: 2.0, friction: 'high' as unknown as number, isStatic: 42 };
+  const invalidConfig = {
+    mass: -1,
+    restitution: 2.0,
+    friction: 'high' as unknown as number,
+    isStatic: 42,
+  };
 
   bench.add('confab-validate-valid-config', () => {
     validateTraitConfig('physics', validConfig, physicsSchema);
@@ -552,27 +589,41 @@ export async function runTraitRenderingBench(): Promise<Bench> {
 
   bench.add('confab-validate-batch-50-configs', () => {
     for (let i = 0; i < 50; i++) {
-      validateTraitConfig('physics', {
-        mass: Math.random() * 200 - 50,
-        restitution: Math.random() * 2 - 0.5,
-        friction: Math.random(),
-        isStatic: Math.random() > 0.5,
-      }, physicsSchema);
+      validateTraitConfig(
+        'physics',
+        {
+          mass: Math.random() * 200 - 50,
+          restitution: Math.random() * 2 - 0.5,
+          friction: Math.random(),
+          isStatic: Math.random() > 0.5,
+        },
+        physicsSchema
+      );
     }
   });
 
   // ---- Contract Evaluation Benchmarks ----
 
   const physicsConditions: MockCondition[] = [
-    { evaluate: (p) => (p.mass as number ?? 1) >= 0 },
-    { evaluate: (p) => { const r = p.restitution as number ?? 0.5; return r >= 0 && r <= 1; } },
-    { evaluate: (p) => { const f = p.friction as number ?? 0.5; return f >= 0 && f <= 1; } },
+    { evaluate: (p) => ((p.mass as number) ?? 1) >= 0 },
+    {
+      evaluate: (p) => {
+        const r = (p.restitution as number) ?? 0.5;
+        return r >= 0 && r <= 1;
+      },
+    },
+    {
+      evaluate: (p) => {
+        const f = (p.friction as number) ?? 0.5;
+        return f >= 0 && f <= 1;
+      },
+    },
     { evaluate: (p) => typeof p.isStatic === 'boolean' },
   ];
 
   const manyConditions: MockCondition[] = Array.from({ length: 20 }, (_, i) => ({
     evaluate: (p: Record<string, unknown>) => {
-      const val = p[`prop_${i}`] as number ?? 0;
+      const val = (p[`prop_${i}`] as number) ?? 0;
       return val >= -100 && val <= 100;
     },
   }));
@@ -599,9 +650,9 @@ export async function runTraitRenderingBench(): Promise<Bench> {
   // ---- GLTF Buffer Serialization Benchmarks ----
 
   const smallGeo = {
-    vertices: new Float32Array(300),  // 100 vertices * 3
+    vertices: new Float32Array(300), // 100 vertices * 3
     normals: new Float32Array(300),
-    indices: new Uint32Array(600),    // 200 triangles * 3
+    indices: new Uint32Array(600), // 200 triangles * 3
   };
   const medGeo = {
     vertices: new Float32Array(3000),

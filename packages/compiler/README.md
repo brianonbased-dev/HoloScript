@@ -8,26 +8,26 @@ The compiler package provides standalone compilation from HoloScript source to p
 
 ## Supported Targets
 
-| Target | Platform | Output |
-|--------|----------|--------|
-| `unity` | Unity Engine | C# scripts |
-| `unreal` | Unreal Engine 5 | C++ / Blueprints |
-| `godot` | Godot 4 | GDScript |
-| `r3f` | React Three Fiber | JSX components |
-| `babylon` | Babylon.js | TypeScript |
-| `visionos` | Apple Vision Pro | Swift / RealityKit |
-| `webgpu` | WebGPU | WGSL shaders |
-| `wasm` | WebAssembly | WAT / binary |
-| `openxr` | OpenXR | C++ / Khronos |
-| `android-xr` | Android XR | Kotlin |
-| `ios` | iOS / ARKit | Swift |
-| `android` | Android / ARCore | Kotlin |
-| `vrchat` | VRChat | Udon# |
-| `urdf` | Robotics | URDF XML |
-| `sdf` | Robotics | SDF XML |
-| `dtdl` | Digital Twins | DTDL JSON |
-| `usd` | Universal Scene | USD |
-| `gltf` | 3D Interchange | glTF JSON |
+| Target       | Platform          | Output             |
+| ------------ | ----------------- | ------------------ |
+| `unity`      | Unity Engine      | C# scripts         |
+| `unreal`     | Unreal Engine 5   | C++ / Blueprints   |
+| `godot`      | Godot 4           | GDScript           |
+| `r3f`        | React Three Fiber | JSX components     |
+| `babylon`    | Babylon.js        | TypeScript         |
+| `visionos`   | Apple Vision Pro  | Swift / RealityKit |
+| `webgpu`     | WebGPU            | WGSL shaders       |
+| `wasm`       | WebAssembly       | WAT / binary       |
+| `openxr`     | OpenXR            | C++ / Khronos      |
+| `android-xr` | Android XR        | Kotlin             |
+| `ios`        | iOS / ARKit       | Swift              |
+| `android`    | Android / ARCore  | Kotlin             |
+| `vrchat`     | VRChat            | Udon#              |
+| `urdf`       | Robotics          | URDF XML           |
+| `sdf`        | Robotics          | SDF XML            |
+| `dtdl`       | Digital Twins     | DTDL JSON          |
+| `usd`        | Universal Scene   | USD                |
+| `gltf`       | 3D Interchange    | glTF JSON          |
 
 ## Usage
 

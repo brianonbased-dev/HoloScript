@@ -23,7 +23,9 @@ export const pushNotificationHandler: TraitHandler<PushNotificationConfig> = {
   onAttach(node: any): void {
     node.__pushState = { sent: 0 };
   },
-  onDetach(node: any): void { delete node.__pushState; },
+  onDetach(node: any): void {
+    delete node.__pushState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: PushNotificationConfig, context: any, event: any): void {

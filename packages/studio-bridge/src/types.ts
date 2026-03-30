@@ -160,11 +160,11 @@ export interface BridgeMapping {
  * Relationship types between visual nodes and AST nodes
  */
 export type MappingRelationship =
-  | 'direct'        // 1:1 mapping (e.g., on_click event -> on_click handler)
-  | 'composite'     // 1:N mapping (visual node expands to multiple AST nodes)
-  | 'aggregate'     // N:1 mapping (multiple visual nodes collapse to one AST node)
-  | 'derived'       // The AST node is inferred/derived from visual context
-  | 'structural';   // Structural wrapper (e.g., composition block, environment block)
+  | 'direct' // 1:1 mapping (e.g., on_click event -> on_click handler)
+  | 'composite' // 1:N mapping (visual node expands to multiple AST nodes)
+  | 'aggregate' // N:1 mapping (multiple visual nodes collapse to one AST node)
+  | 'derived' // The AST node is inferred/derived from visual context
+  | 'structural'; // Structural wrapper (e.g., composition block, environment block)
 
 /**
  * Source location for mapping to generated code
@@ -269,7 +269,13 @@ export interface SourceMapEntry {
  */
 export interface BridgeChangeEvent {
   /** Type of change */
-  type: 'node-added' | 'node-removed' | 'node-updated' | 'edge-added' | 'edge-removed' | 'property-changed';
+  type:
+    | 'node-added'
+    | 'node-removed'
+    | 'node-updated'
+    | 'edge-added'
+    | 'edge-removed'
+    | 'property-changed';
   /** Which side originated the change */
   origin: 'visual' | 'ast';
   /** The affected visual node ID */

@@ -3,11 +3,18 @@
  * Faceted / filtered search.
  */
 import type { TraitHandler } from './TraitTypes';
-export interface FacetedSearchConfig { max_facets: number; }
+export interface FacetedSearchConfig {
+  max_facets: number;
+}
 export const facetedSearchHandler: TraitHandler<FacetedSearchConfig> = {
-  name: 'faceted_search', defaultConfig: { max_facets: 20 },
-  onAttach(node: any): void { node.__facetState = { facets: new Map<string, Set<string>>() }; },
-  onDetach(node: any): void { delete node.__facetState; },
+  name: 'faceted_search',
+  defaultConfig: { max_facets: 20 },
+  onAttach(node: any): void {
+    node.__facetState = { facets: new Map<string, Set<string>>() };
+  },
+  onDetach(node: any): void {
+    delete node.__facetState;
+  },
   onUpdate(): void {},
   onEvent(node: any, _config: FacetedSearchConfig, context: any, event: any): void {
     const state = node.__facetState as { facets: Map<string, Set<string>> } | undefined;
@@ -22,7 +29,9 @@ export const facetedSearchHandler: TraitHandler<FacetedSearchConfig> = {
         break;
       }
       case 'facet:filter':
-        context.emit?.('facet:filtered', { facets: Object.fromEntries([...state.facets].map(([k, v]) => [k, [...v]])) });
+        context.emit?.('facet:filtered', {
+          facets: Object.fromEntries([...state.facets].map(([k, v]) => [k, [...v]])),
+        });
         break;
     }
   },

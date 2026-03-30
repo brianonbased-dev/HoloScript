@@ -36,7 +36,10 @@ describe('DatabaseTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('db'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('db');
+    ctx = createMockContext();
+  });
 
   it('should attach and initialize state', () => {
     attachTrait(databaseHandler, node, {}, ctx);
@@ -76,7 +79,10 @@ describe('CacheTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('cache'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('cache');
+    ctx = createMockContext();
+  });
 
   it('should cache and hit', () => {
     attachTrait(cacheHandler, node, {}, ctx);
@@ -120,12 +126,23 @@ describe('StreamTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('stream'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('stream');
+    ctx = createMockContext();
+  });
 
   it('should subscribe and receive published messages', () => {
     attachTrait(streamHandler, node, {}, ctx);
-    sendEvent(streamHandler, node, {}, ctx, { type: 'stream:subscribe', topic: 'events', subscriberId: 's1' });
-    sendEvent(streamHandler, node, {}, ctx, { type: 'stream:publish', topic: 'events', data: { x: 1 } });
+    sendEvent(streamHandler, node, {}, ctx, {
+      type: 'stream:subscribe',
+      topic: 'events',
+      subscriberId: 's1',
+    });
+    sendEvent(streamHandler, node, {}, ctx, {
+      type: 'stream:publish',
+      topic: 'events',
+      data: { x: 1 },
+    });
     expect(getEventCount(ctx, 'stream:message')).toBe(1);
     const msg = getLastEvent(ctx, 'stream:message') as any;
     expect(msg.data.x).toBe(1);
@@ -147,11 +164,18 @@ describe('SnapshotTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('snap'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('snap');
+    ctx = createMockContext();
+  });
 
   it('should capture and list snapshots', () => {
     attachTrait(snapshotHandler, node, {}, ctx);
-    sendEvent(snapshotHandler, node, {}, ctx, { type: 'snapshot:capture', snapshotId: 's1', data: { state: 'ok' } });
+    sendEvent(snapshotHandler, node, {}, ctx, {
+      type: 'snapshot:capture',
+      snapshotId: 's1',
+      data: { state: 'ok' },
+    });
     expect(getEventCount(ctx, 'snapshot:captured')).toBe(1);
     sendEvent(snapshotHandler, node, {}, ctx, { type: 'snapshot:list' });
     const info = getLastEvent(ctx, 'snapshot:info') as any;
@@ -173,12 +197,23 @@ describe('MigrateTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('migrate'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('migrate');
+    ctx = createMockContext();
+  });
 
   it('should register and run migrations', () => {
     attachTrait(migrateHandler, node, {}, ctx);
-    sendEvent(migrateHandler, node, {}, ctx, { type: 'migrate:register', version: 1, description: 'init' });
-    sendEvent(migrateHandler, node, {}, ctx, { type: 'migrate:register', version: 2, description: 'add cols' });
+    sendEvent(migrateHandler, node, {}, ctx, {
+      type: 'migrate:register',
+      version: 1,
+      description: 'init',
+    });
+    sendEvent(migrateHandler, node, {}, ctx, {
+      type: 'migrate:register',
+      version: 2,
+      description: 'add cols',
+    });
     sendEvent(migrateHandler, node, {}, ctx, { type: 'migrate:run' });
     expect(getEventCount(ctx, 'migrate:step')).toBe(2);
     const complete = getLastEvent(ctx, 'migrate:complete') as any;
@@ -200,11 +235,18 @@ describe('QueryTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('query'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('query');
+    ctx = createMockContext();
+  });
 
   it('should execute a query with limit', () => {
     attachTrait(queryHandler, node, {}, ctx);
-    sendEvent(queryHandler, node, {}, ctx, { type: 'query:execute', collection: 'users', limit: 10 });
+    sendEvent(queryHandler, node, {}, ctx, {
+      type: 'query:execute',
+      collection: 'users',
+      limit: 10,
+    });
     const result = getLastEvent(ctx, 'query:result') as any;
     expect(result.collection).toBe('users');
     expect(result.limit).toBe(10);
@@ -225,13 +267,30 @@ describe('IndexTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('idx'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('idx');
+    ctx = createMockContext();
+  });
 
   it('should add and lookup index entries', () => {
     attachTrait(indexHandler, node, {}, ctx);
-    sendEvent(indexHandler, node, {}, ctx, { type: 'index:add', indexName: 'by_name', key: 'alice', docId: 'd1' });
-    sendEvent(indexHandler, node, {}, ctx, { type: 'index:add', indexName: 'by_name', key: 'alice', docId: 'd2' });
-    sendEvent(indexHandler, node, {}, ctx, { type: 'index:lookup', indexName: 'by_name', key: 'alice' });
+    sendEvent(indexHandler, node, {}, ctx, {
+      type: 'index:add',
+      indexName: 'by_name',
+      key: 'alice',
+      docId: 'd1',
+    });
+    sendEvent(indexHandler, node, {}, ctx, {
+      type: 'index:add',
+      indexName: 'by_name',
+      key: 'alice',
+      docId: 'd2',
+    });
+    sendEvent(indexHandler, node, {}, ctx, {
+      type: 'index:lookup',
+      indexName: 'by_name',
+      key: 'alice',
+    });
     const result = getLastEvent(ctx, 'index:result') as any;
     expect(result.docIds).toEqual(['d1', 'd2']);
   });
@@ -251,12 +310,21 @@ describe('HealthcheckTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('hc'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('hc');
+    ctx = createMockContext();
+  });
 
   it('should register and report check status', () => {
     attachTrait(healthcheckHandler, node, { auto_interval_ms: 0 }, ctx);
-    sendEvent(healthcheckHandler, node, { auto_interval_ms: 0 }, ctx, { type: 'healthcheck:register', checkId: 'db' });
-    sendEvent(healthcheckHandler, node, { auto_interval_ms: 0 }, ctx, { type: 'healthcheck:check_ok', checkId: 'db' });
+    sendEvent(healthcheckHandler, node, { auto_interval_ms: 0 }, ctx, {
+      type: 'healthcheck:register',
+      checkId: 'db',
+    });
+    sendEvent(healthcheckHandler, node, { auto_interval_ms: 0 }, ctx, {
+      type: 'healthcheck:check_ok',
+      checkId: 'db',
+    });
     sendEvent(healthcheckHandler, node, { auto_interval_ms: 0 }, ctx, { type: 'healthcheck:run' });
     const result = getLastEvent(ctx, 'healthcheck:result') as any;
     expect(result.status).toBe('healthy');
@@ -277,7 +345,10 @@ describe('ProfilerTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('prof'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('prof');
+    ctx = createMockContext();
+  });
 
   it('should measure span durations', () => {
     attachTrait(profilerHandler, node, {}, ctx);
@@ -303,7 +374,10 @@ describe('SLOMonitorTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('slo'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('slo');
+    ctx = createMockContext();
+  });
 
   it('should define and track SLO budget', () => {
     attachTrait(sloMonitorHandler, node, {}, ctx);
@@ -331,12 +405,25 @@ describe('LogAggregatorTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('logs'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('logs');
+    ctx = createMockContext();
+  });
 
   it('should write and query logs', () => {
     attachTrait(logAggregatorHandler, node, {}, ctx);
-    sendEvent(logAggregatorHandler, node, {}, ctx, { type: 'log:write', level: 'info', message: 'hello', source: 'app' });
-    sendEvent(logAggregatorHandler, node, {}, ctx, { type: 'log:write', level: 'error', message: 'fail', source: 'db' });
+    sendEvent(logAggregatorHandler, node, {}, ctx, {
+      type: 'log:write',
+      level: 'info',
+      message: 'hello',
+      source: 'app',
+    });
+    sendEvent(logAggregatorHandler, node, {}, ctx, {
+      type: 'log:write',
+      level: 'error',
+      message: 'fail',
+      source: 'db',
+    });
     sendEvent(logAggregatorHandler, node, {}, ctx, { type: 'log:query', level: 'error' });
     const result = getLastEvent(ctx, 'log:result') as any;
     expect(result.count).toBe(1);
@@ -358,17 +445,29 @@ describe('IncidentTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
 
-  beforeEach(() => { node = createMockNode('inc'); ctx = createMockContext(); });
+  beforeEach(() => {
+    node = createMockNode('inc');
+    ctx = createMockContext();
+  });
 
   it('should open, acknowledge, and resolve incidents', () => {
     attachTrait(incidentHandler, node, {}, ctx);
-    sendEvent(incidentHandler, node, {}, ctx, { type: 'incident:open', incidentId: 'i1', title: 'DB Down', severity: 'critical' });
+    sendEvent(incidentHandler, node, {}, ctx, {
+      type: 'incident:open',
+      incidentId: 'i1',
+      title: 'DB Down',
+      severity: 'critical',
+    });
     expect(getEventCount(ctx, 'incident:updated')).toBe(1);
 
     sendEvent(incidentHandler, node, {}, ctx, { type: 'incident:acknowledge', incidentId: 'i1' });
     expect(getEventCount(ctx, 'incident:updated')).toBe(2);
 
-    sendEvent(incidentHandler, node, {}, ctx, { type: 'incident:resolve', incidentId: 'i1', resolution: 'Fixed connection' });
+    sendEvent(incidentHandler, node, {}, ctx, {
+      type: 'incident:resolve',
+      incidentId: 'i1',
+      resolution: 'Fixed connection',
+    });
     expect(getEventCount(ctx, 'incident:updated')).toBe(3);
     const last = getLastEvent(ctx, 'incident:updated') as any;
     expect(last.status).toBe('resolved');

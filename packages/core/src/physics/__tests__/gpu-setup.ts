@@ -57,7 +57,9 @@ class MockGPUBuffer {
     this.data = new ArrayBuffer(descriptor.size);
   }
 
-  getMappedRange(): ArrayBuffer { return this.data.slice(0); }
+  getMappedRange(): ArrayBuffer {
+    return this.data.slice(0);
+  }
   unmap(): void {}
   async mapAsync(): Promise<void> {}
   destroy(): void {}
@@ -74,9 +76,13 @@ class MockComputePassEncoder {
 }
 
 class MockCommandEncoder {
-  beginComputePass(): MockComputePassEncoder { return new MockComputePassEncoder(); }
+  beginComputePass(): MockComputePassEncoder {
+    return new MockComputePassEncoder();
+  }
   copyBufferToBuffer(): void {}
-  finish(): any { return {}; }
+  finish(): any {
+    return {};
+  }
 }
 
 class MockGPUDevice {
@@ -95,13 +101,21 @@ class MockGPUDevice {
       buffer._writeData(src.buffer, offset);
     }),
   };
-  createBuffer(d: GPUBufferDescriptor): MockGPUBuffer { return new MockGPUBuffer(d); }
-  createShaderModule(): any { return {}; }
+  createBuffer(d: GPUBufferDescriptor): MockGPUBuffer {
+    return new MockGPUBuffer(d);
+  }
+  createShaderModule(): any {
+    return {};
+  }
   createComputePipeline(d: any): any {
     return { label: d?.label ?? '', getBindGroupLayout: () => ({}) };
   }
-  createBindGroup(): any { return {}; }
-  createCommandEncoder(): MockCommandEncoder { return new MockCommandEncoder(); }
+  createBindGroup(): any {
+    return {};
+  }
+  createCommandEncoder(): MockCommandEncoder {
+    return new MockCommandEncoder();
+  }
   destroy(): void {}
 }
 
@@ -121,9 +135,14 @@ function installMocks(): void {
 function ensureGPUConstants(): void {
   if (typeof (globalThis as any).GPUBufferUsage === 'undefined') {
     (globalThis as any).GPUBufferUsage = {
-      MAP_READ: 0x0001, MAP_WRITE: 0x0002, COPY_SRC: 0x0004,
-      COPY_DST: 0x0008, INDEX: 0x0010, VERTEX: 0x0020,
-      UNIFORM: 0x0040, STORAGE: 0x0080,
+      MAP_READ: 0x0001,
+      MAP_WRITE: 0x0002,
+      COPY_SRC: 0x0004,
+      COPY_DST: 0x0008,
+      INDEX: 0x0010,
+      VERTEX: 0x0020,
+      UNIFORM: 0x0040,
+      STORAGE: 0x0080,
     };
   }
   if (typeof (globalThis as any).GPUMapMode === 'undefined') {

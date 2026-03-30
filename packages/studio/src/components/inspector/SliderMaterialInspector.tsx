@@ -120,13 +120,43 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     label: 'Metals',
     icon: '🔩',
     presets: [
-      { key: 'polishedSteel', label: 'Polished Steel', config: { color: '#b0b0b0', roughness: 0.08, metalness: 1.0, clearcoat: 0.6 } },
-      { key: 'brushedAluminum', label: 'Brushed Aluminum', config: { color: '#c0c0c0', roughness: 0.35, metalness: 0.95, anisotropy: 0.8 } },
+      {
+        key: 'polishedSteel',
+        label: 'Polished Steel',
+        config: { color: '#b0b0b0', roughness: 0.08, metalness: 1.0, clearcoat: 0.6 },
+      },
+      {
+        key: 'brushedAluminum',
+        label: 'Brushed Aluminum',
+        config: { color: '#c0c0c0', roughness: 0.35, metalness: 0.95, anisotropy: 0.8 },
+      },
       { key: 'gold', label: 'Gold', config: { color: '#ffd700', roughness: 0.12, metalness: 1.0 } },
-      { key: 'copper', label: 'Copper', config: { color: '#b87333', roughness: 0.25, metalness: 1.0 } },
-      { key: 'bronze', label: 'Bronze', config: { color: '#cd7f32', roughness: 0.4, metalness: 0.9 } },
-      { key: 'chrome', label: 'Chrome', config: { color: '#ddd', roughness: 0.02, metalness: 1.0, clearcoat: 1.0, clearcoatRoughness: 0.02 } },
-      { key: 'titanium', label: 'Titanium', config: { color: '#8a8a8a', roughness: 0.3, metalness: 0.85 } },
+      {
+        key: 'copper',
+        label: 'Copper',
+        config: { color: '#b87333', roughness: 0.25, metalness: 1.0 },
+      },
+      {
+        key: 'bronze',
+        label: 'Bronze',
+        config: { color: '#cd7f32', roughness: 0.4, metalness: 0.9 },
+      },
+      {
+        key: 'chrome',
+        label: 'Chrome',
+        config: {
+          color: '#ddd',
+          roughness: 0.02,
+          metalness: 1.0,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.02,
+        },
+      },
+      {
+        key: 'titanium',
+        label: 'Titanium',
+        config: { color: '#8a8a8a', roughness: 0.3, metalness: 0.85 },
+      },
       { key: 'iron', label: 'Iron', config: { color: '#434343', roughness: 0.6, metalness: 0.75 } },
     ],
   },
@@ -134,11 +164,73 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     label: 'Glass & Crystal',
     icon: '💎',
     presets: [
-      { key: 'clearGlass', label: 'Clear Glass', config: { color: '#ffffff', roughness: 0.0, metalness: 0, transmission: 1.0, thickness: 0.5, ior: 1.5, transparent: true, opacity: 0.1 } },
-      { key: 'frostedGlass', label: 'Frosted Glass', config: { color: '#eeeeff', roughness: 0.4, metalness: 0, transmission: 0.9, ior: 1.5, transparent: true, opacity: 0.2 } },
-      { key: 'crystal', label: 'Crystal', config: { color: '#e0e8ff', roughness: 0.0, metalness: 0, transmission: 0.95, ior: 2.0, iridescence: 0.5, transparent: true, opacity: 0.05 } },
-      { key: 'diamond', label: 'Diamond', config: { color: '#ffffff', roughness: 0.0, metalness: 0, transmission: 1.0, ior: 2.42, iridescence: 0.8, transparent: true, opacity: 0.0 } },
-      { key: 'stainedGlass', label: 'Stained Glass', config: { color: '#cc2244', roughness: 0.1, metalness: 0, transmission: 0.7, transparent: true, opacity: 0.3 } },
+      {
+        key: 'clearGlass',
+        label: 'Clear Glass',
+        config: {
+          color: '#ffffff',
+          roughness: 0.0,
+          metalness: 0,
+          transmission: 1.0,
+          thickness: 0.5,
+          ior: 1.5,
+          transparent: true,
+          opacity: 0.1,
+        },
+      },
+      {
+        key: 'frostedGlass',
+        label: 'Frosted Glass',
+        config: {
+          color: '#eeeeff',
+          roughness: 0.4,
+          metalness: 0,
+          transmission: 0.9,
+          ior: 1.5,
+          transparent: true,
+          opacity: 0.2,
+        },
+      },
+      {
+        key: 'crystal',
+        label: 'Crystal',
+        config: {
+          color: '#e0e8ff',
+          roughness: 0.0,
+          metalness: 0,
+          transmission: 0.95,
+          ior: 2.0,
+          iridescence: 0.5,
+          transparent: true,
+          opacity: 0.05,
+        },
+      },
+      {
+        key: 'diamond',
+        label: 'Diamond',
+        config: {
+          color: '#ffffff',
+          roughness: 0.0,
+          metalness: 0,
+          transmission: 1.0,
+          ior: 2.42,
+          iridescence: 0.8,
+          transparent: true,
+          opacity: 0.0,
+        },
+      },
+      {
+        key: 'stainedGlass',
+        label: 'Stained Glass',
+        config: {
+          color: '#cc2244',
+          roughness: 0.1,
+          metalness: 0,
+          transmission: 0.7,
+          transparent: true,
+          opacity: 0.3,
+        },
+      },
     ],
   },
   {
@@ -147,42 +239,188 @@ const PRESET_CATEGORIES: PresetCategory[] = [
     presets: [
       { key: 'wood', label: 'Wood', config: { color: '#8B4513', roughness: 0.75, metalness: 0 } },
       { key: 'stone', label: 'Stone', config: { color: '#808080', roughness: 0.85, metalness: 0 } },
-      { key: 'marble', label: 'Marble', config: { color: '#f0ece0', roughness: 0.2, metalness: 0, clearcoat: 0.3 } },
-      { key: 'clay', label: 'Clay', config: { color: '#cc8855', roughness: 0.95, metalness: 0, flatShading: true } },
+      {
+        key: 'marble',
+        label: 'Marble',
+        config: { color: '#f0ece0', roughness: 0.2, metalness: 0, clearcoat: 0.3 },
+      },
+      {
+        key: 'clay',
+        label: 'Clay',
+        config: { color: '#cc8855', roughness: 0.95, metalness: 0, flatShading: true },
+      },
       { key: 'sand', label: 'Sand', config: { color: '#c2b280', roughness: 1.0, metalness: 0 } },
-      { key: 'water', label: 'Water', config: { color: '#004488', roughness: 0.02, metalness: 0, transmission: 0.6, ior: 1.33, transparent: true, opacity: 0.4 } },
+      {
+        key: 'water',
+        label: 'Water',
+        config: {
+          color: '#004488',
+          roughness: 0.02,
+          metalness: 0,
+          transmission: 0.6,
+          ior: 1.33,
+          transparent: true,
+          opacity: 0.4,
+        },
+      },
     ],
   },
   {
     label: 'Fabric',
     icon: '🧵',
     presets: [
-      { key: 'silk', label: 'Silk', config: { color: '#dd3366', roughness: 0.4, metalness: 0, sheen: 1.0, sheenColor: '#ff88aa', sheenRoughness: 0.2 } },
-      { key: 'velvet', label: 'Velvet', config: { color: '#440022', roughness: 0.9, metalness: 0, sheen: 0.8, sheenColor: '#880044', sheenRoughness: 0.6 } },
-      { key: 'denim', label: 'Denim', config: { color: '#1a3a5c', roughness: 0.85, metalness: 0, sheen: 0.3, sheenColor: '#3366aa', sheenRoughness: 0.7 } },
-      { key: 'leather', label: 'Leather', config: { color: '#6b3a2a', roughness: 0.65, metalness: 0, clearcoat: 0.15 } },
-      { key: 'cotton', label: 'Cotton', config: { color: '#f5f0e8', roughness: 0.95, metalness: 0, sheen: 0.2, sheenRoughness: 0.8 } },
+      {
+        key: 'silk',
+        label: 'Silk',
+        config: {
+          color: '#dd3366',
+          roughness: 0.4,
+          metalness: 0,
+          sheen: 1.0,
+          sheenColor: '#ff88aa',
+          sheenRoughness: 0.2,
+        },
+      },
+      {
+        key: 'velvet',
+        label: 'Velvet',
+        config: {
+          color: '#440022',
+          roughness: 0.9,
+          metalness: 0,
+          sheen: 0.8,
+          sheenColor: '#880044',
+          sheenRoughness: 0.6,
+        },
+      },
+      {
+        key: 'denim',
+        label: 'Denim',
+        config: {
+          color: '#1a3a5c',
+          roughness: 0.85,
+          metalness: 0,
+          sheen: 0.3,
+          sheenColor: '#3366aa',
+          sheenRoughness: 0.7,
+        },
+      },
+      {
+        key: 'leather',
+        label: 'Leather',
+        config: { color: '#6b3a2a', roughness: 0.65, metalness: 0, clearcoat: 0.15 },
+      },
+      {
+        key: 'cotton',
+        label: 'Cotton',
+        config: {
+          color: '#f5f0e8',
+          roughness: 0.95,
+          metalness: 0,
+          sheen: 0.2,
+          sheenRoughness: 0.8,
+        },
+      },
     ],
   },
   {
     label: 'Synthetic',
     icon: '🧴',
     presets: [
-      { key: 'plastic', label: 'Plastic', config: { color: '#ff4488', roughness: 0.4, metalness: 0, clearcoat: 0.3 } },
-      { key: 'rubber', label: 'Rubber', config: { color: '#222222', roughness: 0.95, metalness: 0 } },
-      { key: 'ceramic', label: 'Ceramic', config: { color: '#f0f0f0', roughness: 0.1, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.05 } },
-      { key: 'carPaint', label: 'Car Paint', config: { color: '#cc0000', roughness: 0.1, metalness: 0.3, clearcoat: 1.0, clearcoatRoughness: 0.03 } },
-      { key: 'holographic', label: 'Holographic', config: { color: '#aaddff', roughness: 0.1, metalness: 0.5, iridescence: 1.0, iridescenceIOR: 1.8, clearcoat: 0.5 } },
+      {
+        key: 'plastic',
+        label: 'Plastic',
+        config: { color: '#ff4488', roughness: 0.4, metalness: 0, clearcoat: 0.3 },
+      },
+      {
+        key: 'rubber',
+        label: 'Rubber',
+        config: { color: '#222222', roughness: 0.95, metalness: 0 },
+      },
+      {
+        key: 'ceramic',
+        label: 'Ceramic',
+        config: {
+          color: '#f0f0f0',
+          roughness: 0.1,
+          metalness: 0,
+          clearcoat: 0.8,
+          clearcoatRoughness: 0.05,
+        },
+      },
+      {
+        key: 'carPaint',
+        label: 'Car Paint',
+        config: {
+          color: '#cc0000',
+          roughness: 0.1,
+          metalness: 0.3,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.03,
+        },
+      },
+      {
+        key: 'holographic',
+        label: 'Holographic',
+        config: {
+          color: '#aaddff',
+          roughness: 0.1,
+          metalness: 0.5,
+          iridescence: 1.0,
+          iridescenceIOR: 1.8,
+          clearcoat: 0.5,
+        },
+      },
     ],
   },
   {
     label: 'Emissive',
     icon: '💡',
     presets: [
-      { key: 'neonPink', label: 'Neon Pink', config: { color: '#111', roughness: 0.5, metalness: 0, emissive: '#ff00ff', emissiveIntensity: 3.0 } },
-      { key: 'neonCyan', label: 'Neon Cyan', config: { color: '#111', roughness: 0.5, metalness: 0, emissive: '#00ffff', emissiveIntensity: 3.0 } },
-      { key: 'lava', label: 'Lava', config: { color: '#330000', roughness: 0.8, metalness: 0, emissive: '#ff3300', emissiveIntensity: 2.0 } },
-      { key: 'plasma', label: 'Plasma', config: { color: '#000022', roughness: 0.3, metalness: 0, emissive: '#8800ff', emissiveIntensity: 4.0 } },
+      {
+        key: 'neonPink',
+        label: 'Neon Pink',
+        config: {
+          color: '#111',
+          roughness: 0.5,
+          metalness: 0,
+          emissive: '#ff00ff',
+          emissiveIntensity: 3.0,
+        },
+      },
+      {
+        key: 'neonCyan',
+        label: 'Neon Cyan',
+        config: {
+          color: '#111',
+          roughness: 0.5,
+          metalness: 0,
+          emissive: '#00ffff',
+          emissiveIntensity: 3.0,
+        },
+      },
+      {
+        key: 'lava',
+        label: 'Lava',
+        config: {
+          color: '#330000',
+          roughness: 0.8,
+          metalness: 0,
+          emissive: '#ff3300',
+          emissiveIntensity: 2.0,
+        },
+      },
+      {
+        key: 'plasma',
+        label: 'Plasma',
+        config: {
+          color: '#000022',
+          roughness: 0.3,
+          metalness: 0,
+          emissive: '#8800ff',
+          emissiveIntensity: 4.0,
+        },
+      },
     ],
   },
 ];
@@ -203,7 +441,17 @@ interface SliderProps {
   accent?: string;
 }
 
-function PBRSlider({ label, value, min, max, step, onChange, onReset, tooltip, accent }: SliderProps) {
+function PBRSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  onReset,
+  tooltip,
+  accent,
+}: SliderProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
 
@@ -247,10 +495,7 @@ function PBRSlider({ label, value, min, max, step, onChange, onReset, tooltip, a
             autoFocus
           />
         ) : (
-          <span
-            className="font-mono cursor-text hover:text-studio-text"
-            onClick={startEdit}
-          >
+          <span className="font-mono cursor-text hover:text-studio-text" onClick={startEdit}>
             {value.toFixed(step < 0.01 ? 3 : 2)}
           </span>
         )}
@@ -356,12 +601,9 @@ export function SliderMaterialInspector({
     update(DEFAULT_CONFIG);
   }, [update]);
 
-  const toggleSection = useCallback(
-    (id: string) => {
-      setActiveSection((prev) => (prev === id ? '' : id));
-    },
-    []
-  );
+  const toggleSection = useCallback((id: string) => {
+    setActiveSection((prev) => (prev === id ? '' : id));
+  }, []);
 
   // Generate @material trait syntax
   const traitCode = useMemo(() => {
@@ -443,11 +685,12 @@ export function SliderMaterialInspector({
                   ? `linear-gradient(135deg, ${config.color}40, transparent)`
                   : config.color,
             opacity: config.opacity,
-            boxShadow: config.emissiveIntensity > 0
-              ? `0 0 ${config.emissiveIntensity * 8}px ${config.emissive}`
-              : config.iridescence > 0
-                ? `0 0 12px rgba(180,100,255,${config.iridescence * 0.3})`
-                : undefined,
+            boxShadow:
+              config.emissiveIntensity > 0
+                ? `0 0 ${config.emissiveIntensity * 8}px ${config.emissive}`
+                : config.iridescence > 0
+                  ? `0 0 12px rgba(180,100,255,${config.iridescence * 0.3})`
+                  : undefined,
           }}
         />
         <div className="text-xs flex-1">
@@ -514,7 +757,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Roughness"
           value={config.roughness}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ roughness: v })}
           onReset={() => update({ roughness: 0.5 })}
           tooltip="Controls microsurface detail. 0 = mirror, 1 = fully rough."
@@ -523,7 +768,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Metalness"
           value={config.metalness}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ metalness: v })}
           onReset={() => update({ metalness: 0 })}
           tooltip="0 = dielectric (plastic, wood), 1 = metallic conductor."
@@ -532,7 +779,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Opacity"
           value={config.opacity}
-          min={0} max={1} step={0.05}
+          min={0}
+          max={1}
+          step={0.05}
           onChange={(v) => update({ opacity: v, transparent: v < 1 })}
           tooltip="Overall opacity. Values below 1 enable transparency."
         />
@@ -558,7 +807,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Intensity"
           value={config.emissiveIntensity}
-          min={0} max={10} step={0.1}
+          min={0}
+          max={10}
+          step={0.1}
           onChange={(v) => update({ emissiveIntensity: v })}
           onReset={() => update({ emissiveIntensity: 0 })}
           tooltip="Emissive light intensity. Higher values create bloom."
@@ -577,7 +828,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Transmission"
           value={config.transmission}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ transmission: v, transparent: v > 0 || config.opacity < 1 })}
           onReset={() => update({ transmission: 0 })}
           tooltip="Light transmission through the material. 1 = fully transparent (glass)."
@@ -586,7 +839,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Thickness"
           value={config.thickness}
-          min={0} max={5} step={0.1}
+          min={0}
+          max={5}
+          step={0.1}
           onChange={(v) => update({ thickness: v })}
           tooltip="Virtual thickness for refraction. Affects distortion of objects behind."
           accent="#06b6d4"
@@ -594,7 +849,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="IOR"
           value={config.ior}
-          min={1.0} max={3.0} step={0.01}
+          min={1.0}
+          max={3.0}
+          step={0.01}
           onChange={(v) => update({ ior: v })}
           onReset={() => update({ ior: 1.5 })}
           tooltip="Index of refraction. Glass=1.5, Water=1.33, Diamond=2.42."
@@ -612,7 +869,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Attenuation Distance"
           value={config.attenuationDistance}
-          min={0} max={10} step={0.1}
+          min={0}
+          max={10}
+          step={0.1}
           onChange={(v) => update({ attenuationDistance: v })}
           tooltip="Distance light travels before being fully absorbed by attenuation color."
           accent="#06b6d4"
@@ -630,7 +889,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Clearcoat"
           value={config.clearcoat}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ clearcoat: v })}
           onReset={() => update({ clearcoat: 0 })}
           tooltip="Extra glossy layer on top (like car paint lacquer)."
@@ -639,7 +900,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Clearcoat Roughness"
           value={config.clearcoatRoughness}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ clearcoatRoughness: v })}
           tooltip="Roughness of the clearcoat layer."
           accent="#8b5cf6"
@@ -657,7 +920,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Sheen"
           value={config.sheen}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ sheen: v })}
           onReset={() => update({ sheen: 0 })}
           tooltip="Fabric-like sheen intensity (velvet, silk)."
@@ -675,7 +940,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Sheen Roughness"
           value={config.sheenRoughness}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ sheenRoughness: v })}
           tooltip="Distribution width of sheen highlight."
           accent="#ec4899"
@@ -693,7 +960,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Iridescence"
           value={config.iridescence}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ iridescence: v })}
           onReset={() => update({ iridescence: 0 })}
           tooltip="Rainbow-like thin-film interference (soap bubbles, oil slicks)."
@@ -702,7 +971,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Iridescence IOR"
           value={config.iridescenceIOR}
-          min={1.0} max={2.5} step={0.01}
+          min={1.0}
+          max={2.5}
+          step={0.01}
           onChange={(v) => update({ iridescenceIOR: v })}
           tooltip="Refraction index of the iridescent thin film."
           accent="#a855f7"
@@ -720,7 +991,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Anisotropy"
           value={config.anisotropy}
-          min={0} max={1} step={0.01}
+          min={0}
+          max={1}
+          step={0.01}
           onChange={(v) => update({ anisotropy: v })}
           onReset={() => update({ anisotropy: 0 })}
           tooltip="Directional stretching of reflections (brushed metal, hair)."
@@ -729,7 +1002,9 @@ export function SliderMaterialInspector({
         <PBRSlider
           label="Rotation"
           value={config.anisotropyRotation}
-          min={0} max={Math.PI} step={0.01}
+          min={0}
+          max={Math.PI}
+          step={0.01}
           onChange={(v) => update({ anisotropyRotation: v })}
           tooltip="Rotation angle of the anisotropy direction."
           accent="#14b8a6"

@@ -29,16 +29,16 @@ usdz/
 
 ## Trait → USD Physics Mapping
 
-| HoloScript Trait  | USD Physics Prim             | Schema                        |
-| ----------------- | ---------------------------- | ----------------------------- |
-| `@physics`        | `PhysicsRigidBodyAPI`        | Mass, velocity, angular vel   |
-| `@collidable`     | `PhysicsCollisionAPI`        | Shape approximation           |
-| `@kinematic`      | `PhysicsRigidBodyAPI` (kinematic) | Script-driven motion    |
-| `@gravity`        | `PhysicsScene` gravity field | Global gravity vector         |
-| `@soft_body`      | `PhysicsDeformableBodyAPI`   | Deformable mesh               |
-| `@trigger`        | `PhysicsTriggerAPI`          | Overlap detection only        |
-| `@joint`          | `PhysicsJoint`               | Revolute, prismatic, fixed    |
-| `@buoyancy`       | `ForceField` (fluid)         | Buoyancy simulation           |
+| HoloScript Trait | USD Physics Prim                  | Schema                      |
+| ---------------- | --------------------------------- | --------------------------- |
+| `@physics`       | `PhysicsRigidBodyAPI`             | Mass, velocity, angular vel |
+| `@collidable`    | `PhysicsCollisionAPI`             | Shape approximation         |
+| `@kinematic`     | `PhysicsRigidBodyAPI` (kinematic) | Script-driven motion        |
+| `@gravity`       | `PhysicsScene` gravity field      | Global gravity vector       |
+| `@soft_body`     | `PhysicsDeformableBodyAPI`        | Deformable mesh             |
+| `@trigger`       | `PhysicsTriggerAPI`               | Overlap detection only      |
+| `@joint`         | `PhysicsJoint`                    | Revolute, prismatic, fixed  |
+| `@buoyancy`      | `ForceField` (fluid)              | Buoyancy simulation         |
 
 ## Example
 
@@ -98,14 +98,14 @@ Physics simulation starts automatically via RealityKit's PhysX integration. No a
 
 ## Compiler Options
 
-| Option                 | Default    | Description                              |
-| ---------------------- | ---------- | ---------------------------------------- |
-| `--usd-backend`        | `physx`    | Physics backend: `physx`, `bullet`       |
-| `--usd-gravity`        | `0,-9.81,0`| Gravity vector (m/s²)                    |
-| `--usd-precision`      | `float`    | Precision: `half`, `float`, `double`     |
-| `--usd-format`         | `usdz`     | Output: `usdz` (iOS), `usda` (text), `usdc` (binary) |
-| `--usd-metersPerUnit`  | `1.0`      | Scene scale                              |
-| `--usd-upAxis`         | `Y`        | Up axis: `Y` or `Z`                      |
+| Option                | Default     | Description                                          |
+| --------------------- | ----------- | ---------------------------------------------------- |
+| `--usd-backend`       | `physx`     | Physics backend: `physx`, `bullet`                   |
+| `--usd-gravity`       | `0,-9.81,0` | Gravity vector (m/s²)                                |
+| `--usd-precision`     | `float`     | Precision: `half`, `float`, `double`                 |
+| `--usd-format`        | `usdz`      | Output: `usdz` (iOS), `usda` (text), `usdc` (binary) |
+| `--usd-metersPerUnit` | `1.0`       | Scene scale                                          |
+| `--usd-upAxis`        | `Y`         | Up axis: `Y` or `Z`                                  |
 
 ## See Also
 

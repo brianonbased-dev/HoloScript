@@ -5,8 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 
-
-
 // ═══════════════════════════════════════════════════════════════════
 // Navigation Items
 // ═══════════════════════════════════════════════════════════════════
@@ -268,8 +266,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Page content */}
           <div className="flex-1 overflow-auto">{children}</div>
         </div>
-
-
       </main>
     </div>
   );

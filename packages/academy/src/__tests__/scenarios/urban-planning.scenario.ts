@@ -45,9 +45,7 @@ interface ZoningCell {
   intensity: number; // 0–1
 }
 
-function generateZoningHeatmap(
-  grid: ZoneType[][],
-): ZoningCell[] {
+function generateZoningHeatmap(grid: ZoneType[][]): ZoningCell[] {
   const cells: ZoningCell[] = [];
   for (let r = 0; r < grid.length; r++) {
     for (let c = 0; c < grid[r].length; c++) {
@@ -68,7 +66,7 @@ function heatmapMaxIntensity(cells: ZoningCell[]): number {
 }
 
 function heatmapCellsByZone(cells: ZoningCell[], zone: ZoneType): ZoningCell[] {
-  return cells.filter(c => c.zone === zone);
+  return cells.filter((c) => c.zone === zone);
 }
 
 // ── Visualization: Multi-District Impact Analysis ─────────────────────────
@@ -91,9 +89,9 @@ function multiDistrictImpact(
   districts: District[],
   sourceId: string,
   impactMagnitude: number,
-  cascadeDecay: number = 0.5,
+  cascadeDecay: number = 0.5
 ): ImpactResult[] {
-  const lookup = new Map(districts.map(d => [d.id, d]));
+  const lookup = new Map(districts.map((d) => [d.id, d]));
   const results: ImpactResult[] = [];
   const source = lookup.get(sourceId);
   if (!source) return results;
@@ -152,9 +150,9 @@ describe('Scenario: Urban Planning — Zoning Heatmap Visualization', () => {
     expect(cells).toHaveLength(4);
   });
   it('assigns zone-weighted intensity to each cell', () => {
-    const residential = cells.find(c => c.zone === 'residential')!;
+    const residential = cells.find((c) => c.zone === 'residential')!;
     expect(residential.intensity).toBe(0.4);
-    const park = cells.find(c => c.zone === 'park')!;
+    const park = cells.find((c) => c.zone === 'park')!;
     expect(park.intensity).toBe(0.1);
   });
   it('heatmapMaxIntensity() finds hottest cell', () => {
@@ -175,24 +173,24 @@ describe('Scenario: Urban Planning — Multi-District Impact Analysis', () => {
 
   it('source district receives full direct impact', () => {
     const results = multiDistrictImpact(districts, 'downtown', 100);
-    const source = results.find(r => r.districtId === 'downtown')!;
+    const source = results.find((r) => r.districtId === 'downtown')!;
     expect(source.directImpact).toBe(100);
     expect(source.totalImpact).toBe(100);
   });
   it('adjacent districts receive cascading impact', () => {
     const results = multiDistrictImpact(districts, 'downtown', 100, 0.5);
-    const midtown = results.find(r => r.districtId === 'midtown')!;
+    const midtown = results.find((r) => r.districtId === 'midtown')!;
     expect(midtown.cascadeImpact).toBeGreaterThan(0);
     expect(midtown.directImpact).toBe(0);
   });
   it('non-adjacent districts receive zero impact', () => {
     const results = multiDistrictImpact(districts, 'downtown', 100);
-    const suburbs = results.find(r => r.districtId === 'suburbs')!;
+    const suburbs = results.find((r) => r.districtId === 'suburbs')!;
     expect(suburbs.totalImpact).toBe(0);
   });
   it('cascade decay scales impact to adjacent population ratio', () => {
     const results = multiDistrictImpact(districts, 'downtown', 100, 0.5);
-    const harbor = results.find(r => r.districtId === 'harbor')!;
+    const harbor = results.find((r) => r.districtId === 'harbor')!;
     // cascade = 100 * 0.5 * (5000 / 10000) = 25
     expect(harbor.cascadeImpact).toBe(25);
   });

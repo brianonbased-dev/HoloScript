@@ -58,13 +58,15 @@ export function ProceduralGeometryComponent({ type, ...props }: ProceduralMeshPr
         );
         break;
       case 'spline':
-        data = generateSplineGeometry((props.points as any) || [], (props.radii as any) || [0.1], 32, 12);
+        data = generateSplineGeometry(
+          (props.points as any) || [],
+          (props.radii as any) || [0.1],
+          32,
+          12
+        );
         break;
       case 'membrane':
-        data = generateMembraneGeometry(
-          props.anchors as any || [],
-          props.subdivisions || 8
-        );
+        data = generateMembraneGeometry((props.anchors as any) || [], props.subdivisions || 8);
         break;
       default:
         return new THREE.BoxGeometry(1, 1, 1);

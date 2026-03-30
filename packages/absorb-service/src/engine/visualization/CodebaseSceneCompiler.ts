@@ -110,7 +110,11 @@ export class CodebaseSceneCompiler {
     }
 
     // 3. Build layout
-    const { layoutNodes, layoutEdges } = this.buildLayoutGraph(graph, communitySymbols, options.lastPositions);
+    const { layoutNodes, layoutEdges } = this.buildLayoutGraph(
+      graph,
+      communitySymbols,
+      options.lastPositions
+    );
 
     const layout = options.layout ?? 'force';
     if (layout === 'layered') {

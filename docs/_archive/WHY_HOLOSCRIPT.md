@@ -97,11 +97,11 @@ DSLs die when their host framework dies. jQuery plugins died with jQuery. Coffee
 
 Research mapping HoloScript against 28 known impossibilities across CS/engineering and human domains found that the three-format architecture (`.hs` + `.hsplus` + `.holo`) genuinely solves three problems no other spatial computing tool addresses:
 
-| Problem                    | Why It Was "Impossible"                                       | How HoloScript Solves It                                                                                       |
-| -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Version Control for 3D** | Git can't diff/merge binary FBX/GLB                           | All three formats are plain text -- `git blame` shows who changed what                                         |
-| **Digital Preservation**   | 3D content dies with dead engines (87% of games already lost) | Human-readable text survives format extinction -- the LaTeX of spatial computing                               |
-| **Symbol Grounding**       | AI symbols lack physical meaning (Harnad 1990)                | Traits compile to physics at three levels: declarative (`.holo`), behavioral (`.hsplus`), procedural (`.hs`)   |
+| Problem                    | Why It Was "Impossible"                                       | How HoloScript Solves It                                                                                     |
+| -------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Version Control for 3D** | Git can't diff/merge binary FBX/GLB                           | All three formats are plain text -- `git blame` shows who changed what                                       |
+| **Digital Preservation**   | 3D content dies with dead engines (87% of games already lost) | Human-readable text survives format extinction -- the LaTeX of spatial computing                             |
+| **Symbol Grounding**       | AI symbols lack physical meaning (Harnad 1990)                | Traits compile to physics at three levels: declarative (`.holo`), behavioral (`.hsplus`), procedural (`.hs`) |
 
 ## Designed for the Agentic Era
 

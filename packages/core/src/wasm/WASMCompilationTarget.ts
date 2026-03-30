@@ -58,7 +58,12 @@ export interface WASMExports {
   _ts_parser_new: () => number;
   _ts_parser_delete: (parser: number) => void;
   _ts_parser_set_language: (parser: number, language: number) => boolean;
-  _ts_parser_parse_string: (parser: number, oldTree: number, input: number, length: number) => number;
+  _ts_parser_parse_string: (
+    parser: number,
+    oldTree: number,
+    input: number,
+    length: number
+  ) => number;
   _ts_tree_delete: (tree: number) => void;
   _ts_tree_root_node: (tree: number) => number;
   _ts_node_type: (node: number) => number;
@@ -237,7 +242,11 @@ export class WASMMemoryManager {
   private free: (ptr: number) => void;
   private allocations: Map<number, number> = new Map(); // ptr -> size
 
-  constructor(memory: WebAssembly.Memory, malloc: (size: number) => number, free: (ptr: number) => void) {
+  constructor(
+    memory: WebAssembly.Memory,
+    malloc: (size: number) => number,
+    free: (ptr: number) => void
+  ) {
     this.memory = memory;
     this.malloc = malloc;
     this.free = free;
@@ -377,10 +386,7 @@ export class WASMHoloScriptParser {
 
       if (typeof WebAssembly.instantiateStreaming === 'function') {
         // Streaming compilation (preferred)
-        const result = await WebAssembly.instantiateStreaming(
-          fetch(this.wasmUrl),
-          importObject
-        );
+        const result = await WebAssembly.instantiateStreaming(fetch(this.wasmUrl), importObject);
         instance = result.instance;
       } else {
         // Fallback: ArrayBuffer compilation
@@ -442,7 +448,9 @@ export class WASMHoloScriptParser {
         return {
           success: false,
           rootNode: null,
-          errors: [{ message: 'Parse returned null tree', startByte: 0, endByte: 0, row: 0, column: 0 }],
+          errors: [
+            { message: 'Parse returned null tree', startByte: 0, endByte: 0, row: 0, column: 0 },
+          ],
           parseTimeMs: performance.now() - startTime,
           nodeCount: 0,
           bytesParsed: byteLength,
@@ -543,7 +551,10 @@ export class WASMHoloScriptParser {
     return { node, count, errors };
   }
 
-  private byteOffsetToPosition(source: string, byteOffset: number): { row: number; column: number } {
+  private byteOffsetToPosition(
+    source: string,
+    byteOffset: number
+  ): { row: number; column: number } {
     // Approximate: assumes ASCII (byte offset = char offset for basic source)
     const prefix = source.substring(0, Math.min(byteOffset, source.length));
     const lines = prefix.split('\n');
@@ -579,9 +590,11 @@ export class WASMParserPool {
     const promises: Promise<void>[] = [];
     for (let i = 0; i < this.options.minParsers; i++) {
       const parser = new WASMHoloScriptParser(this.wasmUrl);
-      promises.push(parser.init().then(() => {
-        this.available.push(parser);
-      }));
+      promises.push(
+        parser.init().then(() => {
+          this.available.push(parser);
+        })
+      );
     }
     await Promise.all(promises);
   }

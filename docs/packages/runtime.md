@@ -7,7 +7,7 @@
 The runtime is the execution layer that brings HoloScript compositions to life in web environments. It handles:
 
 - **Scene graph execution** — Instantiate objects, manage state, handle events
-- **Physics & interactions** — Detect clicks, hovers, grabs, and gesture inputs  
+- **Physics & interactions** — Detect clicks, hovers, grabs, and gesture inputs
 - **Rendering** — Three.js integration via React Three Fiber
 - **Device APIs** — Access hand tracking, eye gaze, audio input, haptics
 - **State management** — Reactive properties, computed values, observers
@@ -44,7 +44,7 @@ const ast = parseComposition(source);
 const runtime = createSceneRuntime(ast, {
   container: document.getElementById('scene'),
   physics: { gravity: [0, -9.8, 0] },
-  eventsEnabled: true
+  eventsEnabled: true,
 });
 
 runtime.start();
@@ -77,7 +77,7 @@ const cube = runtime.getObject('Cube');
 const dancers = runtime.getObjectsByType('Dancer');
 
 // Iterate all objects
-runtime.getObjects().forEach(obj => {
+runtime.getObjects().forEach((obj) => {
   console.log(obj.name, obj.position);
 });
 ```
@@ -111,7 +111,7 @@ cube.animate({
   property: 'position.y',
   to: 2,
   duration: 1000,
-  easing: 'easeInOut'
+  easing: 'easeInOut',
 });
 
 // Apply force (if physics enabled)
@@ -189,30 +189,30 @@ const runtime = createSceneRuntime(ast, {
   width: 800,
   height: 600,
   pixelRatio: window.devicePixelRatio,
-  
+
   // Physics
   physics: {
     gravity: [0, -9.8, 0],
     substeps: 2,
-    solverIterations: 4
+    solverIterations: 4,
   },
-  
+
   // Input
   input: {
     pointerEnabled: true,
     grabEnabled: true,
     gestureEnabled: true,
     handTrackingEnabled: true,
-    eyeTrackingEnabled: false
+    eyeTrackingEnabled: false,
   },
-  
+
   // Performance
   lod: { enabled: true, maxDistance: 100 },
   shadowQuality: 'medium', // 'low' | 'medium' | 'high'
-  
+
   // Debug
   debug: false,
-  showPhysicsDebug: false
+  showPhysicsDebug: false,
 });
 ```
 

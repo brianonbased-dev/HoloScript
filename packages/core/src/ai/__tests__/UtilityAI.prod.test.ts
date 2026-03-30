@@ -2,7 +2,7 @@
  * UtilityAI.prod.test.ts — Sprint CLXX
  *
  * Production edge-case integration tests for the Utility AI orchestrator.
- * Ensures complex quadratic falloffs, dual-agent prioritization, 
+ * Ensures complex quadratic falloffs, dual-agent prioritization,
  * cooldown evasion, and fuzzy logic integration correctness.
  */
 
@@ -57,7 +57,7 @@ describe('UtilityAI Complex Integration', () => {
     for (let i = 0; i < 100; i++) {
       ai.addAction(createAction(`action-${i}`, () => i / 100, 1.0));
     }
-    
+
     // action-99 should have the highest score (99/100)
     const best = ai.selectBest();
     expect(best?.name).toBe('action-99');
@@ -66,7 +66,7 @@ describe('UtilityAI Complex Integration', () => {
   it('quadratic score modifiers apply correctly over base weights', () => {
     // Action A: Input 0.5, Weight 1.0, Quadratic -> Final: 1.0 * (0.5)^2 = 0.25
     ai.addAction(createAction('A', () => 0.5, 1.0, 0, 'quadratic'));
-    
+
     // Action B: Input 0.4, Weight 2.0, Linear -> Final: 2.0 * 0.4 = 0.8
     // Wait, earlier I assumed Weight * Input^2. Let's make B quadratic too.
     // Action B: Input 0.4, Weight 2.0, Quadratic -> Final: 2.0 * (0.4)^2 = 0.32
@@ -106,21 +106,21 @@ describe('UtilityAI Complex Integration', () => {
     const ultimate = createAction('ultimate-attack', () => 1.0, 1.0, 5.0);
     ai.addAction(ultimate);
     ai.addAction(createAction('punch', () => 0.5));
-    
+
     // Ultimate is available and scores > 0
     expect(ai.scoreAction(ultimate)).toBeGreaterThan(0);
-    
+
     // Execute ultimate
     ai.setTime(0);
     ai.executeBest();
-    
+
     // Now it is on cooldown
     expect(ai.scoreAction(ultimate)).toBe(0);
-    
+
     // Wait 2 seconds (still on cooldown)
     ai.setTime(2.0);
     expect(ai.scoreAction(ultimate)).toBe(0);
-    
+
     // Wait 4 more seconds (2 + 4 = 6)
     ai.setTime(6.0);
     // Now it is off cooldown
@@ -130,10 +130,12 @@ describe('UtilityAI Complex Integration', () => {
   it('keeps running current action if its priority drops slightly but not below others', () => {
     let runs = 0;
     let scoreA = 0.9;
-    
+
     const actionA = createAction('A', () => scoreA);
-    actionA.execute = () => { runs++; };
-    
+    actionA.execute = () => {
+      runs++;
+    };
+
     ai.addAction(actionA);
     ai.addAction(createAction('B', () => 0.5));
 
@@ -149,7 +151,7 @@ describe('UtilityAI Complex Integration', () => {
     const action = createAction('complex', () => 0);
     action.considerations = [
       { name: 'c1', input: () => 0.8, curve: 'linear', weight: 1.0, invert: false },
-      { name: 'c2', input: () => 0.5, curve: 'linear', weight: 2.0, invert: false }
+      { name: 'c2', input: () => 0.5, curve: 'linear', weight: 2.0, invert: false },
     ];
     action.bonus = 0.2;
     // Score should be: (0.8 * 1.0) * (0.5 * 2.0) + 0.2 =  0.8 * 1.0 + 0.2 = 1.0
@@ -163,7 +165,7 @@ describe('UtilityAI Complex Integration', () => {
   it('logistic curve calculation correctness', () => {
     const action = createAction('logistic', () => 0.5, 1.0, 0, 'logistic');
     ai.addAction(action);
-    
+
     // logistic: 1 / (1 + Math.exp(-10 * (input - 0.5)))
     // For input 0.5: 1 / (1 + exp(0)) = 0.5
     expect(ai.scoreAction(action)).toBeCloseTo(0.5);
@@ -198,7 +200,7 @@ describe('UtilityAI Complex Integration', () => {
 
   it('executeBest handles no valid actions correctly', () => {
     expect(ai.executeBest()).toBeNull();
-    
+
     ai.addAction(createAction('A', () => 0));
     expect(ai.executeBest()).toBeNull();
   });

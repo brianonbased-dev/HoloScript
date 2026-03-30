@@ -1,9 +1,9 @@
 /**
  * Scenario-Based Benchmark Suite
- * 
+ *
  * Parses and compiles 4 real-world .holo scenarios to measure
  * end-to-end pipeline performance (parse → AST → compile → output).
- * 
+ *
  * Scenarios:
  *   01-basic-scene     — Low complexity (core overhead validation)
  *   02-high-complexity  — 10K objects, particles, networking stress
@@ -15,10 +15,7 @@ import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { Bench } from 'tinybench';
-import {
-  HoloScriptParser,
-  type HoloComposition,
-} from '@holoscript/core';
+import { HoloScriptParser, type HoloComposition } from '@holoscript/core';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

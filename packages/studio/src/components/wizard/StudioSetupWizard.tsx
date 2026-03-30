@@ -43,11 +43,7 @@ import {
 import { useStudioPresetStore } from '@/lib/stores/studioPresetStore';
 import { useSceneStore } from '@/lib/stores/sceneStore';
 import { getWizardTemplate } from '@/lib/presets/wizardTemplates';
-import type {
-  ExperienceLevel,
-  ProjectSpecifics,
-  StudioPreset,
-} from '@/lib/presets/studioPresets';
+import type { ExperienceLevel, ProjectSpecifics, StudioPreset } from '@/lib/presets/studioPresets';
 import { StudioEvents } from '@/lib/analytics';
 
 // ─── Category cards ──────────────────────────────────────────────────────────
@@ -234,8 +230,7 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
   const [platforms, setPlatforms] = useState<Set<string>>(new Set(['web']));
   const [needsMultiplayer, setNeedsMultiplayer] = useState(false);
   const [needsAI, setNeedsAI] = useState(false);
-  const [characterCount, setCharacterCount] =
-    useState<ProjectSpecifics['characterCount']>('none');
+  const [characterCount, setCharacterCount] = useState<ProjectSpecifics['characterCount']>('none');
   const [needsDialogue, setNeedsDialogue] = useState(false);
   const [needsDeployment, setNeedsDeployment] = useState(false);
   const [exportFormat, setExportFormat] = useState<ProjectSpecifics['exportFormat']>('gltf');
@@ -254,24 +249,25 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
       setPrevStep(step);
       setStep(next);
     },
-    [step],
+    [step]
   );
 
   // ── Derived values ──
 
   const subCategories = useMemo(
-    () => (category ? SUBCATEGORIES[category] ?? [] : []),
-    [category],
+    () => (category ? (SUBCATEGORIES[category] ?? []) : []),
+    [category]
   );
 
   const selectedPresetId = useMemo(
-    () => (subCategory ? SUBCATEGORY_PRESET_MAP[subCategory] ?? null : null),
-    [subCategory],
+    () => (subCategory ? (SUBCATEGORY_PRESET_MAP[subCategory] ?? null) : null),
+    [subCategory]
   );
 
   const selectedPreset = useMemo(
-    () => (selectedPresetId ? STUDIO_PRESETS.find((p) => p.id === selectedPresetId) ?? null : null),
-    [selectedPresetId],
+    () =>
+      selectedPresetId ? (STUDIO_PRESETS.find((p) => p.id === selectedPresetId) ?? null) : null,
+    [selectedPresetId]
   );
 
   const specifics = useMemo<ProjectSpecifics>(
@@ -296,7 +292,7 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
       needsDialogue,
       exportFormat,
       needsDeployment,
-    ],
+    ]
   );
 
   const finalPanels = useMemo(() => {
@@ -307,13 +303,13 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
 
   const wizardTemplate = useMemo(
     () => (subCategory ? getWizardTemplate(subCategory) : null),
-    [subCategory],
+    [subCategory]
   );
 
   // Questions for step 3 — filtered by category
   const questions = useMemo(
     () => PROJECT_QUESTIONS.filter((q) => category && q.categories.includes(category)),
-    [category],
+    [category]
   );
 
   // ── Validation ──
@@ -354,7 +350,12 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
     if (wizardTemplate) {
       setCode(wizardTemplate.code);
     }
-    StudioEvents.wizardCompleted(selectedPresetId, category ?? '', subCategory ?? '', experienceLevel);
+    StudioEvents.wizardCompleted(
+      selectedPresetId,
+      category ?? '',
+      subCategory ?? '',
+      experienceLevel
+    );
     StudioEvents.presetApplied(selectedPresetId, 'wizard');
     setCreated(true);
     setTimeout(onClose, 800);
@@ -457,8 +458,8 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
           <AnimatedStep visible={step === 1} direction={direction}>
             <p className="mb-4 text-sm text-studio-muted">
               Pick the type of{' '}
-              {CATEGORIES.find((c) => c.id === category)?.label.toLowerCase() ?? 'project'} you
-              want to build
+              {CATEGORIES.find((c) => c.id === category)?.label.toLowerCase() ?? 'project'} you want
+              to build
             </p>
             <div className="grid grid-cols-2 gap-3">
               {subCategories.map((sc) => (
@@ -608,9 +609,7 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
                 <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                   <span className="text-3xl">{selectedPreset.emoji}</span>
                   <div>
-                    <p className="text-sm font-semibold text-studio-text">
-                      {selectedPreset.label}
-                    </p>
+                    <p className="text-sm font-semibold text-studio-text">{selectedPreset.label}</p>
                     <p className="text-[11px] text-studio-muted">{selectedPreset.description}</p>
                   </div>
                 </div>

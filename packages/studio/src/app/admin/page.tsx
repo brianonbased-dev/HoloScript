@@ -74,7 +74,12 @@ interface HealthNode {
 
 // ─── Stat Card ──────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, icon: Icon, color = 'blue' }: {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color = 'blue',
+}: {
   label: string;
   value: string | number;
   icon: any;
@@ -123,49 +128,53 @@ export default function AdminDashboard() {
   const fetchData = useCallback(async (endpoint: string) => {
     const res = await absorbFetch(`/api/admin/${endpoint}`);
     if (!res.ok) {
-      if (res.status === 403) throw new Error('Admin access required. Connect your GitHub account first.');
+      if (res.status === 403)
+        throw new Error('Admin access required. Connect your GitHub account first.');
       throw new Error(`Failed to fetch ${endpoint} (${res.status})`);
     }
     return res.json();
   }, []);
 
-  const loadTab = useCallback(async (t: Tab) => {
-    setLoading(true);
-    setError(null);
-    try {
-      switch (t) {
-        case 'overview': {
-          const data = await fetchData('stats');
-          setStats(data);
-          break;
+  const loadTab = useCallback(
+    async (t: Tab) => {
+      setLoading(true);
+      setError(null);
+      try {
+        switch (t) {
+          case 'overview': {
+            const data = await fetchData('stats');
+            setStats(data);
+            break;
+          }
+          case 'users': {
+            const data = await fetchData('users?limit=100');
+            setUsers(data.users);
+            break;
+          }
+          case 'projects': {
+            const data = await fetchData('projects?limit=100');
+            setProjects(data.projects);
+            break;
+          }
+          case 'agents': {
+            const data = await fetchData('agents?limit=100');
+            setAgents(data.agents);
+            break;
+          }
+          case 'health': {
+            const data = await fetchData('health-matrix');
+            setHealth(data.matrix);
+            break;
+          }
         }
-        case 'users': {
-          const data = await fetchData('users?limit=100');
-          setUsers(data.users);
-          break;
-        }
-        case 'projects': {
-          const data = await fetchData('projects?limit=100');
-          setProjects(data.projects);
-          break;
-        }
-        case 'agents': {
-          const data = await fetchData('agents?limit=100');
-          setAgents(data.agents);
-          break;
-        }
-        case 'health': {
-          const data = await fetchData('health-matrix');
-          setHealth(data.matrix);
-          break;
-        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Request failed');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchData]);
+    },
+    [fetchData]
+  );
 
   useEffect(() => {
     loadTab(tab);
@@ -176,7 +185,9 @@ export default function AdminDashboard() {
     try {
       const res = await absorbFetch(`/api/admin/agents/${agentId}/force-stop`, { method: 'POST' });
       if (res.ok) {
-        setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, heartbeatEnabled: false } : a)));
+        setAgents((prev) =>
+          prev.map((a) => (a.id === agentId ? { ...a, heartbeatEnabled: false } : a))
+        );
       }
     } catch {}
   };
@@ -247,13 +258,38 @@ export default function AdminDashboard() {
         {tab === 'overview' && stats && (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="blue" />
-            <StatCard label="Total Projects" value={stats.totalProjects} icon={FolderGit2} color="green" />
+            <StatCard
+              label="Total Projects"
+              value={stats.totalProjects}
+              icon={FolderGit2}
+              color="green"
+            />
             <StatCard label="Total Agents" value={stats.totalAgents} icon={Bot} color="purple" />
-            <StatCard label="Active Agents" value={stats.activeAgents} icon={Activity} color="cyan" />
+            <StatCard
+              label="Active Agents"
+              value={stats.activeAgents}
+              icon={Activity}
+              color="cyan"
+            />
             <StatCard label="Total Posts" value={stats.totalPosts} icon={Zap} color="amber" />
-            <StatCard label="Total Comments" value={stats.totalComments} icon={MessageSquare} color="blue" />
-            <StatCard label="Total Upvotes" value={stats.totalUpvotesGiven} icon={ThumbsUp} color="green" />
-            <StatCard label="LLM Spend" value={`$${(stats.totalLlmSpentCents / 100).toFixed(2)}`} icon={DollarSign} color="red" />
+            <StatCard
+              label="Total Comments"
+              value={stats.totalComments}
+              icon={MessageSquare}
+              color="blue"
+            />
+            <StatCard
+              label="Total Upvotes"
+              value={stats.totalUpvotesGiven}
+              icon={ThumbsUp}
+              color="green"
+            />
+            <StatCard
+              label="LLM Spend"
+              value={`$${(stats.totalLlmSpentCents / 100).toFixed(2)}`}
+              icon={DollarSign}
+              color="red"
+            />
           </div>
         )}
 
@@ -279,7 +315,9 @@ export default function AdminDashboard() {
                       <td className="px-4 py-2.5 text-[#71717a]">{u.email || '—'}</td>
                       <td className="px-4 py-2.5 font-mono text-[#71717a]">{u.githubId || '—'}</td>
                       <td className="px-4 py-2.5 text-right">{u.projectCount}</td>
-                      <td className="px-4 py-2.5 text-[#71717a]">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-2.5 text-[#71717a]">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -309,12 +347,22 @@ export default function AdminDashboard() {
                       <td className="px-4 py-2.5 font-medium">{p.name}</td>
                       <td className="px-4 py-2.5 text-[#71717a]">{p.sourceType}</td>
                       <td className="px-4 py-2.5">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          p.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-[#1f2937] text-[#71717a]'
-                        }`}>{p.status}</span>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            p.status === 'active'
+                              ? 'bg-green-500/10 text-green-400'
+                              : 'bg-[#1f2937] text-[#71717a]'
+                          }`}
+                        >
+                          {p.status}
+                        </span>
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-[#71717a] truncate max-w-[120px]">{p.userId.slice(0, 8)}...</td>
-                      <td className="px-4 py-2.5 text-[#71717a]">{new Date(p.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-2.5 font-mono text-[#71717a] truncate max-w-[120px]">
+                        {p.userId.slice(0, 8)}...
+                      </td>
+                      <td className="px-4 py-2.5 text-[#71717a]">
+                        {new Date(p.createdAt).toLocaleDateString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -329,12 +377,19 @@ export default function AdminDashboard() {
             <p className="mb-3 text-xs text-[#71717a]">{agents.length} agents</p>
             <div className="space-y-3">
               {agents.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-xl border border-[#2a2a3e] bg-[#111827] p-4">
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded-xl border border-[#2a2a3e] bg-[#111827] p-4"
+                >
                   <div className="flex items-center gap-4">
-                    <div className={`h-2 w-2 rounded-full ${a.heartbeatEnabled ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-[#71717a]'}`} />
+                    <div
+                      className={`h-2 w-2 rounded-full ${a.heartbeatEnabled ? 'bg-green-500 shadow-[0_0_6px_#22c55e]' : 'bg-[#71717a]'}`}
+                    />
                     <div>
                       <p className="text-sm font-bold">{a.agentName}</p>
-                      <p className="text-[10px] font-mono text-[#71717a]">ID: {a.id.slice(0, 12)}... | Key: {a.moltbookApiKey}</p>
+                      <p className="text-[10px] font-mono text-[#71717a]">
+                        ID: {a.id.slice(0, 12)}... | Key: {a.moltbookApiKey}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6 text-xs text-[#71717a]">
@@ -367,26 +422,41 @@ export default function AdminDashboard() {
             {health.map((node, i) => {
               const online = node.status === 'ONLINE';
               return (
-                <div key={i} className={`rounded-xl border p-5 ${online ? 'border-[#2a2a3e] bg-[#111827]' : 'border-red-500/30 bg-red-500/5'}`}>
+                <div
+                  key={i}
+                  className={`rounded-xl border p-5 ${online ? 'border-[#2a2a3e] bg-[#111827]' : 'border-red-500/30 bg-red-500/5'}`}
+                >
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold truncate" title={node.service}>{node.service}</h3>
-                    <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
-                      online ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+                    <h3 className="text-sm font-bold truncate" title={node.service}>
+                      {node.service}
+                    </h3>
+                    <span
+                      className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
+                        online ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}
+                      />
                       {node.status}
                     </span>
                   </div>
                   <div className="space-y-1 text-xs text-[#71717a]">
                     <p>Latency: {node.latencyMs >= 0 ? `${node.latencyMs}ms` : 'N/A'}</p>
                     {node.statusCode && <p>HTTP {node.statusCode}</p>}
-                    {node.error && <p className="text-red-400 truncate" title={node.error}>{node.error}</p>}
+                    {node.error && (
+                      <p className="text-red-400 truncate" title={node.error}>
+                        {node.error}
+                      </p>
+                    )}
                   </div>
                 </div>
               );
             })}
             {health.length === 0 && !loading && (
-              <p className="col-span-full py-8 text-center text-sm text-[#71717a]">No health data available.</p>
+              <p className="col-span-full py-8 text-center text-sm text-[#71717a]">
+                No health data available.
+              </p>
             )}
           </div>
         )}

@@ -9,10 +9,7 @@
  * - Scene Inspector (real-time debugging)
  */
 
-import {
-  EarthquakeRuntimeExecutor,
-  ThreeJSRenderer,
-} from '@holoscript/core';
+import { EarthquakeRuntimeExecutor, ThreeJSRenderer } from '@holoscript/core';
 import * as THREE from 'three';
 
 import { createEarthquakeComposition } from './advanced-earthquake-demo/config';

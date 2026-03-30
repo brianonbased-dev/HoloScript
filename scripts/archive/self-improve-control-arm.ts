@@ -81,7 +81,10 @@ function loadEnvFile(dir: string): void {
       const key = trimmed.slice(0, eqIdx).trim();
       let val = trimmed.slice(eqIdx + 1).trim();
       // Strip surrounding quotes
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
       // Only set if not already in environment (env vars take precedence)
@@ -89,7 +92,9 @@ function loadEnvFile(dir: string): void {
         process.env[key] = val;
       }
     }
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 }
 
 // ─── Path Resolution ─────────────────────────────────────────────────────────
@@ -109,8 +114,8 @@ const MAX_TOOL_CALLS = 50;
 const LOCK_FILE = path.join(STATE_DIR, 'control.lock');
 
 // W.090 Safeguard: Heartbeat interval and staleness threshold
-const HEARTBEAT_INTERVAL_MS = 30_000;   // Refresh lock file every 30s
-const HEARTBEAT_STALE_MS = 120_000;     // Lock is stale if not refreshed in 2min
+const HEARTBEAT_INTERVAL_MS = 30_000; // Refresh lock file every 30s
+const HEARTBEAT_STALE_MS = 120_000; // Lock is stale if not refreshed in 2min
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -278,19 +283,31 @@ function acquireLock(): boolean {
       const lockData = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf-8'));
       const lockAge = Date.now() - (lockData.heartbeat ?? lockData.time);
       if (lockAge > HEARTBEAT_STALE_MS) {
-        console.warn(`Stale lock detected (age: ${(lockAge / 1000).toFixed(0)}s, PID: ${lockData.pid}). Reclaiming.`);
+        console.warn(
+          `Stale lock detected (age: ${(lockAge / 1000).toFixed(0)}s, PID: ${lockData.pid}). Reclaiming.`
+        );
       } else {
         try {
           process.kill(lockData.pid, 0);
           return false;
-        } catch { /* process dead, reclaim */ }
+        } catch {
+          /* process dead, reclaim */
+        }
       }
     }
-    fs.writeFileSync(LOCK_FILE, JSON.stringify({
-      pid: process.pid, time: Date.now(), heartbeat: Date.now(),
-    }), 'utf-8');
+    fs.writeFileSync(
+      LOCK_FILE,
+      JSON.stringify({
+        pid: process.pid,
+        time: Date.now(),
+        heartbeat: Date.now(),
+      }),
+      'utf-8'
+    );
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 function startHeartbeat(): void {
@@ -303,7 +320,9 @@ function startHeartbeat(): void {
           fs.writeFileSync(LOCK_FILE, JSON.stringify(lockData), 'utf-8');
         }
       }
-    } catch { /* best effort */ }
+    } catch {
+      /* best effort */
+    }
   }, HEARTBEAT_INTERVAL_MS);
   if (heartbeatTimer && typeof heartbeatTimer === 'object' && 'unref' in heartbeatTimer) {
     heartbeatTimer.unref();
@@ -311,19 +330,28 @@ function startHeartbeat(): void {
 }
 
 function stopHeartbeat(): void {
-  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
 }
 
 function releaseLock(): void {
   stopHeartbeat();
-  try { if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE); } catch { /* best effort */ }
+  try {
+    if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE);
+  } catch {
+    /* best effort */
+  }
 }
 
 async function validateApiKeyAndCredits(): Promise<void> {
   const anthropic = new Anthropic();
   try {
     const response = await anthropic.messages.create({
-      model: MODEL, max_tokens: 1, messages: [{ role: 'user', content: 'x' }],
+      model: MODEL,
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'x' }],
     });
     if (response.stop_reason === 'end_turn' || response.stop_reason === 'max_tokens') {
       console.log('  API key validated (pre-check passed)');
@@ -331,7 +359,9 @@ async function validateApiKeyAndCredits(): Promise<void> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('credit') || message.includes('balance') || message.includes('billing')) {
-      throw new Error(`Insufficient API credits. Fix billing before running daemon. Error: ${message}`);
+      throw new Error(
+        `Insufficient API credits. Fix billing before running daemon. Error: ${message}`
+      );
     }
     if (message.includes('auth') || message.includes('key') || message.includes('401')) {
       throw new Error(`Invalid API key. Check ANTHROPIC_API_KEY. Error: ${message}`);
@@ -460,7 +490,15 @@ async function runImprovementCycle(
   skillContext: string,
   focus: string,
   harvestData?: CycleHarvestData
-): Promise<{ summary: string; qualityScore: number; filesEdited: string[]; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number }> {
+): Promise<{
+  summary: string;
+  qualityScore: number;
+  filesEdited: string[];
+  inputTokens: number;
+  outputTokens: number;
+  toolCallsTotal: number;
+  toolCallsUseful: number;
+}> {
   const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
     name: t.name,
     description: t.description ?? '',
@@ -468,9 +506,13 @@ async function runImprovementCycle(
   }));
 
   // Build the list of attempted files for cycle memory (Level 3)
-  const attemptedList = (state.attemptedFiles ?? []).length > 0
-    ? `\n\n## Already Attempted (SKIP THESE)\n${(state.attemptedFiles ?? []).slice(-30).map(f => `- ${f}`).join('\n')}`
-    : '';
+  const attemptedList =
+    (state.attemptedFiles ?? []).length > 0
+      ? `\n\n## Already Attempted (SKIP THESE)\n${(state.attemptedFiles ?? [])
+          .slice(-30)
+          .map((f) => `- ${f}`)
+          .join('\n')}`
+      : '';
 
   const systemPrompt = `You are HoloScript's autonomous self-improvement daemon (Cycle ${state.totalCycles + 1}).
 
@@ -486,7 +528,9 @@ ${skillContext ? `## /holoscript Skill\n${skillContext}\n` : ''}
 ${attemptedList}
 
 ## Protocol
-${focus === 'typefix' ? `### TYPEFIX MODE — Batch Fix Strategy
+${
+  focus === 'typefix'
+    ? `### TYPEFIX MODE — Batch Fix Strategy
 1. Call holo_batch_type_fix with rootDir="${config.rootDir}" to see errors grouped by code.
 2. Pick the error code with the MOST instances (e.g., TS7006).
 3. Pick the file with the most errors for that code.
@@ -496,8 +540,9 @@ ${focus === 'typefix' ? `### TYPEFIX MODE — Batch Fix Strategy
 7. If verification passes, call holo_run_related_tests with the changed source files.
 8. ${config.commit ? 'If tests pass, call holo_git_commit.' : 'Report what was fixed.'}
 9. Call holo_validate_quality with rootDir="${config.rootDir}" (NO skipTests, NO skipLint — full validation).
-10. Report: error code targeted, errors before/after, files changed.` :
-focus === 'coverage' ? `### COVERAGE MODE
+10. Report: error code targeted, errors before/after, files changed.`
+    : focus === 'coverage'
+      ? `### COVERAGE MODE
 1. Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
 2. Call holo_self_diagnose with focus="coverage" to find untested code.
 3. Pick the #1 candidate that is NOT in the "Already Attempted" list. Use holo_read_file to understand what it does.
@@ -508,8 +553,8 @@ focus === 'coverage' ? `### COVERAGE MODE
 5. Run holo_run_tests_targeted on the new test file to verify tests pass.
 6. ${config.commit ? 'Call holo_git_commit.' : 'Report what was tested.'}
 7. Call holo_validate_quality with rootDir="${config.rootDir}" (NO skipTests — full validation).
-8. Report: what was tested, how many tests, pass/fail.` :
-`### STANDARD MODE
+8. Report: what was tested, how many tests, pass/fail.`
+      : `### STANDARD MODE
 1. Check holo_graph_status. If no graph, call holo_absorb_repo with rootDir="${config.rootDir}".
 2. Call holo_quality_trend with rootDir="${config.rootDir}" to see what's working.
 3. Call holo_self_diagnose with focus="${focus}".
@@ -519,7 +564,8 @@ focus === 'coverage' ? `### COVERAGE MODE
 7. Call holo_run_related_tests with the changed source files.
 8. ${config.commit ? 'If tests pass, call holo_git_commit.' : 'Report what was changed.'}
 9. Call holo_validate_quality with rootDir="${config.rootDir}" (NO skipTests — full validation).
-10. Report: what changed, quality delta.`}
+10. Report: what changed, quality delta.`
+}
 
 ## Rules
 - NEVER use skipTests=true or skipLint=true on the final holo_validate_quality call. Full validation only.
@@ -549,9 +595,13 @@ focus === 'coverage' ? `### COVERAGE MODE
   let totalOutputTokens = 0;
   let usefulToolCalls = 0;
   const USEFUL_TOOLS = new Set([
-    'holo_read_file', 'holo_write_file', 'holo_edit_file',
-    'holo_run_tests_targeted', 'holo_verify_before_commit',
-    'holo_git_commit', 'holo_run_related_tests',
+    'holo_read_file',
+    'holo_write_file',
+    'holo_edit_file',
+    'holo_run_tests_targeted',
+    'holo_verify_before_commit',
+    'holo_git_commit',
+    'holo_run_related_tests',
   ]);
 
   while (toolCallCount < MAX_TOOL_CALLS) {
@@ -820,9 +870,7 @@ async function runDaemon(
         `Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured → ${stats.outputFile}`
       );
     }
-    log(
-      `State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`
-    );
+    log(`State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`);
     releaseLock();
     running = false;
   };
@@ -1095,7 +1143,9 @@ async function main() {
   startHeartbeat();
 
   // W.090 Safeguard 3: Robust process cleanup — catch ALL exit paths
-  const cleanup = () => { releaseLock(); };
+  const cleanup = () => {
+    releaseLock();
+  };
   process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
     cleanup();

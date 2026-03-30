@@ -60,7 +60,13 @@ export type CoreExpression =
   | { type: 'BooleanLiteral'; value: boolean }
   | { type: 'NullLiteral' }
   | { type: 'ArrayLiteral'; elements: CoreExpression[] }
-  | { type: 'ObjectLiteral'; properties: Array<{ key: { type: string; name?: string; value?: string }; value: CoreExpression }> }
+  | {
+      type: 'ObjectLiteral';
+      properties: Array<{
+        key: { type: string; name?: string; value?: string };
+        value: CoreExpression;
+      }>;
+    }
   | { type: 'Vec3Literal'; x: CoreExpression; y: CoreExpression; z: CoreExpression }
   | { type: 'ColorLiteral'; value: string }
   | { type: 'Identifier'; name: string }
@@ -193,27 +199,34 @@ export function expressionToValue(expr: CoreExpression): unknown {
       return null;
 
     case 'ArrayLiteral':
-      return (expr as { type: 'ArrayLiteral'; elements: CoreExpression[] }).elements.map(expressionToValue);
+      return (expr as { type: 'ArrayLiteral'; elements: CoreExpression[] }).elements.map(
+        expressionToValue
+      );
 
     case 'ObjectLiteral': {
       const obj: Record<string, unknown> = {};
-      const objExpr = expr as { type: 'ObjectLiteral'; properties: Array<{ key: { type: string; name?: string; value?: string }; value: CoreExpression }> };
+      const objExpr = expr as {
+        type: 'ObjectLiteral';
+        properties: Array<{
+          key: { type: string; name?: string; value?: string };
+          value: CoreExpression;
+        }>;
+      };
       for (const prop of objExpr.properties) {
-        const key = prop.key.type === 'Identifier'
-          ? prop.key.name || ''
-          : prop.key.value || '';
+        const key = prop.key.type === 'Identifier' ? prop.key.name || '' : prop.key.value || '';
         obj[key] = expressionToValue(prop.value);
       }
       return obj;
     }
 
     case 'Vec3Literal': {
-      const v3 = expr as { type: 'Vec3Literal'; x: CoreExpression; y: CoreExpression; z: CoreExpression };
-      return [
-        expressionToValue(v3.x),
-        expressionToValue(v3.y),
-        expressionToValue(v3.z),
-      ];
+      const v3 = expr as {
+        type: 'Vec3Literal';
+        x: CoreExpression;
+        y: CoreExpression;
+        z: CoreExpression;
+      };
+      return [expressionToValue(v3.x), expressionToValue(v3.y), expressionToValue(v3.z)];
     }
 
     case 'ColorLiteral':
@@ -385,7 +398,11 @@ export function parseHoloScriptSimplified(source: string): HoloScriptAST {
       ast.composition.assets = parseAssetBlock(block.content);
     } else if (block.type === 'logic') {
       ast.composition.logic = parseLogicBlock(block.content);
-    } else if (block.type === 'spatial_group' || block.type === 'object' || HOLO_NODE_TYPES.has(block.type)) {
+    } else if (
+      block.type === 'spatial_group' ||
+      block.type === 'object' ||
+      HOLO_NODE_TYPES.has(block.type)
+    ) {
       ast.composition.nodes.push(parseNodeBlock(block));
     }
   }
@@ -395,8 +412,17 @@ export function parseHoloScriptSimplified(source: string): HoloScriptAST {
 
 /** Known HoloScript node type keywords */
 const HOLO_NODE_TYPES = new Set([
-  'empty', 'object', 'light', 'camera', 'audio', 'trigger',
-  'spawn_point', 'spatial_group', 'prefab', 'entity', 'npc',
+  'empty',
+  'object',
+  'light',
+  'camera',
+  'audio',
+  'trigger',
+  'spawn_point',
+  'spatial_group',
+  'prefab',
+  'entity',
+  'npc',
 ]);
 
 /**
@@ -489,11 +515,13 @@ export function parseValue(valueStr: string): unknown {
 
   if (clean.startsWith('[') && clean.endsWith(']')) {
     const inner = clean.slice(1, -1);
-    return inner.split(',').map(v => parseValue(v.trim()));
+    return inner.split(',').map((v) => parseValue(v.trim()));
   }
 
-  if ((clean.startsWith('"') && clean.endsWith('"')) ||
-      (clean.startsWith("'") && clean.endsWith("'"))) {
+  if (
+    (clean.startsWith('"') && clean.endsWith('"')) ||
+    (clean.startsWith("'") && clean.endsWith("'"))
+  ) {
     return clean.slice(1, -1);
   }
 
@@ -503,7 +531,9 @@ export function parseValue(valueStr: string): unknown {
 /**
  * Parse assets block (simplified)
  */
-function parseAssetBlock(_content: string): Array<{ type: string; name: string; properties: Record<string, unknown> }> {
+function parseAssetBlock(
+  _content: string
+): Array<{ type: string; name: string; properties: Record<string, unknown> }> {
   return [];
 }
 
@@ -518,7 +548,10 @@ function parseLogicBlock(content: string): HoloScriptASTLogic[] {
   while ((match = eventRegex.exec(content)) !== null) {
     logic.push({
       event: match[1],
-      actions: match[2].split('\n').map(l => l.trim()).filter(l => l),
+      actions: match[2]
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l),
     });
   }
 

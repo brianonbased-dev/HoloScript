@@ -44,13 +44,15 @@ function LayerConfigEditor({
           <label className="text-xs text-studio-muted block mb-1">Max Cost (USD)</label>
           <input
             type="number"
-            min={0.10}
-            max={10.00}
-            step={0.10}
+            min={0.1}
+            max={10.0}
+            step={0.1}
             value={config.budget.maxCostUSD}
-            onChange={(e) => onUpdate({
-              budget: { ...config.budget, maxCostUSD: parseFloat(e.target.value) || 1.00 },
-            })}
+            onChange={(e) =>
+              onUpdate({
+                budget: { ...config.budget, maxCostUSD: parseFloat(e.target.value) || 1.0 },
+              })
+            }
             className="w-full px-2 py-1 text-sm bg-studio-bg border border-studio-border rounded text-studio-text"
           />
         </div>
@@ -61,9 +63,11 @@ function LayerConfigEditor({
             min={1}
             max={10}
             value={config.budget.maxCycles}
-            onChange={(e) => onUpdate({
-              budget: { ...config.budget, maxCycles: parseInt(e.target.value) || 1 },
-            })}
+            onChange={(e) =>
+              onUpdate({
+                budget: { ...config.budget, maxCycles: parseInt(e.target.value) || 1 },
+              })
+            }
             className="w-full px-2 py-1 text-sm bg-studio-bg border border-studio-border rounded text-studio-text"
           />
         </div>
@@ -92,21 +96,13 @@ function LayerConfigEditor({
   );
 }
 
-export function PipelineConfig({
-  configs,
-  onUpdate,
-  onReset,
-  onClose,
-}: PipelineConfigProps) {
+export function PipelineConfig({ configs, onUpdate, onReset, onClose }: PipelineConfigProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-studio-panel border border-studio-border rounded-xl w-full max-w-lg p-5 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-studio-text">Pipeline Configuration</h3>
-          <button
-            onClick={onClose}
-            className="text-studio-muted hover:text-studio-text text-xl"
-          >
+          <button onClick={onClose} className="text-studio-muted hover:text-studio-text text-xl">
             &times;
           </button>
         </div>

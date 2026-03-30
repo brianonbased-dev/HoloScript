@@ -158,12 +158,9 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
     return bridgeRef.current?.getTransform(nodeId) ?? null;
   }, []);
 
-  const registerNode = useCallback(
-    (nodeId: string, initialTransform?: SpatialTransform) => {
-      bridgeRef.current?.registerNode(nodeId, initialTransform);
-    },
-    []
-  );
+  const registerNode = useCallback((nodeId: string, initialTransform?: SpatialTransform) => {
+    bridgeRef.current?.registerNode(nodeId, initialTransform);
+  }, []);
 
   const unregisterNode = useCallback((nodeId: string) => {
     bridgeRef.current?.unregisterNode(nodeId);

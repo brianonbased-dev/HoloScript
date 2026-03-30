@@ -175,7 +175,7 @@ export const traitMarketplaceHandler: TraitHandler<TraitMarketplaceConfig> = {
     const expiryMs = config.auto_delist_days * 86400_000;
     const now = Date.now();
     for (const listing of state.listings) {
-      if (listing.status === 'active' && (now - listing.createdAt) > expiryMs) {
+      if (listing.status === 'active' && now - listing.createdAt > expiryMs) {
         listing.status = 'delisted';
       }
     }
@@ -197,19 +197,19 @@ export const traitMarketplaceHandler: TraitHandler<TraitMarketplaceConfig> = {
 
         // Check listing limit
         const sellerListings = state.listings.filter(
-          (l) => l.sellerDid === sellerDid && l.status === 'active',
+          (l) => l.sellerDid === sellerDid && l.status === 'active'
         );
         if (sellerListings.length >= config.max_listings_per_agent) break;
 
         // Check duplicate
-        if (state.listings.some(
-          (l) => l.sellerDid === sellerDid && l.traitName === traitName && l.status === 'active',
-        )) break;
+        if (
+          state.listings.some(
+            (l) => l.sellerDid === sellerDid && l.traitName === traitName && l.status === 'active'
+          )
+        )
+          break;
 
-        const price = Math.min(
-          Math.max(0, (ev.price as number) || 0),
-          config.max_price,
-        );
+        const price = Math.min(Math.max(0, (ev.price as number) || 0), config.max_price);
         const pricing = (ev.pricing as TraitPricingModel) || (price === 0 ? 'free' : 'one_time');
 
         if (pricing === 'pay_what_you_want' && !config.allow_pwyw) break;
@@ -401,14 +401,13 @@ export const traitMarketplaceHandler: TraitHandler<TraitMarketplaceConfig> = {
 
         // Must have purchased to review
         const hasPurchased = state.purchases.some(
-          (p) => p.listingId === listingId && p.buyerDid === reviewerDid,
+          (p) => p.listingId === listingId && p.buyerDid === reviewerDid
         );
         if (!hasPurchased) break;
 
         // No duplicate reviews
-        if (state.reviews.some(
-          (r) => r.listingId === listingId && r.reviewerDid === reviewerDid,
-        )) break;
+        if (state.reviews.some((r) => r.listingId === listingId && r.reviewerDid === reviewerDid))
+          break;
 
         state.reviewCounter++;
         const review: TraitReview = {
@@ -449,7 +448,7 @@ export const traitMarketplaceHandler: TraitHandler<TraitMarketplaceConfig> = {
               l.traitName.toLowerCase().includes(query) ||
               l.displayName.toLowerCase().includes(query) ||
               l.description.toLowerCase().includes(query) ||
-              l.tags.some((t) => t.toLowerCase().includes(query)),
+              l.tags.some((t) => t.toLowerCase().includes(query))
           );
         }
         if (category) {
@@ -507,9 +506,10 @@ export const traitMarketplaceHandler: TraitHandler<TraitMarketplaceConfig> = {
         const sellerListings = state.listings.filter((l) => l.sellerDid === sellerDid);
         const totalRevenue = sellerListings.reduce((s, l) => s + l.totalRevenue, 0);
         const totalSold = sellerListings.reduce((s, l) => s + l.soldCount, 0);
-        const avgRating = sellerListings.length > 0
-          ? sellerListings.reduce((s, l) => s + l.rating, 0) / sellerListings.length
-          : 0;
+        const avgRating =
+          sellerListings.length > 0
+            ? sellerListings.reduce((s, l) => s + l.rating, 0) / sellerListings.length
+            : 0;
 
         context.emit('trait_market:seller_data', {
           sellerDid,

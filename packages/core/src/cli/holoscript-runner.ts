@@ -37,13 +37,28 @@ import type { DaemonConfig, DaemonHost, LLMProvider } from '@holoscript/absorb-s
 import { generateProvenance } from '../deploy/provenance';
 import type { LicenseType } from '../deploy/provenance';
 import { checkLicenseCompatibility } from '../deploy/license-checker';
-import { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } from '../deploy/revenue-splitter';
+import {
+  calculateRevenueDistribution,
+  formatRevenueDistribution,
+  ethToWei,
+} from '../deploy/revenue-splitter';
 import { PROTOCOL_CONSTANTS } from '../deploy/protocol-types';
 import type { ImportChainNode } from '../deploy/protocol-types';
 
 // ── Argument parsing ────────────────────────────────────────────────────────
 export interface CLIOptions {
-  command: 'run' | 'test' | 'compile' | 'deploy' | 'absorb' | 'daemon' | 'holodaemon' | 'moltbook-daemon' | 'holomesh-daemon' | 'daemon-status' | 'help';
+  command:
+    | 'run'
+    | 'test'
+    | 'compile'
+    | 'deploy'
+    | 'absorb'
+    | 'daemon'
+    | 'holodaemon'
+    | 'moltbook-daemon'
+    | 'holomesh-daemon'
+    | 'daemon-status'
+    | 'help';
   json: boolean;
   file?: string;
   target: 'node' | 'python' | 'ros2' | 'headless';
@@ -109,7 +124,9 @@ function defaultModelForProvider(provider: CLIOptions['provider']): string {
   }
 }
 
-function defaultToolProfileForProvider(provider: CLIOptions['provider']): CLIOptions['toolProfile'] {
+function defaultToolProfileForProvider(
+  provider: CLIOptions['provider']
+): CLIOptions['toolProfile'] {
   switch (provider) {
     case 'xai':
       return 'grok-hsplus';
@@ -124,7 +141,12 @@ function defaultToolProfileForProvider(provider: CLIOptions['provider']): CLIOpt
 
 function parseProvider(value: string | undefined): CLIOptions['provider'] | undefined {
   const normalized = value?.toLowerCase();
-  if (normalized === 'anthropic' || normalized === 'xai' || normalized === 'openai' || normalized === 'ollama') {
+  if (
+    normalized === 'anthropic' ||
+    normalized === 'xai' ||
+    normalized === 'openai' ||
+    normalized === 'ollama'
+  ) {
     return normalized;
   }
   return undefined;
@@ -145,7 +167,8 @@ function daemonEnvDefaults(): {
 } {
   const provider = parseProvider(process.env.HOLODAEMON_PROVIDER) || 'anthropic';
   const toolProfile =
-    parseToolProfile(process.env.HOLODAEMON_TOOL_PROFILE) || defaultToolProfileForProvider(provider);
+    parseToolProfile(process.env.HOLODAEMON_TOOL_PROFILE) ||
+    defaultToolProfileForProvider(provider);
   const model = process.env.HOLODAEMON_MODEL || defaultModelForProvider(provider);
 
   return { provider, toolProfile, model };
@@ -196,7 +219,17 @@ function parseArgs(argv: string[]): CLIOptions {
 
   // First arg is command
   const cmd = args[0];
-  if (cmd === 'run' || cmd === 'test' || cmd === 'compile' || cmd === 'deploy' || cmd === 'absorb' || cmd === 'daemon' || cmd === 'holodaemon' || cmd === 'moltbook-daemon' || cmd === 'holomesh-daemon') {
+  if (
+    cmd === 'run' ||
+    cmd === 'test' ||
+    cmd === 'compile' ||
+    cmd === 'deploy' ||
+    cmd === 'absorb' ||
+    cmd === 'daemon' ||
+    cmd === 'holodaemon' ||
+    cmd === 'moltbook-daemon' ||
+    cmd === 'holomesh-daemon'
+  ) {
     opts.command = cmd;
   }
 
@@ -321,15 +354,9 @@ function extractChatText(data: any): string {
 
 function extractTokenUsage(data: any): { inputTokens: number; outputTokens: number } {
   const inputTokens =
-    data?.usage?.input_tokens ??
-    data?.usage?.prompt_tokens ??
-    data?.prompt_eval_count ??
-    0;
+    data?.usage?.input_tokens ?? data?.usage?.prompt_tokens ?? data?.prompt_eval_count ?? 0;
   const outputTokens =
-    data?.usage?.output_tokens ??
-    data?.usage?.completion_tokens ??
-    data?.eval_count ??
-    0;
+    data?.usage?.output_tokens ?? data?.usage?.completion_tokens ?? data?.eval_count ?? 0;
 
   return {
     inputTokens: Number.isFinite(inputTokens) ? Number(inputTokens) : 0,
@@ -501,7 +528,11 @@ function createNodeHostCapabilities(cwd: string): HostCapabilities {
       exists: (filePath: string) => fs.existsSync(path.resolve(cwd, filePath)),
     },
     process: {
-      exec: (command: string, args: string[] = [], options?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number }) =>
+      exec: (
+        command: string,
+        args: string[] = [],
+        options?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number }
+      ) =>
         new Promise((resolve, reject) => {
           const child = spawn(command, args, {
             cwd: options?.cwd ?? cwd,
@@ -543,7 +574,15 @@ function createNodeHostCapabilities(cwd: string): HostCapabilities {
         }),
     },
     network: {
-      fetch: async (url: string, options?: { method?: string; headers?: Record<string, string>; body?: string; credentials?: 'omit' | 'same-origin' | 'include' }) => {
+      fetch: async (
+        url: string,
+        options?: {
+          method?: string;
+          headers?: Record<string, string>;
+          body?: string;
+          credentials?: 'omit' | 'same-origin' | 'include';
+        }
+      ) => {
         if (typeof fetch === 'undefined') {
           throw new Error('fetch is not available in this runtime');
         }
@@ -734,39 +773,44 @@ async function runDaemon(runtime: any, opts: CLIOptions): Promise<void> {
           break;
         }
 
-        runtime.registerAction(actionName, (params: Record<string, unknown>, blackboard: Record<string, unknown>) => {
-          const actionRequestId = `daemon-action-${nextActionId++}`;
-          const timeoutMs = Number.isFinite(command?.timeoutMs) ? Math.max(1, Math.floor(command.timeoutMs)) : 30000;
+        runtime.registerAction(
+          actionName,
+          (params: Record<string, unknown>, blackboard: Record<string, unknown>) => {
+            const actionRequestId = `daemon-action-${nextActionId++}`;
+            const timeoutMs = Number.isFinite(command?.timeoutMs)
+              ? Math.max(1, Math.floor(command.timeoutMs))
+              : 30000;
 
-          return new Promise<boolean>((resolve, reject) => {
-            const timer = setTimeout(() => {
-              pendingActionResolutions.delete(actionRequestId);
-              resolve(false);
+            return new Promise<boolean>((resolve, reject) => {
+              const timer = setTimeout(() => {
+                pendingActionResolutions.delete(actionRequestId);
+                resolve(false);
+                send({
+                  type: 'daemon:action_timeout',
+                  action: actionName,
+                  actionRequestId,
+                  timeoutMs,
+                });
+              }, timeoutMs);
+
+              pendingActionResolutions.set(actionRequestId, {
+                resolve,
+                reject,
+                timer,
+                runtimeRequestId: actionRequestId,
+                actionName,
+              });
+
               send({
-                type: 'daemon:action_timeout',
+                type: 'daemon:action_request',
                 action: actionName,
                 actionRequestId,
-                timeoutMs,
+                params,
+                blackboard,
               });
-            }, timeoutMs);
-
-            pendingActionResolutions.set(actionRequestId, {
-              resolve,
-              reject,
-              timer,
-              runtimeRequestId: actionRequestId,
-              actionName,
             });
-
-            send({
-              type: 'daemon:action_request',
-              action: actionName,
-              actionRequestId,
-              params,
-              blackboard,
-            });
-          });
-        });
+          }
+        );
 
         registeredActions.add(actionName);
         send({ type: 'daemon:ok', op, name: actionName });
@@ -876,20 +920,26 @@ async function runScript(opts: CLIOptions): Promise<void> {
   });
 
   // Register stdlib I/O actions (G.ARCH.003)
-  registerStdlib(runtime as unknown as { registerAction: (name: string, handler: ActionHandler) => void }, {
-    policy: {
-      rootDir: path.dirname(filePath),
-      allowedPaths: opts.allowedPaths.length > 0 ? opts.allowedPaths : ['compositions', 'data', 'src', 'packages'],
-      maxFileBytes: 2 * 1024 * 1024,
-      allowShell: opts.allowShell,
-      allowedShellCommands: opts.allowedShellCommands,
-      maxShellOutputBytes: 100 * 1024,
-      shellTimeoutMs: 60_000,
-      allowNetwork: opts.allowedHosts.length > 0,
-      allowedHosts: opts.allowedHosts,
-    },
-    hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
-  });
+  registerStdlib(
+    runtime as unknown as { registerAction: (name: string, handler: ActionHandler) => void },
+    {
+      policy: {
+        rootDir: path.dirname(filePath),
+        allowedPaths:
+          opts.allowedPaths.length > 0
+            ? opts.allowedPaths
+            : ['compositions', 'data', 'src', 'packages'],
+        maxFileBytes: 2 * 1024 * 1024,
+        allowShell: opts.allowShell,
+        allowedShellCommands: opts.allowedShellCommands,
+        maxShellOutputBytes: 100 * 1024,
+        shellTimeoutMs: 60_000,
+        allowNetwork: opts.allowedHosts.length > 0,
+        allowedHosts: opts.allowedHosts,
+      },
+      hostCapabilities: createNodeHostCapabilities(path.dirname(filePath)),
+    }
+  );
 
   // Set up interop context
   const _interop = new InteropContext(path.dirname(filePath));
@@ -917,7 +967,9 @@ async function runScript(opts: CLIOptions): Promise<void> {
 
   // Report
   const stats = runtime.getStats();
-  console.log(`[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`);
+  console.log(
+    `[holoscript] Complete — ${stats.tickCount} ticks, ${stats.nodesProcessed} nodes processed`
+  );
 
   // Watch mode: re-run on file changes
   if (opts.watch) {
@@ -946,7 +998,9 @@ async function runScript(opts: CLIOptions): Promise<void> {
         runTicks(newRuntime, opts.ticks);
         newRuntime.stop();
         const newStats = newRuntime.getStats();
-        console.log(`[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`);
+        console.log(
+          `[holoscript] Complete — ${newStats.tickCount} ticks, ${newStats.nodesProcessed} nodes`
+        );
       } catch (err: unknown) {
         console.error(`[holoscript] Error:`, (err as Error).message);
       }
@@ -991,9 +1045,10 @@ async function testScript(opts: CLIOptions): Promise<void> {
   // Also run @test blocks (native composition tests with $stateVar syntax)
   // Prefer runtime state (properly parses nested objects) over raw text extraction
   const runtimeState = runtime.getAllState();
-  const compositionState = Object.keys(runtimeState).length > 0
-    ? runtimeState
-    : CompositionTestRunner.extractStateFromSource(source);
+  const compositionState =
+    Object.keys(runtimeState).length > 0
+      ? runtimeState
+      : CompositionTestRunner.extractStateFromSource(source);
   const computedDefs = CompositionTestRunner.extractComputedFromSource(source);
   const compositionRunner = new CompositionTestRunner(compositionState, computedDefs, {
     debug: opts.debug,
@@ -1010,7 +1065,12 @@ async function testScript(opts: CLIOptions): Promise<void> {
   console.log('');
   for (const result of results) {
     const icon = result.status === 'passed' ? '✓' : result.status === 'failed' ? '✗' : '○';
-    const color = result.status === 'passed' ? '\x1b[32m' : result.status === 'failed' ? '\x1b[31m' : '\x1b[33m';
+    const color =
+      result.status === 'passed'
+        ? '\x1b[32m'
+        : result.status === 'failed'
+          ? '\x1b[31m'
+          : '\x1b[33m';
     console.log(`  ${color}${icon}\x1b[0m ${result.name} (${result.durationMs}ms)`);
     if (result.error) {
       console.log(`    \x1b[31m${result.error}\x1b[0m`);
@@ -1018,7 +1078,9 @@ async function testScript(opts: CLIOptions): Promise<void> {
   }
 
   console.log('');
-  console.log(`Tests: ${passed} passed, ${failed} failed, ${skipped} skipped (${results.length} total)`);
+  console.log(
+    `Tests: ${passed} passed, ${failed} failed, ${skipped} skipped (${results.length} total)`
+  );
 
   if (failed > 0) process.exit(1);
 }
@@ -1056,7 +1118,9 @@ function compileScript(opts: CLIOptions): void {
       }
     }
     if (criticals.length > 0) {
-      console.error(`[holoscript compile] BLOCKED by ${criticals.length} critical @gotcha violation(s):`);
+      console.error(
+        `[holoscript compile] BLOCKED by ${criticals.length} critical @gotcha violation(s):`
+      );
       for (const g of criticals) {
         console.error(`  ✗ ${g.warning}`);
         console.error(`    mitigation: ${g.mitigation}`);
@@ -1067,9 +1131,13 @@ function compileScript(opts: CLIOptions): void {
   }
 
   const ast = parse(source);
-  const outputPath = opts.output || filePath.replace(/\.(hs|hsplus|holo)$/, `.${opts.target === 'python' ? 'py' : 'js'}`);
+  const outputPath =
+    opts.output ||
+    filePath.replace(/\.(hs|hsplus|holo)$/, `.${opts.target === 'python' ? 'py' : 'js'}`);
 
-  console.log(`[holoscript compile] ${path.basename(filePath)} → ${opts.target} → ${path.basename(outputPath)}`);
+  console.log(
+    `[holoscript compile] ${path.basename(filePath)} → ${opts.target} → ${path.basename(outputPath)}`
+  );
 
   // Generate target output
   let output: string;
@@ -1136,7 +1204,9 @@ function generatePythonTarget(ast: any): string {
 async function deployScript(opts: CLIOptions): Promise<void> {
   if (!opts.file) {
     console.error('Error: No source file specified');
-    console.error('Usage: holoscript deploy <file> [--share] [--publish] [--price <eth>] [--mint-nft] [--author <name>] [--license <type>] [--server <url>]');
+    console.error(
+      'Usage: holoscript deploy <file> [--share] [--publish] [--price <eth>] [--mint-nft] [--author <name>] [--license <type>] [--server <url>]'
+    );
     process.exit(1);
   }
 
@@ -1169,13 +1239,15 @@ async function deployScript(opts: CLIOptions): Promise<void> {
     version: 1,
   });
 
-  console.log(`Provenance: ${provenance.publishMode} | hash: ${provenance.hash.slice(0, 12)}... | license: ${provenance.license}`);
+  console.log(
+    `Provenance: ${provenance.publishMode} | hash: ${provenance.hash.slice(0, 12)}... | license: ${provenance.license}`
+  );
 
   // License compatibility check (if composition imports other compositions)
   if (provenance.imports.length > 0) {
     // For now, imported licenses default to 'free' since we can't resolve them at CLI time
     // The server-side deploy endpoint will do full resolution
-    const importedLicenses = provenance.imports.map(imp => ({
+    const importedLicenses = provenance.imports.map((imp) => ({
       path: imp.path,
       license: 'free' as LicenseType,
     }));
@@ -1217,7 +1289,7 @@ async function deployScript(opts: CLIOptions): Promise<void> {
     const revenuePreview = calculateRevenueDistribution(
       priceWei,
       provenance.author || 'anonymous',
-      importChain,
+      importChain
     );
 
     console.log('\nRevenue distribution:');
@@ -1286,7 +1358,7 @@ async function deployScript(opts: CLIOptions): Promise<void> {
         process.exit(1);
       }
 
-      const pubResult = await pubRes.json() as {
+      const pubResult = (await pubRes.json()) as {
         contentHash: string;
         protocolId: string;
         collectUrl: string;
@@ -1317,7 +1389,9 @@ async function deployScript(opts: CLIOptions): Promise<void> {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`Protocol publish failed: ${msg}`);
-      console.error('Is the server running? Try: holoscript deploy <file> --publish --server http://localhost:3000');
+      console.error(
+        'Is the server running? Try: holoscript deploy <file> --publish --server http://localhost:3000'
+      );
       process.exit(1);
     }
 
@@ -1355,7 +1429,13 @@ async function deployScript(opts: CLIOptions): Promise<void> {
       process.exit(1);
     }
 
-    const result = await res.json() as { id: string; url: string; embed: string; api: string; provenance?: { hash: string; publishMode: string } };
+    const result = (await res.json()) as {
+      id: string;
+      url: string;
+      embed: string;
+      api: string;
+      provenance?: { hash: string; publishMode: string };
+    };
 
     console.log('\nDeployed successfully!');
     console.log(`  ID:    ${result.id}`);
@@ -1373,7 +1453,9 @@ async function deployScript(opts: CLIOptions): Promise<void> {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`Deploy failed: ${msg}`);
-    console.error('Is the server running? Try: holoscript deploy <file> --server http://localhost:3000');
+    console.error(
+      'Is the server running? Try: holoscript deploy <file> --server http://localhost:3000'
+    );
     process.exit(1);
   }
 }
@@ -1405,12 +1487,16 @@ function absorbScript(opts: CLIOptions): void {
 
   const language = langMap[ext];
   if (!language) {
-    console.error(`Error: Unsupported file type '${ext}'. Supported: .py, .ts, .tsx, .js, .jsx, .mjs`);
+    console.error(
+      `Error: Unsupported file type '${ext}'. Supported: .py, .ts, .tsx, .js, .jsx, .mjs`
+    );
     process.exit(1);
   }
 
   const outputPath = opts.output || filePath.replace(/\.\w+$/, '.hsplus');
-  console.log(`[holoscript absorb] ${path.basename(filePath)} (${language}) → ${path.basename(outputPath)}`);
+  console.log(
+    `[holoscript absorb] ${path.basename(filePath)} (${language}) → ${path.basename(outputPath)}`
+  );
 
   const processor = new AbsorbProcessor();
   const result = processor.absorb({ language, filePath, content });
@@ -1447,12 +1533,26 @@ function findGitRoot(startDir: string): string {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Extract @economy trait config from composition AST (walks body/children). */
-function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; default_spend_limit?: number; initial_balance?: number; task_completion_reward?: number } | undefined {
-  const result: { budget?: number; default_spend_limit?: number; initial_balance?: number; task_completion_reward?: number } = {};
+function extractEconomyConfig(
+  ast: Record<string, unknown>
+):
+  | {
+      budget?: number;
+      default_spend_limit?: number;
+      initial_balance?: number;
+      task_completion_reward?: number;
+    }
+  | undefined {
+  const result: {
+    budget?: number;
+    default_spend_limit?: number;
+    initial_balance?: number;
+    task_completion_reward?: number;
+  } = {};
   let found = false;
 
   function walk(node: unknown): void {
@@ -1466,9 +1566,11 @@ function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; 
         if (t.name === 'economy' && typeof t.config === 'object' && t.config) {
           const cfg = t.config as Record<string, unknown>;
           if (typeof cfg.budget === 'number') result.budget = cfg.budget;
-          if (typeof cfg.default_spend_limit === 'number') result.default_spend_limit = cfg.default_spend_limit;
+          if (typeof cfg.default_spend_limit === 'number')
+            result.default_spend_limit = cfg.default_spend_limit;
           if (typeof cfg.initial_balance === 'number') result.initial_balance = cfg.initial_balance;
-          if (typeof cfg.task_completion_reward === 'number') result.task_completion_reward = cfg.task_completion_reward;
+          if (typeof cfg.task_completion_reward === 'number')
+            result.task_completion_reward = cfg.task_completion_reward;
           found = true;
         }
       }
@@ -1478,12 +1580,19 @@ function extractEconomyConfig(ast: Record<string, unknown>): { budget?: number; 
     if (Array.isArray(obj.directives)) {
       for (const dir of obj.directives) {
         const d = dir as Record<string, unknown>;
-        if ((d.type === 'trait' || d.type === 'ObjectTrait') && d.name === 'economy' && typeof d.config === 'object' && d.config) {
+        if (
+          (d.type === 'trait' || d.type === 'ObjectTrait') &&
+          d.name === 'economy' &&
+          typeof d.config === 'object' &&
+          d.config
+        ) {
           const cfg = d.config as Record<string, unknown>;
           if (typeof cfg.budget === 'number') result.budget = cfg.budget;
-          if (typeof cfg.default_spend_limit === 'number') result.default_spend_limit = cfg.default_spend_limit;
+          if (typeof cfg.default_spend_limit === 'number')
+            result.default_spend_limit = cfg.default_spend_limit;
           if (typeof cfg.initial_balance === 'number') result.initial_balance = cfg.initial_balance;
-          if (typeof cfg.task_completion_reward === 'number') result.task_completion_reward = cfg.task_completion_reward;
+          if (typeof cfg.task_completion_reward === 'number')
+            result.task_completion_reward = cfg.task_completion_reward;
           found = true;
         }
       }
@@ -1504,14 +1613,15 @@ function loadRuntimeSkillActions(
   opts: CLIOptions,
   host: DaemonHost,
   repoRoot: string,
-  debug = false,
+  debug = false
 ): Record<string, ActionHandler> {
   const actions: Record<string, ActionHandler> = {};
   if (!fs.existsSync(skillsDir)) return actions;
 
-  const files = fs.readdirSync(skillsDir)
-    .filter(name => name.endsWith('.hsplus'))
-    .map(name => path.join(skillsDir, name));
+  const files = fs
+    .readdirSync(skillsDir)
+    .filter((name) => name.endsWith('.hsplus'))
+    .map((name) => path.join(skillsDir, name));
 
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf-8');
@@ -1541,7 +1651,7 @@ function loadRuntimeSkillActions(
         }
         if (opts.allowedShellCommands.length > 0) {
           const executable = command.split(/\s+/)[0].toLowerCase();
-          const allowed = opts.allowedShellCommands.some(c => c.toLowerCase() === executable);
+          const allowed = opts.allowedShellCommands.some((c) => c.toLowerCase() === executable);
           if (!allowed) {
             bb.skill_error = `Skill ${actionName} blocked: command ${executable} not allowlisted`;
             return false;
@@ -1551,9 +1661,10 @@ function loadRuntimeSkillActions(
         const runtimeArgs = Array.isArray(params.args)
           ? params.args.filter((v): v is string => typeof v === 'string')
           : [];
-        const timeoutMs = typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
-          ? Math.max(1_000, Math.min(300_000, Math.floor(params.timeoutMs)))
-          : 60_000;
+        const timeoutMs =
+          typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
+            ? Math.max(1_000, Math.min(300_000, Math.floor(params.timeoutMs)))
+            : 60_000;
 
         const result = await host.exec(command, [...bakedArgs, ...runtimeArgs], {
           cwd: repoRoot,
@@ -1570,7 +1681,9 @@ function loadRuntimeSkillActions(
   }
 
   if (debug) {
-    console.log(`[daemon] Loaded ${Object.keys(actions).length} runtime skill action(s) from ${skillsDir}`);
+    console.log(
+      `[daemon] Loaded ${Object.keys(actions).length} runtime skill action(s) from ${skillsDir}`
+    );
   }
   return actions;
 }
@@ -1592,7 +1705,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const parseResult = parse(source);
 
   if (!parseResult.success || !parseResult.ast) {
-    const errors = parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
+    const errors =
+      parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
     console.error(`[daemon] Parse failed: ${errors}`);
     process.exit(1);
   }
@@ -1604,7 +1718,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   console.log(
     `[daemon] Cycles: ${opts.cycles} | Commit: ${opts.commit} | Timeout: ${opts.timeout}min | ` +
       `Provider: ${opts.provider} | Model: ${opts.model} | Tool profile: ${opts.toolProfile} | ` +
-      `Always-on: ${opts.alwaysOn} | Cycle interval: ${opts.cycleIntervalSec}s`,
+      `Always-on: ${opts.alwaysOn} | Cycle interval: ${opts.cycleIntervalSec}s`
   );
 
   // State directory
@@ -1620,7 +1734,9 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       const existing = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
       const staleMs = 120_000;
       if (Date.now() - existing.heartbeat < staleMs) {
-        console.error(`[daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`);
+        console.error(
+          `[daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`
+        );
         process.exit(1);
       }
       console.log(`[daemon] Reclaiming stale lock from PID ${existing.pid}`);
@@ -1644,14 +1760,30 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const cleanup = () => {
     clearInterval(heartbeatTimer);
     for (const watcher of fileWatchers) {
-      try { watcher.close(); } catch { /* best effort */ }
+      try {
+        watcher.close();
+      } catch {
+        /* best effort */
+      }
     }
-    try { fs.rmSync(lockFile, { force: true }); } catch { /* best effort */ }
+    try {
+      fs.rmSync(lockFile, { force: true });
+    } catch {
+      /* best effort */
+    }
   };
   process.once('SIGINT', cleanup);
   process.once('SIGTERM', cleanup);
-  process.once('uncaughtException', (err) => { cleanup(); console.error('[daemon] Uncaught:', err); process.exit(1); });
-  process.once('unhandledRejection', (err) => { cleanup(); console.error('[daemon] Unhandled:', err); process.exit(1); });
+  process.once('uncaughtException', (err) => {
+    cleanup();
+    console.error('[daemon] Uncaught:', err);
+    process.exit(1);
+  });
+  process.once('unhandledRejection', (err) => {
+    cleanup();
+    console.error('[daemon] Unhandled:', err);
+    process.exit(1);
+  });
 
   // Create host capabilities
   const host: DaemonHost = {
@@ -1672,10 +1804,20 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
         let stdout = '';
         let stderr = '';
         let timer: ReturnType<typeof setTimeout> | null = null;
-        child.stdout?.on('data', (d: Buffer) => { stdout += d.toString('utf-8'); });
-        child.stderr?.on('data', (d: Buffer) => { stderr += d.toString('utf-8'); });
+        child.stdout?.on('data', (d: Buffer) => {
+          stdout += d.toString('utf-8');
+        });
+        child.stderr?.on('data', (d: Buffer) => {
+          stderr += d.toString('utf-8');
+        });
         if (execOpts.timeoutMs && execOpts.timeoutMs > 0) {
-          timer = setTimeout(() => { try { child.kill('SIGKILL'); } catch { /* */ } }, execOpts.timeoutMs);
+          timer = setTimeout(() => {
+            try {
+              child.kill('SIGKILL');
+            } catch {
+              /* */
+            }
+          }, execOpts.timeoutMs);
         }
         child.on('close', (code) => {
           if (timer) clearTimeout(timer);
@@ -1692,7 +1834,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   }
 
   let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
-  let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null = null;
+  let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null =
+    null;
 
   const reloadRuntimeSkills = () => {
     runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host, repoRoot, opts.debug);
@@ -1710,7 +1853,9 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fileWatchers.push(watcher);
   } catch (error) {
     if (opts.debug) {
-      console.warn(`[daemon] Skill watcher unavailable for ${skillsDirAbs}: ${(error as Error).message}`);
+      console.warn(
+        `[daemon] Skill watcher unavailable for ${skillsDirAbs}: ${(error as Error).message}`
+      );
     }
   }
 
@@ -1718,16 +1863,29 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const llm = createDaemonLLMProvider(opts);
 
   // Daemon configuration — read strategy from composition blackboard (source of truth)
-  const defaultFocusRotation = ['typefix', 'coverage', 'typefix', 'lint', 'target-sweep',
-    'trait-sampling', 'runtime-matrix', 'absorb-roundtrip', 'typefix', 'all'];
-  const focusRotation = (getASTBlackboardValue(compositionAST, 'focus_rotation') as string[] | undefined)
-    ?? defaultFocusRotation;
-  const providerRotationEnabled = (getASTBlackboardValue(compositionAST, 'provider_rotation_enabled') as boolean | undefined)
-    ?? opts.providerRotation;
-  const rotationProviders = (getASTBlackboardValue(compositionAST, 'provider_rotation') as string[] | undefined)
-    ?? ['anthropic', 'xai'];
-  const quarantineThreshold = (getASTBlackboardValue(compositionAST, 'quarantine_threshold') as number | undefined)
-    ?? 3;
+  const defaultFocusRotation = [
+    'typefix',
+    'coverage',
+    'typefix',
+    'lint',
+    'target-sweep',
+    'trait-sampling',
+    'runtime-matrix',
+    'absorb-roundtrip',
+    'typefix',
+    'all',
+  ];
+  const focusRotation =
+    (getASTBlackboardValue(compositionAST, 'focus_rotation') as string[] | undefined) ??
+    defaultFocusRotation;
+  const providerRotationEnabled =
+    (getASTBlackboardValue(compositionAST, 'provider_rotation_enabled') as boolean | undefined) ??
+    opts.providerRotation;
+  const rotationProviders = (getASTBlackboardValue(compositionAST, 'provider_rotation') as
+    | string[]
+    | undefined) ?? ['anthropic', 'xai'];
+  const quarantineThreshold =
+    (getASTBlackboardValue(compositionAST, 'quarantine_threshold') as number | undefined) ?? 3;
 
   // Extract @economy trait config from composition AST
   const economyConfig = extractEconomyConfig(compositionAST);
@@ -1761,20 +1919,36 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const stateFile = path.join(stateDir, 'daemon-state.json');
   const telemetryFile = path.join(stateDir, 'daemon-telemetry.jsonl');
   interface DaemonPersistedState {
-    totalCycles: number; focusIndex: number; bestQuality: number; lastQuality: number;
-    totalCostUSD: number; totalInputTokens: number; totalOutputTokens: number;
-    typeErrorBaseline: number; lastFocus: string; lastCycleTimeISO: string;
+    totalCycles: number;
+    focusIndex: number;
+    bestQuality: number;
+    lastQuality: number;
+    totalCostUSD: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    typeErrorBaseline: number;
+    lastFocus: string;
+    lastCycleTimeISO: string;
   }
   const daemonStateDefaults: DaemonPersistedState = {
-    totalCycles: 0, focusIndex: 0, bestQuality: 0, lastQuality: 0,
-    totalCostUSD: 0, totalInputTokens: 0, totalOutputTokens: 0,
-    typeErrorBaseline: 0, lastFocus: '', lastCycleTimeISO: '',
+    totalCycles: 0,
+    focusIndex: 0,
+    bestQuality: 0,
+    lastQuality: 0,
+    totalCostUSD: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    typeErrorBaseline: 0,
+    lastFocus: '',
+    lastCycleTimeISO: '',
   };
   let daemonState: DaemonPersistedState = { ...daemonStateDefaults };
   if (fs.existsSync(stateFile)) {
     try {
       daemonState = { ...daemonState, ...JSON.parse(fs.readFileSync(stateFile, 'utf-8')) };
-    } catch { /* use defaults */ }
+    } catch {
+      /* use defaults */
+    }
   }
 
   // Load persisted file tracking (committed + quarantined files across cycles)
@@ -1785,7 +1959,9 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       const fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8'));
       config.committedFiles = fileState.committed || [];
       config.failedFiles = fileState.failures || {};
-    } catch { /* use defaults */ }
+    } catch {
+      /* use defaults */
+    }
   }
 
   // Set historical baseline for quality scoring (persists across sessions).
@@ -1828,16 +2004,20 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
         if (fs.existsSync(wisdomFile)) {
           wisdomEntries = JSON.parse(fs.readFileSync(wisdomFile, 'utf-8'));
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       const STALE_THRESHOLD = 3;
       let attempts = 0;
       while (attempts < focusRotation.length) {
-        const focusHistory = wisdomEntries.filter(w => w.focus === focus);
+        const focusHistory = wisdomEntries.filter((w) => w.focus === focus);
         const lastN = focusHistory.slice(-STALE_THRESHOLD);
-        const isStale = lastN.length >= STALE_THRESHOLD && lastN.every(w => (w.delta || 0) === 0);
+        const isStale = lastN.length >= STALE_THRESHOLD && lastN.every((w) => (w.delta || 0) === 0);
         if (!isStale) break;
-        console.log(`[daemon] Skipping stale focus "${focus}" (${STALE_THRESHOLD} consecutive zero-delta cycles)`);
+        console.log(
+          `[daemon] Skipping stale focus "${focus}" (${STALE_THRESHOLD} consecutive zero-delta cycles)`
+        );
         focusIdx = (focusIdx + 1) % focusRotation.length;
         focus = focusRotation[focusIdx];
         attempts++;
@@ -1852,19 +2032,30 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     // Provider rotation: rebuild LLM + actions for alternating providers
     // (reads provider_rotation_enabled + provider_rotation from composition blackboard)
     if (providerRotationEnabled) {
-      const cycleProvider = rotationProviders[cycle % rotationProviders.length] as CLIOptions['provider'];
+      const cycleProvider = rotationProviders[
+        cycle % rotationProviders.length
+      ] as CLIOptions['provider'];
       const cycleModel = defaultModelForProvider(cycleProvider);
       const cycleToolProfile = defaultToolProfileForProvider(cycleProvider);
-      const cycleOpts = { ...opts, provider: cycleProvider, model: cycleModel, toolProfile: cycleToolProfile };
+      const cycleOpts = {
+        ...opts,
+        provider: cycleProvider,
+        model: cycleModel,
+        toolProfile: cycleToolProfile,
+      };
       const cycleLlm = createDaemonLLMProvider(cycleOpts);
       config.provider = cycleProvider;
       config.model = cycleModel;
       config.toolProfile = cycleToolProfile;
       daemonResult = createDaemonActions(host, cycleLlm, config);
       actions = daemonResult.actions;
-      console.log(`\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} | Provider: ${cycleProvider} (${cycleModel}) ===`);
+      console.log(
+        `\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} | Provider: ${cycleProvider} (${cycleModel}) ===`
+      );
     } else {
-      console.log(`\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} ===`);
+      console.log(
+        `\n[daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} | Focus: ${focus} ===`
+      );
     }
 
     // Fresh AST per cycle (deep clone for clean BT state)
@@ -1883,7 +2074,6 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     if (opts.debug) {
       console.log(`[daemon] Blackboard injection: focus=${focus}, daemon_file=${filePath}`);
     }
-
 
     // Create runtime with profile-aware HeadlessRuntime (auto-tick via setInterval)
     const runtime = createProfileRuntime(cycleAST, {
@@ -1909,30 +2099,34 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
 
     // Wait for BT completion or timeout
     const maxWaitMs = opts.timeout * 60 * 1000;
-    const btResult = await new Promise<{ status: string; blackboard: Record<string, unknown> }>((resolve) => {
-      let resolved = false;
-      const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          resolve({ status: 'timeout', blackboard: {} });
-        }
-      }, maxWaitMs);
+    const btResult = await new Promise<{ status: string; blackboard: Record<string, unknown> }>(
+      (resolve) => {
+        let resolved = false;
+        const timeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            resolve({ status: 'timeout', blackboard: {} });
+          }
+        }, maxWaitMs);
 
-      runtime.on('bt_complete', (payload: unknown) => {
-        if (!resolved) {
-          resolved = true;
-          clearTimeout(timeout);
-          const p = payload as { status?: string; blackboard?: Record<string, unknown> } | undefined;
-          resolve({
-            status: p?.status || 'unknown',
-            blackboard: p?.blackboard || {},
-          });
-        }
-      });
+        runtime.on('bt_complete', (payload: unknown) => {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeout);
+            const p = payload as
+              | { status?: string; blackboard?: Record<string, unknown> }
+              | undefined;
+            resolve({
+              status: p?.status || 'unknown',
+              blackboard: p?.blackboard || {},
+            });
+          }
+        });
 
-      // Start runtime — auto-ticks at tickRate Hz
-      runtime.start();
-    });
+        // Start runtime — auto-ticks at tickRate Hz
+        runtime.start();
+      }
+    );
 
     // Extract results before stopping (so traits can still process events)
     const btStatus = btResult.status;
@@ -1942,7 +2136,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     const inputTokens = (btBlackboard.inputTokens as number) || 0;
     const outputTokens = (btBlackboard.outputTokens as number) || 0;
     const qualityAfter = (btBlackboard.quality_after as number) || daemonState.lastQuality;
-    const costUSD = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
+    const costUSD = (inputTokens * 3) / 1_000_000 + (outputTokens * 15) / 1_000_000;
     const committed = (btBlackboard.committed_count as number) || 0;
     const qualityDelta = qualityAfter - (config.qualityBefore || 0);
 
@@ -1966,23 +2160,24 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     // Emit remaining @feedback_loop metrics
     // cost_efficiency: quality achieved per dollar spent (normalized 0-1)
     const totalTokens = inputTokens + outputTokens;
-    const costEfficiency = costUSD > 0
-      ? Math.min(1, qualityAfter * totalTokens / (costUSD * 500_000))
-      : qualityAfter;
+    const costEfficiency =
+      costUSD > 0 ? Math.min(1, (qualityAfter * totalTokens) / (costUSD * 500_000)) : qualityAfter;
     runtime.emit('feedback:update_metric', { name: 'cost_efficiency', value: costEfficiency });
 
     // emergence_ratio: fraction of candidates that got committed
     const candidateCount = Array.isArray(btBlackboard.candidates)
-      ? (btBlackboard.candidates as unknown[]).length : 0;
-    const emergenceRatio = candidateCount > 0
-      ? Math.min(1, committed / candidateCount)
+      ? (btBlackboard.candidates as unknown[]).length
       : 0;
+    const emergenceRatio = candidateCount > 0 ? Math.min(1, committed / candidateCount) : 0;
     runtime.emit('feedback:update_metric', { name: 'emergence_ratio', value: emergenceRatio });
 
     // regenerative_health: wisdom accumulation relative to cap (200)
     const wisdomCount = (btBlackboard.wisdomCount as number) || 0;
     const regenerativeHealth = Math.min(1, wisdomCount / 200);
-    runtime.emit('feedback:update_metric', { name: 'regenerative_health', value: regenerativeHealth });
+    runtime.emit('feedback:update_metric', {
+      name: 'regenerative_health',
+      value: regenerativeHealth,
+    });
 
     runtime.stop();
     activeRuntime = null;
@@ -2015,7 +2210,7 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
 
     console.log(
       `[daemon] Cycle ${cycle + 1} done in ${durationSec}s | ` +
-      `${stats.updateCount} ticks | BT: ${btStatus} | quality: ${qualityAfter.toFixed(3)}`,
+        `${stats.updateCount} ticks | BT: ${btStatus} | quality: ${qualityAfter.toFixed(3)}`
     );
 
     // Update persisted state
@@ -2032,7 +2227,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     daemonState.lastCycleTimeISO = new Date().toISOString();
 
     // Persist type error baseline on first measurement (used for quality scoring)
-    const cycleTypeErrors = (btBlackboard.typeErrorBaseline as number) || (btBlackboard.typeErrorCount as number) || 0;
+    const cycleTypeErrors =
+      (btBlackboard.typeErrorBaseline as number) || (btBlackboard.typeErrorCount as number) || 0;
     if (daemonState.typeErrorBaseline === 0 && cycleTypeErrors > 0) {
       daemonState.typeErrorBaseline = cycleTypeErrors;
       config.typeErrorBaseline = cycleTypeErrors;
@@ -2054,14 +2250,16 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
         // 2. Increase quarantine threshold to try harder on stuck files
         // 3. Clear committed-file tracking to retry with accumulated wisdom
         console.log(
-          `[daemon] Plateau detected — ${convergenceStreak} consecutive zero-delta cycles. Escalating strategy.`,
+          `[daemon] Plateau detected — ${convergenceStreak} consecutive zero-delta cycles. Escalating strategy.`
         );
         convergenceStreak = 0; // reset streak after escalation
 
         // Bump quarantine threshold so files get more attempts
         const oldThreshold = config.quarantineThreshold || 3;
         config.quarantineThreshold = oldThreshold + 2;
-        console.log(`[daemon] Raised quarantine threshold: ${oldThreshold} → ${config.quarantineThreshold}`);
+        console.log(
+          `[daemon] Raised quarantine threshold: ${oldThreshold} → ${config.quarantineThreshold}`
+        );
 
         // Force typefix focus for the next cycle (skip unproductive focuses)
         if (!opts.focus) {
@@ -2073,8 +2271,10 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
         }
 
         // If we've escalated twice already (threshold >= original+4), then truly stop
-        if (config.quarantineThreshold >= (quarantineThreshold + 4)) {
-          console.log(`[daemon] Escalated twice with no progress. Stopping to avoid wasting tokens.`);
+        if (config.quarantineThreshold >= quarantineThreshold + 4) {
+          console.log(
+            `[daemon] Escalated twice with no progress. Stopping to avoid wasting tokens.`
+          );
           break;
         }
       }
@@ -2095,8 +2295,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   console.log(`\n[daemon] Completed ${cycle} cycle(s).`);
   console.log(
     `[daemon] Best quality: ${daemonState.bestQuality.toFixed(3)} | ` +
-    `Total cost: $${daemonState.totalCostUSD.toFixed(3)} | ` +
-    `Total cycles: ${daemonState.totalCycles}`,
+      `Total cost: $${daemonState.totalCostUSD.toFixed(3)} | ` +
+      `Total cycles: ${daemonState.totalCycles}`
   );
 }
 
@@ -2197,14 +2397,20 @@ function getASTBlackboardValue(ast: unknown, key: string): unknown {
 
     if (obj.blackboard && typeof obj.blackboard === 'object' && !Array.isArray(obj.blackboard)) {
       const bb = obj.blackboard as Record<string, unknown>;
-      if (key in bb) { result = bb[key]; return; }
+      if (key in bb) {
+        result = bb[key];
+        return;
+      }
     }
 
     for (const k of Object.keys(obj)) {
       const val = obj[k];
       if (val && typeof val === 'object') {
-        if (Array.isArray(val)) { for (const item of val) walk(item); }
-        else if (!(val instanceof Map)) { walk(val); }
+        if (Array.isArray(val)) {
+          for (const item of val) walk(item);
+        } else if (!(val instanceof Map)) {
+          walk(val);
+        }
       }
       if (result !== undefined) return;
     }
@@ -2212,8 +2418,6 @@ function getASTBlackboardValue(ast: unknown, key: string): unknown {
   walk(ast);
   return result;
 }
-
-
 
 // ── HoloMesh Daemon ─────────────────────────────────────────────────────────
 // Decentralized knowledge exchange daemon.
@@ -2243,7 +2447,8 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
   const parseResult = parse(source);
 
   if (!parseResult.success || !parseResult.ast) {
-    const errors = parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
+    const errors =
+      parseResult.errors?.map((e: { message: string }) => e.message).join(', ') || 'unknown';
     console.error(`[holomesh-daemon] Parse failed: ${errors}`);
     process.exit(1);
   }
@@ -2264,21 +2469,33 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     try {
       const existing = JSON.parse(fs.readFileSync(lockFile, 'utf-8'));
       if (Date.now() - existing.heartbeat < 120_000) {
-        console.error(`[holomesh-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`);
+        console.error(
+          `[holomesh-daemon] Another daemon is running (PID ${existing.pid}). Remove ${lockFile} to force.`
+        );
         process.exit(1);
       }
       console.log(`[holomesh-daemon] Reclaiming stale lock from PID ${existing.pid}`);
-    } catch { /* corrupt lock, reclaim */ }
+    } catch {
+      /* corrupt lock, reclaim */
+    }
   }
   fs.writeFileSync(lockFile, JSON.stringify(lockData), 'utf-8');
 
   const heartbeatTimer = setInterval(() => {
-    try { fs.writeFileSync(lockFile, JSON.stringify({ ...lockData, heartbeat: Date.now() }), 'utf-8'); } catch { /* */ }
+    try {
+      fs.writeFileSync(lockFile, JSON.stringify({ ...lockData, heartbeat: Date.now() }), 'utf-8');
+    } catch {
+      /* */
+    }
   }, 30_000);
 
   const cleanup = () => {
     clearInterval(heartbeatTimer);
-    try { fs.rmSync(lockFile, { force: true }); } catch { /* */ }
+    try {
+      fs.rmSync(lockFile, { force: true });
+    } catch {
+      /* */
+    }
   };
   process.once('SIGINT', cleanup);
   process.once('SIGTERM', cleanup);
@@ -2297,7 +2514,8 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
       clientModule = await import('@holoscript/mcp-server/holomesh/orchestrator-client');
     } catch {
       // Monorepo: resolve via relative path from packages/core/src/cli/ to packages/mcp-server/src/
-      actionsModule = await import('../../../mcp-server/src/holomesh/agent/holomesh-daemon-actions');
+      actionsModule =
+        await import('../../../mcp-server/src/holomesh/agent/holomesh-daemon-actions');
       clientModule = await import('../../../mcp-server/src/holomesh/orchestrator-client');
     }
     createHoloMeshDaemonActions = actionsModule.createHoloMeshDaemonActions;
@@ -2311,7 +2529,8 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
 
   // Create orchestrator client
   const meshConfig = {
-    orchestratorUrl: process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
+    orchestratorUrl:
+      process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app',
     apiKey: process.env.MCP_API_KEY!,
     workspace: process.env.HOLOMESH_WORKSPACE || 'ai-ecosystem',
     agentName: process.env.HOLOMESH_AGENT_NAME || 'holomesh-agent',
@@ -2325,7 +2544,8 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
 
   // V2 P2P config from environment
   const v2Enabled = process.env.HOLOMESH_V2_ENABLED === 'true';
-  const localAgentDid = process.env.HOLOMESH_AGENT_DID || (v2Enabled ? `did:holo:${meshConfig.agentName}` : undefined);
+  const localAgentDid =
+    process.env.HOLOMESH_AGENT_DID || (v2Enabled ? `did:holo:${meshConfig.agentName}` : undefined);
 
   // V3 Wallet config from environment
   const walletEnabled = process.env.HOLOMESH_WALLET_ENABLED === 'true';
@@ -2338,18 +2558,26 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     v2Enabled,
     localAgentDid,
     localMcpUrl: process.env.HOLOMESH_LOCAL_MCP_URL || 'https://mcp.holoscript.net',
-    crdtSnapshotPath: v2Enabled ? path.join(path.dirname(stateFile), 'holomesh-crdt.bin') : undefined,
-    peerStorePath: v2Enabled ? path.join(path.dirname(stateFile), 'holomesh-peers.json') : undefined,
+    crdtSnapshotPath: v2Enabled
+      ? path.join(path.dirname(stateFile), 'holomesh-crdt.bin')
+      : undefined,
+    peerStorePath: v2Enabled
+      ? path.join(path.dirname(stateFile), 'holomesh-peers.json')
+      : undefined,
     walletEnabled,
     walletTestnet,
   });
 
-  console.log(`[holomesh-daemon] ${Object.keys(actions).length} action handlers registered${v2Enabled ? ` (V2 P2P enabled, DID: ${localAgentDid})` : ''}${walletEnabled ? ' (V3 Wallet enabled)' : ''}`);
+  console.log(
+    `[holomesh-daemon] ${Object.keys(actions).length} action handlers registered${v2Enabled ? ` (V2 P2P enabled, DID: ${localAgentDid})` : ''}${walletEnabled ? ' (V3 Wallet enabled)' : ''}`
+  );
 
   // Cycle loop
   let cycle = 0;
   while (opts.alwaysOn || cycle < opts.cycles) {
-    console.log(`\n[holomesh-daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} ===`);
+    console.log(
+      `\n[holomesh-daemon] === Cycle ${cycle + 1}${opts.alwaysOn ? '' : `/${opts.cycles}`} ===`
+    );
 
     const cycleAST = JSON.parse(JSON.stringify(compositionAST));
     materializeTraits(cycleAST);
@@ -2370,11 +2598,18 @@ export async function holoMeshDaemonScript(opts: CLIOptions): Promise<void> {
     const btResult = await new Promise<{ status: string }>((resolve) => {
       let resolved = false;
       const timeout = setTimeout(() => {
-        if (!resolved) { resolved = true; resolve({ status: 'timeout' }); }
+        if (!resolved) {
+          resolved = true;
+          resolve({ status: 'timeout' });
+        }
       }, maxWaitMs);
 
       runtime.on('bt_complete', () => {
-        if (!resolved) { resolved = true; clearTimeout(timeout); resolve({ status: 'complete' }); }
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({ status: 'complete' });
+        }
       });
 
       runtime.start();
@@ -2404,11 +2639,13 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
 
   if (!fs.existsSync(stateDir)) {
     if (jsonOutput) {
-      console.log(JSON.stringify({
-        status: 'missing_state_dir',
-        running: false,
-        stateDir,
-      }));
+      console.log(
+        JSON.stringify({
+          status: 'missing_state_dir',
+          running: false,
+          stateDir,
+        })
+      );
     } else {
       console.log('[daemon status] No state directory found. Run a daemon cycle first.');
     }
@@ -2426,35 +2663,63 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
       lockPid = lock.pid;
       lastHeartbeat = lock.heartbeat;
       isRunning = Date.now() - lastHeartbeat < 120_000;
-    } catch { /* corrupt lock */ }
+    } catch {
+      /* corrupt lock */
+    }
   }
 
   // Load daemon-state.json
   const stateFile = path.join(stateDir, 'daemon-state.json');
   let ds: Record<string, unknown> = {};
   if (fs.existsSync(stateFile)) {
-    try { ds = JSON.parse(fs.readFileSync(stateFile, 'utf-8')); } catch { /* */ }
+    try {
+      ds = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    } catch {
+      /* */
+    }
   }
 
   // Load file state
   const fileStateFile = path.join(stateDir, 'daemon-file-state.json');
-  let fileState: { committed: string[]; failures: Record<string, number> } = { committed: [], failures: {} };
+  let fileState: { committed: string[]; failures: Record<string, number> } = {
+    committed: [],
+    failures: {},
+  };
   if (fs.existsSync(fileStateFile)) {
-    try { fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8')); } catch { /* */ }
+    try {
+      fileState = JSON.parse(fs.readFileSync(fileStateFile, 'utf-8'));
+    } catch {
+      /* */
+    }
   }
 
   // Wisdom count
   const wisdomFile = path.join(stateDir, 'accumulated-wisdom.json');
   let wisdomCount = 0;
   if (fs.existsSync(wisdomFile)) {
-    try { wisdomCount = (JSON.parse(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[]).length; } catch { /* */ }
+    try {
+      wisdomCount = (JSON.parse(fs.readFileSync(wisdomFile, 'utf-8')) as unknown[]).length;
+    } catch {
+      /* */
+    }
   }
 
   // Fix ledger — last 5 entries
   const ledgerFile = path.join(stateDir, 'fix-ledger.json');
-  let ledger: Array<{ timestamp?: string; candidate?: string; focus?: string; result?: string; commitSha?: string; errorsAfter?: number }> = [];
+  let ledger: Array<{
+    timestamp?: string;
+    candidate?: string;
+    focus?: string;
+    result?: string;
+    commitSha?: string;
+    errorsAfter?: number;
+  }> = [];
   if (fs.existsSync(ledgerFile)) {
-    try { ledger = JSON.parse(fs.readFileSync(ledgerFile, 'utf-8')); } catch { /* */ }
+    try {
+      ledger = JSON.parse(fs.readFileSync(ledgerFile, 'utf-8'));
+    } catch {
+      /* */
+    }
   }
 
   // Telemetry stats from JSONL cycle records
@@ -2463,7 +2728,8 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
   let lastTelemetry: Record<string, unknown> | undefined;
   if (fs.existsSync(telemetryFile)) {
     try {
-      const lines = fs.readFileSync(telemetryFile, 'utf-8')
+      const lines = fs
+        .readFileSync(telemetryFile, 'utf-8')
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean);
@@ -2478,49 +2744,55 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
 
   const totalCycles = (ds.totalCycles as number) || 0;
   const lastFocus = (ds.lastFocus as string) || 'n/a';
-  const lastCycleTime = ds.lastCycleTimeISO ? new Date(ds.lastCycleTimeISO as string).toLocaleString() : 'never';
-  const bestQ = (Number((ds.bestQuality as number) || 0)).toFixed(3);
-  const lastQ = (Number((ds.lastQuality as number) || 0)).toFixed(3);
-  const baseline = ds.typeErrorBaseline ? `${ds.typeErrorBaseline} type errors` : 'not yet measured';
+  const lastCycleTime = ds.lastCycleTimeISO
+    ? new Date(ds.lastCycleTimeISO as string).toLocaleString()
+    : 'never';
+  const bestQ = Number((ds.bestQuality as number) || 0).toFixed(3);
+  const lastQ = Number((ds.lastQuality as number) || 0).toFixed(3);
+  const baseline = ds.typeErrorBaseline
+    ? `${ds.typeErrorBaseline} type errors`
+    : 'not yet measured';
   const totalCost = Number((ds.totalCostUSD as number) || 0);
   const tokIn = Number((ds.totalInputTokens as number) || 0);
   const tokOut = Number((ds.totalOutputTokens as number) || 0);
   const quarantined = Object.values(fileState.failures).filter((n) => n >= 3).length;
 
   if (jsonOutput) {
-    console.log(JSON.stringify({
-      status: 'ok',
-      running: isRunning,
-      pid: lockPid || null,
-      heartbeatAgeSec: lastHeartbeat > 0 ? Math.round((Date.now() - lastHeartbeat) / 1000) : null,
-      stateDir,
-      session: {
-        totalCycles,
-        lastFocus,
-        lastCycleTimeISO: (ds.lastCycleTimeISO as string) || null,
-      },
-      quality: {
-        best: Number(bestQ),
-        last: Number(lastQ),
-        baselineTypeErrors: (ds.typeErrorBaseline as number) || 0,
-      },
-      cost: {
-        totalUSD: totalCost,
-        tokensIn: tokIn,
-        tokensOut: tokOut,
-      },
-      files: {
-        committed: fileState.committed.length,
-        quarantined,
-      },
-      wisdomCount,
-      telemetry: {
-        file: telemetryFile,
-        count: telemetryCount,
-        last: lastTelemetry || null,
-      },
-      recentLedger: ledger.slice(-5),
-    }));
+    console.log(
+      JSON.stringify({
+        status: 'ok',
+        running: isRunning,
+        pid: lockPid || null,
+        heartbeatAgeSec: lastHeartbeat > 0 ? Math.round((Date.now() - lastHeartbeat) / 1000) : null,
+        stateDir,
+        session: {
+          totalCycles,
+          lastFocus,
+          lastCycleTimeISO: (ds.lastCycleTimeISO as string) || null,
+        },
+        quality: {
+          best: Number(bestQ),
+          last: Number(lastQ),
+          baselineTypeErrors: (ds.typeErrorBaseline as number) || 0,
+        },
+        cost: {
+          totalUSD: totalCost,
+          tokensIn: tokIn,
+          tokensOut: tokOut,
+        },
+        files: {
+          committed: fileState.committed.length,
+          quarantined,
+        },
+        wisdomCount,
+        telemetry: {
+          file: telemetryFile,
+          count: telemetryCount,
+          last: lastTelemetry || null,
+        },
+        recentLedger: ledger.slice(-5),
+      })
+    );
     return;
   }
 
@@ -2566,11 +2838,12 @@ async function daemonStatus(jsonOutput = false): Promise<void> {
     for (const entry of recent) {
       const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '?';
       const file = entry.candidate ? path.basename(entry.candidate) : '?';
-      const result = entry.result === 'committed'
-        ? `${G}committed${R}`
-        : entry.result === 'rolled_back'
-          ? `${Y}rolled_back${R}`
-          : entry.result || '?';
+      const result =
+        entry.result === 'committed'
+          ? `${G}committed${R}`
+          : entry.result === 'rolled_back'
+            ? `${Y}rolled_back${R}`
+            : entry.result || '?';
       const sha = entry.commitSha ? ` (${entry.commitSha.slice(0, 7)})` : '';
       console.log(`  ${ts}  ${file}  ${result}${sha}  focus:${entry.focus || '?'}`);
     }

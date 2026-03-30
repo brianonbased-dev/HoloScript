@@ -9,7 +9,11 @@
  * keep optional dependencies truly optional.
  */
 
-import type { EmbeddingProvider, EmbeddingProviderName, EmbeddingProviderOptions } from './EmbeddingProvider';
+import type {
+  EmbeddingProvider,
+  EmbeddingProviderName,
+  EmbeddingProviderOptions,
+} from './EmbeddingProvider';
 
 /**
  * Create an EmbeddingProvider from options.
@@ -34,7 +38,9 @@ export async function createEmbeddingProvider(
 
   switch (name) {
     case 'bm25': {
-      console.error('[EmbeddingProvider] WARNING: BM25 is deprecated. Use "openai" for semantic search quality. Set OPENAI_API_KEY in your environment.');
+      console.error(
+        '[EmbeddingProvider] WARNING: BM25 is deprecated. Use "openai" for semantic search quality. Set OPENAI_API_KEY in your environment.'
+      );
       const { BM25EmbeddingProvider } = await import('./BM25EmbeddingProvider');
       return new BM25EmbeddingProvider();
     }

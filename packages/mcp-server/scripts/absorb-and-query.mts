@@ -1,6 +1,6 @@
 /**
  * absorb-and-query.mts
- * 
+ *
  * Direct invocation of HoloScript MCP codebase tools for strategic absorption.
  * Runs holo_absorb_repo, holo_graph_status, and holo_query_codebase on key packages.
  */

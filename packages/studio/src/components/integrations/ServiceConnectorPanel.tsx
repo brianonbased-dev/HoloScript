@@ -167,11 +167,7 @@ function StatusDot({ status }: { status: ConnectionStatus }) {
   const Icon = iconMap[status];
 
   return (
-    <div
-      className="flex items-center gap-2"
-      role="status"
-      aria-label={STATUS_LABELS[status]}
-    >
+    <div className="flex items-center gap-2" role="status" aria-label={STATUS_LABELS[status]}>
       <div className={clsx('h-2 w-2 rounded-full', dotColors[status])} />
       <Icon className={clsx('h-4 w-4', iconColors[status])} />
     </div>
@@ -266,7 +262,7 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
         console.error(`[ServiceConnectorPanel] OAuth connect failed:`, err);
       }
     },
-    [connect, service.id],
+    [connect, service.id]
   );
 
   return (
@@ -330,9 +326,7 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
               className="rounded border border-studio-border bg-studio-bg-muted px-3 py-2 text-xs text-studio-text placeholder-studio-muted focus:border-studio-accent focus:outline-none focus:ring-1 focus:ring-studio-accent/30 disabled:opacity-50"
               autoComplete="off"
             />
-            {field.helpText && (
-              <p className="text-[10px] text-studio-muted">{field.helpText}</p>
-            )}
+            {field.helpText && <p className="text-[10px] text-studio-muted">{field.helpText}</p>}
           </div>
         ))}
       </fieldset>
@@ -480,7 +474,8 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
                 key: 'token',
                 label: 'Personal Access Token',
                 type: 'password' as const,
-                placeholder: 'ghp_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
+                placeholder:
+                  'ghp_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
                 value: connection?.config?.token || '',
                 helpText: 'Requires repo, read:org, and workflow scopes',
               },
@@ -498,7 +493,8 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
                   key: 'token',
                   label: 'Railway API Token',
                   type: 'password' as const,
-                  placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
+                  placeholder:
+                    '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
                   value: connection?.config?.token || '',
                   helpText: 'Generate at railway.app/account/tokens',
                 },
@@ -571,7 +567,8 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
                         key: 'token',
                         label: 'API Token / Key',
                         type: 'password' as const,
-                        placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
+                        placeholder:
+                          '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
                         value: connection?.config?.token || '',
                       },
                     ];
@@ -612,7 +609,11 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-studio-border" role="tablist" aria-label="Service connectors">
+      <div
+        className="flex border-b border-studio-border"
+        role="tablist"
+        aria-label="Service connectors"
+      >
         {services.map((service) => {
           const Icon = service.icon;
           const isActive = activeTab === service.id;
@@ -628,7 +629,7 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
                 'flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-3 text-xs font-medium transition-colors',
                 isActive
                   ? 'border-studio-accent text-studio-accent'
-                  : 'border-transparent text-studio-muted hover:bg-studio-bg-muted hover:text-studio-text',
+                  : 'border-transparent text-studio-muted hover:bg-studio-bg-muted hover:text-studio-text'
               )}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />

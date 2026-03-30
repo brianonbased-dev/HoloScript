@@ -347,9 +347,11 @@ describe('Task Lifecycle', () => {
     });
 
     it('preserves metadata', () => {
-      const task = createTask(makeTaskRequest({
-        metadata: { skillId: 'parse_hs', custom: 'value' },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          metadata: { skillId: 'parse_hs', custom: 'value' },
+        })
+      );
       expect(task.metadata?.skillId).toBe('parse_hs');
       expect(task.metadata?.custom).toBe('value');
     });
@@ -432,10 +434,12 @@ describe('Task Lifecycle', () => {
     });
 
     it('does not cancel already completed tasks', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'cancel-completed',
-        metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'cancel-completed',
+          metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
+        })
+      );
       await executeTask(task, mockToolHandler);
       expect(task.status.state).toBe('completed');
 
@@ -446,10 +450,12 @@ describe('Task Lifecycle', () => {
 
   describe('executeTask', () => {
     it('transitions through working to completed on success', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'exec-success',
-        metadata: { skillId: 'parse_hs', arguments: { code: 'object Cube {}' } },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'exec-success',
+          metadata: { skillId: 'parse_hs', arguments: { code: 'object Cube {}' } },
+        })
+      );
 
       const executed = await executeTask(task, mockToolHandler);
       expect(executed.status.state).toBe('completed');
@@ -458,10 +464,12 @@ describe('Task Lifecycle', () => {
     });
 
     it('transitions to failed on error', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'exec-fail',
-        metadata: { skillId: 'parse_hs', arguments: { code: 'bad' } },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'exec-fail',
+          metadata: { skillId: 'parse_hs', arguments: { code: 'bad' } },
+        })
+      );
 
       const executed = await executeTask(task, failingToolHandler);
       expect(executed.status.state).toBe('failed');
@@ -469,20 +477,24 @@ describe('Task Lifecycle', () => {
     });
 
     it('transitions to input-required when no skillId', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'exec-no-skill',
-        // No metadata with skillId
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'exec-no-skill',
+          // No metadata with skillId
+        })
+      );
 
       const executed = await executeTask(task, mockToolHandler);
       expect(executed.status.state).toBe('input-required');
     });
 
     it('extracts skillId from JSON in message text', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'exec-json-msg',
-        message: makeMessage(JSON.stringify({ tool: 'parse_hs', arguments: { code: 'test' } })),
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'exec-json-msg',
+          message: makeMessage(JSON.stringify({ tool: 'parse_hs', arguments: { code: 'test' } })),
+        })
+      );
 
       const executed = await executeTask(task, mockToolHandler);
       expect(executed.status.state).toBe('completed');
@@ -493,7 +505,9 @@ describe('Task Lifecycle', () => {
         id: 'exec-data-part',
         message: {
           role: 'user',
-          parts: [{ type: 'data', data: { tool: 'validate_holoscript', arguments: { code: 'x' } } }],
+          parts: [
+            { type: 'data', data: { tool: 'validate_holoscript', arguments: { code: 'x' } } },
+          ],
           timestamp: new Date().toISOString(),
         },
       });
@@ -503,10 +517,12 @@ describe('Task Lifecycle', () => {
     });
 
     it('creates artifact with id and mediaType', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'exec-artifact',
-        metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'exec-artifact',
+          metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
+        })
+      );
 
       const executed = await executeTask(task, mockToolHandler);
       const artifact = executed.artifacts[0];
@@ -517,11 +533,13 @@ describe('Task Lifecycle', () => {
     });
 
     it('includes contextId and taskId in agent response messages', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'exec-context',
-        contextId: 'ctx-123',
-        metadata: { skillId: 'parse_hs', arguments: { code: 'x' } },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'exec-context',
+          contextId: 'ctx-123',
+          metadata: { skillId: 'parse_hs', arguments: { code: 'x' } },
+        })
+      );
 
       const executed = await executeTask(task, mockToolHandler);
       const agentMsg = executed.history.find((m) => m.role === 'agent');
@@ -624,7 +642,7 @@ describe('handleJsonRpcRequest', () => {
             },
           },
         },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -647,7 +665,7 @@ describe('handleJsonRpcRequest', () => {
             },
           },
         },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -663,7 +681,7 @@ describe('handleJsonRpcRequest', () => {
           method: 'a2a.sendMessage',
           params: {},
         },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -680,7 +698,7 @@ describe('handleJsonRpcRequest', () => {
             message: { role: 'user', parts: [] },
           },
         },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -704,7 +722,7 @@ describe('handleJsonRpcRequest', () => {
             },
           },
         },
-        mockToolHandler,
+        mockToolHandler
       );
 
       const result = response.result as Record<string, unknown>;
@@ -725,7 +743,7 @@ describe('handleJsonRpcRequest', () => {
             },
           },
         },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -742,7 +760,7 @@ describe('handleJsonRpcRequest', () => {
 
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 10, method: 'a2a.getTask', params: { id: 'rpc-get-1' } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -753,7 +771,7 @@ describe('handleJsonRpcRequest', () => {
     it('returns error for non-existent task', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 11, method: 'a2a.getTask', params: { id: 'nope' } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -763,7 +781,7 @@ describe('handleJsonRpcRequest', () => {
     it('returns error when id is missing', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 12, method: 'a2a.getTask', params: {} },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -779,7 +797,7 @@ describe('handleJsonRpcRequest', () => {
 
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 20, method: 'a2a.listTasks', params: {} },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -793,18 +811,18 @@ describe('handleJsonRpcRequest', () => {
 
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 21, method: 'a2a.listTasks', params: { state: 'submitted' } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       const result = response.result as Record<string, unknown>;
-      const tasks = (result.tasks as Record<string, unknown>[]);
+      const tasks = result.tasks as Record<string, unknown>[];
       expect(tasks.some((t) => t.id === 'rpc-list-state')).toBe(true);
     });
 
     it('supports limit and offset', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 22, method: 'a2a.listTasks', params: { limit: 5, offset: 0 } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -821,7 +839,7 @@ describe('handleJsonRpcRequest', () => {
 
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 30, method: 'a2a.cancelTask', params: { id: 'rpc-cancel-1' } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeUndefined();
@@ -832,7 +850,7 @@ describe('handleJsonRpcRequest', () => {
     it('returns error for non-existent task', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 31, method: 'a2a.cancelTask', params: { id: 'nope' } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -840,15 +858,17 @@ describe('handleJsonRpcRequest', () => {
     });
 
     it('returns error when task is already completed', async () => {
-      const task = createTask(makeTaskRequest({
-        id: 'rpc-cancel-done',
-        metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
-      }));
+      const task = createTask(
+        makeTaskRequest({
+          id: 'rpc-cancel-done',
+          metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
+        })
+      );
       await executeTask(task, mockToolHandler);
 
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 32, method: 'a2a.cancelTask', params: { id: 'rpc-cancel-done' } },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -858,7 +878,7 @@ describe('handleJsonRpcRequest', () => {
     it('returns error when id is missing', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 33, method: 'a2a.cancelTask', params: {} },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -875,7 +895,7 @@ describe('handleJsonRpcRequest', () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 40, method: 'a2a.getExtendedAgentCard' },
         mockToolHandler,
-        builder,
+        builder
       );
 
       expect(response.error).toBeUndefined();
@@ -887,7 +907,7 @@ describe('handleJsonRpcRequest', () => {
     it('returns error when builder is not provided', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 41, method: 'a2a.getExtendedAgentCard' },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -901,7 +921,7 @@ describe('handleJsonRpcRequest', () => {
     it('returns method not found error', async () => {
       const response = await handleJsonRpcRequest(
         { jsonrpc: '2.0', id: 50, method: 'a2a.unknownMethod' },
-        mockToolHandler,
+        mockToolHandler
       );
 
       expect(response.error).toBeDefined();
@@ -917,10 +937,12 @@ describe('handleJsonRpcRequest', () => {
 
 describe('Task State Machine', () => {
   it('submitted -> working -> completed (success path)', async () => {
-    const task = createTask(makeTaskRequest({
-      id: 'sm-success',
-      metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
-    }));
+    const task = createTask(
+      makeTaskRequest({
+        id: 'sm-success',
+        metadata: { skillId: 'parse_hs', arguments: { code: 'test' } },
+      })
+    );
     expect(task.status.state).toBe('submitted');
 
     await executeTask(task, mockToolHandler);
@@ -928,10 +950,12 @@ describe('Task State Machine', () => {
   });
 
   it('submitted -> working -> failed (error path)', async () => {
-    const task = createTask(makeTaskRequest({
-      id: 'sm-fail',
-      metadata: { skillId: 'parse_hs', arguments: { code: 'bad' } },
-    }));
+    const task = createTask(
+      makeTaskRequest({
+        id: 'sm-fail',
+        metadata: { skillId: 'parse_hs', arguments: { code: 'bad' } },
+      })
+    );
     expect(task.status.state).toBe('submitted');
 
     await executeTask(task, failingToolHandler);
@@ -952,10 +976,12 @@ describe('Task State Machine', () => {
   });
 
   it('terminal states cannot be re-canceled', async () => {
-    const task = createTask(makeTaskRequest({
-      id: 'sm-terminal',
-      metadata: { skillId: 'parse_hs', arguments: { code: 'x' } },
-    }));
+    const task = createTask(
+      makeTaskRequest({
+        id: 'sm-terminal',
+        metadata: { skillId: 'parse_hs', arguments: { code: 'x' } },
+      })
+    );
     await executeTask(task, mockToolHandler);
     expect(task.status.state).toBe('completed');
 

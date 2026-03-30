@@ -141,10 +141,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
         state.particleCount = config.particle_count;
         // Generate default particle block in lower half of domain
         const ds = config.domain_size;
-        sim.generateParticleBlock(
-          [ds * 0.2, ds * 0.2, ds * 0.2],
-          [ds * 0.8, ds * 0.5, ds * 0.8],
-        );
+        sim.generateParticleBlock([ds * 0.2, ds * 0.2, ds * 0.2], [ds * 0.8, ds * 0.5, ds * 0.8]);
       });
     } else {
       // CPU fallback: use existing event-based SPH pipeline
@@ -193,7 +190,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
         state.mlsMpm.setExternalForce(
           windDir.x * windSpeed * s,
           windDir.y * windSpeed * s,
-          windDir.z * windSpeed * s,
+          windDir.z * windSpeed * s
         );
       } else if (state.mlsMpm) {
         state.mlsMpm.setExternalForce(0, 0, 0);

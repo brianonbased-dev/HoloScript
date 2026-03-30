@@ -293,10 +293,15 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('generation', 'ai', 'codegen');
   }
   // Codebase intelligence
-  else if (toolName.startsWith('holo_absorb') || toolName.startsWith('holo_query') ||
-           toolName.startsWith('holo_impact') || toolName.startsWith('holo_detect') ||
-           toolName.startsWith('holo_graph_status') || toolName.startsWith('holo_resolve') ||
-           toolName.startsWith('holo_get_absorb')) {
+  else if (
+    toolName.startsWith('holo_absorb') ||
+    toolName.startsWith('holo_query') ||
+    toolName.startsWith('holo_impact') ||
+    toolName.startsWith('holo_detect') ||
+    toolName.startsWith('holo_graph_status') ||
+    toolName.startsWith('holo_resolve') ||
+    toolName.startsWith('holo_get_absorb')
+  ) {
     tags.push('codebase', 'analysis', 'intelligence');
   }
   // Graph RAG
@@ -304,24 +309,40 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('search', 'rag', 'knowledge');
   }
   // Graph tools
-  else if (toolName.startsWith('holo_parse_to') || toolName.startsWith('holo_visualize') ||
-           toolName.startsWith('holo_get_node') || toolName.startsWith('holo_design') ||
-           toolName.startsWith('holo_diff') || toolName.startsWith('holo_suggest_connections')) {
+  else if (
+    toolName.startsWith('holo_parse_to') ||
+    toolName.startsWith('holo_visualize') ||
+    toolName.startsWith('holo_get_node') ||
+    toolName.startsWith('holo_design') ||
+    toolName.startsWith('holo_diff') ||
+    toolName.startsWith('holo_suggest_connections')
+  ) {
     tags.push('graph', 'visualization', 'analysis');
   }
   // Self-improve / quality
-  else if (toolName.startsWith('holo_self') || toolName.startsWith('holo_validate') ||
-           toolName.startsWith('holo_quality') || toolName.startsWith('holo_verify')) {
+  else if (
+    toolName.startsWith('holo_self') ||
+    toolName.startsWith('holo_validate') ||
+    toolName.startsWith('holo_quality') ||
+    toolName.startsWith('holo_verify')
+  ) {
     tags.push('quality', 'self-improvement', 'testing');
   }
   // File operations
-  else if (toolName.startsWith('holo_write') || toolName.startsWith('holo_edit') ||
-           toolName.startsWith('holo_read') || toolName.startsWith('holo_git')) {
+  else if (
+    toolName.startsWith('holo_write') ||
+    toolName.startsWith('holo_edit') ||
+    toolName.startsWith('holo_read') ||
+    toolName.startsWith('holo_git')
+  ) {
     tags.push('filesystem', 'editing', 'git');
   }
   // Wisdom/gotcha
-  else if (toolName.startsWith('holo_query_wisdom') || toolName.startsWith('holo_list_gotchas') ||
-           toolName.startsWith('holo_check_gotchas')) {
+  else if (
+    toolName.startsWith('holo_query_wisdom') ||
+    toolName.startsWith('holo_list_gotchas') ||
+    toolName.startsWith('holo_check_gotchas')
+  ) {
     tags.push('knowledge', 'wisdom', 'patterns');
   }
   // Refactor/codegen
@@ -341,9 +362,13 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('browser', 'preview', 'rendering');
   }
   // Compilation
-  else if (toolName.startsWith('compile_') || toolName === 'compile_holoscript' ||
-           toolName.startsWith('get_compilation') || toolName === 'list_export_targets' ||
-           toolName.startsWith('get_circuit')) {
+  else if (
+    toolName.startsWith('compile_') ||
+    toolName === 'compile_holoscript' ||
+    toolName.startsWith('get_compilation') ||
+    toolName === 'list_export_targets' ||
+    toolName.startsWith('get_circuit')
+  ) {
     tags.push('compilation', 'export', 'multi-target');
   }
   // Networking
@@ -351,7 +376,11 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('networking', 'multiplayer', 'sync');
   }
   // Snapshots / temporal
-  else if (toolName.includes('snapshot') || toolName.includes('rewind') || toolName.includes('temporal')) {
+  else if (
+    toolName.includes('snapshot') ||
+    toolName.includes('rewind') ||
+    toolName.includes('temporal')
+  ) {
     tags.push('temporal', 'snapshot', 'versioning');
   }
   // Monitoring
@@ -367,9 +396,13 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('gltf', 'import', 'export', '3d');
   }
   // Agent orchestration
-  else if (toolName === 'discover_agents' || toolName === 'delegate_task' ||
-           toolName === 'get_task_status' || toolName === 'compose_workflow' ||
-           toolName === 'execute_workflow') {
+  else if (
+    toolName === 'discover_agents' ||
+    toolName === 'delegate_task' ||
+    toolName === 'get_task_status' ||
+    toolName === 'compose_workflow' ||
+    toolName === 'execute_workflow'
+  ) {
     tags.push('agent', 'orchestration', 'delegation', 'workflow');
   }
   // Absorb service
@@ -381,9 +414,13 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('testing', 'spatial', 'validation');
   }
   // Docs / explanation
-  else if (toolName.includes('syntax') || toolName.includes('example') ||
-           toolName.includes('explain') || toolName.includes('analyze') ||
-           toolName.includes('docs')) {
+  else if (
+    toolName.includes('syntax') ||
+    toolName.includes('example') ||
+    toolName.includes('explain') ||
+    toolName.includes('analyze') ||
+    toolName.includes('docs')
+  ) {
     tags.push('documentation', 'learning', 'reference');
   }
   // Training data
@@ -543,7 +580,7 @@ export function buildAgentCard(
             'tools:execute': 'Execute tools that produce output (compile, render, generate)',
             'tasks:read': 'Read A2A task state and history',
             'tasks:write': 'Create, send, and cancel A2A tasks',
-            'admin': 'Full administrative access to all tools and endpoints',
+            admin: 'Full administrative access to all tools and endpoints',
             // Legacy scope aliases (backwards compatibility)
             'tools:write': 'Legacy alias for tools:execute',
             'tools:admin': 'Legacy alias for admin',
@@ -568,9 +605,9 @@ export function buildAgentCard(
     };
 
     // Any one of these schemes is sufficient
-    security.push({ 'apiKey': [] });
-    security.push({ 'bearerAuth': [] });
-    security.push({ 'oauth2': ['tools:read'] });
+    security.push({ apiKey: [] });
+    security.push({ bearerAuth: [] });
+    security.push({ oauth2: ['tools:read'] });
   }
 
   const card: AgentCard = {
@@ -916,7 +953,7 @@ function extractToolInvocation(task: A2ATask): {
 export async function handleJsonRpcRequest(
   request: JsonRpcRequest,
   toolHandler: (name: string, args: Record<string, unknown>) => Promise<unknown>,
-  agentCardBuilder?: () => AgentCard,
+  agentCardBuilder?: () => AgentCard
 ): Promise<JsonRpcResponse> {
   const { id, method, params } = request;
 
@@ -962,7 +999,7 @@ export async function handleJsonRpcRequest(
         skillId: params.skillId as string | undefined,
         arguments: params.arguments as Record<string, unknown> | undefined,
         metadata: {
-          ...(params.metadata as Record<string, unknown> || {}),
+          ...((params.metadata as Record<string, unknown>) || {}),
           ...(params.skillId ? { skillId: params.skillId } : {}),
           ...(params.arguments ? { arguments: params.arguments } : {}),
         },

@@ -13,7 +13,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { AudioAnalysis, Beat, TimelineMarker, AudioSyncConfig } from '@/lib/animation/audioSync';
+import type {
+  AudioAnalysis,
+  Beat,
+  TimelineMarker,
+  AudioSyncConfig,
+} from '@/lib/animation/audioSync';
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. Audio Analysis Types

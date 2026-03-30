@@ -58,7 +58,7 @@ export interface UseLODBridgeResult {
  */
 export function useLODBridge(
   node: R3FNode,
-  customDistances?: [number, number, number],
+  customDistances?: [number, number, number]
 ): UseLODBridgeResult {
   const bridge = getSharedBridge();
   const entityId = node.id || `node-${node.props.hsType || 'unknown'}`;
@@ -101,11 +101,7 @@ export function useLODBridge(
 
     // Use computed distances from the chain
     const d = chain.distances;
-    const distances: [number, number, number] = [
-      d[0] ?? 0,
-      d[1] ?? 25,
-      d[2] ?? 50,
-    ];
+    const distances: [number, number, number] = [d[0] ?? 0, d[1] ?? 25, d[2] ?? 50];
 
     return {
       distances,

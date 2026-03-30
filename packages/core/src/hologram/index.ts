@@ -26,33 +26,16 @@ export type {
 } from './DepthEstimationService';
 
 // Quilt Compiler (Looking Glass output)
-export {
-  QuiltCompiler,
-} from './QuiltCompiler';
+export { QuiltCompiler } from './QuiltCompiler';
 
-export type {
-  QuiltConfig,
-  QuiltTile,
-  QuiltCompilationResult,
-} from './QuiltCompiler';
+export type { QuiltConfig, QuiltTile, QuiltCompilationResult } from './QuiltCompiler';
 
 // MV-HEVC Compiler (Apple Vision Pro spatial video)
-export {
-  MVHEVCCompiler,
-} from './MVHEVCCompiler';
+export { MVHEVCCompiler } from './MVHEVCCompiler';
 
-export type {
-  MVHEVCConfig,
-  MVHEVCStereoView,
-  MVHEVCCompilationResult,
-} from './MVHEVCCompiler';
+export type { MVHEVCConfig, MVHEVCStereoView, MVHEVCCompilationResult } from './MVHEVCCompiler';
 
 // WebCodecs Depth Pipeline (zero-copy GPU video depth)
-export {
-  WebCodecsDepthPipeline,
-} from './WebCodecsDepthPipeline';
+export { WebCodecsDepthPipeline } from './WebCodecsDepthPipeline';
 
-export type {
-  WebCodecsDepthConfig,
-  WebCodecsDepthStats,
-} from './WebCodecsDepthPipeline';
+export type { WebCodecsDepthConfig, WebCodecsDepthStats } from './WebCodecsDepthPipeline';

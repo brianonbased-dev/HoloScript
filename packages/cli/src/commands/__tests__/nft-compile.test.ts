@@ -38,7 +38,7 @@ describe('NFT Compile Command', () => {
     it('should handle empty input', () => {
       const emptyCode = '';
       const result = parseMarketplaceDefinition(emptyCode);
-      
+
       // Current implementation returns a fixed AST regardless of input
       expect(result.type).toBe('NFTMarketplace');
       expect(result.name).toBe('ExampleMarketplace');
@@ -46,7 +46,7 @@ describe('NFT Compile Command', () => {
 
     it('should return valid AST structure', () => {
       const result = parseMarketplaceDefinition('test input');
-      
+
       // Validate all required properties exist
       expect(result).toHaveProperty('type');
       expect(result).toHaveProperty('name');
@@ -55,16 +55,16 @@ describe('NFT Compile Command', () => {
       expect(result).toHaveProperty('royalties');
       expect(result).toHaveProperty('lazyMinting');
       expect(result).toHaveProperty('gasOptimization');
-      
+
       // Validate nested structures
       expect(result.royalties).toHaveProperty('defaultRoyalty');
       expect(result.royalties.defaultRoyalty).toHaveProperty('receiver');
       expect(result.royalties.defaultRoyalty).toHaveProperty('bps');
       expect(result.royalties.defaultRoyalty.bps).toBe(500);
-      
+
       expect(result.lazyMinting).toHaveProperty('enabled');
       expect(result.lazyMinting.enabled).toBe(true);
-      
+
       expect(result.gasOptimization).toHaveProperty('storageOptimization');
       expect(result.gasOptimization.storageOptimization).toBe(true);
     });

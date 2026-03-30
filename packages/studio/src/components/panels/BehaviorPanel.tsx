@@ -93,17 +93,20 @@ export function BehaviorPanel() {
             </select>
           ) : (
             <div className="rounded-md border border-studio-border/50 bg-studio-panel/50 p-3 flex flex-col items-center justify-center text-center">
-               <span className="text-lg mb-2">🤷‍♂️</span>
-               <p className="text-sm text-studio-text">No Animations Found</p>
-               <p className="text-xs text-studio-muted mt-1">This GLB does not have embedded skeletal animations.</p>
+              <span className="text-lg mb-2">🤷‍♂️</span>
+              <p className="text-sm text-studio-text">No Animations Found</p>
+              <p className="text-xs text-studio-muted mt-1">
+                This GLB does not have embedded skeletal animations.
+              </p>
             </div>
           )}
         </div>
 
         {availableClips.length > 0 && (
           <div className="rounded-md bg-emerald-500/10 p-3 text-xs text-emerald-300/80 border border-emerald-500/20">
-            <span className="mr-1 inline-block">✨</span> 
-            Animation updates instantly with zero rendering latency via the useSkeletalAnimation hook.
+            <span className="mr-1 inline-block">✨</span>
+            Animation updates instantly with zero rendering latency via the useSkeletalAnimation
+            hook.
           </div>
         )}
       </div>

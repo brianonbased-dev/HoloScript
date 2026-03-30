@@ -425,11 +425,15 @@ export class A2AAgentCardCompiler extends CompilerBase {
     const examples: string[] = [];
     if (template.actions) {
       for (const action of template.actions) {
-        examples.push(`Invoke ${this.escapeStringValue(action.name as string, 'TypeScript')} on ${this.escapeStringValue(template.name as string, 'TypeScript')}`);
+        examples.push(
+          `Invoke ${this.escapeStringValue(action.name as string, 'JSON')} on ${this.escapeStringValue(template.name as string, 'JSON')}`
+        );
       }
     }
     if (examples.length === 0) {
-      examples.push(`Create a ${this.escapeStringValue(template.name as string, 'TypeScript')} instance`);
+      examples.push(
+        `Create a ${this.escapeStringValue(template.name as string, 'JSON')} instance`
+      );
     }
 
     return {
@@ -463,22 +467,28 @@ export class A2AAgentCardCompiler extends CompilerBase {
 
     const examples: string[] = [];
     if (objTraitNames.includes('sensor')) {
-      examples.push(`Read sensor data from ${this.escapeStringValue(obj.name as string, 'TypeScript')}`);
+      examples.push(
+        `Read sensor data from ${this.escapeStringValue(obj.name as string, 'JSON')}`
+      );
     }
     if (objTraitNames.includes('networked')) {
-      examples.push(`Synchronize ${this.escapeStringValue(obj.name as string, 'TypeScript')} across network`);
+      examples.push(
+        `Synchronize ${this.escapeStringValue(obj.name as string, 'JSON')} across network`
+      );
     }
     if (objTraitNames.includes('ai') || objTraitNames.includes('autonomous')) {
-      examples.push(`Query ${this.escapeStringValue(obj.name as string, 'TypeScript')} for autonomous behavior`);
+      examples.push(
+        `Query ${this.escapeStringValue(obj.name as string, 'JSON')} for autonomous behavior`
+      );
     }
     if (examples.length === 0) {
-      examples.push(`Interact with ${this.escapeStringValue(obj.name as string, 'TypeScript')}`);
+      examples.push(`Interact with ${this.escapeStringValue(obj.name as string, 'JSON')}`);
     }
 
     return {
-      id: this.sanitizeId(`object_${this.escapeStringValue(obj.name as string, 'TypeScript')}`),
+      id: this.sanitizeId(`object_${this.escapeStringValue(obj.name as string, 'JSON')}`),
       name: this.formatDisplayName(obj.name),
-      description: `${this.escapeStringValue(obj.name as string, 'TypeScript')} object with ${objTraitNames.join(', ')} capabilities`,
+      description: `${this.escapeStringValue(obj.name as string, 'JSON')} object with ${objTraitNames.join(', ')} capabilities`,
       tags,
       examples,
     };
@@ -587,11 +597,16 @@ export class A2AAgentCardCompiler extends CompilerBase {
     ];
 
     return {
-      id: this.sanitizeId(`${block.domain}_${this.escapeStringValue(block.name as string, 'TypeScript')}`),
+      id: this.sanitizeId(
+        `${block.domain}_${this.escapeStringValue(block.name as string, 'JSON')}`
+      ),
       name: this.formatDisplayName(block.name),
-      description: `${block.domain} domain: ${block.keyword} "${this.escapeStringValue(block.name as string, 'TypeScript')}" with ${Object.keys(block.properties).length} properties`,
+      description: `${block.domain} domain: ${block.keyword} "${this.escapeStringValue(block.name as string, 'JSON')}" with ${Object.keys(block.properties).length} properties`,
       tags: [...new Set(tags)], // deduplicate
-      examples: [`Query ${block.keyword} ${this.escapeStringValue(block.name as string, 'TypeScript')}`, `Update ${this.escapeStringValue(block.name as string, 'TypeScript')} properties`],
+      examples: [
+        `Query ${block.keyword} ${this.escapeStringValue(block.name as string, 'JSON')}`,
+        `Update ${this.escapeStringValue(block.name as string, 'JSON')} properties`,
+      ],
     };
   }
 
@@ -603,17 +618,20 @@ export class A2AAgentCardCompiler extends CompilerBase {
     if (npc.npcType) tags.push(npc.npcType);
     if (npc.dialogueTree) tags.push('dialogue');
 
-    const examples: string[] = [`Talk to ${this.escapeStringValue(npc.name as string, 'TypeScript')}`, `Ask ${this.escapeStringValue(npc.name as string, 'TypeScript')} a question`];
+    const examples: string[] = [
+      `Talk to ${this.escapeStringValue(npc.name as string, 'JSON')}`,
+      `Ask ${this.escapeStringValue(npc.name as string, 'JSON')} a question`,
+    ];
 
     if (npc.behaviors?.length > 0) {
       tags.push('behavioral');
-      examples.push(`Trigger ${this.escapeStringValue(npc.name as string, 'TypeScript')} behavior`);
+      examples.push(`Trigger ${this.escapeStringValue(npc.name as string, 'JSON')} behavior`);
     }
 
     return {
-      id: this.sanitizeId(`npc_${this.escapeStringValue(npc.name as string, 'TypeScript')}`),
+      id: this.sanitizeId(`npc_${this.escapeStringValue(npc.name as string, 'JSON')}`),
       name: `${this.formatDisplayName(npc.name)} (NPC)`,
-      description: `Non-player character "${this.escapeStringValue(npc.name as string, 'TypeScript')}" with ${npc.behaviors?.length || 0} behavior(s)`,
+      description: `Non-player character "${this.escapeStringValue(npc.name as string, 'JSON')}" with ${npc.behaviors?.length || 0} behavior(s)`,
       tags,
       examples,
       inputModes: ['text/plain'],
@@ -674,7 +692,9 @@ export class A2AAgentCardCompiler extends CompilerBase {
       name: 'Ability System',
       description: `Ability system with ${abilities.length} abilities: ${abilities.map((a) => a.name).join(', ')}`,
       tags: ['abilities', 'game-mechanics', 'combat', ...abilityTypes],
-      examples: abilities.map((a) => `Use ability: ${this.escapeStringValue(a.name as string, 'TypeScript')}`),
+      examples: abilities.map(
+        (a) => `Use ability: ${this.escapeStringValue(a.name as string, 'JSON')}`
+      ),
     };
   }
 
@@ -770,7 +790,9 @@ export class A2AAgentCardCompiler extends CompilerBase {
   private generateDescription(composition: HoloComposition): string {
     const parts: string[] = [];
 
-    parts.push(`HoloScript agent "${this.escapeStringValue(composition.name as string, 'TypeScript')}"`);
+    parts.push(
+      `HoloScript agent "${this.escapeStringValue(composition.name as string, 'JSON')}"`
+    );
 
     const features: string[] = [];
     if (composition.templates?.length) {
@@ -802,7 +824,7 @@ export class A2AAgentCardCompiler extends CompilerBase {
    */
   private generateTemplateDescription(template: HoloTemplate): string {
     const parts: string[] = [];
-    parts.push(`Template "${this.escapeStringValue(template.name as string, 'TypeScript')}"`);
+    parts.push(`Template "${this.escapeStringValue(template.name as string, 'JSON')}"`);
 
     const traits = template.traits?.map((t) => (typeof t === 'string' ? t : t.name)) ?? [];
     if (traits.length > 0) {

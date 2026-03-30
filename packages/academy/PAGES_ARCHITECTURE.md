@@ -15,23 +15,23 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### A. Studio Pages (`packages/studio/src/app/`)
 
-| Route | File | Rendering | Purpose | Status |
-|---|---|---|---|---|
-| `/` | `page.tsx` | Client | Landing page. 4 mode cards (Play/Learn/Create/Industry) + 9 industry portals | **Complete** |
-| `/create` | `create/page.tsx` | Client | **Core IDE**. 43-panel editor: Monaco code editor, 3D SceneRenderer, AI chat (Brittney), trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. This is the main product. | **Complete (large, ~800+ lines)** |
-| `/play` | `play/page.tsx` | Client | Kid-friendly 3D builder. Drag-and-drop shapes with R3F Canvas, animations, particles, physics simulation, Proof-of-Play gamification. Ages 5-12. | **Complete (large, ~1000+ lines)** |
-| `/playground` | `playground/page.tsx` | Client | Embeddable HoloScript sandbox. Monaco editor left, parse tree right. URL-shareable via `?code=<base64>`. No auth required. | **Complete** |
-| `/workspace` | `workspace/page.tsx` | Client | Creator hub. 7 content types (scenes, traits, skills, agents, plugins, training data, templates) with stats, search, quick actions. | **Complete** |
-| `/workspace/skills` | `workspace/skills/page.tsx` | Client | Skill Builder IDE. SKILL.md editor with YAML frontmatter, file tree, test harness, metadata panel, publish-to-marketplace flow. | **Complete** |
-| `/holodaemon` | `holodaemon/page.tsx` | Client | Daemon dashboard. Status, metrics (quality/type-errors/jobs/cost), agent pool, BT phase progress, event feed, HoloScript source preview. | **Complete (large)** |
-| `/holoclaw` | `holoclaw/page.tsx` | Client | Skill shelf. Browse installed `.hsplus` skills, create from templates, SSE-streaming activity feed. 3 tabs: Shelf/Create/Activity. | **Complete** |
-| `/registry` | `registry/page.tsx` | Client | Public asset pack browser. Search + tag filters + import flow. | **Complete** |
-| `/shader-editor` | `shader-editor/page.tsx` | Client | Visual shader editor. Delegates to `<ShaderEditor />` component. | **Complete (wrapper)** |
-| `/templates` | `templates/page.tsx` | Client | Template gallery. 5 built-in templates (forest, space station, art gallery, zen garden, neon city). Loads `.holo` file and navigates to `/create`. | **Complete** |
-| `/projects` | `projects/page.tsx` | Client | User's saved projects. List from IndexedDB, open/delete. | **Complete** |
-| `/view/[id]` | `view/[id]/page.tsx` | Client | Read-only scene viewer. Full-screen SceneRenderer, no editor UI. Fetches from `/api/publish`. | **Complete** |
-| `/shared/[id]` | `shared/[id]/page.tsx` | **Server (SSR/ISR)** | Community scene page. SEO-optimized with `generateMetadata`. ISR (60s revalidate). Shows scene info + code viewer + "Open in Studio" CTA. | **Complete** |
-| `/remote/[token]` | `remote/[token]/page.tsx` | Client | Mobile touch controller. Virtual joystick + zoom/pan/select. Sends PUT to `/api/remote`. Opened via QR code. | **Complete** |
+| Route               | File                        | Rendering            | Purpose                                                                                                                                                                                                                            | Status                             |
+| ------------------- | --------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `/`                 | `page.tsx`                  | Client               | Landing page. 4 mode cards (Play/Learn/Create/Industry) + 9 industry portals                                                                                                                                                       | **Complete**                       |
+| `/create`           | `create/page.tsx`           | Client               | **Core IDE**. 43-panel editor: Monaco code editor, 3D SceneRenderer, AI chat (Brittney), trait inspector, asset library, timeline, physics, particles, shader editor, node graph, collaboration, export. This is the main product. | **Complete (large, ~800+ lines)**  |
+| `/play`             | `play/page.tsx`             | Client               | Kid-friendly 3D builder. Drag-and-drop shapes with R3F Canvas, animations, particles, physics simulation, Proof-of-Play gamification. Ages 5-12.                                                                                   | **Complete (large, ~1000+ lines)** |
+| `/playground`       | `playground/page.tsx`       | Client               | Embeddable HoloScript sandbox. Monaco editor left, parse tree right. URL-shareable via `?code=<base64>`. No auth required.                                                                                                         | **Complete**                       |
+| `/workspace`        | `workspace/page.tsx`        | Client               | Creator hub. 7 content types (scenes, traits, skills, agents, plugins, training data, templates) with stats, search, quick actions.                                                                                                | **Complete**                       |
+| `/workspace/skills` | `workspace/skills/page.tsx` | Client               | Skill Builder IDE. SKILL.md editor with YAML frontmatter, file tree, test harness, metadata panel, publish-to-marketplace flow.                                                                                                    | **Complete**                       |
+| `/holodaemon`       | `holodaemon/page.tsx`       | Client               | Daemon dashboard. Status, metrics (quality/type-errors/jobs/cost), agent pool, BT phase progress, event feed, HoloScript source preview.                                                                                           | **Complete (large)**               |
+| `/holoclaw`         | `holoclaw/page.tsx`         | Client               | Skill shelf. Browse installed `.hsplus` skills, create from templates, SSE-streaming activity feed. 3 tabs: Shelf/Create/Activity.                                                                                                 | **Complete**                       |
+| `/registry`         | `registry/page.tsx`         | Client               | Public asset pack browser. Search + tag filters + import flow.                                                                                                                                                                     | **Complete**                       |
+| `/shader-editor`    | `shader-editor/page.tsx`    | Client               | Visual shader editor. Delegates to `<ShaderEditor />` component.                                                                                                                                                                   | **Complete (wrapper)**             |
+| `/templates`        | `templates/page.tsx`        | Client               | Template gallery. 5 built-in templates (forest, space station, art gallery, zen garden, neon city). Loads `.holo` file and navigates to `/create`.                                                                                 | **Complete**                       |
+| `/projects`         | `projects/page.tsx`         | Client               | User's saved projects. List from IndexedDB, open/delete.                                                                                                                                                                           | **Complete**                       |
+| `/view/[id]`        | `view/[id]/page.tsx`        | Client               | Read-only scene viewer. Full-screen SceneRenderer, no editor UI. Fetches from `/api/publish`.                                                                                                                                      | **Complete**                       |
+| `/shared/[id]`      | `shared/[id]/page.tsx`      | **Server (SSR/ISR)** | Community scene page. SEO-optimized with `generateMetadata`. ISR (60s revalidate). Shows scene info + code viewer + "Open in Studio" CTA.                                                                                          | **Complete**                       |
+| `/remote/[token]`   | `remote/[token]/page.tsx`   | Client               | Mobile touch controller. Virtual joystick + zoom/pan/select. Sends PUT to `/api/remote`. Opened via QR code.                                                                                                                       | **Complete**                       |
 
 **Utility Pages:**
 | File | Purpose |
@@ -51,28 +51,28 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 
 ### B. Marketplace Pages (`packages/marketplace-web/src/app/`)
 
-| Route | File | Rendering | Purpose | Status |
-|---|---|---|---|---|
-| `/` | `page.tsx` | Client | Trait discovery. Hero + search + category filters + trait grid + popular/recent sections. | **Complete** |
-| `/traits/[id]` | `traits/[id]/page.tsx` | Client | Trait detail page. Readme/Versions/Dependencies/Examples tabs, install command, download stats. | **Complete** |
-| `/dashboard` | `dashboard/page.tsx` | Client | Creator dashboard. Requires Web3 wallet (wagmi). Shows balance, minted traits, royalties. | **Complete (shell)** |
-| `/library` | `library/page.tsx` | Client | User's purchased traits. Requires Web3 wallet auth. | **Complete (shell)** |
+| Route          | File                   | Rendering | Purpose                                                                                         | Status               |
+| -------------- | ---------------------- | --------- | ----------------------------------------------------------------------------------------------- | -------------------- |
+| `/`            | `page.tsx`             | Client    | Trait discovery. Hero + search + category filters + trait grid + popular/recent sections.       | **Complete**         |
+| `/traits/[id]` | `traits/[id]/page.tsx` | Client    | Trait detail page. Readme/Versions/Dependencies/Examples tabs, install command, download stats. | **Complete**         |
+| `/dashboard`   | `dashboard/page.tsx`   | Client    | Creator dashboard. Requires Web3 wallet (wagmi). Shows balance, minted traits, royalties.       | **Complete (shell)** |
+| `/library`     | `library/page.tsx`     | Client    | User's purchased traits. Requires Web3 wallet auth.                                             | **Complete (shell)** |
 
 ### C. Pages That Are Referenced But Do NOT Exist Yet
 
 These routes are linked to from existing pages but have no corresponding `page.tsx`:
 
-| Missing Route | Linked From | What It Should Be |
-|---|---|---|
-| `/learn` | Home page mode card | Learn mode for ages 13-22. Step-by-step scenarios, visual + code view, achievement badges. |
-| `/create?mode=industry` | Home page mode card | Query-param variant of `/create` for industry-specific templates/workflows. Need to handle in Create page. |
-| `/create?industry=<id>` | Home page industry chips | Query-param filtering in Create page. 9 industries defined but no handler yet. |
-| `/workspace/traits/new` | Workspace page | Trait creation wizard |
-| `/workspace/agents/new` | Workspace page | Agent creation wizard |
-| `/workspace/plugins/new` | Workspace page | Plugin creation wizard |
-| `/workspace/training-data/new` | Workspace page | Training data creation wizard (DataForge) |
-| `/workspace/templates/new` | Workspace page | Template creation wizard |
-| `/publishers/[id]` | Marketplace trait detail | Publisher profile page |
+| Missing Route                  | Linked From              | What It Should Be                                                                                          |
+| ------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `/learn`                       | Home page mode card      | Learn mode for ages 13-22. Step-by-step scenarios, visual + code view, achievement badges.                 |
+| `/create?mode=industry`        | Home page mode card      | Query-param variant of `/create` for industry-specific templates/workflows. Need to handle in Create page. |
+| `/create?industry=<id>`        | Home page industry chips | Query-param filtering in Create page. 9 industries defined but no handler yet.                             |
+| `/workspace/traits/new`        | Workspace page           | Trait creation wizard                                                                                      |
+| `/workspace/agents/new`        | Workspace page           | Agent creation wizard                                                                                      |
+| `/workspace/plugins/new`       | Workspace page           | Plugin creation wizard                                                                                     |
+| `/workspace/training-data/new` | Workspace page           | Training data creation wizard (DataForge)                                                                  |
+| `/workspace/templates/new`     | Workspace page           | Template creation wizard                                                                                   |
+| `/publishers/[id]`             | Marketplace trait detail | Publisher profile page                                                                                     |
 
 ---
 
@@ -104,6 +104,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 ### C. API Routes (51 total in Studio)
 
 **Core Scene Operations:**
+
 - `/api/generate` — AI scene generation (Brittney/LLM)
 - `/api/publish` — Publish scene for public viewing
 - `/api/share` + `/api/share/[id]` — Share scene links
@@ -114,6 +115,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/examples` — Example scenes
 
 **Editor Features:**
+
 - `/api/autocomplete` — Monaco autocomplete
 - `/api/critique` — AI scene critique
 - `/api/repl` — HoloScript REPL
@@ -122,6 +124,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/prompts` — Prompt library
 
 **3D/Graphics:**
+
 - `/api/materials` + `/api/material/generate` — Material system
 - `/api/shader-presets` — Shader presets
 - `/api/environment-presets` — Environment presets
@@ -133,18 +136,22 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/polyhaven` — PolyHaven texture integration
 
 **Assets:**
+
 - `/api/assets` + `/api/assets/process` — Asset management & processing
 - `/api/asset-packs` — Asset pack management
 - `/api/registry` + `/api/registry/[packId]` — Community registry
 
 **Export:**
+
 - `/api/export` + `/api/export/v2` + `/api/export/gltf` — Multi-format export
 
 **Collaboration:**
+
 - `/api/rooms` — Multiplayer rooms
 - `/api/remote-session` + `/api/remote` — Remote control sessions
 
 **Infrastructure:**
+
 - `/api/health` — Health check
 - `/api/brittney` — AI assistant
 - `/api/plugins` — Plugin system
@@ -154,6 +161,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/git/blame` — Git blame overlay
 
 **Daemon:**
+
 - `/api/daemon/jobs` + `/api/daemon/jobs/[id]` — Daemon job management
 - `/api/daemon/surface` — Daemon operations surface
 - `/api/daemon/absorb` — Daemon absorption
@@ -167,12 +175,14 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 ### Current Build Configuration
 
 **Studio (`next.config.js`):**
+
 - `output: 'standalone'` on Linux/macOS (Docker/Railway), skipped on Windows
 - `transpilePackages`: `@holoscript/core`, `@holoscript/std`, `@holoscript/studio-plugin-sdk`, `three`
 - Custom webpack: `.glb/.gltf/.hdr` as asset/resource, Node.js polyfill stubs for client-side, alias blocklists for `@pixiv/three-vrm`, `ioredis`, blockchain packages
 - Dev port: 3100
 
 **Marketplace (`next.config.js`):**
+
 - API proxy: rewrites `/api/*` to `MARKETPLACE_API_URL` (default `http://localhost:3001`)
 - `transpilePackages`: `@holoscript/marketplace-api`
 - Image domains: `avatars.githubusercontent.com`, `marketplace.holoscript.net`
@@ -204,15 +214,15 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 ### Deployment Services
 
-| Service | Package | Port | Dockerfile | Railway Config |
-|---|---|---|---|---|
-| Studio | `@holoscript/studio` | 3100 | Uses standalone output | `railway.toml` (TBD) |
-| Marketplace Web | `@holoscript/marketplace-web` | 3000 | Needs Dockerfile | TBD |
-| Marketplace API | `@holoscript/marketplace-api` | 3001 | Needs Dockerfile | TBD |
-| MCP Server | `@holoscript/mcp-server` | 5567 | `Dockerfile.mcp-server` | `railway.mcp-server.toml` |
-| Export API | `services/export-api` | TBD | Needs Dockerfile | TBD |
-| LLM Service | `services/llm-service` | TBD | Needs Dockerfile | TBD |
-| Render Service | `services/render-service` | TBD | Needs Dockerfile | TBD |
+| Service         | Package                       | Port | Dockerfile              | Railway Config            |
+| --------------- | ----------------------------- | ---- | ----------------------- | ------------------------- |
+| Studio          | `@holoscript/studio`          | 3100 | Uses standalone output  | `railway.toml` (TBD)      |
+| Marketplace Web | `@holoscript/marketplace-web` | 3000 | Needs Dockerfile        | TBD                       |
+| Marketplace API | `@holoscript/marketplace-api` | 3001 | Needs Dockerfile        | TBD                       |
+| MCP Server      | `@holoscript/mcp-server`      | 5567 | `Dockerfile.mcp-server` | `railway.mcp-server.toml` |
+| Export API      | `services/export-api`         | TBD  | Needs Dockerfile        | TBD                       |
+| LLM Service     | `services/llm-service`        | TBD  | Needs Dockerfile        | TBD                       |
+| Render Service  | `services/render-service`     | TBD  | Needs Dockerfile        | TBD                       |
 
 ---
 
@@ -244,15 +254,15 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 ### Missing Pages — Priority Order
 
-| Priority | Page | Effort | Description |
-|---|---|---|---|
-| P0 | `/learn` | Large | Core mode. Tutorial engine + progress tracking + achievements. |
-| P1 | `/workspace/traits/new` | Medium | Trait authoring wizard. Define trait properties, behaviors, test in sandbox. |
-| P1 | `/workspace/agents/new` | Medium | Agent training wizard. Upload training data, configure model, deploy. |
-| P2 | `/workspace/plugins/new` | Medium | Plugin authoring. Scaffold, test, publish. |
-| P2 | `/workspace/training-data/new` | Medium | DataForge integration. Upload, clean, format, validate datasets. |
-| P2 | `/workspace/templates/new` | Small | Template creator. Save current scene as template. |
-| P3 | `/publishers/[id]` | Small | Marketplace publisher profile. List published traits, stats. |
+| Priority | Page                           | Effort | Description                                                                  |
+| -------- | ------------------------------ | ------ | ---------------------------------------------------------------------------- |
+| P0       | `/learn`                       | Large  | Core mode. Tutorial engine + progress tracking + achievements.               |
+| P1       | `/workspace/traits/new`        | Medium | Trait authoring wizard. Define trait properties, behaviors, test in sandbox. |
+| P1       | `/workspace/agents/new`        | Medium | Agent training wizard. Upload training data, configure model, deploy.        |
+| P2       | `/workspace/plugins/new`       | Medium | Plugin authoring. Scaffold, test, publish.                                   |
+| P2       | `/workspace/training-data/new` | Medium | DataForge integration. Upload, clean, format, validate datasets.             |
+| P2       | `/workspace/templates/new`     | Small  | Template creator. Save current scene as template.                            |
+| P3       | `/publishers/[id]`             | Small  | Marketplace publisher profile. List published traits, stats.                 |
 
 ---
 
@@ -311,28 +321,28 @@ Workspace (/workspace)
 
 ### Heavyweight Components (bundle impact)
 
-| Component | Dependencies | Dynamic? |
-|---|---|---|
-| `SceneRenderer` | three, @react-three/fiber, @react-three/drei, rapier3d | Yes (dynamic import) |
-| `MonacoEditor` | @monaco-editor/react | Yes (dynamic import) |
-| `AppShell` | Panel layout, hotkeys, 43+ panels | Yes (dynamic import) |
-| `PluginHostProvider` | Plugin SDK, sandboxing | Yes (dynamic import) |
-| `ShaderEditor` | React Flow, shader compilation, three.js | No (should be dynamic) |
-| `CreatorDashboard` | React Query, Chart.js, react-chartjs-2 | No (orphaned) |
-| `BrittneyChatPanel` | AI service, streaming responses | No (imported in /create) |
-| `TraitInspector` | Property editors, validation | No (imported in /create) |
+| Component            | Dependencies                                           | Dynamic?                 |
+| -------------------- | ------------------------------------------------------ | ------------------------ |
+| `SceneRenderer`      | three, @react-three/fiber, @react-three/drei, rapier3d | Yes (dynamic import)     |
+| `MonacoEditor`       | @monaco-editor/react                                   | Yes (dynamic import)     |
+| `AppShell`           | Panel layout, hotkeys, 43+ panels                      | Yes (dynamic import)     |
+| `PluginHostProvider` | Plugin SDK, sandboxing                                 | Yes (dynamic import)     |
+| `ShaderEditor`       | React Flow, shader compilation, three.js               | No (should be dynamic)   |
+| `CreatorDashboard`   | React Query, Chart.js, react-chartjs-2                 | No (orphaned)            |
+| `BrittneyChatPanel`  | AI service, streaming responses                        | No (imported in /create) |
+| `TraitInspector`     | Property editors, validation                           | No (imported in /create) |
 
 ### State Stores (Zustand)
 
-| Store | File | Consumers |
-|---|---|---|
-| `useSceneStore` | `lib/stores` | `/create`, `/templates`, `/projects` |
-| `useEditorStore` | `lib/stores` | `/create` |
-| `useSceneGraphStore` | `lib/stores` | `/create` |
-| `usePanelVisibilityStore` | `lib/stores` | `/create` |
-| `useProjectStore` | `lib/projectStore` | `/create`, `/projects` |
-| `useTemporalStore` | `lib/historyStore` | `/create` |
-| `useAssetStore` | `components/assets/useAssetStore` | `/create` |
+| Store                     | File                              | Consumers                            |
+| ------------------------- | --------------------------------- | ------------------------------------ |
+| `useSceneStore`           | `lib/stores`                      | `/create`, `/templates`, `/projects` |
+| `useEditorStore`          | `lib/stores`                      | `/create`                            |
+| `useSceneGraphStore`      | `lib/stores`                      | `/create`                            |
+| `usePanelVisibilityStore` | `lib/stores`                      | `/create`                            |
+| `useProjectStore`         | `lib/projectStore`                | `/create`, `/projects`               |
+| `useTemporalStore`        | `lib/historyStore`                | `/create`                            |
+| `useAssetStore`           | `components/assets/useAssetStore` | `/create`                            |
 
 ---
 
@@ -361,11 +371,11 @@ Workspace (/workspace)
 
 ### Performance Targets
 
-| Metric | Target | Current |
-|---|---|---|
-| LCP (landing) | < 2.5s | Unknown |
-| FID | < 100ms | Unknown |
-| CLS | < 0.1 | Unknown |
-| TTI (`/create`) | < 5s | Unknown (heavy page) |
-| Bundle size (landing) | < 200KB gzipped | Unknown |
-| Bundle size (`/create`) | < 1MB gzipped | Likely over (three.js + Monaco + R3F) |
+| Metric                  | Target          | Current                               |
+| ----------------------- | --------------- | ------------------------------------- |
+| LCP (landing)           | < 2.5s          | Unknown                               |
+| FID                     | < 100ms         | Unknown                               |
+| CLS                     | < 0.1           | Unknown                               |
+| TTI (`/create`)         | < 5s            | Unknown (heavy page)                  |
+| Bundle size (landing)   | < 200KB gzipped | Unknown                               |
+| Bundle size (`/create`) | < 1MB gzipped   | Likely over (three.js + Monaco + R3F) |

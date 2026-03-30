@@ -17,11 +17,8 @@ interface VoteButtonProps {
 }
 
 export function VoteButton({ voteCount, userVote, onVote, compact }: VoteButtonProps) {
-  const countColor = voteCount > 0
-    ? 'text-emerald-400'
-    : voteCount < 0
-      ? 'text-red-400'
-      : 'text-studio-muted';
+  const countColor =
+    voteCount > 0 ? 'text-emerald-400' : voteCount < 0 ? 'text-red-400' : 'text-studio-muted';
 
   if (compact) {
     return (

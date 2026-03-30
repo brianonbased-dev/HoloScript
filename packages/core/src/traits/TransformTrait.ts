@@ -30,7 +30,12 @@ export type TransformOp =
   | { type: 'rename'; from: string; to: string }
   | { type: 'default'; field: string; value: unknown }
   | { type: 'compute'; field: string; expr: string }
-  | { type: 'filter'; field: string; op: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'exists'; value: unknown }
+  | {
+      type: 'filter';
+      field: string;
+      op: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'exists';
+      value: unknown;
+    }
   | { type: 'map_value'; field: string; mapping: Record<string, unknown> };
 
 export interface TransformRule {
@@ -113,13 +118,27 @@ function applyOp(data: Record<string, unknown>, op: TransformOp): Record<string,
       const fieldVal = data[op.field];
       let pass = false;
       switch (op.op) {
-        case 'eq': pass = fieldVal === op.value; break;
-        case 'neq': pass = fieldVal !== op.value; break;
-        case 'gt': pass = (fieldVal as number) > (op.value as number); break;
-        case 'gte': pass = (fieldVal as number) >= (op.value as number); break;
-        case 'lt': pass = (fieldVal as number) < (op.value as number); break;
-        case 'lte': pass = (fieldVal as number) <= (op.value as number); break;
-        case 'exists': pass = op.value ? (op.field in data) : !(op.field in data); break;
+        case 'eq':
+          pass = fieldVal === op.value;
+          break;
+        case 'neq':
+          pass = fieldVal !== op.value;
+          break;
+        case 'gt':
+          pass = (fieldVal as number) > (op.value as number);
+          break;
+        case 'gte':
+          pass = (fieldVal as number) >= (op.value as number);
+          break;
+        case 'lt':
+          pass = (fieldVal as number) < (op.value as number);
+          break;
+        case 'lte':
+          pass = (fieldVal as number) <= (op.value as number);
+          break;
+        case 'exists':
+          pass = op.value ? op.field in data : !(op.field in data);
+          break;
       }
       return pass ? data : null; // null = filtered out
     }
@@ -219,7 +238,7 @@ export const transformHandler: TraitHandler<TransformConfig> = {
           totalProcessed: state.totalProcessed,
           totalFiltered: state.totalFiltered,
           totalErrors: state.totalErrors,
-          rules: Array.from(state.rules.values()).map(r => ({
+          rules: Array.from(state.rules.values()).map((r) => ({
             id: r.id,
             source: r.source_event,
             output: r.output_event,

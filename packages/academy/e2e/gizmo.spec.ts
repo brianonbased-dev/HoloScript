@@ -26,7 +26,9 @@ test.describe('Gizmo Synchronization', () => {
     await page.goto('/create', { waitUntil: 'domcontentloaded', timeout: 60_000 });
 
     // Next dev can briefly render an error shell during incremental compiles.
-    const startupErrorHeading = page.getByRole('heading', { name: /something went wrong/i }).first();
+    const startupErrorHeading = page
+      .getByRole('heading', { name: /something went wrong/i })
+      .first();
     if (await startupErrorHeading.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
     }
@@ -34,11 +36,17 @@ test.describe('Gizmo Synchronization', () => {
     await expect(page.locator('canvas').first()).toBeVisible({ timeout: 60_000 });
   });
 
-  test('Scale transform input updates without causing UI detachment/latency (0-frame lock)', async ({ page }) => {
+  test('Scale transform input updates without causing UI detachment/latency (0-frame lock)', async ({
+    page,
+  }) => {
     const errors: string[] = [];
     page.on('console', (msg) => {
       // Ignore WebGL/Three debug warnings
-      if (msg.type() === 'error' && !msg.text().includes('WebGL') && !msg.text().includes('THREE')) {
+      if (
+        msg.type() === 'error' &&
+        !msg.text().includes('WebGL') &&
+        !msg.text().includes('THREE')
+      ) {
         errors.push(msg.text());
       }
     });

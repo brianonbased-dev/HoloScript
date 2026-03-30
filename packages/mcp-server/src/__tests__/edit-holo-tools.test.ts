@@ -52,13 +52,13 @@ object Floor {
 
 describe('editHoloTools — registration', () => {
   it('exports edit_holo tool definition', () => {
-    const tool = editHoloTools.find(t => t.name === 'edit_holo');
+    const tool = editHoloTools.find((t) => t.name === 'edit_holo');
     expect(tool).toBeDefined();
     expect(tool!.description).toContain('Surgically edit');
   });
 
   it('requires code, target, edits', () => {
-    const tool = editHoloTools.find(t => t.name === 'edit_holo')!;
+    const tool = editHoloTools.find((t) => t.name === 'edit_holo')!;
     const required = (tool.inputSchema as any).required;
     expect(required).toContain('code');
     expect(required).toContain('target');
@@ -142,7 +142,7 @@ describe('edit_holo — remove_property', () => {
       edits: [{ op: 'remove_property', key: 'nonexistent' }],
     });
     expect(result!.success).toBe(true);
-    expect(result!.diff.some(d => d.includes('not found'))).toBe(true);
+    expect(result!.diff.some((d) => d.includes('not found'))).toBe(true);
   });
 });
 
@@ -157,7 +157,7 @@ describe('edit_holo — add_trait', () => {
     });
     expect(result!.success).toBe(true);
     // The Floor declaration should now contain @collidable
-    const floorLine = result!.code.split('\n').find(l => l.includes('"Floor"'));
+    const floorLine = result!.code.split('\n').find((l) => l.includes('"Floor"'));
     expect(floorLine).toContain('@collidable');
   });
 
@@ -167,7 +167,7 @@ describe('edit_holo — add_trait', () => {
       target: 'Floor',
       edits: [{ op: 'add_trait', trait: 'walkable' }],
     });
-    const floorLine = result!.code.split('\n').find(l => l.includes('"Floor"'));
+    const floorLine = result!.code.split('\n').find((l) => l.includes('"Floor"'));
     expect(floorLine).toContain('@walkable');
   });
 
@@ -177,7 +177,7 @@ describe('edit_holo — add_trait', () => {
       target: 'Player',
       edits: [{ op: 'add_trait', trait: '@grabbable' }],
     });
-    expect(result!.diff.some(d => d.includes('already present'))).toBe(true);
+    expect(result!.diff.some((d) => d.includes('already present'))).toBe(true);
   });
 });
 
@@ -191,7 +191,7 @@ describe('edit_holo — remove_trait', () => {
       edits: [{ op: 'remove_trait', trait: '@physics' }],
     });
     expect(result!.success).toBe(true);
-    const playerLine = result!.code.split('\n').find(l => l.includes('"Player"'));
+    const playerLine = result!.code.split('\n').find((l) => l.includes('"Player"'));
     expect(playerLine).not.toContain('@physics');
     expect(playerLine).toContain('@grabbable'); // other trait preserved
   });
@@ -202,7 +202,7 @@ describe('edit_holo — remove_trait', () => {
       target: 'Player',
       edits: [{ op: 'remove_trait', trait: '@nonexistent' }],
     });
-    expect(result!.diff.some(d => d.includes('not found'))).toBe(true);
+    expect(result!.diff.some((d) => d.includes('not found'))).toBe(true);
   });
 });
 
@@ -239,7 +239,7 @@ describe('edit_holo — multi-edit', () => {
     expect(result!.code).toContain('color: "green"');
     expect(result!.code).toContain('speed: 10');
     expect(result!.code).not.toContain('height: 1.8');
-    const playerLine = result!.code.split('\n').find(l => l.includes('"Player"'));
+    const playerLine = result!.code.split('\n').find((l) => l.includes('"Player"'));
     expect(playerLine).toContain('@glowing');
     expect(result!.diff).toHaveLength(4);
   });
@@ -330,7 +330,7 @@ describe('edit_holo — chained sequential edits', () => {
 
     // Both edits should be present in final output
     expect(step2!.code).toContain('speed: 5');
-    const crateLine = step2!.code.split('\n').find(l => l.includes('"Crate"'));
+    const crateLine = step2!.code.split('\n').find((l) => l.includes('"Crate"'));
     expect(crateLine).toContain('@collidable');
 
     // Source structure preserved

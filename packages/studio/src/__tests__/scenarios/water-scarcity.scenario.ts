@@ -26,7 +26,7 @@ function mitigationStrategy(severity: number): string {
 }
 
 function sensorStaleness(lastReading: number, now: number, thresholdMs: number): boolean {
-  return (now - lastReading) > thresholdMs;
+  return now - lastReading > thresholdMs;
 }
 
 describe('Scenario: Water Scarcity — Sensor Fusion', () => {
@@ -79,7 +79,10 @@ interface SatelliteLayer {
 }
 
 interface CompositePixel {
-  r: number; g: number; b: number; a: number;
+  r: number;
+  g: number;
+  b: number;
+  a: number;
 }
 
 function composeLayers(layers: SatelliteLayer[]): SatelliteLayer[] {
@@ -87,10 +90,7 @@ function composeLayers(layers: SatelliteLayer[]): SatelliteLayer[] {
   return [...layers].sort((a, b) => b.opacity - a.opacity);
 }
 
-function layerCoversRegion(
-  layer: SatelliteLayer,
-  region: { lat: number; lon: number },
-): boolean {
+function layerCoversRegion(layer: SatelliteLayer, region: { lat: number; lon: number }): boolean {
   return (
     region.lat >= layer.bounds.minLat &&
     region.lat <= layer.bounds.maxLat &&
@@ -105,27 +105,33 @@ function blendOpacity(base: number, overlay: number, overlayAlpha: number): numb
 
 function bestResolutionLayer(layers: SatelliteLayer[]): SatelliteLayer | null {
   if (layers.length === 0) return null;
-  return layers.reduce((best, l) => l.resolution < best.resolution ? l : best);
+  return layers.reduce((best, l) => (l.resolution < best.resolution ? l : best));
 }
 
 function filterByBand(layers: SatelliteLayer[], band: SatelliteBand): SatelliteLayer[] {
-  return layers.filter(l => l.band === band);
+  return layers.filter((l) => l.band === band);
 }
 
 describe('Scenario: Water Scarcity — Satellite Imagery Overlay', () => {
   const layers: SatelliteLayer[] = [
     {
-      band: 'visible', opacity: 1.0, resolution: 10,
+      band: 'visible',
+      opacity: 1.0,
+      resolution: 10,
       tileUrl: '/tiles/visible/{z}/{x}/{y}.png',
       bounds: { minLat: 10, maxLat: 20, minLon: 30, maxLon: 40 },
     },
     {
-      band: 'ndvi', opacity: 0.6, resolution: 30,
+      band: 'ndvi',
+      opacity: 0.6,
+      resolution: 30,
       tileUrl: '/tiles/ndvi/{z}/{x}/{y}.png',
       bounds: { minLat: 10, maxLat: 20, minLon: 30, maxLon: 40 },
     },
     {
-      band: 'infrared', opacity: 0.4, resolution: 60,
+      band: 'infrared',
+      opacity: 0.4,
+      resolution: 60,
       tileUrl: '/tiles/ir/{z}/{x}/{y}.png',
       bounds: { minLat: 12, maxLat: 18, minLon: 32, maxLon: 38 },
     },

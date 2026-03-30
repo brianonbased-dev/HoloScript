@@ -73,33 +73,33 @@ Using uaa2-service (a production AI agent orchestration platform) as the benchma
 
 ### Natively (~40%)
 
-| System | How |
-| --- | --- |
-| Agent definitions | Entity + `@agent`, `@lifecycle`, `@protocol` traits |
-| Protocol state machines | Trait state transitions, phase enums, guard conditions |
-| Knowledge schemas | `@pattern`, `@wisdom`, `@gotcha` traits with typed properties |
-| Simulation entities | Spatial entities with `@physics`, `@interaction`, `@ai` traits |
-| Economy model | `@credit`, `@job`, `@marketplace` economic primitives |
-| Entity relationships | Parent-child graph, `@network` edges, community detection |
+| System                  | How                                                            |
+| ----------------------- | -------------------------------------------------------------- |
+| Agent definitions       | Entity + `@agent`, `@lifecycle`, `@protocol` traits            |
+| Protocol state machines | Trait state transitions, phase enums, guard conditions         |
+| Knowledge schemas       | `@pattern`, `@wisdom`, `@gotcha` traits with typed properties  |
+| Simulation entities     | Spatial entities with `@physics`, `@interaction`, `@ai` traits |
+| Economy model           | `@credit`, `@job`, `@marketplace` economic primitives          |
+| Entity relationships    | Parent-child graph, `@network` edges, community detection      |
 
 ### Partially (~30%)
 
-| System | Gap |
-| --- | --- |
-| MCP tool registration | Trait describes the tool; handler needs imperative code |
-| Resilience patterns | `@circuit_breaker { threshold: 5 }` as spec; retry logic compiled |
-| Auth & RBAC | Policy-as-trait; JWT validation as compiled TypeScript |
-| Mesh networking | Topology traits; WebSocket handshake compiled |
+| System                | Gap                                                               |
+| --------------------- | ----------------------------------------------------------------- |
+| MCP tool registration | Trait describes the tool; handler needs imperative code           |
+| Resilience patterns   | `@circuit_breaker { threshold: 5 }` as spec; retry logic compiled |
+| Auth & RBAC           | Policy-as-trait; JWT validation as compiled TypeScript            |
+| Mesh networking       | Topology traits; WebSocket handshake compiled                     |
 
 ### Needs TypeScript (~30%)
 
-| System | Why |
-| --- | --- |
-| SQL/database queries | Imperative data access |
-| Express middleware | Sequential request processing |
+| System                  | Why                             |
+| ----------------------- | ------------------------------- |
+| SQL/database queries    | Imperative data access          |
+| Express middleware      | Sequential request processing   |
 | Error handling plumbing | Runtime try/catch, stack traces |
-| File I/O, streams | OS-level operations |
-| Third-party API calls | SDK-specific imperative code |
+| File I/O, streams       | OS-level operations             |
+| Third-party API calls   | SDK-specific imperative code    |
 
 **Key insight**: HoloScript handles the most valuable 40% — the domain model, architecture, and design. The 30% it can't handle is plumbing. The compiler bridge generates the boilerplate, AI fills in the imperative gaps.
 
@@ -154,14 +154,14 @@ This is not "AI replacing code." It's **AI working at the semantic level** while
 
 ## Version History
 
-| Version | Focus |
-| --- | --- |
-| v1–v2 | 3D scene description language |
-| v3 | Multi-target compiler, trait system |
-| v4 | Multi-domain expansion (IoT, robotics, healthcare) |
-| v5 | Autonomous agents, economic primitives, simulation |
-| **v6** | **Universal semantic platform — traits describe everything, not just spatial** |
+| Version | Focus                                                                          |
+| ------- | ------------------------------------------------------------------------------ |
+| v1–v2   | 3D scene description language                                                  |
+| v3      | Multi-target compiler, trait system                                            |
+| v4      | Multi-domain expansion (IoT, robotics, healthcare)                             |
+| v5      | Autonomous agents, economic primitives, simulation                             |
+| **v6**  | **Universal semantic platform — traits describe everything, not just spatial** |
 
 ---
 
-*This document is the ground truth for HoloScript's identity. When in doubt, read this first.*
+_This document is the ground truth for HoloScript's identity. When in doubt, read this first._

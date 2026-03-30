@@ -28,7 +28,9 @@ export const vectorSearchHandler: TraitHandler<VectorSearchConfig> = {
   onAttach(node: any): void {
     node.__vectorSearchState = { collections: new Map<string, VectorDoc[]>() };
   },
-  onDetach(node: any): void { delete node.__vectorSearchState; },
+  onDetach(node: any): void {
+    delete node.__vectorSearchState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: VectorSearchConfig, context: any, event: any): void {
@@ -43,7 +45,9 @@ export const vectorSearchHandler: TraitHandler<VectorSearchConfig> = {
           if (state.collections.size >= config.max_collections) break;
           state.collections.set(coll, []);
         }
-        state.collections.get(coll)!.push({ docId: event.docId as string, vector: event.vector as number[] });
+        state.collections
+          .get(coll)!
+          .push({ docId: event.docId as string, vector: event.vector as number[] });
         break;
       }
       case 'vsearch:query': {
@@ -51,7 +55,7 @@ export const vectorSearchHandler: TraitHandler<VectorSearchConfig> = {
         const docs = state.collections.get(coll) ?? [];
         const topK = (event.topK as number) ?? config.default_top_k;
         // Simplified: return first topK (real impl uses cosine similarity)
-        const matches = docs.slice(0, topK).map(d => ({ docId: d.docId, score: 1.0 }));
+        const matches = docs.slice(0, topK).map((d) => ({ docId: d.docId, score: 1.0 }));
         context.emit?.('vsearch:result', { collection: coll, matches, total: docs.length });
         break;
       }

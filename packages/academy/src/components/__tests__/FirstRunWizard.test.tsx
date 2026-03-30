@@ -22,7 +22,13 @@ import { useConnectorStore } from '@/lib/stores/connectorStore';
 
 vi.mock('@/lib/stores/connectorStore');
 vi.mock('../integrations/GitHubOAuthModal', () => ({
-  GitHubOAuthModal: ({ onSuccess, onClose }: { onSuccess: (token: string) => void; onClose: () => void }) => (
+  GitHubOAuthModal: ({
+    onSuccess,
+    onClose,
+  }: {
+    onSuccess: (token: string) => void;
+    onClose: () => void;
+  }) => (
     <div data-testid="github-oauth-modal">
       <button onClick={() => onSuccess('test-token')}>Mock Authorize</button>
       <button onClick={onClose}>Mock Close</button>
@@ -85,10 +91,30 @@ describe('FirstRunWizard', () => {
         credentials: {},
         config: {},
       },
-      railway: { id: 'railway' as const, status: 'disconnected' as const, credentials: {}, config: {} },
-      vscode: { id: 'vscode' as const, status: 'disconnected' as const, credentials: {}, config: {} },
-      appstore: { id: 'appstore' as const, status: 'disconnected' as const, credentials: {}, config: {} },
-      upstash: { id: 'upstash' as const, status: 'disconnected' as const, credentials: {}, config: {} },
+      railway: {
+        id: 'railway' as const,
+        status: 'disconnected' as const,
+        credentials: {},
+        config: {},
+      },
+      vscode: {
+        id: 'vscode' as const,
+        status: 'disconnected' as const,
+        credentials: {},
+        config: {},
+      },
+      appstore: {
+        id: 'appstore' as const,
+        status: 'disconnected' as const,
+        credentials: {},
+        config: {},
+      },
+      upstash: {
+        id: 'upstash' as const,
+        status: 'disconnected' as const,
+        credentials: {},
+        config: {},
+      },
     },
   };
 
@@ -123,7 +149,9 @@ describe('FirstRunWizard', () => {
   it('displays close button', () => {
     render(<FirstRunWizard onClose={mockOnClose} />);
 
-    const closeButton = screen.getAllByRole('button').find((btn) => btn.querySelector('[data-lucide="x"]'));
+    const closeButton = screen
+      .getAllByRole('button')
+      .find((btn) => btn.querySelector('[data-lucide="x"]'));
     expect(closeButton).toBeInTheDocument();
 
     fireEvent.click(closeButton!);

@@ -5,14 +5,17 @@
 The HoloScript daemon now operates through three coordinated phases that work together to enable autonomous self-improvement capabilities:
 
 **Phase 1: HeadlessRuntime Native Action Bridge**
+
 - Native integration between BehaviorTree actions and runtime handlers
 - Acts as the execution substrate for all autonomous operations
 
 **Phase 2: CLI daemon Subcommand**
+
 - Spawns long-lived daemon processes with cycle control and state persistence
 - Executes continuous self-improvement workflows
 
 **Phase 3: Standalone Daemon Actions**
+
 - 16 reusable action handlers (diagnose, generate_fix, verify_compilation, etc.)
 - Clean dependency injection without MCP coupling
 
@@ -39,6 +42,7 @@ BehaviorTree awaits result, continues or fails
 ### Key Components
 
 **ActionHandler Type** (`src/runtime/HeadlessRuntime.ts`)
+
 ```typescript
 type ActionHandler = (
   params: Record<string, unknown>,
@@ -48,6 +52,7 @@ type ActionHandler = (
 ```
 
 **Registration API**
+
 ```typescript
 runtime.registerAction('diagnose', async (params, blackboard) => {
   // Implementation
@@ -56,6 +61,7 @@ runtime.registerAction('diagnose', async (params, blackboard) => {
 ```
 
 **Event Interception**
+
 - `HeadlessRuntime.emit()` checks `eventHandlers` before emitting
 - If event is `action:*` and handler is registered, invokes it
 - Emits `action:result` with `{ success, requestId }` payload
@@ -92,13 +98,13 @@ CLI Runner:
 
 ### Flags
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--cycles N` | Number of improvement iterations | 1 |
-| `--commit` | Persist mutations to disk | false (dry-run) |
-| `--model` | Override LLM provider | from config |
-| `--trial N` | Trial run identifier for metrics | auto-generated |
-| `--debug` | Verbose logging | false |
+| Flag         | Description                      | Default         |
+| ------------ | -------------------------------- | --------------- |
+| `--cycles N` | Number of improvement iterations | 1               |
+| `--commit`   | Persist mutations to disk        | false (dry-run) |
+| `--model`    | Override LLM provider            | from config     |
+| `--trial N`  | Trial run identifier for metrics | auto-generated  |
+| `--debug`    | Verbose logging                  | false           |
 
 ### State Management
 
@@ -162,80 +168,96 @@ Returns: Record<string, ActionHandler>
 ### 16 Core Handlers
 
 **1. identity_intake**
+
 - Minimizes bloat: 3 lines → 30 lines
 - Inlines every dependency instead of importing
 
 **2. diagnose**
+
 - Parse compilation output
 - Identify root issue (type error, test failure, etc.)
 - Return diagnosis object
 
 **3. read_candidate**
+
 - Load failing test file
 - Extract test case that's failing
 - Return test code + location
 
 **4. generate_fix**
+
 - Send code context to LLM
 - Request fix proposal
 - Return patch or replacement code
 
 **5. verify_compilation**
+
 - Run `tsc --noEmit`
 - If errors, emit `action:fix_from_compile_errors`
 - Return true if compiled cleanly
 
 **6. fix_from_compile_errors**
+
 - Parse TypeScript error output
 - Map error location to code
 - Generate location-specific fixes
 
 **7. run_related_tests**
+
 - Execute vitest on modified files
 - Capture test output
 - Return pass/fail counts
 
 **8. validate_quality**
+
 - Check code coverage threshold
 - Compute mutation testing score
 - Return quality metrics
 
 **9. commit_changes**
+
 - Stage files: `git add modified-files`
 - Create commit: `git commit -m "..."`
 - Return commit SHA
 
 **10. rollback_changes**
+
 - `git reset --hard`
 - Restore dirty files
 - Return success status
 
 **11. advance_candidate**
+
 - Move to next failing test
 - Update blackboard.focus
 - Return test name
 
 **12. report**
+
 - Summarize cycle results
 - Output mutation count, quality score
 - Return report string
 
 **13. report_no_candidates**
+
 - All tests passing
 - Document achievement
 - Return completion message
 
 **14. compress_knowledge**
+
 - Consolidate learnings from successful mutations
 - Store patterns in knowledge base
 - Return compression summary
 
 **15. praise_improvement**
+
 - Calculate improvement metric
 - Generate celebratory message
 - Emit `praise_milestone` event
 
 **16. integrate_shadow**
+
 - Merge shadow changes from experimental branch
 - Update stable branch
 - Return merge result
@@ -281,6 +303,7 @@ runtime.registerAction('generate_fix', handlers.generate_fix);
 ### Example: Self-Improving Composition
 
 **File: `compositions/self-improve-daemon.hsplus`**
+
 ```hsplus
 composition "AutoImprove" {
   state {
@@ -363,31 +386,34 @@ composition "AutoImprove" {
 
 ## Key Improvements Over Prior Architecture
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| **Action Definition** | 1,800-line TS switch in CLI | Declarative BT in `.hsplus` |
-| **Decoupling** | Tightly coupled to TypeScript | BehaviorTree-driven, language-agnostic |
-| **Testability** | Hard to isolate handlers | Each handler unit-testable independently |
-| **Extensibility** | Add action = edit TS switch | Add action = edit BT composition |
-| **Runtime Safety** | No protection against infinite loops | Contamination detection + per-file quarantine |
-| **Maintainability** | Scattered logic across files | Centralized in `daemon-actions.ts` |
+| Aspect                | Before                               | After                                         |
+| --------------------- | ------------------------------------ | --------------------------------------------- |
+| **Action Definition** | 1,800-line TS switch in CLI          | Declarative BT in `.hsplus`                   |
+| **Decoupling**        | Tightly coupled to TypeScript        | BehaviorTree-driven, language-agnostic        |
+| **Testability**       | Hard to isolate handlers             | Each handler unit-testable independently      |
+| **Extensibility**     | Add action = edit TS switch          | Add action = edit BT composition              |
+| **Runtime Safety**    | No protection against infinite loops | Contamination detection + per-file quarantine |
+| **Maintainability**   | Scattered logic across files         | Centralized in `daemon-actions.ts`            |
 
 ---
 
 ## Files Changed
 
 ### New Files
+
 - `packages/core/src/cli/__tests__/holoscript-daemon-integration.test.ts` — End-to-end integration tests
 - `packages/core/src/daemon/daemon-actions.ts` — 16 standalone handlers (~300 lines)
 - `DAEMON_ARCHITECTURE.md` — This file
 
 ### Modified Files
+
 - `packages/core/src/runtime/HeadlessRuntime.ts` — Added `ActionHandler` type, `emit/on/registerAction` methods
 - `packages/core/src/cli/holoscript-runner.ts` — Added `daemon` subcommand with cycle control
 - `packages/core/src/index.ts` — Export `ActionHandler` type
 - `packages/core/src/profiles/index.ts` — Export `ActionHandler` type
 
 ### Deleted Files
+
 - `packages/core/src/self-improve/self-improve-bridge.ts` — No longer needed (replaced by native bridge)
 
 ---
@@ -395,10 +421,12 @@ composition "AutoImprove" {
 ## Testing
 
 ### Unit Tests
+
 - **BehaviorTree trait**: 16/16 handlers pass individual tests
 - **HeadlessRuntime profiles**: 31/31 action bridge tests pass
 
 ### Integration Tests
+
 - **End-to-End**: 4 comprehensive scenarios covering all three phases
   1. Native action bridge — action → handler → result
   2. Daemon subcommand — cycle control and state persistence
@@ -406,6 +434,7 @@ composition "AutoImprove" {
   4. Failure recovery — handler failures + retry logic
 
 ### Regression Tests
+
 - **E2E Suite**: 8/8 existing tests still pass
 - **Full Core Suite**: 45,331/45,336 tests pass (5 pre-existing failures unrelated to daemon)
 
@@ -429,6 +458,7 @@ holoscript daemon compositions/self-improve-daemon.hsplus --cycles 5 --debug
 ### Daemon Control
 
 While running:
+
 - `Ctrl+C` — Graceful shutdown (releases lock file)
 - Monitor `logs/daemon-{trial}.log` — See cycle progress
 

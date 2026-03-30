@@ -190,8 +190,8 @@ export const useMagicMoment = create<MagicMomentState>()(
           isComplete: state.isComplete,
           // Only persist completion status — code/scene are transient
         }),
-      },
+      }
     ),
-    { name: 'magic-moment-store' },
-  ),
+    { name: 'magic-moment-store' }
+  )
 );

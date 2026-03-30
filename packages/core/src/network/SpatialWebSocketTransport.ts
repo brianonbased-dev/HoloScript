@@ -21,7 +21,6 @@ export class SpatialWebSocketTransport extends NetworkTransport {
       this.ws.onopen = () => {
         this.isConnected = true;
         super.connect(peerId); // Register backend as a peer
-
       };
 
       this.ws.onmessage = (event) => {
@@ -57,24 +56,18 @@ export class SpatialWebSocketTransport extends NetworkTransport {
           if (this.onInboundState) {
             this.onInboundState(data);
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       };
 
       this.ws.onclose = () => {
         this.isConnected = false;
         super.disconnect(peerId);
-
       };
 
-      this.ws.onerror = (error) => {
-
-      };
+      this.ws.onerror = (error) => {};
 
       return true;
     } catch (e) {
-
       return false;
     }
   }
@@ -96,7 +89,6 @@ export class SpatialWebSocketTransport extends NetworkTransport {
       this.ws.send(payloadStr);
       return true;
     } catch (error) {
-
       return false;
     }
   }

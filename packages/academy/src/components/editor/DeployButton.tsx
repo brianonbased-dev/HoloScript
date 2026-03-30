@@ -52,8 +52,6 @@ const STATUS_STYLES: Record<DeployStatus, { bg: string; text: string; label: str
   error: { bg: 'bg-red-500/20', text: 'text-red-400', label: '✗ Deploy Failed' },
 };
 
-
-
 export function DeployButton({
   code,
   worldId = 'default',

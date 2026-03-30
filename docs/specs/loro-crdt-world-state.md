@@ -7,12 +7,14 @@
 ## Context
 
 ### What Exists
+
 - **@holoscript/crdt** package: DID-JWT signing, LWWRegister, ORSet, GCounter, WebRTC P2P sync, RBAC conflict resolver
 - **@holoscript/crdt-spatial** package: **Already uses Loro v1.0.0!** Strategy C hybrid rotation (base quaternion LWW + delta Euler counters + 30s checkpoints), LoroWebSocketProvider, `useSpatialSync()` React hook
 - **CRDTRoomTrait.ts**: Trait integration for CRDT rooms
 - **WeatherSystem.ts**: Event-based state changes (potential CRDT consumer)
 
 ### What's Missing
+
 - **World-level state model**: Objects, terrain heightmaps, NPC memory, inventory — only rotation/position currently in Loro
 - **Persistence**: No server-side snapshot storage — state is ephemeral per session
 - **Scale testing**: Only tested with 2 clients
@@ -79,13 +81,13 @@ export class WorldStateDoc {
 
   // --- Persistence ---
 
-  export(): Uint8Array;                    // Binary snapshot
-  import(data: Uint8Array): void;          // Restore from snapshot
-  exportUpdates(since: Uint8Array): Uint8Array;  // Incremental updates
+  export(): Uint8Array; // Binary snapshot
+  import(data: Uint8Array): void; // Restore from snapshot
+  exportUpdates(since: Uint8Array): Uint8Array; // Incremental updates
 
   // --- Time Travel ---
 
-  checkpoint(label?: string): string;      // Returns version ID
+  checkpoint(label?: string): string; // Returns version ID
   getHistory(): VersionEntry[];
   rollback(versionId: string): void;
 
@@ -97,11 +99,11 @@ export class WorldStateDoc {
 
 export interface ObjectState {
   position: [number, number, number];
-  rotation: [number, number, number, number];  // Quaternion
+  rotation: [number, number, number, number]; // Quaternion
   scale: [number, number, number];
-  mesh: string;           // Asset reference
-  traits: string[];       // Applied traits
-  owner: string;          // DID of creator
+  mesh: string; // Asset reference
+  traits: string[]; // Applied traits
+  owner: string; // DID of creator
   properties: Record<string, unknown>;
 }
 
@@ -109,8 +111,8 @@ export interface NPCMemoryEntry {
   timestamp: number;
   type: 'observation' | 'interaction' | 'emotion' | 'fact';
   content: string;
-  embedding?: Float32Array;  // For vector search
-  decay: number;             // 0-1, decreases over time
+  embedding?: Float32Array; // For vector search
+  decay: number; // 0-1, decreases over time
 }
 
 export interface InventoryItem {
@@ -145,7 +147,7 @@ Tier 2: Raw Binary WebRTC (physics particles)
 // packages/crdt-spatial/src/WorldPersistence.ts
 
 export class WorldPersistence {
-  private storageUrl: string;  // Railway persistent volume or S3
+  private storageUrl: string; // Railway persistent volume or S3
 
   constructor(config: PersistenceConfig);
 
@@ -154,7 +156,7 @@ export class WorldPersistence {
   stopAutoSave(): void;
 
   // Manual save/load
-  saveSnapshot(worldId: string, doc: WorldStateDoc): Promise<string>;  // Returns version ID
+  saveSnapshot(worldId: string, doc: WorldStateDoc): Promise<string>; // Returns version ID
   loadSnapshot(worldId: string, version?: string): Promise<WorldStateDoc>;
   listVersions(worldId: string): Promise<VersionEntry[]>;
 
@@ -163,9 +165,9 @@ export class WorldPersistence {
 }
 
 export interface PublishBundle {
-  snapshot: Uint8Array;       // Loro binary
-  assets: AssetManifest;     // Referenced meshes, textures
-  metadata: WorldMetadata;   // Name, description, creator DID
+  snapshot: Uint8Array; // Loro binary
+  assets: AssetManifest; // Referenced meshes, textures
+  metadata: WorldMetadata; // Name, description, creator DID
   version: string;
 }
 ```
@@ -184,24 +186,24 @@ const { worldState, setObject, checkpoint, rollback } = useWorldState(worldId);
 
 ## Files Changed
 
-| File | Action |
-|------|--------|
-| `packages/crdt-spatial/src/WorldState.ts` | **NEW** — World state document class |
-| `packages/crdt-spatial/src/WorldPersistence.ts` | **NEW** — Snapshot persistence |
-| `packages/crdt-spatial/src/types.ts` | Add ObjectState, NPCMemoryEntry, InventoryItem types |
-| `packages/crdt-spatial/src/index.ts` | Export new modules |
-| `packages/crdt-spatial/package.json` | Bump version, add `loro-crdt` dep if not already |
-| `packages/core/src/traits/WorldStateTrait.ts` | **NEW** — @world_state trait handler |
+| File                                            | Action                                               |
+| ----------------------------------------------- | ---------------------------------------------------- |
+| `packages/crdt-spatial/src/WorldState.ts`       | **NEW** — World state document class                 |
+| `packages/crdt-spatial/src/WorldPersistence.ts` | **NEW** — Snapshot persistence                       |
+| `packages/crdt-spatial/src/types.ts`            | Add ObjectState, NPCMemoryEntry, InventoryItem types |
+| `packages/crdt-spatial/src/index.ts`            | Export new modules                                   |
+| `packages/crdt-spatial/package.json`            | Bump version, add `loro-crdt` dep if not already     |
+| `packages/core/src/traits/WorldStateTrait.ts`   | **NEW** — @world_state trait handler                 |
 
 ## Test Targets
 
-| Test | Target | Method |
-|------|--------|--------|
-| 10K objects sync | <100ms convergence, 2 clients | Integration test with 2 Loro docs |
-| Snapshot export/import | Round-trip fidelity | Unit test: set state → export → import → verify |
-| Time-travel rollback | Correct state restoration | Unit test: set state → checkpoint → modify → rollback → verify |
-| Terrain erosion | Persistent heightmap changes | Integration: apply erosion → save → reload → verify heights |
-| NPC memory | Persistent across sessions | Integration: add memory → save → reload → query |
+| Test                   | Target                        | Method                                                         |
+| ---------------------- | ----------------------------- | -------------------------------------------------------------- |
+| 10K objects sync       | <100ms convergence, 2 clients | Integration test with 2 Loro docs                              |
+| Snapshot export/import | Round-trip fidelity           | Unit test: set state → export → import → verify                |
+| Time-travel rollback   | Correct state restoration     | Unit test: set state → checkpoint → modify → rollback → verify |
+| Terrain erosion        | Persistent heightmap changes  | Integration: apply erosion → save → reload → verify heights    |
+| NPC memory             | Persistent across sessions    | Integration: add memory → save → reload → query                |
 
 ## Dependencies
 

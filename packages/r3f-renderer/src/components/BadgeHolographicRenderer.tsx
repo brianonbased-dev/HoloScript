@@ -39,9 +39,9 @@ export interface BadgeHolographicRendererProps {
 // ---------------------------------------------------------------------------
 
 const TIER_COLORS: Record<BadgeTier, { primary: string; glow: string; intensity: number }> = {
-  bronze:  { primary: '#cd7f32', glow: '#b87333', intensity: 0.3 },
-  silver:  { primary: '#c0c0c0', glow: '#e8e8e8', intensity: 0.5 },
-  gold:    { primary: '#ffd700', glow: '#ffed4a', intensity: 0.7 },
+  bronze: { primary: '#cd7f32', glow: '#b87333', intensity: 0.3 },
+  silver: { primary: '#c0c0c0', glow: '#e8e8e8', intensity: 0.5 },
+  gold: { primary: '#ffd700', glow: '#ffed4a', intensity: 0.7 },
   diamond: { primary: '#b9f2ff', glow: '#00fff7', intensity: 1.0 },
 };
 
@@ -147,30 +147,15 @@ export function BadgeHolographicRenderer({
             );
           case 'shield':
             return (
-              <ShieldBadge
-                key={badge.id}
-                badge={badge}
-                position={badgePositions[i]}
-                index={i}
-              />
+              <ShieldBadge key={badge.id} badge={badge} position={badgePositions[i]} index={i} />
             );
           case 'ribbon':
             return (
-              <RibbonBadge
-                key={badge.id}
-                badge={badge}
-                position={badgePositions[i]}
-                index={i}
-              />
+              <RibbonBadge key={badge.id} badge={badge} position={badgePositions[i]} index={i} />
             );
           default:
             return (
-              <IconBadge
-                key={badge.id}
-                badge={badge}
-                position={badgePositions[i]}
-                index={i}
-              />
+              <IconBadge key={badge.id} badge={badge} position={badgePositions[i]} index={i} />
             );
         }
       })}
@@ -201,7 +186,7 @@ function HolographicBadge({
       uTierColor: { value: tierColor },
       uIntensity: { value: tier.intensity },
     }),
-    [tierColor, tier.intensity],
+    [tierColor, tier.intensity]
   );
 
   useFrame((_, delta) => {
@@ -233,12 +218,7 @@ function HolographicBadge({
         </Ring>
 
         {/* Icon text */}
-        <Text
-          position={[0, 0.05, 0.02]}
-          fontSize={0.28}
-          anchorX="center"
-          anchorY="middle"
-        >
+        <Text position={[0, 0.05, 0.02]} fontSize={0.28} anchorX="center" anchorY="middle">
           {badge.icon || '🏆'}
         </Text>
 
@@ -254,17 +234,17 @@ function HolographicBadge({
         </Text>
 
         {/* Tier label */}
-        <Text
-          position={[0, -0.6, 0.02]}
-          fontSize={0.06}
-          color="#94a3b8"
-          anchorX="center"
-        >
+        <Text position={[0, -0.6, 0.02]} fontSize={0.06} color="#94a3b8" anchorX="center">
           {badge.tier.toUpperCase()}
         </Text>
 
         {/* Glow light */}
-        <pointLight position={[0, 0, 0.3]} intensity={tier.intensity * 0.3} color={tier.glow} distance={2} />
+        <pointLight
+          position={[0, 0, 0.3]}
+          intensity={tier.intensity * 0.3}
+          color={tier.glow}
+          distance={2}
+        />
       </group>
     </Float>
   );
@@ -289,11 +269,7 @@ function ShieldBadge({
     <group position={position}>
       {/* Shield body */}
       <RoundedBox args={[0.9, 1.1, 0.1]} radius={0.08} smoothness={2}>
-        <meshPhysicalMaterial
-          color="#1e293b"
-          roughness={0.3}
-          metalness={0.7}
-        />
+        <meshPhysicalMaterial color="#1e293b" roughness={0.3} metalness={0.7} />
       </RoundedBox>
       {/* Shield accent border */}
       <RoundedBox args={[0.95, 1.15, 0.08]} radius={0.1} smoothness={2} position={[0, 0, -0.02]}>
@@ -304,7 +280,13 @@ function ShieldBadge({
         {badge.icon || '🛡'}
       </Text>
       {/* Name */}
-      <Text position={[0, -0.25, 0.06]} fontSize={0.08} color={tier.primary} anchorX="center" maxWidth={0.7}>
+      <Text
+        position={[0, -0.25, 0.06]}
+        fontSize={0.08}
+        color={tier.primary}
+        anchorX="center"
+        maxWidth={0.7}
+      >
         {badge.name}
       </Text>
     </group>
@@ -331,16 +313,31 @@ function RibbonBadge({
       {/* Ribbon body */}
       <mesh>
         <planeGeometry args={[1.0, 0.5]} />
-        <meshStandardMaterial color={tier.primary} roughness={0.5} metalness={0.3} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color={tier.primary}
+          roughness={0.5}
+          metalness={0.3}
+          side={THREE.DoubleSide}
+        />
       </mesh>
       {/* Ribbon tails */}
       <mesh position={[-0.3, -0.4, 0]} rotation={[0, 0, 0.15]}>
         <planeGeometry args={[0.2, 0.3]} />
-        <meshStandardMaterial color={tier.primary} roughness={0.5} metalness={0.3} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color={tier.primary}
+          roughness={0.5}
+          metalness={0.3}
+          side={THREE.DoubleSide}
+        />
       </mesh>
       <mesh position={[0.3, -0.4, 0]} rotation={[0, 0, -0.15]}>
         <planeGeometry args={[0.2, 0.3]} />
-        <meshStandardMaterial color={tier.primary} roughness={0.5} metalness={0.3} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color={tier.primary}
+          roughness={0.5}
+          metalness={0.3}
+          side={THREE.DoubleSide}
+        />
       </mesh>
       {/* Icon + name */}
       <Text position={[-0.2, 0.05, 0.01]} fontSize={0.2} anchorX="center" anchorY="middle">
@@ -376,12 +373,23 @@ function IconBadge({
           <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.5} />
         </mesh>
         <Ring args={[0.4, 0.45, 32]} position={[0, 0, 0.01]}>
-          <meshBasicMaterial color={tier.primary} transparent opacity={0.8} side={THREE.DoubleSide} />
+          <meshBasicMaterial
+            color={tier.primary}
+            transparent
+            opacity={0.8}
+            side={THREE.DoubleSide}
+          />
         </Ring>
         <Text position={[0, 0.02, 0.02]} fontSize={0.25} anchorX="center" anchorY="middle">
           {badge.icon || '⭐'}
         </Text>
-        <Text position={[0, -0.35, 0]} fontSize={0.07} color={tier.primary} anchorX="center" maxWidth={0.8}>
+        <Text
+          position={[0, -0.35, 0]}
+          fontSize={0.07}
+          color={tier.primary}
+          anchorX="center"
+          maxWidth={0.8}
+        >
           {badge.name}
         </Text>
       </group>

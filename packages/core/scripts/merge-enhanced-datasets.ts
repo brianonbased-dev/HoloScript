@@ -1,9 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 
-const AI_WORKSPACE = process.env.AI_WORKSPACE_PATH || path.join(require('os').homedir(), 'Documents', 'GitHub', 'AI_Workspace');
+const AI_WORKSPACE =
+  process.env.AI_WORKSPACE_PATH ||
+  path.join(require('os').homedir(), 'Documents', 'GitHub', 'AI_Workspace');
 const ARCHIVE_DIR = path.join(AI_WORKSPACE, 'Brittney', 'cloud-training', 'archive');
-const OUTPUT_FILE = path.join(AI_WORKSPACE, 'Brittney', 'training', 'brittney-reasoning-enhanced.jsonl');
+const OUTPUT_FILE = path.join(
+  AI_WORKSPACE,
+  'Brittney',
+  'training',
+  'brittney-reasoning-enhanced.jsonl'
+);
 
 // Files to merge (enhanced-* pattern)
 const ENHANCED_FILES = [

@@ -32,23 +32,23 @@ holo lint --format detailed myfile.holo
 import { lint } from '@holoscript/linter';
 
 const diagnostics = await lint(code);
-diagnostics.forEach(diag => {
+diagnostics.forEach((diag) => {
   console.log(`${diag.rule}: ${diag.message} (line ${diag.line})`);
 });
 ```
 
 ## Rules
 
-| Rule | Level | Description |
-|------|-------|-------------|
-| `no-unused-objects` | warning | Warn on objects never referenced |
-| `no-circular-refs` | error | Prevent circular dependencies |
-| `unknown-trait` | warning | Trait doesn't exist |
-| `missing-geometry` | error | Object has no geometry |
-| `type-mismatch` | error | Property type doesn't match |
-| `redundant-trait` | warning | Trait already implied by another |
-| `missing-state-init` | warning | State property never initialized |
-| `unsafe-network-object` | warning | @networked without proper setup |
+| Rule                    | Level   | Description                      |
+| ----------------------- | ------- | -------------------------------- |
+| `no-unused-objects`     | warning | Warn on objects never referenced |
+| `no-circular-refs`      | error   | Prevent circular dependencies    |
+| `unknown-trait`         | warning | Trait doesn't exist              |
+| `missing-geometry`      | error   | Object has no geometry           |
+| `type-mismatch`         | error   | Property type doesn't match      |
+| `redundant-trait`       | warning | Trait already implied by another |
+| `missing-state-init`    | warning | State property never initialized |
+| `unsafe-network-object` | warning | @networked without proper setup  |
 
 ## Configuration
 
@@ -80,12 +80,12 @@ const myRule = defineRule({
         if (node.callee.name === 'console.log') {
           context.report({
             node,
-            message: 'console.log not allowed in production'
+            message: 'console.log not allowed in production',
           });
         }
-      }
+      },
     };
-  }
+  },
 });
 
 registerRule(myRule);

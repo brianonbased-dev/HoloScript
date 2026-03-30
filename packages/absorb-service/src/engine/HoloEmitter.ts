@@ -466,7 +466,9 @@ export class HoloEmitter {
           lines.push('    }');
         }
         if (syms.length > maxPerGroup) {
-          lines.push(`    // ... ${syms.length - maxPerGroup} more symbols (increase maxSymbolsPerGroup to see all)`);
+          lines.push(
+            `    // ... ${syms.length - maxPerGroup} more symbols (increase maxSymbolsPerGroup to see all)`
+          );
         }
         lines.push('  }');
         lines.push('');
@@ -580,7 +582,10 @@ export class HoloEmitter {
           if (seenImportComms.has(commKey)) continue;
           seenImportComms.add(commKey);
           const named = imp.namedImports?.slice(0, 3).join(', ') ?? '*';
-          const more = (imp.namedImports?.length ?? 0) > 3 ? ` +${(imp.namedImports?.length ?? 0) - 3} more` : '';
+          const more =
+            (imp.namedImports?.length ?? 0) > 3
+              ? ` +${(imp.namedImports?.length ?? 0) - 3} more`
+              : '';
           lines.push(
             `// [${this.sanitizeId(fromComm)}] depends_on [${this.sanitizeId(toComm)}]: { ${named}${more} }`
           );

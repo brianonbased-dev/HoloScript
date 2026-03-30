@@ -210,8 +210,8 @@ describe('BitNetAdapter — healthCheck()', () => {
   it('falls back to /v1/models when /health returns 404', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ ok: false, status: 404 })  // /health
-      .mockResolvedValueOnce({ ok: true, status: 200 });   // /v1/models
+      .mockResolvedValueOnce({ ok: false, status: 404 }) // /health
+      .mockResolvedValueOnce({ ok: true, status: 200 }); // /v1/models
 
     vi.stubGlobal('fetch', fetchMock);
 

@@ -87,7 +87,7 @@ export function buildAuthMessage(challenge: string, nonce: string): string {
 export async function signAuthChallenge(
   walletClient: { signMessage: (args: { message: string }) => Promise<string> },
   challenge: string,
-  nonce: string,
+  nonce: string
 ): Promise<string> {
   const message = buildAuthMessage(challenge, nonce);
   return walletClient.signMessage({ message });
@@ -101,7 +101,7 @@ export async function verifyAuthSignature(
   address: string,
   challenge: string,
   nonce: string,
-  signature: string,
+  signature: string
 ): Promise<boolean> {
   try {
     const { verifyMessage } = await import('viem');
@@ -132,7 +132,7 @@ export function buildGossipMessage(deltaBase64: string, timestamp: string): stri
 export async function signGossipPayload(
   walletClient: { signMessage: (args: { message: string }) => Promise<string> },
   deltaBase64: string,
-  timestamp: string,
+  timestamp: string
 ): Promise<string> {
   const message = buildGossipMessage(deltaBase64, timestamp);
   return walletClient.signMessage({ message });
@@ -145,7 +145,7 @@ export async function verifyGossipSignature(
   address: string,
   deltaBase64: string,
   timestamp: string,
-  signature: string,
+  signature: string
 ): Promise<boolean> {
   try {
     const { verifyMessage } = await import('viem');

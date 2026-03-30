@@ -43,7 +43,7 @@ export class ASTNodePool<T extends object> {
       this.pool.push(node);
     }
   }
-  
+
   /**
    * Clear the pool, allowing garbage collection.
    */

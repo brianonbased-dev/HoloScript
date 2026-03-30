@@ -43,8 +43,7 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
       const trimmed = code.trimStart();
       const formatHint = options.formatHint ?? 'auto';
       const useCompositionParser =
-        formatHint === 'holo' ||
-        (formatHint === 'auto' && trimmed.startsWith('composition'));
+        formatHint === 'holo' || (formatHint === 'auto' && trimmed.startsWith('composition'));
 
       // Detect .holo composition format
       if (useCompositionParser) {

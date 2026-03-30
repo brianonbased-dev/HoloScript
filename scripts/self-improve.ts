@@ -31,7 +31,10 @@ import { randomUUID } from 'crypto';
 
 // ─── HoloScript Runtime Imports ──────────────────────────────────────────────
 // These are the REAL HoloScript primitives. The treatment arm uses them natively.
-import { HeadlessRuntime, createHeadlessRuntime } from '../packages/core/src/runtime/profiles/HeadlessRuntime';
+import {
+  HeadlessRuntime,
+  createHeadlessRuntime,
+} from '../packages/core/src/runtime/profiles/HeadlessRuntime';
 import { HEADLESS_PROFILE } from '../packages/core/src/runtime/profiles/RuntimeProfile';
 import { parse } from '../packages/core/src/parser/HoloScriptPlusParser';
 
@@ -49,12 +52,17 @@ function loadEnvFile(dir: string): void {
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx).trim();
       let val = trimmed.slice(eqIdx + 1).trim();
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
       if (!process.env[key]) process.env[key] = val;
     }
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 }
 
 // ─── Path Resolution ─────────────────────────────────────────────────────────
@@ -83,8 +91,8 @@ const COMPOSITION_FILE = path.join(REPO_ROOT, 'compositions', 'self-improve-daem
 const MODEL = 'claude-sonnet-4-20250514';
 
 // W.090 Safeguard: Heartbeat interval and staleness threshold
-const HEARTBEAT_INTERVAL_MS = 30_000;   // Refresh lock file every 30s
-const HEARTBEAT_STALE_MS = 120_000;     // Lock is stale if not refreshed in 2min
+const HEARTBEAT_INTERVAL_MS = 30_000; // Refresh lock file every 30s
+const HEARTBEAT_STALE_MS = 120_000; // Lock is stale if not refreshed in 2min
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 // G.ARCH.002: Session identity — unique per daemon invocation
@@ -97,8 +105,8 @@ const CONTAMINATION_SIGNATURES = [
   /node\.exe\s*:\s*npm\s+warn/i,
   /npm\s+warn\s+Unknown\s+project\s+config/i,
   /Command\s+exited\s+with\s+code\s+\d+/i,
-  /^\s*at\s+\w+\s+\(.*:\d+:\d+\)\s*$/m,    // Stack trace lines
-  /^\s*ERR!\s/m,                              // npm ERR! lines
+  /^\s*at\s+\w+\s+\(.*:\d+:\d+\)\s*$/m, // Stack trace lines
+  /^\s*ERR!\s/m, // npm ERR! lines
 ];
 
 function isContaminatedEdit(content: string): string | null {
@@ -209,10 +217,12 @@ function ensureStateDir(): void {
 function validateDaemonState(obj: unknown): obj is DaemonState {
   if (!obj || typeof obj !== 'object') return false;
   const s = obj as Record<string, unknown>;
-  return typeof s.totalCycles === 'number'
-    && typeof s.bestQuality === 'number'
-    && typeof s.lastQuality === 'number'
-    && Array.isArray(s.attemptedFiles);
+  return (
+    typeof s.totalCycles === 'number' &&
+    typeof s.bestQuality === 'number' &&
+    typeof s.lastQuality === 'number' &&
+    Array.isArray(s.attemptedFiles)
+  );
 }
 
 /** G.ARCH.002: Atomic write — write to tmp then rename (prevents partial JSON on crash) */
@@ -252,7 +262,9 @@ function loadDaemonState(): DaemonState {
       // Per-session budget tracking: reset cost accumulators on new session
       // so --max-spend is truly per-run, not cumulative across all runs
       if (merged.lastSessionId && merged.lastSessionId !== SESSION_ID) {
-        console.log(`[Budget] New session — resetting cost accumulators (prev session: ${merged.lastSessionId.slice(0, 8)}…)`);
+        console.log(
+          `[Budget] New session — resetting cost accumulators (prev session: ${merged.lastSessionId.slice(0, 8)}…)`
+        );
         merged.totalCostUSD = 0;
         merged.totalInputTokens = 0;
         merged.totalOutputTokens = 0;
@@ -265,7 +277,9 @@ function loadDaemonState(): DaemonState {
       return merged;
     }
   } catch (err) {
-    console.warn(`[G.ARCH.002] Failed to load daemon-state.json: ${err instanceof Error ? err.message : err} — using defaults`);
+    console.warn(
+      `[G.ARCH.002] Failed to load daemon-state.json: ${err instanceof Error ? err.message : err} — using defaults`
+    );
   }
   return defaults;
 }
@@ -283,7 +297,9 @@ function appendQualityHistory(entry: QualityEntry): void {
     if (fs.existsSync(HISTORY_FILE)) {
       history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf-8'));
     }
-  } catch { /* start fresh */ }
+  } catch {
+    /* start fresh */
+  }
   entry.sessionId = SESSION_ID;
   history.push(entry);
   if (history.length > 500) history = history.slice(-500);
@@ -302,7 +318,9 @@ function acquireLock(): boolean {
       // the owning process is likely an orphan (parent died, no cleanup).
       const lockAge = Date.now() - (lockData.heartbeat ?? lockData.time);
       if (lockAge > HEARTBEAT_STALE_MS) {
-        console.warn(`Stale lock detected (age: ${(lockAge / 1000).toFixed(0)}s, PID: ${lockData.pid}). Reclaiming.`);
+        console.warn(
+          `Stale lock detected (age: ${(lockAge / 1000).toFixed(0)}s, PID: ${lockData.pid}). Reclaiming.`
+        );
         // Fall through to overwrite
       } else {
         // Lock is fresh — check if the process is still alive
@@ -314,14 +332,18 @@ function acquireLock(): boolean {
         }
       }
     }
-    fs.writeFileSync(LOCK_FILE, JSON.stringify({
-      pid: process.pid,
-      sessionId: SESSION_ID,
-      time: Date.now(),
-      heartbeat: Date.now(),
-      spentUSD: 0,
-      startedAt: new Date().toISOString(),
-    }), 'utf-8');
+    fs.writeFileSync(
+      LOCK_FILE,
+      JSON.stringify({
+        pid: process.pid,
+        sessionId: SESSION_ID,
+        time: Date.now(),
+        heartbeat: Date.now(),
+        spentUSD: 0,
+        startedAt: new Date().toISOString(),
+      }),
+      'utf-8'
+    );
     return true;
   } catch {
     return false;
@@ -340,7 +362,9 @@ function startHeartbeat(getSpentUSD?: () => number): void {
           fs.writeFileSync(LOCK_FILE, JSON.stringify(lockData), 'utf-8');
         }
       }
-    } catch { /* best effort */ }
+    } catch {
+      /* best effort */
+    }
   }, HEARTBEAT_INTERVAL_MS);
   // Don't let the heartbeat timer prevent process exit
   if (heartbeatTimer && typeof heartbeatTimer === 'object' && 'unref' in heartbeatTimer) {
@@ -359,7 +383,9 @@ function releaseLock(): void {
   stopHeartbeat();
   try {
     if (fs.existsSync(LOCK_FILE)) fs.unlinkSync(LOCK_FILE);
-  } catch { /* best effort */ }
+  } catch {
+    /* best effort */
+  }
 }
 
 // ─── W.090 Safeguard 2: API Credit Pre-Check ────────────────────────────────
@@ -379,7 +405,9 @@ async function validateApiKeyAndCredits(): Promise<void> {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('credit') || message.includes('balance') || message.includes('billing')) {
-      throw new Error(`Insufficient API credits. Fix billing before running daemon. Error: ${message}`);
+      throw new Error(
+        `Insufficient API credits. Fix billing before running daemon. Error: ${message}`
+      );
     }
     if (message.includes('auth') || message.includes('key') || message.includes('401')) {
       throw new Error(`Invalid API key. Check ANTHROPIC_API_KEY. Error: ${message}`);
@@ -431,9 +459,13 @@ async function callTool(
 // ─── Useful Tool Classification ──────────────────────────────────────────────
 
 const USEFUL_TOOLS = new Set([
-  'holo_read_file', 'holo_write_file', 'holo_edit_file',
-  'holo_run_tests_targeted', 'holo_verify_before_commit',
-  'holo_git_commit', 'holo_run_related_tests',
+  'holo_read_file',
+  'holo_write_file',
+  'holo_edit_file',
+  'holo_run_tests_targeted',
+  'holo_verify_before_commit',
+  'holo_git_commit',
+  'holo_run_related_tests',
 ]);
 
 // ─── Per-Focus Tool Budgets ──────────────────────────────────────────────────
@@ -451,7 +483,7 @@ const TOOL_BUDGET: Record<string, number> = {
 
 const MAX_OUTPUT_TOKENS: Record<string, number> = {
   typefix: 2048,
-  coverage: 4096,   // test files are long
+  coverage: 4096, // test files are long
   docs: 2048,
   complexity: 3072,
   all: 3072,
@@ -468,17 +500,22 @@ async function callLLMForAction(
   actionContext: string,
   config: BridgeConfig,
   maxToolCalls: number = 8,
-  maxOutputTokens: number = 2048,
-): Promise<{ result: string; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number; filesEdited: string[] }> {
+  maxOutputTokens: number = 2048
+): Promise<{
+  result: string;
+  inputTokens: number;
+  outputTokens: number;
+  toolCallsTotal: number;
+  toolCallsUseful: number;
+  filesEdited: string[];
+}> {
   const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
     name: t.name,
     description: t.description ?? '',
     input_schema: t.inputSchema as Anthropic.Tool['input_schema'],
   }));
 
-  let messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: actionContext },
-  ];
+  let messages: Anthropic.MessageParam[] = [{ role: 'user', content: actionContext }];
 
   let totalInput = 0;
   let totalOutput = 0;
@@ -564,9 +601,14 @@ async function dispatchActionAsync(
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   toolDefs: any[],
   config: BridgeConfig,
-  metrics: { inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number },
+  metrics: {
+    inputTokens: number;
+    outputTokens: number;
+    toolCallsTotal: number;
+    toolCallsUseful: number;
+  },
   runtimeEmit?: (event: string, data: Record<string, unknown>) => void,
-  daemonState?: DaemonState,
+  daemonState?: DaemonState
 ): Promise<boolean> {
   // Cast the BT blackboard to our typed interface for safe property access.
   // The BT passes its blackboard as Record<string, unknown> but we store
@@ -580,11 +622,16 @@ async function dispatchActionAsync(
       console.log(`  [BT] diagnose (focus: ${blackboard.focus})`);
 
       // Get quality baseline — skip tests for speed (full test run happens in validate_quality)
-      const qualityResult = await callTool(handlers, 'holo_validate_quality', { rootDir, skipTests: true });
+      const qualityResult = await callTool(handlers, 'holo_validate_quality', {
+        rootDir,
+        skipTests: true,
+      });
       try {
         const parsed = JSON.parse(qualityResult);
         blackboard.quality_before = parsed.composite ?? 0;
-      } catch { blackboard.quality_before = 0; }
+      } catch {
+        blackboard.quality_before = 0;
+      }
 
       // Files already attempted in recent cycles — skip to avoid repeating same unfixable issues
       const attempted = new Set(blackboard.__attemptedFiles ?? []);
@@ -593,7 +640,10 @@ async function dispatchActionAsync(
 
       if (blackboard.focus === 'typefix') {
         // 'typefix' is not a valid holo_self_diagnose focus — use holo_list_type_errors instead
-        const typeResult = await callTool(handlers, 'holo_list_type_errors', { rootDir, maxErrors: 20 });
+        const typeResult = await callTool(handlers, 'holo_list_type_errors', {
+          rootDir,
+          maxErrors: 20,
+        });
         try {
           const parsed = JSON.parse(typeResult);
           const errors = parsed.errors ?? [];
@@ -615,7 +665,7 @@ async function dispatchActionAsync(
           }
           const allCandidates = [...byFile.values()];
           // Prefer fresh candidates, fall back to already-attempted if none fresh
-          const fresh = allCandidates.filter(c => !attempted.has(c.file));
+          const fresh = allCandidates.filter((c) => !attempted.has(c.file));
           blackboard.candidates = fresh.length > 0 ? fresh : allCandidates;
           blackboard.has_candidates = blackboard.candidates.length > 0;
           if (blackboard.candidates.length > 0) {
@@ -623,7 +673,9 @@ async function dispatchActionAsync(
             blackboard.current_file = blackboard.candidates[0].file;
           }
           if (config.verbose) {
-            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh, ${blacklisted.size} blacklisted`);
+            console.log(
+              `  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh, ${blacklisted.size} blacklisted`
+            );
           }
         } catch {
           blackboard.has_candidates = false;
@@ -632,7 +684,9 @@ async function dispatchActionAsync(
         metrics.toolCallsUseful += 2;
       } else {
         // Standard diagnosis for coverage/docs/complexity/all
-        const diagResult = await callTool(handlers, 'holo_self_diagnose', { focus: blackboard.focus });
+        const diagResult = await callTool(handlers, 'holo_self_diagnose', {
+          focus: blackboard.focus,
+        });
         try {
           const parsed = JSON.parse(diagResult);
           const allCandidates = parsed.candidates ?? [];
@@ -646,7 +700,9 @@ async function dispatchActionAsync(
             blackboard.current_file = blackboard.candidates[0].file;
           }
           if (config.verbose) {
-            console.log(`  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh, ${blacklisted.size} blacklisted`);
+            console.log(
+              `  [diagnose] ${allCandidates.length} candidates, ${fresh.length} fresh, ${blacklisted.size} blacklisted`
+            );
           }
         } catch {
           blackboard.has_candidates = false;
@@ -671,7 +727,9 @@ async function dispatchActionAsync(
 
     case 'generate_fix': {
       // Step 4: LLM micro-call — focused on fixing ONE specific issue
-      console.log(`  [BT] generate_fix: LLM micro-call for ${blackboard.current_candidate?.symbol || 'unknown'}`);
+      console.log(
+        `  [BT] generate_fix: LLM micro-call for ${blackboard.current_candidate?.symbol || 'unknown'}`
+      );
       if (!blackboard.current_candidate) return false;
 
       // ── @circuit_breaker: check if circuit is open before calling LLM ──
@@ -715,7 +773,15 @@ async function dispatchActionAsync(
 
       const toolBudget = TOOL_BUDGET[focus] ?? 8;
       const outputTokenBudget = MAX_OUTPUT_TOKENS[focus] ?? 2048;
-      const llmResult = await callLLMForAction(anthropic, handlers, toolDefs, prompt, config, toolBudget, outputTokenBudget);
+      const llmResult = await callLLMForAction(
+        anthropic,
+        handlers,
+        toolDefs,
+        prompt,
+        config,
+        toolBudget,
+        outputTokenBudget
+      );
 
       metrics.inputTokens += llmResult.inputTokens;
       metrics.outputTokens += llmResult.outputTokens;
@@ -731,13 +797,17 @@ async function dispatchActionAsync(
           const content = fs.readFileSync(editedFile, 'utf-8');
           const contamination = isContaminatedEdit(content);
           if (contamination) {
-            console.log(`  [sanitizer] REJECTED edit to ${path.basename(editedFile)}: contains terminal output "${contamination}"`);
+            console.log(
+              `  [sanitizer] REJECTED edit to ${path.basename(editedFile)}: contains terminal output "${contamination}"`
+            );
             // Revert this file immediately
             const { execSync } = await import('child_process');
             try {
               execSync(`git checkout -- "${editedFile}"`, { cwd: rootDir, stdio: 'pipe' });
-            } catch { /* file may be untracked */ }
-            blackboard.files_edited = blackboard.files_edited.filter(f => f !== editedFile);
+            } catch {
+              /* file may be untracked */
+            }
+            blackboard.files_edited = blackboard.files_edited.filter((f) => f !== editedFile);
             if (runtimeEmit) {
               runtimeEmit('logger:warn', {
                 message: `Sanitizer rejected contaminated edit`,
@@ -745,7 +815,9 @@ async function dispatchActionAsync(
               });
             }
           }
-        } catch { /* file read failed — verify_compilation will catch it */ }
+        } catch {
+          /* file read failed — verify_compilation will catch it */
+        }
       }
 
       // ── @economy: emit LLM spend event ──
@@ -771,7 +843,9 @@ async function dispatchActionAsync(
       console.log(`  [BT] verify_compilation: ${blackboard.files_edited.join(', ')}`);
       if (blackboard.files_edited.length === 0) {
         blackboard.compilation_passed = false;
-        blackboard.compile_errors = [{ message: 'No files were edited — LLM exhausted tool budget without making an edit' }];
+        blackboard.compile_errors = [
+          { message: 'No files were edited — LLM exhausted tool budget without making an edit' },
+        ];
         return true; // Let the condition gate handle it
       }
 
@@ -789,7 +863,7 @@ async function dispatchActionAsync(
         const fileEntries = parsed.files ?? [];
         const allErrors: Blackboard['compile_errors'] = [];
         for (const f of fileEntries) {
-          for (const detail of (f.details ?? [])) {
+          for (const detail of f.details ?? []) {
             if (typeof detail === 'string') {
               const match = detail.match(/\((\d+),\d+\):\s*error\s*(TS\d+):\s*(.+)/);
               if (match) {
@@ -798,7 +872,11 @@ async function dispatchActionAsync(
                 allErrors.push({ message: detail });
               }
             } else if (detail && typeof detail === 'object') {
-              allErrors.push({ line: detail.line, code: detail.code, message: detail.message ?? String(detail) });
+              allErrors.push({
+                line: detail.line,
+                code: detail.code,
+                message: detail.message ?? String(detail),
+              });
             }
           }
         }
@@ -859,14 +937,19 @@ async function dispatchActionAsync(
       // already validated the changes. Full vitest on 10K+ tests takes 5+ minutes
       // and crashes on edited files, producing false 0.000 composites.
       console.log(`  [BT] validate_quality`);
-      const qualityResult = await callTool(handlers, 'holo_validate_quality', { rootDir, skipTests: true });
+      const qualityResult = await callTool(handlers, 'holo_validate_quality', {
+        rootDir,
+        skipTests: true,
+      });
 
       try {
         const parsed = JSON.parse(qualityResult);
         blackboard.quality_after = parsed.composite ?? 0;
         blackboard.quality_improved = blackboard.quality_after > blackboard.quality_before;
         if (config.verbose) {
-          console.log(`  [quality] composite=${parsed.composite?.toFixed(3)} typeCheck=${parsed.scores?.typeCheck?.score?.toFixed(3)} lint=${parsed.scores?.lint?.score?.toFixed(3)}`);
+          console.log(
+            `  [quality] composite=${parsed.composite?.toFixed(3)} typeCheck=${parsed.scores?.typeCheck?.score?.toFixed(3)} lint=${parsed.scores?.lint?.score?.toFixed(3)}`
+          );
         }
       } catch {
         console.warn(`  [quality] Failed to parse quality result: ${qualityResult.slice(0, 200)}`);
@@ -929,7 +1012,10 @@ async function dispatchActionAsync(
           } catch {
             try {
               // File might be untracked (newly created) — check and remove
-              const status = execSync(`git status --porcelain "${file}"`, { cwd: rootDir, encoding: 'utf-8' });
+              const status = execSync(`git status --porcelain "${file}"`, {
+                cwd: rootDir,
+                encoding: 'utf-8',
+              });
               if (status.startsWith('??') || status.startsWith('A ')) {
                 fs.unlinkSync(file);
                 console.log(`    Removed untracked file: ${path.basename(file)}`);
@@ -957,7 +1043,9 @@ async function dispatchActionAsync(
           if (!daemonState.knownLimitations.includes(limitation)) {
             daemonState.knownLimitations.push(limitation);
           }
-          console.log(`  [quarantine] ${path.basename(file)} auto-blacklisted after ${failCount} failures`);
+          console.log(
+            `  [quarantine] ${path.basename(file)} auto-blacklisted after ${failCount} failures`
+          );
           if (runtimeEmit) {
             runtimeEmit('logger:warn', {
               message: `File quarantined after ${failCount} failures`,
@@ -985,7 +1073,9 @@ async function dispatchActionAsync(
         blackboard.tests_passed = false;
         blackboard.compile_errors = [];
         blackboard.retry_count = 0;
-        console.log(`  [BT] advance_candidate: trying candidate ${idx + 1}/${blackboard.candidates.length} — ${path.basename(blackboard.current_file ?? '?')}`);
+        console.log(
+          `  [BT] advance_candidate: trying candidate ${idx + 1}/${blackboard.candidates.length} — ${path.basename(blackboard.current_file ?? '?')}`
+        );
         return true;
       }
 
@@ -994,7 +1084,9 @@ async function dispatchActionAsync(
       blackboard.has_candidates = false;
       blackboard.current_candidate = null;
       blackboard.current_file = null;
-      console.log(`  [BT] advance_candidate: all ${blackboard.candidates.length} candidates exhausted`);
+      console.log(
+        `  [BT] advance_candidate: all ${blackboard.candidates.length} candidates exhausted`
+      );
       return false;
     }
 
@@ -1007,7 +1099,9 @@ async function dispatchActionAsync(
 
     case 'report_results': {
       const delta = blackboard.quality_after - blackboard.quality_before;
-      console.log(`  [BT] report: quality ${blackboard.quality_before.toFixed(3)} → ${blackboard.quality_after.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)})`);
+      console.log(
+        `  [BT] report: quality ${blackboard.quality_before.toFixed(3)} → ${blackboard.quality_after.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)})`
+      );
 
       // ── @feedback_loop: emit cost_efficiency metric ──
       if (runtimeEmit) {
@@ -1048,7 +1142,9 @@ async function dispatchActionAsync(
         if (fs.existsSync(wisdomPath)) {
           wisdom = JSON.parse(fs.readFileSync(wisdomPath, 'utf-8'));
         }
-      } catch { /* start fresh */ }
+      } catch {
+        /* start fresh */
+      }
 
       blackboard.intake_loaded = true;
 
@@ -1059,7 +1155,7 @@ async function dispatchActionAsync(
         });
         runtimeEmit('feedback:update_metric', {
           name: 'positive_energy',
-          value: 1.0 + (wisdom.length * 0.01), // More wisdom = more energy
+          value: 1.0 + wisdom.length * 0.01, // More wisdom = more energy
         });
         // Sync identity state to runtime composition state
         runtimeEmit('state:update', {
@@ -1087,7 +1183,11 @@ async function dispatchActionAsync(
         wisdomEntry = `W: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} improved quality by ${delta.toFixed(3)} (${retries} retries)`;
       } else if (retries > 0 && !blackboard.compilation_passed) {
         wisdomEntry = `G: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} failed after ${retries} retries — compile errors persist`;
-      } else if (blackboard.compilation_passed && !blackboard.tests_passed && blackboard.has_candidates) {
+      } else if (
+        blackboard.compilation_passed &&
+        !blackboard.tests_passed &&
+        blackboard.has_candidates
+      ) {
         // Known limitation: LLM produces edits that compile but break tests.
         // This is an LLM capability boundary, not an orchestration bug.
         wisdomEntry = `G: ${blackboard.focus} fix on ${path.basename(blackboard.current_file ?? '?')} compiled but tests regressed — LLM capability miss (compile-only success)`;
@@ -1106,7 +1206,9 @@ async function dispatchActionAsync(
           if (fs.existsSync(wisdomPath)) {
             wisdom = JSON.parse(fs.readFileSync(wisdomPath, 'utf-8'));
           }
-        } catch { /* start fresh */ }
+        } catch {
+          /* start fresh */
+        }
         wisdom.push(wisdomEntry);
         if (wisdom.length > 100) wisdom = wisdom.slice(-100);
         fs.writeFileSync(wisdomPath, JSON.stringify(wisdom, null, 2), 'utf-8');
@@ -1132,7 +1234,7 @@ async function dispatchActionAsync(
         // Reward via economy trait
         runtimeEmit('economy:earn', {
           agentId: 'daemon',
-          amount: 0.10,
+          amount: 0.1,
           reason: 'quality_improvement_reward',
         });
       }
@@ -1164,7 +1266,9 @@ async function dispatchActionAsync(
       // to see WHY its fix failed and try again, like a human developer.
       const errors = blackboard.compile_errors ?? [];
       blackboard.retry_count = (blackboard.retry_count ?? 0) + 1;
-      console.log(`  [BT] fix_from_compile_errors: retry #${blackboard.retry_count} (${errors.length} errors)`);
+      console.log(
+        `  [BT] fix_from_compile_errors: retry #${blackboard.retry_count} (${errors.length} errors)`
+      );
 
       if (errors.length === 0) {
         // No errors stored — nothing to fix
@@ -1188,19 +1292,31 @@ async function dispatchActionAsync(
       } else {
         const errorSummary = errors
           .slice(0, 10)
-          .map((e: { line?: number; message: string; code?: string }) =>
-            `  ${e.code ? `[${e.code}] ` : ''}Line ${e.line ?? '?'}: ${e.message}`)
+          .map(
+            (e: { line?: number; message: string; code?: string }) =>
+              `  ${e.code ? `[${e.code}] ` : ''}Line ${e.line ?? '?'}: ${e.message}`
+          )
           .join('\n');
         retryPrompt = `Your previous edit to ${blackboard.current_file} caused these compile errors:\n${errorSummary}\n\nFix these errors. Use holo_read_file to see the current state of the file, then use holo_edit_file to correct the issues. Do NOT rewrite the entire file — make targeted fixes only.`;
       }
 
-      const retryResult = await callLLMForAction(anthropic, handlers, toolDefs, retryPrompt, config, 6, 2048);
+      const retryResult = await callLLMForAction(
+        anthropic,
+        handlers,
+        toolDefs,
+        retryPrompt,
+        config,
+        6,
+        2048
+      );
 
       metrics.inputTokens += retryResult.inputTokens;
       metrics.outputTokens += retryResult.outputTokens;
       metrics.toolCallsTotal += retryResult.toolCallsTotal;
       metrics.toolCallsUseful += retryResult.toolCallsUseful;
-      blackboard.files_edited.push(...retryResult.filesEdited.filter(f => !blackboard.files_edited.includes(f)));
+      blackboard.files_edited.push(
+        ...retryResult.filesEdited.filter((f) => !blackboard.files_edited.includes(f))
+      );
 
       // ── @economy: emit retry LLM spend ──
       if (runtimeEmit) {
@@ -1238,8 +1354,16 @@ async function runBridgeCycle(
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   toolDefs: any[],
   config: BridgeConfig,
-  daemonState: DaemonState,
-): Promise<{ qualityBefore: number; qualityAfter: number; inputTokens: number; outputTokens: number; toolCallsTotal: number; toolCallsUseful: number; filesEdited: string[] }> {
+  daemonState: DaemonState
+): Promise<{
+  qualityBefore: number;
+  qualityAfter: number;
+  inputTokens: number;
+  outputTokens: number;
+  toolCallsTotal: number;
+  toolCallsUseful: number;
+  filesEdited: string[];
+}> {
   const FOCUS_ROTATION = ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'];
   const focus = FOCUS_ROTATION[daemonState.focusIndex % FOCUS_ROTATION.length];
   const cycleNumber = daemonState.totalCycles + 1;
@@ -1259,7 +1383,7 @@ async function runBridgeCycle(
     _owner: unknown,
     actionName: string,
     _params: Record<string, unknown>,
-    blackboard?: Record<string, unknown>,
+    blackboard?: Record<string, unknown>
   ): boolean | 'running' => {
     if (!blackboard) return false;
 
@@ -1290,7 +1414,17 @@ async function runBridgeCycle(
 
     // Start a new async action via dispatchActionAsync
     const entry = { resolved: false, result: false };
-    dispatchActionAsync(actionName, blackboard, anthropic, handlers, toolDefs, config, metrics, runtimeEmit, daemonState)
+    dispatchActionAsync(
+      actionName,
+      blackboard,
+      anthropic,
+      handlers,
+      toolDefs,
+      config,
+      metrics,
+      runtimeEmit,
+      daemonState
+    )
       .then((result) => {
         entry.resolved = true;
         entry.result = result;
@@ -1350,7 +1484,12 @@ async function runBridgeCycle(
         command: string,
         args: string[] = [],
         options?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number }
-      ): Promise<{ code: number | null; signal?: string | null; stdout?: string; stderr?: string }> => {
+      ): Promise<{
+        code: number | null;
+        signal?: string | null;
+        stdout?: string;
+        stderr?: string;
+      }> => {
         const { spawn } = await import('child_process');
         const execCwd = options?.cwd ? resolveWithinRoot(options.cwd) : rootAbs;
         const timeoutMs = options?.timeoutMs ?? 30_000;
@@ -1367,12 +1506,17 @@ async function runBridgeCycle(
           let stderr = '';
           let timedOut = false;
 
-          const timer = timeoutMs > 0
-            ? setTimeout(() => {
-                timedOut = true;
-                try { child.kill('SIGKILL'); } catch { /* best effort */ }
-              }, timeoutMs)
-            : null;
+          const timer =
+            timeoutMs > 0
+              ? setTimeout(() => {
+                  timedOut = true;
+                  try {
+                    child.kill('SIGKILL');
+                  } catch {
+                    /* best effort */
+                  }
+                }, timeoutMs)
+              : null;
 
           child.stdout?.on('data', (chunk: Buffer) => {
             stdout += chunk.toString('utf-8');
@@ -1390,7 +1534,12 @@ async function runBridgeCycle(
           child.on('close', (code, signal) => {
             if (timer) clearTimeout(timer);
             if (timedOut) {
-              resolve({ code: code ?? null, signal: signal ?? 'SIGKILL', stdout, stderr: `${stderr}\nProcess timed out after ${timeoutMs}ms`.trim() });
+              resolve({
+                code: code ?? null,
+                signal: signal ?? 'SIGKILL',
+                stdout,
+                stderr: `${stderr}\nProcess timed out after ${timeoutMs}ms`.trim(),
+              });
               return;
             }
             resolve({ code, signal, stdout, stderr });
@@ -1415,8 +1564,11 @@ async function runBridgeCycle(
   const runtimeEmit = (event: string, data: Record<string, unknown>) => {
     try {
       runtime.emit(event, data);
-      if (config.verbose) console.log(`  [trait-event] ${event}`, JSON.stringify(data).slice(0, 120));
-    } catch { /* best effort — traits may not be attached */ }
+      if (config.verbose)
+        console.log(`  [trait-event] ${event}`, JSON.stringify(data).slice(0, 120));
+    } catch {
+      /* best effort — traits may not be attached */
+    }
   };
 
   // Start the runtime — this instantiates nodes, attaches traits (including BT)
@@ -1471,11 +1623,15 @@ async function runBridgeCycle(
   let budgetExhausted = false;
   runtime.on('economy:spend_limit_exceeded', (event: any) => {
     budgetExhausted = true;
-    console.warn(`  [economy] Spend limit exceeded — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`);
+    console.warn(
+      `  [economy] Spend limit exceeded — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`
+    );
   });
   runtime.on('economy:insufficient_funds', (event: any) => {
     budgetExhausted = true;
-    console.warn(`  [economy] Insufficient funds — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`);
+    console.warn(
+      `  [economy] Insufficient funds — aborting cycle. Details: ${JSON.stringify(event).slice(0, 200)}`
+    );
   });
 
   // ── @circuit_breaker: track circuit state ──
@@ -1485,12 +1641,16 @@ async function runBridgeCycle(
   // When the circuit opens, set a flag on the blackboard so generate_fix skips the LLM call.
   // The circuit auto-recovers to half-open after reset_timeout_ms (60s in composition).
   runtime.on('circuit_breaker:opened', (event: any) => {
-    console.warn(`  [circuit_breaker] Circuit OPENED — ${event?.failureCount ?? '?'} failures in window. Skipping LLM calls for ${Math.round((60000) / 1000)}s.`);
+    console.warn(
+      `  [circuit_breaker] Circuit OPENED — ${event?.failureCount ?? '?'} failures in window. Skipping LLM calls for ${Math.round(60000 / 1000)}s.`
+    );
     // Inject into pending blackboard — next generate_fix will check this
     circuitOpen = true;
   });
   runtime.on('circuit_breaker:closed', (event: any) => {
-    console.log(`  [circuit_breaker] Circuit CLOSED — recovered after ${Math.round((event?.recoveredAfterMs ?? 0) / 1000)}s.`);
+    console.log(
+      `  [circuit_breaker] Circuit CLOSED — recovered after ${Math.round((event?.recoveredAfterMs ?? 0) / 1000)}s.`
+    );
     circuitOpen = false;
   });
   runtime.on('circuit_breaker:half_opened', () => {
@@ -1498,7 +1658,9 @@ async function runBridgeCycle(
     circuitOpen = false; // Allow one test call through
   });
   runtime.on('circuit_breaker:rejected', (event: any) => {
-    console.log(`  [circuit_breaker] Action REJECTED — circuit open, ${Math.round((event?.remainingMs ?? 0) / 1000)}s remaining.`);
+    console.log(
+      `  [circuit_breaker] Action REJECTED — circuit open, ${Math.round((event?.remainingMs ?? 0) / 1000)}s remaining.`
+    );
   });
 
   // ── @scheduler: activate periodic jobs after runtime starts ──
@@ -1533,7 +1695,9 @@ async function runBridgeCycle(
     const items = event?.items ?? [];
     const totalCost = items.reduce((sum: number, e: any) => sum + (e?.amount ?? 0), 0);
     if (config.verbose) {
-      console.log(`  [buffer] Cost batch flushed: ${items.length} items, total $${totalCost.toFixed(3)}`);
+      console.log(
+        `  [buffer] Cost batch flushed: ${items.length} items, total $${totalCost.toFixed(3)}`
+      );
     }
   });
   runtime.on('daemon:telemetry_batch_flushed', (event: any) => {
@@ -1567,7 +1731,7 @@ async function runBridgeCycle(
 
     // Yield to allow async Promises to resolve between ticks
     // This is critical: without yielding, pending actions never complete
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
   // ── @structured_logger: log cycle completion ──
@@ -1641,7 +1805,7 @@ function parseArgs(): BridgeConfig {
     cycles: 1,
     rootDir: REPO_ROOT,
     verbose: args.includes('--verbose') || args.includes('-v'),
-    maxSpendUSD: 5.00,
+    maxSpendUSD: 5.0,
   };
 
   const cyclesIdx = args.indexOf('--cycles');
@@ -1691,9 +1855,17 @@ async function main() {
   startHeartbeat(() => daemonStateRef.current?.totalCostUSD ?? 0);
 
   // W.090 Safeguard 3: Robust process cleanup — catch ALL exit paths
-  const cleanup = () => { releaseLock(); };
-  process.on('SIGINT', () => { cleanup(); process.exit(0); });
-  process.on('SIGTERM', () => { cleanup(); process.exit(0); });
+  const cleanup = () => {
+    releaseLock();
+  };
+  process.on('SIGINT', () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    cleanup();
+    process.exit(0);
+  });
   process.on('uncaughtException', (err) => {
     console.error('Uncaught exception:', err);
     cleanup();
@@ -1730,7 +1902,9 @@ async function main() {
       process.exit(1);
     }
     compositionAST = parseResult.ast;
-    console.log(`  Parsed: ${COMPOSITION_FILE.split(path.sep).pop()} (${compositionSource.split('\n').length} lines)`);
+    console.log(
+      `  Parsed: ${COMPOSITION_FILE.split(path.sep).pop()} (${compositionSource.split('\n').length} lines)`
+    );
   } catch (err: any) {
     console.error(`Failed to read composition: ${err.message}`);
     releaseLock();
@@ -1789,19 +1963,25 @@ async function main() {
       console.log(`  ${label}`);
 
       const absorbPromise = callTool(handlers, 'holo_absorb_repo', {
-        rootDir: config.rootDir, outputFormat: 'stats',
+        rootDir: config.rootDir,
+        outputFormat: 'stats',
       });
       // OpenAI embeddings can take 3-5 min on first run (full repo scan + API calls).
       // BM25 rebuilds in ~2s from disk cache. 300s timeout covers both.
       const absorbTimeoutMs = process.env.EMBEDDING_PROVIDER === 'bm25' ? 120_000 : 300_000;
       const timeoutPromise = new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error(`Absorb timed out after ${absorbTimeoutMs / 1000}s`)), absorbTimeoutMs),
+        setTimeout(
+          () => reject(new Error(`Absorb timed out after ${absorbTimeoutMs / 1000}s`)),
+          absorbTimeoutMs
+        )
       );
       const absorbResult = await Promise.race([absorbPromise, timeoutPromise]);
       const parsed = JSON.parse(absorbResult);
       if (!parsed.error) {
         const src = parsed.cached ? 'cache' : 'scan';
-        console.log(`  Loaded ${parsed.totalSymbols ?? parsed.stats?.totalSymbols ?? '?'} symbols from ${src}`);
+        console.log(
+          `  Loaded ${parsed.totalSymbols ?? parsed.stats?.totalSymbols ?? '?'} symbols from ${src}`
+        );
         graphRAGReady = true;
       } else {
         console.warn(`  Absorb warning: ${parsed.error}`);
@@ -1814,24 +1994,28 @@ async function main() {
     console.warn('  GraphRAG unavailable — non-typefix cycles may return 0 candidates.');
   }
 
-  console.log(`Resuming from cycle ${daemonState.totalCycles}, best quality: ${daemonState.bestQuality.toFixed(3)}`);
+  console.log(
+    `Resuming from cycle ${daemonState.totalCycles}, best quality: ${daemonState.bestQuality.toFixed(3)}`
+  );
   console.log('');
 
   for (let i = 0; i < config.cycles; i++) {
     // G.ARCH.003: Pre-cycle budget gate — estimate next cycle cost BEFORE running it
     const remainingBudget = config.maxSpendUSD - daemonState.totalCostUSD;
     if (remainingBudget <= 0) {
-      console.warn(`\n[Budget] Already at $${daemonState.totalCostUSD.toFixed(3)} (cap: $${config.maxSpendUSD.toFixed(2)}). Stopping.`);
+      console.warn(
+        `\n[Budget] Already at $${daemonState.totalCostUSD.toFixed(3)} (cap: $${config.maxSpendUSD.toFixed(2)}). Stopping.`
+      );
       break;
     }
     const completedCycles = daemonState.totalCycles;
-    const avgCostPerCycle = completedCycles > 0
-      ? daemonState.totalCostUSD / completedCycles
-      : 1.50;  // Conservative first-cycle estimate ($1.50)
+    const avgCostPerCycle = completedCycles > 0 ? daemonState.totalCostUSD / completedCycles : 1.5; // Conservative first-cycle estimate ($1.50)
     // Use 1.5x the average as safety margin (cycles vary in cost)
     const estimatedNextCost = avgCostPerCycle * 1.5;
     if (estimatedNextCost > remainingBudget) {
-      console.warn(`\n[Budget] Estimated next cycle: ~$${estimatedNextCost.toFixed(3)}, remaining: $${remainingBudget.toFixed(3)}. Stopping to avoid overshoot.`);
+      console.warn(
+        `\n[Budget] Estimated next cycle: ~$${estimatedNextCost.toFixed(3)}, remaining: $${remainingBudget.toFixed(3)}. Stopping to avoid overshoot.`
+      );
       appendQualityHistory({
         timestamp: new Date().toISOString(),
         cycle: daemonState.totalCycles + 1,
@@ -1845,12 +2029,21 @@ async function main() {
       });
       break;
     }
-    console.log(`  [Budget] Remaining: $${remainingBudget.toFixed(3)}, est next cycle: ~$${estimatedNextCost.toFixed(3)}`);
+    console.log(
+      `  [Budget] Remaining: $${remainingBudget.toFixed(3)}, est next cycle: ~$${estimatedNextCost.toFixed(3)}`
+    );
 
     const startTime = Date.now();
 
     try {
-      const result = await runBridgeCycle(compositionAST, anthropic, handlers, toolDefs, config, daemonState);
+      const result = await runBridgeCycle(
+        compositionAST,
+        anthropic,
+        handlers,
+        toolDefs,
+        config,
+        daemonState
+      );
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
       // Update state
@@ -1872,7 +2065,9 @@ async function main() {
 
       // G.ARCH.002: Per-session budget cap enforcement
       if (daemonState.totalCostUSD >= config.maxSpendUSD) {
-        console.warn(`\n[G.ARCH.002] Budget cap reached: $${daemonState.totalCostUSD.toFixed(3)} >= $${config.maxSpendUSD.toFixed(2)}. Stopping.`);
+        console.warn(
+          `\n[G.ARCH.002] Budget cap reached: $${daemonState.totalCostUSD.toFixed(3)} >= $${config.maxSpendUSD.toFixed(2)}. Stopping.`
+        );
         appendQualityHistory({
           timestamp: new Date().toISOString(),
           cycle: daemonState.totalCycles + 1,
@@ -1892,8 +2087,19 @@ async function main() {
         timestamp: new Date().toISOString(),
         cycle: daemonState.totalCycles,
         composite: result.qualityAfter,
-        grade: result.qualityAfter >= 0.9 ? 'A' : result.qualityAfter >= 0.8 ? 'B' : result.qualityAfter >= 0.7 ? 'C' : result.qualityAfter >= 0.5 ? 'D' : 'F',
-        focus: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'][(daemonState.focusIndex - 1) % 7],
+        grade:
+          result.qualityAfter >= 0.9
+            ? 'A'
+            : result.qualityAfter >= 0.8
+              ? 'B'
+              : result.qualityAfter >= 0.7
+                ? 'C'
+                : result.qualityAfter >= 0.5
+                  ? 'D'
+                  : 'F',
+        focus: ['typefix', 'coverage', 'typefix', 'docs', 'typefix', 'complexity', 'all'][
+          (daemonState.focusIndex - 1) % 7
+        ],
         summary: `Bridge cycle ${daemonState.totalCycles}: quality ${result.qualityBefore.toFixed(3)} → ${result.qualityAfter.toFixed(3)}`,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
@@ -1906,9 +2112,13 @@ async function main() {
       });
 
       const delta = result.qualityAfter - result.qualityBefore;
-      console.log(`\nCycle ${i + 1}/${config.cycles} (${durationSec}s) — quality: ${result.qualityAfter.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) — $${costUSD.toFixed(3)}`);
+      console.log(
+        `\nCycle ${i + 1}/${config.cycles} (${durationSec}s) — quality: ${result.qualityAfter.toFixed(3)} (Δ${delta >= 0 ? '+' : ''}${delta.toFixed(3)}) — $${costUSD.toFixed(3)}`
+      );
       if (daemonState.blacklistedFiles?.length > 0) {
-        console.log(`  Blacklisted files: ${daemonState.blacklistedFiles.map(f => path.basename(f)).join(', ')}`)
+        console.log(
+          `  Blacklisted files: ${daemonState.blacklistedFiles.map((f) => path.basename(f)).join(', ')}`
+        );
       }
     } catch (err: any) {
       console.error(`Cycle ${i + 1} failed: ${err.message}`);
@@ -1920,7 +2130,9 @@ async function main() {
   console.log(`  Total cycles: ${daemonState.totalCycles}`);
   console.log(`  Best quality: ${daemonState.bestQuality.toFixed(3)}`);
   console.log(`  Total cost: $${daemonState.totalCostUSD.toFixed(3)}`);
-  console.log(`  Total tokens: ${daemonState.totalInputTokens} in / ${daemonState.totalOutputTokens} out`);
+  console.log(
+    `  Total tokens: ${daemonState.totalInputTokens} in / ${daemonState.totalOutputTokens} out`
+  );
 
   releaseLock();
   console.log('Bridge session complete.');

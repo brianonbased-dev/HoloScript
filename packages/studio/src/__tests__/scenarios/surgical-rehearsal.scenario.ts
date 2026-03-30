@@ -28,7 +28,7 @@ import {
   type VesselSegment,
   type PatientVitals,
   processVitalsTelemetry,
-  distanceToSegment
+  distanceToSegment,
 } from '@/lib/surgicalRehearsal';
 
 describe('Scenario: Surgical Rehearsal — Safety', () => {
@@ -76,7 +76,7 @@ describe('Scenario: Surgical Rehearsal — Safety', () => {
   it('distance3D() between instrument and landmark', () => {
     expect(distance3D(scalpel.tipPosition, landmarks[0].position)).toBeCloseTo(0.5, 1);
   });
-  
+
   it('Continuous Collision Detection (CCD) prevents high velocity tunneling', () => {
     // Scalpel moves very fast starting at x=4, y=3, z=2, ending at x=7, y=3, z=2
     // It passes right through the critical landmark at x=5.5
@@ -87,7 +87,7 @@ describe('Scenario: Surgical Rehearsal — Safety', () => {
       tipPosition: { x: 7, y: 3, z: 2 },
       safetyRadius: 1.0,
     };
-    
+
     // Normal point-in-time check would miss it if it only looked at tipPosition (dist 1.5 > safetyRadius 1.0)
     // But CCD uses distanceToSegment which will catch it (dist 0.0 < safetyRadius 1.0)
     const warning = isNearCriticalStructure(fastScalpel, landmarks);
@@ -103,9 +103,9 @@ describe('Scenario: Surgical Rehearsal — IoT Vitals Integration', () => {
       spO2: 98,
       systolicBP: 120,
       diastolicBP: 80,
-      respiratoryRate: 14
+      respiratoryRate: 14,
     };
-    
+
     const telemetry = processVitalsTelemetry(vitals);
     expect(telemetry.warningState).toBe('normal');
     expect(telemetry.hapticMultiplier).toBe(1.0);
@@ -117,9 +117,9 @@ describe('Scenario: Surgical Rehearsal — IoT Vitals Integration', () => {
       spO2: 95,
       systolicBP: 140,
       diastolicBP: 90,
-      respiratoryRate: 20
+      respiratoryRate: 20,
     };
-    
+
     const telemetry = processVitalsTelemetry(vitals);
     expect(telemetry.warningState).toBe('caution');
     expect(telemetry.hapticMultiplier).toBe(1.5);
@@ -131,9 +131,9 @@ describe('Scenario: Surgical Rehearsal — IoT Vitals Integration', () => {
       spO2: 85, // Critical SpO2
       systolicBP: 90,
       diastolicBP: 60,
-      respiratoryRate: 25
+      respiratoryRate: 25,
     };
-    
+
     const telemetry = processVitalsTelemetry(vitals);
     expect(telemetry.warningState).toBe('critical');
     expect(telemetry.hapticMultiplier).toBe(2.0);

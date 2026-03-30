@@ -16,30 +16,30 @@ export interface HoverInfo {
 
 /**
  * Built-in hover documentation for HoloScript primitives and traits.
- * 
+ *
  * Maps HoloScript symbol names to their hover documentation strings that appear
  * in editors when users hover over or request info about these symbols. Each
  * entry includes the symbol name, description, and available properties/config.
- * 
+ *
  * Used by {@link LanguageService.getHover} to provide contextual help for
  * built-in HoloScript primitives (box, sphere, panel) and traits (@grabbable,
  * @audio, @particles, etc.) during development.
- * 
+ *
  * This is exported to allow other tools and IDE extensions to access the same
  * documentation strings that the core language service uses.
- * 
+ *
  * @example
  * ```typescript
  * import { HOVER_DOCS } from '@holoscript/core/lsp';
- * 
+ *
  * // Get documentation for the box primitive
  * const boxDoc = HOVER_DOCS.box;
  * console.log(boxDoc); // "**box** — 3D box primitive..."
- * 
+ *
  * // Get documentation for a trait
  * const grabbableDoc = HOVER_DOCS['@grabbable'];
  * ```
- * 
+ *
  * @public
  */
 export const HOVER_DOCS: Record<string, string> = {

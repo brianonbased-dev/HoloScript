@@ -16,11 +16,11 @@ import { BoundingBox, Vec3 } from '../spatial/BoundingBox';
 // ── Public Types ───────────────────────────────────────────────────────────
 
 export type SpatialErrorType =
-  | 'IntersectionViolation'   // two objects are clipping through each other
-  | 'OutOfBounds'             // object is outside its allowed container
-  | 'ValueViolation'          // numeric property (e.g. polyCount) exceeds limit
-  | 'PositionViolation'       // entity is not at expected position
-  | 'PhysicsViolation';       // post-simulation assertion failed (e.g. object fell through floor)
+  | 'IntersectionViolation' // two objects are clipping through each other
+  | 'OutOfBounds' // object is outside its allowed container
+  | 'ValueViolation' // numeric property (e.g. polyCount) exceeds limit
+  | 'PositionViolation' // entity is not at expected position
+  | 'PhysicsViolation'; // post-simulation assertion failed (e.g. object fell through floor)
 
 export interface SpatialError {
   type: SpatialErrorType;
@@ -150,15 +150,15 @@ export class SemanticErrorReporter {
     const pen = bA.penetrationDepth(bB);
     const { axis, depth } = closestAxis(pen);
 
-    const lines = [
-      `SpatialAssertionError: '${a}' is clipping through '${b}'.`,
-    ];
+    const lines = [`SpatialAssertionError: '${a}' is clipping through '${b}'.`];
 
     // Describe the overlap in plain English based on the minimum axis
     if (axis === 'Y') {
       const aBottom = fmt(bA.min.y);
       const bTop = fmt(bB.max.y);
-      lines.push(`  '${a}' bottom Y (${aBottom}m) overlaps '${b}' top Y (${bTop}m) by ${fmt(Math.abs(depth))}m.`);
+      lines.push(
+        `  '${a}' bottom Y (${aBottom}m) overlaps '${b}' top Y (${bTop}m) by ${fmt(Math.abs(depth))}m.`
+      );
     } else if (axis === 'X') {
       lines.push(`  X overlap between '${a}' and '${b}' is ${fmt(Math.abs(depth))}m.`);
     } else {
@@ -178,12 +178,30 @@ export class SemanticErrorReporter {
     if (error.boundsA && error.container) {
       const b = error.boundsA;
       const c = error.container;
-      if (b.min.x < c.min.x) lines.push(`  min.x (${fmt(b.min.x)}) < container min.x (${fmt(c.min.x)}): shift right by ${fmt(c.min.x - b.min.x)}m`);
-      if (b.min.y < c.min.y) lines.push(`  min.y (${fmt(b.min.y)}) < container min.y (${fmt(c.min.y)}): shift up by ${fmt(c.min.y - b.min.y)}m`);
-      if (b.min.z < c.min.z) lines.push(`  min.z (${fmt(b.min.z)}) < container min.z (${fmt(c.min.z)}): shift forward by ${fmt(c.min.z - b.min.z)}m`);
-      if (b.max.x > c.max.x) lines.push(`  max.x (${fmt(b.max.x)}) > container max.x (${fmt(c.max.x)}): shift left by ${fmt(b.max.x - c.max.x)}m`);
-      if (b.max.y > c.max.y) lines.push(`  max.y (${fmt(b.max.y)}) > container max.y (${fmt(c.max.y)}): shift down by ${fmt(b.max.y - c.max.y)}m`);
-      if (b.max.z > c.max.z) lines.push(`  max.z (${fmt(b.max.z)}) > container max.z (${fmt(c.max.z)}): shift back by ${fmt(b.max.z - c.max.z)}m`);
+      if (b.min.x < c.min.x)
+        lines.push(
+          `  min.x (${fmt(b.min.x)}) < container min.x (${fmt(c.min.x)}): shift right by ${fmt(c.min.x - b.min.x)}m`
+        );
+      if (b.min.y < c.min.y)
+        lines.push(
+          `  min.y (${fmt(b.min.y)}) < container min.y (${fmt(c.min.y)}): shift up by ${fmt(c.min.y - b.min.y)}m`
+        );
+      if (b.min.z < c.min.z)
+        lines.push(
+          `  min.z (${fmt(b.min.z)}) < container min.z (${fmt(c.min.z)}): shift forward by ${fmt(c.min.z - b.min.z)}m`
+        );
+      if (b.max.x > c.max.x)
+        lines.push(
+          `  max.x (${fmt(b.max.x)}) > container max.x (${fmt(c.max.x)}): shift left by ${fmt(b.max.x - c.max.x)}m`
+        );
+      if (b.max.y > c.max.y)
+        lines.push(
+          `  max.y (${fmt(b.max.y)}) > container max.y (${fmt(c.max.y)}): shift down by ${fmt(b.max.y - c.max.y)}m`
+        );
+      if (b.max.z > c.max.z)
+        lines.push(
+          `  max.z (${fmt(b.max.z)}) > container max.z (${fmt(c.max.z)}): shift back by ${fmt(b.max.z - c.max.z)}m`
+        );
     }
 
     return lines.join('\n');
@@ -195,10 +213,9 @@ export class SemanticErrorReporter {
     const details = Object.entries(vals)
       .map(([k, v]) => `  '${k}' = ${v}`)
       .join('\n');
-    return [
-      `SpatialAssertionError: '${entity}' violated a numeric constraint.`,
-      details,
-    ].join('\n');
+    return [`SpatialAssertionError: '${entity}' violated a numeric constraint.`, details].join(
+      '\n'
+    );
   }
 
   private static _reportPosition(error: SpatialError): string {
@@ -207,10 +224,9 @@ export class SemanticErrorReporter {
     const detail = Object.entries(vals)
       .map(([k, v]) => `  ${k}: ${v}`)
       .join('\n');
-    return [
-      `SpatialAssertionError: '${entity}' is not at the expected position.`,
-      detail,
-    ].join('\n');
+    return [`SpatialAssertionError: '${entity}' is not at the expected position.`, detail].join(
+      '\n'
+    );
   }
 
   private static _reportPhysics(error: SpatialError): string {

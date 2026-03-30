@@ -147,7 +147,9 @@ describe('Lane B: Core Hardening Matrix — Suggestion Generation', () => {
         const err = recovery.createError(cluster.code, cluster.message, 10, 5, 'source');
         expect(err.suggestions?.length).toBeGreaterThan(0);
         if (cluster.descriptionContains) {
-          const allDescriptions = err.suggestions!.map(s => s.description.toLowerCase()).join(' ');
+          const allDescriptions = err
+            .suggestions!.map((s) => s.description.toLowerCase())
+            .join(' ');
           expect(allDescriptions).toContain(cluster.descriptionContains.toLowerCase());
         }
       });

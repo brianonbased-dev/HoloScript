@@ -82,7 +82,13 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
         }
         coll.set(key, event.value);
         state.totalOps++;
-        context.emit?.('database:result', { collection, key, value: event.value, found: true, op: 'put' });
+        context.emit?.('database:result', {
+          collection,
+          key,
+          value: event.value,
+          found: true,
+          op: 'put',
+        });
         break;
       }
       case 'database:get': {
@@ -90,7 +96,13 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
         if (!key) break;
         const value = coll.get(key);
         state.totalOps++;
-        context.emit?.('database:result', { collection, key, value, found: coll.has(key), op: 'get' });
+        context.emit?.('database:result', {
+          collection,
+          key,
+          value,
+          found: coll.has(key),
+          op: 'get',
+        });
         break;
       }
       case 'database:delete': {
@@ -98,7 +110,13 @@ export const databaseHandler: TraitHandler<DatabaseConfig> = {
         if (!key) break;
         const existed = coll.delete(key);
         state.totalOps++;
-        context.emit?.('database:result', { collection, key, value: undefined, found: existed, op: 'delete' });
+        context.emit?.('database:result', {
+          collection,
+          key,
+          value: undefined,
+          found: existed,
+          op: 'delete',
+        });
         break;
       }
       case 'database:clear': {

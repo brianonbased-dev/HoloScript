@@ -53,11 +53,14 @@ export interface RetryState {
   totalAttempts: number;
   totalSuccesses: number;
   totalFailures: number;
-  pendingActions: Map<string, {
-    actionName: string;
-    attempt: number;
-    startedAt: number;
-  }>;
+  pendingActions: Map<
+    string,
+    {
+      actionName: string;
+      attempt: number;
+      startedAt: number;
+    }
+  >;
   actionCounter: number;
 }
 

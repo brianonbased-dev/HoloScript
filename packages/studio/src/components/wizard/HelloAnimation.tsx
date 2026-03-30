@@ -81,9 +81,7 @@ export function HelloAnimation({ onComplete }: HelloAnimationProps) {
         {/* Subtitle — fades in after stroke completes */}
         <p
           className={`mt-4 text-sm tracking-[0.3em] uppercase transition-all duration-700 ease-out ${
-            phase === 'drawing'
-              ? 'opacity-0 translate-y-2'
-              : 'opacity-60 translate-y-0'
+            phase === 'drawing' ? 'opacity-0 translate-y-2' : 'opacity-60 translate-y-0'
           }`}
           style={{ color: '#6b7280' }}
         >

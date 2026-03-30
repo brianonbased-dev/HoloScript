@@ -91,7 +91,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
 }`,
   },
 
-  'platformer': {
+  platformer: {
     id: 'wizard-platformer',
     name: 'Platformer Starter',
     description: 'Side-scrolling platformer with floating platforms and collectibles',
@@ -189,7 +189,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
 }`,
   },
 
-  'rpg': {
+  rpg: {
     id: 'wizard-rpg',
     name: 'RPG World Starter',
     description: 'Fantasy RPG scene with NPC, tavern, and quest marker',
@@ -277,7 +277,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
 }`,
   },
 
-  'puzzle': {
+  puzzle: {
     id: 'wizard-puzzle',
     name: 'Puzzle Room Starter',
     description: 'Interactive puzzle room with clickable switches and moving elements',
@@ -724,7 +724,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
 }`,
   },
 
-  'cutscene': {
+  cutscene: {
     id: 'wizard-cutscene',
     name: 'Game Cutscene',
     description: 'In-game cinematic with character marks, cameras, and mood lighting',
@@ -1244,7 +1244,7 @@ export const WIZARD_TEMPLATES: Record<string, SceneTemplate> = {
 
   // ─── Web ───────────────────────────────────────────────────────────────────
 
-  'portfolio': {
+  portfolio: {
     id: 'wizard-portfolio',
     name: '3D Portfolio',
     description: 'Interactive 3D portfolio with floating project cards and navigation',

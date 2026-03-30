@@ -137,12 +137,12 @@ composition "BasicScene" {
 
 ### 2. Build Performance
 
-| Metric           | Target                     | Measurement Tool          |
-| ---------------- | -------------------------- | ------------------------- |
-| **Compile Time** | <30 seconds (small scene)  | `time holoscript compile` |
-| **Binary Size**  | <50MB (Quest APK)          | File size                 |
-| **Load Time**    | <5 seconds (scene load)    | Stopwatch                 |
-| **Hot Reload**   | <2 seconds (iterative dev) | HotReloader.ts            |
+| Metric           | Target                     | Measurement Tool                |
+| ---------------- | -------------------------- | ------------------------------- |
+| **Compile Time** | <30 seconds (small scene)  | `time holoscript compile`       |
+| **Binary Size**  | <50MB (Quest APK)          | File size                       |
+| **Load Time**    | <5 seconds (scene load)    | Stopwatch                       |
+| **Hot Reload**   | <2 seconds (iterative dev) | HotReloader.ts                  |
 | **Memory Limit** | <512MB for 100MB+ ASTs     | `node --max-old-space-size=512` |
 
 ### 3. Code Quality

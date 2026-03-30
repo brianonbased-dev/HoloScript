@@ -259,12 +259,12 @@ Out of scope:
 
 ### Compatibility Matrix
 
-| Pair | Outcome | Rule |
-| --- | --- | --- |
-| `@memory_crystal` + `@forget_policy` | Recommended | Enables bounded persistent memory |
-| `@recall_trigger` + `@memory_crystal` | Required for semantic recall | Compiler error if no memory source in scope |
-| `@versioned_state(strategy="crdt")` + multiplayer/networked traits | Recommended | Conflict-safe edits |
-| `@world_heartbeat` + `@circuit_auto_reset` | Recommended | Synchronization plus resilient retries |
+| Pair                                                               | Outcome                      | Rule                                        |
+| ------------------------------------------------------------------ | ---------------------------- | ------------------------------------------- |
+| `@memory_crystal` + `@forget_policy`                               | Recommended                  | Enables bounded persistent memory           |
+| `@recall_trigger` + `@memory_crystal`                              | Required for semantic recall | Compiler error if no memory source in scope |
+| `@versioned_state(strategy="crdt")` + multiplayer/networked traits | Recommended                  | Conflict-safe edits                         |
+| `@world_heartbeat` + `@circuit_auto_reset`                         | Recommended                  | Synchronization plus resilient retries      |
 
 ### Ordering Rule
 
@@ -339,14 +339,14 @@ Additions aligned with existing CLASS upgrade path:
 
 ## Implementation Status
 
-| Atom | Handler File | Registered | Tests | Status |
-| --- | --- | --- | --- | --- |
-| `@memory_crystal` | `src/traits/MemoryCrystalTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
-| `@recall_trigger` | `src/traits/RecallTriggerTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
-| `@forget_policy` | `src/traits/ForgetPolicyTrait.ts` | Yes | 45,366 pass (no regressions) | Implemented |
-| `@versioned_state` | `src/traits/VersionedStateTrait.ts` | Yes | 11,026 pass (no regressions) | Implemented |
-| `@world_heartbeat` | `src/traits/WorldHeartbeatTrait.ts` | Yes | 11,026 pass (no regressions) | Implemented |
-| `@circuit_auto_reset` | `src/traits/CircuitAutoResetTrait.ts` | Yes | 11,026 pass (no regressions) | Implemented |
+| Atom                  | Handler File                          | Registered | Tests                        | Status      |
+| --------------------- | ------------------------------------- | ---------- | ---------------------------- | ----------- |
+| `@memory_crystal`     | `src/traits/MemoryCrystalTrait.ts`    | Yes        | 45,366 pass (no regressions) | Implemented |
+| `@recall_trigger`     | `src/traits/RecallTriggerTrait.ts`    | Yes        | 45,366 pass (no regressions) | Implemented |
+| `@forget_policy`      | `src/traits/ForgetPolicyTrait.ts`     | Yes        | 45,366 pass (no regressions) | Implemented |
+| `@versioned_state`    | `src/traits/VersionedStateTrait.ts`   | Yes        | 11,026 pass (no regressions) | Implemented |
+| `@world_heartbeat`    | `src/traits/WorldHeartbeatTrait.ts`   | Yes        | 11,026 pass (no regressions) | Implemented |
+| `@circuit_auto_reset` | `src/traits/CircuitAutoResetTrait.ts` | Yes        | 11,026 pass (no regressions) | Implemented |
 
 Reference composition: `examples/memory-atoms-showcase.holo`
 

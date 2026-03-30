@@ -85,7 +85,6 @@ export function useScriptConsole() {
       };
 
       try {
-         
         const fn = new Function(
           'scene',
           'console',

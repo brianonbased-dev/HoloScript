@@ -38,9 +38,7 @@ export class MCPCircuitBreaker {
   private breaker: CircuitBreaker;
   private baseUrl: string;
 
-  constructor(
-    config: Partial<CircuitBreakerConfig> & { baseUrl?: string } = {}
-  ) {
+  constructor(config: Partial<CircuitBreakerConfig> & { baseUrl?: string } = {}) {
     this.breaker = new CircuitBreaker({
       failureThreshold: config.failureThreshold ?? 5,
       successThreshold: config.successThreshold ?? 2,
@@ -53,29 +51,36 @@ export class MCPCircuitBreaker {
   /**
    * Call an MCP tool with circuit breaker protection + retry + timeout
    */
-  async callTool(tool: string, args: Record<string, unknown>, timeoutMs = 15000): Promise<MCPToolResult> {
+  async callTool(
+    tool: string,
+    args: Record<string, unknown>,
+    timeoutMs = 15000
+  ): Promise<MCPToolResult> {
     try {
       const result = await this.breaker.execute(async () => {
-        return retryWithBackoff(async () => {
-          const response = await withTimeout(
-            fetch(`${this.baseUrl}/api/mcp/tools/${tool}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ arguments: args }),
-            }),
-            timeoutMs
-          );
+        return retryWithBackoff(
+          async () => {
+            const response = await withTimeout(
+              fetch(`${this.baseUrl}/api/mcp/tools/${tool}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ arguments: args }),
+              }),
+              timeoutMs
+            );
 
-          if (!response.ok) {
-            throw new Error(`MCP tool ${tool} failed: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+              throw new Error(`MCP tool ${tool} failed: ${response.status} ${response.statusText}`);
+            }
+
+            return response.json();
+          },
+          {
+            maxAttempts: 2,
+            initialBackoffMs: 500,
+            maxBackoffMs: 3000,
           }
-
-          return response.json();
-        }, {
-          maxAttempts: 2,
-          initialBackoffMs: 500,
-          maxBackoffMs: 3000,
-        });
+        );
       });
 
       return {
@@ -119,7 +124,9 @@ export class MCPCircuitBreaker {
  */
 let defaultInstance: MCPCircuitBreaker | null = null;
 
-export function getMCPCircuitBreaker(config?: Partial<CircuitBreakerConfig> & { baseUrl?: string }): MCPCircuitBreaker {
+export function getMCPCircuitBreaker(
+  config?: Partial<CircuitBreakerConfig> & { baseUrl?: string }
+): MCPCircuitBreaker {
   if (!defaultInstance) {
     defaultInstance = new MCPCircuitBreaker(config);
   }

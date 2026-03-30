@@ -17,7 +17,9 @@ export function OperationsSurfacePanel({ onClose }: OperationsSurfacePanelProps)
   const [kind, setKind] = useState<OperationsSurfaceResponse['kind']>('dashboard');
 
   const previewCode = data?.kind === 'dashboard' && data.validation.valid ? data.code : '';
-  const { r3fTree, errors: previewErrors } = useScenePipeline(previewCode, { formatHint: 'hsplus' });
+  const { r3fTree, errors: previewErrors } = useScenePipeline(previewCode, {
+    formatHint: 'hsplus',
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -45,7 +47,9 @@ export function OperationsSurfacePanel({ onClose }: OperationsSurfacePanelProps)
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-studio-text">2D Operations Surface</h2>
-            <p className="text-xs text-studio-muted">Loaded from native `.hsplus` compositions and hydrated with live Studio daemon state.</p>
+            <p className="text-xs text-studio-muted">
+              Loaded from native `.hsplus` compositions and hydrated with live Studio daemon state.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -66,7 +70,9 @@ export function OperationsSurfacePanel({ onClose }: OperationsSurfacePanelProps)
           </div>
         </div>
 
-        {loading && <p className="text-sm text-studio-muted">Loading native HoloScript surface...</p>}
+        {loading && (
+          <p className="text-sm text-studio-muted">Loading native HoloScript surface...</p>
+        )}
         {error && <p className="text-sm text-red-400">{error}</p>}
 
         {data && (
@@ -74,12 +80,18 @@ export function OperationsSurfacePanel({ onClose }: OperationsSurfacePanelProps)
             <div className="rounded border border-sky-500/40 bg-sky-500/10 p-2 text-xs text-sky-200">
               Source: {data.sourcePath || 'unavailable'}
               <div className="mt-1 text-sky-100">
-                Mode: {data.generation?.mode ?? 'unknown'} / hydrated: {data.generation?.hydrated ? 'yes' : 'no'}
+                Mode: {data.generation?.mode ?? 'unknown'} / hydrated:{' '}
+                {data.generation?.hydrated ? 'yes' : 'no'}
               </div>
             </div>
 
-            <div className={`rounded border p-2 text-xs ${data.validation.valid ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-red-500/40 bg-red-500/10 text-red-300'}`}>
-              Validation: {data.validation.valid ? 'valid HoloScript composition' : 'invalid HoloScript composition'}
+            <div
+              className={`rounded border p-2 text-xs ${data.validation.valid ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-red-500/40 bg-red-500/10 text-red-300'}`}
+            >
+              Validation:{' '}
+              {data.validation.valid
+                ? 'valid HoloScript composition'
+                : 'invalid HoloScript composition'}
               {!data.validation.valid && data.validation.errors.length > 0 && (
                 <ul className="mt-1 list-disc pl-4">
                   {data.validation.errors.map((issue) => (
@@ -92,50 +104,72 @@ export function OperationsSurfacePanel({ onClose }: OperationsSurfacePanelProps)
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Jobs
-                <div className="text-lg font-semibold text-studio-text">{data.telemetry.totalJobs}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.telemetry.totalJobs}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Completed
-                <div className="text-lg font-semibold text-green-400">{data.telemetry.completedJobs}</div>
+                <div className="text-lg font-semibold text-green-400">
+                  {data.telemetry.completedJobs}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Failed
-                <div className="text-lg font-semibold text-red-400">{data.telemetry.failedJobs}</div>
+                <div className="text-lg font-semibold text-red-400">
+                  {data.telemetry.failedJobs}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Patches
-                <div className="text-lg font-semibold text-studio-text">{data.telemetry.totalPatches}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.telemetry.totalPatches}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Avg Delta
-                <div className="text-lg font-semibold text-studio-text">{data.telemetry.avgQualityDelta}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.telemetry.avgQualityDelta}
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Activity
-                <div className="text-lg font-semibold text-studio-text">{data.summary.activityCount}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.summary.activityCount}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Agents
-                <div className="text-lg font-semibold text-studio-text">{data.summary.agentCount}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.summary.agentCount}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Forks
-                <div className="text-lg font-semibold text-studio-text">{data.summary.forkCount}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.summary.forkCount}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Running
-                <div className="text-lg font-semibold text-studio-text">{data.summary.runningJobs}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.summary.runningJobs}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Queued
-                <div className="text-lg font-semibold text-studio-text">{data.summary.queuedJobs}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.summary.queuedJobs}
+                </div>
               </div>
               <div className="rounded border border-studio-border bg-studio-surface p-3 text-xs text-studio-muted">
                 Review
-                <div className="text-lg font-semibold text-studio-text">{data.summary.reviewJobs}</div>
+                <div className="text-lg font-semibold text-studio-text">
+                  {data.summary.reviewJobs}
+                </div>
               </div>
             </div>
 
@@ -153,14 +187,17 @@ export function OperationsSurfacePanel({ onClose }: OperationsSurfacePanelProps)
                     </div>
                   ) : (
                     <div className="flex h-full items-center justify-center px-6 text-center text-xs text-studio-muted">
-                      Orchestration is loaded and driven from the app, but it does not project a visual dashboard scene on its own.
+                      Orchestration is loaded and driven from the app, but it does not project a
+                      visual dashboard scene on its own.
                     </div>
                   )}
                 </div>
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-medium text-studio-muted">Loaded HoloScript Surface ({data.format})</p>
+                <p className="mb-2 text-xs font-medium text-studio-muted">
+                  Loaded HoloScript Surface ({data.format})
+                </p>
                 <pre className="max-h-[420px] overflow-auto rounded border border-studio-border bg-[#0b1020] p-3 text-[11px] text-sky-100">
                   {data.code}
                 </pre>

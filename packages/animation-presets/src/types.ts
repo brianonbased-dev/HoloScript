@@ -47,12 +47,7 @@ export type EasingFunction =
  * - `emote`:         Expressive emotes and performances (dance, emote)
  * - `environmental`: Environmental / ambient states (idle, sit, sleep)
  */
-export type PresetCategory =
-  | 'locomotion'
-  | 'combat'
-  | 'social'
-  | 'emote'
-  | 'environmental';
+export type PresetCategory = 'locomotion' | 'combat' | 'social' | 'emote' | 'environmental';
 
 /**
  * The 15 canonical preset behavior names.

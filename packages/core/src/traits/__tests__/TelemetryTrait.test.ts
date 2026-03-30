@@ -10,7 +10,7 @@ describe('TelemetryTrait', () => {
   beforeEach(() => {
     emittedEvents = [];
     mockNode = { id: 'test-node', name: 'TestNode', type: 'object' } as HSPlusNode;
-    
+
     // Using vi.fn() for context mock
     const emit = vi.fn((event, payload) => {
       emittedEvents.push({ event, payload });
@@ -24,7 +24,7 @@ describe('TelemetryTrait', () => {
         applyVelocity: vi.fn(),
         applyAngularVelocity: vi.fn(),
         setKinematic: vi.fn(),
-        raycast: vi.fn()
+        raycast: vi.fn(),
       },
       vr: {} as any,
       audio: {} as any,
@@ -32,7 +32,7 @@ describe('TelemetryTrait', () => {
       getState: vi.fn(),
       setState: vi.fn(),
       getScaleMultiplier: vi.fn().mockReturnValue(1),
-      setScaleContext: vi.fn()
+      setScaleContext: vi.fn(),
     };
   });
 
@@ -41,15 +41,15 @@ describe('TelemetryTrait', () => {
       channels: ['medical_stream'],
       aggregation_ms: 1000,
       batch_size: 2,
-      include_physics: false
+      include_physics: false,
     };
 
     telemetryHandler.onAttach?.(mockNode, config, mockContext);
-    
+
     // Log an event
     telemetryHandler.onEvent?.(mockNode, config, mockContext, {
       type: 'telemetry_log',
-      payload: { vital: 'HR', value: 75 }
+      payload: { vital: 'HR', value: 75 },
     });
 
     // Should not have emitted yet because batch size is 2
@@ -58,12 +58,12 @@ describe('TelemetryTrait', () => {
     // Log another event
     telemetryHandler.onEvent?.(mockNode, config, mockContext, {
       type: 'telemetry_log',
-      payload: { vital: 'BP', value: 120 }
+      payload: { vital: 'BP', value: 120 },
     });
 
     // Now update should flush since batch size is 2
     telemetryHandler.onUpdate?.(mockNode, config, mockContext, 16);
-    
+
     expect(emittedEvents.length).toBe(1);
     expect(emittedEvents[0].event).toBe('on_telemetry_batch');
     const payload = emittedEvents[0].payload.payload;
@@ -77,7 +77,7 @@ describe('TelemetryTrait', () => {
       channels: ['robot_kinematics'],
       aggregation_ms: 0, // force flush immediately
       batch_size: 1,
-      include_physics: true
+      include_physics: true,
     };
 
     telemetryHandler.onAttach?.(mockNode, config, mockContext);

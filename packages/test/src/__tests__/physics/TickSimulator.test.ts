@@ -23,10 +23,10 @@ function makeCrate(y = 5) {
 describe('TickSimulator — gravity', () => {
   it('object falls under gravity', () => {
     const crate = makeCrate(5);
-    const sim = new TickSimulator(
-      [{ entity: crate, velocity: [0, 0, 0] }],
-      { gravity: -9.81, hz: 60 }
-    );
+    const sim = new TickSimulator([{ entity: crate, velocity: [0, 0, 0] }], {
+      gravity: -9.81,
+      hz: 60,
+    });
     const initialY = crate.position.y;
     sim.forward(30); // 0.5s at 60Hz
     expect(crate.position.y).toBeLessThan(initialY);
@@ -34,10 +34,10 @@ describe('TickSimulator — gravity', () => {
 
   it('velocity increases over time', () => {
     const crate = makeCrate(10);
-    const sim = new TickSimulator(
-      [{ entity: crate, velocity: [0, 0, 0] }],
-      { gravity: -9.81, hz: 60 }
-    );
+    const sim = new TickSimulator([{ entity: crate, velocity: [0, 0, 0] }], {
+      gravity: -9.81,
+      hz: 60,
+    });
     sim.forward(10);
     const vel = sim.getVelocity('crate')!;
     expect(vel.y).toBeLessThan(0); // falling
@@ -46,10 +46,7 @@ describe('TickSimulator — gravity', () => {
   it('static bodies are unaffected by gravity', () => {
     const floor = makeFloor();
     const originalY = floor.position.y;
-    const sim = new TickSimulator(
-      [{ entity: floor, isStatic: true }],
-      { gravity: -9.81, hz: 60 }
-    );
+    const sim = new TickSimulator([{ entity: floor, isStatic: true }], { gravity: -9.81, hz: 60 });
     sim.forward(120);
     expect(floor.position.y).toBeCloseTo(originalY, 5);
   });
@@ -128,7 +125,7 @@ describe('TickSimulator — dynamic-dynamic collision', () => {
         { entity: a, velocity: [0, -5, 0], mass: 1 },
         { entity: b, velocity: [0, 0, 0], mass: 1 },
       ],
-      { gravity: 0, hz: 60 }  // no gravity — pure collision test
+      { gravity: 0, hz: 60 } // no gravity — pure collision test
     );
 
     sim.forward(60);
@@ -146,10 +143,7 @@ describe('TickSimulator — dynamic-dynamic collision', () => {
 describe('TickSimulator — time control', () => {
   it('forwardSeconds() advances by correct time', () => {
     const e = SpatialEntity.at('e', { position: [0, 10, 0], size: [1, 1, 1] });
-    const sim = new TickSimulator(
-      [{ entity: e, velocity: [0, 0, 0] }],
-      { gravity: -9.81, hz: 60 }
-    );
+    const sim = new TickSimulator([{ entity: e, velocity: [0, 0, 0] }], { gravity: -9.81, hz: 60 });
 
     sim.forwardSeconds(2); // should advance 120 ticks
     expect(sim.elapsedSeconds).toBeCloseTo(2, 1);
@@ -157,10 +151,7 @@ describe('TickSimulator — time control', () => {
 
   it('elapsedSeconds accumulates across multiple calls', () => {
     const e = SpatialEntity.at('e', { position: [0, 10, 0], size: [1, 1, 1] });
-    const sim = new TickSimulator(
-      [{ entity: e, velocity: [0, 0, 0] }],
-      { gravity: -9.81, hz: 60 }
-    );
+    const sim = new TickSimulator([{ entity: e, velocity: [0, 0, 0] }], { gravity: -9.81, hz: 60 });
 
     sim.forward(60);
     sim.forward(60);

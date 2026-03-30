@@ -70,7 +70,8 @@ function extractState(compositionChildren: HSPlusNode[]): HoloSurfaceState {
   for (const child of compositionChildren) {
     if (child.type === 'state' || child.name === 'state') {
       if (child.stateBlock) return { ...child.stateBlock };
-      if (child.body && typeof child.body === 'object') return { ...(child.body as Record<string, unknown>) };
+      if (child.body && typeof child.body === 'object')
+        return { ...(child.body as Record<string, unknown>) };
       if (child.properties) return { ...child.properties };
     }
     // Also check stateBlock on the composition root
@@ -112,7 +113,13 @@ function evaluateComputedValues(
       const values = Object.values(state);
       const fn = new Function(
         ...keys,
-        'Math', 'String', 'Number', 'Boolean', 'Date', 'JSON', 'Array',
+        'Math',
+        'String',
+        'Number',
+        'Boolean',
+        'Date',
+        'JSON',
+        'Array',
         `"use strict"; return (${transformed})`
       );
       result[def.name] = fn(...values, Math, String, Number, Boolean, Date, JSON, Array);
@@ -229,7 +236,9 @@ export function useHoloComposition(sourceUrl: string): HoloCompositionResult {
     };
 
     void load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [sourceUrl]);
 
   // Compute values whenever state changes
@@ -267,10 +276,7 @@ export function useHoloComposition(sourceUrl: string): HoloCompositionResult {
                       // Evaluate the expression
                       const payloadObj = payload as Record<string, unknown> | undefined;
                       const context = { ...state, ...computed, event: payloadObj };
-                      const transformed = expr.replace(
-                        /\$([a-zA-Z_][a-zA-Z0-9_]*)/g,
-                        (_, v) => v
-                      );
+                      const transformed = expr.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, v) => v);
                       // Also replace event.field with event?.field
                       const withEvent = transformed.replace(
                         /event\.([a-zA-Z_][a-zA-Z0-9_]*)/g,
@@ -278,10 +284,7 @@ export function useHoloComposition(sourceUrl: string): HoloCompositionResult {
                       );
                       const keys = Object.keys(context);
                       const values = Object.values(context);
-                      const fn = new Function(
-                        ...keys,
-                        `"use strict"; return (${withEvent})`
-                      );
+                      const fn = new Function(...keys, `"use strict"; return (${withEvent})`);
                       updates[varName] = fn(...values);
                     } catch {
                       // Skip failed expressions

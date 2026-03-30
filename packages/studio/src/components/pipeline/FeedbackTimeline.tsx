@@ -14,12 +14,12 @@ interface FeedbackTimelineProps {
 }
 
 const SIGNAL_ICONS: Record<FeedbackSignalType, string> = {
-  quality_trend: '\uD83D\uDCC8',       // chart
-  focus_effectiveness: '\uD83C\uDFAF',  // target
-  failure_pattern: '\u26A0\uFE0F',      // warning
-  cost_efficiency: '\uD83D\uDCB2',      // dollar
-  skill_gap: '\uD83E\uDDE9',            // puzzle
-  plateau_detected: '\u23F8\uFE0F',     // pause
+  quality_trend: '\uD83D\uDCC8', // chart
+  focus_effectiveness: '\uD83C\uDFAF', // target
+  failure_pattern: '\u26A0\uFE0F', // warning
+  cost_efficiency: '\uD83D\uDCB2', // dollar
+  skill_gap: '\uD83E\uDDE9', // puzzle
+  plateau_detected: '\u23F8\uFE0F', // pause
 };
 
 const SIGNAL_COLORS: Record<FeedbackSignalType, string> = {
@@ -85,30 +85,19 @@ export function FeedbackTimeline({ signals, maxVisible = 50 }: FeedbackTimelineP
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className="max-h-64 overflow-y-auto space-y-1.5 pr-1"
-    >
+    <div ref={scrollRef} className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
       {visibleSignals.map((signal, i) => (
         <div
           key={`${signal.timestamp}-${i}`}
           className={`flex items-start gap-2 p-2 rounded border-l-2 bg-studio-bg ${SIGNAL_COLORS[signal.signalType]}`}
         >
-          <span className="text-sm flex-shrink-0">
-            {SIGNAL_ICONS[signal.signalType]}
-          </span>
+          <span className="text-sm flex-shrink-0">{SIGNAL_ICONS[signal.signalType]}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-studio-muted">
-                L{signal.sourceLayer}
-              </span>
-              <span className="text-xs text-studio-muted">
-                {formatTime(signal.timestamp)}
-              </span>
+              <span className="text-xs font-mono text-studio-muted">L{signal.sourceLayer}</span>
+              <span className="text-xs text-studio-muted">{formatTime(signal.timestamp)}</span>
             </div>
-            <div className="text-xs text-studio-text truncate">
-              {formatSignalData(signal)}
-            </div>
+            <div className="text-xs text-studio-text truncate">{formatSignalData(signal)}</div>
           </div>
         </div>
       ))}

@@ -6,14 +6,15 @@ import { ArrowLeft } from 'lucide-react';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 const ScenarioLauncher = dynamic(
-  () => import('@/industry/scenarios/ScenarioLauncher').then((m) => ({ default: m.ScenarioLauncher })),
-  { 
-    ssr: false, 
+  () =>
+    import('@/industry/scenarios/ScenarioLauncher').then((m) => ({ default: m.ScenarioLauncher })),
+  {
+    ssr: false,
     loading: () => (
       <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
         Initializing AI Scenarios...
       </div>
-    ) 
+    ),
   }
 );
 
@@ -23,7 +24,10 @@ export default function ScenariosRoute() {
       {/* Isolated Header */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-studio-border bg-studio-panel px-4">
         <div className="flex items-center gap-4">
-          <Link href="/create" className="flex items-center gap-2 text-studio-muted transition hover:text-studio-text">
+          <Link
+            href="/create"
+            className="flex items-center gap-2 text-studio-muted transition hover:text-studio-text"
+          >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm font-medium">Return to Master IDE</span>
           </Link>

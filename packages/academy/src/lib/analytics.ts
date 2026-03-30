@@ -77,21 +77,18 @@ export function trackPageView(path?: string) {
 
 export const StudioEvents = {
   // Projects
-  sceneCreated: (sceneName: string) =>
-    trackEvent('scene_created', { sceneName }),
+  sceneCreated: (sceneName: string) => trackEvent('scene_created', { sceneName }),
 
   projectExported: (format: string, sceneName?: string) =>
     trackEvent('project_exported', { format, sceneName }),
 
-  exportFailed: (format: string, error: string) =>
-    trackEvent('export_failed', { format, error }),
+  exportFailed: (format: string, error: string) => trackEvent('export_failed', { format, error }),
 
   // Deploy
   projectDeployed: (deploymentId: string, target: string) =>
     trackEvent('project_deployed', { deploymentId, target }),
 
-  deployFailed: (error: string) =>
-    trackEvent('deploy_failed', { error }),
+  deployFailed: (error: string) => trackEvent('deploy_failed', { error }),
 
   // Assets
   assetUploaded: (category: string, sizeKb: number) =>
@@ -107,28 +104,22 @@ export const StudioEvents = {
   marketplacePurchase: (listingId: string, amountCents: number) =>
     trackEvent('marketplace_purchase', { listingId, amountCents }),
 
-  marketplacePublish: (contentType: string) =>
-    trackEvent('marketplace_publish', { contentType }),
+  marketplacePublish: (contentType: string) => trackEvent('marketplace_publish', { contentType }),
 
-  marketplaceDownload: (itemId: string) =>
-    trackEvent('marketplace_download', { itemId }),
+  marketplaceDownload: (itemId: string) => trackEvent('marketplace_download', { itemId }),
 
   marketplaceFavorite: (itemId: string, favorited: boolean) =>
     trackEvent('marketplace_favorite', { itemId, favorited }),
 
-  marketplaceRemix: (itemId: string) =>
-    trackEvent('marketplace_remix', { itemId }),
+  marketplaceRemix: (itemId: string) => trackEvent('marketplace_remix', { itemId }),
 
   // Collaboration
-  collabSessionJoined: (roomId: string) =>
-    trackEvent('collab_session_joined', { roomId }),
+  collabSessionJoined: (roomId: string) => trackEvent('collab_session_joined', { roomId }),
 
-  collabSessionLeft: (roomId: string) =>
-    trackEvent('collab_session_left', { roomId }),
+  collabSessionLeft: (roomId: string) => trackEvent('collab_session_left', { roomId }),
 
   // AI / Brittney
-  brittneyPromptSent: (textLength: number) =>
-    trackEvent('brittney_prompt_sent', { textLength }),
+  brittneyPromptSent: (textLength: number) => trackEvent('brittney_prompt_sent', { textLength }),
 
   brittneyToolCalled: (toolName: string, success: boolean) =>
     trackEvent('brittney_tool_called', { toolName, success }),
@@ -137,8 +128,12 @@ export const StudioEvents = {
     trackEvent('scene_generated', { method }),
 
   // Studio Wizard & Presets
-  wizardCompleted: (presetId: string, category: string, subCategory: string, experienceLevel: string) =>
-    trackEvent('wizard_completed', { presetId, category, subCategory, experienceLevel }),
+  wizardCompleted: (
+    presetId: string,
+    category: string,
+    subCategory: string,
+    experienceLevel: string
+  ) => trackEvent('wizard_completed', { presetId, category, subCategory, experienceLevel }),
 
   wizardCategorySelected: (category: string) =>
     trackEvent('wizard_category_selected', { category }),

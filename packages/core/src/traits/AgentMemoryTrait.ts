@@ -24,7 +24,9 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Minimal trait context */
-interface TraitCtx { emit(event: string, data: Record<string, unknown>): void; }
+interface TraitCtx {
+  emit(event: string, data: Record<string, unknown>): void;
+}
 /** Node with dynamic agent memory state */
 type MemoryNode = Record<string, unknown> & { __agentMemoryState?: AgentMemoryState };
 
@@ -212,25 +214,70 @@ export const agentMemoryHandler = {
     delete node.__agentMemoryState;
   },
 
-  onEvent(node: MemoryNode, config: AgentMemoryConfig, ctx: TraitCtx, event: { type: string; payload?: unknown }): void {
+  onEvent(
+    node: MemoryNode,
+    config: AgentMemoryConfig,
+    ctx: TraitCtx,
+    event: { type: string; payload?: unknown }
+  ): void {
     const state: AgentMemoryState | undefined = node.__agentMemoryState;
     if (!state?.isReady) return;
 
     switch (event.type) {
       case 'memory_store':
-        this._store(state, node, config, ctx, event.payload as { key: string; content: string; tags?: string[]; ttl?: number | null; source?: string; embedding?: number[] });
+        this._store(
+          state,
+          node,
+          config,
+          ctx,
+          event.payload as {
+            key: string;
+            content: string;
+            tags?: string[];
+            ttl?: number | null;
+            source?: string;
+            embedding?: number[];
+          }
+        );
         break;
       case 'memory_recall':
-        this._recall(state, node, config, ctx, event.payload as { query: string; top_k?: number; tags?: string[]; embedding?: number[] });
+        this._recall(
+          state,
+          node,
+          config,
+          ctx,
+          event.payload as { query: string; top_k?: number; tags?: string[]; embedding?: number[] }
+        );
         break;
       case 'memory_forget':
-        this._forget(state, node, config, ctx, event.payload as { key?: string; tag?: string; all?: boolean });
+        this._forget(
+          state,
+          node,
+          config,
+          ctx,
+          event.payload as { key?: string; tag?: string; all?: boolean }
+        );
         break;
       case 'memory_compress':
-        this._compress(state, node, config, ctx, event.payload as { strategy?: 'oldest' | 'least_accessed' | 'tag'; keep_percent?: number; tag?: string });
+        this._compress(
+          state,
+          node,
+          config,
+          ctx,
+          event.payload as {
+            strategy?: 'oldest' | 'least_accessed' | 'tag';
+            keep_percent?: number;
+            tag?: string;
+          }
+        );
         break;
       case 'memory_list':
-        this._list(state, node, ctx, event.payload as { limit?: number; offset?: number; tags?: string[] });
+        this._list(
+          state,
+          node,
+          ctx,
+          event.payload as { limit?: number; offset?: number; tags?: string[] }
+        );
         break;
       case 'memory_stats':
         this._stats(state, node, ctx);

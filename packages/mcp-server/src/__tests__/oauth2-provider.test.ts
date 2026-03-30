@@ -189,14 +189,24 @@ describe('InMemoryTokenStore', () => {
 
     it('should count clients', async () => {
       await backend.setClient({
-        clientId: 'c1', clientSecretHash: 'h', clientName: 'a',
-        redirectUris: [], scopes: [], createdAt: Date.now(),
-        clientType: 'confidential', rateLimit: 60,
+        clientId: 'c1',
+        clientSecretHash: 'h',
+        clientName: 'a',
+        redirectUris: [],
+        scopes: [],
+        createdAt: Date.now(),
+        clientType: 'confidential',
+        rateLimit: 60,
       });
       await backend.setClient({
-        clientId: 'c2', clientSecretHash: 'h', clientName: 'b',
-        redirectUris: [], scopes: [], createdAt: Date.now(),
-        clientType: 'confidential', rateLimit: 60,
+        clientId: 'c2',
+        clientSecretHash: 'h',
+        clientName: 'b',
+        redirectUris: [],
+        scopes: [],
+        createdAt: Date.now(),
+        clientType: 'confidential',
+        rateLimit: 60,
       });
 
       expect(await backend.countClients()).toBe(2);
@@ -254,13 +264,21 @@ describe('InMemoryTokenStore', () => {
   describe('Clear', () => {
     it('should clear all data', async () => {
       await backend.setClient({
-        clientId: 'c1', clientSecretHash: 'h', clientName: 'a',
-        redirectUris: [], scopes: [], createdAt: Date.now(),
-        clientType: 'confidential', rateLimit: 60,
+        clientId: 'c1',
+        clientSecretHash: 'h',
+        clientName: 'a',
+        redirectUris: [],
+        scopes: [],
+        createdAt: Date.now(),
+        clientType: 'confidential',
+        rateLimit: 60,
       });
       await backend.setAccessToken({
-        token: 'at', clientId: 'c1', scopes: [],
-        issuedAt: Date.now(), expiresAt: Date.now() + 3600000,
+        token: 'at',
+        clientId: 'c1',
+        scopes: [],
+        issuedAt: Date.now(),
+        expiresAt: Date.now() + 3600000,
       });
 
       backend.clear();
@@ -289,9 +307,9 @@ describe('TokenStore', () => {
 
   describe('TTL Configuration', () => {
     it('should use default TTL values', () => {
-      expect(store.ttl.accessTokenTTL).toBe(3600);    // 1 hour
+      expect(store.ttl.accessTokenTTL).toBe(3600); // 1 hour
       expect(store.ttl.refreshTokenTTL).toBe(2592000); // 30 days
-      expect(store.ttl.authCodeTTL).toBe(300);         // 5 minutes
+      expect(store.ttl.authCodeTTL).toBe(300); // 5 minutes
     });
 
     it('should accept custom TTL values', () => {
@@ -815,7 +833,7 @@ describe('OAuth2Provider', () => {
       });
 
       // Wait for the 0s TTL token to actually expire (expiresAt = now + 0)
-      await new Promise(resolve => setTimeout(resolve, 5));
+      await new Promise((resolve) => setTimeout(resolve, 5));
 
       const result = await shortProvider.handleToken({
         grant_type: 'refresh_token',
@@ -1239,7 +1257,7 @@ describe('Scope Bridging', () => {
   it('should deduplicate expanded scopes', () => {
     // tasks:read and tasks:write both expand to a2a:tasks
     const expanded = expandScopes(['tasks:read', 'tasks:write']);
-    const a2aCount = expanded.filter(s => s === 'a2a:tasks').length;
+    const a2aCount = expanded.filter((s) => s === 'a2a:tasks').length;
     expect(a2aCount).toBe(1);
   });
 

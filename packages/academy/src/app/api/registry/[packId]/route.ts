@@ -8,7 +8,6 @@ import { NextResponse, NextRequest } from 'next/server';
 
 // Share store with parent route via global
 declare global {
-   
   var __registryStore__:
     | Array<{
         packId: string;

@@ -61,46 +61,76 @@ export interface VFXParticleRendererProps {
 
 const PRESETS: Record<VFXPreset, Partial<VFXParticleRendererProps>> = {
   fire: {
-    startColor: '#ff6600', endColor: '#330000',
-    startSize: 0.8, endSize: 0.1,
-    velocity: [0, 3, 0], velocitySpread: 0.4,
-    lifetime: 1.5, gravity: [0, 1, 0],
-    startOpacity: 0.9, endOpacity: 0.0,
+    startColor: '#ff6600',
+    endColor: '#330000',
+    startSize: 0.8,
+    endSize: 0.1,
+    velocity: [0, 3, 0],
+    velocitySpread: 0.4,
+    lifetime: 1.5,
+    gravity: [0, 1, 0],
+    startOpacity: 0.9,
+    endOpacity: 0.0,
   },
   smoke: {
-    startColor: '#444444', endColor: '#888888',
-    startSize: 0.3, endSize: 2.0,
-    velocity: [0, 1.5, 0], velocitySpread: 0.5,
-    lifetime: 4.0, gravity: [0, 0.5, 0],
-    startOpacity: 0.5, endOpacity: 0.0,
+    startColor: '#444444',
+    endColor: '#888888',
+    startSize: 0.3,
+    endSize: 2.0,
+    velocity: [0, 1.5, 0],
+    velocitySpread: 0.5,
+    lifetime: 4.0,
+    gravity: [0, 0.5, 0],
+    startOpacity: 0.5,
+    endOpacity: 0.0,
   },
   sparks: {
-    startColor: '#ffcc00', endColor: '#ff4400',
-    startSize: 0.15, endSize: 0.02,
-    velocity: [0, 5, 0], velocitySpread: 0.8,
-    lifetime: 1.0, gravity: [0, -9.81, 0],
-    startOpacity: 1.0, endOpacity: 0.0,
+    startColor: '#ffcc00',
+    endColor: '#ff4400',
+    startSize: 0.15,
+    endSize: 0.02,
+    velocity: [0, 5, 0],
+    velocitySpread: 0.8,
+    lifetime: 1.0,
+    gravity: [0, -9.81, 0],
+    startOpacity: 1.0,
+    endOpacity: 0.0,
   },
   dust: {
-    startColor: '#c4a882', endColor: '#c4a882',
-    startSize: 0.05, endSize: 0.15,
-    velocity: [0.5, 0.2, 0.3], velocitySpread: 0.6,
-    lifetime: 5.0, gravity: [0, -0.1, 0],
-    startOpacity: 0.3, endOpacity: 0.0,
+    startColor: '#c4a882',
+    endColor: '#c4a882',
+    startSize: 0.05,
+    endSize: 0.15,
+    velocity: [0.5, 0.2, 0.3],
+    velocitySpread: 0.6,
+    lifetime: 5.0,
+    gravity: [0, -0.1, 0],
+    startOpacity: 0.3,
+    endOpacity: 0.0,
   },
   rain: {
-    startColor: '#aaccff', endColor: '#aaccff',
-    startSize: 0.02, endSize: 0.02,
-    velocity: [0, -15, 0], velocitySpread: 0.1,
-    lifetime: 2.0, gravity: [0, -9.81, 0],
-    startOpacity: 0.6, endOpacity: 0.3,
+    startColor: '#aaccff',
+    endColor: '#aaccff',
+    startSize: 0.02,
+    endSize: 0.02,
+    velocity: [0, -15, 0],
+    velocitySpread: 0.1,
+    lifetime: 2.0,
+    gravity: [0, -9.81, 0],
+    startOpacity: 0.6,
+    endOpacity: 0.3,
   },
   snow: {
-    startColor: '#ffffff', endColor: '#ffffff',
-    startSize: 0.08, endSize: 0.08,
-    velocity: [0, -1.5, 0], velocitySpread: 0.5,
-    lifetime: 8.0, gravity: [0, -0.3, 0],
-    startOpacity: 0.8, endOpacity: 0.2,
+    startColor: '#ffffff',
+    endColor: '#ffffff',
+    startSize: 0.08,
+    endSize: 0.08,
+    velocity: [0, -1.5, 0],
+    velocitySpread: 0.5,
+    lifetime: 8.0,
+    gravity: [0, -0.3, 0],
+    startOpacity: 0.8,
+    endOpacity: 0.2,
   },
   custom: {},
 };
@@ -169,12 +199,7 @@ void main() {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function VFXParticleRenderer(props: VFXParticleRendererProps) {
-  const {
-    preset = 'fire',
-    maxParticles = 10000,
-    active = true,
-    position = [0, 0, 0],
-  } = props;
+  const { preset = 'fire', maxParticles = 10000, active = true, position = [0, 0, 0] } = props;
 
   const presetDefaults = PRESETS[preset];
   const merged = { ...presetDefaults, ...props };
@@ -213,9 +238,12 @@ export function VFXParticleRenderer(props: VFXParticleRendererProps) {
 
       lives[i] = -Math.random() * lifetime;
 
-      velocities[i * 3] = velocity[0] + (Math.random() - 0.5) * velocitySpread * Math.max(Math.abs(velocity[0]), 1);
-      velocities[i * 3 + 1] = velocity[1] + (Math.random() - 0.5) * velocitySpread * Math.max(Math.abs(velocity[1]), 1);
-      velocities[i * 3 + 2] = velocity[2] + (Math.random() - 0.5) * velocitySpread * Math.max(Math.abs(velocity[2]), 1);
+      velocities[i * 3] =
+        velocity[0] + (Math.random() - 0.5) * velocitySpread * Math.max(Math.abs(velocity[0]), 1);
+      velocities[i * 3 + 1] =
+        velocity[1] + (Math.random() - 0.5) * velocitySpread * Math.max(Math.abs(velocity[1]), 1);
+      velocities[i * 3 + 2] =
+        velocity[2] + (Math.random() - 0.5) * velocitySpread * Math.max(Math.abs(velocity[2]), 1);
     }
 
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -237,7 +265,7 @@ export function VFXParticleRenderer(props: VFXParticleRendererProps) {
       uStartOpacity: { value: startOpacity },
       uEndOpacity: { value: endOpacity },
     }),
-    [lifetime, startSize, endSize, gravVec, startCol, endCol, startOpacity, endOpacity],
+    [lifetime, startSize, endSize, gravVec, startCol, endCol, startOpacity, endOpacity]
   );
 
   useFrame((_, delta) => {
@@ -246,11 +274,9 @@ export function VFXParticleRenderer(props: VFXParticleRendererProps) {
     uniforms.uTime.value = timeRef.current;
   });
 
-  const blendMode = blending ?? (
-    preset === 'smoke' || preset === 'dust'
-      ? THREE.NormalBlending
-      : THREE.AdditiveBlending
-  );
+  const blendMode =
+    blending ??
+    (preset === 'smoke' || preset === 'dust' ? THREE.NormalBlending : THREE.AdditiveBlending);
 
   if (!active) return null;
 

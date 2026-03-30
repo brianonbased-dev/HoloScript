@@ -10,7 +10,11 @@ function detectionRate(detected: number, total: number): number {
   return total > 0 ? detected / total : 0;
 }
 
-function progressiveDifficulty(generation: number, baseComplexity: number, increment: number): number {
+function progressiveDifficulty(
+  generation: number,
+  baseComplexity: number,
+  increment: number
+): number {
   return Math.min(1.0, baseComplexity + generation * increment);
 }
 

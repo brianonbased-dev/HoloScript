@@ -68,7 +68,9 @@ const DEFAULT_CONFIG: RecallTriggerConfig = {
 
 function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
-  let dot = 0, normA = 0, normB = 0;
+  let dot = 0,
+    normA = 0,
+    normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
@@ -90,11 +92,11 @@ function performRecall(
   embedding?: number[]
 ): MemoryRecallResult[] {
   const filterTags = config.filter_tags;
-  let candidates: Memory[] = [...memState.memories.values()].filter(m => !isExpired(m));
+  let candidates: Memory[] = [...memState.memories.values()].filter((m) => !isExpired(m));
 
   // Tag filter
   if (filterTags.length > 0) {
-    candidates = candidates.filter(m => filterTags.every(t => m.tags.includes(t)));
+    candidates = candidates.filter((m) => filterTags.every((t) => m.tags.includes(t)));
   }
 
   let results: MemoryRecallResult[];
@@ -102,24 +104,24 @@ function performRecall(
   if (embedding && embedding.length > 0) {
     // Semantic search via cosine similarity
     results = candidates
-      .filter(m => m.embedding && m.embedding.length > 0)
-      .map(m => ({ memory: m, score: cosineSimilarity(embedding, m.embedding!) }))
-      .filter(r => r.score >= config.min_confidence)
+      .filter((m) => m.embedding && m.embedding.length > 0)
+      .map((m) => ({ memory: m, score: cosineSimilarity(embedding, m.embedding!) }))
+      .filter((r) => r.score >= config.min_confidence)
       .sort((a, b) => b.score - a.score)
       .slice(0, config.max_results);
   } else {
     // Keyword fallback
     const q = query.toLowerCase();
     results = candidates
-      .map(m => {
+      .map((m) => {
         const content = m.content.toLowerCase();
         const key = m.key.toLowerCase();
-        const tagScore = m.tags.some(t => t.toLowerCase().includes(q)) ? 0.3 : 0;
+        const tagScore = m.tags.some((t) => t.toLowerCase().includes(q)) ? 0.3 : 0;
         const keyScore = key.includes(q) ? 0.5 : 0;
         const contentScore = content.includes(q) ? 0.8 : 0;
         return { memory: m, score: Math.max(tagScore, keyScore, contentScore) };
       })
-      .filter(r => r.score >= config.min_confidence)
+      .filter((r) => r.score >= config.min_confidence)
       .sort((a, b) => b.score - a.score)
       .slice(0, config.max_results);
   }
@@ -188,7 +190,12 @@ export const recallTriggerHandler: TraitHandler<RecallTriggerConfig> = {
     delete (node as RecallNode).__recallTriggerState;
   },
 
-  onEvent(node: HSPlusNode, config: RecallTriggerConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    config: RecallTriggerConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const recallNode = node as RecallNode;
     const recallState = recallNode.__recallTriggerState;
     if (!recallState) return;
@@ -245,7 +252,7 @@ export const recallTriggerHandler: TraitHandler<RecallTriggerConfig> = {
       context.emit('recall_hit', {
         node,
         query,
-        results: results.map(r => ({
+        results: results.map((r) => ({
           key: r.memory.key,
           content: r.memory.content,
           score: r.score,
@@ -260,7 +267,7 @@ export const recallTriggerHandler: TraitHandler<RecallTriggerConfig> = {
         context.setState({
           lastRecall: {
             query,
-            results: results.map(r => ({
+            results: results.map((r) => ({
               key: r.memory.key,
               content: r.memory.content,
               score: r.score,

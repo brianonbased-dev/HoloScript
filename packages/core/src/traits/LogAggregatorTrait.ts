@@ -36,7 +36,9 @@ export const logAggregatorHandler: TraitHandler<LogAggregatorConfig> = {
   onAttach(node: any): void {
     node.__logAggregatorState = { entries: [] as LogEntry[] };
   },
-  onDetach(node: any): void { delete node.__logAggregatorState; },
+  onDetach(node: any): void {
+    delete node.__logAggregatorState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: LogAggregatorConfig, context: any, event: any): void {
@@ -64,9 +66,9 @@ export const logAggregatorHandler: TraitHandler<LogAggregatorConfig> = {
       }
       case 'log:query': {
         let results = [...state.entries];
-        if (event.level) results = results.filter(e => e.level === event.level);
-        if (event.source) results = results.filter(e => e.source === event.source);
-        if (event.since) results = results.filter(e => e.timestamp >= (event.since as number));
+        if (event.level) results = results.filter((e) => e.level === event.level);
+        if (event.source) results = results.filter((e) => e.source === event.source);
+        if (event.since) results = results.filter((e) => e.timestamp >= (event.since as number));
         const limit = (event.limit as number) ?? 100;
         results = results.slice(-limit);
         context.emit?.('log:result', { entries: results, count: results.length });

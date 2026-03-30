@@ -55,7 +55,7 @@ describe('Grok E2E Pipeline', () => {
       expect(result.code).toBeDefined();
       expect(typeof result.code).toBe('string');
       expect((result.code as string).length).toBeGreaterThan(0);
-      expect((result.code as string)).toContain('composition');
+      expect(result.code as string).toContain('composition');
     });
   });
 
@@ -134,8 +134,8 @@ describe('Grok E2E Pipeline', () => {
       expect(typeof result.playgroundUrl).toBe('string');
       expect(result.embedUrl).toBeDefined();
       expect(result.tweetText).toBeDefined();
-      expect((result.tweetText as string)).toContain('My VR Gallery');
-      expect((result.tweetText as string)).toContain('#HoloScript');
+      expect(result.tweetText as string).toContain('My VR Gallery');
+      expect(result.tweetText as string).toContain('#HoloScript');
       expect(result.qrCode).toBeDefined();
       expect(result.cardMeta).toBeDefined();
       expect((result.cardMeta as Record<string, string>)['twitter:card']).toBe('player');
@@ -171,7 +171,7 @@ describe('Grok E2E Pipeline', () => {
         platform: 'x',
       })) as Record<string, unknown>;
       expect(shareResult.playgroundUrl).toBeDefined();
-      expect((shareResult.tweetText as string)).toContain('Game Arena');
+      expect(shareResult.tweetText as string).toContain('Game Arena');
       expect(shareResult.qrCode).toBeDefined();
     }, 15000);
   });

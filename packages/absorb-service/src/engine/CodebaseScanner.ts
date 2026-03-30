@@ -87,9 +87,14 @@ export class CodebaseScanner {
       try {
         const workerFile = path.join(__dirname_esm, 'workers', 'parse-worker.js');
         this.workerPool = new WorkerPool(workerFile);
-        console.log(`[CodebaseScanner] Worker pool initialized with ${this.workerPool.getPoolSize()} threads`);
+        console.log(
+          `[CodebaseScanner] Worker pool initialized with ${this.workerPool.getPoolSize()} threads`
+        );
       } catch (err) {
-        console.warn('[CodebaseScanner] Worker threads unavailable, falling back to sequential:', err);
+        console.warn(
+          '[CodebaseScanner] Worker threads unavailable, falling back to sequential:',
+          err
+        );
         this.useWorkers = false;
       }
     }
@@ -193,7 +198,8 @@ export class CodebaseScanner {
             errors.push(result.error);
           } else if (result.file) {
             files.push(result.file);
-            filesByLanguage[result.file.language] = (filesByLanguage[result.file.language] ?? 0) + 1;
+            filesByLanguage[result.file.language] =
+              (filesByLanguage[result.file.language] ?? 0) + 1;
             totalSymbols += result.file.symbols.length;
             totalImports += result.file.imports.length;
             totalCalls += result.file.calls.length;
@@ -228,7 +234,7 @@ export class CodebaseScanner {
         // Parse with tree-sitter or fallback immediately if no adapter
         let tree;
         const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
-        
+
         if (!adapter) {
           // No tree-sitter adapter for this file type, immediately use regex fallback.
           const fallbackImports = this.extractLooseImports(content, relPath);
@@ -292,7 +298,16 @@ export class CodebaseScanner {
           const loc = content.split('\n').length;
           const docComment = extractFileDocComment(tree.rootNode);
 
-          files.push({ path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment });
+          files.push({
+            path: relPath,
+            language,
+            symbols,
+            imports,
+            calls,
+            loc,
+            sizeBytes,
+            docComment,
+          });
 
           // Accumulate stats
           filesByLanguage[language] = (filesByLanguage[language] ?? 0) + 1;
@@ -365,7 +380,9 @@ export class CodebaseScanner {
     for (let i = 0; i < filePaths.length; i += BATCH_SIZE) {
       const batch = filePaths.slice(i, i + BATCH_SIZE);
       const results = await Promise.all(
-        batch.map(fp => this.parseOneFile(fp, resolvedRootDir, maxFileSize, readFile, includeBuildArtifacts))
+        batch.map((fp) =>
+          this.parseOneFile(fp, resolvedRootDir, maxFileSize, readFile, includeBuildArtifacts)
+        )
       );
 
       for (const result of results) {
@@ -431,7 +448,7 @@ export class CodebaseScanner {
 
     // Parse with tree-sitter
     const relPath = path.relative(rootDir, filePath).replace(/\\/g, '/');
-    
+
     if (!adapter) {
       // Direct plaintext fallback when no tree-sitter adapter exists
       const fallbackImports = this.extractLooseImports(content, relPath);

@@ -29,9 +29,9 @@ export async function checkOllamaHealth(): Promise<boolean> {
  * Fetches a list of available Ollama models from the health API endpoint.
  * Used by the Studio to populate model selection dropdowns and enable
  * local AI features for code generation and assistance.
- * 
+ *
  * @returns Promise resolving to array of model names, empty array on error
- * 
+ *
  * @example
  * ```typescript
  * const models = await listOllamaModels();

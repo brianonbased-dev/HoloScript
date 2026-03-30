@@ -1076,7 +1076,9 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       const agentDID = (event as Record<string, unknown>).agentDID as string;
       const capabilityWith = (event as Record<string, unknown>).capabilityWith as string;
       const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
-      const caveats = (event as Record<string, unknown>).caveats as Record<string, unknown> | undefined;
+      const caveats = (event as Record<string, unknown>).caveats as
+        | Record<string, unknown>
+        | undefined;
       const grantedBy = (event as Record<string, unknown>).grantedBy as string;
       const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
@@ -1221,7 +1223,9 @@ export const rbacHandler: TraitHandler<RBACConfig> = {
       const toDID = (event as Record<string, unknown>).toDID as string;
       const capabilityWith = (event as Record<string, unknown>).capabilityWith as string;
       const capabilityCan = (event as Record<string, unknown>).capabilityCan as string;
-      const constraints = (event as Record<string, unknown>).constraints as DelegationConstraints | undefined;
+      const constraints = (event as Record<string, unknown>).constraints as
+        | DelegationConstraints
+        | undefined;
       const expiresAt = (event as Record<string, unknown>).expiresAt as string | undefined;
 
       if (!fromDID || !toDID || !capabilityCan) {

@@ -18,8 +18,10 @@ function attach(cfg = mkCfg(), node = mkNode(), ctx = mkCtx()) {
 }
 
 describe('softBodyProHandler — defaultConfig', () => {
-  it('tear_threshold = 0.8', () => expect(softBodyProHandler.defaultConfig?.tear_threshold).toBe(0.8));
-  it('solver_iterations = 10', () => expect(softBodyProHandler.defaultConfig?.solver_iterations).toBe(10));
+  it('tear_threshold = 0.8', () =>
+    expect(softBodyProHandler.defaultConfig?.tear_threshold).toBe(0.8));
+  it('solver_iterations = 10', () =>
+    expect(softBodyProHandler.defaultConfig?.solver_iterations).toBe(10));
   it('damping = 0.99', () => expect(softBodyProHandler.defaultConfig?.damping).toBe(0.99));
 });
 
@@ -35,7 +37,11 @@ describe('softBodyProHandler — onAttach', () => {
   it('emits soft_body_pro_create with config values', () => {
     const node = mkNode();
     const ctx = mkCtx();
-    softBodyProHandler.onAttach!(node, mkCfg({ tear_threshold: 0.5, solver_iterations: 20 }), ctx as any);
+    softBodyProHandler.onAttach!(
+      node,
+      mkCfg({ tear_threshold: 0.5, solver_iterations: 20 }),
+      ctx as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'soft_body_pro_create');
     expect(ev?.payload.tearThreshold).toBe(0.5);
     expect(ev?.payload.solverIterations).toBe(20);
@@ -82,23 +88,33 @@ describe('softBodyProHandler — onUpdate', () => {
 describe('softBodyProHandler — onEvent', () => {
   it('soft_body_pro_tear_report updates state and emits on_soft_body_tear', () => {
     const { node, ctx, cfg } = attach();
-    softBodyProHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'soft_body_pro_tear_report',
-      tornCount: 5,
-      totalCount: 100,
-    } as any);
+    softBodyProHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'soft_body_pro_tear_report',
+        tornCount: 5,
+        totalCount: 100,
+      } as any
+    );
     expect((node as any).__softBodyProState.tornConstraints).toBe(5);
     const ev = ctx.emitted.find((e: any) => e.type === 'on_soft_body_tear');
     expect(ev?.payload.tearRatio).toBeCloseTo(0.05);
   });
   it('soft_body_pro_apply_force emits impulse event', () => {
     const { node, ctx, cfg } = attach();
-    softBodyProHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'soft_body_pro_apply_force',
-      position: [1, 2, 3],
-      force: [0, 10, 0],
-      radius: 2.0,
-    } as any);
+    softBodyProHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'soft_body_pro_apply_force',
+        position: [1, 2, 3],
+        force: [0, 10, 0],
+        radius: 2.0,
+      } as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'soft_body_pro_impulse');
     expect(ev?.payload.radius).toBe(2.0);
   });
@@ -113,7 +129,12 @@ describe('softBodyProHandler — onEvent', () => {
   });
   it('no-op when no state', () => {
     expect(() =>
-      softBodyProHandler.onEvent!(mkNode() as any, mkCfg(), mkCtx() as any, { type: 'soft_body_pro_reset' } as any)
+      softBodyProHandler.onEvent!(
+        mkNode() as any,
+        mkCfg(),
+        mkCtx() as any,
+        { type: 'soft_body_pro_reset' } as any
+      )
     ).not.toThrow();
   });
 });

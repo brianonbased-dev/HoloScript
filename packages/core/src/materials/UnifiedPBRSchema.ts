@@ -646,8 +646,20 @@ export function validatePBRProperties(props: PBRMaterialProperties): ValidationE
         value: props.iridescence.thicknessRange,
       });
     }
-    validateRange('iridescence.thicknessRange.min', props.iridescence.thicknessRange.min, 0, 2000, errors);
-    validateRange('iridescence.thicknessRange.max', props.iridescence.thicknessRange.max, 0, 2000, errors);
+    validateRange(
+      'iridescence.thicknessRange.min',
+      props.iridescence.thicknessRange.min,
+      0,
+      2000,
+      errors
+    );
+    validateRange(
+      'iridescence.thicknessRange.max',
+      props.iridescence.thicknessRange.max,
+      0,
+      2000,
+      errors
+    );
   }
 
   // --- Clearcoat ---
@@ -824,7 +836,13 @@ export const PBR_PRESETS: PBRPreset[] = [
       metalness: 0,
       roughness: 0.05,
       blendMode: 'transparent',
-      transmission: { ...DEFAULT_TRANSMISSION, factor: 0.9, ior: 1.33, attenuationColor: { r: 0.4, g: 0.8, b: 0.9 }, attenuationDistance: 5 },
+      transmission: {
+        ...DEFAULT_TRANSMISSION,
+        factor: 0.9,
+        ior: 1.33,
+        attenuationColor: { r: 0.4, g: 0.8, b: 0.9 },
+        attenuationDistance: 5,
+      },
     },
   },
 
@@ -1268,13 +1286,16 @@ export function fromMaterialDef(def: {
   base.depthTest = def.depthTest;
   base.doubleSided = def.doubleSided;
   base.shaderGraphId = def.shaderGraphId;
-  base.customUniforms = def.customUniforms as Record<string, number | number[] | string> | undefined;
+  base.customUniforms = def.customUniforms as
+    | Record<string, number | number[] | string>
+    | undefined;
 
   // Extract advanced properties from extensions
   if (def.properties) {
     const p = def.properties;
     if (p.subsurface) base.subsurface = { ...DEFAULT_SUBSURFACE, ...(p.subsurface as object) };
-    if (p.transmission) base.transmission = { ...DEFAULT_TRANSMISSION, ...(p.transmission as object) };
+    if (p.transmission)
+      base.transmission = { ...DEFAULT_TRANSMISSION, ...(p.transmission as object) };
     if (p.iridescence) base.iridescence = { ...DEFAULT_IRIDESCENCE, ...(p.iridescence as object) };
     if (p.clearcoat) base.clearcoat = { ...DEFAULT_CLEARCOAT, ...(p.clearcoat as object) };
     if (p.sheen) base.sheen = { ...DEFAULT_SHEEN, ...(p.sheen as object) };

@@ -269,6 +269,15 @@ it('should compile to Unity C#', () => {
 
 ## Advanced Usage
 
+### Memory Management & Gossip Backpressure
+
+Gossip-capable agents synchronizing CRDT world state via the HoloMesh discovery layer must adhere to strict memory backpressure protocols. This ensures that the active compiler mesh remains resilient against V8 heap Out-of-Memory (OOM) crashes during large state recombinations:
+
+1. **RAM Utilization Check**: If the system's active heap utilization exceeds 70%, inbound CRDT gossip synchronizations are proactively aborted.
+2. **Payload Size Limit**: Absolute delta payloads exceeding 50MB are rejected outright to protect the execution context from massive allocations.
+
+*These protections are analogous to the `CompilerStateMonitor` used during deep AST serialization.*
+
 ### Custom RBAC Configuration
 
 ```typescript

@@ -230,4 +230,3 @@ export function FilmStudioPanel() {
 }
 
 export default FilmStudioPanel;
-

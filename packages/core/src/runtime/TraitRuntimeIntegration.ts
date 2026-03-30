@@ -19,16 +19,9 @@
  * @module TraitRuntimeIntegration
  */
 
-import {
-  VRTraitRegistry,
-} from '../traits/VRTraitSystem';
+import { VRTraitRegistry } from '../traits/VRTraitSystem';
 
-import type {
-  TraitContext,
-  TraitEvent,
-  HSPlusNode,
-  VRTraitName,
-} from '../types';
+import type { TraitContext, TraitEvent, HSPlusNode, VRTraitName } from '../types';
 
 import type { TraitContextFactory } from './TraitContextFactory';
 
@@ -126,7 +119,7 @@ export class TraitRuntimeIntegration {
     if (!tracked) return;
 
     this.registry.detachTrait(tracked.node, traitName, this.context);
-    tracked.traitNames = tracked.traitNames.filter(t => t !== traitName);
+    tracked.traitNames = tracked.traitNames.filter((t) => t !== traitName);
   }
 
   /**
@@ -193,9 +186,15 @@ export class TraitRuntimeIntegration {
 
   // ---- Control -----------------------------------------------------------
 
-  pause(): void { this.paused = true; }
-  resume(): void { this.paused = false; }
-  isPaused(): boolean { return this.paused; }
+  pause(): void {
+    this.paused = true;
+  }
+  resume(): void {
+    this.paused = false;
+  }
+  isPaused(): boolean {
+    return this.paused;
+  }
 
   /**
    * Refresh the TraitContext (call after hot-swapping a provider).
@@ -262,8 +261,6 @@ export class TraitRuntimeIntegration {
 // Factory
 // =============================================================================
 
-export function createTraitRuntime(
-  contextFactory: TraitContextFactory,
-): TraitRuntimeIntegration {
+export function createTraitRuntime(contextFactory: TraitContextFactory): TraitRuntimeIntegration {
   return new TraitRuntimeIntegration(contextFactory);
 }

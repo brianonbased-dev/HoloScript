@@ -10,7 +10,12 @@
  */
 
 // Import centralized math utilities
-import { vec3NormalizeInPlace, vec3CrossArray, vec3SubArray, vec3ScaleArray } from '../math/vec3.js';
+import {
+  vec3NormalizeInPlace,
+  vec3CrossArray,
+  vec3SubArray,
+  vec3ScaleArray,
+} from '../math/vec3.js';
 
 // =============================================================================
 // TYPES
@@ -80,10 +85,6 @@ function catmullRom(p0: number[], p1: number[], p2: number[], p3: number[], t: n
   }
   return result;
 }
-
-
-
-
 
 // =============================================================================
 // FALLBACK GENERATORS (minimal, for edge-case fallbacks)

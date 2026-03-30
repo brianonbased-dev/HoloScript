@@ -126,7 +126,9 @@ export interface RevenueAggregatorConfig {
 // =============================================================================
 
 export class CreatorRevenueAggregator {
-  private config: Required<Omit<RevenueAggregatorConfig, 'telemetry'>> & { telemetry?: TelemetryCollector };
+  private config: Required<Omit<RevenueAggregatorConfig, 'telemetry'>> & {
+    telemetry?: TelemetryCollector;
+  };
   private events: Map<string, RevenueEvent[]> = new Map();
   private payouts: PayoutRecord[] = [];
   private eventCounter = 0;
@@ -247,7 +249,10 @@ export class CreatorRevenueAggregator {
   /**
    * Get top creators by revenue.
    */
-  getTopCreators(period: RevenuePeriod = 'monthly', limit = 10): Array<{ creatorId: string; totalNet: number; eventCount: number }> {
+  getTopCreators(
+    period: RevenuePeriod = 'monthly',
+    limit = 10
+  ): Array<{ creatorId: string; totalNet: number; eventCount: number }> {
     const results: Array<{ creatorId: string; totalNet: number; eventCount: number }> = [];
 
     for (const creatorId of this.events.keys()) {
@@ -265,7 +270,11 @@ export class CreatorRevenueAggregator {
   /**
    * Get platform revenue (total fees collected).
    */
-  getPlatformRevenue(period: RevenuePeriod = 'monthly'): { totalFees: number; totalGross: number; creatorCount: number } {
+  getPlatformRevenue(period: RevenuePeriod = 'monthly'): {
+    totalFees: number;
+    totalGross: number;
+    creatorCount: number;
+  } {
     let totalFees = 0;
     let totalGross = 0;
     let creatorCount = 0;
@@ -289,13 +298,18 @@ export class CreatorRevenueAggregator {
   /**
    * Get creators eligible for payout (net earnings >= threshold).
    */
-  getPayoutEligible(period: RevenuePeriod = 'monthly'): Array<{ creatorId: string; amount: number }> {
+  getPayoutEligible(
+    period: RevenuePeriod = 'monthly'
+  ): Array<{ creatorId: string; amount: number }> {
     const eligible: Array<{ creatorId: string; amount: number }> = [];
 
     for (const creatorId of this.events.keys()) {
       const earnings = this.getCreatorEarnings(creatorId, period);
       const previousPayouts = this.getCreatorPayouts(creatorId, period);
-      const alreadyPaid = previousPayouts.reduce((sum, p) => sum + (p.status === 'completed' ? p.amount : 0), 0);
+      const alreadyPaid = previousPayouts.reduce(
+        (sum, p) => sum + (p.status === 'completed' ? p.amount : 0),
+        0
+      );
       const unpaid = earnings.totalNet - alreadyPaid;
 
       if (unpaid >= this.config.minPayoutThreshold) {
@@ -345,7 +359,11 @@ export class CreatorRevenueAggregator {
   /**
    * Update payout status.
    */
-  updatePayoutStatus(payoutId: string, status: PayoutRecord['status'], transactionHash?: string): boolean {
+  updatePayoutStatus(
+    payoutId: string,
+    status: PayoutRecord['status'],
+    transactionHash?: string
+  ): boolean {
     const payout = this.payouts.find((p) => p.id === payoutId);
     if (!payout) return false;
 

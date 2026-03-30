@@ -119,32 +119,32 @@ describe('extractExportsFromSource', () => {
   it('extracts function exports', () => {
     const source = 'export function myFunc() {}';
     const exports = extractExportsFromSource(source);
-    expect(exports.some(e => e.name === 'myFunc' && e.type === 'function')).toBe(true);
+    expect(exports.some((e) => e.name === 'myFunc' && e.type === 'function')).toBe(true);
   });
 
   it('extracts class exports', () => {
     const source = 'export class MyClass {}';
     const exports = extractExportsFromSource(source);
-    expect(exports.some(e => e.name === 'MyClass' && e.type === 'class')).toBe(true);
+    expect(exports.some((e) => e.name === 'MyClass' && e.type === 'class')).toBe(true);
   });
 
   it('extracts const exports', () => {
     const source = 'export const MY_CONST = 42;';
     const exports = extractExportsFromSource(source);
-    expect(exports.some(e => e.name === 'MY_CONST' && e.type === 'const')).toBe(true);
+    expect(exports.some((e) => e.name === 'MY_CONST' && e.type === 'const')).toBe(true);
   });
 
   it('extracts interface exports', () => {
     const source = 'export interface MyInterface { x: number; }';
     const exports = extractExportsFromSource(source);
-    expect(exports.some(e => e.name === 'MyInterface' && e.type === 'interface')).toBe(true);
+    expect(exports.some((e) => e.name === 'MyInterface' && e.type === 'interface')).toBe(true);
   });
 
   it('extracts re-exports', () => {
     const source = 'export { Foo, Bar } from "./module";';
     const exports = extractExportsFromSource(source);
-    expect(exports.some(e => e.name === 'Foo')).toBe(true);
-    expect(exports.some(e => e.name === 'Bar')).toBe(true);
+    expect(exports.some((e) => e.name === 'Foo')).toBe(true);
+    expect(exports.some((e) => e.name === 'Bar')).toBe(true);
   });
 
   it('handles multiple export types', () => {

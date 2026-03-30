@@ -20,7 +20,7 @@ const scene = new HoloScene('MyWorld');
 const cube = createObject('Cube', {
   geometry: 'box',
   traits: ['@grabbable', '@physics'],
-  position: [0, 1, 0]
+  position: [0, 1, 0],
 });
 
 scene.add(cube);

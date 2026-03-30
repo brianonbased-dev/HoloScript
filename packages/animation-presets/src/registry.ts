@@ -8,11 +8,7 @@
  * and supports runtime registration of custom presets.
  */
 
-import type {
-  AnimationPreset,
-  PresetCategory,
-  PresetName,
-} from './types.js';
+import type { AnimationPreset, PresetCategory, PresetName } from './types.js';
 import { allPresets } from './presets/index.js';
 
 // ---------------------------------------------------------------------------
@@ -66,8 +62,7 @@ const CATEGORY_METADATA: Record<PresetCategory, Omit<CategoryInfo, 'presetNames'
   environmental: {
     category: 'environmental',
     label: 'Environmental',
-    description:
-      'Ambient and passive states: idling, sitting, sleeping, and stationary behaviors.',
+    description: 'Ambient and passive states: idling, sitting, sleeping, and stationary behaviors.',
   },
 };
 

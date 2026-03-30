@@ -460,76 +460,40 @@ export {
 } from './scripting-automation';
 
 // Data & Storage
-export {
-  DATA_STORAGE_TRAITS,
-  type DataStorageTraitName,
-} from './data-storage';
+export { DATA_STORAGE_TRAITS, type DataStorageTraitName } from './data-storage';
 
 // Observability (Infrastructure)
-export {
-  OBSERVABILITY_TRAITS,
-  type ObservabilityTraitName,
-} from './observability';
+export { OBSERVABILITY_TRAITS, type ObservabilityTraitName } from './observability';
 
 // Communication
-export {
-  COMMUNICATION_TRAITS,
-  type CommunicationTraitName,
-} from './communication';
+export { COMMUNICATION_TRAITS, type CommunicationTraitName } from './communication';
 
 // ML / Inference
-export {
-  ML_INFERENCE_TRAITS,
-  type MLInferenceTraitName,
-} from './ml-inference';
+export { ML_INFERENCE_TRAITS, type MLInferenceTraitName } from './ml-inference';
 
 // DevOps / CI
-export {
-  DEVOPS_CI_TRAITS,
-  type DevOpsCITraitName,
-} from './devops-ci';
+export { DEVOPS_CI_TRAITS, type DevOpsCITraitName } from './devops-ci';
 
 // Auth / Identity
-export {
-  AUTH_IDENTITY_TRAITS,
-  type AuthIdentityTraitName,
-} from './auth-identity';
+export { AUTH_IDENTITY_TRAITS, type AuthIdentityTraitName } from './auth-identity';
 
 // Payment
-export {
-  PAYMENT_TRAITS,
-  type PaymentTraitName,
-} from './payment';
+export { PAYMENT_TRAITS, type PaymentTraitName } from './payment';
 
 // Media / Content
-export {
-  MEDIA_CONTENT_TRAITS,
-  type MediaContentTraitName,
-} from './media-content';
+export { MEDIA_CONTENT_TRAITS, type MediaContentTraitName } from './media-content';
 
 // Testing / QA
-export {
-  TESTING_QA_TRAITS,
-  type TestingQATraitName,
-} from './testing-qa';
+export { TESTING_QA_TRAITS, type TestingQATraitName } from './testing-qa';
 
 // Workflow / BPM
-export {
-  WORKFLOW_BPM_TRAITS,
-  type WorkflowBPMTraitName,
-} from './workflow-bpm';
+export { WORKFLOW_BPM_TRAITS, type WorkflowBPMTraitName } from './workflow-bpm';
 
 // i18n / Localization
-export {
-  I18N_LOCALIZATION_TRAITS,
-  type I18NLocalizationTraitName,
-} from './i18n-localization';
+export { I18N_LOCALIZATION_TRAITS, type I18NLocalizationTraitName } from './i18n-localization';
 
 // Data Pipeline / ETL
-export {
-  DATA_PIPELINE_TRAITS,
-  type DataPipelineTraitName,
-} from './data-pipeline';
+export { DATA_PIPELINE_TRAITS, type DataPipelineTraitName } from './data-pipeline';
 
 // Notification / Alerting
 export {
@@ -538,10 +502,7 @@ export {
 } from './notification-alerting';
 
 // Search
-export {
-  SEARCH_TRAITS,
-  type SearchTraitName,
-} from './search';
+export { SEARCH_TRAITS, type SearchTraitName } from './search';
 
 // Compliance / Governance
 export {
@@ -550,40 +511,22 @@ export {
 } from './compliance-governance';
 
 // File Storage
-export {
-  FILE_STORAGE_TRAITS,
-  type FileStorageTraitName,
-} from './file-storage';
+export { FILE_STORAGE_TRAITS, type FileStorageTraitName } from './file-storage';
 
 // API Gateway
-export {
-  API_GATEWAY_TRAITS,
-  type ApiGatewayTraitName,
-} from './api-gateway';
+export { API_GATEWAY_TRAITS, type ApiGatewayTraitName } from './api-gateway';
 
 // Feature Flags
-export {
-  FEATURE_FLAGS_TRAITS,
-  type FeatureFlagsTraitName,
-} from './feature-flags';
+export { FEATURE_FLAGS_TRAITS, type FeatureFlagsTraitName } from './feature-flags';
 
 // Audit Trail
-export {
-  AUDIT_TRAIL_TRAITS,
-  type AuditTrailTraitName,
-} from './audit-trail';
+export { AUDIT_TRAIL_TRAITS, type AuditTrailTraitName } from './audit-trail';
 
 // GPU Compute
-export {
-  GPU_COMPUTE_TRAITS,
-  type GpuComputeTraitName,
-} from './gpu-compute';
+export { GPU_COMPUTE_TRAITS, type GpuComputeTraitName } from './gpu-compute';
 
 // ML / Tensor
-export {
-  ML_TENSOR_TRAITS,
-  type MlTensorTraitName,
-} from './ml-tensor';
+export { ML_TENSOR_TRAITS, type MlTensorTraitName } from './ml-tensor';
 
 // Database / Persistence
 export {
@@ -592,28 +535,16 @@ export {
 } from './database-persistence';
 
 // Spatial Algorithms
-export {
-  SPATIAL_ALGORITHMS_TRAITS,
-  type SpatialAlgorithmsTraitName,
-} from './spatial-algorithms';
+export { SPATIAL_ALGORITHMS_TRAITS, type SpatialAlgorithmsTraitName } from './spatial-algorithms';
 
 // Debug / Cinematic
-export {
-  DEBUG_CINEMATIC_TRAITS,
-  type DebugCinematicTraitName,
-} from './debug-cinematic';
+export { DEBUG_CINEMATIC_TRAITS, type DebugCinematicTraitName } from './debug-cinematic';
 
 // FFI / OS
-export {
-  FFI_OS_TRAITS,
-  type FfiOsTraitName,
-} from './ffi-os';
+export { FFI_OS_TRAITS, type FfiOsTraitName } from './ffi-os';
 
 // Concurrency
-export {
-  CONCURRENCY_TRAITS,
-  type ConcurrencyTraitName,
-} from './concurrency';
+export { CONCURRENCY_TRAITS, type ConcurrencyTraitName } from './concurrency';
 
 // Hologram Media Pipeline
 export { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
@@ -628,22 +559,13 @@ export {
 } from './instancing-geometry';
 
 // Character Pipeline (Phase R4)
-export {
-  CHARACTER_PIPELINE_TRAITS,
-  type CharacterPipelineTraitName,
-} from './character-pipeline';
+export { CHARACTER_PIPELINE_TRAITS, type CharacterPipelineTraitName } from './character-pipeline';
 
 // Facial Expression / FACS (Phase R4)
-export {
-  FACIAL_EXPRESSION_TRAITS,
-  type FacialExpressionTraitName,
-} from './facial-expression';
+export { FACIAL_EXPRESSION_TRAITS, type FacialExpressionTraitName } from './facial-expression';
 
 // Character Materials (Phase R4)
-export {
-  CHARACTER_MATERIAL_TRAITS,
-  type CharacterMaterialTraitName,
-} from './character-materials';
+export { CHARACTER_MATERIAL_TRAITS, type CharacterMaterialTraitName } from './character-materials';
 
 // v6 Universal Semantic Platform (35 traits)
 export {

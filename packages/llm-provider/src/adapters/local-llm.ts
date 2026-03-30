@@ -16,11 +16,7 @@
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
-import type {
-  LLMProviderConfig,
-  LLMCompletionRequest,
-  LLMCompletionResponse,
-} from '../types';
+import type { LLMProviderConfig, LLMCompletionRequest, LLMCompletionResponse } from '../types';
 import { LLMProviderError } from '../types';
 
 type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {

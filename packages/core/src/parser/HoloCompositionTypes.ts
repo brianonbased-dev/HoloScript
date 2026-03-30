@@ -11,6 +11,8 @@
 // SOURCE LOCATION
 // =============================================================================
 
+import type { ProvenanceContext } from '../compiler/traits/ProvenanceSemiring';
+
 export interface SourceLocation {
   line: number;
   column: number;
@@ -50,6 +52,12 @@ export interface PlatformConstraint {
 export interface HoloNode {
   type: string;
   loc?: SourceRange;
+  provenance?: {
+    author: string;
+    timestamp: number;
+    provenanceHash: string;
+    context?: ProvenanceContext;
+  };
 }
 
 // =============================================================================
@@ -1078,8 +1086,6 @@ export interface HoloParserOptions {
   /** Source filename for error messages */
   filename?: string;
 }
-
-
 
 /**
  * Compact import record stored in `ASTProgram.imports`.

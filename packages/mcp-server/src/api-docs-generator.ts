@@ -93,49 +93,49 @@ export interface APIDocsGeneratorConfig {
 // =============================================================================
 
 const DEFAULT_CATEGORY_RULES: Record<string, string> = {
-  'parse_': 'Parsing & Validation',
-  'validate_': 'Parsing & Validation',
-  'list_': 'Parsing & Validation',
-  'explain_': 'Code Intelligence',
-  'suggest_': 'Code Intelligence',
-  'generate_': 'Code Generation',
-  'render_': 'Rendering',
-  'create_share': 'Sharing',
-  'convert_': 'Conversion',
-  'analyze_': 'Analysis',
-  'graph_': 'Graph Analysis',
-  'get_graph': 'Graph Analysis',
-  'ide_': 'IDE Integration',
-  'brittney_': 'AI Assistant',
-  'text_to_': 'Content Creation',
-  'browser_': 'Browser Control',
-  'codebase_': 'Codebase',
-  'graphrag_': 'Knowledge Graph',
-  'self_improve': 'Self Improvement',
-  'gltf_': 'GLTF Import',
-  'edit_holo': 'Editing',
-  'absorb_': 'Absorb Service',
-  'service_contract': 'Service Contracts',
-  'discover_': 'Agent Orchestration',
-  'delegate_': 'Agent Orchestration',
-  'get_task_': 'Agent Orchestration',
-  'compose_': 'Agent Orchestration',
-  'execute_': 'Agent Orchestration',
-  'query_traces': 'Observability',
-  'export_traces': 'Observability',
-  'get_agent_health': 'Observability',
-  'get_metrics': 'Observability',
-  'install_plugin': 'Plugin Management',
-  'list_plugins': 'Plugin Management',
-  'manage_plugin': 'Plugin Management',
-  'check_agent_budget': 'Economy',
-  'get_usage_summary': 'Economy',
-  'get_creator_earnings': 'Economy',
-  'get_api_reference': 'Developer Tools',
-  'serve_preview': 'Developer Tools',
-  'get_workspace_info': 'Developer Tools',
-  'inspect_trace_waterfall': 'Developer Tools',
-  'get_dev_dashboard_state': 'Developer Tools',
+  parse_: 'Parsing & Validation',
+  validate_: 'Parsing & Validation',
+  list_: 'Parsing & Validation',
+  explain_: 'Code Intelligence',
+  suggest_: 'Code Intelligence',
+  generate_: 'Code Generation',
+  render_: 'Rendering',
+  create_share: 'Sharing',
+  convert_: 'Conversion',
+  analyze_: 'Analysis',
+  graph_: 'Graph Analysis',
+  get_graph: 'Graph Analysis',
+  ide_: 'IDE Integration',
+  brittney_: 'AI Assistant',
+  text_to_: 'Content Creation',
+  browser_: 'Browser Control',
+  codebase_: 'Codebase',
+  graphrag_: 'Knowledge Graph',
+  self_improve: 'Self Improvement',
+  gltf_: 'GLTF Import',
+  edit_holo: 'Editing',
+  absorb_: 'Absorb Service',
+  service_contract: 'Service Contracts',
+  discover_: 'Agent Orchestration',
+  delegate_: 'Agent Orchestration',
+  get_task_: 'Agent Orchestration',
+  compose_: 'Agent Orchestration',
+  execute_: 'Agent Orchestration',
+  query_traces: 'Observability',
+  export_traces: 'Observability',
+  get_agent_health: 'Observability',
+  get_metrics: 'Observability',
+  install_plugin: 'Plugin Management',
+  list_plugins: 'Plugin Management',
+  manage_plugin: 'Plugin Management',
+  check_agent_budget: 'Economy',
+  get_usage_summary: 'Economy',
+  get_creator_earnings: 'Economy',
+  get_api_reference: 'Developer Tools',
+  serve_preview: 'Developer Tools',
+  get_workspace_info: 'Developer Tools',
+  inspect_trace_waterfall: 'Developer Tools',
+  get_dev_dashboard_state: 'Developer Tools',
 };
 
 // =============================================================================
@@ -194,12 +194,15 @@ export class APIDocsGenerator {
 
   private documentTool(tool: Tool): ToolDoc {
     const schema = tool.inputSchema as {
-      properties?: Record<string, {
-        type?: string;
-        description?: string;
-        default?: unknown;
-        enum?: string[];
-      }>;
+      properties?: Record<
+        string,
+        {
+          type?: string;
+          description?: string;
+          default?: unknown;
+          enum?: string[];
+        }
+      >;
       required?: string[];
     };
 
@@ -243,28 +246,28 @@ export class APIDocsGenerator {
       'Parsing & Validation': 'Parse and validate HoloScript compositions',
       'Code Intelligence': 'AI-powered code analysis and suggestions',
       'Code Generation': 'Generate HoloScript code and objects',
-      'Rendering': 'Preview and render compositions',
-      'Sharing': 'Share compositions via URL',
-      'Conversion': 'Convert between formats',
-      'Analysis': 'Analyze code structure and quality',
+      Rendering: 'Preview and render compositions',
+      Sharing: 'Share compositions via URL',
+      Conversion: 'Convert between formats',
+      Analysis: 'Analyze code structure and quality',
       'Graph Analysis': 'Scene graph traversal and analysis',
       'IDE Integration': 'LSP and IDE features',
       'AI Assistant': 'Brittney AI assistant capabilities',
       'Content Creation': 'Text-to-3D and content generation',
       'Browser Control': 'Browser automation and testing',
-      'Codebase': 'Codebase analysis and navigation',
+      Codebase: 'Codebase analysis and navigation',
       'Knowledge Graph': 'GraphRAG knowledge retrieval',
       'Self Improvement': 'Self-improvement pipeline',
       'GLTF Import': 'Import 3D models from GLTF',
-      'Editing': 'Edit compositions in-place',
+      Editing: 'Edit compositions in-place',
       'Absorb Service': 'Convert external formats to HoloScript',
       'Service Contracts': 'Generate and validate service contracts',
       'Agent Orchestration': 'Multi-agent orchestration and delegation',
-      'Observability': 'Tracing, metrics, and health monitoring',
+      Observability: 'Tracing, metrics, and health monitoring',
       'Plugin Management': 'Install and manage plugins',
-      'Economy': 'Budget, usage, and revenue management',
+      Economy: 'Budget, usage, and revenue management',
       'Developer Tools': 'Development server and workspace tools',
-      'General': 'General-purpose tools',
+      General: 'General-purpose tools',
     };
     return descriptions[category] || '';
   }
@@ -285,12 +288,18 @@ export class APIDocsGenerator {
     if (param.enumValues && param.enumValues.length > 0) return param.enumValues[0];
 
     switch (param.type) {
-      case 'string': return `example-${param.name}`;
-      case 'number': return 1;
-      case 'boolean': return true;
-      case 'array': return [];
-      case 'object': return {};
-      default: return '';
+      case 'string':
+        return `example-${param.name}`;
+      case 'number':
+        return 1;
+      case 'boolean':
+        return true;
+      case 'array':
+        return [];
+      case 'object':
+        return {};
+      default:
+        return '';
     }
   }
 

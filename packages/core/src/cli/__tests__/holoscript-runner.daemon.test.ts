@@ -55,7 +55,13 @@ function startDaemon(): DaemonHarness {
     : (() => {
         const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
         const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
-        return [tsxCliPath, path.resolve(__dirname, '../holoscript-runner.ts'), 'run', sourcePath, '--daemon'];
+        return [
+          tsxCliPath,
+          path.resolve(__dirname, '../holoscript-runner.ts'),
+          'run',
+          sourcePath,
+          '--daemon',
+        ];
       })();
 
   const proc = spawn(process.execPath, spawnArgs, {
@@ -110,29 +116,51 @@ describe('holoscript-runner daemon mode', () => {
 
     try {
       // Allow up to 120s for daemon startup on slower CI runners.
-      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:ready'), 120000, 25, timeoutDetails);
+      await waitFor(
+        () => harness.json.some((msg) => msg.type === 'daemon:ready'),
+        120000,
+        25,
+        timeoutDetails
+      );
 
       sendCommand(harness.proc, { op: 'stats' });
-      await waitFor(() => harness.json.some((msg) => msg.op === 'stats' && msg.type === 'daemon:ok'), 45000, 25, timeoutDetails);
+      await waitFor(
+        () => harness.json.some((msg) => msg.op === 'stats' && msg.type === 'daemon:ok'),
+        45000,
+        25,
+        timeoutDetails
+      );
 
       sendCommand(harness.proc, { op: 'state:set', key: 'mode', value: 'active' });
-      await waitFor(() => harness.json.some((msg) => msg.op === 'state:set' && msg.type === 'daemon:ok'), 45000, 25, timeoutDetails);
+      await waitFor(
+        () => harness.json.some((msg) => msg.op === 'state:set' && msg.type === 'daemon:ok'),
+        45000,
+        25,
+        timeoutDetails
+      );
 
       sendCommand(harness.proc, { op: 'state:get', key: 'mode' });
-      await waitFor(() =>
-        harness.json.some(
-          (msg) => msg.op === 'state:get' && msg.type === 'daemon:ok' && msg.key === 'mode' && msg.value === 'active'
-        ),
+      await waitFor(
+        () =>
+          harness.json.some(
+            (msg) =>
+              msg.op === 'state:get' &&
+              msg.type === 'daemon:ok' &&
+              msg.key === 'mode' &&
+              msg.value === 'active'
+          ),
         45000,
         25,
         timeoutDetails
       );
 
       sendCommand(harness.proc, { op: 'action:register', name: 'diagnose' });
-      await waitFor(() =>
-        harness.json.some(
-          (msg) => msg.op === 'action:register' && msg.type === 'daemon:ok' && msg.name === 'diagnose'
-        ),
+      await waitFor(
+        () =>
+          harness.json.some(
+            (msg) =>
+              msg.op === 'action:register' && msg.type === 'daemon:ok' && msg.name === 'diagnose'
+          ),
         45000,
         25,
         timeoutDetails
@@ -148,7 +176,15 @@ describe('holoscript-runner daemon mode', () => {
         },
       });
 
-      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:action_request' && msg.action === 'diagnose'), 45000, 25, timeoutDetails);
+      await waitFor(
+        () =>
+          harness.json.some(
+            (msg) => msg.type === 'daemon:action_request' && msg.action === 'diagnose'
+          ),
+        45000,
+        25,
+        timeoutDetails
+      );
       const actionRequest = harness.json.find(
         (msg) => msg.type === 'daemon:action_request' && msg.action === 'diagnose'
       );
@@ -160,20 +196,26 @@ describe('holoscript-runner daemon mode', () => {
         success: true,
       });
 
-      await waitFor(() =>
-        harness.json.some(
-          (msg) =>
-            msg.type === 'daemon:action_result' &&
-            (msg.payload as Record<string, unknown>)?.requestId === 'bt-request-1' &&
-            (msg.payload as Record<string, unknown>)?.status === 'success'
-        ),
+      await waitFor(
+        () =>
+          harness.json.some(
+            (msg) =>
+              msg.type === 'daemon:action_result' &&
+              (msg.payload as Record<string, unknown>)?.requestId === 'bt-request-1' &&
+              (msg.payload as Record<string, unknown>)?.status === 'success'
+          ),
         45000,
         25,
         timeoutDetails
       );
 
       sendCommand(harness.proc, { op: 'stop' });
-      await waitFor(() => harness.json.some((msg) => msg.type === 'daemon:stopped'), 45000, 25, timeoutDetails);
+      await waitFor(
+        () => harness.json.some((msg) => msg.type === 'daemon:stopped'),
+        45000,
+        25,
+        timeoutDetails
+      );
 
       const ready = harness.json.find((msg) => msg.type === 'daemon:ready');
       expect(ready).toBeDefined();

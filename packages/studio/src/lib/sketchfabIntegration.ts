@@ -122,10 +122,12 @@ export function isSketchfabAvailable(): boolean {
 /**
  * Search Sketchfab models using their API.
  */
-export async function searchSketchfab(params: SketchfabSearchParams): Promise<SketchfabSearchResult> {
+export async function searchSketchfab(
+  params: SketchfabSearchParams
+): Promise<SketchfabSearchResult> {
   const url = buildSearchUrl(params);
   console.log('[Sketchfab] Searching:', url);
-  
+
   // Return dummy data since we don't have a real API key in this context
   const dummyResults: SketchfabModel[] = Array.from({ length: 5 }).map((_, i) => ({
     uid: `sketchfab-dummy-${Date.now()}-${i}`,
@@ -144,14 +146,14 @@ export async function searchSketchfab(params: SketchfabSearchParams): Promise<Sk
     tags: ['dummy', 'test'],
     likeCount: Math.floor(Math.random() * 1000),
     viewCount: Math.floor(Math.random() * 10000),
-    publishedAt: new Date().toISOString()
+    publishedAt: new Date().toISOString(),
   }));
 
   return {
     results: dummyResults,
     totalCount: 100,
     page: params.page ?? 1,
-    hasMore: true
+    hasMore: true,
   };
 }
 

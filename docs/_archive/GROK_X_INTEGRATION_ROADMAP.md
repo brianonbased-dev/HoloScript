@@ -363,18 +363,18 @@ print(social["social"])  # ['@shareable', '@collaborative', '@tweetable']
 
 ## Success Metrics
 
-| Metric                          | Target | Current                                              |
-| ------------------------------- | ------ | ---------------------------------------------------- |
-| MCP tools available             | 16     | 103+                                                 |
-| Parse success rate              | >99%   | Testing                                              |
-| Validation accuracy             | >98%   | Testing                                              |
-| Generation quality (human eval) | >85%   | Testing                                              |
-| REST API endpoints              | 3      | 3/3                                                  |
-| Social trait tests passing      | 100%   | 29/29                                                |
-| E2E pipeline tests (TS)         | 9      | 9/9                                                  |
-| E2E pipeline tests (Python)     | 7      | 7/7                                                  |
+| Metric                          | Target | Current                                             |
+| ------------------------------- | ------ | --------------------------------------------------- |
+| MCP tools available             | 16     | 103+                                                |
+| Parse success rate              | >99%   | Testing                                             |
+| Validation accuracy             | >98%   | Testing                                             |
+| Generation quality (human eval) | >85%   | Testing                                             |
+| REST API endpoints              | 3      | 3/3                                                 |
+| Social trait tests passing      | 100%   | 29/29                                               |
+| E2E pipeline tests (TS)         | 9      | 9/9                                                 |
+| E2E pipeline tests (Python)     | 7      | 7/7                                                 |
 | Python package on PyPI          | Yes    | [5.3.0](https://pypi.org/project/holoscript/5.3.0/) |
-| System prompts complete         | 3      | 3/3                                                  |
+| System prompts complete         | 3      | 3/3                                                 |
 
 ---
 

@@ -8,11 +8,11 @@ Standalone parser package providing tree-sitter grammars and a performant tokeni
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| **Tokenizer** | Lexical analysis for all HoloScript formats |
-| **Tree-sitter grammar** | Incremental parsing for editor integration |
-| **AST Types** | TypeScript type definitions for the AST |
+| Component               | Purpose                                     |
+| ----------------------- | ------------------------------------------- |
+| **Tokenizer**           | Lexical analysis for all HoloScript formats |
+| **Tree-sitter grammar** | Incremental parsing for editor integration  |
+| **AST Types**           | TypeScript type definitions for the AST     |
 
 ## Usage
 
@@ -29,6 +29,7 @@ const ast = parse(source, { format: 'holo' });
 ## Grammar
 
 The tree-sitter grammar is defined in `grammar.js` and supports:
+
 - `.holo` compositions (objects, environments, spatial groups)
 - `.hs` templates (agents, streams, events)
 - `.hsplus` modules (TypeScript-like types, imports, exports)

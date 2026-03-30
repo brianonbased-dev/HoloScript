@@ -9,16 +9,16 @@
  */
 export const ML_INFERENCE_TRAITS = [
   // ─── Model Lifecycle ──────────────────────────────────────────────
-  'model_load',          // Load / unload ML model with warmup
-  'fine_tune',           // Fine-tuning job management
+  'model_load', // Load / unload ML model with warmup
+  'fine_tune', // Fine-tuning job management
 
   // ─── Execution ────────────────────────────────────────────────────
-  'inference',           // Run inference (text, image, structured)
-  'embedding',           // Generate vector embeddings
+  'inference', // Run inference (text, image, structured)
+  'embedding', // Generate vector embeddings
 
   // ─── Retrieval ────────────────────────────────────────────────────
-  'vector_search',       // Nearest-neighbor similarity search
-  'prompt_template',     // Template management with variable substitution
+  'vector_search', // Nearest-neighbor similarity search
+  'prompt_template', // Template management with variable substitution
 ] as const;
 
 export type MLInferenceTraitName = (typeof ML_INFERENCE_TRAITS)[number];

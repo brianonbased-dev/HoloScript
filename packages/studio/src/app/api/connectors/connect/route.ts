@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
       case 'vscode':
         // Validate VSCode IPC or MCP connection
         if (!credentials.port && !credentials.token) {
-           // For a local VSCode MCP connection, you might just accept it as successful 
-           // if the orchestrator validates it, or return dummy config for now.
+          // For a local VSCode MCP connection, you might just accept it as successful
+          // if the orchestrator validates it, or return dummy config for now.
         }
         config = {
           mode: 'mcp-local',

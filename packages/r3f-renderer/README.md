@@ -8,12 +8,12 @@ Provides reusable R3F (React Three Fiber) components that render HoloScript comp
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| `SceneRenderer` | Renders full compositions as R3F scenes |
-| `ObjectRenderer` | Individual object rendering with trait mapping |
+| Component         | Purpose                                                  |
+| ----------------- | -------------------------------------------------------- |
+| `SceneRenderer`   | Renders full compositions as R3F scenes                  |
+| `ObjectRenderer`  | Individual object rendering with trait mapping           |
 | `TraitVisualizer` | Visual representation of traits (bounding boxes, gizmos) |
-| `MaterialMapper` | Maps HoloScript materials to Three.js materials |
+| `MaterialMapper`  | Maps HoloScript materials to Three.js materials          |
 
 ## Usage
 

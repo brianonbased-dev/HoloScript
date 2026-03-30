@@ -14,7 +14,7 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
     actuator_id: '',
     command_topic: 'commands',
     allowed_actions: ['move', 'rotate', 'stop', 'toggle'],
-    safe_limits: {}
+    safe_limits: {},
   },
 
   onAttach(node, config, _context) {
@@ -36,7 +36,11 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
         const val = event.value;
         const [min, max] = config.safe_limits[action];
         if (val < min || val > max) {
-          context.emit('twin_actuator_error', { node, action, error: `Value ${val} out of bounds for ${action}` });
+          context.emit('twin_actuator_error', {
+            node,
+            action,
+            error: `Value ${val} out of bounds for ${action}`,
+          });
           return;
         }
       }
@@ -47,15 +51,15 @@ export const twinActuatorHandler: TraitHandler<TwinActuatorConfig> = {
         topic: config.command_topic,
         action,
         payload: event.payload,
-        value: event.value
+        value: event.value,
       });
-      
+
       // Optionally simulate standard physical translation in VR instantly
       if (action === 'move' && event.velocity) {
         context.physics.applyVelocity(node, event.velocity as Vector3);
       }
     }
-  }
+  },
 };
 
 export default twinActuatorHandler;

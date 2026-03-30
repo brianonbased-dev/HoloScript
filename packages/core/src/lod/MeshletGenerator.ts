@@ -90,14 +90,16 @@ function distSq(a: [number, number, number], b: [number, number, number]): numbe
 /** Compute bounding sphere for a set of positions */
 function computeBoundingSphere(
   positions: Float32Array,
-  vertexIndices: number[],
+  vertexIndices: number[]
 ): { center: [number, number, number]; radius: number } {
   if (vertexIndices.length === 0) {
     return { center: [0, 0, 0], radius: 0 };
   }
 
   // Ritter's bounding sphere (fast approximate)
-  let cx = 0, cy = 0, cz = 0;
+  let cx = 0,
+    cy = 0,
+    cz = 0;
   for (const vi of vertexIndices) {
     const p = getPos(positions, vi);
     cx += p[0];
@@ -126,14 +128,16 @@ function computeBoundingSphere(
 function computeNormalCone(
   positions: Float32Array,
   indices: Uint32Array,
-  triangleList: number[],
+  triangleList: number[]
 ): { axis: [number, number, number]; cutoff: number } {
   if (triangleList.length === 0) {
     return { axis: [0, 1, 0], cutoff: 1 };
   }
 
   // Accumulate face normals
-  let ax = 0, ay = 0, az = 0;
+  let ax = 0,
+    ay = 0,
+    az = 0;
   for (const ti of triangleList) {
     const i0 = indices[ti * 3];
     const i1 = indices[ti * 3 + 1];
@@ -142,8 +146,12 @@ function computeNormalCone(
     const p1 = getPos(positions, i1);
     const p2 = getPos(positions, i2);
     // Cross product of edges
-    const e1x = p1[0] - p0[0], e1y = p1[1] - p0[1], e1z = p1[2] - p0[2];
-    const e2x = p2[0] - p0[0], e2y = p2[1] - p0[1], e2z = p2[2] - p0[2];
+    const e1x = p1[0] - p0[0],
+      e1y = p1[1] - p0[1],
+      e1z = p1[2] - p0[2];
+    const e2x = p2[0] - p0[0],
+      e2y = p2[1] - p0[1],
+      e2z = p2[2] - p0[2];
     ax += e1y * e2z - e1z * e2y;
     ay += e1z * e2x - e1x * e2z;
     az += e1x * e2y - e1y * e2x;
@@ -165,8 +173,12 @@ function computeNormalCone(
     const p0 = getPos(positions, i0);
     const p1 = getPos(positions, i1);
     const p2 = getPos(positions, i2);
-    const e1x = p1[0] - p0[0], e1y = p1[1] - p0[1], e1z = p1[2] - p0[2];
-    const e2x = p2[0] - p0[0], e2y = p2[1] - p0[1], e2z = p2[2] - p0[2];
+    const e1x = p1[0] - p0[0],
+      e1y = p1[1] - p0[1],
+      e1z = p1[2] - p0[2];
+    const e2x = p2[0] - p0[0],
+      e2y = p2[1] - p0[1],
+      e2z = p2[2] - p0[2];
     let nx = e1y * e2z - e1z * e2y;
     let ny = e1z * e2x - e1x * e2z;
     let nz = e1x * e2y - e1y * e2x;
@@ -343,7 +355,7 @@ export class MeshletGenerator {
 
 /** Factory function */
 export function createMeshletGenerator(
-  options?: Partial<MeshletGeneratorOptions>,
+  options?: Partial<MeshletGeneratorOptions>
 ): MeshletGenerator {
   return new MeshletGenerator(options);
 }
@@ -351,7 +363,7 @@ export function createMeshletGenerator(
 /** Convenience: generate meshlets in one call */
 export function generateMeshlets(
   mesh: MeshData,
-  options?: Partial<MeshletGeneratorOptions>,
+  options?: Partial<MeshletGeneratorOptions>
 ): MeshletGenerationResult {
   return new MeshletGenerator(options).generate(mesh);
 }

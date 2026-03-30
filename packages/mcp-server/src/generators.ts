@@ -283,7 +283,7 @@ const AI_PROVIDER_PRIORITY: readonly LLMProviderName[] = [
   'openai',
   'gemini',
   'local-llm', // any llama.cpp / Ollama / LM Studio server
-  'bitnet',    // dedicated bitnet.cpp server (HOLOSCRIPT_BITNET_URL required)
+  'bitnet', // dedicated bitnet.cpp server (HOLOSCRIPT_BITNET_URL required)
   'mock',
 ];
 
@@ -306,7 +306,9 @@ function detectGeometryFromCode(code: string): string | undefined {
   const geometryMatch = code.match(/geometry:\s*"([^"]+)"/i);
   if (geometryMatch) return geometryMatch[1];
 
-  const primitiveMatch = code.match(/\b(cube|sphere|cylinder|cone|torus|capsule|plane|mesh|text|light|camera)\b/);
+  const primitiveMatch = code.match(
+    /\b(cube|sphere|cylinder|cone|torus|capsule|plane|mesh|text|light|camera)\b/
+  );
   return primitiveMatch?.[1];
 }
 
@@ -318,7 +320,11 @@ function isUsableObjectCode(code: string, format: 'hs' | 'hsplus' | 'holo'): boo
     return code.includes('template ') || code.includes('object ');
   }
 
-  return code.includes('composition ') || code.includes('template ') || /\b(cube|sphere|plane|cylinder|cone|torus|capsule)\b/.test(code);
+  return (
+    code.includes('composition ') ||
+    code.includes('template ') ||
+    /\b(cube|sphere|plane|cylinder|cone|torus|capsule)\b/.test(code)
+  );
 }
 
 function isUsableSceneCode(code: string): boolean {
@@ -391,7 +397,12 @@ function normalizeSceneAIOutput(code: string): string {
 async function tryGenerateWithAI(
   prompt: string,
   targetFormat: 'hs' | 'hsplus' | 'holo'
-): Promise<({ code: string; provider: LLMProviderName; attemptedProviders: LLMProviderName[]; detectedTraits: string[] } | null)> {
+): Promise<{
+  code: string;
+  provider: LLMProviderName;
+  attemptedProviders: LLMProviderName[];
+  detectedTraits: string[];
+} | null> {
   let manager;
 
   try {
@@ -467,7 +478,9 @@ export async function generateSceneForMCP(
 ): Promise<ReturnType<typeof generateScene> & AIGenerationMetadata> {
   const debugAI = process.env.HOLOSCRIPT_MCP_AI_DEBUG === '1';
   const heuristic = generateScene(description, options);
-  const features = options.features?.length ? ` Include features: ${options.features.join(', ')}.` : '';
+  const features = options.features?.length
+    ? ` Include features: ${options.features.join(', ')}.`
+    : '';
   const aiPrompt = `Create a complete holo composition scene for: ${description}.${features} Return only code with a composition root.`;
   const aiResult = await tryGenerateWithAI(aiPrompt, 'holo');
   const aiCode = aiResult ? normalizeSceneAIOutput(aiResult.code) : '';
@@ -504,7 +517,9 @@ export async function generateSceneForMCP(
           aiCode.includes('environment') ||
           aiCode.includes('object ') ||
           aiCode.includes('template ') ||
-          /\b(cube|sphere|plane|cylinder|cone|torus|capsule|mesh|text|light|camera)\s*\{/i.test(aiCode),
+          /\b(cube|sphere|plane|cylinder|cone|torus|capsule|mesh|text|light|camera)\s*\{/i.test(
+            aiCode
+          ),
       },
     });
   }
@@ -615,7 +630,8 @@ export function suggestUniversalTraits(
     suggestedTraits.add('@structured_log');
     if (!domainTraits['metric']) domainTraits['metric'] = new Set();
     domainTraits['metric'].add('@structured_log');
-    reasoning['@structured_log'] = 'Auto-suggested: data operations benefit from structured logging';
+    reasoning['@structured_log'] =
+      'Auto-suggested: data operations benefit from structured logging';
   }
 
   // Default if nothing matched
@@ -871,7 +887,6 @@ function extractObjectName(description: string): string {
   return capitalize(lastWord.replace(/[^a-zA-Z0-9]/g, ''));
 }
 
-
 function generateEnvironment(description: string, style: string): string {
   const lowerDesc = description.toLowerCase();
 
@@ -928,23 +943,23 @@ export function suggest2DTraits(
   const lowerDesc = (description + ' ' + (context || '')).toLowerCase();
 
   const keywords: Record<string, string[]> = {
-    'button': ['@semantic_entity', '@particle_feedback'],
-    'click': ['@semantic_entity', '@particle_feedback'],
-    'layout': ['@semantic_layout'],
-    'flex': ['@semantic_layout'],
-    'grid': ['@semantic_layout'],
-    'color': ['@dynamic_visual'],
-    'theme': ['@dynamic_visual'],
-    'dashboard': ['@2d_canvas', '@semantic_layout'],
-    'screen': ['@2d_canvas'],
-    'agent': ['@agent_attention'],
-    'bounty': ['@agent_attention'],
-    'intent': ['@intent_driven'],
-    'action': ['@intent_driven'],
-    'metric': ['@live_metric'],
-    'data': ['@live_metric'],
-    'chart': ['@live_metric'],
-    'number': ['@live_metric']
+    button: ['@semantic_entity', '@particle_feedback'],
+    click: ['@semantic_entity', '@particle_feedback'],
+    layout: ['@semantic_layout'],
+    flex: ['@semantic_layout'],
+    grid: ['@semantic_layout'],
+    color: ['@dynamic_visual'],
+    theme: ['@dynamic_visual'],
+    dashboard: ['@2d_canvas', '@semantic_layout'],
+    screen: ['@2d_canvas'],
+    agent: ['@agent_attention'],
+    bounty: ['@agent_attention'],
+    intent: ['@intent_driven'],
+    action: ['@intent_driven'],
+    metric: ['@live_metric'],
+    data: ['@live_metric'],
+    chart: ['@live_metric'],
+    number: ['@live_metric'],
   };
 
   for (const [key, traits] of Object.entries(keywords)) {
@@ -971,22 +986,22 @@ export async function generateSemanticUIForMCP(
   description: string,
   options: any = {}
 ): Promise<any> {
-    const aiPrompt = `Create a V6 Semantic2D composition for: ${description}. Use @2d_canvas, @semantic_layout, @semantic_entity, and other Semantic2D traits. Return only code.`;
-    const aiResult = await tryGenerateWithAI(aiPrompt, 'holo');
-    const code = aiResult ? normalizeSceneAIOutput(aiResult.code) : '';
+  const aiPrompt = `Create a V6 Semantic2D composition for: ${description}. Use @2d_canvas, @semantic_layout, @semantic_entity, and other Semantic2D traits. Return only code.`;
+  const aiResult = await tryGenerateWithAI(aiPrompt, 'holo');
+  const code = aiResult ? normalizeSceneAIOutput(aiResult.code) : '';
 
-    if (aiResult && isUsableSceneCode(code)) {
-        return {
-            code,
-            format: 'holo',
-            source: 'ai',
-            provider: aiResult.provider,
-            traits: aiResult.detectedTraits,
-        };
-    }
-
+  if (aiResult && isUsableSceneCode(code)) {
     return {
-        code: `composition "SemanticApp" {
+      code,
+      format: 'holo',
+      source: 'ai',
+      provider: aiResult.provider,
+      traits: aiResult.detectedTraits,
+    };
+  }
+
+  return {
+    code: `composition "SemanticApp" {
   object "Root" {
     @2d_canvas { projection: "flat-semantic" }
     @semantic_layout { flow: "column" }
@@ -997,7 +1012,7 @@ export async function generateSemanticUIForMCP(
     }
   }
 }`,
-        format: 'holo',
-        source: 'heuristic'
-    };
+    format: 'holo',
+    source: 'heuristic',
+  };
 }

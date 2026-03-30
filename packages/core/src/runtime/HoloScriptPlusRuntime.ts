@@ -123,12 +123,18 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   private _flatEntities: NodeInstance[] = [];
 
   // AI Copilot integration
-  private _copilot: { isReady(): boolean; generateFromPrompt(prompt: string, options: Record<string, unknown>): Promise<unknown> } | null = null;
+  private _copilot: {
+    isReady(): boolean;
+    generateFromPrompt(prompt: string, options: Record<string, unknown>): Promise<unknown>;
+  } | null = null;
 
   /**
    * Set the AI Copilot for generate directive processing.
    */
-  setCopilot(copilot: { isReady(): boolean; generateFromPrompt(prompt: string, options: Record<string, unknown>): Promise<unknown> }): void {
+  setCopilot(copilot: {
+    isReady(): boolean;
+    generateFromPrompt(prompt: string, options: Record<string, unknown>): Promise<unknown>;
+  }): void {
     this._copilot = copilot;
   }
 
@@ -191,7 +197,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Register Physics Event Handlers
     this.on('physics_grab', (payload: any) => {
-      const { nodeId, hand } = payload as { nodeId: string; hand: "left" | "right" };
+      const { nodeId, hand } = payload as { nodeId: string; hand: 'left' | 'right' };
       const handBodyId = this.vrPhysicsBridge.getHandBodyId(hand);
       const objectBody = this.physicsWorld.getBody(nodeId);
 
@@ -226,7 +232,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     });
 
     this.on('physics_add_constraint', (payload: any) => {
-      const { type, nodeId, axis, min, max, spring } = payload as { type: string; nodeId: string; axis?: IVector3; min?: number; max?: number; spring?: unknown };
+      const { type, nodeId, axis, min, max, spring } = payload as {
+        type: string;
+        nodeId: string;
+        axis?: IVector3;
+        min?: number;
+        max?: number;
+        spring?: unknown;
+      };
       // Ideally we need an anchor body (parent). For now, we might anchor to world (fixed point)
       // OR we create a static "anchor" body at the node's initial position.
 
@@ -252,7 +265,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     const isNetworked =
       ast.root.traits?.has('networked' as any) ||
-      ast.root.directives?.some((d: HSPlusDirective) => (d.type as string) === 'sync' || (d.type as string) === 'networked');
+      ast.root.directives?.some(
+        (d: HSPlusDirective) => (d.type as string) === 'sync' || (d.type as string) === 'networked'
+      );
     const syncId = isNetworked ? ast.root.id || 'global_session' : undefined;
 
     this.state = createState({} as StateDeclaration, syncId);
@@ -303,8 +318,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       this.hotReloader.registerTemplate({
         type: 'template',
         name: '@program',
-        version: (this.ast as unknown as Record<string, unknown>).version as number || 0,
-        migrations: (this.ast as unknown as Record<string, unknown>).migrations as unknown[] || [],
+        version: ((this.ast as unknown as Record<string, unknown>).version as number) || 0,
+        migrations:
+          ((this.ast as unknown as Record<string, unknown>).migrations as unknown[]) || [],
         state: { properties: [] },
       } as any);
 
@@ -313,7 +329,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         __holo_id: 'root',
         templateName: '@program',
         get version() {
-          return (self.ast as unknown as Record<string, unknown>).version as number || 0;
+          return ((self.ast as unknown as Record<string, unknown>).version as number) || 0;
         },
         set version(v: number) {
           (self.ast as unknown as Record<string, unknown>).version = v;
@@ -361,12 +377,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     if (!this.webXrManager) {
       // Use renderer.getContext() if available
-      const context = (renderer as any).getContext ? (renderer as any).getContext() : (renderer as any).context;
+      const context = (renderer as any).getContext
+        ? (renderer as any).getContext()
+        : (renderer as any).context;
       if (!context) {
         console.error('WebGPU context not found on renderer');
         return;
       }
-      const ManagerClass = this.options.webXrManagerClass as any || WebXRManager;
+      const ManagerClass = (this.options.webXrManagerClass as any) || WebXRManager;
       this.webXrManager = new ManagerClass(context);
 
       this.webXrManager.onSessionStart = (session) => {
@@ -730,7 +748,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       __holo_id: this.generateHoloId(node),
       node,
       get properties() {
-        return (this.node as unknown as Record<string, unknown>).properties as Record<string, unknown> || {};
+        return (
+          ((this.node as unknown as Record<string, unknown>).properties as Record<
+            string,
+            unknown
+          >) || {}
+        );
       },
       renderedNode: null,
       lifecycleHandlers: new Map(),
@@ -745,7 +768,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     this._flatEntities.push(instance);
 
     // Register with HotReloader if it's a template instance
-    let templateName = (node as unknown as Record<string, unknown>).template as string || (node.properties && (node.properties as Record<string, unknown>).__templateRef) as string;
+    let templateName =
+      ((node as unknown as Record<string, unknown>).template as string) ||
+      ((node.properties && (node.properties as Record<string, unknown>).__templateRef) as string);
     if (!templateName && this.templates.has(node.type)) {
       templateName = node.type;
     }
@@ -755,7 +780,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
       // Resolve version from template registry
       const templateNode = this.templates.get(templateName);
-      instance.templateVersion = (templateNode as unknown as Record<string, unknown>)?.version as number || (node as unknown as Record<string, unknown>).version as number || 0;
+      instance.templateVersion =
+        ((templateNode as unknown as Record<string, unknown>)?.version as number) ||
+        ((node as unknown as Record<string, unknown>).version as number) ||
+        0;
 
       // Bridge state for HotReloader
       const stateBridge = this.createStateMapProxy();
@@ -793,7 +821,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     // Process children with control flow
-    const childrenNodes = node.children || (node as unknown as Record<string, unknown>).body as HSPlusNode[] || [];
+    const childrenNodes =
+      node.children || ((node as unknown as Record<string, unknown>).body as HSPlusNode[]) || [];
     const children = this.processControlFlow(childrenNodes, node.directives || []);
     for (const childNode of children) {
       const childInstance = this.instantiateNode(childNode, instance);
@@ -822,7 +851,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       if (directive.type === 'lifecycle') {
         this.registerLifecycleHandler(instance, directive);
       } else if (directive.type === 'state') {
-        const stateBody = (directive as unknown as Record<string, unknown>).body as Record<string, unknown> || {};
+        const stateBody =
+          ((directive as unknown as Record<string, unknown>).body as Record<string, unknown>) || {};
         console.log(`[Runtime] Initializing state:`, stateBody);
         for (const [key, value] of Object.entries(stateBody)) {
           console.log(`[Runtime] Setting state ${key} = ${value}`);
@@ -922,7 +952,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         }
       } else if (directive.type === 'forEach') {
         // @forEach item in collection { ... }
-        const items = this.evaluateExpression((directive as unknown as Record<string, unknown>).collection as string);
+        const items = this.evaluateExpression(
+          (directive as unknown as Record<string, unknown>).collection as string
+        );
         if (Array.isArray(items)) {
           items.forEach((item, index) => {
             const iterContext = {
@@ -934,7 +966,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
               odd: index % 2 !== 0,
             };
 
-            for (const bodyNode of (directive as unknown as Record<string, unknown>).body as HSPlusNode[]) {
+            for (const bodyNode of (directive as unknown as Record<string, unknown>)
+              .body as HSPlusNode[]) {
               const cloned = this.cloneNodeWithContext(bodyNode, iterContext);
               result.push(cloned);
             }
@@ -948,7 +981,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         let iterations = 0;
 
         while (iterations < MAX_ITERATIONS) {
-          const condition = this.evaluateExpression((directive as unknown as Record<string, unknown>).condition as string);
+          const condition = this.evaluateExpression(
+            (directive as unknown as Record<string, unknown>).condition as string
+          );
           if (!condition) break;
 
           const iterContext = {
@@ -956,7 +991,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
             index: iterations,
           };
 
-          for (const bodyNode of (directive as unknown as Record<string, unknown>).body as HSPlusNode[]) {
+          for (const bodyNode of (directive as unknown as Record<string, unknown>)
+            .body as HSPlusNode[]) {
             const cloned = this.cloneNodeWithContext(bodyNode, iterContext);
             result.push(cloned);
           }
@@ -968,11 +1004,13 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           console.warn('@while loop hit maximum iteration limit (1000)');
         }
       } else if (directive.type === 'if') {
-        const condition = this.evaluateExpression((directive as unknown as Record<string, unknown>).condition as string);
+        const condition = this.evaluateExpression(
+          (directive as unknown as Record<string, unknown>).condition as string
+        );
         if (condition) {
-          result.push(...(directive as unknown as Record<string, unknown>).body as HSPlusNode[]);
+          result.push(...((directive as unknown as Record<string, unknown>).body as HSPlusNode[]));
         } else if ((directive as unknown as Record<string, unknown>).else) {
-          result.push(...(directive as unknown as Record<string, unknown>).else as HSPlusNode[]);
+          result.push(...((directive as unknown as Record<string, unknown>).else as HSPlusNode[]));
         }
       }
     }
@@ -1097,8 +1135,15 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // Expand spreads in order
     for (const spreadKey of spreadKeys) {
       const spreadValue = properties[spreadKey];
-      if (spreadValue && typeof spreadValue === 'object' && 'type' in spreadValue && spreadValue.type === 'spread') {
-        const resolved = this.resolveSpreadArgument((spreadValue as Record<string, unknown>).argument);
+      if (
+        spreadValue &&
+        typeof spreadValue === 'object' &&
+        'type' in spreadValue &&
+        spreadValue.type === 'spread'
+      ) {
+        const resolved = this.resolveSpreadArgument(
+          (spreadValue as Record<string, unknown>).argument
+        );
         if (resolved && typeof resolved === 'object' && !Array.isArray(resolved)) {
           Object.assign(result, this.expandPropertySpreads(resolved as Record<string, unknown>));
         }
@@ -1342,7 +1387,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Apply Networking Sync
     if (instance.node.traits?.has('networked' as VRTraitName)) {
-      const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as Record<string, unknown> | null;
+      const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as Record<
+        string,
+        unknown
+      > | null;
       const body = this.physicsWorld.getBody(instance.node.id || '');
 
       if (interpolated && instance.node.properties) {
@@ -1372,28 +1420,42 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         if (body) {
           if (body.type !== 'kinematic') {
             if (!(instance.node as unknown as Record<string, unknown>).__originalPhysicsType) {
-               (instance.node as unknown as Record<string, unknown>).__originalPhysicsType = body.type;
+              (instance.node as unknown as Record<string, unknown>).__originalPhysicsType =
+                body.type;
             }
             body.type = 'kinematic';
           }
           if (interpolated.position) {
-            body.position = { x: (interpolated.position as any).x, y: (interpolated.position as any).y, z: (interpolated.position as any).z };
+            body.position = {
+              x: (interpolated.position as any).x,
+              y: (interpolated.position as any).y,
+              z: (interpolated.position as any).z,
+            };
             body.velocity = { x: 0, y: 0, z: 0 };
           }
           if (interpolated.rotation) {
-            body.rotation = { 
-              x: (interpolated.rotation as any).x, 
-              y: (interpolated.rotation as any).y, 
-              z: (interpolated.rotation as any).z, 
-              w: (interpolated.rotation as any).w || 1 
+            body.rotation = {
+              x: (interpolated.rotation as any).x,
+              y: (interpolated.rotation as any).y,
+              z: (interpolated.rotation as any).z,
+              w: (interpolated.rotation as any).w || 1,
             };
             body.angularVelocity = { x: 0, y: 0, z: 0 };
           }
         }
-      } else if (!interpolated && body && (instance.node as unknown as Record<string, unknown>).__originalPhysicsType) {
+      } else if (
+        !interpolated &&
+        body &&
+        (instance.node as unknown as Record<string, unknown>).__originalPhysicsType
+      ) {
         // We are locally predicting / owning this node now, restore its original physics type!
-        if (body.type === 'kinematic' && (instance.node as unknown as Record<string, unknown>).__originalPhysicsType !== 'kinematic') {
-           body.type = (instance.node as unknown as Record<string, unknown>).__originalPhysicsType as any;
+        if (
+          body.type === 'kinematic' &&
+          (instance.node as unknown as Record<string, unknown>).__originalPhysicsType !==
+            'kinematic'
+        ) {
+          body.type = (instance.node as unknown as Record<string, unknown>)
+            .__originalPhysicsType as any;
         }
       }
     }
@@ -1519,7 +1581,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
   }
 
-  private async executeExternalApi(instance: NodeInstance, directive: Record<string, unknown>): Promise<void> {
+  private async executeExternalApi(
+    instance: NodeInstance,
+    directive: Record<string, unknown>
+  ): Promise<void> {
     try {
       const data = await this.builtins.api_call(directive.url, directive.method || 'GET');
 
@@ -1574,7 +1639,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           // this.emit('apply_velocity', { node, velocity });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-            body.velocity = { x: velocity[0] as number, y: velocity[1] as number, z: velocity[2] as number };
+            body.velocity = {
+              x: velocity[0] as number,
+              y: velocity[1] as number,
+              z: velocity[2] as number,
+            };
           }
         },
         applyAngularVelocity: (node, angularVelocity) => {
@@ -1871,7 +1940,11 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // 2. Process each template through HotReloader
     for (const [name, newNode] of newTemplates) {
       const oldNode = this.templates.get(name);
-      if (oldNode && (newNode as unknown as Record<string, unknown>).version !== (oldNode as unknown as Record<string, unknown>).version) {
+      if (
+        oldNode &&
+        (newNode as unknown as Record<string, unknown>).version !==
+          (oldNode as unknown as Record<string, unknown>).version
+      ) {
         const result = await this.hotReloader.reload(newNode as any);
         if (result.success) {
           this.templates.set(name, newNode);
@@ -1889,7 +1962,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     console.log(
       `[Hot-Reload] Checking global program: new version=${newAst.version}, old version=${(this.ast as unknown as Record<string, unknown>).version}`
     );
-    if (newAst.version !== undefined && newAst.version !== (this.ast as unknown as Record<string, unknown>).version) {
+    if (
+      newAst.version !== undefined &&
+      newAst.version !== (this.ast as unknown as Record<string, unknown>).version
+    ) {
       console.log(`[Hot-Reload] Global program version change detected`);
       const result = await this.hotReloader.reload({
         type: 'template', // Use template container for HotReloader
@@ -2096,7 +2172,9 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       position: currentProperties.position,
     });
     const oldNode = instance.node;
-    Object.keys(oldNode).forEach((key) => delete (oldNode as unknown as Record<string, unknown>)[key]);
+    Object.keys(oldNode).forEach(
+      (key) => delete (oldNode as unknown as Record<string, unknown>)[key]
+    );
     Object.assign(oldNode, newNode);
 
     // Merge preserved properties back
@@ -2104,7 +2182,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     instance.templateVersion = newTemplate.version as number;
 
     // 3. Run migration code AFTER property merge
-    const migrations = (newTemplate as unknown as Record<string, unknown>).migrations as Array<Record<string, unknown>> || [];
+    const migrations =
+      ((newTemplate as unknown as Record<string, unknown>).migrations as Array<
+        Record<string, unknown>
+      >) || [];
     const migration = migrations.find((m: Record<string, unknown>) => m.fromVersion === oldVersion);
     if (migration && migration.body) {
       this.executeMigrationCode(instance, migration.body as string);
@@ -2310,7 +2391,11 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
       return result;
     },
 
-    interpolate_color: (t: number, from: string | Record<string, number>, to: string | Record<string, number>): string => {
+    interpolate_color: (
+      t: number,
+      from: string | Record<string, number>,
+      to: string | Record<string, number>
+    ): string => {
       // Parse hex colors
       const parseHex = (hex: string): [number, number, number] => {
         const clean = hex.replace('#', '');

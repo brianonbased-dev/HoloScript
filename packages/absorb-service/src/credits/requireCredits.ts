@@ -46,7 +46,7 @@ export interface RequireCreditsOptions {
 export async function requireCredits(
   userId: string,
   operationType: OperationType,
-  options: RequireCreditsOptions = {},
+  options: RequireCreditsOptions = {}
 ): Promise<CreditGateResult | CreditError> {
   const cost = OPERATION_COSTS[operationType];
   if (!cost) {

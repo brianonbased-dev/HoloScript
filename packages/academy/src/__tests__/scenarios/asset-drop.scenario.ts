@@ -77,7 +77,7 @@ describe('Scenario: Asset Auto-Snap — snapPosition()', () => {
 describe('Scenario: Asset Auto-Snap — floor snap (Y offset)', () => {
   it('raises an asset that sits below Y=0 (bounding box min.y < 0)', () => {
     // Simulate a box where the mesh origin is at Y=0 but geometry extends downward
-    const minY = -0.5;  // bounding box bottom
+    const minY = -0.5; // bounding box bottom
     const yOffset = minY < 0 ? Math.abs(minY) : -minY;
     expect(yOffset).toBe(0.5);
   });

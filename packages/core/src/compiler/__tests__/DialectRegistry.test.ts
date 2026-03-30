@@ -20,7 +20,7 @@ describe('DialectRegistry', () => {
   describe('listByDomain()', () => {
     it('returns gamedev compilers: unity, unreal, godot', () => {
       const gamedev = DialectRegistry.listByDomain('gamedev');
-      const names = gamedev.map(d => d.name);
+      const names = gamedev.map((d) => d.name);
       expect(names).toContain('unity');
       expect(names).toContain('unreal');
       expect(names).toContain('godot');
@@ -28,7 +28,7 @@ describe('DialectRegistry', () => {
 
     it('returns web3d compilers: r3f, babylon, playcanvas', () => {
       const web3d = DialectRegistry.listByDomain('web3d');
-      const names = web3d.map(d => d.name);
+      const names = web3d.map((d) => d.name);
       expect(names).toContain('r3f');
       expect(names).toContain('babylon');
       expect(names).toContain('playcanvas');
@@ -36,7 +36,7 @@ describe('DialectRegistry', () => {
 
     it('returns xr compilers: openxr, visionos, android-xr, vrr', () => {
       const xr = DialectRegistry.listByDomain('xr');
-      const names = xr.map(d => d.name);
+      const names = xr.map((d) => d.name);
       expect(names).toContain('openxr');
       expect(names).toContain('visionos');
       expect(names).toContain('android-xr');
@@ -44,7 +44,7 @@ describe('DialectRegistry', () => {
 
     it('returns mobile compilers: ios, android, ar', () => {
       const mobile = DialectRegistry.listByDomain('mobile');
-      const names = mobile.map(d => d.name);
+      const names = mobile.map((d) => d.name);
       expect(names).toContain('ios');
       expect(names).toContain('android');
       expect(names).toContain('ar');
@@ -52,14 +52,14 @@ describe('DialectRegistry', () => {
 
     it('returns robotics compilers: urdf, sdf', () => {
       const robotics = DialectRegistry.listByDomain('robotics');
-      const names = robotics.map(d => d.name);
+      const names = robotics.map((d) => d.name);
       expect(names).toContain('urdf');
       expect(names).toContain('sdf');
     });
 
     it('returns service compilers: node-service', () => {
       const service = DialectRegistry.listByDomain('service');
-      const names = service.map(d => d.name);
+      const names = service.map((d) => d.name);
       expect(names).toContain('node-service');
     });
 
@@ -74,7 +74,7 @@ describe('DialectRegistry', () => {
     it('finds multiple backends for physics', () => {
       const dialects = DialectRegistry.findByTrait('physics');
       expect(dialects.length).toBeGreaterThanOrEqual(5);
-      const names = dialects.map(d => d.name);
+      const names = dialects.map((d) => d.name);
       expect(names).toContain('unity');
       expect(names).toContain('unreal');
       expect(names).toContain('godot');
@@ -83,13 +83,13 @@ describe('DialectRegistry', () => {
 
     it('finds service backends for endpoint trait', () => {
       const dialects = DialectRegistry.findByTrait('endpoint');
-      const names = dialects.map(d => d.name);
+      const names = dialects.map((d) => d.name);
       expect(names).toContain('node-service');
     });
 
     it('finds robotics backends for joint trait', () => {
       const dialects = DialectRegistry.findByTrait('joint');
-      const names = dialects.map(d => d.name);
+      const names = dialects.map((d) => d.name);
       expect(names).toContain('urdf');
       expect(names).toContain('sdf');
     });

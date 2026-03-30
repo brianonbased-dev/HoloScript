@@ -13,28 +13,28 @@
  */
 export const SCRIPTING_AUTOMATION_TRAITS = [
   // ─── Scheduling & Timing ───────────────────────────────────────────
-  'cron',                // Timed execution (interval, cron patterns, jitter)
-  'scheduler',           // Multi-job scheduler with named jobs
+  'cron', // Timed execution (interval, cron patterns, jitter)
+  'scheduler', // Multi-job scheduler with named jobs
 
   // ─── Orchestration ─────────────────────────────────────────────────
-  'pipeline',            // Sequential/parallel step orchestration
-  'task_queue',          // Work queue with retry, priority, dead-letter
+  'pipeline', // Sequential/parallel step orchestration
+  'task_queue', // Work queue with retry, priority, dead-letter
 
   // ─── I/O & Integration ─────────────────────────────────────────────
-  'watcher',             // File/state/event watchers with debounce
-  'webhook',             // HTTP trigger (inbound) and callback (outbound)
-  'shell',               // Subprocess exec with timeout + output capture
+  'watcher', // File/state/event watchers with debounce
+  'webhook', // HTTP trigger (inbound) and callback (outbound)
+  'shell', // Subprocess exec with timeout + output capture
 
   // ─── Resilience ────────────────────────────────────────────────────
-  'retry',               // Exponential backoff with retry logic
-  'circuit_breaker',     // Standalone circuit breaker (half-open, metrics)
-  'rate_limiter',        // Token bucket / sliding window rate limiting
-  'timeout_guard',       // Configurable operation timeout wrapper
+  'retry', // Exponential backoff with retry logic
+  'circuit_breaker', // Standalone circuit breaker (half-open, metrics)
+  'rate_limiter', // Token bucket / sliding window rate limiting
+  'timeout_guard', // Configurable operation timeout wrapper
 
   // ─── Data Flow ─────────────────────────────────────────────────────
-  'transform',           // Map/filter/reduce event streams
-  'buffer',              // Batch events by count or time window
-  'structured_logger',   // Structured logging sink with levels + rotation
+  'transform', // Map/filter/reduce event streams
+  'buffer', // Batch events by count or time window
+  'structured_logger', // Structured logging sink with levels + rotation
 ] as const;
 
 export type ScriptingAutomationTraitName = (typeof SCRIPTING_AUTOMATION_TRAITS)[number];

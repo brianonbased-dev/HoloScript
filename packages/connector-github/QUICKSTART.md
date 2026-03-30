@@ -48,11 +48,11 @@ async function main() {
   console.log('✅ Connected to GitHub');
 
   // List your repositories
-  const repos = await connector.executeTool('github_repo_list', {
+  const repos = (await connector.executeTool('github_repo_list', {
     type: 'owner',
     sort: 'updated',
-    per_page: 5
-  }) as any;
+    per_page: 5,
+  })) as any;
 
   console.log('Your recent repositories:');
   for (const repo of repos.data) {
@@ -105,6 +105,7 @@ git push
 ```
 
 The workflow will now:
+
 - ✅ Validate all `.holo`, `.hs`, `.hsplus` files on push
 - ✅ Generate 3D previews for PRs
 - ✅ Run AI-powered scene analysis
@@ -115,14 +116,14 @@ The workflow will now:
 ### Create a Pull Request
 
 ```typescript
-const pr = await connector.executeTool('github_pr_create', {
+const pr = (await connector.executeTool('github_pr_create', {
   owner: 'your-username',
   repo: 'your-repo',
   title: 'Add new holographic scene',
   head: 'feature/new-scene',
   base: 'main',
-  body: 'This PR adds a new water reflection scene.'
-}) as any;
+  body: 'This PR adds a new water reflection scene.',
+})) as any;
 
 console.log(`PR created: #${pr.data.number}`);
 ```
@@ -130,11 +131,11 @@ console.log(`PR created: #${pr.data.number}`);
 ### Validate HoloScript Files
 
 ```typescript
-const validation = await connector.executeTool('github_holoscript_validate_scene', {
+const validation = (await connector.executeTool('github_holoscript_validate_scene', {
   owner: 'your-username',
   repo: 'your-repo',
-  ref: 'main'
-}) as any;
+  ref: 'main',
+})) as any;
 
 console.log(`Valid: ${validation.summary.valid}/${validation.summary.total}`);
 ```
@@ -142,12 +143,12 @@ console.log(`Valid: ${validation.summary.valid}/${validation.summary.total}`);
 ### Compile and Preview
 
 ```typescript
-const preview = await connector.executeTool('github_holoscript_compile_preview', {
+const preview = (await connector.executeTool('github_holoscript_compile_preview', {
   owner: 'your-username',
   repo: 'your-repo',
   ref: 'main',
-  files: ['scenes/gallery.holo']
-}) as any;
+  files: ['scenes/gallery.holo'],
+})) as any;
 
 if (preview.files[0]?.previewUrl) {
   console.log('Preview:', preview.files[0].previewUrl);
@@ -178,7 +179,7 @@ async function compileAndPush(sceneFile: string) {
     repo: 'your-repo',
     path: 'dist/scene.html',
     message: 'Update compiled scene',
-    content
+    content,
   });
 
   console.log('✅ Pushed to GitHub');
@@ -189,19 +190,23 @@ async function compileAndPush(sceneFile: string) {
 ## 7. Troubleshooting
 
 ### "GITHUB_TOKEN is required"
+
 - Ensure `GITHUB_TOKEN` environment variable is set
 - Check token has necessary scopes
 
 ### "Rate limit exceeded"
+
 - GitHub API limits: 5000 requests/hour (authenticated)
 - Use conditional workflows to reduce API calls
 - Consider caching results
 
 ### "Unknown tool" error
+
 - Ensure you're using the correct tool name (see [README.md](./README.md#tools))
 - Check connector is connected: `await connector.connect()`
 
 ### Workflow not triggering
+
 - Check workflow file is in `.github/workflows/`
 - Ensure correct YAML syntax
 - Verify event triggers match your use case

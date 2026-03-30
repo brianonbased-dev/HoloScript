@@ -13,8 +13,8 @@ const input = `
 `;
 const ast = parser.parse(input);
 if (!ast.success) {
-  console.log("AST Parsing Failed:");
+  console.log('AST Parsing Failed:');
   console.log(JSON.stringify(ast, null, 2));
 } else {
-  console.log("AST Parsing Succeeded");
+  console.log('AST Parsing Succeeded');
 }

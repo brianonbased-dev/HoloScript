@@ -47,7 +47,7 @@ export function useSecurity(): UseSecurityReturn {
       sandbox: {
         enabled: true,
         memoryLimit: 10, // 10 MB
-        cpuTimeLimit: 3,  // 3 seconds
+        cpuTimeLimit: 3, // 3 seconds
         syscallAllowlist: [],
         fileSystemAccess: 'none',
       },

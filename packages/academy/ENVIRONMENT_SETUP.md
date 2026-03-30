@@ -1,6 +1,7 @@
 # Environment Setup for Studio Pipeline
 
 ## Problem
+
 Root `.env` files are **NOT** automatically loaded by Next.js. The Studio app needs environment variables in its own directory.
 
 ## Solution
@@ -70,6 +71,7 @@ curl http://localhost:3000/api/pipeline/provider
 ```
 
 Expected output:
+
 ```json
 {
   "provider": "anthropic",
@@ -98,16 +100,19 @@ Only the first available provider is used.
 ## Troubleshooting
 
 ### "No API key set"
+
 - Check `.env.local` exists in `packages/studio/`
 - Restart dev server after editing `.env.local`
 - Verify file is not `.env.local.example`
 
 ### "Ollama selected but I have API keys"
+
 - Environment variables not loading
 - Check file path: must be `packages/studio/.env.local`
 - Print env vars: `printenv | grep API_KEY`
 
 ### "401 Unauthorized"
+
 - Invalid API key
 - Key expired
 - Wrong key for provider (e.g., OpenAI key in ANTHROPIC_API_KEY)

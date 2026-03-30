@@ -93,10 +93,7 @@ describe('VSCodeConnector', () => {
 
       await connector.connect();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:17420/health',
-        expect.any(Object)
-      );
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:17420/health', expect.any(Object));
     });
   });
 
@@ -273,9 +270,7 @@ describe('VSCodeConnector', () => {
     });
 
     it('should throw on bridge error', async () => {
-      mockFetch.mockResolvedValueOnce(
-        mockResponse({ error: 'File not found' }, false, 404)
-      );
+      mockFetch.mockResolvedValueOnce(mockResponse({ error: 'File not found' }, false, 404));
 
       await expect(
         connector.executeTool('vscode_sync_pull', { path: 'nonexistent.holo' })

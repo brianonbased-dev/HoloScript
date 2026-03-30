@@ -155,9 +155,7 @@ describe('AgentDashboard — task filtering', () => {
 
   it('filters tasks by title search', () => {
     const query = 'deploy';
-    const filtered = tasks.filter((t) =>
-      t.title.toLowerCase().includes(query.toLowerCase())
-    );
+    const filtered = tasks.filter((t) => t.title.toLowerCase().includes(query.toLowerCase()));
     expect(filtered).toHaveLength(1);
     expect(filtered[0].id).toBe('t2');
   });
@@ -294,12 +292,7 @@ describe('AgentDashboard — barrel exports', () => {
     // This test verifies that the barrel export module can be resolved
     // In a full build environment, this would import from '../index'
     // For now, verify the export structure matches expectations
-    const expectedExports = [
-      'AgentDashboard',
-      'AgentCard',
-      'TaskFlowView',
-      'EconomyPanel',
-    ];
+    const expectedExports = ['AgentDashboard', 'AgentCard', 'TaskFlowView', 'EconomyPanel'];
     // If any are missing, the component won't be usable from the barrel
     expect(expectedExports).toHaveLength(4);
   });

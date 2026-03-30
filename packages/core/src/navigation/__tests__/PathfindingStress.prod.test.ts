@@ -13,7 +13,7 @@ import { NavMesh, NavPoint, NavPolygon } from '../NavMesh';
 function createGridNavMesh(width: number, height: number): NavMesh {
   const mesh = new NavMesh();
   const polyIds: string[][] = [];
-  
+
   for (let z = 0; z < height; z++) {
     const row: string[] = [];
     for (let x = 0; x < width; x++) {
@@ -21,7 +21,7 @@ function createGridNavMesh(width: number, height: number): NavMesh {
         { x, y: 0, z },
         { x: x + 1, y: 0, z },
         { x: x + 1, y: 0, z: z + 1 },
-        { x, y: 0, z: z + 1 }
+        { x, y: 0, z: z + 1 },
       ];
       const poly = mesh.addPolygon(vertices, true, 1);
       row.push(poly.id);
@@ -44,7 +44,6 @@ function createGridNavMesh(width: number, height: number): NavMesh {
 }
 
 describe('Cycle 185: AStarPathfinder Stress Tests', () => {
-
   // --- Volume and High-density ---
 
   it('handles massive grid pathfinding without hitting max iterations', () => {
@@ -55,7 +54,7 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
 
     const start = { x: 0.5, y: 0, z: 0.5 };
     const goal = { x: 49.5, y: 0, z: 49.5 };
-    
+
     const startT = performance.now();
     const result = pf.findPath(start, goal);
     const endT = performance.now();
@@ -82,12 +81,22 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
 
   it('falls back quickly when start and goal are on disjointed meshes', () => {
     const mesh = new NavMesh();
-    mesh.addPolygon([{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 1, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }]);
-    mesh.addPolygon([{ x: 100, y: 0, z: 100 }, { x: 101, y: 0, z: 100 }, { x: 101, y: 0, z: 101 }, { x: 100, y: 0, z: 101 }]);
-    
+    mesh.addPolygon([
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 1, y: 0, z: 1 },
+      { x: 0, y: 0, z: 1 },
+    ]);
+    mesh.addPolygon([
+      { x: 100, y: 0, z: 100 },
+      { x: 101, y: 0, z: 100 },
+      { x: 101, y: 0, z: 101 },
+      { x: 100, y: 0, z: 101 },
+    ]);
+
     const pf = new AStarPathfinder(mesh);
-    const result = pf.findPath({ x: 0.5, y:0, z:0.5 }, { x: 100.5, y:0, z:100.5 });
-    
+    const result = pf.findPath({ x: 0.5, y: 0, z: 0.5 }, { x: 100.5, y: 0, z: 100.5 });
+
     expect(result.found).toBe(false);
     expect(result.polygonsVisited).toBeLessThan(5); // Should give up immediately
   });
@@ -109,12 +118,12 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
     const pf = new AStarPathfinder(mesh);
 
     for (let i = 0; i < 1000; i++) {
-        pf.addObstacle(`obs${i}`, { x: 5, y:0, z: 5 }, 1); // Stacked
+      pf.addObstacle(`obs${i}`, { x: 5, y: 0, z: 5 }, 1); // Stacked
     }
-    
+
     expect(pf.getObstacleCount()).toBe(1000);
-    const result = pf.findPath({ x:0,y:0,z:0 }, { x:9,y:0,z:9 });
-    
+    const result = pf.findPath({ x: 0, y: 0, z: 0 }, { x: 9, y: 0, z: 9 });
+
     // Result should navigate around the 1000 obstacles at (5,5)
     expect(result.found).toBe(true);
   });
@@ -123,13 +132,13 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
     const mesh = createGridNavMesh(5, 5);
     const pf = new AStarPathfinder(mesh);
 
-    pf.findPath({x:0,y:0,z:0}, {x:4,y:0,z:4});
+    pf.findPath({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 });
 
-    pf.addObstacle('obs1', {x:2,y:0,z:2}, 1);
-    const res2 = pf.findPath({x:0,y:0,z:0}, {x:4,y:0,z:4});
+    pf.addObstacle('obs1', { x: 2, y: 0, z: 2 }, 1);
+    const res2 = pf.findPath({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 });
 
     pf.removeObstacle('obs1');
-    const res3 = pf.findPath({x:0,y:0,z:0}, {x:4,y:0,z:4});
+    const res3 = pf.findPath({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 4 });
 
     expect(res2.polygonsVisited).not.toBe(res3.polygonsVisited);
   });
@@ -140,7 +149,7 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
     const pf = new AStarPathfinder(new NavMesh());
     const path: NavPoint[] = [];
     for (let i = 0; i < 100; i++) {
-        path.push({ x: i, y: 0, z: i }); // perfect diagonal
+      path.push({ x: i, y: 0, z: i }); // perfect diagonal
     }
     const smoothed = pf.smoothPath(path);
     // Should be just start and end for a straight line
@@ -152,10 +161,10 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
   it('does not over-smooth tight zig-zag corridors', () => {
     const pf = new AStarPathfinder(new NavMesh());
     const path: NavPoint[] = [
-        { x: 0, y: 0, z: 0 },
-        { x: 10, y: 0, z: 0 },
-        { x: 10, y: 0, z: 10 },
-        { x: 0, y: 0, z: 10 }
+      { x: 0, y: 0, z: 0 },
+      { x: 10, y: 0, z: 0 },
+      { x: 10, y: 0, z: 10 },
+      { x: 0, y: 0, z: 10 },
     ];
     const smoothed = pf.smoothPath(path);
     expect(smoothed.length).toBeGreaterThan(2); // Should not skip corners heavily
@@ -163,7 +172,10 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
 
   it('handles very short paths cleanly without smoothing breaks', () => {
     const pf = new AStarPathfinder(new NavMesh());
-    const path = [ { x:0,y:0,z:0 }, { x:1,y:0,z:1 } ];
+    const path = [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 1 },
+    ];
     expect(pf.smoothPath(path).length).toBe(2);
   });
 
@@ -173,11 +185,10 @@ describe('Cycle 185: AStarPathfinder Stress Tests', () => {
       const mesh = createGridNavMesh(3, 3);
       const pf = new AStarPathfinder(mesh);
       pf.addObstacle(`wall_${phase}`, { x: 1, y: 0, z: 1 }, 0.5); // center block
-      
-      const result = pf.findPath({x:0,y:0,z:0}, {x:2,y:0,z:2});
+
+      const result = pf.findPath({ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 2 });
       expect(result.found).toBe(true);
-      expect(result.path.length).toBeGreaterThan(2); 
+      expect(result.path.length).toBeGreaterThan(2);
     });
   }
-
 });

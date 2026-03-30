@@ -44,9 +44,7 @@ export const godRaysHandler: TraitHandler<GodRaysConfig> = {
   onAttach(node, config, context) {
     (node as any).__godRaysActive = true;
 
-    const lightPos = config.use_weather
-      ? weatherBlackboard.sun_position
-      : config.light_position;
+    const lightPos = config.use_weather ? weatherBlackboard.sun_position : config.light_position;
 
     context.emit('god_rays_create', {
       decay: config.decay,

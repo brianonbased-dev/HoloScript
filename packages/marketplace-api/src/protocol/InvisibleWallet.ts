@@ -44,7 +44,7 @@ export interface InvisibleWalletConfig {
 export class InvisibleWalletError extends Error {
   constructor(
     message: string,
-    public code: string,
+    public code: string
   ) {
     super(message);
     this.name = 'InvisibleWalletError';
@@ -65,7 +65,7 @@ export class InvisibleWallet {
     publicClient: PublicClient,
     walletClient: WalletClient<Transport, Chain>,
     address: HexAddress,
-    chain: Chain,
+    chain: Chain
   ) {
     this.publicClient = publicClient;
     this.walletClient = walletClient;
@@ -88,8 +88,8 @@ export class InvisibleWallet {
     if (!key) {
       throw new InvisibleWalletError(
         'HOLOSCRIPT_WALLET_KEY environment variable not set. ' +
-        'Set it to a hex private key (0x...) or use InvisibleWallet.fromKeystore().',
-        'NO_ENV_KEY',
+          'Set it to a hex private key (0x...) or use InvisibleWallet.fromKeystore().',
+        'NO_ENV_KEY'
       );
     }
 
@@ -104,13 +104,10 @@ export class InvisibleWallet {
    * Create wallet from a hex private key string.
    * Used internally by fromEnvironment and fromKeystore.
    */
-  static fromPrivateKey(
-    privateKey: string,
-    config: InvisibleWalletConfig = {},
-  ): InvisibleWallet {
+  static fromPrivateKey(privateKey: string, config: InvisibleWalletConfig = {}): InvisibleWallet {
     const normalizedKey = privateKey.startsWith('0x')
-      ? privateKey as `0x${string}`
-      : `0x${privateKey}` as `0x${string}`;
+      ? (privateKey as `0x${string}`)
+      : (`0x${privateKey}` as `0x${string}`);
 
     const account = privateKeyToAccount(normalizedKey);
     const chain = config.testnet ? baseGoerli : base;
@@ -127,12 +124,7 @@ export class InvisibleWallet {
       transport: http(rpcUrl),
     });
 
-    return new InvisibleWallet(
-      publicClient,
-      walletClient,
-      account.address as HexAddress,
-      chain,
-    );
+    return new InvisibleWallet(publicClient, walletClient, account.address as HexAddress, chain);
   }
 
   // ===========================================================================
@@ -151,7 +143,7 @@ export class InvisibleWallet {
   static async fromKeystore(
     path: string,
     passphrase: string,
-    config: InvisibleWalletConfig = {},
+    config: InvisibleWalletConfig = {}
   ): Promise<InvisibleWallet> {
     try {
       const { readFile } = await import('node:fs/promises');
@@ -161,7 +153,7 @@ export class InvisibleWallet {
       if (keystore.version !== 1) {
         throw new InvisibleWalletError(
           `Unsupported keystore version: ${keystore.version}`,
-          'UNSUPPORTED_KEYSTORE',
+          'UNSUPPORTED_KEYSTORE'
         );
       }
 
@@ -172,7 +164,7 @@ export class InvisibleWallet {
       const msg = error instanceof Error ? error.message : String(error);
       throw new InvisibleWalletError(
         `Failed to load keystore from ${path}: ${msg}`,
-        'KEYSTORE_FAILED',
+        'KEYSTORE_FAILED'
       );
     }
   }
@@ -189,9 +181,7 @@ export class InvisibleWallet {
    *
    * @throws InvisibleWalletError if AgentKit initialization fails
    */
-  static async fromAgentKit(
-    config: InvisibleWalletConfig = {},
-  ): Promise<InvisibleWallet> {
+  static async fromAgentKit(config: InvisibleWalletConfig = {}): Promise<InvisibleWallet> {
     try {
       const { AgentWalletService } = await import('../agents/AgentWalletService.js');
       const agentWallet = new AgentWalletService();
@@ -216,18 +206,10 @@ export class InvisibleWallet {
         transport: http(rpcUrl),
       });
 
-      return new InvisibleWallet(
-        publicClient,
-        walletClient,
-        address as HexAddress,
-        chain,
-      );
+      return new InvisibleWallet(publicClient, walletClient, address as HexAddress, chain);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      throw new InvisibleWalletError(
-        `AgentKit initialization failed: ${msg}`,
-        'AGENTKIT_FAILED',
-      );
+      throw new InvisibleWalletError(`AgentKit initialization failed: ${msg}`, 'AGENTKIT_FAILED');
     }
   }
 
@@ -299,10 +281,7 @@ interface KeystoreFile {
  * Decrypt a keystore file using AES-256-GCM with PBKDF2-derived key.
  * Uses Node.js crypto module.
  */
-async function decryptKeystore(
-  keystore: KeystoreFile,
-  passphrase: string,
-): Promise<string> {
+async function decryptKeystore(keystore: KeystoreFile, passphrase: string): Promise<string> {
   const crypto = await import('node:crypto');
 
   const salt = Buffer.from(keystore.salt, 'hex');
@@ -319,10 +298,7 @@ async function decryptKeystore(
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(authTag);
 
-  const decrypted = Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final(),
-  ]);
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 
   return `0x${decrypted.toString('hex')}`;
 }
@@ -333,13 +309,11 @@ async function decryptKeystore(
  */
 export async function createKeystore(
   privateKey: string,
-  passphrase: string,
+  passphrase: string
 ): Promise<KeystoreFile> {
   const crypto = await import('node:crypto');
 
-  const normalizedKey = privateKey.startsWith('0x')
-    ? privateKey.slice(2)
-    : privateKey;
+  const normalizedKey = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
 
   const salt = crypto.randomBytes(32);
   const iv = crypto.randomBytes(12); // 96-bit IV for GCM
@@ -350,10 +324,7 @@ export async function createKeystore(
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const plaintext = Buffer.from(normalizedKey, 'hex');
 
-  const ciphertext = Buffer.concat([
-    cipher.update(plaintext),
-    cipher.final(),
-  ]);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
 
   const authTag = cipher.getAuthTag();
 

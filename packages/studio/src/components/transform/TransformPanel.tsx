@@ -64,7 +64,7 @@ export function TransformPanel({
         rotation: selectedNode.rotation,
         scale: selectedNode.scale,
       }
-    : transform ?? DEFAULT_TRANSFORM;
+    : (transform ?? DEFAULT_TRANSFORM);
 
   const [settings, setSettings] = useState<TransformSettings>(DEFAULT_SETTINGS);
 

@@ -30,7 +30,12 @@ const checks = [
 if (!skipTests && !summaryOnly) {
   checks.push(() =>
     run('Daemon integration tests', 'pnpm', [
-      '--filter', '@holoscript/core', 'exec', 'vitest', 'run', '--no-color',
+      '--filter',
+      '@holoscript/core',
+      'exec',
+      'vitest',
+      'run',
+      '--no-color',
       'src/cli/__tests__/holoscript-runner.daemon.test.ts',
       'src/cli/__tests__/holoscript-daemon-integration.test.ts',
     ])

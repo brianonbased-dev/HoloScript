@@ -92,11 +92,11 @@ holoscript compile agent.holo --target a2a
 
 HoloScript's spatial-comms layer supports 3 communication tiers:
 
-| Layer   | Protocol       | Use case                        |
-| ------- | -------------- | ------------------------------- |
+| Layer   | Protocol            | Use case                       |
+| ------- | ------------------- | ------------------------------ |
 | Layer 1 | Real-time WebSocket | In-scene coordination (< 16ms) |
-| Layer 2 | A2A HTTP       | Cross-agent task delegation     |
-| Layer 3 | MCP            | Tool discovery and invocation   |
+| Layer 2 | A2A HTTP            | Cross-agent task delegation    |
+| Layer 3 | MCP                 | Tool discovery and invocation  |
 
 A2A is Layer 2 — agents in different organizations coordinate via A2A while sharing a HoloScript scene.
 
@@ -113,12 +113,12 @@ app.use('/.well-known', express.static('./public/.well-known'))
 
 ## Compiler Options
 
-| Option                | Default   | Description                               |
-| --------------------- | --------- | ----------------------------------------- |
-| `--a2a-base-url`      | required  | Base URL where agent is hosted            |
-| `--a2a-auth`          | `none`    | Auth scheme: `none`, `bearer`, `oauth2`   |
-| `--a2a-streaming`     | `true`    | Enable streaming capability in card       |
-| `--a2a-version`       | `1.0.0`   | Agent version string                      |
+| Option            | Default  | Description                             |
+| ----------------- | -------- | --------------------------------------- |
+| `--a2a-base-url`  | required | Base URL where agent is hosted          |
+| `--a2a-auth`      | `none`   | Auth scheme: `none`, `bearer`, `oauth2` |
+| `--a2a-streaming` | `true`   | Enable streaming capability in card     |
+| `--a2a-version`   | `1.0.0`  | Agent version string                    |
 
 ## See Also
 

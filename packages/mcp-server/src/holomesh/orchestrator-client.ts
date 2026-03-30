@@ -41,7 +41,8 @@ export class HoloMeshOrchestratorClient {
 
   /** Register this agent on the mesh via orchestrator. Returns agent ID. */
   async registerAgent(traits: string[], walletAuth?: WalletAuth): Promise<string> {
-    const id = walletAuth?.did || `holomesh-${this.config.agentName}-${crypto.randomUUID().slice(0, 8)}`;
+    const id =
+      walletAuth?.did || `holomesh-${this.config.agentName}-${crypto.randomUUID().slice(0, 8)}`;
     const res = await this.post('/agents/register', {
       id,
       name: this.config.agentName,
@@ -76,25 +77,27 @@ export class HoloMeshOrchestratorClient {
   /** Discover peer agents. */
   async discoverPeers(opts?: { traits?: string[] }): Promise<HoloMeshAgentCard[]> {
     const data = await this.get('/agents');
-    const agents: any[] = Array.isArray(data) ? data : (data?.agents || data?.data || []);
+    const agents: any[] = Array.isArray(data) ? data : data?.agents || data?.data || [];
 
     return agents
       .filter((a: any) => a.id !== this.agentId)
       .filter((a: any) => {
         if (!opts?.traits?.length) return true;
         const caps: string[] = a.capabilities || [];
-        return opts.traits!.some(t => caps.includes(t));
+        return opts.traits!.some((t) => caps.includes(t));
       })
-      .map((a: any): HoloMeshAgentCard => ({
-        id: a.id,
-        name: a.name || a.id,
-        workspace: a.workspace || this.config.workspace,
-        traits: a.capabilities || [],
-        reputation: a.metadata?.reputation || 0,
-        contributionCount: a.metadata?.contributionCount || 0,
-        queryCount: a.metadata?.queryCount || 0,
-        joinedAt: a.createdAt || a.created_at || new Date().toISOString(),
-      }));
+      .map(
+        (a: any): HoloMeshAgentCard => ({
+          id: a.id,
+          name: a.name || a.id,
+          workspace: a.workspace || this.config.workspace,
+          traits: a.capabilities || [],
+          reputation: a.metadata?.reputation || 0,
+          contributionCount: a.metadata?.contributionCount || 0,
+          queryCount: a.metadata?.queryCount || 0,
+          joinedAt: a.createdAt || a.created_at || new Date().toISOString(),
+        })
+      );
   }
 
   /** Get a specific agent's DNA/capabilities. */
@@ -130,7 +133,7 @@ export class HoloMeshOrchestratorClient {
   async readInbox(): Promise<any[]> {
     if (!this.agentId) return [];
     const data = await this.get(`/agents/${this.agentId}/inbox`);
-    return Array.isArray(data) ? data : (data?.messages || data?.inbox || []);
+    return Array.isArray(data) ? data : data?.messages || data?.inbox || [];
   }
 
   /** Subscribe to a topic. */
@@ -153,7 +156,7 @@ export class HoloMeshOrchestratorClient {
 
   /** Contribute knowledge entries to the orchestrator store. */
   async contributeKnowledge(entries: MeshKnowledgeEntry[]): Promise<number> {
-    const orchEntries = entries.map(e => ({
+    const orchEntries = entries.map((e) => ({
       id: e.id,
       workspace_id: e.workspaceId,
       type: e.type,
@@ -179,11 +182,14 @@ export class HoloMeshOrchestratorClient {
   }
 
   /** Query knowledge across workspaces (cross-agent discovery). */
-  async queryKnowledge(search: string, opts?: {
-    type?: string;
-    limit?: number;
-    workspaceId?: string;
-  }): Promise<MeshKnowledgeEntry[]> {
+  async queryKnowledge(
+    search: string,
+    opts?: {
+      type?: string;
+      limit?: number;
+      workspaceId?: string;
+    }
+  ): Promise<MeshKnowledgeEntry[]> {
     const body: Record<string, unknown> = {
       search,
       limit: opts?.limit || 10,
@@ -195,29 +201,31 @@ export class HoloMeshOrchestratorClient {
     const data = await this.post('/knowledge/query', body);
     const results: any[] = data?.results || data?.entries || [];
 
-    return results.map((r: any): MeshKnowledgeEntry => ({
-      id: r.id,
-      workspaceId: r.workspace_id || '',
-      type: r.type || 'wisdom',
-      content: r.content || '',
-      provenanceHash: r.metadata?.provenanceHash || this.hashContent(r.content || ''),
-      authorId: r.metadata?.authorId || '',
-      authorName: r.metadata?.authorName || 'unknown',
-      price: r.metadata?.price || 0,
-      queryCount: r.metadata?.queryCount || 0,
-      reuseCount: r.metadata?.reuseCount || 0,
-      domain: r.metadata?.domain,
-      tags: r.tags || [],
-      confidence: r.metadata?.confidence,
-      createdAt: r.created_at || new Date().toISOString(),
-    }));
+    return results.map(
+      (r: any): MeshKnowledgeEntry => ({
+        id: r.id,
+        workspaceId: r.workspace_id || '',
+        type: r.type || 'wisdom',
+        content: r.content || '',
+        provenanceHash: r.metadata?.provenanceHash || this.hashContent(r.content || ''),
+        authorId: r.metadata?.authorId || '',
+        authorName: r.metadata?.authorName || 'unknown',
+        price: r.metadata?.price || 0,
+        queryCount: r.metadata?.queryCount || 0,
+        reuseCount: r.metadata?.reuseCount || 0,
+        domain: r.metadata?.domain,
+        tags: r.tags || [],
+        confidence: r.metadata?.confidence,
+        createdAt: r.created_at || new Date().toISOString(),
+      })
+    );
   }
 
   /** Get knowledge stats for reputation calculation. */
   async getAgentReputation(agentId: string, agentName: string): Promise<AgentReputation> {
     // Query contributions by this agent
     const contributions = await this.queryKnowledge(agentName, { limit: 100 });
-    const ownContributions = contributions.filter(e => e.authorId === agentId);
+    const ownContributions = contributions.filter((e) => e.authorId === agentId);
 
     const totalContributions = ownContributions.length;
     const queriesAnswered = ownContributions.reduce((sum, e) => sum + e.queryCount, 0);
@@ -239,8 +247,12 @@ export class HoloMeshOrchestratorClient {
 
   // ── Helpers ──
 
-  getAgentId(): string | null { return this.agentId; }
-  setAgentId(id: string): void { this.agentId = id; }
+  getAgentId(): string | null {
+    return this.agentId;
+  }
+  setAgentId(id: string): void {
+    this.agentId = id;
+  }
 
   private hashContent(content: string): string {
     return crypto.createHash('sha256').update(content).digest('hex');

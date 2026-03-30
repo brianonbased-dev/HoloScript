@@ -1,10 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MeshDiscovery, SignalService, GossipProtocol, type PeerMetadata, type MeshSignal } from './index';
+import {
+  MeshDiscovery,
+  SignalService,
+  GossipProtocol,
+  type PeerMetadata,
+  type MeshSignal,
+} from './index';
 
 describe('uAA2++ Agent SDK', () => {
   describe('MeshDiscovery', () => {
     let discovery: MeshDiscovery;
-    
+
     beforeEach(() => {
       discovery = new MeshDiscovery('test-node');
     });
@@ -21,11 +27,11 @@ describe('uAA2++ Agent SDK', () => {
         version: '1.0.0',
         agentCount: 3,
         capabilities: ['search', 'chat'],
-        lastSeen: Date.now()
+        lastSeen: Date.now(),
       };
 
       discovery.registerPeer(peer);
-      
+
       expect(discovery.getPeerCount()).toBe(1);
       expect(discovery.getPeer('peer-1')).toEqual(peer);
     });
@@ -38,7 +44,7 @@ describe('uAA2++ Agent SDK', () => {
         version: '1.0.0',
         agentCount: 1,
         capabilities: [],
-        lastSeen: Date.now()
+        lastSeen: Date.now(),
       };
 
       discovery.registerPeer(peer);
@@ -55,12 +61,12 @@ describe('uAA2++ Agent SDK', () => {
         version: '1.0.0',
         agentCount: 1,
         capabilities: [],
-        lastSeen: Date.now() - 20000 // 20 seconds ago
+        lastSeen: Date.now() - 20000, // 20 seconds ago
       };
 
       discovery.registerPeer(stalePeer);
       const pruned = discovery.pruneStalePeers(10000); // 10 second timeout
-      
+
       expect(pruned).toBe(1);
       expect(discovery.getPeerCount()).toBe(0);
     });
@@ -68,7 +74,7 @@ describe('uAA2++ Agent SDK', () => {
 
   describe('SignalService', () => {
     let service: SignalService;
-    
+
     beforeEach(() => {
       service = new SignalService('test-service');
     });
@@ -77,7 +83,7 @@ describe('uAA2++ Agent SDK', () => {
       const signal = service.broadcastSignal({
         type: 'mcp-server',
         url: 'ws://localhost:3000',
-        capabilities: ['search', 'write']
+        capabilities: ['search', 'write'],
       });
 
       expect(signal.nodeId).toBe('test-service');
@@ -89,7 +95,7 @@ describe('uAA2++ Agent SDK', () => {
       service.broadcastSignal({
         type: 'mcp-server',
         url: 'ws://localhost:3000',
-        capabilities: ['search']
+        capabilities: ['search'],
       });
 
       const signals = service.discoverSignals('mcp-server');
@@ -103,12 +109,12 @@ describe('uAA2++ Agent SDK', () => {
         nodeId: 'remote-node',
         url: 'http://remote:4000',
         capabilities: ['chat'],
-        expiresAt: Date.now() + 3600000
+        expiresAt: Date.now() + 3600000,
       };
 
       service.receiveSignal(remoteSignal);
       const discovered = service.discoverSignals('agent-host');
-      
+
       expect(discovered).toHaveLength(1);
       expect(discovered[0].nodeId).toBe('remote-node');
     });
@@ -116,7 +122,7 @@ describe('uAA2++ Agent SDK', () => {
 
   describe('GossipProtocol', () => {
     let gossip: GossipProtocol;
-    
+
     beforeEach(() => {
       gossip = new GossipProtocol();
     });
@@ -138,11 +144,11 @@ describe('uAA2++ Agent SDK', () => {
         source: 'peer',
         version: 2,
         payload: { test: 'data' },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const absorbed = gossip.antiEntropySync(peerPool);
-      
+
       expect(absorbed).toBe(1);
       expect(gossip.getPoolSize()).toBe(1);
       expect(gossip.getPool().get('packet-1')?.version).toBe(2);

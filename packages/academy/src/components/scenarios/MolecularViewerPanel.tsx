@@ -298,4 +298,3 @@ export function MolecularViewerPanel() {
 }
 
 export default MolecularViewerPanel;
-

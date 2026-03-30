@@ -141,7 +141,7 @@ export function ProgressiveLoader({
   // Count entities still loading (not yet final)
   const loadingEntities = useMemo(
     () => entities.filter((e) => e.maturity !== 'final' || e.progress < 1),
-    [entities],
+    [entities]
   );
 
   // Auto-hide when nothing is loading
@@ -174,9 +174,7 @@ export function ProgressiveLoader({
         zIndexRange={[100, 0]}
       >
         <div style={containerStyle}>
-          <div style={headerStyle}>
-            Asset Pipeline — {Math.round(overallProgress * 100)}%
-          </div>
+          <div style={headerStyle}>Asset Pipeline — {Math.round(overallProgress * 100)}%</div>
 
           {entities.map((entity) => {
             const color = MATURITY_COLORS[entity.maturity];
@@ -186,9 +184,7 @@ export function ProgressiveLoader({
                 <div style={barContainerStyle}>
                   <div style={barFillStyle(entity.progress, color)} />
                 </div>
-                <span style={stageStyle(color)}>
-                  {MATURITY_LABELS[entity.maturity]}
-                </span>
+                <span style={stageStyle(color)}>{MATURITY_LABELS[entity.maturity]}</span>
               </div>
             );
           })}

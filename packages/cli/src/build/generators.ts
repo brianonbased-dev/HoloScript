@@ -96,7 +96,9 @@ scene.add(directionalLight);
 
     // Rotation handling
     const rotation = props.rotation;
-    let rx = 0, ry = 0, rz = 0;
+    let rx = 0,
+      ry = 0,
+      rz = 0;
     if (Array.isArray(rotation)) {
       [rx, ry, rz] = rotation;
     } else if (rotation) {

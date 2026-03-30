@@ -10,11 +10,7 @@
  */
 
 import type { MaterialDef, MaterialType } from '../rendering/MaterialLibrary';
-import {
-  hexToRGBA,
-  rgbaToHex,
-  createDefaultMaterialDef,
-} from '../rendering/MaterialLibrary';
+import { hexToRGBA, rgbaToHex, createDefaultMaterialDef } from '../rendering/MaterialLibrary';
 
 // Re-export MaterialDef so existing consumers of MaterialEditor types
 // can access the canonical type without changing their imports.

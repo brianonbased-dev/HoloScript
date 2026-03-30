@@ -229,7 +229,8 @@ export const zoraCoinsHandler: TraitHandler<ZoraCoinsConfig> = {
     // Create execution context for blockchain operations
     const execContext: ZoraExecutionContext = {
       wallet: state.wallet,
-      emitEvent: (event: string, data: Record<string, unknown>) => context.emit?.(event, { node, ...data }),
+      emitEvent: (event: string, data: Record<string, unknown>) =>
+        context.emit?.(event, { node, ...data }),
     };
 
     // Check pending mints for status updates
@@ -379,7 +380,12 @@ async function connectToZora(
 
     // Fetch existing coins for this creator
     const url = `${ZORA_API_BASE}/coins?creator=${config.creator_wallet}&chain=${config.default_chain}`;
-    const response = await executeZoraApiCall<{ coins?: ZoraCoin[]; collections?: Collection[]; totalRoyalties?: string; rewardsBalance?: string }>('GET', url);
+    const response = await executeZoraApiCall<{
+      coins?: ZoraCoin[];
+      collections?: Collection[];
+      totalRoyalties?: string;
+      rewardsBalance?: string;
+    }>('GET', url);
 
     state.isConnected = true;
     state.coins = response.coins || [];
@@ -462,7 +468,8 @@ async function mintCoin(
     // Create execution context
     const execContext: ZoraExecutionContext = {
       wallet: state.wallet,
-      emitEvent: (event: string, data: Record<string, unknown>) => context.emit?.(event, { node, ...data }),
+      emitEvent: (event: string, data: Record<string, unknown>) =>
+        context.emit?.(event, { node, ...data }),
     };
 
     // Real blockchain minting via Zora Protocol

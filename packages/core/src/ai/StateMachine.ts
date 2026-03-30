@@ -89,8 +89,8 @@ export class StateMachine {
 
       let lcaIndex = 0;
       while (
-        lcaIndex < fromChain.length && 
-        lcaIndex < toChain.length && 
+        lcaIndex < fromChain.length &&
+        lcaIndex < toChain.length &&
         fromChain[lcaIndex] === toChain[lcaIndex]
       ) {
         lcaIndex++;

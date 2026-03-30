@@ -58,7 +58,7 @@ describe('TraceContextPropagator', () => {
 
     it('includes tracestate from baggage', () => {
       const ctx = makeTestContext({
-        baggage: { 'holoscript': 'v5.6', 'agent': 'sensor-01' },
+        baggage: { holoscript: 'v5.6', agent: 'sensor-01' },
       });
       const headers = propagator.inject(ctx);
 
@@ -123,7 +123,9 @@ describe('TraceContextPropagator', () => {
     it('returns null for invalid traceparent format', () => {
       expect(propagator.extract({ traceparent: 'invalid' })).toBeNull();
       expect(propagator.extract({ traceparent: '00-abc-def-01' })).toBeNull(); // Too short
-      expect(propagator.extract({ traceparent: '00-' + '0'.repeat(32) + '-' + '1'.repeat(16) + '-01' })).toBeNull(); // All-zero traceId
+      expect(
+        propagator.extract({ traceparent: '00-' + '0'.repeat(32) + '-' + '1'.repeat(16) + '-01' })
+      ).toBeNull(); // All-zero traceId
     });
 
     it('handles case-insensitive header names', () => {
@@ -215,7 +217,9 @@ describe('TraceContextPropagator', () => {
     });
 
     it('rejects non-hex characters', () => {
-      expect(propagator.parseTraceparent('00-XXXX' + '0'.repeat(28) + '-' + '1'.repeat(16) + '-01')).toBeNull();
+      expect(
+        propagator.parseTraceparent('00-XXXX' + '0'.repeat(28) + '-' + '1'.repeat(16) + '-01')
+      ).toBeNull();
     });
   });
 

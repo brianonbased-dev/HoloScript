@@ -55,17 +55,13 @@ export function GuestbookRenderer({
           return [0, -i * 1.2, i * 0.05] as [number, number, number];
         case 'wall':
           // Grid on a wall
-          return [
-            (i % 3 - 1) * 3.2,
-            -Math.floor(i / 3) * 1.8,
-            0,
-          ] as [number, number, number];
+          return [((i % 3) - 1) * 3.2, -Math.floor(i / 3) * 1.8, 0] as [number, number, number];
         case 'floating':
         default:
           // Spiral float
           return [
             Math.cos((i / visible.length) * Math.PI * 2) * 2.5,
-            i * 0.4 - (visible.length * 0.2),
+            i * 0.4 - visible.length * 0.2,
             Math.sin((i / visible.length) * Math.PI * 2) * 2.5,
           ] as [number, number, number];
       }
@@ -140,9 +136,8 @@ function GuestbookCard({
     }
   });
 
-  const truncatedMsg = entry.message.length > 80
-    ? entry.message.slice(0, 77) + '...'
-    : entry.message;
+  const truncatedMsg =
+    entry.message.length > 80 ? entry.message.slice(0, 77) + '...' : entry.message;
 
   const cardContent = (
     <group ref={meshRef}>
@@ -167,12 +162,7 @@ function GuestbookCard({
 
       {/* Mood emoji */}
       {entry.mood && (
-        <Text
-          position={[-1.2, 0.3, 0.04]}
-          fontSize={0.18}
-          anchorX="left"
-          anchorY="middle"
-        >
+        <Text position={[-1.2, 0.3, 0.04]} fontSize={0.18} anchorX="left" anchorY="middle">
           {entry.mood}
         </Text>
       )}

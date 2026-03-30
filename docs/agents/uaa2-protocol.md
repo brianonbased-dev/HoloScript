@@ -94,7 +94,7 @@ class MyAgent extends BaseAgent {
 
   async [Phase.Perceive](scene: Scene) {
     this.state.observations = await scene.queryNearby(this.perceptionRadius);
-    this.state.threats = this.state.observations.filter(o => o.type === 'threat');
+    this.state.threats = this.state.observations.filter((o) => o.type === 'threat');
   }
 
   async [Phase.Reason](observations: Observation[]) {

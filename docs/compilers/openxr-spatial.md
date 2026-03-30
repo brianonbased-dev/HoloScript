@@ -17,15 +17,15 @@ holoscript compile anchors.holo --target openxr-spatial --output ./xr/
 
 ## Spatial Anchor Traits
 
-| HoloScript Trait   | OpenXR Extension                         | Behaviour                               |
-| ------------------ | ---------------------------------------- | --------------------------------------- |
-| `@anchor`          | `XR_EXT_spatial_entity`                  | Create + persist spatial anchor         |
-| `@world_locked`    | `XrSpatialEntityFlagsEXT`                | Lock to physical world position         |
-| `@plane_detected`  | `XR_MSFT_scene_understanding`            | Snap to detected plane                  |
-| `@tracked`         | `XrSpaceLocationFlags`                   | Track with 6DOF pose                    |
-| `@hand_tracked`    | `XR_EXT_hand_tracking`                   | Hand joint anchor                       |
-| `@eye_tracked`     | `XR_EXT_eye_gaze_interaction`            | Gaze-stabilized anchor                  |
-| `@persistent`      | `xrSaveSpaceXR_EXT_spatial_entity`       | Save anchor UUID across sessions        |
+| HoloScript Trait  | OpenXR Extension                   | Behaviour                        |
+| ----------------- | ---------------------------------- | -------------------------------- |
+| `@anchor`         | `XR_EXT_spatial_entity`            | Create + persist spatial anchor  |
+| `@world_locked`   | `XrSpatialEntityFlagsEXT`          | Lock to physical world position  |
+| `@plane_detected` | `XR_MSFT_scene_understanding`      | Snap to detected plane           |
+| `@tracked`        | `XrSpaceLocationFlags`             | Track with 6DOF pose             |
+| `@hand_tracked`   | `XR_EXT_hand_tracking`             | Hand joint anchor                |
+| `@eye_tracked`    | `XR_EXT_eye_gaze_interaction`      | Gaze-stabilized anchor           |
+| `@persistent`     | `xrSaveSpaceXR_EXT_spatial_entity` | Save anchor UUID across sessions |
 
 ## Example
 
@@ -87,23 +87,23 @@ xrSaveSpatialEntityMSFT(session, &saveInfo);  // Persist across sessions
 
 ## Supported Runtimes
 
-| Runtime              | Device              | Required Extension               |
-| -------------------- | ------------------- | -------------------------------- |
-| Meta OpenXR          | Quest 2/3/Pro       | `XR_FB_spatial_entity`           |
-| Microsoft OpenXR     | HoloLens 2          | `XR_MSFT_spatial_anchor`         |
-| PICO OpenXR          | PICO 4              | `XR_EXT_spatial_entity`          |
-| Magic Leap OpenXR    | Magic Leap 2        | `XR_ML_localization_map`         |
-| SteamVR              | Index / Vive        | `XR_EXT_spatial_entity` (limited)|
+| Runtime           | Device        | Required Extension                |
+| ----------------- | ------------- | --------------------------------- |
+| Meta OpenXR       | Quest 2/3/Pro | `XR_FB_spatial_entity`            |
+| Microsoft OpenXR  | HoloLens 2    | `XR_MSFT_spatial_anchor`          |
+| PICO OpenXR       | PICO 4        | `XR_EXT_spatial_entity`           |
+| Magic Leap OpenXR | Magic Leap 2  | `XR_ML_localization_map`          |
+| SteamVR           | Index / Vive  | `XR_EXT_spatial_entity` (limited) |
 
 ## Compiler Options
 
-| Option                  | Default   | Description                                 |
-| ----------------------- | --------- | ------------------------------------------- |
+| Option                  | Default   | Description                                  |
+| ----------------------- | --------- | -------------------------------------------- |
 | `--oxr-runtime`         | `generic` | Target runtime: `meta`, `msft`, `pico`, `ml` |
-| `--oxr-persistence`     | `true`    | Enable cross-session anchor persistence     |
-| `--oxr-plane-detection` | `true`    | Enable plane detection                      |
-| `--oxr-scene-mesh`      | `false`   | Enable full environment mesh                |
-| `--oxr-sharing`         | `false`   | Enable anchor sharing between users         |
+| `--oxr-persistence`     | `true`    | Enable cross-session anchor persistence      |
+| `--oxr-plane-detection` | `true`    | Enable plane detection                       |
+| `--oxr-scene-mesh`      | `false`   | Enable full environment mesh                 |
+| `--oxr-sharing`         | `false`   | Enable anchor sharing between users          |
 
 ## See Also
 

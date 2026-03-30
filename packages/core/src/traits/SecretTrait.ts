@@ -23,19 +23,26 @@ export const secretHandler: TraitHandler<SecretConfig> = {
   defaultConfig: { max_secrets: 100, auto_expire: true },
 
   onAttach(node: any): void {
-    node.__secretState = { vault: new Map<string, { value: string; expiresAt: number; version: number }>() };
+    node.__secretState = {
+      vault: new Map<string, { value: string; expiresAt: number; version: number }>(),
+    };
   },
-  onDetach(node: any): void { delete node.__secretState; },
+  onDetach(node: any): void {
+    delete node.__secretState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: SecretConfig, context: any, event: any): void {
-    const state = node.__secretState as { vault: Map<string, { value: string; expiresAt: number; version: number }> } | undefined;
+    const state = node.__secretState as
+      | { vault: Map<string, { value: string; expiresAt: number; version: number }> }
+      | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 
     switch (t) {
       case 'secret:store': {
-        if (state.vault.size >= config.max_secrets && !state.vault.has(event.secretId as string)) break;
+        if (state.vault.size >= config.max_secrets && !state.vault.has(event.secretId as string))
+          break;
         state.vault.set(event.secretId as string, {
           value: event.value as string,
           expiresAt: (event.expiresAt as number) ?? 0,
@@ -49,7 +56,11 @@ export const secretHandler: TraitHandler<SecretConfig> = {
           state.vault.delete(event.secretId as string);
           context.emit?.('secret:result', { secretId: event.secretId, value: null, expired: true });
         } else if (s) {
-          context.emit?.('secret:result', { secretId: event.secretId, value: s.value, version: s.version });
+          context.emit?.('secret:result', {
+            secretId: event.secretId,
+            value: s.value,
+            version: s.version,
+          });
         } else {
           context.emit?.('secret:result', { secretId: event.secretId, value: null, found: false });
         }

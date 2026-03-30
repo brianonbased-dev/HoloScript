@@ -116,16 +116,8 @@ export function HologramVideo({
   }
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      rotation={rotation}
-      geometry={geometry}
-    >
-      <meshStandardMaterial
-        map={videoTexture}
-        side={THREE.DoubleSide}
-      />
+    <mesh ref={meshRef} position={position} rotation={rotation} geometry={geometry}>
+      <meshStandardMaterial map={videoTexture} side={THREE.DoubleSide} />
     </mesh>
   );
 }

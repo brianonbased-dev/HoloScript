@@ -19,8 +19,12 @@ export const slackHandler: TraitHandler<SlackConfig> = {
   name: 'slack',
   defaultConfig: { webhook_url: '', default_channel: '#general' },
 
-  onAttach(node: any): void { node.__slackState = { sent: 0 }; },
-  onDetach(node: any): void { delete node.__slackState; },
+  onAttach(node: any): void {
+    node.__slackState = { sent: 0 };
+  },
+  onDetach(node: any): void {
+    delete node.__slackState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: SlackConfig, context: any, event: any): void {

@@ -71,7 +71,7 @@ export function useStudioBridge(initialAST: HoloComposition): UseStudioBridgeRes
     (mutation: ASTMutation) => {
       bridge.apply(mutation);
     },
-    [bridge],
+    [bridge]
   );
 
   const undo = useCallback(() => {
@@ -93,6 +93,6 @@ export function useStudioBridge(initialAST: HoloComposition): UseStudioBridgeRes
       canRedo,
       historySize,
     }),
-    [bridge, ast, apply, undo, redo, canUndo, canRedo, historySize],
+    [bridge, ast, apply, undo, redo, canUndo, canRedo, historySize]
   );
 }

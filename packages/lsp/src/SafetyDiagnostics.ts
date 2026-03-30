@@ -184,13 +184,13 @@ function budgetDiagToDiag(d: BudgetDiagnostic): Diagnostic {
 
 /**
  * Convert a missing capability requirement into an LSP diagnostic error.
- * 
+ *
  * Creates a diagnostic error message for when a HoloScript composition requires
  * a capability that is not available in the current platform or context.
- * 
+ *
  * @param cap - The missing capability requirement containing scope and reason
  * @returns A diagnostic error positioned at the start of the document
- * 
+ *
  * @example
  * ```typescript
  * const cap = { scope: 'handTracking', reason: 'Required for grab interactions' };

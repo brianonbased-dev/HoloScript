@@ -6,42 +6,54 @@ vi.mock('@octokit/rest', () => ({
   Octokit: vi.fn().mockImplementation(() => ({
     rest: {
       users: {
-        getAuthenticated: vi.fn().mockResolvedValue({ status: 200, data: { login: 'testuser' } })
+        getAuthenticated: vi.fn().mockResolvedValue({ status: 200, data: { login: 'testuser' } }),
       },
       meta: {
-        get: vi.fn().mockResolvedValue({ status: 200 })
+        get: vi.fn().mockResolvedValue({ status: 200 }),
       },
       repos: {
-        get: vi.fn().mockResolvedValue({ data: { name: 'test-repo', owner: { login: 'testuser' } } }),
-        createForAuthenticatedUser: vi.fn().mockResolvedValue({ data: { name: 'new-repo', id: 123 } }),
-        listForAuthenticatedUser: vi.fn().mockResolvedValue({ data: [{ name: 'repo1' }, { name: 'repo2' }] }),
+        get: vi
+          .fn()
+          .mockResolvedValue({ data: { name: 'test-repo', owner: { login: 'testuser' } } }),
+        createForAuthenticatedUser: vi
+          .fn()
+          .mockResolvedValue({ data: { name: 'new-repo', id: 123 } }),
+        listForAuthenticatedUser: vi
+          .fn()
+          .mockResolvedValue({ data: [{ name: 'repo1' }, { name: 'repo2' }] }),
         listForOrg: vi.fn().mockResolvedValue({ data: [{ name: 'org-repo1' }] }),
         getContent: vi.fn().mockResolvedValue({
           data: {
             content: Buffer.from('object Cube { position: [0,0,0] }').toString('base64'),
-            sha: 'abc123'
-          }
+            sha: 'abc123',
+          },
         }),
-        createOrUpdateFileContents: vi.fn().mockResolvedValue({ data: { commit: { sha: 'def456' } } })
+        createOrUpdateFileContents: vi
+          .fn()
+          .mockResolvedValue({ data: { commit: { sha: 'def456' } } }),
       },
       issues: {
         create: vi.fn().mockResolvedValue({ data: { number: 1, title: 'Test Issue' } }),
         listForRepo: vi.fn().mockResolvedValue({ data: [{ number: 1 }, { number: 2 }] }),
         update: vi.fn().mockResolvedValue({ data: { number: 1, state: 'closed' } }),
-        createComment: vi.fn().mockResolvedValue({ data: { id: 999 } })
+        createComment: vi.fn().mockResolvedValue({ data: { id: 999 } }),
       },
       pulls: {
         create: vi.fn().mockResolvedValue({ data: { number: 10, title: 'Test PR' } }),
         list: vi.fn().mockResolvedValue({ data: [{ number: 10 }, { number: 11 }] }),
         get: vi.fn().mockResolvedValue({ data: { number: 10, state: 'open' } }),
         merge: vi.fn().mockResolvedValue({ data: { merged: true } }),
-        createReview: vi.fn().mockResolvedValue({ data: { id: 888 } })
+        createReview: vi.fn().mockResolvedValue({ data: { id: 888 } }),
       },
       actions: {
-        listRepoWorkflows: vi.fn().mockResolvedValue({ data: { workflows: [{ id: 1, name: 'CI' }] } }),
+        listRepoWorkflows: vi
+          .fn()
+          .mockResolvedValue({ data: { workflows: [{ id: 1, name: 'CI' }] } }),
         createWorkflowDispatch: vi.fn().mockResolvedValue({ status: 204 }),
         listWorkflowRuns: vi.fn().mockResolvedValue({ data: { workflow_runs: [{ id: 100 }] } }),
-        listWorkflowRunsForRepo: vi.fn().mockResolvedValue({ data: { workflow_runs: [{ id: 101 }] } })
+        listWorkflowRunsForRepo: vi
+          .fn()
+          .mockResolvedValue({ data: { workflow_runs: [{ id: 101 }] } }),
       },
       git: {
         getTree: vi.fn().mockResolvedValue({
@@ -49,40 +61,42 @@ vi.mock('@octokit/rest', () => ({
             tree: [
               { type: 'blob', path: 'scene.holo' },
               { type: 'blob', path: 'component.hs' },
-              { type: 'blob', path: 'README.md' }
-            ]
-          }
-        })
-      }
-    }
-  }))
+              { type: 'blob', path: 'README.md' },
+            ],
+          },
+        }),
+      },
+    },
+  })),
 }));
 
 // Mock @octokit/auth-token
 vi.mock('@octokit/auth-token', () => ({
   createTokenAuth: vi.fn(() => {
     return vi.fn().mockResolvedValue({ token: 'test-token' });
-  })
+  }),
 }));
 
 // Mock fetch for HoloScript MCP calls
 global.fetch = vi.fn((url: string) => {
   if (url.includes('mcp.holoscript.net/api/render')) {
     return Promise.resolve({
-      json: () => Promise.resolve({
-        success: true,
-        previewUrl: 'https://preview.holoscript.net/test123'
-      })
+      json: () =>
+        Promise.resolve({
+          success: true,
+          previewUrl: 'https://preview.holoscript.net/test123',
+        }),
     } as Response);
   }
 
   if (url.includes('mcp-orchestrator-production-45f9.up.railway.app/tools/call')) {
     return Promise.resolve({
-      json: () => Promise.resolve({
-        valid: true,
-        errors: [],
-        warnings: []
-      })
+      json: () =>
+        Promise.resolve({
+          valid: true,
+          errors: [],
+          warnings: [],
+        }),
     } as Response);
   }
 
@@ -114,7 +128,9 @@ describe('GitHubConnector', () => {
       delete process.env.GITHUB_TOKEN;
       const newConnector = new GitHubConnector();
 
-      await expect(newConnector.connect()).rejects.toThrow('GITHUB_TOKEN environment variable is required');
+      await expect(newConnector.connect()).rejects.toThrow(
+        'GITHUB_TOKEN environment variable is required'
+      );
     });
 
     it('should disconnect properly', async () => {
@@ -144,10 +160,10 @@ describe('GitHubConnector', () => {
       const tools = await connector.listTools();
 
       expect(tools.length).toBeGreaterThan(0);
-      expect(tools.some(t => t.name === 'github_repo_get')).toBe(true);
-      expect(tools.some(t => t.name === 'github_issue_create')).toBe(true);
-      expect(tools.some(t => t.name === 'github_pr_create')).toBe(true);
-      expect(tools.some(t => t.name === 'github_holoscript_compile_preview')).toBe(true);
+      expect(tools.some((t) => t.name === 'github_repo_get')).toBe(true);
+      expect(tools.some((t) => t.name === 'github_issue_create')).toBe(true);
+      expect(tools.some((t) => t.name === 'github_pr_create')).toBe(true);
+      expect(tools.some((t) => t.name === 'github_holoscript_compile_preview')).toBe(true);
     });
   });
 
@@ -159,7 +175,7 @@ describe('GitHubConnector', () => {
     it('should get repository information', async () => {
       const result = await connector.executeTool('github_repo_get', {
         owner: 'testuser',
-        repo: 'test-repo'
+        repo: 'test-repo',
       });
 
       expect(result).toBeDefined();
@@ -170,7 +186,7 @@ describe('GitHubConnector', () => {
       const result = await connector.executeTool('github_repo_create', {
         name: 'new-repo',
         description: 'Test repository',
-        private: false
+        private: false,
       });
 
       expect(result).toBeDefined();
@@ -180,7 +196,7 @@ describe('GitHubConnector', () => {
     it('should list repositories for authenticated user', async () => {
       const result = await connector.executeTool('github_repo_list', {
         type: 'owner',
-        sort: 'updated'
+        sort: 'updated',
       });
 
       expect(result).toBeDefined();
@@ -190,7 +206,7 @@ describe('GitHubConnector', () => {
     it('should list repositories for organization', async () => {
       const result = await connector.executeTool('github_repo_list', {
         org: 'testorg',
-        type: 'all'
+        type: 'all',
       });
 
       expect(result).toBeDefined();
@@ -209,7 +225,7 @@ describe('GitHubConnector', () => {
         repo: 'test-repo',
         title: 'Test Issue',
         body: 'Issue description',
-        labels: ['bug']
+        labels: ['bug'],
       });
 
       expect(result).toBeDefined();
@@ -220,7 +236,7 @@ describe('GitHubConnector', () => {
       const result = await connector.executeTool('github_issue_list', {
         owner: 'testuser',
         repo: 'test-repo',
-        state: 'open'
+        state: 'open',
       });
 
       expect(result).toBeDefined();
@@ -232,7 +248,7 @@ describe('GitHubConnector', () => {
         owner: 'testuser',
         repo: 'test-repo',
         issue_number: 1,
-        state: 'closed'
+        state: 'closed',
       });
 
       expect(result).toBeDefined();
@@ -244,7 +260,7 @@ describe('GitHubConnector', () => {
         owner: 'testuser',
         repo: 'test-repo',
         issue_number: 1,
-        body: 'Test comment'
+        body: 'Test comment',
       });
 
       expect(result).toBeDefined();
@@ -263,7 +279,7 @@ describe('GitHubConnector', () => {
         repo: 'test-repo',
         title: 'Test PR',
         head: 'feature-branch',
-        base: 'main'
+        base: 'main',
       });
 
       expect(result).toBeDefined();
@@ -274,7 +290,7 @@ describe('GitHubConnector', () => {
       const result = await connector.executeTool('github_pr_list', {
         owner: 'testuser',
         repo: 'test-repo',
-        state: 'open'
+        state: 'open',
       });
 
       expect(result).toBeDefined();
@@ -285,7 +301,7 @@ describe('GitHubConnector', () => {
       const result = await connector.executeTool('github_pr_get', {
         owner: 'testuser',
         repo: 'test-repo',
-        pull_number: 10
+        pull_number: 10,
       });
 
       expect(result).toBeDefined();
@@ -297,7 +313,7 @@ describe('GitHubConnector', () => {
         owner: 'testuser',
         repo: 'test-repo',
         pull_number: 10,
-        merge_method: 'squash'
+        merge_method: 'squash',
       });
 
       expect(result).toBeDefined();
@@ -309,7 +325,7 @@ describe('GitHubConnector', () => {
         owner: 'testuser',
         repo: 'test-repo',
         pull_number: 10,
-        body: 'LGTM!'
+        body: 'LGTM!',
       });
 
       expect(result).toBeDefined();
@@ -321,7 +337,7 @@ describe('GitHubConnector', () => {
         owner: 'testuser',
         repo: 'test-repo',
         pull_number: 10,
-        event: 'APPROVE'
+        event: 'APPROVE',
       });
 
       expect(result).toBeDefined();
@@ -337,7 +353,7 @@ describe('GitHubConnector', () => {
     it('should list workflows', async () => {
       const result = await connector.executeTool('github_workflow_list', {
         owner: 'testuser',
-        repo: 'test-repo'
+        repo: 'test-repo',
       });
 
       expect(result).toBeDefined();
@@ -349,7 +365,7 @@ describe('GitHubConnector', () => {
         owner: 'testuser',
         repo: 'test-repo',
         workflow_id: 'ci.yml',
-        ref: 'main'
+        ref: 'main',
       });
 
       expect(result).toBeDefined();
@@ -359,7 +375,7 @@ describe('GitHubConnector', () => {
       const result = await connector.executeTool('github_workflow_runs_list', {
         owner: 'testuser',
         repo: 'test-repo',
-        status: 'completed'
+        status: 'completed',
       });
 
       expect(result).toBeDefined();
@@ -376,7 +392,7 @@ describe('GitHubConnector', () => {
       const result = await connector.executeTool('github_content_get', {
         owner: 'testuser',
         repo: 'test-repo',
-        path: 'scene.holo'
+        path: 'scene.holo',
       });
 
       expect(result).toBeDefined();
@@ -389,7 +405,7 @@ describe('GitHubConnector', () => {
         repo: 'test-repo',
         path: 'new-file.holo',
         message: 'Add new scene',
-        content: 'object Cube { }'
+        content: 'object Cube { }',
       });
 
       expect(result).toBeDefined();
@@ -403,11 +419,11 @@ describe('GitHubConnector', () => {
     });
 
     it('should compile HoloScript preview', async () => {
-      const result = await connector.executeTool('github_holoscript_compile_preview', {
+      const result = (await connector.executeTool('github_holoscript_compile_preview', {
         owner: 'testuser',
         repo: 'test-repo',
-        ref: 'main'
-      }) as any;
+        ref: 'main',
+      })) as any;
 
       expect(result).toBeDefined();
       expect(result.files).toBeDefined();
@@ -416,11 +432,11 @@ describe('GitHubConnector', () => {
     });
 
     it('should validate HoloScript scene', async () => {
-      const result = await connector.executeTool('github_holoscript_validate_scene', {
+      const result = (await connector.executeTool('github_holoscript_validate_scene', {
         owner: 'testuser',
         repo: 'test-repo',
-        ref: 'main'
-      }) as any;
+        ref: 'main',
+      })) as any;
 
       expect(result).toBeDefined();
       expect(result.files).toBeDefined();
@@ -429,12 +445,12 @@ describe('GitHubConnector', () => {
     });
 
     it('should compile specified files only', async () => {
-      const result = await connector.executeTool('github_holoscript_compile_preview', {
+      const result = (await connector.executeTool('github_holoscript_compile_preview', {
         owner: 'testuser',
         repo: 'test-repo',
         ref: 'main',
-        files: ['scene.holo']
-      }) as any;
+        files: ['scene.holo'],
+      })) as any;
 
       expect(result).toBeDefined();
       expect(result.files).toHaveLength(1);
@@ -452,9 +468,7 @@ describe('GitHubConnector', () => {
     it('should throw error for unknown tool', async () => {
       await connector.connect();
 
-      await expect(
-        connector.executeTool('unknown_tool', {})
-      ).rejects.toThrow('Unknown tool');
+      await expect(connector.executeTool('unknown_tool', {})).rejects.toThrow('Unknown tool');
     });
   });
 });

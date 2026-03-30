@@ -12,9 +12,7 @@ interface AgentMiniCardProps {
 
 export function AgentMiniCard({ agent, themeColor }: AgentMiniCardProps) {
   const topTrait = agent.traits[0]?.replace('@', '') || 'agent';
-  const borderStyle = themeColor
-    ? { borderColor: `${themeColor}40` }
-    : undefined;
+  const borderStyle = themeColor ? { borderColor: `${themeColor}40` } : undefined;
 
   return (
     <Link

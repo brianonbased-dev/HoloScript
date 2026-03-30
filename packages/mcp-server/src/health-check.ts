@@ -77,7 +77,9 @@ export function buildHealthStatus(toolCount: number, version: string): HealthSta
 /**
  * Initialize default Prometheus metrics for the MCP server.
  */
-export function initServerMetrics(metricsRegistry?: PrometheusMetricsRegistry): PrometheusMetricsRegistry {
+export function initServerMetrics(
+  metricsRegistry?: PrometheusMetricsRegistry
+): PrometheusMetricsRegistry {
   const registry = metricsRegistry ?? getPrometheusMetrics('holoscript');
 
   registry.registerCounter('mcp_tool_calls_total', 'Total MCP tool invocations');

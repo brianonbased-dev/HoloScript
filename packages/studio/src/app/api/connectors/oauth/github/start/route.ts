@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch('https://github.com/login/device/code', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -31,9 +31,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error starting GitHub OAuth device flow:', error);
-    return NextResponse.json(
-      { error: 'Failed to initiate GitHub OAuth.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to initiate GitHub OAuth.' }, { status: 500 });
   }
 }

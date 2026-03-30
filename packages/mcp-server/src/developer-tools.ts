@@ -41,7 +41,8 @@ export function resetDeveloperSingletons(): void {
 export const developerTools: Tool[] = [
   {
     name: 'get_api_reference',
-    description: 'Generate API reference documentation for all MCP tools. Returns markdown or JSON format with categories, parameters, and examples.',
+    description:
+      'Generate API reference documentation for all MCP tools. Returns markdown or JSON format with categories, parameters, and examples.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -60,7 +61,8 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'serve_preview',
-    description: 'Get dev server state and composition preview data. Returns current files, parse status, and connected client info.',
+    description:
+      'Get dev server state and composition preview data. Returns current files, parse status, and connected client info.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -79,7 +81,8 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'get_workspace_info',
-    description: 'Get workspace configuration, members, composition counts, and build order from holoscript.workspace.json.',
+    description:
+      'Get workspace configuration, members, composition counts, and build order from holoscript.workspace.json.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -97,7 +100,8 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'inspect_trace_waterfall',
-    description: 'Convert trace spans into a waterfall visualization with timing, nesting, agent colors, and critical path analysis.',
+    description:
+      'Convert trace spans into a waterfall visualization with timing, nesting, agent colors, and critical path analysis.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -129,14 +133,19 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'get_dev_dashboard_state',
-    description: 'Get comprehensive developer dashboard state including composition status, trace summaries, agent registry, plugin status, and budget/usage info.',
+    description:
+      'Get comprehensive developer dashboard state including composition status, trace summaries, agent registry, plugin status, and budget/usage info.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         sections: {
           type: 'array',
-          description: 'Which dashboard sections to include (default: all). Options: compositions, traces, agents, plugins, economy, api',
-          items: { type: 'string', enum: ['compositions', 'traces', 'agents', 'plugins', 'economy', 'api'] },
+          description:
+            'Which dashboard sections to include (default: all). Options: compositions, traces, agents, plugins, economy, api',
+          items: {
+            type: 'string',
+            enum: ['compositions', 'traces', 'agents', 'plugins', 'economy', 'api'],
+          },
         },
       },
       required: [],
@@ -172,9 +181,7 @@ export async function handleDeveloperTool(
 // HANDLERS
 // =============================================================================
 
-async function handleGetApiReference(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleGetApiReference(args: Record<string, unknown>): Promise<unknown> {
   const { tools } = await import('./tools');
   const generator = getDocsGenerator();
   const ref = generator.generate(tools);
@@ -195,9 +202,7 @@ async function handleGetApiReference(
   return { format: 'json', reference: ref };
 }
 
-async function handleServePreview(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleServePreview(args: Record<string, unknown>): Promise<unknown> {
   const { existsSync, readdirSync, readFileSync, statSync } = await import('fs');
   const { join, extname } = await import('path');
 
@@ -247,9 +252,7 @@ async function handleServePreview(
   };
 }
 
-async function handleGetWorkspaceInfo(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleGetWorkspaceInfo(args: Record<string, unknown>): Promise<unknown> {
   const root = (args.root as string) || process.cwd();
   const includeBuildOrder = args.includeBuildOrder !== false;
 
@@ -279,9 +282,7 @@ async function handleGetWorkspaceInfo(
   return result;
 }
 
-async function handleInspectTraceWaterfall(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleInspectTraceWaterfall(args: Record<string, unknown>): Promise<unknown> {
   const spans = args.spans as TraceSpan[];
   if (!spans || !Array.isArray(spans)) {
     throw new Error('spans parameter is required and must be an array');
@@ -312,11 +313,14 @@ async function handleInspectTraceWaterfall(
   return { waterfall: renderer.render(normalized) };
 }
 
-async function handleGetDevDashboardState(
-  args: Record<string, unknown>
-): Promise<unknown> {
+async function handleGetDevDashboardState(args: Record<string, unknown>): Promise<unknown> {
   const sections = (args.sections as string[]) || [
-    'compositions', 'traces', 'agents', 'plugins', 'economy', 'api',
+    'compositions',
+    'traces',
+    'agents',
+    'plugins',
+    'economy',
+    'api',
   ];
 
   const state: Record<string, unknown> = {};

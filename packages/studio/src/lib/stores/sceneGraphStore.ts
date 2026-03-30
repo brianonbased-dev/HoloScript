@@ -123,12 +123,12 @@ export const useSceneGraphStore = create<SceneGraphState>()(
             // Wait, R3F props use Euler arrays in radians. TransformPanel feeds data that goes straight into R3F props.
             if (transform.rotation) ref.rotation.fromArray(transform.rotation);
             if (transform.scale) {
-               // handle number or array scale
-               if (typeof transform.scale === 'number') {
-                  ref.scale.setScalar(transform.scale);
-               } else {
-                  ref.scale.fromArray(transform.scale);
-               }
+              // handle number or array scale
+              if (typeof transform.scale === 'number') {
+                ref.scale.setScalar(transform.scale);
+              } else {
+                ref.scale.fromArray(transform.scale);
+              }
             }
           }
           // Also commit to store for persistence
@@ -145,15 +145,18 @@ export const useSceneGraphStore = create<SceneGraphState>()(
               if (child.isMesh && child.material) {
                 const applyProps = (mat: any) => {
                   if (materialProps.albedo !== undefined) mat.color.set(materialProps.albedo);
-                  if (materialProps.roughness !== undefined) mat.roughness = materialProps.roughness;
+                  if (materialProps.roughness !== undefined)
+                    mat.roughness = materialProps.roughness;
                   if (materialProps.metallic !== undefined) mat.metalness = materialProps.metallic;
                   if (materialProps.opacity !== undefined) {
                     mat.opacity = materialProps.opacity;
                     mat.transparent = materialProps.opacity < 1;
                     mat.depthWrite = materialProps.opacity >= 1;
                   }
-                  if (materialProps.emissive !== undefined) mat.emissive.set(materialProps.emissive);
-                  if (materialProps.emissiveIntensity !== undefined) mat.emissiveIntensity = materialProps.emissiveIntensity;
+                  if (materialProps.emissive !== undefined)
+                    mat.emissive.set(materialProps.emissive);
+                  if (materialProps.emissiveIntensity !== undefined)
+                    mat.emissiveIntensity = materialProps.emissiveIntensity;
                   if (materialProps.tint !== undefined) mat.color.set(materialProps.tint);
                   mat.needsUpdate = true;
                 };
@@ -172,7 +175,7 @@ export const useSceneGraphStore = create<SceneGraphState>()(
               if (n.id !== id) return n;
               const hasMaterial = n.traits.some((t) => t.name === 'material');
               let newTraits = [...n.traits];
-              
+
               if (!hasMaterial) {
                 newTraits.push({ name: 'material', properties: materialProps });
               } else {

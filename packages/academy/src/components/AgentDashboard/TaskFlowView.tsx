@@ -32,13 +32,7 @@ export interface TaskFlowViewProps {
 // STATE MACHINE CONSTANTS
 // =============================================================================
 
-const STATES: TaskState[] = [
-  'submitted',
-  'working',
-  'input-required',
-  'completed',
-  'failed',
-];
+const STATES: TaskState[] = ['submitted', 'working', 'input-required', 'completed', 'failed'];
 
 const STATE_META: Record<
   TaskState,
@@ -90,7 +84,11 @@ function StateMachineDiagram({ currentState }: { currentState: TaskState }) {
   const currentIdx = STATES.indexOf(currentState);
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto py-2" role="img" aria-label={`Task state: ${currentState}`}>
+    <div
+      className="flex items-center gap-1 overflow-x-auto py-2"
+      role="img"
+      aria-label={`Task state: ${currentState}`}
+    >
       {STATES.map((state, i) => {
         const meta = STATE_META[state];
         const isCurrent = state === currentState;
@@ -118,8 +116,8 @@ function StateMachineDiagram({ currentState }: { currentState: TaskState }) {
                   isCurrent
                     ? `border-current ${meta.bgClass} ${meta.textClass}`
                     : isPast
-                    ? 'border-studio-accent/40 bg-studio-accent/10 text-studio-accent/60'
-                    : 'border-studio-border/30 bg-studio-panel/20 text-studio-muted/40'
+                      ? 'border-studio-accent/40 bg-studio-accent/10 text-studio-accent/60'
+                      : 'border-studio-border/30 bg-studio-panel/20 text-studio-muted/40'
                 }`}
               >
                 <meta.Icon
@@ -176,9 +174,7 @@ function ArtifactView({ artifact }: { artifact: TaskArtifact }) {
       </button>
       {expanded && (
         <pre className="px-3 py-2 text-[10px] text-studio-text/80 bg-studio-surface/30 overflow-x-auto max-h-[200px] overflow-y-auto font-mono leading-relaxed">
-          {artifact.type === 'json'
-            ? tryFormatJson(artifact.content)
-            : artifact.content}
+          {artifact.type === 'json' ? tryFormatJson(artifact.content) : artifact.content}
         </pre>
       )}
     </div>
@@ -198,14 +194,10 @@ function MessageBubble({ message }: { message: TaskMessage }) {
   const isAgent = message.role === 'agent';
 
   return (
-    <div
-      className={`flex flex-col gap-1 ${isAgent ? 'items-start' : 'items-end'}`}
-    >
+    <div className={`flex flex-col gap-1 ${isAgent ? 'items-start' : 'items-end'}`}>
       <div
         className={`max-w-[85%] rounded-lg px-3 py-2 text-[11px] leading-relaxed ${
-          isAgent
-            ? 'bg-studio-panel/60 text-studio-text'
-            : 'bg-studio-accent/20 text-studio-accent'
+          isAgent ? 'bg-studio-panel/60 text-studio-text' : 'bg-studio-accent/20 text-studio-accent'
         }`}
       >
         <div className="flex items-center gap-1 mb-0.5">
@@ -246,16 +238,12 @@ export function TaskFlowView({ task, className = '' }: TaskFlowViewProps) {
     <div className={`flex flex-col gap-3 ${className}`}>
       {/* Task header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-studio-text truncate flex-1">
-          {task.title}
-        </h3>
+        <h3 className="text-sm font-semibold text-studio-text truncate flex-1">{task.title}</h3>
         <span
           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${stateMeta.bgClass} ${stateMeta.textClass}`}
           data-testid={`task-state-badge-${task.state}`}
         >
-          <stateMeta.Icon
-            className={`h-3 w-3 ${task.state === 'working' ? 'animate-spin' : ''}`}
-          />
+          <stateMeta.Icon className={`h-3 w-3 ${task.state === 'working' ? 'animate-spin' : ''}`} />
           {stateMeta.label}
         </span>
       </div>

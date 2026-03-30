@@ -71,7 +71,7 @@ export function listGotchas(severity?: GotchaSeverity): GotchaEntry[] {
     all.push(...entries);
   }
   if (severity) {
-    return all.filter(g => g.severity === severity);
+    return all.filter((g) => g.severity === severity);
   }
   return all;
 }
@@ -199,7 +199,12 @@ export const gotchaHandler: TraitHandler<GotchaConfig> = {
     // No per-frame work
   },
 
-  onEvent(node: HSPlusNode, _config: GotchaConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    _config: GotchaConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const gNode = node as GotchaNode;
     const state = gNode.__gotchaState;
     if (!state?.initialized) return;

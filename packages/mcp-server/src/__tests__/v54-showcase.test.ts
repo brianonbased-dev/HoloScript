@@ -50,10 +50,7 @@ describe('v5.4 Showcase', () => {
   });
 
   describe('fullstack-absorb pipeline', () => {
-    const sourceTs = readFileSync(
-      resolve(EXAMPLES_DIR, 'fullstack-absorb/source.ts'),
-      'utf-8'
-    );
+    const sourceTs = readFileSync(resolve(EXAMPLES_DIR, 'fullstack-absorb/source.ts'), 'utf-8');
 
     it('absorbs TypeScript source into .holo', async () => {
       const result = (await handleAbsorbTypescriptTool('absorb_typescript', {

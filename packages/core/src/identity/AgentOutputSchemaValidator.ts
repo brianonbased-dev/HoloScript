@@ -16,7 +16,11 @@
  * @version 1.0.0
  */
 
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../../parser/HoloCompositionTypes';
 
 // =============================================================================
 // TYPES
@@ -152,17 +156,65 @@ const R3F_MESH_SCHEMA: OutputObjectSchema = {
   properties: [
     { name: 'type', type: 'string', required: true, description: 'Node type (mesh, group, light)' },
     { name: 'id', type: 'string', required: true, description: 'Unique node identifier' },
-    { name: 'props.position', type: 'vector3', required: false, description: 'World position [x,y,z]' },
-    { name: 'props.rotation', type: 'vector3', required: false, description: 'Euler rotation [x,y,z]' },
+    {
+      name: 'props.position',
+      type: 'vector3',
+      required: false,
+      description: 'World position [x,y,z]',
+    },
+    {
+      name: 'props.rotation',
+      type: 'vector3',
+      required: false,
+      description: 'Euler rotation [x,y,z]',
+    },
     { name: 'props.scale', type: 'vector3', required: false, description: 'Scale [x,y,z]' },
     { name: 'props.color', type: 'color', required: false, description: 'Material color' },
-    { name: 'props.metalness', type: 'number', required: false, min: 0, max: 1, description: 'PBR metalness' },
-    { name: 'props.roughness', type: 'number', required: false, min: 0, max: 1, description: 'PBR roughness' },
-    { name: 'props.opacity', type: 'number', required: false, min: 0, max: 1, description: 'Opacity' },
-    { name: 'props.hsType', type: 'enum', required: false,
-      enumValues: ['box', 'sphere', 'cylinder', 'cone', 'plane', 'torus', 'ring', 'capsule',
-                   'hull', 'metaball', 'blob', 'spline', 'membrane'],
-      description: 'Geometry type' },
+    {
+      name: 'props.metalness',
+      type: 'number',
+      required: false,
+      min: 0,
+      max: 1,
+      description: 'PBR metalness',
+    },
+    {
+      name: 'props.roughness',
+      type: 'number',
+      required: false,
+      min: 0,
+      max: 1,
+      description: 'PBR roughness',
+    },
+    {
+      name: 'props.opacity',
+      type: 'number',
+      required: false,
+      min: 0,
+      max: 1,
+      description: 'Opacity',
+    },
+    {
+      name: 'props.hsType',
+      type: 'enum',
+      required: false,
+      enumValues: [
+        'box',
+        'sphere',
+        'cylinder',
+        'cone',
+        'plane',
+        'torus',
+        'ring',
+        'capsule',
+        'hull',
+        'metaball',
+        'blob',
+        'spline',
+        'membrane',
+      ],
+      description: 'Geometry type',
+    },
     { name: 'props.size', type: 'number', required: false, min: 0, description: 'Geometry size' },
   ],
 };
@@ -173,16 +225,18 @@ const GLTF_NODE_SCHEMA: OutputObjectSchema = {
   properties: [
     { name: 'name', type: 'string', required: true, description: 'Node name' },
     { name: 'translation', type: 'vector3', required: false, description: 'Translation [x,y,z]' },
-    { name: 'rotation', type: 'quaternion', required: false, description: 'Rotation quaternion [x,y,z,w]' },
+    {
+      name: 'rotation',
+      type: 'quaternion',
+      required: false,
+      description: 'Rotation quaternion [x,y,z,w]',
+    },
     { name: 'scale', type: 'vector3', required: false, description: 'Scale [x,y,z]' },
     { name: 'mesh', type: 'number', required: false, min: 0, description: 'Mesh index' },
   ],
 };
 
-const BUILT_IN_SCHEMAS: OutputObjectSchema[] = [
-  R3F_MESH_SCHEMA,
-  GLTF_NODE_SCHEMA,
-];
+const BUILT_IN_SCHEMAS: OutputObjectSchema[] = [R3F_MESH_SCHEMA, GLTF_NODE_SCHEMA];
 
 // =============================================================================
 // VALIDATOR
@@ -311,8 +365,11 @@ export class AgentOutputSchemaValidator {
         break;
 
       case 'vector2':
-        if (!Array.isArray(value) || (value as number[]).length !== 2 ||
-            !((value as number[]).every(v => typeof v === 'number' && isFinite(v)))) {
+        if (
+          !Array.isArray(value) ||
+          (value as number[]).length !== 2 ||
+          !(value as number[]).every((v) => typeof v === 'number' && isFinite(v))
+        ) {
           return {
             code: SchemaErrorCode.INVALID_VECTOR,
             message: `'${schema.name}' expected [x,y] vector2, got ${JSON.stringify(value)}`,
@@ -324,8 +381,11 @@ export class AgentOutputSchemaValidator {
         break;
 
       case 'vector3':
-        if (!Array.isArray(value) || (value as number[]).length !== 3 ||
-            !((value as number[]).every(v => typeof v === 'number' && isFinite(v)))) {
+        if (
+          !Array.isArray(value) ||
+          (value as number[]).length !== 3 ||
+          !(value as number[]).every((v) => typeof v === 'number' && isFinite(v))
+        ) {
           return {
             code: SchemaErrorCode.INVALID_VECTOR,
             message: `'${schema.name}' expected [x,y,z] vector3, got ${JSON.stringify(value)}`,
@@ -338,8 +398,11 @@ export class AgentOutputSchemaValidator {
 
       case 'vector4':
       case 'quaternion':
-        if (!Array.isArray(value) || (value as number[]).length !== 4 ||
-            !((value as number[]).every(v => typeof v === 'number' && isFinite(v)))) {
+        if (
+          !Array.isArray(value) ||
+          (value as number[]).length !== 4 ||
+          !(value as number[]).every((v) => typeof v === 'number' && isFinite(v))
+        ) {
           return {
             code: SchemaErrorCode.INVALID_VECTOR,
             message: `'${schema.name}' expected [x,y,z,w] ${schema.type}, got ${JSON.stringify(value)}`,
@@ -353,9 +416,11 @@ export class AgentOutputSchemaValidator {
       case 'color':
         if (actualType === 'string') {
           const colorStr = value as string;
-          if (!colorStr.match(/^#[0-9a-fA-F]{3,8}$/) &&
-              !colorStr.match(/^(rgb|hsl)a?\(/) &&
-              !colorStr.match(/^[a-z]+$/i)) {
+          if (
+            !colorStr.match(/^#[0-9a-fA-F]{3,8}$/) &&
+            !colorStr.match(/^(rgb|hsl)a?\(/) &&
+            !colorStr.match(/^[a-z]+$/i)
+          ) {
             return {
               code: SchemaErrorCode.TYPE_MISMATCH,
               message: `'${schema.name}' invalid color format: ${colorStr}`,
@@ -425,10 +490,7 @@ export class AgentOutputSchemaValidator {
   /**
    * Validate a single output object against a schema.
    */
-  validateObject(
-    obj: Record<string, any>,
-    schema: OutputObjectSchema,
-  ): SchemaValidationResult {
+  validateObject(obj: Record<string, any>, schema: OutputObjectSchema): SchemaValidationResult {
     const start = Date.now();
     const errors: SchemaValidationError[] = [];
     const warnings: SchemaValidationWarning[] = [];
@@ -444,7 +506,10 @@ export class AgentOutputSchemaValidator {
       propertiesValidated++;
     }
 
-    const riskScore = Math.min(100, errors.reduce((sum, e) => sum + e.riskContribution, 0));
+    const riskScore = Math.min(
+      100,
+      errors.reduce((sum, e) => sum + e.riskContribution, 0)
+    );
 
     return {
       valid: riskScore < this.config.riskThreshold,
@@ -469,7 +534,7 @@ export class AgentOutputSchemaValidator {
 
     // Find schemas matching target
     const targetSchemas = this.schemas.filter(
-      s => s.target === this.config.target || s.target === 'generic'
+      (s) => s.target === this.config.target || s.target === 'generic'
     );
 
     // Structural checks on the composition itself
@@ -505,7 +570,10 @@ export class AgentOutputSchemaValidator {
       }
     }
 
-    const riskScore = Math.min(100, allErrors.reduce((sum, e) => sum + e.riskContribution, 0));
+    const riskScore = Math.min(
+      100,
+      allErrors.reduce((sum, e) => sum + e.riskContribution, 0)
+    );
 
     return {
       valid: riskScore < this.config.riskThreshold,
@@ -540,7 +608,7 @@ export class AgentOutputSchemaValidator {
 let _globalValidator: AgentOutputSchemaValidator | null = null;
 
 export function getOutputSchemaValidator(
-  config?: AgentOutputSchemaValidatorConfig,
+  config?: AgentOutputSchemaValidatorConfig
 ): AgentOutputSchemaValidator {
   if (!_globalValidator) {
     _globalValidator = new AgentOutputSchemaValidator(config);

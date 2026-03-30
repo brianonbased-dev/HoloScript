@@ -93,10 +93,10 @@ export interface SemanticSceneGraphOptions {
 
 const DEFAULT_CONTEXT: JsonLdContext = {
   '@vocab': 'https://holoscript.dev/schema/',
-  'schema': 'https://schema.org/',
-  'hs': 'https://holoscript.dev/schema/',
-  'xsd': 'http://www.w3.org/2001/XMLSchema#',
-  'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  schema: 'https://schema.org/',
+  hs: 'https://holoscript.dev/schema/',
+  xsd: 'http://www.w3.org/2001/XMLSchema#',
+  rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
 };
 
 // =============================================================================
@@ -220,9 +220,7 @@ class SceneGraphGenerator {
 
     // Domain blocks
     if (composition.domainBlocks?.length > 0) {
-      graph['hs:domainBlocks'] = composition.domainBlocks.map((d) =>
-        this.convertDomainBlock(d)
-      );
+      graph['hs:domainBlocks'] = composition.domainBlocks.map((d) => this.convertDomainBlock(d));
     }
 
     // Shapes
@@ -360,9 +358,7 @@ class SceneGraphGenerator {
 
     // Nested groups (with depth guard)
     if (group.groups?.length && depth < this.maxDepth) {
-      node['hs:children'] = group.groups.map((g) =>
-        this.convertSpatialGroup(g, depth + 1)
-      );
+      node['hs:children'] = group.groups.map((g) => this.convertSpatialGroup(g, depth + 1));
     }
 
     // Platform constraint

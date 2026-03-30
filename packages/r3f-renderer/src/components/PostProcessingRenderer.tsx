@@ -56,8 +56,14 @@ const TIER_SKIP: Record<QualityTier, PostProcessEffect[]> = {
   high: ['motion_blur'],
   medium: ['motion_blur', 'dof', 'ssr', 'ssao'],
   low: [
-    'motion_blur', 'dof', 'ssr', 'ssao',
-    'bloom', 'color_grading', 'chromatic_aberration', 'film_grain',
+    'motion_blur',
+    'dof',
+    'ssr',
+    'ssao',
+    'bloom',
+    'color_grading',
+    'chromatic_aberration',
+    'film_grain',
   ],
 };
 
@@ -192,7 +198,7 @@ export function PostProcessingRenderer({
 
   const activeSteps = useMemo(
     () => steps.filter((s) => s.enabled !== false && !skipList.has(s.effect)),
-    [steps, skipList],
+    [steps, skipList]
   );
 
   const renderTargets = useMemo(() => {

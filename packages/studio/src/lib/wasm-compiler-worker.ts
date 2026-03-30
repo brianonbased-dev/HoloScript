@@ -206,7 +206,9 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
   // pre-fetch the raw WASM binary for this path.
   try {
     const jsUrl = wasmUrl.replace('.component.wasm', '.js').replace('.wasm', '.js');
-    const module = (await import(/* webpackIgnore: true */ /* @vite-ignore */ jsUrl)) as HoloScriptModule;
+    const module = (await import(
+      /* webpackIgnore: true */ /* @vite-ignore */ jsUrl
+    )) as HoloScriptModule;
     wasmModule = module;
     loadedWorld = world;
 

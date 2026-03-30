@@ -508,7 +508,7 @@ class ProofOfPlayEngine {
     const url =
       orchestratorUrl ||
       (typeof window !== 'undefined'
-        ? ((window as unknown) as Record<string, string>).__MCP_ORCHESTRATOR_URL__
+        ? (window as unknown as Record<string, string>).__MCP_ORCHESTRATOR_URL__
         : undefined);
 
     if (!url) {

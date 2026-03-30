@@ -80,15 +80,15 @@ These assertions evaluate against live runtime state, not in an external harness
 
 ## Test Categories
 
-| Category | Location | What It Tests |
-|----------|----------|---------------|
-| **Unit** | `src/**/__tests__/` | Individual classes and functions |
-| **Integration** | `src/__tests__/Integration.*` | Cross-module interactions |
-| **Infrastructure** | `src/__tests__/Infrastructure.*` | Core system wiring |
-| **Resilience** | `src/resilience/__tests__/` | Circuit breaker, retry, bulkhead |
-| **Compiler** | `src/compiler/__tests__/` | Compilation output for each target |
-| **Parser** | `src/HoloScript*.test.ts` | Parser correctness |
-| **E2E** | `tests/e2e/` | End-to-end CLI and MCP flows |
+| Category           | Location                         | What It Tests                      |
+| ------------------ | -------------------------------- | ---------------------------------- |
+| **Unit**           | `src/**/__tests__/`              | Individual classes and functions   |
+| **Integration**    | `src/__tests__/Integration.*`    | Cross-module interactions          |
+| **Infrastructure** | `src/__tests__/Infrastructure.*` | Core system wiring                 |
+| **Resilience**     | `src/resilience/__tests__/`      | Circuit breaker, retry, bulkhead   |
+| **Compiler**       | `src/compiler/__tests__/`        | Compilation output for each target |
+| **Parser**         | `src/HoloScript*.test.ts`        | Parser correctness                 |
+| **E2E**            | `tests/e2e/`                     | End-to-end CLI and MCP flows       |
 
 ## Coverage
 

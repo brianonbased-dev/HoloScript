@@ -121,7 +121,9 @@ export interface RenewalResult {
 // =============================================================================
 
 export class SubscriptionManager {
-  private config: Required<Omit<SubscriptionManagerConfig, 'telemetry'>> & { telemetry?: TelemetryCollector };
+  private config: Required<Omit<SubscriptionManagerConfig, 'telemetry'>> & {
+    telemetry?: TelemetryCollector;
+  };
   private subscriptions: Map<string, Subscription> = new Map();
   private plans: Map<string, SubscriptionPlan> = new Map();
   private renewalCallback?: (subscriptionId: string, amount: number) => Promise<boolean>;
@@ -167,11 +169,7 @@ export class SubscriptionManager {
   /**
    * Create a new subscription.
    */
-  create(
-    subscriberId: string,
-    planId: string,
-    metadata?: Record<string, unknown>
-  ): Subscription {
+  create(subscriberId: string, planId: string, metadata?: Record<string, unknown>): Subscription {
     const plan = this.plans.get(planId);
     if (!plan) {
       throw new Error(`Plan "${planId}" not found`);
@@ -407,9 +405,7 @@ export class SubscriptionManager {
    * Get all subscriptions for a subscriber.
    */
   getSubscriberSubscriptions(subscriberId: string): Subscription[] {
-    return [...this.subscriptions.values()].filter(
-      (s) => s.subscriberId === subscriberId
-    );
+    return [...this.subscriptions.values()].filter((s) => s.subscriberId === subscriberId);
   }
 
   /**
@@ -528,10 +524,14 @@ export class SubscriptionManager {
 
   private normalizeToMonthly(amount: number, interval: BillingInterval): number {
     switch (interval) {
-      case 'daily': return amount * 30;
-      case 'weekly': return amount * 4;
-      case 'monthly': return amount;
-      case 'yearly': return Math.floor(amount / 12);
+      case 'daily':
+        return amount * 30;
+      case 'weekly':
+        return amount * 4;
+      case 'monthly':
+        return amount;
+      case 'yearly':
+        return Math.floor(amount / 12);
     }
   }
 

@@ -12,7 +12,7 @@ import {
   vec3ScaleArray,
   vec3Dot,
   vec3Distance,
-  type Vec3
+  type Vec3,
 } from './vec3.js';
 
 describe('vec3 utilities', () => {
@@ -42,7 +42,7 @@ describe('vec3 utilities', () => {
     it('normalizes vector in-place and returns original length', () => {
       const v = [3, 4, 0];
       const originalLength = vec3NormalizeInPlace(v);
-      
+
       expect(originalLength).toBe(5);
       expect(v).toEqual([0.6, 0.8, 0]);
       expect(Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])).toBeCloseTo(1, 6);
@@ -51,7 +51,7 @@ describe('vec3 utilities', () => {
     it('handles very small vectors', () => {
       const v = [1e-10, 1e-10, 1e-10];
       const originalLength = vec3NormalizeInPlace(v);
-      
+
       expect(originalLength).toBeCloseTo(Math.sqrt(3) * 1e-10, 15);
       // Vector should remain unchanged due to threshold
       expect(v).toEqual([1e-10, 1e-10, 1e-10]);

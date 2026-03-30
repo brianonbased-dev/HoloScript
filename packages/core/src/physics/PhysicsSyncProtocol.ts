@@ -138,7 +138,7 @@ export class PhysicsSyncSender {
    */
   startSending(
     buffer: UnifiedParticleBuffer,
-    channel: { send(data: ArrayBuffer): void; readyState: string },
+    channel: { send(data: ArrayBuffer): void; readyState: string }
   ): void {
     const intervalMs = 1000 / this.config.sendRate;
 
@@ -186,7 +186,7 @@ export class PhysicsSyncSender {
     positions: Float32Array,
     velocities: Float32Array,
     ranges: readonly { type: ParticleType; offset: number; count: number }[],
-    activeCount: number,
+    activeCount: number
   ): ArrayBuffer {
     const count = Math.min(activeCount, this.config.maxParticlesPerPacket);
     const size = HEADER_SIZE + count * FULL_PARTICLE_SIZE;
@@ -205,13 +205,20 @@ export class PhysicsSyncSender {
         const pi = range.offset + i;
         const i3 = pi * 3;
 
-        view.setFloat32(writeOffset, positions[i3], false); writeOffset += 4;
-        view.setFloat32(writeOffset, positions[i3 + 1], false); writeOffset += 4;
-        view.setFloat32(writeOffset, positions[i3 + 2], false); writeOffset += 4;
-        view.setFloat32(writeOffset, velocities[i3], false); writeOffset += 4;
-        view.setFloat32(writeOffset, velocities[i3 + 1], false); writeOffset += 4;
-        view.setFloat32(writeOffset, velocities[i3 + 2], false); writeOffset += 4;
-        view.setUint8(writeOffset, range.type); writeOffset += 1;
+        view.setFloat32(writeOffset, positions[i3], false);
+        writeOffset += 4;
+        view.setFloat32(writeOffset, positions[i3 + 1], false);
+        writeOffset += 4;
+        view.setFloat32(writeOffset, positions[i3 + 2], false);
+        writeOffset += 4;
+        view.setFloat32(writeOffset, velocities[i3], false);
+        writeOffset += 4;
+        view.setFloat32(writeOffset, velocities[i3 + 1], false);
+        writeOffset += 4;
+        view.setFloat32(writeOffset, velocities[i3 + 2], false);
+        writeOffset += 4;
+        view.setUint8(writeOffset, range.type);
+        writeOffset += 1;
 
         written++;
       }
@@ -219,7 +226,7 @@ export class PhysicsSyncSender {
 
     // Snapshot for next delta
     this.lastPositions = new Float32Array(positions);
-    this.sequence = (this.sequence + 1) & 0xFFFF;
+    this.sequence = (this.sequence + 1) & 0xffff;
 
     return buf;
   }
@@ -227,7 +234,7 @@ export class PhysicsSyncSender {
   private encodeDelta(
     buffer: UnifiedParticleBuffer,
     positions: Float32Array,
-    ranges: readonly { type: ParticleType; offset: number; count: number }[],
+    ranges: readonly { type: ParticleType; offset: number; count: number }[]
   ): ArrayBuffer | null {
     const last = this.lastPositions!;
     const threshold2 = this.config.deltaThreshold * this.config.deltaThreshold;
@@ -261,10 +268,14 @@ export class PhysicsSyncSender {
       const pi = changed[c];
       const i3 = pi * 3;
 
-      view.setUint16(writeOffset, pi, false); writeOffset += 2;
-      view.setFloat32(writeOffset, positions[i3] - last[i3], false); writeOffset += 4;
-      view.setFloat32(writeOffset, positions[i3 + 1] - last[i3 + 1], false); writeOffset += 4;
-      view.setFloat32(writeOffset, positions[i3 + 2] - last[i3 + 2], false); writeOffset += 4;
+      view.setUint16(writeOffset, pi, false);
+      writeOffset += 2;
+      view.setFloat32(writeOffset, positions[i3] - last[i3], false);
+      writeOffset += 4;
+      view.setFloat32(writeOffset, positions[i3 + 1] - last[i3 + 1], false);
+      writeOffset += 4;
+      view.setFloat32(writeOffset, positions[i3 + 2] - last[i3 + 2], false);
+      writeOffset += 4;
     }
 
     // Update snapshot
@@ -275,7 +286,7 @@ export class PhysicsSyncSender {
       last[i3 + 2] = positions[i3 + 2];
     }
 
-    this.sequence = (this.sequence + 1) & 0xFFFF;
+    this.sequence = (this.sequence + 1) & 0xffff;
     return buf;
   }
 
@@ -362,9 +373,9 @@ export class PhysicsSyncReceiver {
 
     // Check for dropped packets
     if (this.lastSequence >= 0) {
-      const expected = (this.lastSequence + 1) & 0xFFFF;
+      const expected = (this.lastSequence + 1) & 0xffff;
       if (header.sequence !== expected) {
-        const gap = (header.sequence - this.lastSequence + 0x10000) & 0xFFFF;
+        const gap = (header.sequence - this.lastSequence + 0x10000) & 0xffff;
         this.droppedPackets += gap - 1;
       }
     }
@@ -384,11 +395,7 @@ export class PhysicsSyncReceiver {
     }
   }
 
-  private applyFull(
-    view: DataView,
-    header: SyncPacketHeader,
-    buffer: UnifiedParticleBuffer,
-  ): void {
+  private applyFull(view: DataView, header: SyncPacketHeader, buffer: UnifiedParticleBuffer): void {
     let offset = HEADER_SIZE;
     const positions = buffer.positions;
     const velocities = buffer.velocities;
@@ -397,12 +404,18 @@ export class PhysicsSyncReceiver {
     // Use global indices sequentially.
     for (let i = 0; i < header.particleCount; i++) {
       const i3 = i * 3;
-      positions[i3] = view.getFloat32(offset, false); offset += 4;
-      positions[i3 + 1] = view.getFloat32(offset, false); offset += 4;
-      positions[i3 + 2] = view.getFloat32(offset, false); offset += 4;
-      velocities[i3] = view.getFloat32(offset, false); offset += 4;
-      velocities[i3 + 1] = view.getFloat32(offset, false); offset += 4;
-      velocities[i3 + 2] = view.getFloat32(offset, false); offset += 4;
+      positions[i3] = view.getFloat32(offset, false);
+      offset += 4;
+      positions[i3 + 1] = view.getFloat32(offset, false);
+      offset += 4;
+      positions[i3 + 2] = view.getFloat32(offset, false);
+      offset += 4;
+      velocities[i3] = view.getFloat32(offset, false);
+      offset += 4;
+      velocities[i3 + 1] = view.getFloat32(offset, false);
+      offset += 4;
+      velocities[i3 + 2] = view.getFloat32(offset, false);
+      offset += 4;
       offset += 1; // skip type byte (already set via range registration)
     }
 
@@ -420,17 +433,21 @@ export class PhysicsSyncReceiver {
   private applyDelta(
     view: DataView,
     header: SyncPacketHeader,
-    buffer: UnifiedParticleBuffer,
+    buffer: UnifiedParticleBuffer
   ): void {
     let offset = HEADER_SIZE;
     const positions = buffer.positions;
 
     for (let i = 0; i < header.particleCount; i++) {
-      const particleIndex = view.getUint16(offset, false); offset += 2;
+      const particleIndex = view.getUint16(offset, false);
+      offset += 2;
       const i3 = particleIndex * 3;
-      positions[i3] += view.getFloat32(offset, false); offset += 4;
-      positions[i3 + 1] += view.getFloat32(offset, false); offset += 4;
-      positions[i3 + 2] += view.getFloat32(offset, false); offset += 4;
+      positions[i3] += view.getFloat32(offset, false);
+      offset += 4;
+      positions[i3 + 1] += view.getFloat32(offset, false);
+      offset += 4;
+      positions[i3 + 2] += view.getFloat32(offset, false);
+      offset += 4;
     }
   }
 
@@ -461,8 +478,10 @@ export class PhysicsSyncReceiver {
     let frameB: BufferedFrame | null = null;
 
     for (let i = 0; i < this.jitterBuffer.length - 1; i++) {
-      if (this.jitterBuffer[i].timestamp <= targetTime &&
-          this.jitterBuffer[i + 1].timestamp > targetTime) {
+      if (
+        this.jitterBuffer[i].timestamp <= targetTime &&
+        this.jitterBuffer[i + 1].timestamp > targetTime
+      ) {
         frameA = this.jitterBuffer[i];
         frameB = this.jitterBuffer[i + 1];
         break;

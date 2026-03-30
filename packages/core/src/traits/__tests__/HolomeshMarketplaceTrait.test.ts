@@ -84,11 +84,14 @@ describe('HolomeshMarketplaceTrait', () => {
     expect(listings[0].price).toBe(50);
     expect(listings[0].status).toBe('active');
     expect(listings[0].revenueShares).toHaveLength(2);
-    expect(ctx.emit).toHaveBeenCalledWith('trait_market:listed', expect.objectContaining({
-      traitName: 'cool_effect',
-      price: 50,
-      sellerDid: 'did:seller1',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'trait_market:listed',
+      expect.objectContaining({
+        traitName: 'cool_effect',
+        price: 50,
+        sellerDid: 'did:seller1',
+      })
+    );
   });
 
   it('rejects duplicate listings from same seller', () => {
@@ -113,9 +116,24 @@ describe('HolomeshMarketplaceTrait', () => {
     const n = makeNode();
     attach(n, limitConfig, ctx);
 
-    fire(n, limitConfig, ctx, { type: 'trait_market:list', sellerDid: 'did:s', traitName: 'a', price: 10 });
-    fire(n, limitConfig, ctx, { type: 'trait_market:list', sellerDid: 'did:s', traitName: 'b', price: 10 });
-    fire(n, limitConfig, ctx, { type: 'trait_market:list', sellerDid: 'did:s', traitName: 'c', price: 10 });
+    fire(n, limitConfig, ctx, {
+      type: 'trait_market:list',
+      sellerDid: 'did:s',
+      traitName: 'a',
+      price: 10,
+    });
+    fire(n, limitConfig, ctx, {
+      type: 'trait_market:list',
+      sellerDid: 'did:s',
+      traitName: 'b',
+      price: 10,
+    });
+    fire(n, limitConfig, ctx, {
+      type: 'trait_market:list',
+      sellerDid: 'did:s',
+      traitName: 'c',
+      price: 10,
+    });
 
     expect(n.__traitMarketplaceState.listings).toHaveLength(2);
   });
@@ -240,21 +258,33 @@ describe('HolomeshMarketplaceTrait', () => {
     expect(node.__traitMarketplaceState.listings[0].totalRevenue).toBe(50);
 
     // Should emit economy events
-    expect(ctx.emit).toHaveBeenCalledWith('economy:spend', expect.objectContaining({
-      agentId: 'did:buyer',
-      amount: 50,
-    }));
-    expect(ctx.emit).toHaveBeenCalledWith('economy:earn', expect.objectContaining({
-      agentId: 'did:seller',
-    }));
-    expect(ctx.emit).toHaveBeenCalledWith('trait_market:purchased', expect.objectContaining({
-      buyerDid: 'did:buyer',
-      price: 50,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:spend',
+      expect.objectContaining({
+        agentId: 'did:buyer',
+        amount: 50,
+      })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'economy:earn',
+      expect.objectContaining({
+        agentId: 'did:seller',
+      })
+    );
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'trait_market:purchased',
+      expect.objectContaining({
+        buyerDid: 'did:buyer',
+        price: 50,
+      })
+    );
     // Should trigger showcase:add for buyer
-    expect(ctx.emit).toHaveBeenCalledWith('showcase:add', expect.objectContaining({
-      traitName: 'buyable',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'showcase:add',
+      expect.objectContaining({
+        traitName: 'buyable',
+      })
+    );
   });
 
   it('prevents buying own listing', () => {
@@ -310,7 +340,7 @@ describe('HolomeshMarketplaceTrait', () => {
 
     // Should NOT emit economy events for free trait
     const economyCalls = ctx.emit.mock.calls.filter(
-      (c: any[]) => c[0] === 'economy:spend' || c[0] === 'economy:earn',
+      (c: any[]) => c[0] === 'economy:spend' || c[0] === 'economy:earn'
     );
     expect(economyCalls).toHaveLength(0);
     // But should still record purchase
@@ -422,8 +452,18 @@ describe('HolomeshMarketplaceTrait', () => {
     const listingId = node.__traitMarketplaceState.listings[0].id;
     fire(node, config, ctx, { type: 'trait_market:purchase', listingId, buyerDid: 'did:buyer' });
 
-    fire(node, config, ctx, { type: 'trait_market:review', listingId, reviewerDid: 'did:buyer', rating: 5 });
-    fire(node, config, ctx, { type: 'trait_market:review', listingId, reviewerDid: 'did:buyer', rating: 1 });
+    fire(node, config, ctx, {
+      type: 'trait_market:review',
+      listingId,
+      reviewerDid: 'did:buyer',
+      rating: 5,
+    });
+    fire(node, config, ctx, {
+      type: 'trait_market:review',
+      listingId,
+      reviewerDid: 'did:buyer',
+      rating: 1,
+    });
 
     expect(node.__traitMarketplaceState.reviews).toHaveLength(1);
     expect(node.__traitMarketplaceState.listings[0].rating).toBe(5);
@@ -440,8 +480,18 @@ describe('HolomeshMarketplaceTrait', () => {
 
     fire(node, config, ctx, { type: 'trait_market:purchase', listingId, buyerDid: 'did:b1' });
     fire(node, config, ctx, { type: 'trait_market:purchase', listingId, buyerDid: 'did:b2' });
-    fire(node, config, ctx, { type: 'trait_market:review', listingId, reviewerDid: 'did:b1', rating: 4 });
-    fire(node, config, ctx, { type: 'trait_market:review', listingId, reviewerDid: 'did:b2', rating: 2 });
+    fire(node, config, ctx, {
+      type: 'trait_market:review',
+      listingId,
+      reviewerDid: 'did:b1',
+      rating: 4,
+    });
+    fire(node, config, ctx, {
+      type: 'trait_market:review',
+      listingId,
+      reviewerDid: 'did:b2',
+      rating: 2,
+    });
 
     expect(node.__traitMarketplaceState.listings[0].rating).toBe(3);
   });
@@ -456,10 +506,20 @@ describe('HolomeshMarketplaceTrait', () => {
     const listingId = node.__traitMarketplaceState.listings[0].id;
     fire(node, config, ctx, { type: 'trait_market:purchase', listingId, buyerDid: 'did:b' });
 
-    fire(node, config, ctx, { type: 'trait_market:review', listingId, reviewerDid: 'did:b', rating: 0 });
+    fire(node, config, ctx, {
+      type: 'trait_market:review',
+      listingId,
+      reviewerDid: 'did:b',
+      rating: 0,
+    });
     expect(node.__traitMarketplaceState.reviews).toHaveLength(0);
 
-    fire(node, config, ctx, { type: 'trait_market:review', listingId, reviewerDid: 'did:b', rating: 6 });
+    fire(node, config, ctx, {
+      type: 'trait_market:review',
+      listingId,
+      reviewerDid: 'did:b',
+      rating: 6,
+    });
     expect(node.__traitMarketplaceState.reviews).toHaveLength(0);
   });
 

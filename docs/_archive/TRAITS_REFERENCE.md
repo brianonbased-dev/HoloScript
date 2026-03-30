@@ -1918,28 +1918,28 @@ Commit-ready reference entries for 20 new atoms that encode explicit wisdom patt
 
 ### Atomic Trait Set (1-20)
 
-| Atom | Domain | Wisdom Encoded | Gotcha Guarded |
-| --- | --- | --- | --- |
-| `@memory_crystal` | Memory | Semantic compression and retrieval value | Unbounded memory growth |
-| `@recall_trigger` | Memory | Context-aware proactive recall | Low-confidence retrieval spam |
-| `@forget_policy` | Memory | Intentional bounded forgetting | Silent permanent loss |
-| `@versioned_state` | Memory | Branchable collaborative state | Merge conflict cascades |
-| `@echo_memory` | Memory | Distributed cognition sharing | Gossip amplification |
-| `@plot_anchor` | Narrative | Convergence stability for story arcs | Railroading through over-constraint |
-| `@superposition_clip` | Narrative | Multi-variant quantum storytelling | Render-cost explosion |
-| `@emotional_beat` | Narrative | Structured pacing through valence curves | Manipulative over-emoting |
-| `@branch_fork` | Narrative | Safe branch/merge narrative paths | Infinite branch trees |
-| `@director_override` | Narrative | Live authority override for production | Continuity corruption |
-| `@proposal_weight` | Governance | Balanced influence via quadratic/conviction weighting | Sybil capture |
-| `@treasury_ragequit` | Governance | Exit-tax treasury stabilization | Sudden liquidity drains |
-| `@veto_shield` | Governance | Minority safety check | Veto spam abuse |
-| `@fork_escape` | Governance | Last-resort constitutional fork | Community split shock |
-| `@reputation_decay` | Governance | Prevent permanent power concentration | Contributor discouragement |
-| `@circuit_auto_reset` | Resilience | Auto-recovery with exponential backoff | Hidden repeated failures |
-| `@swarm_rebalance` | Resilience | Adaptive load redistribution | Control-loop oscillation |
-| `@damage_morph` | Resilience | Stress-adaptive transformation | Infinite morph loops |
-| `@climate_feedback` | Resilience | Closed-loop sustainability control | Over-correction instability |
-| `@world_heartbeat` | Resilience | Global distributed sync pulse | Single-point sync failure |
+| Atom                  | Domain     | Wisdom Encoded                                        | Gotcha Guarded                      |
+| --------------------- | ---------- | ----------------------------------------------------- | ----------------------------------- |
+| `@memory_crystal`     | Memory     | Semantic compression and retrieval value              | Unbounded memory growth             |
+| `@recall_trigger`     | Memory     | Context-aware proactive recall                        | Low-confidence retrieval spam       |
+| `@forget_policy`      | Memory     | Intentional bounded forgetting                        | Silent permanent loss               |
+| `@versioned_state`    | Memory     | Branchable collaborative state                        | Merge conflict cascades             |
+| `@echo_memory`        | Memory     | Distributed cognition sharing                         | Gossip amplification                |
+| `@plot_anchor`        | Narrative  | Convergence stability for story arcs                  | Railroading through over-constraint |
+| `@superposition_clip` | Narrative  | Multi-variant quantum storytelling                    | Render-cost explosion               |
+| `@emotional_beat`     | Narrative  | Structured pacing through valence curves              | Manipulative over-emoting           |
+| `@branch_fork`        | Narrative  | Safe branch/merge narrative paths                     | Infinite branch trees               |
+| `@director_override`  | Narrative  | Live authority override for production                | Continuity corruption               |
+| `@proposal_weight`    | Governance | Balanced influence via quadratic/conviction weighting | Sybil capture                       |
+| `@treasury_ragequit`  | Governance | Exit-tax treasury stabilization                       | Sudden liquidity drains             |
+| `@veto_shield`        | Governance | Minority safety check                                 | Veto spam abuse                     |
+| `@fork_escape`        | Governance | Last-resort constitutional fork                       | Community split shock               |
+| `@reputation_decay`   | Governance | Prevent permanent power concentration                 | Contributor discouragement          |
+| `@circuit_auto_reset` | Resilience | Auto-recovery with exponential backoff                | Hidden repeated failures            |
+| `@swarm_rebalance`    | Resilience | Adaptive load redistribution                          | Control-loop oscillation            |
+| `@damage_morph`       | Resilience | Stress-adaptive transformation                        | Infinite morph loops                |
+| `@climate_feedback`   | Resilience | Closed-loop sustainability control                    | Over-correction instability         |
+| `@world_heartbeat`    | Resilience | Global distributed sync pulse                         | Single-point sync failure           |
 
 ### Signatures
 

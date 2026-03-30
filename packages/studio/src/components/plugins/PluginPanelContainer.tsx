@@ -13,7 +13,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import { Puzzle, X, RefreshCw, AlertTriangle, Shield, Activity, Loader2 } from 'lucide-react';
-type SandboxState = 'creating' | 'loading' | 'initializing' | 'ready' | 'running' | 'suspended' | 'error' | 'terminated';
+type SandboxState =
+  | 'creating'
+  | 'loading'
+  | 'initializing'
+  | 'ready'
+  | 'running'
+  | 'suspended'
+  | 'error'
+  | 'terminated';
 type SandboxCreateOptions = any;
 
 export interface PluginPanelContainerProps {

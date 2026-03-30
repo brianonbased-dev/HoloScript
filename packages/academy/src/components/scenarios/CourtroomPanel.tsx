@@ -213,4 +213,3 @@ export function CourtroomPanel() {
 }
 
 export default CourtroomPanel;
-

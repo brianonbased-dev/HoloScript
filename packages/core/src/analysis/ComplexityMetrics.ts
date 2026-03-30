@@ -354,7 +354,7 @@ export class ComplexityAnalyzer {
   private analyzeFunctions(lines: string[]): FunctionComplexity[] {
     const functions: FunctionComplexity[] = [];
     const funcRegex = /\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/g;
-    
+
     let inFunction = false;
     let currentFunc: FunctionComplexity | null = null;
     let braceDepth = 0;
@@ -459,21 +459,25 @@ export class ComplexityAnalyzer {
   /**
    * Update nesting levels and brace depth
    */
-  private updateNesting(line: string, currentNesting: number, maxNesting: number): {
+  private updateNesting(
+    line: string,
+    currentNesting: number,
+    maxNesting: number
+  ): {
     current: number;
     max: number;
     braceChange: number;
   } {
     const opens = (line.match(/{/g) || []).length;
     const closes = (line.match(/}/g) || []).length;
-    
+
     // Function nesting increases with opens, then decreases with closes
     let newCurrent = currentNesting + opens;
     const newMax = Math.max(maxNesting, newCurrent);
     newCurrent -= closes;
-    
+
     const braceChange = opens - closes;
-    
+
     return {
       current: newCurrent,
       max: newMax,

@@ -33,8 +33,7 @@ interface SafetyPanelProps {
 
 // ═══════════════════════════════════════════════════════════════════
 
-const VERDICT_STYLES: Record<
-  string, { icon: string; color: string; bg: string }> = {
+const VERDICT_STYLES: Record<string, { icon: string; color: string; bg: string }> = {
   safe: { icon: '✅', color: '#10b981', bg: '#10b98115' },
   warnings: { icon: '⚠️', color: '#f59e0b', bg: '#f59e0b15' },
   unsafe: { icon: '🛑', color: '#ef4444', bg: '#ef444415' },

@@ -83,10 +83,7 @@ export {
 } from './SkillWorkflowEngine';
 
 // Orchestrator Agent (v5.5 First Concrete BaseAgent)
-export {
-  OrchestratorAgent,
-  type OrchestratorConfig,
-} from './OrchestratorAgent';
+export { OrchestratorAgent, type OrchestratorConfig } from './OrchestratorAgent';
 
 // AgentKit Integration moved to @holoscript/marketplace-api/agents
 // Import from '@holoscript/marketplace-api' instead.

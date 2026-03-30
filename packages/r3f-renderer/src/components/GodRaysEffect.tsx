@@ -52,10 +52,7 @@ export function GodRaysEffect({
   const { camera } = useThree();
 
   const colorObj = useMemo(() => new THREE.Color(lightColor), [lightColor]);
-  const posVec = useMemo(
-    () => new THREE.Vector3(...lightPosition),
-    [lightPosition],
-  );
+  const posVec = useMemo(() => new THREE.Vector3(...lightPosition), [lightPosition]);
 
   // Billboard the light source toward camera
   const lookAtCamera = useCallback(() => {

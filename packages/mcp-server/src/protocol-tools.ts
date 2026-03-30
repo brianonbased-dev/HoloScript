@@ -137,7 +137,7 @@ export const protocolTools: Tool[] = [
 
 export async function handleProtocolTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_protocol_publish':
@@ -167,9 +167,8 @@ async function handlePublish(args: Record<string, unknown>) {
   // Dynamic imports to avoid circular deps
   const { generateProvenance } = await import('@holoscript/core/deploy/provenance');
   const { parse } = await import('@holoscript/core/parser/HoloScriptPlusParser');
-  const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } = await import(
-    '@holoscript/core/deploy/revenue-splitter'
-  );
+  const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
+    await import('@holoscript/core/deploy/revenue-splitter');
   const { PROTOCOL_CONSTANTS } = await import('@holoscript/core/deploy/protocol-types');
 
   // Parse and generate provenance
@@ -186,12 +185,14 @@ async function handlePublish(args: Record<string, unknown>) {
 
   // Calculate revenue preview
   const priceWei = ethToWei(price);
-  const importChain = provenance.imports.map((imp: { hash?: string; path: string; author?: string }, i: number) => ({
-    contentHash: imp.hash || `import-${i}`,
-    author: imp.author || imp.path,
-    depth: 1,
-    children: [],
-  }));
+  const importChain = provenance.imports.map(
+    (imp: { hash?: string; path: string; author?: string }, i: number) => ({
+      contentHash: imp.hash || `import-${i}`,
+      author: imp.author || imp.path,
+      depth: 1,
+      children: [],
+    })
+  );
   const revenuePreview = calculateRevenueDistribution(priceWei, author, importChain);
 
   // Try to register via server
@@ -295,21 +296,26 @@ async function handleCollect(args: Record<string, unknown>) {
 }
 
 async function handleRevenue(args: Record<string, unknown>) {
-  const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } = await import(
-    '@holoscript/core/deploy/revenue-splitter'
-  );
+  const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
+    await import('@holoscript/core/deploy/revenue-splitter');
 
   const price = args.price as string;
   const author = args.author as string;
   const referrer = args.referrer as string | undefined;
-  const imports = (args.imports as Array<{ contentHash: string; author: string; depth: number }>) || [];
+  const imports =
+    (args.imports as Array<{ contentHash: string; author: string; depth: number }>) || [];
 
   const priceWei = ethToWei(price);
   const importChain = imports.map((imp) => ({
     contentHash: imp.contentHash,
     author: imp.author,
     depth: imp.depth || 1,
-    children: [] as Array<{ contentHash: string; author: string; depth: number; children: unknown[] }>,
+    children: [] as Array<{
+      contentHash: string;
+      author: string;
+      depth: number;
+      children: unknown[];
+    }>,
   }));
 
   const dist = calculateRevenueDistribution(priceWei, author, importChain, { referrer });
@@ -350,7 +356,12 @@ async function handleLookup(args: Record<string, unknown>) {
     const res = await fetch(endpoint);
     if (!res.ok) {
       if (res.status === 404) {
-        return { status: 'not_found', message: contentHash ? `No record for hash ${contentHash}` : `No publications by ${author}` };
+        return {
+          status: 'not_found',
+          message: contentHash
+            ? `No record for hash ${contentHash}`
+            : `No publications by ${author}`,
+        };
       }
       const text = await res.text();
       return { status: 'error', error: 'LOOKUP_FAILED', message: text };

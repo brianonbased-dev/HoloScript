@@ -13,11 +13,7 @@ interface BridgeHarness {
   stderr: string[];
 }
 
-function waitFor(
-  predicate: () => boolean,
-  timeoutMs = 30000,
-  intervalMs = 30,
-): Promise<void> {
+function waitFor(predicate: () => boolean, timeoutMs = 30000, intervalMs = 30): Promise<void> {
   return new Promise((resolve, reject) => {
     const started = Date.now();
     const timer = setInterval(() => {
@@ -110,7 +106,7 @@ function startBridgeHarness(): BridgeHarness {
       message: 'outbound from daemon',
       metadata: { test: true },
     })}\n`,
-    'utf-8',
+    'utf-8'
   );
 
   makeMockDiscordModule(mockModule);
@@ -122,10 +118,10 @@ function startBridgeHarness(): BridgeHarness {
   const spawnArgs = useCompiled
     ? [compiledBridgePath]
     : (() => {
-      const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
-      const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
-      return [tsxCliPath, path.resolve(__dirname, '../daemon-discord-bridge.ts')];
-    })();
+        const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
+        const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
+        return [tsxCliPath, path.resolve(__dirname, '../daemon-discord-bridge.ts')];
+      })();
 
   const proc = spawn(process.execPath, spawnArgs, {
     cwd: path.resolve(__dirname, '../../../..'),
@@ -161,16 +157,32 @@ describe('daemon-discord-bridge e2e', () => {
     const harness = startBridgeHarness();
 
     try {
-      await waitFor(() => harness.stdout.some(line => line.includes('[discord-bridge] Ready')), 30000);
+      await waitFor(
+        () => harness.stdout.some((line) => line.includes('[discord-bridge] Ready')),
+        30000
+      );
 
-      await waitFor(() => existsSync(harness.sentFile) && readFileSync(harness.sentFile, 'utf-8').includes('outbound from daemon'), 30000);
+      await waitFor(
+        () =>
+          existsSync(harness.sentFile) &&
+          readFileSync(harness.sentFile, 'utf-8').includes('outbound from daemon'),
+        30000
+      );
 
       const inboxPath = path.join(harness.stateDir, 'inbox.jsonl');
-      await waitFor(() => existsSync(inboxPath) && readFileSync(inboxPath, 'utf-8').includes('incoming from discord'), 30000);
+      await waitFor(
+        () =>
+          existsSync(inboxPath) &&
+          readFileSync(inboxPath, 'utf-8').includes('incoming from discord'),
+        30000
+      );
 
       const inboxRaw = readFileSync(inboxPath, 'utf-8').trim().split(/\r?\n/).filter(Boolean);
       expect(inboxRaw.length).toBeGreaterThan(0);
-      const latest = JSON.parse(inboxRaw[inboxRaw.length - 1]) as { metadata?: { signature?: string }; message?: string };
+      const latest = JSON.parse(inboxRaw[inboxRaw.length - 1]) as {
+        metadata?: { signature?: string };
+        message?: string;
+      };
 
       expect(latest.message).toBe('incoming from discord');
       expect(typeof latest.metadata?.signature).toBe('string');

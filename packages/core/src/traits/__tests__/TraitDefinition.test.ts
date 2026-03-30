@@ -16,9 +16,7 @@ describe('UnifiedTraitRegistry', () => {
     namespace: '@holoscript',
     category: 'interaction',
     description: 'VR grab mechanics',
-    properties: [
-      { name: 'snap_to_hand', type: 'boolean', default: false },
-    ],
+    properties: [{ name: 'snap_to_hand', type: 'boolean', default: false }],
     compileHints: [
       { target: 'r3f', supported: true },
       { target: 'unity', supported: true },
@@ -107,7 +105,7 @@ describe('UnifiedTraitRegistry', () => {
     };
     registry.registerBulk([grabbableTrait, throwable]);
     const partners = registry.getComposablePartners('grabbable');
-    expect(partners.some(p => p.id === 'throwable')).toBe(true);
+    expect(partners.some((p) => p.id === 'throwable')).toBe(true);
   });
 
   it('generates summary', () => {

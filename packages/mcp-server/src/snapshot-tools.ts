@@ -24,13 +24,17 @@ function loadSnapshotsFromDisk(): Map<string, TemporalSnapshot> {
     if (fs.existsSync(SNAPSHOTS_FILE)) {
       const raw = fs.readFileSync(SNAPSHOTS_FILE, 'utf-8');
       const obj: Record<string, TemporalSnapshot> = JSON.parse(raw);
-      console.log(`[CacheDebug][snapshot] load hit path=${SNAPSHOTS_FILE} entries=${Object.keys(obj).length}`);
+      console.log(
+        `[CacheDebug][snapshot] load hit path=${SNAPSHOTS_FILE} entries=${Object.keys(obj).length}`
+      );
       return new Map(Object.entries(obj));
     }
     console.log(`[CacheDebug][snapshot] load miss path=${SNAPSHOTS_FILE} reason=file-not-found`);
   } catch {
     // If file is corrupt, start fresh
-    console.warn(`[CacheDebug][snapshot] load miss path=${SNAPSHOTS_FILE} reason=parse-or-io-error`);
+    console.warn(
+      `[CacheDebug][snapshot] load miss path=${SNAPSHOTS_FILE} reason=parse-or-io-error`
+    );
   }
   return new Map();
 }
@@ -45,7 +49,9 @@ function saveSnapshotsToDisk(): void {
       obj[k] = v;
     }
     fs.writeFileSync(SNAPSHOTS_FILE, JSON.stringify(obj), 'utf-8');
-    console.log(`[CacheDebug][snapshot] save hit path=${SNAPSHOTS_FILE} entries=${Object.keys(obj).length}`);
+    console.log(
+      `[CacheDebug][snapshot] save hit path=${SNAPSHOTS_FILE} entries=${Object.keys(obj).length}`
+    );
   } catch {
     // Best-effort — don't fail the tool call if disk write fails
     console.warn(`[CacheDebug][snapshot] save miss path=${SNAPSHOTS_FILE}`);

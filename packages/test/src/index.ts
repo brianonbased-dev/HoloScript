@@ -11,9 +11,9 @@ export * from './visual'; // Export visual testing framework
 export * from './coverage'; // Export coverage tracking framework
 export * from './e2e'; // Export E2E testing framework
 export * from './observability'; // Export runtime observability
-export * from './spatial';      // Spatial assertions: BoundingBox, SpatialEntity, setupSpatialMatchers
-export * from './physics';      // Headless physics: TickSimulator, BodyDef, TickOptions
-export * from './reporter';     // Semantic errors: SemanticErrorReporter, AgentFeedback, HolotestResult
+export * from './spatial'; // Spatial assertions: BoundingBox, SpatialEntity, setupSpatialMatchers
+export * from './physics'; // Headless physics: TickSimulator, BodyDef, TickOptions
+export * from './reporter'; // Semantic errors: SemanticErrorReporter, AgentFeedback, HolotestResult
 
 // ============================================================================
 // Types

@@ -52,7 +52,7 @@ function stepLIFNeuron(
   vReset: number,
   vRest: number,
   dt: number,
-  currentTime: number,
+  currentTime: number
 ): boolean {
   if (neuron.refractory > 0) {
     neuron.refractory = Math.max(neuron.refractory - dt, 0);
@@ -109,11 +109,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
   // Trait index mapping for dense encoding
   private traitNameToIndex: Map<string, number>;
 
-  constructor(
-    config: ExperimentConfig['snn'],
-    inputDim: number,
-    traitNames: string[],
-  ) {
+  constructor(config: ExperimentConfig['snn'], inputDim: number, traitNames: string[]) {
     this.config = config;
     this.inputDim = inputDim;
     this.hiddenSize = config.neuronsPerLayer;
@@ -197,7 +193,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
               0.0, // vReset
               0.0, // vRest
               1.0, // dt
-              currentTime,
+              currentTime
             );
             if (spiked) {
               hiddenSpikeCounts[h]++;
@@ -227,7 +223,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
               0.0, // vReset
               0.0, // vRest
               1.0, // dt
-              currentTime,
+              currentTime
             );
             if (spiked) {
               outputSpikeCounts[o]++;
@@ -238,7 +234,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
 
         // Decode output: normalize spike counts to [0, 1]
         const maxSpikes = this.config.timestepsPerInference;
-        const predicted = Array.from(outputSpikeCounts).map(c => c / maxSpikes);
+        const predicted = Array.from(outputSpikeCounts).map((c) => c / maxSpikes);
 
         // Compute error
         let sampleLoss = 0;
@@ -271,7 +267,7 @@ export class SNNRetrievalModel implements FactRetrievalModel {
           // Compute hidden neuron's contribution to output error
           let hiddenError = 0;
           for (let o = 0; o < this.outputDim; o++) {
-            const outputError = targetVec[o] - (outputSpikeCounts[o] / maxSpikes);
+            const outputError = targetVec[o] - outputSpikeCounts[o] / maxSpikes;
             hiddenError += outputError * this.weightsHiddenOutput[h * this.outputDim + o];
           }
 
@@ -330,8 +326,10 @@ export class SNNRetrievalModel implements FactRetrievalModel {
           hiddenCurrents[h],
           this.config.tau,
           this.config.vThreshold,
-          0.0, 0.0, 1.0,
-          currentTime,
+          0.0,
+          0.0,
+          1.0,
+          currentTime
         );
         if (spiked) this.totalSpikeCount++;
       }
@@ -355,8 +353,10 @@ export class SNNRetrievalModel implements FactRetrievalModel {
           outputCurrents[o],
           this.config.tau,
           this.config.vThreshold,
-          0.0, 0.0, 1.0,
-          currentTime,
+          0.0,
+          0.0,
+          1.0,
+          currentTime
         );
         if (spiked) {
           outputSpikeCounts[o]++;
@@ -367,16 +367,15 @@ export class SNNRetrievalModel implements FactRetrievalModel {
 
     // Decode: normalize spike counts
     const maxSpikes = this.config.timestepsPerInference;
-    const predictedVector = Array.from(outputSpikeCounts).map(c =>
-      Math.min(1.0, c / maxSpikes)
-    );
+    const predictedVector = Array.from(outputSpikeCounts).map((c) => Math.min(1.0, c / maxSpikes));
 
     return {
       predictedVector,
       inferenceTimeMs: performance.now() - startTime,
       modelSpecific: {
         totalSpikes: this.totalSpikeCount,
-        hiddenSpikes: this.totalSpikeCount - Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
+        hiddenSpikes:
+          this.totalSpikeCount - Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
         outputSpikes: Array.from(outputSpikeCounts).reduce((a, b) => a + b, 0),
       },
     };
@@ -436,5 +435,5 @@ function seededRandom(seed: number): number {
   state ^= state << 13;
   state ^= state >>> 17;
   state ^= state << 5;
-  return (state >>> 0) / 0xFFFFFFFF;
+  return (state >>> 0) / 0xffffffff;
 }

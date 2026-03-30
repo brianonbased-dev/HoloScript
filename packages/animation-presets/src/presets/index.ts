@@ -23,12 +23,7 @@ export { speakPreset, wavePreset, socialPresets } from './social.js';
 
 export { dancePreset, emotePreset, emotePresets } from './emote.js';
 
-export {
-  idlePreset,
-  sitPreset,
-  sleepPreset,
-  environmentalPresets,
-} from './environmental.js';
+export { idlePreset, sitPreset, sleepPreset, environmentalPresets } from './environmental.js';
 
 // Combined
 import { locomotionPresets } from './locomotion.js';

@@ -26,7 +26,7 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
   onAttach(node, _config, _context) {
     node.__telemetryState = {
       buffer: [],
-      lastPubTime: Date.now()
+      lastPubTime: Date.now(),
     } as TelemetryState;
   },
 
@@ -39,26 +39,29 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
     if (!state) return;
 
     if (config.include_physics) {
-      const pos = context.physics.getBodyPosition?.(node.id || '') || { x:0, y:0, z:0 };
-      const vel = context.physics.getBodyVelocity?.(node.id || '') || { x:0, y:0, z:0 };
-      
+      const pos = context.physics.getBodyPosition?.(node.id || '') || { x: 0, y: 0, z: 0 };
+      const vel = context.physics.getBodyVelocity?.(node.id || '') || { x: 0, y: 0, z: 0 };
+
       state.buffer.push({
         type: 'physics',
         nodeId: node.id,
         timestamp: Date.now(),
         position: pos,
-        velocity: vel
+        velocity: vel,
       });
     }
 
     const now = Date.now();
-    if (now - state.lastPubTime >= config.aggregation_ms || state.buffer.length >= config.batch_size) {
+    if (
+      now - state.lastPubTime >= config.aggregation_ms ||
+      state.buffer.length >= config.batch_size
+    ) {
       if (state.buffer.length > 0) {
         context.emit('on_telemetry_batch', {
           node,
           channels: config.channels,
           payload: [...state.buffer],
-          endpoint: config.endpoint
+          endpoint: config.endpoint,
         });
         state.buffer = [];
       }
@@ -75,7 +78,7 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
         type: 'custom',
         nodeId: node.id,
         timestamp: Date.now(),
-        ...(event.payload as Record<string, unknown>)
+        ...(event.payload as Record<string, unknown>),
       });
     } else if (event.type === 'telemetry_flush') {
       if (state.buffer.length > 0) {
@@ -83,13 +86,13 @@ export const telemetryHandler: TraitHandler<TelemetryConfig> = {
           node,
           channels: config.channels,
           payload: [...state.buffer],
-          endpoint: config.endpoint
+          endpoint: config.endpoint,
         });
         state.buffer = [];
       }
       state.lastPubTime = Date.now();
     }
-  }
+  },
 };
 
 export default telemetryHandler;

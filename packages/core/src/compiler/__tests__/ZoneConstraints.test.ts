@@ -28,9 +28,7 @@ describe('ZoneConstraintValidator — biome rules', () => {
 
   it('detects conflicting traits for biome', () => {
     const validator = new ZoneConstraintValidator();
-    const result = validator.validateZone('ocean', [
-      { name: 'fireball', traits: ['FireEffect'] },
-    ]);
+    const result = validator.validateZone('ocean', [{ name: 'fireball', traits: ['FireEffect'] }]);
     expect(result.valid).toBe(false);
     expect(result.violations.some((v) => v.includes('FireEffect'))).toBe(true);
   });
@@ -56,21 +54,24 @@ describe('ZoneConstraintValidator — biome rules', () => {
 
   it('handles unknown biome with warning', () => {
     const validator = new ZoneConstraintValidator();
-    const result = validator.validateZone('alien' as any, [
-      { name: 'x', traits: [] },
-    ]);
+    const result = validator.validateZone('alien' as any, [{ name: 'x', traits: [] }]);
     expect(result.valid).toBe(true);
-    expect(result.warnings.some((w) => w.includes("No rules defined for biome 'alien'"))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("No rules defined for biome 'alien'"))).toBe(
+      true
+    );
   });
 
   it('supports custom biome rules via constructor', () => {
     const customRules: BiomeRule[] = [
-      { biome: 'cave', requiredTraits: ['DarkVision'], conflictingTraits: ['SunFlower'], maxEntities: 50 },
+      {
+        biome: 'cave',
+        requiredTraits: ['DarkVision'],
+        conflictingTraits: ['SunFlower'],
+        maxEntities: 50,
+      },
     ];
     const validator = new ZoneConstraintValidator(customRules);
-    const result = validator.validateZone('cave', [
-      { name: 'bat', traits: ['DarkVision'] },
-    ]);
+    const result = validator.validateZone('cave', [{ name: 'bat', traits: ['DarkVision'] }]);
     expect(result.valid).toBe(true);
   });
 
@@ -82,9 +83,7 @@ describe('ZoneConstraintValidator — biome rules', () => {
       conflictingTraits: [],
       maxEntities: 5,
     });
-    const result = validator.validateZone('forest', [
-      { name: 'elf', traits: [] },
-    ]);
+    const result = validator.validateZone('forest', [{ name: 'elf', traits: [] }]);
     expect(result.warnings.some((w) => w.includes('MagicAura'))).toBe(true);
   });
 });
@@ -401,9 +400,7 @@ describe('ZoneConstraintValidator — seasonal rules', () => {
       strength: 'hard',
     });
 
-    const result = validator.validateSeasonalRules('arctic', [
-      { name: 'explorer', traits: [] },
-    ]);
+    const result = validator.validateSeasonalRules('arctic', [{ name: 'explorer', traits: [] }]);
     expect(result.valid).toBe(false);
   });
 
@@ -547,9 +544,7 @@ describe('ZoneConstraintValidator — validateAll', () => {
       strength: 'hard',
     });
 
-    const entities: ZoneEntity[] = [
-      { name: 'e1', traits: ['X'], position: [0, 0, 0] },
-    ];
+    const entities: ZoneEntity[] = [{ name: 'e1', traits: ['X'], position: [0, 0, 0] }];
 
     const result = validator.validateAll('forest', entities);
     expect(result.valid).toBe(false); // narrative violation: X requires Y
@@ -558,9 +553,7 @@ describe('ZoneConstraintValidator — validateAll', () => {
 
   it('passes when all constraints satisfied', () => {
     const validator = new ZoneConstraintValidator();
-    const entities: ZoneEntity[] = [
-      { name: 'tree', traits: ['TreeGrowth'], position: [0, 0, 0] },
-    ];
+    const entities: ZoneEntity[] = [{ name: 'tree', traits: ['TreeGrowth'], position: [0, 0, 0] }];
     const result = validator.validateAll('forest', entities);
     expect(result.valid).toBe(true);
   });

@@ -22,9 +22,7 @@ const OPENAPI_JSON = JSON.stringify({
       get: {
         operationId: 'listPets',
         summary: 'List all pets',
-        parameters: [
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer' } },
-        ],
+        parameters: [{ name: 'limit', in: 'query', required: false, schema: { type: 'integer' } }],
         responses: {
           '200': {
             description: 'A list of pets',
@@ -55,9 +53,7 @@ const OPENAPI_JSON = JSON.stringify({
       get: {
         operationId: 'getPet',
         summary: 'Get a specific pet',
-        parameters: [
-          { name: 'petId', in: 'path', required: true, schema: { type: 'string' } },
-        ],
+        parameters: [{ name: 'petId', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
           '200': {
             description: 'A pet',

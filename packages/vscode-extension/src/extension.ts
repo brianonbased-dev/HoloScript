@@ -152,7 +152,9 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand('holoscript.completeSetup', async () => {
       await context.globalState.update('holoscript.hasCompletedSetup', true);
       await commands.executeCommand('setContext', 'holoscript.setupCompleted', true);
-      window.showInformationMessage('HoloScript Setup Complete! Jump into the Service Hub to connect Railway.');
+      window.showInformationMessage(
+        'HoloScript Setup Complete! Jump into the Service Hub to connect Railway.'
+      );
     })
   );
 
@@ -692,7 +694,9 @@ export function activate(context: ExtensionContext) {
       console.warn('HoloScript: MCP Server Definition Provider registration failed:', err);
     }
   } else {
-    console.log('HoloScript: MCP Server Definition Provider API not available in this VS Code version.');
+    console.log(
+      'HoloScript: MCP Server Definition Provider API not available in this VS Code version.'
+    );
   }
 }
 

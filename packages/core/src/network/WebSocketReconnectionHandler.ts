@@ -97,8 +97,6 @@ export class WebSocketReconnectionHandler {
       this.isReconnecting = true;
       this.lastReconnectTime = Date.now();
 
-
-
       this.reconnectTimer = setTimeout(async () => {
         this.reconnectTimer = null;
         this.reconnectCount++;
@@ -132,7 +130,6 @@ export class WebSocketReconnectionHandler {
   reset(): void {
     this.reconnectCount = 0;
     this.isReconnecting = false;
-
   }
 
   /**

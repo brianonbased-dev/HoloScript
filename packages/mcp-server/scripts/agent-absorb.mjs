@@ -23,7 +23,9 @@ const { CodebaseScanner, CodebaseGraph, HoloEmitter } = await import('@holoscrip
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function log(msg) { process.stderr.write(msg + '\n'); }
+function log(msg) {
+  process.stderr.write(msg + '\n');
+}
 
 async function absorb(label, rootDir, depth = 'medium') {
   log(`\n[absorb] ${label} → ${rootDir}`);
@@ -35,7 +37,9 @@ async function absorb(label, rootDir, depth = 'medium') {
   graph.buildFromScanResult(scanResult);
   const stats = graph.getStats();
 
-  log(`  files:${stats.totalFiles} symbols:${stats.totalSymbols} loc:${stats.totalLoc} calls:${stats.totalCalls}`);
+  log(
+    `  files:${stats.totalFiles} symbols:${stats.totalSymbols} loc:${stats.totalLoc} calls:${stats.totalCalls}`
+  );
 
   // ── JSON graph (machine-searchable) ────────────────────────────────────────
   const graphJson = graph.serialize();
@@ -48,17 +52,36 @@ async function absorb(label, rootDir, depth = 'medium') {
     const pkgPath = path.join(rootDir, 'package.json');
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-      packageMeta = { name: pkg.name, version: pkg.version, description: pkg.description, scripts: pkg.scripts };
+      packageMeta = {
+        name: pkg.name,
+        version: pkg.version,
+        description: pkg.description,
+        scripts: pkg.scripts,
+      };
     }
-  } catch { /* optional */ }
+  } catch {
+    /* optional */
+  }
 
   let gitInfo;
   try {
     const { execSync } = await import('child_process');
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: REPO_ROOT, stdio: ['pipe','pipe','pipe'] }).toString().trim();
-    const hash = execSync('git rev-parse --short HEAD', { cwd: REPO_ROOT, stdio: ['pipe','pipe','pipe'] }).toString().trim();
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+      cwd: REPO_ROOT,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+      .toString()
+      .trim();
+    const hash = execSync('git rev-parse --short HEAD', {
+      cwd: REPO_ROOT,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+      .toString()
+      .trim();
     gitInfo = `${branch}@${hash}`;
-  } catch { /* optional */ }
+  } catch {
+    /* optional */
+  }
 
   const emitter = new HoloEmitter();
   const holoSource = emitter.emit(graph, {
@@ -83,16 +106,26 @@ async function absorb(label, rootDir, depth = 'medium') {
   // Top files by in-degree (most imported = architectural hotspots)
   const filePaths = graph.getFilePaths();
   const hotspots = filePaths
-    .map(fp => ({ file: fp, importedBy: graph.getImportedBy(fp).length, symbols: graph.getSymbolsInFile(fp).length }))
-    .filter(x => x.importedBy > 0)
+    .map((fp) => ({
+      file: fp,
+      importedBy: graph.getImportedBy(fp).length,
+      symbols: graph.getSymbolsInFile(fp).length,
+    }))
+    .filter((x) => x.importedBy > 0)
     .sort((a, b) => b.importedBy - a.importedBy)
     .slice(0, 15);
 
   // All public symbols (search index)
   const allSymbols = graph.getAllSymbols();
   const publicSymbols = allSymbols
-    .filter(s => s.visibility === 'public')
-    .map(s => ({ name: s.owner ? `${s.owner}.${s.name}` : s.name, type: s.type, file: s.filePath, line: s.line, loc: s.loc ?? 0 }))
+    .filter((s) => s.visibility === 'public')
+    .map((s) => ({
+      name: s.owner ? `${s.owner}.${s.name}` : s.name,
+      type: s.type,
+      file: s.filePath,
+      line: s.line,
+      loc: s.loc ?? 0,
+    }))
     .sort((a, b) => b.loc - a.loc); // largest symbols first
 
   const result = {
@@ -123,9 +156,9 @@ async function absorb(label, rootDir, depth = 'medium') {
 // ── Run absorptions ──────────────────────────────────────────────────────────
 
 const absorptions = [
-  ['snn-webgpu',          path.join(REPO_ROOT, 'packages/snn-webgpu'),       'deep'],
-  ['holoscript-studio',   path.join(REPO_ROOT, 'packages/studio/src'),        'medium'],
-  ['holoscript-mcp',      path.join(REPO_ROOT, 'packages/mcp-server/src'),    'deep'],
+  ['snn-webgpu', path.join(REPO_ROOT, 'packages/snn-webgpu'), 'deep'],
+  ['holoscript-studio', path.join(REPO_ROOT, 'packages/studio/src'), 'medium'],
+  ['holoscript-mcp', path.join(REPO_ROOT, 'packages/mcp-server/src'), 'deep'],
 ];
 
 const results = [];
@@ -137,12 +170,14 @@ for (const [label, rootDir, depth] of absorptions) {
 
 const report = {
   absorbedAt: new Date().toISOString(),
-  packages: results.map(r => ({
+  packages: results.map((r) => ({
     label: r.label,
     stats: r.stats,
-    topCommunities: r.communities.slice(0, 5).map(c => ({ name: c.name, fileCount: c.fileCount })),
+    topCommunities: r.communities
+      .slice(0, 5)
+      .map((c) => ({ name: c.name, fileCount: c.fileCount })),
     topHotspots: r.hotspots.slice(0, 5),
-    largestSymbols: r.publicSymbols.slice(0, 10).map(s => `${s.name} (${s.type}, ${s.loc} LOC)`),
+    largestSymbols: r.publicSymbols.slice(0, 10).map((s) => `${s.name} (${s.type}, ${s.loc} LOC)`),
     outputs: r.outputs,
   })),
 };

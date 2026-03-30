@@ -4,7 +4,7 @@ import { useEditorStore } from '../../lib/stores/editorStore';
 
 export const GovernancePanel: React.FC = () => {
   // We assume currentFilePath is managed somewhere or we pass it in. For now, hardcode mock or grab from a dedicated store.
-  const currentFilePath = "example.holo"; 
+  const currentFilePath = 'example.holo';
   const { diffModeHash, setDiffModeHash } = useEditorStore();
   const [commits, setCommits] = useState<GitCommitRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export const GovernancePanel: React.FC = () => {
       setLoading(true);
       // Initialize GitService targeting the current HoloScript workspace root
       // Note: In a real Electron setup, this path comes from the backend/IPC.
-      const service = new GitService(process.cwd()); 
+      const service = new GitService(process.cwd());
       const history = await service.getCommitHistory(currentFilePath);
       setCommits(history);
       setLoading(false);
@@ -51,7 +51,9 @@ export const GovernancePanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {!currentFilePath ? (
           <div className="text-sm text-slate-500 text-center py-8">
-            No local file loaded.<br />Open a .holo file to view its spatial history.
+            No local file loaded.
+            <br />
+            Open a .holo file to view its spatial history.
           </div>
         ) : loading ? (
           <div className="flex justify-center py-4">
@@ -63,11 +65,11 @@ export const GovernancePanel: React.FC = () => {
           </div>
         ) : (
           commits.map((commit, i) => (
-            <div 
+            <div
               key={commit.oid}
               className={`p-3 rounded-lg border transition-colors ${
-                diffModeHash === commit.oid 
-                  ? 'bg-indigo-900/40 border-indigo-500/50' 
+                diffModeHash === commit.oid
+                  ? 'bg-indigo-900/40 border-indigo-500/50'
                   : 'bg-slate-800 border-slate-700 hover:border-slate-500'
               }`}
             >
@@ -79,11 +81,9 @@ export const GovernancePanel: React.FC = () => {
                   {new Date(commit.author.timestamp * 1000).toLocaleDateString()}
                 </span>
               </div>
-              
-              <div className="text-sm text-slate-200 mb-1 leading-snug">
-                {commit.message}
-              </div>
-              
+
+              <div className="text-sm text-slate-200 mb-1 leading-snug">{commit.message}</div>
+
               <div className="flex justify-between items-center mt-3">
                 <div className="text-xs text-slate-400 flex items-center gap-1">
                   <span className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-[8px] text-white">
@@ -91,13 +91,13 @@ export const GovernancePanel: React.FC = () => {
                   </span>
                   {commit.author.name}
                 </div>
-                
+
                 {i > 0 && ( // Don't show diff button for HEAD
-                  <button 
+                  <button
                     onClick={() => handleToggleDiff(commit.oid)}
                     className={`text-xs px-2 py-1 rounded transition-colors ${
-                      diffModeHash === commit.oid 
-                        ? 'bg-indigo-500 hover:bg-indigo-400 text-white' 
+                      diffModeHash === commit.oid
+                        ? 'bg-indigo-500 hover:bg-indigo-400 text-white'
                         : 'bg-slate-700 hover:bg-slate-600'
                     }`}
                   >

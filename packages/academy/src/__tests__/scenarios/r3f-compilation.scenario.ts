@@ -288,7 +288,10 @@ describe('Scenario: R3F Compilation — IncrementalCompiler', () => {
       expect(compiler).toBeDefined();
       return;
     }
-    compiler.addSource('scene-a', `composition "SceneA" { object "Cube" { geometry: "cube"; position: [0, 1, 0] } }`);
+    compiler.addSource(
+      'scene-a',
+      `composition "SceneA" { object "Cube" { geometry: "cube"; position: [0, 1, 0] } }`
+    );
     const result = compiler.compile();
     expect(result).toBeDefined();
     expect(typeof result.success).toBe('boolean');
@@ -302,7 +305,10 @@ describe('Scenario: R3F Compilation — IncrementalCompiler', () => {
       expect(compiler).toBeDefined();
       return;
     }
-    compiler.addSource('test', `composition "T" { object "X" { geometry: "sphere"; position: [0,0,0] } }`);
+    compiler.addSource(
+      'test',
+      `composition "T" { object "X" { geometry: "sphere"; position: [0,0,0] } }`
+    );
     const result = compiler.compile();
     for (const d of result.diagnostics) {
       expect(['error', 'warning', 'info']).toContain(d.severity);
@@ -317,10 +323,16 @@ describe('Scenario: R3F Compilation — IncrementalCompiler', () => {
       expect(compiler).toBeDefined();
       return;
     }
-    compiler.addSource('scene-b', `composition "B" { object "A" { geometry: "cube"; position: [0,0,0] } }`);
+    compiler.addSource(
+      'scene-b',
+      `composition "B" { object "A" { geometry: "cube"; position: [0,0,0] } }`
+    );
     const r1 = compiler.compile();
     compiler.invalidate('scene-b');
-    compiler.addSource('scene-b', `composition "B" { object "A" { @breakable; geometry: "cube"; position: [0,0,0] } }`);
+    compiler.addSource(
+      'scene-b',
+      `composition "B" { object "A" { @breakable; geometry: "cube"; position: [0,0,0] } }`
+    );
     const r2 = compiler.compile();
     expect(r1).toBeDefined();
     expect(r2).toBeDefined();
@@ -333,8 +345,14 @@ describe('Scenario: R3F Compilation — IncrementalCompiler', () => {
       expect(compiler).toBeDefined();
       return;
     }
-    compiler.addSource('scene-1', `composition "S1" { object "A" { geometry: "sphere"; position: [0,0,0] } }`);
-    compiler.addSource('scene-2', `composition "S2" { object "B" { geometry: "cube"; position: [1,1,1] } }`);
+    compiler.addSource(
+      'scene-1',
+      `composition "S1" { object "A" { geometry: "sphere"; position: [0,0,0] } }`
+    );
+    compiler.addSource(
+      'scene-2',
+      `composition "S2" { object "B" { geometry: "cube"; position: [1,1,1] } }`
+    );
     const result = compiler.compile();
     expect(result).toBeDefined();
   });

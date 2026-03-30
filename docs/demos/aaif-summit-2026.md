@@ -28,6 +28,7 @@ curl -s https://mcp.holoscript.net/health | jq .
 ```
 
 If the health check fails, switch to local mode:
+
 ```bash
 node docs/demos/aaif-summit-demo.mjs
 # Runs a local mock server on http://localhost:4200
@@ -41,7 +42,7 @@ node docs/demos/aaif-summit-demo.mjs
 
 > "Every agent platform has tools. The question is: how does an agent **find** them?
 >
-> MCP solved tool discovery for single-agent scenarios. But when agents need to find *other agents* -- with their capabilities, security requirements, and pricing -- you need something richer.
+> MCP solved tool discovery for single-agent scenarios. But when agents need to find _other agents_ -- with their capabilities, security requirements, and pricing -- you need something richer.
 >
 > HoloScript serves a standard A2A Agent Card at the well-known URL. Let's look at it."
 
@@ -54,6 +55,7 @@ curl -s https://mcp.holoscript.net/.well-known/agent-card.json | jq '{ id, name,
 ```
 
 **Expected output:**
+
 ```json
 {
   "id": "holoscript-agent",
@@ -74,6 +76,7 @@ curl -s https://mcp.holoscript.net/.well-known/agent-card.json | jq '.skills[] |
 ```
 
 **Expected output:**
+
 ```json
 {
   "id": "parse_hs",
@@ -95,6 +98,7 @@ curl -s https://mcp.holoscript.net/.well-known/agent-card.json | jq '.securitySc
 ```
 
 **Expected output:**
+
 ```json
 {
   "apiKey": {
@@ -160,7 +164,7 @@ curl -s http://localhost:4200/.well-known/agent-card.json | jq '{ id, name, skil
 
 ### Talk Track
 
-> "Discovery tells you *what* an agent can do. Communication is *how* you talk to it.
+> "Discovery tells you _what_ an agent can do. Communication is _how_ you talk to it.
 >
 > A2A defines a JSON-RPC 2.0 transport with a full task lifecycle. Let's parse some HoloScript code through the A2A protocol -- the same way a Google Vertex AI agent or an Anthropic agent would call us."
 
@@ -190,6 +194,7 @@ curl -s -X POST https://mcp.holoscript.net/a2a \
 ```
 
 **Expected output:**
+
 ```json
 {
   "task_id": "a1b2c3d4-...",
@@ -233,6 +238,7 @@ curl -s -X POST https://mcp.holoscript.net/a2a \
 ```
 
 **Expected output:**
+
 ```
 "completed"
 "composition"
@@ -553,6 +559,7 @@ curl -s -X POST https://mcp.holoscript.net/oauth/register \
 ```
 
 **Expected output:**
+
 ```json
 {
   "clientId": "client_abc123...",
@@ -586,6 +593,7 @@ curl -s -X POST https://mcp.holoscript.net/oauth/authorize \
 ```
 
 **Expected output:**
+
 ```json
 {
   "code": "authcode_xyz789...",
@@ -609,6 +617,7 @@ curl -s -X POST https://mcp.holoscript.net/oauth/token \
 ```
 
 **Expected output:**
+
 ```json
 {
   "access_token": "at_abc12345...",
@@ -673,6 +682,7 @@ curl -s https://mcp.holoscript.net/.well-known/openid-configuration | jq '{ issu
 ```
 
 **Expected output:**
+
 ```json
 {
   "issuer": "https://mcp.holoscript.net",
@@ -721,39 +731,45 @@ node docs/demos/aaif-summit-demo.mjs --act 5
 ### Likely Questions
 
 **Q: How does x402 compare to Stripe/payment APIs?**
+
 > x402 is protocol-level, not a vendor. Any agent can pay any agent without an intermediary. Stripe requires a merchant account. x402 needs just a wallet address. We use USDC on Base L2 for ~$0.001 gas.
 
 **Q: What about streaming? The Agent Card says streaming: false.**
+
 > Streaming support is planned for v1.1. For now, tasks complete synchronously. Long-running tasks (codebase analysis) use the task lifecycle -- submitted -> working -> completed -- and the agent polls via a2a.getTask.
 
 **Q: How do you handle rate limiting with OAuth tokens?**
+
 > Each registered client has a configurable rate limit (requests per minute). The token introspection result includes the client ID, which maps to the rate limit policy. Default: 100 req/min.
 
 **Q: What's the latency overhead of x402?**
+
 > For micro-payments (< $0.10): ~2ms overhead (in-memory ledger, no on-chain). For macro-payments: ~200ms (optimistic execution proceeds immediately, settlement happens async).
 
 **Q: Can I use my own OAuth provider instead?**
+
 > Yes. The OpenID Connect discovery endpoint means you can federate identity. Or use the API key scheme for simpler setups. The Agent Card declares all options and the calling agent picks.
 
 **Q: What happens if the facilitator is down during x402 settlement?**
+
 > Optimistic execution: the agent gets access immediately based on a valid signed authorization. Settlement is retried async. If it fails permanently, the settlement event emitter fires `payment:settlement_failed` and the access can be revoked.
 
 ---
 
 ## Technical Requirements
 
-| Resource | Details |
-|----------|---------|
-| **Endpoint** | `https://mcp.holoscript.net` |
-| **Protocols** | MCP (JSON-RPC), A2A (JSON-RPC 2.0), x402 (HTTP 402), OAuth 2.1 |
-| **Auth** | API key, Bearer, OAuth 2.1 PKCE, OpenID Connect |
-| **Payment** | USDC on Base L2 (chain ID: 8453) |
-| **Tools** | 82+ MCP tools mapped to A2A skills |
-| **Targets** | 28+ compiler export targets |
-| **Traits** | 1,800+ semantic VR traits |
-| **Local Demo** | `node docs/demos/aaif-summit-demo.mjs` (port 4200) |
+| Resource       | Details                                                        |
+| -------------- | -------------------------------------------------------------- |
+| **Endpoint**   | `https://mcp.holoscript.net`                                   |
+| **Protocols**  | MCP (JSON-RPC), A2A (JSON-RPC 2.0), x402 (HTTP 402), OAuth 2.1 |
+| **Auth**       | API key, Bearer, OAuth 2.1 PKCE, OpenID Connect                |
+| **Payment**    | USDC on Base L2 (chain ID: 8453)                               |
+| **Tools**      | 82+ MCP tools mapped to A2A skills                             |
+| **Targets**    | 28+ compiler export targets                                    |
+| **Traits**     | 1,800+ semantic VR traits                                      |
+| **Local Demo** | `node docs/demos/aaif-summit-demo.mjs` (port 4200)             |
 
 ---
 
-*Generated for AAIF MCP Dev Summit, April 2-3 2026*
-*HoloScript v5.1.0 | @holoscript/mcp-server v3.6.1*
+_Generated for AAIF MCP Dev Summit, April 2-3 2026_
+_HoloScript v5.1.0 | @holoscript/mcp-server v3.6.1_

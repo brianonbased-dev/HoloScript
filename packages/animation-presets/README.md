@@ -26,13 +26,13 @@ const all = listPresets();
 
 ## Presets
 
-| Preset | Clips | Use Case |
-|--------|-------|----------|
-| `idle_guard` | Idle, LookAround | Stationary NPC |
-| `walk_patrol` | Walk, Turn | Patrol routes |
-| `run_chase` | Run, Sprint | Pursuit behavior |
-| `attack_melee` | Slash, Stab | Combat |
-| `dance_casual` | Dance, Sway | Social VR |
+| Preset         | Clips            | Use Case         |
+| -------------- | ---------------- | ---------------- |
+| `idle_guard`   | Idle, LookAround | Stationary NPC   |
+| `walk_patrol`  | Walk, Turn       | Patrol routes    |
+| `run_chase`    | Run, Sprint      | Pursuit behavior |
+| `attack_melee` | Slash, Stab      | Combat           |
+| `dance_casual` | Dance, Sway      | Social VR        |
 
 ## Related
 

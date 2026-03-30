@@ -56,10 +56,7 @@ function extractToolNamesFromSource() {
 
 function validateA2ASkillMapping() {
   // Check that mcpToolToA2ASkill function exists and maps all tools
-  const a2aSource = readFileSync(
-    resolve(ROOT, 'packages/mcp-server/src/a2a.ts'),
-    'utf-8'
-  );
+  const a2aSource = readFileSync(resolve(ROOT, 'packages/mcp-server/src/a2a.ts'), 'utf-8');
 
   const hasMcpToA2A = a2aSource.includes('mcpToolToA2ASkill');
   const hasBuildAgentCard = a2aSource.includes('buildAgentCard');
@@ -70,12 +67,9 @@ function validateA2ASkillMapping() {
 
 function validateToolsAggregation() {
   // Check tools.ts spreads all tool arrays into the aggregate
-  const toolsSource = readFileSync(
-    resolve(ROOT, 'packages/mcp-server/src/tools.ts'),
-    'utf-8'
-  );
+  const toolsSource = readFileSync(resolve(ROOT, 'packages/mcp-server/src/tools.ts'), 'utf-8');
 
-  const spreadMatches = [...toolsSource.matchAll(/\.\.\.(\w+)/g)].map(m => m[1]);
+  const spreadMatches = [...toolsSource.matchAll(/\.\.\.(\w+)/g)].map((m) => m[1]);
   return spreadMatches;
 }
 
@@ -155,9 +149,16 @@ async function main() {
   const spreads = validateToolsAggregation();
   console.log(`\nTool arrays spread into aggregate: ${spreads.length}`);
   const requiredSpreads = [
-    'coreTools', 'graphTools', 'ideTools', 'brittneyLiteTools',
-    'codebaseTools', 'graphRagTools', 'selfImproveTools',
-    'gltfImportTools', 'editHoloTools', 'absorbServiceTools',
+    'coreTools',
+    'graphTools',
+    'ideTools',
+    'brittneyLiteTools',
+    'codebaseTools',
+    'graphRagTools',
+    'selfImproveTools',
+    'gltfImportTools',
+    'editHoloTools',
+    'absorbServiceTools',
     'serviceContractTools',
   ];
   for (const required of requiredSpreads) {
@@ -172,10 +173,12 @@ async function main() {
 
   // 4. Validate handler coverage
   const handledTools = validateHandlerCoverage(toolNames);
-  const unhandled = [...toolNames].filter(t => !handledTools.has(t));
+  const unhandled = [...toolNames].filter((t) => !handledTools.has(t));
   if (unhandled.length > 0) {
     // Only warn — plugins handle dynamic tools
-    console.warn(`\n  WARN: ${unhandled.length} tools may rely on plugin handler: ${unhandled.join(', ')}`);
+    console.warn(
+      `\n  WARN: ${unhandled.length} tools may rely on plugin handler: ${unhandled.join(', ')}`
+    );
   }
 
   // 5. Summary

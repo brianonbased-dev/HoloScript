@@ -40,7 +40,10 @@ export class MarketplaceClient {
   constructor(config: MarketplaceClientConfig = {}) {
     this.baseUrl = config.baseUrl || 'https://marketplace.holoscript.net/api';
     this.apiKey = config.apiKey;
-    this.mcpmeUrl = config.mcpmeUrl || process.env.NEXT_PUBLIC_MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
+    this.mcpmeUrl =
+      config.mcpmeUrl ||
+      process.env.NEXT_PUBLIC_MCP_ORCHESTRATOR_URL ||
+      'https://mcp-orchestrator-production-45f9.up.railway.app';
     this.mcpmeApiKey = config.mcpmeApiKey;
   }
 

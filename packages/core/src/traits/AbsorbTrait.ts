@@ -149,7 +149,8 @@ export class AbsorbProcessor {
         const lastNewline = beforeMethod.lastIndexOf('\n');
         if (lastNewline >= 0) {
           const lineStart = beforeMethod.substring(lastNewline + 1);
-          if (lineStart.length > 0 && !lineStart.startsWith(' ') && !lineStart.startsWith('\t')) break;
+          if (lineStart.length > 0 && !lineStart.startsWith(' ') && !lineStart.startsWith('\t'))
+            break;
         }
 
         const params = methodMatch[4]
@@ -170,7 +171,10 @@ export class AbsorbProcessor {
 
         // Extract self.prop = assignments from __init__
         if (methodMatch[3] === '__init__') {
-          const initBody = classBody.substring(methodMatch.index + methodMatch[0].length, methodMatch.index + methodMatch[0].length + 500);
+          const initBody = classBody.substring(
+            methodMatch.index + methodMatch[0].length,
+            methodMatch.index + methodMatch[0].length + 500
+          );
           const propRegex = /self\.(\w+)\s*=\s*(.+)/g;
           let propMatch: RegExpExecArray | null;
           while ((propMatch = propRegex.exec(initBody)) !== null) {
@@ -258,11 +262,19 @@ export class AbsorbProcessor {
       const classBody = content.substring(bodyStart, bodyEnd - 1);
 
       // Extract methods from class body
-      const methodRegex = /(?:public|private|protected)?\s*(async\s+)?(\w+)\s*\(([^)]*)\)(?:\s*:\s*(\w+))?\s*\{/g;
+      const methodRegex =
+        /(?:public|private|protected)?\s*(async\s+)?(\w+)\s*\(([^)]*)\)(?:\s*:\s*(\w+))?\s*\{/g;
       let methodMatch: RegExpExecArray | null;
       while ((methodMatch = methodRegex.exec(classBody)) !== null) {
         const name = methodMatch[2];
-        if (name === 'if' || name === 'else' || name === 'for' || name === 'while' || name === 'switch') continue;
+        if (
+          name === 'if' ||
+          name === 'else' ||
+          name === 'for' ||
+          name === 'while' ||
+          name === 'switch'
+        )
+          continue;
         const params = methodMatch[3]
           .split(',')
           .filter((p) => p.trim())
@@ -347,7 +359,9 @@ export class AbsorbProcessor {
       if (!fn.isExported) continue;
       const params = fn.params.map((p) => p.name).join(', ');
       const asyncPrefix = fn.isAsync ? 'async ' : '';
-      lines.push(`${asyncPrefix}fn ${fn.name}(${params})${fn.returnType ? ` -> ${fn.returnType}` : ''} {`);
+      lines.push(
+        `${asyncPrefix}fn ${fn.name}(${params})${fn.returnType ? ` -> ${fn.returnType}` : ''} {`
+      );
       lines.push(`  // TODO: port ${fn.name} logic from ${result.sourceLanguage}`);
       lines.push(`}`);
       lines.push('');
@@ -376,7 +390,12 @@ export const ABSORB_TRAIT = {
   requiresRenderer: false,
   parameters: [
     { name: 'source', type: 'string', required: true, description: 'Path to source file' },
-    { name: 'language', type: 'string', required: false, description: 'Source language (auto-detected from extension)' },
+    {
+      name: 'language',
+      type: 'string',
+      required: false,
+      description: 'Source language (auto-detected from extension)',
+    },
     { name: 'output', type: 'string', required: false, description: 'Output .hsplus file path' },
   ],
 };

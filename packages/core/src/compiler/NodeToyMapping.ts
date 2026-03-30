@@ -146,50 +146,50 @@ interface NodeCodegen {
 
 const NODE_TYPE_MAP: Record<string, NodeCodegen> = {
   // Math operations
-  Add:        { expression: '({in:a} + {in:b})', outputType: 'float' },
-  Subtract:   { expression: '({in:a} - {in:b})', outputType: 'float' },
-  Multiply:   { expression: '({in:a} * {in:b})', outputType: 'float' },
-  Divide:     { expression: '({in:a} / max({in:b}, 0.0001))', outputType: 'float' },
-  Power:      { expression: 'pow({in:a}, {in:b})', outputType: 'float' },
-  Sqrt:       { expression: 'sqrt({in:a})', outputType: 'float' },
-  Abs:        { expression: 'abs({in:a})', outputType: 'float' },
-  Sign:       { expression: 'sign({in:a})', outputType: 'float' },
-  Floor:      { expression: 'floor({in:a})', outputType: 'float' },
-  Ceil:       { expression: 'ceil({in:a})', outputType: 'float' },
-  Fract:      { expression: 'fract({in:a})', outputType: 'float' },
-  Mod:        { expression: 'mod({in:a}, {in:b})', outputType: 'float' },
-  Min:        { expression: 'min({in:a}, {in:b})', outputType: 'float' },
-  Max:        { expression: 'max({in:a}, {in:b})', outputType: 'float' },
-  Clamp:      { expression: 'clamp({in:a}, {in:min}, {in:max})', outputType: 'float' },
-  Lerp:       { expression: 'mix({in:a}, {in:b}, {in:t})', outputType: 'float' },
+  Add: { expression: '({in:a} + {in:b})', outputType: 'float' },
+  Subtract: { expression: '({in:a} - {in:b})', outputType: 'float' },
+  Multiply: { expression: '({in:a} * {in:b})', outputType: 'float' },
+  Divide: { expression: '({in:a} / max({in:b}, 0.0001))', outputType: 'float' },
+  Power: { expression: 'pow({in:a}, {in:b})', outputType: 'float' },
+  Sqrt: { expression: 'sqrt({in:a})', outputType: 'float' },
+  Abs: { expression: 'abs({in:a})', outputType: 'float' },
+  Sign: { expression: 'sign({in:a})', outputType: 'float' },
+  Floor: { expression: 'floor({in:a})', outputType: 'float' },
+  Ceil: { expression: 'ceil({in:a})', outputType: 'float' },
+  Fract: { expression: 'fract({in:a})', outputType: 'float' },
+  Mod: { expression: 'mod({in:a}, {in:b})', outputType: 'float' },
+  Min: { expression: 'min({in:a}, {in:b})', outputType: 'float' },
+  Max: { expression: 'max({in:a}, {in:b})', outputType: 'float' },
+  Clamp: { expression: 'clamp({in:a}, {in:min}, {in:max})', outputType: 'float' },
+  Lerp: { expression: 'mix({in:a}, {in:b}, {in:t})', outputType: 'float' },
   Smoothstep: { expression: 'smoothstep({in:edge0}, {in:edge1}, {in:x})', outputType: 'float' },
-  Step:       { expression: 'step({in:edge}, {in:x})', outputType: 'float' },
-  OneMinus:   { expression: '(1.0 - {in:a})', outputType: 'float' },
-  Negate:     { expression: '(-{in:a})', outputType: 'float' },
-  Length:     { expression: 'length({in:a})', outputType: 'float' },
-  Distance:   { expression: 'distance({in:a}, {in:b})', outputType: 'float' },
-  Dot:        { expression: 'dot({in:a}, {in:b})', outputType: 'float' },
-  Cross:      { expression: 'cross({in:a}, {in:b})', outputType: 'vec3' },
-  Normalize:  { expression: 'normalize({in:a})', outputType: 'vec3' },
-  Reflect:    { expression: 'reflect({in:a}, {in:b})', outputType: 'vec3' },
+  Step: { expression: 'step({in:edge}, {in:x})', outputType: 'float' },
+  OneMinus: { expression: '(1.0 - {in:a})', outputType: 'float' },
+  Negate: { expression: '(-{in:a})', outputType: 'float' },
+  Length: { expression: 'length({in:a})', outputType: 'float' },
+  Distance: { expression: 'distance({in:a}, {in:b})', outputType: 'float' },
+  Dot: { expression: 'dot({in:a}, {in:b})', outputType: 'float' },
+  Cross: { expression: 'cross({in:a}, {in:b})', outputType: 'vec3' },
+  Normalize: { expression: 'normalize({in:a})', outputType: 'vec3' },
+  Reflect: { expression: 'reflect({in:a}, {in:b})', outputType: 'vec3' },
 
   // Trigonometry
-  Sin:    { expression: 'sin({in:a})', outputType: 'float' },
-  Cos:    { expression: 'cos({in:a})', outputType: 'float' },
-  Tan:    { expression: 'tan({in:a})', outputType: 'float' },
-  Asin:   { expression: 'asin({in:a})', outputType: 'float' },
-  Acos:   { expression: 'acos({in:a})', outputType: 'float' },
-  Atan:   { expression: 'atan({in:a})', outputType: 'float' },
-  Atan2:  { expression: 'atan({in:y}, {in:x})', outputType: 'float' },
+  Sin: { expression: 'sin({in:a})', outputType: 'float' },
+  Cos: { expression: 'cos({in:a})', outputType: 'float' },
+  Tan: { expression: 'tan({in:a})', outputType: 'float' },
+  Asin: { expression: 'asin({in:a})', outputType: 'float' },
+  Acos: { expression: 'acos({in:a})', outputType: 'float' },
+  Atan: { expression: 'atan({in:a})', outputType: 'float' },
+  Atan2: { expression: 'atan({in:y}, {in:x})', outputType: 'float' },
 
   // Color operations
-  Mix:       { expression: 'mix({in:a}, {in:b}, {in:factor})', outputType: 'vec3' },
-  Saturate:  { expression: 'clamp({in:a}, 0.0, 1.0)', outputType: 'float' },
+  Mix: { expression: 'mix({in:a}, {in:b}, {in:factor})', outputType: 'vec3' },
+  Saturate: { expression: 'clamp({in:a}, 0.0, 1.0)', outputType: 'float' },
 
   // Constructors
-  Vec2:   { expression: 'vec2({in:x}, {in:y})', outputType: 'vec2' },
-  Vec3:   { expression: 'vec3({in:x}, {in:y}, {in:z})', outputType: 'vec3' },
-  Vec4:   { expression: 'vec4({in:x}, {in:y}, {in:z}, {in:w})', outputType: 'vec4' },
+  Vec2: { expression: 'vec2({in:x}, {in:y})', outputType: 'vec2' },
+  Vec3: { expression: 'vec3({in:x}, {in:y}, {in:z})', outputType: 'vec3' },
+  Vec4: { expression: 'vec4({in:x}, {in:y}, {in:z}, {in:w})', outputType: 'vec4' },
 
   // Component extraction
   SplitVec2: { expression: '{in:a}', outputType: 'float' },
@@ -198,7 +198,7 @@ const NODE_TYPE_MAP: Record<string, NodeCodegen> = {
 
   // Texture sampling
   Texture2D: { expression: 'texture2D({in:sampler}, {in:uv})', outputType: 'vec4' },
-  CubeMap:   { expression: 'textureCube({in:sampler}, {in:dir})', outputType: 'vec4' },
+  CubeMap: { expression: 'textureCube({in:sampler}, {in:dir})', outputType: 'vec4' },
 
   // Noise
   ProceduralNoise: { expression: 'snoise({in:uv} * {in:scale})', outputType: 'float' },
@@ -206,14 +206,20 @@ const NODE_TYPE_MAP: Record<string, NodeCodegen> = {
 
 // Built-in input nodes (no codegen, they provide constants/varyings)
 const BUILTIN_INPUT_NODES = new Set([
-  'Time', 'Resolution', 'ScreenUV', 'UV', 'Normal', 'Position',
-  'ViewDirection', 'FragCoord', 'Constant', 'Parameter',
+  'Time',
+  'Resolution',
+  'ScreenUV',
+  'UV',
+  'Normal',
+  'Position',
+  'ViewDirection',
+  'FragCoord',
+  'Constant',
+  'Parameter',
 ]);
 
 // Output nodes (terminal nodes that write to gl_FragColor, etc.)
-const OUTPUT_NODES = new Set([
-  'FragColor', 'Output', 'Emission', 'Alpha', 'Discard',
-]);
+const OUTPUT_NODES = new Set(['FragColor', 'Output', 'Emission', 'Alpha', 'Discard']);
 
 // =============================================================================
 // MAPPER IMPLEMENTATION
@@ -430,11 +436,7 @@ class NodeToyMapper {
     return varName;
   }
 
-  private resolveInputPort(
-    nodeId: string,
-    portName: string,
-    port: NodeToyPort
-  ): string {
+  private resolveInputPort(nodeId: string, portName: string, port: NodeToyPort): string {
     // Check for connected edge
     const edgeKey = `${nodeId}:${portName}`;
     const edges = this.edgesByTarget.get(edgeKey);
@@ -491,7 +493,7 @@ class NodeToyMapper {
         return '0.0';
       }
       case 'Parameter': {
-        const name = node.params?.['name'] as string || `param_${node.id}`;
+        const name = (node.params?.['name'] as string) || `param_${node.id}`;
         return name;
       }
       default:
@@ -511,7 +513,7 @@ class NodeToyMapper {
     if (!this.uniforms[name]) {
       this.uniforms[name] = {
         type: uniformType,
-        value: (typeof value === 'number' || Array.isArray(value)) ? value : 0.0,
+        value: typeof value === 'number' || Array.isArray(value) ? value : 0.0,
         min: node.params?.['min'] as number | undefined,
         max: node.params?.['max'] as number | undefined,
         label: node.label,

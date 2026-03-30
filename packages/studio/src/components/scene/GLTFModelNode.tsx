@@ -18,7 +18,15 @@ interface GLTFModelNodeProps {
   animations?: THREE.AnimationClip[];
 }
 
-function GLTFModel({ node, src, position, rotation, scale, action, animations: propAnimations }: GLTFModelNodeProps) {
+function GLTFModel({
+  node,
+  src,
+  position,
+  rotation,
+  scale,
+  action,
+  animations: propAnimations,
+}: GLTFModelNodeProps) {
   const { scene, animations: gltfAnimations } = useGLTF(src);
   const ref = useRef<THREE.Group>(null);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
@@ -33,7 +41,7 @@ function GLTFModel({ node, src, position, rotation, scale, action, animations: p
 
   useEffect(() => {
     if (ref.current && node.id) {
-      ref.current.userData.availableAnimations = activeAnimations?.map(a => a.name) || [];
+      ref.current.userData.availableAnimations = activeAnimations?.map((a) => a.name) || [];
       ref.current.userData.nodeId = node.id;
       setNodeRef(node.id, ref.current);
     }
@@ -59,7 +67,11 @@ function GLTFModel({ node, src, position, rotation, scale, action, animations: p
         <mesh
           position={position}
           rotation={rotation?.map((r) => THREE.MathUtils.degToRad(r)) as [number, number, number]}
-          scale={typeof scale === 'number' ? [scale * 1.05, scale * 1.05, scale * 1.05] : [(scale?.[0] || 1) * 1.05, (scale?.[1] || 1) * 1.05, (scale?.[2] || 1) * 1.05]}
+          scale={
+            typeof scale === 'number'
+              ? [scale * 1.05, scale * 1.05, scale * 1.05]
+              : [(scale?.[0] || 1) * 1.05, (scale?.[1] || 1) * 1.05, (scale?.[2] || 1) * 1.05]
+          }
         >
           <boxGeometry args={[1, 1, 1]} />
           <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />

@@ -245,7 +245,9 @@ export class SyncEngine {
   /**
    * Force an immediate sync in a specific direction
    */
-  public syncNow(direction: 'visual-to-ast' | 'ast-to-visual'): VisualToASTResult | ASTToVisualResult | null {
+  public syncNow(
+    direction: 'visual-to-ast' | 'ast-to-visual'
+  ): VisualToASTResult | ASTToVisualResult | null {
     if (this.syncing) return null;
 
     if (direction === 'visual-to-ast' && this.lastVisualGraph) {
@@ -292,10 +294,7 @@ export class SyncEngine {
       originalNodes: graph.nodes.length,
       roundTripNodes: reverseResult.graph.nodes.length,
       lostNodes,
-      diagnostics: [
-        ...forwardResult.diagnostics,
-        ...reverseResult.diagnostics,
-      ],
+      diagnostics: [...forwardResult.diagnostics, ...reverseResult.diagnostics],
     };
   }
 

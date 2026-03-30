@@ -35,7 +35,9 @@ async function loadTools() {
     return mod.tools || mod.default?.tools || [];
   } catch {
     // Fallback: parse the source file to extract tool names
-    console.log('  (using source parse fallback — run `pnpm --filter @holoscript/mcp-server build` for full validation)');
+    console.log(
+      '  (using source parse fallback — run `pnpm --filter @holoscript/mcp-server build` for full validation)'
+    );
     return parseToolsFromSource();
   }
 }
@@ -126,7 +128,9 @@ function validateTool(tool, index) {
       errors.push(`${tool.name}: missing description`);
     }
   } else if (tool.description.length > 200) {
-    warnings.push(`${tool.name}: description is ${tool.description.length} chars (max 200 recommended)`);
+    warnings.push(
+      `${tool.name}: description is ${tool.description.length} chars (max 200 recommended)`
+    );
   }
 
   // 4. inputSchema must be an object with type: 'object'

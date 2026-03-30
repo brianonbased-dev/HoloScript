@@ -367,7 +367,7 @@ export class AgentRBAC {
   checkAccessWithConfabulationGate(
     request: ResourceAccessRequest,
     composition: HoloComposition,
-    confabConfig?: ConfabulationValidatorConfig,
+    confabConfig?: ConfabulationValidatorConfig
   ): AccessDecisionWithConfabulation {
     // Step 1: Standard RBAC check
     const rbacDecision = this.checkAccess(request);
@@ -386,9 +386,10 @@ export class AgentRBAC {
     if (!confabResult.valid) {
       return {
         allowed: false,
-        reason: `Confabulation detected (risk score: ${confabResult.riskScore}/100, ` +
+        reason:
+          `Confabulation detected (risk score: ${confabResult.riskScore}/100, ` +
           `${confabResult.errors.length} error(s)): ` +
-          confabResult.errors.map(e => e.message).join('; '),
+          confabResult.errors.map((e) => e.message).join('; '),
         agentRole: rbacDecision.agentRole,
         confabulation: confabResult,
       };
@@ -414,7 +415,7 @@ export class AgentRBAC {
    */
   validateConfabulation(
     composition: HoloComposition,
-    confabConfig?: ConfabulationValidatorConfig,
+    confabConfig?: ConfabulationValidatorConfig
   ): ConfabulationValidationResult {
     const validator = confabConfig
       ? new ConfabulationValidator(confabConfig)

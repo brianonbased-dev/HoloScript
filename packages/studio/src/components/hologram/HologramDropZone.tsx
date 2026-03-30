@@ -45,7 +45,10 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function HologramDropZone({ onCompositionGenerated, className = '' }: HologramDropZoneProps) {
+export function HologramDropZone({
+  onCompositionGenerated,
+  className = '',
+}: HologramDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -82,33 +85,36 @@ export function HologramDropZone({ onCompositionGenerated, className = '' }: Hol
     e.stopPropagation();
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    dragCounterRef.current = 0;
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      dragCounterRef.current = 0;
 
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    const mediaFiles: MediaFile[] = [];
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      const mediaFiles: MediaFile[] = [];
 
-    for (const file of droppedFiles) {
-      if (file.size > MAX_FILE_SIZE) continue;
-      const type = detectMediaType(file);
-      if (!type) continue;
+      for (const file of droppedFiles) {
+        if (file.size > MAX_FILE_SIZE) continue;
+        const type = detectMediaType(file);
+        if (!type) continue;
 
-      mediaFiles.push({
-        file,
-        type,
-        name: file.name.replace(/\.[^.]+$/, ''),
-        previewUrl: URL.createObjectURL(file),
-      });
-    }
+        mediaFiles.push({
+          file,
+          type,
+          name: file.name.replace(/\.[^.]+$/, ''),
+          previewUrl: URL.createObjectURL(file),
+        });
+      }
 
-    setFiles(prev => [...prev, ...mediaFiles]);
-  }, [detectMediaType]);
+      setFiles((prev) => [...prev, ...mediaFiles]);
+    },
+    [detectMediaType]
+  );
 
   const removeFile = useCallback((index: number) => {
-    setFiles(prev => {
+    setFiles((prev) => {
       const file = prev[index];
       if (file) URL.revokeObjectURL(file.previewUrl);
       return prev.filter((_, i) => i !== index);
@@ -120,7 +126,7 @@ export function HologramDropZone({ onCompositionGenerated, className = '' }: Hol
     setGenerating(true);
 
     const objects = files.map((media, i) => {
-      const yPos = 1.5 + (i * 0.1);
+      const yPos = 1.5 + i * 0.1;
       const xPos = files.length > 1 ? (i - (files.length - 1) / 2) * 2.5 : 0;
 
       switch (media.type) {
@@ -157,9 +163,10 @@ export function HologramDropZone({ onCompositionGenerated, className = '' }: Hol
       }
     });
 
-    const compositionName = files.length === 1
-      ? `Hologram - ${files[0].name}`
-      : `Hologram Gallery (${files.length} items)`;
+    const compositionName =
+      files.length === 1
+        ? `Hologram - ${files[0].name}`
+        : `Hologram Gallery (${files.length} items)`;
 
     const code = `composition "${compositionName}" {
   environment {
@@ -186,7 +193,7 @@ ${objects.join('\n\n')}
     setGenerating(false);
 
     // Cleanup preview URLs
-    files.forEach(f => URL.revokeObjectURL(f.previewUrl));
+    files.forEach((f) => URL.revokeObjectURL(f.previewUrl));
     setFiles([]);
   }, [files, onCompositionGenerated]);
 
@@ -214,9 +221,7 @@ ${objects.join('\n\n')}
         <p className="text-sm font-medium text-studio-text">
           {isDragging ? 'Drop to create hologram' : 'Drop images, GIFs, or videos'}
         </p>
-        <p className="text-[11px] text-studio-muted mt-1">
-          PNG, JPG, GIF, MP4, WebM (max 100 MB)
-        </p>
+        <p className="text-[11px] text-studio-muted mt-1">PNG, JPG, GIF, MP4, WebM (max 100 MB)</p>
       </div>
 
       {/* File Preview List */}

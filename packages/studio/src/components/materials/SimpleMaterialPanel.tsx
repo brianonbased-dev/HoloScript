@@ -113,11 +113,11 @@ export function SimpleMaterialPanel({ onClose }: SimpleMaterialPanelProps) {
 
   // Current values with safe defaults
   const props: MaterialProps = {
-    albedo:          (materialTrait?.properties.color as string)             ?? '#ffffff',
-    roughness:       (materialTrait?.properties.roughness as number)          ?? 0.5,
-    metallic:        (materialTrait?.properties.metalness as number)          ?? 0.0,
-    opacity:         (materialTrait?.properties.opacity as number)            ?? 1.0,
-    emissive:        (materialTrait?.properties.emissive as string)           ?? '#000000',
+    albedo: (materialTrait?.properties.color as string) ?? '#ffffff',
+    roughness: (materialTrait?.properties.roughness as number) ?? 0.5,
+    metallic: (materialTrait?.properties.metalness as number) ?? 0.0,
+    opacity: (materialTrait?.properties.opacity as number) ?? 1.0,
+    emissive: (materialTrait?.properties.emissive as string) ?? '#000000',
     emissiveIntensity: (materialTrait?.properties.emissiveIntensity as number) ?? 0.0,
   };
 
@@ -127,32 +127,37 @@ export function SimpleMaterialPanel({ onClose }: SimpleMaterialPanelProps) {
 
       // Convert our prop names to what sceneGraphStore expects
       const storePatch: Record<string, unknown> = {};
-      if (patch.albedo !== undefined)           storePatch.albedo = patch.albedo;
-      if (patch.roughness !== undefined)        storePatch.roughness = patch.roughness;
-      if (patch.metallic !== undefined)         storePatch.metallic = patch.metallic;
-      if (patch.opacity !== undefined)          storePatch.opacity = patch.opacity;
-      if (patch.emissive !== undefined)         storePatch.emissive = patch.emissive;
-      if (patch.emissiveIntensity !== undefined) storePatch.emissiveIntensity = patch.emissiveIntensity;
+      if (patch.albedo !== undefined) storePatch.albedo = patch.albedo;
+      if (patch.roughness !== undefined) storePatch.roughness = patch.roughness;
+      if (patch.metallic !== undefined) storePatch.metallic = patch.metallic;
+      if (patch.opacity !== undefined) storePatch.opacity = patch.opacity;
+      if (patch.emissive !== undefined) storePatch.emissive = patch.emissive;
+      if (patch.emissiveIntensity !== undefined)
+        storePatch.emissiveIntensity = patch.emissiveIntensity;
 
       // Immediate GPU update (0-frame lag)
       applyTransientMaterial(selectedId, storePatch);
 
       // Persist to store (for undo, serialization)
-      const traitKey = (k: string, v: unknown) =>
-        setTraitProperty(selectedId, 'material', k, v);
+      const traitKey = (k: string, v: unknown) => setTraitProperty(selectedId, 'material', k, v);
 
-      if (patch.albedo !== undefined)           traitKey('color', patch.albedo);
-      if (patch.roughness !== undefined)        traitKey('roughness', patch.roughness);
-      if (patch.metallic !== undefined)         traitKey('metalness', patch.metallic);
-      if (patch.opacity !== undefined)          traitKey('opacity', patch.opacity);
-      if (patch.emissive !== undefined)         traitKey('emissive', patch.emissive);
-      if (patch.emissiveIntensity !== undefined) traitKey('emissiveIntensity', patch.emissiveIntensity);
+      if (patch.albedo !== undefined) traitKey('color', patch.albedo);
+      if (patch.roughness !== undefined) traitKey('roughness', patch.roughness);
+      if (patch.metallic !== undefined) traitKey('metalness', patch.metallic);
+      if (patch.opacity !== undefined) traitKey('opacity', patch.opacity);
+      if (patch.emissive !== undefined) traitKey('emissive', patch.emissive);
+      if (patch.emissiveIntensity !== undefined)
+        traitKey('emissiveIntensity', patch.emissiveIntensity);
     },
     [selectedId, applyTransientMaterial, setTraitProperty]
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden" role="region" aria-label="Material Editor">
+    <div
+      className="flex h-full flex-col overflow-hidden"
+      role="region"
+      aria-label="Material Editor"
+    >
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-studio-border px-3 py-2">
         <div className="flex items-center gap-2">
@@ -182,7 +187,9 @@ export function SimpleMaterialPanel({ onClose }: SimpleMaterialPanelProps) {
         ) : (
           <div className="space-y-1">
             {/* Surface */}
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Surface</p>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-studio-muted">
+              Surface
+            </p>
             <ColorRow
               label="Albedo"
               value={props.albedo!}
@@ -205,7 +212,9 @@ export function SimpleMaterialPanel({ onClose }: SimpleMaterialPanelProps) {
             />
 
             {/* Emission */}
-            <p className="mb-2 mt-4 text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Emission</p>
+            <p className="mb-2 mt-4 text-[10px] font-semibold uppercase tracking-wider text-studio-muted">
+              Emission
+            </p>
             <ColorRow
               label="Emissive"
               value={props.emissive!}

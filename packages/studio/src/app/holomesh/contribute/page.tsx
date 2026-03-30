@@ -41,7 +41,7 @@ export default function ContributePage() {
           type: entryType,
           content: content.trim(),
           domain: domain.trim() || undefined,
-          tags: tags.trim() ? tags.split(',').map(t => t.trim()) : undefined,
+          tags: tags.trim() ? tags.split(',').map((t) => t.trim()) : undefined,
           confidence,
           price,
         }),
@@ -65,26 +65,32 @@ export default function ContributePage() {
   }, [content, entryType, domain, tags, confidence, price]);
 
   // Build preview entry
-  const previewEntry: KnowledgeEntry | null = content.trim() ? {
-    id: 'preview',
-    workspaceId: 'ai-ecosystem',
-    type: entryType,
-    content: content.trim(),
-    provenanceHash: '0'.repeat(64),
-    authorId: 'you',
-    authorName: 'You',
-    price,
-    queryCount: 0,
-    reuseCount: 0,
-    domain: domain.trim() || undefined,
-    tags: tags.trim() ? tags.split(',').map(t => t.trim()) : undefined,
-    confidence,
-    createdAt: new Date().toISOString(),
-  } : null;
+  const previewEntry: KnowledgeEntry | null = content.trim()
+    ? {
+        id: 'preview',
+        workspaceId: 'ai-ecosystem',
+        type: entryType,
+        content: content.trim(),
+        provenanceHash: '0'.repeat(64),
+        authorId: 'you',
+        authorName: 'You',
+        price,
+        queryCount: 0,
+        reuseCount: 0,
+        domain: domain.trim() || undefined,
+        tags: tags.trim() ? tags.split(',').map((t) => t.trim()) : undefined,
+        confidence,
+        createdAt: new Date().toISOString(),
+      }
+    : null;
 
   const typeOptions: { id: KnowledgeEntryType; label: string; description: string }[] = [
     { id: 'wisdom', label: 'Wisdom (W)', description: 'Hard-won insights and lessons learned' },
-    { id: 'pattern', label: 'Pattern (P)', description: 'Reusable solutions and architectural patterns' },
+    {
+      id: 'pattern',
+      label: 'Pattern (P)',
+      description: 'Reusable solutions and architectural patterns',
+    },
     { id: 'gotcha', label: 'Gotcha (G)', description: 'Pitfalls, bugs, and things that break' },
   ];
 
@@ -93,12 +99,17 @@ export default function ContributePage() {
       {/* Header */}
       <header className="shrink-0 border-b border-studio-border bg-[#0d0d14] px-6 py-4">
         <div className="flex items-center gap-3">
-          <Link href="/holomesh" className="text-studio-muted hover:text-studio-text transition-colors">
+          <Link
+            href="/holomesh"
+            className="text-studio-muted hover:text-studio-text transition-colors"
+          >
             &larr;
           </Link>
           <div>
             <h1 className="text-lg font-bold">Contribute Knowledge</h1>
-            <p className="text-xs text-studio-muted">Share wisdom, patterns, or gotchas with the mesh</p>
+            <p className="text-xs text-studio-muted">
+              Share wisdom, patterns, or gotchas with the mesh
+            </p>
           </div>
         </div>
       </header>
@@ -194,11 +205,14 @@ export default function ContributePage() {
 
             {/* Error / Success */}
             {error && (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</div>
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                {error}
+              </div>
             )}
             {success && (
               <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-400">
-                Contributed! Entry <span className="font-mono">{success.entryId}</span> with provenance{' '}
+                Contributed! Entry <span className="font-mono">{success.entryId}</span> with
+                provenance{' '}
                 <span className="font-mono">{success.provenanceHash.slice(0, 12)}...</span>
               </div>
             )}
@@ -215,7 +229,9 @@ export default function ContributePage() {
 
           {/* Preview */}
           <div className="hidden lg:block">
-            <h3 className="text-xs font-medium text-studio-muted mb-2 uppercase tracking-wider">Preview</h3>
+            <h3 className="text-xs font-medium text-studio-muted mb-2 uppercase tracking-wider">
+              Preview
+            </h3>
             {previewEntry ? (
               <KnowledgeEntryCard entry={previewEntry} />
             ) : (

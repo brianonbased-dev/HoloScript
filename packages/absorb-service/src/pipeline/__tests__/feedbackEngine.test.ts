@@ -16,7 +16,7 @@ function makeCycleResult(overrides: Partial<LayerCycleResult> = {}): LayerCycleR
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     durationMs: 5000,
-    costUSD: 0.50,
+    costUSD: 0.5,
     qualityBefore: 0.85,
     qualityAfter: 0.89,
     qualityDelta: 0.04,
@@ -54,33 +54,39 @@ describe('generateFeedbackSignals', () => {
   });
 
   it('emits cost_efficiency when cost > 0 and delta != 0', () => {
-    const signals = generateFeedbackSignals(makeCycleResult({ costUSD: 1.00 }));
+    const signals = generateFeedbackSignals(makeCycleResult({ costUSD: 1.0 }));
     const costSignal = signals.find((s) => s.signalType === 'cost_efficiency');
     expect(costSignal).toBeDefined();
-    expect(costSignal!.data.costPerPoint).toBe(1.00 / 0.04);
+    expect(costSignal!.data.costPerPoint).toBe(1.0 / 0.04);
   });
 
   it('does not emit cost_efficiency when delta is 0', () => {
-    const signals = generateFeedbackSignals(makeCycleResult({
-      qualityDelta: 0,
-      costUSD: 1.00,
-    }));
+    const signals = generateFeedbackSignals(
+      makeCycleResult({
+        qualityDelta: 0,
+        costUSD: 1.0,
+      })
+    );
     const costSignal = signals.find((s) => s.signalType === 'cost_efficiency');
     expect(costSignal).toBeUndefined();
   });
 
   it('emits plateau_detected when delta below threshold', () => {
-    const signals = generateFeedbackSignals(makeCycleResult({
-      qualityDelta: 0.005,
-    }));
+    const signals = generateFeedbackSignals(
+      makeCycleResult({
+        qualityDelta: 0.005,
+      })
+    );
     const plateau = signals.find((s) => s.signalType === 'plateau_detected');
     expect(plateau).toBeDefined();
   });
 
   it('does not emit plateau when delta above threshold', () => {
-    const signals = generateFeedbackSignals(makeCycleResult({
-      qualityDelta: 0.05,
-    }));
+    const signals = generateFeedbackSignals(
+      makeCycleResult({
+        qualityDelta: 0.05,
+      })
+    );
     const plateau = signals.find((s) => s.signalType === 'plateau_detected');
     expect(plateau).toBeUndefined();
   });
@@ -93,17 +99,19 @@ describe('generateFeedbackSignals', () => {
   });
 
   it('does not emit focus_effectiveness for non-L0 layers', () => {
-    const signals = generateFeedbackSignals(makeCycleResult({
-      layerId: 1,
-      output: {
-        kind: 'strategy_adjustment',
-        focusRotationChange: null,
-        profileChange: null,
-        passesChange: null,
-        budgetAdjustment: null,
-        rationale: 'test',
-      },
-    }));
+    const signals = generateFeedbackSignals(
+      makeCycleResult({
+        layerId: 1,
+        output: {
+          kind: 'strategy_adjustment',
+          focusRotationChange: null,
+          profileChange: null,
+          passesChange: null,
+          budgetAdjustment: null,
+          rationale: 'test',
+        },
+      })
+    );
     const focus = signals.find((s) => s.signalType === 'focus_effectiveness');
     expect(focus).toBeUndefined();
   });

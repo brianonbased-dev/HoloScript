@@ -361,7 +361,9 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   }
 
   private processObject(obj: HoloObjectDecl, parentId: string | null): void {
-    const entityId = this.generateEntityId(`obj-${this.escapeStringValue(obj.name as string, 'TypeScript')}`);
+    const entityId = this.generateEntityId(
+      `obj-${this.escapeStringValue(obj.name as string, 'TypeScript')}`
+    );
 
     const position = this.extractPosition(obj);
     const rotation = this.extractRotation(obj);
@@ -457,7 +459,9 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   }
 
   private processSpatialGroup(group: HoloSpatialGroup, parentId: string | null): void {
-    const entityId = this.generateEntityId(`grp-${this.escapeStringValue(group.name as string, 'TypeScript')}`);
+    const entityId = this.generateEntityId(
+      `grp-${this.escapeStringValue(group.name as string, 'TypeScript')}`
+    );
 
     const position = this.extractGroupPosition(group);
     const rotation = this.extractGroupRotation(group);
@@ -516,7 +520,9 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
   }
 
   private processZone(zone: HoloZone, parentId: string | null): void {
-    const entityId = this.generateEntityId(`zone-${this.escapeStringValue(zone.name as string, 'TypeScript')}`);
+    const entityId = this.generateEntityId(
+      `zone-${this.escapeStringValue(zone.name as string, 'TypeScript')}`
+    );
 
     const position = this.extractZonePosition(zone);
     const pose = this.buildPose(position, [0, 0, 0]);
@@ -573,7 +579,9 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
 
   private processWaypointSet(wpSet: HoloWaypoints, parentId: string | null): void {
     // Create a group entity for the waypoint set
-    const groupEntityId = this.generateEntityId(`wp-set-${this.escapeStringValue(wpSet.name as string, 'TypeScript')}`);
+    const groupEntityId = this.generateEntityId(
+      `wp-set-${this.escapeStringValue(wpSet.name as string, 'TypeScript')}`
+    );
     const groupEntity: SpatialEntity = {
       entityId: groupEntityId,
       name: wpSet.name,
@@ -600,7 +608,9 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
       for (let i = 0; i < points.length; i++) {
         const point = points[i];
         const position = this.toNumberArray(point);
-        const entityId = this.generateEntityId(`wp-${this.escapeStringValue(wpSet.name as string, 'TypeScript')}-${i}`);
+        const entityId = this.generateEntityId(
+          `wp-${this.escapeStringValue(wpSet.name as string, 'TypeScript')}-${i}`
+        );
 
         const components: SpatialEntityComponent[] = [];
 
@@ -622,7 +632,10 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
 
         components.push({
           type: 'XR_SPATIAL_COMPONENT_TYPE_SEMANTIC_LABEL',
-          labels: ['waypoint', `${this.escapeStringValue(wpSet.name as string, 'TypeScript')}-${i}`],
+          labels: [
+            'waypoint',
+            `${this.escapeStringValue(wpSet.name as string, 'TypeScript')}-${i}`,
+          ],
         });
 
         const entity: SpatialEntity = {
@@ -647,7 +660,9 @@ export class OpenXRSpatialEntitiesCompiler extends CompilerBase {
     if (!composition.ui?.elements) return;
 
     for (const uiElement of composition.ui.elements) {
-      const entityId = this.generateEntityId(`annot-${this.escapeStringValue(uiElement.name as string, 'TypeScript')}`);
+      const entityId = this.generateEntityId(
+        `annot-${this.escapeStringValue(uiElement.name as string, 'TypeScript')}`
+      );
 
       // Try to extract position from UI element properties
       const posProp = uiElement.properties.find((p) => p.key === 'position');

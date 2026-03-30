@@ -3,233 +3,241 @@ import { RedisSubsystem } from '../src/subsystems/RedisSubsystem';
 
 // Mock @upstash/redis -- use function() not arrow for constructor (W.011)
 const mockPipeline = {
-    set: vi.fn().mockReturnThis(),
-    exec: vi.fn().mockResolvedValue(['OK', 'OK', 'OK'])
+  set: vi.fn().mockReturnThis(),
+  exec: vi.fn().mockResolvedValue(['OK', 'OK', 'OK']),
 };
 
 vi.mock('@upstash/redis', () => ({
-    Redis: vi.fn().mockImplementation(function () {
-        return {
-            ping: vi.fn().mockResolvedValue('PONG'),
-            get: vi.fn().mockResolvedValue(null),
-            set: vi.fn().mockResolvedValue('OK'),
-            del: vi.fn().mockResolvedValue(1),
-            hset: vi.fn().mockResolvedValue(1),
-            keys: vi.fn().mockResolvedValue([]),
-            exists: vi.fn().mockResolvedValue(1),
-            expire: vi.fn().mockResolvedValue(1),
-            pipeline: vi.fn().mockReturnValue(mockPipeline)
-        };
-    })
+  Redis: vi.fn().mockImplementation(function () {
+    return {
+      ping: vi.fn().mockResolvedValue('PONG'),
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue('OK'),
+      del: vi.fn().mockResolvedValue(1),
+      hset: vi.fn().mockResolvedValue(1),
+      keys: vi.fn().mockResolvedValue([]),
+      exists: vi.fn().mockResolvedValue(1),
+      expire: vi.fn().mockResolvedValue(1),
+      pipeline: vi.fn().mockReturnValue(mockPipeline),
+    };
+  }),
 }));
 
 describe('RedisSubsystem', () => {
-    let redis: RedisSubsystem;
+  let redis: RedisSubsystem;
 
-    beforeEach(() => {
-        redis = new RedisSubsystem();
-        process.env.UPSTASH_REDIS_URL = 'https://test-redis.upstash.io';
-        process.env.UPSTASH_REDIS_TOKEN = 'test-token';
+  beforeEach(() => {
+    redis = new RedisSubsystem();
+    process.env.UPSTASH_REDIS_URL = 'https://test-redis.upstash.io';
+    process.env.UPSTASH_REDIS_TOKEN = 'test-token';
+  });
+
+  describe('connect', () => {
+    it('should connect successfully with valid credentials', async () => {
+      await redis.connect();
+      expect(await redis.health()).toBe(true);
     });
 
-    describe('connect', () => {
-        it('should connect successfully with valid credentials', async () => {
-            await redis.connect();
-            expect(await redis.health()).toBe(true);
-        });
-
-        it('should throw error if UPSTASH_REDIS_URL is missing', async () => {
-            delete process.env.UPSTASH_REDIS_URL;
-            await expect(redis.connect()).rejects.toThrow('UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN environment variables are required');
-        });
-
-        it('should throw error if UPSTASH_REDIS_TOKEN is missing', async () => {
-            delete process.env.UPSTASH_REDIS_TOKEN;
-            await expect(redis.connect()).rejects.toThrow('UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN environment variables are required');
-        });
+    it('should throw error if UPSTASH_REDIS_URL is missing', async () => {
+      delete process.env.UPSTASH_REDIS_URL;
+      await expect(redis.connect()).rejects.toThrow(
+        'UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN environment variables are required'
+      );
     });
 
-    describe('disconnect', () => {
-        it('should disconnect and mark as not connected', async () => {
-            await redis.connect();
-            await redis.disconnect();
-            expect(await redis.health()).toBe(false);
-        });
+    it('should throw error if UPSTASH_REDIS_TOKEN is missing', async () => {
+      delete process.env.UPSTASH_REDIS_TOKEN;
+      await expect(redis.connect()).rejects.toThrow(
+        'UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN environment variables are required'
+      );
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should disconnect and mark as not connected', async () => {
+      await redis.connect();
+      await redis.disconnect();
+      expect(await redis.health()).toBe(false);
+    });
+  });
+
+  describe('health', () => {
+    it('should return false when not connected', async () => {
+      expect(await redis.health()).toBe(false);
     });
 
-    describe('health', () => {
-        it('should return false when not connected', async () => {
-            expect(await redis.health()).toBe(false);
-        });
+    it('should return true when connected', async () => {
+      await redis.connect();
+      expect(await redis.health()).toBe(true);
+    });
+  });
 
-        it('should return true when connected', async () => {
-            await redis.connect();
-            expect(await redis.health()).toBe(true);
-        });
+  describe('scene caching', () => {
+    beforeEach(async () => {
+      await redis.connect();
     });
 
-    describe('scene caching', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
-
-        it('should get cached scene', async () => {
-            const result = await redis.getCachedScene('scene:test');
-            expect(result).toBeNull();
-        });
-
-        it('should set cached scene with default TTL', async () => {
-            await redis.setCachedScene('scene:test', { data: 'compiled' });
-            // No error means success
-        });
-
-        it('should set cached scene with custom TTL', async () => {
-            await redis.setCachedScene('scene:test', { data: 'compiled' }, 3600);
-            // No error means success
-        });
-
-        it('should delete cached scene', async () => {
-            const deleted = await redis.deleteCachedScene('scene:test');
-            expect(deleted).toBe(1);
-        });
-
-        it('should throw error when not connected', async () => {
-            await redis.disconnect();
-            await expect(redis.getCachedScene('scene:test')).rejects.toThrow('RedisSubsystem not connected');
-        });
+    it('should get cached scene', async () => {
+      const result = await redis.getCachedScene('scene:test');
+      expect(result).toBeNull();
     });
 
-    describe('session state', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
-
-        it('should get session state', async () => {
-            const state = await redis.getSessionState('session-123');
-            expect(state).toBeNull();
-        });
-
-        it('should set session state with default TTL', async () => {
-            await redis.setSessionState('session-123', { user: 'test' });
-        });
-
-        it('should set session state with custom TTL', async () => {
-            await redis.setSessionState('session-123', { user: 'test' }, 7200);
-        });
-
-        it('should delete session state', async () => {
-            const deleted = await redis.deleteSessionState('session-123');
-            expect(deleted).toBe(1);
-        });
+    it('should set cached scene with default TTL', async () => {
+      await redis.setCachedScene('scene:test', { data: 'compiled' });
+      // No error means success
     });
 
-    describe('user preferences', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
-
-        it('should get user preferences', async () => {
-            const prefs = await redis.getUserPreferences('user-123');
-            expect(prefs).toBeNull();
-        });
-
-        it('should set user preferences', async () => {
-            await redis.setUserPreferences('user-123', { theme: 'dark' });
-        });
-
-        it('should update specific preference field', async () => {
-            await redis.updateUserPreference('user-123', 'theme', 'light');
-        });
+    it('should set cached scene with custom TTL', async () => {
+      await redis.setCachedScene('scene:test', { data: 'compiled' }, 3600);
+      // No error means success
     });
 
-    describe('batch operations', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
-
-        it('should batch set multiple cached scenes', async () => {
-            const result = await redis.batchSetCachedScenes([
-                { key: 'scene:a', value: { data: 'a' } },
-                { key: 'scene:b', value: { data: 'b' }, ttl: 7200 },
-                { key: 'scene:c', value: { data: 'c' } }
-            ]);
-            expect(result.successful).toBe(3);
-            expect(result.failed).toBe(0);
-            expect(result.errors).toHaveLength(0);
-        });
-
-        it('should batch delete multiple cached scenes', async () => {
-            const deleted = await redis.batchDeleteCachedScenes(['scene:a', 'scene:b']);
-            expect(deleted).toBe(1); // mock returns 1
-        });
-
-        it('should return 0 when batch deleting empty array', async () => {
-            const deleted = await redis.batchDeleteCachedScenes([]);
-            expect(deleted).toBe(0);
-        });
-
-        it('should throw error for batch operations when not connected', async () => {
-            await redis.disconnect();
-            await expect(redis.batchSetCachedScenes([{ key: 'a', value: 'b' }]))
-                .rejects.toThrow('RedisSubsystem not connected');
-            await expect(redis.batchDeleteCachedScenes(['a']))
-                .rejects.toThrow('RedisSubsystem not connected');
-        });
+    it('should delete cached scene', async () => {
+      const deleted = await redis.deleteCachedScene('scene:test');
+      expect(deleted).toBe(1);
     });
 
-    describe('cache statistics', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
+    it('should throw error when not connected', async () => {
+      await redis.disconnect();
+      await expect(redis.getCachedScene('scene:test')).rejects.toThrow(
+        'RedisSubsystem not connected'
+      );
+    });
+  });
 
-        it('should get cache statistics', async () => {
-            const stats = await redis.getCacheStatistics();
-            expect(stats.sceneCount).toBe(0);
-            expect(stats.sessionCount).toBe(0);
-            expect(stats.prefsCount).toBe(0);
-            expect(Array.isArray(stats.sceneKeys)).toBe(true);
-        });
-
-        it('should throw error when not connected', async () => {
-            await redis.disconnect();
-            await expect(redis.getCacheStatistics()).rejects.toThrow('RedisSubsystem not connected');
-        });
+  describe('session state', () => {
+    beforeEach(async () => {
+      await redis.connect();
     });
 
-    describe('flush scene cache', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
-
-        it('should flush all scene cache keys', async () => {
-            const deleted = await redis.flushSceneCache();
-            expect(deleted).toBe(0);
-        });
-
-        it('should throw error when not connected', async () => {
-            await redis.disconnect();
-            await expect(redis.flushSceneCache()).rejects.toThrow('RedisSubsystem not connected');
-        });
+    it('should get session state', async () => {
+      const state = await redis.getSessionState('session-123');
+      expect(state).toBeNull();
     });
 
-    describe('utility methods', () => {
-        beforeEach(async () => {
-            await redis.connect();
-        });
-
-        it('should get keys by pattern', async () => {
-            const keys = await redis.getKeysByPattern('scene:*');
-            expect(Array.isArray(keys)).toBe(true);
-        });
-
-        it('should check if key exists', async () => {
-            const exists = await redis.exists('scene:test');
-            expect(exists).toBe(1);
-        });
-
-        it('should set expiration on key', async () => {
-            const result = await redis.expire('scene:test', 3600);
-            expect(result).toBe(1);
-        });
+    it('should set session state with default TTL', async () => {
+      await redis.setSessionState('session-123', { user: 'test' });
     });
+
+    it('should set session state with custom TTL', async () => {
+      await redis.setSessionState('session-123', { user: 'test' }, 7200);
+    });
+
+    it('should delete session state', async () => {
+      const deleted = await redis.deleteSessionState('session-123');
+      expect(deleted).toBe(1);
+    });
+  });
+
+  describe('user preferences', () => {
+    beforeEach(async () => {
+      await redis.connect();
+    });
+
+    it('should get user preferences', async () => {
+      const prefs = await redis.getUserPreferences('user-123');
+      expect(prefs).toBeNull();
+    });
+
+    it('should set user preferences', async () => {
+      await redis.setUserPreferences('user-123', { theme: 'dark' });
+    });
+
+    it('should update specific preference field', async () => {
+      await redis.updateUserPreference('user-123', 'theme', 'light');
+    });
+  });
+
+  describe('batch operations', () => {
+    beforeEach(async () => {
+      await redis.connect();
+    });
+
+    it('should batch set multiple cached scenes', async () => {
+      const result = await redis.batchSetCachedScenes([
+        { key: 'scene:a', value: { data: 'a' } },
+        { key: 'scene:b', value: { data: 'b' }, ttl: 7200 },
+        { key: 'scene:c', value: { data: 'c' } },
+      ]);
+      expect(result.successful).toBe(3);
+      expect(result.failed).toBe(0);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should batch delete multiple cached scenes', async () => {
+      const deleted = await redis.batchDeleteCachedScenes(['scene:a', 'scene:b']);
+      expect(deleted).toBe(1); // mock returns 1
+    });
+
+    it('should return 0 when batch deleting empty array', async () => {
+      const deleted = await redis.batchDeleteCachedScenes([]);
+      expect(deleted).toBe(0);
+    });
+
+    it('should throw error for batch operations when not connected', async () => {
+      await redis.disconnect();
+      await expect(redis.batchSetCachedScenes([{ key: 'a', value: 'b' }])).rejects.toThrow(
+        'RedisSubsystem not connected'
+      );
+      await expect(redis.batchDeleteCachedScenes(['a'])).rejects.toThrow(
+        'RedisSubsystem not connected'
+      );
+    });
+  });
+
+  describe('cache statistics', () => {
+    beforeEach(async () => {
+      await redis.connect();
+    });
+
+    it('should get cache statistics', async () => {
+      const stats = await redis.getCacheStatistics();
+      expect(stats.sceneCount).toBe(0);
+      expect(stats.sessionCount).toBe(0);
+      expect(stats.prefsCount).toBe(0);
+      expect(Array.isArray(stats.sceneKeys)).toBe(true);
+    });
+
+    it('should throw error when not connected', async () => {
+      await redis.disconnect();
+      await expect(redis.getCacheStatistics()).rejects.toThrow('RedisSubsystem not connected');
+    });
+  });
+
+  describe('flush scene cache', () => {
+    beforeEach(async () => {
+      await redis.connect();
+    });
+
+    it('should flush all scene cache keys', async () => {
+      const deleted = await redis.flushSceneCache();
+      expect(deleted).toBe(0);
+    });
+
+    it('should throw error when not connected', async () => {
+      await redis.disconnect();
+      await expect(redis.flushSceneCache()).rejects.toThrow('RedisSubsystem not connected');
+    });
+  });
+
+  describe('utility methods', () => {
+    beforeEach(async () => {
+      await redis.connect();
+    });
+
+    it('should get keys by pattern', async () => {
+      const keys = await redis.getKeysByPattern('scene:*');
+      expect(Array.isArray(keys)).toBe(true);
+    });
+
+    it('should check if key exists', async () => {
+      const exists = await redis.exists('scene:test');
+      expect(exists).toBe(1);
+    });
+
+    it('should set expiration on key', async () => {
+      const result = await redis.expire('scene:test', 3600);
+      expect(result).toBe(1);
+    });
+  });
 });

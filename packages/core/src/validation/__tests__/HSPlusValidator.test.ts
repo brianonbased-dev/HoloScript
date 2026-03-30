@@ -73,8 +73,10 @@ describe('validateHSPlus', () => {
       const code = 'just plain text without any structure';
       const result = validateHSPlus(code);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.type === 'syntax')).toBe(true);
-      expect(result.errors.some(e => e.message.includes('missing trait decorator or braces'))).toBe(true);
+      expect(result.errors.some((e) => e.type === 'syntax')).toBe(true);
+      expect(
+        result.errors.some((e) => e.message.includes('missing trait decorator or braces'))
+      ).toBe(true);
     });
 
     it('reports error for unbalanced braces', () => {
@@ -84,7 +86,7 @@ describe('validateHSPlus', () => {
       `;
       const result = validateHSPlus(code);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.message.includes('Unbalanced braces'))).toBe(true);
+      expect(result.errors.some((e) => e.message.includes('Unbalanced braces'))).toBe(true);
     });
 
     it('reports error when extra closing braces', () => {
@@ -95,7 +97,7 @@ describe('validateHSPlus', () => {
       `;
       const result = validateHSPlus(code);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.message.includes('Unbalanced braces'))).toBe(true);
+      expect(result.errors.some((e) => e.message.includes('Unbalanced braces'))).toBe(true);
     });
   });
 
@@ -111,9 +113,9 @@ describe('validateHSPlus', () => {
       `;
       const result = validateHSPlus(code);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e =>
-        e.type === 'semantic' && e.message.includes('undefined or null')
-      )).toBe(true);
+      expect(
+        result.errors.some((e) => e.type === 'semantic' && e.message.includes('undefined or null'))
+      ).toBe(true);
     });
 
     it('reports error for null references', () => {
@@ -124,9 +126,9 @@ describe('validateHSPlus', () => {
       `;
       const result = validateHSPlus(code);
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e =>
-        e.type === 'semantic' && e.message.includes('undefined or null')
-      )).toBe(true);
+      expect(
+        result.errors.some((e) => e.type === 'semantic' && e.message.includes('undefined or null'))
+      ).toBe(true);
     });
   });
 
@@ -143,7 +145,9 @@ describe('validateHSPlus', () => {
       const result = validateHSPlus(code);
       // Code is valid (has @ and braces), but triggers a warning
       expect(result.valid).toBe(true);
-      expect(result.warnings.some(w => w.message.includes('No recognized trait decorator'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('No recognized trait decorator'))).toBe(
+        true
+      );
     });
 
     it('warns when no recognized property types found', () => {
@@ -153,7 +157,9 @@ describe('validateHSPlus', () => {
         }
       `;
       const result = validateHSPlus(code);
-      expect(result.warnings.some(w => w.message.includes('No recognized property types'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('No recognized property types'))).toBe(
+        true
+      );
     });
 
     it('warns about reserved keywords', () => {
@@ -164,7 +170,9 @@ describe('validateHSPlus', () => {
         }
       `;
       const result = validateHSPlus(code);
-      expect(result.warnings.some(w => w.message.includes('reserved keyword: override'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('reserved keyword: override'))).toBe(
+        true
+      );
     });
 
     it('warns about code exceeding size limit', () => {
@@ -172,7 +180,7 @@ describe('validateHSPlus', () => {
       const largeLine = 'x :number = 1.0\n';
       const largeCode = `@trait {\n${'  ' + largeLine.repeat(7000)}\n}`;
       const result = validateHSPlus(largeCode);
-      expect(result.warnings.some(w => w.message.includes('exceeds'))).toBe(true);
+      expect(result.warnings.some((w) => w.message.includes('exceeds'))).toBe(true);
     });
   });
 
@@ -189,9 +197,13 @@ describe('validateHSPlus', () => {
       const result = validateHSPlus(code);
       expect(result.valid).toBe(true);
       // Should have no decorator or property type warnings
-      expect(result.warnings.filter(w =>
-        w.message.includes('No recognized trait') || w.message.includes('No recognized property')
-      )).toHaveLength(0);
+      expect(
+        result.warnings.filter(
+          (w) =>
+            w.message.includes('No recognized trait') ||
+            w.message.includes('No recognized property')
+        )
+      ).toHaveLength(0);
     });
 
     it('all errors have recoverable flag set', () => {

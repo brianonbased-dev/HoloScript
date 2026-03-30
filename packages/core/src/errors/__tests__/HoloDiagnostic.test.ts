@@ -115,7 +115,13 @@ describe('formatDiagnostic', () => {
       line: 1,
       column: 0,
       origin: 'lint',
-      quickFixes: [{ title: 'Remove @ambient', range: { startLine: 1, startColumn: 0, endLine: 1, endColumn: 8 }, newText: '' }],
+      quickFixes: [
+        {
+          title: 'Remove @ambient',
+          range: { startLine: 1, startColumn: 0, endLine: 1, endColumn: 8 },
+          newText: '',
+        },
+      ],
     };
     const output = formatDiagnostic(diag);
     expect(output).toContain('fix: Remove @ambient');

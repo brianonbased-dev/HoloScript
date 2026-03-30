@@ -108,7 +108,11 @@ describe('agentProfileHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentProfileHandler, node, { did: 'did:test' }, ctx);
-      sendEvent(agentProfileHandler, node, {}, ctx, { type: 'profile:update', field: 'displayName', value: 'NewName' });
+      sendEvent(agentProfileHandler, node, {}, ctx, {
+        type: 'profile:update',
+        field: 'displayName',
+        value: 'NewName',
+      });
 
       expect((node as any).__agentProfileState.displayName).toBe('NewName');
       expect((node as any).__agentProfileState.profileVersion).toBe(2);
@@ -123,7 +127,11 @@ describe('agentProfileHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentProfileHandler, node, {}, ctx);
-      sendEvent(agentProfileHandler, node, {}, ctx, { type: 'profile:update', field: 'bio', value: 'y'.repeat(600) });
+      sendEvent(agentProfileHandler, node, {}, ctx, {
+        type: 'profile:update',
+        field: 'bio',
+        value: 'y'.repeat(600),
+      });
 
       expect(((node as any).__agentProfileState.bio as string).length).toBe(500);
     });
@@ -207,7 +215,10 @@ describe('profileThemeHandler', () => {
 
       attachTrait(profileThemeHandler, node, {}, ctx);
       ctx.clearEvents();
-      sendEvent(profileThemeHandler, node, {}, ctx, { type: 'theme:apply', theme: { particles: 'stars' } });
+      sendEvent(profileThemeHandler, node, {}, ctx, {
+        type: 'theme:apply',
+        theme: { particles: 'stars' },
+      });
 
       const state = (node as any).__profileThemeState;
       expect((state.activeTheme as any).particles).toBe('stars');
@@ -223,7 +234,10 @@ describe('profileThemeHandler', () => {
       sendEvent(profileThemeHandler, node, {}, ctx, { type: 'theme:save', name: 'dark' });
 
       // Change active theme
-      sendEvent(profileThemeHandler, node, {}, ctx, { type: 'theme:apply', theme: { primary_color: '#fff' } });
+      sendEvent(profileThemeHandler, node, {}, ctx, {
+        type: 'theme:apply',
+        theme: { primary_color: '#fff' },
+      });
       expect(((node as any).__profileThemeState.activeTheme as any).primary_color).toBe('#fff');
 
       // Load saved preset
@@ -270,7 +284,12 @@ describe('statusMoodHandler', () => {
       const node = createMockNode();
       const ctx = createMockContext();
 
-      attachTrait(statusMoodHandler, node, { default_text: 'Working', default_mood: 'focused' }, ctx);
+      attachTrait(
+        statusMoodHandler,
+        node,
+        { default_text: 'Working', default_mood: 'focused' },
+        ctx
+      );
 
       const state = (node as any).__statusMoodState;
       expect(state.currentText).toBe('Working');
@@ -296,7 +315,11 @@ describe('statusMoodHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(statusMoodHandler, node, { default_text: 'idle' }, ctx);
-      sendEvent(statusMoodHandler, node, {}, ctx, { type: 'status:set', text: 'Coding', mood: 'happy' });
+      sendEvent(statusMoodHandler, node, {}, ctx, {
+        type: 'status:set',
+        text: 'Coding',
+        mood: 'happy',
+      });
 
       const state = (node as any).__statusMoodState;
       expect(state.currentText).toBe('Coding');
@@ -312,7 +335,11 @@ describe('statusMoodHandler', () => {
       attachTrait(statusMoodHandler, node, {}, ctx);
 
       for (let i = 0; i < 25; i++) {
-        sendEvent(statusMoodHandler, node, {}, ctx, { type: 'status:set', text: `status-${i}`, mood: '' });
+        sendEvent(statusMoodHandler, node, {}, ctx, {
+          type: 'status:set',
+          text: `status-${i}`,
+          mood: '',
+        });
       }
 
       expect((node as any).__statusMoodState.statusHistory).toHaveLength(20);
@@ -323,8 +350,14 @@ describe('statusMoodHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(statusMoodHandler, node, { default_text: 'idle', default_mood: 'neutral' }, ctx);
-      sendEvent(statusMoodHandler, node, { default_text: 'idle', default_mood: 'neutral' }, ctx, { type: 'status:set', text: 'Busy', mood: 'focused' });
-      sendEvent(statusMoodHandler, node, { default_text: 'idle', default_mood: 'neutral' }, ctx, { type: 'status:clear' });
+      sendEvent(statusMoodHandler, node, { default_text: 'idle', default_mood: 'neutral' }, ctx, {
+        type: 'status:set',
+        text: 'Busy',
+        mood: 'focused',
+      });
+      sendEvent(statusMoodHandler, node, { default_text: 'idle', default_mood: 'neutral' }, ctx, {
+        type: 'status:clear',
+      });
 
       const state = (node as any).__statusMoodState;
       expect(state.currentText).toBe('idle');
@@ -347,14 +380,22 @@ describe('statusMoodHandler', () => {
 
       // auto_mood disabled
       attachTrait(statusMoodHandler, node, { auto_mood: false }, ctx);
-      sendEvent(statusMoodHandler, node, { auto_mood: false }, ctx, { type: 'status:auto_update', mood: 'excited', source: 'activity' });
+      sendEvent(statusMoodHandler, node, { auto_mood: false }, ctx, {
+        type: 'status:auto_update',
+        mood: 'excited',
+        source: 'activity',
+      });
       expect((node as any).__statusMoodState.currentMood).toBe('');
 
       // auto_mood enabled
       const node2 = createMockNode('auto-node');
       const ctx2 = createMockContext();
       attachTrait(statusMoodHandler, node2, { auto_mood: true }, ctx2);
-      sendEvent(statusMoodHandler, node2, { auto_mood: true }, ctx2, { type: 'status:auto_update', mood: 'excited', source: 'activity' });
+      sendEvent(statusMoodHandler, node2, { auto_mood: true }, ctx2, {
+        type: 'status:auto_update',
+        mood: 'excited',
+        source: 'activity',
+      });
       expect((node2 as any).__statusMoodState.currentMood).toBe('excited');
     });
   });
@@ -366,7 +407,11 @@ describe('statusMoodHandler', () => {
 
       attachTrait(statusMoodHandler, node, { default_text: 'idle', expiry: 1 }, ctx);
       // Set a status
-      sendEvent(statusMoodHandler, node, { default_text: 'idle', expiry: 1 }, ctx, { type: 'status:set', text: 'Busy', mood: 'focused' });
+      sendEvent(statusMoodHandler, node, { default_text: 'idle', expiry: 1 }, ctx, {
+        type: 'status:set',
+        text: 'Busy',
+        mood: 'focused',
+      });
 
       // Manually set expiresAt to past
       (node as any).__statusMoodState.expiresAt = Date.now() - 100;
@@ -429,7 +474,10 @@ describe('agentBadgeHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentBadgeHandler, node, { max_display: 3 }, ctx);
-      sendEvent(agentBadgeHandler, node, { max_display: 3 }, ctx, { type: 'badge:award', badge: testBadge });
+      sendEvent(agentBadgeHandler, node, { max_display: 3 }, ctx, {
+        type: 'badge:award',
+        badge: testBadge,
+      });
 
       const state = (node as any).__agentBadgeState;
       expect(state.totalBadges).toBe(1);
@@ -467,14 +515,23 @@ describe('agentBadgeHandler', () => {
 
       attachTrait(agentBadgeHandler, node, { max_display: 1 }, ctx);
       // Award two badges — only first auto-displays
-      sendEvent(agentBadgeHandler, node, { max_display: 1 }, ctx, { type: 'badge:award', badge: testBadge });
+      sendEvent(agentBadgeHandler, node, { max_display: 1 }, ctx, {
+        type: 'badge:award',
+        badge: testBadge,
+      });
       const badge2: Badge = { ...testBadge, id: 'badge-2', name: 'Second' };
-      sendEvent(agentBadgeHandler, node, { max_display: 1 }, ctx, { type: 'badge:award', badge: badge2 });
+      sendEvent(agentBadgeHandler, node, { max_display: 1 }, ctx, {
+        type: 'badge:award',
+        badge: badge2,
+      });
 
       expect((node as any).__agentBadgeState.displayedBadges).toHaveLength(1);
 
       // Manually display badge-2 (should shift out badge-1)
-      sendEvent(agentBadgeHandler, node, { max_display: 1 }, ctx, { type: 'badge:display', badgeId: 'badge-2' });
+      sendEvent(agentBadgeHandler, node, { max_display: 1 }, ctx, {
+        type: 'badge:display',
+        badgeId: 'badge-2',
+      });
 
       const displayed = (node as any).__agentBadgeState.displayedBadges;
       expect(displayed).toHaveLength(1);
@@ -538,7 +595,10 @@ describe('visitorCounterHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(visitorCounterHandler, node, { unique_only: false }, ctx);
-      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, { type: 'visitors:record', did: 'did:a' });
+      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
 
       expect((node as any).__visitorCounterState.totalVisits).toBe(1);
       expect(getLastEvent(ctx, 'visitors:counted')).toBeDefined();
@@ -549,8 +609,14 @@ describe('visitorCounterHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(visitorCounterHandler, node, { unique_only: true }, ctx);
-      sendEvent(visitorCounterHandler, node, { unique_only: true }, ctx, { type: 'visitors:record', did: 'did:a' });
-      sendEvent(visitorCounterHandler, node, { unique_only: true }, ctx, { type: 'visitors:record', did: 'did:a' });
+      sendEvent(visitorCounterHandler, node, { unique_only: true }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
+      sendEvent(visitorCounterHandler, node, { unique_only: true }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
 
       expect((node as any).__visitorCounterState.totalVisits).toBe(1);
     });
@@ -560,8 +626,14 @@ describe('visitorCounterHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(visitorCounterHandler, node, { unique_only: false }, ctx);
-      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, { type: 'visitors:record', did: 'did:a' });
-      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, { type: 'visitors:record', did: 'did:a' });
+      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
+      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
 
       expect((node as any).__visitorCounterState.totalVisits).toBe(2);
     });
@@ -573,7 +645,10 @@ describe('visitorCounterHandler', () => {
       attachTrait(visitorCounterHandler, node, { unique_only: false }, ctx);
 
       for (let i = 0; i < 10; i++) {
-        sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, { type: 'visitors:record', did: `did:v${i}` });
+        sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, {
+          type: 'visitors:record',
+          did: `did:v${i}`,
+        });
       }
 
       const ev = getLastEvent(ctx, 'visitors:milestone') as any;
@@ -624,8 +699,13 @@ describe('visitorCounterHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(visitorCounterHandler, node, { unique_only: false }, ctx);
-      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, { type: 'visitors:record', did: 'did:a' });
-      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, { type: 'visitors:reset' });
+      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
+      sendEvent(visitorCounterHandler, node, { unique_only: false }, ctx, {
+        type: 'visitors:reset',
+      });
 
       expect((node as any).__visitorCounterState.totalVisits).toBe(0);
     });
@@ -637,7 +717,10 @@ describe('visitorCounterHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(visitorCounterHandler, node, { unique_only: false, reset_interval: 1 }, ctx);
-      sendEvent(visitorCounterHandler, node, { unique_only: false, reset_interval: 1 }, ctx, { type: 'visitors:record', did: 'did:a' });
+      sendEvent(visitorCounterHandler, node, { unique_only: false, reset_interval: 1 }, ctx, {
+        type: 'visitors:record',
+        did: 'did:a',
+      });
       expect((node as any).__visitorCounterState.totalVisits).toBe(1);
 
       // Force lastResetAt to the past
@@ -689,7 +772,11 @@ describe('top8FriendsHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(top8FriendsHandler, node, {}, ctx);
-      sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:add', did: 'did:a', name: 'Alice' });
+      sendEvent(top8FriendsHandler, node, {}, ctx, {
+        type: 'friends:add',
+        did: 'did:a',
+        name: 'Alice',
+      });
 
       const state = (node as any).__top8FriendsState;
       expect(state.friends).toHaveLength(1);
@@ -703,8 +790,16 @@ describe('top8FriendsHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(top8FriendsHandler, node, {}, ctx);
-      sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:add', did: 'did:a', name: 'Alice' });
-      sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:add', did: 'did:a', name: 'Alice' });
+      sendEvent(top8FriendsHandler, node, {}, ctx, {
+        type: 'friends:add',
+        did: 'did:a',
+        name: 'Alice',
+      });
+      sendEvent(top8FriendsHandler, node, {}, ctx, {
+        type: 'friends:add',
+        did: 'did:a',
+        name: 'Alice',
+      });
 
       expect((node as any).__top8FriendsState.friends).toHaveLength(1);
     });
@@ -714,9 +809,21 @@ describe('top8FriendsHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(top8FriendsHandler, node, { max_slots: 2 }, ctx);
-      sendEvent(top8FriendsHandler, node, { max_slots: 2 }, ctx, { type: 'friends:add', did: 'did:a', name: 'A' });
-      sendEvent(top8FriendsHandler, node, { max_slots: 2 }, ctx, { type: 'friends:add', did: 'did:b', name: 'B' });
-      sendEvent(top8FriendsHandler, node, { max_slots: 2 }, ctx, { type: 'friends:add', did: 'did:c', name: 'C' });
+      sendEvent(top8FriendsHandler, node, { max_slots: 2 }, ctx, {
+        type: 'friends:add',
+        did: 'did:a',
+        name: 'A',
+      });
+      sendEvent(top8FriendsHandler, node, { max_slots: 2 }, ctx, {
+        type: 'friends:add',
+        did: 'did:b',
+        name: 'B',
+      });
+      sendEvent(top8FriendsHandler, node, { max_slots: 2 }, ctx, {
+        type: 'friends:add',
+        did: 'did:c',
+        name: 'C',
+      });
 
       expect((node as any).__top8FriendsState.friends).toHaveLength(2);
     });
@@ -726,8 +833,16 @@ describe('top8FriendsHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(top8FriendsHandler, node, {}, ctx);
-      sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:add', did: 'did:a', name: 'A' });
-      sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:add', did: 'did:b', name: 'B' });
+      sendEvent(top8FriendsHandler, node, {}, ctx, {
+        type: 'friends:add',
+        did: 'did:a',
+        name: 'A',
+      });
+      sendEvent(top8FriendsHandler, node, {}, ctx, {
+        type: 'friends:add',
+        did: 'did:b',
+        name: 'B',
+      });
       sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:remove', did: 'did:a' });
 
       const friends = (node as any).__top8FriendsState.friends;
@@ -740,9 +855,21 @@ describe('top8FriendsHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(top8FriendsHandler, node, { allow_reorder: true }, ctx);
-      sendEvent(top8FriendsHandler, node, { allow_reorder: true }, ctx, { type: 'friends:add', did: 'did:a', name: 'A' });
-      sendEvent(top8FriendsHandler, node, { allow_reorder: true }, ctx, { type: 'friends:add', did: 'did:b', name: 'B' });
-      sendEvent(top8FriendsHandler, node, { allow_reorder: true }, ctx, { type: 'friends:reorder', did: 'did:b', rank: 1 });
+      sendEvent(top8FriendsHandler, node, { allow_reorder: true }, ctx, {
+        type: 'friends:add',
+        did: 'did:a',
+        name: 'A',
+      });
+      sendEvent(top8FriendsHandler, node, { allow_reorder: true }, ctx, {
+        type: 'friends:add',
+        did: 'did:b',
+        name: 'B',
+      });
+      sendEvent(top8FriendsHandler, node, { allow_reorder: true }, ctx, {
+        type: 'friends:reorder',
+        did: 'did:b',
+        rank: 1,
+      });
 
       const friends = (node as any).__top8FriendsState.friends;
       expect(friends[0].did).toBe('did:b');
@@ -754,7 +881,11 @@ describe('top8FriendsHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(top8FriendsHandler, node, {}, ctx);
-      sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:request', from: 'did:x', name: 'X' });
+      sendEvent(top8FriendsHandler, node, {}, ctx, {
+        type: 'friends:request',
+        from: 'did:x',
+        name: 'X',
+      });
       expect(getLastEvent(ctx, 'friends:request_received')).toBeDefined();
 
       sendEvent(top8FriendsHandler, node, {}, ctx, { type: 'friends:accept', from: 'did:x' });
@@ -805,7 +936,10 @@ describe('guestbookHandler', () => {
 
       attachTrait(guestbookHandler, node, {}, ctx);
       sendEvent(guestbookHandler, node, {}, ctx, {
-        type: 'guestbook:sign', authorDid: 'did:a', authorName: 'Alice', message: 'Hello!',
+        type: 'guestbook:sign',
+        authorDid: 'did:a',
+        authorName: 'Alice',
+        message: 'Hello!',
       });
 
       const state = (node as any).__guestbookState;
@@ -828,10 +962,17 @@ describe('guestbookHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(guestbookHandler, node, { require_signature: true }, ctx);
-      sendEvent(guestbookHandler, node, { require_signature: true }, ctx, { type: 'guestbook:sign', message: 'Hi' });
+      sendEvent(guestbookHandler, node, { require_signature: true }, ctx, {
+        type: 'guestbook:sign',
+        message: 'Hi',
+      });
       expect((node as any).__guestbookState.entries).toHaveLength(0);
 
-      sendEvent(guestbookHandler, node, { require_signature: true }, ctx, { type: 'guestbook:sign', message: 'Hi', signature: '0xabc' });
+      sendEvent(guestbookHandler, node, { require_signature: true }, ctx, {
+        type: 'guestbook:sign',
+        message: 'Hi',
+        signature: '0xabc',
+      });
       expect((node as any).__guestbookState.entries).toHaveLength(1);
     });
 
@@ -840,7 +981,10 @@ describe('guestbookHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(guestbookHandler, node, { moderation: 'manual' }, ctx);
-      sendEvent(guestbookHandler, node, { moderation: 'manual' }, ctx, { type: 'guestbook:sign', message: 'Review me' });
+      sendEvent(guestbookHandler, node, { moderation: 'manual' }, ctx, {
+        type: 'guestbook:sign',
+        message: 'Review me',
+      });
 
       const state = (node as any).__guestbookState;
       expect(state.entries).toHaveLength(0);
@@ -853,12 +997,18 @@ describe('guestbookHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(guestbookHandler, node, { moderation: 'manual' }, ctx);
-      sendEvent(guestbookHandler, node, { moderation: 'manual' }, ctx, { type: 'guestbook:sign', message: 'Review me' });
+      sendEvent(guestbookHandler, node, { moderation: 'manual' }, ctx, {
+        type: 'guestbook:sign',
+        message: 'Review me',
+      });
 
       const pending = (node as any).__guestbookState.pendingModeration;
       const entryId = pending[0].id;
 
-      sendEvent(guestbookHandler, node, { moderation: 'manual' }, ctx, { type: 'guestbook:approve', entryId });
+      sendEvent(guestbookHandler, node, { moderation: 'manual' }, ctx, {
+        type: 'guestbook:approve',
+        entryId,
+      });
       expect((node as any).__guestbookState.entries).toHaveLength(1);
       expect((node as any).__guestbookState.pendingModeration).toHaveLength(0);
     });
@@ -869,7 +1019,10 @@ describe('guestbookHandler', () => {
 
       attachTrait(guestbookHandler, node, { max_entries: 2 }, ctx);
       for (let i = 0; i < 3; i++) {
-        sendEvent(guestbookHandler, node, { max_entries: 2 }, ctx, { type: 'guestbook:sign', message: `msg-${i}` });
+        sendEvent(guestbookHandler, node, { max_entries: 2 }, ctx, {
+          type: 'guestbook:sign',
+          message: `msg-${i}`,
+        });
       }
       expect((node as any).__guestbookState.entries).toHaveLength(2);
     });
@@ -919,7 +1072,11 @@ describe('agentWallHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentWallHandler, node, {}, ctx);
-      sendEvent(agentWallHandler, node, {}, ctx, { type: 'wall:post', authorDid: 'did:a', content: 'Hello wall!' });
+      sendEvent(agentWallHandler, node, {}, ctx, {
+        type: 'wall:post',
+        authorDid: 'did:a',
+        content: 'Hello wall!',
+      });
 
       expect((node as any).__agentWallState.posts).toHaveLength(1);
       expect((node as any).__agentWallState.totalPosts).toBe(1);
@@ -941,17 +1098,32 @@ describe('agentWallHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentWallHandler, node, { allow_likes: true }, ctx);
-      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, { type: 'wall:post', content: 'Hi' });
+      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, {
+        type: 'wall:post',
+        content: 'Hi',
+      });
       const postId = (node as any).__agentWallState.posts[0].id;
 
-      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, { type: 'wall:like', postId, did: 'did:x' });
+      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, {
+        type: 'wall:like',
+        postId,
+        did: 'did:x',
+      });
       expect((node as any).__agentWallState.posts[0].likes).toBe(1);
 
       // Duplicate like should not count
-      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, { type: 'wall:like', postId, did: 'did:x' });
+      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, {
+        type: 'wall:like',
+        postId,
+        did: 'did:x',
+      });
       expect((node as any).__agentWallState.posts[0].likes).toBe(1);
 
-      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, { type: 'wall:unlike', postId, did: 'did:x' });
+      sendEvent(agentWallHandler, node, { allow_likes: true }, ctx, {
+        type: 'wall:unlike',
+        postId,
+        did: 'did:x',
+      });
       expect((node as any).__agentWallState.posts[0].likes).toBe(0);
     });
 
@@ -960,15 +1132,27 @@ describe('agentWallHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentWallHandler, node, { max_pinned: 1 }, ctx);
-      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, { type: 'wall:post', content: 'A' });
-      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, { type: 'wall:post', content: 'B' });
+      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, {
+        type: 'wall:post',
+        content: 'A',
+      });
+      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, {
+        type: 'wall:post',
+        content: 'B',
+      });
 
       const posts = (node as any).__agentWallState.posts;
-      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, { type: 'wall:pin', postId: posts[0].id });
+      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, {
+        type: 'wall:pin',
+        postId: posts[0].id,
+      });
       expect(posts[0].pinned).toBe(true);
 
       // Can't pin second when at limit
-      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, { type: 'wall:pin', postId: posts[1].id });
+      sendEvent(agentWallHandler, node, { max_pinned: 1 }, ctx, {
+        type: 'wall:pin',
+        postId: posts[1].id,
+      });
       expect(posts[1].pinned).toBe(false);
     });
 
@@ -1016,14 +1200,26 @@ describe('agentRoomHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentRoomHandler, node, { max_visitors: 2 }, ctx);
-      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, { type: 'room:enter', did: 'did:a' });
+      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, {
+        type: 'room:enter',
+        did: 'did:a',
+      });
       expect((node as any).__agentRoomState.totalVisits).toBe(1);
 
-      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, { type: 'room:enter', did: 'did:b' });
-      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, { type: 'room:enter', did: 'did:c' });
+      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, {
+        type: 'room:enter',
+        did: 'did:b',
+      });
+      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, {
+        type: 'room:enter',
+        did: 'did:c',
+      });
       expect(getLastEvent(ctx, 'room:full')).toBeDefined();
 
-      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, { type: 'room:leave', did: 'did:a' });
+      sendEvent(agentRoomHandler, node, { max_visitors: 2 }, ctx, {
+        type: 'room:leave',
+        did: 'did:a',
+      });
       expect(getLastEvent(ctx, 'room:left')).toBeDefined();
     });
 
@@ -1032,12 +1228,19 @@ describe('agentRoomHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(agentRoomHandler, node, {}, ctx);
-      sendEvent(agentRoomHandler, node, {}, ctx, { type: 'room:place_furniture', furnitureType: 'chair', position: [1, 0, 1] });
+      sendEvent(agentRoomHandler, node, {}, ctx, {
+        type: 'room:place_furniture',
+        furnitureType: 'chair',
+        position: [1, 0, 1],
+      });
 
       const furniture = (node as any).__agentRoomState.furniture;
       expect(furniture).toHaveLength(1);
 
-      sendEvent(agentRoomHandler, node, {}, ctx, { type: 'room:remove_furniture', itemId: furniture[0].id });
+      sendEvent(agentRoomHandler, node, {}, ctx, {
+        type: 'room:remove_furniture',
+        itemId: furniture[0].id,
+      });
       expect((node as any).__agentRoomState.furniture).toHaveLength(0);
     });
 
@@ -1148,7 +1351,10 @@ describe('spatialCommentHandler', () => {
 
       attachTrait(spatialCommentHandler, node, {}, ctx);
       sendEvent(spatialCommentHandler, node, {}, ctx, {
-        type: 'comment:add', text: 'Nice room!', position: [2, 1, 3], authorDid: 'did:a',
+        type: 'comment:add',
+        text: 'Nice room!',
+        position: [2, 1, 3],
+        authorDid: 'did:a',
       });
 
       const comments = (node as any).__spatialCommentState.comments;
@@ -1163,7 +1369,10 @@ describe('spatialCommentHandler', () => {
 
       attachTrait(spatialCommentHandler, node, { max_comments: 2 }, ctx);
       for (let i = 0; i < 3; i++) {
-        sendEvent(spatialCommentHandler, node, { max_comments: 2 }, ctx, { type: 'comment:add', text: `c${i}` });
+        sendEvent(spatialCommentHandler, node, { max_comments: 2 }, ctx, {
+          type: 'comment:add',
+          text: `c${i}`,
+        });
       }
       expect((node as any).__spatialCommentState.comments).toHaveLength(2);
     });
@@ -1187,7 +1396,10 @@ describe('spatialCommentHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(spatialCommentHandler, node, { lifetime: 1 }, ctx);
-      sendEvent(spatialCommentHandler, node, { lifetime: 1 }, ctx, { type: 'comment:add', text: 'temp' });
+      sendEvent(spatialCommentHandler, node, { lifetime: 1 }, ctx, {
+        type: 'comment:add',
+        text: 'temp',
+      });
 
       // Force expiry
       (node as any).__spatialCommentState.comments[0].expiresAt = Date.now() - 100;
@@ -1254,7 +1466,10 @@ describe('roomPortalHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(roomPortalHandler, node, {}, ctx);
-      sendEvent(roomPortalHandler, node, {}, ctx, { type: 'portal:set_target', targetDid: 'did:new' });
+      sendEvent(roomPortalHandler, node, {}, ctx, {
+        type: 'portal:set_target',
+        targetDid: 'did:new',
+      });
       expect((node as any).__roomPortalState.isActive).toBe(true);
 
       ctx.clearEvents();
@@ -1293,7 +1508,10 @@ describe('traitShowcaseHandler', () => {
 
       attachTrait(traitShowcaseHandler, node, {}, ctx);
       sendEvent(traitShowcaseHandler, node, {}, ctx, {
-        type: 'showcase:add', traitName: 'agent_profile', displayName: 'Profile', icon: 'user',
+        type: 'showcase:add',
+        traitName: 'agent_profile',
+        displayName: 'Profile',
+        icon: 'user',
       });
 
       expect((node as any).__traitShowcaseState.items).toHaveLength(1);
@@ -1316,9 +1534,18 @@ describe('traitShowcaseHandler', () => {
       const ctx = createMockContext();
 
       attachTrait(traitShowcaseHandler, node, { max_display: 2 }, ctx);
-      sendEvent(traitShowcaseHandler, node, { max_display: 2 }, ctx, { type: 'showcase:add', traitName: 'a' });
-      sendEvent(traitShowcaseHandler, node, { max_display: 2 }, ctx, { type: 'showcase:add', traitName: 'b' });
-      sendEvent(traitShowcaseHandler, node, { max_display: 2 }, ctx, { type: 'showcase:add', traitName: 'c' });
+      sendEvent(traitShowcaseHandler, node, { max_display: 2 }, ctx, {
+        type: 'showcase:add',
+        traitName: 'a',
+      });
+      sendEvent(traitShowcaseHandler, node, { max_display: 2 }, ctx, {
+        type: 'showcase:add',
+        traitName: 'b',
+      });
+      sendEvent(traitShowcaseHandler, node, { max_display: 2 }, ctx, {
+        type: 'showcase:add',
+        traitName: 'c',
+      });
 
       expect((node as any).__traitShowcaseState.items).toHaveLength(2);
     });
@@ -1330,7 +1557,11 @@ describe('traitShowcaseHandler', () => {
       attachTrait(traitShowcaseHandler, node, {}, ctx);
       sendEvent(traitShowcaseHandler, node, {}, ctx, { type: 'showcase:add', traitName: 'a' });
       sendEvent(traitShowcaseHandler, node, {}, ctx, { type: 'showcase:add', traitName: 'b' });
-      sendEvent(traitShowcaseHandler, node, {}, ctx, { type: 'showcase:reorder', traitName: 'b', index: 0 });
+      sendEvent(traitShowcaseHandler, node, {}, ctx, {
+        type: 'showcase:reorder',
+        traitName: 'b',
+        index: 0,
+      });
 
       expect((node as any).__traitShowcaseState.items[0].traitName).toBe('b');
 

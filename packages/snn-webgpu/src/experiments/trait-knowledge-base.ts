@@ -40,104 +40,261 @@ const TRAIT_CATEGORIES: TraitCategoryDef[] = [
     name: 'core-vr-interaction',
     categoryId: 0,
     traits: [
-      'grabbable', 'throwable', 'pointable', 'hoverable', 'scalable',
-      'rotatable', 'stackable', 'snappable', 'breakable', 'stretchable',
-      'moldable', 'timeline', 'choreography',
+      'grabbable',
+      'throwable',
+      'pointable',
+      'hoverable',
+      'scalable',
+      'rotatable',
+      'stackable',
+      'snappable',
+      'breakable',
+      'stretchable',
+      'moldable',
+      'timeline',
+      'choreography',
     ],
-    defaults: { physicsEnabled: true, interactive: true, visual: false, auditory: false, complexityTier: 0 },
+    defaults: {
+      physicsEnabled: true,
+      interactive: true,
+      visual: false,
+      auditory: false,
+      complexityTier: 0,
+    },
   },
   {
     name: 'material-properties',
     categoryId: 1,
     traits: [
-      'wooden', 'stone_material', 'brick', 'concrete', 'marble_material',
-      'granite', 'sandstone', 'slate', 'clay', 'terracotta',
-      'glass_material', 'stained_glass', 'crystal_material', 'ice_material',
-      'bone', 'ivory', 'shell', 'coral', 'bamboo', 'paper',
+      'wooden',
+      'stone_material',
+      'brick',
+      'concrete',
+      'marble_material',
+      'granite',
+      'sandstone',
+      'slate',
+      'clay',
+      'terracotta',
+      'glass_material',
+      'stained_glass',
+      'crystal_material',
+      'ice_material',
+      'bone',
+      'ivory',
+      'shell',
+      'coral',
+      'bamboo',
+      'paper',
     ],
-    defaults: { physicsEnabled: false, interactive: false, visual: true, auditory: false, complexityTier: 0 },
+    defaults: {
+      physicsEnabled: false,
+      interactive: false,
+      visual: true,
+      auditory: false,
+      complexityTier: 0,
+    },
   },
   {
     name: 'physics-expansion',
     categoryId: 2,
     traits: [
-      'buoyancy', 'magnetic', 'electrostatic', 'aerodynamic', 'gyroscopic',
-      'friction_override', 'density_override', 'deformable', 'shatterable',
-      'springy', 'viscous', 'turbulent',
+      'buoyancy',
+      'magnetic',
+      'electrostatic',
+      'aerodynamic',
+      'gyroscopic',
+      'friction_override',
+      'density_override',
+      'deformable',
+      'shatterable',
+      'springy',
+      'viscous',
+      'turbulent',
     ],
-    defaults: { physicsEnabled: true, interactive: false, visual: false, auditory: false, complexityTier: 1 },
+    defaults: {
+      physicsEnabled: true,
+      interactive: false,
+      visual: false,
+      auditory: false,
+      complexityTier: 1,
+    },
   },
   {
     name: 'visual-effects',
     categoryId: 3,
     traits: [
-      'glowing', 'emissive_pulse', 'holographic', 'transparent',
-      'reflective', 'refractive', 'iridescent', 'metallic_sheen',
-      'subsurface_scattering', 'volumetric_fog', 'particle_emitter',
-      'trail_renderer', 'lens_flare', 'bloom_override',
+      'glowing',
+      'emissive_pulse',
+      'holographic',
+      'transparent',
+      'reflective',
+      'refractive',
+      'iridescent',
+      'metallic_sheen',
+      'subsurface_scattering',
+      'volumetric_fog',
+      'particle_emitter',
+      'trail_renderer',
+      'lens_flare',
+      'bloom_override',
     ],
-    defaults: { physicsEnabled: false, interactive: false, visual: true, auditory: false, complexityTier: 1 },
+    defaults: {
+      physicsEnabled: false,
+      interactive: false,
+      visual: true,
+      auditory: false,
+      complexityTier: 1,
+    },
   },
   {
     name: 'audio',
     categoryId: 4,
     traits: [
-      'spatial_audio', 'audio_occluded', 'reverb_zone', 'sound_emitter',
-      'audio_reactive', 'doppler_enabled', 'audio_material',
-      'ambient_sound', 'footstep_audio', 'impact_sound',
+      'spatial_audio',
+      'audio_occluded',
+      'reverb_zone',
+      'sound_emitter',
+      'audio_reactive',
+      'doppler_enabled',
+      'audio_material',
+      'ambient_sound',
+      'footstep_audio',
+      'impact_sound',
     ],
-    defaults: { physicsEnabled: false, interactive: false, visual: false, auditory: true, complexityTier: 1 },
+    defaults: {
+      physicsEnabled: false,
+      interactive: false,
+      visual: false,
+      auditory: true,
+      complexityTier: 1,
+    },
   },
   {
     name: 'intelligence-behavior',
     categoryId: 5,
     traits: [
-      'behavior_tree', 'state_machine', 'goal_oriented', 'pathfinding',
-      'flocking', 'obstacle_avoidance', 'perception', 'memory',
-      'learning', 'decision_making', 'emotional_state', 'social_awareness',
+      'behavior_tree',
+      'state_machine',
+      'goal_oriented',
+      'pathfinding',
+      'flocking',
+      'obstacle_avoidance',
+      'perception',
+      'memory',
+      'learning',
+      'decision_making',
+      'emotional_state',
+      'social_awareness',
     ],
-    defaults: { physicsEnabled: false, interactive: true, visual: false, auditory: false, complexityTier: 2 },
+    defaults: {
+      physicsEnabled: false,
+      interactive: true,
+      visual: false,
+      auditory: false,
+      complexityTier: 2,
+    },
   },
   {
     name: 'neuromorphic',
     categoryId: 6,
     traits: [
-      'lif_neuron', 'cuba_lif_neuron', 'if_neuron', 'leaky_integrator',
-      'integrator', 'synaptic_connection', 'linear_connection',
-      'conv_connection', 'spike_encoder', 'rate_encoder',
-      'spike_decoder', 'spike_delay', 'spike_pooling',
+      'lif_neuron',
+      'cuba_lif_neuron',
+      'if_neuron',
+      'leaky_integrator',
+      'integrator',
+      'synaptic_connection',
+      'linear_connection',
+      'conv_connection',
+      'spike_encoder',
+      'rate_encoder',
+      'spike_decoder',
+      'spike_delay',
+      'spike_pooling',
     ],
-    defaults: { physicsEnabled: false, interactive: false, visual: false, auditory: false, complexityTier: 2 },
+    defaults: {
+      physicsEnabled: false,
+      interactive: false,
+      visual: false,
+      auditory: false,
+      complexityTier: 2,
+    },
   },
   {
     name: 'locomotion-movement',
     categoryId: 7,
     traits: [
-      'walkable', 'climbable', 'swimmable', 'flyable', 'teleportable',
-      'slidable', 'rideable', 'mountable', 'grapple_point',
-      'rail_grind', 'wall_run', 'zipline',
+      'walkable',
+      'climbable',
+      'swimmable',
+      'flyable',
+      'teleportable',
+      'slidable',
+      'rideable',
+      'mountable',
+      'grapple_point',
+      'rail_grind',
+      'wall_run',
+      'zipline',
     ],
-    defaults: { physicsEnabled: true, interactive: true, visual: false, auditory: false, complexityTier: 1 },
+    defaults: {
+      physicsEnabled: true,
+      interactive: true,
+      visual: false,
+      auditory: false,
+      complexityTier: 1,
+    },
   },
   {
     name: 'environmental-biome',
     categoryId: 8,
     traits: [
-      'forest_biome', 'desert_biome', 'ocean_biome', 'arctic_biome',
-      'volcanic_biome', 'cave_biome', 'urban_biome', 'space_biome',
-      'underwater_biome', 'mountain_biome', 'swamp_biome', 'prairie_biome',
+      'forest_biome',
+      'desert_biome',
+      'ocean_biome',
+      'arctic_biome',
+      'volcanic_biome',
+      'cave_biome',
+      'urban_biome',
+      'space_biome',
+      'underwater_biome',
+      'mountain_biome',
+      'swamp_biome',
+      'prairie_biome',
     ],
-    defaults: { physicsEnabled: false, interactive: false, visual: true, auditory: true, complexityTier: 2 },
+    defaults: {
+      physicsEnabled: false,
+      interactive: false,
+      visual: true,
+      auditory: true,
+      complexityTier: 2,
+    },
   },
   {
     name: 'weather-particles',
     categoryId: 9,
     traits: [
-      'rain', 'snow', 'hail', 'fog', 'mist', 'sandstorm',
-      'thunder', 'lightning', 'wind_zone', 'tornado',
-      'fire_spread', 'smoke',
+      'rain',
+      'snow',
+      'hail',
+      'fog',
+      'mist',
+      'sandstorm',
+      'thunder',
+      'lightning',
+      'wind_zone',
+      'tornado',
+      'fire_spread',
+      'smoke',
     ],
-    defaults: { physicsEnabled: true, interactive: false, visual: true, auditory: true, complexityTier: 1 },
+    defaults: {
+      physicsEnabled: true,
+      interactive: false,
+      visual: true,
+      auditory: true,
+      complexityTier: 1,
+    },
   },
 ];
 
@@ -191,7 +348,7 @@ const TRAIT_OVERRIDES: Record<string, Partial<TraitFact>> = {
  */
 export function buildTraitKnowledgeBase(): TraitKnowledgeBase {
   const facts: TraitFact[] = [];
-  const categoryNames = TRAIT_CATEGORIES.map(c => c.name);
+  const categoryNames = TRAIT_CATEGORIES.map((c) => c.name);
 
   for (const category of TRAIT_CATEGORIES) {
     for (const traitName of category.traits) {
@@ -211,12 +368,12 @@ export function buildTraitKnowledgeBase(): TraitKnowledgeBase {
 
       // Build normalized property vector
       fact.propertyVector = [
-        fact.categoryId / 9.0,              // normalized category (0-1)
-        fact.physicsEnabled ? 1.0 : 0.0,    // boolean
-        fact.interactive ? 1.0 : 0.0,       // boolean
-        fact.visual ? 1.0 : 0.0,            // boolean
-        fact.auditory ? 1.0 : 0.0,          // boolean
-        fact.complexityTier / 2.0,           // normalized complexity (0-1)
+        fact.categoryId / 9.0, // normalized category (0-1)
+        fact.physicsEnabled ? 1.0 : 0.0, // boolean
+        fact.interactive ? 1.0 : 0.0, // boolean
+        fact.visual ? 1.0 : 0.0, // boolean
+        fact.auditory ? 1.0 : 0.0, // boolean
+        fact.complexityTier / 2.0, // normalized complexity (0-1)
       ];
 
       facts.push(fact);
@@ -227,7 +384,7 @@ export function buildTraitKnowledgeBase(): TraitKnowledgeBase {
     facts,
     numCategories: TRAIT_CATEGORIES.length,
     inputDim: facts.length, // one-hot encoding
-    outputDim: 6,           // property vector dimension
+    outputDim: 6, // property vector dimension
     categoryNames,
   };
 }
@@ -263,7 +420,7 @@ export function encodeTraitDense(traitIndex: number, dim: number, seed: number =
     state ^= state << 13;
     state ^= state >>> 17;
     state ^= state << 5;
-    vec[i] = (state >>> 0) / 0xFFFFFFFF;
+    vec[i] = (state >>> 0) / 0xffffffff;
   }
 
   return vec;
@@ -299,8 +456,8 @@ export function splitTrainTest(
   const testIndices = indices.slice(splitIdx);
 
   return {
-    train: trainIndices.map(i => kb.facts[i]),
-    test: testIndices.map(i => kb.facts[i]),
+    train: trainIndices.map((i) => kb.facts[i]),
+    test: testIndices.map((i) => kb.facts[i]),
   };
 }
 
@@ -319,7 +476,7 @@ export function computePropertyAccuracy(
   predicted: number[],
   actual: number[],
   booleanThreshold: number = 0.5,
-  continuousTolerance: number = 0.15,
+  continuousTolerance: number = 0.15
 ): number {
   if (predicted.length !== actual.length) return 0;
 

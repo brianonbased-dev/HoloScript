@@ -68,9 +68,7 @@ describe('AudioEngine utility functions', () => {
     it('should handle floating-point coordinates precisely', () => {
       const a = { x: 1.5, y: 2.3, z: 3.7 };
       const b = { x: 4.2, y: 6.8, z: 8.1 };
-      const expectedDistance = Math.sqrt(
-        (4.2 - 1.5) ** 2 + (6.8 - 2.3) ** 2 + (8.1 - 3.7) ** 2
-      );
+      const expectedDistance = Math.sqrt((4.2 - 1.5) ** 2 + (6.8 - 2.3) ** 2 + (8.1 - 3.7) ** 2);
       expect(testVec3Dist(a, b)).toBeCloseTo(expectedDistance, 10);
     });
 

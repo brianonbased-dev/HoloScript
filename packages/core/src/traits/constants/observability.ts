@@ -10,18 +10,18 @@
  */
 export const OBSERVABILITY_TRAITS = [
   // ─── Alerting ─────────────────────────────────────────────────────
-  'alert',           // Threshold-based alerting with severity + cooldown
-  'incident',        // Incident lifecycle (open → acknowledged → resolved)
+  'alert', // Threshold-based alerting with severity + cooldown
+  'incident', // Incident lifecycle (open → acknowledged → resolved)
 
   // ─── Health ───────────────────────────────────────────────────────
-  'healthcheck',     // Liveness / readiness probes with configurable checks
+  'healthcheck', // Liveness / readiness probes with configurable checks
 
   // ─── Performance ──────────────────────────────────────────────────
-  'profiler',        // CPU / memory / timing profiler with snapshots
-  'slo_monitor',     // SLO error budget tracking (latency, availability)
+  'profiler', // CPU / memory / timing profiler with snapshots
+  'slo_monitor', // SLO error budget tracking (latency, availability)
 
   // ─── Logging ──────────────────────────────────────────────────────
-  'log_aggregator',  // Multi-source log collection, filtering, and routing
+  'log_aggregator', // Multi-source log collection, filtering, and routing
 ] as const;
 
 export type ObservabilityTraitName = (typeof OBSERVABILITY_TRAITS)[number];

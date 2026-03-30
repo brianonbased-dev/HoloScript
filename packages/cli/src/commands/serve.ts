@@ -71,7 +71,9 @@ export interface DevServerStats {
 // =============================================================================
 
 export class DevServer extends EventEmitter {
-  private config: Required<Omit<DevServerConfig, 'parser'>> & { parser?: DevServerConfig['parser'] };
+  private config: Required<Omit<DevServerConfig, 'parser'>> & {
+    parser?: DevServerConfig['parser'];
+  };
   private server: ReturnType<typeof createServer> | null = null;
   private wsClients: Set<ServerResponse> = new Set();
   private watchers: Array<ReturnType<typeof watch>> = [];
@@ -339,15 +341,20 @@ export class DevServer extends EventEmitter {
       }
 
       // Default: store raw code as composition
-      this.compositions.set(filePath, { ast: { source: code, lines: code.split('\n').length }, raw: code });
+      this.compositions.set(filePath, {
+        ast: { source: code, lines: code.split('\n').length },
+        raw: code,
+      });
       return { success: true, ast: { source: code, lines: code.split('\n').length } };
     } catch (err) {
       return {
         success: false,
-        errors: [{
-          message: err instanceof Error ? err.message : String(err),
-          source: filePath,
-        }],
+        errors: [
+          {
+            message: err instanceof Error ? err.message : String(err),
+            source: filePath,
+          },
+        ],
       };
     }
   }
@@ -418,9 +425,9 @@ th, td { text-align: left; padding: 8px; border-bottom: 1px solid #0f3460; }
 </div>
 <h2>Compositions</h2>
 <div class="panel"><table><tr><th>File</th><th>Status</th></tr>
-${[...this.compositions.entries()].map(([f]) =>
-  `<tr><td>${relative(this.config.root, f)}</td><td>OK</td></tr>`
-).join('')}
+${[...this.compositions.entries()]
+  .map(([f]) => `<tr><td>${relative(this.config.root, f)}</td><td>OK</td></tr>`)
+  .join('')}
 </table></div>
 <script>setTimeout(() => location.reload(), 5000);</script>
 </body></html>`);

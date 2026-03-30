@@ -16,11 +16,11 @@ The self-improvement daemon (`scripts/self-improve.ts`, 974 lines) is HoloScript
 
 ## Hypotheses
 
-| ID | Hypothesis | Test | Threshold |
-|----|-----------|------|-----------|
-| H1 | Treatment quality-per-dollar > control | Mann-Whitney U | p < 0.10 |
-| H2 | Treatment crash rate < control | Fisher's exact | p < 0.10 |
-| Practical | Treatment achieves quality > 0.60 | Observation | Any trial |
+| ID        | Hypothesis                             | Test           | Threshold |
+| --------- | -------------------------------------- | -------------- | --------- |
+| H1        | Treatment quality-per-dollar > control | Mann-Whitney U | p < 0.10  |
+| H2        | Treatment crash rate < control         | Fisher's exact | p < 0.10  |
+| Practical | Treatment achieves quality > 0.60      | Observation    | Any trial |
 
 ---
 
@@ -29,12 +29,14 @@ The self-improvement daemon (`scripts/self-improve.ts`, 974 lines) is HoloScript
 **A/B comparison:** 3 control trials vs 3 treatment trials, 5 cycles each (reduced from planned 15 due to control arm cost/time).
 
 ### Control (Arm A): TypeScript Daemon
+
 - `scripts/self-improve.ts` — one mega LLM call per cycle
 - 50 max tool calls, English-language strategy prompt
 - LLM decides both WHAT to do and HOW to sequence it
 - Model: `claude-sonnet-4-20250514`
 
 ### Treatment (Arm B): HoloScript-Orchestrated Daemon
+
 - `compositions/self-improve-daemon.hsplus` — behavior tree + state machine
 - `scripts/self-improve-bridge.ts` — TypeScript bridge (parses .hsplus, runs HeadlessRuntime)
 - Same 12 tool handlers from `self-improve-tools.ts`
@@ -42,6 +44,7 @@ The self-improvement daemon (`scripts/self-improve.ts`, 974 lines) is HoloScript
 - Model: `claude-sonnet-4-20250514` (same)
 
 ### Controls Held Constant
+
 - Same LLM model
 - Same 12 tool handlers
 - Same codebase starting state (branch from HEAD at `df93ba00`)
@@ -67,30 +70,33 @@ The self-improvement daemon (`scripts/self-improve.ts`, 974 lines) is HoloScript
 
 ## Aggregate Comparison
 
-| Metric | Control (avg) | Treatment (avg) | Delta |
-|--------|--------------|-----------------|-------|
-| Quality Delta | -0.023 | +0.057 | **+0.080** |
-| Total Cost ($) | $12.00 | $2.96 | **-$9.04 (75% cheaper)** |
-| Crash Rate | 13.3% | 22.2% | +8.9pp |
-| Quality/Dollar | -0.0016 | +0.0154 | **+0.017** |
-| Tool Efficiency | 86.7% | 93.2% | **+6.5pp** |
-| Best Quality | 0.250 | 0.280 | +0.030 |
+| Metric          | Control (avg) | Treatment (avg) | Delta                    |
+| --------------- | ------------- | --------------- | ------------------------ |
+| Quality Delta   | -0.023        | +0.057          | **+0.080**               |
+| Total Cost ($)  | $12.00        | $2.96           | **-$9.04 (75% cheaper)** |
+| Crash Rate      | 13.3%         | 22.2%           | +8.9pp                   |
+| Quality/Dollar  | -0.0016       | +0.0154         | **+0.017**               |
+| Tool Efficiency | 86.7%         | 93.2%           | **+6.5pp**               |
+| Best Quality    | 0.250         | 0.280           | +0.030                   |
 
 ---
 
 ## Statistical Tests
 
 ### H1: Quality-per-Dollar (Mann-Whitney U)
+
 - **U statistic:** 1.5
 - **z-score:** -1.309
 - **p-value:** 0.1904
 - **Result:** NOT SUPPORTED (threshold: p < 0.10)
 
 ### H2: Crash Rate (Fisher's Exact Test)
+
 - **p-value:** 0.6494
 - **Result:** NOT SUPPORTED (threshold: p < 0.10)
 
 ### Practical Criterion
+
 - **Treatment best quality > 0.60:** NOT MET (best = 0.280)
 
 ---
@@ -98,28 +104,33 @@ The self-improvement daemon (`scripts/self-improve.ts`, 974 lines) is HoloScript
 ## Key Observations
 
 ### 1. Treatment "Crashes" Are Actually Fast-Failures (Correct Behavior)
+
 The treatment arm's 33% "crash rate" is misleading. These "crashes" occur on `coverage` and `docs` focus cycles where the behavior tree correctly determines no productive work is possible and fast-fails **at zero cost** ($0, 0 tokens, 2 tool calls). Compare:
 
-| | Control "crash" | Treatment "crash" |
-|--|----------------|-------------------|
-| **Cost** | $2.62 (full LLM call) | $0.00 (fast-fail) |
-| **Tokens** | 828K input | 0 |
-| **Tool calls** | 50 (hit ceiling) | 2 (diagnose + abort) |
-| **Duration** | 7-63 min | 2-3 min |
-| **Behavior** | LLM thrashes for 50 calls, produces nothing | BT detects no candidates, skips cycle |
+|                | Control "crash"                             | Treatment "crash"                     |
+| -------------- | ------------------------------------------- | ------------------------------------- |
+| **Cost**       | $2.62 (full LLM call)                       | $0.00 (fast-fail)                     |
+| **Tokens**     | 828K input                                  | 0                                     |
+| **Tool calls** | 50 (hit ceiling)                            | 2 (diagnose + abort)                  |
+| **Duration**   | 7-63 min                                    | 2-3 min                               |
+| **Behavior**   | LLM thrashes for 50 calls, produces nothing | BT detects no candidates, skips cycle |
 
 The control arm's crashes are genuine failures with full cost. The treatment arm's "crashes" are the BT working as designed.
 
 ### 2. Token Consumption: 10x Difference
+
 Control cycles consumed **800K–2.7M input tokens** per cycle (mega-context). Treatment typefix cycles consumed **207K–217K input tokens** (focused micro-calls). The treatment's BT breaks work into targeted actions that each receive only the context they need.
 
 ### 3. BaseAdapter.ts Regex: Shared Ceiling
+
 Both arms repeatedly attempted to fix a TS1005 compile error in `BaseAdapter.ts` at line 99 (regex containing backtick characters). Neither succeeded — both properly rolled back. This represents a shared quality ceiling that limits what either approach can achieve without human intervention.
 
 ### 4. Tool Efficiency
+
 Treatment typefix cycles used 30-33 tool calls with 27-32 useful (82-97% efficiency). Control cycles used 42-50 tool calls with 35-44 useful (78-88% efficiency). The BT's explicit sequencing eliminated unnecessary diagnostic-only tool calls.
 
 ### 5. Duration
+
 Control cycles: 7.5–117.6 minutes each (high variance). Treatment typefix cycles: 6.3–14.1 minutes each (low variance). Treatment fast-fail cycles: 2.3–3.2 minutes. The BT provides predictable execution time.
 
 ---
@@ -191,14 +202,14 @@ Control (A):                          Treatment (B):
 
 All trial data archived in `.holoscript/experiment-results/`:
 
-| File | Description |
-|------|-------------|
-| `control-trial-{1,2,3}-quality-history.json` | Per-cycle metrics for control trials |
-| `control-trial-{1,2,3}-state.json` | Daemon state snapshots |
+| File                                           | Description                            |
+| ---------------------------------------------- | -------------------------------------- |
+| `control-trial-{1,2,3}-quality-history.json`   | Per-cycle metrics for control trials   |
+| `control-trial-{1,2,3}-state.json`             | Daemon state snapshots                 |
 | `treatment-trial-{1,2,3}-quality-history.json` | Per-cycle metrics for treatment trials |
-| `treatment-trial-{1,2,3}-state.json` | Bridge state snapshots |
-| `experiment-summary.json` | Runner configuration and summary |
-| `experiment-report.md` | Statistical analysis report |
+| `treatment-trial-{1,2,3}-state.json`           | Bridge state snapshots                 |
+| `experiment-summary.json`                      | Runner configuration and summary       |
+| `experiment-report.md`                         | Statistical analysis report            |
 
 ---
 
@@ -212,4 +223,4 @@ The behavior tree's explicit sequencing and fast-failure semantics proved partic
 
 ---
 
-*Generated from experiment data collected 2026-03-16. Analysis by `scripts/experiment-analysis.ts`.*
+_Generated from experiment data collected 2026-03-16. Analysis by `scripts/experiment-analysis.ts`._

@@ -25,7 +25,11 @@ export interface UseSafetyPassReturn {
   isAnalyzing: boolean;
   verdict: SafetyVerdict | null;
   dangerScore: number;
-  quickCheck: (traits: string[], builtins: string[], trustLevel?: string) => { passed: boolean; verdict: string; reasons: string[] };
+  quickCheck: (
+    traits: string[],
+    builtins: string[],
+    trustLevel?: string
+  ) => { passed: boolean; verdict: string; reasons: string[] };
   analyze: (nodes: EffectASTNode[], options?: Partial<SafetyPassOptions>) => SafetyPassResult;
   clear: () => void;
 }

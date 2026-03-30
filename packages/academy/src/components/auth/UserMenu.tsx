@@ -6,9 +6,7 @@ export function UserMenu() {
   const { data: session, status } = useSession();
 
   if (status === 'loading') {
-    return (
-      <div className="h-8 w-8 animate-pulse rounded-full bg-white/10" />
-    );
+    return <div className="h-8 w-8 animate-pulse rounded-full bg-white/10" />;
   }
 
   if (!session?.user) {
@@ -26,19 +24,13 @@ export function UserMenu() {
     <div className="group relative">
       <button className="flex items-center gap-2 rounded-md px-2 py-1 transition hover:bg-white/10">
         {session.user.image ? (
-          <img
-            src={session.user.image}
-            alt=""
-            className="h-7 w-7 rounded-full"
-          />
+          <img src={session.user.image} alt="" className="h-7 w-7 rounded-full" />
         ) : (
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white">
             {(session.user.name ?? session.user.email ?? '?')[0]?.toUpperCase()}
           </div>
         )}
-        <span className="text-sm text-white/80">
-          {session.user.name ?? session.user.email}
-        </span>
+        <span className="text-sm text-white/80">{session.user.name ?? session.user.email}</span>
       </button>
 
       <div className="invisible absolute right-0 top-full mt-1 w-48 rounded-lg border border-white/10 bg-zinc-900 py-1 opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">

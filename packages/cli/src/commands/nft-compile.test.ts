@@ -12,10 +12,6 @@ interface NFTMarketplaceAST {
   gasOptimization: any;
 }
 
-
-
-
-
 describe('NFT Marketplace Compiler - parseMarketplaceDefinition', () => {
   describe('parseMarketplaceDefinition', () => {
     it('parses basic marketplace definition correctly', () => {
@@ -225,10 +221,10 @@ describe('NFT Marketplace Compiler - parseMarketplaceDefinition', () => {
         'marketplace { incomplete',
         '/*comment*/ contract Test {}',
         'pragma solidity ^0.8.0;',
-        '@custom_trait { enabled: true }'
+        '@custom_trait { enabled: true }',
       ];
 
-      inputs.forEach(input => {
+      inputs.forEach((input) => {
         expect(() => parseMarketplaceDefinition(input)).not.toThrow();
         const result = parseMarketplaceDefinition(input);
         expect(result).toBeDefined();
@@ -246,7 +242,7 @@ describe('NFT Marketplace Compiler - parseMarketplaceDefinition', () => {
         expect(result.name).toBe('ExampleMarketplace');
         expect(result.chains).toHaveLength(1);
         expect(result.contracts).toHaveLength(1);
-        
+
         if (index > 0) {
           expect(result).toEqual(results[0]);
         }

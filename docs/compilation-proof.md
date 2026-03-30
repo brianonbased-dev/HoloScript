@@ -6,41 +6,41 @@
 
 ## Summary
 
-| Metric | Value |
-|--------|-------|
-| Compositions tested | 3 (healthcare, gaming, robotics) |
-| Backends tested | 17 |
-| Total compilations | 51 |
-| **Passed** | **51 (100%)** |
-| Failed | 0 |
-| Average compile time | **0.7ms** |
-| Total output generated | **223.5 KB** |
-| Parse time (cold) | 8.1ms |
-| Parse time (warm) | ~2.5ms |
+| Metric                 | Value                            |
+| ---------------------- | -------------------------------- |
+| Compositions tested    | 3 (healthcare, gaming, robotics) |
+| Backends tested        | 17                               |
+| Total compilations     | 51                               |
+| **Passed**             | **51 (100%)**                    |
+| Failed                 | 0                                |
+| Average compile time   | **0.7ms**                        |
+| Total output generated | **223.5 KB**                     |
+| Parse time (cold)      | 8.1ms                            |
+| Parse time (warm)      | ~2.5ms                           |
 
 ## Results Matrix
 
 Legend: time in ms / output size in bytes
 
-| Backend | Healthcare | Gaming | Robotics | Language |
-|---------|-----------|--------|----------|----------|
-| **R3F** | 2.8ms / 1,580B | 0.3ms / 762B | 0.1ms / 668B | JSX |
-| **Unity** | 2.2ms / 1,391B | 0.2ms / 828B | 0.0ms / 379B | C# |
-| **Unreal** | 1.4ms / 3,750B | 0.3ms / 2,995B | 0.2ms / 2,545B | C++ |
-| **Godot** | 1.2ms / 910B | 0.2ms / 564B | 0.0ms / 247B | GDScript |
-| **Babylon** | 1.7ms / 2,586B | 0.2ms / 1,909B | 0.1ms / 1,394B | TypeScript |
-| **OpenXR** | 1.7ms / 18,340B | 0.3ms / 15,080B | 0.2ms / 14,638B | C++ |
-| **VRChat** | 0.9ms / 2,412B | 0.1ms / 2,356B | 0.0ms / 2,167B | UdonSharp |
-| **visionOS** | 1.5ms / 2,757B | 0.2ms / 1,272B | 0.1ms / 484B | Swift |
-| **AndroidXR** | 2.6ms / 10,705B | 0.3ms / 9,414B | 0.1ms / 9,009B | Kotlin |
-| **iOS** | 3.1ms / 10,380B | 0.2ms / 9,693B | 0.1ms / 9,366B | SwiftUI |
-| **Android** | 1.2ms / 10,397B | 0.1ms / 9,789B | 0.1ms / 9,799B | Kotlin |
-| **URDF** | 2.1ms / 1,349B | 0.1ms / 654B | 0.0ms / 634B | XML |
-| **SDF** | 1.0ms / 2,266B | 0.3ms / 1,926B | 0.0ms / 1,711B | XML |
-| **DTDL** | 0.6ms / 449B | 0.0ms / 594B | 0.0ms / 250B | JSON |
-| **WebGPU** | 1.6ms / 7,376B | 0.2ms / 6,028B | 0.1ms / 5,841B | JS + WGSL |
-| **WASM** | 1.6ms / 8,187B | 0.1ms / 7,658B | 0.1ms / 7,658B | WAT + JS |
-| **PlayCanvas** | 2.4ms / 2,780B | 0.3ms / 1,457B | 0.1ms / 1,431B | TypeScript |
+| Backend        | Healthcare      | Gaming          | Robotics        | Language   |
+| -------------- | --------------- | --------------- | --------------- | ---------- |
+| **R3F**        | 2.8ms / 1,580B  | 0.3ms / 762B    | 0.1ms / 668B    | JSX        |
+| **Unity**      | 2.2ms / 1,391B  | 0.2ms / 828B    | 0.0ms / 379B    | C#         |
+| **Unreal**     | 1.4ms / 3,750B  | 0.3ms / 2,995B  | 0.2ms / 2,545B  | C++        |
+| **Godot**      | 1.2ms / 910B    | 0.2ms / 564B    | 0.0ms / 247B    | GDScript   |
+| **Babylon**    | 1.7ms / 2,586B  | 0.2ms / 1,909B  | 0.1ms / 1,394B  | TypeScript |
+| **OpenXR**     | 1.7ms / 18,340B | 0.3ms / 15,080B | 0.2ms / 14,638B | C++        |
+| **VRChat**     | 0.9ms / 2,412B  | 0.1ms / 2,356B  | 0.0ms / 2,167B  | UdonSharp  |
+| **visionOS**   | 1.5ms / 2,757B  | 0.2ms / 1,272B  | 0.1ms / 484B    | Swift      |
+| **AndroidXR**  | 2.6ms / 10,705B | 0.3ms / 9,414B  | 0.1ms / 9,009B  | Kotlin     |
+| **iOS**        | 3.1ms / 10,380B | 0.2ms / 9,693B  | 0.1ms / 9,366B  | SwiftUI    |
+| **Android**    | 1.2ms / 10,397B | 0.1ms / 9,789B  | 0.1ms / 9,799B  | Kotlin     |
+| **URDF**       | 2.1ms / 1,349B  | 0.1ms / 654B    | 0.0ms / 634B    | XML        |
+| **SDF**        | 1.0ms / 2,266B  | 0.3ms / 1,926B  | 0.0ms / 1,711B  | XML        |
+| **DTDL**       | 0.6ms / 449B    | 0.0ms / 594B    | 0.0ms / 250B    | JSON       |
+| **WebGPU**     | 1.6ms / 7,376B  | 0.2ms / 6,028B  | 0.1ms / 5,841B  | JS + WGSL  |
+| **WASM**       | 1.6ms / 8,187B  | 0.1ms / 7,658B  | 0.1ms / 7,658B  | WAT + JS   |
+| **PlayCanvas** | 2.4ms / 2,780B  | 0.3ms / 1,457B  | 0.1ms / 1,431B  | TypeScript |
 
 **All 51 compilations pass.** Zero failures across all 17 backends.
 
@@ -171,8 +171,8 @@ struct ARViewContainer: UIViewRepresentable {
 ### Babylon.js (`01-healthcare.holo` → `BabylonCompiler`)
 
 ```typescript
-import * as BABYLON from "@babylonjs/core";
-import HavokPhysics from "@babylonjs/havok";
+import * as BABYLON from '@babylonjs/core';
+import HavokPhysics from '@babylonjs/havok';
 
 export class GeneratedScene {
   private engine: BABYLON.Engine;
@@ -181,8 +181,7 @@ export class GeneratedScene {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.engine = new BABYLON.Engine(canvas, true,
-      { preserveDrawingBuffer: true, stencil: true });
+    this.engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
     this.scene = new BABYLON.Scene(this.engine);
   }
 }
@@ -296,7 +295,7 @@ namespace HoloWorld
 ### PlayCanvas (`01-healthcare.holo` → `PlayCanvasCompiler`)
 
 ```typescript
-import * as pc from "playcanvas";
+import * as pc from 'playcanvas';
 
 export class GeneratedScene {
   private app: pc.Application;
@@ -317,11 +316,11 @@ export class GeneratedScene {
 
 Three compositions selected to cover diverse verticals:
 
-| File | Vertical | Features | Traits |
-|------|----------|----------|--------|
+| File                 | Vertical      | Features                                                     | Traits                                                              |
+| -------------------- | ------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
 | `01-healthcare.holo` | Healthcare AR | Patient dashboard, vital cards, anatomy model, ambient audio | `@billboard`, `@anchor`, `@hand_tracked`, `@scalable`, `@rotatable` |
-| `04-gaming.holo` | VR Gaming | Game level, physics objects, AI agents | `@physics`, `@grabbable`, `@ai_agent`, `@networked` |
-| `15-robotics.holo` | Industrial | Robot arm, joints, sensors, physics simulation | `@physics`, `@collidable`, `@rotatable`, revolute joints |
+| `04-gaming.holo`     | VR Gaming     | Game level, physics objects, AI agents                       | `@physics`, `@grabbable`, `@ai_agent`, `@networked`                 |
+| `15-robotics.holo`   | Industrial    | Robot arm, joints, sensors, physics simulation               | `@physics`, `@collidable`, `@rotatable`, revolute joints            |
 
 ## Reproduction
 

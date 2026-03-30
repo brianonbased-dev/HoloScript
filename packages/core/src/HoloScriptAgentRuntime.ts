@@ -32,7 +32,7 @@ interface RuntimeDirective {
 /**
  * Specialized runtime for individual HoloScript agents providing sandboxed execution,
  * local state management, and autonomous behavior capabilities.
- * 
+ *
  * @example
  * ```typescript
  * const agentRuntime = new HoloScriptAgentRuntime(agentNode, parentRuntime);
@@ -54,10 +54,10 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Creates a new HoloScript agent runtime instance.
-   * 
+   *
    * @param agentNode - The OrbNode representing the agent template
    * @param parentRuntime - The parent runtime providing global context
-   * 
+   *
    * @example
    * ```typescript
    * const runtime = new HoloScriptAgentRuntime(miningAgentNode, mainRuntime);
@@ -76,7 +76,7 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Reset the runtime for pooling reuse with new agent configuration.
-   * 
+   *
    * @param agentNode - New agent node to bind to this runtime
    * @param parentRuntime - Parent runtime for global context
    */
@@ -114,11 +114,11 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Records a raw episodic event into the agent's short-term history queue.
-   * 
+   *
    * @param action - The action that was performed
    * @param outcome - The result or outcome of the action
    * @param entitiesInvolved - List of entity IDs that were involved in the episode
-   * 
+   *
    * @example
    * ```typescript
    * agentRuntime.recordEpisode('mine_ore', 'collected 5 iron ore', ['ore_deposit_1', 'inventory']);
@@ -149,12 +149,12 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Execute an action (method) defined on the agent template.
-   * 
+   *
    * @param actionName - Name of the action/method to execute
    * @param args - Arguments to pass to the action method
    * @returns Promise resolving to execution result
    * @throws {Error} When agent is destroyed or action execution fails
-   * 
+   *
    * @example
    * ```typescript
    * const result = await agentRuntime.executeAction('patrol', ['north_sector']);
@@ -168,9 +168,9 @@ export class HoloScriptAgentRuntime {
 
     // Search directives for method-type entries (runtime shape may differ from declared types)
     const directives = this.agentNode.directives as unknown as RuntimeDirective[] | undefined;
-    const action = directives?.find(
-      (d) => d.type === 'method' && d.name === actionName
-    ) as (MethodNode & RuntimeDirective) | undefined;
+    const action = directives?.find((d) => d.type === 'method' && d.name === actionName) as
+      | (MethodNode & RuntimeDirective)
+      | undefined;
 
     console.log(
       `[AGENT_DEBUG] Executing action ${actionName} for ${this.agentNode.name}. Action found: ${!!action}`
@@ -221,10 +221,7 @@ export class HoloScriptAgentRuntime {
       // Check if action.body is HoloStatement[]
       if (Array.isArray(action.body)) {
         console.log(`[AGENT_DEBUG] Executing as HoloProgram with ${action.body.length} statements`);
-        const results = await this.parentRuntime.executeHoloProgram(
-          action.body,
-          agentScope
-        );
+        const results = await this.parentRuntime.executeHoloProgram(action.body, agentScope);
         const success = results.every((r: ExecutionResult) => r.success);
         return {
           success,
@@ -248,10 +245,10 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Autonomous 'thinking' cycle using LLM for decision making.
-   * 
+   *
    * @param prompt - Optional specific prompt for the LLM, defaults to general decision prompt
    * @returns Promise resolving to the LLM's decision as a string
-   * 
+   *
    * @example
    * ```typescript
    * const decision = await agentRuntime.think('Should I retreat or continue attacking?');
@@ -268,20 +265,23 @@ export class HoloScriptAgentRuntime {
       prompt: prompt || 'Decide the next best action based on current state.',
     });
 
-    return (result as Record<string, unknown> | undefined)?.decision as string || 'No clear decision made.';
+    return (
+      ((result as Record<string, unknown> | undefined)?.decision as string) ||
+      'No clear decision made.'
+    );
   }
 
   /**
    * Handle lifecycle events for this specific agent.
-   * 
+   *
    * @param eventType - The type of event being handled
    * @param data - Event data to bind to the execution scope
-   * 
+   *
    * @example
    * ```typescript
-   * await agentRuntime.onEvent('enemy_spotted', { 
-   *   enemy: 'orc_warrior', 
-   *   distance: 50 
+   * await agentRuntime.onEvent('enemy_spotted', {
+   *   enemy: 'orc_warrior',
+   *   distance: 50
    * });
    * ```
    */
@@ -290,9 +290,7 @@ export class HoloScriptAgentRuntime {
 
     // Search directives for lifecycle hooks (runtime shape may differ from declared types)
     const directives = this.agentNode.directives as unknown as RuntimeDirective[] | undefined;
-    const handler = directives?.find(
-      (d) => d.type === 'lifecycle' && d.hook === eventType
-    );
+    const handler = directives?.find((d) => d.type === 'lifecycle' && d.hook === eventType);
 
     if (handler) {
       // Bind event data to scope
@@ -374,7 +372,7 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Get the agent's unique identifier.
-   * 
+   *
    * @returns The agent's ID or name
    */
   get id(): string {
@@ -383,7 +381,7 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Get the agent's current reactive state proxy.
-   * 
+   *
    * @returns Proxy object for the agent's state
    */
   get state(): HoloScriptValue {
@@ -392,7 +390,7 @@ export class HoloScriptAgentRuntime {
 
   /**
    * Get the agent's current reactive state proxy.
-   * 
+   *
    * @returns Proxy object for the agent's state
    */
   getState(): HoloScriptValue {

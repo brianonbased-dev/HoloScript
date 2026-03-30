@@ -25,9 +25,7 @@ import { DEFAULT_POC_CONFIG } from './types.js';
  * 5. Compare spike output and membrane potentials
  * 6. Report pass/fail with detailed metrics
  */
-export async function runValidation(
-  config?: Partial<PocConfig>
-): Promise<ValidationResult> {
+export async function runValidation(config?: Partial<PocConfig>): Promise<ValidationResult> {
   const cfg: PocConfig = { ...DEFAULT_POC_CONFIG, ...config };
   const { neuronCount, timesteps, lifParams, seed, tolerance } = cfg;
 

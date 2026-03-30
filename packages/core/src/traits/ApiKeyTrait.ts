@@ -6,14 +6,21 @@
 
 import type { TraitHandler } from './TraitTypes';
 
-export interface ApiKeyConfig { prefix: string; max_keys: number; }
+export interface ApiKeyConfig {
+  prefix: string;
+  max_keys: number;
+}
 
 export const apiKeyHandler: TraitHandler<ApiKeyConfig> = {
   name: 'api_key',
   defaultConfig: { prefix: 'sk_', max_keys: 50 },
 
-  onAttach(node: any): void { node.__apiKeyState = { keys: new Map<string, { name: string; created: number }>() }; },
-  onDetach(node: any): void { delete node.__apiKeyState; },
+  onAttach(node: any): void {
+    node.__apiKeyState = { keys: new Map<string, { name: string; created: number }>() };
+  },
+  onDetach(node: any): void {
+    delete node.__apiKeyState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: ApiKeyConfig, context: any, event: any): void {

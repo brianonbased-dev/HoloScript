@@ -28,7 +28,7 @@ function createNode(
   type: string,
   category: 'event' | 'action' | 'logic' | 'data',
   label: string,
-  properties: Record<string, unknown> = {},
+  properties: Record<string, unknown> = {}
 ): HoloNode {
   return {
     id,
@@ -46,20 +46,26 @@ function createNode(
 }
 
 function createTestAST(): ASTNode[] {
-  return [{
-    type: 'orb',
-    name: 'testOrb',
-    properties: {},
-    methods: [],
-    children: [{
-      type: 'event-handler',
-      directives: [{
-        type: 'lifecycle',
-        hook: 'on_click',
-        body: [],
-      }],
-    }],
-  } as any];
+  return [
+    {
+      type: 'orb',
+      name: 'testOrb',
+      properties: {},
+      methods: [],
+      children: [
+        {
+          type: 'event-handler',
+          directives: [
+            {
+              type: 'lifecycle',
+              hook: 'on_click',
+              body: [],
+            },
+          ],
+        },
+      ],
+    } as any,
+  ];
 }
 
 // ============================================================================
@@ -115,7 +121,7 @@ describe('SyncEngine', () => {
         expect.objectContaining({
           type: 'sync-start',
           timestamp: expect.any(Number),
-        }),
+        })
       );
     });
 
@@ -167,9 +173,7 @@ describe('SyncEngine', () => {
       const listener = vi.fn();
       engine.on('sync-complete', listener);
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
 
       vi.advanceTimersByTime(200);
@@ -181,9 +185,7 @@ describe('SyncEngine', () => {
       engine.on('sync-complete', listener);
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
 
       // Before debounce
@@ -198,7 +200,7 @@ describe('SyncEngine', () => {
           data: expect.objectContaining({
             direction: 'visual-to-ast',
           }),
-        }),
+        })
       );
     });
 
@@ -207,9 +209,7 @@ describe('SyncEngine', () => {
       engine.on('sync-complete', listener);
       engine.start();
 
-      const graph1 = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph1 = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       const graph2 = createTestGraph([
         createNode('ev1', 'on_click', 'event', 'On Click'),
         createNode('act1', 'play_sound', 'action', 'Play Sound'),
@@ -240,9 +240,7 @@ describe('SyncEngine', () => {
     it('should generate code after sync', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -266,7 +264,7 @@ describe('SyncEngine', () => {
           data: expect.objectContaining({
             direction: 'ast-to-visual',
           }),
-        }),
+        })
       );
     });
 
@@ -302,7 +300,7 @@ describe('SyncEngine', () => {
           data: expect.objectContaining({
             direction: 'code-to-visual',
           }),
-        }),
+        })
       );
     });
   });
@@ -311,9 +309,7 @@ describe('SyncEngine', () => {
     it('should force immediate visual-to-ast sync', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
 
       const result = engine.syncNow('visual-to-ast');
@@ -339,9 +335,7 @@ describe('SyncEngine', () => {
 
   describe('round-trip validation', () => {
     it('should validate round-trip with simple graph', () => {
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
 
       const result = engine.validateRoundTrip(graph);
 
@@ -351,9 +345,7 @@ describe('SyncEngine', () => {
     });
 
     it('should detect lost nodes in round-trip', () => {
-      const graph = createTestGraph([
-        createNode('x1', 'custom_unknown', 'action', 'Unknown'),
-      ]);
+      const graph = createTestGraph([createNode('x1', 'custom_unknown', 'action', 'Unknown')]);
 
       const result = engine.validateRoundTrip(graph);
 
@@ -407,9 +399,7 @@ describe('SyncEngine', () => {
     it('should find AST path for visual node', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -420,9 +410,7 @@ describe('SyncEngine', () => {
     it('should find visual node for AST path', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -436,9 +424,7 @@ describe('SyncEngine', () => {
     it('should get all mappings for a visual node', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -449,9 +435,7 @@ describe('SyncEngine', () => {
     it('should get mappings by AST path prefix', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -471,9 +455,7 @@ describe('SyncEngine', () => {
       engine.start();
 
       // A graph with a disconnected action will produce warnings
-      const graph = createTestGraph([
-        createNode('act1', 'play_sound', 'action', 'Play Sound'),
-      ]);
+      const graph = createTestGraph([createNode('act1', 'play_sound', 'action', 'Play Sound')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -486,9 +468,7 @@ describe('SyncEngine', () => {
       engine.on('mapping-updated', mapListener);
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 
@@ -523,9 +503,7 @@ describe('SyncEngine', () => {
     it('should update lastSyncTimestamp after sync', () => {
       engine.start();
 
-      const graph = createTestGraph([
-        createNode('ev1', 'on_click', 'event', 'On Click'),
-      ]);
+      const graph = createTestGraph([createNode('ev1', 'on_click', 'event', 'On Click')]);
       engine.onVisualChanged(graph);
       vi.advanceTimersByTime(150);
 

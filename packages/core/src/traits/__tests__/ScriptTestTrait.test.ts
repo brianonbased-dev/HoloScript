@@ -81,8 +81,12 @@ describe('@script_test Trait', () => {
     const runner = new ScriptTestRunner();
     runner.addTest({
       name: 'with lifecycle',
-      setup: () => { setupRan = true; },
-      teardown: () => { teardownRan = true; },
+      setup: () => {
+        setupRan = true;
+      },
+      teardown: () => {
+        teardownRan = true;
+      },
       actions: [],
       assertions: [{ description: 'pass', check: () => true }],
     });

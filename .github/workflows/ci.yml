@@ -395,6 +395,12 @@ jobs:
           NODE_OPTIONS: '--max-old-space-size=8192'
         run: npx vitest run src/compiler/__tests__/golden-output/golden.test.ts
 
+      - name: Run FlowLevel (Code Injection) Security Checks
+        working-directory: packages/core
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: npx vitest run src/compiler/__tests__/FlowLevel.test.ts
+
       - name: Write compiler regression matrix to job summary
         if: always()
         shell: bash

@@ -350,7 +350,9 @@ function compileGraph(
       if (conn) {
         const fromNode = nodes.get(conn.fromNodeId);
         if (fromNode) {
-          const fromPort = fromNode.outputs.find((p: { id?: string; name: string }) => p.id === conn.fromPort);
+          const fromPort = fromNode.outputs.find(
+            (p: { id?: string; name: string }) => p.id === conn.fromPort
+          );
           if (fromPort?.id && inPort.id) {
             resolvedPorts.set(inPort.id, varName(conn.fromNodeId, fromPort.name));
           }
@@ -398,7 +400,9 @@ function compileGraph(
     if (conn) {
       const fromNode = nodes.get(conn.fromNodeId);
       if (fromNode) {
-        const fromPort = fromNode.outputs.find((p: { id?: string; name: string }) => p.id === conn.fromPort);
+        const fromPort = fromNode.outputs.find(
+          (p: { id?: string; name: string }) => p.id === conn.fromPort
+        );
         if (fromPort?.id) {
           outputExpr = resolvedPorts.get(fromPort.id) ?? outputExpr;
         }

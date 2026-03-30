@@ -197,9 +197,12 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(assets.type, category));
     }
 
-    const whereClause = conditions.length > 0
-      ? conditions.length === 1 ? conditions[0] : sql`${conditions[0]} AND ${conditions[1]}`
-      : undefined;
+    const whereClause =
+      conditions.length > 0
+        ? conditions.length === 1
+          ? conditions[0]
+          : sql`${conditions[0]} AND ${conditions[1]}`
+        : undefined;
 
     const rows = await db
       .select()

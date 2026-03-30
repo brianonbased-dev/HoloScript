@@ -124,9 +124,7 @@ export const cacheHandler: TraitHandler<CacheConfig> = {
           misses: state.misses,
           size: state.entries.size,
           evictions: state.evictions,
-          hitRate: state.hits + state.misses > 0
-            ? state.hits / (state.hits + state.misses)
-            : 0,
+          hitRate: state.hits + state.misses > 0 ? state.hits / (state.hits + state.misses) : 0,
         });
         break;
       }

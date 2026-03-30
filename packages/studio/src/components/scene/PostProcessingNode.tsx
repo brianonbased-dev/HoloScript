@@ -41,12 +41,7 @@ function EffectNode({ node }: { node: R3FNode }) {
       );
 
     case 'Vignette':
-      return (
-        <Vignette
-          offset={p.offset ?? 0.3}
-          darkness={p.darkness ?? 0.7}
-        />
-      );
+      return <Vignette offset={p.offset ?? 0.3} darkness={p.darkness ?? 0.7} />;
 
     case 'DepthOfField':
       return (

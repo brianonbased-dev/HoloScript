@@ -141,7 +141,9 @@ describe('holoscript_code_health', () => {
       `;
       const cleanResult = await health(cleanCode, 'clean.ts');
       const dirtyResult = await health(dirtyCode, 'dirty.ts');
-      expect(cleanResult.breakdown.issueDensity).toBeGreaterThan(dirtyResult.breakdown.issueDensity);
+      expect(cleanResult.breakdown.issueDensity).toBeGreaterThan(
+        dirtyResult.breakdown.issueDensity
+      );
     });
 
     it('detects deeply nested code', async () => {
@@ -163,7 +165,7 @@ describe('holoscript_code_health', () => {
         }
       `;
       const result = await health(deepCode, 'deep.ts');
-      expect(result.issues.some(i => i.includes('nesting'))).toBe(true);
+      expect(result.issues.some((i) => i.includes('nesting'))).toBe(true);
     });
   });
 

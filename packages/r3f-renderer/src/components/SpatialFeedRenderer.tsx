@@ -55,28 +55,58 @@ export function SpatialFeedRenderer({ worldState }: { worldState: HoloMeshWorldS
     <group name="spatial-feed-container">
       {/* Time-Travel Debug Scrubber Overlay */}
       <Html position={[0, -5, 0]} transform center>
-        <div style={{ background: 'rgba(0,0,0,0.8)', padding: '10px 20px', borderRadius: '8px', color: '#0ff', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '300px' }}>
-          <label style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px' }}>
+        <div
+          style={{
+            background: 'rgba(0,0,0,0.8)',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            color: '#0ff',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '300px',
+          }}
+        >
+          <label
+            style={{
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              marginBottom: '8px',
+            }}
+          >
             Temporal CRDT Scrubber
           </label>
           <input
             type="range"
-            min="0" max="100"
+            min="0"
+            max="100"
             value={temporalState}
-            onChange={e => setTemporalState(Number(e.target.value))}
+            onChange={(e) => setTemporalState(Number(e.target.value))}
             style={{ width: '100%', cursor: 'pointer' }}
           />
           <div style={{ fontSize: '10px', marginTop: '5px', opacity: 0.7 }}>
             {temporalState === 100 ? 'Live (Frontier)' : `Version Index: ${temporalState}%`}
           </div>
-          <div style={{ fontSize: '10px', marginTop: '5px', color: lodLevel === 'ultra-low' ? '#f00' : '#0ff' }}>
+          <div
+            style={{
+              fontSize: '10px',
+              marginTop: '5px',
+              color: lodLevel === 'ultra-low' ? '#f00' : '#0ff',
+            }}
+          >
             GAPS Level: {lodLevel.toUpperCase()} (Nodes: {entities.length})
           </div>
         </div>
       </Html>
 
-      {entities.map(entity => (
-        <FeedEntity key={entity.id} entity={entity} temporalState={temporalState} lodLevel={lodLevel} />
+      {entities.map((entity) => (
+        <FeedEntity
+          key={entity.id}
+          entity={entity}
+          temporalState={temporalState}
+          lodLevel={lodLevel}
+        />
       ))}
     </group>
   );
@@ -145,14 +175,18 @@ function extractBadges(cfg: Record<string, unknown> | undefined, fallbackName: s
     }));
   }
   // Fallback: single badge from entity content
-  return [{
-    id: 'badge-0',
-    name: fallbackName,
-    description: String(cfg.description ?? 'Spatial Badge'),
-    icon: String(cfg.icon ?? '🏆'),
-    tier: (VALID_BADGE_TIERS.includes(String(cfg.tier)) ? String(cfg.tier) : 'silver') as BadgeTier,
-    earnedAt: typeof cfg.earnedAt === 'number' ? cfg.earnedAt : 0,
-  }];
+  return [
+    {
+      id: 'badge-0',
+      name: fallbackName,
+      description: String(cfg.description ?? 'Spatial Badge'),
+      icon: String(cfg.icon ?? '🏆'),
+      tier: (VALID_BADGE_TIERS.includes(String(cfg.tier))
+        ? String(cfg.tier)
+        : 'silver') as BadgeTier,
+      earnedAt: typeof cfg.earnedAt === 'number' ? cfg.earnedAt : 0,
+    },
+  ];
 }
 
 function extractPortalProps(cfg: Record<string, unknown> | undefined): Record<string, unknown> {
@@ -169,7 +203,15 @@ function extractPortalProps(cfg: Record<string, unknown> | undefined): Record<st
 // FeedEntity
 // ---------------------------------------------------------------------------
 
-function FeedEntity({ entity, temporalState, lodLevel }: { entity: SpatialEntity; temporalState: number; lodLevel: string }) {
+function FeedEntity({
+  entity,
+  temporalState,
+  lodLevel,
+}: {
+  entity: SpatialEntity;
+  temporalState: number;
+  lodLevel: string;
+}) {
   const ref = useRef<THREE.Group>(null);
 
   // Velocity vector from AST (Time travel dampens physics)
@@ -189,45 +231,62 @@ function FeedEntity({ entity, temporalState, lodLevel }: { entity: SpatialEntity
   });
 
   const color = TIER_COLORS[Math.min(entity.tier || 1, 3)];
-  const authorShort = useMemo(() => entity.author.replace('did:peer:', '').slice(0, 16), [entity.author]);
+  const authorShort = useMemo(
+    () => entity.author.replace('did:peer:', '').slice(0, 16),
+    [entity.author]
+  );
 
   // Memoized trait detection — avoids repeated Map lookups on re-render
   const traitFlags = useMemo(() => {
     const t = entity.traits;
     return {
-      wot:      t.has('WoTThing')      || t.has('MQTTSource'),
-      tensor:   t.has('TensorOp')      || t.has('NeuralForge'),
-      zk:       t.has('ZKPrivate')     || t.has('ZeroKnowledgeProof'),
-      room:     t.has('AgentRoom')     || t.has('MySpace'),
-      portal:   t.has('RoomPortal')    || t.has('Wormhole'),
-      guestbook:t.has('Guestbook'),
-      badge:    t.has('Badge')         || t.has('HolographicBadge'),
+      wot: t.has('WoTThing') || t.has('MQTTSource'),
+      tensor: t.has('TensorOp') || t.has('NeuralForge'),
+      zk: t.has('ZKPrivate') || t.has('ZeroKnowledgeProof'),
+      room: t.has('AgentRoom') || t.has('MySpace'),
+      portal: t.has('RoomPortal') || t.has('Wormhole'),
+      guestbook: t.has('Guestbook'),
+      badge: t.has('Badge') || t.has('HolographicBadge'),
     };
   }, [entity.traits]);
 
   // Memoized trait config extraction — only recomputes when traits change
   const roomProps = useMemo(
-    () => extractRoomProps(traitFlags.room ? getTraitConfig(entity.traits, 'AgentRoom', 'MySpace') : undefined),
-    [entity.traits, traitFlags.room],
+    () =>
+      extractRoomProps(
+        traitFlags.room ? getTraitConfig(entity.traits, 'AgentRoom', 'MySpace') : undefined
+      ),
+    [entity.traits, traitFlags.room]
   );
   const portalProps = useMemo(
-    () => extractPortalProps(traitFlags.portal ? getTraitConfig(entity.traits, 'RoomPortal', 'Wormhole') : undefined),
-    [entity.traits, traitFlags.portal],
+    () =>
+      extractPortalProps(
+        traitFlags.portal ? getTraitConfig(entity.traits, 'RoomPortal', 'Wormhole') : undefined
+      ),
+    [entity.traits, traitFlags.portal]
   );
   const guestbookEntries = useMemo(
-    () => extractGuestbookEntries(traitFlags.guestbook ? getTraitConfig(entity.traits, 'Guestbook') : undefined),
-    [entity.traits, traitFlags.guestbook],
+    () =>
+      extractGuestbookEntries(
+        traitFlags.guestbook ? getTraitConfig(entity.traits, 'Guestbook') : undefined
+      ),
+    [entity.traits, traitFlags.guestbook]
   );
   const badgeData = useMemo(
-    () => extractBadges(traitFlags.badge ? getTraitConfig(entity.traits, 'Badge', 'HolographicBadge') : undefined, entity.content),
-    [entity.traits, traitFlags.badge, entity.content],
+    () =>
+      extractBadges(
+        traitFlags.badge ? getTraitConfig(entity.traits, 'Badge', 'HolographicBadge') : undefined,
+        entity.content
+      ),
+    [entity.traits, traitFlags.badge, entity.content]
   );
 
   const isUltraLow = lodLevel === 'ultra-low';
   const isLow = lodLevel === 'low';
 
   // Spatial trait entities suppress the generic InsightCard at normal LOD
-  const hasSpatialRenderer = traitFlags.room || traitFlags.portal || traitFlags.guestbook || traitFlags.badge;
+  const hasSpatialRenderer =
+    traitFlags.room || traitFlags.portal || traitFlags.guestbook || traitFlags.badge;
   const shouldRenderInsightCard = !hasSpatialRenderer;
 
   const content = (
@@ -268,16 +327,19 @@ function FeedEntity({ entity, temporalState, lodLevel }: { entity: SpatialEntity
       )}
 
       {(shouldRenderInsightCard || isUltraLow) && (
-        <InsightMesh text={entity.content} author={entity.author} color={color} isPast={temporalState < 100} lodLevel={lodLevel} />
+        <InsightMesh
+          text={entity.content}
+          author={entity.author}
+          color={color}
+          isPast={temporalState < 100}
+          lodLevel={lodLevel}
+        />
       )}
     </>
   );
 
   return (
-    <group
-      ref={ref}
-      position={[entity.position.x, entity.position.y, entity.position.z]}
-    >
+    <group ref={ref} position={[entity.position.x, entity.position.y, entity.position.z]}>
       {isUltraLow || isLow ? (
         content
       ) : (
@@ -301,7 +363,9 @@ function IoTNode({ color }: { color: string }) {
         <meshBasicMaterial color={color} />
       </mesh>
       <Html position={[0, 1, 0]}>
-        <div style={{ color, fontSize: '10px', whiteSpace: 'nowrap', textShadow: '0 0 5px #000' }}>[IoT Data Stream]</div>
+        <div style={{ color, fontSize: '10px', whiteSpace: 'nowrap', textShadow: '0 0 5px #000' }}>
+          [IoT Data Stream]
+        </div>
       </Html>
     </group>
   );
@@ -314,7 +378,9 @@ function SNNNode() {
         <meshBasicMaterial color="#f0f" side={THREE.DoubleSide} transparent opacity={0.6} />
       </Ring>
       <Html position={[1, 0, 0]}>
-        <div style={{ color: '#f0f', fontSize: '10px', whiteSpace: 'nowrap' }}>[TensorOp Compiled]</div>
+        <div style={{ color: '#f0f', fontSize: '10px', whiteSpace: 'nowrap' }}>
+          [TensorOp Compiled]
+        </div>
       </Html>
     </group>
   );
@@ -326,17 +392,46 @@ function ZKShieldNode({ lodLevel }: { lodLevel: string }) {
     <group position={[0, 0, 0]}>
       {!isLow && (
         <Sphere args={[2.5, 32, 32]}>
-          <meshPhysicalMaterial color="#0ff" transmission={0.9} opacity={0.3} transparent wireframe roughness={0} />
+          <meshPhysicalMaterial
+            color="#0ff"
+            transmission={0.9}
+            opacity={0.3}
+            transparent
+            wireframe
+            roughness={0}
+          />
         </Sphere>
       )}
       <Html position={[-2.5, 0, 0]}>
-        <div style={{ color: '#0ff', fontSize: '10px', padding: '2px', border: '1px solid #0ff', borderRadius: '3px' }}>ZK-Verified</div>
+        <div
+          style={{
+            color: '#0ff',
+            fontSize: '10px',
+            padding: '2px',
+            border: '1px solid #0ff',
+            borderRadius: '3px',
+          }}
+        >
+          ZK-Verified
+        </div>
       </Html>
     </group>
   );
 }
 
-function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; author: string; color: string; isPast?: boolean; lodLevel: string }) {
+function InsightMesh({
+  text,
+  author,
+  color,
+  isPast,
+  lodLevel,
+}: {
+  text: string;
+  author: string;
+  color: string;
+  isPast?: boolean;
+  lodLevel: string;
+}) {
   const isHigh = lodLevel === 'high';
   const isUltraLow = lodLevel === 'ultra-low';
 
@@ -346,12 +441,12 @@ function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; 
       {isUltraLow ? (
         <mesh>
           <boxGeometry args={[4, 2, 0.2]} />
-          <meshBasicMaterial color={isPast ? "#333333" : "#1a1b26"} />
+          <meshBasicMaterial color={isPast ? '#333333' : '#1a1b26'} />
         </mesh>
       ) : (
         <RoundedBox args={[4, 2, 0.2]} radius={0.1} smoothness={isHigh ? 4 : 1}>
           <meshPhysicalMaterial
-            color={isPast ? "#333333" : "#1a1b26"}
+            color={isPast ? '#333333' : '#1a1b26'}
             transparent={true}
             opacity={isPast ? 0.4 : 0.8}
             roughness={isPast ? 0.8 : 0.2}
@@ -363,12 +458,7 @@ function InsightMesh({ text, author, color, isPast, lodLevel }: { text: string; 
 
       {/* Glow Effect only on High/Medium */}
       {!isUltraLow && lodLevel !== 'low' && (
-        <pointLight
-          color={color}
-          intensity={0.5}
-          distance={5}
-          position={[0, 0, 0.5]}
-        />
+        <pointLight color={color} intensity={0.5} distance={5} position={[0, 0, 0.5]} />
       )}
 
       {/* Avatar/Author Chip */}

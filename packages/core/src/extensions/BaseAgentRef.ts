@@ -21,7 +21,6 @@ export abstract class BaseAgentRef<T = unknown> implements IAgentRef<T> {
    * Default implementation uses tell + response correlation.
    */
   async ask<R = unknown>(message: T, timeoutMs: number = 5000): Promise<R> {
-     
     return new Promise(async (resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`Ask timeout after ${timeoutMs}ms to agent ${this.agentId}`));

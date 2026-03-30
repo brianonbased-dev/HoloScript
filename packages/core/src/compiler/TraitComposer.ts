@@ -23,6 +23,7 @@ import {
   type CulturalCheckerConfig,
 } from './CulturalCompatibilityChecker';
 import type { CulturalProfileTrait } from '../traits/CultureTraits';
+import { ProvenanceSemiring } from './traits/ProvenanceSemiring';
 
 // =============================================================================
 // TYPES
@@ -48,11 +49,13 @@ export class TraitComposer {
   private graph?: TraitDependencyGraph;
   private inheritanceResolver?: TraitInheritanceResolver;
   private culturalChecker: CulturalCompatibilityChecker;
+  private semiring: ProvenanceSemiring;
 
   constructor(graph?: TraitDependencyGraph, inheritanceResolver?: TraitInheritanceResolver) {
     this.graph = graph;
     this.inheritanceResolver = inheritanceResolver;
     this.culturalChecker = new CulturalCompatibilityChecker();
+    this.semiring = new ProvenanceSemiring();
   }
 
   /**
@@ -103,7 +106,8 @@ export class TraitComposer {
           const a = traitNames[i];
           const b = traitNames[j];
           // Use the graph to detect if traits conflict
-          const aConflicts = (this.graph as any).traitConflicts?.get(a) as Set<string> | undefined;
+          const graphInternal = this.graph as unknown as { traitConflicts?: Map<string, Set<string>> };
+          const aConflicts = graphInternal.traitConflicts?.get(a);
           if (aConflicts?.has(b)) {
             conflicts.push(`@${a} conflicts with @${b}`);
           }
@@ -128,29 +132,51 @@ export class TraitComposer {
       }
     }
 
-    // Merge defaultConfigs (right-side wins)
-    // If inheritance resolver available, include inherited properties
-    const mergedDefaultConfig: Record<string, unknown> = {};
+    // Apply Provenance Semiring (commutative trait merge) instead of right-side-wins
+    const applications = [];
+
     for (const traitName of traitNames) {
-      // First, merge inherited properties (if available)
-      if (this.inheritanceResolver && this.inheritanceResolver.hasTrait(traitName)) {
-        const resolvedProps = this.inheritanceResolver.getFlattenedProperties(traitName);
-        Object.assign(mergedDefaultConfig, resolvedProps);
-      }
-      // Then, merge handler's own defaultConfig (overrides inherited)
       const h = handlers.get(traitName);
       if (!h) {
         warnings.push(`Trait "@${traitName}" not found in registry — skipped in composition.`);
         continue;
       }
-      if (h.defaultConfig) {
-        Object.assign(mergedDefaultConfig, h.defaultConfig);
+
+      let configAcumulator = {};
+
+      if (this.inheritanceResolver && this.inheritanceResolver.hasTrait(traitName)) {
+        const resolvedProps = this.inheritanceResolver.getFlattenedProperties(traitName);
+        configAcumulator = { ...resolvedProps };
       }
+
+      if (h.defaultConfig) {
+        configAcumulator = { ...configAcumulator, ...h.defaultConfig };
+      }
+
+      applications.push({
+        name: traitName,
+        config: configAcumulator
+      });
+    }
+
+    const { config: mergedDefaultConfig, errors, conflicts: semiringConflicts, deadElements } = this.semiring.add(applications);
+
+    // C3: Log dead elements encountered during composition for diagnostics
+    if (deadElements.length > 0) {
+      warnings.push(`${deadElements.length} dead element(s) encountered during composition: ${deadElements.map(d => d.elementId).join(', ')}`);
+    }
+
+    if (errors.length > 0) {
+      warnings.push(...errors);
+    }
+    
+    if (semiringConflicts.length > 0) {
+       warnings.push(...semiringConflicts);
     }
 
     // Build composed handler
     const composedHandler: TraitHandler<Record<string, unknown>> = {
-      name: name as any,
+      name: name,
       defaultConfig: mergedDefaultConfig,
 
       onAttach(node, config, context) {

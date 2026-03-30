@@ -31,7 +31,8 @@ import {
 
 describe('MockTrait', () => {
   it('should create and call mock', () => {
-    const node = createMockNode('m'); const ctx = createMockContext();
+    const node = createMockNode('m');
+    const ctx = createMockContext();
     attachTrait(mockHandler, node, {}, ctx);
     sendEvent(mockHandler, node, {}, ctx, { type: 'mock:create', name: 'fn', returns: 42 });
     expect(getEventCount(ctx, 'mock:created')).toBe(1);
@@ -40,7 +41,8 @@ describe('MockTrait', () => {
     expect(r.returnValue).toBe(42);
   });
   it('should verify call count', () => {
-    const node = createMockNode('m'); const ctx = createMockContext();
+    const node = createMockNode('m');
+    const ctx = createMockContext();
     attachTrait(mockHandler, node, {}, ctx);
     sendEvent(mockHandler, node, {}, ctx, { type: 'mock:create', name: 'fn' });
     sendEvent(mockHandler, node, {}, ctx, { type: 'mock:call', name: 'fn' });
@@ -52,9 +54,14 @@ describe('MockTrait', () => {
 
 describe('FixtureTrait', () => {
   it('should setup and teardown', () => {
-    const node = createMockNode('f'); const ctx = createMockContext();
+    const node = createMockNode('f');
+    const ctx = createMockContext();
     attachTrait(fixtureHandler, node, {}, ctx);
-    sendEvent(fixtureHandler, node, {}, ctx, { type: 'fixture:setup', name: 'db', data: { id: 1 } });
+    sendEvent(fixtureHandler, node, {}, ctx, {
+      type: 'fixture:setup',
+      name: 'db',
+      data: { id: 1 },
+    });
     expect(getEventCount(ctx, 'fixture:ready')).toBe(1);
     sendEvent(fixtureHandler, node, {}, ctx, { type: 'fixture:teardown', name: 'db' });
     expect(getEventCount(ctx, 'fixture:torn_down')).toBe(1);
@@ -63,10 +70,19 @@ describe('FixtureTrait', () => {
 
 describe('SnapshotTestTrait', () => {
   it('should capture and compare', () => {
-    const node = createMockNode('s'); const ctx = createMockContext();
+    const node = createMockNode('s');
+    const ctx = createMockContext();
     attachTrait(snapshotTestHandler, node, {}, ctx);
-    sendEvent(snapshotTestHandler, node, {}, ctx, { type: 'snapshot:capture', name: 'ui', value: { x: 1 } });
-    sendEvent(snapshotTestHandler, node, {}, ctx, { type: 'snapshot:compare', name: 'ui', value: { x: 1 } });
+    sendEvent(snapshotTestHandler, node, {}, ctx, {
+      type: 'snapshot:capture',
+      name: 'ui',
+      value: { x: 1 },
+    });
+    sendEvent(snapshotTestHandler, node, {}, ctx, {
+      type: 'snapshot:compare',
+      name: 'ui',
+      value: { x: 1 },
+    });
     const r = getLastEvent(ctx, 'snapshot:result') as any;
     expect(r.match).toBe(true);
   });
@@ -74,7 +90,8 @@ describe('SnapshotTestTrait', () => {
 
 describe('LoadTestTrait', () => {
   it('should start and stop', () => {
-    const node = createMockNode('l'); const ctx = createMockContext();
+    const node = createMockNode('l');
+    const ctx = createMockContext();
     attachTrait(loadTestHandler, node, {}, ctx);
     sendEvent(loadTestHandler, node, {}, ctx, { type: 'load:start', vus: 50 });
     expect(getEventCount(ctx, 'load:started')).toBe(1);
@@ -87,9 +104,13 @@ describe('LoadTestTrait', () => {
 
 describe('ChaosTestTrait', () => {
   it('should inject fault', () => {
-    const node = createMockNode('c'); const ctx = createMockContext();
+    const node = createMockNode('c');
+    const ctx = createMockContext();
     attachTrait(chaosTestHandler, node, {}, ctx);
-    sendEvent(chaosTestHandler, node, {}, ctx, { type: 'chaos:inject', fault: 'network_partition' });
+    sendEvent(chaosTestHandler, node, {}, ctx, {
+      type: 'chaos:inject',
+      fault: 'network_partition',
+    });
     const r = getLastEvent(ctx, 'chaos:injected') as any;
     expect(r.fault).toBe('network_partition');
   });
@@ -101,9 +122,14 @@ describe('ChaosTestTrait', () => {
 
 describe('WorkflowTrait', () => {
   it('should create and advance', () => {
-    const node = createMockNode('w'); const ctx = createMockContext();
+    const node = createMockNode('w');
+    const ctx = createMockContext();
     attachTrait(workflowHandler, node, {}, ctx);
-    sendEvent(workflowHandler, node, {}, ctx, { type: 'workflow:create', workflowId: 'wf1', steps: ['a', 'b', 'c'] });
+    sendEvent(workflowHandler, node, {}, ctx, {
+      type: 'workflow:create',
+      workflowId: 'wf1',
+      steps: ['a', 'b', 'c'],
+    });
     expect(getEventCount(ctx, 'workflow:created')).toBe(1);
     sendEvent(workflowHandler, node, {}, ctx, { type: 'workflow:advance', workflowId: 'wf1' });
     const r = getLastEvent(ctx, 'workflow:advanced') as any;
@@ -113,7 +139,8 @@ describe('WorkflowTrait', () => {
 
 describe('ApprovalTrait', () => {
   it('should request and approve', () => {
-    const node = createMockNode('a'); const ctx = createMockContext();
+    const node = createMockNode('a');
+    const ctx = createMockContext();
     attachTrait(approvalHandler, node, {}, ctx);
     sendEvent(approvalHandler, node, {}, ctx, { type: 'approval:request', requestId: 'r1' });
     expect(getEventCount(ctx, 'approval:requested')).toBe(1);
@@ -124,7 +151,8 @@ describe('ApprovalTrait', () => {
 
 describe('StateMachineTrait', () => {
   it('should transition states', () => {
-    const node = createMockNode('sm'); const ctx = createMockContext();
+    const node = createMockNode('sm');
+    const ctx = createMockContext();
     attachTrait(stateMachineHandler, node, { initial_state: 'idle' }, ctx);
     sendEvent(stateMachineHandler, node, {}, ctx, { type: 'sm:transition', to: 'active' });
     const r = getLastEvent(ctx, 'sm:transitioned') as any;
@@ -135,10 +163,17 @@ describe('StateMachineTrait', () => {
 
 describe('FormBuilderTrait', () => {
   it('should create form and add field', () => {
-    const node = createMockNode('fb'); const ctx = createMockContext();
+    const node = createMockNode('fb');
+    const ctx = createMockContext();
     attachTrait(formBuilderHandler, node, {}, ctx);
     sendEvent(formBuilderHandler, node, {}, ctx, { type: 'form:create', formId: 'f1' });
-    sendEvent(formBuilderHandler, node, {}, ctx, { type: 'form:add_field', formId: 'f1', name: 'email', fieldType: 'email', required: true });
+    sendEvent(formBuilderHandler, node, {}, ctx, {
+      type: 'form:add_field',
+      formId: 'f1',
+      name: 'email',
+      fieldType: 'email',
+      required: true,
+    });
     expect(getEventCount(ctx, 'form:field_added')).toBe(1);
     sendEvent(formBuilderHandler, node, {}, ctx, { type: 'form:submit', formId: 'f1' });
     const r = getLastEvent(ctx, 'form:submitted') as any;
@@ -152,9 +187,21 @@ describe('FormBuilderTrait', () => {
 
 describe('LocaleTrait', () => {
   it('should switch locale', () => {
-    const node = createMockNode('l'); const ctx = createMockContext();
-    attachTrait(localeHandler, node, { default_locale: 'en-US', supported: ['en-US', 'es', 'fr'] }, ctx);
-    sendEvent(localeHandler, node, { default_locale: 'en-US', supported: ['en-US', 'es', 'fr'] }, ctx, { type: 'locale:set', locale: 'es' });
+    const node = createMockNode('l');
+    const ctx = createMockContext();
+    attachTrait(
+      localeHandler,
+      node,
+      { default_locale: 'en-US', supported: ['en-US', 'es', 'fr'] },
+      ctx
+    );
+    sendEvent(
+      localeHandler,
+      node,
+      { default_locale: 'en-US', supported: ['en-US', 'es', 'fr'] },
+      ctx,
+      { type: 'locale:set', locale: 'es' }
+    );
     const r = getLastEvent(ctx, 'locale:changed') as any;
     expect(r.from).toBe('en-US');
     expect(r.to).toBe('es');
@@ -163,10 +210,19 @@ describe('LocaleTrait', () => {
 
 describe('TranslationTrait', () => {
   it('should load and translate', () => {
-    const node = createMockNode('t'); const ctx = createMockContext();
+    const node = createMockNode('t');
+    const ctx = createMockContext();
     attachTrait(translationHandler, node, {}, ctx);
-    sendEvent(translationHandler, node, { fallback_locale: 'en' }, ctx, { type: 'i18n:load', locale: 'en', messages: { greeting: 'Hello' } });
-    sendEvent(translationHandler, node, { fallback_locale: 'en' }, ctx, { type: 'i18n:translate', locale: 'en', key: 'greeting' });
+    sendEvent(translationHandler, node, { fallback_locale: 'en' }, ctx, {
+      type: 'i18n:load',
+      locale: 'en',
+      messages: { greeting: 'Hello' },
+    });
+    sendEvent(translationHandler, node, { fallback_locale: 'en' }, ctx, {
+      type: 'i18n:translate',
+      locale: 'en',
+      key: 'greeting',
+    });
     const r = getLastEvent(ctx, 'i18n:translated') as any;
     expect(r.text).toBe('Hello');
   });
@@ -174,16 +230,24 @@ describe('TranslationTrait', () => {
 
 describe('RtlTrait', () => {
   it('should detect RTL locale', () => {
-    const node = createMockNode('r'); const ctx = createMockContext();
+    const node = createMockNode('r');
+    const ctx = createMockContext();
     attachTrait(rtlHandler, node, {}, ctx);
-    sendEvent(rtlHandler, node, { rtl_locales: ['ar', 'he', 'fa', 'ur'] }, ctx, { type: 'rtl:check', locale: 'ar-SA' });
+    sendEvent(rtlHandler, node, { rtl_locales: ['ar', 'he', 'fa', 'ur'] }, ctx, {
+      type: 'rtl:check',
+      locale: 'ar-SA',
+    });
     const r = getLastEvent(ctx, 'rtl:result') as any;
     expect(r.rtl).toBe(true);
   });
   it('should detect LTR locale', () => {
-    const node = createMockNode('r'); const ctx = createMockContext();
+    const node = createMockNode('r');
+    const ctx = createMockContext();
     attachTrait(rtlHandler, node, {}, ctx);
-    sendEvent(rtlHandler, node, { rtl_locales: ['ar', 'he', 'fa', 'ur'] }, ctx, { type: 'rtl:check', locale: 'en-US' });
+    sendEvent(rtlHandler, node, { rtl_locales: ['ar', 'he', 'fa', 'ur'] }, ctx, {
+      type: 'rtl:check',
+      locale: 'en-US',
+    });
     const r = getLastEvent(ctx, 'rtl:result') as any;
     expect(r.rtl).toBe(false);
   });
@@ -191,9 +255,15 @@ describe('RtlTrait', () => {
 
 describe('TimezoneTrait', () => {
   it('should convert timezone', () => {
-    const node = createMockNode('tz'); const ctx = createMockContext();
+    const node = createMockNode('tz');
+    const ctx = createMockContext();
     attachTrait(timezoneHandler, node, { default_tz: 'UTC' }, ctx);
-    sendEvent(timezoneHandler, node, { default_tz: 'UTC' }, ctx, { type: 'tz:convert', from: 'UTC', to: 'America/New_York', timestamp: 1710000000 });
+    sendEvent(timezoneHandler, node, { default_tz: 'UTC' }, ctx, {
+      type: 'tz:convert',
+      from: 'UTC',
+      to: 'America/New_York',
+      timestamp: 1710000000,
+    });
     const r = getLastEvent(ctx, 'tz:converted') as any;
     expect(r.from).toBe('UTC');
     expect(r.to).toBe('America/New_York');

@@ -57,7 +57,11 @@ export interface StoreSceneOptions {
 /**
  * Store a scene and return a short URL-safe ID.
  */
-export function storeScene(code: string, titleOrOptions?: string | StoreSceneOptions, description?: string): StoredScene {
+export function storeScene(
+  code: string,
+  titleOrOptions?: string | StoreSceneOptions,
+  description?: string
+): StoredScene {
   // Evict oldest scenes if at capacity
   if (sceneStore.size >= MAX_SCENES) {
     let oldestKey: string | null = null;
@@ -72,9 +76,10 @@ export function storeScene(code: string, titleOrOptions?: string | StoreSceneOpt
   }
 
   // Support both legacy (title, description) and new options-object signatures
-  const opts: StoreSceneOptions = typeof titleOrOptions === 'object' && titleOrOptions !== null
-    ? titleOrOptions
-    : { title: titleOrOptions, description };
+  const opts: StoreSceneOptions =
+    typeof titleOrOptions === 'object' && titleOrOptions !== null
+      ? titleOrOptions
+      : { title: titleOrOptions, description };
 
   const id = generateShortId();
   const scene: StoredScene = {

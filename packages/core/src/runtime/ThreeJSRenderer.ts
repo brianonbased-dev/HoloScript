@@ -37,7 +37,12 @@ interface ThreeObjectLike {
   visible: boolean;
   frustumCulled: boolean;
   matrixAutoUpdate: boolean;
-  geometry: { dispose(): void; index: unknown; attributes: Record<string, { array: ArrayLike<number>; needsUpdate: boolean }>; computeVertexNormals(): void };
+  geometry: {
+    dispose(): void;
+    index: unknown;
+    attributes: Record<string, { array: ArrayLike<number>; needsUpdate: boolean }>;
+    computeVertexNormals(): void;
+  };
   material: { dispose(): void };
 }
 
@@ -472,7 +477,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static getThreeLib(): Record<string, any> | null {
-    return typeof window !== 'undefined' ? (window as unknown as Record<string, unknown>).THREE as Record<string, any> | null : null;
+    return typeof window !== 'undefined'
+      ? ((window as unknown as Record<string, unknown>).THREE as Record<string, any> | null)
+      : null;
   }
 
   private createGeometry(spec: GeometrySpec): unknown {
@@ -958,7 +965,9 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
 
     try {
       // Create EffectComposer
-      const composer: { render(): void; addPass(pass: unknown): void } = new THREE.EffectComposer(this.renderer);
+      const composer: { render(): void; addPass(pass: unknown): void } = new THREE.EffectComposer(
+        this.renderer
+      );
 
       // Add render pass (always required)
       this.renderPass = new THREE.RenderPass(this.scene, this.activeCamera);

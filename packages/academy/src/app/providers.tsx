@@ -13,7 +13,6 @@ import dynamic from 'next/dynamic';
 import { DevToolsInit } from '../components/DevToolsInit';
 import { AppShell } from '../components/AppShell';
 
-
 // Wizards removed for Academy// ═══════════════════════════════════════════════════════════════════
 // Theme Context
 // ═══════════════════════════════════════════════════════════════════
@@ -147,7 +146,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
             <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
               <ErrorBoundary>
-                  <AppShell>{children}</AppShell>
+                <AppShell>{children}</AppShell>
               </ErrorBoundary>
               <ToastContainer toasts={toasts} onRemove={removeToast} />
 

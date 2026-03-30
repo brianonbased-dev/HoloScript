@@ -17,23 +17,28 @@ import { handleHolotestTool, holotestTools } from '../holotest-tools';
  * Build minimal .holo scene code with positioned objects.
  * The regex parser reads: object "id" { position: [x,y,z] size: [w,h,d] }
  */
-function scene(...objects: { id: string; pos: [number, number, number]; size: [number, number, number] }[]) {
-  return objects.map(o =>
-    `object "${o.id}" {\n  position: [${o.pos.join(',')}]\n  size: [${o.size.join(',')}]\n}`
-  ).join('\n\n');
+function scene(
+  ...objects: { id: string; pos: [number, number, number]; size: [number, number, number] }[]
+) {
+  return objects
+    .map(
+      (o) =>
+        `object "${o.id}" {\n  position: [${o.pos.join(',')}]\n  size: [${o.size.join(',')}]\n}`
+    )
+    .join('\n\n');
 }
 
 // ── Tool registration ────────────────────────────────────────────────────────
 
 describe('holotestTools — registration', () => {
   it('exports execute_holotest tool definition', () => {
-    const tool = holotestTools.find(t => t.name === 'execute_holotest');
+    const tool = holotestTools.find((t) => t.name === 'execute_holotest');
     expect(tool).toBeDefined();
     expect(tool!.description).toContain('spatial assertions');
   });
 
   it('tool requires code in inputSchema', () => {
-    const tool = holotestTools.find(t => t.name === 'execute_holotest')!;
+    const tool = holotestTools.find((t) => t.name === 'execute_holotest')!;
     expect((tool.inputSchema as any).required).toContain('code');
   });
 });
@@ -117,11 +122,13 @@ describe('execute_holotest — explicit assertions', () => {
   it('within_volume passes when entity is inside container', async () => {
     const result = await handleHolotestTool('execute_holotest', {
       code: twoObjects,
-      assertions: [{
-        type: 'within_volume',
-        entityA: 'crate',
-        container: { min: [-10, 0, -10], max: [10, 20, 10] },
-      }],
+      assertions: [
+        {
+          type: 'within_volume',
+          entityA: 'crate',
+          container: { min: [-10, 0, -10], max: [10, 20, 10] },
+        },
+      ],
     });
     expect(result!.status).toBe('passed');
   });
@@ -129,11 +136,13 @@ describe('execute_holotest — explicit assertions', () => {
   it('within_volume fails when entity protrudes', async () => {
     const result = await handleHolotestTool('execute_holotest', {
       code: twoObjects,
-      assertions: [{
-        type: 'within_volume',
-        entityA: 'crate',
-        container: { min: [0, 0, 0], max: [0.1, 0.1, 0.1] }, // tiny box
-      }],
+      assertions: [
+        {
+          type: 'within_volume',
+          entityA: 'crate',
+          container: { min: [0, 0, 0], max: [0.1, 0.1, 0.1] }, // tiny box
+        },
+      ],
     });
     expect(result!.status).toBe('failed');
     expect(result!.agent_feedback!.error_type).toBe('OutOfBounds');
@@ -214,7 +223,7 @@ describe('execute_holotest — result structure', () => {
       { id: 'y', pos: [0.5, 0, 0], size: [2, 2, 2] }
     );
     const result = await handleHolotestTool('execute_holotest', { code });
-    const failedTest = result!.tests.find(t => t.status === 'failed')!;
+    const failedTest = result!.tests.find((t) => t.status === 'failed')!;
     expect(failedTest.error).toBeDefined();
     expect(failedTest.error!.error_type).toBeTruthy();
     expect(failedTest.error!.semantic_message).toBeTruthy();

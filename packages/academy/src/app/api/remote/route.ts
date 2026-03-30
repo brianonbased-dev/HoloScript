@@ -27,7 +27,6 @@ interface RemoteSession {
 }
 
 declare global {
-   
   var __remoteSessionStore__: Map<string, RemoteSession> | undefined;
 }
 const sessions: Map<string, RemoteSession> =

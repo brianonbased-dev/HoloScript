@@ -106,16 +106,22 @@ export class GodFileDetector {
 
     // Check function count
     if (metrics.functionCount >= this.thresholds.functions_god) {
-      reasons.push(`Functions ${metrics.functionCount} >= ${this.thresholds.functions_god} (god file threshold)`);
+      reasons.push(
+        `Functions ${metrics.functionCount} >= ${this.thresholds.functions_god} (god file threshold)`
+      );
       classification = 'god_file';
     } else if (metrics.functionCount >= this.thresholds.functions_warning) {
-      reasons.push(`Functions ${metrics.functionCount} >= ${this.thresholds.functions_warning} (warning threshold)`);
+      reasons.push(
+        `Functions ${metrics.functionCount} >= ${this.thresholds.functions_warning} (warning threshold)`
+      );
       if (classification !== 'god_file') classification = 'warning';
     }
 
     // Check cyclomatic complexity
     if (metrics.cyclomaticComplexity >= this.thresholds.complexity_god) {
-      reasons.push(`Cyclomatic complexity ${metrics.cyclomaticComplexity} >= ${this.thresholds.complexity_god}`);
+      reasons.push(
+        `Cyclomatic complexity ${metrics.cyclomaticComplexity} >= ${this.thresholds.complexity_god}`
+      );
       classification = 'god_file';
     }
 
@@ -145,10 +151,11 @@ export class GodFileDetector {
    */
   computeMetrics(filePath: string, content: string): FileMetrics {
     const lines = content.split('\n');
-    const loc = lines.filter(l => l.trim().length > 0 && !l.trim().startsWith('//')).length;
+    const loc = lines.filter((l) => l.trim().length > 0 && !l.trim().startsWith('//')).length;
 
     // Count functions (function declarations, arrow functions, methods)
-    const functionPattern = /\b(function\s+\w+|(?:async\s+)?(?:get|set)?\s*\w+\s*\(.*\)\s*(?::\s*\w[\w<>,\s|]*\s*)?{|\w+\s*=\s*(?:async\s+)?(?:\(.*\)|[\w]+)\s*=>)/g;
+    const functionPattern =
+      /\b(function\s+\w+|(?:async\s+)?(?:get|set)?\s*\w+\s*\(.*\)\s*(?::\s*\w[\w<>,\s|]*\s*)?{|\w+\s*=\s*(?:async\s+)?(?:\(.*\)|[\w]+)\s*=>)/g;
     const functionCount = (content.match(functionPattern) || []).length;
 
     // Count imports
@@ -156,7 +163,8 @@ export class GodFileDetector {
     const importCount = (content.match(importPattern) || []).length;
 
     // Count exports
-    const exportPattern = /\bexport\s+(?:default\s+)?(?:class|function|const|let|var|interface|type|enum)/g;
+    const exportPattern =
+      /\bexport\s+(?:default\s+)?(?:class|function|const|let|var|interface|type|enum)/g;
     const exportCount = (content.match(exportPattern) || []).length;
 
     // Count classes
@@ -164,7 +172,8 @@ export class GodFileDetector {
     const classCount = (content.match(classPattern) || []).length;
 
     // Cyclomatic complexity (approximation: count decision points)
-    const complexityPatterns = /\b(if|else if|for|while|do|switch|case|catch|\?\?|&&|\|\||ternary)\b|\?(?!=)/g;
+    const complexityPatterns =
+      /\b(if|else if|for|while|do|switch|case|catch|\?\?|&&|\|\||ternary)\b|\?(?!=)/g;
     const cyclomaticComplexity = (content.match(complexityPatterns) || []).length + 1;
 
     return {
@@ -185,7 +194,11 @@ export class GodFileDetector {
   suggestSplit(filePath: string, content: string, metrics: FileMetrics): VirtualSplitPlan {
     const lines = content.split('\n');
     const segments: SplitSegment[] = [];
-    const baseName = filePath.replace(/\.[^.]+$/, '').split(/[/\\]/).pop() || 'module';
+    const baseName =
+      filePath
+        .replace(/\.[^.]+$/, '')
+        .split(/[/\\]/)
+        .pop() || 'module';
 
     // Find top-level boundaries (classes, large function groups, export clusters)
     let currentStart = 0;

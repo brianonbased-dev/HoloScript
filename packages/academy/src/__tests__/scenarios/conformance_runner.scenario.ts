@@ -37,15 +37,15 @@ describe('Scenario: Conformance Runner', () => {
         name: 'Bad Object',
         type: 'mesh',
         props: {},
-        traits: [{ name: 'physics', properties: {} }]
-      }
+        traits: [{ name: 'physics', properties: {} }],
+      },
     ];
     (useSceneGraphStore as any).mockImplementation((selector: any) =>
       selector({ nodes: mockNodes })
     );
 
     render(React.createElement(ConformanceSuitePanel, { onClose: () => {} }));
-    
+
     const runBtn = screen.getByText('Run Conformance Suite');
     await act(async () => {
       fireEvent.click(runBtn);
@@ -63,15 +63,15 @@ describe('Scenario: Conformance Runner', () => {
         name: 'Bad Text',
         type: 'Text',
         props: { color: '#ffffff' },
-        traits: []
-      }
+        traits: [],
+      },
     ];
     (useSceneGraphStore as any).mockImplementation((selector: any) =>
       selector({ nodes: mockNodes })
     );
 
     render(React.createElement(ConformanceSuitePanel, { onClose: () => {} }));
-    
+
     const runBtn = screen.getByText('Run Conformance Suite');
     await act(async () => {
       fireEvent.click(runBtn);
@@ -88,7 +88,6 @@ describe('Scenario: Conformance Runner', () => {
     expect(errorBadges.length).toBeGreaterThan(0);
   }, 10000);
 
-
   it('evaluates rules as passed when everything conforms', async () => {
     const mockNodes = [
       {
@@ -96,15 +95,18 @@ describe('Scenario: Conformance Runner', () => {
         name: 'Good Object',
         type: 'mesh',
         props: {},
-        traits: [{ name: 'physics', properties: {} }, { name: 'collision', properties: {} }]
-      }
+        traits: [
+          { name: 'physics', properties: {} },
+          { name: 'collision', properties: {} },
+        ],
+      },
     ];
     (useSceneGraphStore as any).mockImplementation((selector: any) =>
       selector({ nodes: mockNodes })
     );
 
     render(React.createElement(ConformanceSuitePanel, { onClose: () => {} }));
-    
+
     const runBtn = screen.getByText('Run Conformance Suite');
     await act(async () => {
       fireEvent.click(runBtn);

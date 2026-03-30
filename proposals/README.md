@@ -4,11 +4,11 @@ This folder tracks RFC-style proposals for new language, trait, compiler, and ec
 
 ## Active Proposals
 
-| Proposal | Status | Focus Area |
-| --- | --- | --- |
-| [DAO Governance v1](./DAO_Governance_v1.md) | Proposed | On-chain spatial governance primitives |
+| Proposal                                                       | Status   | Focus Area                               |
+| -------------------------------------------------------------- | -------- | ---------------------------------------- |
+| [DAO Governance v1](./DAO_Governance_v1.md)                    | Proposed | On-chain spatial governance primitives   |
 | [Geospatial Climate Twin v1](./Geospatial_Climate_Twin_RFC.md) | Proposed | City-scale GIS and climate digital twins |
-| [Culture Keyword Extension](./culture-keyword-extension.md) | Proposal | Compile-time cultural norm declarations |
+| [Culture Keyword Extension](./culture-keyword-extension.md)    | Proposal | Compile-time cultural norm declarations  |
 
 ## How to Use This Folder
 

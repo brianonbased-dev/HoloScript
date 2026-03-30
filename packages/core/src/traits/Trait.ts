@@ -13,5 +13,9 @@ export interface Trait {
   onAttach?(node: Record<string, unknown>, context: TraitContext): void;
   onUpdate?(node: Record<string, unknown>, context: TraitContext, delta: number): void;
   onDetach?(node: Record<string, unknown>, context: TraitContext): void;
-  onEvent?(node: Record<string, unknown>, context: TraitContext, event: Record<string, unknown>): void;
+  onEvent?(
+    node: Record<string, unknown>,
+    context: TraitContext,
+    event: Record<string, unknown>
+  ): void;
 }

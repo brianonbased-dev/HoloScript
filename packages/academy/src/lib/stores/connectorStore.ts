@@ -265,7 +265,10 @@ export const useConnectorStore = create<ConnectorState>()(
         };
 
         set((state) => {
-          const updatedActivities = [newActivity, ...state.activities].slice(0, state.maxActivities);
+          const updatedActivities = [newActivity, ...state.activities].slice(
+            0,
+            state.maxActivities
+          );
           return { activities: updatedActivities };
         });
       },

@@ -139,7 +139,21 @@ export function SpatialAudioRenderer({
       if (audio.isPlaying) audio.stop();
       audio.disconnect();
     };
-  }, [src, type, active, volume, loop, autoplay, maxDistance, rolloffFactor, refDistance, coneInnerAngle, coneOuterAngle, coneOuterGain, onStateChange]);
+  }, [
+    src,
+    type,
+    active,
+    volume,
+    loop,
+    autoplay,
+    maxDistance,
+    rolloffFactor,
+    refDistance,
+    coneInnerAngle,
+    coneOuterAngle,
+    coneOuterGain,
+    onStateChange,
+  ]);
 
   useFrame(() => {
     if (audioRef.current) {

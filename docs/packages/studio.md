@@ -83,21 +83,25 @@ Common Traits:
 ### Setting Properties
 
 **Transform**
+
 - Position (X, Y, Z)
 - Rotation (Yaw, Pitch, Roll)
 - Scale (X, Y, Z)
 
 **Appearance**
+
 - Geometry: cube, sphere, etc.
 - Material: Color, Emission, Metallic, Roughness
 - Texture: Upload image or select preset
 
 **Physics** (if @physics trait)
+
 - Mass: 0-1000 kg
 - Restitution: 0-1 (bounciness)
 - Friction: 0-1 (grip)
 
 **Behavior**
+
 - Actions: Define triggers and responses
 - Animation: Add keyframe animations
 - Audio: Attach sound effects
@@ -124,9 +128,9 @@ composition "Game" {
   template "Player" {
     @grabbable
     @physics
-    
+
     state { health: 100 }
-    
+
     action attack(target) {
       target.health -= 20
     }
@@ -192,6 +196,7 @@ Network Latency: Normal
 ### Asset Library
 
 Browse pre-made:
+
 - 3D Models: Characters, vehicles, props
 - Animations: Walking, running, gestures
 - Audio: Sounds, music, voice
@@ -230,6 +235,7 @@ Studio handles all compilation steps automatically.
 ### Real-time Editing
 
 Multiple users can edit simultaneously:
+
 - Each gets different cursor color
 - Changes sync in real-time
 - Conflict resolution automatic
@@ -237,6 +243,7 @@ Multiple users can edit simultaneously:
 ### Version Control
 
 **File** → **Version History**
+
 - Automatic saves every 2 minutes
 - Restore to any point in time
 - Diff view shows changes

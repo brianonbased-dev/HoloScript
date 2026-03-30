@@ -12,10 +12,7 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import {
-  parseHolo,
-  BUILTIN_CONSTRAINTS,
-} from '@holoscript/core';
+import { parseHolo, BUILTIN_CONSTRAINTS } from '@holoscript/core';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -51,39 +48,76 @@ interface ValidationResult {
 // Domain → expected traits mapping for coherence checking
 const DOMAIN_TRAIT_MAP: Record<string, string[]> = {
   service: [
-    'service', 'endpoint', 'route', 'handler', 'middleware', 'api_gateway',
-    'load_balancer', 'service_discovery', 'cors_policy', 'rate_limiter',
-    'rest_resource', 'health_endpoint', 'graphql_resolver', 'webhook_sender',
+    'service',
+    'endpoint',
+    'route',
+    'handler',
+    'middleware',
+    'api_gateway',
+    'load_balancer',
+    'service_discovery',
+    'cors_policy',
+    'rate_limiter',
+    'rest_resource',
+    'health_endpoint',
+    'graphql_resolver',
+    'webhook_sender',
     'webhook_receiver',
   ],
   data: [
-    'db', 'model', 'query', 'migration', 'cache', 'repository',
-    'transaction', 'event_store', 'cursor_pagination', 'soft_delete', 'audit_column',
+    'db',
+    'model',
+    'query',
+    'migration',
+    'cache',
+    'repository',
+    'transaction',
+    'event_store',
+    'cursor_pagination',
+    'soft_delete',
+    'audit_column',
   ],
   contract: [
-    'contract', 'schema', 'validator', 'serializer', 'json_schema',
-    'openapi_path', 'schema_evolution', 'dto',
+    'contract',
+    'schema',
+    'validator',
+    'serializer',
+    'json_schema',
+    'openapi_path',
+    'schema_evolution',
+    'dto',
   ],
   pipeline: [
-    'stream', 'queue', 'worker', 'scheduler', 'message_broker',
-    'idempotent_consumer', 'saga_orchestrator', 'pipeline',
+    'stream',
+    'queue',
+    'worker',
+    'scheduler',
+    'message_broker',
+    'idempotent_consumer',
+    'saga_orchestrator',
+    'pipeline',
   ],
   container: [
-    'container', 'deployment', 'scaling', 'secret', 'dockerfile',
-    'kubernetes_pod', 'helm_chart',
+    'container',
+    'deployment',
+    'scaling',
+    'secret',
+    'dockerfile',
+    'kubernetes_pod',
+    'helm_chart',
   ],
-  metric: [
-    'metric', 'trace', 'log', 'health_check', 'structured_log',
-    'span', 'slo', 'alert_rule',
-  ],
+  metric: ['metric', 'trace', 'log', 'health_check', 'structured_log', 'span', 'slo', 'alert_rule'],
   resilience: [
-    'circuit_breaker', 'retry', 'timeout', 'fallback', 'bulkhead',
-    'exponential_backoff', 'canary_release', 'blue_green_deploy',
+    'circuit_breaker',
+    'retry',
+    'timeout',
+    'fallback',
+    'bulkhead',
+    'exponential_backoff',
+    'canary_release',
+    'blue_green_deploy',
   ],
-  network: [
-    'http', 'websocket', 'grpc', 'graphql', 'tls_config',
-    'jwt_config', 'oauth2_config',
-  ],
+  network: ['http', 'websocket', 'grpc', 'graphql', 'tls_config', 'jwt_config', 'oauth2_config'],
 };
 
 // =============================================================================

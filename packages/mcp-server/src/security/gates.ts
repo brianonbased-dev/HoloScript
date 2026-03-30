@@ -111,14 +111,14 @@ export function gate1ValidateRequest(
   toolName: string,
   args: Record<string, unknown>,
   clientId: string,
-  config: Gate1Config = DEFAULT_GATE1_CONFIG,
+  config: Gate1Config = DEFAULT_GATE1_CONFIG
 ): Gate1Result {
   // Rate limiting
   const now = Date.now();
   const windowStart = now - 60_000;
   const clientKey = clientId || 'anonymous';
   let timestamps = rateLimitWindows.get(clientKey) || [];
-  timestamps = timestamps.filter(t => t > windowStart);
+  timestamps = timestamps.filter((t) => t > windowStart);
   timestamps.push(now);
   rateLimitWindows.set(clientKey, timestamps);
 
@@ -143,7 +143,7 @@ export function gate1ValidateRequest(
   if (longStrings.length > 0) {
     return {
       passed: false,
-      reason: `Argument string(s) exceed maximum length: ${longStrings.map(s => `${s.path} (${s.length})`).join(', ')}`,
+      reason: `Argument string(s) exceed maximum length: ${longStrings.map((s) => `${s.path} (${s.length})`).join(', ')}`,
     };
   }
 
@@ -173,7 +173,7 @@ export function gate1ValidateRequest(
 function findLongStrings(
   obj: unknown,
   maxLen: number,
-  path = '',
+  path = ''
 ): Array<{ path: string; length: number }> {
   const results: Array<{ path: string; length: number }> = [];
   if (typeof obj === 'string' && obj.length > maxLen) {
@@ -193,11 +193,11 @@ function findLongStrings(
 function measureDepth(obj: unknown, current = 0): number {
   if (!obj || typeof obj !== 'object') return current;
   if (Array.isArray(obj)) {
-    return Math.max(current + 1, ...obj.map(item => measureDepth(item, current + 1)));
+    return Math.max(current + 1, ...obj.map((item) => measureDepth(item, current + 1)));
   }
   const values = Object.values(obj);
   if (values.length === 0) return current + 1;
-  return Math.max(current + 1, ...values.map(val => measureDepth(val, current + 1)));
+  return Math.max(current + 1, ...values.map((val) => measureDepth(val, current + 1)));
 }
 
 function detectInjectionPatterns(obj: unknown, path = ''): string[] {
@@ -220,7 +220,10 @@ function detectInjectionPatterns(obj: unknown, path = ''): string[] {
         findings.push(`Prototype pollution attempt via key: ${key}`);
       }
       findings.push(
-        ...detectInjectionPatterns((obj as Record<string, unknown>)[key], path ? `${path}.${key}` : key)
+        ...detectInjectionPatterns(
+          (obj as Record<string, unknown>)[key],
+          path ? `${path}.${key}` : key
+        )
       );
     }
   }
@@ -231,7 +234,7 @@ function detectInjectionPatterns(obj: unknown, path = ''): string[] {
 setInterval(() => {
   const cutoff = Date.now() - 120_000;
   for (const [key, timestamps] of rateLimitWindows) {
-    const filtered = timestamps.filter(t => t > cutoff);
+    const filtered = timestamps.filter((t) => t > cutoff);
     if (filtered.length === 0) {
       rateLimitWindows.delete(key);
     } else {
@@ -339,7 +342,7 @@ export function gate3EnforcePolicy(
   toolName: string,
   args: Record<string, unknown>,
   auth: TokenIntrospection,
-  config?: Partial<Gate3Config>,
+  config?: Partial<Gate3Config>
 ): Gate3Result {
   // Skip enforcement for tools that don't access downstream resources
   const enforcedTools = config?.enforcedTools || DOWNSTREAM_TOOLS;
@@ -365,11 +368,13 @@ export function gate3EnforcePolicy(
       };
     }
 
-    const allowed = policy.allowedPaths.some(root =>
-      normalized === root || normalized.startsWith(`${root}/`)
+    const allowed = policy.allowedPaths.some(
+      (root) => normalized === root || normalized.startsWith(`${root}/`)
     );
     if (!allowed && pathArgs.length > 0) {
-      restrictions.push(`Path "${normalized}" restricted by policy (allowed: ${policy.allowedPaths.join(', ')})`);
+      restrictions.push(
+        `Path "${normalized}" restricted by policy (allowed: ${policy.allowedPaths.join(', ')})`
+      );
     }
   }
 
@@ -446,7 +451,16 @@ export function gate3EnforcePolicy(
 
 function extractPathArgs(args: Record<string, unknown>): string[] {
   const paths: string[] = [];
-  const pathKeys = ['path', 'file', 'filePath', 'outputPath', 'holoscriptFile', 'directory', 'dir', 'output_file'];
+  const pathKeys = [
+    'path',
+    'file',
+    'filePath',
+    'outputPath',
+    'holoscriptFile',
+    'directory',
+    'dir',
+    'output_file',
+  ];
   for (const key of pathKeys) {
     if (typeof args[key] === 'string') {
       paths.push(args[key] as string);
@@ -472,7 +486,13 @@ export interface TripleGateResult {
   gate: 0 | 1 | 2 | 3;
   reason?: string;
   gate1?: Gate1Result;
-  gate2?: { authorized: boolean; reason?: string; requiredScopes?: string[]; grantedScopes?: string[]; riskLevel?: ToolRiskLevel };
+  gate2?: {
+    authorized: boolean;
+    reason?: string;
+    requiredScopes?: string[];
+    grantedScopes?: string[];
+    riskLevel?: ToolRiskLevel;
+  };
   gate3?: Gate3Result;
   riskLevel?: ToolRiskLevel;
 }
@@ -485,7 +505,7 @@ export function runTripleGate(
   args: Record<string, unknown>,
   auth: TokenIntrospection,
   gate1Config?: Gate1Config,
-  gate3Config?: Partial<Gate3Config>,
+  gate3Config?: Partial<Gate3Config>
 ): TripleGateResult {
   // Must be authenticated
   if (!auth.active) {

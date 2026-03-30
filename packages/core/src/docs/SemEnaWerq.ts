@@ -67,11 +67,11 @@ export interface SemAnnotation {
 
 /**
  * A code example with syntax highlighting and optional description for documentation.
- * 
+ *
  * This interface represents executable or illustrative code samples that demonstrate
  * HoloScript features, API usage, or implementation patterns across multiple languages.
  * Used extensively in tutorials, trait documentation, and API references.
- * 
+ *
  * @interface DocExample
  * @example
  * ```typescript
@@ -500,10 +500,10 @@ let globalRegistry: SemEnaWerqRegistry | null = null;
 
 /**
  * Gets the global singleton instance of the SemEnaWerq documentation registry.
- * 
+ *
  * Creates a new registry instance if one doesn't exist. This registry serves as
  * the central store for all trait documentation used by LSP, CLI, and tooling.
- * 
+ *
  * @returns The global SemEnaWerqRegistry instance
  * @example
  * ```typescript
@@ -524,11 +524,11 @@ export function getDocRegistry(): SemEnaWerqRegistry {
 
 /**
  * Registers built-in HoloScript trait documentation into the provided registry.
- * 
+ *
  * Populates the registry with comprehensive documentation for core traits including
  * Grabbable, Teleportable, Shimmering, and other fundamental VR/AR behaviors.
  * This serves as seed data and examples for the documentation system.
- * 
+ *
  * @param registry - The SemEnaWerqRegistry instance to populate with built-in docs
  * @example
  * ```typescript

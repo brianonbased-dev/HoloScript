@@ -432,15 +432,11 @@ export function DeploymentPipelineUI({
             {QUALITY_TIER_CONFIG[qualityTier].region && (
               <>
                 <span className="text-studio-muted">•</span>
-                <span className="text-studio-muted">
-                  {QUALITY_TIER_CONFIG[qualityTier].region}
-                </span>
+                <span className="text-studio-muted">{QUALITY_TIER_CONFIG[qualityTier].region}</span>
               </>
             )}
           </div>
-          <span className="text-studio-muted">
-            {QUALITY_TIER_CONFIG[qualityTier].description}
-          </span>
+          <span className="text-studio-muted">{QUALITY_TIER_CONFIG[qualityTier].description}</span>
         </div>
       </div>
 
@@ -492,12 +488,7 @@ export function DeploymentPipelineUI({
               {/* Connector Arrow */}
               {index < stages.length - 1 && (
                 <div className="flex-shrink-0 text-studio-border">
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"

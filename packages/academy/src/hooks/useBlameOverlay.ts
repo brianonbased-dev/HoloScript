@@ -56,7 +56,7 @@ export function useBlameOverlay(): UseBlameOverlayReturn {
   const [state, setState] = useState<BlameOverlayState>(INITIAL_STATE);
 
   const showBlame = useCallback(async (filePath: string, line: number, traitLabel?: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       visible: true,
       filePath,
@@ -70,13 +70,13 @@ export function useBlameOverlay(): UseBlameOverlayReturn {
     try {
       const result = await fetchBlame(filePath, line, line);
       if (!result.ok) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           loading: false,
           error: result.error ?? 'Failed to fetch blame data',
         }));
       } else {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           loading: false,
           entry: result.entries[0] ?? null,
@@ -84,7 +84,7 @@ export function useBlameOverlay(): UseBlameOverlayReturn {
         }));
       }
     } catch (e) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         loading: false,
         error: String(e),
@@ -96,27 +96,30 @@ export function useBlameOverlay(): UseBlameOverlayReturn {
     setState(INITIAL_STATE);
   }, []);
 
-  const toggleBlame = useCallback((filePath: string, line: number, traitLabel?: string) => {
-    setState(prev => {
-      if (prev.visible && prev.filePath === filePath && prev.line === line) {
-        return INITIAL_STATE;
-      }
-      return prev; // Will be replaced by showBlame
-    });
+  const toggleBlame = useCallback(
+    (filePath: string, line: number, traitLabel?: string) => {
+      setState((prev) => {
+        if (prev.visible && prev.filePath === filePath && prev.line === line) {
+          return INITIAL_STATE;
+        }
+        return prev; // Will be replaced by showBlame
+      });
 
-    // If was visible at same location, state is now hidden (from above).
-    // Otherwise, show blame
-    setState(prev => {
-      if (!prev.visible) {
-        // Trigger showBlame on next tick
+      // If was visible at same location, state is now hidden (from above).
+      // Otherwise, show blame
+      setState((prev) => {
+        if (!prev.visible) {
+          // Trigger showBlame on next tick
+          return prev;
+        }
         return prev;
-      }
-      return prev;
-    });
+      });
 
-    // Simply delegate
-    showBlame(filePath, line, traitLabel);
-  }, [showBlame]);
+      // Simply delegate
+      showBlame(filePath, line, traitLabel);
+    },
+    [showBlame]
+  );
 
   // ── Keyboard shortcut: Ctrl+Shift+B ──────────────────────────────────────
   useEffect(() => {

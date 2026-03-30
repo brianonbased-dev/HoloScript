@@ -51,13 +51,13 @@ describe('Training Corpus Validation', () => {
         if (result.errors && result.errors.length > 0) {
           // If there are errors, they should only be non-fatal (warnings)
           const fatalErrors = result.errors.filter(
-            (e: any) => !e.message.includes('warning') && !e.message.includes('Warning'),
+            (e: any) => !e.message.includes('warning') && !e.message.includes('Warning')
           );
           // Allow up to minor parse issues but flag them
           if (fatalErrors.length > 0) {
             console.warn(
               `[${example.id}] Parse issues:`,
-              fatalErrors.map((e: any) => e.message),
+              fatalErrors.map((e: any) => e.message)
             );
           }
         }

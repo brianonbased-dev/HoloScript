@@ -115,6 +115,7 @@ object "My|"  ← Typing here triggers suggestions
 ```
 
 **Completion includes:**
+
 - Trait names (with descriptions)
 - Object names in scope
 - Keywords (composition, template, object, etc.)
@@ -155,7 +156,7 @@ See all usages of a symbol:
 ```holo
 template "Sword" { }
        ↑ Ctrl+Shift+F to see all references
-       
+
 object "Weapon1" using "Sword"
 object "Weapon2" using "Sword"   ← All shown in results
 ```
@@ -193,12 +194,14 @@ Format code on save or manually:
 ```
 
 **Before:**
+
 ```holo
 object "Messy"{@grabbable
 geometry:"box" position:[0,1,0]}
 ```
 
 **After:**
+
 ```holo
 object "Messy" {
   @grabbable
@@ -212,14 +215,17 @@ object "Messy" {
 ### LSP not starting
 
 **VS Code:**
+
 ```json
 {
   "holoscript.lsp.trace.server": "verbose"
 }
 ```
+
 Then check the "HoloScript LSP" output channel.
 
 **Neovim:**
+
 ```lua
 vim.lsp.set_log_level('debug')
 -- Check logs at ~/.local/share/nvim/lsp.log
@@ -228,11 +234,13 @@ vim.lsp.set_log_level('debug')
 ### Syntax highlighting not working
 
 **VS Code:** Ensure you have the HoloScript extension installed:
+
 ```bash
 code --install-extension Hololand.holoscript
 ```
 
 **Neovim:** Install a tree-sitter parser or use built-in regex highlights:
+
 ```lua
 require('nvim-treesitter.configs').setup {
   ensure_installed = { 'holoscript' }
@@ -269,29 +277,24 @@ Enable incremental parsing:
 import { startLSPServer, createLSPClient } from '@holoscript/lsp';
 
 // Start server
-const server = await startLSPServer({ 
-  port: 9999 
+const server = await startLSPServer({
+  port: 9999,
 });
 
 // Or create client to existing server
-const client = createLSPClient({ 
-  port: 9999 
+const client = createLSPClient({
+  port: 9999,
 });
 
 // Use LSP methods
-const definitions = await client.goToDefinition(
-  'myfile.holo',
-  { line: 5, character: 10 }
-);
+const definitions = await client.goToDefinition('myfile.holo', { line: 5, character: 10 });
 
-const completions = await client.getCompletions(
-  'myfile.holo',
-  { line: 3, character: 5 }
-);
+const completions = await client.getCompletions('myfile.holo', { line: 3, character: 5 });
 ```
 
 ## See Also
 
 -[VS Code Extension](./vscode-extension.md) — Full editor integration
+
 - [CLI](./cli.md) — Command-line tools
 - [Neovim Setup](https://github.com/hololand/holoscript.nvim) — Neovim plugin

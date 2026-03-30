@@ -39,7 +39,14 @@ export type PluginCapability =
   | 'clipboard:read'
   | 'clipboard:write';
 
-export type PluginLifecycleState = 'unloaded' | 'loading' | 'ready' | 'running' | 'paused' | 'error' | 'crashed';
+export type PluginLifecycleState =
+  | 'unloaded'
+  | 'loading'
+  | 'ready'
+  | 'running'
+  | 'paused'
+  | 'error'
+  | 'crashed';
 
 export type MessageType = 'request' | 'response' | 'event' | 'error' | 'heartbeat';
 
@@ -200,7 +207,8 @@ export class PluginSandbox {
   private onMessage?: (pluginId: string, message: PluginMessage) => void;
 
   // API handlers that plugins can call
-  private apiHandlers: Map<string, (pluginId: string, payload: unknown) => Promise<unknown>> = new Map();
+  private apiHandlers: Map<string, (pluginId: string, payload: unknown) => Promise<unknown>> =
+    new Map();
 
   constructor(options: PluginSandboxOptions = {}) {
     this.container = options.containerElement || null;
@@ -389,7 +397,10 @@ export class PluginSandbox {
   // ─── API Registration ─────────────────────────────────────────────────
 
   /** Register an API handler that plugins can call. */
-  registerAPI(method: string, handler: (pluginId: string, payload: unknown) => Promise<unknown>): void {
+  registerAPI(
+    method: string,
+    handler: (pluginId: string, payload: unknown) => Promise<unknown>
+  ): void {
     this.apiHandlers.set(method, handler);
   }
 
@@ -653,7 +664,10 @@ export class PluginSandbox {
   private async handlePluginRequest(pluginId: string, message: PluginMessage): Promise<void> {
     const method = message.method;
     if (!method) {
-      this.postToPlugin(pluginId, createMessage('response', pluginId, method, undefined, 'No method specified', message.id));
+      this.postToPlugin(
+        pluginId,
+        createMessage('response', pluginId, method, undefined, 'No method specified', message.id)
+      );
       return;
     }
 
@@ -662,7 +676,14 @@ export class PluginSandbox {
     if (requiredCapability && !this.hasCapability(pluginId, requiredCapability)) {
       this.postToPlugin(
         pluginId,
-        createMessage('response', pluginId, method, undefined, `Insufficient capability: ${requiredCapability}`, message.id)
+        createMessage(
+          'response',
+          pluginId,
+          method,
+          undefined,
+          `Insufficient capability: ${requiredCapability}`,
+          message.id
+        )
       );
       return;
     }
@@ -670,17 +691,37 @@ export class PluginSandbox {
     // Dispatch to registered handler
     const handler = this.apiHandlers.get(method);
     if (!handler) {
-      this.postToPlugin(pluginId, createMessage('response', pluginId, method, undefined, `Unknown API method: ${method}`, message.id));
+      this.postToPlugin(
+        pluginId,
+        createMessage(
+          'response',
+          pluginId,
+          method,
+          undefined,
+          `Unknown API method: ${method}`,
+          message.id
+        )
+      );
       return;
     }
 
     try {
       const result = await handler(pluginId, message.payload);
-      this.postToPlugin(pluginId, createMessage('response', pluginId, method, result, undefined, message.id));
+      this.postToPlugin(
+        pluginId,
+        createMessage('response', pluginId, method, result, undefined, message.id)
+      );
     } catch (err) {
       this.postToPlugin(
         pluginId,
-        createMessage('response', pluginId, method, undefined, err instanceof Error ? err.message : 'Handler error', message.id)
+        createMessage(
+          'response',
+          pluginId,
+          method,
+          undefined,
+          err instanceof Error ? err.message : 'Handler error',
+          message.id
+        )
       );
     }
   }

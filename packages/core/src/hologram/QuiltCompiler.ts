@@ -91,7 +91,7 @@ const DEVICE_PRESETS: Record<string, Partial<QuiltConfig>> = {
     columns: 10,
     rows: 10,
     resolution: [8192, 8192],
-    baseline: 0.10,
+    baseline: 0.1,
   },
 };
 
@@ -110,11 +110,7 @@ const DEFAULT_CONFIG: QuiltConfig = {
 export class QuiltCompiler extends CompilerBase {
   protected readonly compilerName = 'QuiltCompiler';
 
-  compile(
-    composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string
-  ): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateASTAccess(agentToken);
     this.validateCodeGeneration(agentToken);
     if (outputPath) this.validateOutputPath(agentToken, outputPath);
@@ -126,7 +122,10 @@ export class QuiltCompiler extends CompilerBase {
   /**
    * Compile a HoloComposition to full quilt output with tile parameters.
    */
-  compileQuilt(composition: HoloComposition, overrides?: Partial<QuiltConfig>): QuiltCompilationResult {
+  compileQuilt(
+    composition: HoloComposition,
+    overrides?: Partial<QuiltConfig>
+  ): QuiltCompilationResult {
     // Extract quilt config from composition traits or use defaults
     const config = this.resolveConfig(composition, overrides);
     const tiles = this.generateTiles(config);
@@ -150,12 +149,15 @@ export class QuiltCompiler extends CompilerBase {
   /**
    * Resolve quilt configuration from composition @quilt trait and device presets.
    */
-  private resolveConfig(composition: HoloComposition, overrides?: Partial<QuiltConfig>): QuiltConfig {
+  private resolveConfig(
+    composition: HoloComposition,
+    overrides?: Partial<QuiltConfig>
+  ): QuiltConfig {
     let config = { ...DEFAULT_CONFIG };
 
     // Look for @quilt trait in composition objects
     for (const obj of composition.objects) {
-      const quiltTrait = obj.traits?.find(t => t.name === 'quilt');
+      const quiltTrait = obj.traits?.find((t) => t.name === 'quilt');
       if (quiltTrait?.params) {
         const p = quiltTrait.params;
         if (typeof p['views'] === 'number') config.views = p['views'];
@@ -164,15 +166,23 @@ export class QuiltCompiler extends CompilerBase {
         if (Array.isArray(p['resolution'])) config.resolution = p['resolution'] as [number, number];
         if (typeof p['baseline'] === 'number') config.baseline = p['baseline'];
         if (typeof p['device'] === 'string' && p['device'] in DEVICE_PRESETS) {
-          config = { ...config, ...DEVICE_PRESETS[p['device']], device: p['device'] as QuiltConfig['device'] };
+          config = {
+            ...config,
+            ...DEVICE_PRESETS[p['device']],
+            device: p['device'] as QuiltConfig['device'],
+          };
         }
       }
 
-      const lgTrait = obj.traits?.find(t => t.name === 'looking_glass');
+      const lgTrait = obj.traits?.find((t) => t.name === 'looking_glass');
       if (lgTrait?.params) {
         const device = lgTrait.params['device'] as string;
         if (device && device in DEVICE_PRESETS) {
-          config = { ...config, ...DEVICE_PRESETS[device], device: device as QuiltConfig['device'] };
+          config = {
+            ...config,
+            ...DEVICE_PRESETS[device],
+            device: device as QuiltConfig['device'],
+          };
         }
       }
     }
@@ -226,7 +236,7 @@ export class QuiltCompiler extends CompilerBase {
     const tileW = Math.floor(config.resolution[0] / config.columns);
     const tileH = Math.floor(config.resolution[1] / config.rows);
 
-    const sceneObjects = composition.objects.map(obj => this.objectToJSX(obj)).join('\n      ');
+    const sceneObjects = composition.objects.map((obj) => this.objectToJSX(obj)).join('\n      ');
 
     return `// QuiltCompiler output — ${config.views} views for ${config.device} Looking Glass
 // Tile grid: ${config.columns}x${config.rows} @ ${tileW}x${tileH}px each
@@ -238,13 +248,17 @@ import * as THREE from 'three';
 
 const QUILT_CONFIG = ${JSON.stringify(config, null, 2)};
 
-const TILES = ${JSON.stringify(tiles.map(t => ({
-  index: t.index,
-  col: t.column,
-  row: t.row,
-  offset: Math.round(t.cameraOffset * 10000) / 10000,
-  shear: Math.round(t.viewShear * 10000) / 10000,
-})), null, 2)};
+const TILES = ${JSON.stringify(
+      tiles.map((t) => ({
+        index: t.index,
+        col: t.column,
+        row: t.row,
+        offset: Math.round(t.cameraOffset * 10000) / 10000,
+        shear: Math.round(t.viewShear * 10000) / 10000,
+      })),
+      null,
+      2
+    )};
 
 function QuiltCamera({ tileIndex, children }) {
   const { gl, size } = useThree();
@@ -302,7 +316,9 @@ export function QuiltRenderer() {
     const geo = obj.properties?.geometry ?? 'box';
 
     const posStr = Array.isArray(pos) ? `[${pos.join(', ')}]` : '[0, 0, 0]';
-    const rotStr = Array.isArray(rot) ? `[${rot.map((r: number) => r * Math.PI / 180).join(', ')}]` : undefined;
+    const rotStr = Array.isArray(rot)
+      ? `[${rot.map((r: number) => (r * Math.PI) / 180).join(', ')}]`
+      : undefined;
     const scaleStr = Array.isArray(scale) ? `[${scale.join(', ')}]` : undefined;
 
     const geoMap: Record<string, string> = {

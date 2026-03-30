@@ -137,7 +137,8 @@ describe('OTLPExporter', () => {
   // ===========================================================================
 
   it('retries on 5xx errors', async () => {
-    const failFetch = vi.fn()
+    const failFetch = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 503 })
       .mockResolvedValueOnce({ ok: false, status: 503 })
       .mockResolvedValueOnce({ ok: true, status: 200 });
@@ -175,7 +176,8 @@ describe('OTLPExporter', () => {
   });
 
   it('retries on 429 rate limiting', async () => {
-    const rateLimited = vi.fn()
+    const rateLimited = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, status: 429 })
       .mockResolvedValueOnce({ ok: true, status: 200 });
 
@@ -223,9 +225,7 @@ describe('OTLPExporter', () => {
     });
 
     // Enqueue 5 spans
-    const spans = Array.from({ length: 5 }, (_, i) =>
-      makeMockSpan({ name: `span-${i}` })
-    );
+    const spans = Array.from({ length: 5 }, (_, i) => makeMockSpan({ name: `span-${i}` }));
     batchExporter.enqueue(spans);
 
     const results = await batchExporter.flushPending();

@@ -68,7 +68,7 @@ describe('TraitCompositionCompiler — Production', () => {
     expect(def.defaultConfig.defense).toBe(20);
   });
 
-  it('later components override same-named keys from earlier ones', () => {
+  it('throws CompositionConflictError when unstructured component keys conflict', () => {
     const decl: TraitCompositionDecl = {
       name: 'Speedy',
       components: ['base', 'enhanced'],
@@ -77,8 +77,8 @@ describe('TraitCompositionCompiler — Production', () => {
       base: makeHandler({ speed: 5 }),
       enhanced: makeHandler({ speed: 15 }),
     });
-    const [def] = compiler.compile([decl], registry);
-    expect(def.defaultConfig.speed).toBe(15);
+    // Semiring requires explicit rules or authority; arbitrary right-side wins is banned.
+    expect(() => compiler.compile([decl], registry)).toThrow(CompositionConflictError);
   });
 
   it('overrides win over all component defaults', () => {
@@ -160,7 +160,7 @@ describe('TraitCompositionCompiler — Production', () => {
 
   it('two non-conflicting traits compile without error', () => {
     const decl: TraitCompositionDecl = { name: 'OK', components: ['p', 'q'] };
-    const registry = makeRegistry({ p: makeHandler({}), q: makeHandler({}) });
+    const registry = makeRegistry({ p: makeHandler({ distinctA: 1 }), q: makeHandler({ distinctB: 2 }) });
     expect(() => compiler.compile([decl], registry)).not.toThrow();
   });
 

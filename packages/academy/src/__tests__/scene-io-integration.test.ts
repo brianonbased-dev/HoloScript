@@ -52,9 +52,27 @@ describe('scene I/O integration', () => {
     const newScene = {
       version: 1,
       nodes: [
-        { id: 'b', name: 'B', type: 'light', parentId: null, traits: [], position: [5, 5, 5], rotation: [0, 0, 0], scale: [1, 1, 1] },
-        { id: 'c', name: 'C', type: 'camera', parentId: null, traits: [], position: [0, 10, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
-      ]
+        {
+          id: 'b',
+          name: 'B',
+          type: 'light',
+          parentId: null,
+          traits: [],
+          position: [5, 5, 5],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        },
+        {
+          id: 'c',
+          name: 'C',
+          type: 'camera',
+          parentId: null,
+          traits: [],
+          position: [0, 10, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        },
+      ],
     };
 
     useSceneGraphStore.getState().loadScene(JSON.stringify(newScene));

@@ -41,7 +41,7 @@ composition "VRGame" {
     geometry: "humanoid"
     state { health: 100 }
   }
-  
+
   object "Hero" using "Player" {
     position: [0, 1, 0]
   }
@@ -55,6 +55,7 @@ holo compile scene.holo --target unity --output ./Assets/Generated/
 ```
 
 This generates:
+
 - C# classes (one per object)
 - Prefabs with components
 - Networking setup (if @networked used)
@@ -82,18 +83,18 @@ public class HeroObject : HoloObjectBase
 {
     // Properties from geometry/traits
     [SerializeField] public MeshFilter MeshFilter { get; set; }
-    
+
     // State from @state block
     public class StateData
     {
         public int Health { get; set; }
     }
     public StateData State { get; set; }
-    
+
     // Events matching @on_* hooks
     public event System.Action<HoloObject> OnGrab;
     public event System.Action<HoloObject> OnRelease;
-    
+
     // Actions defined in template
     public void Attack(HoloObject target) { }
 }
@@ -103,14 +104,14 @@ public class HeroObject : HoloObjectBase
 
 Each HoloScript trait maps to Unity components:
 
-| Trait | Maps To | Requires |
-|-------|---------|----------|
-| `@grabbable` | XRGrabInteractable | XR Toolkit |
-| `@physics` | Rigidbody | Built-in |
-| `@collidable` | Collider | Built-in |
-| `@networked` | NetworkObject | Netcode for GameObjects |
-| `@animated` | Animator | Built-in |
-| `@audio` | AudioSource | Built-in |
+| Trait         | Maps To            | Requires                |
+| ------------- | ------------------ | ----------------------- |
+| `@grabbable`  | XRGrabInteractable | XR Toolkit              |
+| `@physics`    | Rigidbody          | Built-in                |
+| `@collidable` | Collider           | Built-in                |
+| `@networked`  | NetworkObject      | Netcode for GameObjects |
+| `@animated`   | Animator           | Built-in                |
+| `@audio`      | AudioSource        | Built-in                |
 
 ### Example: Networked Physics Object
 
@@ -134,12 +135,12 @@ public class SphereObject : HoloObjectBase
 {
     // Grab setup
     public XRGrabInteractable GrabInteractable { get; set; }
-    
+
     // Physics setup
     Rigidbody rb = GetComponent<Rigidbody>();
     rb.mass = 1.0f;
     rb.elasticity = 0.8f;
-    
+
     // Networking
     NetworkObject networkObject = GetComponent<NetworkObject>();
     // Position/rotation sync automatically configured
@@ -160,7 +161,7 @@ hero.State.Health -= 10;
 hero.State.IsAlive = hero.State.Health > 0;
 
 // Listen to changes
-hero.State.HealthChanged += (newHealth) => 
+hero.State.HealthChanged += (newHealth) =>
 {
     healthUI.text = "HP: " + newHealth;
 };

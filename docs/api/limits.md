@@ -55,13 +55,13 @@ The **1,000 node limit** is the primary constraint. Design around lazy loading a
 
 When using all formats together:
 
-| Capability        | Combined Value                  |
-| ----------------- | ------------------------------- |
+| Capability        | Combined Value                      |
+| ----------------- | ----------------------------------- |
 | VR Traits         | 1,800+ (stackable - 20+ per object) |
-| Lifecycle Hooks   | 80+ (combinable)                |
-| Builtin Functions | 90+                             |
-| Import Chains     | Unlimited                       |
-| Nesting Depth     | Unlimited (AST level)           |
+| Lifecycle Hooks   | 80+ (combinable)                    |
+| Builtin Functions | 90+                                 |
+| Import Chains     | Unlimited                           |
+| Nesting Depth     | Unlimited (AST level)               |
 
 ### The Power Formula
 

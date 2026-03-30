@@ -60,7 +60,7 @@ export class AnimationStateMachine {
    */
   resolveClipForState(
     stateName: string,
-    clips: Map<string, AnimationClipDef>,
+    clips: Map<string, AnimationClipDef>
   ): { state: AnimationStateDef; clip: AnimationClipDef } | null {
     const state = this.states.get(stateName);
     if (!state) return null;
@@ -159,7 +159,10 @@ export class AnimationStateMachine {
     let layerIndex = 0;
     for (const layer of this.layers.values()) {
       const currentState = layer.currentState;
-      if (!currentState) { layerIndex++; continue; }
+      if (!currentState) {
+        layerIndex++;
+        continue;
+      }
 
       for (const transition of this.transitions) {
         if (transition.from !== 'any' && transition.from !== currentState) continue;
@@ -251,7 +254,7 @@ export class AnimationStateMachine {
     activeAnimations: Map<number, ActiveAnimation | null>,
     crossfades: Map<number, CrossfadeState | null>,
     updateAnimation: (anim: ActiveAnimation, dt: number) => void,
-    emit: (event: { type: string; [k: string]: unknown }) => void,
+    emit: (event: { type: string; [k: string]: unknown }) => void
   ): void {
     const crossfade = crossfades.get(layerIndex);
 

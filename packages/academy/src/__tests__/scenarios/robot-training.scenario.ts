@@ -15,7 +15,12 @@ function sim2realGap(simReward: number, realReward: number): number {
   return Math.abs(simReward - realReward) / Math.max(Math.abs(simReward), 1);
 }
 
-function isTransferReady(rate: number, threshold: number, minEpisodes: number, episodes: number): boolean {
+function isTransferReady(
+  rate: number,
+  threshold: number,
+  minEpisodes: number,
+  episodes: number
+): boolean {
   return rate >= threshold && episodes >= minEpisodes;
 }
 

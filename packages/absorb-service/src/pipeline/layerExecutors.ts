@@ -55,9 +55,12 @@ Rules:
 - Keep responses concise — under 200 words for rationale`;
 
 function buildL1Prompt(trends: TrendSummary): string {
-  const focusList = trends.bestFocus.length > 0
-    ? trends.bestFocus.map((f) => `  - ${f.focus}: avg delta ${f.avgDelta.toFixed(4)} (${f.count} cycles)`).join('\n')
-    : '  (no focus data yet)';
+  const focusList =
+    trends.bestFocus.length > 0
+      ? trends.bestFocus
+          .map((f) => `  - ${f.focus}: avg delta ${f.avgDelta.toFixed(4)} (${f.count} cycles)`)
+          .join('\n')
+      : '  (no focus data yet)';
 
   return `## Layer 0 Trend Summary
 
@@ -112,14 +115,13 @@ Skills must be valid HoloScript .hsplus compositions with:
 Keep skill count between 0-3. Only generate skills for clear gaps.
 Wisdom entries should follow the W.XXX format convention.`;
 
-function buildL2Prompt(
-  trends: TrendSummary,
-  l1History: LayerCycleResult[],
-): string {
-  const l1Summary = l1History.map((r) => {
-    const output = r.output as L1Output;
-    return `  - Cycle ${r.cycleId}: delta=${r.qualityDelta.toFixed(4)}, status=${r.status}, rationale="${output.rationale?.slice(0, 100) ?? 'N/A'}"`;
-  }).join('\n');
+function buildL2Prompt(trends: TrendSummary, l1History: LayerCycleResult[]): string {
+  const l1Summary = l1History
+    .map((r) => {
+      const output = r.output as L1Output;
+      return `  - Cycle ${r.cycleId}: delta=${r.qualityDelta.toFixed(4)}, status=${r.status}, rationale="${output.rationale?.slice(0, 100) ?? 'N/A'}"`;
+    })
+    .join('\n');
 
   return `## Meta-Strategy Analysis
 
@@ -148,7 +150,7 @@ export interface L0ExecutorDeps {
     profile: DaemonProfile,
     dna: DaemonProjectDNA,
     onProgress: (progress: number, status: string) => void,
-    customLimits?: Record<string, unknown>,
+    customLimits?: Record<string, unknown>
   ) => Promise<{
     success: boolean;
     cycles: number;
@@ -178,7 +180,7 @@ export async function executeLayer0(
   targetProject: string,
   feedback: FeedbackSignal[],
   eventBus: AgentEventBus,
-  deps: L0ExecutorDeps,
+  deps: L0ExecutorDeps
 ): Promise<LayerCycleResult> {
   const cycleId = generateCycleId(0);
   const startedAt = new Date().toISOString();
@@ -193,9 +195,7 @@ export async function executeLayer0(
 
   // Resolve project path and DNA
   const projectPath = deps.resolveProjectPath(targetProject);
-  const dna = targetProject === 'self'
-    ? HOLOSCRIPT_SELF_DNA
-    : await deps.resolveDNA(targetProject);
+  const dna = targetProject === 'self' ? HOLOSCRIPT_SELF_DNA : await deps.resolveDNA(targetProject);
 
   // Build custom limits from feedback
   const customLimits: Record<string, unknown> = {};
@@ -211,11 +211,18 @@ export async function executeLayer0(
       profile,
       dna,
       (progress, status) => {
-        eventBus.publish('pipeline:layer_progress', {
-          layerId: 0, cycleId, progress, status,
-        }, 'layer-0');
+        eventBus.publish(
+          'pipeline:layer_progress',
+          {
+            layerId: 0,
+            cycleId,
+            progress,
+            status,
+          },
+          'layer-0'
+        );
       },
-      customLimits,
+      customLimits
     );
 
     const output: L0Output = {
@@ -241,9 +248,15 @@ export async function executeLayer0(
       status: result.success ? 'success' : 'failure',
     };
 
-    eventBus.publish('pipeline:layer_complete', {
-      layerId: 0, cycleId, result: cycleResult,
-    }, 'layer-0');
+    eventBus.publish(
+      'pipeline:layer_complete',
+      {
+        layerId: 0,
+        cycleId,
+        result: cycleResult,
+      },
+      'layer-0'
+    );
 
     return cycleResult;
   } catch (err) {
@@ -257,14 +270,27 @@ export async function executeLayer0(
       qualityBefore: 0,
       qualityAfter: 0,
       qualityDelta: 0,
-      output: { kind: 'code_patches', patches: [], qualityDelta: 0, filesChanged: 0, focusUsed: 'absorb' },
+      output: {
+        kind: 'code_patches',
+        patches: [],
+        qualityDelta: 0,
+        filesChanged: 0,
+        focusUsed: 'absorb',
+      },
       inputFromBelow: [],
       status: 'failure',
     };
 
-    eventBus.publish('pipeline:layer_complete', {
-      layerId: 0, cycleId, result: cycleResult, error: String(err),
-    }, 'layer-0');
+    eventBus.publish(
+      'pipeline:layer_complete',
+      {
+        layerId: 0,
+        cycleId,
+        result: cycleResult,
+        error: String(err),
+      },
+      'layer-0'
+    );
 
     return cycleResult;
   }
@@ -273,7 +299,11 @@ export async function executeLayer0(
 // ─── Layer 1: Strategy Optimizer ─────────────────────────────────────────────
 
 export interface LLMProvider {
-  chat: (params: { system: string; prompt: string; maxTokens: number }) => Promise<{ text: string }>;
+  chat: (params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }) => Promise<{ text: string }>;
 }
 
 /**
@@ -315,7 +345,7 @@ export async function executeLayer1(
   config: LayerConfig,
   feedbackBuffer: FeedbackSignal[],
   eventBus: AgentEventBus,
-  llmProvider: LLMProvider,
+  llmProvider: LLMProvider
 ): Promise<LayerCycleResult> {
   const cycleId = generateCycleId(1);
   const startedAt = new Date().toISOString();
@@ -339,10 +369,14 @@ export async function executeLayer1(
 
     // Quality score for L1: did L0's trajectory improve after L1's adjustments?
     // (Simplified: use trends as proxy)
-    const qualityBefore = trends.qualityTrajectory === 'declining' ? 0.3
-      : trends.qualityTrajectory === 'stagnant' ? 0.5 : 0.7;
-    const qualityAfter = output.focusRotationChange || output.profileChange
-      ? qualityBefore + 0.1 : qualityBefore;
+    const qualityBefore =
+      trends.qualityTrajectory === 'declining'
+        ? 0.3
+        : trends.qualityTrajectory === 'stagnant'
+          ? 0.5
+          : 0.7;
+    const qualityAfter =
+      output.focusRotationChange || output.profileChange ? qualityBefore + 0.1 : qualityBefore;
 
     const cycleResult: LayerCycleResult = {
       layerId: 1,
@@ -359,9 +393,15 @@ export async function executeLayer1(
       status: 'success',
     };
 
-    eventBus.publish('pipeline:layer_complete', {
-      layerId: 1, cycleId, result: cycleResult,
-    }, 'layer-1');
+    eventBus.publish(
+      'pipeline:layer_complete',
+      {
+        layerId: 1,
+        cycleId,
+        result: cycleResult,
+      },
+      'layer-1'
+    );
 
     return cycleResult;
   } catch (err) {
@@ -377,17 +417,26 @@ export async function executeLayer1(
       qualityDelta: 0,
       output: {
         kind: 'strategy_adjustment',
-        focusRotationChange: null, profileChange: null,
-        passesChange: null, budgetAdjustment: null,
+        focusRotationChange: null,
+        profileChange: null,
+        passesChange: null,
+        budgetAdjustment: null,
         rationale: `L1 execution failed: ${String(err)}`,
       },
       inputFromBelow: feedbackBuffer,
       status: 'failure',
     };
 
-    eventBus.publish('pipeline:layer_complete', {
-      layerId: 1, cycleId, result: cycleResult, error: String(err),
-    }, 'layer-1');
+    eventBus.publish(
+      'pipeline:layer_complete',
+      {
+        layerId: 1,
+        cycleId,
+        result: cycleResult,
+        error: String(err),
+      },
+      'layer-1'
+    );
 
     return cycleResult;
   }
@@ -400,19 +449,23 @@ function parseL2Response(text: string): L2Output {
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? [null, text];
     const parsed = JSON.parse(jsonMatch[1]?.trim() ?? text.trim());
 
-    const newSkills: GeneratedSkill[] = (parsed.newSkills ?? []).map((s: Record<string, unknown>) => ({
-      name: String(s.name ?? 'unnamed-skill'),
-      description: String(s.description ?? ''),
-      content: String(s.content ?? ''),
-      targetLayer: Number(s.targetLayer ?? 0),
-      confidence: Number(s.confidence ?? 0.5),
-    }));
+    const newSkills: GeneratedSkill[] = (parsed.newSkills ?? []).map(
+      (s: Record<string, unknown>) => ({
+        name: String(s.name ?? 'unnamed-skill'),
+        description: String(s.description ?? ''),
+        content: String(s.content ?? ''),
+        targetLayer: Number(s.targetLayer ?? 0),
+        confidence: Number(s.confidence ?? 0.5),
+      })
+    );
 
-    const wisdomEntries: WisdomEntry[] = (parsed.wisdomEntries ?? []).map((w: Record<string, unknown>) => ({
-      category: (w.category as WisdomEntry['category']) ?? 'wisdom',
-      content: String(w.content ?? ''),
-      confidence: Number(w.confidence ?? 0.5),
-    }));
+    const wisdomEntries: WisdomEntry[] = (parsed.wisdomEntries ?? []).map(
+      (w: Record<string, unknown>) => ({
+        category: (w.category as WisdomEntry['category']) ?? 'wisdom',
+        content: String(w.content ?? ''),
+        confidence: Number(w.confidence ?? 0.5),
+      })
+    );
 
     return {
       kind: 'evolution',
@@ -437,7 +490,7 @@ export async function executeLayer2(
   feedbackBuffer: FeedbackSignal[],
   l1History: LayerCycleResult[],
   eventBus: AgentEventBus,
-  llmProvider: LLMProvider,
+  llmProvider: LLMProvider
 ): Promise<LayerCycleResult> {
   const cycleId = generateCycleId(2);
   const startedAt = new Date().toISOString();
@@ -461,8 +514,7 @@ export async function executeLayer2(
     output.newSkills = output.newSkills.filter((s) => s.confidence >= 0.6);
 
     const qualityBefore = 0.5;
-    const qualityAfter = output.newSkills.length > 0 || output.wisdomEntries.length > 0
-      ? 0.6 : 0.5;
+    const qualityAfter = output.newSkills.length > 0 || output.wisdomEntries.length > 0 ? 0.6 : 0.5;
 
     const cycleResult: LayerCycleResult = {
       layerId: 2,
@@ -479,9 +531,15 @@ export async function executeLayer2(
       status: 'success',
     };
 
-    eventBus.publish('pipeline:layer_complete', {
-      layerId: 2, cycleId, result: cycleResult,
-    }, 'layer-2');
+    eventBus.publish(
+      'pipeline:layer_complete',
+      {
+        layerId: 2,
+        cycleId,
+        result: cycleResult,
+      },
+      'layer-2'
+    );
 
     return cycleResult;
   } catch (err) {
@@ -506,9 +564,16 @@ export async function executeLayer2(
       status: 'failure',
     };
 
-    eventBus.publish('pipeline:layer_complete', {
-      layerId: 2, cycleId, result: cycleResult, error: String(err),
-    }, 'layer-2');
+    eventBus.publish(
+      'pipeline:layer_complete',
+      {
+        layerId: 2,
+        cycleId,
+        result: cycleResult,
+        error: String(err),
+      },
+      'layer-2'
+    );
 
     return cycleResult;
   }

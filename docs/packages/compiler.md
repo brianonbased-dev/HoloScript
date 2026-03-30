@@ -43,91 +43,89 @@ console.log(unityOutput.code);
 
 // Or compile to multiple targets
 const targets = ['unity', 'godot', 'webgpu'];
-const results = await Promise.all(
-  targets.map(target => compileHoloScript(ast, { target }))
-);
+const results = await Promise.all(targets.map((target) => compileHoloScript(ast, { target })));
 ```
 
 ## Compiler List
 
 ### Game Engines
 
-| Target | Language | Output |
-|--------|----------|--------|
-| `unity` | C# | UnityEngine code + prefabs |
-| `unreal` | C++ | Unreal Blueprints / C++ |
-| `godot` | GDScript | Godot scene files (.tscn) |
+| Target       | Language   | Output                       |
+| ------------ | ---------- | ---------------------------- |
+| `unity`      | C#         | UnityEngine code + prefabs   |
+| `unreal`     | C++        | Unreal Blueprints / C++      |
+| `godot`      | GDScript   | Godot scene files (.tscn)    |
 | `playcanvas` | JavaScript | PlayCanvas Entity components |
-| `babylon` | TypeScript | Babylon.js scene graph |
+| `babylon`    | TypeScript | Babylon.js scene graph       |
 
 ### Web Platforms
 
-| Target | Language | Output |
-|--------|----------|--------|
-| `webgpu` | TypeScript | WebGPU compute shaders + scene |
-| `three` | JavaScript | Three.js object tree |
-| `babylon-web` | TypeScript | Babylon.js web deployment |
-| `cesium` | JavaScript | Cesium.js 3D geospatial |
-| `wasm` | Rust | WebAssembly (.wasm module) |
+| Target        | Language   | Output                         |
+| ------------- | ---------- | ------------------------------ |
+| `webgpu`      | TypeScript | WebGPU compute shaders + scene |
+| `three`       | JavaScript | Three.js object tree           |
+| `babylon-web` | TypeScript | Babylon.js web deployment      |
+| `cesium`      | JavaScript | Cesium.js 3D geospatial        |
+| `wasm`        | Rust       | WebAssembly (.wasm module)     |
 
 ### VR/AR Platforms
 
-| Target | Language | Output |
-|--------|----------|--------|
-| `visionos` | Swift | SwiftUI + RealityKit |
-| `openxr` | C++ | OpenXR-compliant plugin |
-| `quest` | C# | Meta Quest SDK (Unity) |
-| `arcore` | Kotlin | Google ARCore app |
-| `arkit` | Swift | Apple ARKit scene |
+| Target     | Language | Output                  |
+| ---------- | -------- | ----------------------- |
+| `visionos` | Swift    | SwiftUI + RealityKit    |
+| `openxr`   | C++      | OpenXR-compliant plugin |
+| `quest`    | C#       | Meta Quest SDK (Unity)  |
+| `arcore`   | Kotlin   | Google ARCore app       |
+| `arkit`    | Swift    | Apple ARKit scene       |
 
 ### Robotics & IoT
 
-| Target | Language | Output |
-|--------|----------|--------|
-| `ros2` | Python | ROS 2 node stubs |
-| `gazebo` | XML | Gazebo SDF simulation |
-| `urdf` | XML | URDF robot model |
-| `dtdl` | JSON | Azure DTDL schema |
-| `mqtt` | Python | MQTT client code |
+| Target   | Language | Output                |
+| -------- | -------- | --------------------- |
+| `ros2`   | Python   | ROS 2 node stubs      |
+| `gazebo` | XML      | Gazebo SDF simulation |
+| `urdf`   | XML      | URDF robot model      |
+| `dtdl`   | JSON     | Azure DTDL schema     |
+| `mqtt`   | Python   | MQTT client code      |
 
 ### Services & APIs
 
-| Target | Language | Output |
-|--------|----------|--------|
-| `graphql` | GraphQL | Schema + resolvers |
-| `openapi` | YAML | OpenAPI 3.0 spec |
-| `protobuf` | Protobuf | Protocol Buffers (.proto) |
-| `nodejs` | TypeScript | Express.js server |
-| `python` | Python | FastAPI backend |
+| Target     | Language   | Output                    |
+| ---------- | ---------- | ------------------------- |
+| `graphql`  | GraphQL    | Schema + resolvers        |
+| `openapi`  | YAML       | OpenAPI 3.0 spec          |
+| `protobuf` | Protobuf   | Protocol Buffers (.proto) |
+| `nodejs`   | TypeScript | Express.js server         |
+| `python`   | Python     | FastAPI backend           |
 
 ## Compilation Options
 
 ```typescript
 const options = {
-  target: 'unity',              // Required: target platform
-  
+  target: 'unity', // Required: target platform
+
   // Optimization
-  optimize: 'balanced',         // 'off' | 'balanced' | 'aggressive'
-  inlineProperties: true,       // Inline simple properties
-  removeDeadCode: true,         // Remove unused objects/traits
-  
+  optimize: 'balanced', // 'off' | 'balanced' | 'aggressive'
+  inlineProperties: true, // Inline simple properties
+  removeDeadCode: true, // Remove unused objects/traits
+
   // Output
-  outputFormat: 'esm',          // 'cjs' | 'esm' | 'umd'
-  minify: false,                // Minify output code
-  sourceMaps: false,            // Generate source maps
-  
+  outputFormat: 'esm', // 'cjs' | 'esm' | 'umd'
+  minify: false, // Minify output code
+  sourceMaps: false, // Generate source maps
+
   // Customization
-  namespace: 'MyGame',          // Namespace/module name
-  baseClass: 'GameObject',      // Custom base class (if applicable)
-  traits: ['@grabbable'],       // Only include these traits
-  
+  namespace: 'MyGame', // Namespace/module name
+  baseClass: 'GameObject', // Custom base class (if applicable)
+  traits: ['@grabbable'], // Only include these traits
+
   // Platform-specific
-  engineVersion: '2022.3',      // For Unity/Unreal/Godot
-  platform: 'editor',           // 'editor' | 'runtime' | 'standalone'
-  
+  engineVersion: '2022.3', // For Unity/Unreal/Godot
+  platform: 'editor', // 'editor' | 'runtime' | 'standalone'
+
   // Debug
-  debug: false,                 // Keep debug symbols
-  verbose: false                // Detailed compilation log
+  debug: false, // Keep debug symbols
+  verbose: false, // Detailed compilation log
 };
 
 const output = await compileHoloScript(ast, options);
@@ -139,15 +137,17 @@ Each compiler produces a standard output object:
 
 ```typescript
 interface CompilationResult {
-  code: string;                 // Generated source code
-  files: {                      // If multi-file output
-    [filename: string]: string
+  code: string; // Generated source code
+  files: {
+    // If multi-file output
+    [filename: string]: string;
   };
-  assets: {                     // Generated assets
-    [assetName: string]: Uint8Array
+  assets: {
+    // Generated assets
+    [assetName: string]: Uint8Array;
   };
-  sourceMap?: string;           // Source map if enabled
-  diagnostics: Diagnostic[];    // Warnings/errors
+  sourceMap?: string; // Source map if enabled
+  diagnostics: Diagnostic[]; // Warnings/errors
   metadata: {
     target: string;
     language: string;
@@ -169,7 +169,7 @@ class MyCustomCompiler extends BaseCompiler {
     // Custom compilation logic
     return `myformat_object "${obj.name}" { ... }`;
   }
-  
+
   async compileTemplate(template: HoloTemplate) {
     // Generate code for template
     return `myformat_template "${template.name}" { ... }`;

@@ -91,7 +91,9 @@ describe('DeploymentPipelineUI', () => {
     const onDeployStart = vi.fn();
     const onDeployComplete = vi.fn();
 
-    render(<DeploymentPipelineUI onDeployStart={onDeployStart} onDeployComplete={onDeployComplete} />);
+    render(
+      <DeploymentPipelineUI onDeployStart={onDeployStart} onDeployComplete={onDeployComplete} />
+    );
 
     const deployButton = screen.getByRole('button', { name: /deploy/i });
     fireEvent.click(deployButton);
@@ -268,9 +270,7 @@ describe('DeploymentPipelineUI', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
-      expect(
-        screen.getByText(/This will revert to the previous deployment/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/This will revert to the previous deployment/i)).toBeInTheDocument();
     });
   });
 

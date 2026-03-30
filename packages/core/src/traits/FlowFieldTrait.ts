@@ -74,12 +74,9 @@ export const flowFieldHandler: TraitHandler<FlowFieldConfig> = {
 
     // Basic steering logic
     state.currentDirection = [
-      state.currentDirection[0] * (1 - steeringWeight) +
-        flowDir[0] * steeringWeight,
-      state.currentDirection[1] * (1 - steeringWeight) +
-        flowDir[1] * steeringWeight,
-      state.currentDirection[2] * (1 - steeringWeight) +
-        flowDir[2] * steeringWeight,
+      state.currentDirection[0] * (1 - steeringWeight) + flowDir[0] * steeringWeight,
+      state.currentDirection[1] * (1 - steeringWeight) + flowDir[1] * steeringWeight,
+      state.currentDirection[2] * (1 - steeringWeight) + flowDir[2] * steeringWeight,
     ];
 
     // Normalize direction

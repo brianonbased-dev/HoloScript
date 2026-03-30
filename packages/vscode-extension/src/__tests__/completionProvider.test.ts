@@ -7,10 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  ALL_TRAITS,
-  HoloScriptCompletionItemProvider,
-} from '../completionProvider';
+import { ALL_TRAITS, HoloScriptCompletionItemProvider } from '../completionProvider';
 import {
   CompletionItemKind,
   SnippetString,
@@ -81,9 +78,7 @@ describe('ALL_TRAITS data integrity', () => {
 
   describe('snippet placeholder format', () => {
     it('should use valid VS Code snippet syntax for parameterized traits', () => {
-      const traitsWithPlaceholders = ALL_TRAITS.filter((t) =>
-        t.insertText.includes('${')
-      );
+      const traitsWithPlaceholders = ALL_TRAITS.filter((t) => t.insertText.includes('${'));
       expect(traitsWithPlaceholders.length).toBeGreaterThan(0);
 
       for (const trait of traitsWithPlaceholders) {
@@ -95,7 +90,19 @@ describe('ALL_TRAITS data integrity', () => {
     });
 
     it('should have simple (non-snippet) insertText for basic traits', () => {
-      const simple = ['grabbable', 'collidable', 'trigger', 'pointable', 'hoverable', 'clickable', 'draggable', 'billboard', 'goal_oriented', 'rotatable', 'stackable'];
+      const simple = [
+        'grabbable',
+        'collidable',
+        'trigger',
+        'pointable',
+        'hoverable',
+        'clickable',
+        'draggable',
+        'billboard',
+        'goal_oriented',
+        'rotatable',
+        'stackable',
+      ];
       for (const name of simple) {
         const trait = ALL_TRAITS.find((t) => t.insertText === name);
         expect(trait).toBeDefined();
@@ -152,12 +159,7 @@ describe('HoloScriptCompletionItemProvider', () => {
   });
 
   it('should return an array of completion items', () => {
-    const items = provider.provideCompletionItems(
-      {} as any,
-      {} as any,
-      token as any,
-      {} as any
-    );
+    const items = provider.provideCompletionItems({} as any, {} as any, token as any, {} as any);
 
     expect(Array.isArray(items)).toBe(true);
     expect((items as any[]).length).toBe(56);

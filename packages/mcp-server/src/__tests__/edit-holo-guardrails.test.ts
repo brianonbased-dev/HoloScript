@@ -79,7 +79,7 @@ describe('Lane C: MCP Guardrails — Missing Parameters', () => {
       edits: [{ op: 'set_property', key: '', value: '"red"' }],
     });
     expect(result?.success).toBe(true); // succeeds but diff logs warning
-    expect(result?.diff.some(d => d.includes('⚠'))).toBe(true);
+    expect(result?.diff.some((d) => d.includes('⚠'))).toBe(true);
   });
 });
 
@@ -145,7 +145,7 @@ describe('Lane C: MCP Guardrails — Trait Operations', () => {
       target: 'Player',
       edits: [{ op: 'add_trait', trait: '' }],
     });
-    expect(result?.diff.some(d => d.includes('⚠'))).toBe(true);
+    expect(result?.diff.some((d) => d.includes('⚠'))).toBe(true);
   });
 });
 
@@ -199,7 +199,7 @@ describe('Lane C: MCP Guardrails — Rename Operations', () => {
       target: 'Player',
       edits: [{ op: 'rename', newName: '' }],
     });
-    expect(result?.diff.some(d => d.includes('⚠'))).toBe(true);
+    expect(result?.diff.some((d) => d.includes('⚠'))).toBe(true);
   });
 });
 
@@ -242,6 +242,6 @@ describe('Lane C: MCP Guardrails — Unknown Operations', () => {
       edits: [{ op: 'delete_object' as any }],
     });
     expect(result?.success).toBe(true);
-    expect(result?.diff.some(d => d.includes('Unknown operation'))).toBe(true);
+    expect(result?.diff.some((d) => d.includes('Unknown operation'))).toBe(true);
   });
 });

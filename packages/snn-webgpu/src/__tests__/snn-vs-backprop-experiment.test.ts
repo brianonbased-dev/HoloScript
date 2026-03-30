@@ -28,10 +28,7 @@ import { SNNRetrievalModel } from '../experiments/snn-retrieval-model.js';
 import { BackpropRetrievalModel } from '../experiments/backprop-retrieval-model.js';
 import { runExperiment, formatExperimentReport } from '../experiments/experiment-runner.js';
 
-import type {
-  TraitKnowledgeBase,
-  ExperimentConfig,
-} from '../experiments/trait-retrieval-types.js';
+import type { TraitKnowledgeBase, ExperimentConfig } from '../experiments/trait-retrieval-types.js';
 import { DEFAULT_EXPERIMENT_CONFIG } from '../experiments/trait-retrieval-types.js';
 
 // =============================================================================
@@ -55,21 +52,21 @@ describe('TraitKnowledgeBase', () => {
   });
 
   it('should include core VR interaction traits', () => {
-    const names = kb.facts.map(f => f.name);
+    const names = kb.facts.map((f) => f.name);
     expect(names).toContain('grabbable');
     expect(names).toContain('throwable');
     expect(names).toContain('rotatable');
   });
 
   it('should include neuromorphic traits', () => {
-    const names = kb.facts.map(f => f.name);
+    const names = kb.facts.map((f) => f.name);
     expect(names).toContain('lif_neuron');
     expect(names).toContain('cuba_lif_neuron');
     expect(names).toContain('spike_encoder');
   });
 
   it('should include material property traits', () => {
-    const names = kb.facts.map(f => f.name);
+    const names = kb.facts.map((f) => f.name);
     expect(names).toContain('wooden');
     expect(names).toContain('glass_material');
     expect(names).toContain('marble_material');
@@ -92,46 +89,46 @@ describe('TraitKnowledgeBase', () => {
   });
 
   it('should assign correct category IDs', () => {
-    const grabbable = kb.facts.find(f => f.name === 'grabbable');
+    const grabbable = kb.facts.find((f) => f.name === 'grabbable');
     expect(grabbable).toBeDefined();
     expect(grabbable!.categoryId).toBe(0); // core-vr-interaction
     expect(grabbable!.category).toBe('core-vr-interaction');
 
-    const lifNeuron = kb.facts.find(f => f.name === 'lif_neuron');
+    const lifNeuron = kb.facts.find((f) => f.name === 'lif_neuron');
     expect(lifNeuron).toBeDefined();
     expect(lifNeuron!.categoryId).toBe(6); // neuromorphic
   });
 
   it('should correctly flag physics-enabled traits', () => {
-    const grabbable = kb.facts.find(f => f.name === 'grabbable')!;
+    const grabbable = kb.facts.find((f) => f.name === 'grabbable')!;
     expect(grabbable.physicsEnabled).toBe(true);
 
-    const wooden = kb.facts.find(f => f.name === 'wooden')!;
+    const wooden = kb.facts.find((f) => f.name === 'wooden')!;
     expect(wooden.physicsEnabled).toBe(false);
 
-    const buoyancy = kb.facts.find(f => f.name === 'buoyancy')!;
+    const buoyancy = kb.facts.find((f) => f.name === 'buoyancy')!;
     expect(buoyancy.physicsEnabled).toBe(true);
   });
 
   it('should correctly flag interactive traits', () => {
-    const grabbable = kb.facts.find(f => f.name === 'grabbable')!;
+    const grabbable = kb.facts.find((f) => f.name === 'grabbable')!;
     expect(grabbable.interactive).toBe(true);
 
-    const glowing = kb.facts.find(f => f.name === 'glowing')!;
+    const glowing = kb.facts.find((f) => f.name === 'glowing')!;
     expect(glowing.interactive).toBe(false);
   });
 
   it('should apply trait property overrides', () => {
-    const breakable = kb.facts.find(f => f.name === 'breakable')!;
+    const breakable = kb.facts.find((f) => f.name === 'breakable')!;
     expect(breakable.visual).toBe(true); // override
     expect(breakable.auditory).toBe(true); // override
 
-    const ice = kb.facts.find(f => f.name === 'ice_material')!;
+    const ice = kb.facts.find((f) => f.name === 'ice_material')!;
     expect(ice.physicsEnabled).toBe(true); // override from default false
   });
 
   it('should have unique trait names', () => {
-    const names = kb.facts.map(f => f.name);
+    const names = kb.facts.map((f) => f.name);
     const unique = new Set(names);
     expect(unique.size).toBe(names.length);
   });
@@ -146,8 +143,8 @@ describe('TraitEncoding', () => {
     const vec = encodeTraitOneHot(5, 100);
     expect(vec).toHaveLength(100);
     expect(vec[5]).toBe(1.0);
-    expect(vec.filter(v => v === 1.0)).toHaveLength(1);
-    expect(vec.filter(v => v === 0)).toHaveLength(99);
+    expect(vec.filter((v) => v === 1.0)).toHaveLength(1);
+    expect(vec.filter((v) => v === 0)).toHaveLength(99);
   });
 
   it('should create deterministic dense vectors', () => {
@@ -193,16 +190,16 @@ describe('TrainTestSplit', () => {
 
   it('should include all facts across train and test', () => {
     const { train, test } = splitTrainTest(kb, 0.7, 42);
-    const allNames = [...train.map(f => f.name), ...test.map(f => f.name)].sort();
-    const originalNames = kb.facts.map(f => f.name).sort();
+    const allNames = [...train.map((f) => f.name), ...test.map((f) => f.name)].sort();
+    const originalNames = kb.facts.map((f) => f.name).sort();
     expect(allNames).toEqual(originalNames);
   });
 
   it('should produce different splits with different seeds', () => {
     const split1 = splitTrainTest(kb, 0.8, 42);
     const split2 = splitTrainTest(kb, 0.8, 123);
-    const trainNames1 = split1.train.map(f => f.name);
-    const trainNames2 = split2.train.map(f => f.name);
+    const trainNames1 = split1.train.map((f) => f.name);
+    const trainNames2 = split2.train.map((f) => f.name);
     // Very unlikely to be identical with different seeds
     expect(trainNames1).not.toEqual(trainNames2);
   });
@@ -210,7 +207,7 @@ describe('TrainTestSplit', () => {
   it('should be deterministic with same seed', () => {
     const split1 = splitTrainTest(kb, 0.8, 42);
     const split2 = splitTrainTest(kb, 0.8, 42);
-    expect(split1.train.map(f => f.name)).toEqual(split2.train.map(f => f.name));
+    expect(split1.train.map((f) => f.name)).toEqual(split2.train.map((f) => f.name));
   });
 });
 
@@ -221,39 +218,39 @@ describe('TrainTestSplit', () => {
 describe('AccuracyMetrics', () => {
   it('should return 1.0 for perfect prediction', () => {
     const predicted = [0.5, 1.0, 0.0, 1.0, 0.0, 0.5];
-    const actual =    [0.5, 1.0, 0.0, 1.0, 0.0, 0.5];
+    const actual = [0.5, 1.0, 0.0, 1.0, 0.0, 0.5];
     expect(computePropertyAccuracy(predicted, actual)).toBe(1.0);
   });
 
   it('should handle boolean thresholding correctly', () => {
     // Properties 1-4 are boolean
     const predicted = [0.5, 0.6, 0.4, 0.8, 0.1, 0.5]; // booleans: T,F,T,F
-    const actual =    [0.5, 1.0, 0.0, 1.0, 0.0, 0.5]; // booleans: T,F,T,F
+    const actual = [0.5, 1.0, 0.0, 1.0, 0.0, 0.5]; // booleans: T,F,T,F
     expect(computePropertyAccuracy(predicted, actual)).toBe(1.0);
   });
 
   it('should detect boolean mismatches', () => {
     const predicted = [0.5, 0.6, 0.6, 0.8, 0.1, 0.5]; // booleans: T,T,T,F
-    const actual =    [0.5, 1.0, 0.0, 1.0, 0.0, 0.5]; // booleans: T,F,T,F
+    const actual = [0.5, 1.0, 0.0, 1.0, 0.0, 0.5]; // booleans: T,F,T,F
     // Property 2 (interactive) is wrong: predicted T, actual F
     expect(computePropertyAccuracy(predicted, actual)).toBe(5 / 6);
   });
 
   it('should handle continuous tolerance', () => {
     const predicted = [0.55, 1.0, 0.0, 1.0, 0.0, 0.48]; // category off by 0.05, complexity off by 0.02
-    const actual =    [0.5,  1.0, 0.0, 1.0, 0.0, 0.5];
+    const actual = [0.5, 1.0, 0.0, 1.0, 0.0, 0.5];
     expect(computePropertyAccuracy(predicted, actual, 0.5, 0.15)).toBe(1.0);
   });
 
   it('should return 0 for completely wrong prediction', () => {
     const predicted = [1.0, 0.0, 1.0, 0.0, 1.0, 0.0];
-    const actual =    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0];
+    const actual = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0];
     expect(computePropertyAccuracy(predicted, actual)).toBe(0);
   });
 
   it('should compute correct MSE', () => {
     const predicted = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
-    const actual =    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    const actual = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
     expect(computeMSE(predicted, actual)).toBeCloseTo(0.25, 5);
   });
 
@@ -276,7 +273,7 @@ describe('SNNRetrievalModel', () => {
     model = new SNNRetrievalModel(
       { ...DEFAULT_EXPERIMENT_CONFIG.snn, neuronsPerLayer: 32, timestepsPerInference: 20 },
       kb.facts.length,
-      kb.facts.map(f => f.name),
+      kb.facts.map((f) => f.name)
     );
   });
 
@@ -333,9 +330,7 @@ describe('SNNRetrievalModel', () => {
     const spikesDiffer =
       result1.modelSpecific.totalSpikes !== result2.modelSpecific.totalSpikes ||
       result1.modelSpecific.hiddenSpikes !== result2.modelSpecific.hiddenSpikes;
-    const outputsDiffer = result1.predictedVector.some(
-      (v, i) => v !== result2.predictedVector[i]
-    );
+    const outputsDiffer = result1.predictedVector.some((v, i) => v !== result2.predictedVector[i]);
 
     // At least one of these should differ for different inputs
     expect(spikesDiffer || outputsDiffer).toBe(true);
@@ -366,7 +361,7 @@ describe('BackpropRetrievalModel', () => {
     model = new BackpropRetrievalModel(
       DEFAULT_EXPERIMENT_CONFIG.backprop,
       kb.facts.length,
-      kb.facts.map(f => f.name),
+      kb.facts.map((f) => f.name)
     );
   });
 
@@ -407,8 +402,9 @@ describe('BackpropRetrievalModel', () => {
     expect(metrics.totalWeightUpdates).toBeGreaterThan(0);
 
     // Loss should generally decrease (check first vs last epoch)
-    expect(metrics.lossPerEpoch[metrics.lossPerEpoch.length - 1])
-      .toBeLessThan(metrics.lossPerEpoch[0]);
+    expect(metrics.lossPerEpoch[metrics.lossPerEpoch.length - 1]).toBeLessThan(
+      metrics.lossPerEpoch[0]
+    );
   });
 
   it('should produce different outputs for different traits after training', () => {
@@ -460,7 +456,15 @@ describe('ExperimentRunner', () => {
       trials: 1,
       trainSplit: 0.8,
       seed: 42,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -473,12 +477,20 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 3,
       trials: 1,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
-    const snnTrials = results.trials.filter(t => t.modelType === 'snn');
-    const backpropTrials = results.trials.filter(t => t.modelType === 'backprop');
+    const snnTrials = results.trials.filter((t) => t.modelType === 'snn');
+    const backpropTrials = results.trials.filter((t) => t.modelType === 'backprop');
 
     expect(snnTrials.length).toBe(1);
     expect(backpropTrials.length).toBe(1);
@@ -488,7 +500,15 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 2,
       trials: 1,
-      snn: { neuronsPerLayer: 8, timestepsPerInference: 5, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 5 },
+      snn: {
+        neuronsPerLayer: 8,
+        timestepsPerInference: 5,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 5,
+      },
       backprop: { hiddenSizes: [8], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -503,7 +523,15 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 3,
       trials: 1,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -518,7 +546,15 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 3,
       trials: 1,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -537,12 +573,20 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 3,
       trials: 1,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
-    const snnTrial = results.trials.find(t => t.modelType === 'snn')!;
-    const backpropTrial = results.trials.find(t => t.modelType === 'backprop')!;
+    const snnTrial = results.trials.find((t) => t.modelType === 'snn')!;
+    const backpropTrial = results.trials.find((t) => t.modelType === 'backprop')!;
 
     expect(snnTrial.totalSpikeCount).toBeDefined();
     expect(snnTrial.meanSpikesPerInference).toBeDefined();
@@ -553,7 +597,15 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 3,
       trials: 1,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -568,7 +620,15 @@ describe('ExperimentRunner', () => {
     const results = runExperiment({
       epochs: 3,
       trials: 1,
-      snn: { neuronsPerLayer: 16, timestepsPerInference: 10, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 10 },
+      snn: {
+        neuronsPerLayer: 16,
+        timestepsPerInference: 10,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 10,
+      },
       backprop: { hiddenSizes: [16], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -586,7 +646,15 @@ describe('ExperimentReport', () => {
     const results = runExperiment({
       epochs: 2,
       trials: 1,
-      snn: { neuronsPerLayer: 8, timestepsPerInference: 5, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 5 },
+      snn: {
+        neuronsPerLayer: 8,
+        timestepsPerInference: 5,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 5,
+      },
       backprop: { hiddenSizes: [8], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -605,7 +673,15 @@ describe('ExperimentReport', () => {
     const results = runExperiment({
       epochs: 2,
       trials: 1,
-      snn: { neuronsPerLayer: 8, timestepsPerInference: 5, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 5 },
+      snn: {
+        neuronsPerLayer: 8,
+        timestepsPerInference: 5,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 5,
+      },
       backprop: { hiddenSizes: [8], learningRate: 0.01, momentum: 0.9 },
     });
 
@@ -626,14 +702,14 @@ describe('LIF Neuron Correctness', () => {
       {
         neuronsPerLayer: 16,
         hiddenLayers: 1,
-        tau: 10.0,         // Faster membrane dynamics
-        vThreshold: 0.5,   // Lower threshold = easier to spike
+        tau: 10.0, // Faster membrane dynamics
+        vThreshold: 0.5, // Lower threshold = easier to spike
         learningRate: 0.01,
         timestepsPerInference: 50,
         encodingTimeWindow: 50,
       },
       kb.facts.length,
-      kb.facts.map(f => f.name),
+      kb.facts.map((f) => f.name)
     );
 
     const inputVec = model.getInputVector('grabbable');
@@ -649,7 +725,7 @@ describe('LIF Neuron Correctness', () => {
     const model = new SNNRetrievalModel(
       { ...DEFAULT_EXPERIMENT_CONFIG.snn, neuronsPerLayer: 16, timestepsPerInference: 10 },
       kb.facts.length,
-      kb.facts.map(f => f.name),
+      kb.facts.map((f) => f.name)
     );
 
     const inputVec = model.getInputVector('grabbable');
@@ -659,7 +735,7 @@ describe('LIF Neuron Correctness', () => {
     const model2 = new SNNRetrievalModel(
       { ...DEFAULT_EXPERIMENT_CONFIG.snn, neuronsPerLayer: 16, timestepsPerInference: 10 },
       kb.facts.length,
-      kb.facts.map(f => f.name),
+      kb.facts.map((f) => f.name)
     );
     const result2 = model2.retrieve(inputVec);
 
@@ -674,18 +750,27 @@ describe('LIF Neuron Correctness', () => {
 describe('NIR Compiler Integration', () => {
   it('should use neuromorphic traits from the NIR trait map', () => {
     const kb = buildTraitKnowledgeBase();
-    const neuromorphicTraits = kb.facts.filter(f => f.category === 'neuromorphic');
+    const neuromorphicTraits = kb.facts.filter((f) => f.category === 'neuromorphic');
 
     // These should map directly to NIR_TRAIT_MAP entries
     const nirTraitNames = [
-      'lif_neuron', 'cuba_lif_neuron', 'if_neuron', 'leaky_integrator',
-      'integrator', 'synaptic_connection', 'linear_connection',
-      'conv_connection', 'spike_encoder', 'rate_encoder',
-      'spike_decoder', 'spike_delay', 'spike_pooling',
+      'lif_neuron',
+      'cuba_lif_neuron',
+      'if_neuron',
+      'leaky_integrator',
+      'integrator',
+      'synaptic_connection',
+      'linear_connection',
+      'conv_connection',
+      'spike_encoder',
+      'rate_encoder',
+      'spike_decoder',
+      'spike_delay',
+      'spike_pooling',
     ];
 
     for (const traitName of nirTraitNames) {
-      const fact = neuromorphicTraits.find(f => f.name === traitName);
+      const fact = neuromorphicTraits.find((f) => f.name === traitName);
       expect(fact).toBeDefined();
       expect(fact!.categoryId).toBe(6);
     }
@@ -693,7 +778,7 @@ describe('NIR Compiler Integration', () => {
 
   it('should encode NIR traits with neuromorphic category properties', () => {
     const kb = buildTraitKnowledgeBase();
-    const lifFact = kb.facts.find(f => f.name === 'lif_neuron')!;
+    const lifFact = kb.facts.find((f) => f.name === 'lif_neuron')!;
 
     // NIR traits should have specific property patterns
     expect(lifFact.categoryId).toBe(6);
@@ -712,7 +797,15 @@ describe('Multi-Trial Consistency', () => {
       epochs: 3,
       trials: 2,
       seed: 42,
-      snn: { neuronsPerLayer: 8, timestepsPerInference: 5, learningRate: 0.01, tau: 20, vThreshold: 1.0, hiddenLayers: 1, encodingTimeWindow: 5 },
+      snn: {
+        neuronsPerLayer: 8,
+        timestepsPerInference: 5,
+        learningRate: 0.01,
+        tau: 20,
+        vThreshold: 1.0,
+        hiddenLayers: 1,
+        encodingTimeWindow: 5,
+      },
       backprop: { hiddenSizes: [8], learningRate: 0.01, momentum: 0.9 },
     };
 
@@ -720,8 +813,8 @@ describe('Multi-Trial Consistency', () => {
     const results2 = runExperiment(config);
 
     // Same seed should produce same first trial results
-    const snn1 = results1.trials.find(t => t.modelType === 'snn' && t.trialIndex === 0)!;
-    const snn2 = results2.trials.find(t => t.modelType === 'snn' && t.trialIndex === 0)!;
+    const snn1 = results1.trials.find((t) => t.modelType === 'snn' && t.trialIndex === 0)!;
+    const snn2 = results2.trials.find((t) => t.modelType === 'snn' && t.trialIndex === 0)!;
     expect(snn1.accuracy).toBeCloseTo(snn2.accuracy, 10);
   });
 });

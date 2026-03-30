@@ -39,11 +39,7 @@ export function useDragSnap() {
    * @param worldZ  - Optional desired Z position (from cursor/raycaster), default 0
    */
   const snapDrop = useCallback(
-    (
-      box: THREE.Box3,
-      worldX = 0,
-      worldZ = 0
-    ): SnapResult => {
+    (box: THREE.Box3, worldX = 0, worldZ = 0): SnapResult => {
       // Floor snap: raise asset so its bottom is at Y=0
       const yOffset = box.min.y < 0 ? Math.abs(box.min.y) : -box.min.y;
       const rawY = yOffset;

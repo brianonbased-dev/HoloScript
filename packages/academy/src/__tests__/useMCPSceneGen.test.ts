@@ -6,12 +6,15 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock fetch for MCP calls
-vi.stubGlobal('fetch', vi.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ result: { nodes: [] } }),
-  })
-));
+vi.stubGlobal(
+  'fetch',
+  vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ result: { nodes: [] } }),
+    })
+  )
+);
 
 describe('useMCPSceneGen module', () => {
   it('exports useMCPSceneGen hook', async () => {

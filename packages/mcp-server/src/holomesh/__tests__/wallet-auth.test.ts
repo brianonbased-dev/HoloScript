@@ -41,7 +41,9 @@ describe('deriveAgentDid', () => {
 
 describe('extractAddressFromDid', () => {
   it('extracts address from valid did:pkh', () => {
-    const addr = extractAddressFromDid('did:pkh:eip155:8453:0xABCdef1234567890abcdef1234567890ABCDef12');
+    const addr = extractAddressFromDid(
+      'did:pkh:eip155:8453:0xABCdef1234567890abcdef1234567890ABCDef12'
+    );
     expect(addr).toBe('0xABCdef1234567890abcdef1234567890ABCDef12');
   });
 

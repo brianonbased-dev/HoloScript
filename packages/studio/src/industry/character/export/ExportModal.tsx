@@ -286,7 +286,8 @@ export function ExportModal({
               <div className="flex-1">
                 <p className="text-sm font-semibold text-green-300">Export successful!</p>
                 <p className="text-xs text-green-400/60">
-                  {(result.sizeBytes / 1024 / 1024).toFixed(2)} MB • {result.frames} frames • {result.format}
+                  {(result.sizeBytes / 1024 / 1024).toFixed(2)} MB • {result.frames} frames •{' '}
+                  {result.format}
                 </p>
               </div>
             </div>

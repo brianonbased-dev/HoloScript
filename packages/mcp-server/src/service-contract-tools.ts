@@ -205,7 +205,9 @@ function parseMinimalYAML(yaml: string): OpenAPISpec {
   }
 
   // Extract schemas from components
-  const schemasSection = yaml.match(/(?:components:\s*\n\s+schemas:|definitions:)\s*\n((?:\s+.+\n?)*)/);
+  const schemasSection = yaml.match(
+    /(?:components:\s*\n\s+schemas:|definitions:)\s*\n((?:\s+.+\n?)*)/
+  );
   if (schemasSection) {
     const schemas: Record<string, SchemaObject> = {};
     const schemaLines = schemasSection[1].split('\n');
@@ -408,7 +410,8 @@ function generateFromOpenAPI(spec: OpenAPISpec): ServiceContractResult {
         const operation = pathItem[method];
         if (!operation) continue;
 
-        const opName = operation.operationId || `${method}_${pathStr.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const opName =
+          operation.operationId || `${method}_${pathStr.replace(/[^a-zA-Z0-9]/g, '_')}`;
         const summary = operation.summary || `${httpMethodToUpper(method)} ${pathStr}`;
 
         lines.push(`  endpoint "${opName}" @endpoint @handler {`);
@@ -424,7 +427,9 @@ function generateFromOpenAPI(spec: OpenAPISpec): ServiceContractResult {
           for (const param of operation.parameters) {
             const paramType = param.schema?.type || 'string';
             const required = param.required ? '' : '?';
-            lines.push(`      ${param.name}${required}: ${OPENAPI_TO_HOLO_TYPE[paramType] || 'string'} // in: ${param.in}`);
+            lines.push(
+              `      ${param.name}${required}: ${OPENAPI_TO_HOLO_TYPE[paramType] || 'string'} // in: ${param.in}`
+            );
           }
           lines.push('    }');
         }
@@ -535,7 +540,10 @@ export async function handleGenerateServiceContract(
   const formatHint = args.format as string | undefined;
 
   if (!input) {
-    return { success: false, error: 'input is required: provide OpenAPI spec or TypeScript interfaces' };
+    return {
+      success: false,
+      error: 'input is required: provide OpenAPI spec or TypeScript interfaces',
+    };
   }
 
   const format = formatHint || detectContractFormat(input);

@@ -6,14 +6,20 @@
 
 import type { TraitHandler } from './TraitTypes';
 
-export interface PermissionConfig { default_role: string; }
+export interface PermissionConfig {
+  default_role: string;
+}
 
 export const permissionHandler: TraitHandler<PermissionConfig> = {
   name: 'permission',
   defaultConfig: { default_role: 'viewer' },
 
-  onAttach(node: any): void { node.__permState = { grants: new Map<string, Set<string>>() }; },
-  onDetach(node: any): void { delete node.__permState; },
+  onAttach(node: any): void {
+    node.__permState = { grants: new Map<string, Set<string>>() };
+  },
+  onDetach(node: any): void {
+    delete node.__permState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, _config: PermissionConfig, context: any, event: any): void {
@@ -32,12 +38,19 @@ export const permissionHandler: TraitHandler<PermissionConfig> = {
       case 'permission:check': {
         const perms = state.grants.get(event.userId as string);
         const has = perms?.has(event.permission as string) ?? false;
-        context.emit?.('permission:result', { userId: event.userId, permission: event.permission, allowed: has });
+        context.emit?.('permission:result', {
+          userId: event.userId,
+          permission: event.permission,
+          allowed: has,
+        });
         break;
       }
       case 'permission:revoke': {
         state.grants.get(event.userId as string)?.delete(event.permission as string);
-        context.emit?.('permission:revoked', { userId: event.userId, permission: event.permission });
+        context.emit?.('permission:revoked', {
+          userId: event.userId,
+          permission: event.permission,
+        });
         break;
       }
     }

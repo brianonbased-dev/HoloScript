@@ -4,13 +4,19 @@
  */
 import type { TraitHandler } from './TraitTypes';
 
-export interface TimezoneConfig { default_tz: string; }
+export interface TimezoneConfig {
+  default_tz: string;
+}
 
 export const timezoneHandler: TraitHandler<TimezoneConfig> = {
   name: 'timezone',
   defaultConfig: { default_tz: 'UTC' },
-  onAttach(node: any, config: any): void { node.__tzState = { current: config.default_tz || 'UTC' }; },
-  onDetach(node: any): void { delete node.__tzState; },
+  onAttach(node: any, config: any): void {
+    node.__tzState = { current: config.default_tz || 'UTC' };
+  },
+  onDetach(node: any): void {
+    delete node.__tzState;
+  },
   onUpdate(): void {},
   onEvent(node: any, config: TimezoneConfig, context: any, event: any): void {
     const state = node.__tzState as { current: string } | undefined;

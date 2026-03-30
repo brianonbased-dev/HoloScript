@@ -118,7 +118,12 @@ export const circuitAutoResetHandler: TraitHandler<CircuitAutoResetConfig> = {
     delete (node as CircuitNode).__circuitAutoResetState;
   },
 
-  onUpdate(node: HSPlusNode, config: CircuitAutoResetConfig, context: TraitContext, delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: CircuitAutoResetConfig,
+    context: TraitContext,
+    delta: number
+  ): void {
     const cNode = node as CircuitNode;
     const state = cNode.__circuitAutoResetState;
     if (!state?.initialized) return;
@@ -138,7 +143,12 @@ export const circuitAutoResetHandler: TraitHandler<CircuitAutoResetConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: CircuitAutoResetConfig, context: TraitContext, event: { type: string; [key: string]: unknown }): void {
+  onEvent(
+    node: HSPlusNode,
+    config: CircuitAutoResetConfig,
+    context: TraitContext,
+    event: { type: string; [key: string]: unknown }
+  ): void {
     const cNode = node as CircuitNode;
     const state = cNode.__circuitAutoResetState;
     if (!state?.initialized) return;
@@ -156,7 +166,8 @@ export const circuitAutoResetHandler: TraitHandler<CircuitAutoResetConfig> = {
         state.state = 'open';
         state.openedAt = now;
         state.retryCount++;
-        state.nextRetryAt = now + computeBackoff(config.backoff_base, state.retryCount, config.max_backoff_ms);
+        state.nextRetryAt =
+          now + computeBackoff(config.backoff_base, state.retryCount, config.max_backoff_ms);
 
         context.emit('circuit_open', {
           node,
@@ -168,7 +179,8 @@ export const circuitAutoResetHandler: TraitHandler<CircuitAutoResetConfig> = {
         // Probe failed → re-open with increased backoff
         state.state = 'open';
         state.retryCount++;
-        state.nextRetryAt = now + computeBackoff(config.backoff_base, state.retryCount, config.max_backoff_ms);
+        state.nextRetryAt =
+          now + computeBackoff(config.backoff_base, state.retryCount, config.max_backoff_ms);
 
         context.emit('circuit_open', {
           node,

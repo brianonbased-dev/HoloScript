@@ -39,7 +39,12 @@ interface EditorState {
   setShowGovernancePanel: (v: boolean) => void;
   setShowConformancePanel: (v: boolean) => void;
   setDiffModeHash: (hash: string | null) => void;
-  setSpatialBlameTooltip: (visible: boolean, x?: number, y?: number, content?: React.ReactNode) => void;
+  setSpatialBlameTooltip: (
+    visible: boolean,
+    x?: number,
+    y?: number,
+    content?: React.ReactNode
+  ) => void;
   setShowBenchmark: (v: boolean) => void;
   togglePerfOverlay: () => void;
 }
@@ -79,7 +84,7 @@ export const useEditorStore = create<EditorState>()(
       setShowGovernancePanel: (showGovernancePanel) => set({ showGovernancePanel }),
       setShowConformancePanel: (showConformancePanel) => set({ showConformancePanel }),
       setDiffModeHash: (diffModeHash) => set({ diffModeHash }),
-      setSpatialBlameTooltip: (visible, x = 0, y = 0, content = null) => 
+      setSpatialBlameTooltip: (visible, x = 0, y = 0, content = null) =>
         set({ spatialBlameTooltip: { visible, x, y, content } }),
       setStudioMode: (studioMode) => {
         if (typeof window !== 'undefined') window.localStorage.setItem('studio-mode', studioMode);

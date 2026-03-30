@@ -23,7 +23,9 @@ describe('UnifiedParticleBuffer — registration', () => {
   it('throws on capacity exceeded', () => {
     const buf = new UnifiedParticleBuffer(50);
     buf.registerParticles(ParticleType.FLUID, 40, 'fluid');
-    expect(() => buf.registerParticles(ParticleType.CLOTH, 20, 'cloth')).toThrow(/capacity exceeded/);
+    expect(() => buf.registerParticles(ParticleType.CLOTH, 20, 'cloth')).toThrow(
+      /capacity exceeded/
+    );
   });
 
   it('initializes attribute type tags for range', () => {
@@ -82,7 +84,7 @@ describe('UnifiedParticleBuffer — data access', () => {
     buf.writeDensityPressure(
       range,
       new Float32Array([1000, 1100, 900]),
-      new Float32Array([50, 60, 40]),
+      new Float32Array([50, 60, 40])
     );
     expect(buf.getAttributes(range.offset).density).toBe(1000);
     expect(buf.getAttributes(range.offset + 1).pressure).toBe(60);
@@ -185,7 +187,7 @@ describe('UnifiedParticleBuffer — serialization', () => {
   it('deserialize rejects bad magic', () => {
     const bad = new ArrayBuffer(16);
     const view = new DataView(bad);
-    view.setUint32(0, 0xDEADBEEF, false);
+    view.setUint32(0, 0xdeadbeef, false);
 
     const buf = new UnifiedParticleBuffer(100);
     expect(() => buf.deserialize(bad)).toThrow(/Invalid.*magic/);

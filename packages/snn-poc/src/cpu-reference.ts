@@ -68,7 +68,8 @@ export class CPUReferenceSimulator {
       }
 
       // Leaky integration
-      const v = this.params.vRest + (this.membraneV[i] - this.params.vRest) * decay + synapticInput[i];
+      const v =
+        this.params.vRest + (this.membraneV[i] - this.params.vRest) * decay + synapticInput[i];
 
       // Threshold check
       if (v >= this.params.vThreshold) {

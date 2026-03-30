@@ -50,7 +50,7 @@ export class FeedParser {
           node.provenance = {
             author: authorTrait?.value || authorTrait?.[0] || 'anonymous',
             timestamp: Date.now(),
-            provenanceHash: crypto.createHash('sha256').update(JSON.stringify(node)).digest('hex')
+            provenanceHash: crypto.createHash('sha256').update(JSON.stringify(node)).digest('hex'),
           };
         }
         this.nodes.set(node.id, node);
@@ -63,16 +63,16 @@ export class FeedParser {
   /** Get all entities with spatial data ready for R3F */
   public getSpatialEntities(): SpatialEntity[] {
     return [...this.nodes.values()]
-      .filter(n => n.position)
-      .map(n => {
+      .filter((n) => n.position)
+      .map((n) => {
         // Extract thought trait content
         const thoughtTrait = n.traits?.get('thought') as any;
         const content = thoughtTrait?.value || thoughtTrait?.[0] || '';
-        
+
         // Extract velocity if present
         const velocityTrait = n.traits?.get('velocity') as any;
         const vArgs = velocityTrait?.args || [0, 0, 0];
-        
+
         return {
           id: n.id!,
           ast: n,
@@ -81,7 +81,7 @@ export class FeedParser {
           traits: n.traits || new Map(),
           author: n.provenance?.author || 'anonymous',
           content,
-          tier: n.position!.y > 30 ? 3 : n.position!.y > 10 ? 2 : 1
+          tier: n.position!.y > 30 ? 3 : n.position!.y > 10 ? 2 : 1,
         };
       });
   }

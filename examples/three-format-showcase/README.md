@@ -4,19 +4,19 @@ This directory contains the **same scene** — an interactive art gallery — im
 
 ## The Three Formats
 
-| Feature | `.hs` (Basic) | `.hsplus` (Extended) | `.holo` (Full World) |
-|---|---|---|---|
-| **Purpose** | Scene description | Interactive apps | Complete worlds |
-| **Wrapper** | None (flat) | `composition { }` | `composition { }` |
-| **Objects** | `object "Name" { }` | `object "Name" { }` | `object "Name" { }` |
-| **Templates** | - | `template "Name" { }` | `template "Name" { }` |
-| **Traits** | Inline properties | `@trait` decorators | `@trait` decorators |
-| **State** | - | `state Name { }` | `state Name { }` |
-| **Actions** | - | `action name() { }` | `action name() { }` |
-| **Behaviors** | - | `behavior { }` | `behavior { }` |
-| **Metadata** | - | - | `metadata { }` |
-| **Systems** | - | - | `system "Name" { }` |
-| **Lines** | ~120 | ~190 | ~290 |
+| Feature       | `.hs` (Basic)       | `.hsplus` (Extended)  | `.holo` (Full World)  |
+| ------------- | ------------------- | --------------------- | --------------------- |
+| **Purpose**   | Scene description   | Interactive apps      | Complete worlds       |
+| **Wrapper**   | None (flat)         | `composition { }`     | `composition { }`     |
+| **Objects**   | `object "Name" { }` | `object "Name" { }`   | `object "Name" { }`   |
+| **Templates** | -                   | `template "Name" { }` | `template "Name" { }` |
+| **Traits**    | Inline properties   | `@trait` decorators   | `@trait` decorators   |
+| **State**     | -                   | `state Name { }`      | `state Name { }`      |
+| **Actions**   | -                   | `action name() { }`   | `action name() { }`   |
+| **Behaviors** | -                   | `behavior { }`        | `behavior { }`        |
+| **Metadata**  | -                   | -                     | `metadata { }`        |
+| **Systems**   | -                   | -                     | `system "Name" { }`   |
+| **Lines**     | ~120                | ~190                  | ~290                  |
 
 ## When to Use Each
 

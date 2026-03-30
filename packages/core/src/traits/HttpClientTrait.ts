@@ -17,11 +17,7 @@
  * @version 1.0.0
  */
 
-import type {
-  HostNetworkResponse,
-  HostNetworkRequestOptions,
-  TraitHandler,
-} from './TraitTypes';
+import type { HostNetworkResponse, HostNetworkRequestOptions, TraitHandler } from './TraitTypes';
 
 export interface HttpClientConfig {
   base_url: string;
@@ -51,9 +47,7 @@ export interface HttpClientState {
 function buildUrl(baseUrl: string, payload: HttpRequestPayload): string {
   const rawUrl = payload.url ?? payload.path ?? '';
   const root = baseUrl || '';
-  const initial = root
-    ? new URL(rawUrl, root).toString()
-    : rawUrl;
+  const initial = root ? new URL(rawUrl, root).toString() : rawUrl;
 
   if (!payload.query || Object.keys(payload.query).length === 0) {
     return initial;
@@ -76,10 +70,7 @@ function normalizeHeaders(headers: Record<string, string> | undefined): Record<s
   return output;
 }
 
-function normalizeBody(
-  body: unknown,
-  headers: Record<string, string>
-): string | undefined {
+function normalizeBody(body: unknown, headers: Record<string, string>): string | undefined {
   if (body === undefined || body === null) return undefined;
   if (typeof body === 'string') return body;
 

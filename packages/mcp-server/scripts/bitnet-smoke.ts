@@ -66,13 +66,17 @@ async function main() {
   if (reachable) {
     const aiFromLocal = result.source === 'ai' && result.provider === 'local-llm';
     if (!aiFromLocal) {
-      console.error('Local LLM smoke failed: server is reachable but generate_scene did not use ai/local-llm.');
+      console.error(
+        'Local LLM smoke failed: server is reachable but generate_scene did not use ai/local-llm.'
+      );
       console.error(JSON.stringify(result, null, 2));
       process.exit(1);
     }
   } else {
     if (result.source !== 'heuristic') {
-      console.error('Local LLM smoke failed: server unreachable but generate_scene did not fall back to heuristic.');
+      console.error(
+        'Local LLM smoke failed: server unreachable but generate_scene did not fall back to heuristic.'
+      );
       console.error(JSON.stringify(result, null, 2));
       process.exit(1);
     }

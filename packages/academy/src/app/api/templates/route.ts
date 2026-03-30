@@ -19,7 +19,15 @@ interface ApiTemplate {
   complexity: 'simple' | 'medium' | 'complex';
 }
 
-function enrichTemplate(t: { id: string; name: string; category: string; tags: string[]; description: string; thumbnail: string; code: string }): ApiTemplate {
+function enrichTemplate(t: {
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+  description: string;
+  thumbnail: string;
+  code: string;
+}): ApiTemplate {
   const objectMatches = t.code.match(/object\s+"/g);
   const objectCount = objectMatches ? objectMatches.length : 1;
   const complexity: 'simple' | 'medium' | 'complex' =
@@ -30,7 +38,9 @@ function enrichTemplate(t: { id: string; name: string; category: string; tags: s
 declare global {
   var __templateCatalog__: ApiTemplate[] | undefined;
 }
-const catalog = globalThis.__templateCatalog__ ?? (globalThis.__templateCatalog__ = SCENE_TEMPLATES.map(enrichTemplate));
+const catalog =
+  globalThis.__templateCatalog__ ??
+  (globalThis.__templateCatalog__ = SCENE_TEMPLATES.map(enrichTemplate));
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

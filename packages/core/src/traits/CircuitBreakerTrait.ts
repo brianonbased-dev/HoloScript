@@ -116,7 +116,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
 
     // Prune old request log entries outside window
     const cutoff = Date.now() - config.window_ms;
-    state.requestLog = state.requestLog.filter(r => r.timestamp >= cutoff);
+    state.requestLog = state.requestLog.filter((r) => r.timestamp >= cutoff);
   },
 
   onEvent(node: any, config: CircuitBreakerConfig, context: any, event: any): void {
@@ -133,8 +133,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
 
         // Check circuit state
         if (state.state === 'open') {
-          const remainingMs = Math.max(0,
-            config.reset_timeout_ms - (Date.now() - state.openedAt));
+          const remainingMs = Math.max(0, config.reset_timeout_ms - (Date.now() - state.openedAt));
           context.emit?.('circuit_breaker:rejected', {
             action,
             state: 'open',
@@ -217,7 +216,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
       }
 
       case 'circuit_breaker:get_status': {
-        const windowFailures = state.requestLog.filter(r => !r.success).length;
+        const windowFailures = state.requestLog.filter((r) => !r.success).length;
         const windowTotal = state.requestLog.length;
         context.emit?.('circuit_breaker:status', {
           state: state.state,
@@ -236,7 +235,7 @@ export const circuitBreakerHandler: TraitHandler<CircuitBreakerConfig> = {
 };
 
 function shouldOpen(state: CircuitBreakerState, config: CircuitBreakerConfig): boolean {
-  const windowFailures = state.requestLog.filter(r => !r.success).length;
+  const windowFailures = state.requestLog.filter((r) => !r.success).length;
 
   // Count-based threshold
   if (windowFailures >= config.failure_threshold) return true;
@@ -250,16 +249,11 @@ function shouldOpen(state: CircuitBreakerState, config: CircuitBreakerConfig): b
   return false;
 }
 
-function openCircuit(
-  state: CircuitBreakerState,
-  config: CircuitBreakerConfig,
-  context: any,
-): void {
+function openCircuit(state: CircuitBreakerState, config: CircuitBreakerConfig, context: any): void {
   state.state = 'open';
   state.openedAt = Date.now();
-  const windowFailures = state.requestLog.filter(r => !r.success).length;
-  const failureRate = state.requestLog.length > 0
-    ? windowFailures / state.requestLog.length : 0;
+  const windowFailures = state.requestLog.filter((r) => !r.success).length;
+  const failureRate = state.requestLog.length > 0 ? windowFailures / state.requestLog.length : 0;
 
   context.emit?.('circuit_breaker:opened', {
     failureCount: windowFailures,

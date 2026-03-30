@@ -837,7 +837,12 @@ export class HoloScriptPlusParser {
   private source: string = '';
   private errors: RichParseError[] = [];
   private warnings: RichParseError[] = [];
-  private imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }> = [];
+  private imports: Array<{
+    path: string;
+    alias: string;
+    namedImports?: string[];
+    isWildcard?: boolean;
+  }> = [];
   private hasState: boolean = false;
   private hasVRTraits: boolean = false;
   private hasControlFlow: boolean = false;
@@ -950,7 +955,9 @@ export class HoloScriptPlusParser {
         // Must re-parse this chunk
         const chunkResult = this.parse(chunk.content);
         const chunkAst = chunkResult.ast as ASTProgram | undefined;
-        const chunkFeatures = chunkResult.features as { state: boolean; vrTraits: boolean; loops: boolean; conditionals: boolean } | undefined;
+        const chunkFeatures = chunkResult.features as
+          | { state: boolean; vrTraits: boolean; loops: boolean; conditionals: boolean }
+          | undefined;
         if (chunkAst?.root) {
           const node = chunkAst.root as HSPlusNode;
           // Sync line numbers for the chunk node (naive)
@@ -2308,7 +2315,9 @@ export class HoloScriptPlusParser {
         // Nested directive
         const directive = this.parseDirective();
         if (directive) {
-          const dirKey = ('name' in directive ? (directive as { name: string }).name : undefined) || directive.type;
+          const dirKey =
+            ('name' in directive ? (directive as { name: string }).name : undefined) ||
+            directive.type;
           content[`@${dirKey}`] = directive;
         }
       } else if (this.check('LBRACE')) {
@@ -3856,7 +3865,10 @@ export class HoloScriptPlusParser {
         cases.push(caseNode);
 
         // Check if this case has a wildcard pattern
-        if (caseNode.pattern && (caseNode.pattern as Record<string, unknown>).type === 'wildcard-pattern') {
+        if (
+          caseNode.pattern &&
+          (caseNode.pattern as Record<string, unknown>).type === 'wildcard-pattern'
+        ) {
           hasWildcard = true;
         }
       }
@@ -4169,7 +4181,11 @@ export class HoloScriptPlusParser {
   /**
    * Detect common mistakes and provide context-aware error messages
    */
-  private detectCommonMistake(): { message: string; suggestion: string; code: RichErrorCode } | null {
+  private detectCommonMistake(): {
+    message: string;
+    suggestion: string;
+    code: RichErrorCode;
+  } | null {
     const current = this.current();
     const prev = this.pos > 0 ? this.tokens[this.pos - 1] : null;
     const next = this.pos + 1 < this.tokens.length ? this.tokens[this.pos + 1] : null;

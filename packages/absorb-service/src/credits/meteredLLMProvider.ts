@@ -14,10 +14,14 @@ export class MeteredLLMProvider implements LLMProvider {
     private inner: LLMProvider,
     private providerName: string,
     private userId: string,
-    private projectId: string,
+    private projectId: string
   ) {}
 
-  async chat(params: { system: string; prompt: string; maxTokens: number }): Promise<{ text: string }> {
+  async chat(params: {
+    system: string;
+    prompt: string;
+    maxTokens: number;
+  }): Promise<{ text: string }> {
     const estimatedInputTokens = Math.ceil((params.system.length + params.prompt.length) / 4);
 
     const result = await this.inner.chat(params);
@@ -30,17 +34,12 @@ export class MeteredLLMProvider implements LLMProvider {
     const totalCostCents = Math.ceil(inputCostCents + outputCostCents);
 
     if (totalCostCents > 0) {
-      await deductCredits(
-        this.userId,
-        totalCostCents,
-        `LLM tokens (${this.providerName})`,
-        {
-          provider: this.providerName,
-          inputTokens: estimatedInputTokens,
-          outputTokens: estimatedOutputTokens,
-          projectId: this.projectId,
-        },
-      );
+      await deductCredits(this.userId, totalCostCents, `LLM tokens (${this.providerName})`, {
+        provider: this.providerName,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+        projectId: this.projectId,
+      });
     }
 
     return result;

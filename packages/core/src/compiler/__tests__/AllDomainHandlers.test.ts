@@ -77,7 +77,14 @@ vi.mock('../../compiler/identity/AgentRBAC', async (importOriginal) => {
 
 // ─── Test Helpers ──────────────────────────────────────────────────────────
 
-function makeBlock(domain: string, keyword: string, name: string, props: Record<string, any> = {}, children: any[] = [], traits: string[] = []): HoloDomainBlock {
+function makeBlock(
+  domain: string,
+  keyword: string,
+  name: string,
+  props: Record<string, any> = {},
+  children: any[] = [],
+  traits: string[] = []
+): HoloDomainBlock {
   return {
     type: 'DomainBlock',
     domain: domain as any,
@@ -252,14 +259,24 @@ describe('DataViz Domain', () => {
 // =============================================================================
 
 describe('Education Domain', () => {
-  const quizBlock = makeBlock('education', 'quiz', 'MathQuiz', {
-    difficulty: 'intermediate',
-    objectives: ['algebra', 'geometry'],
-    duration: 30,
-  }, [
-    { keyword: 'question', name: 'What is 2+2?', properties: { options: ['3', '4', '5'], answer: '4' } },
-    { keyword: 'question', name: 'Area of circle?', properties: { answer: 'pi*r^2' } },
-  ]);
+  const quizBlock = makeBlock(
+    'education',
+    'quiz',
+    'MathQuiz',
+    {
+      difficulty: 'intermediate',
+      objectives: ['algebra', 'geometry'],
+      duration: 30,
+    },
+    [
+      {
+        keyword: 'question',
+        name: 'What is 2+2?',
+        properties: { options: ['3', '4', '5'], answer: '4' },
+      },
+      { keyword: 'question', name: 'Area of circle?', properties: { answer: 'pi*r^2' } },
+    ]
+  );
 
   it('compileEducationBlock extracts quiz structure', () => {
     const ir = compileEducationBlock(quizBlock);
@@ -324,16 +341,22 @@ describe('Education Domain', () => {
 // =============================================================================
 
 describe('Music Domain', () => {
-  const instrumentBlock = makeBlock('music', 'instrument', 'LeadSynth', {
-    instrument_type: 'synth',
-    bpm: 120,
-    time_signature: [4, 4],
-    key: 'Am',
-    bars: 16,
-  }, [
-    { keyword: 'effect', name: 'reverb', properties: {} },
-    { keyword: 'effect', name: 'delay', properties: {} },
-  ]);
+  const instrumentBlock = makeBlock(
+    'music',
+    'instrument',
+    'LeadSynth',
+    {
+      instrument_type: 'synth',
+      bpm: 120,
+      time_signature: [4, 4],
+      key: 'Am',
+      bars: 16,
+    },
+    [
+      { keyword: 'effect', name: 'reverb', properties: {} },
+      { keyword: 'effect', name: 'delay', properties: {} },
+    ]
+  );
 
   it('compileMusicBlock extracts instrument properties', () => {
     const ir = compileMusicBlock(instrumentBlock);
@@ -621,15 +644,21 @@ describe('Procedural Domain', () => {
 // =============================================================================
 
 describe('Rendering Domain', () => {
-  const lodBlock = makeBlock('rendering', 'lod', 'CharacterLOD', {
-    shadow_mode: 'both',
-    culling_mode: 'frustum',
-    sort_order: 5,
-  }, [
-    { keyword: 'level', name: 'high', properties: { distance: 10, detail: 1.0 } },
-    { keyword: 'level', name: 'medium', properties: { distance: 30, detail: 0.5 } },
-    { keyword: 'level', name: 'low', properties: { distance: 80, detail: 0.1 } },
-  ]);
+  const lodBlock = makeBlock(
+    'rendering',
+    'lod',
+    'CharacterLOD',
+    {
+      shadow_mode: 'both',
+      culling_mode: 'frustum',
+      sort_order: 5,
+    },
+    [
+      { keyword: 'level', name: 'high', properties: { distance: 10, detail: 1.0 } },
+      { keyword: 'level', name: 'medium', properties: { distance: 30, detail: 0.5 } },
+      { keyword: 'level', name: 'low', properties: { distance: 80, detail: 0.1 } },
+    ]
+  );
 
   it('compileRenderingBlock extracts LOD levels from children', () => {
     const ir = compileRenderingBlock(lodBlock);

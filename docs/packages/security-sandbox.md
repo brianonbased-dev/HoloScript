@@ -18,8 +18,8 @@ npm install @holoscript/security-sandbox
 import { Sandbox } from '@holoscript/security-sandbox';
 
 const sandbox = new Sandbox({
-  timeout: 5000,           // 5 second execution limit
-  memory: 128 * 1024 * 1024  // 128 MB limit
+  timeout: 5000, // 5 second execution limit
+  memory: 128 * 1024 * 1024, // 128 MB limit
 });
 
 // Execute untrusted code
@@ -30,9 +30,9 @@ const result = await sandbox.run(`
   };
 `);
 
-console.log(result.output);     // { sum: 6, message: 'Hello from sandbox!' }
-console.log(result.executionTime);  // ms
-console.log(result.safe);       // true (no violations)
+console.log(result.output); // { sum: 6, message: 'Hello from sandbox!' }
+console.log(result.executionTime); // ms
+console.log(result.safe); // true (no violations)
 ```
 
 ## Execution Context
@@ -40,30 +40,33 @@ console.log(result.safe);       // true (no violations)
 ### Pass Data In
 
 ```typescript
-const result = await sandbox.run(`
+const result = await sandbox.run(
+  `
   return {
     doubled: input.value * 2,
     name: input.name.toUpperCase()
   };
-`, {
-  input: {
-    value: 42,
-    name: 'alice'
+`,
+  {
+    input: {
+      value: 42,
+      name: 'alice',
+    },
   }
-});
+);
 
-console.log(result.output);  // { doubled: 84, name: 'ALICE' }
+console.log(result.output); // { doubled: 84, name: 'ALICE' }
 ```
 
 ### Resource Limits
 
 ```typescript
 const sandbox = new Sandbox({
-  timeout: 5000,              // Max execution time
-  memory: 256 * 1024 * 1024,  // Max memory
-  cpuTicks: 100000,           // Instruction limit
-  maxArrayLength: 10000,      // Array size limit
-  maxStringLength: 1000000    // String size limit
+  timeout: 5000, // Max execution time
+  memory: 256 * 1024 * 1024, // Max memory
+  cpuTicks: 100000, // Instruction limit
+  maxArrayLength: 10000, // Array size limit
+  maxStringLength: 1000000, // String size limit
 });
 ```
 
@@ -76,15 +79,15 @@ const sandbox = new Sandbox({
     'JSON',
     'Array',
     'String',
-    'Object'
+    'Object',
     // No: fs, require, process, child_process, etc.
   ],
   deniedPatterns: [
-    'eval',        // Block eval
-    'Function',    // Block Function constructor
-    '__proto__',   // Block prototype pollution
-    'constructor' // Block constructor access
-  ]
+    'eval', // Block eval
+    'Function', // Block Function constructor
+    '__proto__', // Block prototype pollution
+    'constructor', // Block constructor access
+  ],
 });
 ```
 
@@ -95,8 +98,8 @@ const result = await sandbox.run(userCode);
 
 if (!result.safe) {
   console.error('Code violated security policy');
-  console.log(result.violations);  // What was attempted
-  console.log(result.securityGrade);  // A-F rating
+  console.log(result.violations); // What was attempted
+  console.log(result.securityGrade); // A-F rating
 }
 
 // A = No access attempts
@@ -110,12 +113,12 @@ if (!result.safe) {
 
 ```typescript
 const sandbox = new Sandbox({
-  audit: true  // Log all operations
+  audit: true, // Log all operations
 });
 
 const result = await sandbox.run(userCode);
 
-console.log(result.auditLog);  // Array of all operations attempted
+console.log(result.auditLog); // Array of all operations attempted
 // [
 //   { operation: 'global_access', name: 'Math' },
 //   { operation: 'function_call', name: 'Math.random' },
@@ -129,7 +132,7 @@ console.log(result.auditLog);  // Array of all operations attempted
 ```typescript
 try {
   const result = await sandbox.run(untrustedCode);
-  
+
   if (result.safe) {
     console.log('Output:', result.output);
   } else {
@@ -154,24 +157,24 @@ import { createSandbox } from '@holoscript/security-sandbox';
 const customSandbox = createSandbox({
   // Core limits
   timeout: 10000,
-  memory: 512 * 1024 * 1024,  // 512 MB
-  
+  memory: 512 * 1024 * 1024, // 512 MB
+
   // Allowed APIs
   allowedGlobals: ['Math', 'JSON', 'Array', 'String', 'Object', 'Date'],
-  allowedModules: [],  // No require()
-  
+  allowedModules: [], // No require()
+
   // Security
   preventEval: true,
   preventFunctionConstructor: true,
   preventPrototypeAccess: true,
-  
+
   // Auditing
   audit: true,
   auditHooks: {
     onGlobalAccess: (name) => console.log(`Accessed ${name}`),
     onFunctionCall: (fn) => console.log(`Called ${fn.name}`),
-    onPropertyAccess: (obj, prop) => console.log(`Accessed ${obj}.${prop}`)
-  }
+    onPropertyAccess: (obj, prop) => console.log(`Accessed ${obj}.${prop}`),
+  },
 });
 ```
 
@@ -182,12 +185,12 @@ const tests = [
   {
     name: 'Safe arithmetic',
     code: 'return 2 + 2;',
-    expectedSafe: true
+    expectedSafe: true,
   },
   {
     name: 'Attempt file read',
     code: 'return require("fs").readFileSync("/etc/passwd");',
-    expectedSafe: false
+    expectedSafe: false,
   },
   {
     name: 'Complex algorithm',
@@ -196,8 +199,8 @@ const tests = [
       for (let i = 0; i < 1000; i++) sum += i;
       return sum;
     `,
-    expectedSafe: true
-  }
+    expectedSafe: true,
+  },
 ];
 
 for (const test of tests) {
@@ -226,12 +229,15 @@ const holo = parse(`
 
 // Execute action in sandbox
 const sandbox = new Sandbox();
-const result = await sandbox.run(`
+const result = await sandbox.run(
+  `
   return calculateScore(2.5);
-`, {
-  calculateScore: (mult) => 100 * mult,
-  baseScore: 100
-});
+`,
+  {
+    calculateScore: (mult) => 100 * mult,
+    baseScore: 100,
+  }
+);
 ```
 
 ## Environment Variables
@@ -263,12 +269,12 @@ Use connection pooling for high-throughput scenarios:
 import { SandboxPool } from '@holoscript/security-sandbox';
 
 const pool = new SandboxPool({
-  size: 10,           // 10 sandboxes
-  timeout: 5000
+  size: 10, // 10 sandboxes
+  timeout: 5000,
 });
 
 // Distribute work across pool
-const promises = userCodes.map(code => pool.run(code));
+const promises = userCodes.map((code) => pool.run(code));
 const results = await Promise.all(promises);
 ```
 

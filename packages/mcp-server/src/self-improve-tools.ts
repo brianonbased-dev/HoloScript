@@ -78,8 +78,7 @@ export const selfImproveTools: Tool[] = [
   },
   {
     name: 'holo_read_file',
-    description:
-      'Read the contents of a file. Use to understand code before making edits.',
+    description: 'Read the contents of a file. Use to understand code before making edits.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -114,7 +113,8 @@ export const selfImproveTools: Tool[] = [
         files: {
           type: 'array',
           items: { type: 'string' },
-          description: 'File paths to stage (relative to rootDir). If empty, stages all changed files.',
+          description:
+            'File paths to stage (relative to rootDir). If empty, stages all changed files.',
         },
         message: {
           type: 'string',
@@ -189,7 +189,8 @@ export const selfImproveTools: Tool[] = [
         },
         errorCode: {
           type: 'string',
-          description: 'Filter to a specific error code (e.g. "TS7006"). If omitted, groups all errors.',
+          description:
+            'Filter to a specific error code (e.g. "TS7006"). If omitted, groups all errors.',
         },
         maxFiles: {
           type: 'number',
@@ -245,7 +246,7 @@ export const selfImproveTools: Tool[] = [
     name: 'holo_quality_trend',
     description:
       'Analyze quality score history to detect trends, plateaus, and regressions. ' +
-      'Returns trend analysis and strategy recommendations based on what has and hasn\'t worked.',
+      "Returns trend analysis and strategy recommendations based on what has and hasn't worked.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -471,7 +472,10 @@ async function handleGitCommit(args: Record<string, unknown>): Promise<unknown> 
   // explicitly declare which files it wants to commit. Without this guard,
   // a daemon commit can sweep in unrelated dirty files from other agents.
   if (files.length === 0) {
-    return { error: 'files array is required — refusing to stage all (git add -A is disabled for multi-agent safety)' };
+    return {
+      error:
+        'files array is required — refusing to stage all (git add -A is disabled for multi-agent safety)',
+    };
   }
 
   try {
@@ -528,12 +532,12 @@ async function handleRunTestsTargeted(args: Record<string, unknown>): Promise<un
           numFailed: result.numFailedTests ?? 0,
           numTotal: result.numTotalTests ?? 0,
           testFiles,
-          duration: result.startTime
-            ? Date.now() - result.startTime
-            : undefined,
+          duration: result.startTime ? Date.now() - result.startTime : undefined,
         };
       }
-    } catch { /* JSON parse failed */ }
+    } catch {
+      /* JSON parse failed */
+    }
 
     return {
       success: !output.includes('FAIL'),
@@ -616,9 +620,10 @@ async function handleListTypeErrors(args: Record<string, unknown>): Promise<unkn
         errorCount: lines.length,
       })),
       errors,
-      hint: totalErrors > maxErrors
-        ? `Showing ${errors.length} of ${totalErrors} errors. Fix the top files first.`
-        : undefined,
+      hint:
+        totalErrors > maxErrors
+          ? `Showing ${errors.length} of ${totalErrors} errors. Fix the top files first.`
+          : undefined,
     };
   } catch (err: any) {
     return { error: `Failed to run tsc: ${err.message}` };
@@ -664,21 +669,22 @@ async function handleBatchTypeFix(args: Record<string, unknown>): Promise<unknow
     }
 
     // Sort codes by frequency
-    const sortedCodes = Object.entries(byCode)
-      .sort(([, a], [, b]) => b.length - a.length);
+    const sortedCodes = Object.entries(byCode).sort(([, a], [, b]) => b.length - a.length);
 
     // For each code, group by file and provide fix patterns
     const fixPatterns: Record<string, string> = {
-      'TS7006': 'Add explicit type annotations to parameters (e.g., `param: any` or specific type)',
-      'TS2339': 'Property does not exist — add to interface, use type assertion, or check optional chaining',
-      'TS2322': 'Type mismatch — adjust the assignment or cast to the expected type',
-      'TS2304': 'Cannot find name — add missing import statement',
-      'TS2345': 'Argument type mismatch — cast argument or update function signature',
-      'TS2554': 'Wrong number of arguments — add/remove arguments or update function signature',
-      'TS2532': 'Object possibly undefined — add null check or use optional chaining (?.) / non-null assertion (!)',
-      'TS2307': 'Cannot find module — install the package or fix the import path',
-      'TS18046': 'Variable is of type unknown — add type guard or assertion',
-      'TS18047': 'Variable possibly null — add null check',
+      TS7006: 'Add explicit type annotations to parameters (e.g., `param: any` or specific type)',
+      TS2339:
+        'Property does not exist — add to interface, use type assertion, or check optional chaining',
+      TS2322: 'Type mismatch — adjust the assignment or cast to the expected type',
+      TS2304: 'Cannot find name — add missing import statement',
+      TS2345: 'Argument type mismatch — cast argument or update function signature',
+      TS2554: 'Wrong number of arguments — add/remove arguments or update function signature',
+      TS2532:
+        'Object possibly undefined — add null check or use optional chaining (?.) / non-null assertion (!)',
+      TS2307: 'Cannot find module — install the package or fix the import path',
+      TS18046: 'Variable is of type unknown — add type guard or assertion',
+      TS18047: 'Variable possibly null — add null check',
     };
 
     const groups = sortedCodes.slice(0, 10).map(([code, errors]) => {
@@ -708,7 +714,8 @@ async function handleBatchTypeFix(args: Record<string, unknown>): Promise<unknow
       totalErrors: errorLines.length,
       errorCodes: sortedCodes.length,
       groups,
-      strategy: `Fix ${sortedCodes[0]?.[0]} first (${sortedCodes[0]?.[1]?.length} instances). ` +
+      strategy:
+        `Fix ${sortedCodes[0]?.[0]} first (${sortedCodes[0]?.[1]?.length} instances). ` +
         `Then ${sortedCodes[1]?.[0]} (${sortedCodes[1]?.[1]?.length}). ` +
         `Target the file with the most errors in each group for maximum impact.`,
     };
@@ -764,9 +771,10 @@ async function handleVerifyBeforeCommit(args: Record<string, unknown>): Promise<
         errors: errors.length,
         details: errors.slice(0, 5),
       })),
-      recommendation: totalRelevant === 0
-        ? 'Safe to commit — no type errors in changed files.'
-        : `${totalRelevant} type errors in changed files. Fix before committing.`,
+      recommendation:
+        totalRelevant === 0
+          ? 'Safe to commit — no type errors in changed files.'
+          : `${totalRelevant} type errors in changed files. Fix before committing.`,
     };
   } catch (err: any) {
     return { error: `Verification failed: ${err.message}` };
@@ -823,7 +831,9 @@ async function handleRunRelatedTests(args: Record<string, unknown>): Promise<unk
           numTotal: result.numTotalTests ?? 0,
           sourceFiles,
         };
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
     return { success: false, error: err.message?.slice(0, 1000), sourceFiles };
   }
@@ -873,13 +883,14 @@ async function handleQualityTrend(args: Record<string, unknown>): Promise<unknow
         focus,
         avgScore: Math.round((data.total / data.count) * 1000) / 1000,
         count: data.count,
-        trend: data.scores.length >= 2
-          ? data.scores[data.scores.length - 1] - data.scores[0] > 0
-            ? 'improving'
-            : data.scores[data.scores.length - 1] - data.scores[0] < -0.05
-              ? 'declining'
-              : 'stable'
-          : 'insufficient_data',
+        trend:
+          data.scores.length >= 2
+            ? data.scores[data.scores.length - 1] - data.scores[0] > 0
+              ? 'improving'
+              : data.scores[data.scores.length - 1] - data.scores[0] < -0.05
+                ? 'declining'
+                : 'stable'
+            : 'insufficient_data',
       }))
       .sort((a, b) => b.avgScore - a.avgScore);
 
@@ -910,7 +921,9 @@ async function handleQualityTrend(args: Record<string, unknown>): Promise<unknow
     if (slope < -0.01) {
       recommendations.push('Quality is DECLINING. Recent changes may be introducing regressions.');
     } else if (slope < 0.005) {
-      recommendations.push('Quality is PLATEAUED. Try a different focus area or batch-fix approach.');
+      recommendations.push(
+        'Quality is PLATEAUED. Try a different focus area or batch-fix approach.'
+      );
     } else {
       recommendations.push('Quality is IMPROVING. Continue current strategy.');
     }
@@ -920,7 +933,7 @@ async function handleQualityTrend(args: Record<string, unknown>): Promise<unknow
     if (bestFocus && worstFocus && bestFocus.focus !== worstFocus.focus) {
       recommendations.push(
         `Best focus: "${bestFocus.focus}" (avg ${bestFocus.avgScore}). ` +
-        `Worst: "${worstFocus.focus}" (avg ${worstFocus.avgScore}). Consider reducing "${worstFocus.focus}" cycles.`
+          `Worst: "${worstFocus.focus}" (avg ${worstFocus.avgScore}). Consider reducing "${worstFocus.focus}" cycles.`
       );
     }
 
@@ -1111,9 +1124,10 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
     scores.typeCheck = {
       pass: false,
       score: tscScore(bestCount || 50),
-      details: bestCount > 0
-        ? `Type check failed: ${bestCount} errors`
-        : `Type check failed: unknown errors (tsc non-zero exit)`,
+      details:
+        bestCount > 0
+          ? `Type check failed: ${bestCount} errors`
+          : `Type check failed: unknown errors (tsc non-zero exit)`,
     };
   }
 
@@ -1193,9 +1207,10 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
         warningCount = (output.match(/^\s*\d+:\d+\s+warning\s/gm) ?? []).length;
       }
       // Use logarithmic scale for lint too — prevents score from going to 0 at 10+ errors
-      const lintScore = errorCount === 0
-        ? Math.max(0.8, 1 - warningCount * 0.01)
-        : 1 / (1 + Math.log(1 + errorCount / 5));
+      const lintScore =
+        errorCount === 0
+          ? Math.max(0.8, 1 - warningCount * 0.01)
+          : 1 / (1 + Math.log(1 + errorCount / 5));
       scores.lint = {
         pass: errorCount === 0,
         score: Math.max(0, lintScore),
@@ -1239,10 +1254,10 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
   // Formula: tests * 0.30 + coverage * 0.25 + typeCheck * 0.20 + lint * 0.10 + circuitBreaker * 0.15
   const coverageScore = scores.coverage?.score ?? 0;
   const composite =
-    scores.tests.score * 0.30 +
+    scores.tests.score * 0.3 +
     coverageScore * 0.25 +
-    scores.typeCheck.score * 0.20 +
-    scores.lint.score * 0.10 +
+    scores.typeCheck.score * 0.2 +
+    scores.lint.score * 0.1 +
     (scores.typeCheck.pass ? 0.15 : 0);
 
   return {

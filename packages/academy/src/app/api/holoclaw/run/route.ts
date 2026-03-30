@@ -26,11 +26,19 @@ function getLockPath(name: string): string {
 
 function writeLock(name: string, pid: number): void {
   if (!fs.existsSync(STATE_DIR)) fs.mkdirSync(STATE_DIR, { recursive: true });
-  fs.writeFileSync(getLockPath(name), JSON.stringify({ pid, name, startedAt: new Date().toISOString() }), 'utf-8');
+  fs.writeFileSync(
+    getLockPath(name),
+    JSON.stringify({ pid, name, startedAt: new Date().toISOString() }),
+    'utf-8'
+  );
 }
 
 function removeLock(name: string): void {
-  try { fs.unlinkSync(getLockPath(name)); } catch { /* already gone */ }
+  try {
+    fs.unlinkSync(getLockPath(name));
+  } catch {
+    /* already gone */
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -49,12 +57,15 @@ export async function POST(request: Request) {
   // Check if already running
   if (runningSkills.has(name)) {
     const running = runningSkills.get(name)!;
-    return NextResponse.json({
-      error: 'Skill already running',
-      name,
-      pid: running.pid,
-      startedAt: running.startedAt,
-    }, { status: 409 });
+    return NextResponse.json(
+      {
+        error: 'Skill already running',
+        name,
+        pid: running.pid,
+        startedAt: running.startedAt,
+      },
+      { status: 409 }
+    );
   }
 
   // Find the skill file
@@ -63,20 +74,27 @@ export async function POST(request: Request) {
     path.join(REPO_ROOT, 'compositions', `${name}.hsplus`),
   ];
 
-  const skillPath = searchPaths.find(p => fs.existsSync(p));
+  const skillPath = searchPaths.find((p) => fs.existsSync(p));
   if (!skillPath) {
-    return NextResponse.json({
-      error: `Skill not found: ${name}`,
-      searched: searchPaths.map(p => path.relative(REPO_ROOT, p)),
-    }, { status: 404 });
+    return NextResponse.json(
+      {
+        error: `Skill not found: ${name}`,
+        searched: searchPaths.map((p) => path.relative(REPO_ROOT, p)),
+      },
+      { status: 404 }
+    );
   }
 
   // Spawn daemon process
   const cycles = body.cycles || 5;
   const alwaysOn = body.alwaysOn || false;
   const args = [
-    'tsx', 'packages/cli/src/cli.ts', 'holodaemon', skillPath,
-    '--cycles', String(cycles),
+    'tsx',
+    'packages/cli/src/cli.ts',
+    'holodaemon',
+    skillPath,
+    '--cycles',
+    String(cycles),
   ];
   if (alwaysOn) args.push('--always-on');
 
@@ -107,7 +125,12 @@ export async function POST(request: Request) {
   child.stdout?.on('data', (data: Buffer) => {
     const lines = data.toString().split('\n').filter(Boolean);
     for (const line of lines) {
-      const entry = JSON.stringify({ timestamp: new Date().toISOString(), channel: `skill:${name}`, message: line }) + '\n';
+      const entry =
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          channel: `skill:${name}`,
+          message: line,
+        }) + '\n';
       fs.appendFileSync(outboxPath, entry);
     }
   });
@@ -115,7 +138,12 @@ export async function POST(request: Request) {
   child.stderr?.on('data', (data: Buffer) => {
     const lines = data.toString().split('\n').filter(Boolean);
     for (const line of lines) {
-      const entry = JSON.stringify({ timestamp: new Date().toISOString(), channel: `skill:${name}:error`, message: line }) + '\n';
+      const entry =
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          channel: `skill:${name}:error`,
+          message: line,
+        }) + '\n';
       fs.appendFileSync(outboxPath, entry);
     }
   });
@@ -124,7 +152,12 @@ export async function POST(request: Request) {
   child.on('exit', (code) => {
     runningSkills.delete(name);
     removeLock(name);
-    const entry = JSON.stringify({ timestamp: new Date().toISOString(), channel: `skill:${name}`, message: `Exited with code ${code}` }) + '\n';
+    const entry =
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        channel: `skill:${name}`,
+        message: `Exited with code ${code}`,
+      }) + '\n';
     fs.appendFileSync(outboxPath, entry);
   });
 
@@ -143,7 +176,7 @@ export async function POST(request: Request) {
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const skills = [...runningSkills.values()].map(s => ({
+  const skills = [...runningSkills.values()].map((s) => ({
     name: s.name,
     pid: s.pid,
     startedAt: s.startedAt,
@@ -176,9 +209,15 @@ export async function DELETE(request: Request) {
     entry.process.kill('SIGTERM');
     // Give it 3 seconds then force
     setTimeout(() => {
-      try { entry.process.kill('SIGKILL'); } catch { /* already dead */ }
+      try {
+        entry.process.kill('SIGKILL');
+      } catch {
+        /* already dead */
+      }
     }, 3000);
-  } catch { /* already dead */ }
+  } catch {
+    /* already dead */
+  }
 
   runningSkills.delete(name);
   removeLock(name);

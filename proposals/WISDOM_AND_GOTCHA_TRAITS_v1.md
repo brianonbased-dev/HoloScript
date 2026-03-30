@@ -90,11 +90,11 @@ Two new CLASS handlers (reusing the 38-handler upgrade pattern):
 
 ### Compilation Modes
 
-| Severity | `dev` mode | `production` mode |
-|----------|-----------|------------------|
-| `info` | Log to console | Silent |
-| `warning` | Console warn | Console warn |
-| `critical` | Console error | **Fail compilation** (opt-in flag `--enforce-gotchas`) |
+| Severity   | `dev` mode     | `production` mode                                      |
+| ---------- | -------------- | ------------------------------------------------------ |
+| `info`     | Log to console | Silent                                                 |
+| `warning`  | Console warn   | Console warn                                           |
+| `critical` | Console error  | **Fail compilation** (opt-in flag `--enforce-gotchas`) |
 
 `--enforce-gotchas` flag can be passed to `holo build` or `holo compile` to fail hard on critical gotchas in CI.
 
@@ -117,21 +117,22 @@ critical = list_gotchas(severity="critical")
 
 Pulled directly from README.md and the compiler — these are existing atoms that `@gotcha` makes searchable:
 
-| # | Warning | Severity | Mitigation | Triggers On |
-|---|---------|----------|-----------|-------------|
-| 1 | **THE_BIGGEST_GOTCHA**: External test harnesses decouple validation from runtime | `critical` | Use `@script_test` blocks | test_run |
-| 2 | Absorption loses async side-effects and context | `warning` | Manually validate generated `.hsplus` agents | absorb |
-| 3 | Assertions only support primitives — no objects, arrays, or functions | `warning` | Use dot-notation on live state exclusively | assert |
-| 4 | Hot-reload thrashing without debounce corrupts scene state | `warning` | `debounce_ms: 300`, `on_reload: 'soft'` | hot_reload |
-| 5 | MCP/AI tool calls can fail silently | `warning` | Wrap every MCP call in `@circuit_breaker` with retry + fallback | mcp_call |
-| 6 | Untrusted plugins without sandbox risk arbitrary code execution | `critical` | `@security_sandbox` on all external plugins | plugin_load |
-| 7 | Concurrent edits without CRDT state corrupt shared worlds | `critical` | `@crdt` on any shared object | state_write |
+| #   | Warning                                                                          | Severity   | Mitigation                                                      | Triggers On |
+| --- | -------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------- | ----------- |
+| 1   | **THE_BIGGEST_GOTCHA**: External test harnesses decouple validation from runtime | `critical` | Use `@script_test` blocks                                       | test_run    |
+| 2   | Absorption loses async side-effects and context                                  | `warning`  | Manually validate generated `.hsplus` agents                    | absorb      |
+| 3   | Assertions only support primitives — no objects, arrays, or functions            | `warning`  | Use dot-notation on live state exclusively                      | assert      |
+| 4   | Hot-reload thrashing without debounce corrupts scene state                       | `warning`  | `debounce_ms: 300`, `on_reload: 'soft'`                         | hot_reload  |
+| 5   | MCP/AI tool calls can fail silently                                              | `warning`  | Wrap every MCP call in `@circuit_breaker` with retry + fallback | mcp_call    |
+| 6   | Untrusted plugins without sandbox risk arbitrary code execution                  | `critical` | `@security_sandbox` on all external plugins                     | plugin_load |
+| 7   | Concurrent edits without CRDT state corrupt shared worlds                        | `critical` | `@crdt` on any shared object                                    | state_write |
 
 ## Top 5 Wisdom Patterns (Live Extraction)
 
 These are the recurring battle-tested structures across the 40 trait categories and every production example:
 
 ### 1. Declarative WHAT + Imperative HOW Separation
+
 `.holo` (traits only) + `.hsplus` (logic) + compiler translation.  
 → Never mix concerns; trust the compiler for portability.
 
@@ -143,18 +144,22 @@ These are the recurring battle-tested structures across the 40 trait categories 
 ```
 
 ### 2. Trait Pairing Discipline
+
 `@physics` always paired with `@state` or `@grabbable`; `@llm_agent` always with `@protocol` + `@knowledge`.  
 → Prevents orphan behaviors and compile-time explosions.
 
 ### 3. Resilience by Default
+
 Circuit breakers, CRDTs, soft reloads, permission-based plugins.  
 → Every system assumes failure: network, AI, hot-reload.
 
 ### 4. Semantic Over Syntactic
+
 GraphRAG + MCP over raw text; absorption builds semantic graphs.  
 → Code understanding is meaning-first, not token-first.
 
 ### 5. Even Playing Field Governance
+
 "No owner advantage — public APIs only" + RFC process for all major changes.  
 → Every implementation (Hololand included) uses exactly the same atoms.
 
@@ -169,6 +174,7 @@ GraphRAG + MCP over raw text; absorption builds semantic graphs.
 - [x] Backward compatible — all existing traits unchanged (11,026 tests pass).
 
 ### Phase 2 — Follow-on
+
 - Studio tooltip integration (surface `@wisdom` on hover).
 - MCP `holoscript traits --wisdom` query endpoint.
 - `--enforce-gotchas` flag in `holo build`.

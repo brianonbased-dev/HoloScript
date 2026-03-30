@@ -14,7 +14,7 @@ import {
   CORE_VR_INTERACTION_TRAITS,
   HUMANOID_AVATAR_TRAITS,
   AUDIO_TRAITS,
-  PHYSICS_EXPANSION_TRAITS
+  PHYSICS_EXPANSION_TRAITS,
 } from '../constants';
 
 // Single parser instance - reused across all tests

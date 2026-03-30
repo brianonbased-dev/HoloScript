@@ -101,7 +101,7 @@ function indent(text: string, spaces: number): string {
 export function resolvePreset(
   presetOrName: PresetName | string | AnimationPreset,
   overrides?: PresetOverrides,
-  registry?: PresetRegistry,
+  registry?: PresetRegistry
 ): ResolvedAnimatedTrait {
   // Resolve the preset object
   let preset: AnimationPreset;
@@ -112,7 +112,7 @@ export function resolvePreset(
     if (!found) {
       throw new Error(
         `Animation preset "${presetOrName}" not found in registry. ` +
-          `Available presets: ${reg.getNames().join(', ')}`,
+          `Available presets: ${reg.getNames().join(', ')}`
       );
     }
     preset = found;
@@ -157,13 +157,11 @@ export function resolvePreset(
 
   // Add Mixamo clip reference as a comment and metadata
   animBlockLines.push(
-    `  // Mixamo clip: ${preset.mixamoClip.clipName} (${preset.mixamoClip.pack})`,
+    `  // Mixamo clip: ${preset.mixamoClip.clipName} (${preset.mixamoClip.pack})`
   );
 
   // Add clip mapping as a metadata property
-  animBlockLines.push(
-    `  clip: "${preset.mixamoClip.clipName}"`,
-  );
+  animBlockLines.push(`  clip: "${preset.mixamoClip.clipName}"`);
 
   // Close the animation block
   animBlockLines.push('}');
@@ -172,12 +170,7 @@ export function resolvePreset(
   const animationBlock = animBlockLines.join('\n');
 
   // Full combined output
-  const fullOutputLines = [
-    annotation,
-    ...traitProps,
-    '',
-    animationBlock,
-  ];
+  const fullOutputLines = [annotation, ...traitProps, '', animationBlock];
   const fullOutput = fullOutputLines.join('\n');
 
   // Build the resolved preset with overrides applied
@@ -230,16 +223,14 @@ export function resolvePreset(
 export function resolveMultiple(
   presetNames: (PresetName | string)[],
   overridesMap?: Record<string, PresetOverrides>,
-  registry?: PresetRegistry,
+  registry?: PresetRegistry
 ): string {
   if (presetNames.length === 0) {
     return '';
   }
 
   const reg = registry ?? getDefaultRegistry();
-  const resolvedList = presetNames.map((name) =>
-    resolvePreset(name, overridesMap?.[name], reg),
-  );
+  const resolvedList = presetNames.map((name) => resolvePreset(name, overridesMap?.[name], reg));
 
   // Use the first preset as the auto_play default
   const firstPreset = resolvedList[0];

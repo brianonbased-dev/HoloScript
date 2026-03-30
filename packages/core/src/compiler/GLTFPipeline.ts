@@ -849,9 +849,13 @@ export class GLTFPipeline extends CompilerBase {
 
   private options: Required<GLTFPipelineOptions>;
   private compositor: TraitCompositor;
-  
-  private get bufferData() { return SHARED_COMPILE_BUFFER; }
-  private set bufferData(v: Uint8Array) { SHARED_COMPILE_BUFFER = v as any; }
+
+  private get bufferData() {
+    return SHARED_COMPILE_BUFFER;
+  }
+  private set bufferData(v: Uint8Array) {
+    SHARED_COMPILE_BUFFER = v as any;
+  }
   private bufferByteLength: number = 0;
 
   private ensureBufferCapacity(needed: number): void {

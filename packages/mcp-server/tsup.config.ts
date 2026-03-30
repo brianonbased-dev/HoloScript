@@ -5,8 +5,8 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf8'));
 
 export default defineConfig({
   entry: {
-    'index': 'src/index.ts',
-    'cli': 'src/cli.ts',
+    index: 'src/index.ts',
+    cli: 'src/cli.ts',
     'http-server': 'src/http-server.ts',
   },
   format: ['cjs', 'esm'],

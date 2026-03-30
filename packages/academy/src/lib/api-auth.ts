@@ -33,10 +33,7 @@ export async function getSession() {
 export async function requireAuth() {
   const session = await getSession();
   if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
   return session;
 }

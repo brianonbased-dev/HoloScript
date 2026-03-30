@@ -25,11 +25,15 @@ export const canaryHandler: TraitHandler<CanaryConfig> = {
   onAttach(node: any): void {
     node.__canaryState = { active: false, version: '', percentage: 0, started: 0 };
   },
-  onDetach(node: any): void { delete node.__canaryState; },
+  onDetach(node: any): void {
+    delete node.__canaryState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, config: CanaryConfig, context: any, event: any): void {
-    const state = node.__canaryState as { active: boolean; version: string; percentage: number; started: number } | undefined;
+    const state = node.__canaryState as
+      | { active: boolean; version: string; percentage: number; started: number }
+      | undefined;
     if (!state) return;
     const t = typeof event === 'string' ? event : event.type;
 
@@ -43,7 +47,10 @@ export const canaryHandler: TraitHandler<CanaryConfig> = {
         break;
       case 'canary:adjust':
         if (state.active) {
-          state.percentage = Math.min(100, (event.percentage as number) ?? state.percentage + config.increment);
+          state.percentage = Math.min(
+            100,
+            (event.percentage as number) ?? state.percentage + config.increment
+          );
           context.emit?.('canary:status', { ...state });
         }
         break;

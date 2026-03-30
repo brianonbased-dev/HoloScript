@@ -24,8 +24,8 @@ function createSplatBuffer(count: number): ArrayBuffer {
     const offset = i * BYTES_PER_SPLAT;
 
     // Position (incrementing)
-    view.setFloat32(offset, i * 1.0, true);      // px
-    view.setFloat32(offset + 4, i * 0.5, true);  // py
+    view.setFloat32(offset, i * 1.0, true); // px
+    view.setFloat32(offset + 4, i * 0.5, true); // py
     view.setFloat32(offset + 8, i * -0.3, true); // pz
 
     // Scale
@@ -34,16 +34,16 @@ function createSplatBuffer(count: number): ArrayBuffer {
     view.setFloat32(offset + 20, 0.01, true); // sz
 
     // Color (RGBA u8)
-    view.setUint8(offset + 24, 255);   // r
-    view.setUint8(offset + 25, 128);   // g
-    view.setUint8(offset + 26, 64);    // b
-    view.setUint8(offset + 27, 255);   // a
+    view.setUint8(offset + 24, 255); // r
+    view.setUint8(offset + 25, 128); // g
+    view.setUint8(offset + 26, 64); // b
+    view.setUint8(offset + 27, 255); // a
 
     // Rotation quaternion (u8, 128 = 0.0)
-    view.setUint8(offset + 28, 128);   // qx = 0
-    view.setUint8(offset + 29, 128);   // qy = 0
-    view.setUint8(offset + 30, 128);   // qz = 0
-    view.setUint8(offset + 31, 255);   // qw ≈ 1 (normalized)
+    view.setUint8(offset + 28, 128); // qx = 0
+    view.setUint8(offset + 29, 128); // qy = 0
+    view.setUint8(offset + 30, 128); // qz = 0
+    view.setUint8(offset + 31, 255); // qw ≈ 1 (normalized)
   }
 
   return buffer;
@@ -103,22 +103,22 @@ describe('GaussianSplatViewer — Splat binary parsing', () => {
       const view = new DataView(buffer);
 
       // First splat at offset 0
-      expect(view.getFloat32(0, true)).toBe(0.0);   // px
-      expect(view.getFloat32(4, true)).toBe(0.0);   // py
-      expect(view.getFloat32(8, true)).toBe(-0.0);  // pz
+      expect(view.getFloat32(0, true)).toBe(0.0); // px
+      expect(view.getFloat32(4, true)).toBe(0.0); // py
+      expect(view.getFloat32(8, true)).toBe(-0.0); // pz
 
       // Third splat at offset 64
-      expect(view.getFloat32(64, true)).toBe(2.0);  // px
-      expect(view.getFloat32(68, true)).toBe(1.0);  // py
+      expect(view.getFloat32(64, true)).toBe(2.0); // px
+      expect(view.getFloat32(68, true)).toBe(1.0); // py
     });
 
     it('color bytes decode to expected values', () => {
       const buffer = createSplatBuffer(1);
       const view = new DataView(buffer);
-      expect(view.getUint8(24)).toBe(255);   // R
-      expect(view.getUint8(25)).toBe(128);   // G
-      expect(view.getUint8(26)).toBe(64);    // B
-      expect(view.getUint8(27)).toBe(255);   // A
+      expect(view.getUint8(24)).toBe(255); // R
+      expect(view.getUint8(25)).toBe(128); // G
+      expect(view.getUint8(26)).toBe(64); // B
+      expect(view.getUint8(27)).toBe(255); // A
     });
 
     it('quaternion bytes 128 decode to ~0', () => {

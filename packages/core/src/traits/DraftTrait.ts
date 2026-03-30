@@ -27,14 +27,7 @@
 export type AssetMaturity = 'draft' | 'mesh' | 'final';
 
 /** The primitive shape used for draft rendering and collision */
-export type DraftShape =
-  | 'box'
-  | 'sphere'
-  | 'cylinder'
-  | 'cone'
-  | 'capsule'
-  | 'plane'
-  | 'torus';
+export type DraftShape = 'box' | 'sphere' | 'cylinder' | 'cone' | 'capsule' | 'plane' | 'torus';
 
 /** Draft trait configuration */
 export interface DraftConfig {
@@ -74,7 +67,11 @@ export const DRAFT_TRAIT = {
     'Marks an entity as a draft-stage blockout primitive. Draft shapes serve as both visual content during composition AND physics collision proxies during simulation.',
   category: 'pipeline',
   properties: {
-    shape: { type: 'string', default: 'box', enum: ['box', 'sphere', 'cylinder', 'cone', 'capsule', 'plane', 'torus'] },
+    shape: {
+      type: 'string',
+      default: 'box',
+      enum: ['box', 'sphere', 'cylinder', 'cone', 'capsule', 'plane', 'torus'],
+    },
     collision: { type: 'boolean', default: true },
     color: { type: 'string', default: '#88aaff' },
     opacity: { type: 'number', default: 1.0, min: 0, max: 1 },

@@ -110,7 +110,11 @@ interface AbsorbServiceState {
   fetchBalance: () => Promise<void>;
   fetchProjects: () => Promise<void>;
   fetchUsageHistory: (limit?: number) => Promise<void>;
-  createProject: (name: string, sourceType: string, sourceUrl?: string) => Promise<AbsorbProject | null>;
+  createProject: (
+    name: string,
+    sourceType: string,
+    sourceUrl?: string
+  ) => Promise<AbsorbProject | null>;
   deleteProject: (id: string) => Promise<boolean>;
   setActiveProject: (id: string | null) => void;
   getActiveProject: () => AbsorbProject | null;
@@ -119,8 +123,16 @@ interface AbsorbServiceState {
 
   fetchMoltbookAgents: () => Promise<void>;
   fetchMoltbookSummary: () => Promise<void>;
-  createMoltbookAgent: (projectId: string, agentName: string, moltbookApiKey: string, config?: Record<string, any>) => Promise<MoltbookAgent | null>;
-  updateMoltbookAgent: (id: string, updates: { heartbeatEnabled?: boolean; config?: Record<string, any>; agentName?: string }) => Promise<MoltbookAgent | null>;
+  createMoltbookAgent: (
+    projectId: string,
+    agentName: string,
+    moltbookApiKey: string,
+    config?: Record<string, any>
+  ) => Promise<MoltbookAgent | null>;
+  updateMoltbookAgent: (
+    id: string,
+    updates: { heartbeatEnabled?: boolean; config?: Record<string, any>; agentName?: string }
+  ) => Promise<MoltbookAgent | null>;
   deleteMoltbookAgent: (id: string) => Promise<boolean>;
   startMoltbookAgent: (id: string) => Promise<boolean>;
   stopMoltbookAgent: (id: string) => Promise<boolean>;
@@ -298,7 +310,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             const data = await res.json();
             set((s) => ({
               moltbookAgents: s.moltbookAgents.map((a) =>
-                a.id === id ? { ...a, heartbeatEnabled: true, ...data.agent } : a,
+                a.id === id ? { ...a, heartbeatEnabled: true, ...data.agent } : a
               ),
             }));
             return true;
@@ -314,7 +326,7 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
             const data = await res.json();
             set((s) => ({
               moltbookAgents: s.moltbookAgents.map((a) =>
-                a.id === id ? { ...a, heartbeatEnabled: false, ...data.agent } : a,
+                a.id === id ? { ...a, heartbeatEnabled: false, ...data.agent } : a
               ),
             }));
             return true;
@@ -372,8 +384,8 @@ export const useAbsorbServiceStore = create<AbsorbServiceState>()(
           tier: state.tier,
           qualityTier: state.qualityTier,
         }),
-      },
+      }
     ),
-    { name: 'absorb-service-store' },
-  ),
+    { name: 'absorb-service-store' }
+  )
 );

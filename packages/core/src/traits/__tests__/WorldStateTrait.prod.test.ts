@@ -19,7 +19,8 @@ function attach(cfg = mkCfg(), node = mkNode(), ctx = mkCtx()) {
 
 describe('worldStateHandler — defaultConfig', () => {
   it('sync_interval = 0.1', () => expect(worldStateHandler.defaultConfig?.sync_interval).toBe(0.1));
-  it('autosave_interval = 30', () => expect(worldStateHandler.defaultConfig?.autosave_interval).toBe(30));
+  it('autosave_interval = 30', () =>
+    expect(worldStateHandler.defaultConfig?.autosave_interval).toBe(30));
   it('world_id = default', () => expect(worldStateHandler.defaultConfig?.world_id).toBe('default'));
 });
 
@@ -35,7 +36,11 @@ describe('worldStateHandler — onAttach', () => {
   it('emits world_state_create with config values', () => {
     const node = mkNode();
     const ctx = mkCtx();
-    worldStateHandler.onAttach!(node, mkCfg({ world_id: 'my-world', max_objects: 5000 }), ctx as any);
+    worldStateHandler.onAttach!(
+      node,
+      mkCfg({ world_id: 'my-world', max_objects: 5000 }),
+      ctx as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'world_state_create');
     expect(ev?.payload.worldId).toBe('my-world');
     expect(ev?.payload.maxObjects).toBe(5000);
@@ -106,11 +111,16 @@ describe('worldStateHandler — onUpdate', () => {
 describe('worldStateHandler — onEvent', () => {
   it('world_state_object_added increments objectCount and emits update', () => {
     const { node, ctx, cfg } = attach();
-    worldStateHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'world_state_object_added',
-      objectId: 'obj1',
-      data: { mesh: 'cube' },
-    } as any);
+    worldStateHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'world_state_object_added',
+        objectId: 'obj1',
+        data: { mesh: 'cube' },
+      } as any
+    );
     expect((node as any).__worldStateTraitState.objectCount).toBe(1);
     const ev = ctx.emitted.find((e: any) => e.type === 'world_state_update');
     expect(ev?.payload.action).toBe('add_object');
@@ -119,36 +129,56 @@ describe('worldStateHandler — onEvent', () => {
   it('world_state_object_removed decrements objectCount', () => {
     const { node, ctx, cfg } = attach();
     (node as any).__worldStateTraitState.objectCount = 5;
-    worldStateHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'world_state_object_removed',
-      objectId: 'obj2',
-    } as any);
+    worldStateHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'world_state_object_removed',
+        objectId: 'obj2',
+      } as any
+    );
     expect((node as any).__worldStateTraitState.objectCount).toBe(4);
   });
   it('world_state_object_removed does not go below 0', () => {
     const { node, ctx, cfg } = attach();
-    worldStateHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'world_state_object_removed',
-      objectId: 'x',
-    } as any);
+    worldStateHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'world_state_object_removed',
+        objectId: 'x',
+      } as any
+    );
     expect((node as any).__worldStateTraitState.objectCount).toBe(0);
   });
   it('world_state_terrain_update emits update when persist_terrain is true', () => {
     const { node, ctx, cfg } = attach(mkCfg({ persist_terrain: true }));
-    worldStateHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'world_state_terrain_update',
-      position: [1, 2, 3],
-      delta: 0.5,
-    } as any);
+    worldStateHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'world_state_terrain_update',
+        position: [1, 2, 3],
+        delta: 0.5,
+      } as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'world_state_update');
     expect(ev?.payload.action).toBe('terrain');
   });
   it('world_state_terrain_update skipped when persist_terrain is false', () => {
     const { node, ctx, cfg } = attach(mkCfg({ persist_terrain: false }));
-    worldStateHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'world_state_terrain_update',
-      position: [0, 0, 0],
-    } as any);
+    worldStateHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'world_state_terrain_update',
+        position: [0, 0, 0],
+      } as any
+    );
     expect(ctx.emitted.some((e: any) => e.type === 'world_state_update')).toBe(false);
   });
   it('world_state_force_save increments version and emits save', () => {
@@ -160,7 +190,12 @@ describe('worldStateHandler — onEvent', () => {
   });
   it('no-op when no state', () => {
     expect(() =>
-      worldStateHandler.onEvent!(mkNode() as any, mkCfg(), mkCtx() as any, { type: 'world_state_force_save' } as any)
+      worldStateHandler.onEvent!(
+        mkNode() as any,
+        mkCfg(),
+        mkCtx() as any,
+        { type: 'world_state_force_save' } as any
+      )
     ).not.toThrow();
   });
 });

@@ -2145,57 +2145,24 @@ export {
 };
 
 // Auth / Identity exports
-export {
-  jwtHandler,
-  oauthHandler,
-  apiKeyHandler,
-  sessionHandler,
-  permissionHandler,
-  mfaHandler,
-};
+export { jwtHandler, oauthHandler, apiKeyHandler, sessionHandler, permissionHandler, mfaHandler };
 
 // Payment exports (walletHandler already exported in main block)
-export {
-  stripeHandler,
-  invoiceHandler,
-  subscriptionHandler,
-  refundHandler,
-};
+export { stripeHandler, invoiceHandler, subscriptionHandler, refundHandler };
 
 // Media / Content exports
-export {
-  imageResizeHandler,
-  videoTranscodeHandler,
-  pdfGenerateHandler,
-  markdownRenderHandler,
-};
+export { imageResizeHandler, videoTranscodeHandler, pdfGenerateHandler, markdownRenderHandler };
 
 // Scripting (newly registered) — already exported in Scripting & Automation block above
 
 // Testing / QA exports
-export {
-  mockHandler,
-  fixtureHandler,
-  snapshotTestHandler,
-  loadTestHandler,
-  chaosTestHandler,
-};
+export { mockHandler, fixtureHandler, snapshotTestHandler, loadTestHandler, chaosTestHandler };
 
 // Workflow / BPM exports
-export {
-  workflowHandler,
-  approvalHandler,
-  stateMachineHandler,
-  formBuilderHandler,
-};
+export { workflowHandler, approvalHandler, stateMachineHandler, formBuilderHandler };
 
 // i18n / Localization exports
-export {
-  localeHandler,
-  translationHandler,
-  rtlHandler,
-  timezoneHandler,
-};
+export { localeHandler, translationHandler, rtlHandler, timezoneHandler };
 
 // Data Pipeline / ETL exports
 export {
@@ -2207,105 +2174,46 @@ export {
 };
 
 // Notification / Alerting exports
-export {
-  webhookOutHandler,
-  pagerdutyHandler,
-  slackAlertHandler,
-};
+export { webhookOutHandler, pagerdutyHandler, slackAlertHandler };
 
 // Search exports
-export {
-  fullTextSearchHandler,
-  facetedSearchHandler,
-  autocompleteHandler,
-};
+export { fullTextSearchHandler, facetedSearchHandler, autocompleteHandler };
 
 // Compliance / Governance exports
-export {
-  gdprHandler,
-  dataRetentionHandler,
-  consentManagementHandler,
-};
+export { gdprHandler, dataRetentionHandler, consentManagementHandler };
 
 // File Storage exports
-export {
-  s3UploadHandler,
-  fileSystemHandler,
-  blobStoreHandler,
-};
+export { s3UploadHandler, fileSystemHandler, blobStoreHandler };
 
 // API Gateway exports
-export {
-  graphqlHandler,
-  restEndpointHandler,
-  rpcHandler,
-};
+export { graphqlHandler, restEndpointHandler, rpcHandler };
 
 // Feature Flags exports (featureFlagHandler, canaryHandler already exported in DevOps / CI block)
-export {
-  abTestHandler,
-  rolloutHandler,
-};
+export { abTestHandler, rolloutHandler };
 
 // Audit Trail exports (auditLogHandler already exported in Enterprise Multi-Tenancy block)
-export {
-  changeTrackingHandler,
-  dataLineageHandler,
-};
+export { changeTrackingHandler, dataLineageHandler };
 
 // GPU Compute exports
-export {
-  computeShaderHandler,
-  renderPipelineHandler,
-  postProcessHandler,
-  rayTraceHandler,
-};
+export { computeShaderHandler, renderPipelineHandler, postProcessHandler, rayTraceHandler };
 
 // ML / Tensor exports
-export {
-  tensorOpHandler,
-  onnxRuntimeHandler,
-  trainingLoopHandler,
-};
+export { tensorOpHandler, onnxRuntimeHandler, trainingLoopHandler };
 
 // Database / Persistence exports
-export {
-  sqlQueryHandler,
-  ormEntityHandler,
-  offlineSyncHandler,
-  reactiveStoreHandler,
-};
+export { sqlQueryHandler, ormEntityHandler, offlineSyncHandler, reactiveStoreHandler };
 
 // Spatial Algorithms exports
-export {
-  astarHandler,
-  navmeshSolverHandler,
-  optimizationHandler,
-};
+export { astarHandler, navmeshSolverHandler, optimizationHandler };
 
 // Debug / Cinematic exports
-export {
-  timeTravelDebugHandler,
-  spatialProfilerHandler,
-  cinematicSeqHandler,
-  aiCameraHandler,
-};
+export { timeTravelDebugHandler, spatialProfilerHandler, cinematicSeqHandler, aiCameraHandler };
 
 // FFI / OS exports
-export {
-  ffiHandler,
-  nativeCallHandler,
-  wasmBridgeHandler,
-  sysIoHandler,
-};
+export { ffiHandler, nativeCallHandler, wasmBridgeHandler, sysIoHandler };
 
 // Concurrency exports
-export {
-  actorHandler,
-  cspChannelHandler,
-  temporalGuardHandler,
-  deadlockFreeHandler,
-};
+export { actorHandler, cspChannelHandler, temporalGuardHandler, deadlockFreeHandler };
 
 // Phase A: Previously unregistered handler exports
 export {
@@ -2436,19 +2344,8 @@ export {
 };
 
 // Wisdom/Gotcha Atoms — Batch 1: Memory Cluster exports
-export {
-  memoryCrystalHandler,
-  recallTriggerHandler,
-  forgetPolicyHandler,
-};
+export { memoryCrystalHandler, recallTriggerHandler, forgetPolicyHandler };
 // Wisdom/Gotcha Atoms — Batch 1: State + Resilience exports
-export {
-  versionedStateHandler,
-  worldHeartbeatHandler,
-  circuitAutoResetHandler,
-};
+export { versionedStateHandler, worldHeartbeatHandler, circuitAutoResetHandler };
 // Wisdom/Gotcha Meta-Trait exports
-export {
-  wisdomHandler,
-  gotchaHandler,
-};
+export { wisdomHandler, gotchaHandler };

@@ -12,7 +12,14 @@ type Blackboard = Record<string, unknown>;
 
 class MockHost implements DaemonHost {
   private readonly files = new Map<string, string>();
-  private readonly execImpl = vi.fn<(command: string, args?: string[], opts?: { cwd?: string; timeoutMs?: number }) => Promise<DaemonExecResult>>();
+  private readonly execImpl =
+    vi.fn<
+      (
+        command: string,
+        args?: string[],
+        opts?: { cwd?: string; timeoutMs?: number }
+      ) => Promise<DaemonExecResult>
+    >();
 
   seedFile(filePath: string, content: string): void {
     this.files.set(filePath, content);
@@ -34,11 +41,17 @@ class MockHost implements DaemonHost {
     return this.files.has(filePath);
   }
 
-  exec(command: string, args?: string[], opts?: { cwd?: string; timeoutMs?: number }): Promise<DaemonExecResult> {
+  exec(
+    command: string,
+    args?: string[],
+    opts?: { cwd?: string; timeoutMs?: number }
+  ): Promise<DaemonExecResult> {
     return this.execImpl(command, args, opts);
   }
 
-  setExecResponses(resolver: (command: string, args?: string[]) => DaemonExecResult | Promise<DaemonExecResult>): void {
+  setExecResponses(
+    resolver: (command: string, args?: string[]) => DaemonExecResult | Promise<DaemonExecResult>
+  ): void {
     this.execImpl.mockImplementation((command, args) => Promise.resolve(resolver(command, args)));
   }
 }
@@ -102,7 +115,8 @@ describe('holoscript daemon integration', () => {
       if (command === 'npx' && args?.[0] === 'tsc') {
         return {
           code: 2,
-          stdout: 'packages/core/src/example.ts(1,14): error TS2322: Type \'number\' is not assignable to type \'string\'.\n',
+          stdout:
+            "packages/core/src/example.ts(1,14): error TS2322: Type 'number' is not assignable to type 'string'.\n",
           stderr: '',
         };
       }
@@ -175,7 +189,10 @@ describe('holoscript daemon integration', () => {
   });
 
   it('runs compiler target sweep checks across node and python targets', async () => {
-    host.seedFile('compositions/self-improve-daemon.hsplus', 'composition "Daemon" { @grabbable @networked }\n');
+    host.seedFile(
+      'compositions/self-improve-daemon.hsplus',
+      'composition "Daemon" { @grabbable @networked }\n'
+    );
     host.setExecResponses((command, args) => {
       if (command === 'npx' && args?.[0] === 'tsx' && args?.includes('compile')) {
         return { code: 0, stdout: 'compile ok\n', stderr: '' };
@@ -196,7 +213,7 @@ describe('holoscript daemon integration', () => {
     expect(fixed).toBe(true);
     expect(blackboard.has_candidates).toBe(true);
     expect((blackboard.sweep_results as Array<{ ok: boolean }>).length).toBe(2);
-    expect((blackboard.sweep_results as Array<{ ok: boolean }>).every(r => r.ok)).toBe(true);
+    expect((blackboard.sweep_results as Array<{ ok: boolean }>).every((r) => r.ok)).toBe(true);
   });
 
   it('samples trait categories from daemon composition', async () => {
@@ -211,7 +228,7 @@ describe('holoscript daemon integration', () => {
         '    @spatial_audio',
         '  }',
         '}',
-      ].join('\n'),
+      ].join('\n')
     );
     host.setExecResponses(() => ({ code: 0, stdout: '', stderr: '' }));
 
@@ -229,11 +246,16 @@ describe('holoscript daemon integration', () => {
     expect(blackboard.trait_sampling).toMatchObject({
       sampledFiles: 1,
     });
-    expect((blackboard.trait_sampling as { sampledCategories: number }).sampledCategories).toBeGreaterThanOrEqual(3);
+    expect(
+      (blackboard.trait_sampling as { sampledCategories: number }).sampledCategories
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it('runs runtime profile matrix checks for headless, minimal, and full', async () => {
-    host.seedFile('compositions/self-improve-daemon.hsplus', 'composition "Daemon" { @grabbable }\n');
+    host.seedFile(
+      'compositions/self-improve-daemon.hsplus',
+      'composition "Daemon" { @grabbable }\n'
+    );
     host.setExecResponses((command, args) => {
       if (command === 'npx' && args?.[0] === 'tsx' && args?.includes('run')) {
         return { code: 0, stdout: 'run ok\n', stderr: '' };
@@ -252,17 +274,19 @@ describe('holoscript daemon integration', () => {
     expect(diagnosed).toBe(true);
     expect(read).toBe(true);
     expect(fixed).toBe(true);
-    expect((blackboard.runtime_matrix as Array<{ profile: string }>).map(r => r.profile)).toEqual([
-      'headless',
-      'minimal',
-      'full',
-    ]);
+    expect((blackboard.runtime_matrix as Array<{ profile: string }>).map((r) => r.profile)).toEqual(
+      ['headless', 'minimal', 'full']
+    );
   });
 
   it('executes absorb and roundtrip compile validation cycle', async () => {
     host.seedFile('packages/core/src/cli/daemon-actions.ts', 'export const sentinel = true;\n');
     host.setExecResponses((command, args) => {
-      if (command === 'npx' && args?.[0] === 'tsx' && (args?.includes('absorb') || args?.includes('compile'))) {
+      if (
+        command === 'npx' &&
+        args?.[0] === 'tsx' &&
+        (args?.includes('absorb') || args?.includes('compile'))
+      ) {
         return { code: 0, stdout: 'ok\n', stderr: '' };
       }
       return { code: 0, stdout: '', stderr: '' };
@@ -311,7 +335,7 @@ describe('holoscript daemon integration', () => {
     const denied = await actions.file_write(
       { path: 'scripts/outside.txt', content: 'blocked' },
       blackboard,
-      context,
+      context
     );
     expect(denied).toBe(false);
     expect(String(blackboard.file_write_error)).toContain('outside allowed roots');
@@ -319,7 +343,7 @@ describe('holoscript daemon integration', () => {
     const allowed = await actions.file_write(
       { path: 'packages/core/src/allowed.txt', content: 'ok' },
       blackboard,
-      context,
+      context
     );
     expect(allowed).toBe(true);
     expect(host.readFile('packages/core/src/allowed.txt')).toBe('ok');
@@ -353,12 +377,14 @@ describe('holoscript daemon integration', () => {
         content: 'composition "my-new-skill" {\n  action "ping" { }\n}\n',
       },
       blackboard,
-      context,
+      context
     );
 
     expect(ok).toBe(true);
     expect(blackboard.created_skill_path).toBe('compositions/skills/my-new-skill.hsplus');
-    expect(host.readFile('compositions/skills/my-new-skill.hsplus')).toContain('composition "my-new-skill"');
+    expect(host.readFile('compositions/skills/my-new-skill.hsplus')).toContain(
+      'composition "my-new-skill"'
+    );
   });
 
   it('writes outbound channel messages to queue and ingests inbound messages', async () => {
@@ -371,7 +397,7 @@ describe('holoscript daemon integration', () => {
         metadata: { source: 'test' },
       },
       blackboard,
-      context,
+      context
     );
     expect(sent).toBe(true);
     const outbox = host.readFile('.holoscript/outbox.jsonl');
@@ -379,7 +405,7 @@ describe('holoscript daemon integration', () => {
 
     host.writeFile(
       '.holoscript/inbox.jsonl',
-      `${JSON.stringify({ channel: 'discord', message: 'incoming', timestamp: new Date().toISOString() })}\n`,
+      `${JSON.stringify({ channel: 'discord', message: 'incoming', timestamp: new Date().toISOString() })}\n`
     );
     const ingested = await actions.channel_ingest({}, blackboard, context);
     expect(ingested).toBe(true);
@@ -393,7 +419,7 @@ describe('holoscript daemon integration', () => {
     // With a positive budget, first call goes through (no prior spend)
     const { actions } = createDaemonActions(host, llm, {
       ...createConfig(),
-      economyConfig: { budget: 5.00 },
+      economyConfig: { budget: 5.0 },
     });
 
     blackboard.currentCandidate = 'packages/core/src/test.ts';

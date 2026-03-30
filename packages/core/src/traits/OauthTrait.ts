@@ -20,8 +20,12 @@ export const oauthHandler: TraitHandler<OauthConfig> = {
   name: 'oauth',
   defaultConfig: { providers: ['google', 'github'] },
 
-  onAttach(node: any): void { node.__oauthState = { tokens: new Map<string, { provider: string; expiresAt: number }>() }; },
-  onDetach(node: any): void { delete node.__oauthState; },
+  onAttach(node: any): void {
+    node.__oauthState = { tokens: new Map<string, { provider: string; expiresAt: number }>() };
+  },
+  onDetach(node: any): void {
+    delete node.__oauthState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, _config: OauthConfig, context: any, event: any): void {
@@ -31,12 +35,19 @@ export const oauthHandler: TraitHandler<OauthConfig> = {
 
     switch (t) {
       case 'oauth:authorize':
-        context.emit?.('oauth:redirect', { provider: event.provider, url: `https://${event.provider}/authorize` });
+        context.emit?.('oauth:redirect', {
+          provider: event.provider,
+          url: `https://${event.provider}/authorize`,
+        });
         break;
       case 'oauth:callback': {
         const token = `at_${Date.now()}`;
         state.tokens.set(token, { provider: 'oauth', expiresAt: Date.now() + 3600000 });
-        context.emit?.('oauth:token', { accessToken: token, refreshToken: `rt_${Date.now()}`, expiresIn: 3600 });
+        context.emit?.('oauth:token', {
+          accessToken: token,
+          refreshToken: `rt_${Date.now()}`,
+          expiresIn: 3600,
+        });
         break;
       }
       case 'oauth:revoke':

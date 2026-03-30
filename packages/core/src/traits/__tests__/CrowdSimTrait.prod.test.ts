@@ -20,7 +20,8 @@ function attach(cfg = mkCfg(), node = mkNode(), ctx = mkCtx()) {
 describe('crowdSimHandler — defaultConfig', () => {
   it('max_agents = 1000', () => expect(crowdSimHandler.defaultConfig?.max_agents).toBe(1000));
   it('speed = 1.5', () => expect(crowdSimHandler.defaultConfig?.speed).toBe(1.5));
-  it('separation_weight = 1.5', () => expect(crowdSimHandler.defaultConfig?.separation_weight).toBe(1.5));
+  it('separation_weight = 1.5', () =>
+    expect(crowdSimHandler.defaultConfig?.separation_weight).toBe(1.5));
 });
 
 describe('crowdSimHandler — onAttach', () => {
@@ -35,7 +36,11 @@ describe('crowdSimHandler — onAttach', () => {
   it('emits crowd_sim_create with flocking weights', () => {
     const node = mkNode();
     const ctx = mkCtx();
-    crowdSimHandler.onAttach!(node, mkCfg({ separation_weight: 2.0, alignment_weight: 1.5 }), ctx as any);
+    crowdSimHandler.onAttach!(
+      node,
+      mkCfg({ separation_weight: 2.0, alignment_weight: 1.5 }),
+      ctx as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'crowd_sim_create');
     expect(ev?.payload.flocking.separation).toBe(2.0);
     expect(ev?.payload.flocking.alignment).toBe(1.5);
@@ -82,27 +87,42 @@ describe('crowdSimHandler — onUpdate', () => {
 describe('crowdSimHandler — onEvent', () => {
   it('crowd_spawn_agents increases agentCount and emits spawn', () => {
     const { node, ctx, cfg } = attach();
-    crowdSimHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'crowd_spawn_agents',
-      count: 50,
-      position: [0, 0, 0],
-    } as any);
+    crowdSimHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'crowd_spawn_agents',
+        count: 50,
+        position: [0, 0, 0],
+      } as any
+    );
     expect((node as any).__crowdSimState.agentCount).toBe(50);
     const ev = ctx.emitted.find((e: any) => e.type === 'crowd_sim_spawn');
     expect(ev?.payload.count).toBe(50);
   });
   it('crowd_spawn_agents clamps to max_agents', () => {
     const { node, ctx, cfg } = attach(mkCfg({ max_agents: 100 }));
-    crowdSimHandler.onEvent!(node, cfg, ctx as any, { type: 'crowd_spawn_agents', count: 150 } as any);
+    crowdSimHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      { type: 'crowd_spawn_agents', count: 150 } as any
+    );
     expect((node as any).__crowdSimState.agentCount).toBe(100);
   });
   it('crowd_set_goal stores goal and emits crowd_sim_goal', () => {
     const { node, ctx, cfg } = attach();
-    crowdSimHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'crowd_set_goal',
-      groupId: 'alpha',
-      position: [10, 0, 10],
-    } as any);
+    crowdSimHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'crowd_set_goal',
+        groupId: 'alpha',
+        position: [10, 0, 10],
+      } as any
+    );
     expect((node as any).__crowdSimState.goals.get('alpha')).toEqual([10, 0, 10]);
     const ev = ctx.emitted.find((e: any) => e.type === 'crowd_sim_goal');
     expect(ev?.payload.groupId).toBe('alpha');
@@ -118,7 +138,12 @@ describe('crowdSimHandler — onEvent', () => {
   });
   it('no-op when no state', () => {
     expect(() =>
-      crowdSimHandler.onEvent!(mkNode() as any, mkCfg(), mkCtx() as any, { type: 'crowd_clear' } as any)
+      crowdSimHandler.onEvent!(
+        mkNode() as any,
+        mkCfg(),
+        mkCtx() as any,
+        { type: 'crowd_clear' } as any
+      )
     ).not.toThrow();
   });
 });

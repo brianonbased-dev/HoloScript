@@ -362,13 +362,20 @@ export class HoloScriptDebugSession extends LoggingDebugSession {
 
     this._attachConnection.on('hot-reload', (data: unknown) => {
       const ev = data as HotReloadEvent;
-      this.sendEvent(new OutputEvent(
-        `[Hot Reload] ${ev.filePath} ${ev.success ? 'OK' : 'FAILED'}${ev.errors?.length ? ': ' + ev.errors.join(', ') : ''}\n`,
-        ev.success ? 'stdout' : 'stderr'
-      ));
+      this.sendEvent(
+        new OutputEvent(
+          `[Hot Reload] ${ev.filePath} ${ev.success ? 'OK' : 'FAILED'}${ev.errors?.length ? ': ' + ev.errors.join(', ') : ''}\n`,
+          ev.success ? 'stdout' : 'stderr'
+        )
+      );
     });
 
-    this.sendEvent(new OutputEvent(`Attached to HoloScript runtime at ${config.host}:${config.port}\n`, 'console'));
+    this.sendEvent(
+      new OutputEvent(
+        `Attached to HoloScript runtime at ${config.host}:${config.port}\n`,
+        'console'
+      )
+    );
     this.sendEvent(new InitializedEvent());
     this.sendResponse(response);
   }

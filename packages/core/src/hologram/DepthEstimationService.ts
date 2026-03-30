@@ -96,22 +96,22 @@ export function depthToNormalMap(
     for (let x = 1; x < width - 1; x++) {
       // Sobel filter for dx and dy
       const tl = depthMap[(y - 1) * width + (x - 1)];
-      const t  = depthMap[(y - 1) * width + x];
+      const t = depthMap[(y - 1) * width + x];
       const tr = depthMap[(y - 1) * width + (x + 1)];
-      const l  = depthMap[y * width + (x - 1)];
-      const r  = depthMap[y * width + (x + 1)];
+      const l = depthMap[y * width + (x - 1)];
+      const r = depthMap[y * width + (x + 1)];
       const bl = depthMap[(y + 1) * width + (x - 1)];
-      const b  = depthMap[(y + 1) * width + x];
+      const b = depthMap[(y + 1) * width + x];
       const br = depthMap[(y + 1) * width + (x + 1)];
 
-      const dx = (tr + 2 * r + br) - (tl + 2 * l + bl);
-      const dy = (bl + 2 * b + br) - (tl + 2 * t + tr);
+      const dx = tr + 2 * r + br - (tl + 2 * l + bl);
+      const dy = bl + 2 * b + br - (tl + 2 * t + tr);
       const dz = 1.0;
 
       // Normalize
       const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const idx = (y * width + x) * 3;
-      normalMap[idx]     = (dx / len) * 0.5 + 0.5; // R: x-normal [0,1]
+      normalMap[idx] = (dx / len) * 0.5 + 0.5; // R: x-normal [0,1]
       normalMap[idx + 1] = (dy / len) * 0.5 + 0.5; // G: y-normal [0,1]
       normalMap[idx + 2] = (dz / len) * 0.5 + 0.5; // B: z-normal [0,1]
     }
@@ -121,14 +121,22 @@ export function depthToNormalMap(
   for (let x = 0; x < width; x++) {
     const topIdx = x * 3;
     const botIdx = ((height - 1) * width + x) * 3;
-    normalMap[topIdx] = 0.5; normalMap[topIdx + 1] = 0.5; normalMap[topIdx + 2] = 1.0;
-    normalMap[botIdx] = 0.5; normalMap[botIdx + 1] = 0.5; normalMap[botIdx + 2] = 1.0;
+    normalMap[topIdx] = 0.5;
+    normalMap[topIdx + 1] = 0.5;
+    normalMap[topIdx + 2] = 1.0;
+    normalMap[botIdx] = 0.5;
+    normalMap[botIdx + 1] = 0.5;
+    normalMap[botIdx + 2] = 1.0;
   }
   for (let y = 0; y < height; y++) {
-    const leftIdx = (y * width) * 3;
+    const leftIdx = y * width * 3;
     const rightIdx = (y * width + width - 1) * 3;
-    normalMap[leftIdx] = 0.5; normalMap[leftIdx + 1] = 0.5; normalMap[leftIdx + 2] = 1.0;
-    normalMap[rightIdx] = 0.5; normalMap[rightIdx + 1] = 0.5; normalMap[rightIdx + 2] = 1.0;
+    normalMap[leftIdx] = 0.5;
+    normalMap[leftIdx + 1] = 0.5;
+    normalMap[leftIdx + 2] = 1.0;
+    normalMap[rightIdx] = 0.5;
+    normalMap[rightIdx + 1] = 0.5;
+    normalMap[rightIdx + 2] = 1.0;
   }
 
   return normalMap;
@@ -151,7 +159,10 @@ export class ModelCache {
           db.createObjectStore(CACHE_STORE_NAME);
         }
       };
-      request.onsuccess = () => { this.db = request.result; resolve(); };
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -288,15 +299,19 @@ export class GIFDecomposer {
    * Each frame in the input array should have: data (Uint8ClampedArray),
    * width, height, left, top, disposalMethod, delayMs.
    */
-  decompose(rawFrames: Array<{
-    data: Uint8ClampedArray;
-    width: number;
-    height: number;
-    left: number;
-    top: number;
-    disposalMethod: number;
-    delayMs: number;
-  }>, gifWidth: number, gifHeight: number): GIFFrame[] {
+  decompose(
+    rawFrames: Array<{
+      data: Uint8ClampedArray;
+      width: number;
+      height: number;
+      left: number;
+      top: number;
+      disposalMethod: number;
+      delayMs: number;
+    }>,
+    gifWidth: number,
+    gifHeight: number
+  ): GIFFrame[] {
     const maxFrames = Math.min(rawFrames.length, this.config.maxFrames);
     const frames: GIFFrame[] = [];
 
@@ -323,7 +338,7 @@ export class GIFDecomposer {
           // Only composite non-transparent pixels
           const alpha = raw.data[srcIdx + 3];
           if (alpha > 0) {
-            canvas[dstIdx]     = raw.data[srcIdx];
+            canvas[dstIdx] = raw.data[srcIdx];
             canvas[dstIdx + 1] = raw.data[srcIdx + 1];
             canvas[dstIdx + 2] = raw.data[srcIdx + 2];
             canvas[dstIdx + 3] = alpha;
@@ -454,7 +469,7 @@ export class DepthEstimationService {
 
   private async _doInitialize(): Promise<void> {
     // Detect best available backend
-    this._backend = this.config.backend ?? await detectBestBackend();
+    this._backend = this.config.backend ?? (await detectBestBackend());
 
     // Open model cache
     if (this.config.enableCache) {
@@ -478,18 +493,14 @@ export class DepthEstimationService {
       }
 
       const { pipeline: createPipeline } = transformers;
-      this.pipeline = await createPipeline(
-        'depth-estimation',
-        this.config.modelId,
-        {
-          device: this._backend === 'cpu' ? undefined : this._backend,
-          progress_callback: (progress: any) => {
-            if (progress?.progress !== undefined) {
-              this.config.onProgress(progress.progress / 100);
-            }
-          },
-        }
-      );
+      this.pipeline = await createPipeline('depth-estimation', this.config.modelId, {
+        device: this._backend === 'cpu' ? undefined : this._backend,
+        progress_callback: (progress: any) => {
+          if (progress?.progress !== undefined) {
+            this.config.onProgress(progress.progress / 100);
+          }
+        },
+      });
     } catch {
       // Pipeline creation failed — fall back to luminance placeholder
     }
@@ -589,9 +600,8 @@ export class DepthEstimationService {
     const output = await this.pipeline(input);
 
     // Extract depth data from pipeline output
-    const rawDepth: Float32Array = output.predicted_depth?.data
-      ?? output.depth?.data
-      ?? new Float32Array(0);
+    const rawDepth: Float32Array =
+      output.predicted_depth?.data ?? output.depth?.data ?? new Float32Array(0);
 
     if (rawDepth.length === 0) {
       // Pipeline returned unexpected format — fall back to placeholder
@@ -600,7 +610,8 @@ export class DepthEstimationService {
 
     // The pipeline output may be at a different resolution than our target
     // Normalize depth values to [0, 1] range
-    let minVal = Infinity, maxVal = -Infinity;
+    let minVal = Infinity,
+      maxVal = -Infinity;
     for (let i = 0; i < rawDepth.length; i++) {
       if (rawDepth[i] < minVal) minVal = rawDepth[i];
       if (rawDepth[i] > maxVal) maxVal = rawDepth[i];

@@ -8,11 +8,11 @@ Provides the plugin loading, sandboxing, and lifecycle management infrastructure
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| `PluginLoader` | Dynamic plugin loading and validation |
-| `ModRegistry` | Module registration for loaded plugins |
-| `PluginSandbox` | Permission-based execution isolation |
+| Component       | Purpose                                |
+| --------------- | -------------------------------------- |
+| `PluginLoader`  | Dynamic plugin loading and validation  |
+| `ModRegistry`   | Module registration for loaded plugins |
+| `PluginSandbox` | Permission-based execution isolation   |
 
 ## Usage
 

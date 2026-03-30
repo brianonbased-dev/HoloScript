@@ -230,4 +230,3 @@ export function TimeCapsulePanel() {
 }
 
 export default TimeCapsulePanel;
-

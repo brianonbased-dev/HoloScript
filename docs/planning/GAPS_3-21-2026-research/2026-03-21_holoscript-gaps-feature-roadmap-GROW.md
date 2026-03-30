@@ -23,6 +23,7 @@ This unifies GAPS categories 1, 3, and 4 into a single engineering artifact.
 The performance optimization problem (GAPS #7) is actually a compiler problem. HoloScript's unique advantage is that the compiler can generate different code for different targets. This means quality tiers aren't runtime feature flags -- they're compile-time code paths.
 
 The compiler should generate:
+
 - **Quest 3 tier**: MLS-MPM at 50K particles, half-res SSFR, no volumetrics, mesh-based hair, SSR instead of ray tracing, LOD-aggressive meshes
 - **Desktop tier**: MLS-MPM at 200K particles, full-res SSFR, volumetric clouds, screen-space god rays, hybrid ray tracing, full-detail meshes
 - **Vision Pro tier**: Desktop + eye-tracked foveated rendering + RealityKit passthrough bridge
@@ -34,11 +35,13 @@ This connects trait resolution (from the previous research cycle's TODO-GAP-005/
 ### Relationship 3: Agentic NPCs x Economy x Social Layer = "Emergent Metaverse Economy"
 
 The three features that make Hololand "feel alive" are interconnected:
+
 - **NPCs** run shops, guard areas, tell stories, and create quest content
 - **Economy** provides the incentive structure (NPCs price goods via reinforcement learning)
 - **Social** layer means NPC economic decisions are influenced by player community behavior
 
 If NPCs use the PPA + RAG architecture with economic learning (reward = profit - risk - reputation damage), and those NPCs participate in the x402/Zora economy layer, then:
+
 - NPC shopkeepers dynamically price items based on supply/demand
 - NPC factions form alliances and rivalries based on economic interactions
 - Player-created items feed into NPC trading networks
@@ -64,6 +67,7 @@ All four systems share the same @weather state. This means @weather is not a ren
 ### Relationship 5: Studio Publishing x CRDT Persistence x Economy = "Creator-to-Earner Pipeline"
 
 The publishing pipeline (GAPS #8) connects to persistence and economy:
+
 1. Creator builds world in Studio (native HoloScript compositions)
 2. Publishes to Hololand (CRDT state snapshot uploaded to Railway)
 3. Auto-mint creates on-chain world NFT (Zora SDK)
@@ -78,6 +82,7 @@ Each component exists. The work is wiring them into a seamless flow.
 ### Relationship 6: Device Support x Quality Tiers x Crowd Simulation = "Adaptive Agent Density"
 
 The crowd simulation research reveals that agent count directly trades off with visual quality:
+
 - Quest 3: 500-1K crowd agents with simple mesh rendering, 50K triangle budget
 - Desktop: 5K-10K crowd agents with detailed models, 300K triangle budget
 - Vision Pro: 2K crowd agents but with high-fidelity avatar rendering
@@ -91,6 +96,7 @@ This means @crowd_sim should be a quality-tier-aware trait that adjusts agent co
 The previous research cycle (2026-03-20) established that documentation should precede feature development. This cycle identifies the specific features to build. The connection:
 
 For each GAPS feature, the development sequence should be:
+
 1. **Spec first** (trait API design document)
 2. **Test trait composition** (native @test block)
 3. **Implement** (compute shader + runtime)
@@ -119,24 +125,26 @@ This means the GAPS feature roadmap should produce 10 spec documents before writ
 
 ## Growth Vector Priority
 
-| Priority | Vector | Impact | Effort | Dependencies |
-|----------|--------|--------|--------|-------------|
-| 1 | Unified particle buffer architecture spec | Highest (unifies 3 GAPS categories) | 1 week spec | None |
-| 2 | Quality-tier conditional compilation | High (enables all device support) | 2 weeks | Compiler trait resolution |
-| 3 | @weather as world simulation hub trait | High (environmental coherence) | 1 week | Blackboard integration |
-| 4 | Creator-to-earner publishing pipeline | Very High (business model) | 2 weeks | Loro + Zora SDK |
-| 5 | PPA + RAG @ai_companion trait | High (world liveness) | 2 weeks | Vector memory integration |
-| 6 | Adaptive agent density per tier | Medium-High (visual impact) | 1 week | Quality tiers + crowd sim |
-| 7 | Spec-first development workflow | Medium (quality multiplier) | Ongoing | None |
+| Priority | Vector                                    | Impact                              | Effort      | Dependencies              |
+| -------- | ----------------------------------------- | ----------------------------------- | ----------- | ------------------------- |
+| 1        | Unified particle buffer architecture spec | Highest (unifies 3 GAPS categories) | 1 week spec | None                      |
+| 2        | Quality-tier conditional compilation      | High (enables all device support)   | 2 weeks     | Compiler trait resolution |
+| 3        | @weather as world simulation hub trait    | High (environmental coherence)      | 1 week      | Blackboard integration    |
+| 4        | Creator-to-earner publishing pipeline     | Very High (business model)          | 2 weeks     | Loro + Zora SDK           |
+| 5        | PPA + RAG @ai_companion trait             | High (world liveness)               | 2 weeks     | Vector memory integration |
+| 6        | Adaptive agent density per tier           | Medium-High (visual impact)         | 1 week      | Quality tiers + crowd sim |
+| 7        | Spec-first development workflow           | Medium (quality multiplier)         | Ongoing     | None                      |
 
 ## Cross-Cycle Integration with Previous Research (2026-03-20)
 
 The previous cycle produced 12 TODOs (TODO-GAP-001 through TODO-GAP-012). MEMORY.md confirms 3 were completed:
+
 - W.145: Architecture diagram (docs/architecture.mmd) -- DONE
 - W.146: Backend audit (docs/backends.md, 27 verified backends) -- DONE
 - W.147: .well-known/mcp endpoint -- DONE
 
 Remaining 9 TODOs from previous cycle should be integrated with this cycle's feature roadmap. Specifically:
+
 - TODO-GAP-004 (MCP 3-layer spec) feeds into the persistence/multiplayer architecture
 - TODO-GAP-006 (trait coverage CLI) feeds into quality-tier compilation
 - TODO-GAP-007 (Smart Farm Twin) is a non-VR demo that showcases @iot_sensor + @ai_agent

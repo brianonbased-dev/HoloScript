@@ -11,11 +11,7 @@ export {
   addCredits,
   getUsageHistory,
 } from './creditService.js';
-export type {
-  CreditAccount,
-  CreditTransaction,
-  BalanceCheck,
-} from './creditService.js';
+export type { CreditAccount, CreditTransaction, BalanceCheck } from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';
 export { requireCredits, isCreditError } from './requireCredits.js';
 export type { CreditGateResult, CreditError } from './requireCredits.js';

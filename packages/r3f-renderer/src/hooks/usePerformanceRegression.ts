@@ -68,7 +68,7 @@ export interface UsePerformanceRegressionResult {
  * regression/recovery based on frame time thresholds.
  */
 export function usePerformanceRegression(
-  options: UsePerformanceRegressionOptions = {},
+  options: UsePerformanceRegressionOptions = {}
 ): UsePerformanceRegressionResult {
   const monitorRef = useRef<PerformanceRegressionMonitor | null>(null);
   const stateRef = useRef<PerformanceRegressionState>({
@@ -87,9 +87,11 @@ export function usePerformanceRegression(
   if (!monitorRef.current) {
     const config: Partial<PerformanceRegressionConfig> = {};
     if (options.thresholdMs !== undefined) config.thresholdMs = options.thresholdMs;
-    if (options.consecutiveFrames !== undefined) config.consecutiveFrames = options.consecutiveFrames;
+    if (options.consecutiveFrames !== undefined)
+      config.consecutiveFrames = options.consecutiveFrames;
     if (options.recoveryFrames !== undefined) config.recoveryFrames = options.recoveryFrames;
-    if (options.recoveryThresholdMs !== undefined) config.recoveryThresholdMs = options.recoveryThresholdMs;
+    if (options.recoveryThresholdMs !== undefined)
+      config.recoveryThresholdMs = options.recoveryThresholdMs;
     if (options.enabled !== undefined) config.enabled = options.enabled;
     monitorRef.current = new PerformanceRegressionMonitor(config);
   }

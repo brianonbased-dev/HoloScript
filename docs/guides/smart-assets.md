@@ -8,11 +8,11 @@ HoloScript's Smart Asset system provides intelligent loading, caching, and confi
 
 ## SmartAssetLoader API
 
-| Method | Purpose |
-|--------|---------|
-| `load(path)` | Load an asset with automatic format detection |
-| `doLoad(path)` | Internal load operation with retry/fallback |
-| `getConfig()` | Get the current loader configuration |
+| Method         | Purpose                                       |
+| -------------- | --------------------------------------------- |
+| `load(path)`   | Load an asset with automatic format detection |
+| `doLoad(path)` | Internal load operation with retry/fallback   |
+| `getConfig()`  | Get the current loader configuration          |
 
 ### Factory Functions
 
@@ -34,11 +34,11 @@ const sharedLoader = getSmartAssetLoader();
 
 ```typescript
 interface LoaderConfig {
-  baseUrl: string;          // Base URL for asset resolution
-  maxConcurrent: number;    // Max parallel downloads
-  retryCount: number;       // Retry attempts on failure
-  timeout: number;          // Request timeout (ms)
-  cacheTTL: number;         // Cache time-to-live (ms)
+  baseUrl: string; // Base URL for asset resolution
+  maxConcurrent: number; // Max parallel downloads
+  retryCount: number; // Retry attempts on failure
+  timeout: number; // Request timeout (ms)
+  cacheTTL: number; // Cache time-to-live (ms)
 }
 ```
 

@@ -33,11 +33,15 @@ export const migrateHandler: TraitHandler<MigrateConfig> = {
   onAttach(node: any): void {
     node.__migrateState = { steps: [] as MigrationStep[], currentVersion: 0 };
   },
-  onDetach(node: any): void { delete node.__migrateState; },
+  onDetach(node: any): void {
+    delete node.__migrateState;
+  },
   onUpdate(): void {},
 
   onEvent(node: any, _config: MigrateConfig, context: any, event: any): void {
-    const state = node.__migrateState as { steps: MigrationStep[]; currentVersion: number } | undefined;
+    const state = node.__migrateState as
+      | { steps: MigrationStep[]; currentVersion: number }
+      | undefined;
     if (!state) return;
     const eventType = typeof event === 'string' ? event : event.type;
 
@@ -45,7 +49,11 @@ export const migrateHandler: TraitHandler<MigrateConfig> = {
       case 'migrate:register': {
         const version = event.version as number;
         if (typeof version !== 'number') break;
-        state.steps.push({ version, description: (event.description as string) ?? '', applied: false });
+        state.steps.push({
+          version,
+          description: (event.description as string) ?? '',
+          applied: false,
+        });
         state.steps.sort((a, b) => a.version - b.version);
         break;
       }
@@ -58,18 +66,26 @@ export const migrateHandler: TraitHandler<MigrateConfig> = {
             step.applied = true;
             state.currentVersion = step.version;
             count++;
-            context.emit?.('migrate:step', { version: step.version, description: step.description, status: 'applied' });
+            context.emit?.('migrate:step', {
+              version: step.version,
+              description: step.description,
+              status: 'applied',
+            });
           }
         }
-        context.emit?.('migrate:complete', { fromVersion: from, toVersion: state.currentVersion, stepsRun: count });
+        context.emit?.('migrate:complete', {
+          fromVersion: from,
+          toVersion: state.currentVersion,
+          stepsRun: count,
+        });
         break;
       }
       case 'migrate:status': {
         context.emit?.('migrate:info', {
           currentVersion: state.currentVersion,
           totalSteps: state.steps.length,
-          applied: state.steps.filter(s => s.applied).length,
-          pending: state.steps.filter(s => !s.applied && s.version > state.currentVersion).length,
+          applied: state.steps.filter((s) => s.applied).length,
+          pending: state.steps.filter((s) => !s.applied && s.version > state.currentVersion).length,
         });
         break;
       }

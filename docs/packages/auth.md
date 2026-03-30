@@ -22,14 +22,14 @@ import { HoloAuth } from '@holoscript/auth';
 const auth = new HoloAuth({
   provider: 'oauth2',
   clientId: process.env.HOLOSCRIPT_CLIENT_ID,
-  redirectUri: window.location.origin
+  redirectUri: window.location.origin,
 });
 
 // Login
 const user = await auth.login();
-console.log(user.id);        // User UUID
-console.log(user.roles);     // ['designer', 'viewer']
-console.log(user.token);     // JWT access token
+console.log(user.id); // User UUID
+console.log(user.roles); // ['designer', 'viewer']
+console.log(user.token); // JWT access token
 
 // Check permission
 const canEdit = auth.hasRole('designer');
@@ -44,8 +44,8 @@ import { HoloAuthServer } from '@holoscript/auth';
 const auth = new HoloAuthServer({
   provider: 'oauth2',
   clientSecret: process.env.HOLOSCRIPT_CLIENT_SECRET,
-  tokenExpiry: 3600,           // 1 hour
-  refreshTokenExpiry: 604800   // 7 days
+  tokenExpiry: 3600, // 1 hour
+  refreshTokenExpiry: 604800, // 7 days
 });
 
 // Verify token
@@ -64,20 +64,14 @@ const authorized = auth.authorize('publish:marketplace', decoded);
 ```typescript
 const roles = {
   viewer: {
-    permissions: ['read:scene', 'preview:scene']
+    permissions: ['read:scene', 'preview:scene'],
   },
   designer: {
-    permissions: [
-      'read:scene',
-      'write:scene',
-      'delete:scene',
-      'preview:scene',
-      'export:scene'
-    ]
+    permissions: ['read:scene', 'write:scene', 'delete:scene', 'preview:scene', 'export:scene'],
   },
   admin: {
-    permissions: ['*']  // All permissions
-  }
+    permissions: ['*'], // All permissions
+  },
 };
 
 auth.defineRoles(roles);
@@ -92,7 +86,7 @@ await auth.setRoles(userId, ['designer', 'viewer']);
 
 // Check roles
 const userRoles = await auth.getRoles(userId);
-console.log(userRoles);  // ['designer']
+console.log(userRoles); // ['designer']
 ```
 
 ## OAuth2 Integration
@@ -105,11 +99,11 @@ const auth = new HoloAuth({
   endpoints: {
     authorize: 'https://auth.example.com/oauth/authorize',
     token: 'https://auth.example.com/oauth/token',
-    userinfo: 'https://auth.example.com/oauth/userinfo'
+    userinfo: 'https://auth.example.com/oauth/userinfo',
   },
   clientId: 'holo-app-client',
   clientSecret: process.env.OAUTH_CLIENT_SECRET,
-  scopes: ['profile', 'email', 'holoscript:read', 'holoscript:write']
+  scopes: ['profile', 'email', 'holoscript:read', 'holoscript:write'],
 });
 ```
 
@@ -134,7 +128,7 @@ const user = await auth.handleCallback(code);
 const credential = await auth.registerWebAuthn({
   userId: user.id,
   challenge: auth.generateChallenge(),
-  userDisplayName: user.email
+  userDisplayName: user.email,
 });
 
 // Store credential
@@ -145,11 +139,11 @@ await auth.storeCredential(user.id, credential);
 
 ```typescript
 const assertion = await auth.authenticateWebAuthn({
-  challenge: auth.generateChallenge()
+  challenge: auth.generateChallenge(),
 });
 
 const user = await auth.verifyAssertion(assertion);
-console.log(user.authenticated);  // true
+console.log(user.authenticated); // true
 ```
 
 ## JWT Tokens
@@ -161,7 +155,7 @@ const token = auth.createToken({
   userId: user.id,
   roles: user.roles,
   permissions: user.permissions,
-  expiresIn: 3600  // 1 hour
+  expiresIn: 3600, // 1 hour
 });
 ```
 
@@ -170,8 +164,8 @@ const token = auth.createToken({
 ```typescript
 const decoded = auth.verifyToken(token);
 console.log(decoded.userId);
-console.log(decoded.iat);    // Issued at
-console.log(decoded.exp);    // Expiration
+console.log(decoded.iat); // Issued at
+console.log(decoded.exp); // Expiration
 ```
 
 ## Authorization Middleware
@@ -180,28 +174,24 @@ console.log(decoded.exp);    // Expiration
 // Express example
 import { authMiddleware } from '@holoscript/auth';
 
-app.use(authMiddleware({
-  tokenLocation: 'header',  // 'header', 'cookie', or 'query'
-  tokenName: 'Authorization',
-  secret: process.env.JWT_SECRET
-}));
+app.use(
+  authMiddleware({
+    tokenLocation: 'header', // 'header', 'cookie', or 'query'
+    tokenName: 'Authorization',
+    secret: process.env.JWT_SECRET,
+  })
+);
 
 // Require specific role
-app.post('/api/scenes', 
-  requireRole('designer'),
-  (req, res) => {
-    // Handle scene creation
-    res.json({ created: true });
-  }
-);
+app.post('/api/scenes', requireRole('designer'), (req, res) => {
+  // Handle scene creation
+  res.json({ created: true });
+});
 
 // Require specific permission
-app.delete('/api/scenes/:id',
-  requirePermission('delete:scene'),
-  (req, res) => {
-    // Handle scene deletion
-  }
-);
+app.delete('/api/scenes/:id', requirePermission('delete:scene'), (req, res) => {
+  // Handle scene deletion
+});
 ```
 
 ## Permission Strings
@@ -231,13 +221,13 @@ const token = auth.createToken({
   customClaims: {
     department: 'design',
     team: 'vr-games',
-    license: 'professional'
-  }
+    license: 'professional',
+  },
 });
 
 // Access custom claims
 const decoded = auth.verifyToken(token);
-console.log(decoded.department);  // 'design'
+console.log(decoded.department); // 'design'
 ```
 
 ## Environment Variables

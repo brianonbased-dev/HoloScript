@@ -16,10 +16,7 @@ import { HoloScriptPlusParser, HoloCompositionParser, R3FCompiler } from '@holos
 const ROOT = resolve(__dirname, '../../../../../');
 
 export const FIXTURES_DIR = resolve(__dirname, '../../__tests__/fixtures');
-export const CORE_FIXTURES_DIR = resolve(
-  ROOT,
-  'packages/core/src/__tests__/fixtures'
-);
+export const CORE_FIXTURES_DIR = resolve(ROOT, 'packages/core/src/__tests__/fixtures');
 export const EXAMPLES_DIR = resolve(ROOT, 'examples');
 
 // ─── File Loaders ─────────────────────────────────────────────────────────────
@@ -35,9 +32,7 @@ export function loadHsplusFixture(name: string): string {
 
 /** Load a .holo example from examples/ */
 export function loadHoloExample(name: string): string {
-  const p = name.endsWith('.holo')
-    ? join(EXAMPLES_DIR, name)
-    : join(EXAMPLES_DIR, `${name}.holo`);
+  const p = name.endsWith('.holo') ? join(EXAMPLES_DIR, name) : join(EXAMPLES_DIR, `${name}.holo`);
   if (!existsSync(p)) throw new Error(`Example not found: ${p}`);
   return readFileSync(p, 'utf-8');
 }
@@ -52,7 +47,10 @@ export function parseHsplus(source: string, opts?: { enableVRTraits?: boolean })
 
 /** Parse HoloComposition (.holo) source and return typed result */
 export function parseHolo(source: string, opts?: { tolerant?: boolean; locations?: boolean }) {
-  const parser = new HoloCompositionParser({ tolerant: opts?.tolerant, locations: opts?.locations });
+  const parser = new HoloCompositionParser({
+    tolerant: opts?.tolerant,
+    locations: opts?.locations,
+  });
   return parser.parse(source);
 }
 
@@ -77,7 +75,7 @@ export function compileHoloToR3F(source: string): CompileResult {
       return {
         r3fTree: null,
         errors: result.errors.map((e: any) => ({
-          message: typeof e === 'string' ? e : e.message ?? String(e),
+          message: typeof e === 'string' ? e : (e.message ?? String(e)),
           line: e.line ?? e.loc?.line,
         })),
       };
@@ -106,7 +104,7 @@ export function compileHsplusToR3F(source: string): CompileResult {
       return {
         r3fTree: null,
         errors: result.errors.map((e: any) => ({
-          message: typeof e === 'string' ? e : e.message ?? String(e),
+          message: typeof e === 'string' ? e : (e.message ?? String(e)),
           line: e.line,
         })),
       };

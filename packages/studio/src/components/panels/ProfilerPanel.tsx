@@ -49,9 +49,7 @@ export function ProfilerPanel() {
 
       {/* No memory or summaries to show */}
       {!enabled && (
-        <p className="text-studio-muted text-center py-2">
-          Start profiling to collect data.
-        </p>
+        <p className="text-studio-muted text-center py-2">Start profiling to collect data.</p>
       )}
     </div>
   );

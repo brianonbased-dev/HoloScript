@@ -8,13 +8,14 @@ Provides conflict-free replicated data types (CRDTs) specialized for spatial tra
 
 ## Strategy C: Hybrid Rotation Handling
 
-| Component | Strategy | Why |
-|-----------|----------|-----|
-| Position | Last-Writer-Wins (LWW) | Simple, low-frequency |
-| Scale | Last-Writer-Wins (LWW) | Rarely conflicting |
-| Rotation | Hybrid | Quaternions don't merge well |
+| Component | Strategy               | Why                          |
+| --------- | ---------------------- | ---------------------------- |
+| Position  | Last-Writer-Wins (LWW) | Simple, low-frequency        |
+| Scale     | Last-Writer-Wins (LWW) | Rarely conflicting           |
+| Rotation  | Hybrid                 | Quaternions don't merge well |
 
 **Rotation hybrid approach:**
+
 - **Base quaternion**: LWW for absolute orientation
 - **Delta Euler counters**: CRDT counters for incremental turns
 - **30s checkpoint**: Periodic full-state sync to prevent drift

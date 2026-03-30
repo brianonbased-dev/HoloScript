@@ -98,7 +98,9 @@ export async function onAbsorbComplete(
 /**
  * Analyzes absorb stats to recommend pipeline configuration.
  */
-export function recommendPipelineConfig(event: AbsorbCompletionEvent): Partial<PipelineTriggerConfig> {
+export function recommendPipelineConfig(
+  event: AbsorbCompletionEvent
+): Partial<PipelineTriggerConfig> {
   const { stats } = event;
 
   // High confidence + many patterns → continuous mode
@@ -155,7 +157,10 @@ export function getBridgeConfig(): PipelineTriggerConfig {
 /**
  * Generates a summary of what the pipeline will do based on absorb results.
  */
-export function generatePipelineSummary(event: AbsorbCompletionEvent, config: PipelineTriggerConfig): string {
+export function generatePipelineSummary(
+  event: AbsorbCompletionEvent,
+  config: PipelineTriggerConfig
+): string {
   const { stats } = event;
   const parts: string[] = [];
 

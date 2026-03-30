@@ -249,6 +249,18 @@ export interface ResourceUsageNode {
   traits: string[];
   calls: string[];
   count: number; // How many instances (e.g., in a loop or array)
+  /**
+   * V11 (L4 Blueprint 4): Optional trait config overrides from composition AST.
+   * When present, these override TRAIT_RESOURCE_COSTS defaults with actual
+   * declared values (e.g., max_splats for @gaussian_splat).
+   *
+   * This reconciles the contradiction between ResourceBudgetAnalyzer (flat 100K
+   * default for @gaussian_splat) and GaussianBudgetAnalyzer (reads actual
+   * max_splats from trait config, potentially 500K+). Without this, a composition
+   * with max_splats:500000 PASSES safety analysis at 5.6% utilization while
+   * FAILING gaussian budget at 278% of Quest 3's limit.
+   */
+  traitConfigs?: Record<string, Record<string, number>>;
 }
 
 export class ResourceBudgetAnalyzer {
@@ -274,8 +286,28 @@ export class ResourceBudgetAnalyzer {
       // Trait costs
       for (const trait of node.traits) {
         const normalized = trait.startsWith('@') ? trait : `@${trait}`;
-        const costs = TRAIT_RESOURCE_COSTS[normalized];
-        if (costs) {
+        const defaults = TRAIT_RESOURCE_COSTS[normalized];
+        if (defaults) {
+          // V11 (L4 Blueprint 4): Use actual trait config values when available.
+          // This reconciles ResourceBudgetAnalyzer (flat defaults) with
+          // GaussianBudgetAnalyzer (reads actual max_splats from config).
+          const traitConfig = node.traitConfigs?.[normalized] || node.traitConfigs?.[trait];
+          const costs = traitConfig ? { ...defaults } : defaults;
+          if (traitConfig) {
+            // Override gaussian count with actual max_splats from trait config
+            if (traitConfig.max_splats !== undefined && 'gaussians' in costs) {
+              (costs as Record<string, number>).gaussians = traitConfig.max_splats;
+            }
+            // Override particle count with actual config
+            if (traitConfig.max_particles !== undefined && 'particles' in costs) {
+              (costs as Record<string, number>).particles = traitConfig.max_particles;
+            }
+            // Override memory with actual config
+            if (traitConfig.memory_mb !== undefined && 'memoryMB' in costs) {
+              (costs as Record<string, number>).memoryMB = traitConfig.memory_mb;
+            }
+          }
+
           for (const [cat, cost] of Object.entries(costs)) {
             const total = (cost as number) * instanceCount;
             totals[cat] = (totals[cat] || 0) + total;

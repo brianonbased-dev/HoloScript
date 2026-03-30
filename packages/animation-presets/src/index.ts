@@ -80,8 +80,4 @@ export { PresetRegistry } from './registry.js';
 export type { CategoryInfo } from './registry.js';
 
 // Resolver
-export {
-  resolvePreset,
-  resolveMultiple,
-  getDefaultRegistry,
-} from './resolver.js';
+export { resolvePreset, resolveMultiple, getDefaultRegistry } from './resolver.js';

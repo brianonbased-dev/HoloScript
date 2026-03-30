@@ -54,7 +54,7 @@ import {
   wordWrap,
   levenshtein,
   similarity,
-  extractTraits
+  extractTraits,
 } from './string.js';
 
 describe('@holoscript/std string utilities', () => {
@@ -187,7 +187,7 @@ describe('@holoscript/std string utilities', () => {
         expect(isBlank('   ')).toBe(true);
         expect(isBlank('\t\n')).toBe(true);
         expect(isBlank('test')).toBe(false);
-        
+
         expect(isNotBlank('')).toBe(false);
         expect(isNotBlank('   ')).toBe(false);
         expect(isNotBlank('test')).toBe(true);
@@ -287,7 +287,7 @@ describe('@holoscript/std string utilities', () => {
       expect(str1.length).toBe(10);
       expect(str2.length).toBe(10);
       expect(str1).not.toBe(str2); // Should be different
-      
+
       const customStr = randomString(5, 'ABC');
       expect(customStr.length).toBe(5);
       expect(customStr).toMatch(/^[ABC]+$/);

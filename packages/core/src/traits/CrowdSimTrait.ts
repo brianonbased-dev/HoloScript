@@ -96,10 +96,7 @@ export const crowdSimHandler: TraitHandler<CrowdSimConfig> = {
     switch (event.type) {
       case 'crowd_spawn_agents': {
         const e = event as any;
-        state.agentCount = Math.min(
-          state.agentCount + (e.count ?? 1),
-          config.max_agents,
-        );
+        state.agentCount = Math.min(state.agentCount + (e.count ?? 1), config.max_agents);
         context.emit('crowd_sim_spawn', {
           count: e.count ?? 1,
           position: e.position,

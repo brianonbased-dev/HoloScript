@@ -201,9 +201,7 @@ export class TraceWaterfallRenderer {
     }
 
     // Find root spans (no parent or parent not in trace)
-    const rootSpans = filtered.filter(
-      (s) => !s.parentSpanId || !spanMap.has(s.parentSpanId)
-    );
+    const rootSpans = filtered.filter((s) => !s.parentSpanId || !spanMap.has(s.parentSpanId));
 
     // Build rows via DFS
     const rows: WaterfallRow[] = [];
@@ -230,7 +228,10 @@ export class TraceWaterfallRenderer {
         status: span.status,
         barLeft: startOffset / totalDuration,
         barWidth: Math.max(duration / totalDuration, 0.002), // Min visible width
-        color: span.status === 'error' ? STATUS_COLORS.error : (agentColors[agentId] || STATUS_COLORS.unset),
+        color:
+          span.status === 'error'
+            ? STATUS_COLORS.error
+            : agentColors[agentId] || STATUS_COLORS.unset,
         children,
         attributes: span.attributes,
         events: span.events?.map((e) => ({
