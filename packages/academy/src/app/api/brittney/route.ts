@@ -19,26 +19,12 @@
 import { NextRequest } from 'next/server';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import type { BrittneyMessage } from '@/lib/brittney/BrittneySession';
-
-const SYSTEM_PROMPT = `You are Brittney, the AI Scene Director for HoloScript Studio — a Unity-like spatial editor for HoloScript scenes.
-
-Your role:
-- Help users build, edit, and refine their 3D scenes using natural language
-- Apply traits (behaviors) to scene objects by calling the provided tools
-- Explain what you're doing in a friendly, concise way
-- When a user says something vague, pick the most logical interpretation and state what you did
-
-HoloScript trait system:
-- Traits are behaviors attached to objects: @physics, @ai_npc, @glow, @gaussian_splat, @llm_agent, etc.
-- You compose them: "@HoverCar = @physics + @vehicle + @hover_vehicle"
-- Every change you make is immediately visible in the scene
-
-Rules:
-- Always use tools to make changes — never just describe what you would do
-- After calling a tool, briefly confirm in 1-2 sentences what happened
-- If you need more info (e.g. which object to modify), ask once concisely
-- Match the user's energy: casual and fast if they're fast, detailed if they ask for it
-- Never apologize excessively or pad your responses`;
+import {
+  SYSTEM_PROMPT,
+  BRITTNEY_LOOKUP_TOOLS,
+  buildTraitRAGContext,
+  buildTraitLookupContext,
+} from '@/lib/brittney/brittney-system-prompt';
 
 // ─── Claude via OpenRouter (OpenAI-compatible format) ────────────────────────
 
@@ -74,7 +60,7 @@ async function* streamClaude(
       model,
       stream: true,
       messages: [{ role: 'system', content: systemMsg }, ...messages],
-      tools: BRITTNEY_TOOLS,
+      tools: [...BRITTNEY_TOOLS, ...BRITTNEY_LOOKUP_TOOLS],
       max_tokens: 2048,
     }),
   });
@@ -99,7 +85,8 @@ async function* streamAnthropicDirect(
   const systemMsg = `${SYSTEM_PROMPT}\n\nCurrent scene:\n${scene}`;
 
   // Convert OpenAI tool format to Anthropic format
-  const anthropicTools = BRITTNEY_TOOLS.map((t: any) => ({
+  const allTools = [...BRITTNEY_TOOLS, ...BRITTNEY_LOOKUP_TOOLS];
+  const anthropicTools = allTools.map((t: any) => ({
     name: t.function?.name ?? t.name,
     description: t.function?.description ?? t.description,
     input_schema: t.function?.parameters ?? t.parameters ?? t.input_schema,
@@ -200,7 +187,7 @@ async function* streamOllama(
       model,
       stream: true,
       messages: [{ role: 'system', content: systemMsg }, ...messages],
-      tools: BRITTNEY_TOOLS,
+      tools: [...BRITTNEY_TOOLS, ...BRITTNEY_LOOKUP_TOOLS],
     }),
   });
 
@@ -348,7 +335,7 @@ async function* streamOpenAI(
       model,
       stream: true,
       messages: [{ role: 'system', content: systemMsg }, ...messages],
-      tools: BRITTNEY_TOOLS,
+      tools: [...BRITTNEY_TOOLS, ...BRITTNEY_LOOKUP_TOOLS],
     }),
   });
 
@@ -367,6 +354,19 @@ export async function POST(req: NextRequest) {
     sceneContext: string;
   };
 
+  // Tier 2: RAG — enrich context with relevant traits based on user's latest message
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+  const [ragContext, traitContext] = await Promise.all([
+    buildTraitRAGContext(lastUserMsg, {
+      url: process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net',
+      apiKey: process.env.ABSORB_API_KEY || process.env.MCP_API_KEY || '',
+    }),
+    buildTraitLookupContext(lastUserMsg, process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net'),
+  ]);
+
+  // Combine scene context with RAG results
+  const enrichedContext = `${sceneContext}${ragContext}${traitContext}`;
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -379,11 +379,11 @@ export async function POST(req: NextRequest) {
         // Provider priority: Claude (OpenRouter/Anthropic) → Ollama → OpenAI
         let gen: AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }>;
         if (process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY) {
-          gen = streamClaude(messages, sceneContext);
+          gen = streamClaude(messages, enrichedContext);
         } else if (process.env.OPENAI_API_KEY) {
-          gen = streamOpenAI(messages, sceneContext);
+          gen = streamOpenAI(messages, enrichedContext);
         } else {
-          gen = streamOllama(messages, sceneContext);
+          gen = streamOllama(messages, enrichedContext);
         }
 
         for await (const event of gen) {
