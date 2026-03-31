@@ -49,11 +49,14 @@ describe('GitChangeDetector', () => {
       expect(result.notGitRepo).toBe(false);
     });
 
-    it('returns 0 changes when comparing HEAD to itself', () => {
+    it('returns no committed changes when comparing HEAD to itself', () => {
       const headCommit = detector.getHeadCommit()!;
       const result = detector.detectChanges(headCommit);
       expect(result.headCommit).toBe(headCommit);
-      expect(result.added.length + result.modified.length + result.deleted.length).toBe(0);
+      // modified + deleted should be 0 (no committed diff)
+      // added may include untracked files in a dirty working tree
+      expect(result.modified.length).toBe(0);
+      expect(result.deleted.length).toBe(0);
       expect(result.storedCommitMissing).toBe(false);
     });
 

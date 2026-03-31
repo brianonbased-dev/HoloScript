@@ -301,3 +301,4 @@ packages/vscode-extension/out/
 /mcp-server-test-out.txt
 /mcp_server_test_results.json
 /test_sse.cjs
+/temp_knowledge*.json

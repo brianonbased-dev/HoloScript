@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { GitService, GitCommitRecord } from '../../services/GitService';
 import { useEditorStore } from '../../lib/stores/editorStore';
+
+interface GitCommitRecord {
+  oid: string;
+  message: string;
+  author: {
+    name: string;
+    email: string;
+    timestamp: number;
+  };
+}
 
 export const GovernancePanel: React.FC = () => {
   // We assume currentFilePath is managed somewhere or we pass it in. For now, hardcode mock or grab from a dedicated store.
@@ -14,11 +23,16 @@ export const GovernancePanel: React.FC = () => {
 
     const loadHistory = async () => {
       setLoading(true);
-      // Initialize GitService targeting the current HoloScript workspace root
-      // Note: In a real Electron setup, this path comes from the backend/IPC.
-      const service = new GitService(process.cwd());
-      const history = await service.getCommitHistory(currentFilePath);
-      setCommits(history);
+      try {
+        // Dynamically import GitService to avoid bundling node:stream into client
+        const { GitService } = await import('../../services/GitService');
+        const service = new GitService(process.cwd());
+        const history = await service.getCommitHistory(currentFilePath);
+        setCommits(history);
+      } catch {
+        // GitService requires Node.js — gracefully degrade in browser
+        setCommits([]);
+      }
       setLoading(false);
     };
 

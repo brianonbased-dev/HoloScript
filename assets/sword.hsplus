@@ -1,0 +1,16 @@
+composition "swordScene" {
+  template "swordTemplate" {
+  @grabbable
+  @throwable
+  @damaging
+  @glowing
+  @equippable
+    geometry: "cube"
+    color: "#4a4a4a"
+    scale: [0.1, 1.2, 0.05]
+  }
+
+  object "medievalSword" using "swordTemplate" {
+    position: [0, 1, 0]
+  }
+}

@@ -30,6 +30,10 @@ const nextConfig = {
     'tree-sitter-go',
     'web-tree-sitter',
     '@xenova/transformers',
+    'memfs',
+    'isomorphic-git',
+    '@jsonjoy.com/fs-node',
+    '@jsonjoy.com/fs-node-builtins',
   ],
   transpilePackages: [
     '@holoscript/studio-plugin-sdk',
