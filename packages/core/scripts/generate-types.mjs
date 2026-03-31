@@ -3199,6 +3199,66 @@ export class ForgettingDetector {
   addSample(benchmark: string, score: number): ForgettingResult;
   getAggregate(): AggregateDetectionResult;
 }
+
+// ============================================================================
+// Pillar 2: Native Neural Streaming & Splat Transport
+// ============================================================================
+
+export interface INeuralPacket {
+  packetId: string;
+  personaId: string;
+  intent: string;
+  spatialData: { origin: IVector3; focusPoint: IVector3 };
+  metrics: { confidence: number; latencyMs: number };
+  timestamp: number;
+}
+
+export interface INeuralSplatPacket {
+  frameId: number;
+  cameraState: { viewProjectionMatrix: number[]; cameraPosition: number[] };
+  splatCount: number;
+  compressedSplatsBuffer: ArrayBuffer;
+  sortedIndicesBuffer: ArrayBuffer;
+}
+
+export interface ExtractorOptions {
+  maxSplats: number;
+}
+
+export class GaussianSplatExtractor {
+  constructor(context: any, options: ExtractorOptions);
+  extractFrame(sorter: any, camera: any, compressedSource: any, indicesSource: any): Promise<INeuralSplatPacket | null>;
+}
+
+export interface StreamingTransportConfig {
+  useWebRTC: boolean;
+  endpointUrl?: string;
+  rtcConfiguration?: any;
+  chunkSize?: number;
+}
+
+export class NeuralStreamingTransport {
+  constructor(config: StreamingTransportConfig);
+  connect(): Promise<void>;
+  broadcastNeuralPacket(packet: INeuralPacket): void;
+  broadcastSplatPacket(packet: INeuralSplatPacket): void;
+  disconnect(): void;
+}
+
+export interface NeuralStreamingConfig extends StreamingTransportConfig {
+  maxSplats: number;
+}
+
+export class NeuralStreamingService {
+  constructor(config: NeuralStreamingConfig);
+  initialize(): Promise<void>;
+  attachSplatExtractor(context: any): void;
+  streamCognitiveTelemetry(packet: INeuralPacket): void;
+  streamVisualTopology(sorter: any, camera: any, compressedSource: any, indicesSource: any): Promise<void>;
+  startStreaming(): void;
+  stopStreaming(): void;
+  shutdown(): void;
+}
 `;
 
 // Write type declaration files

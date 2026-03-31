@@ -1363,3 +1363,43 @@ export function estimateAOIBandwidth(entityTypes: EntityType[]): {
     breakdown,
   };
 }
+
+// ============================================================================
+// NEURAL STREAMING TYPES (PILLAR 2)
+// ============================================================================
+
+/**
+ * The atomic unit of cognitive telemetry for Neural Streaming.
+ * Represents the internal cognitive/decision state of the UAALVirtualMachine.
+ */
+export interface INeuralPacket {
+  packetId: string;
+  personaId: string;
+  intent: string;
+  spatialData: {
+    origin: IVector3;
+    focusPoint: IVector3;
+  };
+  metrics: {
+    confidence: number;
+    latencyMs: number;
+  };
+  timestamp: number;
+}
+
+/**
+ * Encapsulates compressed Gaussian Splats and their sorted indices.
+ * Broadcast over WebRTC/WebSocket to thin clients to bypass complete local sorting.
+ */
+export interface INeuralSplatPacket {
+  frameId: number;
+  cameraState: {
+    viewProjectionMatrix: number[];
+    cameraPosition: number[];
+  };
+  splatCount: number;
+  // Intended for raw binary transfers
+  compressedSplatsBuffer: ArrayBuffer;
+  sortedIndicesBuffer: ArrayBuffer;
+}
+

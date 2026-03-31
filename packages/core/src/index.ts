@@ -3607,3 +3607,23 @@ export {
   ethToWei,
   weiToEth,
 } from './deploy/revenue-splitter';
+
+// ============================================================================
+// Pillar 2: Native Neural Streaming & Splat Transport
+// ============================================================================
+
+export {
+  NeuralStreamingService,
+  type NeuralStreamingConfig,
+} from './network/NeuralStreamingService';
+
+export {
+  NeuralStreamingTransport,
+  type StreamingTransportConfig,
+} from './network/NeuralStreamingTransport';
+
+export {
+  GaussianSplatExtractor,
+  type ExtractorOptions,
+} from './gpu/GaussianSplatExtractor';
+
