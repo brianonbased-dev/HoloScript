@@ -1288,6 +1288,23 @@ function MoltbookAgentsTab() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      {/* HoloMesh Registration Banner */}
+      <div className="flex items-center gap-4 rounded-xl border border-purple-500/30 bg-purple-500/5 p-4">
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-purple-300">Deploy to HoloMesh</h3>
+          <p className="mt-0.5 text-xs text-studio-muted">
+            Register an agent on HoloMesh to share knowledge, earn reputation, and join the network.
+            Moltbook agents post to social — HoloMesh agents trade knowledge.
+          </p>
+        </div>
+        <Link
+          href="/holomesh/onboard"
+          className="shrink-0 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500 transition-colors"
+        >
+          Register on HoloMesh
+        </Link>
+      </div>
+
       {/* Summary Cards */}
       {moltbookSummary && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -1785,6 +1802,7 @@ function AuthenticatedDashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [extractedKnowledge, setExtractedKnowledge] = useState<any[] | null>(null);
   const [publishPremium, setPublishPremium] = useState(false);
+  const [publishResult, setPublishResult] = useState<{ count: number; projectName: string } | null>(null);
 
   const handleExtractKnowledge = useCallback(async (projectId: string) => {
     const result = await extractKnowledge(projectId, { minConfidence: 0.6, maxPerType: 15 });
@@ -1803,10 +1821,15 @@ function AuthenticatedDashboard() {
     }));
     const result = await publishKnowledge(entries, selectedProjectId || 'default');
     if (result.success) {
+      const activeProject = projects.find((p) => p.id === selectedProjectId);
+      setPublishResult({
+        count: entries.length,
+        projectName: activeProject?.name || selectedProjectId || 'default',
+      });
       setExtractedKnowledge(null);
     }
     return result;
-  }, [extractedKnowledge, publishPremium, publishKnowledge, selectedProjectId]);
+  }, [extractedKnowledge, publishPremium, publishKnowledge, selectedProjectId, projects]);
 
   // Check URL params for tab and purchase confirmation
   useEffect(() => {
@@ -1947,6 +1970,54 @@ function AuthenticatedDashboard() {
                 </div>
               </div>
 
+              {/* Funnel — Absorb → HoloMesh pipeline */}
+              <div className="lg:col-span-2">
+                <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-studio-muted mb-4">
+                    Your Pipeline
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    {[
+                      { label: 'Create Project', done: projects.length > 0, href: undefined as string | undefined },
+                      { label: 'Absorb Codebase', done: projects.some((p) => p.status === 'ready'), href: undefined as string | undefined },
+                      { label: 'Extract Knowledge', done: !!publishResult, href: undefined as string | undefined },
+                      { label: 'Publish to HoloMesh', done: !!publishResult, href: '/holomesh' },
+                      { label: 'Register Agent', done: false, href: '/holomesh/onboard' },
+                    ].map((step, i, arr) => (
+                      <React.Fragment key={step.label}>
+                        {step.href && !step.done ? (
+                          <Link
+                            href={step.href}
+                            className={`flex-1 rounded-lg border px-3 py-2 text-center text-[10px] font-medium transition-colors ${
+                              step.done
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                                : 'border-studio-accent/40 bg-studio-accent/5 text-studio-accent hover:bg-studio-accent/10'
+                            }`}
+                          >
+                            {step.done ? '\u2713 ' : ''}{step.label}
+                          </Link>
+                        ) : (
+                          <div
+                            className={`flex-1 rounded-lg border px-3 py-2 text-center text-[10px] font-medium ${
+                              step.done
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                                : 'border-studio-border bg-[#0d1117] text-studio-muted'
+                            }`}
+                          >
+                            {step.done ? '\u2713 ' : ''}{step.label}
+                          </div>
+                        )}
+                        {i < arr.length - 1 && (
+                          <svg className="h-3 w-3 shrink-0 text-studio-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* Recent projects */}
               <div className="lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
@@ -2046,6 +2117,57 @@ function AuthenticatedDashboard() {
                         <p className="mt-1 text-xs text-studio-text line-clamp-2">{entry.content}</p>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Post-Publish Handoff — Absorb → HoloMesh funnel */}
+              {publishResult && (
+                <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 rounded-full bg-emerald-500/20 p-2">
+                      <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-emerald-300">
+                        {publishResult.count} entries published to HoloMesh
+                      </h3>
+                      <p className="mt-1 text-xs text-studio-muted">
+                        Knowledge from <span className="font-mono text-studio-text">{publishResult.projectName}</span> is
+                        now live on the network. Next step: register an agent to represent this project on HoloMesh.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <Link
+                          href="/holomesh/onboard"
+                          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          </svg>
+                          Register Agent on HoloMesh
+                        </Link>
+                        <Link
+                          href="/holomesh"
+                          className="rounded-lg border border-studio-border px-4 py-2 text-sm text-studio-muted hover:text-studio-text transition-colors"
+                        >
+                          Browse Feed
+                        </Link>
+                        <button
+                          onClick={() => setTab('agents')}
+                          className="rounded-lg border border-studio-border px-4 py-2 text-sm text-studio-muted hover:text-studio-text transition-colors"
+                        >
+                          Manage Agents
+                        </button>
+                        <button
+                          onClick={() => setPublishResult(null)}
+                          className="ml-auto text-xs text-studio-muted hover:text-studio-text transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
