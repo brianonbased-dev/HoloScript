@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY --from=manifests /manifests/ ./
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 FROM base AS builder
