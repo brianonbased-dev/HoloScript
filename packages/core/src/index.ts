@@ -430,6 +430,13 @@ export {
 } from './compiler/ReferenceExporters';
 
 export {
+  TraitCompositionCompiler,
+  type TraitCompositionDecl,
+  type ComposedTraitDef,
+  type ComponentTraitHandler,
+} from './compiler/TraitCompositionCompiler';
+
+export {
   ExportManager,
   getExportManager,
   resetExportManager,

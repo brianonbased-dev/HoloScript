@@ -47,8 +47,10 @@ import {
   CircuitState,
   ExportManager,
   getExportManager,
+  TraitCompositionCompiler,
   type ExportTarget,
   type HoloComposition,
+  type TraitCompositionDecl,
 } from '@holoscript/core';
 
 // =============================================================================
@@ -251,6 +253,38 @@ export async function handleCompileToTarget(
   }
 }
 
+export async function handleComposeTraits(
+  args: Record<string, unknown>
+): Promise<unknown> {
+  const { declarations, baseTraits = {} } = args as { 
+    declarations: TraitCompositionDecl[];
+    baseTraits?: Record<string, { defaultConfig?: Record<string, unknown>; conflicts?: string[] }>;
+  };
+
+  if (!declarations || !Array.isArray(declarations)) {
+    throw new Error('declarations array is required');
+  }
+
+  const compiler = new TraitCompositionCompiler();
+
+  const getHandler = (name: string) => {
+    if (baseTraits[name]) {
+      return baseTraits[name];
+    }
+    // For pure architectural resolution, if a trait isn't provided, 
+    // we assume an empty config instead of crashing, or expect the client to provide all dependencies.
+    return { defaultConfig: {}, conflicts: [] }; 
+  };
+
+  try {
+    const results = compiler.compile(declarations, getHandler);
+    return { success: true, composedTraits: results };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, error: errorMessage };
+  }
+}
+
 export async function handleGetCompilationStatus(
   args: Record<string, unknown>
 ): Promise<CompilationStatusResult> {
@@ -354,6 +388,10 @@ export async function handleCompilerTool(
     // Generic compilation
     case 'compile_holoscript':
       return handleCompileToTarget(args);
+      
+    // Proof-of-Play / Thin Client Delegation Tool
+    case 'holoscript_compose_traits':
+      return handleComposeTraits(args);
 
     // Convenience tools for popular targets
     case 'compile_to_unity':
@@ -385,9 +423,35 @@ export async function handleCompilerTool(
 
 // =============================================================================
 // MCP TOOL DEFINITIONS
-// =============================================================================
-
 export const compilerTools: Tool[] = [
+  // Trait Composition (Unlocks Pillar 3 Thin-Client Delegation)
+  {
+    name: 'holoscript_compose_traits',
+    description: 'Cryptographically delegate heavy trait algebra and physics composition to the cloud. Accepts raw composition declarations (e.g., trait C = A + B) and returns fully resolved trait nodes using the ProvenanceSemiring.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        declarations: {
+          type: 'array',
+          description: 'Array of trait composition declarations',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              components: { type: 'array', items: { type: 'string' } },
+              overrides: { type: 'object' }
+            },
+            required: ['name', 'components']
+          }
+        },
+        baseTraits: {
+          type: 'object',
+          description: 'Optional map of base trait names to their handler configs to resolve against'
+        }
+      },
+      required: ['declarations']
+    }
+  },
   // Generic compilation tool (supports all targets)
   {
     name: 'compile_holoscript',

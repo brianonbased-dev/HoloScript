@@ -578,6 +578,29 @@ export class Native2DCompiler {
   compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
 }
 
+export interface TraitCompositionDecl {
+  name: string;
+  components: string[];
+  overrides?: Record<string, unknown>;
+}
+
+export interface ComposedTraitDef {
+  name: string;
+  components: string[];
+  defaultConfig: Record<string, unknown>;
+}
+
+export interface ComponentTraitHandler {
+  defaultConfig?: Record<string, unknown>;
+  conflicts?: string[];
+}
+
+export class TraitCompositionCompiler {
+  constructor(inheritanceResolver?: any);
+  setInheritanceResolver(resolver: any): void;
+  compile(decls: TraitCompositionDecl[], getHandler: (name: string) => ComponentTraitHandler | undefined, traitGraph?: any, agentToken?: string): ComposedTraitDef[];
+}
+
 // ============================================================================
 // RUNTIME & EXECUTION
 // ============================================================================
