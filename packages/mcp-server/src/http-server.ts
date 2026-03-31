@@ -18,7 +18,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -1543,6 +1543,200 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // STUDIO PUBLISH ENDPOINTS — Wire extraction + publish UI to protocol
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // POST /api/publish — Full publish flow from Studio
+  // Accepts scene payload, extracts traits, stores scene, registers protocol record,
+  // stores provenance metadata, returns public URL.
+  if (url === '/api/publish' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const code = body.code as string;
+      if (!code || typeof code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code' }));
+        return;
+      }
+
+      const metadata = (body.metadata as Record<string, unknown>) ?? {};
+      const title = (metadata.name as string) || (body.title as string) || 'HoloScript Scene';
+      const author = (body.author as string) || 'anonymous';
+      const license = (body.license as string) || 'free';
+      const price = (body.price as string) || '0';
+      const visibility = (body.visibility as string) || 'public';
+      const tags = (body.tags as string[]) || [];
+
+      // 1. Generate content hash from source code
+      const contentHash = createHash('sha256').update(code).digest('hex');
+
+      // 2. Extract traits from the code (lightweight regex extraction)
+      const traitMatches = code.match(/@\w+/g) ?? [];
+      const traits = [...new Set(traitMatches)];
+
+      // 3. Store the scene for public viewing
+      const scene = storeScene(code, {
+        title,
+        author,
+        license,
+        provenance: {
+          contentHash,
+          author,
+          license: license as any,
+          importHashes: [],
+          timestamp: Date.now(),
+        },
+      });
+
+      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : `http://localhost:${PORT}`;
+      const sceneUrl = `${baseUrl}/scene/${scene.id}`;
+      const embedUrl = `${baseUrl}/embed/${scene.id}`;
+
+      // 4. Register protocol record
+      protocolRecords.set(contentHash, {
+        contentHash,
+        author,
+        title,
+        license,
+        price,
+        visibility,
+        tags,
+        traits,
+        sceneId: scene.id,
+        sceneUrl,
+        embedUrl,
+        timestamp: Date.now(),
+      });
+
+      // 5. Store provenance metadata
+      protocolMetadata.set(contentHash, {
+        provenance: {
+          hash: contentHash,
+          author,
+          license,
+          importHashes: [],
+          timestamp: Date.now(),
+        },
+        sceneId: scene.id,
+      });
+
+      // 6. Preview revenue distribution if price > 0
+      let revenue: Record<string, unknown> | null = null;
+      if (price !== '0') {
+        try {
+          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as any;
+          const dist = calculateRevenueDistribution(BigInt(price), author, []);
+          revenue = {
+            totalPrice: dist.totalPrice.toString(),
+            flows: dist.flows.map(
+              (f: { recipient: string; amount: bigint; reason: string; bps: number }) => ({
+                ...f,
+                amount: f.amount.toString(),
+              })
+            ),
+          };
+        } catch {
+          // Revenue preview is best-effort
+        }
+      }
+
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          url: sceneUrl,
+          sceneId: scene.id,
+          contentHash,
+          embedUrl,
+          traits,
+          visibility,
+          revenue,
+        })
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /api/extract — Pre-publish trait extraction and revenue preview
+  // Studio calls this before publishing to show the user what they're about to publish.
+  if (url === '/api/extract' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const code = body.code as string;
+      if (!code || typeof code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code' }));
+        return;
+      }
+
+      const author = (body.author as string) || 'anonymous';
+      const price = (body.price as string) || '0';
+
+      // 1. Content hash
+      const contentHash = createHash('sha256').update(code).digest('hex');
+
+      // 2. Extract traits
+      const traitMatches = code.match(/@\w+/g) ?? [];
+      const traits = [...new Set(traitMatches)];
+
+      // 3. Count objects
+      const objectMatches = code.match(/^object\s+/gm) ?? [];
+      const objectCount = objectMatches.length;
+
+      // 4. Detect imports
+      const importMatches = code.match(/^import\s+/gm) ?? [];
+      const importCount = importMatches.length;
+
+      // 5. Revenue preview if price > 0
+      let revenue: Record<string, unknown> | null = null;
+      if (price !== '0') {
+        try {
+          const { calculateRevenueDistribution } = (await import('@holoscript/core')) as any;
+          const dist = calculateRevenueDistribution(BigInt(price), author, []);
+          revenue = {
+            totalPrice: dist.totalPrice.toString(),
+            flows: dist.flows.map(
+              (f: { recipient: string; amount: bigint; reason: string; bps: number }) => ({
+                ...f,
+                amount: f.amount.toString(),
+              })
+            ),
+          };
+        } catch {
+          // Revenue preview best-effort
+        }
+      }
+
+      // 6. Check if already published
+      const existing = protocolRecords.get(contentHash);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          contentHash,
+          traits,
+          objectCount,
+          importCount,
+          codeLength: code.length,
+          alreadyPublished: !!existing,
+          existingUrl: existing ? (existing.sceneUrl as string) : null,
+          revenue,
+        })
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // PROTOCOL ENDPOINTS (HoloScript-as-Protocol — Publishing & Collecting)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1864,6 +2058,8 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`     GET  /api/health                   - API health + capabilities (public)`);
   console.log(`     POST /api/render                   - Render HoloScript preview`);
   console.log(`     POST /api/share                    - Create share links`);
+  console.log(`     POST /api/publish                  - Studio full publish flow`);
+  console.log(`     POST /api/extract                  - Pre-publish trait extraction`);
   console.log(`     POST /api/scene                    - Store scene, get short URL`);
   console.log(`     GET  /scene/:id                    - View stored scene (public)`);
   console.log(`     GET  /embed/:id                    - Embed stored scene (public)`);
