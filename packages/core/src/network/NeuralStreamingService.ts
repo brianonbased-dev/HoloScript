@@ -1,7 +1,7 @@
 import type { INeuralPacket } from './NetworkTypes.js';
 import type { GaussianSplatSorter, CameraState } from '../gpu/GaussianSplatSorter.js';
 import type { WebGPUContext } from '../gpu/WebGPUContext.js';
-import { NeuralStreamingTransport, StreamingTransportConfig } from './NeuralStreamingTransport.js';
+import { NeuralStreamingTransport, StreamingTransportConfig, ISignalingBridge } from './NeuralStreamingTransport.js';
 import { GaussianSplatExtractor } from '../gpu/GaussianSplatExtractor.js';
 
 export interface NeuralStreamingConfig extends StreamingTransportConfig {
@@ -25,10 +25,11 @@ export class NeuralStreamingService {
   }
 
   /**
-   * Boots up the streaming transport layer.
+   * Boots up the streaming transport layer. Optionally takes a signaling bridge to
+   * negotiate dynamic connection handshakes.
    */
-  public async initialize(): Promise<void> {
-    await this.transport.connect();
+  public async initialize(signalingBridge?: ISignalingBridge): Promise<void> {
+    await this.transport.connect(signalingBridge);
   }
 
   /**

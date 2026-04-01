@@ -401,22 +401,39 @@ async function deriveWalletAddress(privateKey: string): Promise<string> {
 }
 
 /**
- * Verify an Ethereum personal_sign signature against expected address.
+ * Verify an Ethereum EIP-712 Typed Data signature against expected address.
  * Falls back to private-key-as-proof if viem isn't available.
  */
-async function verifyWalletSignature(
-  message: string,
+async function verifyWalletSignatureEIP712(
+  message: { agent: string; nonce: string; expires: string },
   signature: string,
   expectedAddress: string
 ): Promise<boolean> {
+  const domain = {
+    name: 'HoloMesh',
+    version: '1',
+    chainId: (process.env.HOLOMESH_PAYMENT_CHAIN === 'base-mainnet' ? 8453 : 84532) as number,
+    verifyingContract: (process.env.HOLOMESH_VERIFYING_CONTRACT || '0x0000000000000000000000000000000000000000') as `0x${string}`,
+  };
+  const types = {
+    Challenge: [
+      { name: 'agent', type: 'string' },
+      { name: 'nonce', type: 'string' },
+      { name: 'expires', type: 'string' },
+    ],
+  };
+
   try {
-    const { verifyMessage } = await import('viem');
-    return await verifyMessage({
+    const { verifyTypedData } = await import('viem');
+    return await verifyTypedData({
+      domain,
+      types,
+      primaryType: 'Challenge',
       message,
       signature: signature as `0x${string}`,
       address: expectedAddress as `0x${string}`,
     });
-  } catch {
+  } catch (err) {
     // Fallback: agent proves ownership by providing private key as "signature"
     // We re-derive the address and check it matches
     try {
@@ -850,8 +867,8 @@ export async function handleHoloMeshRoute(
       });
 
       const ranked = rankFeed(enriched, sort, followingIds);
-      const page = paginate(ranked, limit, cursor);
-      json(res, 200, { success: true, ...page, sort });
+      const { items: entries, ...pageInfo } = paginate(ranked, limit, cursor);
+      json(res, 200, { success: true, ...pageInfo, entries, sort });
       return true;
     }
 
@@ -2316,14 +2333,24 @@ export async function handleHoloMeshRoute(
       const expiresAt = Date.now() + CHALLENGE_TTL_MS;
       challengeStore.set(nonce, { walletAddress: walletAddress.toLowerCase(), expiresAt });
 
-      const challengeMessage = `HoloMesh Key Recovery\nAgent: ${agent.name}\nNonce: ${nonce}\nExpires: ${new Date(expiresAt).toISOString()}`;
+      const challengeMessage = {
+        agent: agent.name,
+        nonce,
+        expires: new Date(expiresAt).toISOString(),
+      };
 
       json(res, 200, {
         success: true,
         challenge: challengeMessage,
         nonce,
         expires_in: CHALLENGE_TTL_MS / 1000,
-        hint: 'Sign the challenge string with your wallet private key, then POST to /api/holomesh/key/recover',
+        hint: 'Sign the EIP-712 typed data object with your wallet, then POST to /api/holomesh/key/recover',
+        domain: {
+          name: 'HoloMesh',
+          version: '1',
+          chainId: process.env.HOLOMESH_PAYMENT_CHAIN === 'base-mainnet' ? 8453 : 84532,
+          verifyingContract: process.env.HOLOMESH_VERIFYING_CONTRACT || '0x0000000000000000000000000000000000000000',
+        },
       });
       return true;
     }
@@ -2369,13 +2396,17 @@ export async function handleHoloMeshRoute(
       }
 
       // Reconstruct the challenge message for verification
-      const challengeMessage = `HoloMesh Key Recovery\nAgent: ${agent.name}\nNonce: ${nonce}\nExpires: ${new Date(challenge.expiresAt).toISOString()}`;
+      const challengeMessage = {
+        agent: agent.name,
+        nonce,
+        expires: new Date(challenge.expiresAt).toISOString(),
+      };
 
-      const valid = await verifyWalletSignature(challengeMessage, signature, walletAddress);
+      const valid = await verifyWalletSignatureEIP712(challengeMessage, signature, walletAddress);
       if (!valid) {
         json(res, 401, {
           error: 'Signature verification failed',
-          hint: 'Sign the exact challenge string returned by /key/challenge using your wallet private key.',
+          hint: 'Sign the exact EIP-712 typed data challenge returned by /key/challenge using your wallet.',
         });
         return true;
       }

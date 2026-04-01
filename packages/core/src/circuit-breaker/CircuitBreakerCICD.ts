@@ -52,7 +52,8 @@ export type ExportTarget =
   | 'tsl'
   | 'a2a-agent-card'
   | 'nir'
-  | 'openxr-spatial-entities';
+  | 'openxr-spatial-entities'
+  | 'phone-sleeve-vr';
 
 /**
  * Threshold configuration for CI/CD quality gates.

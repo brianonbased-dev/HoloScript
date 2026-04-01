@@ -60,6 +60,7 @@ import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
+import { PhoneSleeveVRCompiler } from './PhoneSleeveVRCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -247,6 +248,8 @@ class CompilerFactory {
         return new NIRCompiler(options);
       case 'openxr-spatial-entities':
         return new OpenXRSpatialEntitiesCompiler(options);
+      case 'phone-sleeve-vr':
+        return new PhoneSleeveVRCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -276,6 +279,7 @@ const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, Gaussian
 
   // Mobile VR
   'android-xr': ['quest3'],
+  'phone-sleeve-vr': ['mobile'],
 
   // Desktop/Browser rendering
   webgpu: ['webgpu'],

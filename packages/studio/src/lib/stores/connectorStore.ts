@@ -9,6 +9,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { logger } from '@/lib/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -292,7 +293,7 @@ export const useConnectorStore = create<ConnectorState>()(
 
         eventSource.onopen = () => {
           set({ sseConnected: true });
-          console.log('[ConnectorStore] Activity stream connected');
+          logger.debug('[ConnectorStore] Activity stream connected');
         };
 
         eventSource.onmessage = (event) => {
@@ -300,12 +301,12 @@ export const useConnectorStore = create<ConnectorState>()(
             const data = JSON.parse(event.data) as Omit<ActivityEntry, 'id' | 'timestamp'>;
             get().addActivity(data);
           } catch (err) {
-            console.warn('[ConnectorStore] Failed to parse activity event:', err);
+            logger.warn('[ConnectorStore] Failed to parse activity event:', err);
           }
         };
 
         eventSource.onerror = () => {
-          console.warn('[ConnectorStore] Activity stream error');
+          logger.warn('[ConnectorStore] Activity stream error');
           set({ sseConnected: false });
           eventSource.close();
         };
@@ -319,7 +320,7 @@ export const useConnectorStore = create<ConnectorState>()(
         if (sseEventSource) {
           sseEventSource.close();
           set({ sseEventSource: null, sseConnected: false });
-          console.log('[ConnectorStore] Activity stream closed');
+          logger.debug('[ConnectorStore] Activity stream closed');
         }
       },
 

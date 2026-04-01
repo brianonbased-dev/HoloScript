@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { HoloScriptPlugin, PluginRegistryEntry, PluginManagerState } from './types';
+import { logger } from '@/lib/logger';
 
 // ── Plugin Storage ────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ function loadPluginsFromStorage(): Map<string, PluginRegistryEntry> {
     const data = JSON.parse(stored);
     return new Map(Object.entries(data));
   } catch (error) {
-    console.error('Failed to load plugins from storage:', error);
+    logger.error('Failed to load plugins from storage:', error);
     return new Map();
   }
 }
@@ -28,7 +29,7 @@ function savePluginsToStorage(plugins: Map<string, PluginRegistryEntry>) {
     const data = Object.fromEntries(plugins.entries());
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error('Failed to save plugins to storage:', error);
+    logger.error('Failed to save plugins to storage:', error);
   }
 }
 
@@ -60,7 +61,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     // Call onInstall hook
     if (plugin.onInstall) {
       Promise.resolve(plugin.onInstall()).catch((err) => {
-        console.error(`Plugin ${plugin.metadata.id} onInstall failed:`, err);
+        logger.error(`Plugin ${plugin.metadata.id} onInstall failed:`, err);
       });
     }
   },
@@ -72,14 +73,14 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     const entry = plugins.get(id);
 
     if (!entry) {
-      console.warn(`Plugin ${id} not found`);
+      logger.warn(`Plugin ${id} not found`);
       return;
     }
 
     // Call onUninstall hook
     if (entry.plugin.onUninstall) {
       Promise.resolve(entry.plugin.onUninstall()).catch((err) => {
-        console.error(`Plugin ${id} onUninstall failed:`, err);
+        logger.error(`Plugin ${id} onUninstall failed:`, err);
       });
     }
 
@@ -101,7 +102,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     }
 
     if (entry.enabled) {
-      console.warn(`Plugin ${id} is already enabled`);
+      logger.warn(`Plugin ${id} is already enabled`);
       return;
     }
 
@@ -121,7 +122,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
       set({ plugins: newPlugins });
       savePluginsToStorage(newPlugins);
     } catch (error) {
-      console.error(`Failed to enable plugin ${id}:`, error);
+      logger.error(`Failed to enable plugin ${id}:`, error);
       throw error;
     }
   },
@@ -137,7 +138,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     }
 
     if (!entry.enabled) {
-      console.warn(`Plugin ${id} is already disabled`);
+      logger.warn(`Plugin ${id} is already disabled`);
       return;
     }
 
@@ -156,7 +157,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
       set({ plugins: newPlugins });
       savePluginsToStorage(newPlugins);
     } catch (error) {
-      console.error(`Failed to disable plugin ${id}:`, error);
+      logger.error(`Failed to disable plugin ${id}:`, error);
       throw error;
     }
   },
@@ -241,7 +242,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     const entry = plugins.get(id);
 
     if (!entry) {
-      console.warn(`Plugin ${id} not found`);
+      logger.warn(`Plugin ${id} not found`);
       return;
     }
 
@@ -266,7 +267,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
     const entry = plugins.get(id);
 
     if (!entry) {
-      console.warn(`Plugin ${id} not found`);
+      logger.warn(`Plugin ${id} not found`);
       return {};
     }
 

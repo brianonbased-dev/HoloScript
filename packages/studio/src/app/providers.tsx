@@ -14,6 +14,11 @@ import { AppShell } from '../components/AppShell';
 import { PluginHostProvider } from '../hooks/usePluginHost';
 import { WebVitals } from '../components/WebVitals';
 
+const AgentationWired = dynamic(
+  () => import('../components/AgentationWired').then((m) => ({ default: m.AgentationWired })),
+  { ssr: false }
+);
+
 const StudioSetupWizard = dynamic(
   () =>
     import('../components/wizard/StudioSetupWizard').then((m) => ({
@@ -182,6 +187,7 @@ export function Providers({ children }: { children: ReactNode }) {
               )}
               <DevToolsInit />
               <WebVitals />
+              {process.env.NODE_ENV === 'development' && <AgentationWired />}
             </ToastContext.Provider>
           </ThemeContext.Provider>
         </QueryClientProvider>

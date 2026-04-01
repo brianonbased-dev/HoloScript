@@ -198,3 +198,5 @@ export { StateReplicator } from './StateReplicator';
 export { TransactionLog } from './TransactionLog';
 export { StateSynchronizer } from './StateSynchronizer';
 export { SpatialWebSocketTransport } from './SpatialWebSocketTransport';
+export { WebSocketSignaler } from './WebSocketSignaler';
+export { NeuralStreamingTransport, type ISignalingBridge, type NeuralSignalPayload, type StreamingTransportConfig } from './NeuralStreamingTransport';

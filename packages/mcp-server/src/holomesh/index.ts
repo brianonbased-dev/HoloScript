@@ -9,6 +9,7 @@ export { sendMessage, getInbox, getThread, markRead, getUnreadCount } from './me
 export { notify, getNotifications, markAllRead } from './notifications';
 export { addReply, getReplies, getReplyCount, upvoteReply } from './threads';
 export { search, registerSearchProviders } from './search';
+export { HoloMeshSignaler } from './HoloMeshSignaler';
 export { HoloMeshOrchestratorClient } from './orchestrator-client';
 export type { WalletAuth } from './orchestrator-client';
 export { HoloMeshDiscovery } from './discovery';

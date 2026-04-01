@@ -63,7 +63,7 @@ const MODES = [
     gradient: 'from-fuchsia-500 via-purple-500 to-indigo-500',
     glowColor: 'rgba(168, 85, 247, 0.4)',
     borderColor: 'rgba(168, 85, 247, 0.3)',
-    href: '/create?mode=industry',
+    href: '/industry',
   },
 ] as const;
 
@@ -138,7 +138,7 @@ function ModeCard({ mode, index }: { mode: (typeof MODES)[number]; index: number
 function IndustryChip({ industry }: { industry: (typeof INDUSTRIES)[number] }) {
   return (
     <Link
-      href={`/create?industry=${industry.id}`}
+      href={`/industry/${industry.id}`}
       className="industry-chip focus-ring"
       style={{ '--chip-color': industry.color } as React.CSSProperties}
     >

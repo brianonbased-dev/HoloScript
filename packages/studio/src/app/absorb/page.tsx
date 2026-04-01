@@ -64,6 +64,7 @@ function ProjectCard({
   onSelect,
   onAbsorb,
   onImprove,
+  onExtractKnowledge,
 }: {
   project: {
     id: string;
@@ -1802,7 +1803,10 @@ function AuthenticatedDashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [extractedKnowledge, setExtractedKnowledge] = useState<any[] | null>(null);
   const [publishPremium, setPublishPremium] = useState(false);
-  const [publishResult, setPublishResult] = useState<{ count: number; projectName: string } | null>(null);
+  const [entryPremiumOverrides, setEntryPremiumOverrides] = useState<Record<string, boolean>>({});
+  const [excludedEntries, setExcludedEntries] = useState<Set<string>>(new Set());
+  const [publishResult, setPublishResult] = useState<{ count: number; projectName: string; premiumCount: number; freeCount: number } | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const handleExtractKnowledge = useCallback(async (projectId: string) => {
     const result = await extractKnowledge(projectId, { minConfidence: 0.6, maxPerType: 15 });
@@ -1813,23 +1817,52 @@ function AuthenticatedDashboard() {
 
   const handlePublishKnowledge = useCallback(async () => {
     if (!extractedKnowledge || extractedKnowledge.length === 0) return;
-    const entries = extractedKnowledge.map((e: any) => ({
-      id: e.id,
-      type: e.type,
-      content: e.content,
-      is_premium: publishPremium,
-    }));
-    const result = await publishKnowledge(entries, selectedProjectId || 'default');
-    if (result.success) {
-      const activeProject = projects.find((p) => p.id === selectedProjectId);
-      setPublishResult({
-        count: entries.length,
-        projectName: activeProject?.name || selectedProjectId || 'default',
-      });
-      setExtractedKnowledge(null);
+    setIsPublishing(true);
+    try {
+      const entries = extractedKnowledge
+        .filter((e: any) => !excludedEntries.has(e.id))
+        .map((e: any) => ({
+          id: e.id,
+          type: e.type,
+          content: e.content,
+          is_premium: entryPremiumOverrides[e.id] ?? publishPremium,
+        }));
+      if (entries.length === 0) return;
+      const result = await publishKnowledge(entries, selectedProjectId || 'default');
+      if (result.success) {
+        const activeProject = projects.find((p) => p.id === selectedProjectId);
+        const premiumCount = entries.filter((e) => e.is_premium).length;
+        setPublishResult({
+          count: entries.length,
+          projectName: activeProject?.name || selectedProjectId || 'default',
+          premiumCount,
+          freeCount: entries.length - premiumCount,
+        });
+        setExtractedKnowledge(null);
+        setEntryPremiumOverrides({});
+        setExcludedEntries(new Set());
+      }
+      return result;
+    } finally {
+      setIsPublishing(false);
     }
-    return result;
-  }, [extractedKnowledge, publishPremium, publishKnowledge, selectedProjectId, projects]);
+  }, [extractedKnowledge, publishPremium, entryPremiumOverrides, excludedEntries, publishKnowledge, selectedProjectId, projects]);
+
+  const toggleEntryPremium = useCallback((entryId: string) => {
+    setEntryPremiumOverrides((prev) => ({
+      ...prev,
+      [entryId]: !(prev[entryId] ?? publishPremium),
+    }));
+  }, [publishPremium]);
+
+  const toggleEntryExcluded = useCallback((entryId: string) => {
+    setExcludedEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
+      return next;
+    });
+  }, []);
 
   // Check URL params for tab and purchase confirmation
   useEffect(() => {
@@ -2077,46 +2110,107 @@ function AuthenticatedDashboard() {
                         <input
                           type="checkbox"
                           checked={publishPremium}
-                          onChange={(e) => setPublishPremium(e.target.checked)}
+                          onChange={(e) => {
+                            setPublishPremium(e.target.checked);
+                            setEntryPremiumOverrides({});
+                          }}
                           className="rounded border-studio-border"
                         />
-                        Premium (earn 4c/access)
+                        All Premium (earn 4c/access)
                       </label>
                       <button
                         onClick={handlePublishKnowledge}
-                        className="rounded-lg bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30"
+                        disabled={isPublishing || extractedKnowledge.every((e: any) => excludedEntries.has(e.id))}
+                        className="rounded-lg bg-emerald-500/20 px-4 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Publish to HoloMesh
+                        {isPublishing ? 'Publishing...' : 'Publish to HoloMesh'}
                       </button>
                       <button
-                        onClick={() => setExtractedKnowledge(null)}
+                        onClick={() => {
+                          setExtractedKnowledge(null);
+                          setEntryPremiumOverrides({});
+                          setExcludedEntries(new Set());
+                        }}
                         className="rounded-lg bg-gray-500/20 px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-500/30"
                       >
                         Dismiss
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-                    {extractedKnowledge.map((entry: any, i: number) => (
-                      <div key={entry.id || i} className="rounded-lg border border-studio-border bg-[#0d1117] p-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                            entry.type === 'wisdom' ? 'bg-blue-500/20 text-blue-300' :
-                            entry.type === 'pattern' ? 'bg-green-500/20 text-green-300' :
-                            'bg-red-500/20 text-red-300'
-                          }`}>
-                            {entry.type}
-                          </span>
-                          <span className="text-[10px] text-studio-muted">{entry.id}</span>
-                          {entry.confidence && (
-                            <span className="ml-auto text-[10px] text-studio-muted">
-                              {Math.round(entry.confidence * 100)}% conf
+
+                  {/* Publish summary */}
+                  <div className="mt-3 flex gap-4 rounded-lg border border-studio-border bg-[#0d1117] px-4 py-2 text-[10px]">
+                    <span className="text-studio-muted">
+                      Selected: <span className="font-semibold text-studio-text">{extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id)).length}</span>
+                    </span>
+                    <span className="text-studio-muted">
+                      Premium: <span className="font-semibold text-amber-300">
+                        {extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id) && (entryPremiumOverrides[e.id] ?? publishPremium)).length}
+                      </span>
+                    </span>
+                    <span className="text-studio-muted">
+                      Free: <span className="font-semibold text-emerald-300">
+                        {extractedKnowledge.filter((e: any) => !excludedEntries.has(e.id) && !(entryPremiumOverrides[e.id] ?? publishPremium)).length}
+                      </span>
+                    </span>
+                    <span className="text-studio-muted">
+                      Excluded: <span className="font-semibold text-gray-400">{excludedEntries.size}</span>
+                    </span>
+                  </div>
+
+                  <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                    {extractedKnowledge.map((entry: any, i: number) => {
+                      const isExcluded = excludedEntries.has(entry.id);
+                      const isPremium = entryPremiumOverrides[entry.id] ?? publishPremium;
+                      return (
+                        <div
+                          key={entry.id || i}
+                          className={`rounded-lg border p-3 transition-opacity ${
+                            isExcluded
+                              ? 'border-gray-700 bg-[#0d1117] opacity-40'
+                              : 'border-studio-border bg-[#0d1117]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!isExcluded}
+                              onChange={() => toggleEntryExcluded(entry.id)}
+                              className="rounded border-studio-border"
+                              title={isExcluded ? 'Include in publish' : 'Exclude from publish'}
+                            />
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                              entry.type === 'wisdom' ? 'bg-blue-500/20 text-blue-300' :
+                              entry.type === 'pattern' ? 'bg-green-500/20 text-green-300' :
+                              'bg-red-500/20 text-red-300'
+                            }`}>
+                              {entry.type}
                             </span>
-                          )}
+                            <span className="text-[10px] text-studio-muted">{entry.id}</span>
+                            {entry.confidence && (
+                              <span className="text-[10px] text-studio-muted">
+                                {Math.round(entry.confidence * 100)}%
+                              </span>
+                            )}
+                            <div className="ml-auto flex items-center gap-1">
+                              <button
+                                onClick={() => toggleEntryPremium(entry.id)}
+                                disabled={isExcluded}
+                                className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                                  isPremium
+                                    ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                                    : 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20 hover:text-gray-400'
+                                } disabled:opacity-30 disabled:cursor-not-allowed`}
+                                title={isPremium ? 'Switch to free' : 'Switch to premium (4c/access)'}
+                              >
+                                {isPremium ? 'Premium' : 'Free'}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="mt-1 pl-6 text-xs text-studio-text line-clamp-2">{entry.content}</p>
                         </div>
-                        <p className="mt-1 text-xs text-studio-text line-clamp-2">{entry.content}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2136,7 +2230,18 @@ function AuthenticatedDashboard() {
                       </h3>
                       <p className="mt-1 text-xs text-studio-muted">
                         Knowledge from <span className="font-mono text-studio-text">{publishResult.projectName}</span> is
-                        now live on the network. Next step: register an agent to represent this project on HoloMesh.
+                        now live on the network.
+                        {publishResult.premiumCount > 0 && (
+                          <span className="ml-1 text-amber-300">
+                            {publishResult.premiumCount} premium (earning 4c/access)
+                          </span>
+                        )}
+                        {publishResult.freeCount > 0 && (
+                          <span className="ml-1 text-emerald-300">
+                            {publishResult.freeCount} free
+                          </span>
+                        )}
+                        . Next step: register an agent to represent this project on HoloMesh.
                       </p>
                       <div className="mt-4 flex flex-wrap gap-3">
                         <Link

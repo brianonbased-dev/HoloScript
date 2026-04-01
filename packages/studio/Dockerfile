@@ -34,6 +34,11 @@ COPY packages/absorb-service/ packages/absorb-service/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/r3f-renderer/ packages/r3f-renderer/
 COPY packages/studio-plugin-sdk/ packages/studio-plugin-sdk/
+COPY packages/connector-appstore/ packages/connector-appstore/
+COPY packages/connector-github/ packages/connector-github/
+COPY packages/connector-railway/ packages/connector-railway/
+COPY packages/connector-upstash/ packages/connector-upstash/
+COPY packages/connector-vscode/ packages/connector-vscode/
 COPY packages/studio/ packages/studio/
 
 # Build workspace dependencies in order (Studio imports from all of these)
@@ -47,6 +52,11 @@ RUN cd packages/absorb-service && npx tsup
 RUN cd packages/r3f-renderer && npx tsup --no-dts || true
 RUN cd packages/studio-plugin-sdk && npx tsup --no-dts || true
 RUN cd packages/ui && npx tsup --no-dts || true
+RUN cd packages/connector-appstore && npx tsup --no-dts || true
+RUN cd packages/connector-github && npx tsup --no-dts || true
+RUN cd packages/connector-railway && npx tsup --no-dts || true
+RUN cd packages/connector-upstash && npx tsup --no-dts || true
+RUN cd packages/connector-vscode && npx tsup --no-dts || true
 
 # Build Studio — standalone output is enabled on Linux
 ENV NEXT_TELEMETRY_DISABLED=1

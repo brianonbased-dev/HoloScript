@@ -33,10 +33,11 @@
     "@holoscript/absorb-service": "workspace:^",
     "@holoscript/core": "workspace:^",
     "@holoscript/llm-provider": "workspace:^",
-    "loro-crdt": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "loro-crdt": "^1.0.0",
     "pg": "^8.13.1",
     "playwright": "^1.58.2",
+    "ws": "^8.20.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {

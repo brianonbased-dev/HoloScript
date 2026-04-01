@@ -16,6 +16,8 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // =============================================================================
 // TYPES
@@ -345,22 +347,120 @@ function absorbTypeScript(code: string, name?: string): AbsorbResult {
   };
 }
 
+/**
+ * Scan a directory to suggest which files would yield "fruitful" HoloScript architectures.
+ */
+async function suggestHoloTransforms(rootDir: string, maxFiles: number = 2000): Promise<unknown> {
+  const suggestions: Array<{
+    file: string;
+    score: number;
+    endpoints: number;
+    models: number;
+    queues: number;
+    resiliencePatterns: string[];
+    containerPatterns: string[];
+  }> = [];
+
+  const excludeDirs = new Set(['node_modules', '.git', 'dist', 'build', 'out', 'target', '.next']);
+  let filesProcessed = 0;
+
+  async function walk(dir: string) {
+    if (filesProcessed >= maxFiles) return;
+    
+    let entries;
+    try {
+      entries = await fs.promises.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (filesProcessed >= maxFiles) break;
+      if (excludeDirs.has(entry.name)) continue;
+      if (entry.name.startsWith('.') && entry.name !== '.') continue;
+
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      } else if (entry.isFile()) {
+        if (!entry.name.endsWith('.ts') && !entry.name.endsWith('.js')) continue;
+        
+        filesProcessed++;
+        try {
+          const code = await fs.promises.readFile(fullPath, 'utf8');
+          const endpoints = detectEndpoints(code);
+          const models = detectModels(code);
+          const queues = detectQueues(code);
+          const resiliencePatterns = detectResiliencePatterns(code);
+          const containerPatterns = detectContainerPatterns(code);
+
+          const score = (endpoints.length * 2) + 
+                        (models.length * 3) + 
+                        (queues.length * 2) + 
+                        resiliencePatterns.length + 
+                        containerPatterns.length;
+
+          if (score > 0) {
+            suggestions.push({
+              file: path.relative(rootDir, fullPath),
+              score,
+              endpoints: endpoints.length,
+              models: models.length,
+              queues: queues.length,
+              resiliencePatterns,
+              containerPatterns
+            });
+          }
+        } catch {
+          // graceful degradation on unreachable files
+        }
+      }
+    }
+  }
+
+  await walk(rootDir);
+
+  suggestions.sort((a, b) => b.score - a.score);
+
+  return {
+    success: true,
+    scannedFiles: filesProcessed,
+    suggestionsFound: suggestions.length,
+    suggestions: suggestions.slice(0, 50) // Return Top 50 prime transformation candidates
+  };
+}
+
 export async function handleAbsorbTypescriptTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
-  if (name !== 'absorb_typescript') return null;
+  if (name === 'absorb_typescript') {
+    const code = args.code as string;
+    if (!code) {
+      return {
+        success: false,
+        error: 'The "code" parameter is required: provide TypeScript source code to absorb',
+      };
+    }
 
-  const code = args.code as string;
-  if (!code) {
-    return {
-      success: false,
-      error: 'The "code" parameter is required: provide TypeScript source code to absorb',
-    };
+    const serviceName = args.name as string | undefined;
+    return absorbTypeScript(code, serviceName);
   }
 
-  const serviceName = args.name as string | undefined;
-  return absorbTypeScript(code, serviceName);
+  if (name === 'absorb_suggest_holoscript_transform') {
+    const rootDir = args.rootDir as string;
+    if (!rootDir) {
+      return {
+        success: false,
+        error: 'The "rootDir" parameter is required to analyze codebase files.',
+      };
+    }
+    const maxFiles = args.maxFiles as number | undefined;
+    return await suggestHoloTransforms(rootDir, maxFiles);
+  }
+
+  return null;
 }
 
 // =============================================================================
@@ -387,6 +487,27 @@ export const absorbTypescriptTools: Tool[] = [
         },
       },
       required: ['code'],
+    },
+  },
+  {
+    name: 'absorb_suggest_holoscript_transform',
+    description:
+      'Scans a directory for codebase files that are excellent candidates for HoloScript transformation ' +
+      '(e.g. Express routes, TypeORM models, queues). Returns a ranked list of file paths to feed into ' +
+      'absorb_typescript to bring them fully into the native semantic framework.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rootDir: {
+          type: 'string',
+          description: 'Absolute path to the root directory to scan.',
+        },
+        maxFiles: {
+          type: 'number',
+          description: 'Maximum number of files to process (default 2000).',
+        },
+      },
+      required: ['rootDir'],
     },
   },
 ];

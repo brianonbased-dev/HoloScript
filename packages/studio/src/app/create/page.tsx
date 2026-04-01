@@ -83,6 +83,7 @@ import {
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
+import { logger } from '@/lib/logger';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -1061,22 +1062,24 @@ export default function CreatePage() {
 
             {/* Panel content */}
             <div className="min-h-0 flex-1 overflow-hidden">
-              {leftTab === 'scene' ? (
-                <SceneGraphPanel />
-              ) : leftTab === 'assets' ? (
-                <AssetLibrary onOpenSplatWizard={() => setSplatWizardOpen(true)} />
-              ) : leftTab === 'graph' ? (
-                <NodeGraphEditor
-                  onCompile={(glsl) => {
-                    setShaderEditorOpen(true);
-                    console.log('[NodeGraph] compiled GLSL', glsl.slice(0, 60));
-                  }}
-                />
-              ) : leftTab === 'codebase' ? (
-                <CodebaseInspectorPanel />
-              ) : (
-                <HoloScriptEditor height="100%" />
-              )}
+              <StudioErrorBoundary label="Left Panel">
+                {leftTab === 'scene' ? (
+                  <SceneGraphPanel />
+                ) : leftTab === 'assets' ? (
+                  <AssetLibrary onOpenSplatWizard={() => setSplatWizardOpen(true)} />
+                ) : leftTab === 'graph' ? (
+                  <NodeGraphEditor
+                    onCompile={(glsl) => {
+                      setShaderEditorOpen(true);
+                      logger.debug('[NodeGraph] compiled GLSL', glsl.slice(0, 60));
+                    }}
+                  />
+                ) : leftTab === 'codebase' ? (
+                  <CodebaseInspectorPanel />
+                ) : (
+                  <HoloScriptEditor height="100%" />
+                )}
+              </StudioErrorBoundary>
             </div>
           </div>
 
@@ -1151,12 +1154,16 @@ export default function CreatePage() {
                   <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
                 </StudioErrorBoundary>
               ) : timelineOpen ? (
-                <AnimationTimeline onClose={() => setTimelineOpen(false)} />
+                <StudioErrorBoundary label="Animation Timeline">
+                  <AnimationTimeline onClose={() => setTimelineOpen(false)} />
+                </StudioErrorBoundary>
               ) : (
-                <TraitInspector
-                  onOpenPalette={() => setPaletteOpen(true)}
-                  onOpenShaderEditor={() => setShaderEditorOpen(true)}
-                />
+                <StudioErrorBoundary label="Trait Inspector">
+                  <TraitInspector
+                    onOpenPalette={() => setPaletteOpen(true)}
+                    onOpenShaderEditor={() => setShaderEditorOpen(true)}
+                  />
+                </StudioErrorBoundary>
               )}
             </div>
           </div>
@@ -1169,7 +1176,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <HistoryPanel onClose={() => setHistoryOpen(false)} />
+                <StudioErrorBoundary label="History Panel">
+                  <HistoryPanel onClose={() => setHistoryOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1182,7 +1191,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />
+                <StudioErrorBoundary label="AI Material Generator">
+                  <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}
@@ -1195,7 +1206,9 @@ export default function CreatePage() {
                 onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))}
               />
               <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
-                <SharePanel onClose={() => setShareOpen(false)} />
+                <StudioErrorBoundary label="Share Panel">
+                  <SharePanel onClose={() => setShareOpen(false)} />
+                </StudioErrorBoundary>
               </div>
             </>
           )}

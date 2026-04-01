@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Download, Globe, Star, Tag, Loader2, ArrowLeft } from 'lucide-react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
+import { logger } from '@/lib/logger';
 
 interface RegistryPack {
   packId: string;
@@ -92,9 +93,9 @@ export default function RegistryPage() {
 
   const handleDownload = async (pack: RegistryPack) => {
     setDownloading(pack.packId);
-    await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch(() => {});
+    await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch((err) => logger.warn('Swallowed error caught:', err));
     if (pack.previewCode) {
-      await navigator.clipboard.writeText(pack.previewCode).catch(() => {});
+      await navigator.clipboard.writeText(pack.previewCode).catch((err) => logger.warn('Swallowed error caught:', err));
     }
     setTimeout(() => setDownloading(null), 800);
   };

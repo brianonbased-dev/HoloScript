@@ -113,6 +113,9 @@ import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { UNIVERSAL_V6_TRAITS } from './universal-service';
 
+// Phone Sleeve VR (smartphone-as-headset)
+import { PHONE_SLEEVE_VR_TRAITS } from './phone-sleeve-vr';
+
 // Character Pipeline & GPU Geometry (Phase R4)
 import { INSTANCING_GEOMETRY_TRAITS } from './instancing-geometry';
 import { CHARACTER_PIPELINE_TRAITS } from './character-pipeline';
@@ -322,6 +325,9 @@ export const VR_TRAITS = [
 
   // Character Materials — SSS, Eye, Hair, Cloth (38 traits — Phase R4)
   ...CHARACTER_MATERIAL_TRAITS,
+
+  // Phone Sleeve VR — smartphone-as-headset (25 traits)
+  ...PHONE_SLEEVE_VR_TRAITS,
 ] as const;
 
 /**
@@ -566,6 +572,12 @@ export { FACIAL_EXPRESSION_TRAITS, type FacialExpressionTraitName } from './faci
 
 // Character Materials (Phase R4)
 export { CHARACTER_MATERIAL_TRAITS, type CharacterMaterialTraitName } from './character-materials';
+
+// Phone Sleeve VR (25 traits)
+export {
+  PHONE_SLEEVE_VR_TRAITS,
+  type PhoneSleeveVRTraitName,
+} from './phone-sleeve-vr';
 
 // v6 Universal Semantic Platform (35 traits)
 export {

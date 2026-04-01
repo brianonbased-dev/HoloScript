@@ -11,6 +11,7 @@
 
 import { use, useState, useRef, useCallback, useEffect } from 'react';
 import { RotateCcw, ZoomIn, ZoomOut, Hand, Target } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface RemotePageProps {
   params: Promise<{ token: string }>;
@@ -29,7 +30,7 @@ async function sendCommand(
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(cmd),
-  }).catch(() => {});
+  }).catch((err) => logger.warn('Swallowed error caught:', err));
 }
 
 function Joystick({ token }: { token: string }) {

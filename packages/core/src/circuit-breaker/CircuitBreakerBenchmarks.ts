@@ -51,7 +51,8 @@ export type ExportTarget =
   | 'tsl'
   | 'a2a-agent-card'
   | 'nir'
-  | 'openxr-spatial-entities';
+  | 'openxr-spatial-entities'
+  | 'phone-sleeve-vr';
 
 /** All export targets as a constant array */
 export const ALL_EXPORT_TARGETS: ExportTarget[] = [
@@ -84,6 +85,7 @@ export const ALL_EXPORT_TARGETS: ExportTarget[] = [
   'a2a-agent-card',
   'nir',
   'openxr-spatial-entities',
+  'phone-sleeve-vr',
 ];
 
 /**

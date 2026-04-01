@@ -82,6 +82,7 @@ export { WEATHER_PARTICLES_VISUALS } from './presets/weather-particles.visual';
 export { XR_PLATFORM_VISUALS } from './presets/xr-platform.visual';
 export { HOLOGRAM_MEDIA_VISUALS } from './presets/hologram-media.visual';
 export { GAPS_PHYSICS_VISUALS } from './presets/gaps-physics.visual';
+export { PHONE_SLEEVE_VR_VISUALS } from './presets/phone-sleeve-vr.visual';
 
 import { TraitVisualRegistry } from './TraitVisualRegistry';
 
@@ -157,6 +158,7 @@ import { WEATHER_PARTICLES_VISUALS } from './presets/weather-particles.visual';
 import { XR_PLATFORM_VISUALS } from './presets/xr-platform.visual';
 import { HOLOGRAM_MEDIA_VISUALS } from './presets/hologram-media.visual';
 import { GAPS_PHYSICS_VISUALS } from './presets/gaps-physics.visual';
+import { PHONE_SLEEVE_VR_VISUALS } from './presets/phone-sleeve-vr.visual';
 
 /** All preset visual data in registration order. */
 const ALL_PRESETS = [
@@ -232,6 +234,8 @@ const ALL_PRESETS = [
   HOLOGRAM_MEDIA_VISUALS,
   // GAPS Feature Roadmap — Phase 1
   GAPS_PHYSICS_VISUALS,
+  // Phone Sleeve VR — smartphone-as-headset
+  PHONE_SLEEVE_VR_VISUALS,
 ];
 
 /**
