@@ -3644,3 +3644,4 @@ export {
   type ExtractorOptions,
 } from './gpu/GaussianSplatExtractor';
 
+export * from './compiler/platform/ModalitySelector';

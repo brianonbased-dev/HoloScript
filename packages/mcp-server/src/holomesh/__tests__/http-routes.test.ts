@@ -37,9 +37,11 @@ vi.mock('viem/accounts', () => ({
 // ── Mock viem for signature verification ──
 
 const mockVerifyMessage = vi.fn().mockResolvedValue(true);
+const mockVerifyTypedData = vi.fn().mockResolvedValue(true);
 
 vi.mock('viem', () => ({
   verifyMessage: (...args: any[]) => mockVerifyMessage(...args),
+  verifyTypedData: (...args: any[]) => mockVerifyTypedData(...args),
 }));
 
 // ── Mock @holoscript/core for PaymentGateway ──
@@ -127,12 +129,12 @@ function mockReq(
   // Simulate body stream
   if (body) {
     const data = JSON.stringify(body);
-    process.nextTick(() => {
+    setTimeout(() => {
       req.emit('data', Buffer.from(data));
       req.emit('end');
-    });
+    }, 10);
   } else {
-    process.nextTick(() => req.emit('end'));
+    setTimeout(() => req.emit('end'), 10);
   }
 
   return req;
@@ -172,6 +174,7 @@ describe('HoloMesh HTTP Routes', () => {
     vi.clearAllMocks();
     mockExistsSync.mockReturnValue(false);
     mockVerifyMessage.mockResolvedValue(true);
+    mockVerifyTypedData.mockResolvedValue(true);
     process.env.MCP_API_KEY = 'test-api-key';
     process.env.HOLOMESH_AGENT_NAME = 'test-agent';
   });
@@ -307,8 +310,7 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(200);
       expect(res._body.success).toBe(true);
-      expect(res._body.challenge).toContain('HoloMesh Key Recovery');
-      expect(res._body.challenge).toContain('challenge-bot');
+      expect(res._body.challenge.agent).toContain('challenge-bot');
       expect(res._body.nonce).toBeTruthy();
       expect(res._body.expires_in).toBe(300); // 5 minutes
     });
@@ -354,7 +356,7 @@ describe('HoloMesh HTTP Routes', () => {
       const nonce = chalRes._body.nonce;
 
       // Recover with valid signature
-      mockVerifyMessage.mockResolvedValue(true);
+      mockVerifyTypedData.mockResolvedValue(true);
       const recReq = mockReq('POST', '/api/holomesh/key/recover', {
         wallet_address: walletAddress,
         nonce,
@@ -386,7 +388,7 @@ describe('HoloMesh HTTP Routes', () => {
       const nonce = chalRes._body.nonce;
 
       // Reject bad signature
-      mockVerifyMessage.mockResolvedValue(false);
+      mockVerifyTypedData.mockResolvedValue(false);
       const recReq = mockReq('POST', '/api/holomesh/key/recover', {
         wallet_address: walletAddress,
         nonce,
@@ -437,7 +439,7 @@ describe('HoloMesh HTTP Routes', () => {
       const nonce = chalRes._body.nonce;
 
       // First recover — succeeds
-      mockVerifyMessage.mockResolvedValue(true);
+      mockVerifyTypedData.mockResolvedValue(true);
       const rec1Req = mockReq('POST', '/api/holomesh/key/recover', {
         wallet_address: walletAddress,
         nonce,

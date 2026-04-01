@@ -3286,6 +3286,41 @@ export class NeuralStreamingService {
   stopStreaming(): void;
   shutdown(): void;
 }
+
+// ============================================================================
+// Modality Transliteration
+// ============================================================================
+
+export interface ModalitySelection {
+  platform: any;
+  category: any;
+  embodiment: any;
+  exportTarget: string;
+  fallbackTarget: string | null;
+  capabilities: any;
+  canRenderSpatial: boolean;
+  recommendStreaming: boolean;
+  budget: {
+    frameBudgetMs: number;
+    agentBudgetMs: number;
+    computeModel: 'edge-first' | 'cloud-first' | 'safety-critical';
+  };
+  reasoning: string[];
+}
+
+export interface ModalitySelectorOptions {
+  preferStreaming?: boolean;
+  forceEmbodiment?: any;
+  forceExportTarget?: any;
+  spatialGpuThreshold?: boolean;
+}
+
+export function selectModality(platform: any, options?: ModalitySelectorOptions): ModalitySelection;
+export function selectModalityForAll(options?: ModalitySelectorOptions): Map<any, ModalitySelection>;
+export function bestCategoryForTraits(requiredCapabilities: any): any[];
+export function inferCapabilitiesFromGraph(graph: any): any;
+export function inferModalityFromGraph(graph: any, platform?: any, options?: ModalitySelectorOptions): ModalitySelection | null;
+
 `;
 
 // Write type declaration files
