@@ -100,10 +100,10 @@ describe('createHoloMeshDaemonActions', () => {
     config = createTestConfig();
   });
 
-  it('returns all 15 action handlers (9 V1 + 3 V2 + 2 V3 + 1 V5) and wireTraitListeners', () => {
+  it('returns all 19 action handlers and wireTraitListeners', () => {
     const { actions, wireTraitListeners } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(17);
+    expect(Object.keys(actions)).toHaveLength(19);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_discover_peers).toBeTypeOf('function');
     expect(actions.mesh_check_inbox).toBeTypeOf('function');
@@ -127,7 +127,7 @@ describe('createHoloMeshDaemonActions', () => {
       client,
       createTestConfig({ v2Enabled: false, walletEnabled: false })
     );
-    expect(Object.keys(actions)).toHaveLength(17);
+    expect(Object.keys(actions)).toHaveLength(19);
     // V2/V3 actions exist but will return false when called
   });
 });
@@ -824,11 +824,11 @@ describe('createHoloMeshDaemonActions with V3 wallet', () => {
     client = createMockClient();
   });
 
-  it('returns 15 action handlers (12 V2 + 2 V3 + 1 V5)', () => {
+  it('returns 19 action handlers', () => {
     const { config } = walletTestConfig();
     const { actions } = createHoloMeshDaemonActions(client, config);
 
-    expect(Object.keys(actions)).toHaveLength(17);
+    expect(Object.keys(actions)).toHaveLength(19);
     expect(actions.mesh_wallet_balance).toBeTypeOf('function');
     expect(actions.mesh_settle_micro).toBeTypeOf('function');
     expect(actions.mesh_create_profile).toBeTypeOf('function');
@@ -841,7 +841,7 @@ describe('createHoloMeshDaemonActions with V3 wallet', () => {
         walletEnabled: false,
       })
     );
-    expect(Object.keys(actions)).toHaveLength(17);
+    expect(Object.keys(actions)).toHaveLength(19);
     expect(actions.mesh_register).toBeTypeOf('function');
     expect(actions.mesh_gossip_sync).toBeTypeOf('function');
   });
