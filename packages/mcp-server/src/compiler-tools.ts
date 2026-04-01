@@ -51,7 +51,11 @@ import {
   type ExportTarget,
   type HoloComposition,
   type TraitCompositionDecl,
+  selectModality,
+  selectModalityForAll,
+  bestCategoryForTraits,
 } from '@holoscript/core';
+import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 
 // =============================================================================
 // TYPES
@@ -285,6 +289,39 @@ export async function handleComposeTraits(
   }
 }
 
+export async function handleSelectModality(
+  args: Record<string, unknown>
+): Promise<unknown> {
+  const { platform, platforms, preferStreaming } = args as {
+    platform?: string;
+    platforms?: string[];
+    preferStreaming?: boolean;
+  };
+
+  const options = { preferStreaming: preferStreaming ?? false };
+
+  if (platform) {
+    const result = selectModality(platform as Parameters<typeof selectModality>[0], options);
+    return { success: true, selection: result };
+  }
+
+  if (platforms && Array.isArray(platforms)) {
+    const results: Record<string, ReturnType<typeof selectModality>> = {};
+    for (const p of platforms) {
+      results[p] = selectModality(p as Parameters<typeof selectModality>[0], options);
+    }
+    return { success: true, selections: results };
+  }
+
+  // No platform specified — return all 18
+  const all = selectModalityForAll(options);
+  const selections: Record<string, ReturnType<typeof selectModality>> = {};
+  for (const [p, sel] of all) {
+    selections[p] = sel;
+  }
+  return { success: true, selections };
+}
+
 export async function handleGetCompilationStatus(
   args: Record<string, unknown>
 ): Promise<CompilationStatusResult> {
@@ -406,6 +443,51 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'webgpu' });
     case 'compile_to_r3f':
       return handleCompileToTarget({ ...args, target: 'r3f' });
+    case 'compile_to_godot':
+      return handleCompileToTarget({ ...args, target: 'godot' });
+    case 'compile_to_visionos':
+      return handleCompileToTarget({ ...args, target: 'visionos' });
+    case 'compile_to_openxr':
+      return handleCompileToTarget({ ...args, target: 'openxr' });
+    case 'compile_to_babylon':
+      return handleCompileToTarget({ ...args, target: 'babylon' });
+    case 'compile_to_playcanvas':
+      return handleCompileToTarget({ ...args, target: 'playcanvas' });
+    case 'compile_to_vrchat':
+      return handleCompileToTarget({ ...args, target: 'vrchat' });
+    case 'compile_to_android':
+      return handleCompileToTarget({ ...args, target: 'android' });
+    case 'compile_to_android_xr':
+      return handleCompileToTarget({ ...args, target: 'android-xr' });
+    case 'compile_to_ios':
+      return handleCompileToTarget({ ...args, target: 'ios' });
+    case 'compile_to_ar':
+      return handleCompileToTarget({ ...args, target: 'ar' });
+    case 'compile_to_wasm':
+      return handleCompileToTarget({ ...args, target: 'wasm' });
+    case 'compile_to_dtdl':
+      return handleCompileToTarget({ ...args, target: 'dtdl' });
+    case 'compile_to_nir':
+      return handleCompileToTarget({ ...args, target: 'nir' });
+    case 'compile_to_native_2d':
+      return handleCompileToTarget({ ...args, target: 'native-2d' });
+    case 'compile_to_node_service':
+      return handleCompileToTarget({ ...args, target: 'node-service' });
+    case 'compile_to_a2a_agent_card':
+      return handleCompileToTarget({ ...args, target: 'a2a-agent-card' });
+    case 'compile_to_state':
+      return handleCompileToTarget({ ...args, target: 'state' });
+
+    // Modality Transliteration (Pillar 1)
+    case 'holoscript_select_modality':
+      return handleSelectModality(args);
+
+    // Universal Schema-to-Trait Mapper (Domain Bridge)
+    case 'holoscript_map_schema':
+      return handleMapSchema(args);
+    case 'holoscript_map_csv':
+      return handleMapCsvHeaders(args);
+
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -451,6 +533,101 @@ export const compilerTools: Tool[] = [
       },
       required: ['declarations']
     }
+  },
+  // Universal Schema-to-Trait Mapper (Domain Bridge — any data → .holo)
+  {
+    name: 'holoscript_map_schema',
+    description:
+      'Map any structured data schema to HoloScript traits and generate a .holo composition. ' +
+      'The universal domain bridge: dispensary menu, restaurant catalog, real estate listings, IoT sensors — ' +
+      'any data schema maps onto the 3,300+ trait system. Returns per-field trait mappings with confidence scores, ' +
+      'parameter bindings, spatial role assignments, and a ready-to-compile .holo composition.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Name for the data source (e.g., "dispensary_menu")' },
+        domain: { type: 'string', description: 'Optional domain hint (retail, healthcare, hospitality, iot, etc.)' },
+        description: { type: 'string', description: 'What this data represents' },
+        fields: {
+          type: 'array',
+          description: 'Schema fields to map',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Field name (e.g., "thc_percent")' },
+              type: { type: 'string', enum: ['string', 'number', 'boolean', 'array', 'object'] },
+              description: { type: 'string' },
+              example: { description: 'Example value for type inference' },
+            },
+            required: ['name', 'type'],
+          },
+        },
+        schema: {
+          type: 'object',
+          description: 'Alternative: provide a full DataSchema object directly',
+        },
+      },
+    },
+  },
+  {
+    name: 'holoscript_map_csv',
+    description:
+      'Map CSV headers to HoloScript traits. Provide column headers and optionally a sample row ' +
+      'for type inference. Returns the same trait mappings and .holo composition as holoscript_map_schema.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        headers: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'CSV column headers',
+        },
+        name: { type: 'string', description: 'Name for the data source' },
+        domain: { type: 'string', description: 'Optional domain hint' },
+        description: { type: 'string' },
+        sample_row: {
+          type: 'object',
+          description: 'Optional sample data row for type inference (keys = headers, values = sample data)',
+        },
+      },
+      required: ['headers'],
+    },
+  },
+  // Modality Transliteration (Pillar 1: device → embodiment → compiler)
+  {
+    name: 'holoscript_select_modality',
+    description:
+      'Auto-select the optimal output modality for a device platform. ' +
+      'Given a platform target (quest3, ios, android-auto, etc.), returns the embodiment type ' +
+      '(FullAvatar, UI2D, VoiceOnly, GlassOverlay), the ExportTarget to compile to, ' +
+      'whether the device can render spatially, and whether neural streaming is recommended. ' +
+      'Transliteration, not degradation: a phone gets Native 2D UI, not a broken 3D box.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        platform: {
+          type: 'string',
+          description: 'Single platform target',
+          enum: [
+            'quest3', 'pcvr', 'visionos', 'android-xr',
+            'visionos-ar', 'android-xr-ar', 'webxr',
+            'ios', 'android',
+            'windows', 'macos', 'linux', 'web',
+            'android-auto', 'carplay',
+            'watchos', 'wearos',
+          ],
+        },
+        platforms: {
+          type: 'array',
+          description: 'Multiple platform targets (returns selection for each)',
+          items: { type: 'string' },
+        },
+        preferStreaming: {
+          type: 'boolean',
+          description: 'Prefer neural streaming over local rendering when device lacks spatial GPU',
+        },
+      },
+    },
   },
   // Generic compilation tool (supports all targets)
   {
@@ -616,6 +793,98 @@ export const compilerTools: Tool[] = [
       },
       required: ['code'],
     },
+  },
+
+  // === Additional compile_to_* targets (all 24 dialects exposed) ===
+  {
+    name: 'compile_to_godot',
+    description: 'Compile HoloScript to Godot Engine GDScript with scene (.tscn) generation',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_visionos',
+    description: 'Compile HoloScript to Apple visionOS RealityKit Swift code',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_openxr',
+    description: 'Compile HoloScript to OpenXR C++ application layer for cross-platform VR/AR',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_babylon',
+    description: 'Compile HoloScript to Babylon.js engine code',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_playcanvas',
+    description: 'Compile HoloScript to PlayCanvas engine scripts',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_vrchat',
+    description: 'Compile HoloScript to VRChat UdonSharp scripts',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_android',
+    description: 'Compile HoloScript to Android ARCore Kotlin code',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_android_xr',
+    description: 'Compile HoloScript to Android XR Kotlin code for Android headsets',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_ios',
+    description: 'Compile HoloScript to iOS ARKit Swift code',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_ar',
+    description: 'Compile HoloScript to generic AR TypeScript code',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_wasm',
+    description: 'Compile HoloScript to WebAssembly module',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_sdf',
+    description: 'Compile HoloScript to SDF (Simulation Description Format) for Gazebo environments',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_dtdl',
+    description: 'Compile HoloScript to DTDL v3 (Digital Twin Definition Language) for Azure IoT',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_nir',
+    description: 'Compile HoloScript to NIR (Neuromorphic Intermediate Representation) for Intel Loihi 2, SpiNNaker 2',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_native_2d',
+    description: 'Compile HoloScript to Native 2D HTML/React components (non-3D output)',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_node_service',
+    description: 'Compile HoloScript to Node.js Express/Fastify backend service skeleton',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_a2a_agent_card',
+    description: 'Compile HoloScript to A2A Protocol Agent Card JSON (agent identity, skills, capabilities)',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
+  },
+  {
+    name: 'compile_to_state',
+    description: 'Compile HoloScript to reactive state shape JSON for agent brain configurations',
+    inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'HoloScript composition code' }, options: { type: 'object' } }, required: ['code'] },
   },
 
   // Job tracking and circuit breaker tools
