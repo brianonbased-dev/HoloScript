@@ -6,6 +6,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { SemanticSceneGraph, HoloScriptCompiler } from '@holoscript/core';
 
 // =============================================================================
 // TYPES FOR GRAPH REPRESENTATION
@@ -82,6 +83,23 @@ Use this to "see" the architecture before modifying code.`,
         code: {
           type: 'string',
           description: 'HoloScript code to parse into a graph',
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'holo_semantic_scene_graph',
+    description: `Parse a .holo file and return its W3C-compliant JSON-LD Semantic Scene Graph representation.
+This leverages the new Pillar 2 Architectural Semantic Understanding.
+Output is suitable for Linked Data / Knowledge Graph ingestion, SEO-optimized 3D indexing, and AI reasoning.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript code to compile to a semantic scene graph',
         },
       },
       required: ['code'],
@@ -202,6 +220,26 @@ Helps understand the impact of changes.`,
         intent: {
           type: 'string',
           description: 'What kind of behavior you want (optional)',
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'holo_generate_semantic_scene_graph',
+    description: `Generate a W3C-compliant JSON-LD Semantic Scene Graph from a .holo composition.
+This bridges Pillar 2 (Architectural semantic understanding) by converting AST into Linked Data.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript code to convert to JSON-LD',
+        },
+        baseURI: {
+          type: 'string',
+          description: 'Optional Base URI for generated @id properties (e.g., "urn:holoscript:")',
         },
       },
       required: ['code'],
@@ -708,6 +746,22 @@ export async function handleGraphTool(
   args: Record<string, unknown>
 ): Promise<unknown> {
   switch (name) {
+    case 'holo_semantic_scene_graph': {
+      const code = args.code as string;
+      if (!code) throw new Error('code is required');
+
+      try {
+        const ast = HoloScriptCompiler.parse(code);
+        const jsonld = SemanticSceneGraph.generateObject(ast, { includeMetadata: true });
+        return {
+          sceneGraph: jsonld,
+          summary: `Successfully generated W3C-compliant JSON-LD Semantic Scene Graph for ${ast.name}`,
+        };
+      } catch (err: unknown) {
+        throw new Error(`Failed to generate Semantic Scene Graph: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     case 'holo_parse_to_graph': {
       const code = args.code as string;
       if (!code) throw new Error('code is required');

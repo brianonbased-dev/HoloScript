@@ -284,7 +284,6 @@ export {
 
 // HoloScript+ State Sync & Networking (NEW - Phase 5)
 export { DeltaCompressor, type StateDelta } from './network/DeltaCompressor';
-
 export { StateSynchronizer, type StateSubscriber } from './network/StateSynchronizer';
 
 // Performance Monitoring (Phase 7 - TODO-020)
@@ -2714,6 +2713,17 @@ export type {
   PlatformConditionalResult,
 } from './compiler/platform/PlatformConditionalCompiler';
 
+// Modality Selector (Pillar 1: Transliteration, not degradation)
+export {
+  selectModality,
+  selectModalityForAll,
+  bestCategoryForTraits,
+} from './compiler/platform/ModalitySelector';
+export type {
+  ModalitySelection,
+  ModalitySelectorOptions,
+} from './compiler/platform/ModalitySelector';
+
 // ═══════════════════════════════════════════════════════════════════
 // Culture Traits (Emergent Agent Culture)
 // ═══════════════════════════════════════════════════════════════════
@@ -3340,6 +3350,9 @@ export { AgentInferenceExportTarget } from './compiler/AgentInferenceExportTarge
 // ── Sprint 1: Procedural Geometry Patch ─────────────────────────────────────
 export * from './compiler/ProceduralGeometry';
 
+// ── Pillar 2: Semantic Scene Graph ──────────────────────────────────────────
+export { SemanticSceneGraph } from './compiler/SemanticSceneGraph';
+
 // ── @draft Trait (Draft→Mesh→Simulation Pipeline) ───────────────────────────
 export {
   DRAFT_TRAIT,
@@ -3620,7 +3633,11 @@ export {
 export {
   NeuralStreamingTransport,
   type StreamingTransportConfig,
+  type ISignalingBridge,
+  type NeuralSignalPayload,
 } from './network/NeuralStreamingTransport';
+
+export { WebSocketSignaler } from './network/WebSocketSignaler';
 
 export {
   GaussianSplatExtractor,

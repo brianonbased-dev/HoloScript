@@ -30,7 +30,6 @@ import type {
   HoloNPC,
   HoloDomainBlock,
   HoloValue,
-  HoloObjectProperty,
   HoloShape,
 } from '../parser/HoloCompositionTypes';
 
@@ -219,8 +218,8 @@ class SceneGraphGenerator {
     }
 
     // Domain blocks
-    if (composition.domainBlocks?.length > 0) {
-      graph['hs:domainBlocks'] = composition.domainBlocks.map((d) => this.convertDomainBlock(d));
+    if ((composition.domainBlocks?.length ?? 0) > 0) {
+      graph['hs:domainBlocks'] = composition.domainBlocks!.map((d) => this.convertDomainBlock(d));
     }
 
     // Shapes
@@ -232,7 +231,7 @@ class SceneGraphGenerator {
     if (this.includeMetadata && composition.environment) {
       const envProps: Record<string, unknown> = {};
       for (const prop of composition.environment.properties) {
-        envProps[prop.key] = this.serializeValue(prop.value);
+        envProps[prop.key] = this.serializeValue(prop.value as HoloValue);
       }
       graph['hs:environment'] = {
         '@type': 'hs:Environment',
@@ -244,7 +243,7 @@ class SceneGraphGenerator {
     if (this.includeMetadata && composition.state) {
       const stateProps: Record<string, unknown> = {};
       for (const prop of composition.state.properties) {
-        stateProps[prop.key] = this.serializeValue(prop.value);
+        stateProps[prop.key] = this.serializeValue(prop.value as HoloValue);
       }
       graph['hs:state'] = {
         '@type': 'hs:State',
@@ -649,5 +648,15 @@ class SceneGraphGenerator {
 // EXPORTS
 // =============================================================================
 
+export class SemanticSceneGraph {
+  static generate(composition: HoloComposition, options?: SemanticSceneGraphOptions): string {
+    return generateSemanticSceneGraph(composition, options);
+  }
+  
+  static generateObject(composition: HoloComposition, options?: SemanticSceneGraphOptions): JsonLdSceneGraph {
+    return generateSemanticSceneGraphObject(composition, options);
+  }
+}
+
 export { SceneGraphGenerator };
-export default generateSemanticSceneGraph;
+export default SemanticSceneGraph;

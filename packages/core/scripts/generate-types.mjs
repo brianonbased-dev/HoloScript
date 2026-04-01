@@ -539,6 +539,12 @@ export class CompilerBase {
   [key: string]: any;
 }
 
+export class SemanticSceneGraph {
+  static generate(composition: any, options?: any): string;
+  static generateObject(composition: any, options?: any): any;
+  [key: string]: any;
+}
+
 export class HoloScriptCompiler {
   compile(ast: any, target: string): any;
 }
@@ -3237,9 +3243,30 @@ export interface StreamingTransportConfig {
   chunkSize?: number;
 }
 
+export interface NeuralSignalPayload {
+  type: 'offer' | 'answer' | 'ice-candidate';
+  sdp?: any;
+  candidate?: any;
+}
+
+export interface ISignalingBridge {
+  targetPeerId: string;
+  onReceiveSignal: (handler: (payload: NeuralSignalPayload) => void) => void;
+  sendSignal: (payload: NeuralSignalPayload) => Promise<void>;
+}
+
+export class WebSocketSignaler implements ISignalingBridge {
+  targetPeerId: string;
+  constructor(endpointUrl: string, localPeerId: string, targetPeerId: string);
+  connect(): Promise<void>;
+  onReceiveSignal(handler: (payload: NeuralSignalPayload) => void): void;
+  sendSignal(payload: NeuralSignalPayload): Promise<void>;
+  disconnect(): void;
+}
+
 export class NeuralStreamingTransport {
   constructor(config: StreamingTransportConfig);
-  connect(): Promise<void>;
+  connect(signalingBridge?: ISignalingBridge): Promise<void>;
   broadcastNeuralPacket(packet: INeuralPacket): void;
   broadcastSplatPacket(packet: INeuralSplatPacket): void;
   disconnect(): void;
@@ -3251,7 +3278,7 @@ export interface NeuralStreamingConfig extends StreamingTransportConfig {
 
 export class NeuralStreamingService {
   constructor(config: NeuralStreamingConfig);
-  initialize(): Promise<void>;
+  initialize(signalingBridge?: ISignalingBridge): Promise<void>;
   attachSplatExtractor(context: any): void;
   streamCognitiveTelemetry(packet: INeuralPacket): void;
   streamVisualTopology(sorter: any, camera: any, compressedSource: any, indicesSource: any): Promise<void>;
