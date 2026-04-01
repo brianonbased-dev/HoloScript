@@ -8,6 +8,24 @@ export interface StreamingTransportConfig {
 }
 
 /**
+ * Payload structure for out-of-band WebRTC signaling messages.
+ */
+export interface NeuralSignalPayload {
+  type: 'offer' | 'answer' | 'ice-candidate';
+  sdp?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+}
+
+/**
+ * Interface for out-of-band WebRTC signaling, typically fulfilled by HoloMesh A2A messaging.
+ */
+export interface ISignalingBridge {
+  targetPeerId: string;
+  onReceiveSignal: (handler: (payload: NeuralSignalPayload) => void) => void;
+  sendSignal: (payload: NeuralSignalPayload) => Promise<void>;
+}
+
+/**
  * Handles the actual transmission of Neural Packets and Splat Buffers.
  * Manages chunking to bypass standard UDP/WebRTC MTU limits.
  */
@@ -17,6 +35,8 @@ export class NeuralStreamingTransport {
   private peerConnection: RTCPeerConnection | null = null;
   private dataChannel: RTCDataChannel | null = null;
   private isConnected = false;
+  private signalingBridge: ISignalingBridge | null = null;
+  private isReconnecting = false;
 
   constructor(config: StreamingTransportConfig) {
     this.config = {
@@ -27,8 +47,13 @@ export class NeuralStreamingTransport {
     };
   }
 
-  public async connect(): Promise<void> {
+  public async connect(signalingBridge?: ISignalingBridge): Promise<void> {
     if (this.isConnected) return;
+    
+    if (signalingBridge) {
+      this.signalingBridge = signalingBridge;
+      this.signalingBridge.onReceiveSignal(this.handleSignalingMessage.bind(this));
+    }
 
     if (this.config.useWebRTC && typeof RTCPeerConnection !== 'undefined') {
       await this.initWebRTC();
@@ -36,7 +61,7 @@ export class NeuralStreamingTransport {
       await this.initWebSocket();
     }
     
-    this.isConnected = true;
+    // Note: isConnected becomes true only after data channel or socket opens
   }
 
   private initWebSocket(): Promise<void> {
@@ -45,6 +70,7 @@ export class NeuralStreamingTransport {
       this.socket.binaryType = 'arraybuffer';
       
       this.socket.onopen = () => {
+        this.isConnected = true;
         resolve();
       };
       
@@ -59,17 +85,85 @@ export class NeuralStreamingTransport {
     return new Promise((resolve) => {
       this.peerConnection = new RTCPeerConnection(this.config.rtcConfiguration);
       
+      this.peerConnection.onicecandidate = (event) => {
+        if (event.candidate && this.signalingBridge) {
+          this.signalingBridge.sendSignal({ type: 'ice-candidate', candidate: event.candidate });
+        }
+      };
+
+      this.peerConnection.oniceconnectionstatechange = () => {
+        const state = this.peerConnection?.iceConnectionState;
+        if (state === 'disconnected' || state === 'failed') {
+          console.warn('[NeuralStreamingTransport] ICE connection failed/disconnected. Attempting autonomous reconnect...');
+          this.isConnected = false;
+          this.attemptReconnect();
+        } else if (state === 'connected' || state === 'completed') {
+          this.isConnected = true;
+        }
+      };
+
       // Assume DataChannel initiation from our side for streaming out
       this.dataChannel = this.peerConnection.createDataChannel('neural-streaming', {
         ordered: false, // Out of order is fine for streaming, we drop old frames
         maxRetransmits: 0 // Drop instead of retry for real-time
       });
 
-      this.dataChannel.onopen = () => resolve();
+      this.dataChannel.onopen = () => {
+        this.isConnected = true;
+        resolve();
+      };
 
-      // In a real WebRTC setup, signaling (SDP/ICE) happens here. 
-      // For this bridge scaffolding, we assume signaling is managed externally.
+      // If we have a signaling bridge, initiate the offer immediately
+      if (this.signalingBridge && !this.isReconnecting) {
+        this.peerConnection.createOffer().then((offer) => {
+          return this.peerConnection!.setLocalDescription(offer).then(() => {
+            this.signalingBridge!.sendSignal({ type: 'offer', sdp: offer });
+          });
+        }).catch((err) => {
+          console.error('[NeuralStreamingTransport] Failed to create offer', err);
+        });
+      }
     });
+  }
+
+  /**
+   * Handles incoming signaling messages from the ISignalingBridge.
+   */
+  private async handleSignalingMessage(payload: NeuralSignalPayload): Promise<void> {
+    if (!this.peerConnection) return;
+
+    try {
+      if (payload.type === 'offer' && payload.sdp) {
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+        const answer = await this.peerConnection.createAnswer();
+        await this.peerConnection.setLocalDescription(answer);
+        if (this.signalingBridge) {
+          await this.signalingBridge.sendSignal({ type: 'answer', sdp: answer });
+        }
+      } else if (payload.type === 'answer' && payload.sdp) {
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+      } else if (payload.type === 'ice-candidate' && payload.candidate) {
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      }
+    } catch (err) {
+      console.error('[NeuralStreamingTransport] Signaling handling error', err);
+    }
+  }
+
+  private async attemptReconnect(): Promise<void> {
+    if (this.isReconnecting) return;
+    this.isReconnecting = true;
+    
+    // Teardown
+    this.dataChannel?.close();
+    this.peerConnection?.close();
+    
+    // Backoff reconnect
+    setTimeout(async () => {
+      console.log('[NeuralStreamingTransport] Initiating ICE restart tunnel...');
+      await this.initWebRTC();
+      this.isReconnecting = false;
+    }, 2000);
   }
 
   /**
