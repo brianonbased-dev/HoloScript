@@ -54,25 +54,10 @@ export interface SketchfabSearchParams {
 
 // ─── API Configuration ───────────────────────────────────────────────────────
 
-/**
- * Get Sketchfab API key from localStorage (third-party integration)
- */
-function getSketchfabAPIKey(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem('holoscript_sketchfab_api_key') || '';
-}
-
-/**
- * Sketchfab API configuration
- * Docs: https://docs.sketchfab.com/data-api/v3/index.html
- * Uses localStorage for API key (third-party integration)
- */
 function getSketchfabAPI() {
   return {
-    baseUrl: 'https://api.sketchfab.com/v3',
-    // API key is optional for public search
-    // Required for downloading models (rate limits are higher with API key)
-    apiKey: getSketchfabAPIKey(),
+    baseUrl: '/api/proxy/sketchfab',
+    apiKey: 'proxy_mode',
   };
 }
 

@@ -36,30 +36,15 @@ export interface GenerationStatus {
 
 // ─── API Configuration ───────────────────────────────────────────────────────
 
-/**
- * Get API key from localStorage (transitioning to HoloScript Cloud Pro subscription)
- */
-function getAPIKey(service: 'meshy' | 'rodin'): string {
-  if (typeof window === 'undefined') return '';
-
-  const storageKey = service === 'meshy' ? 'holoscript_meshy_api_key' : 'holoscript_rodin_api_key';
-
-  return localStorage.getItem(storageKey) || '';
-}
-
-/**
- * API configuration
- * Uses localStorage for API keys (transitioning to HoloScript Cloud vision model)
- */
 function getAPIConfig() {
   return {
     meshy: {
-      baseUrl: 'https://api.meshy.ai/v2',
-      apiKey: getAPIKey('meshy'),
+      baseUrl: '/api/proxy/meshy',
+      apiKey: 'proxy_mode',
     },
     rodin: {
-      baseUrl: 'https://api.rodin.ai/v1',
-      apiKey: getAPIKey('rodin'),
+      baseUrl: '/api/proxy/rodin',
+      apiKey: 'proxy_mode',
     },
   };
 }
