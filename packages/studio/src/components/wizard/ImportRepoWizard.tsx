@@ -821,19 +821,109 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               )}
 
               <div className="flex flex-col gap-1.5 text-[11px] text-studio-muted w-full">
-                <p className="text-xs font-medium text-studio-text">Next steps:</p>
-                <div className="flex items-center gap-2">
-                  <ArrowRight className="h-3 w-3 text-blue-400" />
-                  View the architecture graph in the Codebase panel
-                </div>
-                <div className="flex items-center gap-2">
-                  <ArrowRight className="h-3 w-3 text-blue-400" />
-                  Run the {dna?.recommendedProfile ?? 'recommended'} daemon for safe improvements
-                </div>
-                <div className="flex items-center gap-2">
-                  <ArrowRight className="h-3 w-3 text-blue-400" />
-                  Review patchsets and open PRs back to GitHub
-                </div>
+                <p className="text-xs font-medium text-studio-text">
+                  {dna?.kind === 'storefront' ? 'Your storefront is ready:' :
+                   dna?.kind === 'service' ? 'Your service is ready:' :
+                   dna?.kind === 'spatial' ? 'Your spatial project is ready:' :
+                   dna?.kind === 'data' ? 'Your data pipeline is ready:' :
+                   'Next steps:'}
+                </p>
+
+                {/* Storefront-specific actions */}
+                {dna?.kind === 'storefront' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-lime-400" />
+                      <span>Generate spatial storefront from your product data</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-lime-400" />
+                      <span>Deploy to phone, web, Quest, and AR simultaneously</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-lime-400" />
+                      <span>Set up IoT monitoring if you have a physical operation</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Service-specific actions */}
+                {dna?.kind === 'service' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
+                      <span>Convert routes and models to .holo service compositions</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
+                      <span>Extract knowledge (W/P/G) from your architecture</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
+                      <span>Run the {dna.recommendedProfile} daemon for safe improvements</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Spatial-specific actions */}
+                {dna?.kind === 'spatial' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-emerald-400" />
+                      <span>Open in the Editor — your scene is ready to compile</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-emerald-400" />
+                      <span>Compile to any of 37 targets from the same source</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Frontend-specific actions */}
+                {dna?.kind === 'frontend' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-purple-400" />
+                      <span>Scan components for spatial conversion candidates</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-purple-400" />
+                      <span>Extract UI patterns into .holo compositions</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Data-specific actions */}
+                {dna?.kind === 'data' && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-amber-400" />
+                      <span>Map your data schema to spatial traits automatically</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-amber-400" />
+                      <span>Generate monitoring dashboards as .holo compositions</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Generic fallback for other kinds */}
+                {(!dna?.kind || !['storefront', 'service', 'spatial', 'frontend', 'data'].includes(dna.kind)) && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
+                      <span>View the architecture graph in the Codebase panel</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
+                      <span>Run the {dna?.recommendedProfile ?? 'recommended'} daemon for improvements</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
+                      <span>Extract knowledge and publish to HoloMesh</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </AnimatedStep>
