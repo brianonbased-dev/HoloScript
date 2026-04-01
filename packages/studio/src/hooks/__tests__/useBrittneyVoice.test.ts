@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBrittneyVoice } from '../useBrittneyVoice';
+import { logger } from '../../lib/logger';
 
 // Mock SpeechRecognition API
 interface MockSpeechRecognition {
@@ -422,7 +423,7 @@ describe('useBrittneyVoice', () => {
     });
 
     it('should handle network error', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
       const { result } = renderHook(() => useBrittneyVoice());
 
       act(() => {

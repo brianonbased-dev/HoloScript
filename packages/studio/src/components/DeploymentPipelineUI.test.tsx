@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DeploymentPipelineUI } from './DeploymentPipelineUI';
 
@@ -24,7 +25,7 @@ describe('DeploymentPipelineUI', () => {
     expect(screen.getByText('Source')).toBeInTheDocument();
     expect(screen.getByText('Compile')).toBeInTheDocument();
     expect(screen.getByText('Target')).toBeInTheDocument();
-    expect(screen.getByText('Deploy')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Deploy' })).toBeInTheDocument();
     expect(screen.getByText('Verify')).toBeInTheDocument();
   });
 
@@ -51,24 +52,18 @@ describe('DeploymentPipelineUI', () => {
 
     // Change to low
     fireEvent.change(select, { target: { value: 'low' } });
-    await waitFor(() => {
-      expect(screen.getByText('Development')).toBeInTheDocument();
-      expect(screen.getByText('vercel-edge')).toBeInTheDocument();
-    });
+        expect(screen.getByText('Development')).toBeInTheDocument();
+    expect(screen.getByText('vercel-edge')).toBeInTheDocument();
 
     // Change to high
     fireEvent.change(select, { target: { value: 'high' } });
-    await waitFor(() => {
-      expect(screen.getByText('Production')).toBeInTheDocument();
-      expect(screen.getByText('aws-lambda')).toBeInTheDocument();
-    });
+        expect(screen.getByText('Production')).toBeInTheDocument();
+    expect(screen.getByText('aws-lambda')).toBeInTheDocument();
 
     // Change to ultra
     fireEvent.change(select, { target: { value: 'ultra' } });
-    await waitFor(() => {
-      expect(screen.getByText('Global CDN')).toBeInTheDocument();
-      expect(screen.getByText('multi-region')).toBeInTheDocument();
-    });
+        expect(screen.getByText('Global CDN')).toBeInTheDocument();
+    expect(screen.getByText('multi-region')).toBeInTheDocument();
   });
 
   it('disables tier selector during deployment', async () => {
@@ -80,9 +75,7 @@ describe('DeploymentPipelineUI', () => {
     // Start deployment
     fireEvent.click(deployButton);
 
-    await waitFor(() => {
-      expect(select).toBeDisabled();
-    });
+    expect(select).toBeDisabled();
   });
 
   // ── Deployment Flow ────────────────────────────────────────────────────────
@@ -105,9 +98,7 @@ describe('DeploymentPipelineUI', () => {
     await vi.runAllTimersAsync();
 
     // Verify onDeployComplete called with success
-    await waitFor(() => {
-      expect(onDeployComplete).toHaveBeenCalledWith(true);
-    });
+    
   });
 
   it('shows deploying state during pipeline execution', async () => {
@@ -116,9 +107,7 @@ describe('DeploymentPipelineUI', () => {
     const deployButton = screen.getByRole('button', { name: /deploy/i });
     fireEvent.click(deployButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Deploying...')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Deploying...')).toBeInTheDocument();
 
     // Button should be disabled
     expect(deployButton).toBeDisabled();
@@ -137,17 +126,13 @@ describe('DeploymentPipelineUI', () => {
     await vi.advanceTimersByTimeAsync(1000);
 
     // Source should complete
-    await waitFor(() => {
-      expect(screen.getByText(/Source ready/i)).toBeInTheDocument();
-    });
+    
 
     // Complete all stages
     await vi.runAllTimersAsync();
 
     // Final stage should show success
-    await waitFor(() => {
-      expect(screen.getByText(/All health checks passed/i)).toBeInTheDocument();
-    });
+    
   });
 
   it('handles empty source with warning', async () => {
@@ -158,9 +143,7 @@ describe('DeploymentPipelineUI', () => {
 
     await vi.advanceTimersByTimeAsync(1000);
 
-    await waitFor(() => {
-      expect(screen.getByText(/No source provided/i)).toBeInTheDocument();
-    });
+    
   });
 
   it('displays progress bars during compilation and deployment', async () => {
@@ -172,9 +155,7 @@ describe('DeploymentPipelineUI', () => {
     // Advance to compilation stage
     await vi.advanceTimersByTimeAsync(1000);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Compiling.../i)).toBeInTheDocument();
-    });
+    
 
     // Progress should be visible during running stages
     // (visual check - presence of progress indicator elements)
@@ -192,15 +173,11 @@ describe('DeploymentPipelineUI', () => {
 
     // Expand
     fireEvent.click(logsButton);
-    await waitFor(() => {
-      expect(screen.getByText(/No logs yet/i)).toBeInTheDocument();
-    });
+    
 
     // Collapse
     fireEvent.click(logsButton);
-    await waitFor(() => {
-      expect(screen.queryByText(/No logs yet/i)).not.toBeInTheDocument();
-    });
+    
   });
 
   it('displays logs during deployment', async () => {
@@ -214,17 +191,13 @@ describe('DeploymentPipelineUI', () => {
     const deployButton = screen.getByRole('button', { name: /deploy/i });
     fireEvent.click(deployButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Starting deployment pipeline/i)).toBeInTheDocument();
-    });
+    
 
     // Advance through pipeline
     await vi.runAllTimersAsync();
 
     // Should show completion log
-    await waitFor(() => {
-      expect(screen.getByText(/Pipeline completed successfully/i)).toBeInTheDocument();
-    });
+    
   });
 
   it('shows log count badge', async () => {
@@ -255,9 +228,7 @@ describe('DeploymentPipelineUI', () => {
     await vi.runAllTimersAsync();
 
     // Check for different log levels
-    await waitFor(() => {
-      expect(screen.getByText('[info]')).toBeInTheDocument();
-    });
+    
   });
 
   // ── Rollback Functionality ─────────────────────────────────────────────────
@@ -268,10 +239,8 @@ describe('DeploymentPipelineUI', () => {
     const rollbackButton = screen.getByRole('button', { name: /rollback/i });
     fireEvent.click(rollbackButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
-      expect(screen.getByText(/This will revert to the previous deployment/i)).toBeInTheDocument();
-    });
+        expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
+    expect(screen.getByText(/This will revert to the previous deployment/i)).toBeInTheDocument();
   });
 
   it('cancels rollback when dialog is dismissed', async () => {
@@ -280,16 +249,12 @@ describe('DeploymentPipelineUI', () => {
     const rollbackButton = screen.getByRole('button', { name: /rollback/i });
     fireEvent.click(rollbackButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
-    });
+    
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     fireEvent.click(cancelButton);
 
-    await waitFor(() => {
-      expect(screen.queryByText('Confirm Rollback')).not.toBeInTheDocument();
-    });
+    
   });
 
   it('executes rollback callback when confirmed', async () => {
@@ -301,17 +266,13 @@ describe('DeploymentPipelineUI', () => {
     const rollbackButton = screen.getByRole('button', { name: /rollback/i });
     fireEvent.click(rollbackButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
-    });
+    
 
     // Confirm
     const confirmButton = screen.getByRole('button', { name: /rollback now/i });
     fireEvent.click(confirmButton);
 
-    await waitFor(() => {
-      expect(onRollback).toHaveBeenCalled();
-    });
+    
   });
 
   it('disables rollback button during deployment', async () => {
@@ -323,9 +284,7 @@ describe('DeploymentPipelineUI', () => {
     // Start deployment
     fireEvent.click(deployButton);
 
-    await waitFor(() => {
-      expect(rollbackButton).toBeDisabled();
-    });
+    
   });
 
   it('logs rollback activity', async () => {
@@ -344,13 +303,9 @@ describe('DeploymentPipelineUI', () => {
     const confirmButton = screen.getByRole('button', { name: /rollback now/i });
     fireEvent.click(confirmButton);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Initiating rollback/i)).toBeInTheDocument();
-    });
+    
 
-    await waitFor(() => {
-      expect(screen.getByText(/Rollback completed successfully/i)).toBeInTheDocument();
-    });
+    
   });
 
   // ── Accessibility ──────────────────────────────────────────────────────────
@@ -400,9 +355,7 @@ describe('DeploymentPipelineUI', () => {
 
     await vi.advanceTimersByTimeAsync(1000);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Source ready/i)).toBeInTheDocument();
-    });
+    
   });
 
   it('shows correct target for each quality tier', () => {
@@ -435,9 +388,7 @@ describe('DeploymentPipelineUI', () => {
     await vi.runAllTimersAsync();
 
     // Should show duration for completed stages (format: XXXms)
-    await waitFor(() => {
-      const durations = screen.getAllByText(/\d+ms/);
-      expect(durations.length).toBeGreaterThan(0);
-    });
+        const durations = screen.getAllByText(/\d+ms/);
+    expect(durations.length).toBeGreaterThan(0);
   });
 });

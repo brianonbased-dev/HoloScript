@@ -245,8 +245,13 @@ export class ParallelParser extends SimpleEventEmitter {
       this.options.workerCount = this.nodeModules.cpuCount;
     }
 
-    // Set worker path
-    this.workerPath = this.nodeModules.path.join(this.getCurrentDir(), 'ParseWorker.js');
+    // Use same extension as current file for worker script (handles .ts in dev/test and .js in prod)
+    let workerExt = '.js';
+    try {
+      const __filename = this.nodeModules.fileURLToPath(import.meta.url);
+      workerExt = this.nodeModules.path.extname(__filename) || '.js';
+    } catch {}
+    this.workerPath = this.nodeModules.path.join(this.getCurrentDir(), \`ParseWorker\${workerExt}\`);
 
     try {
       this.workerPool = this.nodeModules.createWorkerPool(this.workerPath, {

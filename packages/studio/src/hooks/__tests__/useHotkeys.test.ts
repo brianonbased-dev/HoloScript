@@ -7,7 +7,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useHotkeys, formatHotkeyDisplay, type HotkeyConfig } from '../useHotkeys';
-import { useCharacterStore } from '@/lib/stores';
+import { useCharacterStore } from '../../lib/store';
+import { logger } from '../../lib/logger';
 
 describe('useHotkeys', () => {
   let mockCharacterStore: any;
@@ -208,7 +209,7 @@ describe('useHotkeys', () => {
     it('should toggle playback on Space key', () => {
       useCharacterStore.setState({
         activeClipId: 'clip-1',
-        recordedClips: [{ id: 'clip-1', name: 'Clip 1' }],
+        recordedClips: [{ id: 'clip-1', name: 'Clip 1' } as any],
       });
 
       const onHotkeyPress = vi.fn();
@@ -249,10 +250,10 @@ describe('useHotkeys', () => {
     it('should export on E key when clip is active', () => {
       useCharacterStore.setState({
         activeClipId: 'clip-1',
-        recordedClips: [{ id: 'clip-1', name: 'Test Clip' }],
+        recordedClips: [{ id: 'clip-1', name: 'Test Clip' } as any],
       });
 
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(logger, 'debug');
       renderHook(() => useHotkeys());
 
       const event = new KeyboardEvent('keydown', { key: 'e', bubbles: true });
@@ -276,7 +277,7 @@ describe('useHotkeys', () => {
         recordedClips: [],
       });
 
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(logger, 'debug');
       renderHook(() => useHotkeys());
 
       const event = new KeyboardEvent('keydown', { key: 'e', bubbles: true });
@@ -296,7 +297,7 @@ describe('useHotkeys', () => {
     it('should delete clip on Delete key', () => {
       useCharacterStore.setState({
         activeClipId: 'clip-1',
-        recordedClips: [{ id: 'clip-1', name: 'Clip 1' }],
+        recordedClips: [{ id: 'clip-1', name: 'Clip 1' } as any],
       });
 
       renderHook(() => useHotkeys());
@@ -315,7 +316,7 @@ describe('useHotkeys', () => {
     it('should delete clip on Backspace key', () => {
       useCharacterStore.setState({
         activeClipId: 'clip-1',
-        recordedClips: [{ id: 'clip-1', name: 'Clip 1' }],
+        recordedClips: [{ id: 'clip-1', name: 'Clip 1' } as any],
       });
 
       renderHook(() => useHotkeys());
@@ -351,7 +352,7 @@ describe('useHotkeys', () => {
 
   describe('Preset Pose Hotkeys', () => {
     it('should trigger preset poses 1-9', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(logger, 'debug');
       renderHook(() => useHotkeys());
 
       for (let i = 1; i <= 9; i++) {
@@ -373,7 +374,7 @@ describe('useHotkeys', () => {
 
   describe('Undo/Redo Hotkeys', () => {
     it('should trigger undo on Ctrl+Z', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(logger, 'debug');
       renderHook(() => useHotkeys());
 
       const event = new KeyboardEvent('keydown', {
@@ -393,7 +394,7 @@ describe('useHotkeys', () => {
     });
 
     it('should trigger redo on Ctrl+Shift+Z', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(logger, 'debug');
       renderHook(() => useHotkeys());
 
       const event = new KeyboardEvent('keydown', {
@@ -414,7 +415,7 @@ describe('useHotkeys', () => {
     });
 
     it('should support Cmd+Z on Mac', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(logger, 'debug');
       renderHook(() => useHotkeys());
 
       const event = new KeyboardEvent('keydown', {
