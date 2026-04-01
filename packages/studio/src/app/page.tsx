@@ -184,7 +184,7 @@ export default function HomePage() {
           HoloScript Studio
         </h1>
         <p className="text-xl text-white/60">
-          Point it at your data. Get a spatial experience on every device.
+          Point it at your data or start from scratch. Every device.
         </p>
       </section>
 
