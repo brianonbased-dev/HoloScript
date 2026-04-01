@@ -13,6 +13,7 @@ export type ProjectKind =
   | 'agent-backend'
   | 'library'
   | 'spatial'
+  | 'storefront'
   | 'unknown';
 
 export interface ProjectDNA {
@@ -71,7 +72,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         workspaces: [],
         activeWorkspaceId: null,
 
-        addWorkspace: (ws) => set((s) => ({ workspaces: [...s.workspaces, ws] })),
+        addWorkspace: (ws) => set((s) => ({ workspaces: [...s.workspaces, ws].slice(-20) })),
 
         updateWorkspace: (id, patch) =>
           set((s) => ({

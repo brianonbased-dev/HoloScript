@@ -9,6 +9,8 @@
 
 import type {
   HoloComposition,
+  HoloTheme,
+  HoloThemeProperty,
   HoloEnvironment,
   HoloEnvironmentProperty,
   HoloParticleSystem,
@@ -388,6 +390,7 @@ interface Token {
 
 const KEYWORDS: Record<string, TokenType> = {
   composition: 'COMPOSITION',
+  theme: 'THEME',
   environment: 'ENVIRONMENT',
   state: 'STATE',
   template: 'TEMPLATE',
@@ -1256,6 +1259,8 @@ export class HoloCompositionParser {
           composition.templates.push(this.parseTemplate());
         } else if (this.check('OBJECT')) {
           composition.objects.push(this.parseObject());
+        } else if (this.check('THEME')) {
+          composition.theme = this.parseTheme();
         } else if (this.check('ENVIRONMENT')) {
           composition.environment = this.parseEnvironment();
         } else if (this.check('SPATIAL_GROUP')) {
@@ -1504,6 +1509,8 @@ export class HoloCompositionParser {
 
         if (this.check('IMPORT')) {
           composition.imports.push(this.parseImport());
+        } else if (this.check('THEME')) {
+          composition.theme = this.parseTheme();
         } else if (this.check('ENVIRONMENT')) {
           composition.environment = this.parseEnvironment();
         } else if (this.check('STATE')) {
@@ -1804,6 +1811,30 @@ export class HoloCompositionParser {
   }
 
   // ===========================================================================
+  // THEME (brand identity tokens)
+  // ===========================================================================
+
+  private parseTheme(): HoloTheme {
+    this.expect('THEME');
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: HoloThemeProperty[] = [];
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const value = this.parseValue();
+      properties.push({ type: 'ThemeProperty', key, value });
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    return { type: 'Theme', properties };
+  }
+
   // ENVIRONMENT
   // ===========================================================================
 

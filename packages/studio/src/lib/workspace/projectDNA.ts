@@ -70,6 +70,7 @@ function scoreKind(stats: AbsorbStats, paths: string[]): Record<ProjectKind, num
     'agent-backend': 0,
     library: 0,
     spatial: 0,
+    storefront: 0,
     unknown: 0.1,
   };
 
@@ -107,6 +108,15 @@ function scoreKind(stats: AbsorbStats, paths: string[]): Record<ProjectKind, num
   // Agent / MCP backend
   if (pathStr.includes('mcp') || pathStr.includes('agent')) scores['agent-backend'] += 3;
   if (pathStr.includes('tools/') || pathStr.includes('skills/')) scores['agent-backend'] += 2;
+
+  // Storefront / retail / inventory signals
+  if (pathStr.includes('product') || pathStr.includes('inventory')) scores.storefront += 3;
+  if (pathStr.includes('cart') || pathStr.includes('checkout') || pathStr.includes('payment')) scores.storefront += 3;
+  if (pathStr.includes('catalog') || pathStr.includes('menu') || pathStr.includes('sku')) scores.storefront += 2;
+  if (pathStr.includes('storefront') || pathStr.includes('shop') || pathStr.includes('store')) scores.storefront += 2;
+  if (pathStr.includes('pos') || pathStr.includes('point-of-sale') || pathStr.includes('register')) scores.storefront += 3;
+  if (pathStr.includes('strain') || pathStr.includes('dispensary') || pathStr.includes('cannabis')) scores.storefront += 4;
+  if (pathStr.includes('order') || pathStr.includes('fulfillment')) scores.storefront += 1;
 
   // Spatial signals
   if (langs['holo'] || langs['hsplus']) scores.spatial += 4;

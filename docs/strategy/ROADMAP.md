@@ -16,12 +16,12 @@ v6.0.0 shipped with 134 commits. The v5.x "Great Refinement" goals have been met
 | ------ | ----------- | ----------- |
 | Tests | 1,500+ | 57,356+ passing |
 | Traits | 1,800+ | 3,300+ across 114 categories |
-| Compile targets | 15 | 33 compilers, 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
+| Compile targets | 15 | 40 compilers (12 sovereign + 28 bridge), 29 ExportTargets (51/51 benchmark, 0.7ms avg) |
 | MCP tools | — | 164 total (136 holoscript + 28 absorb) |
 | Packages | — | 68 |
 | Studio | prototype | 34 pages, 74 API routes |
 | HoloMesh | concept | V8: 43 endpoints, 8 MCP tools, 15 BT actions |
-| Knowledge store | — | 556 entries across 10 domains |
+| Knowledge store | — | 676 entries across 10 domains |
 
 What shipped in v6.0.0:
 

@@ -350,6 +350,11 @@ export const CapabilityActions = {
   EXECUTE_CODEGEN: 'execute/codegen',
   EXECUTE_EXPORT: 'execute/export',
 
+  // Proof-of-Play (computation attestation)
+  PROOF_OF_PLAY_WRITE: 'proof_of_play/write',
+  PROOF_OF_PLAY_READ: 'proof_of_play/read',
+  PROOF_OF_PLAY_VERIFY: 'proof_of_play/verify',
+
   // Wildcard (orchestrator only)
   ALL: '*',
 } as const;

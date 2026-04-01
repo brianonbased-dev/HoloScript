@@ -1,0 +1,113 @@
+{
+  "id": "cannabis-retail",
+  "name": "Cannabis Retail & Cultivation",
+  "industry": "cannabis",
+  "description": "Full vertical for licensed cannabis operations: dispensary storefront, cultivation management, compliance tracking, lab testing, and strain genetics.",
+  "tags": ["cannabis", "dispensary", "cultivation", "compliance", "retail"],
+  "theme": {
+    "primary": "#2d5016",
+    "secondary": "#f5e6c8",
+    "accent": "#8b4513",
+    "shelf_material": "wood_dark",
+    "card_style": "rounded"
+  },
+  "modules": [
+    {
+      "id": "cannabis-retail",
+      "type": "retail",
+      "keywords": [
+        { "term": "strain", "traits": ["@label", "@filterable", "@tag"], "spatialRole": "category" },
+        { "term": "thc", "traits": ["@gauge", "@label", "@info_popup"], "spatialRole": "metric" },
+        { "term": "cbd", "traits": ["@gauge", "@label"], "spatialRole": "metric" },
+        { "term": "terpene", "traits": ["@gauge", "@info_popup", "@tag"], "spatialRole": "metric" },
+        { "term": "indica", "traits": ["@tag", "@filterable"], "spatialRole": "category" },
+        { "term": "sativa", "traits": ["@tag", "@filterable"], "spatialRole": "category" },
+        { "term": "hybrid", "traits": ["@tag", "@filterable"], "spatialRole": "category" },
+        { "term": "edible", "traits": ["@tag", "@filterable"], "spatialRole": "category" },
+        { "term": "concentrate", "traits": ["@tag", "@filterable"], "spatialRole": "category" },
+        { "term": "potency", "traits": ["@gauge", "@alert"], "spatialRole": "metric" },
+        { "term": "dosage", "traits": ["@gauge", "@label"], "spatialRole": "metric" },
+        { "term": "effects", "traits": ["@info_popup", "@tag"], "spatialRole": "description" }
+      ],
+      "properties": [
+        { "fieldName": "strain_type", "label": "Type", "type": "enum", "enumValues": ["indica", "sativa", "hybrid", "ruderalis"], "displayAs": "tag" },
+        { "fieldName": "thc_percent", "label": "THC %", "type": "number", "range": [0, 35], "unit": "%", "displayAs": "gauge" },
+        { "fieldName": "cbd_percent", "label": "CBD %", "type": "number", "range": [0, 25], "unit": "%", "displayAs": "gauge" },
+        { "fieldName": "price_per_gram", "label": "Price/g", "type": "number", "unit": "$", "displayAs": "label" }
+      ]
+    },
+    {
+      "id": "cannabis-agriculture",
+      "type": "agriculture",
+      "keywords": [
+        { "term": "vegetative", "traits": ["@lifecycle"], "spatialRole": "category" },
+        { "term": "flowering", "traits": ["@lifecycle"], "spatialRole": "category" },
+        { "term": "harvest", "traits": ["@lifecycle", "@alert"], "spatialRole": "timestamp" },
+        { "term": "clone", "traits": ["@lineage", "@tag"], "spatialRole": "relationship" },
+        { "term": "mother", "traits": ["@lineage", "@tag"], "spatialRole": "relationship" },
+        { "term": "canopy", "traits": ["@gauge", "@heatmap_3d"], "spatialRole": "metric" }
+      ],
+      "stages": [
+        {
+          "id": "seedling", "name": "Seedling", "durationDays": 14,
+          "thresholds": [
+            { "sensor": "temperature", "name": "Seedling Temp", "target": 76, "range": [72, 80], "unit": "°F", "severity": "warning" },
+            { "sensor": "humidity", "name": "Seedling RH", "target": 70, "range": [65, 75], "unit": "%", "severity": "warning" }
+          ]
+        },
+        {
+          "id": "vegetative", "name": "Vegetative", "durationDays": 42,
+          "thresholds": [
+            { "sensor": "temperature", "name": "Veg Temp", "target": 78, "range": [70, 82], "unit": "°F", "severity": "warning" },
+            { "sensor": "humidity", "name": "Veg RH", "target": 58, "range": [50, 65], "unit": "%", "severity": "warning" },
+            { "sensor": "co2", "name": "Veg CO2", "target": 1100, "range": [800, 1400], "unit": "ppm", "severity": "info" }
+          ]
+        },
+        {
+          "id": "flowering", "name": "Flowering", "durationDays": 63,
+          "thresholds": [
+            { "sensor": "temperature", "name": "Flower Temp", "target": 76, "range": [68, 80], "unit": "°F", "severity": "critical" },
+            { "sensor": "humidity", "name": "Flower RH", "target": 48, "range": [40, 55], "unit": "%", "severity": "critical" },
+            { "sensor": "co2", "name": "Flower CO2", "target": 1000, "range": [800, 1200], "unit": "ppm", "severity": "warning" }
+          ]
+        }
+      ],
+      "recommendedBehaviorTrees": ["sensor-threshold-monitor", "scheduled-process"]
+    },
+    {
+      "id": "cannabis-compliance",
+      "type": "compliance",
+      "keywords": [
+        { "term": "metrc", "traits": ["@tag", "@audit_trail"], "description": "METRC seed-to-sale tracking system" },
+        { "term": "batch", "traits": ["@tag", "@label"], "spatialRole": "identity" },
+        { "term": "manifest", "traits": ["@readable", "@info_popup"], "spatialRole": "description" },
+        { "term": "lab_tested", "traits": ["@toggleable", "@badge"], "spatialRole": "boolean_state" }
+      ],
+      "rules": [
+        { "id": "seed-to-sale", "name": "Seed to Sale Tracking", "requires": ["batch_id", "plant_count", "harvest_weight", "destruction_record"], "authority": "METRC", "mandatory": true },
+        { "id": "lab-testing", "name": "Lab Testing Required", "requires": ["potency_test", "contaminant_test", "certificate_of_analysis"], "authority": "State", "mandatory": true },
+        { "id": "plant-count", "name": "Plant Count Limit", "requires": ["plant_count", "canopy_coverage"], "authority": "State", "mandatory": true }
+      ]
+    },
+    {
+      "id": "cannabis-genetics",
+      "type": "genetics",
+      "keywords": [
+        { "term": "phenotype", "traits": ["@tag", "@info_popup"], "spatialRole": "category" },
+        { "term": "genotype", "traits": ["@tag"], "spatialRole": "category" },
+        { "term": "f1", "traits": ["@tag", "@lineage"], "spatialRole": "category", "description": "First filial generation" },
+        { "term": "backcross", "traits": ["@tag", "@lineage"], "spatialRole": "relationship" },
+        { "term": "trichome", "traits": ["@gauge", "@camera_feed"], "spatialRole": "metric" }
+      ],
+      "compositionRules": [
+        { "property": "thc_range", "mergeStrategy": "blend", "canConflict": false },
+        { "property": "cbd_range", "mergeStrategy": "blend", "canConflict": false },
+        { "property": "terpenes", "mergeStrategy": "union", "canConflict": false },
+        { "property": "effects", "mergeStrategy": "union", "canConflict": false },
+        { "property": "growth_habit", "mergeStrategy": "dominant", "canConflict": true },
+        { "property": "flower_time", "mergeStrategy": "average", "canConflict": false },
+        { "property": "yield", "mergeStrategy": "max", "canConflict": false }
+      ]
+    }
+  ]
+}

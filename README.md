@@ -145,6 +145,70 @@ The vm-bridge connects them: agents perceive the 3D world, make decisions at cog
 
 36 pages. 43 panels. 5 editing modes (Creator, Artist, Filmmaker, Expert, Character). AI scene generation via Brittney. Real-time multiplayer editing (CRDT). VR editing in Quest 3 / Vision Pro. Export to GLB/GLTF/USD/FBX. [Studio docs →](./packages/studio/README.md)
 
+### Agent Identity & Security
+
+15,079 LOC across 24 files. Every agent has a passport, keys, and capabilities.
+
+| Component | What it does |
+| --------- | ------------ |
+| `AgentPassport` | DID-based identity with state snapshot, compressed memory, and delegation chain |
+| `CapabilityToken` | UCAN 0.10.0 tokens — Ed25519 signed, attenuated capabilities, proof chains |
+| `CapabilityRBAC` | Dual-mode access control: UCAN capability-first or legacy JWT RBAC-first |
+| `AgentCommitSigner` | Ed25519 signatures on code changes with SHA-256 change-set digest |
+| `HybridSigner` | Ed25519 + ML-DSA post-quantum dual signatures with key rotation |
+| `SpatialMemoryZones` | Per-zone memory access control for spatial environments |
+| `ConfabulationValidator` | Detects when agents fabricate provenance claims |
+| `PopMiddleware` | Proof-of-Play computation attestation |
+| `SkillSandbox` | VM-isolated skill execution with capability-gated I/O |
+
+[Identity source →](./packages/core/src/compiler/identity/)
+
+### 21 Domain Block Compilers
+
+`DomainBlockCompilerMixin` (4,614 LOC) generates domain-specific code from `.holo` domain blocks. Each domain gets its own typed output:
+
+| Domain | Output | Use case |
+| ------ | ------ | -------- |
+| Healthcare | HL7 FHIR resources, DICOM refs | Medical simulations, patient portals |
+| Robotics | ROS 2 action servers, joint configs | Robot training, digital twins |
+| IoT | MQTT topics, device shadows, telemetry | Smart buildings, agriculture |
+| Education | LTI launch configs, SCORM packages | Interactive courseware |
+| Music | MIDI sequences, audio graphs | Generative music, performances |
+| Architecture | IFC entities, BIM metadata | Building design, walkthroughs |
+| Web3 | Solidity stubs, token metadata | NFT minting, DeFi integrations |
+| DataViz | D3/Vega specs, chart configs | Dashboards, spatial analytics |
+| Procedural | L-system rules, wave function collapse | Terrain, vegetation, cities |
+| Navigation | NavMesh configs, pathfinding graphs | NPC movement, crowd simulation |
+| Rendering | Shader pipelines, material graphs | Custom visual effects |
+| Weather | Atmospheric models, cloud systems | Environmental simulation |
+| Narrative | Dialogue trees, story arcs | Interactive fiction, NPC conversations |
+| Payment | x402 flows, credit gates | Commerce, micropayments |
+| Physics | Constraint systems, force fields | Advanced physics simulation |
+| Material | PBR pipelines, texture graphs | Surface appearance |
+| Particle | Emitter configs, force profiles | VFX, environmental effects |
+| PostProcessing | Bloom, SSAO, tone mapping chains | Visual post-processing |
+| AudioSource | Spatial audio, reverb zones | 3D sound design |
+| Input | Controller bindings, gesture maps | Cross-platform input |
+| Domain (generic) | Passthrough for custom domain blocks | Plugin extensibility |
+
+[Source →](./packages/core/src/compiler/DomainBlockCompilerMixin.ts)
+
+### 32 React Three Fiber Renderers
+
+Production 3D rendering components. Each is a standalone R3F component:
+
+`AgentRoomRenderer` `AnimatedMeshNode` `AtmosphereRenderer` `BadgeHolographicRenderer` `CloudRenderer` `DraftMeshNode` `EyeRenderer` `FluidRenderer` `GIRenderer` `GaussianSplatViewer` `GodRaysEffect` `GuestbookRenderer` `HairRenderer` `HologramGif` `HologramImage` `HologramVideo` `LODMeshNode` `MeshNode` `OceanRenderer` `PostProcessingRenderer` `ProceduralMesh` `ProgressiveLoader` `QuiltViewer` `RoomPortalRenderer` `ScalarFieldOverlay` `ShaderMeshNode` `ShapePoolRenderer` `SkinSSRenderer` `SpatialAudioRenderer` `SpatialFeedRenderer` `TerrainRenderer` `VFXParticleRenderer`
+
+7,396 LOC total. Includes subsurface skin scattering, refractive eyes, anisotropic hair, volumetric clouds, Gaussian splat viewing, LOD streaming, and 9-stage post-processing. [Renderer source →](./packages/r3f-renderer/src/components/)
+
+### Additional Packages
+
+| Package | What it does | LOC |
+| ------- | ------------ | --- |
+| `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders. | 9,524 |
+| `@holoscript/wasm` | Rust WASM parser for 10x faster .holo parsing in browsers. `cargo install holoscript-wasm` | 3,154 |
+| `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support. | 25 files |
+
 ## What's Here
 
 | Metric          | Value                                                      | How to verify                           |

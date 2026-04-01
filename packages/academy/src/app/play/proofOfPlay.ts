@@ -89,6 +89,24 @@ export interface ComputeResult {
   timestamp: number;
 }
 
+/** Cryptographic attestation of a ProofOfPlay result batch */
+export interface ProofOfPlayAttestation {
+  /** SHA-256 digest of the serialized result batch */
+  digest: string;
+  /** Ed25519 signature over the digest (base64) */
+  signature: string;
+  /** Public key of the signer (base64) */
+  publicKey: string;
+  /** Agent DID that performed the computation */
+  agentDID: string;
+  /** Timestamp of attestation (ISO 8601) */
+  attestedAt: string;
+  /** Number of results in the batch */
+  batchSize: number;
+  /** Total compute time across all results */
+  totalComputeMs: number;
+}
+
 export interface ProofOfPlayStats {
   totalJobs: number;
   successfulJobs: number;
@@ -397,9 +415,77 @@ function executeJob(job: ComputeJob): ComputeResult {
   };
 }
 
+// ─── Cryptographic Attestation (Ed25519 via Web Crypto) ─────────────────────
+
+function bufToBase64(buf: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+
+async function generateSigningKeyPair(): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey; publicKeyBase64: string }> {
+  // Ed25519 via Web Crypto (Chrome 113+, Safari 17+, Firefox 128+)
+  // Fallback: if Ed25519 unavailable, use ECDSA P-256
+  try {
+    const keyPair = await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify']);
+    const pubRaw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+    return { publicKey: keyPair.publicKey, privateKey: keyPair.privateKey, publicKeyBase64: bufToBase64(pubRaw) };
+  } catch {
+    // Fallback: ECDSA P-256 (universal browser support)
+    const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const pubRaw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+    return { publicKey: keyPair.publicKey, privateKey: keyPair.privateKey, publicKeyBase64: bufToBase64(pubRaw) };
+  }
+}
+
+async function signDigest(privateKey: CryptoKey, digest: string): Promise<string> {
+  const data = new TextEncoder().encode(digest);
+  try {
+    // Ed25519 signing
+    const sig = await crypto.subtle.sign('Ed25519', privateKey, data);
+    return bufToBase64(sig);
+  } catch {
+    // ECDSA fallback
+    const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, data);
+    return bufToBase64(sig);
+  }
+}
+
+async function computeDigest(batch: ComputeResult[]): Promise<string> {
+  // Deterministic serialization: sort by jobId, include only attestable fields
+  const canonical = batch
+    .slice()
+    .sort((a, b) => a.jobId.localeCompare(b.jobId))
+    .map(r => `${r.jobId}:${r.type}:${r.success}:${r.durationMs}:${r.value}:${r.timestamp}`)
+    .join('\n');
+  const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function attestBatch(
+  batch: ComputeResult[],
+  privateKey: CryptoKey,
+  publicKeyBase64: string,
+  agentDID: string,
+  totalComputeMs: number
+): Promise<ProofOfPlayAttestation> {
+  const digest = await computeDigest(batch);
+  const signature = await signDigest(privateKey, digest);
+  return {
+    digest,
+    signature,
+    publicKey: publicKeyBase64,
+    agentDID,
+    attestedAt: new Date().toISOString(),
+    batchSize: batch.length,
+    totalComputeMs,
+  };
+}
+
 // ─── Proof-of-Play Engine ─────────────────────────────────────────────────────
 
 class ProofOfPlayEngine {
+  private signingKey: { publicKey: CryptoKey; privateKey: CryptoKey; publicKeyBase64: string } | null = null;
+  private agentDID: string = `did:holoscript:garden:${crypto.randomUUID().slice(0, 8)}`;
+
   private stats: ProofOfPlayStats = {
     totalJobs: 0,
     successfulJobs: 0,
@@ -500,7 +586,15 @@ class ProofOfPlayEngine {
     return batch;
   }
 
-  /** Report results to MCP Mesh (if available) */
+  /** Ensure signing keys are initialized (lazy, one-time) */
+  private async ensureSigningKey(): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey; publicKeyBase64: string }> {
+    if (!this.signingKey) {
+      this.signingKey = await generateSigningKeyPair();
+    }
+    return this.signingKey;
+  }
+
+  /** Report results to MCP Mesh with cryptographic attestation */
   async reportToMesh(orchestratorUrl?: string): Promise<boolean> {
     const batch = this.flushPendingReport();
     if (batch.length === 0) return true;
@@ -517,6 +611,16 @@ class ProofOfPlayEngine {
     }
 
     try {
+      // Sign the batch before posting
+      const { privateKey, publicKeyBase64 } = await this.ensureSigningKey();
+      const attestation = await attestBatch(
+        batch,
+        privateKey,
+        publicKeyBase64,
+        this.agentDID,
+        batch.reduce((sum, r) => sum + r.durationMs, 0)
+      );
+
       const response = await fetch(`${url}/knowledge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -524,10 +628,13 @@ class ProofOfPlayEngine {
           source: 'holoscript-studio-garden',
           type: 'proof_of_play',
           stats: this.stats,
+          attestation,
           results: batch.map((r) => ({
+            jobId: r.jobId,
             type: r.type,
             success: r.success,
             durationMs: r.durationMs,
+            value: r.value,
             timestamp: r.timestamp,
           })),
         }),
@@ -536,6 +643,11 @@ class ProofOfPlayEngine {
     } catch {
       return false;
     }
+  }
+
+  /** Get the agent DID for this engine instance */
+  getAgentDID(): string {
+    return this.agentDID;
   }
 }
 

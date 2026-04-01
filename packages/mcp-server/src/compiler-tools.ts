@@ -54,6 +54,11 @@ import {
   selectModality,
   selectModalityForAll,
   bestCategoryForTraits,
+  compileHealthcareBlock,
+  compileRoboticsBlock,
+  compileIoTBlock,
+  compileEducationBlock,
+  compileMusicBlock,
 } from '@holoscript/core';
 import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 
@@ -346,6 +351,35 @@ export async function handleGetCompilationStatus(
   };
 }
 
+/** Generic handler for domain block compilation */
+async function handleDomainBlock(
+  args: Record<string, unknown>,
+  compileFn: (block: any) => unknown,
+  domain: string
+): Promise<unknown> {
+  const { properties, code } = args as { properties?: Record<string, unknown>; code?: string };
+
+  if (code) {
+    // Parse .holo code to extract domain block
+    try {
+      const parsed = parseHolo(code);
+      const block = parsed.domainBlocks?.find((b: any) => b.domain === domain || b.name === domain);
+      if (!block) return { success: false, error: `No ${domain} {} block found in composition` };
+      return { success: true, domain, compiled: compileFn(block) };
+    } catch (e) {
+      return { success: false, error: `Parse error: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  }
+
+  if (properties) {
+    // Direct property object — wrap as HoloDomainBlock
+    const block = { type: 'DomainBlock', name: domain, domain, properties };
+    return { success: true, domain, compiled: compileFn(block) };
+  }
+
+  return { success: false, error: `Provide "code" (.holo with ${domain} {} block) or "properties" (direct property map)` };
+}
+
 export async function handleListExportTargets(_args: Record<string, unknown>): Promise<{
   targets: ExportTarget[];
   categories: Record<string, ExportTarget[]>;
@@ -488,6 +522,17 @@ export async function handleCompilerTool(
     case 'holoscript_map_csv':
       return handleMapCsvHeaders(args);
 
+    // Domain Block Compilers (top 5 — exposed from DomainBlockCompilerMixin)
+    case 'holoscript_compile_healthcare':
+      return handleDomainBlock(args, compileHealthcareBlock, 'healthcare');
+    case 'holoscript_compile_robotics':
+      return handleDomainBlock(args, compileRoboticsBlock, 'robotics');
+    case 'holoscript_compile_iot':
+      return handleDomainBlock(args, compileIoTBlock, 'iot');
+    case 'holoscript_compile_education':
+      return handleDomainBlock(args, compileEducationBlock, 'education');
+    case 'holoscript_compile_music':
+      return handleDomainBlock(args, compileMusicBlock, 'music');
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -534,6 +579,20 @@ export const compilerTools: Tool[] = [
       required: ['declarations']
     }
   },
+  // Domain Block Compilers (5 of 21 — from DomainBlockCompilerMixin, 4,614 LOC)
+  ...(['healthcare', 'robotics', 'iot', 'education', 'music'] as const).map(domain => ({
+    name: `holoscript_compile_${domain}` as string,
+    description: `Compile a ${domain} domain block from .holo code or raw properties. ` +
+      `Part of 21 domain-specific code generators in DomainBlockCompilerMixin. ` +
+      `Accepts either "code" (full .holo with ${domain} {} block) or "properties" (direct property map).`,
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        code: { type: 'string', description: `.holo source containing a ${domain} {} domain block` },
+        properties: { type: 'object', description: `Direct property map for ${domain} compilation` },
+      },
+    },
+  })),
   // Universal Schema-to-Trait Mapper (Domain Bridge — any data → .holo)
   {
     name: 'holoscript_map_schema',

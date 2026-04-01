@@ -89,6 +89,7 @@ export interface HoloPosition {
 export interface HoloComposition extends HoloNode {
   type: 'Composition';
   name: string;
+  theme?: HoloTheme;
   environment?: HoloEnvironment;
   state?: HoloState;
   templates: HoloTemplate[];
@@ -127,6 +128,21 @@ export interface HoloComposition extends HoloNode {
   // Norm lifecycle blocks (v4.5 — March 2026, CRSEC model)
   norms?: HoloNormBlock[];
   metanorms?: HoloMetanorm[];
+}
+
+// =============================================================================
+// THEME (brand identity — colors, fonts, materials, layout tokens)
+// =============================================================================
+
+export interface HoloTheme extends HoloNode {
+  type: 'Theme';
+  properties: HoloThemeProperty[];
+}
+
+export interface HoloThemeProperty extends HoloNode {
+  type: 'ThemeProperty';
+  key: string;
+  value: HoloValue;
 }
 
 // =============================================================================

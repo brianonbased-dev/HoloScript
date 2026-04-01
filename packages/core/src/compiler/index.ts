@@ -102,6 +102,8 @@ export type { SafetyReport, SafetyVerdict } from './safety/SafetyReport';
 export type { LinearCheckerConfig } from './safety/LinearTypeChecker';
 export type { InferredEffects } from './safety/EffectInference';
 export type { CompilePlatformTarget } from './PlatformConditionalCompilerMixin';
+export { selectModality, selectModalityForAll, bestCategoryForTraits } from './platform/ModalitySelector';
+export type { ModalitySelection, ModalitySelectorOptions } from './platform/ModalitySelector';
 
 // USDZ pipeline
 export { USDZPipeline } from './USDZPipeline';
