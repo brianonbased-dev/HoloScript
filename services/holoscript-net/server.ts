@@ -133,6 +133,56 @@ app.post('/api/mcp/message', async (req, res) => {
   }
 });
 
+// Stateless HTTP JSON-RPC endpoint for MCP tools
+app.post('/mcp', express.json({ limit: '50mb' }), async (req, res) => {
+  try {
+    const { method, params, id, jsonrpc } = req.body;
+    if (jsonrpc !== '2.0') {
+      res.status(400).json({ error: 'Invalid JSON-RPC version' });
+      return;
+    }
+
+    if (method === 'tools/list') {    
+       res.json({
+         jsonrpc: '2.0',
+         id,
+         result: { tools }
+       });
+       return;
+    }
+
+    if (method === 'tools/call') {
+       const { name, arguments: args } = params as { name: string, arguments?: Record<string, unknown> };
+       try {
+         const result = await handleTool(name, args || {});
+         res.json({
+           jsonrpc: '2.0',
+           id,
+           result: {
+             content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result, null, 2) }]
+           }
+         });
+       } catch (e: any) {
+         res.json({
+           jsonrpc: '2.0',
+           id,
+           error: { code: -32603, message: e.message }
+         });
+       }
+       return;
+    }
+
+    // Default error
+    res.json({
+      jsonrpc: '2.0',
+      id,
+      error: { code: -32601, message: 'Method not found' }
+    });
+  } catch (err: any) {
+    res.status(500).json({ jsonrpc: '2.0', error: { code: -32000, message: err.message } });
+  }
+});
+
 server.listen(port, () => {
   console.log(`HoloScript.net Spatial Server running on port ${port}`);
 });
