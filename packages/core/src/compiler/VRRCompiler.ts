@@ -1,6 +1,8 @@
 /**
- * @fileoverview VRR (Virtual Reality Reality) Compiler
+ * @fileoverview VRR (Virtual Reality Reality) Compiler — STUB / SPEC ONLY
  * @module @holoscript/core/compiler
+ * @status STUB — This file is a design specification, not a working compiler.
+ *         Do NOT count in compiler totals until implemented.
  *
  * TODO: CRITICAL - Implement VRR Compiler for Hololand's middle layer
  *
