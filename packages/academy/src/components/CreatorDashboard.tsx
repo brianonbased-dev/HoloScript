@@ -1,7 +1,7 @@
 'use client';
 
 import { useCreatorStats } from '../hooks/useCreatorStats';
-import { StatCard } from './StatCard';
+import { StatCard } from '@holoscript/ui';
 import { RevenueChart } from './RevenueChart';
 import { AnalyticsPanel } from './AnalyticsPanel';
 import { NFTGallery } from './NFTGallery';

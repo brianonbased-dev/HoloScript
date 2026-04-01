@@ -77,19 +77,16 @@ describe('SoftBodyTrait', () => {
 
   it('does not throw on update', () => {
     updateTrait(softBodyHandler, node, cfg, ctx, 0.016);
-    expect(true).toBe(true);
   });
 
   it('does not throw on detach without state', () => {
     const emptyNode = createMockNode('empty');
     softBodyHandler.onDetach?.(emptyNode as any, cfg as any, ctx as any);
-    expect(true).toBe(true);
   });
 
   it('handles reset event', () => {
     sendEvent(softBodyHandler, node, cfg, ctx, { type: 'soft_body_reset' });
     // Should not throw
-    expect(true).toBe(true);
   });
 
   it('handles deform event', () => {
@@ -98,6 +95,5 @@ describe('SoftBodyTrait', () => {
       point: [0, 0, 0],
       force: [1, 0, 0],
     });
-    expect(true).toBe(true);
   });
 });

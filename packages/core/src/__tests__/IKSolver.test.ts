@@ -131,6 +131,5 @@ describe('IKSolver', () => {
     solver.addChain(longChain); // 5 bones -> CCD
     // Should not throw
     solver.solveAll();
-    expect(true).toBe(true);
   });
 });

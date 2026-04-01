@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { useSceneGraphStore, type SceneNode } from '../../lib/store';
+import { logger } from '@/lib/logger';
 
 /**
  * Check if the local LLM (Ollama) is reachable.
@@ -36,7 +37,7 @@ describe('Scenario: Studio — V43 Dynamic Architectural Generation', () => {
     try {
       const online = await _online;
       if (!online) {
-        console.log('⏭ Skipping: Local LLM (Ollama) is offline');
+        logger.debug('⏭ Skipping: Local LLM (Ollama) is offline');
         return;
       }
 
@@ -50,7 +51,7 @@ describe('Scenario: Studio — V43 Dynamic Architectural Generation', () => {
       expect(rawCode.length).toBeGreaterThan(20);
       expect(rawCode.toLowerCase()).toContain('object');
     } catch {
-      console.log('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
+      logger.debug('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
     }
   }, 120000);
 
@@ -58,7 +59,7 @@ describe('Scenario: Studio — V43 Dynamic Architectural Generation', () => {
     try {
       const online = await _online;
       if (!online) {
-        console.log('⏭ Skipping: Local LLM (Ollama) is offline');
+        logger.debug('⏭ Skipping: Local LLM (Ollama) is offline');
         return;
       }
 
@@ -69,8 +70,8 @@ Do not use complicated macros, just a simple valid object block.`;
 
       const astNodes = await generator.generateAST(prompt);
       const rawCode = await generator.generateHoloScript(prompt);
-      console.log('Raw V43 code:\n', rawCode);
-      console.log('AST Layout Length:', astNodes.length, '\nKeys:', Object.keys(astNodes));
+      logger.debug('Raw V43 code:\n', rawCode);
+      logger.debug('AST Layout Length:', astNodes.length, '\nKeys:', Object.keys(astNodes));
 
       expect(astNodes.length).toBeGreaterThan(0);
 
@@ -93,7 +94,7 @@ Do not use complicated macros, just a simple valid object block.`;
       expect(nodes.length).toBe(astNodes.length);
       expect(nodes[0].id).toContain('v43_geo');
     } catch {
-      console.log('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
+      logger.debug('⏭ Skipping: V43 Generator fetch failed (LLM offline)');
     }
   }, 120000);
 });

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchCreatorContent } from '@/lib/marketplaceApi';
 import type { MarketplaceCreatorData } from '@/lib/marketplaceApi';
+import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Public interfaces (unchanged -- consumed by dashboard components)
@@ -315,7 +316,7 @@ export function useCreatorStats(options: UseCreatorStatsOptions = {}) {
         // is not running. We log a warning rather than throwing so the
         // dashboard remains usable.
         if (typeof console !== 'undefined') {
-          console.warn(
+          logger.warn(
             '[useCreatorStats] Marketplace API unreachable, using mock data. ' +
               'Start the marketplace-api dev server or set NEXT_PUBLIC_MARKETPLACE_URL.'
           );

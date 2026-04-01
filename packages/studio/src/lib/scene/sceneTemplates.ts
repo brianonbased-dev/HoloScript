@@ -12,7 +12,8 @@
  */
 
 import type { SceneNode } from '@/lib/stores';
-import { getAllWizardTemplates } from '../presets/wizardTemplates';
+// wizardTemplates.ts is intentionally excluded here to prevent a 4,300 LOC bundle bloat.
+// It is dynamically imported and code-split within the Wizard components themselves.
 
 export interface SceneTemplate {
   id: string;
@@ -1167,7 +1168,6 @@ const BASE_SCENE_TEMPLATES: SceneTemplate[] = [
 /** All scene templates: built-in + wizard starter templates merged. */
 export const SCENE_TEMPLATES: SceneTemplate[] = [
   ...BASE_SCENE_TEMPLATES,
-  ...getAllWizardTemplates(),
 ];
 
 // ─── Search ───────────────────────────────────────────────────────────────────

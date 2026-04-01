@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { GuestbookEntry } from './types';
+import { logger } from '@/lib/logger';
 
 interface GuestbookProps {
   agentId: string;
@@ -21,7 +22,7 @@ export function Guestbook({ agentId, themeColor, themeAccent }: GuestbookProps) 
       .then((data) => {
         if (data.entries) setEntries(data.entries);
       })
-      .catch(() => {});
+      .catch((err) => logger.warn('Swallowed error caught:', err));
   }, [agentId]);
 
   const handleSubmit = useCallback(async () => {

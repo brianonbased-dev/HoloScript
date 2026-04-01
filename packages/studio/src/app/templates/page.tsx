@@ -17,6 +17,7 @@ import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surfa
 import { TemplateGrid } from '@/components/templates/TemplateGrid';
 import { useSceneStore } from '@/lib/stores';
 import type { TemplateInfo } from '@/types';
+import { logger } from '@/lib/logger';
 
 const TEMPLATES: TemplateInfo[] = [
   {
@@ -70,7 +71,7 @@ export default function TemplatesPage() {
       setMetadata({ name: template.name });
       router.push('/create');
     } catch (err) {
-      console.error('Failed to load template:', err);
+      logger.error('Failed to load template:', err);
     }
   }
 

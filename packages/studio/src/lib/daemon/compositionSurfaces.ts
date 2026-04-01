@@ -67,31 +67,14 @@ function toHsValue(value: unknown, indent = 0): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return '[]';
     const nextIndent = indent + 2;
-    return (
-      `[` +
-      '\n' +
-      value.map((item) => `${' '.repeat(nextIndent)}${toHsValue(item, nextIndent)}`).join(',\n') +
-      '\n' +
-      `${' '.repeat(indent)}]`
-    );
+    return `[` + '\n' + value.map((item) => `${' '.repeat(nextIndent)}${toHsValue(item, nextIndent)}`).join(',\n') + '\n' + `${' '.repeat(indent)}]`;
   }
 
   const entries = Object.entries(value as Record<string, unknown>);
   if (entries.length === 0) return '{}';
 
   const nextIndent = indent + 2;
-  return (
-    `{` +
-    '\n' +
-    entries
-      .map(
-        ([key, entryValue]) =>
-          `${' '.repeat(nextIndent)}${key}: ${toHsValue(entryValue, nextIndent)}`
-      )
-      .join('\n') +
-    '\n' +
-    `${' '.repeat(indent)}}`
-  );
+  return `{` + '\n' + entries.map(([key, entryValue]) => `${' '.repeat(nextIndent)}${key}: ${toHsValue(entryValue, nextIndent)}`).join('\n') + '\n' + `${' '.repeat(indent)}}`;
 }
 
 function replaceStateBlock(source: string, stateBody: string): string {
@@ -110,8 +93,7 @@ function mapJobs(jobs: DaemonJob[]) {
     id: job.id,
     title: job.summary || job.statusMessage || `${job.projectId} ${job.profile} job`,
     type: job.plan?.passes[0] || job.projectDna.kind,
-    status:
-      job.status === 'completed' && (job.patches?.length ?? 0) > 0 ? 'awaiting_review' : job.status,
+    status: job.status === 'completed' && (job.patches?.length ?? 0) > 0 ? 'awaiting_review' : job.status,
     progress: job.progress,
     lane: job.plan?.profile || job.projectDna.kind,
     runtime: job.profile,
@@ -125,10 +107,7 @@ function buildActivity(jobs: DaemonJob[], telemetry: DaemonTelemetrySummary) {
     id: `${event.jobId}-${event.timestamp}`,
     kind: event.eventType,
     message: `${event.eventType} for ${event.jobId}`,
-    severity:
-      event.eventType.includes('failed') || event.eventType.includes('rejected')
-        ? 'warning'
-        : 'info',
+    severity: event.eventType.includes('failed') || event.eventType.includes('rejected') ? 'warning' : 'info',
   }));
 
   if (recent.length > 0) return recent;
@@ -142,10 +121,7 @@ function buildActivity(jobs: DaemonJob[], telemetry: DaemonTelemetrySummary) {
 }
 
 function buildAgents(jobs: DaemonJob[]) {
-  const uniqueAgents = new Map<
-    string,
-    { id: string; name: string; state: string; mode: string; available: boolean }
-  >();
+  const uniqueAgents = new Map<string, { id: string; name: string; state: string; mode: string; available: boolean }>();
   for (const job of jobs) {
     const agentId = job.plan?.profile || job.profile;
     if (!uniqueAgents.has(agentId)) {
@@ -177,11 +153,7 @@ function buildForks(jobs: DaemonJob[]) {
   return forks;
 }
 
-function hydrateDashboard(
-  source: string,
-  jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
-): { code: string; summary: DaemonSurfaceSummary } {
+function hydrateDashboard(source: string, jobs: DaemonJob[], telemetry: DaemonTelemetrySummary): { code: string; summary: DaemonSurfaceSummary } {
   const mappedJobs = mapJobs(jobs);
   const activity = buildActivity(jobs, telemetry);
   const agents = buildAgents(jobs);
@@ -191,10 +163,7 @@ function hydrateDashboard(
   const queuedJobs = mappedJobs.filter((job) => job.status === 'queued').length;
   const heroStatus = `Studio is tracking ${mappedJobs.length} jobs across ${agents.length} agents.`;
   const healthPercent = Math.round(
-    (telemetry.totalJobs === 0
-      ? 1
-      : Math.max(0.25, Math.min(1, 1 - telemetry.failedJobs / Math.max(telemetry.totalJobs, 1)))) *
-      100
+    (telemetry.totalJobs === 0 ? 1 : Math.max(0.25, Math.min(1, 1 - telemetry.failedJobs / Math.max(telemetry.totalJobs, 1)))) * 100,
   );
 
   const stateBody = [
@@ -220,10 +189,7 @@ function hydrateDashboard(
     `agentText: ${toHsValue(agents.map((agent) => `${agent.name} · ${agent.state}`).join('\n'))}`,
     `jobs: ${toHsValue(mappedJobs, 4)}`,
     `activity: ${toHsValue(activity, 4)}`,
-    `agents: ${toHsValue(
-      agents.map((agent) => ({ id: agent.id, name: agent.name, state: agent.state })),
-      4
-    )}`,
+    `agents: ${toHsValue(agents.map((agent) => ({ id: agent.id, name: agent.name, state: agent.state })), 4)}`,
   ].join('\n');
 
   return {
@@ -239,11 +205,7 @@ function hydrateDashboard(
   };
 }
 
-function hydrateOrchestration(
-  source: string,
-  jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
-): { code: string; summary: DaemonSurfaceSummary } {
+function hydrateOrchestration(source: string, jobs: DaemonJob[], telemetry: DaemonTelemetrySummary): { code: string; summary: DaemonSurfaceSummary } {
   const mappedJobs = mapJobs(jobs).map((job) => ({
     id: job.id,
     type: job.type,
@@ -268,7 +230,7 @@ function hydrateOrchestration(
   const runningJobs = mappedJobs.filter((job) => job.status === 'running').length;
   const queuedJobs = mappedJobs.filter((job) => job.status === 'queued').length;
   const queueDepth = mappedJobs.filter(
-    (job) => job.status === 'queued' || job.status === 'running' || job.status === 'awaiting_review'
+    (job) => job.status === 'queued' || job.status === 'running' || job.status === 'awaiting_review',
   ).length;
 
   const stateBody = [
@@ -304,8 +266,8 @@ function validateSurface(code: string): DaemonSurfaceValidation {
   try {
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
-    const errors = (result.errors ?? []).map((entry) =>
-      typeof entry === 'string' ? entry : entry.message || String(entry)
+    const errors = (result.errors ?? []).map((entry: any) =>
+      typeof entry === 'string' ? entry : entry.message || String(entry),
     );
 
     return { valid: errors.length === 0, errors };
@@ -317,21 +279,15 @@ function validateSurface(code: string): DaemonSurfaceValidation {
   }
 }
 
-export async function loadDaemonSurface(
-  kind: DaemonSurfaceKind,
-  jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
-): Promise<LoadedDaemonSurface> {
+export async function loadDaemonSurface(kind: DaemonSurfaceKind, jobs: DaemonJob[], telemetry: DaemonTelemetrySummary): Promise<LoadedDaemonSurface> {
   const repoRoot = resolveRepoRoot();
-  const fileName =
-    kind === 'dashboard' ? 'studio-operations-dashboard.hsplus' : 'studio-job-orchestration.hsplus';
+  const fileName = kind === 'dashboard' ? 'studio-operations-dashboard.hsplus' : 'studio-job-orchestration.hsplus';
   const sourcePath = path.join(repoRoot, 'compositions', fileName);
   const source = await readFile(sourcePath, 'utf8');
 
-  const hydrated =
-    kind === 'dashboard'
-      ? hydrateDashboard(source, jobs, telemetry)
-      : hydrateOrchestration(source, jobs, telemetry);
+  const hydrated = kind === 'dashboard'
+    ? hydrateDashboard(source, jobs, telemetry)
+    : hydrateOrchestration(source, jobs, telemetry);
 
   return {
     kind,

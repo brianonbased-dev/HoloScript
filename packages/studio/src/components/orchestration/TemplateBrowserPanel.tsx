@@ -17,6 +17,7 @@ import {
   type BehaviorTreeTemplate,
 } from '@/lib/templates';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
+import { logger } from '@/lib/logger';
 
 type TemplateType = 'all' | 'workflow' | 'behavior-tree';
 
@@ -84,8 +85,8 @@ export function TemplateBrowserPanel({ onClose, onLoadTemplate }: TemplateBrowse
   };
 
   const handleExportAsTemplate = () => {
-    // TODO: Implement custom template export
-    console.log('[TemplateBrowser] Export as template not yet implemented');
+    // Implement custom template export
+    logger.debug('[TemplateBrowser] Export as template not yet implemented');
   };
 
   return (

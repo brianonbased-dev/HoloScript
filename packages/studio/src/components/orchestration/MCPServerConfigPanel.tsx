@@ -29,6 +29,7 @@ import {
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import { MCPClient, createMCPClient, type MCPToolCallRequest } from '@/lib/mcpClient';
 import type { MCPServerConfig, ServerStatus, MCPTool } from '@/lib/orchestrationStore';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // HOOKS
@@ -93,7 +94,7 @@ function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T) => voi
         setValue(newValue);
         localStorage.setItem(key, JSON.stringify(newValue));
       } catch (error) {
-        console.error(`[MCPServerConfigPanel] Failed to persist ${key}:`, error);
+        logger.error(`[MCPServerConfigPanel] Failed to persist ${key}:`, error);
       }
     },
     [key]

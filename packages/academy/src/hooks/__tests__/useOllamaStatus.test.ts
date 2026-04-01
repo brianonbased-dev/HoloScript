@@ -116,8 +116,6 @@ describe('useOllamaStatus', () => {
 
       const { unmount: unmount2 } = renderHook(() => useOllamaStatus());
       unmount2();
-
-      expect(true).toBe(true);
     });
   });
 });

@@ -77,6 +77,5 @@ describe('EmotionalVoiceTrait', () => {
 
   it('does nothing on update (no frame-based logic)', () => {
     emotionalVoiceHandler.onUpdate?.(node as any, cfg as any, ctx as any, 0.016);
-    expect(true).toBe(true);
   });
 });

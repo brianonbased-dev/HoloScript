@@ -461,7 +461,6 @@ export function realFunction(x: number): number {
       const code = `
 describe('Working', () => {
   it('passes', () => {
-    expect(true).toBe(true);
   });
 });
 `;

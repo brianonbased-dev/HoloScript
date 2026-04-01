@@ -37,7 +37,7 @@ function createMockIO(overrides: Partial<SelfImproveIO> = {}): SelfImproveIO {
       .fn<(target: UntestedTarget) => Promise<GeneratedTest>>()
       .mockImplementation(async (target) => ({
         testFilePath: `src/__tests__/${target.symbolName.replace(/\./g, '_')}.test.ts`,
-        content: `describe('${target.symbolName}', () => { it('works', () => { expect(true).toBe(true); }); });`,
+        content: `describe('${target.symbolName}', () => { it('works', () => { }); });`,
         target,
       })),
 

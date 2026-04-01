@@ -113,6 +113,5 @@ describe('HoloScriptAgentRuntime — Production', () => {
     const agent = new HoloScriptAgentRuntime(makeOrbNode(), runtime);
     await agent.onEvent('unknown_event', { data: 42 });
     // Should not throw
-    expect(true).toBe(true);
   });
 });

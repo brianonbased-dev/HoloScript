@@ -25,6 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -325,7 +326,7 @@ export function useShaderPreview(
       }
       // Best-effort cleanup — don't await
       if (invokeRef.current) {
-        invokeRef.current('shader_preview_destroy').catch(() => {});
+        invokeRef.current('shader_preview_destroy').catch((err) => logger.warn('Swallowed error caught:', err));
       }
     };
   }, []);

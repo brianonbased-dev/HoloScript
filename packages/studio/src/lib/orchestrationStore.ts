@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -368,7 +369,7 @@ function restorePersistedState() {
     if (savedWorkflows) {
       const parsed = JSON.parse(savedWorkflows);
       restored.workflows = new Map(parsed);
-      console.log('[OrchestrationPersistence] Restored workflows:', parsed.length);
+      logger.debug('[OrchestrationPersistence] Restored workflows:', parsed.length);
     }
 
     // Restore behavior trees
@@ -376,27 +377,27 @@ function restorePersistedState() {
     if (savedBehaviorTrees) {
       const parsed = JSON.parse(savedBehaviorTrees);
       restored.behaviorTrees = new Map(parsed);
-      console.log('[OrchestrationPersistence] Restored behavior trees:', parsed.length);
+      logger.debug('[OrchestrationPersistence] Restored behavior trees:', parsed.length);
     }
 
     // Restore active workflow ID
     const savedActiveWorkflow = localStorage.getItem('holoscript-active-workflow');
     if (savedActiveWorkflow) {
       restored.activeWorkflow = savedActiveWorkflow;
-      console.log('[OrchestrationPersistence] Restored active workflow:', savedActiveWorkflow);
+      logger.debug('[OrchestrationPersistence] Restored active workflow:', savedActiveWorkflow);
     }
 
     // Restore active behavior tree ID
     const savedActiveBehaviorTree = localStorage.getItem('holoscript-active-behavior-tree');
     if (savedActiveBehaviorTree) {
       restored.activeBehaviorTree = savedActiveBehaviorTree;
-      console.log(
+      logger.debug(
         '[OrchestrationPersistence] Restored active behavior tree:',
         savedActiveBehaviorTree
       );
     }
   } catch (error) {
-    console.error('[OrchestrationPersistence] Failed to restore state:', error);
+    logger.error('[OrchestrationPersistence] Failed to restore state:', error);
   }
 
   return restored;

@@ -14,6 +14,7 @@
 
 import { ShaderGraph } from '@/lib/shaderGraph';
 import type { ICompiledShader } from '@/lib/shaderGraph';
+import { logger } from '@/lib/logger';
 
 type compileShaderGraph = (
   graph: ShaderGraph,
@@ -283,7 +284,7 @@ export class LivePreviewService {
       return;
     }
 
-    console.warn('Recovering from shader compilation error with last valid shader');
+    logger.warn('Recovering from shader compilation error with last valid shader');
 
     await this.updateMaterialInstance(this.lastValidCompilation.shader);
 
@@ -323,7 +324,7 @@ export class LivePreviewService {
         fragmentInfo.messages.some((m: any) => m.type === 'error');
 
       if (hasErrors) {
-        console.error('Shader compilation errors:', {
+        logger.error('Shader compilation errors:', {
           vertex: vertexInfo.messages,
           fragment: fragmentInfo.messages,
         });
@@ -361,7 +362,7 @@ export class LivePreviewService {
       // TODO: Create pipeline and bind groups based on shader requirements
       // This would be done in a full implementation with access to the render context
     } catch (error) {
-      console.error('Failed to update material instance:', error);
+      logger.error('Failed to update material instance:', error);
       throw error;
     }
   }
@@ -489,7 +490,7 @@ export class LivePreviewService {
       try {
         listener(event);
       } catch (error) {
-        console.error('Error in preview change listener:', error);
+        logger.error('Error in preview change listener:', error);
       }
     });
   }

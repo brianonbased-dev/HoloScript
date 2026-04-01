@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Atom, X, Search, Copy, Plus, Mountain, Crosshair } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { useSpatialEngine } from '@/hooks/useSpatialEngine';
+import { logger } from '@/lib/logger';
 
 interface PhysicsPreset {
   id: string;
@@ -56,7 +57,7 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
     fetch(`/api/physics?q=${encodeURIComponent(q)}`)
       .then((r) => r.json())
       .then((d: { presets: PhysicsPreset[] }) => setPresets(d.presets))
-      .catch(() => {})
+      .catch((err) => logger.warn('Swallowed error caught:', err))
       .finally(() => setLoading(false));
   }, [q]);
 

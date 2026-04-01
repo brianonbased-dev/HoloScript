@@ -10,6 +10,7 @@ import { useUpload } from '@/lib/marketplace/hooks';
 import { StudioEvents } from '@/lib/analytics';
 import { useDaemonJobs, type DaemonProfile, type DaemonProjectDNA } from '@/hooks/useDaemonJobs';
 import { OperationsSurfacePanel } from '@/components/daemon/OperationsSurfacePanel';
+import { logger } from '@/lib/logger';
 
 interface UploadWizardProps {
   onClose: () => void;
@@ -204,7 +205,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
         onClose();
       }, 2000);
     } catch (error) {
-      console.error('Upload failed:', error);
+      logger.error('Upload failed:', error);
     }
   };
 

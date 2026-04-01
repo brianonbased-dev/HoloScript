@@ -887,7 +887,6 @@ describe('AR Trait Combination: All Traits Stress Test', () => {
     }
 
     // No exceptions thrown = success
-    expect(true).toBe(true);
   });
 
   it('all traits can be detached cleanly', () => {

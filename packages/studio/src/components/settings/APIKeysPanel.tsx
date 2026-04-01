@@ -11,7 +11,8 @@
  *
  * Features:
  * - Secure API key input (password fields)
- * - localStorage persistence (browser-only, privacy-first)
+ * - Ephemeral sessionStorage persistence (clears on tab close, mitigates XSS)
+ * - Legacy localStorage cleanup on mount
  * - Helper links to get API keys
  * - Key validation and testing
  * - Clear/reset functionality
@@ -38,36 +39,39 @@ const STORAGE_KEYS = {
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
 /**
- * Load API keys from localStorage
+ * Load API keys from sessionStorage and proactively clean up leaking localStorage keys
  */
 export function loadAPIKeys(): APIKeys {
   if (typeof window === 'undefined') return {};
 
+  // Clean up any lingering vulnerabilities in localStorage
+  Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+
   return {
-    meshyApiKey: localStorage.getItem(STORAGE_KEYS.meshy) || undefined,
-    rodinApiKey: localStorage.getItem(STORAGE_KEYS.rodin) || undefined,
-    sketchfabApiKey: localStorage.getItem(STORAGE_KEYS.sketchfab) || undefined,
+    meshyApiKey: sessionStorage.getItem(STORAGE_KEYS.meshy) || undefined,
+    rodinApiKey: sessionStorage.getItem(STORAGE_KEYS.rodin) || undefined,
+    sketchfabApiKey: sessionStorage.getItem(STORAGE_KEYS.sketchfab) || undefined,
   };
 }
 
 /**
- * Save API key to localStorage
+ * Save API key to sessionStorage
  */
 export function saveAPIKey(service: keyof typeof STORAGE_KEYS, key: string) {
   if (typeof window === 'undefined') return;
   if (key.trim()) {
-    localStorage.setItem(STORAGE_KEYS[service], key.trim());
+    sessionStorage.setItem(STORAGE_KEYS[service], key.trim());
   } else {
-    localStorage.removeItem(STORAGE_KEYS[service]);
+    sessionStorage.removeItem(STORAGE_KEYS[service]);
   }
 }
 
 /**
- * Clear API key from localStorage
+ * Clear API key from sessionStorage
  */
 export function clearAPIKey(service: keyof typeof STORAGE_KEYS) {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEYS[service]);
+  sessionStorage.removeItem(STORAGE_KEYS[service]);
 }
 
 /**
@@ -75,7 +79,7 @@ export function clearAPIKey(service: keyof typeof STORAGE_KEYS) {
  */
 export function clearAllAPIKeys() {
   if (typeof window === 'undefined') return;
-  Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  Object.values(STORAGE_KEYS).forEach((key) => sessionStorage.removeItem(key));
 }
 
 /**
@@ -158,8 +162,8 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
           unlocks the vision model.
         </p>
         <p className="privacy-note">
-          🔒 <strong>Privacy:</strong> Keys stored locally in your browser. Never sent to HoloScript
-          servers.
+          🔒 <strong>Privacy & Security:</strong> Keys are stored securely in ephemeral browser session memory. 
+          Keys are automatically wiped when you close the tab and are <em>never</em> sent to HoloScript servers.
         </p>
       </div>
 

@@ -9,6 +9,7 @@ import {
   type CharacterMetadata,
 } from '@/industry/character/creation/CharacterCreationModal';
 import { ContextMenu, SimplePropertyInspector } from '@holoscript/ui';
+import { logger } from '@/lib/logger';
 import {
   Box,
   Lamp,
@@ -553,7 +554,7 @@ export function CreatorLayout({ viewportSlot }: CreatorLayoutProps) {
         isOpen={characterModalOpen}
         onClose={() => setCharacterModalOpen(false)}
         onCharacterCreated={(glbUrl, metadata) => {
-          console.log('[CreatorLayout] Character created globally:', metadata);
+          logger.debug('[CreatorLayout] Character created globally:', metadata);
           setGlbUrl(glbUrl);
         }}
       />

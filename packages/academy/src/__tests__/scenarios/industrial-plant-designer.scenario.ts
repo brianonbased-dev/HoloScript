@@ -616,6 +616,5 @@ describe('Scenario: Industrial Plant Designer — Templates', () => {
   });
 
   it('"hospital-simulation" template — OR, ICU, supply chain (@holoscript/core+)', () => {
-    expect(true).toBe(true);
   });
 });

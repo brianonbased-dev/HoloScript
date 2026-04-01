@@ -17,6 +17,7 @@
 import { useState } from 'react';
 import { useCharacterStore, type WardrobeSlot, type WardrobeItem } from '@/lib/stores';
 import { Download, FileJson, Package } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // ── Character Card export ───────────────────────────────────────────────────
 
@@ -118,7 +119,7 @@ export function CharacterExportPanel() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('[ExportPanel] Export failed:', err);
+      logger.error('[ExportPanel] Export failed:', err);
     } finally {
       setExporting(false);
     }

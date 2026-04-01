@@ -164,6 +164,5 @@ describe('PerformanceTelemetry', () => {
       enabled: true,
     });
     // Budget is stored — no error
-    expect(true).toBe(true);
   });
 });

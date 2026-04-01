@@ -61,6 +61,5 @@ describe('Hot-Reload (Phase 22)', () => {
     // This test requires registerTemplate, spawnTemplate, and hotReload
     // methods which exist in the runtime implementation but aren't yet
     // exposed in the public HSPlusRuntime interface.
-    expect(true).toBe(true);
   });
 });

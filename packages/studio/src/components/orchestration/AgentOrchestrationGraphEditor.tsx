@@ -66,6 +66,7 @@ import { UserCursors } from '@/components/collaboration/UserCursor';
 import { usePresence } from '@/hooks/usePresence';
 import type { User } from '@/lib/collaboration/types';
 import { VersionControlPanel } from '@/components/versionControl/VersionControlPanel';
+import { logger } from '@/lib/logger';
 
 // Node component for Agent nodes
 function AgentNode({ data }: { data: AgentNodeData }) {
@@ -401,7 +402,7 @@ export function AgentOrchestrationGraphEditor({
         <TemplateBrowserPanel
           onClose={() => setShowTemplateBrowser(false)}
           onLoadTemplate={(templateId, type) => {
-            console.log(`[WorkflowEditor] Loaded template: ${templateId} (${type})`);
+            logger.debug(`[WorkflowEditor] Loaded template: ${templateId} (${type})`);
             setShowTemplateBrowser(false);
           }}
         />

@@ -73,6 +73,5 @@ describe('RopeSystem', () => {
     sys.createRope('r10', { x: 0, y: 5, z: 0 }, { x: 5, y: 5, z: 0 });
     sys.attach('r10', { nodeIndex: 0, entityId: 'ent1', offset: { x: 0, y: 0, z: 0 } });
     // No throw = success (attachments are internal)
-    expect(true).toBe(true);
   });
 });

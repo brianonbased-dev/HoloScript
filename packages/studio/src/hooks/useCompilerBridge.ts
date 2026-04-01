@@ -18,7 +18,7 @@
  *
  *   const handleCompile = async () => {
  *     const result = await compile(editorValue, 'threejs');
- *     if (result.type === 'text') console.log(result.data);
+ *     if (result.type === 'text') logger.debug(result.data);
  *   };
  * }
  * ```
@@ -38,6 +38,7 @@ import {
 } from '@/lib/wasm-compiler-bridge';
 import { detectPlatform, type PlatformCapabilities } from '@/lib/platform-detect';
 import { getPluginLoader, type PlatformPluginLoader } from '@/lib/platform-plugin-loader';
+import { logger } from '@/lib/logger';
 
 // ═══════════════════════════════════════════════════════════════════
 // Hook Return Type
@@ -149,7 +150,7 @@ export function useCompilerBridge(): UseCompilerBridgeReturn {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
-      console.error('[useCompilerBridge] Init failed:', msg);
+      logger.error('[useCompilerBridge] Init failed:', msg);
 
       // Still mark as "ready" — fallback mode is usable
       setIsReady(true);

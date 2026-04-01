@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Music2, X, Play, Square, Copy, Plus } from 'lucide-react';
 import { useAudioVisualizer, type VisualizerMode } from '@/hooks/useAudioVisualizer';
 import { useSceneStore } from '@/lib/stores';
+import { logger } from '@/lib/logger';
 
 interface AudioPreset {
   id: string;
@@ -51,7 +52,7 @@ export function AudioVisualizerPanel({ onClose }: AudioVisualizerPanelProps) {
         setPresets(d.presets);
         if (d.presets[0]) setSelected(d.presets[0]);
       })
-      .catch(() => {});
+      .catch((err) => logger.warn('Swallowed error caught:', err));
   }, []);
 
   const insert = () => {

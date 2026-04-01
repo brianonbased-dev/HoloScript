@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Camera, Video, MonitorPlay, Square, Play, Square as StopSquare } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook to access the canvas DOM element from within R3F.
@@ -49,7 +50,7 @@ export function ContentCameraCapture() {
         recorder.start();
         setIsRecording(true);
       } catch (e) {
-        console.error('Failed to start MediaRecorder', e);
+        logger.error('Failed to start MediaRecorder', e);
       }
     };
 

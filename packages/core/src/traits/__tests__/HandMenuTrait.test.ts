@@ -53,7 +53,6 @@ describe('HandMenuTrait', () => {
   it('cleans up on detach', () => {
     handMenuHandler.onDetach?.(node as any, {} as any, ctx);
     // Should not throw
-    expect(true).toBe(true);
   });
 
   it('updates position and scale on update with hand present', () => {

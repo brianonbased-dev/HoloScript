@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * aiCharacterGeneration.ts — AI Character Generation Service
  *
@@ -227,11 +228,11 @@ async function pollRodinStatus(taskId: string): Promise<GenerationStatus> {
  * Returns task ID for polling
  */
 export async function startGeneration(request: GenerationRequest): Promise<string> {
-  console.log('[AICharacterGen] Starting generation:', request);
+  logger.debug('[AICharacterGen] Starting generation:', request);
 
   // Use mock mode if API keys not configured
   if (shouldUseMockMode()) {
-    console.warn('[AICharacterGen] Using mock mode (no API keys configured)');
+    logger.warn('[AICharacterGen] Using mock mode (no API keys configured)');
     return `mock-${Date.now()}`;
   }
 
@@ -242,7 +243,7 @@ export async function startGeneration(request: GenerationRequest): Promise<strin
       return await generateWithRodin(request);
     }
   } catch (error) {
-    console.error('[AICharacterGen] Generation failed:', error);
+    logger.error('[AICharacterGen] Generation failed:', error);
     throw new Error('Failed to start character generation. Please check your API configuration.');
   }
 }
@@ -257,7 +258,7 @@ export async function pollGenerationStatus(
 ): Promise<GenerationStatus> {
   // Mock mode
   if (shouldUseMockMode() || taskId.startsWith('mock-')) {
-    console.log('[AICharacterGen] Mock polling:', taskId);
+    logger.debug('[AICharacterGen] Mock polling:', taskId);
 
     // Simulate progress
     const elapsed = Date.now() - parseInt(taskId.split('-')[1] || '0');
@@ -290,7 +291,7 @@ export async function pollGenerationStatus(
       return await pollRodinStatus(taskId);
     }
   } catch (error) {
-    console.error('[AICharacterGen] Polling failed:', error);
+    logger.error('[AICharacterGen] Polling failed:', error);
     throw new Error('Failed to check generation status');
   }
 }
@@ -300,12 +301,12 @@ export async function pollGenerationStatus(
  */
 export async function cancelGeneration(provider: AIProvider, taskId: string): Promise<void> {
   if (shouldUseMockMode() || taskId.startsWith('mock-')) {
-    console.log('[AICharacterGen] Mock cancellation:', taskId);
+    logger.debug('[AICharacterGen] Mock cancellation:', taskId);
     return;
   }
 
   // Implementation depends on provider API
-  console.warn('[AICharacterGen] Cancellation not implemented for provider:', provider);
+  logger.warn('[AICharacterGen] Cancellation not implemented for provider:', provider);
 }
 
 /**

@@ -2,7 +2,6 @@
 /**
  * CompilationPipelineVisualizer — Visual representation of HoloScript compilation pipeline
  *
- * TODO-062: Compilation Pipeline Visualizer
  *
  * Features:
  * - Pipeline stage visualization (parse -> validate -> optimize -> emit)

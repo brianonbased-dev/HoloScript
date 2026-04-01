@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { getVersionControl } from '@/lib/versionControl';
 import type { WorkflowCommit, WorkflowDiff } from '@/lib/versionControl';
 import type { AgentWorkflow } from '@/lib/orchestrationStore';
+import { logger } from '@/lib/logger';
 
 export interface UseVersionControlOptions {
   workflowId: string;
@@ -48,7 +49,7 @@ export function useVersionControl({
       const branchList = await vc.getBranches(workflowId);
       setBranches(branchList);
     } catch (err) {
-      console.error('Get history error:', err);
+      logger.error('Get history error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load history');
     } finally {
       setLoading(false);
@@ -71,7 +72,7 @@ export function useVersionControl({
         setCommits((prev) => [newCommit, ...prev]);
         return newCommit;
       } catch (err) {
-        console.error('Commit error:', err);
+        logger.error('Commit error:', err);
         setError(err instanceof Error ? err.message : 'Failed to commit');
         return null;
       } finally {
@@ -91,7 +92,7 @@ export function useVersionControl({
         const diff = await vc.getDiff(commitA, commitB);
         return diff;
       } catch (err) {
-        console.error('Get diff error:', err);
+        logger.error('Get diff error:', err);
         setError(err instanceof Error ? err.message : 'Failed to compute diff');
         return null;
       } finally {
@@ -111,7 +112,7 @@ export function useVersionControl({
         const revertedWorkflow = await vc.revert(workflowId, commitId);
         return revertedWorkflow;
       } catch (err) {
-        console.error('Revert error:', err);
+        logger.error('Revert error:', err);
         setError(err instanceof Error ? err.message : 'Failed to revert');
         return null;
       } finally {
@@ -131,7 +132,7 @@ export function useVersionControl({
         await vc.createBranch(workflowId, branchName);
         setBranches((prev) => [...prev, branchName]);
       } catch (err) {
-        console.error('Create branch error:', err);
+        logger.error('Create branch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to create branch');
       } finally {
         setLoading(false);
@@ -151,7 +152,7 @@ export function useVersionControl({
         setCommits((prev) => [mergeCommit, ...prev]);
         return mergeCommit;
       } catch (err) {
-        console.error('Merge branch error:', err);
+        logger.error('Merge branch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to merge branch');
         return null;
       } finally {

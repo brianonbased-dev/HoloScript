@@ -1,4 +1,5 @@
 import type { GenerateRequest, GenerateResponse } from '@/types';
+import { logger } from '@/lib/logger';
 
 export async function generateScene(req: GenerateRequest): Promise<GenerateResponse> {
   const res = await fetch('/api/generate', {
@@ -36,7 +37,7 @@ export async function checkOllamaHealth(): Promise<boolean> {
  * ```typescript
  * const models = await listOllamaModels();
  * if (models.length > 0) {
- *   console.log(`Available models: ${models.join(', ')}`);
+ *   logger.debug(`Available models: ${models.join(', ')}`);
  * }
  * ```
  */

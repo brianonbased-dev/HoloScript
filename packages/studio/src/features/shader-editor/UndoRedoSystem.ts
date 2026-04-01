@@ -12,6 +12,7 @@
 
 import { ShaderGraph } from '@/lib/shaderGraph';
 import type { IShaderNode, IShaderConnection } from '@/lib/shaderGraph';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // Types
@@ -390,7 +391,7 @@ export class UndoRedoSystem {
    */
   execute(command: ICommand): void {
     if (!this.graph) {
-      console.warn('No graph set for undo/redo system');
+      logger.warn('No graph set for undo/redo system');
       return;
     }
 
@@ -513,7 +514,7 @@ export class UndoRedoSystem {
       try {
         listener(event);
       } catch (error) {
-        console.error('Error in undo/redo listener:', error);
+        logger.error('Error in undo/redo listener:', error);
       }
     });
   }
@@ -531,7 +532,7 @@ export class UndoRedoSystem {
       };
       localStorage.setItem(this.storageKey, JSON.stringify(data));
     } catch (error) {
-      console.warn('Failed to save undo history:', error);
+      logger.warn('Failed to save undo history:', error);
     }
   }
 
@@ -542,7 +543,7 @@ export class UndoRedoSystem {
     try {
       localStorage.removeItem(this.storageKey);
     } catch (error) {
-      console.warn('Failed to clear undo history:', error);
+      logger.warn('Failed to clear undo history:', error);
     }
   }
 

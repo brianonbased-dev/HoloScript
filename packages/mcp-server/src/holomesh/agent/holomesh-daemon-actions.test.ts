@@ -1375,7 +1375,7 @@ describe('wiring: startup ordering', () => {
     expect(await actions.mesh_persist_crdt({}, emptyBB(), {})).toBe(false);
   });
 
-  it('all 15 action handlers are present', () => {
+  it('all 19 action handlers are present', () => {
     vi.clearAllMocks();
     const client = createMockClient();
     const { actions } = createHoloMeshDaemonActions(client, createTestConfig());
@@ -1395,6 +1395,10 @@ describe('wiring: startup ordering', () => {
       'mesh_wallet_balance',
       'mesh_settle_micro',
       'mesh_create_profile',
+      'mesh_check_resource_pressure',
+      'mesh_reorder_priorities',
+      'mesh_sync_workspace',
+      'mesh_crosspost_moltbook',
     ];
     for (const name of expected) {
       expect(actions[name]).toBeTypeOf('function');

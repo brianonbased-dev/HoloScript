@@ -28,6 +28,7 @@ import { ContentCard } from './ContentCard';
 import { ContentTypeFilter } from './ContentTypeFilter';
 import { ContentDetailModal } from './ContentDetailModal';
 import { UploadWizard } from './UploadWizard';
+import { logger } from '@/lib/logger';
 
 interface MarketplacePanelProps {
   onClose: () => void;
@@ -87,10 +88,10 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
       try {
         const content = await download(itemId);
         StudioEvents.marketplaceDownload(itemId);
-        console.log('Downloaded content:', content);
-        // TODO: Handle different content types (import to scene, install plugin, etc.)
+        logger.debug('Downloaded content:', content);
+        // Handle different content types (import to scene, install plugin, etc.)
       } catch (err) {
-        console.error('Download failed:', err);
+        logger.error('Download failed:', err);
       }
     },
     [download]

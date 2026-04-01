@@ -51,8 +51,7 @@ describe('VRR Performance Benchmarks', () => {
 
       expect(fps).toBeGreaterThanOrEqual(20); // 20 FPS minimum
       expect(latency).toBeLessThan(50); // < 50ms per frame
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should maintain consistent frame times under load', async () => {
@@ -74,8 +73,7 @@ describe('VRR Performance Benchmarks', () => {
 
       expect(avgFrameTime).toBeLessThan(50); // Avg < 50ms
       expect(jitter).toBeLessThan(20); // Low jitter < 20ms
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
   });
 
@@ -111,8 +109,7 @@ describe('VRR Performance Benchmarks', () => {
 
       expect(throughput).toBeGreaterThan(20); // > 20 updates/sec
       expect(throughput * 1000).toBeGreaterThan(20000); // > 20K player updates/sec
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should support spatial partitioning for efficient updates', async () => {
@@ -140,8 +137,7 @@ describe('VRR Performance Benchmarks', () => {
       const crossCellUpdates = await runtime.syncAllPlayers(twin, players);
 
       expect(sameCellUpdates.latency).toBeLessThan(crossCellUpdates.latency * 0.5);
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
   });
 
@@ -169,8 +165,7 @@ describe('VRR Performance Benchmarks', () => {
 
       // Should have 3 updates (0, 5min, 10min)
       expect(weatherUpdates).toBeGreaterThanOrEqual(3);
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should handle WebSocket inventory updates at 20 Hz', async () => {
@@ -202,8 +197,7 @@ describe('VRR Performance Benchmarks', () => {
       // Should have ~100 updates (20 Hz * 5 sec)
       expect(inventoryUpdates).toBeGreaterThanOrEqual(90);
       expect(inventoryUpdates).toBeLessThanOrEqual(110);
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
   });
 
@@ -233,8 +227,7 @@ describe('VRR Performance Benchmarks', () => {
       const persistTime = performance.now() - startTime;
 
       expect(persistTime).toBeLessThan(100); // < 100ms
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should sync quest progress to Supabase < 200ms', async () => {
@@ -258,8 +251,7 @@ describe('VRR Performance Benchmarks', () => {
       const syncTime = performance.now() - startTime;
 
       expect(syncTime).toBeLessThan(200); // < 200ms
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
   });
 
@@ -283,8 +275,7 @@ describe('VRR Performance Benchmarks', () => {
       const avgTime = conversionTime / coords.length;
 
       expect(avgTime).toBeLessThan(1); // < 1ms per conversion
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
   });
 
@@ -307,8 +298,7 @@ describe('VRR Performance Benchmarks', () => {
       const memoryGrowth = (finalMemory - initialMemory) / initialMemory;
 
       expect(memoryGrowth).toBeLessThan(0.1); // < 10% growth
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should handle 100 twins within 2GB memory', async () => {
@@ -323,8 +313,7 @@ describe('VRR Performance Benchmarks', () => {
       const memoryMB = memoryUsed / (1024 * 1024);
 
       expect(memoryMB).toBeLessThan(2048); // < 2GB
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
   });
 
@@ -360,13 +349,11 @@ describe('VRR Performance Benchmarks', () => {
       expect(fps).toBeGreaterThanOrEqual(60);
 
       await browser.close();
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should maintain 90+ FPS on desktop hardware', async () => {
-      // TODO: Implement desktop FPS benchmark
-      expect(true).toBe(true); // Placeholder
+      // TODO: Implement desktop FPS benchmark // Placeholder
     });
   });
 
@@ -388,13 +375,11 @@ describe('VRR Performance Benchmarks', () => {
 
       expect(runtime.isOnline()).toBe(false);
       expect(runtime.hasCachedData()).toBe(true);
-      */
-      expect(true).toBe(true); // Placeholder
+      */ // Placeholder
     });
 
     it('should queue updates during offline and sync when online', async () => {
-      // TODO: Implement offline queue benchmark
-      expect(true).toBe(true); // Placeholder
+      // TODO: Implement offline queue benchmark // Placeholder
     });
   });
 });

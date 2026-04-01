@@ -6,11 +6,9 @@ import { describe, it, expect } from 'vitest';
 describe('EconomicTraits', () => {
   it('should be defined', () => {
     // TODO: Import and test EconomicTraits
-    expect(true).toBe(true);
   });
 
   it('should have basic functionality', () => {
     // TODO: Add meaningful tests for EconomicTraits
-    expect(true).toBe(true);
   });
 });

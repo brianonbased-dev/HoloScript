@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Package, Search, Download, Loader2, X, Star, RefreshCw, Tag } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { logger } from '@/lib/logger';
 
 interface RegistryPack {
   packId: string;
@@ -82,7 +83,7 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
     async (pack: RegistryPack) => {
       setImporting(pack.packId);
       // Increment download count
-      await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch(() => {});
+      await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch((err) => logger.warn('Swallowed error caught:', err));
 
       if (pack.previewCode) {
         // Append preview HoloScript to current code

@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getCollaborationClient } from '@/lib/collaboration/client';
 import type { User, UserPresence, ConnectionStatus } from '@/lib/collaboration/types';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
+import { logger } from '@/lib/logger';
 
 export interface UseYjsCollaborationOptions {
   workflowId: string;
@@ -84,7 +85,7 @@ export function useYjsCollaboration({
         unobserve();
       };
     } catch (err) {
-      console.error('Collaboration connection error:', err);
+      logger.error('Collaboration connection error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setConnectionStatus('failed');
     }
@@ -97,7 +98,7 @@ export function useYjsCollaboration({
       setConnectionStatus('disconnected');
       setUsers([]);
     } catch (err) {
-      console.error('Collaboration disconnect error:', err);
+      logger.error('Collaboration disconnect error:', err);
     }
   }, []);
 
@@ -106,7 +107,7 @@ export function useYjsCollaboration({
       const client = getCollaborationClient();
       client.updateCursor(x, y, nodeId);
     } catch (err) {
-      console.error('Update cursor error:', err);
+      logger.error('Update cursor error:', err);
     }
   }, []);
 
@@ -115,19 +116,26 @@ export function useYjsCollaboration({
       const client = getCollaborationClient();
       client.updateSelection(nodeIds);
     } catch (err) {
-      console.error('Update selection error:', err);
+      logger.error('Update selection error:', err);
     }
   }, []);
 
   // Auto-connect when enabled
   useEffect(() => {
+    let unobservePromise: Promise<(() => void) | undefined> | undefined;
+
     if (enabled) {
-      connect();
+      unobservePromise = connect();
     }
 
     return () => {
       if (enabled) {
         disconnect();
+      }
+      if (unobservePromise) {
+        unobservePromise.then((unobserve) => {
+          if (typeof unobserve === 'function') unobserve();
+        });
       }
     };
   }, [enabled, connect, disconnect]);

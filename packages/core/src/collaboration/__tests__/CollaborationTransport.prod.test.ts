@@ -111,7 +111,6 @@ describe('CollaborationTransport — Production', () => {
     transport.onMessage(handler);
     transport.offMessage(handler);
     // Just verifies no errors thrown during registration cycle
-    expect(true).toBe(true);
   });
 
   it('onError/offError registration', () => {
@@ -119,7 +118,6 @@ describe('CollaborationTransport — Production', () => {
     const handler = vi.fn();
     transport.onError(handler);
     transport.offError(handler);
-    expect(true).toBe(true);
   });
 
   it('onStateChange/offStateChange registration', () => {
@@ -127,6 +125,5 @@ describe('CollaborationTransport — Production', () => {
     const handler = vi.fn();
     transport.onStateChange(handler);
     transport.offStateChange(handler);
-    expect(true).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * vrmImport.ts — VRM Avatar Import & Parsing
  *
@@ -50,7 +51,7 @@ export function isValidVRM(file: File): boolean {
   // Check file size (VRM files should be reasonable size)
   const maxSize = 100 * 1024 * 1024; // 100MB
   if (file.size > maxSize) {
-    console.warn('[VRMImport] File too large:', file.size);
+    logger.warn('[VRMImport] File too large:', file.size);
     return false;
   }
 
@@ -72,7 +73,7 @@ export async function extractVRMMetadata(file: File): Promise<VRMMetadata | null
 
     // Check GLTF magic number (0x46546C67 = "glTF")
     if (magic !== 0x46546c67) {
-      console.error('[VRMImport] Not a valid GLTF file');
+      logger.error('[VRMImport] Not a valid GLTF file');
       return null;
     }
 
@@ -82,7 +83,7 @@ export async function extractVRMMetadata(file: File): Promise<VRMMetadata | null
 
     if (jsonChunkType !== 0x4e4f534a) {
       // "JSON"
-      console.error('[VRMImport] Missing JSON chunk');
+      logger.error('[VRMImport] Missing JSON chunk');
       return null;
     }
 
@@ -94,7 +95,7 @@ export async function extractVRMMetadata(file: File): Promise<VRMMetadata | null
     // Extract VRM extension metadata
     const vrmExtension = gltf.extensions?.VRM;
     if (!vrmExtension) {
-      console.warn('[VRMImport] No VRM extension found');
+      logger.warn('[VRMImport] No VRM extension found');
       return null;
     }
 
@@ -115,7 +116,7 @@ export async function extractVRMMetadata(file: File): Promise<VRMMetadata | null
       otherPermissionUrl: meta.otherPermissionUrl,
     };
   } catch (error) {
-    console.error('[VRMImport] Failed to extract metadata:', error);
+    logger.error('[VRMImport] Failed to extract metadata:', error);
     return null;
   }
 }
@@ -151,7 +152,7 @@ function extractThumbnailFromGLTF(gltf: any, textureIndex: number): string | und
  * Returns avatar data with metadata
  */
 export async function importVRM(file: File): Promise<VRMAvatar> {
-  console.log('[VRMImport] Importing VRM:', file.name);
+  logger.debug('[VRMImport] Importing VRM:', file.name);
 
   // Validate file
   if (!isValidVRM(file)) {
@@ -205,7 +206,7 @@ export async function convertVRMtoGLB(vrmFile: File): Promise<Blob> {
  * This is a placeholder for future implementation
  */
 export async function searchVRoidHub(query: string): Promise<any[]> {
-  console.warn('[VRMImport] VRoid Hub search not yet implemented');
+  logger.warn('[VRMImport] VRoid Hub search not yet implemented');
 
   // Mock results for development
   return [

@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { LayoutTemplate, X, Search, ChevronRight, Layers } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { logger } from '@/lib/logger';
 
 type TemplateCategory = 'environment' | 'architecture' | 'sci-fi' | 'fantasy' | 'minimal' | 'game';
 
@@ -70,7 +71,7 @@ export function TemplateGallery({ onClose }: TemplateGalleryProps) {
         setTemplates(d.templates);
         if (d.categories?.length) setCategories(d.categories);
       })
-      .catch(() => {})
+      .catch((err) => logger.warn('Swallowed error caught:', err))
       .finally(() => setLoading(false));
   }, [activeCategory, q]);
 

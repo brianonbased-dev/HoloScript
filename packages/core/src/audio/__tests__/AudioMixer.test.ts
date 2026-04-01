@@ -509,7 +509,6 @@ describe('AudioMixer', () => {
       });
 
       // Configuration should be stored (no exception thrown)
-      expect(true).toBe(true);
     });
 
     it('removes sidechain configuration', () => {
@@ -526,7 +525,6 @@ describe('AudioMixer', () => {
       mixer.removeSidechain('music', 'sfx');
 
       // No exception thrown
-      expect(true).toBe(true);
     });
   });
 });

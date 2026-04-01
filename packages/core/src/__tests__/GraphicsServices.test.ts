@@ -268,7 +268,6 @@ describe('PlatformPerformanceOptimizer', () => {
       optimizer.updateFrameMetrics(25, 550, 20);
 
       // Should track without errors
-      expect(true).toBe(true);
     });
 
     it('should provide recommendations for low FPS', () => {

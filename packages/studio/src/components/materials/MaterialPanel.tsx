@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { Palette, X, Search, Copy, Plus, ChevronDown } from 'lucide-react';
 import { useSceneStore, useEditorStore, useSceneGraphStore } from '@/lib/stores';
+import { logger } from '@/lib/logger';
 
 interface MaterialPreset {
   id: string;
@@ -104,7 +105,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         setPresets(d.presets);
         if (d.categories?.length) setCategories(d.categories);
       })
-      .catch(() => {})
+      .catch((err) => logger.warn('Swallowed error caught:', err))
       .finally(() => setLoading(false));
   }, [activeCategory, q]);
 

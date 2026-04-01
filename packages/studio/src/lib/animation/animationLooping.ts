@@ -13,6 +13,7 @@
 
 import type { BoneFrame, RecordedClip } from './animationBuilder';
 import * as THREE from 'three';
+import { logger } from '@/lib/logger';
 
 export interface LoopAnalysis {
   canLoop: boolean;
@@ -152,7 +153,7 @@ export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = 
 
   // If too poor to loop, add warning
   if (analysis.loopQuality === 'poor') {
-    console.warn('[Loop] Animation has poor loop quality. Consider re-recording.');
+    logger.warn('[Loop] Animation has poor loop quality. Consider re-recording.');
   }
 
   // Group frames by bone

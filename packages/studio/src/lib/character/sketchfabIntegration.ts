@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * sketchfabIntegration.ts — Sketchfab Search & Download
  *
@@ -84,7 +85,7 @@ export async function searchSketchfab(
   params: SketchfabSearchParams,
   page: number = 1
 ): Promise<{ models: SketchfabModel[]; nextPage: number | null; totalCount: number }> {
-  console.log('[Sketchfab] Searching:', params);
+  logger.debug('[Sketchfab] Searching:', params);
 
   // Build query parameters
   const queryParams = new URLSearchParams({
@@ -175,7 +176,7 @@ export async function searchSketchfab(
       totalCount: data.count || 0,
     };
   } catch (error) {
-    console.error('[Sketchfab] Search failed:', error);
+    logger.error('[Sketchfab] Search failed:', error);
     throw new Error('Failed to search Sketchfab. Please try again.');
   }
 }
@@ -186,7 +187,7 @@ export async function searchSketchfab(
  * Get detailed model information
  */
 export async function getModelDetails(uid: string): Promise<SketchfabModel> {
-  console.log('[Sketchfab] Fetching model details:', uid);
+  logger.debug('[Sketchfab] Fetching model details:', uid);
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -242,7 +243,7 @@ export async function getModelDetails(uid: string): Promise<SketchfabModel> {
  * NOTE: Requires API key or OAuth authentication
  */
 export async function getDownloadUrl(uid: string): Promise<string> {
-  console.log('[Sketchfab] Getting download URL:', uid);
+  logger.debug('[Sketchfab] Getting download URL:', uid);
 
   if (!getSketchfabAPI().apiKey) {
     throw new Error(

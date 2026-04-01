@@ -13,6 +13,7 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import { ShaderGraph } from '@/lib/shaderGraph';
 import type { ISerializedShaderGraph } from '@/lib/shaderGraph';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // Types
@@ -222,7 +223,7 @@ export class ShaderEditorService {
 
     // Trigger sync if enabled
     if (this.syncEnabled && this.syncHooks.onUpdate) {
-      this.syncHooks.onUpdate(graph).catch(console.error);
+      this.syncHooks.onUpdate(graph).catch(logger.error);
     }
   }
 
@@ -250,7 +251,7 @@ export class ShaderEditorService {
 
     // Trigger sync if enabled
     if (this.syncEnabled && this.syncHooks.onDelete) {
-      this.syncHooks.onDelete(id).catch(console.error);
+      this.syncHooks.onDelete(id).catch(logger.error);
     }
 
     return true;
@@ -346,7 +347,7 @@ export class ShaderEditorService {
     }
 
     this.autoSaveTimer = setTimeout(() => {
-      this.processAutoSaveQueue().catch(console.error);
+      this.processAutoSaveQueue().catch(logger.error);
     }, this.autoSaveDelay);
   }
 
@@ -361,7 +362,7 @@ export class ShaderEditorService {
       try {
         await this.update(entry.graph, false);
       } catch (error) {
-        console.error(`Auto-save failed for graph ${entry.graphId}:`, error);
+        logger.error(`Auto-save failed for graph ${entry.graphId}:`, error);
       }
     }
   }

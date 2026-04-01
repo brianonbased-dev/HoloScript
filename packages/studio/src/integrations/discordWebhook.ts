@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * discordWebhook.ts — Discord Webhook Integration for Real-Time Reaction Triggers
  *
@@ -97,7 +98,7 @@ export class DiscordWebhookManager {
       this.start();
     }
 
-    console.log('[DiscordWebhook] Initialized', {
+    logger.debug('[DiscordWebhook] Initialized', {
       hasWebhook: !!this.config.webhookUrl,
       hasBotToken: !!this.config.botToken,
       channels: this.config.channelIds.length,
@@ -109,7 +110,7 @@ export class DiscordWebhookManager {
    */
   start(): void {
     if (this.isListening) {
-      console.warn('[DiscordWebhook] Already listening');
+      logger.warn('[DiscordWebhook] Already listening');
       return;
     }
 
@@ -123,10 +124,10 @@ export class DiscordWebhookManager {
     else if (this.config.webhookUrl) {
       this.startPolling();
     } else {
-      console.warn('[DiscordWebhook] No bot token or webhook URL provided');
+      logger.warn('[DiscordWebhook] No bot token or webhook URL provided');
     }
 
-    console.log('[DiscordWebhook] Started listening');
+    logger.debug('[DiscordWebhook] Started listening');
   }
 
   /**
@@ -151,7 +152,7 @@ export class DiscordWebhookManager {
     }
 
     this.isConnected = false;
-    console.log('[DiscordWebhook] Stopped listening');
+    logger.debug('[DiscordWebhook] Stopped listening');
   }
 
   /**
@@ -161,7 +162,7 @@ export class DiscordWebhookManager {
     // In a real implementation, this would connect to Discord Gateway
     // For now, we'll use a mock WebSocket for demonstration
 
-    console.log('[DiscordWebhook] Connecting to Discord Gateway...');
+    logger.debug('[DiscordWebhook] Connecting to Discord Gateway...');
 
     // Mock WebSocket URL (in production, use Discord Gateway)
     const mockWsUrl = 'ws://localhost:8080/discord-gateway';
@@ -171,7 +172,7 @@ export class DiscordWebhookManager {
 
       this.ws.onopen = () => {
         this.isConnected = true;
-        console.log('[DiscordWebhook] Connected to Discord Gateway');
+        logger.debug('[DiscordWebhook] Connected to Discord Gateway');
 
         // Send authentication
         if (this.ws) {
@@ -197,28 +198,28 @@ export class DiscordWebhookManager {
           const data = JSON.parse(event.data);
           this.handleGatewayMessage(data);
         } catch (error) {
-          console.error('[DiscordWebhook] Failed to parse message:', error);
+          logger.error('[DiscordWebhook] Failed to parse message:', error);
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error('[DiscordWebhook] WebSocket error:', error);
+        logger.error('[DiscordWebhook] WebSocket error:', error);
       };
 
       this.ws.onclose = () => {
         this.isConnected = false;
-        console.log('[DiscordWebhook] Disconnected from Discord Gateway');
+        logger.debug('[DiscordWebhook] Disconnected from Discord Gateway');
 
         // Auto-reconnect after 5 seconds
         if (this.isListening) {
           setTimeout(() => {
-            console.log('[DiscordWebhook] Attempting to reconnect...');
+            logger.debug('[DiscordWebhook] Attempting to reconnect...');
             this.connectWebSocket();
           }, 5000);
         }
       };
     } catch (error) {
-      console.error('[DiscordWebhook] Failed to create WebSocket:', error);
+      logger.error('[DiscordWebhook] Failed to create WebSocket:', error);
       // Fallback to polling
       this.startPolling();
     }
@@ -257,7 +258,7 @@ export class DiscordWebhookManager {
    * Start polling for reactions (fallback method)
    */
   private startPolling(): void {
-    console.log('[DiscordWebhook] Starting polling fallback');
+    logger.debug('[DiscordWebhook] Starting polling fallback');
 
     this.pollingInterval = setInterval(() => {
       // In a real implementation, this would poll Discord API for new reactions
@@ -285,20 +286,20 @@ export class DiscordWebhookManager {
     const now = Date.now();
 
     if (now - lastTime < this.config.reactionCooldown) {
-      console.log('[DiscordWebhook] Reaction cooldown active, ignoring');
+      logger.debug('[DiscordWebhook] Reaction cooldown active, ignoring');
       return;
     }
 
     this.lastReactionTime.set(cooldownKey, now);
 
-    console.log('[DiscordWebhook] Reaction received:', reaction);
+    logger.debug('[DiscordWebhook] Reaction received:', reaction);
 
     // Trigger callbacks
     this.reactionCallbacks.forEach((callback) => {
       try {
         callback(reaction);
       } catch (error) {
-        console.error('[DiscordWebhook] Callback error:', error);
+        logger.error('[DiscordWebhook] Callback error:', error);
       }
     });
 
@@ -313,7 +314,7 @@ export class DiscordWebhookManager {
    * Execute trigger action
    */
   private executeTrigger(trigger: ReactionTrigger, reaction: DiscordReaction): void {
-    console.log('[DiscordWebhook] Executing trigger:', trigger, reaction);
+    logger.debug('[DiscordWebhook] Executing trigger:', trigger, reaction);
 
     // Dispatch custom event for trait system
     const event = new CustomEvent('discord-reaction-trigger', {
@@ -336,7 +337,7 @@ export class DiscordWebhookManager {
       cooldown,
     });
 
-    console.log('[DiscordWebhook] Registered trigger:', emoji, '→', action, value);
+    logger.debug('[DiscordWebhook] Registered trigger:', emoji, '→', action, value);
   }
 
   /**
@@ -344,7 +345,7 @@ export class DiscordWebhookManager {
    */
   unregisterTrigger(emoji: string): void {
     this.triggers.delete(emoji);
-    console.log('[DiscordWebhook] Unregistered trigger:', emoji);
+    logger.debug('[DiscordWebhook] Unregistered trigger:', emoji);
   }
 
   /**
@@ -373,7 +374,7 @@ export class DiscordWebhookManager {
    */
   async sendMessage(content: string, embeds?: any[]): Promise<boolean> {
     if (!this.config.webhookUrl) {
-      console.error('[DiscordWebhook] No webhook URL configured');
+      logger.error('[DiscordWebhook] No webhook URL configured');
       return false;
     }
 
@@ -393,10 +394,10 @@ export class DiscordWebhookManager {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('[DiscordWebhook] Message sent successfully');
+      logger.debug('[DiscordWebhook] Message sent successfully');
       return true;
     } catch (error) {
-      console.error('[DiscordWebhook] Failed to send message:', error);
+      logger.error('[DiscordWebhook] Failed to send message:', error);
       return false;
     }
   }

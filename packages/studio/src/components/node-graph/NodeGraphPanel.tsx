@@ -7,6 +7,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Network, X, Search, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { useNodeGraph, type GraphNode, type NodeDef } from '@/hooks/useNodeGraph';
+import { logger } from '@/lib/logger';
 
 const CATEGORY_COLOR: Record<string, string> = {
   input: '#4488ff',
@@ -126,7 +127,7 @@ export function NodeGraphPanel({ onClose }: NodeGraphPanelProps) {
     fetch('/api/nodes')
       .then((r) => r.json())
       .then((d: { nodes: NodeDef[] }) => setCatalog(d.nodes))
-      .catch(() => {});
+      .catch((err) => logger.warn('Swallowed error caught:', err));
   }, []);
 
   const filteredCatalog = catalog.filter(

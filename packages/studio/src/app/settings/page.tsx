@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * /settings — Account settings page.
@@ -40,7 +41,7 @@ export default function SettingsPage() {
           setWebsite(data.user.website ?? '');
         }
       })
-      .catch(() => {});
+      .catch((err) => logger.warn('Swallowed error caught:', err));
 
     // Load Stripe Connect status
     fetch('/api/stripe/connect')

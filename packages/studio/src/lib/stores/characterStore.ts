@@ -93,7 +93,7 @@ export const useCharacterStore = create<CharacterState>()(
       setSelectedBoneIndex: (selectedBoneIndex) => set({ selectedBoneIndex }),
       setShowSkeleton: (showSkeleton) => set({ showSkeleton }),
       setIsRecording: (isRecording) => set({ isRecording }),
-      addRecordedClip: (clip) => set((s) => ({ recordedClips: [...s.recordedClips, clip] })),
+      addRecordedClip: (clip) => set((s) => ({ recordedClips: [...s.recordedClips, clip].slice(-50) })),
       removeRecordedClip: (id) =>
         set((s) => ({ recordedClips: s.recordedClips.filter((c) => c.id !== id) })),
       renameRecordedClip: (id, name) =>

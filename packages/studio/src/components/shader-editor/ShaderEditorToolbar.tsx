@@ -11,6 +11,7 @@ import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useShaderCompilation } from '../../hooks/useShaderCompilation';
 import {
+import { logger } from '@/lib/logger';
   Save,
   FolderOpen,
   Undo2,
@@ -69,7 +70,7 @@ export function ShaderEditorToolbar() {
         const content = event.target?.result as string;
         loadGraph(content);
       } catch (error) {
-        console.error('Failed to load graph:', error);
+        logger.error('Failed to load graph:', error);
         alert('Failed to load shader graph file');
       }
     };

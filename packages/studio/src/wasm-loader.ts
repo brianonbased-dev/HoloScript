@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * WASM Module Loader for HoloScript Compiler
  *
@@ -49,7 +50,7 @@ export async function initializeWasm(
     // Create a wrapper with typed interface
     return createWasmWrapper(exports);
   } catch (error) {
-    console.error('Failed to initialize WASM:', error);
+    logger.error('Failed to initialize WASM:', error);
     throw new Error(`WASM initialization failed: ${String(error)}`);
   }
 }

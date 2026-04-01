@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Puzzle, X, Search, Star, Download, CheckCircle2, RefreshCw, Shield } from 'lucide-react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import type { HoloPlugin } from '@/app/api/plugins/route';
+import { logger } from '@/lib/logger';
 
 interface PluginMarketplacePanelProps {
   onClose: () => void;
@@ -127,7 +128,7 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
       try {
         await unloadPlugin(pluginId);
       } catch (err) {
-        console.warn(`[Marketplace] Error uninstalling ${pluginId}:`, err);
+        logger.warn(`[Marketplace] Error uninstalling ${pluginId}:`, err);
       }
     },
     [unloadPlugin]

@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -33,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const componentName = componentMatch ? componentMatch[1] : 'Unknown';
     const astPath = `AST_PATH::[Component:${componentName}]`;
 
-    console.error(`[HoloScript Studio] AST_PATH_ERROR ${astPath}:`, error, info.componentStack);
+    logger.error(`[HoloScript Studio] AST_PATH_ERROR ${astPath}:`, error, info.componentStack);
     this.setState({ astPath });
   }
 

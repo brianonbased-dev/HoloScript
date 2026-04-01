@@ -2,7 +2,6 @@
 /**
  * SyntheticDataDashboard — Configuration UI for synthetic training data generation
  *
- * TODO-060: Synthetic Data Configuration Dashboard
  *
  * Features:
  * - Camera placement configuration (grid, random, hemisphere)

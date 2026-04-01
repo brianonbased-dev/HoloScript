@@ -46,6 +46,7 @@ import {
   type ConnectionStatus as StoreConnectionStatus,
 } from '@/lib/stores/connectorStore';
 import { GitHubOAuthModal } from './GitHubOAuthModal';
+import { logger } from '@/lib/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -239,7 +240,7 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
 
       await connect(service.id as StoreServiceId, credentials);
     } catch (err) {
-      console.error(`[ServiceConnectorPanel] Connect failed:`, err);
+      logger.error(`[ServiceConnectorPanel] Connect failed:`, err);
     }
   }, [connect, service.id, service.configFields]);
 
@@ -248,7 +249,7 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
       await disconnect(service.id as StoreServiceId);
       setShowDisconnectConfirm(false);
     } catch (err) {
-      console.error(`[ServiceConnectorPanel] Disconnect failed:`, err);
+      logger.error(`[ServiceConnectorPanel] Disconnect failed:`, err);
     }
   }, [disconnect, service.id]);
 
@@ -259,7 +260,7 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
         await connect(service.id as StoreServiceId, { token: accessToken });
         setShowGitHubOAuth(false);
       } catch (err) {
-        console.error(`[ServiceConnectorPanel] OAuth connect failed:`, err);
+        logger.error(`[ServiceConnectorPanel] OAuth connect failed:`, err);
       }
     },
     [connect, service.id]

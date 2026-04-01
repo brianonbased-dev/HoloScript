@@ -2,7 +2,6 @@
 /**
  * ConfidenceAwareXRUI — WebXR UI that adapts to agent confidence levels
  *
- * TODO-063: Confidence-Aware WebXR UI
  *
  * Features:
  * - Three agent states: confident (green), uncertain (yellow), hallucinating (red)

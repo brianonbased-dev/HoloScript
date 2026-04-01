@@ -432,7 +432,6 @@ describe('VercelDeployer', () => {
       });
 
       // Verify it doesn't throw
-      expect(true).toBe(true);
     });
   });
 });

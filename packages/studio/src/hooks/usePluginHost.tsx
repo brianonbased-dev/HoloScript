@@ -23,6 +23,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { logger } from '@/lib/logger';
 import {
   SandboxedPluginHost,
   type SandboxedPluginHostOptions,
@@ -116,7 +117,7 @@ export function PluginHostProvider({
             return { subscribed: true };
           }
           if (method === 'write') {
-            console.warn(
+            logger.warn(
               `[PluginHost] scene.write from ${pluginId} — not yet wired to scene graph`
             );
             return { success: false, reason: 'Scene write not yet connected to live scene graph' };
@@ -129,7 +130,7 @@ export function PluginHostProvider({
           if (method === 'viewport')
             return { width: window.innerWidth, height: window.innerHeight, zoom: 1 };
           if (method === 'undo') {
-            console.warn(`[PluginHost] editor.undo from ${pluginId} — not yet wired`);
+            logger.warn(`[PluginHost] editor.undo from ${pluginId} — not yet wired`);
             return { success: false };
           }
         }
@@ -139,7 +140,7 @@ export function PluginHostProvider({
           if (method === 'notification') {
             const [message, level] = args as [string, string?];
             const logFn =
-              level === 'error' ? console.error : level === 'warn' ? console.warn : console.info;
+              level === 'error' ? logger.error : level === 'warn' ? logger.warn : console.info;
             logFn(`[Plugin:${pluginId}] ${message}`);
             return { shown: true };
           }
@@ -222,18 +223,18 @@ export function PluginHostProvider({
             console.info(prefix, message, data ?? '');
             break;
           case 'warn':
-            console.warn(prefix, message, data ?? '');
+            logger.warn(prefix, message, data ?? '');
             break;
           case 'error':
-            console.error(prefix, message, data ?? '');
+            logger.error(prefix, message, data ?? '');
             break;
           default:
-            console.log(prefix, `[${level}]`, message, data ?? '');
+            logger.debug(prefix, `[${level}]`, message, data ?? '');
         }
       },
 
       onError: (pluginId, code, message, stack) => {
-        console.error(`[Plugin:${pluginId}] Error ${code}: ${message}`, stack ?? '');
+        logger.error(`[Plugin:${pluginId}] Error ${code}: ${message}`, stack ?? '');
       },
 
       debug: process.env.NODE_ENV === 'development',
@@ -250,7 +251,7 @@ export function PluginHostProvider({
     return () => {
       setReady(false);
       host.shutdown().catch((err) => {
-        console.error('[PluginHost] Error during shutdown:', err);
+        logger.error('[PluginHost] Error during shutdown:', err);
       });
       hostRef.current = null;
     };

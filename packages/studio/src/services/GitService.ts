@@ -1,5 +1,6 @@
 import git from 'isomorphic-git';
 import { fs } from 'memfs';
+import { logger } from '@/lib/logger';
 
 export interface GitCommitRecord {
   oid: string;
@@ -49,7 +50,7 @@ export class GitService {
         }
       }));
     } catch (e) {
-      console.warn(`[GitService] Failed to load history for ${filepath}`, e);
+      logger.warn(`[GitService] Failed to load history for ${filepath}`, e);
       return [];
     }
   }
@@ -67,7 +68,7 @@ export class GitService {
       });
       return new TextDecoder().decode(blob);
     } catch (e) {
-      console.error(`[GitService] Failed to read ${filepath} at commit ${oid}`, e);
+      logger.error(`[GitService] Failed to read ${filepath} at commit ${oid}`, e);
       return null;
     }
   }
@@ -95,7 +96,7 @@ export class GitService {
 
       return lastFoundCommit || commits[0];
     } catch (e) {
-      console.error(`[GitService] Blame failed for node ${nodeId}`, e);
+      logger.error(`[GitService] Blame failed for node ${nodeId}`, e);
       return null;
     }
   }

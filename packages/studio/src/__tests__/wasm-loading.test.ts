@@ -6,6 +6,7 @@
  **/
 
 import { expect, describe, it, beforeAll, afterAll } from 'vitest';
+import { logger } from '@/lib/logger';
 
 describe('WASM Module Loading', () => {
   let wasmModule: WebAssembly.Instance | null = null;
@@ -25,7 +26,7 @@ describe('WASM Module Loading', () => {
       const data = await fs.readFile(wasmPath);
       wasmBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
     } catch (error) {
-      console.warn('Could not load WASM from filesystem:', error);
+      logger.warn('Could not load WASM from filesystem:', error);
       // Skip test if WASM not available
       return;
     }
@@ -33,7 +34,7 @@ describe('WASM Module Loading', () => {
 
   it('should load raw WASM module', async () => {
     if (!wasmBuffer) {
-      console.warn('Skipping WASM load test - binary not available');
+      logger.warn('Skipping WASM load test - binary not available');
       return;
     }
 
@@ -50,7 +51,7 @@ describe('WASM Module Loading', () => {
 
   it('should expose exported functions', () => {
     if (!wasmModule) {
-      console.warn('Skipping function test - WASM not loaded');
+      logger.warn('Skipping function test - WASM not loaded');
       return;
     }
 
@@ -58,8 +59,8 @@ describe('WASM Module Loading', () => {
 
     // Check for common WASM exports
     expect(typeof exports).toBe('object');
-    console.log('Available exports:', Object.keys(exports).length);
-    console.log('Export names:', Object.keys(exports).slice(0, 10).join(', '));
+    logger.debug('Available exports:', Object.keys(exports).length);
+    logger.debug('Export names:', Object.keys(exports).slice(0, 10).join(', '));
   });
 
   it('should have reasonable binary size', () => {
@@ -69,6 +70,6 @@ describe('WASM Module Loading', () => {
     expect(sizeKB).toBeLessThan(2000); // Should be under 2MB
     expect(sizeKB).toBeGreaterThan(100); // Should be reasonably large (not empty)
 
-    console.log(`WASM binary size: ${sizeKB.toFixed(2)} KB`);
+    logger.debug(`WASM binary size: ${sizeKB.toFixed(2)} KB`);
   });
 });

@@ -14,6 +14,7 @@
  */
 
 import * as THREE from 'three';
+import { logger } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ class CanvasRecorder {
       }
     }
 
-    console.log('[VideoExport] Using MIME type:', mimeType);
+    logger.debug('[VideoExport] Using MIME type:', mimeType);
 
     // Create MediaRecorder
     this.mediaRecorder = new MediaRecorder(stream, {
@@ -199,7 +200,7 @@ class FrameByFrameRenderer {
         this.chunks.push(data);
       },
       error: (error) => {
-        console.error('[VideoExport] Encoder error:', error);
+        logger.error('[VideoExport] Encoder error:', error);
       },
     });
 
@@ -272,7 +273,7 @@ export class VideoExporter {
 
     const totalFrames = Math.ceil((duration / 1000) * fps);
 
-    console.log(
+    logger.debug(
       `[VideoExport] Starting export: ${width}x${height} @ ${fps}fps, ${totalFrames} frames`
     );
 
@@ -326,7 +327,7 @@ export class VideoExporter {
 
     const url = URL.createObjectURL(blob);
 
-    console.log(
+    logger.debug(
       `[VideoExport] Export complete: ${(blob.size / 1024 / 1024).toFixed(2)} MB in ${(
         (performance.now() - startTime) /
         1000

@@ -22,6 +22,7 @@ import {
 import * as LucideIcons from 'lucide-react';
 import { usePluginManager } from '@/lib/plugins/pluginManager';
 import type { PluginRegistryEntry } from '@/lib/plugins/types';
+import { logger } from '@/lib/logger';
 
 interface PluginManagerPanelProps {
   onClose: () => void;
@@ -52,7 +53,7 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
         await enablePlugin(id);
       }
     } catch (err) {
-      console.error('Failed to toggle plugin:', err);
+      logger.error('Failed to toggle plugin:', err);
     }
   };
 
@@ -64,7 +65,7 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
     try {
       await uninstallPlugin(id);
     } catch (err) {
-      console.error('Failed to uninstall plugin:', err);
+      logger.error('Failed to uninstall plugin:', err);
     }
   };
 

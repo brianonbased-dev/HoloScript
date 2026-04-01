@@ -258,7 +258,6 @@ describe('Parallel Parser', () => {
       const parser = createSequentialParser();
       await parser.shutdown();
       // Should not throw
-      expect(true).toBe(true);
     });
 
     it('should handle multiple shutdown calls', async () => {
@@ -266,7 +265,6 @@ describe('Parallel Parser', () => {
       await parser.shutdown();
       await parser.shutdown();
       // Should not throw
-      expect(true).toBe(true);
     });
   });
 });

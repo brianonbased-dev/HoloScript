@@ -373,7 +373,6 @@ composition "TestWorld" {
 
       // Memory measurement would require --expose-gc flag
       // This test serves as a placeholder for memory profiling
-      expect(true).toBe(true);
     });
   });
 

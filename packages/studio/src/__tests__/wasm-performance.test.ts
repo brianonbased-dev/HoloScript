@@ -59,6 +59,7 @@ vi.stubGlobal(
 );
 
 import { runBenchmark, type BenchmarkComparison } from '../lib/benchmark-harness';
+import { logger } from '@/lib/logger';
 
 // Real HoloScript test cases of varying complexity
 const TEST_CASES = {
@@ -178,19 +179,19 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
       expect(result.summary).toBeDefined();
 
       // Log results for inspection
-      console.log('\n=== SIMPLE SCENE ===');
-      console.log('Source size:', TEST_CASES.simple.length, 'chars');
+      logger.debug('\n=== SIMPLE SCENE ===');
+      logger.debug('Source size:', TEST_CASES.simple.length, 'chars');
       console.table(result.summary);
 
       if (result.wasm) {
-        console.log('\n✓ WASM loaded and benchmarked');
-        console.log('Speedup factors:', {
+        logger.debug('\n✓ WASM loaded and benchmarked');
+        logger.debug('Speedup factors:', {
           parse: `${(result.speedup?.parse ?? 0).toFixed(2)}x`,
           compile: `${(result.speedup?.compile ?? 0).toFixed(2)}x`,
           init: `${(result.speedup?.init ?? 0).toFixed(2)}x`,
         });
       } else {
-        console.log('⚠ WASM not available, TypeScript only');
+        logger.debug('⚠ WASM not available, TypeScript only');
       }
     });
   });
@@ -205,14 +206,14 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
 
       expect(result.typescript).toBeDefined();
 
-      console.log('\n=== MEDIUM SCENE ===');
-      console.log('Source size:', TEST_CASES.medium.length, 'chars');
+      logger.debug('\n=== MEDIUM SCENE ===');
+      logger.debug('Source size:', TEST_CASES.medium.length, 'chars');
       console.table(result.summary);
 
       if (result.wasm) {
-        console.log('\n✓ WASM speedup achieved');
-        console.log('Parse:', `${(result.speedup?.parse ?? 0).toFixed(2)}x faster`);
-        console.log('Compile:', `${(result.speedup?.compile ?? 0).toFixed(2)}x faster`);
+        logger.debug('\n✓ WASM speedup achieved');
+        logger.debug('Parse:', `${(result.speedup?.parse ?? 0).toFixed(2)}x faster`);
+        logger.debug('Compile:', `${(result.speedup?.compile ?? 0).toFixed(2)}x faster`);
       }
     });
   });
@@ -227,21 +228,20 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
 
       expect(result.typescript).toBeDefined();
 
-      console.log('\n=== COMPLEX SCENE ===');
-      console.log('Source size:', TEST_CASES.complex.length, 'chars');
+      logger.debug('\n=== COMPLEX SCENE ===');
+      logger.debug('Source size:', TEST_CASES.complex.length, 'chars');
       console.table(result.summary);
 
       if (result.wasm && result.speedup) {
         const parseGain = ((result.speedup.parse - 1) * 100).toFixed(1);
         const compileGain = ((result.speedup.compile - 1) * 100).toFixed(1);
 
-        console.log('\n📊 Performance Gains:');
-        console.log(`  Parse: +${parseGain}% faster with WASM`);
-        console.log(`  Compile: +${compileGain}% faster with WASM`);
+        logger.debug('\n📊 Performance Gains:');
+        logger.debug(`  Parse: +${parseGain}% faster with WASM`);
+        logger.debug(`  Compile: +${compileGain}% faster with WASM`);
 
         // Verify WASM provides meaningful speedup
-        if (result.speedup.parse > 1.1) {
-          expect(true).toBe(true); // WASM is actually faster
+        if (result.speedup.parse > 1.1) { // WASM is actually faster
         }
       }
     });
@@ -256,24 +256,24 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
         testWasm: true,
       });
 
-      console.log('\n=== BUDGET COMPLIANCE ===');
+      logger.debug('\n=== BUDGET COMPLIANCE ===');
 
       if (result.wasm?.budgetCheck) {
-        console.log(
+        logger.debug(
           'WASM Budget Check:',
           result.wasm.budgetCheck.withinBudget ? '✓ PASS' : '✗ FAIL'
         );
         if (!result.wasm.budgetCheck.withinBudget) {
-          console.log('Violations:', result.wasm.budgetCheck.violations);
+          logger.debug('Violations:', result.wasm.budgetCheck.violations);
         }
       }
 
-      console.log(
+      logger.debug(
         'TypeScript Budget Check:',
         result.typescript.budgetCheck.withinBudget ? '✓ PASS' : '✗ FAIL'
       );
       if (!result.typescript.budgetCheck.withinBudget) {
-        console.log('Violations:', result.typescript.budgetCheck.violations);
+        logger.debug('Violations:', result.typescript.budgetCheck.violations);
       }
     });
   });
@@ -294,22 +294,22 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
         wasmCompileP95: result.wasm?.timings.compileP95Ms,
       };
 
-      console.log('\n=== P95 LATENCY (ms) ===');
-      console.log(`TypeScript Parse P95:   ${metrics.tsParseP95.toFixed(2)}ms`);
-      console.log(`TypeScript Compile P95: ${metrics.tsCompileP95.toFixed(2)}ms`);
+      logger.debug('\n=== P95 LATENCY (ms) ===');
+      logger.debug(`TypeScript Parse P95:   ${metrics.tsParseP95.toFixed(2)}ms`);
+      logger.debug(`TypeScript Compile P95: ${metrics.tsCompileP95.toFixed(2)}ms`);
 
       if (metrics.wasmParseP95 && metrics.wasmCompileP95) {
-        console.log(`WASM Parse P95:         ${metrics.wasmParseP95.toFixed(2)}ms`);
-        console.log(`WASM Compile P95:       ${metrics.wasmCompileP95.toFixed(2)}ms`);
+        logger.debug(`WASM Parse P95:         ${metrics.wasmParseP95.toFixed(2)}ms`);
+        logger.debug(`WASM Compile P95:       ${metrics.wasmCompileP95.toFixed(2)}ms`);
 
-        console.log('\n⚡ Improvement:');
+        logger.debug('\n⚡ Improvement:');
         const parseSaving = metrics.tsParseP95 - metrics.wasmParseP95;
         const compileSaving = metrics.tsCompileP95 - metrics.wasmCompileP95;
-        console.log(`Parse:   ${parseSaving >= 0 ? '+' : ''}${parseSaving.toFixed(2)}ms saved`);
-        console.log(`Compile: ${compileSaving >= 0 ? '+' : ''}${compileSaving.toFixed(2)}ms saved`);
+        logger.debug(`Parse:   ${parseSaving >= 0 ? '+' : ''}${parseSaving.toFixed(2)}ms saved`);
+        logger.debug(`Compile: ${compileSaving >= 0 ? '+' : ''}${compileSaving.toFixed(2)}ms saved`);
 
         if (parseSaving + compileSaving > 0) {
-          console.log(`Total savings per operation: ${(parseSaving + compileSaving).toFixed(2)}ms`);
+          logger.debug(`Total savings per operation: ${(parseSaving + compileSaving).toFixed(2)}ms`);
         }
       }
     });

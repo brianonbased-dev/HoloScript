@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, X, Search, Copy, Plus } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { logger } from '@/lib/logger';
 
 interface ParticlePreset {
   id: string;
@@ -51,7 +52,7 @@ export function ParticlePanel({ onClose }: ParticlePanelProps) {
         setPresets(d.presets);
         if (d.types?.length) setTypes(d.types);
       })
-      .catch(() => {})
+      .catch((err) => logger.warn('Swallowed error caught:', err))
       .finally(() => setLoading(false));
   }, [activeType, q]);
 

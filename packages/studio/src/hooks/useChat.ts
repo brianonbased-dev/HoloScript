@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getCollaborationClient } from '@/lib/collaboration/client';
 import type { ChatMessage } from '@/lib/collaboration/types';
 import type * as Y from 'yjs';
+import { logger } from '@/lib/logger';
 
 export interface UseChatOptions {
   enabled?: boolean;
@@ -31,7 +32,7 @@ export function useChat({ enabled = true, maxMessages = 100 }: UseChatOptions = 
         const client = getCollaborationClient();
         client.sendMessage(message.trim(), replyTo, mentions);
       } catch (err) {
-        console.error('Send message error:', err);
+        logger.error('Send message error:', err);
       }
     },
     [enabled]
@@ -44,7 +45,7 @@ export function useChat({ enabled = true, maxMessages = 100 }: UseChatOptions = 
       chatArray.delete(0, chatArray.length);
       setMessages([]);
     } catch (err) {
-      console.error('Clear messages error:', err);
+      logger.error('Clear messages error:', err);
     }
   }, []);
 

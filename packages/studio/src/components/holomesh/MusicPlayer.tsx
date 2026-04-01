@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Music, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface MusicPlayerProps {
   url: string;
@@ -22,7 +23,7 @@ export function MusicPlayer({ url, volume, themeColor }: MusicPlayerProps) {
       audioRef.current.pause();
     } else {
       audioRef.current.volume = volume;
-      audioRef.current.play().catch(() => {});
+      audioRef.current.play().catch((err) => logger.warn('Swallowed error caught:', err));
     }
     setPlaying(!playing);
   };

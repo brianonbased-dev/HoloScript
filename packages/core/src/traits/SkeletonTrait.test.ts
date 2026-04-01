@@ -72,7 +72,6 @@ describe('SkeletonTrait', () => {
         position: { x: 0, y: 1, z: 0 },
       });
       // Setting works even for non-existent bones (creates placeholder)
-      expect(true).toBe(true);
     });
   });
 
@@ -206,7 +205,6 @@ describe('SkeletonTrait', () => {
       trait.on('clip-ended', listener);
       trait.off('clip-ended', listener);
       // Just verify no errors
-      expect(true).toBe(true);
     });
   });
 });

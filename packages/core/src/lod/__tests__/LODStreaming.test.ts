@@ -622,7 +622,6 @@ describe('LODCache', () => {
       expect(evicted).toBe(true);
     } else {
       // Skip test if no eviction needed (mesh size might be smaller than expected)
-      expect(true).toBe(true);
     }
   });
 

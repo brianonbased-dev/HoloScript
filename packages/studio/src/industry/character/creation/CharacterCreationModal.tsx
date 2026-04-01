@@ -20,6 +20,7 @@
 import { useState } from 'react';
 import { X, Sparkles, Upload, Library, Search, Cpu, User, Zap, Settings, Key } from 'lucide-react';
 import APIKeysPanel, { hasAPIKey } from '@/components/settings/APIKeysPanel';
+import { logger } from '@/lib/logger';
 
 interface CharacterCreationModalProps {
   isOpen: boolean;
@@ -306,7 +307,7 @@ function PresetModelsTab({ onCharacterCreated, isLoading, setIsLoading }: TabPro
     setIsLoading(true);
 
     try {
-      console.log('[CharacterCreation] Loading preset model:', model.name);
+      logger.debug('[CharacterCreation] Loading preset model:', model.name);
 
       onCharacterCreated(model.glbUrl, {
         name: model.name,
@@ -316,7 +317,7 @@ function PresetModelsTab({ onCharacterCreated, isLoading, setIsLoading }: TabPro
         credits: model.credits,
       });
     } catch (error) {
-      console.error('[CharacterCreation] Failed to load preset model:', error);
+      logger.error('[CharacterCreation] Failed to load preset model:', error);
       alert('Failed to load character. Please try again.');
     } finally {
       setIsLoading(false);
@@ -445,7 +446,7 @@ function AIGenerationTab({
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('[AIGeneration] Polling error:', error);
+        logger.error('[AIGeneration] Polling error:', error);
         clearInterval(pollInterval);
         setIsLoading(false);
       }
@@ -488,9 +489,9 @@ function AIGenerationTab({
       });
 
       setTaskId(id);
-      console.log('[AIGeneration] Started generation:', id);
+      logger.debug('[AIGeneration] Started generation:', id);
     } catch (error) {
-      console.error('[AIGeneration] Failed to start:', error);
+      logger.error('[AIGeneration] Failed to start:', error);
       alert('Failed to start generation. Please check your API configuration.');
       setIsLoading(false);
       setGenerationStatus(null);
@@ -1064,7 +1065,7 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
     try {
       const { createVRMAvatarFromFile, isLicenseCompatible } = await import('@/lib/vrmImport');
 
-      console.log('[VRoidImport] Processing VRM file:', file.name);
+      logger.debug('[VRoidImport] Processing VRM file:', file.name);
       const avatar = await createVRMAvatarFromFile(file);
 
       setVrmFile(file);
@@ -1075,7 +1076,7 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
       if (avatar.metadata) {
         const isCompatible = isLicenseCompatible(avatar.metadata);
         if (!isCompatible) {
-          console.warn('[VRoidImport] License is not compatible for commercial use.');
+          logger.warn('[VRoidImport] License is not compatible for commercial use.');
           const proceed = confirm(
             `This VRM avatar license is not compatible with commercial use. Proceed anyway?`
           );
@@ -1089,7 +1090,7 @@ function VRoidTab({ onCharacterCreated, isLoading, setIsLoading }: TabProps) {
       // Ready to use
       setIsLoading(false);
     } catch (error) {
-      console.error('[VRoidImport] Failed to process VRM:', error);
+      logger.error('[VRoidImport] Failed to process VRM:', error);
       alert('Failed to process VRM file. Please ensure it is a valid .vrm file.');
       setIsLoading(false);
     }
@@ -1330,9 +1331,9 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
       });
 
       setSearchResults(results.results);
-      console.log('[Sketchfab] Found', results.totalCount, 'models');
+      logger.debug('[Sketchfab] Found', results.totalCount, 'models');
     } catch (error) {
-      console.error('[Sketchfab] Search failed:', error);
+      logger.error('[Sketchfab] Search failed:', error);
       alert('Failed to search Sketchfab. Please try again.');
     } finally {
       setSearching(false);
@@ -1368,7 +1369,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
         return;
       }
 
-      console.log('[Sketchfab] Downloading model:', selectedModel.name);
+      logger.debug('[Sketchfab] Downloading model:', selectedModel.name);
       const url = await downloadModel(selectedModel.uid);
 
       onCharacterCreated(url, {
@@ -1378,7 +1379,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
         credits: `Created by ${selectedModel.author.displayName} on Sketchfab`,
       });
     } catch (error) {
-      console.error('[Sketchfab] Download failed:', error);
+      logger.error('[Sketchfab] Download failed:', error);
       alert(
         'Failed to download model.\n\nPlease:\n1. Visit the model page\n2. Download manually\n3. Upload via the "Upload" tab'
       );

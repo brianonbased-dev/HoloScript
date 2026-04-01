@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * DevTools initializer - runs on app startup to expose CompilerBridge to window
@@ -19,7 +20,7 @@ export function DevToolsInit() {
         // Create tools namespace
         (window as any).holoscriptTools = {
           checkStatus: () => {
-            console.log(
+            logger.debug(
               '🔍 Status: CompilerBridge =',
               !!(window as any).CompilerBridge ? '✅' : '❌'
             );
@@ -27,7 +28,7 @@ export function DevToolsInit() {
           },
           test: async () => {
             if (!(window as any).CompilerBridge) {
-              console.error('❌ CompilerBridge not ready');
+              logger.error('❌ CompilerBridge not ready');
               return;
             }
             try {
@@ -35,18 +36,18 @@ export function DevToolsInit() {
               const start = performance.now();
               const result = await (window as any).CompilerBridge.parse(code);
               const time = performance.now() - start;
-              console.log(`✅ Parse: ${time.toFixed(2)}ms`);
+              logger.debug(`✅ Parse: ${time.toFixed(2)}ms`);
               return { success: true, time };
             } catch (e: any) {
-              console.error('❌ Parse failed:', e.message);
+              logger.error('❌ Parse failed:', e.message);
               return { success: false, error: e.message };
             }
           },
         };
 
-        console.log('%c✅ DevTools Ready', 'color: #0a0; font-weight: bold');
+        logger.debug('%c✅ DevTools Ready', 'color: #0a0; font-weight: bold');
       } catch (e) {
-        console.error('Failed to init DevTools:', e);
+        logger.error('Failed to init DevTools:', e);
       }
     };
 

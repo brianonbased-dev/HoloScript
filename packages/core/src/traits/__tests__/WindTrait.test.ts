@@ -65,7 +65,6 @@ describe('WindTrait', () => {
     // Just verify the event doesn't throw and handler processes it.
     sendEvent(windHandler, node, cfg, ctx, { type: 'set_wind_direction', direction: [0, 0, 1] });
     // No error thrown means handler processed the event
-    expect(true).toBe(true);
   });
 
   it('set_wind_strength changes strength', () => {
@@ -73,7 +72,6 @@ describe('WindTrait', () => {
     // sendEvent copies config so mutation isn't visible to caller.
     // Verify event processes without error.
     sendEvent(windHandler, node, cfg, ctx, { type: 'set_wind_strength', strength: 10 });
-    expect(true).toBe(true);
   });
 
   it('toggle_wind flips isActive', () => {

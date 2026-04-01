@@ -29,6 +29,7 @@ import {
   useOrchestrationKeyboardShortcuts,
 } from '@/hooks/useOrchestrationHistory';
 import {
+import { logger } from '@/lib/logger';
   trackBehaviorTreeNodeAdded,
   trackPanelOpened,
   trackPanelClosed,
@@ -296,7 +297,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
         <TemplateBrowserPanel
           onClose={() => setShowTemplateBrowser(false)}
           onLoadTemplate={(templateId, type) => {
-            console.log(`[BehaviorTreeEditor] Loaded template: ${templateId} (${type})`);
+            logger.debug(`[BehaviorTreeEditor] Loaded template: ${templateId} (${type})`);
             setShowTemplateBrowser(false);
           }}
         />

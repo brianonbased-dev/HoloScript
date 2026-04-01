@@ -461,7 +461,5 @@ describe('Performance Summary', () => {
     console.log('  ✓ No memory leaks over 1000 frames');
     console.log('  ✓ Growth: <10MB for 1000 frames');
     console.log('='.repeat(80) + '\n');
-
-    expect(true).toBe(true);
   });
 });

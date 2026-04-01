@@ -52,7 +52,6 @@ describe('Extension System', () => {
     // In a full integration test, we would parse a script using this trait.
 
     // This confirms the API contract holds
-    expect(true).toBe(true);
   });
 
   it('should prevent duplicate extension loading', () => {

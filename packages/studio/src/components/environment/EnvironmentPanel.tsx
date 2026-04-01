@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Sun, X, Copy, Plus, CheckCircle2, Trash2 } from 'lucide-react';
 import { useEnvironment } from '@/hooks/useEnvironment';
 import type { EnvironmentPreset } from '@/app/api/environment-presets/route';
+import { logger } from '@/lib/logger';
 
 const CATEGORY_COLORS: Record<string, string> = {
   outdoor: '#ffaa44',
@@ -43,7 +44,7 @@ export function EnvironmentPanel({ onClose }: EnvironmentPanelProps) {
         setCategories(d.categories);
         if (!selected && d.presets[0]) setSelected(d.presets[0]);
       })
-      .catch(() => {});
+      .catch((err) => logger.warn('Swallowed error caught:', err));
   }, [activeCategory]);
 
   const apply = () => {

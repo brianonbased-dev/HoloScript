@@ -19,6 +19,7 @@ import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
+import { logger } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -236,7 +237,7 @@ export class OptimizedGLBLoader {
     if (cached) {
       arrayBuffer = cached.data;
       cacheHit = true;
-      console.log(`[GLB Cache] Hit for ${url} (${(cached.size / 1024).toFixed(2)} KB)`);
+      logger.debug(`[GLB Cache] Hit for ${url} (${(cached.size / 1024).toFixed(2)} KB)`);
     } else {
       // Stage 2: Download
       onProgress?.({
@@ -257,7 +258,7 @@ export class OptimizedGLBLoader {
 
       // Cache it (fire and forget)
       glbCache.set(url, arrayBuffer).catch((err) => {
-        console.warn('[GLB Cache] Failed to cache:', err);
+        logger.warn('[GLB Cache] Failed to cache:', err);
       });
     }
 
@@ -282,7 +283,7 @@ export class OptimizedGLBLoader {
     });
 
     // Log performance
-    console.log(`[GLB Load] ${url} loaded in ${loadTime.toFixed(2)}ms (cache: ${cacheHit})`);
+    logger.debug(`[GLB Load] ${url} loaded in ${loadTime.toFixed(2)}ms (cache: ${cacheHit})`);
 
     return {
       gltf,
@@ -398,10 +399,10 @@ export class OptimizedGLBLoader {
     const cached = await glbCache.get(url);
     if (cached) return; // Already cached
 
-    console.log(`[GLB Preload] Starting background preload for ${url}`);
+    logger.debug(`[GLB Preload] Starting background preload for ${url}`);
     const arrayBuffer = await this.downloadWithProgress(url, () => {});
     await glbCache.set(url, arrayBuffer);
-    console.log(`[GLB Preload] Cached ${url}`);
+    logger.debug(`[GLB Preload] Cached ${url}`);
   }
 
   /**
@@ -409,7 +410,7 @@ export class OptimizedGLBLoader {
    */
   async clearCache(): Promise<void> {
     await glbCache.clear();
-    console.log('[GLB Cache] Cleared');
+    logger.debug('[GLB Cache] Cleared');
   }
 
   /**

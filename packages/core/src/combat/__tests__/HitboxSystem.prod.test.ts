@@ -45,7 +45,6 @@ describe('HitboxSystem — Production', () => {
     hs.addHitbox(makeHitbox('h1', 'a', 0, 0, 0, 10));
     hs.addHurtbox(makeHurtbox('hr1', 'b', 0, 0));
     // no crash
-    expect(true).toBe(true);
   });
 
   // ─── Overlap Detection ────────────────────────────────────────────

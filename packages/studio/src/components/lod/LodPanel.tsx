@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { Eye, X, Copy, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { logger } from '@/lib/logger';
 
 interface LodLevel {
   distance: number;
@@ -47,7 +48,7 @@ export function LodPanel({ onClose }: LodPanelProps) {
     fetch('/api/lod')
       .then((r) => r.json())
       .then((d: { presets: LodPreset[] }) => setPresets(d.presets))
-      .catch(() => {})
+      .catch((err) => logger.warn('Swallowed error caught:', err))
       .finally(() => setLoading(false));
   }, []);
 

@@ -210,7 +210,7 @@ export const usePipelineStore = create<PipelineState>()(
               status: 'completed',
               currentCycleId: null,
               cyclesCompleted: layer.cyclesCompleted + 1,
-              history: [...layer.history, result],
+              history: [...layer.history, result].slice(-100),
               lastOutput: result.output,
             };
             return {
@@ -242,7 +242,7 @@ export const usePipelineStore = create<PipelineState>()(
             const layers = { ...s.activePipeline.layers };
             layers[targetLayer] = {
               ...layers[targetLayer],
-              feedbackBuffer: [...layers[targetLayer].feedbackBuffer, signal],
+              feedbackBuffer: [...layers[targetLayer].feedbackBuffer, signal].slice(-100),
             };
             return { activePipeline: { ...s.activePipeline, layers } };
           });

@@ -24,6 +24,7 @@
 
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
 
 export interface TodoMetadata {
   priority: 'critical' | 'high' | 'medium' | 'low';
@@ -207,7 +208,7 @@ _To update: Run \`pnpm test scenarios\` and TODOs will be regenerated._
 
     const outputPath = join(this.outputDir, filename);
     writeFileSync(outputPath, md, 'utf-8');
-    console.log(`\n✅ TODO backlog written to: ${outputPath}`);
+    logger.debug(`\n✅ TODO backlog written to: ${outputPath}`);
   }
 
   /**

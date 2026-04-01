@@ -350,8 +350,6 @@ describe('useUndoRedo', () => {
 
       const { unmount: unmount2 } = renderHook(() => useUndoRedo());
       unmount2();
-
-      expect(true).toBe(true);
     });
 
     it('should handle multiple undo calls', () => {

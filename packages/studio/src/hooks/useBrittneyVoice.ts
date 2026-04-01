@@ -15,6 +15,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -99,7 +100,7 @@ export function useBrittneyVoice(): UseBrittneyVoiceReturn {
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.warn('[BrittneyVoice] SpeechRecognition error:', event.error);
+      logger.warn('[BrittneyVoice] SpeechRecognition error:', event.error);
       setIsListening(false);
     };
 

@@ -27,7 +27,7 @@ function eventColor(eventType: string): string {
 // Build a deterministic 2D-first HoloScript projection for daemon operations.
 function buildDaemonOperationsSurfaceHolo(
   jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
+  telemetry: DaemonTelemetrySummary,
 ): string {
   const topJobs = jobs.slice(0, 8);
   const recentEvents = telemetry.recentEvents.slice(-8);
@@ -165,10 +165,7 @@ ${forkRows}
 `;
 }
 
-function buildDaemonOperationsSurfaceHsplus(
-  jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
-): string {
+function buildDaemonOperationsSurfaceHsplus(jobs: DaemonJob[], telemetry: DaemonTelemetrySummary): string {
   const topJobs = jobs.slice(0, 8);
 
   const cards = topJobs
@@ -215,10 +212,7 @@ ${cards}
 `;
 }
 
-function buildDaemonOperationsSurfaceHs(
-  jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
-): string {
+function buildDaemonOperationsSurfaceHs(jobs: DaemonJob[], telemetry: DaemonTelemetrySummary): string {
   const topJobs = jobs.slice(0, 8);
 
   const rows = topJobs
@@ -262,7 +256,7 @@ ${rows}
 export function buildDaemonOperationsSurfaceCode(
   format: HoloScriptSurfaceFormat,
   jobs: DaemonJob[],
-  telemetry: DaemonTelemetrySummary
+  telemetry: DaemonTelemetrySummary,
 ): string {
   if (format === 'hs') return buildDaemonOperationsSurfaceHs(jobs, telemetry);
   if (format === 'hsplus') return buildDaemonOperationsSurfaceHsplus(jobs, telemetry);

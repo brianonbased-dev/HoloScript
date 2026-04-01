@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * mixamoIntegration.ts — Mixamo Character Library & Auto-Rigging
  *
@@ -157,7 +158,7 @@ export function searchMixamoCharacters(query: string): MixamoCharacter[] {
  * For now, we'll return placeholder URLs that point to similar models
  */
 export async function downloadMixamoCharacter(characterId: string): Promise<string> {
-  console.log('[Mixamo] Downloading character:', characterId);
+  logger.debug('[Mixamo] Downloading character:', characterId);
 
   // In production, this would:
   // 1. Authenticate with Mixamo API (Adobe account)
@@ -201,7 +202,7 @@ To download "${character.name}" from Mixamo:
  * This is a placeholder for the workflow
  */
 export async function uploadForAutoRig(request: AutoRigRequest): Promise<string> {
-  console.log('[Mixamo] Uploading for auto-rig:', request.file.name);
+  logger.debug('[Mixamo] Uploading for auto-rig:', request.file.name);
 
   // In production, this would:
   // 1. Upload model to Mixamo
@@ -218,7 +219,7 @@ export async function uploadForAutoRig(request: AutoRigRequest): Promise<string>
  * Poll auto-rig status
  */
 export async function pollAutoRigStatus(taskId: string): Promise<AutoRigStatus> {
-  console.log('[Mixamo] Polling auto-rig status:', taskId);
+  logger.debug('[Mixamo] Polling auto-rig status:', taskId);
 
   // Mock implementation
   return {

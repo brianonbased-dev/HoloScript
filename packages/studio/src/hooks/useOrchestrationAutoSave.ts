@@ -30,6 +30,7 @@
 
 import { useEffect } from 'react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
+import { logger } from '@/lib/logger';
 
 const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 const STORAGE_PREFIX = 'holoscript';
@@ -69,7 +70,7 @@ export function useOrchestrationAutoSave() {
         }
 
         // Log successful save
-        console.log(`[OrchestrationAutoSave] Saved at ${new Date().toLocaleTimeString()}:`, {
+        logger.debug(`[OrchestrationAutoSave] Saved at ${new Date().toLocaleTimeString()}:`, {
           workflows: workflowsArray.length,
           behaviorTrees: behaviorTreesArray.length,
           activeWorkflow,
@@ -77,11 +78,11 @@ export function useOrchestrationAutoSave() {
         });
       } catch (error) {
         // Handle localStorage quota errors, security errors, etc.
-        console.error('[OrchestrationAutoSave] Failed to save:', error);
+        logger.error('[OrchestrationAutoSave] Failed to save:', error);
 
         // If quota exceeded, try clearing old data
         if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          console.warn(
+          logger.warn(
             '[OrchestrationAutoSave] localStorage quota exceeded. Consider clearing old data.'
           );
         }
@@ -119,9 +120,9 @@ export function clearOrchestrationStorage() {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error(`[OrchestrationAutoSave] Failed to remove ${key}:`, error);
+      logger.error(`[OrchestrationAutoSave] Failed to remove ${key}:`, error);
     }
   });
 
-  console.log('[OrchestrationAutoSave] Cleared all persisted data');
+  logger.debug('[OrchestrationAutoSave] Cleared all persisted data');
 }

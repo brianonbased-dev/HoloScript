@@ -37,9 +37,7 @@ export function projectDNAFromLegacySignals(input: DaemonProjectDNA): ProjectDNA
 
   for (const item of input.detectedStack) {
     const lower = item.toLowerCase();
-    if (
-      ['ts', 'tsx', 'typescript', 'javascript', 'js', 'jsx', 'python', 'go', 'rust'].includes(lower)
-    ) {
+    if (['ts', 'tsx', 'typescript', 'javascript', 'js', 'jsx', 'python', 'go', 'rust'].includes(lower)) {
       languages.add(lower);
     } else {
       frameworks.add(item);
@@ -83,10 +81,8 @@ function passesFor(profile: DaemonPlanProfile, mode: DaemonProfile): DaemonPass[
   if (profile === 'frontend') base.push('coverage', 'complexity');
   if (profile === 'data') base.push('coverage', 'security-scan');
   if (profile === 'automation') base.push('retry-backoff-check', 'security-scan');
-  if (profile === 'agent-backend')
-    base.push('contract-check', 'retry-backoff-check', 'security-scan');
-  if (profile === 'spatial')
-    base.push('target-sweep', 'trait-sampling', 'runtime-matrix', 'absorb-roundtrip');
+  if (profile === 'agent-backend') base.push('contract-check', 'retry-backoff-check', 'security-scan');
+  if (profile === 'spatial') base.push('target-sweep', 'trait-sampling', 'runtime-matrix', 'absorb-roundtrip');
   if (profile === 'service') base.push('coverage', 'contract-check', 'retry-backoff-check');
 
   if (mode !== 'quick' && !base.includes('coverage')) base.push('coverage');
@@ -99,10 +95,7 @@ function passesFor(profile: DaemonPlanProfile, mode: DaemonProfile): DaemonPass[
   return base;
 }
 
-export function buildDaemonPlan(
-  projectDna: ProjectDNA,
-  mode: DaemonProfile = projectDna.recommendedMode
-): DaemonPlan {
+export function buildDaemonPlan(projectDna: ProjectDNA, mode: DaemonProfile = projectDna.recommendedMode): DaemonPlan {
   const profile = projectDna.recommendedProfile;
   const passes = passesFor(profile, mode);
 

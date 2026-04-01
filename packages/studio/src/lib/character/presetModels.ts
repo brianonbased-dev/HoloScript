@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * presetModels.ts — Hosted Preset Character Models
  *
@@ -265,7 +266,7 @@ export async function isPresetModelAvailable(modelId: string): Promise<boolean> 
     const response = await fetch(model.glbUrl, { method: 'HEAD' });
     return response.ok;
   } catch (error) {
-    console.error(`[PresetModels] Failed to check availability for ${modelId}:`, error);
+    logger.error(`[PresetModels] Failed to check availability for ${modelId}:`, error);
     return false;
   }
 }
@@ -283,10 +284,10 @@ export async function preloadPresetModel(modelId: string): Promise<boolean> {
 
     // Cache in memory
     const blob = await response.blob();
-    console.log(`[PresetModels] Preloaded ${modelId} (${blob.size} bytes)`);
+    logger.debug(`[PresetModels] Preloaded ${modelId} (${blob.size} bytes)`);
     return true;
   } catch (error) {
-    console.error(`[PresetModels] Failed to preload ${modelId}:`, error);
+    logger.error(`[PresetModels] Failed to preload ${modelId}:`, error);
     return false;
   }
 }

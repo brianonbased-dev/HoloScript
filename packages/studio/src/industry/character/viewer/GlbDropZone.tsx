@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Upload, FolderOpen, Sparkles } from 'lucide-react';
 import { useCharacterStore } from '@/lib/stores';
 import { CharacterCreationModal, type CharacterMetadata } from '../creation/CharacterCreationModal';
+import { logger } from '@/lib/logger';
 
 export function GlbDropZone() {
   const setGlbUrl = useCharacterStore((s) => s.setGlbUrl);
@@ -19,7 +20,7 @@ export function GlbDropZone() {
   };
 
   const handleCharacterCreated = (glbUrl: string, metadata?: CharacterMetadata) => {
-    console.log('[CharacterCreation] Character created:', metadata);
+    logger.debug('[CharacterCreation] Character created:', metadata);
     setGlbUrl(glbUrl);
   };
 

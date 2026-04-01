@@ -678,14 +678,12 @@ describe('GaussianSplatSorter', () => {
       // Subgroup operations are not supported in Safari and Firefox
       // All inter-thread communication uses shared memory + barriers
       // This is verified by shader compilation, not runtime test
-      expect(true).toBe(true);
     });
 
     it('should not use global atomics', () => {
       // Wait-free guarantee: no atomic operations on global memory
       // Only workgroup-local shared memory atomics are used
       // This is verified by shader structure, not runtime test
-      expect(true).toBe(true);
     });
   });
 

@@ -44,6 +44,7 @@ import { useOrchestrationAutoSave } from '@/hooks/useOrchestrationAutoSave';
 import { useStudioPresetStore } from '@/lib/stores/studioPresetStore';
 import { STUDIO_PRESETS } from '@/lib/presets/studioPresets';
 import { StudioEvents } from '@/lib/analytics';
+import { logger } from '@/lib/logger';
 
 const StudioSetupWizard = dynamic(
   () =>
@@ -420,7 +421,7 @@ export function StudioHeader() {
       xrStore
         .enterVR()
         .then(() => setXrActive(true))
-        .catch(() => {});
+        .catch((err) => logger.warn('Swallowed error caught:', err));
     }
   };
 
@@ -447,7 +448,7 @@ export function StudioHeader() {
         try {
           useSceneGraphStore.getState().loadScene(reader.result as string);
         } catch (err) {
-          console.error('[Studio] Failed to import scene:', err);
+          logger.error('[Studio] Failed to import scene:', err);
         }
       };
       reader.readAsText(file);

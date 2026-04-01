@@ -381,7 +381,6 @@ describe('RaftConsensus', () => {
           success: true,
           matchIndex: -1,
         });
-        expect(true).toBe(true);
       }
     });
   });

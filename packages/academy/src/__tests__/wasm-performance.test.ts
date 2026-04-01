@@ -240,8 +240,7 @@ describe('WASM Performance Benchmarks', { timeout: 30_000 }, () => {
         console.log(`  Compile: +${compileGain}% faster with WASM`);
 
         // Verify WASM provides meaningful speedup
-        if (result.speedup.parse > 1.1) {
-          expect(true).toBe(true); // WASM is actually faster
+        if (result.speedup.parse > 1.1) { // WASM is actually faster
         }
       }
     });

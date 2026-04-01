@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { logger } from '@/lib/logger';
 
 // Mock the browser environment
 const mockWindow = {
@@ -85,10 +86,10 @@ function loadBrowserBenchmark() {
   };
 
   const quickBenchmark = async () => {
-    mockWindow.console.log('⚡ Running quick benchmark (1 scenario, 20 iterations)...\\n');
+    mockWindow.logger.debug('⚡ Running quick benchmark (1 scenario, 20 iterations)...\\n');
 
     if (typeof mockWindow.CompilerBridge === 'undefined') {
-      mockWindow.console.error('❌ CompilerBridge not available');
+      mockWindow.logger.error('❌ CompilerBridge not available');
       return;
     }
 
@@ -105,11 +106,11 @@ function loadBrowserBenchmark() {
       20
     );
 
-    mockWindow.console.log('Quick Benchmark Results:');
-    mockWindow.console.log(
+    mockWindow.logger.debug('Quick Benchmark Results:');
+    mockWindow.logger.debug(
       `  Parse:  ${parseResult.avg}ms ±${(parseResult.max - parseResult.min).toFixed(2)}ms`
     );
-    mockWindow.console.log(
+    mockWindow.logger.debug(
       `  Compile: ${compileResult.avg}ms ±${(compileResult.max - compileResult.min).toFixed(2)}ms\\n`
     );
 
@@ -241,7 +242,7 @@ describe('Browser Benchmark', () => {
       });
 
       // Should have logged benchmark start message
-      expect(mockWindow.console.log).toHaveBeenCalledWith(
+      expect(mockWindow.logger.debug).toHaveBeenCalledWith(
         '⚡ Running quick benchmark (1 scenario, 20 iterations)...\\n'
       );
     });
@@ -254,7 +255,7 @@ describe('Browser Benchmark', () => {
       const result = await browserEnv.quickBenchmark();
 
       expect(result).toBeUndefined();
-      expect(mockWindow.console.error).toHaveBeenCalledWith('❌ CompilerBridge not available');
+      expect(mockWindow.logger.error).toHaveBeenCalledWith('❌ CompilerBridge not available');
     });
 
     it('should handle compiler errors gracefully', async () => {
@@ -278,9 +279,9 @@ describe('Browser Benchmark', () => {
     it('should log results correctly', async () => {
       await browserEnv.quickBenchmark();
 
-      expect(mockWindow.console.log).toHaveBeenCalledWith('Quick Benchmark Results:');
-      expect(mockWindow.console.log).toHaveBeenCalledWith('  Parse:  5ms ±0.00ms');
-      expect(mockWindow.console.log).toHaveBeenCalledWith('  Compile: 5ms ±0.00ms\\n');
+      expect(mockWindow.logger.debug).toHaveBeenCalledWith('Quick Benchmark Results:');
+      expect(mockWindow.logger.debug).toHaveBeenCalledWith('  Parse:  5ms ±0.00ms');
+      expect(mockWindow.logger.debug).toHaveBeenCalledWith('  Compile: 5ms ±0.00ms\\n');
     });
   });
 

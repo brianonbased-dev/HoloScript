@@ -197,15 +197,19 @@ export const usePlayMode = create<PlayModeState>()(
         })),
 
       addItem: (item, count = 1) =>
-        set((s) => ({
-          gameState: {
-            ...s.gameState,
-            inventory: {
-              ...s.gameState.inventory,
-              [item]: (s.gameState.inventory[item] ?? 0) + count,
+        set((s) => {
+          const isNewItem = !(item in s.gameState.inventory);
+          if (isNewItem && Object.keys(s.gameState.inventory).length >= 100) {
+            return s; // Inventory full, don't allow Unbounded State Growth
+          }
+          const newCount = Math.min(999, (s.gameState.inventory[item] ?? 0) + count);
+          return {
+            gameState: {
+              ...s.gameState,
+              inventory: { ...s.gameState.inventory, [item]: newCount },
             },
-          },
-        })),
+          };
+        }),
 
       removeItem: (item, count = 1) =>
         set((s) => {

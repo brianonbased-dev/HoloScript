@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * audioSync.ts — Audio Sync for TikTok Sounds & Beat Detection
  *
@@ -112,7 +113,7 @@ export class AudioSyncManager {
     const arrayBuffer = await file.arrayBuffer();
     this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
 
-    console.log('[AudioSync] Loaded audio:', {
+    logger.debug('[AudioSync] Loaded audio:', {
       duration: this.audioBuffer.duration,
       sampleRate: this.audioBuffer.sampleRate,
       channels: this.audioBuffer.numberOfChannels,
@@ -166,7 +167,7 @@ export class AudioSyncManager {
     // Find peaks for visualization
     const peaks = this.findPeaks(channelData, sampleRate, 100);
 
-    console.log('[AudioSync] Analysis complete:', {
+    logger.debug('[AudioSync] Analysis complete:', {
       beats: beats.length,
       bpm: bpm.toFixed(2),
       peaks: peaks.length,
@@ -314,7 +315,7 @@ export class AudioSyncManager {
       color: beat.strength > 0.7 ? '#ff0000' : '#888888',
     }));
 
-    console.log(`[AudioSync] Created ${this.markers.length} beat markers`);
+    logger.debug(`[AudioSync] Created ${this.markers.length} beat markers`);
   }
 
   /**
@@ -332,7 +333,7 @@ export class AudioSyncManager {
     this.startTime = this.audioContext.currentTime - offset;
     this.isPlaying = true;
 
-    console.log('[AudioSync] Playing from', offset.toFixed(2), 's');
+    logger.debug('[AudioSync] Playing from', offset.toFixed(2), 's');
 
     // Monitor playback for beat triggers
     this.monitorPlayback();
@@ -348,7 +349,7 @@ export class AudioSyncManager {
     this.pausedAt = this.audioContext.currentTime - this.startTime;
     this.isPlaying = false;
 
-    console.log('[AudioSync] Paused at', this.pausedAt.toFixed(2), 's');
+    logger.debug('[AudioSync] Paused at', this.pausedAt.toFixed(2), 's');
   }
 
   /**

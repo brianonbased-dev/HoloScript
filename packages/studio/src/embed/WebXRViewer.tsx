@@ -29,6 +29,7 @@ import { createXRStore, XR } from '@react-three/xr';
 import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
+import { logger } from '@/lib/logger';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -562,7 +563,7 @@ export function WebXRViewer({
         onXRSessionStart?.('immersive-vr');
       })
       .catch((err: unknown) => {
-        console.warn('[WebXRViewer] Failed to enter VR:', err);
+        logger.warn('[WebXRViewer] Failed to enter VR:', err);
       });
   }, [xrStore, onXRSessionStart]);
 
@@ -574,7 +575,7 @@ export function WebXRViewer({
         onXRSessionStart?.('immersive-ar');
       })
       .catch((err: unknown) => {
-        console.warn('[WebXRViewer] Failed to enter AR:', err);
+        logger.warn('[WebXRViewer] Failed to enter AR:', err);
       });
   }, [xrStore, onXRSessionStart]);
 

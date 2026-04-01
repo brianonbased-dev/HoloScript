@@ -78,7 +78,6 @@ describe('BuildCache', () => {
       await cache.initialize();
       await cache.initialize();
       // Should not throw
-      expect(true).toBe(true);
     });
   });
 

@@ -64,7 +64,6 @@ describe('Scenario: HoloComposition Format — Parsing Real Example Files', () =
       expect(result).toBeDefined();
     } catch {
       // File may not exist in all environments — skip gracefully
-      expect(true).toBe(true);
     }
   });
 });

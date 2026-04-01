@@ -252,7 +252,6 @@ describe('Scenario: Project Manager — Reorder & Duplicate (Pure)', () => {
       const copy = duplicateScene(active, 'copy-id');
       expect(copy.name).toContain('Copy');
     } else {
-      expect(true).toBe(true);
     }
   });
 });

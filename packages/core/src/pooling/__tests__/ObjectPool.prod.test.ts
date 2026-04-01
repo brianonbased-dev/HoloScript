@@ -177,7 +177,6 @@ describe('ObjectPool — Production', () => {
     pool.forEach(() => {
       throw new Error('should not run');
     });
-    expect(true).toBe(true);
   });
 
   // ─── clear ────────────────────────────────────────────────────────

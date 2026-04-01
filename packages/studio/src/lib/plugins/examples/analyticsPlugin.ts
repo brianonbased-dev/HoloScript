@@ -4,6 +4,7 @@
  */
 
 import type { HoloScriptPlugin } from '../types';
+import { logger } from '@/lib/logger';
 
 export const analyticsPlugin: HoloScriptPlugin = {
   metadata: {
@@ -23,19 +24,19 @@ export const analyticsPlugin: HoloScriptPlugin = {
 
   // Lifecycle hooks
   onLoad: async () => {
-    console.log('[Analytics Plugin] Loaded');
+    logger.debug('[Analytics Plugin] Loaded');
   },
 
   onUnload: async () => {
-    console.log('[Analytics Plugin] Unloaded');
+    logger.debug('[Analytics Plugin] Unloaded');
   },
 
   onInstall: async () => {
-    console.log('[Analytics Plugin] Installed');
+    logger.debug('[Analytics Plugin] Installed');
   },
 
   onUninstall: async () => {
-    console.log('[Analytics Plugin] Uninstalled');
+    logger.debug('[Analytics Plugin] Uninstalled');
   },
 
   // Settings
@@ -91,7 +92,7 @@ export const analyticsPlugin: HoloScriptPlugin = {
       tooltip: 'Open Analytics Dashboard',
       position: 'right',
       onClick: async () => {
-        console.log('[Analytics Plugin] Toolbar button clicked');
+        logger.debug('[Analytics Plugin] Toolbar button clicked');
         // Toggle analytics panel
       },
     },
@@ -104,7 +105,7 @@ export const analyticsPlugin: HoloScriptPlugin = {
       key: 'ctrl+shift+a',
       description: 'Toggle Analytics Dashboard',
       handler: async () => {
-        console.log('[Analytics Plugin] Keyboard shortcut triggered');
+        logger.debug('[Analytics Plugin] Keyboard shortcut triggered');
       },
     },
   ],

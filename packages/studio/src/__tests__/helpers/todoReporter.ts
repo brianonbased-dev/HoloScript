@@ -16,6 +16,7 @@
 
 import type { Reporter, Task } from 'vitest';
 import { todoRegistry, generateTodoBacklog } from './todoGenerator';
+import { logger } from '@/lib/logger';
 
 export class TodoReporter implements Reporter {
   private todoItems: Array<{
@@ -29,31 +30,31 @@ export class TodoReporter implements Reporter {
    * Called when all tests complete
    */
   onFinished(files?: any[], errors?: any[]): void {
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📝 TODO Backlog Generator');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.debug('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.debug('📝 TODO Backlog Generator');
+    logger.debug('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     // Count todo items
     const todoCount = this.todoItems.filter((t) => t.status === 'todo').length;
     const failedCount = this.todoItems.filter((t) => t.status === 'failed').length;
     const skippedCount = this.todoItems.filter((t) => t.status === 'skipped').length;
 
-    console.log(`\n📊 Test Summary:`);
-    console.log(`   ⊡ TODO items: ${todoCount}`);
-    console.log(`   ✗ Failed tests: ${failedCount}`);
-    console.log(`   ⊙ Skipped tests: ${skippedCount}`);
+    logger.debug(`\n📊 Test Summary:`);
+    logger.debug(`   ⊡ TODO items: ${todoCount}`);
+    logger.debug(`   ✗ Failed tests: ${failedCount}`);
+    logger.debug(`   ⊙ Skipped tests: ${skippedCount}`);
 
     // Generate TODO markdown
     if (this.todoItems.length > 0) {
-      console.log(`\n✅ Generating TODO backlog...`);
+      logger.debug(`\n✅ Generating TODO backlog...`);
       generateTodoBacklog('MEME_CHARACTER_TODOS.md');
-      console.log(`\n✨ TODO backlog generated successfully!`);
-      console.log(`   📄 Location: TODO_BACKLOG/MEME_CHARACTER_TODOS.md`);
+      logger.debug(`\n✨ TODO backlog generated successfully!`);
+      logger.debug(`   📄 Location: TODO_BACKLOG/MEME_CHARACTER_TODOS.md`);
     } else {
-      console.log(`\n🎉 No TODOs found! All features implemented.`);
+      logger.debug(`\n🎉 No TODOs found! All features implemented.`);
     }
 
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    logger.debug('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   }
 
   /**

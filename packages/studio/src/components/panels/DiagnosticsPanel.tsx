@@ -9,6 +9,8 @@
  * Uses the @holoscript/core HoloDiagnostic schema.
  */
 import React, { useState, useMemo } from 'react';
+import { logger } from '@/lib/logger';
+import { useSceneStore } from '@/lib/stores/sceneStore';
 
 // ── Types (mirroring @holoscript/core/errors/HoloDiagnostic) ───────
 type DiagnosticSeverity = 'error' | 'warning' | 'info' | 'hint';
@@ -102,7 +104,7 @@ const DEMO_DIAGNOSTICS: HoloDiagnostic[] = [
 ];
 
 export function DiagnosticsPanel() {
-  const [diagnostics] = useState<HoloDiagnostic[]>(DEMO_DIAGNOSTICS);
+  const [diagnostics, setDiagnostics] = useState<HoloDiagnostic[]>(DEMO_DIAGNOSTICS);
   const [severityFilter, setSeverityFilter] = useState<DiagnosticSeverity | 'all'>('all');
   const [originFilter, setOriginFilter] = useState<DiagnosticOrigin | 'all'>('all');
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
@@ -252,8 +254,26 @@ export function DiagnosticsPanel() {
                           key={fi}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Wire to editor store to apply fix
-                            console.log('[DiagnosticsPanel] Apply fix:', fix.title, fix);
+                            logger.debug('[DiagnosticsPanel] Apply fix:', fix.title, fix);
+                            const { code, setCode } = useSceneStore.getState();
+                            const lines = code.split('\\n');
+                            const startLine = fix.range.startLine - 1;
+                            const endLine = fix.range.endLine - 1;
+                            const startCol = fix.range.startColumn;
+                            const endCol = fix.range.endColumn;
+                            
+                            if (startLine >= 0 && startLine < lines.length) {
+                              if (startLine === endLine) {
+                                const line = lines[startLine] || '';
+                                lines[startLine] = line.slice(0, startCol) + fix.newText + line.slice(endCol);
+                              } else {
+                                const firstLine = lines[startLine]?.slice(0, startCol) || '';
+                                const lastLine = lines[endLine]?.slice(endCol) || '';
+                                lines.splice(startLine, endLine - startLine + 1, firstLine + fix.newText + lastLine);
+                              }
+                              setCode(lines.join('\\n'));
+                              setDiagnostics(prev => prev.filter(d => d !== diag));
+                            }
                           }}
                           className="px-2 py-0.5 rounded text-[9px] font-medium transition
                             bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"

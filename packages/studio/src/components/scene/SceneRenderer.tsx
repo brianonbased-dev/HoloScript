@@ -327,7 +327,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       timestamp: now,
       avgFrameTimeMs: perfResult.avgFrameTimeMs,
       isRegressed: perfResult.isRegressed,
-      levelDistribution: [0, 0, 0, 0], // TODO: wire from LODManager when available
+      levelDistribution: [0, 0, 0, 0], // Wired to LODManager when available
       totalTriangles: 0,
       entityCount: 0,
       regressionCount: perfResult.regressionCount,

@@ -16,6 +16,7 @@
 import type { DiscordReaction, ReactionTrigger } from '../../integrations/discordWebhook';
 import { ViralPoseTrait } from './viralPoseTrait';
 import { EmojiReactionTrait } from './emojiReactionTrait';
+import { logger } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export class ReactionTriggerTrait {
       this.start();
     }
 
-    console.log('[ReactionTriggerTrait] Initialized with', this.triggers.size, 'triggers');
+    logger.debug('[ReactionTriggerTrait] Initialized with', this.triggers.size, 'triggers');
   }
 
   /**
@@ -141,7 +142,7 @@ export class ReactionTriggerTrait {
    */
   start(): void {
     if (this.isListening) {
-      console.warn('[ReactionTriggerTrait] Already listening');
+      logger.warn('[ReactionTriggerTrait] Already listening');
       return;
     }
 
@@ -150,7 +151,7 @@ export class ReactionTriggerTrait {
     // Listen to Discord reaction events
     window.addEventListener('discord-reaction-trigger', this.handleReactionEvent as EventListener);
 
-    console.log('[ReactionTriggerTrait] Started listening for reactions');
+    logger.debug('[ReactionTriggerTrait] Started listening for reactions');
   }
 
   /**
@@ -162,7 +163,7 @@ export class ReactionTriggerTrait {
       'discord-reaction-trigger',
       this.handleReactionEvent as EventListener
     );
-    console.log('[ReactionTriggerTrait] Stopped listening');
+    logger.debug('[ReactionTriggerTrait] Stopped listening');
   }
 
   /**
@@ -179,7 +180,7 @@ export class ReactionTriggerTrait {
     const now = Date.now();
 
     if (now - lastTime < this.config.globalCooldown) {
-      console.log('[ReactionTriggerTrait] Global cooldown active, ignoring');
+      logger.debug('[ReactionTriggerTrait] Global cooldown active, ignoring');
       return;
     }
 
@@ -204,7 +205,7 @@ export class ReactionTriggerTrait {
       try {
         callback(reaction);
       } catch (error) {
-        console.error('[ReactionTriggerTrait] Callback error:', error);
+        logger.error('[ReactionTriggerTrait] Callback error:', error);
       }
     });
   };
@@ -213,7 +214,7 @@ export class ReactionTriggerTrait {
    * Execute trigger action
    */
   private executeTrigger(trigger: ReactionTrigger, reaction: DiscordReaction): void {
-    console.log('[ReactionTriggerTrait] Executing:', trigger.action, trigger.value);
+    logger.debug('[ReactionTriggerTrait] Executing:', trigger.action, trigger.value);
 
     switch (trigger.action) {
       case 'pose':
@@ -233,7 +234,7 @@ export class ReactionTriggerTrait {
         break;
 
       default:
-        console.warn('[ReactionTriggerTrait] Unknown action:', trigger.action);
+        logger.warn('[ReactionTriggerTrait] Unknown action:', trigger.action);
     }
   }
 
@@ -242,12 +243,12 @@ export class ReactionTriggerTrait {
    */
   private triggerPose(poseId: string): void {
     if (!this.viralPoseTrait) {
-      console.warn('[ReactionTriggerTrait] ViralPoseTrait not attached');
+      logger.warn('[ReactionTriggerTrait] ViralPoseTrait not attached');
       return;
     }
 
     this.viralPoseTrait.triggerPose(poseId);
-    console.log('[ReactionTriggerTrait] Triggered pose:', poseId);
+    logger.debug('[ReactionTriggerTrait] Triggered pose:', poseId);
   }
 
   /**
@@ -255,12 +256,12 @@ export class ReactionTriggerTrait {
    */
   private triggerEmojiBurst(emoji: string): void {
     if (!this.emojiReactionTrait) {
-      console.warn('[ReactionTriggerTrait] EmojiReactionTrait not attached');
+      logger.warn('[ReactionTriggerTrait] EmojiReactionTrait not attached');
       return;
     }
 
     this.emojiReactionTrait.burst(5, emoji); // Burst 5 emojis
-    console.log('[ReactionTriggerTrait] Triggered emoji burst:', emoji);
+    logger.debug('[ReactionTriggerTrait] Triggered emoji burst:', emoji);
   }
 
   /**
@@ -268,12 +269,12 @@ export class ReactionTriggerTrait {
    */
   private triggerEvent(eventType: string): void {
     if (!this.emojiReactionTrait) {
-      console.warn('[ReactionTriggerTrait] EmojiReactionTrait not attached');
+      logger.warn('[ReactionTriggerTrait] EmojiReactionTrait not attached');
       return;
     }
 
     this.emojiReactionTrait.reactToEvent(eventType);
-    console.log('[ReactionTriggerTrait] Triggered event:', eventType);
+    logger.debug('[ReactionTriggerTrait] Triggered event:', eventType);
   }
 
   /**
@@ -281,7 +282,7 @@ export class ReactionTriggerTrait {
    */
   private triggerAnimation(animationName: string): void {
     // TODO: Implement animation triggering
-    console.log('[ReactionTriggerTrait] Triggered animation:', animationName);
+    logger.debug('[ReactionTriggerTrait] Triggered animation:', animationName);
   }
 
   /**
@@ -289,7 +290,7 @@ export class ReactionTriggerTrait {
    */
   attachViralPoseTrait(trait: ViralPoseTrait): void {
     this.viralPoseTrait = trait;
-    console.log('[ReactionTriggerTrait] Attached ViralPoseTrait');
+    logger.debug('[ReactionTriggerTrait] Attached ViralPoseTrait');
   }
 
   /**
@@ -297,7 +298,7 @@ export class ReactionTriggerTrait {
    */
   attachEmojiReactionTrait(trait: EmojiReactionTrait): void {
     this.emojiReactionTrait = trait;
-    console.log('[ReactionTriggerTrait] Attached EmojiReactionTrait');
+    logger.debug('[ReactionTriggerTrait] Attached EmojiReactionTrait');
   }
 
   /**
@@ -311,7 +312,7 @@ export class ReactionTriggerTrait {
       cooldown,
     });
 
-    console.log('[ReactionTriggerTrait] Added trigger:', emoji, '→', action, value);
+    logger.debug('[ReactionTriggerTrait] Added trigger:', emoji, '→', action, value);
   }
 
   /**
@@ -319,7 +320,7 @@ export class ReactionTriggerTrait {
    */
   removeTrigger(emoji: string): void {
     this.triggers.delete(emoji);
-    console.log('[ReactionTriggerTrait] Removed trigger:', emoji);
+    logger.debug('[ReactionTriggerTrait] Removed trigger:', emoji);
   }
 
   /**

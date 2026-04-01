@@ -101,7 +101,6 @@ describe('NPCAITrait', () => {
   it('does nothing on update when not thinking', () => {
     // onUpdate just checks isThinking — should not throw
     npcAIHandler.onUpdate?.(node as any, cfg as any, ctx as any, 0.016);
-    expect(true).toBe(true);
   });
 
   it('has correct default config', () => {

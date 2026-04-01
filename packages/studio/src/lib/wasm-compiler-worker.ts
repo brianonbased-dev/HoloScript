@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * wasm-compiler-worker.ts — Web Worker for HoloScript WASM Component
  *
@@ -231,7 +232,7 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
     };
   } catch (err) {
     jcoError = err;
-    console.warn('[WASM Worker] jco JS module not available, trying raw WebAssembly:', err);
+    logger.warn('[WASM Worker] jco JS module not available, trying raw WebAssembly:', err);
   }
 
   // Option 2: Try raw WebAssembly instantiation (non-component, legacy fallback)

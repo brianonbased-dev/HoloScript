@@ -44,14 +44,12 @@ describe('AudioDiffraction', () => {
       const provider: EdgeDetectionProvider = () => [];
       system.setEdgeDetectionProvider(provider);
       // No exception thrown
-      expect(true).toBe(true);
     });
 
     it('sets line of sight provider', () => {
       const provider: LineOfSightProvider = () => true;
       system.setLineOfSightProvider(provider);
       // No exception thrown
-      expect(true).toBe(true);
     });
   });
 

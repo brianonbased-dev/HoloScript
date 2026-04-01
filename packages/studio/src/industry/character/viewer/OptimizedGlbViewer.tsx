@@ -20,6 +20,7 @@ import type { BoneFrame } from '@/lib/animationBuilder';
 import { OptimizedGLBLoader, type LoadProgress } from '@/lib/export/glbOptimizer';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { LoadingProgress } from './LoadingProgress';
+import { logger } from '@/lib/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -76,20 +77,20 @@ export function OptimizedGlbViewer({ url }: OptimizedGlbViewerProps) {
 
           // Log performance
           if (result.loadTime < 500) {
-            console.log(`✅ [MEME-012] Load time: ${result.loadTime.toFixed(0)}ms (FAST!)`);
+            logger.debug(`✅ [MEME-012] Load time: ${result.loadTime.toFixed(0)}ms (FAST!)`);
           } else {
-            console.warn(
+            logger.warn(
               `⚠️ [MEME-012] Load time: ${result.loadTime.toFixed(0)}ms (target: <500ms)`
             );
           }
 
           // Show optimizations used
-          console.log('[MEME-012] Optimizations:', result.optimizations);
+          logger.debug('[MEME-012] Optimizations:', result.optimizations);
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error('[MEME-012] Load failed:', err);
+          logger.error('[MEME-012] Load failed:', err);
         }
       });
 

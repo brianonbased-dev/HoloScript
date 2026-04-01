@@ -24,6 +24,7 @@ import {
   applyEasing,
 } from '../poseLibrary';
 import type { PoseCategory } from '../character/poseLibrary';
+import { logger } from '@/lib/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -115,7 +116,7 @@ export class ViralPoseTrait {
       poseIndex: -1,
     };
 
-    console.log(
+    logger.debug(
       `[ViralPoseTrait] Initialized with ${this.poseSequence.length} poses`,
       this.poseSequence.map((p) => p.name)
     );
@@ -142,7 +143,7 @@ export class ViralPoseTrait {
     }
 
     if (poses.length === 0) {
-      console.warn('[ViralPoseTrait] No poses found, using all poses');
+      logger.warn('[ViralPoseTrait] No poses found, using all poses');
       poses = getAllPoses();
     }
 
@@ -160,7 +161,7 @@ export class ViralPoseTrait {
   attachToSkeleton(skeleton: THREE.Skeleton): void {
     this.skeleton = skeleton;
     this.buildBoneMap();
-    console.log('[ViralPoseTrait] Attached to skeleton with', this.boneMap.size, 'bones');
+    logger.debug('[ViralPoseTrait] Attached to skeleton with', this.boneMap.size, 'bones');
   }
 
   /**
@@ -191,7 +192,7 @@ export class ViralPoseTrait {
     if (!this.state.currentPose && this.poseSequence.length > 0) {
       this.triggerNextPose();
     }
-    console.log('[ViralPoseTrait] Started auto-cycling');
+    logger.debug('[ViralPoseTrait] Started auto-cycling');
   }
 
   /**
@@ -199,7 +200,7 @@ export class ViralPoseTrait {
    */
   stop(): void {
     this.config.autoCycle = false;
-    console.log('[ViralPoseTrait] Stopped auto-cycling');
+    logger.debug('[ViralPoseTrait] Stopped auto-cycling');
   }
 
   /**
@@ -208,7 +209,7 @@ export class ViralPoseTrait {
   triggerPose(poseId: string): void {
     const pose = getPoseById(poseId);
     if (!pose) {
-      console.warn('[ViralPoseTrait] Pose not found:', poseId);
+      logger.warn('[ViralPoseTrait] Pose not found:', poseId);
       return;
     }
 
@@ -226,7 +227,7 @@ export class ViralPoseTrait {
 
     // Check loop condition
     if (!this.config.loop && this.state.poseIndex === 0 && this.state.currentPose) {
-      console.log('[ViralPoseTrait] Sequence complete, not looping');
+      logger.debug('[ViralPoseTrait] Sequence complete, not looping');
       return;
     }
 
@@ -254,7 +255,7 @@ export class ViralPoseTrait {
     this.state.isTransitioning = true;
     this.state.transitionProgress = 0;
 
-    console.log('[ViralPoseTrait] Transitioning to:', pose.name);
+    logger.debug('[ViralPoseTrait] Transitioning to:', pose.name);
   }
 
   /**
@@ -290,7 +291,7 @@ export class ViralPoseTrait {
       // Notify listeners
       this.onPoseChangeCallbacks.forEach((cb) => cb(this.state.currentPose!));
 
-      console.log('[ViralPoseTrait] Transition complete:', this.state.currentPose!.name);
+      logger.debug('[ViralPoseTrait] Transition complete:', this.state.currentPose!.name);
     }
 
     // Apply interpolated pose
@@ -375,7 +376,7 @@ export class ViralPoseTrait {
     this.config.poses = poses;
     this.poseSequence = this.loadPoseSequence();
     this.state.poseIndex = -1;
-    console.log(
+    logger.debug(
       '[ViralPoseTrait] Updated pose sequence:',
       this.poseSequence.map((p) => p.name)
     );

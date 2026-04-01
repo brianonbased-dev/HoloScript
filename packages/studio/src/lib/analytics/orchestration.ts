@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * orchestration.ts - Analytics tracking for orchestration features
  *
@@ -26,7 +27,7 @@ export function trackOrchestrationEvent(event: string, props: OrchestrationEvent
 
   // Log to console in development
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Analytics]', event, props);
+    logger.debug('[Analytics]', event, props);
   }
 }
 

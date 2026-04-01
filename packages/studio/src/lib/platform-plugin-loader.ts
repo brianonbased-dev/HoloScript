@@ -22,6 +22,7 @@
 
 import type { CompileResult, PlatformTarget, Diagnostic } from './wasm-compiler-bridge';
 import type { PlatformCapabilities } from './platform-detect';
+import { logger } from '@/lib/logger';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -320,7 +321,7 @@ export class PlatformPluginLoader {
     // Cache to OPFS for next time
     if (this.config.useOPFSCache) {
       await this.saveToOPFS(manifest, wasmBytes).catch((e) =>
-        console.warn(`[PluginLoader] OPFS cache write failed:`, e)
+        logger.warn(`[PluginLoader] OPFS cache write failed:`, e)
       );
     }
 

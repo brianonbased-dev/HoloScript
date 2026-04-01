@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePluginHost } from '@/hooks/usePluginHost';
 import { Puzzle, X, RefreshCw, AlertTriangle, Shield, Activity, Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 type SandboxState =
   | 'creating'
   | 'loading'
@@ -138,7 +139,7 @@ export function PluginPanelContainer({
     return () => {
       if (host?.isPluginLoaded(pluginId)) {
         unloadPlugin(pluginId).catch((err) => {
-          console.warn(`[PluginPanel] Error unloading plugin ${pluginId} on unmount:`, err);
+          logger.warn(`[PluginPanel] Error unloading plugin ${pluginId} on unmount:`, err);
         });
       }
     };
@@ -167,7 +168,7 @@ export function PluginPanelContainer({
 
   const handleClose = () => {
     if (host?.isPluginLoaded(pluginId)) {
-      unloadPlugin(pluginId).catch(() => {});
+      unloadPlugin(pluginId).catch((err) => logger.warn('Swallowed error caught:', err));
     }
     onClose?.();
   };

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * wasm-compiler-bridge.ts — WASM Component Bridge for HoloScript Compiler
  *
@@ -259,7 +260,7 @@ export class CompilerBridge {
       });
 
       this.worker.addEventListener('error', (event) => {
-        console.error('[CompilerBridge] Worker error:', event.message);
+        logger.error('[CompilerBridge] Worker error:', event.message);
         // Reject all pending requests
         for (const [id, handler] of this.pending) {
           handler.reject(new Error(`Worker error: ${event.message}`));
@@ -275,7 +276,7 @@ export class CompilerBridge {
         loadTimeMs: performance.now() - startTime,
       };
     } catch (error) {
-      console.warn('[CompilerBridge] WASM init failed, using TypeScript fallback:', error);
+      logger.warn('[CompilerBridge] WASM init failed, using TypeScript fallback:', error);
       this.worker?.terminate();
       this.worker = null;
       this.status = {

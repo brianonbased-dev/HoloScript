@@ -97,7 +97,6 @@ describe('GPUPhysicsTrait', () => {
     attachTrait(gpuPhysicsHandler, node, rigidCfg, ctx);
     updateTrait(gpuPhysicsHandler, node, rigidCfg, ctx, 0.016);
     // Should not throw — engine.getStates returns {}
-    expect(true).toBe(true);
   });
 
   it('forwards apply-force event to engine', () => {
@@ -107,7 +106,6 @@ describe('GPUPhysicsTrait', () => {
       data: { force: [10, 0, 0], point: [0, 0, 0] },
     });
     // Should not throw
-    expect(true).toBe(true);
   });
 
   it('has correct handler name', () => {
