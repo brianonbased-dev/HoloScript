@@ -123,13 +123,13 @@ function AbsorbInput() {
 function StatsStrip() {
   return (
     <div className="flex flex-wrap justify-center gap-6 text-white/40 text-sm">
-      <span>40 compilers</span>
+      <span>Spatial Computing</span>
       <span className="text-white/20">·</span>
-      <span>3,300+ traits</span>
+      <span>Agent Intelligence</span>
       <span className="text-white/20">·</span>
-      <span>177 MCP tools</span>
+      <span>Neural Streaming</span>
       <span className="text-white/20">·</span>
-      <span>57,356 tests</span>
+      <span>Digital Twins</span>
       <span className="text-white/20">·</span>
       <span>Phone · Web · Quest · AR</span>
     </div>
