@@ -1,256 +1,211 @@
 'use client';
 
 /**
- * HoloScript Studio — Universal Point of Entry
+ * HoloScript Studio — Absorb-First Landing
  *
- * Native HoloScript-driven landing page. The hero section (title, tagline,
- * stats strip) is defined in compositions/studio/home.hsplus and rendered
- * by HoloSurfaceRenderer. Mode cards, industry chips, and footer stay in React.
+ * The home page IS the Absorb door. Users paste a URL, upload a CSV, or
+ * describe their business. Everything else is secondary navigation.
  *
- * @module page
+ * Flow: Absorb → Knowledge → Compile → Deploy
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
+import { useRouter } from 'next/navigation';
 
-// ── Mode Data ────────────────────────────────────────────────────────────────
+// ── Nav Items (secondary) ───────────────────────────────────────────────────
 
-const MODES = [
-  {
-    id: 'play',
-    title: 'Play',
-    subtitle: 'Ages 5-12',
-    description: 'Drag, drop & build colorful 3D worlds with big buttons and fun sounds',
-    emoji: '🎨',
-    gradient: 'from-amber-500 via-orange-500 to-rose-500',
-    glowColor: 'rgba(251, 146, 60, 0.4)',
-    borderColor: 'rgba(251, 146, 60, 0.3)',
-    href: process.env.NEXT_PUBLIC_ACADEMY_URL
-      ? `${process.env.NEXT_PUBLIC_ACADEMY_URL}/play`
-      : 'http://localhost:3102/play',
-  },
-  {
-    id: 'learn',
-    title: 'Learn',
-    subtitle: 'Ages 13-22',
-    description: 'Step-by-step scenarios, visual + code view, achievement badges',
-    emoji: '🎓',
-    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
-    glowColor: 'rgba(20, 184, 166, 0.4)',
-    borderColor: 'rgba(20, 184, 166, 0.3)',
-    href: process.env.NEXT_PUBLIC_ACADEMY_URL
-      ? `${process.env.NEXT_PUBLIC_ACADEMY_URL}/learn`
-      : 'http://localhost:3102/learn',
-  },
-  {
-    id: 'create',
-    title: 'Create',
-    subtitle: 'Ages 18+',
-    description: 'Full IDE — 43 panels, real compilers, shader editor, AI tools',
-    emoji: '🔨',
-    gradient: 'from-blue-500 via-indigo-500 to-violet-500',
-    glowColor: 'rgba(99, 102, 241, 0.4)',
-    borderColor: 'rgba(99, 102, 241, 0.3)',
-    href: '/create',
-  },
-  {
-    id: 'industry',
-    title: 'Industry',
-    subtitle: 'Professionals',
-    description: 'Vertical-specific templates, workflows & export pipelines',
-    emoji: '🏢',
-    gradient: 'from-fuchsia-500 via-purple-500 to-indigo-500',
-    glowColor: 'rgba(168, 85, 247, 0.4)',
-    borderColor: 'rgba(168, 85, 247, 0.3)',
-    href: '/industry',
-  },
+const NAV_ITEMS = [
+  { href: '/absorb', label: 'Projects', icon: '📊' },
+  { href: '/create', label: 'Editor', icon: '🔨' },
+  { href: '/templates', label: 'Templates', icon: '📐' },
+  { href: '/holoclaw', label: 'Agents', icon: '🤖' },
+  { href: '/holodaemon', label: 'Daemons', icon: '👾' },
+  { href: '/pipeline', label: 'Pipeline', icon: '⚡' },
+  { href: '/operations', label: 'Operations', icon: '📈' },
+  { href: '/holomesh', label: 'HoloMesh', icon: '🌐' },
+  { href: '/settings', label: 'Settings', icon: '⚙️' },
 ] as const;
 
-// ── Industry Portal Data ─────────────────────────────────────────────────────
-
-const INDUSTRIES = [
-  { id: 'healthcare', emoji: '🏥', label: 'Healthcare', color: '#ef4444' },
-  { id: 'architecture', emoji: '🏗️', label: 'Architecture', color: '#f59e0b' },
-  { id: 'gaming', emoji: '🎮', label: 'Gaming', color: '#22c55e' },
-  { id: 'film', emoji: '🎬', label: 'Film & VFX', color: '#a855f7' },
-  { id: 'manufacturing', emoji: '🏭', label: 'Manufacturing', color: '#64748b' },
-  { id: 'agriculture', emoji: '🌾', label: 'Agriculture', color: '#84cc16' },
-  { id: 'education', emoji: '🎓', label: 'Education', color: '#06b6d4' },
-  { id: 'retail', emoji: '🛒', label: 'Retail', color: '#ec4899' },
-  { id: 'automotive', emoji: '🚗', label: 'Automotive', color: '#3b82f6' },
+const INDUSTRY_CHIPS = [
+  { id: 'retail', label: 'Retail', emoji: '🏪' },
+  { id: 'healthcare', label: 'Healthcare', emoji: '🏥' },
+  { id: 'robotics', label: 'Robotics', emoji: '🤖' },
+  { id: 'architecture', label: 'Architecture', emoji: '🏗️' },
+  { id: 'agriculture', label: 'Agriculture', emoji: '🌾' },
+  { id: 'education', label: 'Education', emoji: '🎓' },
+  { id: 'manufacturing', label: 'Manufacturing', emoji: '🏭' },
+  { id: 'automotive', label: 'Automotive', emoji: '🚗' },
+  { id: 'gaming', label: 'Gaming', emoji: '🎮' },
 ] as const;
 
-// ── Animated Mesh Background ─────────────────────────────────────────────────
+// ── Absorb Input ────────────────────────────────────────────────────────────
 
-function MeshBackground() {
+function AbsorbInput() {
+  const router = useRouter();
+  const [input, setInput] = useState('');
+  const [mode, setMode] = useState<'url' | 'csv' | 'describe'>('url');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    setLoading(true);
+
+    if (mode === 'url') {
+      // GitHub URL → Absorb scan
+      router.push(`/absorb?repo=${encodeURIComponent(input.trim())}`);
+    } else if (mode === 'csv') {
+      // CSV paste → schema mapper
+      router.push(`/absorb?csv=1`);
+    } else {
+      // Business description → Brittney
+      router.push(`/absorb?describe=${encodeURIComponent(input.trim())}`);
+    }
+  };
+
   return (
-    <div className="mesh-bg" aria-hidden="true">
-      <div className="mesh-orb mesh-orb-1" />
-      <div className="mesh-orb mesh-orb-2" />
-      <div className="mesh-orb mesh-orb-3" />
-      <div className="mesh-grid" />
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
+      {/* Mode tabs */}
+      <div className="flex gap-1 mb-3">
+        {(['url', 'csv', 'describe'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              mode === m
+                ? 'bg-white/10 text-white border border-white/20'
+                : 'text-white/50 hover:text-white/70'
+            }`}
+          >
+            {m === 'url' ? '🔗 GitHub URL' : m === 'csv' ? '📊 CSV / Data' : '💬 Describe'}
+          </button>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="relative">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={
+            mode === 'url'
+              ? 'https://github.com/your-org/your-repo'
+              : mode === 'csv'
+                ? 'Paste CSV headers or upload a file...'
+                : 'I run a dispensary with 200 SKUs and 3 locations...'
+          }
+          className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-lg focus:outline-none focus:border-blue-500/50 focus:bg-white/8 transition-all"
+        />
+        <button
+          type="submit"
+          disabled={loading || !input.trim()}
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 rounded-lg text-white font-medium transition-all"
+        >
+          {loading ? '...' : 'Absorb'}
+        </button>
+      </div>
+
+      <p className="mt-2 text-white/30 text-sm text-center">
+        {mode === 'url' && 'Scans your codebase into a knowledge graph. Free tier: 1 repo.'}
+        {mode === 'csv' && 'Maps your data fields to HoloScript traits. Generates a spatial experience.'}
+        {mode === 'describe' && 'Brittney builds your business simulation from a description. No data needed.'}
+      </p>
+    </form>
+  );
+}
+
+// ── Stats Strip ─────────────────────────────────────────────────────────────
+
+function StatsStrip() {
+  return (
+    <div className="flex flex-wrap justify-center gap-6 text-white/40 text-sm">
+      <span>40 compilers</span>
+      <span className="text-white/20">·</span>
+      <span>3,300+ traits</span>
+      <span className="text-white/20">·</span>
+      <span>177 MCP tools</span>
+      <span className="text-white/20">·</span>
+      <span>57,356 tests</span>
+      <span className="text-white/20">·</span>
+      <span>Phone · Web · Quest · AR</span>
     </div>
   );
 }
 
-// ── Mode Card ────────────────────────────────────────────────────────────────
+// ── Industry Row ────────────────────────────────────────────────────────────
 
-function ModeCard({ mode, index }: { mode: (typeof MODES)[number]; index: number }) {
+function IndustryRow() {
   return (
-    <Link
-      href={mode.href.startsWith('http') ? mode.href : mode.href}
-      className="mode-card focus-ring"
-      style={
-        {
-          '--card-glow': mode.glowColor,
-          '--card-border': mode.borderColor,
-          animationDelay: `${index * 100 + 200}ms`,
-        } as React.CSSProperties
-      }
-      {...(mode.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-    >
-      <div className="mode-card-inner">
-        <div className={`mode-emoji bg-gradient-to-br ${mode.gradient}`}>
-          <span>{mode.emoji}</span>
-        </div>
-        <h3 className="mode-title">{mode.title}</h3>
-        <span className="mode-subtitle">{mode.subtitle}</span>
-        <p className="mode-description">{mode.description}</p>
-        <div className="mode-arrow">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path
-              d="M4 10h12m0 0l-4-4m4 4l-4 4"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      </div>
-    </Link>
+    <div className="flex flex-wrap justify-center gap-2">
+      {INDUSTRY_CHIPS.map((ind) => (
+        <Link
+          key={ind.id}
+          href={`/industry/${ind.id}`}
+          className="px-3 py-1.5 rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 text-sm transition-all"
+        >
+          {ind.emoji} {ind.label}
+        </Link>
+      ))}
+    </div>
   );
 }
 
-// ── Industry Chip ────────────────────────────────────────────────────────────
+// ── Secondary Nav ───────────────────────────────────────────────────────────
 
-function IndustryChip({ industry }: { industry: (typeof INDUSTRIES)[number] }) {
+function SecondaryNav() {
   return (
-    <Link
-      href={`/industry/${industry.id}`}
-      className="industry-chip focus-ring"
-      style={{ '--chip-color': industry.color } as React.CSSProperties}
-    >
-      <span className="industry-emoji">{industry.emoji}</span>
-      <span className="industry-label">{industry.label}</span>
-    </Link>
+    <nav className="flex flex-wrap justify-center gap-4 text-sm">
+      {NAV_ITEMS.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-white/40 hover:text-white/80 transition-colors"
+        >
+          <span>{item.icon}</span>
+          <span>{item.label}</span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+// ── Main Page ───────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [loaded, setLoaded] = useState(false);
-  const composition = useHoloComposition('/api/surface/home');
-
-  useEffect(() => {
-    const t = setTimeout(() => setLoaded(true), 50);
-    return () => clearTimeout(t);
-  }, []);
-
   return (
-    <main className={`home-root ${loaded ? 'home-loaded' : ''}`}>
-      <MeshBackground />
-
-      {/* ── Hero (native composition) ─────────────────────────────────── */}
-      <section className="hero">
-        {!composition.loading && !composition.error ? (
-          <HoloSurfaceRenderer
-            nodes={composition.nodes}
-            state={composition.state}
-            computed={composition.computed}
-            templates={composition.templates}
-            onEmit={composition.emit}
-            className="holo-surface-hero"
-          />
-        ) : (
-          <>
-            <div className="hero-badge">
-              <span className="hero-badge-dot" />
-              Open Platform for Spatial Computing
-            </div>
-            <h1 className="hero-title">
-              <span className="hero-word hero-word-1">HoloScript</span>{' '}
-              <span className="hero-word hero-word-2">Studio</span>
-            </h1>
-            <p className="hero-tagline">Create anything in 3D — no code required</p>
-          </>
-        )}
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 gap-12 bg-gradient-to-b from-[#0a0a1a] via-[#0d1117] to-[#0a0a1a]">
+      {/* Hero */}
+      <section className="text-center space-y-4 max-w-3xl">
+        <h1 className="text-5xl font-bold text-white tracking-tight">
+          HoloScript Studio
+        </h1>
+        <p className="text-xl text-white/60">
+          Point it at your data. Get a spatial experience on every device.
+        </p>
       </section>
 
-      {/* ── Mode Cards ────────────────────────────────────────────────── */}
-      <section className="modes">
-        <h2 className="section-label">Choose Your Experience</h2>
-        <div className="modes-grid">
-          {MODES.map((mode, i) => (
-            <ModeCard key={mode.id} mode={mode} index={i} />
-          ))}
-        </div>
+      {/* Absorb — the door */}
+      <AbsorbInput />
+
+      {/* Stats */}
+      <StatsStrip />
+
+      {/* Industries */}
+      <section className="text-center space-y-3">
+        <p className="text-white/30 text-sm">Works for any domain</p>
+        <IndustryRow />
       </section>
 
-      {/* ── Industry Portals ──────────────────────────────────────────── */}
-      <section className="industries">
-        <h2 className="section-label">Industry Portals</h2>
-        <div className="industries-row">
-          {INDUSTRIES.map((ind) => (
-            <IndustryChip key={ind.id} industry={ind} />
-          ))}
-        </div>
-      </section>
+      {/* Secondary nav */}
+      <SecondaryNav />
 
-      {/* ── Footer ────────────────────────────────────────────────────── */}
-      <footer className="home-footer">
-        <span>HoloScript v3.22 · 17,740+ tests</span>
-        <span className="footer-sep">·</span>
-        <a
-          href={
-            process.env.NEXT_PUBLIC_ACADEMY_URL
-              ? `${process.env.NEXT_PUBLIC_ACADEMY_URL}/playground`
-              : 'http://localhost:3102/playground'
-          }
-          className="footer-link"
-        >
-          Playground
-        </a>
-        <span className="footer-sep">·</span>
-        <Link href="/workspace" className="footer-link">
-          Workspace
-        </Link>
-        <span className="footer-sep">·</span>
-        <Link href="/holodaemon" className="footer-link">
-          HoloDaemon
-        </Link>
-        <span className="footer-sep">·</span>
-        <Link href="/holoclaw" className="footer-link">
-          HoloClaw
-        </Link>
-        <span className="footer-sep">·</span>
-        <Link href="/pipeline" className="footer-link">
-          Pipeline
-        </Link>
-        <span className="footer-sep">·</span>
-        <Link href="/integrations" className="footer-link">
-          Integrations
-        </Link>
-        <span className="footer-sep">·</span>
-        <Link href="/absorb" className="footer-link">
-          Absorb
-        </Link>
-        <span className="footer-sep">·</span>
-        <span className="footer-hint">
-          Press <kbd>?</kbd> for help
-        </span>
+      {/* Footer */}
+      <footer className="text-white/20 text-xs">
+        HoloScript v6.0.1 · Simulation-first
       </footer>
     </main>
   );

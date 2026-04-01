@@ -4,7 +4,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'HoloScript Studio',
-  description: 'Create 3D scenes with AI — no coding required. 2000+ composable traits, 17 compilation targets, real-time collaboration.',
+  description: 'Point it at your data. Get a spatial experience on every device. 40 compilers, 3,300+ traits, 177 MCP tools.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net'),
   viewport: {
     width: 'device-width',
@@ -14,14 +14,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'HoloScript Studio',
-    description: 'Create 3D scenes with AI — no coding required. 2000+ composable traits, 17 compilation targets.',
+    description: 'Point it at your data. Get a spatial experience on every device. 40 compilers, 3,300+ traits.',
     siteName: 'HoloScript Studio',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'HoloScript Studio',
-    description: 'Create 3D scenes with AI — no coding required.',
+    description: 'Point it at your data. Get a spatial experience on every device.',
   },
 };
 
