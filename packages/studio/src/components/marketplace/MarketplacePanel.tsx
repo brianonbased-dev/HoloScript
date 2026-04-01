@@ -29,6 +29,8 @@ import { ContentTypeFilter } from './ContentTypeFilter';
 import { ContentDetailModal } from './ContentDetailModal';
 import { UploadWizard } from './UploadWizard';
 import { logger } from '@/lib/logger';
+import { useSceneStore } from '@/lib/stores/sceneStore';
+import { useStudioBus } from '@/hooks/useStudioBus';
 
 interface MarketplacePanelProps {
   onClose: () => void;
@@ -56,6 +58,8 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
 
   const { favorites, isFavorite, addFavorite, removeFavorite } = useFavorites();
   const { download, downloading } = useDownload();
+  const setCode = useSceneStore((s) => s.setCode);
+  const { emit } = useStudioBus();
 
   // Debounced search
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
@@ -89,12 +93,30 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
         const content = await download(itemId);
         StudioEvents.marketplaceDownload(itemId);
         logger.debug('Downloaded content:', content);
-        // Handle different content types (import to scene, install plugin, etc.)
+
+        const item = items.find((i) => i.id === itemId);
+        if (item) {
+          switch (item.type) {
+            case 'scene':
+            case 'preset':
+              if (typeof content === 'string') {
+                setCode(content);
+                emit('scene:loaded', { id: item.id });
+              }
+              break;
+            case 'script':
+            case 'workflow':
+              emit('asset:imported', { type: item.type, content });
+              break;
+            default:
+              logger.info(`Downloaded ${item.type} content but no auto-importer is registered.`);
+          }
+        }
       } catch (err) {
         logger.error('Download failed:', err);
       }
     },
-    [download]
+    [download, items, setCode, emit]
   );
 
   const handleRemix = useCallback((item: MarketplaceItem) => {

@@ -28,6 +28,7 @@ import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
 import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
 import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/ContentCameraUI';
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
+import { useLOD } from '@/hooks/useLOD';
 import { useStudioBus } from '@/hooks/useStudioBus';
 import { usePerformanceRegression, ProgressiveLoader } from '@holoscript/r3f-renderer';
 import * as THREE from 'three';
@@ -311,8 +312,10 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   // Gap 5: Performance regression monitor → bus events for LODMetricsPanel
   const perfResult = usePerformanceRegression({
     thresholdMs: 9.0,
-    windowSize: 60,
+    consecutiveFrames: 60,
   });
+
+  const { manager: lodManager } = useLOD();
 
   // Perf → bus bridge: emit lodMetrics:tick so LODMetricsPanel receives real data
   const { emit: emitBus } = useStudioBus();
@@ -323,13 +326,19 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
     if (now - lastEmitRef.current < 16) return;
     lastEmitRef.current = now;
 
+    const metrics = lodManager.getMetrics();
+    const l0 = metrics.objectsPerLevel.get(0) || 0;
+    const l1 = metrics.objectsPerLevel.get(1) || 0;
+    const l2 = metrics.objectsPerLevel.get(2) || 0;
+    const l3 = metrics.objectsPerLevel.get(3) || 0;
+
     emitBus('lodMetrics:tick', {
       timestamp: now,
       avgFrameTimeMs: perfResult.avgFrameTimeMs,
       isRegressed: perfResult.isRegressed,
-      levelDistribution: [0, 0, 0, 0], // Wired to LODManager when available
-      totalTriangles: 0,
-      entityCount: 0,
+      levelDistribution: [l0, l1, l2, l3],
+      totalTriangles: metrics.trianglesSaved,
+      entityCount: metrics.totalObjects,
       regressionCount: perfResult.regressionCount,
       recoveryCount: perfResult.recoveryCount,
     });
