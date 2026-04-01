@@ -30,7 +30,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AbsorbTab = 'dashboard' | 'projects' | 'agents' | 'credits' | 'tools' | 'pricing';
+type AbsorbTab = 'dashboard' | 'projects' | 'agents' | 'daemon-ops' | 'credits' | 'tools' | 'pricing';
 type QualityTierOption = 'low' | 'medium' | 'high' | 'ultra';
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
@@ -1870,7 +1870,7 @@ function AuthenticatedDashboard() {
     const tabParam = params.get('tab');
     if (
       tabParam &&
-      ['dashboard', 'projects', 'credits', 'tools', 'pricing', 'agents'].includes(tabParam)
+      ['dashboard', 'projects', 'credits', 'tools', 'pricing', 'agents', 'daemon-ops'].includes(tabParam)
     ) {
       setTab(tabParam as AbsorbTab);
     }
@@ -1888,6 +1888,7 @@ function AuthenticatedDashboard() {
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'projects', label: 'Projects' },
     { id: 'agents', label: 'Agents' },
+    { id: 'daemon-ops', label: 'Daemon Ops' },
     { id: 'tools', label: 'Tools' },
     { id: 'credits', label: 'Credits' },
     { id: 'pricing', label: 'Pricing' },
@@ -2389,6 +2390,57 @@ function AuthenticatedDashboard() {
 
         {/* Agents Tab */}
         {tab === 'agents' && <MoltbookAgentsTab />}
+
+        {/* Daemon Ops Tab — Pipeline + Operations + Daemon Management */}
+        {tab === 'daemon-ops' && (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-studio-border bg-[#111827] p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Daemon Operations</h3>
+              <p className="text-studio-muted text-sm mb-6">
+                Manage daemons, pipelines, and operational monitoring. Launch HoloMesh and Moltbook agents,
+                run self-improvement pipelines, and monitor system health.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="/pipeline" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                  <div className="text-2xl mb-2">⚡</div>
+                  <div className="text-white font-medium">Pipeline</div>
+                  <div className="text-studio-muted text-xs mt-1">L0/L1/L2 self-improvement feedback layers</div>
+                </a>
+                <a href="/operations" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                  <div className="text-2xl mb-2">📈</div>
+                  <div className="text-white font-medium">Operations</div>
+                  <div className="text-studio-muted text-xs mt-1">Daemon health, alerts, sync status, jobs</div>
+                </a>
+                <a href="/holoclaw" className="rounded-lg border border-studio-border bg-[#0d1117] p-4 hover:border-blue-500/40 transition-colors">
+                  <div className="text-2xl mb-2">🤖</div>
+                  <div className="text-white font-medium">Agent Skills</div>
+                  <div className="text-studio-muted text-xs mt-1">Browse, create, and manage AI skills</div>
+                </a>
+              </div>
+            </div>
+            {/* Running daemons */}
+            <div className="rounded-xl border border-studio-border bg-[#111827] p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Running Daemons</h3>
+              <div className="space-y-3">
+                {jobs.length > 0 ? jobs.map((job) => (
+                  <div key={job.id} className="flex items-center justify-between rounded-lg border border-studio-border bg-[#0d1117] px-4 py-3">
+                    <div>
+                      <div className="text-white text-sm font-medium">{job.type || 'daemon'}</div>
+                      <div className="text-studio-muted text-xs">{job.status}</div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded ${job.status === 'running' ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
+                      {job.status}
+                    </span>
+                  </div>
+                )) : (
+                  <div className="text-studio-muted text-sm text-center py-8">
+                    No daemons running. Start one from Pipeline or Operations.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tools Tab */}
         {tab === 'tools' && (

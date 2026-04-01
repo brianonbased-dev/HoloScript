@@ -16,11 +16,9 @@ import { useRouter } from 'next/navigation';
 // ── Nav Items (secondary) ───────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { href: '/absorb', label: 'Projects', icon: '📊' },
+  { href: '/absorb', label: 'Absorb', icon: '📊' },
   { href: '/create', label: 'Editor', icon: '🔨' },
   { href: '/templates', label: 'Templates', icon: '📐' },
-  { href: '/holoclaw', label: 'Agents', icon: '🤖' },
-  { href: '/holodaemon', label: 'Daemon Ops', icon: '👾' },
   { href: '/holomesh', label: 'HoloMesh', icon: '🌐' },
   { href: '/settings', label: 'Settings', icon: '⚙️' },
 ] as const;
