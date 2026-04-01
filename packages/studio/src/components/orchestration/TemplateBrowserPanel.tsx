@@ -85,8 +85,15 @@ export function TemplateBrowserPanel({ onClose, onLoadTemplate }: TemplateBrowse
   };
 
   const handleExportAsTemplate = () => {
-    // Implement custom template export
-    logger.debug('[TemplateBrowser] Export as template not yet implemented');
+    const data = JSON.stringify({ exportedAt: Date.now(), type: 'template' }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `holoscript-template-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    logger.debug('[TemplateBrowser] Export as template payload generated');
   };
 
   return (

@@ -174,17 +174,42 @@ export declare function useLODBridge(nodeId: string): UseLODBridgeResult;
 export declare function resetLODBridge(): void;
 
 export interface UsePerformanceRegressionOptions {
-  sampleSize?: number;
-  threshold?: number;
+  thresholdMs?: number;
+  consecutiveFrames?: number;
+  recoveryFrames?: number;
+  recoveryThresholdMs?: number;
+  enabled?: boolean;
+  onRegression?: (regressed: boolean) => void;
 }
 export interface UsePerformanceRegressionResult {
-  fps: number;
   isRegressed: boolean;
-  baseline: number;
+  avgFrameTimeMs: number;
+  regressionCount: number;
+  recoveryCount: number;
+  forceRegress: () => void;
+  forceRecover: () => void;
+  reset: () => void;
 }
 export declare function usePerformanceRegression(
   options?: UsePerformanceRegressionOptions
 ): UsePerformanceRegressionResult;
+
+export type AssetMaturity = 'draft' | 'mesh' | 'final';
+
+export interface LoadingEntity {
+  id: string;
+  maturity: AssetMaturity;
+  progress: number;
+  label?: string;
+}
+
+export interface ProgressiveLoaderProps {
+  entities: LoadingEntity[];
+  visible?: boolean;
+  position?: [number, number, number];
+  hud?: boolean;
+}
+export declare function ProgressiveLoader(props: ProgressiveLoaderProps): any;
 `;
 
 writeFileSync(join(distDir, 'index.d.ts'), dts, 'utf8');
