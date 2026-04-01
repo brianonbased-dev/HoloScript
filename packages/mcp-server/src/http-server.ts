@@ -23,6 +23,7 @@ import http from 'http';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
+import { handleCompileToTarget } from './compiler-tools';
 import {
   renderPreview,
   createShareLink,
@@ -33,7 +34,7 @@ import {
   generateThumbnail,
   getThumbnail,
 } from './renderer';
-import type { StoredScene } from './renderer';
+
 import {
   buildAgentCard,
   createTask,
@@ -52,12 +53,13 @@ import {
 } from './a2a';
 import { getOAuth21Service, SCOPE_CATEGORIES, type TokenIntrospection } from './security/oauth21';
 import { runTripleGate } from './security/gates';
-import { getAuditLogger } from './security/audit-log';
+import { getAuditLogger, type AuditEventType, type AuditResultStatus } from './security/audit-log';
 import { getOAuth2Provider, OAUTH2_SCOPES } from './auth/oauth2-provider';
 import type { TokenStoreBackend } from './auth/token-store';
 import { PostgresTokenStore } from './auth/postgres-token-store';
 import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './holomesh/index';
 import type { GossipDeltaRequest } from './holomesh/types';
+import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
@@ -73,7 +75,6 @@ const protocolMetadata = new Map<string, Record<string, unknown>>();
 let tokenBackend: TokenStoreBackend | undefined;
 if (process.env.DATABASE_URL) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Pool } = require('pg') as typeof import('pg');
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
@@ -232,6 +233,7 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
 /**
  * Legacy authentication check (kept for simple boolean checks on non-tool routes)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
   const auth = await authenticateRequest(req);
   return auth.active;
@@ -348,6 +350,7 @@ async function securedToolExecution(
   }
 
   // Enforce Tenant Config / Billing Limits
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tenantCtx = (auth as any).tenantContext;
   if (tenantCtx) {
     const rl = getRateLimit(
@@ -367,7 +370,6 @@ async function securedToolExecution(
     if (process.env.DATABASE_URL) {
       Promise.resolve().then(async () => {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const { Pool } = require('pg');
           const pool = new Pool({
             connectionString: process.env.DATABASE_URL,
@@ -1350,6 +1352,35 @@ const httpServer = http.createServer(async (req, res) => {
   // REST API ENDPOINTS (public creation, authenticated where noted)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // POST /api/compile — compile HoloScript to any target, return raw output code
+  if (url === '/api/compile' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      if (!body.code || typeof body.code !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
+        return;
+      }
+      if (!body.target || typeof body.target !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required field: target (string). Available: unity, unreal, godot, r3f, babylon, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, ar, playcanvas, nir, node-service, a2a-agent-card, native-2d, state, vrr' }));
+        return;
+      }
+      const result = await handleCompileToTarget({
+        code: body.code,
+        target: body.target,
+        options: body.options || {},
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
   // POST /api/render — render HoloScript to preview
   if (url === '/api/render' && req.method === 'POST') {
     try {
@@ -1374,6 +1405,65 @@ const httpServer = http.createServer(async (req, res) => {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // POST /mcp — Stateless JSON-RPC HTTP transport (Railway CDN friendly)
+  if (url === '/mcp' && req.method === 'POST') {
+    const auth = await authenticateRequest(req);
+    if (!auth.active) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized', message: 'Valid token required' }));
+      return;
+    }
+
+    try {
+      const body = await parseJsonBody(req) as Record<string, unknown>;
+      const method = typeof body.method === 'string' ? body.method : '';
+      const id = body.id;
+
+      if (method === 'tools/list') {
+        const allTools = [...tools, ...PluginManager.getTools()];
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          jsonrpc: '2.0',
+          id: id,
+          result: { tools: allTools }
+        }));
+        return;
+      }
+      
+      if (method === 'tools/call') {
+        const params = body.params as Record<string, unknown> || {};
+        const name = typeof params.name === 'string' ? params.name : '';
+        const toolArgs = params.arguments as Record<string, unknown> || {};
+        const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
+          requestPath: '/mcp',
+          requestMethod: 'POST',
+          ip: clientIP,
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          jsonrpc: '2.0',
+          id: body.id,
+          ...(isError ? { error: { code: -32000, message: typeof result === 'string' ? result : JSON.stringify(result) } } : { result: { content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result, null, 2) }] } })
+        }));
+        return;
+      }
+
+      // Fallback for other methods
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        error: { code: -32601, message: 'Method not found or supported via stateless HTTP' }
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32000, message } }));
     }
     return;
   }
@@ -1484,6 +1574,7 @@ const httpServer = http.createServer(async (req, res) => {
         description: (body.description as string) || undefined,
         author: (body.author as string) || undefined,
         license: (body.license as string) || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         provenance: (body.provenance as any) || undefined,
       });
       const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
@@ -1580,11 +1671,9 @@ const httpServer = http.createServer(async (req, res) => {
         author,
         license,
         provenance: {
-          contentHash,
-          author,
-          license: license as any,
-          importHashes: [],
-          timestamp: Date.now(),
+          hash: contentHash,
+          publishMode: 'original',
+          imports: [],
         },
       });
 
@@ -1626,6 +1715,7 @@ const httpServer = http.createServer(async (req, res) => {
       let revenue: Record<string, unknown> | null = null;
       if (price !== '0') {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { calculateRevenueDistribution } = (await import('@holoscript/core')) as any;
           const dist = calculateRevenueDistribution(BigInt(price), author, []);
           revenue = {
@@ -1696,6 +1786,7 @@ const httpServer = http.createServer(async (req, res) => {
       let revenue: Record<string, unknown> | null = null;
       if (price !== '0') {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { calculateRevenueDistribution } = (await import('@holoscript/core')) as any;
           const dist = calculateRevenueDistribution(BigInt(price), author, []);
           revenue = {
@@ -1814,7 +1905,7 @@ const httpServer = http.createServer(async (req, res) => {
       const price = BigInt((record?.price as string) || '0');
       const creator = (record?.author as string) || 'unknown';
       // Dynamic import to avoid loading core at startup if unused
-      const { calculateRevenueDistribution, formatRevenueDistribution, ethToWei } =
+      const { calculateRevenueDistribution, formatRevenueDistribution } =
         (await import('@holoscript/core')) as any;
       const dist = calculateRevenueDistribution(price, creator, []);
       const lines = formatRevenueDistribution(dist);
@@ -1944,11 +2035,11 @@ const httpServer = http.createServer(async (req, res) => {
     const params = new URLSearchParams(queryString);
 
     const result = auditLog.query({
-      event: (params.get('event') as any) || undefined,
+      event: (params.get('event') as AuditEventType) || undefined,
       clientId: params.get('clientId') || undefined,
       toolName: params.get('toolName') || undefined,
-      status: (params.get('status') as any) || undefined,
-      riskLevel: (params.get('riskLevel') as any) || undefined,
+      status: (params.get('status') as AuditResultStatus) || undefined,
+      riskLevel: (params.get('riskLevel') as 'low' | 'medium' | 'high' | 'critical') || undefined,
       since: params.get('since') || undefined,
       until: params.get('until') || undefined,
       limit: params.get('limit') ? parseInt(params.get('limit')!, 10) : 100,
@@ -2017,6 +2108,10 @@ const httpServer = http.createServer(async (req, res) => {
 
 // ── Start Server ─────────────────────────────────────────────────────────────
 
+// Initialize WebRTC Signaling Server for Neural Streaming out-of-band payloads
+// Initialize WebRTC Signaling Server for Neural Streaming out-of-band payloads
+new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
+
 httpServer.listen(PORT, '0.0.0.0', () => {
   const migrationMode = process.env.OAUTH_MIGRATION_MODE || 'permissive';
   console.log(`\u{1F680} ${SERVICE_NAME} v${SERVICE_VERSION}`);
@@ -2056,6 +2151,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`     GET  /a2a/tasks/:id                - A2A get task`);
   console.log(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
   console.log(`     GET  /api/health                   - API health + capabilities (public)`);
+  console.log(`     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`);
   console.log(`     POST /api/render                   - Render HoloScript preview`);
   console.log(`     POST /api/share                    - Create share links`);
   console.log(`     POST /api/publish                  - Studio full publish flow`);
@@ -2063,6 +2159,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`     POST /api/scene                    - Store scene, get short URL`);
   console.log(`     GET  /scene/:id                    - View stored scene (public)`);
   console.log(`     GET  /embed/:id                    - Embed stored scene (public)`);
+  console.log(`     WS   /webrtc-signaling             - WebRTC Signaling Bridge (Neural Streaming)`);
   console.log(`     GET  /api/audit                    - Query audit log (admin)`);
   console.log(`     GET  /api/audit/compliance         - EU AI Act compliance report (admin)`);
   console.log(`     GET  /api/audit/export             - Export audit log (admin)`);
