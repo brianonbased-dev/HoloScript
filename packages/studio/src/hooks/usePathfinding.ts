@@ -11,7 +11,7 @@ interface NavPoint {
   z: number;
 }
 
-interface PathResult {
+export interface PathResult {
   found: boolean;
   path: NavPoint[];
   cost: number;

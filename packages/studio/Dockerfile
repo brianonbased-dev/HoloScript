@@ -7,8 +7,10 @@ RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
 FROM base AS manifests
 WORKDIR /app
 COPY . .
-RUN find packages -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; \
- && find services -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+RUN mkdir -p /manifests && \
+    find packages services benchmarks -type f -name "package.json" 2>/dev/null | grep -v "node_modules" | while read -r f; do \
+        mkdir -p "/manifests/$(dirname "$f")" && cp "$f" "/manifests/$f"; \
+    done
 
 # ─── Install all deps ────────────────────────────────────────────────────────
 FROM base AS deps

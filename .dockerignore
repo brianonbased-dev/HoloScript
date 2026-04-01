@@ -13,7 +13,7 @@ target/
 
 # Large non-essential directories
 datasets/
-benchmarks/
+# benchmarks/ — kept: pnpm-workspace.yaml includes benchmarks/*, lockfile needs their package.json
 demos/
 samples/
 compositions/

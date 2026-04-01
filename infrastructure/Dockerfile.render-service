@@ -11,8 +11,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 FROM base AS manifests
 WORKDIR /app
 COPY . .
-RUN find packages -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; \
- && find services -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
+RUN find packages services benchmarks -name "package.json" -not -path "*/node_modules/*" -exec sh -c 'mkdir -p /manifests/$(dirname {}) && cp {} /manifests/{}' \; 2>/dev/null; true
 
 FROM base
 WORKDIR /app
