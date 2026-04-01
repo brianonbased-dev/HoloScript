@@ -20,9 +20,7 @@ const NAV_ITEMS = [
   { href: '/create', label: 'Editor', icon: '🔨' },
   { href: '/templates', label: 'Templates', icon: '📐' },
   { href: '/holoclaw', label: 'Agents', icon: '🤖' },
-  { href: '/holodaemon', label: 'Daemons', icon: '👾' },
-  { href: '/pipeline', label: 'Pipeline', icon: '⚡' },
-  { href: '/operations', label: 'Operations', icon: '📈' },
+  { href: '/holodaemon', label: 'Daemon Ops', icon: '👾' },
   { href: '/holomesh', label: 'HoloMesh', icon: '🌐' },
   { href: '/settings', label: 'Settings', icon: '⚙️' },
 ] as const;
