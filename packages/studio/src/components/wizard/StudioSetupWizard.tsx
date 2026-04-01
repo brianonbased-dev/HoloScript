@@ -11,6 +11,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   X,
   ChevronRight,
@@ -44,6 +45,7 @@ import { useStudioPresetStore } from '@/lib/stores/studioPresetStore';
 import { useSceneStore } from '@/lib/stores/sceneStore';
 import { getWizardTemplate } from '@/lib/presets/wizardTemplates';
 import type { ExperienceLevel, ProjectSpecifics, StudioPreset } from '@/lib/presets/studioPresets';
+import type { SceneTemplate } from '@/lib/scene/sceneTemplates';
 import { StudioEvents } from '@/lib/analytics';
 
 // ─── Category cards ──────────────────────────────────────────────────────────
@@ -212,6 +214,7 @@ interface StudioSetupWizardProps {
 }
 
 export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
+  const router = useRouter();
   const applyPreset = useStudioPresetStore((s) => s.applyPreset);
   const setCode = useSceneStore((s) => s.setCode);
 
@@ -301,10 +304,15 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
     return filterByExperience(selectedPreset.openPanels, extras, experienceLevel);
   }, [selectedPreset, specifics, experienceLevel]);
 
-  const wizardTemplate = useMemo(
-    () => (subCategory ? getWizardTemplate(subCategory) : null),
-    [subCategory]
-  );
+  const [wizardTemplate, setWizardTemplate] = useState<SceneTemplate | null>(null);
+
+  useEffect(() => {
+    if (subCategory) {
+      getWizardTemplate(subCategory).then(setWizardTemplate);
+    } else {
+      setWizardTemplate(null);
+    }
+  }, [subCategory]);
 
   // Questions for step 3 — filtered by category
   const questions = useMemo(
@@ -358,8 +366,21 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
     );
     StudioEvents.presetApplied(selectedPresetId, 'wizard');
     setCreated(true);
-    setTimeout(onClose, 800);
-  }, [selectedPresetId, specifics, experienceLevel, applyPreset, onClose, wizardTemplate, setCode]);
+    setTimeout(() => {
+      onClose();
+      
+      // Route users to their appropriate standalone workspace based on category
+      const industryCategories = [
+        'healthcare', 'architecture', 'agriculture', 'iot', 
+        'robotics', 'science', 'creator', 'hologram'
+      ];
+      if (category && industryCategories.includes(category)) {
+        router.push(`/industry/${category}`);
+      } else {
+        router.push('/create');
+      }
+    }, 800);
+  }, [selectedPresetId, specifics, experienceLevel, applyPreset, onClose, wizardTemplate, setCode, router, category]);
 
   // ── Success flash ──
 
