@@ -61,6 +61,7 @@ import {
   compileMusicBlock,
 } from '@holoscript/core';
 import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
+import { handleAuditNumbers, auditTools } from './audit-tools';
 
 // =============================================================================
 // TYPES
@@ -533,6 +534,10 @@ export async function handleCompilerTool(
       return handleDomainBlock(args, compileEducationBlock, 'education');
     case 'holoscript_compile_music':
       return handleDomainBlock(args, compileMusicBlock, 'music');
+
+    // Audit
+    case 'holoscript_audit_numbers':
+      return handleAuditNumbers(args);
 
     // Status and metadata tools
     case 'get_compilation_status':
@@ -1010,4 +1015,6 @@ export const compilerTools: Tool[] = [
       required: ['target'],
     },
   },
+  // Audit tools (automated number consistency)
+  ...auditTools,
 ];
