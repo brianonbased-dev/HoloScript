@@ -44,24 +44,37 @@ absorb_run_improve({ profile: "quick" })
 
 28 MCP tools total. Production service at `absorb.holoscript.net`. [Absorb docs →](./packages/absorb-service/README.md)
 
-### 2. Build — One language, 33 targets
+### 2. Build — 12 sovereign compilers, 12 bridges
 
-Write HoloScript. The compiler outputs production code for the platform you need.
+24 compilers. Two kinds.
+
+**Sovereign compilers** define what the platform natively IS — agent identity, neural computation, mathematical physics, digital twins, trait composition, real-time state. They don't translate for hardware. They expand the platform's native reality.
+
+**Bridge compilers** translate sovereign output into Unity, Unreal, Godot, React, WebGPU, VRChat, and 21 other legacy targets. They're useful. They're not the story.
+
+#### The sovereign layer
+
+| You write | What the compiler produces | Why it matters |
+| --------- | ------------------------- | -------------- |
+| `@protocol @lifecycle` | A2A Agent Card — identity, economy, W/P/G memories | Agents carry their full state across the mesh |
+| `@LIF_Neuron @synapse` | Neural IR → WGSL GPU compute shaders (1,855 LOC compiler) | Deep learning runs natively on GPU, no Python |
+| `@sdf_sphere @sdf_union` | GLSL ray march shaders (22 primitives, 6 CSG ops) | Infinite-resolution shapes from math, no polygons |
+| `@joint_revolute @urdf` | URDF/SDF robot descriptions — joints, sensors, transmissions | ROS 2 / Gazebo, what a thing IS, not how it looks |
+| `@iot_sensor @digital_twin` | Azure DTDL — properties, commands, telemetry | Real-world semantic data |
+| `@physics(mass: 5)` | USD Physics — rigid body, collision, scene graph | Pixar's universal scene standard |
+
+#### The bridge layer
 
 | You write | Compiler outputs | Use case |
 | --------- | ---------------- | -------- |
 | `@physics @grabbable` | Unity C#, Unreal C++, Godot GDScript | VR/AR/games |
 | `@endpoint @auth` | Express/Fastify API + Dockerfile | Backend services |
 | `@royalty @lazy_mint` | Solidity + multi-chain deploy scripts | NFT/DeFi |
-| `@protocol @lifecycle` | A2A Agent Card JSON | AI agent interop |
-| `@iot_sensor @digital_twin` | Azure DTDL definitions | IoT digital twins |
-| `@LIF_Neuron @synapse` | Neuromorphic IR (Intel Loihi, SpiNNaker) | Brain-like AI |
 | `@panel @button @form` | React TSX + Tailwind CSS | Web applications |
 | `@shader @compute` | WGSL vertex/fragment/compute | GPU programming |
-| `@joint_revolute @urdf` | URDF/SDF for ROS2/Gazebo | Robotics |
 | `@causal @intervention` | Structural Causal Model DAG | ML research |
 
-Same trait system. Same compiler architecture. `@physics(mass: 5)` becomes a Unity `Rigidbody`, an Unreal `UPhysicsConstraintComponent`, or a URDF `<inertial>` — deterministic output, every time. ([Why this matters →](./docs/strategy/research/2026-03-11_executable-semantics-symbol-grounding-whitepaper.md))
+Same trait system. Same compiler architecture. `@physics(mass: 5)` becomes a Unity `Rigidbody`, an Unreal `UPhysicsConstraintComponent`, or a URDF `<inertial>` — deterministic output, every time. The sovereign compilers define the truth. The bridges carry it. ([Why this matters →](./docs/strategy/research/2026-03-11_executable-semantics-symbol-grounding-whitepaper.md))
 
 ```holo
 composition "Hello" {
@@ -75,10 +88,12 @@ composition "Hello" {
 ```
 
 ```bash
-holoscript compile hello.holo --target unity
+holoscript compile hello.holo --target unity    # bridge: Unity C#
+holoscript compile hello.holo --target urdf     # sovereign: ROS 2 robot
+holoscript compile hello.holo --target nir      # sovereign: neural IR → GPU
 ```
 
-164 MCP tools. 3,300+ traits across 114 categories. Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
+177 MCP tools total (149 holoscript + 28 absorb). 658 trait handlers across 114 categories. Three file formats: `.holo` (declarative scenes), `.hs` (templates + behaviors), `.hsplus` (full TypeScript for XR). [Format guide →](./docs/guides/file-formats.md)
 
 ### 3. Run — What executes at runtime
 
@@ -132,18 +147,18 @@ The vm-bridge connects them: agents perceive the 3D world, make decisions at cog
 
 ## What's Here
 
-| Metric          | Value                               | How to verify                           |
-| --------------- | ----------------------------------- | --------------------------------------- |
-| MCP tools       | 164 (136 holoscript + 28 absorb)    | `curl mcp.holoscript.net/api/health`    |
-| Compile targets | 33 compilers, 29 ExportTargets      | 51/51 benchmark, 0.7ms avg              |
-| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive) | `packages/holo-vm` + `packages/uaal`    |
-| GPU systems     | 6 WebGPU compute pipelines          | `packages/core/src/gpu/shaders/`        |
-| Renderers       | 32 React Three Fiber components     | `packages/r3f-renderer/src/components/` |
-| Traits          | 3,300+ across 114 categories        | MCP: `list_traits` / `suggest_traits`   |
-| Packages        | 78 (72 + 6 services)                | pnpm workspaces                         |
-| Tests           | 57,356+ passing                     | `pnpm test`                             |
-| Examples        | 324 files                           | [Browse catalog →](./examples/INDEX.md) |
-| Knowledge store | 556 entries across 10 domains       | `curl .../health`                       |
+| Metric          | Value                                                      | How to verify                           |
+| --------------- | ---------------------------------------------------------- | --------------------------------------- |
+| MCP tools       | 177 (149 holoscript + 28 absorb)                           | `curl mcp.holoscript.net/api/health`    |
+| Compile targets | 24 compilers (12 sovereign + 12 bridge), 29 ExportTargets  | 51/51 benchmark, 0.7ms avg              |
+| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                        | `packages/holo-vm` + `packages/uaal`    |
+| GPU systems     | 6 WebGPU compute pipelines                                 | `packages/core/src/gpu/shaders/`        |
+| Renderers       | 32 React Three Fiber components                            | `packages/r3f-renderer/src/components/` |
+| Traits          | 658 trait handlers                                         | MCP: `list_traits` / `suggest_traits`   |
+| Packages        | 78 (72 + 6 services)                                       | pnpm workspaces                         |
+| Tests           | 57,356+ passing                                            | `pnpm test`                             |
+| Examples        | 324 files                                                  | [Browse catalog →](./examples/INDEX.md) |
+| Knowledge store | 676 entries across 10 domains                              | `curl .../health`                       |
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
@@ -339,7 +354,7 @@ my-vr-game/
 
 ### 1. Universal Semantic Traits
 
-HoloScript's 3,300+ traits (357 trait files, 115 category modules) describe **any domain entity** — not just 3D:
+HoloScript's 658 trait handlers (357 trait files, 115 category modules) describe **any domain entity** — not just 3D:
 
 - **Spatial**: `@physics`, `@grabbable`, `@anchor`, `@spatial_audio`
 - **AI/Agents**: `@protocol`, `@lifecycle`, `@knowledge`, `@llm_agent`
@@ -527,9 +542,9 @@ Write **one** HoloScript file. Compile to:
 
 ### 6. Feature-Rich
 
-- ✅ **3,300+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across 114 categories
+- ✅ **658 Semantic Trait Handlers** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization` across 114 categories
 - ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
-- ✅ **AI-Native** — 164 MCP tools across 6 domains (parse, compile, analyze, render, mesh, debug), Brittney agent, scene generation from natural language
+- ✅ **AI-Native** — 177 MCP tools across 6 domains (parse, compile, analyze, render, mesh, debug), Brittney agent, scene generation from natural language
 - ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
 - ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
 - ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
@@ -567,10 +582,10 @@ Write **one** HoloScript file. Compile to:
 
 ### Reference & Advanced
 
-- 📘 **[Traits Reference](./docs/traits/index.md)** - 3,300+ VR traits across 114 categories.
+- 📘 **[Traits Reference](./docs/traits/index.md)** - 658 VR trait handlers across 114 categories.
 - 🧩 **[RFC Proposals Index](./proposals/README.md)** - Track active proposals and draft new RFCs for language and platform evolution.
 - 📙 **[Academy](./docs/academy/index.md)** - Master HoloScript through interactive lessons.
-- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 33 compile targets.
+- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 24 compile targets.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.
 
@@ -688,8 +703,8 @@ Interactive scene graph visualization with:
 ### Additional Tooling
 
 - **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **MCP Server** — 136 tools across 6 domains. `mcp.holoscript.net`. No auth for reads. **[Full guide →](./docs/guides/mcp-server.md)**
-- **LSP Server** — IntelliSense for 3,300+ traits with completions, hover docs, and diagnostics
+- **MCP Server** — 177 tools across 6 domains. `mcp.holoscript.net`. No auth for reads. **[Full guide →](./docs/guides/mcp-server.md)**
+- **LSP Server** — IntelliSense for 658 trait handlers with completions, hover docs, and diagnostics
 
 #### MCP Server Quick Reference
 
