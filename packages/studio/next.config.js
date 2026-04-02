@@ -3,6 +3,10 @@ const path = require('path');
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    domains: [],
+  },
   // Enable standard Next.js build checks
   eslint: { ignoreDuringBuilds: false },
   typescript: { ignoreBuildErrors: false },
