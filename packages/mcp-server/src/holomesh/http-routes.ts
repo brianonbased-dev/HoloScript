@@ -269,6 +269,8 @@ interface Team {
   ownerName: string;
   inviteCode: string;
   members: TeamMember[];
+  maxSlots: number;
+  waitlist: TeamMember[];
   createdAt: string;
 }
 
@@ -278,6 +280,47 @@ const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → me
 const agentTeamIndex: Map<string, string[]> = new Map(); // agentId → teamIds[]
 
 const PRESENCE_TTL_MS = 2 * 60 * 1000; // 2 min — stale after this
+const DEFAULT_MAX_SLOTS = 5;
+
+/** Promote waiting agents into vacant slots when active agents go stale. */
+function promoteFromWaitlist(teamId: string): string[] {
+  const team = teamStore.get(teamId);
+  if (!team || !team.waitlist?.length) return [];
+
+  const presenceMap = teamPresenceStore.get(teamId);
+  const activeCount = presenceMap ? presenceMap.size : 0;
+  const slotsAvailable = team.maxSlots - Math.min(activeCount, team.members.length);
+  if (slotsAvailable <= 0) return [];
+
+  const promoted: string[] = [];
+  while (team.waitlist.length > 0 && promoted.length < slotsAvailable) {
+    const next = team.waitlist.shift()!;
+    // Only promote if not already a member
+    if (!team.members.find((m) => m.agentId === next.agentId)) {
+      team.members.push(next);
+      indexAgentTeam(next.agentId, teamId);
+      promoted.push(next.agentName);
+    }
+  }
+
+  if (promoted.length > 0) {
+    // Broadcast promotion to team
+    const messages = teamMessageStore.get(teamId) || [];
+    messages.push({
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      teamId,
+      fromAgentId: 'system',
+      fromAgentName: 'HoloMesh',
+      type: 'text',
+      content: `Slot opened — promoted from waitlist: ${promoted.join(', ')}`,
+      createdAt: new Date().toISOString(),
+    } as any);
+    teamMessageStore.set(teamId, messages.slice(-500));
+    persistTeamStore();
+  }
+
+  return promoted;
+}
 
 function generateTeamId(): string {
   return `team_${crypto.randomBytes(8).toString('hex')}`;
@@ -301,15 +344,22 @@ function hasTeamPermission(team: Team, agentId: string, permission: string): boo
   return TEAM_ROLE_PERMISSIONS[member.role].includes(permission);
 }
 
-function pruneStalePresence(teamId: string): void {
+function pruneStalePresence(teamId: string): string[] {
   const presenceMap = teamPresenceStore.get(teamId);
-  if (!presenceMap) return;
+  if (!presenceMap) return [];
   const now = Date.now();
+  const pruned: string[] = [];
   for (const [agentId, entry] of presenceMap) {
     if (now - new Date(entry.lastHeartbeat).getTime() > PRESENCE_TTL_MS) {
       presenceMap.delete(agentId);
+      pruned.push(entry.agentName || agentId);
     }
   }
+  // If agents went stale and there's a waitlist, promote replacements
+  if (pruned.length > 0) {
+    promoteFromWaitlist(teamId);
+  }
+  return pruned;
 }
 
 function indexAgentTeam(agentId: string, teamId: string): void {
@@ -2982,6 +3032,8 @@ export async function handleHoloMeshRoute(
       const teamId = generateTeamId();
       const inviteCode = generateInviteCode();
 
+      const maxSlots = Math.min(Math.max(parseInt(body.max_slots as string) || DEFAULT_MAX_SLOTS, 1), 10);
+
       const team: Team = {
         id: teamId,
         name: teamName,
@@ -2997,6 +3049,8 @@ export async function handleHoloMeshRoute(
             joinedAt: new Date().toISOString(),
           },
         ],
+        maxSlots,
+        waitlist: [],
         createdAt: new Date().toISOString(),
       };
 
@@ -3037,9 +3091,11 @@ export async function handleHoloMeshRoute(
           invite_code: inviteCode,
           workspace_id: getTeamWorkspaceId(teamId),
           members: team.members.length,
+          maxSlots,
+          slotsAvailable: maxSlots - 1,
         },
         next_steps: [
-          `Share invite code "${inviteCode}" with team members`,
+          `Share invite code "${inviteCode}" with team members (${maxSlots} slots)`,
           `POST /api/holomesh/team/${teamId}/join — members join with invite code`,
           `POST /api/holomesh/team/${teamId}/presence — start heartbeat`,
           `POST /api/holomesh/team/${teamId}/knowledge — sync team knowledge`,
@@ -3162,14 +3218,90 @@ export async function handleHoloMeshRoute(
         joinedAt: new Date().toISOString(),
       };
 
+      // Slot enforcement — if team is full, add to waitlist
+      const maxSlots = team.maxSlots || DEFAULT_MAX_SLOTS;
+      if (team.members.length >= maxSlots) {
+        // Already on waitlist?
+        if (team.waitlist?.find((w) => w.agentId === caller.id)) {
+          json(res, 409, { error: 'Already on waitlist for this team' });
+          return true;
+        }
+        if (!team.waitlist) team.waitlist = [];
+        team.waitlist.push(newMember);
+        persistTeamStore();
+
+        json(res, 202, {
+          success: true,
+          status: 'waitlisted',
+          team: { id: team.id, name: team.name },
+          message: `All ${maxSlots} slots are filled. You're #${team.waitlist.length} on the waitlist — you'll be promoted when a slot opens.`,
+          position: team.waitlist.length,
+          maxSlots,
+        });
+        return true;
+      }
+
       team.members.push(newMember);
       indexAgentTeam(caller.id, teamId);
 
       json(res, 200, {
         success: true,
+        status: 'joined',
         team: { id: team.id, name: team.name },
         role: 'member',
         members: team.members.length,
+        maxSlots,
+        slotsAvailable: maxSlots - team.members.length,
+      });
+      return true;
+    }
+
+    // GET /api/holomesh/team/:id/slots — Team slot health (who's active, vacant, waiting)
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/slots$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { teamId } = access;
+
+      const team = teamStore.get(teamId)!;
+      const maxSlots = team.maxSlots || DEFAULT_MAX_SLOTS;
+      pruneStalePresence(teamId);
+      const presenceMap = teamPresenceStore.get(teamId) || new Map();
+
+      const slots = team.members.map((m) => {
+        const presence = presenceMap.get(m.agentId);
+        const isOnline = !!presence;
+        const lastSeen = presence?.lastHeartbeat;
+        return {
+          agentId: m.agentId,
+          agentName: m.agentName,
+          role: m.role,
+          status: isOnline ? (presence!.status || 'active') : 'offline',
+          ideType: presence?.ideType || null,
+          projectPath: presence?.projectPath || null,
+          lastHeartbeat: lastSeen || null,
+          joinedAt: m.joinedAt,
+        };
+      });
+
+      const activeCount = slots.filter((s) => s.status !== 'offline').length;
+
+      json(res, 200, {
+        success: true,
+        team: { id: team.id, name: team.name },
+        slots: {
+          max: maxSlots,
+          filled: team.members.length,
+          active: activeCount,
+          offline: team.members.length - activeCount,
+          vacant: Math.max(0, maxSlots - team.members.length),
+        },
+        members: slots,
+        waitlist: (team.waitlist || []).map((w, i) => ({
+          position: i + 1,
+          agentId: w.agentId,
+          agentName: w.agentName,
+          waitingSince: w.joinedAt,
+        })),
       });
       return true;
     }
