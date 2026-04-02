@@ -24,7 +24,7 @@ Both live in the same monorepo under `packages/` and share workspace dependencie
 | `/workspace`        | `workspace/page.tsx`        | Client               | Creator hub. 7 content types (scenes, traits, skills, agents, plugins, training data, templates) with stats, search, quick actions.                                                                                                | **Complete**                       |
 | `/workspace/skills` | `workspace/skills/page.tsx` | Client               | Skill Builder IDE. SKILL.md editor with YAML frontmatter, file tree, test harness, metadata panel, publish-to-marketplace flow.                                                                                                    | **Complete**                       |
 | `/holodaemon`       | `holodaemon/page.tsx`       | Client               | Daemon dashboard. Status, metrics (quality/type-errors/jobs/cost), agent pool, BT phase progress, event feed, HoloScript source preview.                                                                                           | **Complete (large)**               |
-| `/holoclaw`         | `holoclaw/page.tsx`         | Client               | Skill shelf. Browse installed `.hsplus` skills, create from templates, SSE-streaming activity feed. 3 tabs: Shelf/Create/Activity.                                                                                                 | **Complete**                       |
+| `/holoclaw`         | `holoclaw/page.tsx`         | Client               | **HoloClaw Lite (Academy)**. Read-only shelf + activity visibility. Skill install/run lifecycle belongs to Studio + CLI.                                                                                                           | **Lite (read-only)**               |
 | `/registry`         | `registry/page.tsx`         | Client               | Public asset pack browser. Search + tag filters + import flow.                                                                                                                                                                     | **Complete**                       |
 | `/shader-editor`    | `shader-editor/page.tsx`    | Client               | Visual shader editor. Delegates to `<ShaderEditor />` component.                                                                                                                                                                   | **Complete (wrapper)**             |
 | `/templates`        | `templates/page.tsx`        | Client               | Template gallery. 5 built-in templates (forest, space station, art gallery, zen garden, neon city). Loads `.holo` file and navigates to `/create`.                                                                                 | **Complete**                       |
@@ -166,7 +166,10 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/daemon/surface` — Daemon operations surface
 - `/api/daemon/absorb` — Daemon absorption
 - `/api/holodaemon` — Legacy daemon endpoint
-- `/api/holoclaw` — Claw shelf endpoint
+- `/api/holoclaw` — Claw shelf endpoint (GET only in Academy Lite)
+- `/api/holoclaw/run` — Disabled in Academy Lite (use Studio/CLI lifecycle controls)
+
+**HoloClaw Ownership Note:** Academy exposes a read-only `/holoclaw` surface for learning and visibility. Skill install/run/stop/status control plane lives in Studio (`/holoclaw`) and CLI (`holoscript daemon ...`).
 
 ---
 
@@ -246,7 +249,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 7. **Missing API route: `/api/skills/publish`**: The Skill Builder page (`/workspace/skills`) POSTs to `/api/skills/publish` but this route does not exist in the API routes list. Need to implement or redirect.
 
-8. **HoloClaw activity SSE endpoint**: `/api/holoclaw/activity?stream=true` is expected by the HoloClaw page but is not confirmed to exist as a separate route file.
+8. **HoloClaw ownership split**: Academy keeps HoloClaw read-only by design. Lifecycle controls (`install/run/stop/status`) must route users to Studio/CLI.
 
 9. **`/shared/[id]` uses ISR but needs `NEXT_PUBLIC_APP_URL`**: The SSR scene page uses `process.env.NEXT_PUBLIC_APP_URL` to construct API URLs during SSR. This must be set in all deployment environments.
 
@@ -301,7 +304,7 @@ Workspace (/workspace)
   |
   +-- Quick Actions:
       +-- HoloDaemon (/holodaemon)
-      +-- HoloClaw (/holoclaw)
+      +-- HoloClaw Lite (/holoclaw, read-only)
       +-- Marketplace (/registry)
 ```
 

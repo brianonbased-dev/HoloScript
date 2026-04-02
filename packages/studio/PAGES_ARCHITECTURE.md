@@ -186,6 +186,8 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/audit` — Security audit
 - `/api/mcp/call` — MCP orchestrator bridge
 - `/api/git/blame` — Git blame overlay
+- `/api/holomesh/delegate` — Convert a HoloMesh entry into an installable HoloClaw skill
+- `/api/holomesh/team/automate` — Team-triggered HoloClaw delegation + team notification bridge
 
 **Daemon:**
 
@@ -194,6 +196,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 - `/api/daemon/absorb` — Daemon absorption
 - `/api/holodaemon` — Legacy daemon endpoint
 - `/api/holoclaw` — Claw shelf endpoint
+- `/api/holoclaw/run` — HoloClaw skill lifecycle controls (run/stop/status)
 
 ---
 
@@ -278,7 +281,7 @@ QueryClientProvider (React Query, staleTime: 30s, retry: 1)
 
 7. **Missing API route: `/api/skills/publish`**: The Skill Builder page (`/workspace/skills`) POSTs to `/api/skills/publish` but this route does not exist in the API routes list. Need to implement or redirect.
 
-8. **HoloClaw activity SSE endpoint**: `/api/holoclaw/activity?stream=true` is expected by the HoloClaw page but is not confirmed to exist as a separate route file.
+8. **HoloClaw lifecycle ownership**: Studio is the operational control plane for HoloClaw via `/api/holoclaw` and `/api/holoclaw/run` (run/stop/status). Academy should remain read-only Lite.
 
 9. **`/shared/[id]` uses ISR but needs `NEXT_PUBLIC_APP_URL`**: The SSR scene page uses `process.env.NEXT_PUBLIC_APP_URL` to construct API URLs during SSR. This must be set in all deployment environments.
 

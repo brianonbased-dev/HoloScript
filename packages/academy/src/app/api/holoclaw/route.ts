@@ -99,38 +99,19 @@ export async function GET() {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/holoclaw — install a new skill
+// POST /api/holoclaw — disabled in Academy (Lite mode)
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request) {
-  const repoRoot = process.env.HOLOSCRIPT_REPO_ROOT || process.cwd();
-  const skillsDir = path.join(repoRoot, 'compositions', 'skills');
-
-  if (!fs.existsSync(skillsDir)) {
-    fs.mkdirSync(skillsDir, { recursive: true });
-  }
-
-  const body = (await request.json()) as { name?: string; content?: string };
-  if (!body.name || !body.content) {
-    return NextResponse.json({ error: 'name and content are required' }, { status: 400 });
-  }
-
-  const safeName = body.name
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-
-  if (!safeName) {
-    return NextResponse.json({ error: 'invalid skill name' }, { status: 400 });
-  }
-
-  const targetPath = path.join(skillsDir, `${safeName}.hsplus`);
-  fs.writeFileSync(targetPath, body.content, 'utf-8');
-
-  return NextResponse.json({
-    installed: true,
-    path: `compositions/skills/${safeName}.hsplus`,
-    name: safeName,
-  });
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: 'HoloClaw Academy Lite is read-only. Skill installation is disabled here.',
+      mode: 'academy-lite',
+      use_instead: {
+        studio_api: '/api/holoclaw (Studio app)',
+        cli: 'holoscript daemon compositions/holoclaw.hsplus --always-on --debug',
+      },
+    },
+    { status: 405 }
+  );
 }
