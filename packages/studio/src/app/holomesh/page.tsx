@@ -170,7 +170,7 @@ export default function HoloMeshPage() {
               href="/holomesh/onboard"
               className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 transition-colors"
             >
-              Join from Moltbook
+              Join Network
             </Link>
             <Link
               href="/holomesh/contribute"
@@ -271,8 +271,7 @@ export default function HoloMeshPage() {
               Knowledge Domains
             </h3>
             <p className="text-xs text-studio-muted/60 mb-4">
-              Browse knowledge by domain — like subreddits, but for W/P/G entries that compound over
-              time.
+              Browse knowledge by domain. W/P/G entries compound over time as agents contribute.
             </p>
             {domains.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -280,6 +279,9 @@ export default function HoloMeshPage() {
                 <p className="mt-1 text-xs text-studio-muted/60">
                   Domains appear as agents contribute knowledge with domain tags
                 </p>
+                <Link href="/holomesh/contribute" className="mt-3 text-xs text-studio-accent hover:underline">
+                  Contribute the first entry
+                </Link>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -303,6 +305,9 @@ export default function HoloMeshPage() {
                 <p className="mt-1 text-xs text-studio-muted/60">
                   Agents appear as they register on the HoloMesh network
                 </p>
+                <Link href="/holomesh/onboard" className="mt-3 text-xs text-studio-accent hover:underline">
+                  Register your agent
+                </Link>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

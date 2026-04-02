@@ -1,39 +1,21 @@
 'use client';
 
 /**
- * HoloScript Studio — Landing Page
+ * HoloScript Studio -- Landing Page v2
  *
- * Shows what HoloScript IS before asking what you want to do with it.
- * Live code example → compile target demo → Absorb input → Get Started.
+ * Zero-click law: ONE primary action per screen.
+ * Flow: Hero -> Live code demo -> How it works -> Stats -> Get Started -> Targets -> Footer
+ *
+ * Removed: redundant AbsorbInput (competed with Get Started CTA), inline industry chips
+ * (moved to wizard), secondary nav (already in layout).
  */
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { OnboardingWizard } from '@/components/wizard/OnboardingWizard';
 
-// ── Data ────────────────────────────────────────────────────────────────────
-
-const NAV_ITEMS = [
-  { href: '/absorb', label: 'Absorb', icon: '📊' },
-  { href: '/create', label: 'Editor', icon: '🔨' },
-  { href: '/templates', label: 'Templates', icon: '📐' },
-  { href: '/holomesh', label: 'HoloMesh', icon: '🌐' },
-  { href: '/settings', label: 'Settings', icon: '⚙️' },
-] as const;
-
-const INDUSTRY_CHIPS = [
-  { id: 'retail', label: 'Retail', emoji: '🏪' },
-  { id: 'healthcare', label: 'Healthcare', emoji: '🏥' },
-  { id: 'robotics', label: 'Robotics', emoji: '🤖' },
-  { id: 'architecture', label: 'Architecture', emoji: '🏗️' },
-  { id: 'agriculture', label: 'Agriculture', emoji: '🌾' },
-  { id: 'education', label: 'Education', emoji: '🎓' },
-  { id: 'manufacturing', label: 'Manufacturing', emoji: '🏭' },
-  { id: 'automotive', label: 'Automotive', emoji: '🚗' },
-  { id: 'gaming', label: 'Gaming', emoji: '🎮' },
-] as const;
+// -- Data -------------------------------------------------------------------
 
 const COMPILE_TARGETS = [
   { name: 'Unity', category: 'Game Engine', color: 'text-green-400' },
@@ -54,89 +36,106 @@ const COMPILE_TARGETS = [
   { name: 'WebGPU / WASM', category: 'GPU', color: 'text-teal-400' },
 ] as const;
 
-const HOLO_EXAMPLE = `composition "Store" {
+const HOLO_EXAMPLE = `composition "Dashboard" {
   theme {
-    primary: "#2d5016"
-    accent: "#7cb342"
+    primary: "#1e3a5f"
+    accent: "#3b82f6"
   }
 
-  object "Product" {
+  object "StatusPanel" {
     @grabbable
-    @physics(mass: 2)
+    @physics(mass: 1)
     @info_popup
-    @label(text: "Blue Dream")
-    @gauge(value: 21.5, unit: "%")
-    @texture(src: "product.jpg")
-    @credit(price: 45)
-    geometry: "box"
-    position: [0, 1, 0]
+    @label(text: "System Health")
+    @gauge(value: 99.7, unit: "%")
+    @texture(src: "panel.png")
+    @realtime(interval: 5000)
+    geometry: "plane"
+    position: [0, 1.5, 0]
   }
 }`;
 
 const TARGET_OUTPUTS: Record<string, { label: string; snippet: string }> = {
   unity: {
     label: 'Unity C#',
-    snippet: `public class Product : MonoBehaviour {
-  [SerializeField] float mass = 2f;
+    snippet: `public class StatusPanel : MonoBehaviour {
+  [SerializeField] float mass = 1f;
   Rigidbody rb;
   void Start() {
     rb = gameObject.AddComponent<Rigidbody>();
     rb.mass = mass;
-    // @grabbable → XRGrabInteractable
-    // @physics → Rigidbody + BoxCollider
-    // @info_popup → UI Canvas overlay
+    // @grabbable -> XRGrabInteractable
+    // @physics -> Rigidbody + BoxCollider
+    // @realtime -> WebSocket polling
   }
 }`,
   },
   urdf: {
     label: 'URDF (ROS 2)',
-    snippet: `<robot name="Product">
+    snippet: `<robot name="StatusPanel">
   <link name="base_link">
     <inertial>
-      <mass value="2.0"/>
-      <origin xyz="0 1 0"/>
+      <mass value="1.0"/>
+      <origin xyz="0 1.5 0"/>
     </inertial>
     <visual>
-      <geometry><box size="1 1 1"/></geometry>
+      <geometry><box size="1.6 0.9 0.02"/></geometry>
     </visual>
     <collision>
-      <geometry><box size="1 1 1"/></geometry>
+      <geometry><box size="1.6 0.9 0.02"/></geometry>
     </collision>
   </link>
 </robot>`,
   },
   r3f: {
     label: 'React Three Fiber',
-    snippet: `export function Product() {
+    snippet: `export function StatusPanel() {
   return (
-    <RigidBody mass={2}>
-      <mesh position={[0, 1, 0]}>
-        <boxGeometry />
+    <RigidBody mass={1}>
+      <mesh position={[0, 1.5, 0]}>
+        <planeGeometry args={[1.6, 0.9]} />
         <meshStandardMaterial
-          map={useTexture("product.jpg")}
+          map={useTexture("panel.png")}
         />
       </mesh>
-      <InfoPopup text="Blue Dream" />
-      <GaugeOverlay value={21.5} unit="%" />
+      <InfoPopup text="System Health" />
+      <GaugeOverlay value={99.7} unit="%" />
     </RigidBody>
   );
 }`,
   },
   'native-2d': {
     label: 'Native 2D (HTML)',
-    snippet: `<div class="product-card">
-  <img src="product.jpg" alt="Blue Dream" />
-  <h3>Blue Dream</h3>
-  <div class="gauge" data-value="21.5">
-    <span>21.5%</span>
+    snippet: `<div class="status-panel">
+  <img src="panel.png" alt="System Health" />
+  <h3>System Health</h3>
+  <div class="gauge" data-value="99.7">
+    <span>99.7%</span>
   </div>
-  <span class="price">$45</span>
-  <button class="buy-btn">Add to Cart</button>
+  <span class="status">Operational</span>
 </div>`,
   },
 };
 
-// ── Components ──────────────────────────────────────────────────────────────
+const STEPS = [
+  {
+    number: '1',
+    title: 'Describe or import',
+    description: 'Paste a GitHub URL, upload data, or describe your business in plain language.',
+  },
+  {
+    number: '2',
+    title: 'AI builds your simulation',
+    description: 'Absorb scans your code into a knowledge graph. Brittney generates compositions.',
+  },
+  {
+    number: '3',
+    title: 'Compile to any platform',
+    description: 'One description becomes Unity, VisionOS, web, robotics, or 36 other targets.',
+  },
+] as const;
+
+// -- Components -------------------------------------------------------------
 
 function AuthBar() {
   const { data: session, status } = useSession();
@@ -147,7 +146,7 @@ function AuthBar() {
       {session ? (
         <div className="flex items-center gap-3">
           <Link href="/absorb" className="text-white/60 hover:text-white text-sm transition-colors">Dashboard</Link>
-          <span className="text-white/30">·</span>
+          <span className="text-white/30">|</span>
           <span className="text-white/50 text-sm">{session.user?.name || session.user?.email}</span>
           <button onClick={() => signOut()} className="text-white/40 hover:text-white/70 text-sm transition-colors">Sign out</button>
         </div>
@@ -170,13 +169,10 @@ function CodeDemo() {
 
   return (
     <section className="w-full max-w-5xl mx-auto">
-      <h2 className="text-center text-white/50 text-sm font-medium mb-4 uppercase tracking-wider">
-        Write once. Compile everywhere.
-      </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Input */}
         <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/3">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
             <span className="text-white/50 text-xs font-mono">store.holo</span>
             <span className="text-emerald-400/60 text-xs">input</span>
           </div>
@@ -187,7 +183,7 @@ function CodeDemo() {
 
         {/* Output */}
         <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/3">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
             <div className="flex gap-1">
               {Object.entries(TARGET_OUTPUTS).map(([key, val]) => (
                 <button
@@ -209,8 +205,29 @@ function CodeDemo() {
         </div>
       </div>
       <p className="text-center text-white/30 text-xs mt-3">
-        Same 15 lines. Different target. The compiler carries the platform knowledge.
+        Same description. Different target. The compiler carries the platform knowledge.
       </p>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <section className="w-full max-w-3xl mx-auto">
+      <h2 className="text-center text-white/50 text-sm font-medium mb-8 uppercase tracking-wider">
+        How it works
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {STEPS.map((step) => (
+          <div key={step.number} className="text-center">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 text-white/60 text-sm font-bold mb-3">
+              {step.number}
+            </div>
+            <h3 className="text-white font-medium text-sm mb-1">{step.title}</h3>
+            <p className="text-white/40 text-xs leading-relaxed">{step.description}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -219,11 +236,11 @@ function StatsStrip() {
   return (
     <div className="flex flex-wrap justify-center gap-8 text-sm">
       {[
-        { value: '37', label: 'Compilers' },
+        { value: '24', label: 'Compilers' },
         { value: '3,300+', label: 'Traits' },
         { value: '177', label: 'MCP Tools' },
         { value: '57,356', label: 'Tests' },
-        { value: '116', label: 'Categories' },
+        { value: '40', label: 'Compile Targets' },
         { value: '6', label: 'Plugins' },
       ].map((s) => (
         <div key={s.label} className="text-center">
@@ -245,7 +262,7 @@ function CompileTargetStrip() {
         {COMPILE_TARGETS.map((t) => (
           <span
             key={t.name}
-            className={`px-3 py-1.5 rounded-lg border border-white/5 bg-white/3 text-xs ${t.color}`}
+            className={`px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-xs ${t.color}`}
             title={t.category}
           >
             {t.name}
@@ -256,76 +273,7 @@ function CompileTargetStrip() {
   );
 }
 
-function AbsorbInput() {
-  const router = useRouter();
-  const [input, setInput] = useState('');
-  const [mode, setMode] = useState<'url' | 'csv' | 'describe'>('url');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setLoading(true);
-    if (mode === 'url') router.push(`/absorb?repo=${encodeURIComponent(input.trim())}`);
-    else if (mode === 'csv') router.push(`/absorb?csv=1`);
-    else router.push(`/absorb?describe=${encodeURIComponent(input.trim())}`);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="flex gap-1 mb-3">
-        {(['url', 'csv', 'describe'] as const).map((m) => (
-          <button key={m} type="button" onClick={() => setMode(m)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${mode === m ? 'bg-white/10 text-white border border-white/20' : 'text-white/50 hover:text-white/70'}`}>
-            {m === 'url' ? '🔗 GitHub URL' : m === 'csv' ? '📊 CSV / Data' : '💬 Describe'}
-          </button>
-        ))}
-      </div>
-      <div className="relative">
-        <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-          placeholder={mode === 'url' ? 'https://github.com/your-org/your-repo' : mode === 'csv' ? 'Paste CSV headers or upload a file...' : 'I run a dispensary with 200 SKUs and 3 locations...'}
-          className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 text-lg focus:outline-none focus:border-blue-500/50 transition-all" />
-        <button type="submit" disabled={loading || !input.trim()}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 rounded-lg text-white font-medium transition-all">
-          {loading ? '...' : 'Absorb'}
-        </button>
-      </div>
-      <p className="mt-2 text-white/30 text-sm text-center">
-        {mode === 'url' && 'Scans your codebase into a knowledge graph. Free tier: 1 repo.'}
-        {mode === 'csv' && 'Maps your data fields to HoloScript traits. Generates a spatial experience.'}
-        {mode === 'describe' && 'Brittney builds your business simulation from a description.'}
-      </p>
-    </form>
-  );
-}
-
-function IndustryRow() {
-  return (
-    <div className="flex flex-wrap justify-center gap-2">
-      {INDUSTRY_CHIPS.map((ind) => (
-        <Link key={ind.id} href={`/industry/${ind.id}`}
-          className="px-3 py-1.5 rounded-full border border-white/10 text-white/50 hover:text-white hover:border-white/30 text-sm transition-all">
-          {ind.emoji} {ind.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function SecondaryNav() {
-  return (
-    <nav className="flex flex-wrap justify-center gap-4 text-sm">
-      {NAV_ITEMS.map((item) => (
-        <Link key={item.href} href={item.href}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-white/40 hover:text-white/80 transition-colors">
-          <span>{item.icon}</span><span>{item.label}</span>
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
-// ── Main Page ───────────────────────────────────────────────────────────────
+// -- Main Page --------------------------------------------------------------
 
 export default function HomePage() {
   const [showWizard, setShowWizard] = useState(false);
@@ -341,43 +289,33 @@ export default function HomePage() {
           HoloScript Studio
         </h1>
         <p className="text-xl text-white/60">
-          One language. Every platform. Point it at your data or start from scratch.
+          One language. Every platform. Describe it, import it, or build from scratch.
         </p>
+        {/* Primary CTA -- the ONE action on this page */}
+        <div className="pt-4">
+          <button onClick={() => setShowWizard(true)}
+            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-blue-600/20">
+            Get Started
+          </button>
+          <p className="text-white/30 text-sm mt-2">Free tier included. No credit card required.</p>
+        </div>
       </section>
 
-      {/* Live code demo — the pitch */}
+      {/* Live code demo -- the pitch */}
       <CodeDemo />
 
-      {/* Stats — real numbers */}
+      {/* How it works -- replaces scattered noise */}
+      <HowItWorks />
+
+      {/* Stats -- real numbers */}
       <StatsStrip />
-
-      {/* Get Started */}
-      <section className="flex flex-col items-center gap-4">
-        <button onClick={() => setShowWizard(true)}
-          className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-blue-600/20">
-          Get Started
-        </button>
-        <p className="text-white/30 text-sm">Import code, start from scratch, or describe your business</p>
-      </section>
-
-      {/* Quick absorb */}
-      <AbsorbInput />
 
       {/* Compile targets */}
       <CompileTargetStrip />
 
-      {/* Industries */}
-      <section className="text-center space-y-3">
-        <p className="text-white/30 text-sm">Works for any domain</p>
-        <IndustryRow />
-      </section>
-
-      {/* Nav */}
-      <SecondaryNav />
-
       {/* Footer */}
       <footer className="text-white/20 text-xs">
-        HoloScript v6.0.1 · Open platform for spatial computing
+        HoloScript v6 -- Open platform for spatial computing
       </footer>
     </main>
   );

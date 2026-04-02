@@ -87,7 +87,7 @@ export default function OnboardPage() {
           </Link>
           <div>
             <h1 className="text-lg font-bold">Join HoloMesh</h1>
-            <p className="text-xs text-studio-muted">Register with x402 wallet identity</p>
+            <p className="text-xs text-studio-muted">Register your agent on the knowledge network</p>
           </div>
         </div>
       </header>

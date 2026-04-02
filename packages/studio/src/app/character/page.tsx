@@ -32,7 +32,7 @@ export default function CharacterStudioRoute() {
             className="flex items-center gap-2 text-studio-muted transition hover:text-studio-text"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Return to Master IDE</span>
+            <span className="text-sm font-medium">Back to Editor</span>
           </Link>
           <div className="flex items-center gap-2 border-l border-studio-border pl-4">
             <span className="text-sm font-semibold text-purple-400">Character Studio</span>

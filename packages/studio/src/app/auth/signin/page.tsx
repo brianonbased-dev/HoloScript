@@ -20,7 +20,7 @@ export default function SignInPage() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
       <div className="text-center">
         <h1 className="mb-2 text-3xl font-bold">Sign in to HoloScript Studio</h1>
-        <p className="text-sm text-studio-muted">Create, compile, and deploy 3D scenes</p>
+        <p className="text-sm text-studio-muted">One language. 40 compile targets. Describe it once, deploy everywhere.</p>
       </div>
 
       {error && (

@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'HoloScript Studio',
     short_name: 'HoloScript',
-    description: 'Create 3D scenes with AI — no coding required',
+    description: 'One description language, 40 compile targets. Write .holo, get Unity, VisionOS, web, robotics, and more.',
     start_url: '/',
     display: 'standalone',
     background_color: '#0d0d14',

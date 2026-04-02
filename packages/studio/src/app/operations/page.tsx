@@ -73,7 +73,7 @@ export default function OperationsPage() {
                 Studio Operations
               </h1>
               <p className="text-[11px] text-white/50 sm:text-xs">
-                Hydrated from native composition surface
+                Live system health and job status
               </p>
             </div>
           </div>

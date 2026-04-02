@@ -175,14 +175,16 @@ function ContentTypeCard({ config }: { config: ContentTypeConfig }) {
           >
             <Icon className="h-6 w-6" />
           </div>
-          <div className="flex gap-2">
-            <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/50">
-              {config.count} total
-            </span>
-            <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/50">
-              {config.published} live
-            </span>
-          </div>
+          {(config.count > 0 || config.published > 0) && (
+            <div className="flex gap-2">
+              <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/50">
+                {config.count} total
+              </span>
+              <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/50">
+                {config.published} live
+              </span>
+            </div>
+          )}
         </div>
 
         <h3 className="mb-1 text-lg font-semibold text-white">{config.label}</h3>
@@ -271,7 +273,7 @@ export default function WorkspacePage() {
           <div className="mb-8">
             <h1 className="mb-2 text-3xl font-bold tracking-tight">Creator Workspace</h1>
             <p className="text-white/50">
-              Build, experiment, and ship to the HoloScript marketplace
+              Build, experiment, and ship to the HoloScript registry
             </p>
           </div>
         )}
