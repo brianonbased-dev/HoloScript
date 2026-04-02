@@ -811,6 +811,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@holoscript/agent-protocol':
+        specifier: workspace:*
+        version: link:../agent-protocol
       '@pixiv/three-vrm':
         specifier: ^2.0.0
         version: 2.1.3(@types/three@0.170.0)(three@0.182.0)
