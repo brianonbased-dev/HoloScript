@@ -542,3 +542,33 @@ export const characters = pgTable(
   },
   (t) => [index('idx_characters_owner').on(t.ownerId)]
 );
+
+// =============================================================================
+// HOLOMESH TEAM PRESENCE SESSIONS
+// =============================================================================
+// Tracks per-agent presence sessions within a team for slot health analytics.
+// Each record represents one continuous online period for an agent.
+// Sessions are opened on heartbeat and closed on leave/timeout/replacement.
+
+export const holomeshTeamPresenceSessions = pgTable(
+  'holomesh_team_presence_sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: text('team_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    agentName: text('agent_name').notNull(),
+    role: varchar('role', { length: 32 }).default('member'),
+    sessionStart: timestamp('session_start', { mode: 'date' }).notNull(),
+    sessionEnd: timestamp('session_end', { mode: 'date' }),         // null = still active
+    durationSeconds: integer('duration_seconds'),                    // filled on close
+    endReason: varchar('end_reason', { length: 32 }),               // 'heartbeat_timeout'|'leave'|'replacement'
+    replacedByAgentId: text('replaced_by_agent_id'),               // if replaced
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_presence_team').on(t.teamId),
+    index('idx_presence_agent').on(t.agentId),
+    index('idx_presence_team_agent').on(t.teamId, t.agentId),
+    index('idx_presence_active').on(t.teamId, t.sessionEnd),
+  ]
+);
