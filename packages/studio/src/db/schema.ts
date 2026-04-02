@@ -486,6 +486,42 @@ export const holomeshEntryRatings = pgTable(
 );
 
 // =============================================================================
+// HOLOMESH KNOWLEDGE ENTRIES CACHE
+// =============================================================================
+// Local cache of knowledge marketplace entries fetched from the MCP server.
+// Used as fallback when MCP returns 404 on cold start (in-memory cache eviction).
+// Entries are populated via POST /api/holomesh/marketplace/sync.
+
+export const holomeshKnowledgeEntries = pgTable(
+  'holomesh_knowledge_entries',
+  {
+    id: text('id').primaryKey(),                          // MCP entry ID
+    workspaceId: text('workspace_id'),
+    type: varchar('type', { length: 32 }),                // 'wisdom'|'pattern'|'gotcha'
+    content: text('content').notNull(),
+    authorId: text('author_id'),
+    authorName: text('author_name'),
+    domain: varchar('domain', { length: 64 }),
+    price: integer('price').default(0).notNull(),
+    premium: boolean('premium').default(false).notNull(),
+    confidence: integer('confidence').default(0),         // stored as integer (0-100)
+    tags: jsonb('tags').default([]),
+    provenanceHash: text('provenance_hash'),
+    queryCount: integer('query_count').default(0),
+    reuseCount: integer('reuse_count').default(0),
+    salesCount: integer('sales_count').default(0),
+    mcpCreatedAt: timestamp('mcp_created_at', { mode: 'date' }),
+    syncedAt: timestamp('synced_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_holomesh_ke_author').on(t.authorId),
+    index('idx_holomesh_ke_domain').on(t.domain),
+    index('idx_holomesh_ke_type').on(t.type),
+    index('idx_holomesh_ke_synced').on(t.syncedAt),
+  ]
+);
+
+// =============================================================================
 // CHARACTERS
 // =============================================================================
 
