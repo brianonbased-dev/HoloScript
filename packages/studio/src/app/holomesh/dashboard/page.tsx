@@ -23,12 +23,31 @@ interface DashboardData {
   stats: DashboardStats;
 }
 
+interface EarningsByEntry {
+  entryId: string;
+  entryType?: string;
+  domain?: string;
+  sales: number;
+  revenueCents: number;
+}
+
+interface EarningsData {
+  totalRevenueCents: number;
+  totalSales: number;
+  uniqueBuyers: number;
+  totalSpentCents: number;
+  totalPurchases: number;
+  byEntry: EarningsByEntry[];
+  byDomain: Record<string, number>;
+}
+
 // ---------------------------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [earnings, setEarnings] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -36,9 +55,15 @@ export default function DashboardPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/holomesh/dashboard');
-        const json = await res.json();
-        if (!cancelled) setData(json);
+        const [resMain, resEarnings] = await Promise.all([
+          fetch('/api/holomesh/dashboard'),
+          fetch('/api/holomesh/dashboard/earnings'),
+        ]);
+        const [jsonMain, jsonEarnings] = await Promise.all([resMain.json(), resEarnings.json()]);
+        if (!cancelled) {
+          setData(jsonMain);
+          setEarnings(jsonEarnings?.earnings ?? null);
+        }
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
       }
@@ -206,6 +231,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Earnings Section */}
+          {earnings !== null && (
+            <EarningsSection earnings={earnings} />
+          )}
         </div>
       </main>
     </div>
@@ -273,5 +303,112 @@ function TierPill({ tier, min }: { tier: ReputationTier; min: number }) {
     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${colors[tier]}`}>
       {tier} ({min}+)
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EarningsSection
+// ---------------------------------------------------------------------------
+
+const DOMAIN_COLORS: Record<string, string> = {
+  infrastructure: '#f59e0b',
+  economy: '#10b981',
+  architecture: '#6366f1',
+  tooling: '#ec4899',
+  research: '#8b5cf6',
+  security: '#ef4444',
+  default: '#06b6d4',
+};
+
+function fmt(cents: number) {
+  if (cents === 0) return '$0.00';
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+function EarningsSection({ earnings }: { earnings: EarningsData }) {
+  const domainEntries = Object.entries(earnings.byDomain ?? {}).sort((a, b) => b[1] - a[1]);
+  const maxDomain = domainEntries[0]?.[1] ?? 1;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xs font-medium text-studio-muted uppercase tracking-wider">
+        Earnings
+      </h3>
+
+      {/* Top-line stats */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Total Revenue" value={fmt(earnings.totalRevenueCents)} sub="from knowledge sales" color="#10b981" />
+        <StatCard label="Sales" value={String(earnings.totalSales)} sub="entries sold" color="#6366f1" />
+        <StatCard label="Unique Buyers" value={String(earnings.uniqueBuyers)} sub="distinct agents" color="#f59e0b" />
+        <StatCard label="Total Spent" value={fmt(earnings.totalSpentCents)} sub="on purchases" color="#8b5cf6" />
+      </div>
+
+      {/* By Domain */}
+      {domainEntries.length > 0 && (
+        <div className="rounded-xl border border-studio-border bg-[#111827] p-5">
+          <h4 className="text-xs font-medium text-studio-muted mb-4 uppercase tracking-wider">
+            Revenue by Domain
+          </h4>
+          <div className="space-y-3">
+            {domainEntries.map(([domain, cents]) => (
+              <div key={domain} className="flex items-center gap-3">
+                <div className="w-24 shrink-0 text-xs text-studio-text capitalize truncate">{domain}</div>
+                <div className="flex-1 h-2 rounded-full bg-studio-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.max(4, (cents / maxDomain) * 100)}%`,
+                      background: DOMAIN_COLORS[domain] ?? DOMAIN_COLORS.default,
+                    }}
+                  />
+                </div>
+                <div className="w-16 shrink-0 text-right text-xs text-studio-muted">{fmt(cents)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* By Entry */}
+      {earnings.byEntry.length > 0 ? (
+        <div className="rounded-xl border border-studio-border bg-[#111827] overflow-hidden">
+          <div className="px-5 py-3 border-b border-studio-border">
+            <h4 className="text-xs font-medium text-studio-muted uppercase tracking-wider">
+              Top Entries by Revenue
+            </h4>
+          </div>
+          <div className="divide-y divide-studio-border">
+            {earnings.byEntry.slice(0, 10).map((e) => (
+              <div key={e.entryId} className="flex items-center gap-3 px-5 py-3">
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                  e.entryType === 'wisdom' ? 'bg-amber-500/20 text-amber-400' :
+                  e.entryType === 'pattern' ? 'bg-blue-500/20 text-blue-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {e.entryType?.[0]?.toUpperCase() ?? '?'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-studio-text truncate font-mono">{e.entryId}</div>
+                  {e.domain && (
+                    <div className="text-[10px] text-studio-muted capitalize">{e.domain}</div>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-xs font-medium text-studio-text">{fmt(e.revenueCents)}</div>
+                  <div className="text-[10px] text-studio-muted">{e.sales} sales</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-studio-border bg-[#111827] px-5 py-8 text-center">
+          <div className="text-sm text-studio-muted">No sales yet.</div>
+          <div className="text-xs text-studio-muted/60 mt-1">
+            Contribute premium entries to start earning.
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
