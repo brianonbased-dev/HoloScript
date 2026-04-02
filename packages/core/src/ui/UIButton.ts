@@ -1,6 +1,7 @@
 import { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 
 export interface UIButtonConfig {
+  data?: unknown;
   position?: Vector3;
   rotation?: Vector3;
   text?: string;
