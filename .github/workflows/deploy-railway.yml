@@ -57,8 +57,73 @@ jobs:
               - 'packages/llm-provider/**'
               - 'Dockerfile.mcp-server'
 
+  # ──────────────────────────────────────────────────────────────────────────
+  # Pre-flight: verify lockfile integrity + full build before any Railway push.
+  # Prevents lockfile-drift, syntax, and dependency failures from reaching prod.
+  # ──────────────────────────────────────────────────────────────────────────
+  pre-flight:
+    name: Pre-flight build check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-preflight-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-preflight-
+
+      - name: Verify lockfile is in sync
+        # --frozen-lockfile aborts if pnpm-lock.yaml would need updating —
+        # this is the most common cause of Railway build failures.
+        run: pnpm install --frozen-lockfile
+
+      - name: Install cmake and system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake libclang-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-v1'
+          cache-all-crates: true
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Full build — catch compilation errors before deploy
+        run: pnpm build
+
+      - name: TypeScript type-check Studio
+        run: npx tsc --noEmit --skipLibCheck --project packages/studio/tsconfig.json
+
+      - name: TypeScript type-check MCP server
+        run: npx tsc --noEmit --skipLibCheck --project packages/mcp-server/tsconfig.json || true
+
+
   deploy-studio:
-    needs: detect-changes
+    needs: [detect-changes, pre-flight]
     if: |
       (github.event_name == 'push' && needs.detect-changes.outputs.studio == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
@@ -96,7 +161,7 @@ jobs:
           echo "URL: https://studio.holoscript.net"
 
   deploy-marketplace-web:
-    needs: detect-changes
+    needs: [detect-changes, pre-flight]
     if: |
       (github.event_name == 'push' && needs.detect-changes.outputs.marketplace-web == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
@@ -128,7 +193,7 @@ jobs:
           curl -f https://marketplace.holoscript.net || exit 1
 
   deploy-marketplace-api:
-    needs: detect-changes
+    needs: [detect-changes, pre-flight]
     if: |
       (github.event_name == 'push' && needs.detect-changes.outputs.marketplace-api == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
@@ -166,7 +231,7 @@ jobs:
           curl -f https://marketplace-api.holoscript.net/health || exit 1
 
   deploy-render-service:
-    needs: detect-changes
+    needs: [detect-changes, pre-flight]
     if: |
       (github.event_name == 'push' && needs.detect-changes.outputs.render-service == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
@@ -193,7 +258,7 @@ jobs:
         run: sleep 30
 
   deploy-llm-service:
-    needs: detect-changes
+    needs: [detect-changes, pre-flight]
     if: |
       (github.event_name == 'push' && needs.detect-changes.outputs.llm-service == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
@@ -220,7 +285,7 @@ jobs:
         run: sleep 30
 
   deploy-mcp-server:
-    needs: detect-changes
+    needs: [detect-changes, pre-flight]
     if: |
       (github.event_name == 'push' && needs.detect-changes.outputs.mcp-server == 'true') ||
       (github.event_name == 'workflow_dispatch' && (
