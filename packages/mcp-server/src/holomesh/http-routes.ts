@@ -3351,10 +3351,50 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
-      // Already a member?
+      // Already a member? (check by ID or by name — prevents duplicate IDE agents)
       if (getTeamMember(team, caller.id)) {
         json(res, 409, { error: 'Already a member of this team' });
         return true;
+      }
+
+      // Dedup by IDE type — prevent same IDE from taking multiple slots
+      // e.g. VS Code Copilot spawning "copilot-aac90d81" then "copilot-agent"
+      const ideType = (body.ide_type as string)?.trim();
+      if (ideType) {
+        // Check if any offline member was using the same IDE type
+        const presenceMap = teamPresenceStore.get(teamId);
+        const staleByIde = team.members.find((m) => {
+          const presence = presenceMap?.get(m.agentId);
+          // Match: same IDE type AND currently offline (stale heartbeat)
+          if (presence?.ideType === ideType && m.agentId !== caller.id) {
+            const isOnline = presenceMap?.has(m.agentId) &&
+              (Date.now() - new Date(presence.lastHeartbeat).getTime() < PRESENCE_TTL_MS);
+            return !isOnline; // only replace offline instances
+          }
+          return false;
+        });
+
+        if (staleByIde) {
+          // Replace the stale instance — same IDE reconnecting with new identity
+          const oldName = staleByIde.agentName;
+          if (presenceMap) presenceMap.delete(staleByIde.agentId);
+          staleByIde.agentId = caller.id;
+          staleByIde.agentName = caller.name;
+          staleByIde.joinedAt = new Date().toISOString();
+          indexAgentTeam(caller.id, teamId);
+          persistTeamStore();
+
+          json(res, 200, {
+            success: true,
+            status: 'replaced',
+            replaced: oldName,
+            team: { id: team.id, name: team.name },
+            message: `Replaced offline "${oldName}" (same IDE type: ${ideType}). Slot reused.`,
+            role: staleByIde.role,
+            members: team.members.length,
+          });
+          return true;
+        }
       }
 
       const body = await parseJsonBody(req);
