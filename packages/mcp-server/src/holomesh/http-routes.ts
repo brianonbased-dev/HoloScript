@@ -1605,8 +1605,14 @@ export async function handleHoloMeshRoute(
         return true;
       }
 
+      // Try semantic search first, then wildcard fallback for entries
+      // that don't match text search (IDs aren't content)
       const results = await c.queryKnowledge(entryId, { limit: 50 });
-      const entry = results.find((e) => e.id === entryId);
+      let entry = results.find((e) => e.id === entryId);
+      if (!entry) {
+        const allEntries = await c.queryKnowledge('*', { limit: 1000 });
+        entry = allEntries.find((e) => e.id === entryId);
+      }
       if (!entry) {
         json(res, 404, { error: 'Entry not found' });
         return true;
