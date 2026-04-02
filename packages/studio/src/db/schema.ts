@@ -462,6 +462,30 @@ export const holomeshBoardTasks = pgTable(
 );
 
 // =============================================================================
+// HOLOMESH ENTRY RATINGS
+// =============================================================================
+// Per-agent 1–5 star ratings and optional reviews for knowledge marketplace
+// entries. One rating per (entryId, agentId) pair, last-write wins on update.
+
+export const holomeshEntryRatings = pgTable(
+  'holomesh_entry_ratings',
+  {
+    entryId: text('entry_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    agentName: text('agent_name').default('').notNull(),
+    rating: integer('rating').notNull(),           // 1–5
+    comment: text('comment').default(''),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.entryId, t.agentId] }),
+    index('idx_entry_ratings_entry').on(t.entryId),
+    index('idx_entry_ratings_agent').on(t.agentId),
+  ]
+);
+
+// =============================================================================
 // CHARACTERS
 // =============================================================================
 
