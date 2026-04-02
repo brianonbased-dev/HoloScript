@@ -6,6 +6,7 @@
  */
 
 import type { SceneTemplate } from '../scene/sceneTemplates';
+import { logger } from '@/lib/logger';
 
 // Registry maps subcategory IDs to their respective chunk files
 const TEMPLATE_REGISTRY: Record<string, () => Promise<{ default: SceneTemplate }>> = {
@@ -69,7 +70,7 @@ export async function getWizardTemplate(subcategoryId: string): Promise<SceneTem
     const module = await loader();
     return module.default;
   } catch (err) {
-    console.error(`Failed to load template for ${subcategoryId}:`, err);
+    logger.error(`Failed to load template for ${subcategoryId}:`, err);
     return null;
   }
 }

@@ -435,7 +435,7 @@ export class PlatformPluginLoader {
       entry.plugin.unload();
       this.loaded.delete(name);
       totalKB -= entry.memoryKB;
-      console.info(`[PluginLoader] Evicted ${name} (LRU, freed ~${entry.memoryKB}KB)`);
+      logger.info(`[PluginLoader] Evicted ${name} (LRU, freed ~${entry.memoryKB}KB)`);
     }
   }
 }

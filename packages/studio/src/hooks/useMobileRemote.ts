@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { useEditorStore } from '@/lib/stores';
 
 interface RemoteCommand {
@@ -34,7 +35,7 @@ export function useMobileRemote() {
   const applyCommand = useCallback((cmd: RemoteCommand) => {
     // The editor store can have gizmo/camera mutation methods.
     // For now we log the command — full wiring depends on R3F camera ref.
-    console.debug('[MobileRemote] cmd', cmd);
+    logger.debug('[MobileRemote] cmd', JSON.stringify(cmd));
     setCommandCount((c) => c + 1);
     // Future: useEditorStore.getState().applyRemoteCommand(cmd)
   }, []);

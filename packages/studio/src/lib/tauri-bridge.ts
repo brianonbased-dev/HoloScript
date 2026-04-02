@@ -19,6 +19,7 @@
  */
 
 import type { PlatformCapabilities } from './platform-detect';
+import { logger } from '@/lib/logger';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -292,10 +293,8 @@ export async function initBridgeForPlatform(
   if (caps.isTauri) {
     const features = await detectTauriFeatures();
     if (features.gpuInfo) {
-      console.info(
-        `[HoloScript] Tauri desktop: GPU=${features.gpuInfo.name}, ` +
-          `Backend=${features.gpuInfo.backend}, ` +
-          `WebGPU=${features.gpuInfo.supports_webgpu}`
+      logger.info(
+        `[HoloScript] Tauri desktop: GPU=${features.gpuInfo.name}, Backend=${features.gpuInfo.backend}, WebGPU=${features.gpuInfo.supports_webgpu}`
       );
     }
     // Desktop always gets the full runtime
