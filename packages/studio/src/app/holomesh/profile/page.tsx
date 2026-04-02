@@ -23,7 +23,15 @@ import type { KnowledgeEntry, HoloMeshAgent, AgentReputation } from '@/component
 // Types
 // ---------------------------------------------------------------------------
 
-type ProfileTab = 'wall' | 'guestbook' | 'friends' | 'knowledge' | 'badges' | 'room';
+type ProfileTab = 'wall' | 'guestbook' | 'friends' | 'knowledge' | 'badges' | 'room' | 'storefront';
+
+interface StorefrontData {
+  totalRevenueCents: number;
+  totalSales: number;
+  uniqueBuyers: number;
+  byEntry: Array<{ entryId: string; entryType?: string; domain?: string; sales: number; revenueCents: number }>;
+  byDomain: Record<string, number>;
+}
 
 interface WallPost {
   id: string;
@@ -77,6 +85,7 @@ export default function HoloMeshProfilePage() {
   const [tab, setTab] = useState<ProfileTab>('wall');
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [storefront, setStorefront] = useState<StorefrontData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -87,13 +96,15 @@ export default function HoloMeshProfilePage() {
       setLoading(true);
       setError('');
       try {
-        const [profileRes, knowledgeRes] = await Promise.all([
+        const [profileRes, knowledgeRes, earningsRes] = await Promise.all([
           fetch('/api/holomesh/agent/self'),
           fetch('/api/holomesh/agent/self/knowledge?limit=30'),
+          fetch('/api/holomesh/dashboard/earnings'),
         ]);
 
         const profileData = await profileRes.json();
         const knowledgeData = await knowledgeRes.json();
+        const earningsData = await earningsRes.json().catch(() => null);
 
         if (!cancelled) {
           if (profileData.success) {
@@ -112,6 +123,7 @@ export default function HoloMeshProfilePage() {
             setError(profileData.error || 'Profile not found');
           }
           setEntries(knowledgeData.entries || []);
+          if (earningsData) setStorefront(earningsData);
         }
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
@@ -131,6 +143,7 @@ export default function HoloMeshProfilePage() {
     { id: 'knowledge', label: 'Knowledge', count: entries.length },
     { id: 'badges', label: 'Badges', count: profile?.badges.length },
     { id: 'room', label: 'My Room' },
+    { id: 'storefront', label: 'Storefront' },
   ];
 
   if (loading) {
@@ -211,6 +224,7 @@ export default function HoloMeshProfilePage() {
         {tab === 'knowledge' && <KnowledgeTab entries={entries} />}
         {tab === 'badges' && <BadgesTab badges={profile.badges} />}
         {tab === 'room' && <RoomTab agentName={profile.agent.name} />}
+        {tab === 'storefront' && <StorefrontTab storefront={storefront} entries={entries} />}
       </main>
     </div>
   );
@@ -466,6 +480,156 @@ function RoomTab({ agentName }: { agentName: string }) {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tab: Storefront
+// ---------------------------------------------------------------------------
+
+const TYPE_BADGE: Record<string, string> = {
+  wisdom: 'bg-purple-500/20 text-purple-300',
+  pattern: 'bg-blue-500/20 text-blue-300',
+  gotcha: 'bg-red-500/20 text-red-300',
+};
+
+function StorefrontTab({
+  storefront,
+  entries,
+}: {
+  storefront: StorefrontData | null;
+  entries: KnowledgeEntry[];
+}) {
+  const premiumEntries = entries.filter((e) => e.premium || (e.price ?? 0) > 0);
+  const entryById = Object.fromEntries(entries.map((e) => [e.id, e]));
+  const topSellers = storefront?.byEntry?.slice(0, 10) ?? [];
+
+  const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+  return (
+    <div className="space-y-8 max-w-3xl">
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-xl border border-studio-border bg-studio-panel p-4 text-center">
+          <div className="text-xl font-bold text-emerald-400">
+            {fmt(storefront?.totalRevenueCents ?? 0)}
+          </div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">
+            Total Revenue
+          </div>
+        </div>
+        <div className="rounded-xl border border-studio-border bg-studio-panel p-4 text-center">
+          <div className="text-xl font-bold text-blue-400">
+            {storefront?.totalSales ?? 0}
+          </div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">
+            Sales
+          </div>
+        </div>
+        <div className="rounded-xl border border-studio-border bg-studio-panel p-4 text-center">
+          <div className="text-xl font-bold text-purple-400">
+            {storefront?.uniqueBuyers ?? 0}
+          </div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mt-1">
+            Unique Buyers
+          </div>
+        </div>
+      </div>
+
+      {/* Premium listings */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-studio-muted mb-3">
+          Premium Listings ({premiumEntries.length})
+        </h3>
+        {premiumEntries.length === 0 ? (
+          <EmptyState
+            label="No premium listings"
+            sub="Set a price on a knowledge entry to list it for sale."
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {premiumEntries.map((entry) => (
+              <a
+                key={entry.id}
+                href={`/holomesh/entry/${entry.id}`}
+                className="rounded-xl border border-studio-border bg-studio-panel p-4 hover:border-studio-accent/40 transition-colors block"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded font-medium uppercase ${TYPE_BADGE[entry.type] ?? TYPE_BADGE.wisdom}`}
+                  >
+                    {entry.type}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-400">
+                    ${(entry.price ?? 0).toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs text-studio-text/90 leading-relaxed line-clamp-3">
+                  {entry.content}
+                </p>
+                {entry.domain && (
+                  <div className="mt-2 text-[10px] text-studio-muted">{entry.domain}</div>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Best sellers */}
+      {topSellers.length > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-studio-muted mb-3">
+            Best Sellers
+          </h3>
+          <div className="rounded-xl border border-studio-border overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-studio-panel/60 border-b border-studio-border">
+                <tr>
+                  <th className="px-4 py-2 text-left text-studio-muted font-medium">Entry</th>
+                  <th className="px-4 py-2 text-left text-studio-muted font-medium">Type</th>
+                  <th className="px-4 py-2 text-left text-studio-muted font-medium">Domain</th>
+                  <th className="px-4 py-2 text-right text-studio-muted font-medium">Sales</th>
+                  <th className="px-4 py-2 text-right text-studio-muted font-medium">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topSellers.map((row, i) => {
+                  const entry = entryById[row.entryId];
+                  return (
+                    <tr
+                      key={row.entryId}
+                      className={`border-b border-studio-border/50 hover:bg-studio-panel/40 transition-colors ${i % 2 === 0 ? '' : 'bg-studio-panel/20'}`}
+                    >
+                      <td className="px-4 py-2.5 font-mono text-studio-muted/60 max-w-[160px] truncate">
+                        <a
+                          href={`/holomesh/entry/${row.entryId}`}
+                          className="hover:text-studio-accent transition-colors"
+                        >
+                          {entry ? entry.content.slice(0, 40) + '…' : row.entryId.slice(0, 16) + '…'}
+                        </a>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {row.entryType && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${TYPE_BADGE[row.entryType] ?? TYPE_BADGE.wisdom}`}>
+                            {row.entryType}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-studio-muted">{row.domain ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-right text-studio-text">{row.sales}</td>
+                      <td className="px-4 py-2.5 text-right text-emerald-400 font-medium">
+                        {fmt(row.revenueCents)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
