@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
-import { SplatCaptureWizard } from '@/components/assets/SplatCaptureWizard';
+// SplatCaptureWizard is a modal — lazy-loaded to reduce initial bundle
 import {
   useSceneStore,
   useEditorStore,
@@ -195,6 +195,14 @@ const SceneCritiquePanel = dynamic(
 
 const AssetPackPanel = dynamic(
   () => import('@/components/assets/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
+  { ssr: false }
+);
+
+const SplatCaptureWizard = dynamic(
+  () =>
+    import('@/components/assets/SplatCaptureWizard').then((m) => ({
+      default: m.SplatCaptureWizard,
+    })),
   { ssr: false }
 );
 
