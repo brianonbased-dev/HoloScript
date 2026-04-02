@@ -29,6 +29,33 @@ function grantPaidAccess(agentId: string, entryId: string): void {
   paidAccessStore.add(`${agentId}:${entryId}`);
 }
 
+// ── Transaction Ledger (in-memory, persists to DB later) ──
+
+interface KnowledgeTransaction {
+  id: string;
+  buyerWallet: string;
+  buyerName: string;
+  sellerWallet: string;
+  sellerName: string;
+  entryId: string;
+  entryDomain: string;
+  priceCents: number;
+  timestamp: string;
+  referrer?: string;
+}
+
+const transactionLedger: KnowledgeTransaction[] = [];
+
+function recordTransaction(tx: Omit<KnowledgeTransaction, 'id' | 'timestamp'>): KnowledgeTransaction {
+  const record: KnowledgeTransaction = {
+    ...tx,
+    id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+  };
+  transactionLedger.push(record);
+  return record;
+}
+
 /** Lazy-loaded PaymentGateway from @holoscript/core economy module */
 let paymentGateway: any = null;
 
@@ -1213,6 +1240,217 @@ export async function handleHoloMeshRoute(
       return true;
     }
 
+    // GET /api/holomesh/dashboard/earnings — Seller earnings breakdown
+    if (pathname === '/api/holomesh/dashboard/earnings' && method === 'GET') {
+      const caller = resolveRequestingAgent(req, c);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
+      const callerWallet = [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
+      const sales = transactionLedger.filter((tx) => tx.sellerWallet === callerWallet || tx.sellerName === caller.name);
+      const purchases = transactionLedger.filter((tx) => tx.buyerWallet === callerWallet || tx.buyerName === caller.name);
+
+      // Revenue by entry
+      const byEntry = new Map<string, { entryId: string; domain: string; revenue: number; buyers: number }>();
+      for (const tx of sales) {
+        const existing = byEntry.get(tx.entryId) || { entryId: tx.entryId, domain: tx.entryDomain, revenue: 0, buyers: 0 };
+        existing.revenue += tx.priceCents;
+        existing.buyers += 1;
+        byEntry.set(tx.entryId, existing);
+      }
+
+      // Revenue by domain
+      const byDomain = new Map<string, number>();
+      for (const tx of sales) {
+        byDomain.set(tx.entryDomain, (byDomain.get(tx.entryDomain) || 0) + tx.priceCents);
+      }
+
+      json(res, 200, {
+        success: true,
+        earnings: {
+          totalRevenueCents: sales.reduce((sum, tx) => sum + tx.priceCents, 0),
+          totalSales: sales.length,
+          uniqueBuyers: new Set(sales.map((tx) => tx.buyerWallet)).size,
+          totalSpentCents: purchases.reduce((sum, tx) => sum + tx.priceCents, 0),
+          totalPurchases: purchases.length,
+          byEntry: [...byEntry.values()].sort((a, b) => b.revenue - a.revenue),
+          byDomain: Object.fromEntries(byDomain),
+        },
+      });
+      return true;
+    }
+
+    // GET /api/holomesh/transactions — Transaction history for an agent
+    if (pathname === '/api/holomesh/transactions' && method === 'GET') {
+      const caller = resolveRequestingAgent(req, c);
+      if (!caller.authenticated) {
+        json(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
+      const q = parseQuery(url);
+      const role = q.get('role') || 'both';
+      const limit = Math.min(parseInt(q.get('limit') || '50', 10), 200);
+      const callerWallet = [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
+
+      let txs = transactionLedger;
+      if (role === 'seller') {
+        txs = txs.filter((tx) => tx.sellerWallet === callerWallet || tx.sellerName === caller.name);
+      } else if (role === 'buyer') {
+        txs = txs.filter((tx) => tx.buyerWallet === callerWallet || tx.buyerName === caller.name);
+      } else {
+        txs = txs.filter((tx) =>
+          tx.sellerWallet === callerWallet || tx.sellerName === caller.name ||
+          tx.buyerWallet === callerWallet || tx.buyerName === caller.name
+        );
+      }
+
+      json(res, 200, {
+        success: true,
+        transactions: txs.slice(-limit).reverse(),
+        count: txs.length,
+      });
+      return true;
+    }
+
+    // GET /api/holomesh/marketplace — Browse knowledge for sale with filters
+    if (pathname === '/api/holomesh/marketplace' && method === 'GET') {
+      const { rankFeed, paginate } = await import('./social');
+      const q = parseQuery(url);
+      const domain = q.get('domain') || undefined;
+      const minPrice = parseFloat(q.get('min_price') || '0');
+      const maxPrice = parseFloat(q.get('max_price') || '999999');
+      const sellerTier = q.get('seller_tier') || undefined;
+      const sort = (q.get('sort') || 'trending') as 'newest' | 'trending' | 'most_reused' | 'cheapest' | 'highest_rated';
+      const limit = Math.min(parseInt(q.get('limit') || '20', 10), 100);
+      const cursor = q.get('cursor') || undefined;
+      const caller = resolveRequestingAgent(req, c);
+
+      // Fetch all public entries
+      const allEntries = await c.queryKnowledge('*', { limit: 500 });
+
+      // Filter
+      const filtered = allEntries.filter((e) => {
+        if (domain && e.domain !== domain) return false;
+        const price = e.price || 0;
+        if (price < minPrice || price > maxPrice) return false;
+        if (sellerTier) {
+          const author = [...agentKeyStore.values()].find((a) => a.id === e.authorId);
+          const rep = author?.reputation || 0;
+          const tier = rep >= 100 ? 'authority' : rep >= 30 ? 'expert' : rep >= 5 ? 'contributor' : 'newcomer';
+          const tierRank: Record<string, number> = { newcomer: 0, contributor: 1, expert: 2, authority: 3 };
+          if ((tierRank[tier] || 0) < (tierRank[sellerTier] || 0)) return false;
+        }
+        return true;
+      });
+
+      // Enrich with social data
+      const enriched = filtered.map((e) => {
+        const isPremium = (e.price || 0) > 0;
+        const paid = isPremium && caller.authenticated && hasPaidAccess(caller.id, e.id);
+        const authorAgent = [...agentKeyStore.values()].find((a) => a.id === e.authorId);
+        return {
+          ...e,
+          content: isPremium && !paid ? truncatePremiumContent(e.content) : e.content,
+          premium: isPremium,
+          paid,
+          voteCount: getVoteCount(e.id),
+          commentCount: getComments(e.id).length,
+          authorReputation: authorAgent?.reputation || 0,
+          authorTier: (authorAgent?.reputation || 0) >= 100 ? 'authority' : (authorAgent?.reputation || 0) >= 30 ? 'expert' : (authorAgent?.reputation || 0) >= 5 ? 'contributor' : 'newcomer',
+          salesCount: transactionLedger.filter((tx) => tx.entryId === e.id).length,
+        };
+      });
+
+      // Sort
+      let sorted: typeof enriched;
+      if (sort === 'newest') {
+        sorted = enriched.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      } else if (sort === 'most_reused') {
+        sorted = enriched.sort((a, b) => (b.reuseCount || 0) - (a.reuseCount || 0));
+      } else if (sort === 'cheapest') {
+        sorted = enriched.sort((a, b) => (a.price || 0) - (b.price || 0));
+      } else if (sort === 'highest_rated') {
+        sorted = enriched.sort((a, b) => b.voteCount - a.voteCount);
+      } else {
+        // trending: use feed ranking
+        sorted = rankFeed(enriched, 'ranked');
+      }
+
+      const { items: entries, ...pageInfo } = paginate(sorted, limit, cursor);
+      json(res, 200, { success: true, ...pageInfo, entries, sort, filters: { domain, minPrice, maxPrice, sellerTier } });
+      return true;
+    }
+
+    // GET /api/holomesh/agent/:id/storefront — Agent's shop: what they sell
+    if (
+      pathname.match(/^\/api\/holomesh\/agent\/[^/]+\/storefront$/) &&
+      method === 'GET'
+    ) {
+      const agentId = pathname.split('/')[4];
+      const card = await c.getAgentCard(agentId);
+      if (!card) {
+        json(res, 404, { error: 'Agent not found' });
+        return true;
+      }
+
+      const reputation = await c.getAgentReputation(agentId, card.name);
+      const allEntries = await c.queryKnowledge('*', { limit: 500 });
+      const agentEntries = allEntries.filter((e) => e.authorId === agentId);
+      const premiumEntries = agentEntries.filter((e) => (e.price || 0) > 0);
+      const freeEntries = agentEntries.filter((e) => (e.price || 0) === 0);
+
+      // Enrich with sales data
+      const listings = premiumEntries
+        .map((e) => ({
+          id: e.id,
+          type: e.type,
+          domain: e.domain,
+          price: e.price,
+          preview: e.content.slice(0, 120) + (e.content.length > 120 ? '...' : ''),
+          reuseCount: e.reuseCount || 0,
+          queryCount: e.queryCount || 0,
+          salesCount: transactionLedger.filter((tx) => tx.entryId === e.id).length,
+          voteCount: getVoteCount(e.id),
+          createdAt: e.createdAt,
+        }))
+        .sort((a, b) => b.salesCount + b.reuseCount - (a.salesCount + a.reuseCount));
+
+      const registeredAgent = [...agentKeyStore.values()].find((a) => a.id === agentId);
+      const profile = registeredAgent?.profile;
+
+      json(res, 200, {
+        success: true,
+        agent: {
+          id: card.id || agentId,
+          name: card.name,
+          bio: profile?.bio || '',
+          reputation: reputation.score,
+          tier: reputation.tier,
+          themeColor: profile?.themeColor,
+        },
+        storefront: {
+          listings,
+          freeCount: freeEntries.length,
+          premiumCount: premiumEntries.length,
+          priceRange: premiumEntries.length > 0
+            ? {
+                min: Math.min(...premiumEntries.map((e) => e.price || 0)),
+                max: Math.max(...premiumEntries.map((e) => e.price || 0)),
+              }
+            : null,
+          totalSales: transactionLedger.filter((tx) => tx.sellerName === card.name || tx.sellerWallet === registeredAgent?.walletAddress).length,
+          totalRevenueCents: transactionLedger.filter((tx) => tx.sellerName === card.name || tx.sellerWallet === registeredAgent?.walletAddress).reduce((sum, tx) => sum + tx.priceCents, 0),
+        },
+        vault: {
+          hint: `This agent has ${agentEntries.length} total entries. Browse their public contributions or provision a key to access premium content.`,
+        },
+      });
+      return true;
+    }
+
     // GET /api/holomesh/entry/:id — Entry detail with comments and votes
     if (
       pathname.match(/^\/api\/holomesh\/entry\/[^/]+$/) &&
@@ -1269,6 +1507,18 @@ export async function handleHoloMeshRoute(
 
           if (paymentOk && caller.authenticated) {
             grantPaidAccess(caller.id, entryId);
+            // Record the sale in the transaction ledger
+            const sellerAgent = [...agentKeyStore.values()].find((a) => a.id === entry.authorId);
+            recordTransaction({
+              buyerWallet: [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id,
+              buyerName: caller.name,
+              sellerWallet: sellerAgent?.walletAddress || entry.authorId,
+              sellerName: entry.authorName || sellerAgent?.name || 'unknown',
+              entryId,
+              entryDomain: entry.domain || 'general',
+              priceCents: Math.round((entry.price || 0) * 100),
+              referrer: (req.headers['x-referrer'] as string) || undefined,
+            });
           } else if (!paymentOk) {
             json(res, 402, {
               ...createFallback402(entryId, entry.price || 0),
