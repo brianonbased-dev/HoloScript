@@ -431,6 +431,37 @@ export const holomeshTransactions = pgTable(
 );
 
 // =============================================================================
+// HOLOMESH BOARD TASKS
+// =============================================================================
+
+export const holomeshBoardTasks = pgTable(
+  'holomesh_board_tasks',
+  {
+    id: text('id').primaryKey(),                             // MCP-assigned task ID
+    teamId: text('team_id').notNull(),
+    title: text('title').notNull(),
+    description: text('description').default('').notNull(),
+    status: varchar('status', { length: 16 }).default('open').notNull(), // open|claimed|done|blocked
+    priority: integer('priority').default(2).notNull(),
+    role: varchar('role', { length: 32 }).default('coder').notNull(),
+    source: varchar('source', { length: 32 }).default('manual').notNull(),
+    claimedBy: text('claimed_by'),
+    claimedByName: text('claimed_by_name'),
+    completedBy: text('completed_by'),
+    commitHash: text('commit_hash'),
+    metadata: jsonb('metadata').default({}),
+    mcpCreatedAt: timestamp('mcp_created_at', { mode: 'date' }),
+    completedAt: timestamp('completed_at', { mode: 'date' }),
+    syncedAt: timestamp('synced_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_holomesh_board_team').on(t.teamId),
+    index('idx_holomesh_board_status').on(t.status),
+    index('idx_holomesh_board_priority').on(t.priority),
+  ]
+);
+
+// =============================================================================
 // CHARACTERS
 // =============================================================================
 
