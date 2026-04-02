@@ -80,7 +80,7 @@ Works with codebases (TypeScript, Python, Rust, Go), CSVs, JSON schemas, and pla
 | Packages | 61 |
 | Plugins | 6 (Narupa, robotics, medical, AlphaFold, web-preview, domain template) |
 
-Traits define properties, events, and compilation mappings. The runtime resolves them per platform — `@physics` becomes a Unity Rigidbody, an R3F RigidBody, or a URDF `<inertial>` block. The HoloVM (spatial, 60-90Hz) and uAAL VM (cognitive, 2-10Hz) execute trait behavior at runtime.
+Traits define behavior. The compiler maps them to each platform's native runtime. `@physics` becomes a Unity Rigidbody, a Three.js RigidBody, a Gazebo `<inertial>` block, or a WebGPU compute dispatch — depending on the target. The platform's own runtime executes the behavior.
 
 ## Links
 
