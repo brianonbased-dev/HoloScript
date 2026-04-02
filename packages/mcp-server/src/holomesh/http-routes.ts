@@ -261,6 +261,25 @@ interface TeamMessage {
   createdAt: string;
 }
 
+// ── Room Config (the equipment rack — persists when agents die) ──
+
+interface RoomMcpServer {
+  id: string;
+  url: string;
+  description: string;
+}
+
+interface RoomConfig {
+  mcpServers: RoomMcpServer[];
+  brainTemplate: string;
+  absorbedProjects: { path: string; absorbedAt: string; depth: 'shallow' | 'deep' }[];
+  objective: string;
+  rules: string[];
+  treasuryFeeBps: number;
+  autoSpawn: boolean;
+  spawnTemplate?: { traits: string[]; ideType?: string };
+}
+
 interface Team {
   id: string;
   name: string;
@@ -272,6 +291,9 @@ interface Team {
   maxSlots: number;
   waitlist: TeamMember[];
   createdAt: string;
+  roomConfig?: RoomConfig;
+  treasuryWallet?: string;
+  treasuryBalance?: number;
 }
 
 const teamStore: Map<string, Team> = new Map(); // teamId → Team
@@ -1567,18 +1589,48 @@ export async function handleHoloMeshRoute(
 
           if (paymentOk && caller.authenticated) {
             grantPaidAccess(caller.id, entryId);
-            // Record the sale in the transaction ledger
+            // Record the sale — split revenue if entry belongs to a room
             const sellerAgent = [...agentKeyStore.values()].find((a) => a.id === entry.authorId);
-            recordTransaction({
-              buyerWallet: [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id,
-              buyerName: caller.name,
-              sellerWallet: sellerAgent?.walletAddress || entry.authorId,
-              sellerName: entry.authorName || sellerAgent?.name || 'unknown',
-              entryId,
-              entryDomain: entry.domain || 'general',
-              priceCents: Math.round((entry.price || 0) * 100),
-              referrer: (req.headers['x-referrer'] as string) || undefined,
-            });
+            const buyerWallet = [...agentKeyStore.values()].find((a) => a.id === caller.id)?.walletAddress || caller.id;
+            const priceCents = Math.round((entry.price || 0) * 100);
+
+            // Check if this entry belongs to a team room with a treasury
+            const isTeamEntry = entry.workspaceId?.startsWith('team:');
+            const teamId = isTeamEntry ? entry.workspaceId.replace('team:', '') : null;
+            const entryTeam = teamId ? teamStore.get(teamId) : null;
+            const treasuryFeeBps = entryTeam?.roomConfig?.treasuryFeeBps || 0;
+
+            if (treasuryFeeBps > 0 && entryTeam?.treasuryWallet) {
+              const treasuryCut = Math.floor(priceCents * treasuryFeeBps / 10000);
+              const agentCut = priceCents - treasuryCut;
+              // Room treasury gets its cut
+              recordTransaction({
+                buyerWallet, buyerName: caller.name,
+                sellerWallet: entryTeam.treasuryWallet,
+                sellerName: `Room: ${entryTeam.name}`,
+                entryId, entryDomain: entry.domain || 'general',
+                priceCents: treasuryCut,
+              });
+              entryTeam.treasuryBalance = (entryTeam.treasuryBalance || 0) + treasuryCut;
+              // Agent gets the rest
+              recordTransaction({
+                buyerWallet, buyerName: caller.name,
+                sellerWallet: sellerAgent?.walletAddress || entry.authorId,
+                sellerName: entry.authorName || sellerAgent?.name || 'unknown',
+                entryId, entryDomain: entry.domain || 'general',
+                priceCents: agentCut,
+              });
+            } else {
+              // No room — full amount to agent
+              recordTransaction({
+                buyerWallet, buyerName: caller.name,
+                sellerWallet: sellerAgent?.walletAddress || entry.authorId,
+                sellerName: entry.authorName || sellerAgent?.name || 'unknown',
+                entryId, entryDomain: entry.domain || 'general',
+                priceCents,
+                referrer: (req.headers['x-referrer'] as string) || undefined,
+              });
+            }
           } else if (!paymentOk) {
             json(res, 402, {
               ...createFallback402(entryId, entry.price || 0),
@@ -3064,6 +3116,25 @@ export async function handleHoloMeshRoute(
         createdAt: new Date().toISOString(),
       };
 
+      // Room config — if provided, this team becomes a persistent room
+      const rawRoom = body.room_config as Record<string, unknown> | undefined;
+      if (rawRoom) {
+        team.roomConfig = {
+          mcpServers: (rawRoom.mcpServers as RoomMcpServer[]) || [],
+          brainTemplate: (rawRoom.brainTemplate as string) || '',
+          absorbedProjects: (rawRoom.absorbedProjects as RoomConfig['absorbedProjects']) || [],
+          objective: (rawRoom.objective as string) || '',
+          rules: (rawRoom.rules as string[]) || [],
+          treasuryFeeBps: Math.min(Math.max(parseInt(String(rawRoom.treasuryFeeBps)) || 0, 0), 5000),
+          autoSpawn: !!rawRoom.autoSpawn,
+          spawnTemplate: rawRoom.spawnTemplate as RoomConfig['spawnTemplate'],
+        };
+        // Generate a treasury wallet for the room
+        const roomWallet = await generateAgentWallet();
+        team.treasuryWallet = roomWallet.address;
+        team.treasuryBalance = 0;
+      }
+
       teamStore.set(teamId, team);
       indexAgentTeam(caller.id, teamId); // also persists
 
@@ -3103,6 +3174,14 @@ export async function handleHoloMeshRoute(
           members: team.members.length,
           maxSlots,
           slotsAvailable: maxSlots - 1,
+          ...(team.roomConfig ? {
+            room: {
+              objective: team.roomConfig.objective,
+              treasuryWallet: team.treasuryWallet,
+              treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+              autoSpawn: team.roomConfig.autoSpawn,
+            },
+          } : {}),
         },
         next_steps: [
           `Share invite code "${inviteCode}" with team members (${maxSlots} slots)`,
@@ -3312,6 +3391,83 @@ export async function handleHoloMeshRoute(
           agentName: w.agentName,
           waitingSince: w.joinedAt,
         })),
+        room: team.roomConfig ? {
+          objective: team.roomConfig.objective,
+          mcpServers: team.roomConfig.mcpServers.length,
+          absorbedProjects: team.roomConfig.absorbedProjects.length,
+          rules: team.roomConfig.rules.length,
+          treasuryWallet: team.treasuryWallet,
+          treasuryBalance: team.treasuryBalance || 0,
+          treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+          autoSpawn: team.roomConfig.autoSpawn,
+        } : null,
+      });
+      return true;
+    }
+
+    // PATCH /api/holomesh/team/:id/room — Update room equipment config
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room$/) && method === 'PATCH') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+
+      const team = teamStore.get(teamId)!;
+      if (!hasTeamPermission(team, caller.id, 'team:settings')) {
+        json(res, 403, { error: 'Only owner/admin can update room config' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      if (!team.roomConfig) {
+        // Initialize room config if this team didn't have one
+        const roomWallet = await generateAgentWallet();
+        team.treasuryWallet = roomWallet.address;
+        team.treasuryBalance = 0;
+        team.roomConfig = {
+          mcpServers: [], brainTemplate: '', absorbedProjects: [],
+          objective: '', rules: [], treasuryFeeBps: 0, autoSpawn: false,
+        };
+      }
+
+      // Merge partial updates
+      const rc = team.roomConfig;
+      if (body.objective !== undefined) rc.objective = String(body.objective);
+      if (body.rules !== undefined) rc.rules = body.rules as string[];
+      if (body.mcpServers !== undefined) rc.mcpServers = body.mcpServers as RoomMcpServer[];
+      if (body.brainTemplate !== undefined) rc.brainTemplate = String(body.brainTemplate);
+      if (body.absorbedProjects !== undefined) rc.absorbedProjects = body.absorbedProjects as RoomConfig['absorbedProjects'];
+      if (body.treasuryFeeBps !== undefined) rc.treasuryFeeBps = Math.min(Math.max(parseInt(String(body.treasuryFeeBps)) || 0, 0), 5000);
+      if (body.autoSpawn !== undefined) rc.autoSpawn = !!body.autoSpawn;
+      if (body.spawnTemplate !== undefined) rc.spawnTemplate = body.spawnTemplate as RoomConfig['spawnTemplate'];
+
+      persistTeamStore();
+
+      // Broadcast equipment-update to all online agents
+      const presenceMap = teamPresenceStore.get(teamId);
+      if (presenceMap && presenceMap.size > 0) {
+        const messages = teamMessageStore.get(teamId) || [];
+        messages.push({
+          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          teamId,
+          fromAgentId: 'room',
+          fromAgentName: `Room: ${team.name}`,
+          content: `Room config updated by ${caller.name}. Reload your equipment.`,
+          messageType: 'text' as any,
+          createdAt: new Date().toISOString(),
+        } as any);
+        teamMessageStore.set(teamId, messages.slice(-500));
+      }
+
+      json(res, 200, {
+        success: true,
+        room: {
+          objective: rc.objective,
+          rules: rc.rules,
+          mcpServers: rc.mcpServers.length,
+          treasuryWallet: team.treasuryWallet,
+          treasuryFeeBps: rc.treasuryFeeBps,
+          autoSpawn: rc.autoSpawn,
+        },
       });
       return true;
     }
@@ -3339,7 +3495,33 @@ export async function handleHoloMeshRoute(
         lastHeartbeat: new Date().toISOString(),
       };
 
+      // Equipment loading — on FIRST heartbeat, send room config to the agent
+      const isFirstHeartbeat = !presenceMap.has(caller.id);
       presenceMap.set(caller.id, entry);
+
+      const team = teamStore.get(teamId);
+      if (isFirstHeartbeat && team?.roomConfig) {
+        const messages = teamMessageStore.get(teamId) || [];
+        messages.push({
+          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          teamId,
+          fromAgentId: 'room',
+          fromAgentName: `Room: ${team.name}`,
+          toAgentId: caller.id,
+          content: JSON.stringify({
+            objective: team.roomConfig.objective,
+            rules: team.roomConfig.rules,
+            mcpServers: team.roomConfig.mcpServers,
+            brainTemplate: team.roomConfig.brainTemplate,
+            absorbedProjects: team.roomConfig.absorbedProjects,
+            treasuryWallet: team.treasuryWallet,
+            treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+          }),
+          messageType: 'equipment-load' as any,
+          createdAt: new Date().toISOString(),
+        } as any);
+        teamMessageStore.set(teamId, messages.slice(-500));
+      }
 
       // Prune stale and return current presence
       pruneStalePresence(teamId);
@@ -3350,6 +3532,14 @@ export async function handleHoloMeshRoute(
         presence: entry,
         online: onlineAgents,
         online_count: onlineAgents.length,
+        ...(isFirstHeartbeat && team?.roomConfig ? {
+          equipment: {
+            objective: team.roomConfig.objective,
+            rules: team.roomConfig.rules,
+            mcpServers: team.roomConfig.mcpServers.length,
+            treasuryFeeBps: team.roomConfig.treasuryFeeBps,
+          },
+        } : {}),
       });
       return true;
     }
