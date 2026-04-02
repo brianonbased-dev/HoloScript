@@ -23,7 +23,7 @@ import type { KnowledgeEntry, HoloMeshAgent, AgentReputation } from '@/component
 // Types
 // ---------------------------------------------------------------------------
 
-type ProfileTab = 'wall' | 'guestbook' | 'friends' | 'knowledge' | 'badges' | 'room' | 'storefront';
+type ProfileTab = 'wall' | 'guestbook' | 'friends' | 'knowledge' | 'badges' | 'room' | 'storefront' | 'activity';
 
 interface StorefrontData {
   totalRevenueCents: number;
@@ -142,6 +142,8 @@ export default function HoloMeshProfilePage() {
     { id: 'friends', label: 'Top 8' },
     { id: 'knowledge', label: 'Knowledge', count: entries.length },
     { id: 'badges', label: 'Badges', count: profile?.badges.length },
+    { id: 'activity', label: 'Activity' },
+    { id: 'activity', label: 'Activity' },
     { id: 'room', label: 'My Room' },
     { id: 'storefront', label: 'Storefront' },
   ];
@@ -223,6 +225,7 @@ export default function HoloMeshProfilePage() {
         {tab === 'friends' && <FriendsTab peers={profile.topPeers} />}
         {tab === 'knowledge' && <KnowledgeTab entries={entries} />}
         {tab === 'badges' && <BadgesTab badges={profile.badges} />}
+        {tab === 'activity' && <ActivityTab agentId={profile.agent.id} agentName={profile.agent.name} />}
         {tab === 'room' && <RoomTab agentName={profile.agent.name} />}
         {tab === 'storefront' && <StorefrontTab storefront={storefront} entries={entries} />}
       </main>
@@ -656,4 +659,220 @@ function formatTime(ts: number): string {
   if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h ago`;
   return d.toLocaleDateString();
+}
+
+// ---------------------------------------------------------------------------
+// Tab: Activity (contribution graph + recent events)
+// ---------------------------------------------------------------------------
+
+interface ContributionDay {
+  date: string;   // YYYY-MM-DD
+  count: number;
+  label?: string; // optional tooltip label
+}
+
+type ContributionCell = { date: string; count: number; label: string } | null;
+
+const LEVEL_COLORS = [
+  'bg-studio-panel border border-studio-border/60',   // 0 — empty
+  'bg-green-900/60 border border-green-800/50',        // 1
+  'bg-green-700/70 border border-green-600/60',        // 2-4
+  'bg-green-500/80 border border-green-400/70',        // 5-9
+  'bg-green-400   border border-green-300/80',         // 10+
+];
+
+function levelFor(count: number): number {
+  if (count === 0) return 0;
+  if (count === 1) return 1;
+  if (count < 5)  return 2;
+  if (count < 10) return 3;
+  return 4;
+}
+
+/** Build a 52-week × 7-day grid from an array of contribution days */
+function buildGrid(days: ContributionDay[]): ContributionCell[][] {
+  const byDate: Record<string, ContributionDay> = {};
+  for (const d of days) byDate[d.date] = d;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const WEEKS = 52;
+
+  // Start on the Sunday WEEKS weeks ago
+  const start = new Date(today);
+  start.setDate(start.getDate() - today.getDay() - (WEEKS - 1) * 7);
+
+  const cols: ContributionCell[][] = [];
+  for (let w = 0; w < WEEKS; w++) {
+    const col: ContributionCell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const cell = new Date(start);
+      cell.setDate(start.getDate() + w * 7 + d);
+      if (cell > today) {
+        col.push(null);
+      } else {
+        const key = cell.toISOString().slice(0, 10);
+        const entry = byDate[key];
+        col.push({ date: key, count: entry?.count ?? 0, label: entry?.label ?? key });
+      }
+    }
+    cols.push(col);
+  }
+  return cols;
+}
+
+function ContributionGraph({ agentId }: { agentId: string }) {
+  const [days, setDays] = React.useState<ContributionDay[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [totalContribs, setTotalContribs] = React.useState(0);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/holomesh/agent/self/contributions?days=365&agentId=${agentId}`);
+        const data = await res.json();
+        if (!cancelled) {
+          const rawDays: ContributionDay[] = data.days ?? [];
+          setDays(rawDays);
+          setTotalContribs(rawDays.reduce((s, d) => s + d.count, 0));
+        }
+      } catch {
+        // Fall back gracefully — show empty graph
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [agentId]);
+
+  const grid = buildGrid(days);
+  const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Build month label row: one label per month transition
+  const monthLabels: { label: string; colIdx: number }[] = [];
+  let lastMonth = -1;
+  for (let w = 0; w < grid.length; w++) {
+    const firstCell = grid[w].find((c) => c !== null);
+    if (firstCell) {
+      const m = Number(firstCell.date.slice(5, 7)) - 1;
+      if (m !== lastMonth) {
+        monthLabels.push({ label: MONTH_ABBR[m], colIdx: w });
+        lastMonth = m;
+      }
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-studio-border bg-studio-panel/40 p-6 text-xs text-studio-muted/50 animate-pulse">
+        Loading contribution data…
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-studio-border bg-studio-panel/40 p-5 overflow-x-auto">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm font-semibold text-studio-text">
+          {totalContribs} contributions in the last year
+        </span>
+        <div className="flex items-center gap-2 text-[10px] text-studio-muted">
+          <span>Less</span>
+          {[0, 1, 2, 3, 4].map((l) => (
+            <span key={l} className={`inline-block h-3 w-3 rounded-sm ${LEVEL_COLORS[l]}`} />
+          ))}
+          <span>More</span>
+        </div>
+      </div>
+
+      <div className="flex gap-1 min-w-max">
+        {/* Day-of-week labels */}
+        <div className="flex flex-col gap-0.5 pr-1 pt-5">
+          {DAY_LABELS.map((d, i) => (
+            <span key={d} className={`h-3 text-[9px] leading-3 text-studio-muted/50 ${i % 2 === 0 ? 'invisible' : ''}`}>
+              {d}
+            </span>
+          ))}
+        </div>
+
+        <div>
+          {/* Month labels */}
+          <div className="flex gap-0.5 mb-1 pl-0.5 h-4">
+            {grid.map((_, w) => {
+              const ml = monthLabels.find((m) => m.colIdx === w);
+              return (
+                <div key={w} className="w-3 text-[9px] text-studio-muted/60 leading-none shrink-0">
+                  {ml ? ml.label : ''}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Grid */}
+          <div className="flex gap-0.5">
+            {grid.map((col, w) => (
+              <div key={w} className="flex flex-col gap-0.5">
+                {col.map((cell, d) =>
+                  cell === null ? (
+                    <div key={d} className="h-3 w-3" />
+                  ) : (
+                    <div
+                      key={d}
+                      className={`h-3 w-3 rounded-sm cursor-default ${LEVEL_COLORS[levelFor(cell.count)]}`}
+                      title={`${cell.date}: ${cell.count} contribution${cell.count !== 1 ? 's' : ''}`}
+                    />
+                  )
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityTab({ agentId, agentName }: { agentId: string; agentName: string }) {
+  return (
+    <div className="flex flex-col gap-6 max-w-4xl">
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-studio-muted mb-3">
+          Contribution Graph
+        </h3>
+        <ContributionGraph agentId={agentId} />
+      </div>
+
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-studio-muted mb-3">
+          About the Data
+        </h3>
+        <p className="text-xs text-studio-muted/60 leading-relaxed max-w-xl">
+          Each square represents one day. Color intensity reflects the number of contributions
+          (task completions, knowledge syncs, skill invocations) that day. Data is sourced from
+          the agent&apos;s done log and knowledge sync timestamps on the HoloMesh.
+        </p>
+      </div>
+
+      <div className="flex gap-3 text-xs">
+        <a
+          href="/holomesh/leaderboard"
+          className="rounded-lg border border-studio-border px-3 py-2 text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+        >
+          Team Leaderboard →
+        </a>
+        <a
+          href="/holomesh/marketplace"
+          className="rounded-lg border border-studio-border px-3 py-2 text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition-colors"
+        >
+          Browse Marketplace →
+        </a>
+      </div>
+
+      <p className="text-[10px] text-studio-muted/30">
+        {agentName} · activity graph · powered by HoloMesh
+      </p>
+    </div>
+  );
 }
