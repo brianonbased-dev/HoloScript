@@ -17,7 +17,7 @@ export interface UseReactiveStateReturn {
 
 export function useReactiveState(): UseReactiveStateReturn {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rs = useRef<any>(new (ReactiveState as any)({}));
+  const rs = useRef<ReactiveState>(new ReactiveState({}));
   const [state, setState] = useState<Record<string, unknown>>({});
   const [changes, setChanges] = useState(0);
   const changeCount = useRef(0);
@@ -29,7 +29,7 @@ export function useReactiveState(): UseReactiveStateReturn {
 
   const set = useCallback(
     (key: string, value: unknown) => {
-      rs.current.set(key as any, value as any);
+      rs.current.set(key as keyof typeof rs.current, value);
       changeCount.current++;
       sync();
     },
@@ -46,7 +46,7 @@ export function useReactiveState(): UseReactiveStateReturn {
   }, [sync]);
 
   const buildDemo = useCallback(() => {
-    rs.current = new (ReactiveState as any)({
+    rs.current = new ReactiveState({
       playerName: 'Hero',
       health: 100,
       gold: 50,
@@ -58,7 +58,7 @@ export function useReactiveState(): UseReactiveStateReturn {
   }, [sync]);
 
   const reset = useCallback(() => {
-    rs.current = new (ReactiveState as any)({});
+    rs.current = new ReactiveState({});
     changeCount.current = 0;
     sync();
   }, [sync]);

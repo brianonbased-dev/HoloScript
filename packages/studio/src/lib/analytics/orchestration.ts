@@ -6,6 +6,12 @@ import { logger } from '@/lib/logger';
  * Integrates with Google Analytics (gtag) if available.
  */
 
+declare global {
+  interface Window {
+    gtag?: (command: string, event: string, params?: Record<string, unknown>) => void;
+  }
+}
+
 export interface OrchestrationEventProps {
   [key: string]: string | number | boolean | undefined;
 }
@@ -18,8 +24,8 @@ export interface OrchestrationEventProps {
  */
 export function trackOrchestrationEvent(event: string, props: OrchestrationEventProps = {}) {
   // Send to Google Analytics if available
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', event, {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', event, {
       event_category: 'orchestration',
       ...props,
     });

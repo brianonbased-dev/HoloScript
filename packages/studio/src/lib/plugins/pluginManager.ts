@@ -191,7 +191,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
         if (!plugin?.metadata?.id) {
           throw new Error(`Package "${source}" does not export a valid HoloScript plugin`);
         }
-        (plugin as any).__source = 'npm';
+        (plugin as HoloScriptPlugin & { __source: string }).__source = 'npm';
       } else if (type === 'url') {
         // Load plugin from URL via dynamic import
         const mod = await import(/* @vite-ignore */ source);
@@ -199,7 +199,7 @@ export const usePluginManager = create<PluginManagerState>((set, get) => ({
         if (!plugin?.metadata?.id) {
           throw new Error(`Module at "${source}" does not export a valid HoloScript plugin`);
         }
-        (plugin as any).__source = 'url';
+        (plugin as HoloScriptPlugin & { __source: string }).__source = 'url';
       } else {
         // Local plugin (already loaded)
         throw new Error('Local plugin installation requires registerPlugin');

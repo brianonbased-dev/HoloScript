@@ -111,8 +111,8 @@ export function MultiplayerPanel() {
                 >
                   <span className="text-studio-text">#{e.id}</span>
                   <span className="text-studio-muted">
-                    ({(e.transform as any).x?.toFixed(1) ?? '0.0'},{' '}
-                    {(e.transform as any).z?.toFixed(1) ?? '0.0'})
+                    ({e.transform.x.toFixed(1)},{' '}
+                    {e.transform.z.toFixed(1)})
                   </span>
                   <span style={{ color: client?.color || '#888' }}>{client?.name || 'server'}</span>
                   {e.synced && <span className="text-emerald-400">✓</span>}

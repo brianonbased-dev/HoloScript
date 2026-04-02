@@ -6,6 +6,7 @@
 
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
+import type { Awareness } from 'y-protocols/awareness';
 import type {
   User,
   UserPresence,
@@ -28,7 +29,7 @@ export class CollaborationClient {
   private provider: WebsocketProvider | null = null;
   private config: CollaborationClientConfig;
   private sessionId: string | null = null;
-  private awareness: any;
+  private awareness: Awareness | null = null;
 
   constructor(config: CollaborationClientConfig) {
     this.config = config;
@@ -75,9 +76,10 @@ export class CollaborationClient {
     // Listen to awareness changes (user presence)
     this.awareness.on('change', () => {
       const users = new Map<number, UserPresence>();
-      this.awareness.getStates().forEach((state: AwarenessState, clientId: number) => {
-        if (state.presence && clientId !== this.awareness.clientID) {
-          users.set(clientId, state.presence);
+      this.awareness!.getStates().forEach((state: { [x: string]: unknown }, clientId: number) => {
+        const typedState = state as unknown as AwarenessState;
+        if (typedState.presence && clientId !== this.awareness!.clientID) {
+          users.set(clientId, typedState.presence);
         }
       });
       this.config.onPresenceChange?.(users);
@@ -217,7 +219,7 @@ export class CollaborationClient {
   updateCursor(x: number, y: number, nodeId?: string): void {
     this.updatePresence({
       cursor: { x, y, nodeId },
-    } as any);
+    });
   }
 
   /**
@@ -226,7 +228,7 @@ export class CollaborationClient {
   updateSelection(nodeIds: string[]): void {
     this.updatePresence({
       selection: { nodeIds },
-    } as any);
+    });
   }
 
   /**
@@ -236,9 +238,10 @@ export class CollaborationClient {
     if (!this.awareness) return [];
 
     const users: UserPresence[] = [];
-    this.awareness.getStates().forEach((state: AwarenessState, clientId: number) => {
-      if (state.presence && clientId !== this.awareness.clientID) {
-        users.push(state.presence);
+    this.awareness.getStates().forEach((state: { [x: string]: unknown }, clientId: number) => {
+      const typedState = state as unknown as AwarenessState;
+      if (typedState.presence && clientId !== this.awareness!.clientID) {
+        users.push(typedState.presence);
       }
     });
 

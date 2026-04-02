@@ -48,8 +48,8 @@ function usePerfStats() {
       const info = gl.info;
       setStats({
         fps,
-        memory: (performance as any).memory?.usedJSHeapSize
-          ? Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024)
+        memory: (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize
+          ? Math.round((performance as Performance & { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize / 1024 / 1024)
           : null,
         calls: info.render.calls,
         triangles: info.render.triangles,

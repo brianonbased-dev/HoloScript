@@ -183,8 +183,9 @@ export function useCollaboration(roomId: string): UseCollaborationReturn {
 
     // Pass auth token in WebSocket URL when available
     let wsUrl = `${baseUrl}?room=${roomId}`;
-    if ((session as any)?.accessToken) {
-      wsUrl += `&token=${(session as any).accessToken}`;
+    const accessToken = (session as { accessToken?: string } | null)?.accessToken;
+    if (accessToken) {
+      wsUrl += `&token=${accessToken}`;
     }
 
     const ws = new WebSocket(wsUrl);
