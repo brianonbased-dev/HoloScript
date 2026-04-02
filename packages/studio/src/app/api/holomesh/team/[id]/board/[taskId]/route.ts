@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { proxyHoloMesh } from '../../../../../../../lib/holomesh-proxy';
 import { boardWriteLimit } from '../../../../../../../lib/rate-limiter';
 import { getDb } from '../../../../../../../db/client';
@@ -17,6 +17,33 @@ export async function PATCH(
 
   // Clone body so we can read it twice (once for DB, once for proxy)
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+
+  // Heartbeat: update syncedAt to reset the 30-min stale-expiry clock.
+  // Handled locally — not forwarded to MCP.
+  if (body.action === 'heartbeat') {
+    try {
+      const db = getDb();
+      if (db) {
+        const [task] = await db
+          .select({ id: holomeshBoardTasks.id, status: holomeshBoardTasks.status, claimedBy: holomeshBoardTasks.claimedBy })
+          .from(holomeshBoardTasks)
+          .where(eq(holomeshBoardTasks.id, taskId))
+          .limit(1);
+        if (!task) return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
+        if (task.status !== 'claimed' || task.claimedBy !== (body.agentId as string)) {
+          return NextResponse.json({ success: false, error: 'Task not claimed by this agent' }, { status: 403 });
+        }
+        await db
+          .update(holomeshBoardTasks)
+          .set({ syncedAt: new Date() })
+          .where(eq(holomeshBoardTasks.id, taskId));
+        return NextResponse.json({ success: true, heartbeat: new Date().toISOString() });
+      }
+    } catch {
+      return NextResponse.json({ success: false, error: 'DB unavailable' }, { status: 503 });
+    }
+    return NextResponse.json({ success: false, error: 'DB unavailable' }, { status: 503 });
+  }
 
   // Proxy first — MCP is source of truth
   const proxyReq = new Request(req.url, {
