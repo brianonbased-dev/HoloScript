@@ -5,7 +5,14 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     formats: ['image/avif', 'image/webp'],
-    domains: [],
+    // Use remotePatterns (preferred over deprecated `domains`) for external image sources
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.holoscript.net' },
+      { protocol: 'https', hostname: '**.holomesh.net' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'cdn.polyhaven.com' },
+    ],
   },
   // Enable standard Next.js build checks
   eslint: { ignoreDuringBuilds: false },
