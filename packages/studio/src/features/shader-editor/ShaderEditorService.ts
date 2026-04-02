@@ -104,6 +104,7 @@ export class ShaderEditorService {
   private autoSaveDelay = 2000; // 2 seconds debounce
   private syncEnabled = false;
   private syncHooks: SyncHooks = {};
+  private lastSyncTime = 0;
 
   /**
    * Initialize the database
@@ -223,7 +224,7 @@ export class ShaderEditorService {
 
     // Trigger sync if enabled
     if (this.syncEnabled && this.syncHooks.onUpdate) {
-      this.syncHooks.onUpdate(graph).catch(logger.error);
+      this.syncHooks.onUpdate(graph).then(() => { this.lastSyncTime = Date.now(); }).catch(logger.error);
     }
   }
 
@@ -616,7 +617,7 @@ export class ShaderEditorService {
   getSyncStatus(): SyncStatus {
     return {
       enabled: this.syncEnabled,
-      lastSync: 0, // TODO: Track last sync time
+      lastSync: this.lastSyncTime,
       pending: this.autoSaveQueue.size,
     };
   }

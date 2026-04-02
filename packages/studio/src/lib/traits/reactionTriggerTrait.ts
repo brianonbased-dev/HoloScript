@@ -281,7 +281,7 @@ export class ReactionTriggerTrait {
    * Trigger animation
    */
   private triggerAnimation(animationName: string): void {
-    // TODO: Implement animation triggering
+    // TODO(MEME-009): Implement animation triggering via ViralPoseTrait.applyPose or VRM mixer
     logger.debug('[ReactionTriggerTrait] Triggered animation:', animationName);
   }
 

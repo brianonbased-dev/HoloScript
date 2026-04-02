@@ -182,7 +182,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
           if (activeClip) {
             // Trigger export (will be implemented in MEME-008)
             logger.debug('[Hotkey] Export clip (E):', activeClip.name);
-            // TODO: Call exportToMP4(activeClip)
+            // TODO(MEME-008): Call exportToMP4(activeClip)
           }
         },
         enabled: characterStore.activeClipId !== null,
@@ -195,7 +195,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         action: () => {
           // Toggle loop state (stored in local state or store)
           logger.debug('[Hotkey] Toggled loop (L)');
-          // TODO: Implement loop state
+          // TODO(MEME-007): Implement loop state in characterStore
         },
       },
 
@@ -231,7 +231,7 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         description: `Apply preset pose ${i + 1}`,
         action: () => {
           logger.debug(`[Hotkey] Applied preset pose ${i + 1}`);
-          // TODO: Implement preset pose system (MEME-004)
+          // TODO(MEME-004): Implement preset pose system
         },
       })),
 
@@ -241,8 +241,8 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         ctrl: true,
         description: 'Undo',
         action: () => {
+          // TODO(STUDIO-102): Integrate with useHistoryStore for undo
           logger.debug('[Hotkey] Undo (CTRL+Z)');
-          // TODO: Integrate with useHistoryStore
         },
       },
       {
@@ -251,8 +251,8 @@ export function useHotkeys(options: UseHotkeysOptions = {}) {
         shift: true,
         description: 'Redo',
         action: () => {
+          // TODO(STUDIO-102): Integrate with useHistoryStore for redo
           logger.debug('[Hotkey] Redo (CTRL+SHIFT+Z)');
-          // TODO: Integrate with useHistoryStore
         },
       },
     ];

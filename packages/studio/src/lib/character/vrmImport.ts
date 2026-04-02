@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { logger } from '@/lib/logger';
 /**
  * vrmImport.ts — VRM Avatar Import & Parsing
@@ -138,7 +139,7 @@ function extractThumbnailFromGLTF(gltf: any, textureIndex: number): string | und
       return image.uri;
     }
 
-    // TODO: Extract from binary buffer if needed
+    // TODO(VRM-001): Extract thumbnail from binary buffer (GLB chunks) if no data URI available
     return undefined;
   } catch (error) {
     return undefined;

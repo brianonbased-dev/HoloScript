@@ -359,8 +359,8 @@ export class LivePreviewService {
         textures: new Map(),
       };
 
-      // TODO: Create pipeline and bind groups based on shader requirements
-      // This would be done in a full implementation with access to the render context
+      // TODO(SHADER-001): Create WebGPU pipeline and bind groups based on shader requirements
+      // Requires render context from the canvas — deferred until shader integration milestone.
     } catch (error) {
       logger.error('Failed to update material instance:', error);
       throw error;
