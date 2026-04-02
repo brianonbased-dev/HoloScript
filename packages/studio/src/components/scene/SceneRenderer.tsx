@@ -14,7 +14,7 @@ import {
 import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
-import type { SceneNode, GizmoMode } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
 import { VREditSession, xrStore } from '@/components/vr/VREditSession';
@@ -298,7 +298,6 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const [isDragOver, setIsDragOver] = useState(false);
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
-  const selectedId = useEditorStore((s) => s.selectedObjectId);
   const gizmoMode = useEditorStore((s) => s.gizmoMode);
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
   const artMode = useEditorStore((s) => s.artMode);
