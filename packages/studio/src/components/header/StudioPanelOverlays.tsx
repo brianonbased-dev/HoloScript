@@ -9,6 +9,7 @@
 
 import dynamic from 'next/dynamic';
 import { X } from 'lucide-react';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import { useEditorStore, usePanelVisibilityStore, useSceneStore } from '@/lib/stores';
 
 // ── Lazy-loaded panels ────────────────────────────────────────────────────────
@@ -354,17 +355,21 @@ export function StudioPanelOverlays({
 
       {mcpConfigOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <StudioErrorBoundary label="MCP Config Panel">
           <MCPServerConfigPanel onClose={() => setMcpConfigOpen(false)} />
+          </StudioErrorBoundary>
         </div>
       )}
 
       {agentWorkflowOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
           <div className="absolute inset-0 sm:inset-4 bg-studio-panel sm:rounded-xl border border-studio-border">
+            <StudioErrorBoundary label="Agent Workflow Graph">
             <AgentOrchestrationGraphEditor
               workflowId="default"
               onClose={() => setAgentWorkflowOpen(false)}
             />
+            </StudioErrorBoundary>
           </div>
         </div>
       )}
@@ -372,26 +377,34 @@ export function StudioPanelOverlays({
       {behaviorTreeOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
           <div className="absolute inset-0 sm:inset-4 bg-studio-panel sm:rounded-xl border border-studio-border">
+            <StudioErrorBoundary label="Behavior Tree Editor">
             <BehaviorTreeVisualEditor treeId="default" onClose={() => setBehaviorTreeOpen(false)} />
+            </StudioErrorBoundary>
           </div>
         </div>
       )}
 
       {agentEnsembleOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-full sm:w-[600px] sm:max-w-[80vw] border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <StudioErrorBoundary label="Agent Ensemble">
           <DesktopAgentEnsemble onClose={() => setAgentEnsembleOpen(false)} />
+          </StudioErrorBoundary>
         </div>
       )}
 
       {eventMonitorOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <StudioErrorBoundary label="Agent Event Monitor">
           <AgentEventMonitorPanel onClose={() => setEventMonitorOpen(false)} />
+          </StudioErrorBoundary>
         </div>
       )}
 
       {toolCallGraphOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
+          <StudioErrorBoundary label="Tool Call Graph">
           <ToolCallGraphVisualizer onClose={() => setToolCallGraphOpen(false)} />
+          </StudioErrorBoundary>
         </div>
       )}
 

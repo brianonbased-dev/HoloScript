@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import { OrbitControls, Environment, Text, Float } from '@react-three/drei';
 
 interface MoodBoardProps {
@@ -97,6 +98,7 @@ export function MoodBoardViewport({ agentId, agentName, themeColor }: MoodBoardP
         boxShadow: `0 0 40px ${themeColor}20, 0 0 80px ${themeColor}10`,
       }}
     >
+      <StudioErrorBoundary label="MoodBoard Canvas">
       <Canvas
         camera={{ position: [3, 2, 5], fov: 50 }}
         style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)' }}
@@ -121,6 +123,7 @@ export function MoodBoardViewport({ agentId, agentName, themeColor }: MoodBoardP
           autoRotateSpeed={0.5}
         />
       </Canvas>
+      </StudioErrorBoundary>
       <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/50 text-[10px] text-white/40">
         drag to orbit
       </div>

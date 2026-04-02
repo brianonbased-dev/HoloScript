@@ -11,6 +11,7 @@
 import React, { useRef, useState, useMemo, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import { useShaderCompilation } from '../../hooks/useShaderCompilation';
 import { Download, Eye, EyeOff, Maximize2 } from 'lucide-react';
 import * as THREE from 'three';
@@ -111,6 +112,7 @@ export function MaterialPreview() {
           </div>
         )}
 
+        <StudioErrorBoundary label="Material Preview Canvas">
         <Canvas ref={canvasRef} gl={{ preserveDrawingBuffer: true }} className="w-full h-full">
           <PerspectiveCamera makeDefault position={[0, 0, 5]} />
           <OrbitControls enableDamping dampingFactor={0.05} />
@@ -138,6 +140,7 @@ export function MaterialPreview() {
             />
           )}
         </Canvas>
+        </StudioErrorBoundary>
 
         {/* WebGL error overlay */}
         {webGLError && (

@@ -12,6 +12,7 @@
 import { useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import { GENERATIVE_PRESETS } from './GenerativePresets';
 import type { GenerativePreset } from './GenerativePresets';
 import { ParticleSystem } from './ParticleSystem';
@@ -153,6 +154,7 @@ export function GenerativeArtPanel() {
           {activePreset.emoji} {activePreset.name} — Live Preview
         </div>
 
+        <StudioErrorBoundary label="Generative Art Canvas">
         <Canvas
           camera={{ position: [0, 0, 5], fov: 60 }}
           gl={{ antialias: true, alpha: false }}
@@ -172,6 +174,7 @@ export function GenerativeArtPanel() {
           )}
           <OrbitControls enableZoom enablePan={false} autoRotate autoRotateSpeed={0.4} />
         </Canvas>
+        </StudioErrorBoundary>
       </div>
 
       {/* ── Right: Parameters ── */}

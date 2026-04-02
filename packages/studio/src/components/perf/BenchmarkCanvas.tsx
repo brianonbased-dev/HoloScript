@@ -12,6 +12,7 @@ import { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stats } from '@react-three/drei';
 import * as THREE from 'three';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 
 // ── Instanced Mesh renderer ───────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export default function BenchmarkCanvas({
   onFpsUpdate,
 }: BenchmarkCanvasProps) {
   return (
+    <StudioErrorBoundary label="Benchmark Canvas">
     <Canvas
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 0, 30], fov: 60 }}
@@ -145,5 +147,6 @@ export default function BenchmarkCanvas({
       {/* drei Stats overlay (top-left) */}
       <Stats className="!top-2 !left-2 !bottom-auto" />
     </Canvas>
+    </StudioErrorBoundary>
   );
 }

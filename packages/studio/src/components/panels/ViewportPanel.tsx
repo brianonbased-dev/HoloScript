@@ -7,6 +7,7 @@
  */
 import React, { useRef, useMemo, Suspense } from 'react';
 import { Canvas, useFrame, type ThreeElements } from '@react-three/fiber';
+import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import {
   OrbitControls,
   Grid,
@@ -336,6 +337,7 @@ export function ViewportPanel() {
 
       {/* 3D Canvas */}
       <div className="flex-1 relative" style={{ minHeight: 300 }}>
+        <StudioErrorBoundary label="ViewportPanel Canvas">
         <Canvas
           shadows
           orthographic={state.mode === 'flat-semantic'}
@@ -395,6 +397,7 @@ export function ViewportPanel() {
             <Environment preset="sunset" background={false} />
           </Suspense>
         </Canvas>
+        </StudioErrorBoundary>
 
         {/* Overlay Stats */}
         <div className="absolute bottom-2 left-2 bg-black/60 rounded px-2 py-1 text-[9px] text-studio-muted font-mono">
