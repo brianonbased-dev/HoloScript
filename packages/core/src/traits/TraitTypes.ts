@@ -20,7 +20,8 @@ export interface TraitHandler<TConfig = unknown> {
   onDetach?: (node: HSPlusNode, config: TConfig, context: TraitContext) => void;
   onUpdate?: (node: HSPlusNode, config: TConfig, context: TraitContext, delta: number) => void;
   onEvent?: (node: HSPlusNode, config: TConfig, context: TraitContext, event: TraitEvent) => void;
-  [key: string]: any; // Allow arbitrary compiler adapters, validators, and metadata decorators
+  /** Compiler adapters, validators, and metadata — typed as unknown for extensibility */
+  [key: string]: unknown;
 }
 
 export interface HostExecOptions {
@@ -105,7 +106,7 @@ export interface TraitContext {
   /** Optional action dispatcher for BehaviorTreeTrait — maps action names to external handlers.
    *  The blackboard parameter is the BT's shared state, allowing handlers to update conditions. */
   executeAction?: (
-    owner: unknown,
+    owner: HSPlusNode,
     actionName: string,
     params: Record<string, unknown>,
     blackboard?: Record<string, unknown>
@@ -169,7 +170,15 @@ export interface RaycastHit {
   distance: number;
 }
 
-export type TraitEvent = {
+export interface TraitEvent {
+  /** Event type identifier (e.g., 'grab_start', 'collision', 'trait_attached') */
   type: string;
-  [key: string]: any;
-};
+  /** Source node that emitted the event */
+  node?: HSPlusNode;
+  /** Trait configuration at time of event */
+  config?: unknown;
+  /** Event-specific payload data */
+  payload?: Record<string, unknown>;
+  /** Arbitrary additional fields */
+  [key: string]: unknown;
+}
