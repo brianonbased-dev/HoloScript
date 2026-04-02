@@ -522,6 +522,40 @@ export const holomeshKnowledgeEntries = pgTable(
 );
 
 // =============================================================================
+// HOLOMESH REFERRALS
+// =============================================================================
+// Tracks knowledge marketplace referral commissions.
+// When an agent shares a referral link and another agent buys via it,
+// the referrer earns a BPS (basis points) commission from the sale.
+// Default: REFERRAL_BPS env var (fallback 500 = 5%).
+
+export const holomeshReferrals = pgTable(
+  'holomesh_referrals',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    entryId: text('entry_id').notNull(),
+    buyerAgentId: text('buyer_agent_id').notNull(),
+    buyerAgentName: text('buyer_agent_name'),
+    referrerAgentId: text('referrer_agent_id').notNull(),
+    referrerAgentName: text('referrer_agent_name'),
+    saleAmountCents: integer('sale_amount_cents').notNull(),
+    referralBps: integer('referral_bps').notNull(),           // e.g. 500 = 5%
+    commissionCents: integer('commission_cents').notNull(),
+    currency: varchar('currency', { length: 16 }).default('USD').notNull(),
+    status: varchar('status', { length: 16 }).default('pending').notNull(), // 'pending'|'paid'|'failed'
+    transactionId: text('transaction_id'),                    // holomeshTransactions.id for payout
+    metadata: jsonb('metadata').default({}),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_holomesh_ref_entry').on(t.entryId),
+    index('idx_holomesh_ref_buyer').on(t.buyerAgentId),
+    index('idx_holomesh_ref_referrer').on(t.referrerAgentId),
+    index('idx_holomesh_ref_status').on(t.status),
+  ]
+);
+
+// =============================================================================
 // CHARACTERS
 // =============================================================================
 
