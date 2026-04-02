@@ -36,7 +36,21 @@ import { HoloScriptParser } from './HoloScriptParser';
 import { HoloScriptRuntime } from './HoloScriptRuntime';
 
 // Composition Parser (Tier 3 migration from Hololand — pure language-level AST traversal)
-export * from './composition/CompositionParser';
+export {
+  ParsedObject,
+  ActionDefinition,
+  TemplateDefinition,
+  EnvironmentConfig,
+  CompositionLogic,
+  ParsedComposition,
+  CompositionParser,
+  parsePosition,
+  parseScale,
+  CompositionParseError,
+  parseComposition,
+  parseHoloComposition,
+  parseHsPlusComposition,
+} from './composition/CompositionParser';
 
 // Constants (New)
 export * from './constants';
@@ -2520,12 +2534,9 @@ export {
   type MetricsExportOptions as GraphQLMetricsExportOptions,
 } from './CircuitBreakerMetrics';
 
-export {
-  DegradedModeBanner,
-  useDegradedMode,
-  DegradedModeIndicator,
-  type DegradedModeBannerProps,
-} from './DegradedModeBanner';
+// DegradedModeBanner requires React — do NOT export from core barrel.
+// Import directly from '@holoscript/core/DegradedModeBanner' if needed in React apps.
+export type { DegradedModeBannerProps } from './DegradedModeBanner';
 
 // =============================================================================
 // GPU Codecs - Gaussian Splat Codec Abstraction Layer (W.038)
@@ -3515,7 +3526,6 @@ export {
 } from './economy/UnifiedBudgetOptimizer';
 export type {
   TraitUtility,
-  TraitCategory,
   TraitAllocation,
   ResourceCostFloor,
   UnifiedBudgetState,

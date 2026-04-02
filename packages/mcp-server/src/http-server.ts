@@ -69,6 +69,7 @@ const SERVICE_VERSION = typeof __SERVICE_VERSION__ !== 'undefined' ? __SERVICE_V
 
 // Protocol Registry — in-memory store (production: back with PostgreSQL)
 const protocolRecords = new Map<string, Record<string, unknown>>();
+const compileRateMap = new Map<string, number[]>();
 const protocolMetadata = new Map<string, Record<string, unknown>>();
 
 // Initialize token store backend (PostgreSQL if DATABASE_URL is set, otherwise in-memory)
@@ -1353,9 +1354,32 @@ const httpServer = http.createServer(async (req, res) => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // POST /api/compile — compile HoloScript to any target, return raw output code
+  // Rate limited: 60 requests per minute per IP. Input capped at 100KB.
   if (url === '/api/compile' && req.method === 'POST') {
+    // Rate limiting (in-memory, per-IP)
+    const clientIP = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    if (!compileRateMap.has(clientIP)) compileRateMap.set(clientIP, []);
+    const timestamps = compileRateMap.get(clientIP)!;
+    // Prune old entries (older than 60s)
+    while (timestamps.length > 0 && timestamps[0] < now - 60_000) timestamps.shift();
+    if (timestamps.length >= 60) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' });
+      res.end(JSON.stringify({ error: 'Rate limit exceeded. 60 requests per minute.' }));
+      return;
+    }
+    timestamps.push(now);
+
     try {
       const body = await parseJsonBody(req);
+
+      // Input size limit (100KB)
+      if (typeof body.code === 'string' && body.code.length > 100_000) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Input too large. Maximum 100KB.' }));
+        return;
+      }
+
       if (!body.code || typeof body.code !== 'string') {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Missing required field: code (string)' }));
@@ -1363,7 +1387,7 @@ const httpServer = http.createServer(async (req, res) => {
       }
       if (!body.target || typeof body.target !== 'string') {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing required field: target (string). Available: unity, unreal, godot, r3f, babylon, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, ar, playcanvas, nir, node-service, a2a-agent-card, native-2d, state, vrr' }));
+        res.end(JSON.stringify({ error: 'Missing required field: target (string). Available: unity, unreal, godot, r3f, babylon, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, ar, playcanvas, nir, node-service, a2a-agent-card, native-2d, state, vrr, phone-sleeve-vr' }));
         return;
       }
       const result = await handleCompileToTarget({
