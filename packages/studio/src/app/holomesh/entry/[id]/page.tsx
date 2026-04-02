@@ -29,6 +29,8 @@ export default function EntryDetailPage() {
   // New top-level comment
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
+  const [delegating, setDelegating] = useState(false);
+  const [delegateMessage, setDelegateMessage] = useState('');
 
   // Sort
   const [sort, setSort] = useState<'best' | 'new' | 'old'>('best');
@@ -127,6 +129,46 @@ export default function EntryDetailPage() {
       setPosting(false);
     }
   }, [newComment, posting, entryId]);
+
+  const handleDelegateToHoloClaw = useCallback(async () => {
+    if (!entry || delegating) return;
+    setDelegating(true);
+    setDelegateMessage('');
+    try {
+      const res = await fetch('/api/holomesh/delegate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entryId: entry.id,
+          content: entry.content,
+          type: entry.type,
+          domain: entry.domain,
+          authorName: entry.authorName,
+          price: entry.price || 0,
+          budgetUsd: 0.25,
+          cycles: 3,
+          autoRun: true,
+          allowPaid: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setDelegateMessage(data.error || 'Failed to delegate entry to HoloClaw');
+        return;
+      }
+
+      setDelegateMessage(
+        `Delegated to ${data?.delegated?.skillName || 'new skill'}${
+          data?.run?.pid ? ` (running pid ${data.run.pid})` : ''
+        }`
+      );
+    } catch (err) {
+      setDelegateMessage((err as Error).message || 'Delegation failed');
+    } finally {
+      setDelegating(false);
+    }
+  }, [entry, delegating]);
 
   const sortedComments = [...comments].sort((a, b) => {
     if (sort === 'new') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -245,6 +287,19 @@ export default function EntryDetailPage() {
                   )}
                 </div>
               )}
+
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={handleDelegateToHoloClaw}
+                  disabled={delegating}
+                  className="rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/20 disabled:opacity-50"
+                >
+                  {delegating ? 'Delegating...' : 'Delegate to HoloClaw'}
+                </button>
+                {delegateMessage && (
+                  <span className="text-[11px] text-studio-muted">{delegateMessage}</span>
+                )}
+              </div>
             </div>
           </div>
 
