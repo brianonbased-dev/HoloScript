@@ -54,6 +54,13 @@ const DEFAULT_LAYER_CONFIGS: Record<LayerId, LayerConfig> = {
   },
 };
 
+// ─── Buffer Caps ─────────────────────────────────────────────────────────────
+
+export const MAX_FEEDBACK_BUFFER = 100;
+export const MAX_PIPELINE_HISTORY = 50;
+export const MAX_LAYER_HISTORY = 100;
+export const MAX_GLOBAL_FEEDBACK = 50;
+
 function generatePipelineId(): string {
   return `pipe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -166,7 +173,7 @@ export const usePipelineStore = create<PipelineState>()(
             };
             return {
               activePipeline: null,
-              pipelineHistory: [completed, ...s.pipelineHistory].slice(0, 50),
+              pipelineHistory: [completed, ...s.pipelineHistory].slice(0, MAX_PIPELINE_HISTORY),
             };
           });
         },
@@ -210,7 +217,7 @@ export const usePipelineStore = create<PipelineState>()(
               status: 'completed',
               currentCycleId: null,
               cyclesCompleted: layer.cyclesCompleted + 1,
-              history: [...layer.history, result].slice(-100),
+              history: [...layer.history, result].slice(-MAX_LAYER_HISTORY),
               lastOutput: result.output,
             };
             return {
@@ -242,7 +249,7 @@ export const usePipelineStore = create<PipelineState>()(
             const layers = { ...s.activePipeline.layers };
             layers[targetLayer] = {
               ...layers[targetLayer],
-              feedbackBuffer: [...layers[targetLayer].feedbackBuffer, signal].slice(-100),
+              feedbackBuffer: [...layers[targetLayer].feedbackBuffer, signal].slice(-MAX_FEEDBACK_BUFFER),
             };
             return { activePipeline: { ...s.activePipeline, layers } };
           });
@@ -263,7 +270,7 @@ export const usePipelineStore = create<PipelineState>()(
 
         pushGlobalFeedback: (signal) => {
           set((s) => ({
-            globalFeedback: [...s.globalFeedback, signal].slice(-50),
+            globalFeedback: [...s.globalFeedback, signal].slice(-MAX_GLOBAL_FEEDBACK),
           }));
         },
 

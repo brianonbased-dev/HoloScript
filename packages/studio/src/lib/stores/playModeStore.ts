@@ -77,6 +77,11 @@ export interface PlayModeState {
   setBotCount: (n: number) => void;
 }
 
+// ─── Buffer Caps ─────────────────────────────────────────────────────────────
+
+export const MAX_INVENTORY_ITEMS = 100;
+export const MAX_INVENTORY_STACK = 999;
+
 const INITIAL_GAME_STATE: GameState = {
   score: 0,
   lives: 3,
@@ -199,10 +204,10 @@ export const usePlayMode = create<PlayModeState>()(
       addItem: (item, count = 1) =>
         set((s) => {
           const isNewItem = !(item in s.gameState.inventory);
-          if (isNewItem && Object.keys(s.gameState.inventory).length >= 100) {
-            return s; // Inventory full, don't allow Unbounded State Growth
+          if (isNewItem && Object.keys(s.gameState.inventory).length >= MAX_INVENTORY_ITEMS) {
+            return s; // Inventory full — enforce MAX_INVENTORY_ITEMS cap
           }
-          const newCount = Math.min(999, (s.gameState.inventory[item] ?? 0) + count);
+          const newCount = Math.min(MAX_INVENTORY_STACK, (s.gameState.inventory[item] ?? 0) + count);
           return {
             gameState: {
               ...s.gameState,
