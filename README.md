@@ -206,7 +206,7 @@ Production 3D rendering components. Each is a standalone R3F component:
 | Package | What it does | LOC |
 | ------- | ------------ | --- |
 | `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders. | 9,524 |
-| `@holoscript/wasm` | Rust WASM parser for 10x faster .holo parsing in browsers. `cargo install holoscript-wasm` | 3,154 |
+| `@holoscript/wasm` | Rust WASM parser for 10x faster .holo parsing in browsers. | 3,154 |
 | `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support. | 25 files |
 
 ## What's Here
@@ -250,42 +250,32 @@ No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses
 
 ## 📦 Installation
 
-Choose your preferred method:
+### MCP (recommended — works with Claude, Cursor, any MCP client)
 
-### macOS (Homebrew)
+```json
+{
+  "mcpServers": {
+    "holoscript": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.holoscript.net/mcp"]
+    }
+  }
+}
+```
+
+### npm
 
 ```bash
-brew tap brianonbased-dev/holoscript
-brew install holoscript
+npm install @holoscript/core
 ```
 
-### Windows (Chocolatey)
+### Compile API (no install)
 
 ```bash
-choco install holoscript
+curl -X POST https://mcp.holoscript.net/api/compile \
+  -H "Content-Type: application/json" \
+  -d '{"code": "composition \"Hello\" { object \"Cube\" { geometry: \"box\" } }", "target": "r3f"}'
 ```
-
-### npm (Cross-platform)
-
-```bash
-npm install -g @holoscript/cli
-```
-
-### Cargo (Rust)
-
-```bash
-cargo install holoscript-wasm
-```
-
-### Unity Package Manager
-
-Add to your Unity project (2022.3+ or Unity 6):
-
-```text
-https://github.com/brianonbased-dev/HoloScript.git?path=/packages/unity-sdk
-```
-
-**[📘 Full Deployment Guide →](./DEPLOYMENT.md)**
 
 ---
 

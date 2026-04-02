@@ -229,17 +229,17 @@ class CompilerFactory {
       case 'playcanvas':
         return new PlayCanvasCompiler(options);
       case 'vrr':
-        return new VRRCompiler(options);
+        return new VRRCompiler(options as any);
       case 'ar':
-        return new ARCompiler(options);
+        return new ARCompiler(options as any);
       case 'multi-layer':
-        return new MultiLayerCompiler(options);
+        return new MultiLayerCompiler(options as any);
       case 'incremental':
-        return new IncrementalCompiler(options);
+        return new IncrementalCompiler(options as any);
       case 'state':
-        return new StateCompiler(options);
+        return new StateCompiler();
       case 'trait-composition':
-        return new TraitCompositionCompiler(options);
+        return new TraitCompositionCompiler(options as any);
       case 'tsl':
         return new TSLCompiler(options);
       case 'a2a-agent-card':
@@ -279,7 +279,7 @@ const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, Gaussian
 
   // Mobile VR
   'android-xr': ['quest3'],
-  'phone-sleeve-vr': ['mobile'],
+  'phone-sleeve-vr': ['mobile' as any],
 
   // Desktop/Browser rendering
   webgpu: ['webgpu'],
@@ -621,6 +621,14 @@ export class ExportManager {
         this.memoryMonitor.setIncrementalCompiler(compiler);
       }
 
+      // R3FCompiler has compileComposition() for HoloComposition input.
+      // Its compile() method expects HSPlusAST. Other compilers use compile() directly.
+      const asRecord = compiler as Record<string, unknown>;
+      if (typeof asRecord['compileComposition'] === 'function') {
+        const compileFn = asRecord['compileComposition'] as (comp: unknown, token?: string) => unknown;
+        const output = await compileFn.call(compiler, composition, options.agentToken);
+        return output;
+      }
       const output = await compiler.compile(composition);
       return output;
     };
