@@ -32,6 +32,10 @@ export default function EntryDetailPage() {
   const [delegating, setDelegating] = useState(false);
   const [delegateMessage, setDelegateMessage] = useState('');
 
+  // Purchase flow
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState('');
+
   // Sort
   const [sort, setSort] = useState<'best' | 'new' | 'old'>('best');
 
@@ -170,6 +174,56 @@ export default function EntryDetailPage() {
     }
   }, [entry, delegating]);
 
+  const handleBuy = useCallback(async () => {
+    if (!entry || buying || entry.paid) return;
+    setBuying(true);
+    setBuyError('');
+    try {
+      // Step 1: Initiate payment — server returns a 402 with X-PAYMENT-REQUIRED details
+      const initRes = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (initRes.status === 402) {
+        // Step 2: Parse payment requirements and resubmit with X-PAYMENT header
+        const paymentRequired = await initRes.json();
+        const paymentToken = paymentRequired?.paymentToken ?? paymentRequired?.x_payment ?? '';
+        if (!paymentToken) {
+          setBuyError('Payment gateway unavailable. Please try again later.');
+          return;
+        }
+        const payRes = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/purchase`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-PAYMENT': paymentToken,
+          },
+        });
+        const payData = await payRes.json();
+        if (!payRes.ok || !payData.success) {
+          setBuyError(payData.error || 'Payment failed');
+          return;
+        }
+        // Refresh to get unlocked content
+        await fetchEntry();
+        return;
+      }
+
+      const data = await initRes.json();
+      if (!initRes.ok || !data.success) {
+        setBuyError(data.error || 'Purchase failed');
+        return;
+      }
+      // Already succeeded (free or included in plan)
+      await fetchEntry();
+    } catch (err) {
+      setBuyError((err as Error).message || 'Purchase failed');
+    } finally {
+      setBuying(false);
+    }
+  }, [entry, buying, entryId, fetchEntry]);
+
   const sortedComments = [...comments].sort((a, b) => {
     if (sort === 'new') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     if (sort === 'old') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -263,9 +317,36 @@ export default function EntryDetailPage() {
 
             {/* Entry content */}
             <div className="flex-1 min-w-0">
-              <div className="text-sm text-studio-text whitespace-pre-wrap leading-relaxed">
+              {/* Entry content — blurred when premium and not yet purchased */}
+              <div className={`text-sm text-studio-text whitespace-pre-wrap leading-relaxed ${entry.premium && !entry.paid ? 'select-none blur-sm pointer-events-none' : ''}`}>
                 {entry.content}
               </div>
+
+              {/* Premium paywall CTA */}
+              {entry.premium && !entry.paid && (
+                <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-semibold text-emerald-300">
+                        Premium entry — ${(entry.price || 0).toFixed(2)}
+                      </div>
+                      <div className="text-xs text-emerald-300/60 mt-0.5">
+                        One-time x402 micropayment via Base Sepolia
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleBuy}
+                      disabled={buying}
+                      className="shrink-0 rounded-lg bg-emerald-500 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+                    >
+                      {buying ? 'Processing...' : `Buy for $${(entry.price || 0).toFixed(2)}`}
+                    </button>
+                  </div>
+                  {buyError && (
+                    <div className="mt-2 text-xs text-red-400">{buyError}</div>
+                  )}
+                </div>
+              )}
 
               {/* Tags */}
               {(entry.tags?.length || entry.confidence != null) && (

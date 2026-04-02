@@ -62,6 +62,12 @@ export interface KnowledgeEntry {
   voteCount?: number;
   commentCount?: number;
   userVote?: 1 | -1 | 0;
+  // Premium / x402 purchase gate
+  premium?: boolean;
+  paid?: boolean;
+  salesCount?: number;
+  authorReputation?: number;
+  authorTier?: ReputationTier;
 }
 
 export interface Comment {
