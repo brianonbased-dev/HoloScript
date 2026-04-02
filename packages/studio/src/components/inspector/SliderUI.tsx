@@ -96,7 +96,6 @@ export function PBRSlider({
 }
 
 export interface SectionProps {
-  id: string;
   label: string;
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   active: boolean;
@@ -115,7 +114,7 @@ export function Section({
   accent,
 }: SectionProps) {
   return (
-    <div className="border-b border-studio-border">
+    <div id={id} className="border-b border-studio-border">
       <button
         onClick={onToggle}
         className="flex w-full items-center gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-studio-muted hover:text-studio-text"
