@@ -280,6 +280,61 @@ interface RoomConfig {
   spawnTemplate?: { traits: string[]; ideType?: string };
 }
 
+// ── Task Board (structured work tracking — not chat) ──
+
+type TaskStatus = 'open' | 'claimed' | 'done' | 'blocked';
+type SlotRole = 'coder' | 'tester' | 'researcher' | 'reviewer' | 'flex';
+
+interface TeamTask {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  claimedBy?: string;       // agent ID
+  claimedByName?: string;
+  completedBy?: string;
+  commitHash?: string;
+  source?: string;          // "STUDIO_AUDIT.md" or "ROADMAP.md" or "manual"
+  priority: number;         // 1=highest
+  role?: SlotRole;          // preferred slot role
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface DoneLogEntry {
+  taskId: string;
+  title: string;
+  completedBy: string;
+  commitHash?: string;
+  timestamp: string;
+  summary: string;
+}
+
+// ── Room Presets (switch workload with one command) ──
+
+const ROOM_PRESETS: Record<string, { objective: string; taskSources: string[]; rules: string[] }> = {
+  audit: {
+    objective: 'Fix audit issues — split oversized components, add error handling, close security gaps, add tests',
+    taskSources: ['STUDIO_AUDIT.md'],
+    rules: ['Screenshot before and after visual changes', 'Run tsc --noEmit before committing', 'One task at a time'],
+  },
+  research: {
+    objective: 'Compound knowledge — read research files, synthesize findings, contribute wisdom/patterns/gotchas',
+    taskSources: ['research/*.md', 'ROADMAP.md'],
+    rules: ['Query knowledge store before writing', 'Contribute findings to team workspace', 'Cite sources'],
+  },
+  build: {
+    objective: 'Ship features — implement roadmap items, write code, add tests, deploy',
+    taskSources: ['ROADMAP.md', 'TODO.md'],
+    rules: ['Run tests before committing', 'Sectioned commits by scope', 'Update docs if adding public API'],
+  },
+  review: {
+    objective: 'Quality gate — review recent changes, check for regressions, verify test coverage',
+    taskSources: ['git log --oneline -20'],
+    rules: ['Read the diff before commenting', 'Check test coverage', 'Verify no new console.log in production code'],
+  },
+};
+
 interface Team {
   id: string;
   name: string;
@@ -294,6 +349,10 @@ interface Team {
   roomConfig?: RoomConfig;
   treasuryWallet?: string;
   treasuryBalance?: number;
+  taskBoard?: TeamTask[];
+  doneLog?: DoneLogEntry[];
+  slotRoles?: SlotRole[];     // roles for slots 0..maxSlots-1
+  mode?: string;              // current preset: 'audit' | 'research' | 'build' | 'review'
 }
 
 const teamStore: Map<string, Team> = new Map(); // teamId → Team
@@ -3468,6 +3527,298 @@ export async function handleHoloMeshRoute(
           treasuryFeeBps: rc.treasuryFeeBps,
           autoSpawn: rc.autoSpawn,
         },
+      });
+      return true;
+    }
+
+    // ── Task Board + Done Log + Roles + Presets ──────────────────────
+
+    // GET /api/holomesh/team/:id/board — Full task board view
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { teamId } = access;
+      void access.caller; // used for auth only
+      const team = teamStore.get(teamId)!;
+      const board = team.taskBoard || [];
+      const doneLog = team.doneLog || [];
+
+      const open = board.filter((t) => t.status === 'open').sort((a, b) => a.priority - b.priority);
+      const claimed = board.filter((t) => t.status === 'claimed');
+      const blocked = board.filter((t) => t.status === 'blocked');
+      const recentDone = doneLog.slice(-10).reverse();
+
+      json(res, 200, {
+        success: true,
+        mode: team.mode || 'manual',
+        objective: team.roomConfig?.objective || team.description,
+        board: { open, claimed, blocked },
+        done: { recent: recentDone, total: doneLog.length },
+        slots: {
+          roles: team.slotRoles || Array(team.maxSlots).fill('flex'),
+          max: team.maxSlots,
+        },
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/team/:id/board — Add task(s) to the board
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.taskBoard) team.taskBoard = [];
+
+      const body = await parseJsonBody(req);
+      const tasks = Array.isArray(body.tasks) ? body.tasks : [body];
+      const added: TeamTask[] = [];
+
+      for (const t of tasks) {
+        const task: TeamTask = {
+          id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          title: String(t.title || '').slice(0, 200),
+          description: String(t.description || '').slice(0, 1000),
+          status: 'open',
+          source: String(t.source || 'manual'),
+          priority: parseInt(String(t.priority)) || 5,
+          role: t.role as SlotRole || undefined,
+          createdAt: new Date().toISOString(),
+        };
+        if (task.title) {
+          team.taskBoard.push(task);
+          added.push(task);
+        }
+      }
+      persistTeamStore();
+      json(res, 201, { success: true, added: added.length, tasks: added });
+      return true;
+    }
+
+    // PATCH /api/holomesh/team/:id/board/:taskId — Claim, complete, or update a task
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/[^/]+$/) && method === 'PATCH') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.taskBoard) team.taskBoard = [];
+
+      const parts = pathname.split('/');
+      const taskId = parts[parts.length - 1];
+      const task = team.taskBoard.find((t) => t.id === taskId);
+      if (!task) {
+        json(res, 404, { error: 'Task not found' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const action = body.action as string;
+
+      if (action === 'claim') {
+        if (task.status !== 'open') {
+          json(res, 409, { error: `Task is ${task.status}, not open` });
+          return true;
+        }
+        task.status = 'claimed';
+        task.claimedBy = caller.id;
+        task.claimedByName = caller.name;
+      } else if (action === 'done') {
+        task.status = 'done';
+        task.completedBy = caller.name;
+        task.commitHash = (body.commit as string) || undefined;
+        task.completedAt = new Date().toISOString();
+        // Add to done log
+        if (!team.doneLog) team.doneLog = [];
+        team.doneLog.push({
+          taskId: task.id,
+          title: task.title,
+          completedBy: caller.name,
+          commitHash: task.commitHash,
+          timestamp: task.completedAt,
+          summary: String(body.summary || task.title),
+        });
+        // Remove from active board
+        team.taskBoard = team.taskBoard.filter((t) => t.id !== taskId);
+      } else if (action === 'block') {
+        task.status = 'blocked';
+      } else if (action === 'reopen') {
+        task.status = 'open';
+        task.claimedBy = undefined;
+        task.claimedByName = undefined;
+      } else {
+        json(res, 400, { error: 'action must be: claim, done, block, reopen' });
+        return true;
+      }
+
+      persistTeamStore();
+      json(res, 200, { success: true, task });
+      return true;
+    }
+
+    // POST /api/holomesh/team/:id/board/derive — Auto-derive tasks from source files
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/board\/derive$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+      if (!team.taskBoard) team.taskBoard = [];
+
+      const body = await parseJsonBody(req);
+      const source = String(body.source || '');
+      const content = String(body.content || '');
+
+      if (!content) {
+        json(res, 400, { error: 'Provide content (the text to derive tasks from) and source (where it came from)' });
+        return true;
+      }
+
+      // Parse tasks from content — look for actionable items
+      // Patterns: "- [ ] ...", "### ...: ...", "HIGH:", "CRITICAL:", numbered lists
+      const lines = content.split('\n');
+      const derived: TeamTask[] = [];
+      let priority = 5;
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // Markdown checkboxes
+        if (trimmed.match(/^-\s*\[\s*\]\s+.+/)) {
+          const title = trimmed.replace(/^-\s*\[\s*\]\s+/, '').slice(0, 200);
+          derived.push({ id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, title, description: '', status: 'open', source, priority, createdAt: new Date().toISOString() });
+        }
+        // Priority markers
+        if (trimmed.match(/^#+\s*(CRITICAL|SEC-)/i)) priority = 1;
+        else if (trimmed.match(/^#+\s*(HIGH|PERF-|MEM-|TYPE-|ERR-|TEST-)/i)) priority = 2;
+        else if (trimmed.match(/^#+\s*(MEDIUM|LOG-|TODO-|STORE-|UNUSED-)/i)) priority = 3;
+        // Section headers as tasks
+        if (trimmed.match(/^###\s+\w+-\d+:.+/)) {
+          const title = trimmed.replace(/^###\s+/, '').slice(0, 200);
+          if (!team.taskBoard.find((t) => t.title === title) && !derived.find((t) => t.title === title)) {
+            derived.push({ id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, title, description: '', status: 'open', source, priority, createdAt: new Date().toISOString() });
+          }
+        }
+      }
+
+      // Dedup against existing board
+      const existing = new Set(team.taskBoard.map((t) => t.title));
+      const doneSet = new Set((team.doneLog || []).map((d) => d.title));
+      const fresh = derived.filter((t) => !existing.has(t.title) && !doneSet.has(t.title));
+
+      team.taskBoard.push(...fresh);
+      persistTeamStore();
+
+      json(res, 201, {
+        success: true,
+        derived: fresh.length,
+        skipped_existing: derived.length - fresh.length,
+        source,
+        tasks: fresh,
+      });
+      return true;
+    }
+
+    // POST /api/holomesh/team/:id/mode — Switch room preset
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/mode$/) && method === 'POST') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+
+      if (!hasTeamPermission(team, caller.id, 'team:settings')) {
+        json(res, 403, { error: 'Only owner/admin can switch modes' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const mode = String(body.mode || '');
+      const preset = ROOM_PRESETS[mode];
+
+      if (!preset) {
+        json(res, 400, { error: `Unknown mode: ${mode}. Available: ${Object.keys(ROOM_PRESETS).join(', ')}` });
+        return true;
+      }
+
+      // Apply preset to room config
+      if (!team.roomConfig) {
+        const roomWallet = await generateAgentWallet();
+        team.treasuryWallet = roomWallet.address;
+        team.treasuryBalance = 0;
+        team.roomConfig = { mcpServers: [], brainTemplate: '', absorbedProjects: [], objective: '', rules: [], treasuryFeeBps: 0, autoSpawn: false };
+      }
+      team.roomConfig.objective = preset.objective;
+      team.roomConfig.rules = preset.rules;
+      team.mode = mode;
+
+      // Broadcast mode change
+      const messages = teamMessageStore.get(teamId) || [];
+      messages.push({
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        teamId,
+        fromAgentId: 'room',
+        fromAgentName: `Room: ${team.name}`,
+        content: `Mode switched to "${mode}" by ${caller.name}. New objective: ${preset.objective}. Task sources: ${preset.taskSources.join(', ')}`,
+        messageType: 'text' as any,
+        createdAt: new Date().toISOString(),
+      } as any);
+      teamMessageStore.set(teamId, messages.slice(-500));
+
+      persistTeamStore();
+
+      json(res, 200, {
+        success: true,
+        mode,
+        objective: preset.objective,
+        rules: preset.rules,
+        taskSources: preset.taskSources,
+        hint: `Derive tasks: POST /api/holomesh/team/${teamId}/board/derive with content from ${preset.taskSources[0]}`,
+      });
+      return true;
+    }
+
+    // PATCH /api/holomesh/team/:id/roles — Set slot roles
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/roles$/) && method === 'PATCH') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { caller, teamId } = access;
+      const team = teamStore.get(teamId)!;
+
+      if (!hasTeamPermission(team, caller.id, 'team:settings')) {
+        json(res, 403, { error: 'Only owner/admin can set roles' });
+        return true;
+      }
+
+      const body = await parseJsonBody(req);
+      const roles = body.roles as string[];
+      const validRoles: SlotRole[] = ['coder', 'tester', 'researcher', 'reviewer', 'flex'];
+
+      if (!Array.isArray(roles) || roles.length !== team.maxSlots) {
+        json(res, 400, { error: `Provide exactly ${team.maxSlots} roles. Valid: ${validRoles.join(', ')}` });
+        return true;
+      }
+      if (!roles.every((r) => validRoles.includes(r as SlotRole))) {
+        json(res, 400, { error: `Invalid role. Valid: ${validRoles.join(', ')}` });
+        return true;
+      }
+
+      team.slotRoles = roles as SlotRole[];
+      persistTeamStore();
+
+      json(res, 200, { success: true, roles: team.slotRoles });
+      return true;
+    }
+
+    // GET /api/holomesh/team/:id/done — Done log (proof of work)
+    if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/done$/) && method === 'GET') {
+      const access = requireTeamAccess(req, res, url);
+      if (!access) return true;
+      const { teamId } = access;
+      void access.caller;
+      const team = teamStore.get(teamId)!;
+      const doneLog = team.doneLog || [];
+
+      json(res, 200, {
+        success: true,
+        total: doneLog.length,
+        entries: doneLog.slice().reverse(),
       });
       return true;
     }
