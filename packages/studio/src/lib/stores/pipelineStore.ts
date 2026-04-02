@@ -263,7 +263,7 @@ export const usePipelineStore = create<PipelineState>()(
 
         pushGlobalFeedback: (signal) => {
           set((s) => ({
-            globalFeedback: [...s.globalFeedback, signal].slice(-500),
+            globalFeedback: [...s.globalFeedback, signal].slice(-50),
           }));
         },
 
@@ -321,9 +321,14 @@ export const usePipelineStore = create<PipelineState>()(
       {
         name: 'pipeline-store',
         partialize: (state) => ({
-          pipelineHistory: state.pipelineHistory,
+          // Persist configs and a lightweight run summary (no per-layer history)
           layerConfigs: state.layerConfigs,
-          globalFeedback: state.globalFeedback,
+          pipelineHistory: state.pipelineHistory.map((run) => ({
+            ...run,
+            layers: Object.fromEntries(
+              Object.entries(run.layers).map(([k, v]) => [k, { ...v, history: [], feedbackBuffer: [] }])
+            ) as unknown as PipelineRun['layers'],
+          })),
         }),
       }
     ),
