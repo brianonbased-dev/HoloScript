@@ -4,7 +4,7 @@
  * Tracks user presence and awareness in collaborative sessions
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { getCollaborationClient } from '@/lib/collaboration/client';
 import type { UserPresence } from '@/lib/collaboration/types';
 
@@ -64,11 +64,15 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
     [enabled]
   );
 
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Poll for connected users
   useEffect(() => {
     if (!enabled) return;
 
-    const interval = setInterval(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
       try {
         const client = getCollaborationClient();
         const connectedUsers = client.getConnectedUsers();
@@ -78,7 +82,10 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
       }
     }, 1000); // Update every second
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
   }, [enabled]);
 
   return {

@@ -29,6 +29,11 @@ export function useLivePreview(options?: LivePreviewOptions) {
   const [status, setStatus] = useState<PreviewStatus>('disconnected');
   const [lastSync, setLastSync] = useState<number | null>(null);
   const esRef = useRef<EventSource | null>(null);
+  
+  const onRemoteCodeRef = useRef(onRemoteCode);
+  useEffect(() => {
+    onRemoteCodeRef.current = onRemoteCode;
+  }, [onRemoteCode]);
 
   const connect = useCallback(() => {
     if (esRef.current) esRef.current.close();
@@ -40,7 +45,7 @@ export function useLivePreview(options?: LivePreviewOptions) {
     es.addEventListener('preview', (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data) as PreviewEvent;
-        onRemoteCode?.(data.code);
+        onRemoteCodeRef.current?.(data.code);
         setLastSync(data.ts);
       } catch {
         /* ignore malformed */
@@ -52,7 +57,7 @@ export function useLivePreview(options?: LivePreviewOptions) {
       setStatus('error');
       esRef.current = null;
     };
-  }, [sceneId, onRemoteCode]);
+  }, [sceneId]);
 
   const disconnect = useCallback(() => {
     esRef.current?.close();

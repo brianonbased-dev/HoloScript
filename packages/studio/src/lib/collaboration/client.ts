@@ -41,6 +41,7 @@ export class CollaborationClient {
    * Connect to a collaboration session
    */
   async connect(sessionId: string): Promise<void> {
+    this.disconnect(); // Ensure previous provider is cleaned up to prevent stacking
     this.sessionId = sessionId;
     const wsUrl = this.config.wsUrl || 'wss://collab.holoscript.net';
 
@@ -302,6 +303,9 @@ export class CollaborationClient {
     this.disconnect();
     this.ydoc.destroy();
   }
+  updateConfig(newConfig: Partial<CollaborationClientConfig>) {
+    this.config = { ...this.config, ...newConfig };
+  }
 }
 
 // ── Singleton Instance ────────────────────────────────────────────────────────
@@ -311,6 +315,8 @@ let collaborationClientInstance: CollaborationClient | null = null;
 export function getCollaborationClient(config?: CollaborationClientConfig): CollaborationClient {
   if (!collaborationClientInstance && config) {
     collaborationClientInstance = new CollaborationClient(config);
+  } else if (collaborationClientInstance && config) {
+    collaborationClientInstance.updateConfig(config);
   }
   if (!collaborationClientInstance) {
     throw new Error('CollaborationClient not initialized');

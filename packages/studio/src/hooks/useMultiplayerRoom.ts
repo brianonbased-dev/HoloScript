@@ -84,15 +84,13 @@ export function useMultiplayerRoom({
           return;
         }
         if (evt.type === 'chat' && evt.payload?.text) {
-          setChat((c) => [
-            ...c.slice(-99),
-            {
-              user: evt.user!,
-              color: evt.color ?? '#aaa',
-              text: evt.payload!.text!,
-              ts: evt.ts ?? Date.now(),
-            },
-          ]);
+          const msg: ChatMessage = {
+            user: evt.user!,
+            color: evt.color ?? '#aaa',
+            text: evt.payload!.text!,
+            ts: evt.ts ?? Date.now(),
+          };
+          setChat((prev) => [...prev.slice(-99), msg]);
         }
         setPeers((prev) => {
           const next = new Map(prev);
