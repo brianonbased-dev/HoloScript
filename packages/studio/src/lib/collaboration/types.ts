@@ -65,8 +65,8 @@ export interface CollaborationUpdate {
   type: UpdateType;
   userId: string;
   timestamp: number;
-  data: any;
-  previousState?: any;
+  data: unknown;
+  previousState?: unknown;
 }
 
 // ── Chat Messages ─────────────────────────────────────────────────────────────

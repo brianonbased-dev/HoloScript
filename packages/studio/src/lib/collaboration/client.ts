@@ -15,6 +15,7 @@ import type {
   ConnectionStatus,
   ChatMessage,
 } from './types';
+import type { GraphNode, GraphEdge } from '@/hooks/useNodeGraph';
 
 export interface CollaborationClientConfig {
   wsUrl?: string;
@@ -110,35 +111,35 @@ export class CollaborationClient {
   /**
    * Get a shared map for workflow data
    */
-  getWorkflowMap(): Y.Map<any> {
+  getWorkflowMap(): Y.Map<unknown> {
     return this.ydoc.getMap('workflow');
   }
 
   /**
    * Get a shared array for nodes
    */
-  getNodesArray(): Y.Array<any> {
+  getNodesArray(): Y.Array<GraphNode> {
     return this.ydoc.getArray('nodes');
   }
 
   /**
    * Get a shared array for edges
    */
-  getEdgesArray(): Y.Array<any> {
+  getEdgesArray(): Y.Array<GraphEdge> {
     return this.ydoc.getArray('edges');
   }
 
   /**
    * Get a shared map for metadata
    */
-  getMetadataMap(): Y.Map<any> {
+  getMetadataMap(): Y.Map<unknown> {
     return this.ydoc.getMap('metadata');
   }
 
   /**
    * Sync workflow state to Yjs
    */
-  syncWorkflow(workflow: { nodes: any[]; edges: any[]; metadata: Record<string, any> }): void {
+  syncWorkflow(workflow: { nodes: GraphNode[]; edges: GraphEdge[]; metadata: Record<string, unknown> }): void {
     this.ydoc.transact(() => {
       const nodesArray = this.getNodesArray();
       const edgesArray = this.getEdgesArray();
@@ -163,9 +164,9 @@ export class CollaborationClient {
    * Get current workflow state from Yjs
    */
   getWorkflowState(): {
-    nodes: any[];
-    edges: any[];
-    metadata: Record<string, any>;
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+    metadata: Record<string, unknown>;
   } {
     const nodesArray = this.getNodesArray();
     const edgesArray = this.getEdgesArray();
@@ -181,19 +182,23 @@ export class CollaborationClient {
   /**
    * Observe changes to the workflow
    */
-  observeWorkflow(callback: (event: Y.YEvent<any>) => void): () => void {
+  observeWorkflow(callback: (event: Y.YEvent<Y.AbstractType<unknown>>) => void): () => void {
     const nodesArray = this.getNodesArray();
     const edgesArray = this.getEdgesArray();
     const metadataMap = this.getMetadataMap();
 
-    nodesArray.observe(callback);
-    edgesArray.observe(callback);
-    metadataMap.observe(callback);
+    const nodesCallback = (event: Y.YArrayEvent<GraphNode>) => callback(event as Y.YEvent<Y.AbstractType<unknown>>);
+    const edgesCallback = (event: Y.YArrayEvent<GraphEdge>) => callback(event as Y.YEvent<Y.AbstractType<unknown>>);
+    const metaCallback = (event: Y.YMapEvent<unknown>) => callback(event as Y.YEvent<Y.AbstractType<unknown>>);
+
+    nodesArray.observe(nodesCallback);
+    edgesArray.observe(edgesCallback);
+    metadataMap.observe(metaCallback);
 
     return () => {
-      nodesArray.unobserve(callback);
-      edgesArray.unobserve(callback);
-      metadataMap.unobserve(callback);
+      nodesArray.unobserve(nodesCallback);
+      edgesArray.unobserve(edgesCallback);
+      metadataMap.unobserve(metaCallback);
     };
   }
 
@@ -292,7 +297,7 @@ export class CollaborationClient {
   /**
    * Create undo manager for collaborative editing
    */
-  createUndoManager(scope?: Y.AbstractType<any>[]): Y.UndoManager {
+  createUndoManager(scope?: Y.AbstractType<unknown>[]): Y.UndoManager {
     const scopes = scope || [this.getNodesArray(), this.getEdgesArray(), this.getMetadataMap()];
 
     return new Y.UndoManager(scopes, {
