@@ -1026,7 +1026,7 @@ function HoloDaemonSubPanel() {
         activeJobProgress: 0,
         activeJobStatus: 'Job created, starting...',
       });
-    } catch (err) { console.warn('[AbsorbPage] daemon job creation failed:', err); }
+    } catch (err) { logger.warn('[AbsorbPage] daemon job creation failed:', err); }
   }, [createJob, daemonMode, composition]);
 
   const daemonStatus =
